@@ -100,7 +100,7 @@ class ViewUI implements ViewEntityInterface {
   public $stack;
 
   /**
-   * Is the view runned in a context of the preview in the admin interface.
+   * Is the view run in a context of the preview in the admin interface.
    *
    * @var bool
    */
@@ -349,7 +349,7 @@ class ViewUI implements ViewEntityInterface {
       // button labels.
       if (isset($names)) {
         $form['actions']['submit']['#values'] = $names;
-        $form['actions']['submit']['#process'] = array_merge(array('views_ui_form_button_was_clicked'), element_info_property($form['actions']['submit']['#type'], '#process', array()));
+        $form['actions']['submit']['#process'] = array_merge(array('views_ui_form_button_was_clicked'), \Drupal::service('element_info')->getInfoProperty($form['actions']['submit']['#type'], '#process', array()));
       }
       // If a validation handler exists for the form, assign it to this button.
       $form['actions']['submit']['#validate'][] = [$form_state->getFormObject(), 'validateForm'];
@@ -598,7 +598,7 @@ class ViewUI implements ViewEntityInterface {
       $executable->setArguments($args);
 
       // Store the current view URL for later use:
-      if ($executable->display_handler->getOption('path')) {
+      if ($executable->hasUrl() && $executable->display_handler->getOption('path')) {
         $path = $executable->getUrl();
       }
 
@@ -1211,8 +1211,22 @@ class ViewUI implements ViewEntityInterface {
   /**
    * {@inheritdoc}
    */
+  public function getCacheContexts() {
+    return $this->storage->getCacheContexts();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getCacheTags() {
     return $this->storage->getCacheTags();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    return $this->storage->getCacheMaxAge();
   }
 
   /**

@@ -31,6 +31,19 @@ class SessionTestController extends ControllerBase {
   }
 
   /**
+   * Prints the stored session value to the screen.
+   *
+   * @return string
+   *   A notification message.
+   */
+  public function getFromSessionObject() {
+    $value = \Drupal::request()->getSession()->get("session_test_key");
+    return empty($value)
+      ? []
+      : ['#markup' => $this->t('The current value of the stored session variable is: %val', array('%val' => $value))];
+  }
+
+  /**
    * Print the current session ID.
    *
    * @return string
@@ -147,6 +160,19 @@ class SessionTestController extends ControllerBase {
     $trace = \Drupal::service('session_test.session_handler_proxy_trace')->getArrayCopy();
 
     return new JsonResponse($trace);
+  }
+
+  /**
+   * Returns the values stored in the active session and the user ID.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   A response object containing the session values and the user ID.
+   */
+  public function getSession(Request $request) {
+    return new JsonResponse(['session' => $request->getSession()->all(), 'user' => $this->currentUser()->id()]);
   }
 
 }

@@ -8,9 +8,10 @@
 namespace Drupal\contextual\Plugin\views\field;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RedirectDestinationTrait;
 use Drupal\Core\Url;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\ResultRow;
@@ -23,6 +24,8 @@ use Drupal\views\ResultRow;
  * @ViewsField("contextual_links")
  */
 class ContextualLinks extends FieldPluginBase {
+
+  use RedirectDestinationTrait;
 
   /**
    * {@inheritdoc}
@@ -112,14 +115,14 @@ class ContextualLinks extends FieldPluginBase {
       if (!empty($title) && !empty($path)) {
         // Make sure that tokens are replaced for this paths as well.
         $tokens = $this->getRenderTokens(array());
-        $path = strip_tags(String::decodeEntities(strtr($path, $tokens)));
+        $path = strip_tags(Html::decodeEntities(strtr($path, $tokens)));
 
         $links[$field] = array(
           'href' => $path,
           'title' => $title,
         );
         if (!empty($this->options['destination'])) {
-          $links[$field]['query'] = drupal_get_destination();
+          $links[$field]['query'] = $this->getDestinationArray();
         }
       }
     }

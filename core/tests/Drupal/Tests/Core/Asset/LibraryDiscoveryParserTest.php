@@ -52,6 +52,13 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   protected $moduleHandler;
 
   /**
+   * The mocked theme manager.
+   *
+   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $themeManager;
+
+  /**
    * The mocked lock backend.
    *
    * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
@@ -65,7 +72,8 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
     parent::setUp();
 
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->libraryDiscoveryParser = new TestLibraryDiscoveryParser($this->root, $this->moduleHandler);
+    $this->themeManager = $this->getMock('Drupal\Core\Theme\ThemeManagerInterface');
+    $this->libraryDiscoveryParser = new TestLibraryDiscoveryParser($this->root, $this->moduleHandler, $this->themeManager);
   }
 
   /**
@@ -206,6 +214,35 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
     $this->assertEquals(\Drupal::VERSION, $libraries['core-versioned']['version']);
     $this->assertEquals(\Drupal::VERSION, $libraries['core-versioned']['css'][0]['version']);
     $this->assertEquals(\Drupal::VERSION, $libraries['core-versioned']['js'][0]['version']);
+  }
+
+  /**
+   * Tests the version property with ISO dates.
+   *
+   * We want to make sure that versions defined in the YAML file are the same
+   * versions that are parsed.
+   *
+   * For example, ISO dates are converted into UNIX time by the YAML parser.
+   *
+   * @covers ::buildByExtension
+   */
+  public function testNonStringVersion() {
+    $this->moduleHandler->expects($this->atLeastOnce())
+      ->method('moduleExists')
+      ->with('versions')
+      ->will($this->returnValue(TRUE));
+
+    $path = __DIR__ . '/library_test_files';
+    $path = substr($path, strlen($this->root) + 1);
+    $this->libraryDiscoveryParser->setPaths('module', 'versions', $path);
+
+    $libraries = $this->libraryDiscoveryParser->buildByExtension('versions');
+
+    // As an example, we defined an ISO date in the YAML file and the YAML
+    // parser converts it into a UNIX timestamp.
+    $this->assertNotEquals('2014-12-13', $libraries['invalid-version']['version']);
+    // An example of an ISO date as a string which parses correctly.
+    $this->assertEquals('2014-12-13', $libraries['valid-version']['version']);
   }
 
   /**

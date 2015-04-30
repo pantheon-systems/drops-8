@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Default theme implementation for a set of links.
+ * Theme override for a set of links.
  *
  * Available variables:
  * - attributes: Attributes for the UL containing the list of links.
@@ -12,7 +12,7 @@
  *     item in the links list. If 'href' is supplied, the entire link is passed
  *     to l() as its $options parameter.
  *   - html: (optional) Whether or not 'title' is HTML. If set, the title will
- *     not be passed through \Drupal\Component\Utility\String::checkPlain().
+ *     not be passed through \Drupal\Component\Utility\SafeMarkup::checkPlain().
  *   - attributes: (optional) HTML attributes for the anchor, or for the <span>
  *     tag if no 'href' is supplied.
  *   - link_key: The link CSS class.

@@ -7,7 +7,7 @@
 
 namespace Drupal\config\Tests;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\ConfigNameException;
 use Drupal\Core\Config\ConfigValueException;
 use Drupal\Core\Config\InstallStorage;
@@ -38,11 +38,6 @@ class ConfigCRUDTest extends KernelTestBase {
    * @var array
    */
   public static $modules = array('system');
-
-  protected function setUp() {
-      parent::setUp();
-      $this->installSchema('system', 'router');
-    }
 
   /**
    * Tests CRUD operations.
@@ -287,7 +282,7 @@ class ConfigCRUDTest extends KernelTestBase {
       $this->fail('No Exception thrown upon saving invalid data type.');
     }
     catch (UnsupportedDataTypeConfigException $e) {
-      $this->pass(String::format('%class thrown upon saving invalid data type.', array(
+      $this->pass(SafeMarkup::format('%class thrown upon saving invalid data type.', array(
         '%class' => get_class($e),
       )));
     }
@@ -304,7 +299,7 @@ class ConfigCRUDTest extends KernelTestBase {
       $this->fail('No Exception thrown upon saving invalid data type.');
     }
     catch (UnsupportedDataTypeConfigException $e) {
-      $this->pass(String::format('%class thrown upon saving invalid data type.', array(
+      $this->pass(SafeMarkup::format('%class thrown upon saving invalid data type.', array(
         '%class' => get_class($e),
       )));
     }

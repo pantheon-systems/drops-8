@@ -7,7 +7,7 @@
 
 namespace Drupal\migrate\Entity;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\MigrateException;
@@ -279,9 +279,9 @@ class Migration extends ConfigEntityBase implements MigrationInterface, Requirem
   /**
    * {@inheritdoc}
    */
-  public function getDestinationPlugin($stub = FALSE) {
+  public function getDestinationPlugin($stub_being_requested = FALSE) {
     if (!isset($this->destinationPlugin)) {
-      if ($stub && !empty($this->destination['no_stub'])) {
+      if ($stub_being_requested && !empty($this->destination['no_stub'])) {
         throw new MigrateSkipRowException;
       }
       $this->destinationPlugin = \Drupal::service('plugin.manager.migrate.destination')->createInstance($this->destination['plugin'], $this->destination, $this);
@@ -352,7 +352,7 @@ class Migration extends ConfigEntityBase implements MigrationInterface, Requirem
       }
     }
     if ($missing_migrations) {
-      throw new RequirementsException(String::format('Missing migrations @requirements.', ['@requirements' => implode(', ', $missing_migrations)]), ['requirements' => $missing_migrations]);
+      throw new RequirementsException(SafeMarkup::format('Missing migrations @requirements.', ['@requirements' => implode(', ', $missing_migrations)]), ['requirements' => $missing_migrations]);
     }
   }
 

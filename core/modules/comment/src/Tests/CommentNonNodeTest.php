@@ -8,6 +8,7 @@
 namespace Drupal\comment\Tests;
 
 use Drupal\comment\CommentInterface;
+use Drupal\comment\Entity\Comment;
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -164,7 +165,7 @@ class CommentNonNodeTest extends WebTestBase {
     }
 
     if (isset($match[1])) {
-      return entity_load('comment', $match[1]);
+      return Comment::load($match[1]);
     }
   }
 
@@ -173,7 +174,7 @@ class CommentNonNodeTest extends WebTestBase {
    *
    * @param \Drupal\comment\CommentInterface $comment
    *   The comment object.
-   * @param boolean $reply
+   * @param bool $reply
    *   Boolean indicating whether the comment is a reply to another comment.
    *
    * @return boolean
@@ -211,7 +212,7 @@ class CommentNonNodeTest extends WebTestBase {
    *   Comment to perform operation on.
    * @param string $operation
    *   Operation to perform.
-   * @param boolean $aproval
+   * @param bool $approval
    *   Operation is found on approval page.
    */
   function performCommentOperation($comment, $operation, $approval = FALSE) {
@@ -264,8 +265,8 @@ class CommentNonNodeTest extends WebTestBase {
     // Test that field to change cardinality is not available.
     $this->drupalGet('entity_test/structure/entity_test/fields/entity_test.entity_test.comment/storage');
     $this->assertResponse(200);
-    $this->assertNoField('field_storage[cardinality_number]');
-    $this->assertNoField('field_storage[cardinality]');
+    $this->assertNoField('cardinality_number');
+    $this->assertNoField('cardinality');
 
     $this->drupalLogin($this->adminUser);
 
@@ -392,14 +393,14 @@ class CommentNonNodeTest extends WebTestBase {
     // Test comment option change in field settings.
     $edit = array(
       'default_value_input[comment][0][status]' => CommentItemInterface::CLOSED,
-      'field[settings][anonymous]' => COMMENT_ANONYMOUS_MAY_CONTACT,
+      'settings[anonymous]' => COMMENT_ANONYMOUS_MAY_CONTACT,
     );
     $this->drupalPostForm(NULL, $edit, t('Save settings'));
     $this->drupalGet('entity_test/structure/entity_test/fields/entity_test.entity_test.comment');
     $this->assertNoFieldChecked('edit-default-value-input-comment-0-status-0');
     $this->assertFieldChecked('edit-default-value-input-comment-0-status-1');
     $this->assertNoFieldChecked('edit-default-value-input-comment-0-status-2');
-    $this->assertFieldByName('field[settings][anonymous]', COMMENT_ANONYMOUS_MAY_CONTACT);
+    $this->assertFieldByName('settings[anonymous]', COMMENT_ANONYMOUS_MAY_CONTACT);
 
     // Add a new comment-type.
     $bundle = CommentType::create(array(
@@ -412,7 +413,7 @@ class CommentNonNodeTest extends WebTestBase {
 
     // Add a new comment field.
     $storage_edit = array(
-      'field_storage[settings][comment_type]' => 'foobar',
+      'settings[comment_type]' => 'foobar',
     );
     $this->fieldUIAddNewField('entity_test/structure/entity_test', 'foobar', 'Foobar', 'comment', $storage_edit);
 

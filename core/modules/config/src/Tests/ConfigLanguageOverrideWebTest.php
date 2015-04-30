@@ -39,7 +39,7 @@ class ConfigLanguageOverrideWebTest extends WebTestBase {
     $adminUser = $this->drupalCreateUser(array('administer site configuration', 'administer languages'));
     $this->drupalLogin($adminUser);
 
-    // Add a custom lanugage.
+    // Add a custom language.
     $langcode = 'xx';
     $name = $this->randomMachineName(16);
     $edit = array(
@@ -75,7 +75,7 @@ class ConfigLanguageOverrideWebTest extends WebTestBase {
     // overrides still work.
     $language_manager = \Drupal::languageManager()->reset();
     $this->assertTrue($language_manager->isMultilingual(), 'The test site is multilingual.');
-    $this->config('system.site')->set('langcode', 'xx')->save();
+    $this->config('system.site')->set('default_langcode', 'xx')->save();
 
     ConfigurableLanguage::load('en')->delete();
     $this->assertFalse($language_manager->isMultilingual(), 'The test site is monolingual.');

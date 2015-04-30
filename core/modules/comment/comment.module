@@ -16,7 +16,7 @@ use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -220,40 +220,6 @@ function comment_node_view_alter(array &$build, EntityInterface $node, EntityVie
 }
 
 /**
- * Calculates the indentation level of each comment in a comment thread.
- *
- * This function loops over an array representing a comment thread. For each
- * comment, the function calculates the indentation level and saves it in the
- * 'divs' property of the comment object.
- *
- * @param array $comments
- *   An array of comment objects, keyed by comment ID.
- */
-function comment_prepare_thread(&$comments) {
-  // A counter that helps track how indented we are.
-  $divs = 0;
-
-  foreach ($comments as $key => &$comment) {
-    // The $divs element instructs #prefix whether to add an indent div or
-    // close existing divs (a negative value).
-    $comment->depth = count(explode('.', $comment->getThread())) - 1;
-    if ($comment->depth > $divs) {
-      $comment->divs = 1;
-      $divs++;
-    }
-    else {
-      $comment->divs = $comment->depth - $divs;
-      while ($comment->depth < $divs) {
-        $divs--;
-      }
-    }
-  }
-
-  // The final comment must close up some hanging divs
-  $comments[$key]->divs_final = $divs;
-}
-
-/**
  * Generates an array for rendering a comment.
  *
  * @param \Drupal\comment\CommentInterface $comment
@@ -327,14 +293,14 @@ function comment_form_field_ui_display_overview_form_alter(&$form, FormStateInte
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter() for 'field_storage_config_edit_form'.
  */
-function comment_form_field_ui_field_storage_edit_form_alter(&$form, FormStateInterface $form_state) {
-  if ($form['#field']->getType() == 'comment') {
+function comment_form_field_storage_config_edit_form_alter(&$form, FormStateInterface $form_state) {
+  if ($form_state->getFormObject()->getEntity()->getType() == 'comment') {
     // We only support posting one comment at the time so it doesn't make sense
     // to let the site builder choose anything else.
-    $form['field_storage']['cardinality_container']['cardinality']['#default_value'] = 1;
-    $form['field_storage']['cardinality_container']['#access'] = FALSE;
+    $form['cardinality_container']['cardinality']['#default_value'] = 1;
+    $form['cardinality_container']['#access'] = FALSE;
   }
 }
 
@@ -466,7 +432,6 @@ function comment_node_update_index(EntityInterface $node, $langcode) {
         $comments = \Drupal::entityManager()->getStorage('comment')
           ->loadThread($node, $field_name, $mode, $comments_per_page);
         if ($comments) {
-          comment_prepare_thread($comments);
           $build[] = \Drupal::entityManager()->getViewBuilder('comment')->viewMultiple($comments);
         }
       }
@@ -534,6 +499,7 @@ function comment_user_cancel($edit, $account, $method) {
       $comments = entity_load_multiple_by_properties('comment', array('uid' => $account->id()));
       foreach ($comments as $comment) {
         $comment->setOwnerId(0);
+        $comment->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
         $comment->save();
       }
       break;
@@ -577,7 +543,7 @@ function comment_preview(CommentInterface $comment, FormStateInterface $form_sta
 
     if (!empty($account) && $account->isAuthenticated()) {
       $comment->setOwner($account);
-      $comment->setAuthorName(String::checkPlain($account->getUsername()));
+      $comment->setAuthorName(SafeMarkup::checkPlain($account->getUsername()));
     }
     elseif (empty($author_name)) {
       $comment->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
@@ -632,31 +598,6 @@ function comment_preprocess_block(&$variables) {
 }
 
 /**
- * Prepares a user account object for rendering comment authors.
- *
- * This helper handles anonymous authors in addition to registered comment
- * authors.
- *
- * @param \Drupal\comment\CommentInterface $comment
- *   The comment to which the author replied.
- *
- * @return \Drupal\user\UserInterface
- *   A user account, for use with theme_username() or the user_picture template.
- */
-function comment_prepare_author(CommentInterface $comment) {
-  // The account has been pre-loaded by CommentViewBuilder::buildComponents().
-  $account = $comment->getOwner();
-  if (empty($account->uid->value)) {
-    // @todo Avoid creating a new entity by just creating a new instance
-    //   directly, see https://drupal.org/node/1867228.
-    $account = entity_create('user', array('uid' => 0, 'name' => $comment->getAuthorName(), 'homepage' => $comment->getHomepage()));
-    // The anonymous user is not a new account, do not treat it as one.
-    $account->enforceIsNew(FALSE);
-  }
-  return $account;
-}
-
-/**
  * Prepares variables for comment templates.
  *
  * Default template: comment.html.twig.
@@ -673,7 +614,7 @@ function template_preprocess_comment(&$variables) {
   $variables['comment'] = $comment;
   $variables['commented_entity'] = $commented_entity;
 
-  $account = comment_prepare_author($comment);
+  $account = $comment->getOwner();
   $username = array(
     '#theme' => 'username',
     '#account' => $account,
@@ -718,7 +659,7 @@ function template_preprocess_comment(&$variables) {
   if ($comment->hasParentComment()) {
     // Fetch and store the parent comment information for use in templates.
     $comment_parent = $comment->getParentComment();
-    $account_parent = comment_prepare_author($comment_parent);
+    $account_parent = $comment_parent->getOwner();
     $variables['parent_comment'] = $comment_parent;
     $username = array(
       '#theme' => 'username',

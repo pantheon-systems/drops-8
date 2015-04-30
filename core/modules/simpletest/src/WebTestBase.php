@@ -10,9 +10,10 @@ namespace Drupal\simpletest;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\String;
 use Drupal\Core\Cache\Cache;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\DependencyInjection\YamlFileLoader;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
@@ -292,7 +293,7 @@ abstract class WebTestBase extends TestBase {
     node_add_body_field($type);
     \Drupal::service('router.builder')->rebuild();
 
-    $this->assertEqual($status, SAVED_NEW, String::format('Created content type %type.', array('%type' => $type->id())));
+    $this->assertEqual($status, SAVED_NEW, SafeMarkup::format('Created content type %type.', array('%type' => $type->id())));
 
     return $type;
   }
@@ -302,8 +303,8 @@ abstract class WebTestBase extends TestBase {
    *
    * Entities postpone the composition of their renderable arrays to #pre_render
    * functions in order to maximize cache efficacy. This means that the full
-   * rendable array for an entity is constructed in drupal_render(). Some tests
-   * require the complete renderable array for an entity outside of the
+   * renderable array for an entity is constructed in drupal_render(). Some
+   * tests require the complete renderable array for an entity outside of the
    * drupal_render process in order to verify the presence of specific values.
    * This method isolates the steps in the render process that produce an
    * entity's renderable array.
@@ -326,7 +327,7 @@ abstract class WebTestBase extends TestBase {
       // If the default values for this element have not been loaded yet, populate
       // them.
       if (isset($elements['#type']) && empty($elements['#defaults_loaded'])) {
-        $elements += element_info($elements['#type']);
+        $elements += \Drupal::service('element_info')->getInfo($elements['#type']);
       }
 
       // Make any final changes to the element before it is rendered. This means
@@ -375,7 +376,7 @@ abstract class WebTestBase extends TestBase {
    *   - region: 'sidebar_first'.
    *   - theme: The default theme.
    *   - visibility: Empty array.
-   *   - cache: array('max_age' => 0).
+   *   - cache: array('max_age' => Cache::PERMANENT).
    *
    * @return \Drupal\block\Entity\Block
    *   The block entity.
@@ -393,7 +394,7 @@ abstract class WebTestBase extends TestBase {
       'visibility' => array(),
       'weight' => 0,
       'cache' => array(
-        'max_age' => 0,
+        'max_age' => Cache::PERMANENT,
       ),
     );
     $values = [];
@@ -554,7 +555,7 @@ abstract class WebTestBase extends TestBase {
     $account = entity_create('user', $edit);
     $account->save();
 
-    $this->assertTrue($account->id(), String::format('User created with name %name and pass %pass', array('%name' => $edit['name'], '%pass' => $edit['pass'])), 'User login');
+    $this->assertTrue($account->id(), SafeMarkup::format('User created with name %name and pass %pass', array('%name' => $edit['name'], '%pass' => $edit['pass'])), 'User login');
     if (!$account->id()) {
       return FALSE;
     }
@@ -607,7 +608,7 @@ abstract class WebTestBase extends TestBase {
     }
     $result = $role->save();
 
-    $this->assertIdentical($result, SAVED_NEW, String::format('Created role ID @rid with name @name.', array(
+    $this->assertIdentical($result, SAVED_NEW, SafeMarkup::format('Created role ID @rid with name @name.', array(
       '@name' => var_export($role->label(), TRUE),
       '@rid' => var_export($role->id(), TRUE),
     )), 'Role');
@@ -619,10 +620,10 @@ abstract class WebTestBase extends TestBase {
         $assigned_permissions = Role::load($role->id())->getPermissions();
         $missing_permissions = array_diff($permissions, $assigned_permissions);
         if (!$missing_permissions) {
-          $this->pass(String::format('Created permissions: @perms', array('@perms' => implode(', ', $permissions))), 'Role');
+          $this->pass(SafeMarkup::format('Created permissions: @perms', array('@perms' => implode(', ', $permissions))), 'Role');
         }
         else {
-          $this->fail(String::format('Failed to create permissions: @perms', array('@perms' => implode(', ', $missing_permissions))), 'Role');
+          $this->fail(SafeMarkup::format('Failed to create permissions: @perms', array('@perms' => implode(', ', $missing_permissions))), 'Role');
         }
       }
       return $role->id();
@@ -646,7 +647,7 @@ abstract class WebTestBase extends TestBase {
     $valid = TRUE;
     foreach ($permissions as $permission) {
       if (!in_array($permission, $available)) {
-        $this->fail(String::format('Invalid permission %permission.', array('%permission' => $permission)), 'Role');
+        $this->fail(SafeMarkup::format('Invalid permission %permission.', array('%permission' => $permission)), 'Role');
         $valid = FALSE;
       }
     }
@@ -671,7 +672,7 @@ abstract class WebTestBase extends TestBase {
    *   $this->drupalLogin($account);
    *   // Load real user object.
    *   $pass_raw = $account->pass_raw;
-   *   $account = user_load($account->id());
+   *   $account = User::load($account->id());
    *   $account->pass_raw = $pass_raw;
    * @endcode
    *
@@ -887,7 +888,7 @@ abstract class WebTestBase extends TestBase {
     $this->kernel = DrupalKernel::createFromRequest($request, $class_loader, 'prod', TRUE);
     $this->kernel->prepareLegacyRequest($request);
     // Force the container to be built from scratch instead of loaded from the
-    // disk. This forces us to not accidently load the parent site.
+    // disk. This forces us to not accidentally load the parent site.
     $container = $this->kernel->rebuildContainer();
 
     $config = $container->get('config.factory');
@@ -939,7 +940,7 @@ abstract class WebTestBase extends TestBase {
       $modules = array_unique($modules);
       try {
         $success = $container->get('module_installer')->install($modules, TRUE);
-        $this->assertTrue($success, String::format('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
+        $this->assertTrue($success, SafeMarkup::format('Enabled modules: %modules', array('%modules' => implode(', ', $modules))));
       }
       catch (\Drupal\Core\Extension\MissingDependencyException $e) {
         // The exception message has all the details.
@@ -979,6 +980,13 @@ abstract class WebTestBase extends TestBase {
     unset($connection_info['default']['namespace']);
     unset($connection_info['default']['pdo']);
     unset($connection_info['default']['init_commands']);
+    // Remove database connection info that is not used by SQLite.
+    if ($driver == 'sqlite') {
+      unset($connection_info['default']['username']);
+      unset($connection_info['default']['password']);
+      unset($connection_info['default']['host']);
+      unset($connection_info['default']['port']);
+    }
     $parameters = array(
       'interactive' => FALSE,
       'parameters' => array(
@@ -1396,7 +1404,7 @@ abstract class WebTestBase extends TestBase {
       '@status' => $status,
       '!length' => format_size(strlen($this->getRawContent()))
     );
-    $message = String::format('!method @url returned @status (!length).', $message_vars);
+    $message = SafeMarkup::format('!method @url returned @status (!length).', $message_vars);
     $this->assertTrue($this->getRawContent() !== FALSE, $message, 'Browser');
     return $this->getRawContent();
   }
@@ -1511,7 +1519,7 @@ abstract class WebTestBase extends TestBase {
     $verbose = 'GET request to: ' . $path .
                '<hr />Ending URL: ' . $this->getUrl();
     if ($this->dumpHeaders) {
-      $verbose .= '<hr />Headers: <pre>' . String::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
+      $verbose .= '<hr />Headers: <pre>' . SafeMarkup::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
     }
     $verbose .= '<hr />' . $out;
 
@@ -1541,8 +1549,10 @@ abstract class WebTestBase extends TestBase {
   /**
    * Requests a Drupal path in drupal_ajax format and JSON-decodes the response.
    */
-  protected function drupalGetAJAX($path, array $options = array(), array $headers = array()) {
-    $headers[] = 'Accept: application/vnd.drupal-ajax';
+  protected function drupalGetAjax($path, array $options = array(), array $headers = array()) {
+    if (!preg_grep('/^Accept:/', $headers)) {
+      $headers[] = 'Accept: application/vnd.drupal-ajax';
+    }
     return Json::decode($this->drupalGet($path, $options, $headers));
   }
 
@@ -1705,7 +1715,7 @@ abstract class WebTestBase extends TestBase {
           $verbose = 'POST request to: ' . $path;
           $verbose .= '<hr />Ending URL: ' . $this->getUrl();
           if ($this->dumpHeaders) {
-            $verbose .= '<hr />Headers: <pre>' . String::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
+            $verbose .= '<hr />Headers: <pre>' . SafeMarkup::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>';
           }
           $verbose .= '<hr />Fields: ' . highlight_string('<?php ' . var_export($post_array, TRUE), TRUE);
           $verbose .= '<hr />' . $out;
@@ -1716,7 +1726,7 @@ abstract class WebTestBase extends TestBase {
       }
       // We have not found a form which contained all fields of $edit.
       foreach ($edit as $name => $value) {
-        $this->fail(String::format('Failed to set field @name to @value', array('@name' => $name, '@value' => $value)));
+        $this->fail(SafeMarkup::format('Failed to set field @name to @value', array('@name' => $name, '@value' => $value)));
       }
       if (!$ajax && isset($submit)) {
         $this->assertTrue($submit_matches, format_string('Found the @submit button', array('@submit' => $submit)));
@@ -1777,7 +1787,9 @@ abstract class WebTestBase extends TestBase {
     $content = $this->content;
     $drupal_settings = $this->drupalSettings;
 
-    $headers[] = 'Accept: application/vnd.drupal-ajax';
+    if (!preg_grep('/^Accept:/', $headers)) {
+      $headers[] = 'Accept: application/vnd.drupal-ajax';
+    }
 
     // Get the Ajax settings bound to the triggering element.
     if (!isset($ajax_settings)) {
@@ -2082,7 +2094,7 @@ abstract class WebTestBase extends TestBase {
         // Parse the content attribute of the meta tag for the format:
         // "[delay]: URL=[page_to_redirect_to]".
         if (preg_match('/\d+;\s*URL=(?<url>.*)/i', $refresh[0]['content'], $match)) {
-          return $this->drupalGet($this->getAbsoluteUrl(String::decodeEntities($match['url'])));
+          return $this->drupalGet($this->getAbsoluteUrl(Html::decodeEntities($match['url'])));
         }
       }
     }
@@ -2113,7 +2125,7 @@ abstract class WebTestBase extends TestBase {
     if ($this->dumpHeaders) {
       $this->verbose('GET request to: ' . $path .
                      '<hr />Ending URL: ' . $this->getUrl() .
-                     '<hr />Headers: <pre>' . String::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>');
+                     '<hr />Headers: <pre>' . SafeMarkup::checkPlain(var_export(array_map('trim', $this->headers), TRUE)) . '</pre>');
     }
 
     return $out;
@@ -2302,10 +2314,10 @@ abstract class WebTestBase extends TestBase {
     $urls = $this->xpath('//a[normalize-space()=:label]', array(':label' => $label));
     if (isset($urls[$index])) {
       $url_target = $this->getAbsoluteUrl($urls[$index]['href']);
-      $this->pass(String::format('Clicked link %label (@url_target) from @url_before', array('%label' => $label, '@url_target' => $url_target, '@url_before' => $url_before)), 'Browser');
+      $this->pass(SafeMarkup::format('Clicked link %label (@url_target) from @url_before', array('%label' => $label, '@url_target' => $url_target, '@url_before' => $url_before)), 'Browser');
       return $this->drupalGet($url_target);
     }
-    $this->fail(String::format('Link %label does not exist on @url_before', array('%label' => $label, '@url_before' => $url_before)), 'Browser');
+    $this->fail(SafeMarkup::format('Link %label does not exist on @url_before', array('%label' => $label, '@url_before' => $url_before)), 'Browser');
     return FALSE;
   }
 
@@ -2485,7 +2497,7 @@ abstract class WebTestBase extends TestBase {
       $url = $this->container->get('url_generator')->generateFromPath($path, $options);
     }
     if (!$message) {
-      $message = String::format('Expected @url matches current URL (@current_url).', array(
+      $message = SafeMarkup::format('Expected @url matches current URL (@current_url).', array(
         '@url' => var_export($url, TRUE),
         '@current_url' => $this->getUrl(),
       ));
@@ -2519,7 +2531,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertResponse($code, $message = '', $group = 'Browser') {
     $curl_code = curl_getinfo($this->curlHandle, CURLINFO_HTTP_CODE);
     $match = is_array($code) ? in_array($curl_code, $code) : $curl_code == $code;
-    return $this->assertTrue($match, $message ? $message : String::format('HTTP response expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
+    return $this->assertTrue($match, $message ? $message : SafeMarkup::format('HTTP response expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
   }
 
   /**
@@ -2544,7 +2556,7 @@ abstract class WebTestBase extends TestBase {
   protected function assertNoResponse($code, $message = '', $group = 'Browser') {
     $curl_code = curl_getinfo($this->curlHandle, CURLINFO_HTTP_CODE);
     $match = is_array($code) ? in_array($curl_code, $code) : $curl_code == $code;
-    return $this->assertFalse($match, $message ? $message : String::format('HTTP response not expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
+    return $this->assertFalse($match, $message ? $message : SafeMarkup::format('HTTP response not expected !code, actual !curl_code', array('!code' => $code, '!curl_code' => $curl_code)), $group);
   }
 
   /**
@@ -2740,6 +2752,17 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
+   * Asserts whether an expected cache context was present in the last response.
+   *
+   * @param string $expected_cache_context
+   *   The expected cache context.
+   */
+  protected function assertCacheContext($expected_cache_context) {
+    $cache_contexts = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Contexts'));
+    $this->assertTrue(in_array($expected_cache_context, $cache_contexts), "'" . $expected_cache_context . "' is present in the X-Drupal-Cache-Contexts header.");
+  }
+
+  /**
    * Asserts whether an expected cache tag was present in the last response.
    *
    * @param string $expected_cache_tag
@@ -2747,7 +2770,18 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertCacheTag($expected_cache_tag) {
     $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
-    $this->assertTrue(in_array($expected_cache_tag, $cache_tags));
+    $this->assertTrue(in_array($expected_cache_tag, $cache_tags), "'" . $expected_cache_tag . "' is present in the X-Drupal-Cache-Tags header.");
+  }
+
+  /**
+   * Asserts whether an expected cache tag was absent in the last response.
+   *
+   * @param string $cache_tag
+   *   The cache tag to check.
+   */
+  protected function assertNoCacheTag($cache_tag) {
+    $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
+    $this->assertFalse(in_array($cache_tag, $cache_tags), "'" . $cache_tag . "' is absent in the X-Drupal-Cache-Tags header.");
   }
 
 }

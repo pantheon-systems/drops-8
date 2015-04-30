@@ -542,6 +542,22 @@ EOD;
   }
 
   /**
+   * Compares UTF-8-encoded strings in a binary safe case-insensitive manner.
+   *
+   * @param string $str1
+   *   The first string.
+   * @param string $str2
+   *   The second string.
+   *
+   * @return int
+   *   Returns < 0 if $str1 is less than $str2; > 0 if $str1 is greater than
+   *   $str2, and 0 if they are equal.
+   */
+  public static function strcasecmp($str1 , $str2) {
+    return strcmp(static::strtoupper($str1), static::strtoupper($str2));
+  }
+
+  /**
    * Encodes MIME/HTTP headers that contain incorrectly encoded characters.
    *
    * For example, Unicode::mimeHeaderEncode('tést.txt') returns

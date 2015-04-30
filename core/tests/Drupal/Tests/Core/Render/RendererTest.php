@@ -8,6 +8,7 @@
 namespace Drupal\Tests\Core\Render;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 
@@ -19,7 +20,10 @@ class RendererTest extends RendererTestBase {
 
   protected $defaultThemeVars = [
     '#cache' => [
-      'contexts' => [],
+      'contexts' => [
+        'languages:language_interface',
+        'theme',
+      ],
       'tags' => [],
       'max-age' => Cache::PERMANENT,
     ],
@@ -499,7 +503,7 @@ class RendererTest extends RendererTestBase {
       ->willReturn('foobar');
 
     // Test that defaults work.
-    $this->assertEquals($this->renderer->render($element), 'foobar', 'Defaults work');
+    $this->assertEquals($this->renderer->renderRoot($element), 'foobar', 'Defaults work');
   }
 
   /**
@@ -521,15 +525,15 @@ class RendererTest extends RendererTestBase {
       });
 
     // Tests that passing arguments to the theme function works.
-    $this->assertEquals($this->renderer->render($element), $element['#foo'] . $element['#bar'], 'Passing arguments to theme functions works');
+    $this->assertEquals($this->renderer->renderRoot($element), $element['#foo'] . $element['#bar'], 'Passing arguments to theme functions works');
   }
 
   /**
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
-   * @covers ::cacheSet
-   * @covers ::createCacheID
+   * @covers \Drupal\Core\Render\RenderCache::get
+   * @covers \Drupal\Core\Render\RenderCache::set
+   * @covers \Drupal\Core\Render\RenderCache::createCacheID
    */
   public function testRenderCache() {
     $this->setUpRequest();
@@ -538,13 +542,13 @@ class RendererTest extends RendererTestBase {
     // Create an empty element.
     $test_element = [
       '#cache' => [
-        'cid' => 'render_cache_test',
+        'keys' => ['render_cache_test'],
         'tags' => ['render_cache_tag'],
       ],
       '#markup' => '',
       'child' => [
         '#cache' => [
-          'cid' => 'render_cache_test_child',
+          'keys' => ['render_cache_test_child'],
           'tags' => ['render_cache_tag_child:1', 'render_cache_tag_child:2'],
         ],
         '#markup' => '',
@@ -573,16 +577,16 @@ class RendererTest extends RendererTestBase {
     $this->assertEquals($expected_tags, $element['#cache']['tags'], 'Cache tags were collected from the element and its subchild.');
 
     // The cache item also has a 'rendered' cache tag.
-    $cache_item = $this->cacheFactory->get('render')->get('render_cache_test');
+    $cache_item = $this->cacheFactory->get('render')->get('render_cache_test:en:stark');
     $this->assertSame(Cache::mergeTags($expected_tags, ['rendered']), $cache_item->tags);
   }
 
   /**
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
-   * @covers ::cacheSet
-   * @covers ::createCacheID
+   * @covers \Drupal\Core\Render\RenderCache::get
+   * @covers \Drupal\Core\Render\RenderCache::set
+   * @covers \Drupal\Core\Render\RenderCache::createCacheID
    *
    * @dataProvider providerTestRenderCacheMaxAge
    */
@@ -592,14 +596,14 @@ class RendererTest extends RendererTestBase {
 
     $element = [
       '#cache' => [
-        'cid' => 'render_cache_test',
+        'keys' => ['render_cache_test'],
         'max-age' => $max_age,
       ],
       '#markup' => '',
     ];
     $this->renderer->render($element);
 
-    $cache_item = $this->cacheFactory->get('render')->get('render_cache_test');
+    $cache_item = $this->cacheFactory->get('render')->get('render_cache_test:en:stark');
     if (!$is_render_cached) {
       $this->assertFalse($cache_item);
     }
@@ -612,8 +616,83 @@ class RendererTest extends RendererTestBase {
   public function providerTestRenderCacheMaxAge() {
     return [
       [0, FALSE, NULL],
-      [60, TRUE, REQUEST_TIME + 60],
+      [60, TRUE, (int) $_SERVER['REQUEST_TIME'] + 60],
       [Cache::PERMANENT, TRUE, -1],
+    ];
+  }
+
+  /**
+   * @covers ::addCacheableDependency
+   *
+   * @dataProvider providerTestAddCacheableDependency
+   */
+  public function testAddCacheableDependency(array $build, $object, array $expected) {
+    $this->renderer->addCacheableDependency($build, $object);
+    $this->assertEquals($build, $expected);
+  }
+
+  public function providerTestAddCacheableDependency() {
+    return [
+      // Empty render array, typical default cacheability.
+      [
+        [],
+        new TestCacheableDependency([], [], Cache::PERMANENT),
+        [
+          '#cache' => [
+            'contexts' => [],
+            'tags' => [],
+            'max-age' => Cache::PERMANENT,
+          ],
+        ],
+      ],
+      // Empty render array, some cacheability.
+      [
+        [],
+        new TestCacheableDependency(['user.roles'], ['foo'], Cache::PERMANENT),
+        [
+          '#cache' => [
+            'contexts' => ['user.roles'],
+            'tags' => ['foo'],
+            'max-age' => Cache::PERMANENT,
+          ],
+        ],
+      ],
+      // Cacheable render array, some cacheability.
+      [
+        [
+          '#cache' => [
+            'contexts' => ['theme'],
+            'tags' => ['bar'],
+            'max-age' => 600,
+          ]
+        ],
+        new TestCacheableDependency(['user.roles'], ['foo'], Cache::PERMANENT),
+        [
+          '#cache' => [
+            'contexts' => ['theme', 'user.roles'],
+            'tags' => ['bar', 'foo'],
+            'max-age' => 600,
+          ],
+        ],
+      ],
+      // Cacheable render array, no cacheability.
+      [
+        [
+          '#cache' => [
+            'contexts' => ['theme'],
+            'tags' => ['bar'],
+            'max-age' => 600,
+          ]
+        ],
+        new \stdClass(),
+        [
+          '#cache' => [
+            'contexts' => ['theme'],
+            'tags' => ['bar'],
+            'max-age' => 0,
+          ],
+        ],
+      ],
     ];
   }
 

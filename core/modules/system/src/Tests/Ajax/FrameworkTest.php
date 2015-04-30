@@ -26,7 +26,7 @@ class FrameworkTest extends AjaxTestBase {
    */
   public function testAJAXRender() {
     // Verify that settings command is generated if JavaScript settings exist.
-    $commands = $this->drupalGetAJAX('ajax-test/render');
+    $commands = $this->drupalGetAjax('ajax-test/render');
     $expected = new SettingsCommand(array('ajax' => 'test'), TRUE);
     $this->assertCommand($commands, $expected->render(), '\Drupal\Core\Ajax\AjaxResponse::ajaxRender() loads JavaScript settings.');
   }
@@ -60,7 +60,7 @@ class FrameworkTest extends AjaxTestBase {
     // Load any page with at least one CSS file, at least one JavaScript file
     // and at least one #ajax-powered element. The latter is an assumption of
     // drupalPostAjaxForm(), the two former are assumptions of
-    // AjaxReponse::ajaxRender().
+    // AjaxResponse::ajaxRender().
     // @todo refactor AJAX Framework + tests to make less assumptions.
     $this->drupalGet('ajax_forms_test_lazy_load_form');
 
@@ -86,7 +86,7 @@ class FrameworkTest extends AjaxTestBase {
     $edit = array(
       'message' => 'Custom error message.',
     );
-    $commands = $this->drupalGetAJAX('ajax-test/render-error', array('query' => $edit));
+    $commands = $this->drupalGetAjax('ajax-test/render-error', array('query' => $edit));
     $expected = new AlertCommand($edit['message']);
     $this->assertCommand($commands, $expected->render(), 'Custom error message is output.');
   }

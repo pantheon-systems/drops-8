@@ -32,7 +32,8 @@ if (window.jQuery) {
     // Makes the list of errors readable.
     var messageList = [];
     messageList.push(this.event);
-    for (var i = 0, il = this.list.length; i < il; i++) {
+    var il = this.list.length;
+    for (var i = 0; i < il; i++) {
       messageList.push(this.list[i].behavior + ': ' + this.list[i].error.message);
     }
     this.message = messageList.join(' ; ');
@@ -81,9 +82,10 @@ if (window.jQuery) {
   Drupal.attachBehaviors = function (context, settings) {
     context = context || document;
     settings = settings || drupalSettings;
-    var i, errors = [], behaviors = Drupal.behaviors;
+    var errors = [];
+    var behaviors = Drupal.behaviors;
     // Execute all of them.
-    for (i in behaviors) {
+    for (var i in behaviors) {
       if (behaviors.hasOwnProperty(i) && typeof behaviors[i].attach === 'function') {
         // Don't stop the execution of behaviors in case of an error.
         try {
@@ -147,9 +149,10 @@ if (window.jQuery) {
     context = context || document;
     settings = settings || drupalSettings;
     trigger = trigger || 'unload';
-    var i, errors = [], behaviors = Drupal.behaviors;
+    var errors = [];
+    var behaviors = Drupal.behaviors;
     // Execute all of them.
-    for (i in behaviors) {
+    for (var i in behaviors) {
       if (behaviors.hasOwnProperty(i) && typeof behaviors[i].detach === 'function') {
         // Don't stop the execution of behaviors in case of an error.
         try {
@@ -214,26 +217,29 @@ if (window.jQuery) {
    * @ingroup sanitization
    */
   Drupal.formatString = function (str, args) {
+    // Keep args intact.
+    var processedArgs = {};
     // Transform arguments before inserting them.
     for (var key in args) {
       if (args.hasOwnProperty(key)) {
         switch (key.charAt(0)) {
           // Escaped only.
           case '@':
-            args[key] = Drupal.checkPlain(args[key]);
+            processedArgs[key] = Drupal.checkPlain(args[key]);
             break;
           // Pass-through.
           case '!':
+            processedArgs[key] = args[key];
             break;
           // Escaped and placeholder.
           default:
-            args[key] = Drupal.theme('placeholder', args[key]);
+            processedArgs[key] = Drupal.theme('placeholder', args[key]);
             break;
         }
       }
     }
 
-    return Drupal.stringReplace(str, args, null);
+    return Drupal.stringReplace(str, processedArgs, null);
   };
 
   /**
@@ -366,9 +372,9 @@ if (window.jQuery) {
     args = args || {};
     args['@count'] = count;
 
-    var pluralDelimiter = drupalSettings.pluralDelimiter,
-      translations = Drupal.t(singular + pluralDelimiter + plural, args, options).split(pluralDelimiter),
-      index = 0;
+    var pluralDelimiter = drupalSettings.pluralDelimiter;
+    var translations = Drupal.t(singular + pluralDelimiter + plural, args, options).split(pluralDelimiter);
+    var index = 0;
 
     // Determine the index of the plural form.
     if (typeof drupalTranslations !== 'undefined' && drupalTranslations.pluralFormula) {

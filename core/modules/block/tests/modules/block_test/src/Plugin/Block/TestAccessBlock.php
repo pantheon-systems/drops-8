@@ -7,7 +7,9 @@
 
 namespace Drupal\block_test\Plugin\Block;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\State\StateInterface;
@@ -61,7 +63,7 @@ class TestAccessBlock extends BlockBase implements ContainerFactoryPluginInterfa
    * {@inheritdoc}
    */
   protected function blockAccess(AccountInterface $account) {
-    return $this->state->get('test_block_access', FALSE);
+    return $this->state->get('test_block_access', FALSE) ? AccessResult::allowed() : AccessResult::forbidden();
   }
 
   /**
@@ -74,8 +76,8 @@ class TestAccessBlock extends BlockBase implements ContainerFactoryPluginInterfa
   /**
    * {@inheritdoc}
    */
-  public function isCacheable() {
-    return TRUE;
+  public function getCacheMaxAge() {
+    return Cache::PERMANENT;
   }
 
 }

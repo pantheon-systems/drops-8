@@ -200,7 +200,7 @@ class OverviewTerms extends FormBase {
     }
 
     $errors = $form_state->getErrors();
-    $destination = drupal_get_destination();
+    $destination = $this->getDestinationArray();
     $row_position = 0;
     // Build the actual form.
     $form['terms'] = array(
@@ -358,6 +358,7 @@ class OverviewTerms extends FormBase {
       );
     }
 
+    $form['pager_pager'] = ['#type' => 'pager'];
     return $form;
   }
 

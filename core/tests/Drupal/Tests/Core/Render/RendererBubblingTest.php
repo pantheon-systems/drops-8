@@ -9,6 +9,7 @@ namespace Drupal\Tests\Core\Render;
 
 use Drupal\Core\KeyValueStore\KeyValueMemoryFactory;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Render\Renderer;
 use Drupal\Core\State\State;
 use Drupal\Core\Cache\Cache;
 
@@ -22,6 +23,10 @@ class RendererBubblingTest extends RendererTestBase {
    * {@inheritdoc}
    */
   protected function setUp() {
+    // Disable the required cache contexts, so that this test can test just the
+    // bubbling behavior.
+    $this->rendererConfig['required_cache_contexts'] = [];
+
     parent::setUp();
 
     $this->setUpRequest();
@@ -35,7 +40,7 @@ class RendererBubblingTest extends RendererTestBase {
     $this->elementInfo->expects($this->any())
       ->method('getInfo')
       ->willReturn([]);
-    $this->cacheContexts->expects($this->any())
+    $this->cacheContextsManager->expects($this->any())
       ->method('convertTokensToKeys')
       ->willReturnArgument(0);
 
@@ -81,7 +86,7 @@ class RendererBubblingTest extends RendererTestBase {
   public function testContextBubblingEdgeCases(array $element, array $expected_top_level_contexts, array $expected_cache_items) {
     $this->setUpRequest();
     $this->setupMemoryCache();
-    $this->cacheContexts->expects($this->any())
+    $this->cacheContextsManager->expects($this->any())
       ->method('convertTokensToKeys')
       ->willReturnArgument(0);
 
@@ -95,33 +100,6 @@ class RendererBubblingTest extends RendererTestBase {
 
   public function providerTestContextBubblingEdgeCases() {
     $data = [];
-
-    // Bubbled cache contexts cannot override a cache ID set by #cache['cid'].
-    // But the cache context is bubbled nevertheless.
-    $test_element = [
-      '#cache' => [
-        'cid' => 'parent',
-      ],
-      '#markup' => 'parent',
-      'child' => [
-        '#cache' => [
-          'contexts' => ['foo'],
-        ],
-      ],
-    ];
-    $expected_cache_items = [
-      'parent' => [
-        '#attached' => [],
-        '#cache' => [
-          'contexts' => ['foo'],
-          'tags' => [],
-          'max-age' => Cache::PERMANENT,
-        ],
-        '#post_render_cache' => [],
-        '#markup' => 'parent',
-      ],
-    ];
-    $data[] = [$test_element, ['foo'], $expected_cache_items];
 
     // Cache contexts of inaccessible children aren't bubbled (because those
     // children are not rendered at all).
@@ -276,21 +254,6 @@ class RendererBubblingTest extends RendererTestBase {
 
     $this->setUpRequest();
     $this->setupMemoryCache();
-    $this->cacheContexts->expects($this->any())
-      ->method('convertTokensToKeys')
-      ->willReturnCallback(function($context_tokens) {
-        global $current_user_role;
-        $keys = [];
-        foreach ($context_tokens as $context_id) {
-          if ($context_id === 'user.roles') {
-            $keys[] = 'r.' . $current_user_role;
-          }
-          else {
-            $keys[] = $context_id;
-          }
-        }
-        return $keys;
-      });
 
     $test_element = [
       '#cache' => [
@@ -539,6 +502,25 @@ class RendererBubblingTest extends RendererTestBase {
     return $data;
   }
 
+  /**
+   * Tests that an element's cache keys cannot be changed during its rendering.
+   *
+   * @expectedException \LogicException
+   * @expectedExceptionMessage Cache keys may not be changed after initial setup. Use the contexts property instead to bubble additional metadata.
+   */
+  public function testOverWriteCacheKeys() {
+    $this->setUpRequest();
+    $this->setupMemoryCache();
+
+    // Ensure a logic exception
+    $data = [
+      '#cache' => [
+        'keys' => ['llama', 'bar'],
+       ],
+      '#pre_render' => [__NAMESPACE__ . '\\BubblingTest::bubblingCacheOverwritePrerender'],
+    ];
+    $this->renderer->render($data);
+  }
 }
 
 
@@ -582,11 +564,11 @@ class BubblingTest {
         '#markup' => $placeholder,
       ],
       'child_nested_pre_render_uncached' => [
-        '#cache' => ['cid' => 'uncached_nested'],
+        '#cache' => ['keys' => ['uncached_nested']],
         '#pre_render' => [__CLASS__ . '::bubblingNestedPreRenderUncached'],
       ],
       'child_nested_pre_render_cached' => [
-        '#cache' => ['cid' => 'cached_nested'],
+        '#cache' => ['keys' => ['cached_nested']],
         '#pre_render' => [__CLASS__ . '::bubblingNestedPreRenderCached'],
       ],
     ];
@@ -618,6 +600,18 @@ class BubblingTest {
     $placeholder = \Drupal::service('renderer')->generateCachePlaceholder($callback, $context);
     $element['#markup'] = str_replace($placeholder, 'Post-render cache!' . $context['foo'] . $context['baz'], $element['#markup']);
     return $element;
+  }
+
+  /**
+   * #pre_render callback for testOverWriteCacheKeys().
+   */
+  public static function bubblingCacheOverwritePrerender($elements) {
+    // Overwrite the #cache entry with new data.
+    $elements['#cache'] = [
+      'keys' => ['llama', 'foo'],
+    ];
+    $elements['#markup'] = 'Setting cache keys just now!';
+    return $elements;
   }
 
 }

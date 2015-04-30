@@ -30,11 +30,6 @@ details.fieldset-no-legend {
   padding: 0;
 }
 
-.views-admin .form-item label.option,
-#views-ui-preview-form .form-item label.option {
-  font-size: 1em;
-}
-
 .views-admin input.form-submit,
 .views-ui-dialog input.form-submit,
 .views-admin a.button,
@@ -101,8 +96,8 @@ details.fieldset-no-legend {
 }
 
 .views-displays ul.secondary li a,
-.views-displays ul.secondary li.active a,
-.views-displays ul.secondary li.active a.active {
+.views-displays ul.secondary li.is-active a,
+.views-displays ul.secondary li.is-active a.is-active {
   padding: 2px 7px 3px;
 }
 
@@ -110,8 +105,8 @@ details.fieldset-no-legend {
   color: #0074bd;
 }
 
-.views-displays ul.secondary li.active a,
-.views-displays ul.secondary li.active a.active {
+.views-displays ul.secondary li.is-active a,
+.views-displays ul.secondary li.is-active a.is-active {
   border: 1px solid transparent;
 }
 
@@ -214,7 +209,6 @@ details.fieldset-no-legend {
  */
 
 .views-ui-display-tab-bucket h3 {
-  font-size: 12px;
   text-transform: uppercase;
 }
 
@@ -248,7 +242,11 @@ details.fieldset-no-legend {
 }
 
 .views-ui-rearrange-filter-form tr td:last-child {
-  border-right: medium none;
+  border-right: medium none; /* LTR */
+}
+[dir="rtl"] .views-ui-rearrange-filter-form tr td:last-child {
+  border-left: medium none;
+  border-right: initial;
 }
 
 .views-ui-rearrange-filter-form .filter-group-operator-row {
@@ -283,7 +281,11 @@ details.fieldset-no-legend {
 
 .views-query-info table tr td:last-child {
   /* Fixes a Seven style that bleeds down into this table unnecessarily */
-  border-right: 0 none;
+  border-right: 0 none; /* LTR */
+}
+[dir="rtl"] .views-query-info table tr td:last-child {
+  border-left: 0 none;
+  border-right: initial;
 }
 
 /* @end */

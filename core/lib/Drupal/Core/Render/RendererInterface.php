@@ -7,6 +7,8 @@
 
 namespace Drupal\Core\Render;
 
+use Drupal\Core\Cache\CacheableDependencyInterface;
+
 /**
  * Defines an interface for turning a render array into a string.
  */
@@ -119,9 +121,6 @@ interface RendererInterface {
    *       mapped to the current user's ID.)
    *     - 'max-age': A time in seconds. Zero seconds means it is not cacheable.
    *       \Drupal\Core\Cache\Cache::PERMANENT means it is cacheable forever.
-   *     - 'cid': Specify the cache ID directly. Either 'keys' or 'cid' is
-   *       required. If 'cid' is set, 'keys' is ignored. Use only if you have
-   *       special requirements.
    *     - 'bin': Specify a cache bin to cache the element in. Default is
    *       'default'.
    *     When there is a render cache hit, there is no rendering work left to be
@@ -148,8 +147,9 @@ interface RendererInterface {
    *     element have not already been merged in (#defaults_loaded = TRUE) then
    *     the defaults for this type of element, defined in hook_element_info(),
    *     are merged into the array. #defaults_loaded is set by functions that
-   *     process render arrays and call element_info() before passing the array
-   *     to Renderer::render(), such as form_builder() in the Form API.
+   *     process render arrays and call the element info service before passing
+   *     the array to Renderer::render(), such as form_builder() in the Form
+   *     API.
    *   - If this element has an array of #pre_render functions defined, they are
    *     called sequentially to modify the element before rendering. After all
    *     the #pre_render functions have been called, #printed is checked a
@@ -309,25 +309,6 @@ interface RendererInterface {
   public function render(&$elements, $is_root_call = FALSE);
 
   /**
-   * Gets a cacheable render array for a render array and its rendered output.
-   *
-   * Given a render array and its rendered output (HTML string), return an array
-   * data structure that allows the render array and its associated metadata to
-   * be cached reliably (and is serialization-safe).
-   *
-   * If Drupal needs additional rendering metadata to be cached at some point,
-   * consumers of this method will continue to work. Those who only cache
-   * certain parts of a render array will cease to work.
-   *
-   * @param array $elements
-   *   A renderable array, on which ::render() has already been invoked.
-   *
-   * @return array
-   *   An array representing the cacheable data for this render array.
-   */
-  public function getCacheableRenderArray(array $elements);
-
-  /**
    * Merges the bubbleable rendering metadata o/t 2nd render array with the 1st.
    *
    * @param array $a
@@ -341,7 +322,25 @@ interface RendererInterface {
    *
    * @see \Drupal\Core\Render\BubbleableMetadata
    */
-  public static function mergeBubbleableMetadata(array $a, array $b);
+  public function mergeBubbleableMetadata(array $a, array $b);
+
+  /**
+   * Adds a dependency on an object: merges its cacheability metadata.
+   *
+   * E.g. when a render array depends on some configuration, an entity, or an
+   * access result, we must make sure their cacheability metadata is present on
+   * the render array. This method makes doing that simple.
+   *
+   * @param array &$elements
+   *   The render array to update.
+   * @param \Drupal\Core\Cache\CacheableDependencyInterface|mixed $dependency
+   *   The dependency. If the object implements CacheableDependencyInterface,
+   *   then its cacheability metadata will be used. Otherwise, the passed in
+   *   object must be assumed to be uncacheable, so max-age 0 is set.
+   *
+   * @see \Drupal\Core\Cache\CacheableMetadata::createFromObject()
+   */
+  public function addCacheableDependency(array &$elements, $dependency);
 
   /**
    * Merges two attachments arrays (which live under the '#attached' key).
@@ -385,7 +384,7 @@ interface RendererInterface {
    * @return array
    *   The merged attachments array.
    */
-  public static function mergeAttachments(array $a, array $b);
+  public function mergeAttachments(array $a, array $b);
 
   /**
    * Generates a render cache placeholder.

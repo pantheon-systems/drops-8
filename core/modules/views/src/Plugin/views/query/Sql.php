@@ -152,7 +152,7 @@ class Sql extends QueryPluginBase {
    * Set the view to be distinct (per base field).
    *
    * @param bool $value
-   *   Should the view by distincted.
+   *   Should the view be distincted.
    */
   protected function setDistinct($value = TRUE) {
     if (!(isset($this->noDistinct) && $value)) {
@@ -604,7 +604,7 @@ class Sql extends QueryPluginBase {
 
     // Have we been this way?
     if (isset($traced[$join->leftTable])) {
-      // we looped. Broked.
+      // We looped. Broken.
       return FALSE;
     }
 
@@ -722,7 +722,11 @@ class Sql extends QueryPluginBase {
    *   alias be used.
    * @param $params
    *   An array of parameters additional to the field that will control items
-   *   such as aggregation functions and DISTINCT.
+   *   such as aggregation functions and DISTINCT. Some values that are
+   *   recognized:
+   *   - function: An aggregation function to apply, such as SUM.
+   *   - aggregate: Set to TRUE to indicate that this value should be
+   *     aggregated in a GROUP BY.
    *
    * @return $name
    *   The name that this field can be referred to as. Usually this is the alias.
@@ -1131,7 +1135,7 @@ class Sql extends QueryPluginBase {
       if (!empty($field['function'])) {
         $info = $this->getAggregationInfo();
         if (!empty($info[$field['function']]['method']) && is_callable(array($this, $info[$field['function']]['method']))) {
-          $string = $this::$info[$field['function']]['method']($field['function'], $string);
+          $string = $this::{$info[$field['function']]['method']}($field['function'], $string);
           $placeholders = !empty($field['placeholders']) ? $field['placeholders'] : array();
           $query->addExpression($string, $fieldname, $placeholders);
         }
@@ -1755,7 +1759,7 @@ class Sql extends QueryPluginBase {
           'l' => 'Day',
           // No format for Day of the month without leading zeros.
           'j' => 'DD',
-          'W' => 'WW',
+          'W' => 'IW',
           'H' => 'HH24',
           'h' => 'HH12',
           'i' => 'MI',
@@ -1793,7 +1797,16 @@ class Sql extends QueryPluginBase {
           'A' => '',
         );
         $format = strtr($format, $replace);
-        $expression = "strftime('$format', $field, 'unixepoch')";
+        // SQLite does not have a ISO week substitution string, so it needs
+        // special handling.
+        // @see http://en.wikipedia.org/wiki/ISO_week_date#Calculation
+        // @see http://stackoverflow.com/a/15511864/1499564
+        if ($format === '%W') {
+          $expression = "((strftime('%j', date(strftime('%Y-%m-%d', $field, 'unixepoch'), '-3 days', 'weekday 4')) - 1) / 7 + 1)";
+        }
+        else {
+          $expression = "strftime('$format', $field, 'unixepoch')";
+        }
         // The expression yields a string, but the comparison value is an
         // integer in case the comparison value is a float, integer, or numeric.
         // All of the above SQLite format tokens only produce integers. However,

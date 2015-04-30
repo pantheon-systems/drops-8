@@ -7,9 +7,10 @@
 
 namespace Drupal\user\Tests;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
+use Drupal\user\Entity\User;
 
 /**
  * Generates text using placeholders for dummy content to check user token
@@ -49,21 +50,21 @@ class UserTokenReplaceTest extends WebTestBase {
     $this->drupalLogout();
     $this->drupalLogin($user2);
 
-    $account = user_load($user1->id());
-    $global_account = user_load(\Drupal::currentUser()->id());
+    $account = User::load($user1->id());
+    $global_account = User::load(\Drupal::currentUser()->id());
 
     // Generate and test sanitized tokens.
     $tests = array();
     $tests['[user:uid]'] = $account->id();
-    $tests['[user:name]'] = String::checkPlain(user_format_name($account));
-    $tests['[user:mail]'] = String::checkPlain($account->getEmail());
+    $tests['[user:name]'] = SafeMarkup::checkPlain(user_format_name($account));
+    $tests['[user:mail]'] = SafeMarkup::checkPlain($account->getEmail());
     $tests['[user:url]'] = $account->url('canonical', $url_options);
     $tests['[user:edit-url]'] = $account->url('edit-form', $url_options);
     $tests['[user:last-login]'] = format_date($account->getLastLoginTime(), 'medium', '', NULL, $language_interface->getId());
     $tests['[user:last-login:short]'] = format_date($account->getLastLoginTime(), 'short', '', NULL, $language_interface->getId());
     $tests['[user:created]'] = format_date($account->getCreatedTime(), 'medium', '', NULL, $language_interface->getId());
     $tests['[user:created:short]'] = format_date($account->getCreatedTime(), 'short', '', NULL, $language_interface->getId());
-    $tests['[current-user:name]'] = String::checkPlain(user_format_name($global_account));
+    $tests['[current-user:name]'] = SafeMarkup::checkPlain(user_format_name($global_account));
 
     // Test to make sure that we generated something for each token.
     $this->assertFalse(in_array(0, array_map('strlen', $tests)), 'No empty tokens generated.');

@@ -8,7 +8,7 @@
 namespace Drupal\field\Tests\Boolean;
 
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -113,8 +113,8 @@ class BooleanFormatterSettingsTest extends WebTestBase {
       // Set up the field settings.
       $this->drupalGet('admin/structure/types/manage/' . $this->bundle . '/fields/node.' . $this->bundle . '.' . $this->fieldName);
       $this->drupalPostForm(NULL, array(
-        'field[settings][on_label]' => $values[0],
-        'field[settings][off_label]' => $values[1],
+        'settings[on_label]' => $values[0],
+        'settings[off_label]' => $values[1],
       ), 'Save settings');
 
       // Open the Manage Display page and trigger the field settings form.
@@ -125,7 +125,7 @@ class BooleanFormatterSettingsTest extends WebTestBase {
       foreach ($options as $string) {
         $this->assertText($string);
       }
-      $this->assertText(String::format($default, array('@on' => $values[0], '@off' => $values[1])));
+      $this->assertText(SafeMarkup::format($default, array('@on' => $values[0], '@off' => $values[1])));
     }
   }
 

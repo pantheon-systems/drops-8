@@ -28,7 +28,7 @@ Installing the development version
 
 .. code-block:: bash
 
-    git clone git://github.com/fabpot/Twig.git
+    git clone git://github.com/twigphp/Twig.git
 
 Installing the PEAR package
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,8 +50,11 @@ Installing the C extension
     The C extension was added in Twig 1.4.
 
 .. note::
-    The C extension is **optional** but as it brings some nice performance
-    improvements, you might want to install it in your production environment.
+
+    The C extension is **optional** but it brings some nice performance
+    improvements. Note that the extension is not a replacement for the PHP
+    code; it only implements a small part of the PHP code to improve the
+    performance at runtime; you must still install the regular PHP code.
 
 Twig comes with a C extension that enhances the performance of the Twig
 runtime engine; install it like any other PHP extensions:
@@ -107,7 +110,7 @@ advantage of the C extension. Note that this extension does not replace the
 PHP code but only provides an optimized version of the
 ``Twig_Template::getAttribute()`` method.
 
-.. _`download page`: https://github.com/fabpot/Twig/tags
-.. _`Composer`: https://getcomposer.org/download/
+.. _`download page`:     https://github.com/twigphp/Twig/tags
+.. _`Composer`:          https://getcomposer.org/download/
 .. _`PHP documentation`: https://wiki.php.net/internals/windows/stepbystepbuild
-.. _`Zend Server FAQ`: http://www.zend.com/en/products/server/faq#faqD6
+.. _`Zend Server FAQ`:   http://www.zend.com/en/products/server/faq#faqD6

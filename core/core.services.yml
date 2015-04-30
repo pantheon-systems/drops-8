@@ -1,6 +1,8 @@
 parameters:
   session.storage.options: {}
   twig.config: {}
+  renderer.config:
+    required_cache_contexts: ['languages:language_interface', 'theme']
   factory.keyvalue:
     default: keyvalue.database
   factory.keyvalue.expirable:
@@ -74,6 +76,11 @@ services:
     arguments: ['@current_user']
     tags:
       - { name: cache.context}
+  cache_context.user.permissions:
+    class: Drupal\Core\Cache\AccountPermissionsCacheContext
+    arguments: ['@current_user', '@user_permissions_hash_generator']
+    tags:
+      - { name: cache.context}
   cache_context.user.roles:
     class: Drupal\Core\Cache\UserRolesCacheContext
     arguments: ['@current_user']
@@ -104,8 +111,8 @@ services:
     arguments: ['@settings', '%cache_default_bin_backends%']
     calls:
       - [setContainer, ['@service_container']]
-  cache_contexts:
-    class: Drupal\Core\Cache\CacheContexts
+  cache_contexts_manager:
+    class: Drupal\Core\Cache\CacheContextsManager
     arguments: ['@service_container', '%cache_contexts%' ]
   cache_tags.invalidator:
     parent: container.trait
@@ -189,6 +196,10 @@ services:
     factory_method: get
     factory_service: cache_factory
     arguments: [discovery]
+  cache_router_rebuild_subscriber:
+    class: Drupal\Core\EventSubscriber\CacheRouterRebuildSubscriber
+    tags:
+      - { name: event_subscriber }
   page_cache_request_policy:
     class: Drupal\Core\PageCache\DefaultRequestPolicy
     arguments: ['@session_configuration']
@@ -201,6 +212,12 @@ services:
     lazy: true
   page_cache_kill_switch:
     class: Drupal\Core\PageCache\ResponsePolicy\KillSwitch
+    tags:
+      - { name: page_cache_response_policy }
+  page_cache_no_cache_routes:
+    class: Drupal\Core\PageCache\ResponsePolicy\DenyNoCacheRoutes
+    arguments: ['@current_route_match']
+    public: false
     tags:
       - { name: page_cache_response_policy }
   page_cache_no_server_error:
@@ -247,8 +264,6 @@ services:
   config.storage.schema:
     class: Drupal\Core\Config\ExtensionInstallStorage
     arguments: ['@config.storage', 'config/schema']
-  config.storage.installer:
-    class: Drupal\Core\Config\InstallStorage
   config.typed:
     class: Drupal\Core\Config\TypedConfigManager
     arguments: ['@config.storage', '@config.storage.schema', '@cache.discovery', '@module_handler']
@@ -274,7 +289,7 @@ services:
     arguments: ['@stream_wrapper_manager', '@settings', '@logger.channel.file']
   form_builder:
     class: Drupal\Core\Form\FormBuilder
-    arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@theme.manager', '@?csrf_token']
+    arguments: ['@form_validator', '@form_submitter', '@form_cache', '@module_handler', '@event_dispatcher', '@request_stack', '@class_resolver', '@element_info', '@theme.manager', '@?csrf_token']
   form_validator:
     class: Drupal\Core\Form\FormValidator
     arguments: ['@request_stack', '@string_translation', '@csrf_token', '@logger.channel.form']
@@ -283,7 +298,7 @@ services:
     arguments: ['@request_stack', '@url_generator']
   form_cache:
     class: Drupal\Core\Form\FormCache
-    arguments: ['@app.root', '@keyvalue.expirable', '@module_handler', '@current_user', '@csrf_token', '@logger.channel.form', '@config.factory', '@request_stack', '@page_cache_request_policy']
+    arguments: ['@app.root', '@keyvalue.expirable', '@module_handler', '@current_user', '@csrf_token', '@logger.channel.form', '@request_stack', '@page_cache_request_policy']
     public: false  # Private to form_builder
   keyvalue:
     class: Drupal\Core\KeyValueStore\KeyValueFactory
@@ -534,6 +549,7 @@ services:
   app.root.factory:
     class: Drupal\Core\AppRootFactory
     arguments: ['@kernel']
+    public: false
   controller_resolver:
     class: Drupal\Core\Controller\ControllerResolver
     arguments: ['@class_resolver']
@@ -566,11 +582,6 @@ services:
     arguments: ['@settings']
     tags:
       - { name: http_middleware, priority: 300 }
-  http_middleware.page_cache:
-    class: Drupal\Core\StackMiddleware\PageCache
-    arguments: ['@cache.render', '@page_cache_request_policy', '@page_cache_response_policy']
-    tags:
-      - { name: http_middleware, priority: 200 }
   http_middleware.kernel_pre_handle:
     class: Drupal\Core\StackMiddleware\KernelPreHandle
     arguments: ['@kernel']
@@ -595,7 +606,7 @@ services:
       - { name: string_translator, priority: 30 }
   string_translation:
     class: Drupal\Core\StringTranslation\TranslationManager
-    arguments: ['@language_manager']
+    arguments: ['@language_manager', '@state']
     calls:
       - [initLanguageManager]
     tags:
@@ -671,7 +682,7 @@ services:
       - { name: event_subscriber }
   url_generator:
     class: Drupal\Core\Routing\UrlGenerator
-    arguments: ['@router.route_provider', '@path_processor_manager', '@route_processor_manager', '@config.factory', '@logger.channel.default', '@request_stack']
+    arguments: ['@router.route_provider', '@path_processor_manager', '@route_processor_manager', '@config.factory', '@request_stack']
     calls:
       - [setContext, ['@?router.request_context']]
   redirect.destination:
@@ -842,7 +853,7 @@ services:
       - { name: event_subscriber }
   main_content_renderer.html:
     class: Drupal\Core\Render\MainContent\HtmlRenderer
-    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@module_handler', '@renderer', '@cache_contexts']
+    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@element_info', '@module_handler', '@renderer', '@render_cache', '@cache_contexts_manager']
     tags:
       - { name: render.main_content_renderer, format: html }
   main_content_renderer.ajax:
@@ -938,11 +949,24 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@path.alias_manager', '@path_processor_manager', '@path.current']
+  route_access_response_subscriber:
+    class: Drupal\Core\EventSubscriber\RouteAccessResponseSubscriber
+    tags:
+      - { name: event_subscriber }
+  client_error_response_subscriber:
+    class: Drupal\Core\EventSubscriber\ClientErrorResponseSubscriber
+    tags:
+      - { name: event_subscriber }
+  anonymous_user_response_subscriber:
+    class: Drupal\Core\EventSubscriber\AnonymousUserResponseSubscriber
+    tags:
+      - { name: event_subscriber }
+    arguments: ['@current_user']
   finish_response_subscriber:
     class: Drupal\Core\EventSubscriber\FinishResponseSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@language_manager', '@config.factory', '@page_cache_request_policy', '@page_cache_response_policy']
+    arguments: ['@language_manager', '@config.factory', '@page_cache_request_policy', '@page_cache_response_policy', '@cache_contexts_manager']
   redirect_response_subscriber:
     class: Drupal\Core\EventSubscriber\RedirectResponseSubscriber
     arguments: ['@url_generator', '@router.request_context']
@@ -970,7 +994,7 @@ services:
     class: Drupal\Core\EventSubscriber\DefaultExceptionHtmlSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@http_kernel', '@logger.channel.php']
+    arguments: ['@http_kernel', '@logger.channel.php', '@redirect.destination']
   exception.default:
     class: Drupal\Core\EventSubscriber\DefaultExceptionSubscriber
     tags:
@@ -990,7 +1014,7 @@ services:
     class: Drupal\Core\EventSubscriber\CustomPageExceptionHtmlSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@config.factory', '@path.alias_manager', '@http_kernel', '@logger.channel.php']
+    arguments: ['@config.factory', '@path.alias_manager', '@http_kernel', '@logger.channel.php', '@redirect.destination']
   exception.fast_404_html:
     class: Drupal\Core\EventSubscriber\Fast404ExceptionHtmlSubscriber
     tags:
@@ -1078,10 +1102,14 @@ services:
     class: Drupal\Core\ImageToolkit\ImageToolkitManager
     arguments: ['@config.factory']
     parent: default_plugin_manager
+    tags:
+      - { name: plugin_manager_cache_clear }
   image.toolkit.operation.manager:
     class: Drupal\Core\ImageToolkit\ImageToolkitOperationManager
     arguments: ['@logger.channel.image']
     parent: default_plugin_manager
+    tags:
+      - { name: plugin_manager_cache_clear }
   image.factory:
     class: Drupal\Core\Image\ImageFactory
     arguments: ['@image.toolkit.manager']
@@ -1170,7 +1198,7 @@ services:
       - [setThemeRegistry, ['@theme.registry']]
   theme.initialization:
     class: Drupal\Core\Theme\ThemeInitialization
-    arguments: ['@app.root', '@theme_handler', '@state']
+    arguments: ['@app.root', '@theme_handler', '@state', '@module_handler']
   theme.registry:
     class: Drupal\Core\Theme\Registry
     arguments: ['@app.root', '@cache.default', '@lock', '@module_handler', '@theme_handler', '@theme.initialization']
@@ -1190,6 +1218,9 @@ services:
   account_switcher:
     class: Drupal\Core\Session\AccountSwitcher
     arguments: ['@current_user', '@session_handler.write_safe']
+  user_permissions_hash_generator:
+    class: Drupal\Core\Session\PermissionsHashGenerator
+    arguments: ['@private_key', '@cache.default']
   current_user:
     class: Drupal\Core\Session\AccountProxy
   session_configuration:
@@ -1255,15 +1286,15 @@ services:
     class: Drupal\Core\Asset\AssetDumper
   library.discovery:
     class: Drupal\Core\Asset\LibraryDiscovery
-    arguments: ['@library.discovery.collector', '@module_handler']
+    arguments: ['@library.discovery.collector', '@cache_tags.invalidator']
   library.discovery.collector:
     class: Drupal\Core\Asset\LibraryDiscoveryCollector
-    arguments: ['@cache.discovery', '@lock', '@library.discovery.parser']
+    arguments: ['@cache.discovery', '@lock', '@library.discovery.parser', '@theme.manager']
     tags:
       - { name: needs_destruction }
   library.discovery.parser:
     class: Drupal\Core\Asset\LibraryDiscoveryParser
-    arguments: ['@app.root', '@module_handler']
+    arguments: ['@app.root', '@module_handler', '@theme.manager']
   library.dependency_resolver:
     class: Drupal\Core\Asset\LibraryDependencyResolver
     arguments: ['@library.discovery']
@@ -1279,6 +1310,7 @@ services:
       - { name: service_collector, tag: 'twig.extension', call: addExtension }
   twig.extension:
     class: Drupal\Core\Template\TwigExtension
+    arguments: ['@renderer']
     tags:
       - { name: twig.extension, priority: 100 }
     calls:
@@ -1322,8 +1354,17 @@ services:
     tags:
       - { name: mime_type_guesser }
     lazy: true
+  render_cache:
+    class: Drupal\Core\Render\RenderCache
+    arguments: ['@request_stack', '@cache_factory', '@cache_contexts_manager']
   renderer:
     class: Drupal\Core\Render\Renderer
-    arguments: ['@controller_resolver', '@theme.manager', '@plugin.manager.element_info', '@request_stack', '@cache_factory', '@cache_contexts']
+    arguments: ['@controller_resolver', '@theme.manager', '@plugin.manager.element_info', '@render_cache', '%renderer.config%']
   email.validator:
     class: Egulias\EmailValidator\EmailValidator
+
+  response_filter.active_link:
+    class: Drupal\Core\EventSubscriber\ActiveLinkResponseFilter
+    arguments: ['@current_user', '@path.current', '@path.matcher', '@language_manager']
+    tags:
+      - { name: event_subscriber }

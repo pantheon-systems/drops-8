@@ -23,7 +23,7 @@ class SiteMaintenanceTest extends WebTestBase {
    */
   public static $modules = array('node');
 
-  protected $admin_user;
+  protected $adminUser;
 
   protected function setUp() {
     parent::setUp();
@@ -34,35 +34,14 @@ class SiteMaintenanceTest extends WebTestBase {
     // Create a user allowed to access site in maintenance mode.
     $this->user = $this->drupalCreateUser(array('access site in maintenance mode'));
     // Create an administrative user.
-    $this->admin_user = $this->drupalCreateUser(array('administer site configuration', 'access site in maintenance mode'));
-    $this->drupalLogin($this->admin_user);
-  }
-
-  /**
-   * Verify site maintenance mode functionality with page cache disabled.
-   */
-  function testSiteMaintenanceWithoutPageCache() {
-    $config = $this->config('system.performance');
-    $config->set('cache.page.use_internal', 0);
-    $config->save();
-    $this->doTestSiteMaintenance();
-  }
-
-  /**
-   * Verify site maintenance mode functionality with page cache enabled.
-   */
-  function testSiteMaintenanceWithPageCache() {
-    $config = $this->config('system.performance');
-    $config->set('cache.page.use_internal', 1);
-    $config->set('cache.page.max_age', 300);
-    $config->save();
-    $this->doTestSiteMaintenance();
+    $this->adminUser = $this->drupalCreateUser(array('administer site configuration', 'access site in maintenance mode'));
+    $this->drupalLogin($this->adminUser);
   }
 
   /**
    * Verify site maintenance mode functionality.
    */
-  protected function doTestSiteMaintenance() {
+  protected function testSiteMaintenance() {
     // Turn on maintenance mode.
     $edit = array(
       'maintenance_mode' => 1,
@@ -102,7 +81,7 @@ class SiteMaintenanceTest extends WebTestBase {
 
     // Log in administrative user and configure a custom site offline message.
     $this->drupalLogout();
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/config/development/maintenance');
     $this->assertNoRaw($admin_message, 'Site maintenance mode message not displayed.');
 

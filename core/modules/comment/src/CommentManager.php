@@ -8,7 +8,6 @@
 namespace Drupal\comment;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -160,7 +159,7 @@ class CommentManager implements CommentManagerInterface {
     }
 
     if ($this->authenticatedCanPostComments) {
-      // We cannot use drupal_get_destination() because these links
+      // We cannot use the redirect.destination service here because these links
       // sometimes appear on /node and taxonomy listing pages.
       if ($entity->get($field_name)->getFieldDefinition()->getSetting('form_location') == CommentItemInterface::FORM_SEPARATE_PAGE) {
         $comment_reply_parameters = [

@@ -7,7 +7,7 @@
 
 namespace Drupal\field\Tests;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormState;
 
@@ -103,7 +103,7 @@ class FormTest extends FieldTestBase {
     $this->drupalGet('entity_test/add');
 
     // Create token value expected for description.
-    $token_description = String::checkPlain($this->config('system.site')->get('name')) . '_description';
+    $token_description = SafeMarkup::checkPlain($this->config('system.site')->get('name')) . '_description';
     $this->assertText($token_description, 'Token replacement for description is displayed');
     $this->assertFieldByName("{$field_name}[0][value]", '', 'Widget is displayed');
     $this->assertNoField("{$field_name}[1][value]", 'No extraneous widget is displayed');
@@ -257,7 +257,7 @@ class FormTest extends FieldTestBase {
     $this->assertFieldByName("{$field_name}[0][value]", '', 'Widget 1 is displayed');
     $this->assertFieldByName("{$field_name}[1][value]", '', 'New widget is displayed');
     $this->assertNoField("{$field_name}[2][value]", 'No extraneous widget is displayed');
-    // TODO : check that non-field inpurs are preserved ('title')...
+    // TODO : check that non-field inputs are preserved ('title')...
 
     // Yet another time so that we can play with more values -> 3 widgets.
     $this->drupalPostForm(NULL, array(), t('Add another item'));

@@ -56,9 +56,8 @@ class FormatDateTest extends WebTestBase {
    * Tests admin-defined formats in format_date().
    */
   function testAdminDefinedFormatDate() {
-    // Create an admin user.
-    $this->admin_user = $this->drupalCreateUser(array('administer site configuration'));
-    $this->drupalLogin($this->admin_user);
+    // Create and log in an admin user.
+    $this->drupalLogin($this->drupalCreateUser(array('administer site configuration')));
 
     // Add new date format.
     $edit = array(
@@ -96,7 +95,7 @@ class FormatDateTest extends WebTestBase {
     $this->assertIdentical(format_date($timestamp, 'custom', 'l, d-M-y H:i:s T', 'Europe/London', 'en'), 'Monday, 26-Mar-07 01:00:00 BST', 'Test a different time zone.');
 
     // Change the default language and timezone.
-    $this->config('system.site')->set('langcode', static::LANGCODE)->save();
+    $this->config('system.site')->set('default_langcode', static::LANGCODE)->save();
     date_default_timezone_set('America/Los_Angeles');
 
     $this->assertIdentical(format_date($timestamp, 'custom', 'l, d-M-y H:i:s T', 'America/Los_Angeles', 'en'), 'Sunday, 25-Mar-07 17:00:00 PDT', 'Test a different language.');

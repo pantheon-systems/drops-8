@@ -169,10 +169,8 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
       // Collect cache defaults for this entity.
       '#cache' => array(
         'tags' => Cache::mergeTags($this->getCacheTags(), $entity->getCacheTags()),
-        'contexts' => [
-          'theme',
-          'user.roles',
-        ],
+        'contexts' => $entity->getCacheContexts(),
+        'max-age' => $entity->getCacheMaxAge(),
       ),
     );
 

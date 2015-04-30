@@ -27,13 +27,10 @@ class CommentViewsData extends EntityViewsData {
 
     $data['comment_field_data']['subject']['title'] = t('Title');
     $data['comment_field_data']['subject']['help'] = t('The title of the comment.');
-    $data['comment_field_data']['subject']['field']['id'] = 'comment';
-
-    $data['comment_field_data']['cid']['field']['id'] = 'comment';
 
     $data['comment_field_data']['name']['title'] = t('Author');
     $data['comment_field_data']['name']['help'] = t("The name of the comment's author. Can be rendered as a link to the author's homepage.");
-    $data['comment_field_data']['name']['field']['id'] = 'comment_username';
+    $data['comment_field_data']['name']['field']['default_formatter'] = 'comment_username';
 
     $data['comment_field_data']['homepage']['title'] = t("Author's website");
     $data['comment_field_data']['homepage']['help'] = t("The website address of the comment's author. Can be rendered as a link. Will be empty if the author is a registered user.");
@@ -158,23 +155,6 @@ class CommentViewsData extends EntityViewsData {
     unset($data['comment_field_data']['thread']['filter']);
     unset($data['comment_field_data']['thread']['argument']);
 
-    $data['comment_field_data']['field_name'] = array(
-      'title' => t('Comment field name'),
-      'help' => t('The Field name from which the comment originated.'),
-      'field' => array(
-        'id' => 'standard',
-      ),
-      'filter' => array(
-        'id' => 'string',
-      ),
-      'argument' => array(
-        'id' => 'string',
-      ),
-      'sort' => array(
-        'id' => 'standard',
-      ),
-    );
-
     $entities_types = \Drupal::entityManager()->getDefinitions();
 
     // Provide a relationship for each entity type except comment.
@@ -209,7 +189,6 @@ class CommentViewsData extends EntityViewsData {
     $data['comment_field_data']['uid']['relationship']['title'] = t('Author');
     $data['comment_field_data']['uid']['relationship']['help'] = t("The User ID of the comment's author.");
     $data['comment_field_data']['uid']['relationship']['label'] = t('author');
-    $data['comment_field_data']['uid']['field']['id'] = 'user';
 
     $data['comment_field_data']['pid']['title'] = t('Parent CID');
     $data['comment_field_data']['pid']['relationship']['title'] = t('Parent comment');

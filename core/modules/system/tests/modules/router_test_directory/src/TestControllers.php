@@ -7,6 +7,7 @@
 
 namespace Drupal\router_test;
 
+use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\user\UserInterface;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
@@ -82,6 +83,23 @@ class TestControllers {
     $event_dispatcher->removeSubscriber($exception_logger);
 
     $this->throwException('<script>alert(\'xss\')</script>');
+  }
+
+  public function test18() {
+    return [
+      '#cache' => [
+        'contexts' => ['url'],
+        'tags' => ['foo'],
+        'max-age' => 60,
+      ],
+      'content' => [
+        '#markup' => 'test18',
+      ],
+    ];
+  }
+
+  public function test21() {
+    return new CacheableResponse('test21');
   }
 
   /**

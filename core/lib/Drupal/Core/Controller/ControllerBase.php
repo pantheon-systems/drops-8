@@ -9,6 +9,7 @@ namespace Drupal\Core\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Routing\LinkGeneratorTrait;
+use Drupal\Core\Routing\RedirectDestinationTrait;
 use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -26,7 +27,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * refactored to be trivial glue code.
  *
  * The services exposed here are those that it is reasonable for a well-behaved
- * controller to leverage. A controller that needs other other services may
+ * controller to leverage. A controller that needs other services may
  * need to be refactored into a thin controller and a dependent unit-testable
  * service.
  *
@@ -35,8 +36,10 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @ingroup menu
  */
 abstract class ControllerBase implements ContainerInjectionInterface {
-  use StringTranslationTrait;
+
   use LinkGeneratorTrait;
+  use RedirectDestinationTrait;
+  use StringTranslationTrait;
   use UrlGeneratorTrait;
 
   /**

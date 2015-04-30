@@ -167,7 +167,7 @@ class CommentAdminOverview extends FormBase {
 
     // Build a table listing the appropriate comments.
     $options = array();
-    $destination = drupal_get_destination();
+    $destination = $this->getDestinationArray();
 
     $commented_entity_ids = array();
     $commented_entities = array();
@@ -185,7 +185,7 @@ class CommentAdminOverview extends FormBase {
       $commented_entity = $commented_entities[$comment->getCommentedEntityTypeId()][$comment->getCommentedEntityId()];
       $username = array(
         '#theme' => 'username',
-        '#account' => comment_prepare_author($comment),
+        '#account' => $comment->getOwner(),
       );
       $body = '';
       if (!empty($comment->comment_body->value)) {

@@ -1,7 +1,7 @@
 <?php
 
 use Drupal\node\NodeInterface;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Access\AccessResult;
 
@@ -65,7 +65,7 @@ use Drupal\Core\Access\AccessResult;
  * called.
  *
  * @param \Drupal\Core\Session\AccountInterface $account
- *   The acccount object whose grants are requested.
+ *   The account object whose grants are requested.
  * @param string $op
  *   The node operation to be performed, such as 'view', 'update', or 'delete'.
  *
@@ -336,18 +336,18 @@ function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Se
 
     case 'update':
       if ($account->hasPermission('edit any ' . $type . ' content', $account)) {
-        return AccessResult::allowed()->cachePerRole();
+        return AccessResult::allowed()->cachePerPermissions();
       }
       else {
-        return AccessResult::allowedIf($account->hasPermission('edit own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))->cachePerRole()->cachePerUser()->cacheUntilEntityChanges($node);
+        return AccessResult::allowedIf($account->hasPermission('edit own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))->cachePerPermissions()->cachePerUser()->cacheUntilEntityChanges($node);
       }
 
     case 'delete':
       if ($account->hasPermission('delete any ' . $type . ' content', $account)) {
-        return AccessResult::allowed()->cachePerRole();
+        return AccessResult::allowed()->cachePerPermissions();
       }
       else {
-        return AccessResult::allowedIf($account->hasPermission('delete own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))->cachePerRole()->cachePerUser()->cacheUntilEntityChanges($node);
+        return AccessResult::allowedIf($account->hasPermission('delete own ' . $type . ' content', $account) && ($account->id() == $node->getOwnerId()))->cachePerPermissions()->cachePerUser()->cacheUntilEntityChanges($node);
       }
 
     default:
@@ -403,7 +403,7 @@ function hook_node_update_index(\Drupal\node\NodeInterface $node, $langcode) {
   $text = '';
   $ratings = db_query('SELECT title, description FROM {my_ratings} WHERE nid = :nid', array(':nid' => $node->id()));
   foreach ($ratings as $rating) {
-    $text .= '<h2>' . String::checkPlain($rating->title) . '</h2>' . Xss::filter($rating->description);
+    $text .= '<h2>' . SafeMarkup::checkPlain($rating->title) . '</h2>' . Xss::filter($rating->description);
   }
   return $text;
 }

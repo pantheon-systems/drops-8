@@ -7,7 +7,6 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
@@ -109,8 +108,9 @@ function template_preprocess_views_view_fields(&$variables) {
         $field_output = $pre . '>' . $field_output . '</' . $object->element_type . '>';
       }
 
-      // Protect ourself somewhat for backward compatibility. This will prevent
-      // old templates from producing invalid HTML when no element type is selected.
+      // Protect ourselves somewhat for backward compatibility. This will
+      // prevent old templates from producing invalid HTML when no element type
+      // is selected.
       if (empty($object->element_type)) {
         $object->element_type = 'span';
       }
@@ -159,7 +159,7 @@ function template_preprocess_views_view_fields(&$variables) {
 
       // Set up the label for the value and the HTML to make it easier
       // on the template.
-      $object->label = String::checkPlain($view->field[$id]->label());
+      $object->label = SafeMarkup::checkPlain($view->field[$id]->label());
       $object->label_html = '';
       if ($object->label) {
         $object->label_html .= $object->label;
@@ -208,6 +208,8 @@ function template_preprocess_views_view_fields(&$variables) {
  *     - wrapper_suffix: A string added to the end of the fields.
  *
  * @see template_preprocess_views_view_fields()
+ *
+ * @ingroup themeable
  */
 function theme_views_view_fields($variables) {
   $fields = $variables['fields'];
@@ -252,6 +254,8 @@ function template_preprocess_views_view_grouping(&$variables) {
  * Interesting bits of info:
  * $field->field_alias says what the raw value in $row will be. Reach it like
  * this: @code { $row->{$field->field_alias} @endcode
+ *
+ * @ingroup themeable
  */
 function theme_views_view_field($variables) {
   return $variables['output'];
@@ -458,12 +462,12 @@ function template_preprocess_views_view_table(&$variables) {
     // what the CSS classes should be.
     $variables['fields'][$field] = Html::cleanCssIdentifier($field);
     if ($active == $field) {
-      $variables['fields'][$field] .= ' active';
+      $variables['fields'][$field] .= ' is-active';
     }
 
     // Render the header labels.
     if ($field == $column && empty($fields[$field]->options['exclude'])) {
-      $label = String::checkPlain(!empty($fields[$field]) ? $fields[$field]->label() : '');
+      $label = SafeMarkup::checkPlain(!empty($fields[$field]) ? $fields[$field]->label() : '');
       if (empty($options['info'][$field]['sortable']) || !$fields[$field]->clickSortable()) {
         $variables['header'][$field]['content'] = $label;
       }
@@ -849,7 +853,7 @@ function template_preprocess_views_view_rss(&$variables) {
   // The RSS 2.0 "spec" doesn't indicate HTML can be used in the description.
   // We strip all HTML tags, but need to prevent double encoding from properly
   // escaped source data (such as &amp becoming &amp;amp;).
-  $variables['description'] = String::checkPlain(String::decodeEntities(strip_tags($style->getDescription())));
+  $variables['description'] = SafeMarkup::checkPlain(Html::decodeEntities(strip_tags($style->getDescription())));
 
   if ($view->display_handler->getOption('sitename_title')) {
     $title = $config->get('name');
@@ -860,7 +864,7 @@ function template_preprocess_views_view_rss(&$variables) {
   else {
     $title = $view->getTitle();
   }
-  $variables['title'] = String::checkPlain($title);
+  $variables['title'] = SafeMarkup::checkPlain($title);
 
   // Figure out which display which has a path we're using for this feed. If
   // there isn't one, use the global $base_url
@@ -888,7 +892,7 @@ function template_preprocess_views_view_rss(&$variables) {
     $variables['link'] = $url_string;
   }
 
-  $variables['langcode'] = String::checkPlain(\Drupal::languageManager()->getCurrentLanguage()->getId());
+  $variables['langcode'] = SafeMarkup::checkPlain(\Drupal::languageManager()->getCurrentLanguage()->getId());
   $variables['namespaces'] = new Attribute($style->namespaces);
   $variables['items'] = $items;
   $variables['channel_elements'] = format_xml_elements($style->channel_elements);
@@ -912,9 +916,9 @@ function template_preprocess_views_view_rss(&$variables) {
 function template_preprocess_views_view_row_rss(&$variables) {
   $item = $variables['row'];
 
-  $variables['title'] = String::checkPlain($item->title);
+  $variables['title'] = SafeMarkup::checkPlain($item->title);
   $variables['link'] = $item->link;
-  $variables['description'] = String::checkPlain($item->description);
+  $variables['description'] = SafeMarkup::checkPlain($item->description);
   $variables['item_elements'] = empty($item->elements) ? '' : format_xml_elements($item->elements);
 }
 
@@ -943,7 +947,7 @@ function template_preprocess_views_view_opml(&$variables) {
   else {
     $title = $view->getTitle();
   }
-  $variables['title'] = String::checkPlain($title);
+  $variables['title'] = SafeMarkup::checkPlain($title);
   $variables['items'] = $items;
   $variables['updated'] = gmdate(DATE_RFC2822, REQUEST_TIME);
 
@@ -1086,6 +1090,7 @@ function template_preprocess_views_mini_pager(&$variables) {
  * Important! When adding a new template to your theme, be sure to flush the
  * theme registry cache!
  *
+ * @ingroup views_overview
  * @see \Drupal\views\ViewExecutable::buildThemeFunctions()
  * @}
  */

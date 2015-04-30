@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Config\Entity;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\ConfigException;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
@@ -130,9 +130,13 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * {@inheritdoc}
    */
   public function setOriginalId($id) {
+    // Do not call the parent method since that would mark this entity as no
+    // longer new. Unlike content entities, new configuration entities have an
+    // ID.
+    // @todo https://www.drupal.org/node/2478811 Document the entity life cycle
+    //   and the differences between config and content.
     $this->originalId = $id;
-
-    return parent::setOriginalId($id);
+    return $this;
   }
 
   /**
@@ -264,7 +268,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
     $config_name = $this->getEntityType()->getConfigPrefix() . '.' . $this->id();
     $definition = $this->getTypedConfig()->getDefinition($config_name);
     if (!isset($definition['mapping'])) {
-      throw new SchemaIncompleteException(String::format('Incomplete or missing schema for @config_name', array('@config_name' => $config_name)));
+      throw new SchemaIncompleteException(SafeMarkup::format('Incomplete or missing schema for @config_name', array('@config_name' => $config_name)));
     }
     $id_key = $this->getEntityType()->getKey('id');
     foreach (array_keys($definition['mapping']) as $name) {
@@ -313,7 +317,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
       ->execute();
     $matched_entity = reset($matching_entities);
     if (!empty($matched_entity) && ($matched_entity != $this->id()) && $matched_entity != $this->getOriginalId()) {
-      throw new ConfigDuplicateUUIDException(String::format('Attempt to save a configuration entity %id with UUID %uuid when this UUID is already used for %matched', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%matched' => $matched_entity)));
+      throw new ConfigDuplicateUUIDException(SafeMarkup::format('Attempt to save a configuration entity %id with UUID %uuid when this UUID is already used for %matched', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%matched' => $matched_entity)));
     }
 
     // If this entity is not new, load the original entity for comparison.
@@ -321,7 +325,7 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
       $original = $storage->loadUnchanged($this->getOriginalId());
       // Ensure that the UUID cannot be changed for an existing entity.
       if ($original && ($original->uuid() != $this->uuid())) {
-        throw new ConfigDuplicateUUIDException(String::format('Attempt to save a configuration entity %id with UUID %uuid when this entity already exists with UUID %original_uuid', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%original_uuid' => $original->uuid())));
+        throw new ConfigDuplicateUUIDException(SafeMarkup::format('Attempt to save a configuration entity %id with UUID %uuid when this entity already exists with UUID %original_uuid', array('%id' => $this->id(), '%uuid' => $this->uuid(), '%original_uuid' => $original->uuid())));
       }
     }
     if (!$this->isSyncing()) {

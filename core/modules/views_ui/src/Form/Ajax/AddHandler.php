@@ -18,7 +18,7 @@ use Drupal\views\Views;
 class AddHandler extends ViewsFormBase {
 
   /**
-   * Constucts a new AddHandler object.
+   * Constructs a new AddHandler object.
    */
   public function __construct($type = NULL) {
     $this->setType($type);
@@ -90,7 +90,7 @@ class AddHandler extends ViewsFormBase {
       $form['override']['controls'] = array(
         '#theme_wrappers' => array('container'),
         '#id' => 'views-filterable-options-controls',
-        '#attributes' => array('class' => array('container-inline')),
+        '#attributes' => ['class' => ['form--inline']],
       );
       $form['override']['controls']['options_search'] = array(
         '#type' => 'textfield',

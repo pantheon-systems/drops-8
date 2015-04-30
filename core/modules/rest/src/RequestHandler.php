@@ -31,13 +31,11 @@ class RequestHandler implements ContainerAwareInterface {
    *   The route match.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The HTTP request object.
-   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
-   *   The route match.
    *
    * @return \Symfony\Component\HttpFoundation\Response
    *   The response object.
    */
-  public function handle(RouteMatchInterface $route_match, Request $request, RouteMatchInterface $route_match) {
+  public function handle(RouteMatchInterface $route_match, Request $request) {
 
     $plugin = $route_match->getRouteObject()->getDefault('_plugin');
     $method = strtolower($request->getMethod());
@@ -46,7 +44,7 @@ class RequestHandler implements ContainerAwareInterface {
       ->get('plugin.manager.rest')
       ->getInstance(array('id' => $plugin));
 
-    // Deserialze incoming data if available.
+    // Deserialize incoming data if available.
     $serializer = $this->container->get('serializer');
     $received = $request->getContent();
     $unserialized = NULL;
@@ -110,6 +108,8 @@ class RequestHandler implements ContainerAwareInterface {
       $output = $serializer->serialize($data, $format);
       $response->setContent($output);
       $response->headers->set('Content-Type', $request->getMimeType($format));
+      // Add rest settings config's cache tags.
+      $response->addCacheableDependency($this->container->get('config.factory')->get('rest.settings'));
     }
     return $response;
   }

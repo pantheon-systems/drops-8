@@ -9,8 +9,8 @@ namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -1023,7 +1023,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     }
 
     if (!empty($class)) {
-      $text = String::format('<span>@text</span>', array('@text' => $text));
+      $text = SafeMarkup::format('<span>@text</span>', array('@text' => $text));
     }
 
     if (empty($title)) {
@@ -1061,8 +1061,8 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       }
        // Use strip tags as there should never be HTML in the path.
        // However, we need to preserve special characters like " that
-       // were removed by String::checkPlain().
-      $tokens["!$count"] = isset($this->view->args[$count - 1]) ? strip_tags(String::decodeEntities($this->view->args[$count - 1])) : '';
+       // were removed by SafeMarkup::checkPlain().
+      $tokens["!$count"] = isset($this->view->args[$count - 1]) ? strip_tags(Html::decodeEntities($this->view->args[$count - 1])) : '';
     }
 
     return $tokens;
@@ -1393,9 +1393,9 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     if ($this->defaultableSections($section)) {
       views_ui_standard_display_dropdown($form, $form_state, $section);
     }
-    $form['#title'] = String::checkPlain($this->display['display_title']) . ': ';
+    $form['#title'] = SafeMarkup::checkPlain($this->display['display_title']) . ': ';
 
-    // Set the 'section' to hilite on the form.
+    // Set the 'section' to highlight on the form.
     // If it's the item we're looking at is pulling from the default display,
     // reflect that. Don't use is_defaulted since we want it to show up even
     // on the default display.
@@ -2100,12 +2100,11 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
           $url_options['query'] = $this->view->exposed_raw_input;
         }
         $url->setOptions($url_options);
-        $theme = $this->view->buildThemeFunctions('views_more');
 
         return array(
-          '#theme' => $theme,
-          '#more_url' => $url->toString(),
-          '#link_text' => String::checkPlain($this->useMoreText()),
+          '#type' => 'more_link',
+          '#url' => $url,
+          '#title' => $this->useMoreText(),
           '#view' => $this->view,
         );
       }
@@ -2295,6 +2294,16 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     }
 
     return [$is_cacheable, $cache_contexts];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMetadata() {
+    if (!isset($this->display['cache_metadata'])) {
+      $this->display['cache_metadata'] = $this->calculateCacheMetadata();
+    }
+    return $this->display['cache_metadata'];
   }
 
   /**

@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Entity\Sql;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\DatabaseException;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
@@ -128,11 +128,28 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
    */
   public function requiresEntityStorageSchemaChanges(EntityTypeInterface $entity_type, EntityTypeInterface $original) {
     return
-      $entity_type->isRevisionable() != $original->isRevisionable() ||
-      $entity_type->isTranslatable() != $original->isTranslatable() ||
-      $this->hasSharedTableNameChanges($entity_type, $original) ||
+      $this->hasSharedTableStructureChange($entity_type, $original) ||
       // Detect changes in key or index definitions.
       $this->getEntitySchemaData($entity_type, $this->getEntitySchema($entity_type, TRUE)) != $this->loadEntitySchemaData($original);
+  }
+
+  /**
+   * Detects whether there is a change in the shared table structure.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The new entity type.
+   * @param \Drupal\Core\Entity\EntityTypeInterface $original
+   *   The origin entity type.
+   *
+   * @return bool
+   *   Returns TRUE if either the revisionable or translatable flag changes or
+   *   a table has been renamed.
+   */
+  protected function hasSharedTableStructureChange(EntityTypeInterface $entity_type, EntityTypeInterface $original) {
+    return
+      $entity_type->isRevisionable() != $original->isRevisionable() ||
+      $entity_type->isTranslatable() != $original->isTranslatable() ||
+      $this->hasSharedTableNameChanges($entity_type, $original);
   }
 
   /**
@@ -203,6 +220,13 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
     if (!class_exists($original_storage_class)) {
       return TRUE;
     }
+
+    // Data migration is not needed when only indexes changed, as they can be
+    // applied if there is data.
+    if (!$this->hasSharedTableStructureChange($entity_type, $original)) {
+      return FALSE;
+    }
+
     // Use the original entity type since the storage has not been updated.
     $original_storage = $this->entityManager->createHandlerInstance($original_storage_class, $original);
     return $original_storage->hasData();
@@ -262,7 +286,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
 
     // If a migration is required, we can't proceed.
     if ($this->requiresEntityDataMigration($entity_type, $original)) {
-      throw new EntityStorageException(String::format('The SQL storage cannot change the schema for an existing entity type with data.'));
+      throw new EntityStorageException(SafeMarkup::format('The SQL storage cannot change the schema for an existing entity type with data.'));
     }
 
     // If we have no data just recreate the entity schema from scratch.
@@ -443,7 +467,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
    */
   protected function checkEntityType(EntityTypeInterface $entity_type) {
     if ($entity_type->id() != $this->entityType->id()) {
-      throw new EntityStorageException(String::format('Unsupported entity type @id', array('@id' => $entity_type->id())));
+      throw new EntityStorageException(SafeMarkup::format('Unsupported entity type @id', array('@id' => $entity_type->id())));
     }
     return TRUE;
   }
@@ -506,7 +530,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
         }
         foreach ($table_mapping->getFieldNames($table_name) as $field_name) {
           if (!isset($storage_definitions[$field_name])) {
-            throw new FieldException(String::format('Field storage definition for "@field_name" could not be found.', array('@field_name' => $field_name)));
+            throw new FieldException(SafeMarkup::format('Field storage definition for "@field_name" could not be found.', array('@field_name' => $field_name)));
           }
           // Add the schema for base field definitions.
           elseif ($table_mapping->allowsSharedTableStorage($storage_definitions[$field_name])) {
@@ -1609,9 +1633,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       'primary key' => array('entity_id', 'deleted', 'delta', 'langcode'),
       'indexes' => array(
         'bundle' => array('bundle'),
-        'deleted' => array('deleted'),
         'revision_id' => array('revision_id'),
-        'langcode' => array('langcode'),
       ),
     );
 

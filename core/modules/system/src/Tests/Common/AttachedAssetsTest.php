@@ -89,7 +89,7 @@ class AttachedAssetsTest extends KernelTestBase {
 
     $css = $this->assetResolver->getCssAssets($assets, FALSE);
     $js = $this->assetResolver->getJsAssets($assets, FALSE)[1];
-    $this->assertTrue(array_key_exists('bar.css', $css), 'CSS files are correctly added.');
+    $this->assertTrue(array_key_exists('core/modules/system/tests/modules/common_test/bar.css', $css), 'CSS files are correctly added.');
     $this->assertTrue(array_key_exists('core/modules/system/tests/modules/common_test/foo.js', $js), 'JavaScript files are correctly added.');
 
     $css_render_array = \Drupal::service('asset.css.collection_renderer')->render($css);
@@ -424,7 +424,7 @@ class AttachedAssetsTest extends KernelTestBase {
     $js = $this->assetResolver->getJsAssets($assets, FALSE)[1];
     $js_render_array = \Drupal::service('asset.js.collection_renderer')->render($js);
     $rendered_js = $this->renderer->render($js_render_array);
-    $this->assertTrue(strpos($rendered_js, 'core/assets/vendor/jquery-form/jquery.form.js'), 'Altered library dependencies are added to the page.');
+    $this->assertTrue(strpos($rendered_js, 'core/assets/vendor/jquery-form/jquery.form.min.js'), 'Altered library dependencies are added to the page.');
   }
 
   /**
@@ -470,7 +470,7 @@ class AttachedAssetsTest extends KernelTestBase {
 
     $css = $this->assetResolver->getCssAssets($assets, FALSE);
     $js = $this->assetResolver->getJsAssets($assets, FALSE)[1];
-    $this->assertTrue(array_key_exists('querystring.css?arg1=value1&arg2=value2', $css), 'CSS file with query string is correctly added.');
+    $this->assertTrue(array_key_exists('core/modules/system/tests/modules/common_test/querystring.css?arg1=value1&arg2=value2', $css), 'CSS file with query string is correctly added.');
     $this->assertTrue(array_key_exists('core/modules/system/tests/modules/common_test/querystring.js?arg1=value1&arg2=value2', $js), 'JavaScript file with query string is correctly added.');
 
     $css_render_array = \Drupal::service('asset.css.collection_renderer')->render($css);

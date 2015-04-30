@@ -7,6 +7,7 @@
 
 namespace Drupal\config\Tests;
 
+use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\PreExistingConfigException;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\UnmetDependenciesException;
@@ -186,7 +187,7 @@ class ConfigInstallTest extends KernelTestBase {
     $this->assertEqual($collections, $active_storage->getAllCollectionNames());
     $collection_storage = $active_storage->createCollection('entity');
 
-    // The config_test.dynamic.dotted.default configuraton object saved in the
+    // The config_test.dynamic.dotted.default configuration object saved in the
     // active store should be a configuration entity complete with UUID. Because
     // the entity collection does not support configuration entities the
     // configuration object stored there with the same name should only contain
@@ -223,7 +224,8 @@ class ConfigInstallTest extends KernelTestBase {
   function testLanguage() {
     $this->installModules(['config_test_language']);
     // Test imported configuration with implicit language code.
-    $data = $this->container->get('config.storage.installer')->read('config_test.dynamic.dotted.english');
+    $storage = new InstallStorage();
+    $data = $storage->read('config_test.dynamic.dotted.english');
     $this->assertTrue(!isset($data['langcode']));
     $this->assertEqual(
       $this->config('config_test.dynamic.dotted.english')->get('langcode'),
@@ -231,7 +233,7 @@ class ConfigInstallTest extends KernelTestBase {
     );
 
     // Test imported configuration with explicit language code.
-    $data = $this->container->get('config.storage.installer')->read('config_test.dynamic.dotted.french');
+    $data = $storage->read('config_test.dynamic.dotted.french');
     $this->assertEqual($data['langcode'], 'fr');
     $this->assertEqual(
       $this->config('config_test.dynamic.dotted.french')->get('langcode'),

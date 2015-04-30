@@ -7,7 +7,7 @@
 
 namespace Drupal\menu_link_content\Tests;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\locale\TranslationString;
 use Drupal\simpletest\WebTestBase;
 
@@ -117,7 +117,7 @@ class LinksTest extends WebTestBase {
       $menu_link_plugin = $this->menuLinkManager->createInstance($links[$id]);
       $expected_parent = isset($links[$parent]) ? $links[$parent] : '';
 
-      $this->assertEqual($menu_link_plugin->getParent(), $expected_parent, String::format('Menu link %id has parent of %parent, expected %expected_parent.', array('%id' => $id, '%parent' => $menu_link_plugin->getParent(), '%expected_parent' => $expected_parent)));
+      $this->assertEqual($menu_link_plugin->getParent(), $expected_parent, SafeMarkup::format('Menu link %id has parent of %parent, expected %expected_parent.', array('%id' => $id, '%parent' => $menu_link_plugin->getParent(), '%expected_parent' => $expected_parent)));
     }
   }
 
@@ -161,7 +161,7 @@ class LinksTest extends WebTestBase {
     $this->assertMenuLinkParents($links, $expected_hierarchy);
 
     // Start over, and move child-1 under child-2, and check that all the
-    // childs of child-1 have been moved too.
+    // children of child-1 have been moved too.
     $links = $this->createLinkHierarchy($module);
     /* @var \Drupal\Core\Menu\MenuLinkInterface $menu_link_plugin  */
     $this->menuLinkManager->updateDefinition($links['child-1'], array('parent' => $links['child-2']));

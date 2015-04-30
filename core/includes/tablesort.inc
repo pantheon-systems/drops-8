@@ -1,6 +1,6 @@
 <?php
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Url;
 use Drupal\Component\Utility\UrlHelper;
 
@@ -48,7 +48,7 @@ function tablesort_header(&$cell_content, array &$cell_attributes, array $header
       // http://www.w3.org/TR/wai-aria/states_and_properties#aria-sort
       $cell_attributes['aria-sort'] = ($ts['sort'] == 'asc') ? 'ascending' : 'descending';
       $ts['sort'] = (($ts['sort'] == 'asc') ? 'desc' : 'asc');
-      $cell_attributes['class'][] = 'active';
+      $cell_attributes['class'][] = 'is-active';
       $tablesort_indicator = array(
         '#theme' => 'tablesort_indicator',
         '#style' => $ts['sort'],
@@ -60,7 +60,7 @@ function tablesort_header(&$cell_content, array &$cell_attributes, array $header
       $ts['sort'] = 'asc';
       $image = '';
     }
-    $cell_content = \Drupal::l(String::format('@cell_content@image', array('@cell_content' => $cell_content, '@image' => $image)), new Url('<current>', [], [
+    $cell_content = \Drupal::l(SafeMarkup::format('@cell_content@image', array('@cell_content' => $cell_content, '@image' => $image)), new Url('<current>', [], [
       'attributes' => array('title' => $title),
       'query' => array_merge($ts['query'], array(
         'sort' => $ts['sort'],

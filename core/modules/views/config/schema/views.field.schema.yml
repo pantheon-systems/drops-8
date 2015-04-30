@@ -116,12 +116,9 @@ views.field.numeric:
     format_plural:
       type: boolean
       label: 'Format plural'
-    format_plural_singular:
+    format_plural_string:
       type: label
-      label: 'Singular form'
-    format_plural_plural:
-      type: label
-      label: 'Plural form'
+      label: 'Singular and one or more plurals'
     prefix:
       type: label
       label: 'Prefix'
@@ -170,10 +167,6 @@ views.field.url:
     display_as_link:
       type: boolean
       label: 'Display as link'
-
-views.field.xss:
-  type: views_field
-  label: 'Xss'
 
 views.field.language:
   type: views_field

@@ -24,14 +24,21 @@ class EntityRevisionsTest extends WebTestBase {
    */
   public static $modules = array('entity_test');
 
+  /**
+   * A user with permission to administer entity_test content.
+   *
+   * @var \Drupal\user\UserInterface
+   */
+  protected $webUser;
+
   protected function setUp() {
     parent::setUp();
 
     // Create and login user.
-    $this->web_user = $this->drupalCreateUser(array(
+    $this->webUser = $this->drupalCreateUser(array(
       'administer entity_test content',
     ));
-    $this->drupalLogin($this->web_user);
+    $this->drupalLogin($this->webUser);
   }
 
   /**
@@ -41,7 +48,7 @@ class EntityRevisionsTest extends WebTestBase {
 
     // All revisable entity variations have to have the same results.
     foreach (entity_test_entity_types(ENTITY_TEST_TYPES_REVISABLE) as $entity_type) {
-      $this->assertRevisions($entity_type);
+      $this->runRevisionsTests($entity_type);
     }
   }
 
@@ -51,12 +58,12 @@ class EntityRevisionsTest extends WebTestBase {
    * @param string $entity_type
    *   The entity type to run the tests with.
    */
-  protected function assertRevisions($entity_type) {
+  protected function runRevisionsTests($entity_type) {
 
     // Create initial entity.
     $entity = entity_create($entity_type, array(
       'name' => 'foo',
-      'user_id' => $this->web_user->id(),
+      'user_id' => $this->webUser->id(),
     ));
     $entity->field_test_text->value = 'bar';
     $entity->save();

@@ -7,7 +7,7 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Extension\Extension;
@@ -34,10 +34,10 @@ function filter_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Assigning roles to text formats') . '</dt>';
       $output .= '<dd>' . t('You can define which users will be able to use each text format by selecting roles. To ensure security, anonymous and untrusted users should only have access to text formats that restrict them to either plain text or a safe set of HTML tags. This is because HTML tags can allow embedding malicious links or scripts in text. More trusted registered users may be granted permission to use less restrictive text formats in order to create rich text. <strong>Improper text format configuration is a security risk</strong>.') . '</dd>';
       $output .= '<dt>' . t('Selecting filters') . '</dt>';
-      $output .= '<dd><p>' . t('Each text format uses filters that add, remove, or transform elements within user-entered text. For example, one filter removes unapproved HTML tags, while another transforms URLs into clickable links. Filters are applied in a specific order and do not change the actual content, but instead, modify it temporarily before it is displayed.') . '<p>';
-      $output .= '<p>' . t('Each filter can have additional configuration options. For example, for the "Limit allowed HTML tags" filter you need to define the list of HTML tags that the filter leaves in the text.') . '</p></dd>';
-      $output .= '<dt>' . t('Enabling text formats for field editing') . '</dt>';
-      $output .= '<dd>' . t('In the field settings for a field that supports text formats (such as Long text), you can enable the use of text formats by choosing "Filtered text (user selects text format)"  under "Text processing". See the <a href="!field_help">Field module help</a> and the <a href="!field_ui_help">Field UI help</a> pages for general information on fields and how to create and manage them.', array('!field_help' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui_help' => \Drupal::url('help.page', array('name' => 'field_ui')))) . '</dd>';
+      $output .= '<dd>' . t('Each text format uses filters that add, remove, or transform elements within user-entered text. For example, one filter removes unapproved HTML tags, while another transforms URLs into clickable links. Filters are applied in a specific order and do not change the actual content, but instead, modify it temporarily before it is displayed.') . '</dd>';
+      $output .= '<dd>' . t('Each filter can have additional configuration options. For example, for the "Limit allowed HTML tags" filter you need to define the list of HTML tags that the filter leaves in the text.') . '</dd>';
+      $output .= '<dt>' . t('Using text fields with text formats') . '</dt>';
+      $output .= '<dd>' . t('Text fields that allow text formats are those with "formatted" in the description. These are <em>Text (formatted, long, with summary)</em>, <em>Text (formatted)</em>, and <em>Text (formatted, long)</em>. You cannot change the type of field once a field has been created.') . '</dd>';
       $output .= '<dt>' . t('Choosing a text format') . '</dt>';
       $output .= '<dd>' . t('When creating or editing data in a field that has text formats enabled, users can select the format under the field from the Text format select list.') . '</dd>';
       $output .= '</dl>';
@@ -469,11 +469,12 @@ function template_preprocess_filter_tips(&$variables) {
   foreach ($variables['tips'] as $name => $tiplist) {
     foreach ($tiplist as $tip_key => $tip) {
       $tiplist[$tip_key]['attributes'] = new Attribute();
+      $tiplist[$tip_key]['tip'] = Xss::filterAdmin($tiplist[$tip_key]['tip']);
     }
 
     $variables['tips'][$name] = array(
       'attributes' => new Attribute(),
-      'name' => String::checkPlain($name),
+      'name' => SafeMarkup::checkPlain($name),
       'list' => $tiplist,
     );
   }
@@ -547,7 +548,7 @@ function _filter_url($text, $filter) {
   // 2. Used in IIS sessions like /S(dfd346)/
   $valid_url_balanced_parens = '\('. $valid_url_path_characters . '+\)';
 
-  // Valid end-of-path chracters (so /foo. does not gobble the period).
+  // Valid end-of-path characters (so /foo. does not gobble the period).
   // 1. Allow =&# for empty URL parameters and other URL-join artifacts
   $valid_url_ending_characters = '[\p{L}\p{M}\p{N}:_+~#=/]|(?:' . $valid_url_balanced_parens . ')';
 
@@ -634,7 +635,7 @@ function _filter_url($text, $filter) {
     }
 
     $text = implode($chunks);
-    // Revert back to the original comment contents
+    // Revert to the original comment contents
     _filter_url_escape_comments('', FALSE);
     $text = preg_replace_callback('`<!--(.*?)-->`', '_filter_url_escape_comments', $text);
   }
@@ -651,9 +652,9 @@ function _filter_url_parse_full_links($match) {
   // The $i:th parenthesis in the regexp contains the URL.
   $i = 1;
 
-  $match[$i] = String::decodeEntities($match[$i]);
-  $caption = String::checkPlain(_filter_url_trim($match[$i]));
-  $match[$i] = String::checkPlain($match[$i]);
+  $match[$i] = Html::decodeEntities($match[$i]);
+  $caption = SafeMarkup::checkPlain(_filter_url_trim($match[$i]));
+  $match[$i] = SafeMarkup::checkPlain($match[$i]);
   return '<a href="' . $match[$i] . '">' . $caption . '</a>';
 }
 
@@ -666,9 +667,9 @@ function _filter_url_parse_email_links($match) {
   // The $i:th parenthesis in the regexp contains the URL.
   $i = 0;
 
-  $match[$i] = String::decodeEntities($match[$i]);
-  $caption = String::checkPlain(_filter_url_trim($match[$i]));
-  $match[$i] = String::checkPlain($match[$i]);
+  $match[$i] = Html::decodeEntities($match[$i]);
+  $caption = SafeMarkup::checkPlain(_filter_url_trim($match[$i]));
+  $match[$i] = SafeMarkup::checkPlain($match[$i]);
   return '<a href="mailto:' . $match[$i] . '">' . $caption . '</a>';
 }
 
@@ -681,9 +682,9 @@ function _filter_url_parse_partial_links($match) {
   // The $i:th parenthesis in the regexp contains the URL.
   $i = 1;
 
-  $match[$i] = String::decodeEntities($match[$i]);
-  $caption = String::checkPlain(_filter_url_trim($match[$i]));
-  $match[$i] = String::checkPlain($match[$i]);
+  $match[$i] = Html::decodeEntities($match[$i]);
+  $caption = SafeMarkup::checkPlain(_filter_url_trim($match[$i]));
+  $match[$i] = SafeMarkup::checkPlain($match[$i]);
   return '<a href="http://' . $match[$i] . '">' . $caption . '</a>';
 }
 
@@ -711,7 +712,7 @@ function _filter_url_escape_comments($match, $escape = NULL) {
     return;
   }
 
-  // Replace all HTML coments with a '<!-- [hash] -->' placeholder.
+  // Replace all HTML comments with a '<!-- [hash] -->' placeholder.
   if ($mode) {
     $content = $match[1];
     $hash = hash('sha256', $content);
@@ -814,7 +815,7 @@ function _filter_autop($text) {
  * Escapes all HTML tags, so they will be visible instead of being effective.
  */
 function _filter_html_escape($text) {
-  return trim(String::checkPlain($text));
+  return trim(SafeMarkup::checkPlain($text));
 }
 
 /**

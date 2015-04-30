@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\System;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\simpletest\WebTestBase;
 
@@ -25,8 +25,8 @@ class PageTitleTest extends WebTestBase {
    */
   public static $modules = array('node', 'test_page_test', 'form_test');
 
-  protected $content_user;
-  protected $saved_title;
+  protected $contentUser;
+  protected $savedTitle;
 
   /**
    * Implement setUp().
@@ -36,8 +36,8 @@ class PageTitleTest extends WebTestBase {
 
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
 
-    $this->content_user = $this->drupalCreateUser(array('create page content', 'access content', 'administer themes', 'administer site configuration', 'link to any page'));
-    $this->drupalLogin($this->content_user);
+    $this->contentUser = $this->drupalCreateUser(array('create page content', 'access content', 'administer themes', 'administer site configuration', 'link to any page'));
+    $this->drupalLogin($this->contentUser);
   }
 
   /**
@@ -56,7 +56,7 @@ class PageTitleTest extends WebTestBase {
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertNotNull($node, 'Node created and found in database');
     $this->drupalGet("node/" . $node->id());
-    $this->assertText(String::checkPlain($edit['title[0][value]']), 'Check to make sure tags in the node title are converted.');
+    $this->assertText(SafeMarkup::checkPlain($edit['title[0][value]']), 'Check to make sure tags in the node title are converted.');
   }
 
   /**
@@ -65,7 +65,7 @@ class PageTitleTest extends WebTestBase {
   function testTitleXSS() {
     // Set some title with JavaScript and HTML chars to escape.
     $title = '</title><script type="text/javascript">alert("Title XSS!");</script> & < > " \' ';
-    $title_filtered = String::checkPlain($title);
+    $title_filtered = SafeMarkup::checkPlain($title);
 
     $slogan = '<script type="text/javascript">alert("Slogan XSS!");</script>';
     $slogan_filtered = Xss::filterAdmin($slogan);

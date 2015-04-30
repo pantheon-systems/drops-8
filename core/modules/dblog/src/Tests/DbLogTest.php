@@ -10,12 +10,13 @@ namespace Drupal\dblog\Tests;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\Core\Url;
 use Drupal\dblog\Controller\DbLogController;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Generate events and verify dblog entries; verify user access to log reports
- * based on persmissions.
+ * based on permissions.
  *
  * @group dblog
  */
@@ -71,6 +72,7 @@ class DbLogTest extends WebTestBase {
     $this->verifyEvents();
     $this->verifyReports();
     $this->verifyBreadcrumbs();
+    $this->verifyLinkEscaping();
     // Verify the overview table sorting.
     $orders = array('Date', 'Type', 'User');
     $sorts = array('asc', 'desc');
@@ -129,21 +131,33 @@ class DbLogTest extends WebTestBase {
    *
    * @param int $count
    *   Number of watchdog entries to generate.
-   * @param string $type
-   *   (optional) The type of watchdog entry. Defaults to 'custom'.
-   * @param int $severity
-   *   (optional) The severity of the watchdog entry. Defaults to
-   *   \Drupal\Core\Logger\RfcLogLevel::NOTICE.
+   * @param array $options
+   *   These options are used to override the defaults for the test.
+   *   An associative array containing any of the following keys:
+   *   - 'channel': String identifying the log channel to be output to.
+   *     If the channel is not set, the default of 'custom' will be used.
+   *   - 'message': String containing a message to be output to the log.
+   *     A simple default message is used if not provided.
+   *   - 'variables': Array of variables that match the message string.
+   *   - 'severity': Log severity level as defined in logging_severity_levels.
+   *   - 'link': String linking to view the result of the event.
+   *   - 'user': String identifying the username.
+   *   - 'uid': Int identifying the user id for the user.
+   *   - 'request_uri': String identifying the location of the request.
+   *   - 'referer': String identifying the referring url.
+   *   - 'ip': String The ip address of the client machine triggering the log
+   *     entry.
+   *   - 'timestamp': Int unix timestamp.
    */
-  private function generateLogEntries($count, $type = 'custom', $severity = RfcLogLevel::NOTICE) {
+  private function generateLogEntries($count, $options = array()) {
     global $base_root;
 
     // Prepare the fields to be logged
-    $log = array(
-      'channel'     => $type,
-      'message'     => 'Log entry added to test the dblog row limit.',
+    $log = $options + array(
+      'channel'     => 'custom',
+      'message'     => 'Dblog test log message',
       'variables'   => array(),
-      'severity'    => $severity,
+      'severity'    => RfcLogLevel::NOTICE,
       'link'        => NULL,
       'user'        => $this->adminUser,
       'uid'         => $this->adminUser->id(),
@@ -151,11 +165,13 @@ class DbLogTest extends WebTestBase {
       'referer'     => \Drupal::request()->server->get('HTTP_REFERER'),
       'ip'          => '127.0.0.1',
       'timestamp'   => REQUEST_TIME,
-      );
-    $message = 'Log entry added to test the dblog row limit. Entry #';
+    );
+
+    $logger = $this->container->get('logger.dblog');
+    $message = $log['message'] . ' Entry #';
     for ($i = 0; $i < $count; $i++) {
       $log['message'] = $message . $i;
-      $this->container->get('logger.dblog')->log($severity, $log['message'], $log);
+      $logger->log($log['severity'], $log['message'], $log);
     }
   }
 
@@ -244,6 +260,25 @@ class DbLogTest extends WebTestBase {
     $this->drupalGet('admin/reports/dblog', array('query' => array('sort' => $sort, 'order' => $order)));
     $this->assertResponse(200);
     $this->assertText(t('Recent log messages'), 'DBLog report was displayed correctly and sorting went fine.');
+  }
+
+  /**
+   * Tests the escaping of links in the operation row of a database log detail
+   * page.
+   */
+  private function verifyLinkEscaping() {
+    $link = \Drupal::l('View', Url::fromRoute('entity.node.canonical', array('node' => 1)));
+    $message = 'Log entry added to do the verifyLinkEscaping test.';
+    $this->generateLogEntries(1, array(
+      'message' => $message,
+      'link' => $link,
+    ));
+
+    $result = db_query_range('SELECT wid FROM {watchdog} ORDER BY wid DESC', 0, 1);
+    $this->drupalGet('admin/reports/dblog/event/' . $result->fetchField());
+
+    // Check if the link exists (unescaped).
+    $this->assertRaw($link);
   }
 
   /**
@@ -497,7 +532,10 @@ class DbLogTest extends WebTestBase {
           'type' => $type_name,
           'severity' => $severity++,
         );
-        $this->generateLogEntries($type['count'], $type['type'], $type['severity']);
+        $this->generateLogEntries($type['count'], array(
+          'channel' => $type['type'],
+          'severity' => $type['severity'],
+        ));
       }
     }
 
@@ -659,5 +697,34 @@ class DbLogTest extends WebTestBase {
     // converted to their character equivalents because assertLink() uses this
     // string in xpath() to query the Document Object Model (DOM).
     $this->assertLink(html_entity_decode($message_text), 0, $message);
+  }
+
+  /**
+   * Tests that the details page displays correctly for a temporary user.
+   */
+  public function testTemporaryUser() {
+    // Create a temporary user.
+    $tempuser = $this->drupalCreateUser();
+    $tempuser_uid = $tempuser->id();
+
+    // Log in as the admin user.
+    $this->drupalLogin($this->adminUser);
+
+    // Generate a single watchdog entry.
+    $this->generateLogEntries(1, array('user' => $tempuser, 'uid' => $tempuser_uid));
+    $wid = db_query('SELECT MAX(wid) FROM {watchdog}')->fetchField();
+
+    // Check if the full message displays on the details page.
+    $this->drupalGet('admin/reports/dblog/event/' . $wid);
+    $this->assertText('Dblog test log message');
+
+    // Delete the user.
+    user_delete($tempuser->id());
+    $this->drupalGet('user/' . $tempuser_uid);
+    $this->assertResponse(404);
+
+    // Check if the full message displays on the details page.
+    $this->drupalGet('admin/reports/dblog/event/' . $wid);
+    $this->assertText('Dblog test log message');
   }
 }

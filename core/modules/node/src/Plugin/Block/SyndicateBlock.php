@@ -7,7 +7,9 @@
 
 namespace Drupal\node\Plugin\Block;
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockBase;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 
@@ -35,7 +37,7 @@ class SyndicateBlock extends BlockBase {
    * {@inheritdoc}
    */
   protected function blockAccess(AccountInterface $account) {
-    return $account->hasPermission('access content');
+    return AccessResult::allowedIfHasPermission($account, 'access content');
   }
 
   /**
@@ -54,10 +56,10 @@ class SyndicateBlock extends BlockBase {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    // @see ::isCacheable()
+    // @see ::getCacheMaxAge()
     $form['cache']['#disabled'] = TRUE;
-    $form['cache']['#description'] = $this->t('This block is never cacheable, it is not configurable.');
-    $form['cache']['max_age']['#value'] = 0;
+    $form['cache']['max_age']['#value'] = Cache::PERMANENT;
+    $form['cache']['#description'] = $this->t('This block is always cached forever, it is not configurable.');
 
     return $form;
   }
@@ -65,10 +67,10 @@ class SyndicateBlock extends BlockBase {
   /**
    * {@inheritdoc}
    */
-  public function isCacheable() {
-    // The 'Syndicate' block is never cacheable, because it is cheaper to just
-    // render it rather than to cache it and incur I/O.
-    return FALSE;
+  public function getCacheMaxAge() {
+    // The 'Syndicate' block is permanently cacheable, because its
+    // contents can never change.
+    return Cache::PERMANENT;
   }
 
 }

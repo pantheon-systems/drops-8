@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\field;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url as UrlObject;
 
@@ -82,14 +82,14 @@ abstract class Links extends FieldPluginBase {
       }
       // Make sure that tokens are replaced for this paths as well.
       $tokens = $this->getRenderTokens(array());
-      $path = strip_tags(String::decodeEntities($this->viewsTokenReplace($path, $tokens)));
+      $path = strip_tags(Html::decodeEntities($this->viewsTokenReplace($path, $tokens)));
 
       $links[$field] = array(
         'url' => $path ? UrlObject::fromUri('internal:/' . $path) : $url,
         'title' => $title,
       );
       if (!empty($this->options['destination'])) {
-        $links[$field]['query'] = drupal_get_destination();
+        $links[$field]['query'] = \Drupal::destination()->getAsArray();
       }
     }
 

@@ -5,7 +5,7 @@
  * User page callbacks for tracker.module.
  */
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\node\Entity\Node;
 
 /**
@@ -61,12 +61,14 @@ function tracker_page($account = NULL) {
       else {
         $nodes[$nid]->comment_count += $statistics->comment_count;
       }
-
-      $nodes[$nid]->last_activity = $tracker_data[$nid]->changed;
     }
 
     // Display the data.
     foreach ($nodes as $node) {
+      // Set the last activity time from tracker data. This also takes into
+      // account comment activity, so getChangedTime() is not used.
+      $node->last_activity = $tracker_data[$node->id()]->changed;
+
       // Determine the number of comments.
       $comments = 0;
       if ($node->comment_count) {
@@ -91,7 +93,7 @@ function tracker_page($account = NULL) {
       );
 
       $row = array(
-        'type' => String::checkPlain(node_get_type_label($node)),
+        'type' => SafeMarkup::checkPlain(node_get_type_label($node)),
         'title' => array(
           'data' => array(
             '#type' => 'link',
@@ -106,8 +108,8 @@ function tracker_page($account = NULL) {
             '#account' => $node->getOwner(),
           ),
         ),
-        'replies' => array(
-          'class' => array('replies'),
+        'comments' => array(
+          'class' => array('comments'),
           'data' => $comments,
         ),
         'last updated' => array(
@@ -123,7 +125,7 @@ function tracker_page($account = NULL) {
 
   $page['tracker'] = array(
     '#rows' => $rows,
-    '#header' => array(t('Type'), t('Title'), t('Author'), t('Replies'), t('Last updated')),
+    '#header' => array(t('Type'), t('Title'), t('Author'), t('Comments'), t('Last updated')),
     '#type' => 'table',
     '#empty' => t('No content available.'),
   );

@@ -57,7 +57,7 @@ class Twig_Error extends Exception
      */
     public function __construct($message, $lineno = -1, $filename = null, Exception $previous = null)
     {
-        if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+        if (PHP_VERSION_ID < 50300) {
             $this->previous = $previous;
             parent::__construct('');
         } else {
@@ -111,7 +111,7 @@ class Twig_Error extends Exception
     /**
      * Gets the template line where the error occurred.
      *
-     * @return int     The template line
+     * @return int The template line
      */
     public function getTemplateLine()
     {
@@ -121,7 +121,7 @@ class Twig_Error extends Exception
     /**
      * Sets the template line where the error occurred.
      *
-     * @param int     $lineno The template line
+     * @param int $lineno The template line
      */
     public function setTemplateLine($lineno)
     {
@@ -188,7 +188,7 @@ class Twig_Error extends Exception
         $template = null;
         $templateClass = null;
 
-        if (version_compare(phpversion(), '5.3.6', '>=')) {
+        if (PHP_VERSION_ID >= 50306) {
             $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS | DEBUG_BACKTRACE_PROVIDE_OBJECT);
         } else {
             $backtrace = debug_backtrace();

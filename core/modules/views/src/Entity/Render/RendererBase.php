@@ -8,7 +8,9 @@
 namespace Drupal\views\Entity\Render;
 
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
@@ -16,7 +18,7 @@ use Drupal\views\ViewExecutable;
 /**
  * Defines a base class for entity row renderers.
  */
-abstract class RendererBase {
+abstract class RendererBase implements CacheablePluginInterface {
 
   /**
    * The view executable wrapping the view storage entity.
@@ -63,6 +65,20 @@ abstract class RendererBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function isCacheable() {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheContexts() {
+    return [];
+  }
+
+  /**
    * Returns the language code associated to the given row.
    *
    * @param \Drupal\views\ResultRow $row
@@ -78,8 +94,10 @@ abstract class RendererBase {
    *
    * @param \Drupal\views\Plugin\views\query\QueryPluginBase $query
    *   The query to alter.
+   * @param string $relationship
+   *   (optional) The relationship, used by a field.
    */
-  public function query(QueryPluginBase $query) {
+  public function query(QueryPluginBase $query, $relationship = NULL) {
   }
 
   /**

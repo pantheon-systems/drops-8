@@ -69,8 +69,8 @@ class RouteSubscriber extends RouteSubscriberBase {
         $route = new Route(
           "$path/fields/{field_config}",
           array(
-            '_form' => '\Drupal\field_ui\Form\FieldEditForm',
-            '_title_callback' => '\Drupal\field_ui\Form\FieldEditForm::getTitle',
+            '_entity_form' => 'field_config.edit',
+            '_title_callback' => '\Drupal\field_ui\Form\FieldConfigEditForm::getTitle',
           ) + $defaults,
           array('_entity_access' => 'field_config.update'),
           $options
@@ -79,8 +79,8 @@ class RouteSubscriber extends RouteSubscriberBase {
 
         $route = new Route(
           "$path/fields/{field_config}/storage",
-          array('_form' => '\Drupal\field_ui\Form\FieldStorageEditForm') + $defaults,
-          array('_entity_access' => 'field_config.update'),
+          array('_entity_form' => 'field_storage_config.edit') + $defaults,
+          array('_permission' => 'administer ' . $entity_type_id . ' fields'),
           $options
         );
         $collection->add("entity.field_config.{$entity_type_id}_storage_edit_form", $route);

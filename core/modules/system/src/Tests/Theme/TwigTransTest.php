@@ -35,7 +35,7 @@ class TwigTransTest extends WebTestBase {
    *
    * @var \Drupal\user\Entity\User
    */
-  protected $admin_user;
+  protected $adminUser;
 
   /**
    * Custom languages.
@@ -58,19 +58,19 @@ class TwigTransTest extends WebTestBase {
     $this->config('system.theme')->set('default', 'test_theme')->save();
 
     // Create and log in as admin.
-    $this->admin_user = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser(array(
       'administer languages',
       'access administration pages',
       'administer site configuration',
       'translate interface'
     ));
-    $this->drupalLogin($this->admin_user);
+    $this->drupalLogin($this->adminUser);
 
     // Install languages.
     $this->installLanguages();
 
     // Assign Lolspeak (xx) to be the default language.
-    $this->config('system.site')->set('langcode', 'xx')->save();
+    $this->config('system.site')->set('default_langcode', 'xx')->save();
     $this->rebuildContainer();
 
     // Check that lolspeak is the default language for the site.

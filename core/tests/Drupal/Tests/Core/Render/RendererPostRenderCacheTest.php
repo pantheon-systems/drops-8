@@ -18,12 +18,23 @@ use Drupal\Core\Cache\Cache;
 class RendererPostRenderCacheTest extends RendererTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    // Disable the required cache contexts, so that this test can test just the
+    // #post_render_cache behavior.
+    $this->rendererConfig['required_cache_contexts'] = [];
+
+    parent::setUp();
+  }
+
+  /**
    * Generates an element with a #post_render_cache callback.
    *
    * @return array
-   *  An array containing:
-   *   1. a render array containing a #post_render_cache callback
-   *   2. the context used for that #post_render_cache callback.
+   *   An array containing:
+   *   - A render array containing a #post_render_cache callback.
+   *   - The context used for that #post_render_cache callback.
    */
   protected function generatePostRenderCacheElement() {
     $context = ['foo' => $this->randomContextValue()];
@@ -60,9 +71,9 @@ class RendererPostRenderCacheTest extends RendererTestBase {
   /**
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
-   * @covers ::cacheSet
-   * @covers ::createCacheID
+   * @covers \Drupal\Core\Render\RenderCache::get
+   * @covers \Drupal\Core\Render\RenderCache::set
+   * @covers \Drupal\Core\Render\RenderCache::createCacheID
    */
   public function testPostRenderCacheWithColdCache() {
     list($test_element, $context) = $this->generatePostRenderCacheElement();
@@ -72,7 +83,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
     $this->setUpRequest('GET');
 
     // GET request: #cache enabled, cache miss.
-    $element['#cache'] = ['cid' => 'post_render_cache_test_GET'];
+    $element['#cache'] = ['keys' => ['post_render_cache_test_GET']];
     $element['#markup'] = '<p>#cache enabled, GET</p>';
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, '<p>overridden</p>', 'Output is overridden.');
@@ -100,7 +111,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
 
     // GET request: #cache enabled, cache hit.
     $element = $test_element;
-    $element['#cache'] = ['cid' => 'post_render_cache_test_GET'];
+    $element['#cache'] = ['keys' => ['post_render_cache_test_GET']];
     $element['#markup'] = '<p>#cache enabled, GET</p>';
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, '<p>overridden</p>', 'Output is overridden.');
@@ -116,7 +127,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
   /**
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
+   * @covers \Drupal\Core\Render\RenderCache::get
    * @covers ::processPostRenderCache
    */
   public function testPostRenderCacheWithPostRequest() {
@@ -129,7 +140,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
 
     // POST request: #cache enabled, cache miss.
     $element = $test_element;
-    $element['#cache'] = ['cid' => 'post_render_cache_test_POST'];
+    $element['#cache'] = ['keys' => ['post_render_cache_test_POST']];
     $element['#markup'] = '<p>#cache enabled, POST</p>';
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, '<p>overridden</p>', 'Output is overridden.');
@@ -178,13 +189,13 @@ class RendererPostRenderCacheTest extends RendererTestBase {
    *
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
+   * @covers \Drupal\Core\Render\RenderCache::get
    * @covers ::processPostRenderCache
    */
   public function testRenderChildrenPostRenderCacheDifferentContexts() {
     $this->setUpRequest();
     $this->setupMemoryCache();
-    $this->cacheContexts->expects($this->any())
+    $this->cacheContextsManager->expects($this->any())
       ->method('convertTokensToKeys')
       ->willReturnArgument(0);
     $this->elementInfo->expects($this->any())
@@ -273,13 +284,13 @@ class RendererPostRenderCacheTest extends RendererTestBase {
    *
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
+   * @covers \Drupal\Core\Render\RenderCache::get
    * @covers ::processPostRenderCache
    */
   public function testRenderChildrenPostRenderCacheComplex() {
     $this->setUpRequest();
     $this->setupMemoryCache();
-    $this->cacheContexts->expects($this->any())
+    $this->cacheContextsManager->expects($this->any())
       ->method('convertTokensToKeys')
       ->willReturnArgument(0);
     $this->elementInfo->expects($this->any())
@@ -393,7 +404,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
    *
    * @covers ::render
    * @covers ::doRender
-   * @covers ::cacheGet
+   * @covers \Drupal\Core\Render\RenderCache::get
    * @covers ::processPostRenderCache
    * @covers ::generateCachePlaceholder
    */
@@ -435,7 +446,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
     // GET request: #cache enabled, cache miss.
     $this->setUpRequest();
     $element = $test_element;
-    $element['#cache'] = ['cid' => 'render_cache_placeholder_test_GET'];
+    $element['#cache'] = ['keys' => ['render_cache_placeholder_test_GET']];
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, $expected_output, 'Placeholder was replaced in output');
     $this->assertTrue(isset($element['#printed']), 'No cache hit');
@@ -475,7 +486,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
 
     // GET request: #cache enabled, cache hit.
     $element = $test_element;
-    $element['#cache'] = ['cid' => 'render_cache_placeholder_test_GET'];
+    $element['#cache'] = ['keys' => ['render_cache_placeholder_test_GET']];
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, $expected_output, 'Placeholder was replaced in output');
     $this->assertFalse(isset($element['#printed']), 'Cache hit');
@@ -533,8 +544,8 @@ class RendererPostRenderCacheTest extends RendererTestBase {
     // GET request: #cache enabled, cache miss.
     $this->setUpRequest();
     $element = $test_element;
-    $element['#cache'] = ['cid' => 'render_cache_placeholder_test_GET'];
-    $element['foo']['#cache'] = ['cid' => 'render_cache_placeholder_test_child_GET'];
+    $element['#cache'] = ['keys' => ['render_cache_placeholder_test_GET']];
+    $element['foo']['#cache'] = ['keys' => ['render_cache_placeholder_test_child_GET']];
     // Render, which will use the common-test-render-element.html.twig template.
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, $expected_output, 'Placeholder was replaced in output');
@@ -635,7 +646,7 @@ class RendererPostRenderCacheTest extends RendererTestBase {
 
     // GET request: #cache enabled, cache hit.
     $element = $test_element;
-    $element['#cache'] = ['cid' => 'render_cache_placeholder_test_GET'];
+    $element['#cache'] = ['keys' => ['render_cache_placeholder_test_GET']];
     // Render, which will use the common-test-render-element.html.twig template.
     $output = $this->renderer->renderRoot($element);
     $this->assertSame($output, $expected_output, 'Placeholder was replaced in output');

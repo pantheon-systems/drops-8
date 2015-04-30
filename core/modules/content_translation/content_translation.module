@@ -92,6 +92,14 @@ function content_translation_language_types_info_alter(array &$language_types) {
  * assumed. Every translation handler must implement
  * \Drupal\content_translation\ContentTranslationHandlerInterface.
  *
+ * By default, entity types that do not have a canonical link template cannot be
+ * enabled for translation. This can be overridden by setting the
+ * 'content_translation_ui_skip' key to true. When that key is set, the Content
+ * Translation module will not provide any UI for translating the entity type,
+ * and the entity type should implement its own UI. This is useful for (e.g.)
+ * entity types that are embedded into others for editing (which would not need
+ * a canonical link, but could still support translation).
+ *
  * To implement its business logic the content translation UI relies on various
  * metadata items describing the translation state. The default implementation
  * is provided by \Drupal\content_translation\ContentTranslationMetadataWrapper,
@@ -234,7 +242,7 @@ function content_translation_translate_access(EntityInterface $entity) {
   $account = \Drupal::currentUser();
   $condition = $entity instanceof ContentEntityInterface && !$entity->getUntranslated()->language()->isLocked() && \Drupal::languageManager()->isMultilingual() && $entity->isTranslatable() &&
     ($account->hasPermission('create content translations') || $account->hasPermission('update content translations') || $account->hasPermission('delete content translations'));
-  return AccessResult::allowedIf($condition)->cachePerRole()->cacheUntilEntityChanges($entity);
+  return AccessResult::allowedIf($condition)->cachePerPermissions()->cacheUntilEntityChanges($entity);
 }
 
 /**
@@ -273,7 +281,7 @@ function content_translation_form_alter(array &$form, FormStateInterface $form_s
 /**
  * Implements hook_language_fallback_candidates_OPERATION_alter().
  *
- * Performs language fallback for unaccessible translations.
+ * Performs language fallback for inaccessible translations.
  */
 function content_translation_language_fallback_candidates_entity_view_alter(&$candidates, $context) {
   /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
@@ -318,13 +326,13 @@ function content_translation_entity_extra_field_info() {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for 'field_ui_field_edit_form'.
+ * Implements hook_form_FORM_ID_alter() for 'field_config_edit_form'.
  */
-function content_translation_form_field_ui_field_edit_form_alter(array &$form, FormStateInterface $form_state) {
-  $field = $form_state->get('field');
+function content_translation_form_field_config_edit_form_alter(array &$form, FormStateInterface $form_state) {
+  $field = $form_state->getFormObject()->getEntity();
   $bundle_is_translatable = \Drupal::service('content_translation.manager')->isEnabled($field->entity_type, $field->bundle);
 
-  $form['field']['translatable'] = array(
+  $form['translatable'] = array(
     '#type' => 'checkbox',
     '#title' => t('Users may translate this field'),
     '#default_value' => $field->isTranslatable(),
@@ -336,9 +344,9 @@ function content_translation_form_field_ui_field_edit_form_alter(array &$form, F
   // Provide helpful pointers for administrators.
   if (\Drupal::currentUser()->hasPermission('administer content translation') &&  !$bundle_is_translatable) {
     $toggle_url = \Drupal::url('language.content_settings_page', array(), array(
-      'query' => drupal_get_destination(),
+      'query' => \Drupal::destination()->getAsArray(),
     ));
-    $form['field']['translatable']['#description'] = t('To configure translation for this field, <a href="@language-settings-url">enable language support</a> for this type.', array(
+    $form['translatable']['#description'] = t('To configure translation for this field, <a href="@language-settings-url">enable language support</a> for this type.', array(
       '@language-settings-url' => $toggle_url,
     ));
   }
@@ -347,8 +355,8 @@ function content_translation_form_field_ui_field_edit_form_alter(array &$form, F
     module_load_include('inc', 'content_translation', 'content_translation.admin');
     $element = content_translation_field_sync_widget($field);
     if ($element) {
-      $form['field']['third_party_settings']['content_translation']['translation_sync'] = $element;
-      $form['field']['third_party_settings']['content_translation']['translation_sync']['#weight'] = -10;
+      $form['third_party_settings']['content_translation']['translation_sync'] = $element;
+      $form['third_party_settings']['content_translation']['translation_sync']['#weight'] = -10;
     }
   }
 }

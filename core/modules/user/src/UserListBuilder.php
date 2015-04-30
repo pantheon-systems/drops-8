@@ -13,6 +13,7 @@ use Drupal\Core\Entity\EntityListBuilder;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Routing\RedirectDestinationInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -37,6 +38,13 @@ class UserListBuilder extends EntityListBuilder {
   protected $dateFormatter;
 
   /**
+   * The redirect destination service.
+   *
+   * @var \Drupal\Core\Routing\RedirectDestinationInterface
+   */
+  protected $redirectDestination;
+
+  /**
    * Constructs a new UserListBuilder object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -47,11 +55,14 @@ class UserListBuilder extends EntityListBuilder {
    *   The entity query factory.
    * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date formatter service.
+   * @param \Drupal\Core\Routing\RedirectDestinationInterface $redirect_destination
+   *   The redirect destination service.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, QueryFactory $query_factory, DateFormatter $date_formatter) {
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, QueryFactory $query_factory, DateFormatter $date_formatter,  RedirectDestinationInterface $redirect_destination) {
     parent::__construct($entity_type, $storage);
     $this->queryFactory = $query_factory;
     $this->dateFormatter = $date_formatter;
+    $this->redirectDestination = $redirect_destination;
   }
 
   /**
@@ -62,7 +73,8 @@ class UserListBuilder extends EntityListBuilder {
       $entity_type,
       $container->get('entity.manager')->getStorage($entity_type->id()),
       $container->get('entity.query'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('redirect.destination')
     );
   }
 
@@ -126,7 +138,7 @@ class UserListBuilder extends EntityListBuilder {
     );
     $row['status'] = $entity->isActive() ? $this->t('active') : $this->t('blocked');
 
-    $roles = array_map('\Drupal\Component\Utility\String::checkPlain', user_role_names(TRUE));
+    $roles = array_map('\Drupal\Component\Utility\SafeMarkup::checkPlain', user_role_names(TRUE));
     unset($roles[RoleInterface::AUTHENTICATED_ID]);
     $users_roles = array();
     foreach ($entity->getRoles() as $role) {
@@ -152,7 +164,7 @@ class UserListBuilder extends EntityListBuilder {
   public function getOperations(EntityInterface $entity) {
     $operations = parent::getOperations($entity);
     if (isset($operations['edit'])) {
-      $destination = drupal_get_destination();
+      $destination = $this->redirectDestination->getAsArray();
       $operations['edit']['query'] = $destination;
     }
     return $operations;

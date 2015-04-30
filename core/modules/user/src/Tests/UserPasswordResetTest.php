@@ -7,7 +7,7 @@
 
 namespace Drupal\user\Tests;
 
-use Drupal\simpletest\WebTestBase;
+use Drupal\system\Tests\Cache\PageCacheTagsTestBase;
 use Drupal\user\Entity\User;
 
 /**
@@ -15,7 +15,7 @@ use Drupal\user\Entity\User;
  *
  * @group user
  */
-class UserPasswordResetTest extends WebTestBase {
+class UserPasswordResetTest extends PageCacheTagsTestBase {
 
   /**
    * The profile to install as a basis for testing.
@@ -56,7 +56,7 @@ class UserPasswordResetTest extends WebTestBase {
     // Activate user by logging in.
     $this->drupalLogin($account);
 
-    $this->account = user_load($account->id());
+    $this->account = User::load($account->id());
     $this->drupalLogout();
 
     // Set the last login time that is used to generate the one-time link so
@@ -92,6 +92,11 @@ class UserPasswordResetTest extends WebTestBase {
 
     $resetURL = $this->getResetURL();
     $this->drupalGet($resetURL);
+    $this->assertFalse($this->drupalGetHeader('X-Drupal-Cache'));
+
+    // Ensure the password reset URL is not cached.
+    $this->drupalGet($resetURL);
+    $this->assertFalse($this->drupalGetHeader('X-Drupal-Cache'));
 
     // Check the one-time login page.
     $this->assertText($this->account->getUsername(), 'One-time login page contains the correct username.');

@@ -1,7 +1,7 @@
 <?php
 
 use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
@@ -113,37 +113,7 @@ function user_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
   // can be reliably cached on the client side.
   $user = \Drupal::currentUser();
   $settings['user']['uid'] = $user->id();
-  $settings['user']['permissionsHash'] = \Drupal::service('user.permissions_hash')->generate($user);
-}
-
-/**
- * Populates $entity->account for each prepared entity.
- *
- * Called by Drupal\Core\Entity\EntityViewBuilderInterface::buildComponents()
- * implementations.
- *
- * @param array &$build
- *   A renderable array representing the entity content.
- * @param \Drupal\user\EntityOwnerInterface[] $entities
- *   The entities keyed by entity ID.
- */
-function user_attach_accounts(array &$build, array $entities) {
-  $uids = array();
-  foreach ($entities as $entity) {
-    $uids[] = $entity->getOwnerId();
-  }
-  $uids = array_unique($uids);
-  $accounts = user_load_multiple($uids);
-  $anonymous = entity_create('user', array('uid' => 0));
-
-  foreach ($entities as $id => $entity) {
-    if (isset($accounts[$entity->getOwnerId()])) {
-      $entities[$id]->setOwner($accounts[$entity->getOwnerId()]);
-    }
-    else {
-      $entities[$id]->setOwner($anonymous);
-    }
-  }
+  $settings['user']['permissionsHash'] = \Drupal::service('user_permissions_hash_generator')->generate($user);
 }
 
 /**
@@ -207,7 +177,7 @@ function user_entity_extra_field_info() {
  *   An array of user objects, indexed by uid.
  *
  * @see entity_load_multiple()
- * @see user_load()
+ * @see \Drupal\user\Entity\User::load()
  * @see user_load_by_mail()
  * @see user_load_by_name()
  * @see \Drupal\Core\Entity\Query\QueryInterface
@@ -238,7 +208,7 @@ function user_load_multiple(array $uids = NULL, $reset = FALSE) {
  * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
  *   Use \Drupal\user\Entity\User::load().
  *
- * @see user_load_multiple()
+ * @see \Drupal\user\Entity\User::loadMultiple()
  */
 function user_load($uid, $reset = FALSE) {
   if ($reset) {
@@ -256,7 +226,7 @@ function user_load($uid, $reset = FALSE) {
  *   A fully-loaded $user object upon successful user load or FALSE if user
  *   cannot be loaded.
  *
- * @see user_load_multiple()
+ * @see \Drupal\user\Entity\User::loadMultiple()
  */
 function user_load_by_mail($mail) {
   $users = entity_load_multiple_by_properties('user', array('mail' => $mail));
@@ -272,7 +242,7 @@ function user_load_by_mail($mail) {
  *   A fully-loaded $user object upon successful user load or FALSE if user
  *   cannot be loaded.
  *
- * @see user_load_multiple()
+ * @see \Drupal\user\Entity\User::loadMultiple()
  */
 function user_load_by_name($name) {
   $users = entity_load_multiple_by_properties('user', array('name' => $name));
@@ -405,30 +375,6 @@ function user_user_view(array &$build, UserInterface $account, EntityViewDisplay
 }
 
 /**
- * Form validation handler for the current password on the user account form.
- *
- * @see AccountForm::form()
- */
-function user_validate_current_pass(&$form, FormStateInterface $form_state) {
-  $account = $form_state->get('user');
-  foreach ($form_state->getValue('current_pass_required_values') as $key => $name) {
-    // This validation only works for required textfields (like mail) or
-    // form values like password_confirm that have their own validation
-    // that prevent them from being empty if they are changed.
-    $current_value = $account->hasField($key) ? $account->get($key)->value : $account->$key;
-    if ((strlen(trim($form_state->getValue($key))) > 0) && ($form_state->getValue($key) != $current_value)) {
-      $current_pass_failed = $form_state->isValueEmpty('current_pass') || !\Drupal::service('password')->check($form_state->getValue('current_pass'), $account);
-      if ($current_pass_failed) {
-        $form_state->setErrorByName('current_pass', t("Your current password is missing or incorrect; it's required to change the %name.", array('%name' => $name)));
-        $form_state->setErrorByName($key);
-      }
-      // We only need to check the password once.
-      break;
-    }
-  }
-}
-
-/**
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function user_preprocess_block(&$variables) {
@@ -449,7 +395,7 @@ function user_preprocess_block(&$variables) {
  *
  * @return
  *   An unsanitized string with the username to display. The code receiving
- *   this result must ensure that \Drupal\Component\Utility\String::checkPlain()
+ *   this result must ensure that \Drupal\Component\Utility\SafeMarkup::checkPlain()
  *   is called on it before it is printed to the page.
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
@@ -493,7 +439,7 @@ function user_template_preprocess_default_variables_alter(&$variables) {
  *
  * Modules that make any changes to variables like 'name' or 'extra' must ensure
  * that the final string is safe to include directly in the output by using
- * \Drupal\Component\Utility\String::checkPlain() or
+ * \Drupal\Component\Utility\SafeMarkup::checkPlain() or
  * \Drupal\Component\Utility\Xss::filter().
  */
 function template_preprocess_username(&$variables) {
@@ -520,7 +466,7 @@ function template_preprocess_username(&$variables) {
   else {
     $variables['truncated'] = FALSE;
   }
-  $variables['name'] = String::checkPlain($name);
+  $variables['name'] = SafeMarkup::checkPlain($name);
   $variables['profile_access'] = \Drupal::currentUser()->hasPermission('access user profiles');
 
   $external = FALSE;
@@ -582,7 +528,7 @@ function user_login_finalize(UserInterface $account) {
   // fails or incorrectly does a redirect which would leave the old session
   // in place.
   \Drupal::service('session')->migrate();
-
+  \Drupal::service('session')->set('uid', $account->id());
   \Drupal::moduleHandler()->invokeAll('user_login', array($account));
 }
 
@@ -714,7 +660,7 @@ function user_pass_rehash($password, $timestamp, $login, $uid) {
  * @see _user_cancel()
  */
 function user_cancel($edit, $uid, $method) {
-  $account = user_load($uid);
+  $account = User::load($uid);
 
   if (!$account) {
     drupal_set_message(t('The user account %id does not exist.', array('%id' => $uid)), 'error');
@@ -931,7 +877,7 @@ function user_view($account, $view_mode = 'full', $langcode = NULL) {
  * Constructs a drupal_render() style array from an array of loaded users.
  *
  * @param $accounts
- *   An array of user accounts as returned by user_load_multiple().
+ *   An array of user accounts as returned by User::loadMultiple().
  * @param $view_mode
  *   (optional) View mode, e.g., 'full', 'teaser'... Defaults to 'teaser.'
  * @param $langcode
@@ -1190,11 +1136,12 @@ function user_role_change_permissions($rid, array $permissions = array()) {
  */
 function user_role_grant_permissions($rid, array $permissions = array()) {
   // Grant new permissions for the role.
-  $role = Role::load($rid);
-  foreach ($permissions as $permission) {
-    $role->grantPermission($permission);
+  if ($role = Role::load($rid)) {
+    foreach ($permissions as $permission) {
+      $role->grantPermission($permission);
+    }
+    $role->save();
   }
-  $role->save();
 }
 
 /**
@@ -1440,7 +1387,8 @@ function user_logout() {
   // Session::invalidate(). Regrettably this method is currently broken and may
   // lead to the creation of spurious session records in the database.
   // @see https://github.com/symfony/symfony/issues/12375
-  session_destroy();
+  \Drupal::service('session_manager')->destroy();
+  $user->setAccount(new AnonymousUserSession());
 }
 
 /**

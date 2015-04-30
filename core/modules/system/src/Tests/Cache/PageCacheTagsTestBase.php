@@ -9,7 +9,7 @@ namespace Drupal\system\Tests\Cache;
 
 use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 
 /**
  * Provides helper methods for page cache tags tests.
@@ -31,7 +31,6 @@ abstract class PageCacheTagsTestBase extends WebTestBase {
 
     // Enable page caching.
     $config = $this->config('system.performance');
-    $config->set('cache.page.use_internal', 1);
     $config->set('cache.page.max_age', 3600);
     $config->save();
   }
@@ -50,7 +49,7 @@ abstract class PageCacheTagsTestBase extends WebTestBase {
    */
   protected function verifyPageCache(Url $url, $hit_or_miss, $tags = FALSE) {
     $this->drupalGet($url);
-    $message = String::format('Page cache @hit_or_miss for %path.', array('@hit_or_miss' => $hit_or_miss, '%path' => $url->toString()));
+    $message = SafeMarkup::format('Page cache @hit_or_miss for %path.', array('@hit_or_miss' => $hit_or_miss, '%path' => $url->toString()));
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), $hit_or_miss, $message);
 
     if ($hit_or_miss === 'HIT' && is_array($tags)) {

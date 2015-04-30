@@ -36,7 +36,6 @@ use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\TerminableInterface;
-use Composer\Autoload\ClassLoader;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -108,7 +107,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   protected $storage;
 
   /**
-   * The classloader object.
+   * The class loader object.
    *
    * @var \Composer\Autoload\ClassLoader
    */
@@ -217,6 +216,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Include our bootstrap file.
     $core_root = dirname(dirname(dirname(__DIR__)));
     require_once $core_root . '/includes/bootstrap.inc';
+    $class_loader_class = get_class($class_loader);
 
     $kernel = new static($environment, $class_loader, $allow_dumping);
 
@@ -244,6 +244,22 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       $response = new RedirectResponse($request->getBasePath() . '/core/install.php');
       $response->prepare($request)->send();
     }
+
+    // If the class loader is still the same, possibly upgrade to the APC class
+    // loader.
+    if ($class_loader_class == get_class($class_loader)
+        && Settings::get('class_loader_auto_detect', TRUE)
+        && Settings::get('hash_salt', FALSE)
+        && function_exists('apc_fetch')) {
+      $prefix = 'drupal.' . hash('sha256', 'drupal.' . Settings::getHashSalt());
+      $apc_loader = new \Symfony\Component\ClassLoader\ApcClassLoader($prefix, $class_loader);
+      $class_loader->unregister();
+      $apc_loader->register();
+      $class_loader = $apc_loader;
+    }
+
+    // Ensure that the class loader reference is up-to-date.
+    $kernel->classLoader = $class_loader;
 
     return $kernel;
   }

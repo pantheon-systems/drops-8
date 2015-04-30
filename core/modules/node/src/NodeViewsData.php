@@ -35,7 +35,6 @@ class NodeViewsData extends EntityViewsData {
 
     $data['node_field_data']['title']['field']['link_to_node default'] = TRUE;
 
-    $data['node_field_data']['type']['field']['id'] = 'node_type';
     $data['node_field_data']['type']['argument']['id'] = 'node_type';
 
     $data['node_field_data']['langcode']['help'] = t('The language of the content or translation.');
@@ -226,7 +225,6 @@ class NodeViewsData extends EntityViewsData {
 
     $data['node_field_data']['uid']['help'] = t('The user authoring the content. If you need more fields than the uid add the content: author relationship');
     $data['node_field_data']['uid']['filter']['id'] = 'user_name';
-    $data['node_field_data']['uid']['field']['id'] = 'user';
     $data['node_field_data']['uid']['relationship']['title'] = t('Content author');
     $data['node_field_data']['uid']['relationship']['help'] = t('Relate content to the user who created it.');
     $data['node_field_data']['uid']['relationship']['label'] = t('author');
@@ -280,8 +278,6 @@ class NodeViewsData extends EntityViewsData {
 
     $data['node_field_revision']['langcode']['help'] = t('The language the original content is in.');
 
-    $data['node_revision']['revision_log']['field']['id'] = 'xss';
-
     $data['node_revision']['revision_uid']['help'] = t('Relate a content revision to the user who created the revision.');
     $data['node_revision']['revision_uid']['relationship']['label'] = t('revision user');
 
@@ -293,8 +289,6 @@ class NodeViewsData extends EntityViewsData {
     $data['node_field_revision']['status']['filter']['label'] = t('Published');
     $data['node_field_revision']['status']['filter']['type'] = 'yes-no';
     $data['node_field_revision']['status']['filter']['use_equal'] = TRUE;
-
-    $data['node_field_revision']['title']['field']['id'] = 'node_revision';
 
     $data['node_field_revision']['langcode']['help'] = t('The language of the content or translation.');
 
@@ -380,8 +374,9 @@ class NodeViewsData extends EntityViewsData {
         );
 
         $data['node_search_dataset']['table']['join'] = array(
-          'node_search_index' => array(
+          'node_field_data' => array(
             'left_field' => 'sid',
+            'left_table' => 'node_search_index',
             'field' => 'sid',
             'table' => 'search_dataset',
             'extra' => 'node_search_index.type = node_search_dataset.type AND node_search_index.langcode = node_search_dataset.langcode',

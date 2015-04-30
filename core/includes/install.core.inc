@@ -26,7 +26,7 @@ use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Route;
-
+use Drupal\user\Entity\User;
 use GuzzleHttp\Exception\RequestException;
 
 /**
@@ -141,6 +141,10 @@ function install_drupal($class_loader, $settings = array()) {
   // installations can send output to the browser or redirect the user to the
   // next page.
   if ($state['interactive']) {
+    // If a session has been initiated in this request, make sure to save it.
+    if ($session = \Drupal::request()->getSession()) {
+      $session->save();
+    }
     if ($state['parameters_changed']) {
       // Redirect to the correct page if the URL parameters have changed.
       install_goto(install_redirect_url($state));
@@ -303,7 +307,8 @@ function install_begin_request($class_loader, &$install_state) {
   // The user agent header is used to pass a database prefix in the request when
   // running tests. However, for security reasons, it is imperative that no
   // installation be permitted using such a prefix.
-  if ($install_state['interactive'] && strpos($request->server->get('HTTP_USER_AGENT'), 'simpletest') !== FALSE && !drupal_valid_test_ua()) {
+  $user_agent = $request->cookies->get('SIMPLETEST_USER_AGENT') ?: $request->server->get('HTTP_USER_AGENT');
+  if ($install_state['interactive'] && strpos($user_agent, 'simpletest') !== FALSE && !drupal_valid_test_ua()) {
     header($request->server->get('SERVER_PROTOCOL') . ' 403 Forbidden');
     exit;
   }
@@ -545,7 +550,8 @@ function install_run_tasks(&$install_state) {
  * Runs an individual installation task.
  *
  * @param $task
- *   An array of information about the task to be run.
+ *   An array of information about the task to be run as returned by
+ *   hook_install_tasks().
  * @param $install_state
  *   An array of information about the current installation state. This is
  *   passed in by reference so that it can be modified by the task.
@@ -594,8 +600,9 @@ function install_run_task($task, &$install_state) {
       $url = Url::fromUri('base:install.php', ['query' => $install_state['parameters'], 'script' => '']);
       $response = batch_process($url, clone $url);
       if ($response instanceof Response) {
-        // Save $_SESSION data from batch.
-        \Drupal::service('session')->save();
+        if ($session = \Drupal::request()->getSession()) {
+          $session->save();
+        }
         // Send the response.
         $response->send();
         exit;
@@ -678,11 +685,15 @@ function install_tasks_to_perform($install_state) {
  * hasn't been selected yet, we don't yet know which profile tasks will be
  * available).
  *
+ * You can override this using hook_install_tasks() or
+ * hook_install_tasks_alter().
+ *
  * @param $install_state
  *   An array of information about the current installation state.
  *
  * @return
- *   A list of tasks, with associated metadata.
+ *   A list of tasks, with associated metadata as returned by
+ *   hook_install_tasks().
  */
 function install_tasks($install_state) {
   // Determine whether a translation file must be imported during the
@@ -724,6 +735,8 @@ function install_tasks($install_state) {
       // since the form submit handler is where settings.php is rewritten.
       'run' => $install_state['settings_verified'] ? INSTALL_TASK_SKIP : INSTALL_TASK_RUN_IF_NOT_COMPLETED,
       'function' => 'Drupal\Core\Installer\Form\SiteSettingsForm',
+    ),
+    'install_write_profile' => array(
     ),
     'install_verify_database_ready' => array(
       'run' => $install_state['database_ready'] ? INSTALL_TASK_SKIP : INSTALL_TASK_RUN_IF_NOT_COMPLETED,
@@ -1154,15 +1167,13 @@ function install_select_profile(&$install_state) {
  * Determines the installation profile to use in the installer.
  *
  * A profile will be selected in the following order of conditions:
- *
- * 1. Only one profile is available.
- * 2. A specific profile name is requested in installation parameters:
- *    - for interactive installations via request query parameters.
- *    - for non-interactive installations via install_drupal() settings.
- * 3. A discovered profile that is a distribution.
- *    If multiple profiles are distributions, then the first discovered profile
- *    will be selected.
- * 4. Only one visible profile is available.
+ * - Only one profile is available.
+ * - A specific profile name is requested in installation parameters:
+ *   - For interactive installations via request query parameters.
+ *   - For non-interactive installations via install_drupal() settings.
+ * - A discovered profile that is a distribution. If multiple profiles are
+ *   distributions, then the first discovered profile will be selected.
+ * - Only one visible profile is available.
  *
  * @param array $install_state
  *   The current installer state, containing a 'profiles' key, which is an
@@ -1543,12 +1554,13 @@ function install_load_profile(&$install_state) {
 
 /**
  * Performs a full bootstrap of Drupal during installation.
- *
- * @param $install_state
- *   An array of information about the current installation state.
  */
 function install_bootstrap_full() {
-  \Drupal::service('session')->start();
+  // Store the session on the request object and start it.
+  /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
+  $session = \Drupal::service('session');
+  \Drupal::request()->setSession($session);
+  $session->start();
 }
 
 /**
@@ -1664,7 +1676,10 @@ function install_download_additional_translations_operations(&$install_state) {
   // If a non-English language was selected, change the default language and
   // remove English.
   if ($langcode != 'en') {
-    \Drupal::configFactory()->getEditable('system.site')->set('langcode', $langcode)->save();
+    \Drupal::configFactory()->getEditable('system.site')
+      ->set('langcode', $langcode)
+      ->set('default_langcode', $langcode)
+      ->save();
     \Drupal::service('language.default')->set($language);
     if (empty($install_state['profile_info']['keep_english'])) {
       entity_delete_multiple('configurable_language', array('en'));
@@ -1836,7 +1851,7 @@ function install_finished(&$install_state) {
     // Load current user and perform final login tasks.
     // This has to be done after drupal_flush_all_caches()
     // to avoid session regeneration.
-    $account = user_load(1);
+    $account = User::load(1);
     user_login_finalize($account);
   }
 
@@ -2253,5 +2268,22 @@ function install_display_requirements($install_state, $requirements) {
         throw new InstallerException(implode("\n\n", $failures));
       }
     }
+  }
+}
+
+/**
+ * Installation task; ensures install profile is written to settings.php.
+ *
+ * @param array $install_state
+ *   An array of information about the current installation state.
+ */
+function install_write_profile($install_state) {
+  if (Settings::get('install_profile') !== $install_state['parameters']['profile']) {
+    // Remember the profile which was used.
+    $settings['settings']['install_profile'] = (object) array(
+      'value' => $install_state['parameters']['profile'],
+      'required' => TRUE,
+    );
+    drupal_rewrite_settings($settings);
   }
 }

@@ -479,7 +479,7 @@ td.group-title {
 }
 
 .views-displays .tabs.secondary li,
-.views-displays .tabs.secondary li.active {
+.views-displays .tabs.secondary li.is-active {
   background: transparent;
   margin-bottom: 5px;
   border: 0;
@@ -524,7 +524,7 @@ td.group-title {
 /**
  * Display a red border if the display doesn't validate.
  */
-.views-displays .tabs.secondary li.active a.active.error,
+.views-displays .tabs.secondary li.is-active a.is-active.error,
 .views-displays .tabs.secondary a.error {
   border: 2px solid #ed541d;
   padding: 1px 6px;
@@ -539,8 +539,8 @@ td.group-title {
 }
 
 .views-displays .tabs.secondary li a:hover,
-.views-displays .tabs.secondary li.active a,
-.views-displays .tabs.secondary li.active a.active {
+.views-displays .tabs.secondary li.is-active a,
+.views-displays .tabs.secondary li.is-active a.is-active {
   background-color: #555;
   color: #fff;
 }
@@ -745,11 +745,11 @@ td.group-title {
 
 /* @group Attachment bucket overridden
  *
- * Applies a overriden(italics) font style to overridden buckets.
+ * Applies an overridden(italics) font style to overridden buckets.
  * The better way to implement this would be to add the overridden class
  * to the bucket header when the bucket is overridden and style it as a
  * generic icon classed element. For the moment, we'll style the bucket
- * header specifically with the overriden font style.
+ * header specifically with the overridden font style.
  */
 
 .views-ui-display-tab-setting.overridden,
@@ -839,17 +839,17 @@ td.group-title {
 }
 
 #views-filterable-options-controls .form-item {
-  width: 45%;
-  margin-right: 2%; /* LTR */
+  width: 30%;
+  margin: 0 0 0 2%; /* LTR */
+}
 }
 [dir="rtl"] #views-filterable-options-controls .form-item {
-  margin-left: 2%;
-  margin-right: 0;
+  margin: 0 2% 0 0;
 }
 
 #views-filterable-options-controls input,
 #views-filterable-options-controls select {
-  width: 200px;
+  width: 100%;
 }
 
 .views-ui-dialog .ui-dialog-content {

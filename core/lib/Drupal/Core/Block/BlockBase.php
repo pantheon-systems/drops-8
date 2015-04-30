@@ -8,9 +8,8 @@
 namespace Drupal\Core\Block;
 
 use Drupal\block\BlockInterface;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Cache\CacheContexts;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginBase;
 use Drupal\Component\Utility\Unicode;
@@ -91,8 +90,8 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
       'provider' => $this->pluginDefinition['provider'],
       'label_display' => BlockInterface::BLOCK_LABEL_VISIBLE,
       'cache' => array(
-        'max_age' => 0,
-        'contexts' => array(),
+        // Blocks are cacheable by default.
+        'max_age' => Cache::PERMANENT,
       ),
     );
   }
@@ -122,34 +121,28 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
    * {@inheritdoc}
    */
   public function access(AccountInterface $account, $return_as_object = FALSE) {
-    // @todo Remove self::blockAccess() and force individual plugins to return
-    //   their own AccessResult logic. Until that is done in
-    //   https://www.drupal.org/node/2375689 the access will be set uncacheable.
-    if ($this->blockAccess($account)) {
-      $access = AccessResult::allowed();
-    }
-    else {
-      $access = AccessResult::forbidden();
-    }
-
-    $access->setCacheable(FALSE);
+    $access = $this->blockAccess($account);
     return $return_as_object ? $access : $access->isAllowed();
   }
 
   /**
    * Indicates whether the block should be shown.
    *
+   * Blocks with specific access checking should override this method rather
+   * than access(), in order to avoid repeating the handling of the
+   * $return_as_object argument.
+   *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The user session for which to check access.
    *
-   * @return bool
-   *   TRUE if the block should be shown, or FALSE otherwise.
+   * @return \Drupal\Core\Access\AccessResult
+   *   The access result.
    *
    * @see self::access()
    */
   protected function blockAccess(AccountInterface $account) {
     // By default, the block is visible.
-    return TRUE;
+    return AccessResult::allowed();
   }
 
   /**
@@ -172,7 +165,7 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
     $form['admin_label'] = array(
       '#type' => 'item',
       '#title' => $this->t('Block description'),
-      '#markup' => String::checkPlain($definition['admin_label']),
+      '#markup' => SafeMarkup::checkPlain($definition['admin_label']),
     );
     $form['label'] = array(
       '#type' => 'textfield',
@@ -204,36 +197,6 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
       '#default_value' => $this->configuration['cache']['max_age'],
       '#options' => $period,
     );
-    $contexts = \Drupal::service("cache_contexts")->getLabels();
-    // Blocks are always rendered in the "per language" and "per theme" cache
-    // contexts. No need to show those options to the end user.
-    unset($contexts['languages']);
-    unset($contexts['theme']);
-    $form['cache']['contexts'] = array(
-      '#type' => 'checkboxes',
-      '#title' => $this->t('Vary by context'),
-      '#description' => $this->t('The contexts this cached block must be varied by. <em>All</em> blocks are varied by language and theme.'),
-      '#default_value' => $this->configuration['cache']['contexts'],
-      '#options' => $contexts,
-      '#states' => array(
-        'disabled' => array(
-          ':input[name="settings[cache][max_age]"]' => array('value' => (string) 0),
-        ),
-      ),
-    );
-    if (count($this->getRequiredCacheContexts()) > 0) {
-      // Remove the required cache contexts from the list of contexts a user can
-      // choose to modify by: they must always be applied.
-      $context_labels = array();
-      $all_contexts = \Drupal::service("cache_contexts")->getLabels(TRUE);
-      foreach (CacheContexts::parseTokens($this->getRequiredCacheContexts()) as $context) {
-        $context_id = $context[0];
-        $context_labels[] = $all_contexts[$context_id];
-        unset($form['cache']['contexts']['#options'][$context_id]);
-      }
-      $required_context_list = implode(', ', $context_labels);
-      $form['cache']['contexts']['#description'] .= ' ' . $this->t('This block is <em>always</em> varied by the following contexts: %required-context-list.', array('%required-context-list' => $required_context_list));
-    }
 
     // Add plugin-specific settings for this block type.
     $form += $this->blockForm($form, $form_state);
@@ -258,10 +221,6 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
   public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
     // Remove the admin_label form item element value so it will not persist.
     $form_state->unsetValue('admin_label');
-
-    // Transform the #type = checkboxes value to a numerically indexed array.
-    $contexts = $form_state->getValue(array('cache', 'contexts'));
-    $form_state->setValue(array('cache', 'contexts'), array_values(array_filter($contexts)));
 
     $this->blockValidate($form, $form_state);
   }
@@ -341,29 +300,10 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
   }
 
   /**
-   * Returns the cache contexts required for this block.
-   *
-   * @return array
-   *   The required cache contexts IDs.
-   */
-  protected function getRequiredCacheContexts() {
-    return array();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheKeys() {
-    return [];
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function getCacheContexts() {
-    // Return the required cache contexts, merged with the user-configured cache
-    // contexts, if any.
-    return array_merge($this->getRequiredCacheContexts(), $this->configuration['cache']['contexts']);
+    return [];
   }
 
   /**
@@ -378,17 +318,6 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
    */
   public function getCacheMaxAge() {
     return (int)$this->configuration['cache']['max_age'];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isCacheable() {
-    // Similar to the page cache, a block is cacheable if it has a max age.
-    // Blocks that should never be cached can override this method to simply
-    // return FALSE.
-    $max_age = $this->getCacheMaxAge();
-    return $max_age === Cache::PERMANENT || $max_age > 0;
   }
 
 }

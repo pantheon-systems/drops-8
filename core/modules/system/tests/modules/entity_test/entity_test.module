@@ -236,7 +236,7 @@ function entity_test_entity_extra_field_info() {
   $extra['entity_test']['bundle_with_extra_fields'] = array(
     'display' => array(
       // Note: those extra fields do not currently display anything, they are
-      // just used in \Drupal\entity\Tests\EntityDisplayTest to test the
+      // just used in \Drupal\field_ui\Tests\EntityDisplayTest to test the
       // behavior of entity display objects.
       'display_extra_field' => array(
         'label' => t('Display extra field'),
@@ -324,7 +324,7 @@ function entity_test_mulrev_load($id, $reset = FALSE) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_insert().
+ * Implements hook_ENTITY_TYPE_insert() for 'entity_test'.
  */
 function entity_test_entity_test_insert($entity) {
   if ($entity->name->value == 'fail_insert') {
@@ -343,11 +343,22 @@ function entity_test_entity_field_access($operation, FieldDefinitionInterface $f
       if ($items->value == 'no access value') {
         return AccessResult::forbidden()->cacheUntilEntityChanges($items->getEntity());
       }
-      elseif ($operation == 'delete' && $items->value == 'no delete access value') {
+      elseif ($operation == 'edit' && $items->value == 'no edit access value') {
         return AccessResult::forbidden()->cacheUntilEntityChanges($items->getEntity());
       }
     }
   }
+  if ($field = \Drupal::state()->get('views_field_access_test-field')) {
+    if ($field_definition->getName() === $field) {
+      $result = AccessResult::allowedIfHasPermission($account, 'view test entity field');
+      // For test purposes we want to actively deny access.
+      if ($result->isNeutral()) {
+        $result = AccessResult::forbidden();
+      }
+      return $result;
+    }
+  }
+
   // No opinion.
   return AccessResult::neutral();
 }
@@ -432,42 +443,42 @@ function entity_test_entity_translation_delete(EntityInterface $translation) {
 }
 
 /**
- * Implements hook_ENTITY_TYPE_translation_insert().
+ * Implements hook_ENTITY_TYPE_translation_insert() for 'entity_test_mul'.
  */
 function entity_test_entity_test_mul_translation_insert(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mul_translation_insert', $translation->language()->getId());
 }
 
 /**
- * Implements hook_ENTITY_TYPE_translation_delete().
+ * Implements hook_ENTITY_TYPE_translation_delete() for 'entity_test_mul'.
  */
 function entity_test_entity_test_mul_translation_delete(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mul_translation_delete', $translation->language()->getId());
 }
 
 /**
- * Implements hook_ENTITY_TYPE_translation_insert().
+ * Implements hook_ENTITY_TYPE_translation_insert() for 'entity_test_mulrev'.
  */
 function entity_test_entity_test_mulrev_translation_insert(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mulrev_translation_insert', $translation->language()->getId());
 }
 
 /**
- * Implements hook_ENTITY_TYPE_translation_delete().
+ * Implements hook_ENTITY_TYPE_translation_delete() for 'entity_test_mulrev'.
  */
 function entity_test_entity_test_mulrev_translation_delete(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mulrev_translation_delete', $translation->language()->getId());
 }
 
 /**
- * Implements hook_ENTITY_TYPE_translation_insert().
+ * Implements hook_ENTITY_TYPE_translation_insert() for 'entity_test_mul_langcode_key'.
  */
 function entity_test_entity_test_mul_langcode_key_translation_insert(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mul_langcode_key_translation_insert', $translation->language()->getId());
 }
 
 /**
- * Implements hook_ENTITY_TYPE_translation_delete().
+ * Implements hook_ENTITY_TYPE_translation_delete() for 'entity_test_mul_langcode_key'.
  */
 function entity_test_entity_test_mul_langcode_key_translation_delete(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mul_langcode_key_translation_delete', $translation->language()->getId());
@@ -552,11 +563,11 @@ function entity_test_entity_access(EntityInterface $entity, $operation, AccountI
   // Uncacheable because the access result depends on a State key-value pair and
   // might therefore change at any time.
   $condition = \Drupal::state()->get("entity_test_entity_access.{$operation}." . $entity->id(), FALSE);
-  return AccessResult::allowedIf($condition)->setCacheable(FALSE);
+  return AccessResult::allowedIf($condition)->setCacheMaxAge(0);
 }
 
 /**
- * Implements hook_ENTITY_TYPE_access().
+ * Implements hook_ENTITY_TYPE_access() for 'entity_test'.
  */
 function entity_test_entity_test_access(EntityInterface $entity, $operation, AccountInterface $account, $langcode) {
   \Drupal::state()->set('entity_test_entity_test_access', TRUE);
@@ -576,7 +587,7 @@ function entity_test_entity_create_access(AccountInterface $account, $context, $
 }
 
 /**
- * Implements hook_ENTITY_TYPE_create_access().
+ * Implements hook_ENTITY_TYPE_create_access() for 'entity_test'.
  */
 function entity_test_entity_test_create_access(AccountInterface $account, $context, $entity_bundle) {
   \Drupal::state()->set('entity_test_entity_test_create_access', TRUE);

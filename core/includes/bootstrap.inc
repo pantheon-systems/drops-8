@@ -383,31 +383,32 @@ function _drupal_set_preferred_header_name($name = NULL) {
  * break up strings for translation.
  *
  * @section sec_translating_vars Translating Variables
- * You should never use t() to translate variables, such as calling
- * @code t($text); @endcode, unless the text that the variable holds has been
- * passed through t() elsewhere (e.g., $text is one of several translated
- * literal strings in an array). It is especially important never to call
- * @code t($user_text); @endcode, where $user_text is some text that a user
- * entered - doing that can lead to cross-site scripting and other security
- * problems. However, you can use variable substitution in your string, to put
- * variable text such as user names or link URLs into translated text. Variable
- * substitution looks like this:
+ * You should never use t() to translate variables, such as calling t($text)
+ * unless the text that the variable holds has been passed through t()
+ * elsewhere (e.g., $text is one of several translated literal strings in an
+ * array). It is especially important never to call t($user_text) where
+ * $user_text is some text that a user entered - doing that can lead to
+ * cross-site scripting and other security problems. However, you can use
+ * variable substitution in your string, to put variable text such as user
+ * names or link URLs into translated text. Variable substitution looks like
+ * this:
  * @code
  * $text = t("@name's blog", array('@name' => user_format_name($account)));
  * @endcode
  * Basically, you can put variables like @name into your string, and t() will
  * substitute their sanitized values at translation time. (See the
  * Localization API pages referenced above and the documentation of
- * format_string() for details about how to define variables in your string.)
- * Translators can then rearrange the string as necessary for the language
- * (e.g., in Spanish, it might be "blog de @name").
+ * \Drupal\Component\Utility\SafeMarkup::format() for details about how to
+ * define variables in your string.). Translators can then rearrange the string
+ * as necessary for the language (e.g., in Spanish, it might be "blog de
+ * @name").
  *
  * @param $string
  *   A string containing the English string to translate.
  * @param $args
  *   An associative array of replacements to make after translation. Based
  *   on the first character of the key, the value is escaped and/or themed.
- *   See format_string() for details.
+ *   See \Drupal\Component\Utility\SafeMarkup::format() for details.
  * @param $options
  *   An associative array of additional options, with the following elements:
  *   - 'langcode' (defaults to the current language): The language code to
@@ -418,7 +419,7 @@ function _drupal_set_preferred_header_name($name = NULL) {
  * @return
  *   The translated string.
  *
- * @see format_string()
+ * @see \Drupal\Component\Utility\SafeMarkup::format()
  * @ingroup sanitization
  */
 function t($string, array $args = array(), array $options = array()) {
@@ -680,7 +681,7 @@ function _drupal_error_handler($error_level, $message, $filename, $line, $contex
  * always fatal: the execution of the script will stop as soon as the exception
  * handler exits.
  *
- * @param $exception
+ * @param \Exception|\BaseException $exception
  *   The exception object that was thrown.
  */
 function _drupal_exception_handler($exception) {
@@ -690,14 +691,32 @@ function _drupal_exception_handler($exception) {
     // Log the message to the watchdog and return an error page to the user.
     _drupal_log_error(Error::decodeException($exception), TRUE);
   }
+  // PHP 7 introduces BaseExceptions.
+  catch (BaseException $exception2) {
+    _drupal_exception_handler_additional($exception, $exception2);
+  }
+  // In order to be compatibile with PHP 5 we also catch regular Exceptions.
   catch (Exception $exception2) {
-    // Another uncaught exception was thrown while handling the first one.
-    // If we are displaying errors, then do so with no possibility of a further uncaught exception being thrown.
-    if (error_displayable()) {
-      print '<h1>Additional uncaught exception thrown while handling exception.</h1>';
-      print '<h2>Original</h2><p>' . Error::renderExceptionSafe($exception) . '</p>';
-      print '<h2>Additional</h2><p>' . Error::renderExceptionSafe($exception2) . '</p><hr />';
-    }
+    _drupal_exception_handler_additional($exception, $exception2);
+  }
+}
+
+/**
+ * Displays any additional errors caught while handling an exception.
+ *
+ * @param \Exception|\BaseException $exception
+ *   The first exception object that was thrown.
+ * @param \Exception|\BaseException $exception
+ *   The second exception object that was thrown.
+ */
+function _drupal_exception_handler_additional($exception, $exception2) {
+  // Another uncaught exception was thrown while handling the first one.
+  // If we are displaying errors, then do so with no possibility of a further
+  // uncaught exception being thrown.
+  if (error_displayable()) {
+    print '<h1>Additional uncaught exception thrown while handling exception.</h1>';
+    print '<h2>Original</h2><p>' . Error::renderExceptionSafe($exception) . '</p>';
+    print '<h2>Additional</h2><p>' . Error::renderExceptionSafe($exception2) . '</p><hr />';
   }
 }
 
@@ -725,9 +744,12 @@ function drupal_valid_test_ua($new_prefix = NULL) {
   // a test environment.
   $test_prefix = FALSE;
 
-  // Perform a basic check on the User-Agent HTTP request header first. Any
-  // inbound request that uses the simpletest UA header needs to be validated.
-  if (isset($_SERVER['HTTP_USER_AGENT']) && preg_match("/^(simpletest\d+);(.+);(.+);(.+)$/", $_SERVER['HTTP_USER_AGENT'], $matches)) {
+  // A valid Simpletest request will contain a hashed and salted authentication
+  // code. Check if this code is present in a cookie or custom user agent
+  // string.
+  $http_user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : NULL;
+  $user_agent = isset($_COOKIE['SIMPLETEST_USER_AGENT']) ? $_COOKIE['SIMPLETEST_USER_AGENT'] : $http_user_agent;
+  if (isset($user_agent) && preg_match("/^(simpletest\d+);(.+);(.+);(.+)$/", $user_agent, $matches)) {
     list(, $prefix, $time, $salt, $hmac) = $matches;
     $check_string =  $prefix . ';' . $time . ';' . $salt;
     // Read the hash salt prepared by drupal_generate_test_ua().
@@ -1078,18 +1100,35 @@ function _drupal_shutdown_function() {
       call_user_func_array($callback['callback'], $callback['arguments']);
     }
   }
-  catch (Exception $exception) {
-    // If using PHP-FPM then fastcgi_finish_request() will have been fired
-    // preventing further output to the browser.
-    if (!function_exists('fastcgi_finish_request')) {
-      // If we are displaying errors, then do so with no possibility of a
-      // further uncaught exception being thrown.
-      require_once __DIR__ . '/errors.inc';
-      if (error_displayable()) {
-        print '<h1>Uncaught exception thrown in shutdown function.</h1>';
-        print '<p>' . Error::renderExceptionSafe($exception) . '</p><hr />';
-      }
-    }
-    error_log($exception);
+  // PHP 7 introduces BaseExceptions.
+  catch (BaseException $exception) {
+    _drupal_shutdown_function_handle_exception($exception);
   }
+  // In order to be compatibile with PHP 5 we also catch regular Exceptions.
+  catch (Exception $exception) {
+    _drupal_shutdown_function_handle_exception($exception);
+  }
+}
+
+/**
+ * Displays and logs any errors that may happen during shutdown.
+ *
+ * @param \Exception|\BaseException $exception
+ *   The exception object that was thrown.
+ *
+ * @see _drupal_shutdown_function()
+ */
+function _drupal_shutdown_function_handle_exception($exception) {
+  // If using PHP-FPM then fastcgi_finish_request() will have been fired
+  // preventing further output to the browser.
+  if (!function_exists('fastcgi_finish_request')) {
+    // If we are displaying errors, then do so with no possibility of a
+    // further uncaught exception being thrown.
+    require_once __DIR__ . '/errors.inc';
+    if (error_displayable()) {
+      print '<h1>Uncaught exception thrown in shutdown function.</h1>';
+      print '<p>' . Error::renderExceptionSafe($exception) . '</p><hr />';
+    }
+  }
+  error_log($exception);
 }

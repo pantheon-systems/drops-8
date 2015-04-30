@@ -13,7 +13,8 @@ use Drupal\Core\Render\Element;
 use Drupal\user\RoleInterface;
 use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\HandlerBase;
-use Drupal\Component\Utility\String as UtilityString;
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 
@@ -60,7 +61,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
   var $operator = '=';
 
   /**
-   * Contains the information of the selected item in a gruped filter.
+   * Contains the information of the selected item in a grouped filter.
    */
   var $group_info = NULL;
 
@@ -171,7 +172,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
    * Display the filter on the administrative summary
    */
   public function adminSummary() {
-    return UtilityString::checkPlain((string) $this->operator) . ' ' . UtilityString::checkPlain((string) $this->value);
+    return SafeMarkup::checkPlain((string) $this->operator) . ' ' . SafeMarkup::checkPlain((string) $this->value);
   }
 
   /**
@@ -594,7 +595,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
       '#default_value' => $this->options['expose']['remember'],
     );
 
-    $role_options = array_map('\Drupal\Component\Utility\String::checkPlain', user_role_names());
+    $role_options = array_map('\Drupal\Component\Utility\SafeMarkup::checkPlain', user_role_names());
     $form['expose']['remember_roles'] = array(
       '#type' => 'checkboxes',
       '#title' => $this->t('User roles'),
@@ -765,7 +766,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
       $value = $this->options['group_info']['identifier'];
 
       $form[$value] = array(
-        '#title' => UtilityString::checkPlain($this->options['group_info']['label']),
+        '#title' => SafeMarkup::checkPlain($this->options['group_info']['label']),
         '#type' => $this->options['group_info']['widget'],
         '#default_value' => $this->group_info,
         '#options' => $groups,
@@ -1180,7 +1181,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
       else {
         // Cast the label to a string since it can be an object.
         // @see \Drupal\Core\StringTranslation\TranslationWrapper
-        $options[$value] = strip_tags(UtilityString::decodeEntities((string) $label));
+        $options[$value] = strip_tags(Html::decodeEntities((string) $label));
       }
     }
   }
@@ -1302,7 +1303,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
     // know where to look for session stored values.
     $display_id = ($this->view->display_handler->isDefaulted('filters')) ? 'default' : $this->view->current_display;
 
-    // false means that we got a setting that means to recuse ourselves,
+    // False means that we got a setting that means to recurse ourselves,
     // so we should erase whatever happened to be there.
     if ($status === FALSE && isset($_SESSION['views'][$this->view->storage->id()][$display_id])) {
       $session = &$_SESSION['views'][$this->view->storage->id()][$display_id];
@@ -1394,7 +1395,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
     // shortcut test.
     $operator = !empty($this->options['expose']['use_operator']) && !empty($this->options['expose']['operator_id']);
 
-    // false means that we got a setting that means to recuse ourselves,
+    // False means that we got a setting that means to recurse ourselves,
     // so we should erase whatever happened to be there.
     if (!$status && isset($_SESSION['views'][$this->view->storage->id()][$display_id])) {
       $session = &$_SESSION['views'][$this->view->storage->id()][$display_id];

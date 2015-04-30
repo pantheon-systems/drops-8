@@ -10,7 +10,6 @@ namespace Drupal\form_test\Plugin\Block;
 use Drupal\Core\Block\BlockBase;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -66,14 +65,17 @@ class RedirectFormBlock extends BlockBase implements ContainerFactoryPluginInter
   /**
    * {@inheritdoc}
    */
-  protected function blockAccess(AccountInterface $account) {
-    return TRUE;
+  public function build() {
+    return $this->formBuilder->getForm('Drupal\form_test\Form\RedirectBlockForm');
   }
 
   /**
    * {@inheritdoc}
+   *
+   * @todo Make cacheable once https://www.drupal.org/node/2351015 lands.
    */
-  public function build() {
-    return $this->formBuilder->getForm('Drupal\form_test\Form\RedirectBlockForm');
+  public function getCacheMaxAge() {
+    return 0;
   }
+
 }

@@ -21,7 +21,6 @@ class AjaxFormPageCacheTest extends AjaxTestBase {
     parent::setUp();
 
     $config = $this->config('system.performance');
-    $config->set('cache.page.use_internal', 1);
     $config->set('cache.page.max_age', 300);
     $config->save();
   }
@@ -82,5 +81,15 @@ class AjaxFormPageCacheTest extends AjaxTestBase {
    $build_id_from_cache_second_ajax = $this->getFormBuildId();
    $this->assertEqual($build_id_from_cache_first_ajax, $build_id_from_cache_second_ajax, 'Build id remains the same on subsequent AJAX submissions');
  }
+
+  /**
+   * Tests a form that uses an #ajax callback.
+   *
+   * @see \Drupal\system\Tests\Ajax\ElementValidationTest::testAjaxElementValidation()
+   */
+  public function testAjaxElementValidation() {
+    $edit = ['drivertext' => t('some dumb text')];
+    $this->drupalPostAjaxForm('ajax_validation_test', $edit, 'drivertext');
+  }
 
 }

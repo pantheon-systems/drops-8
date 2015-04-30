@@ -11,7 +11,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -54,7 +54,12 @@ class EntityResource extends ResourceBase {
         unset($entity->{$field_name});
       }
     }
-    return new ResourceResponse($entity);
+
+    $response = new ResourceResponse($entity, 200);
+    // Make the response use the entity's cacheability metadata.
+    // @todo include access cacheability metadata, for the access checks above.
+    $response->addCacheableDependency($entity);
+    return $response;
   }
 
   /**
@@ -93,7 +98,7 @@ class EntityResource extends ResourceBase {
     // and 'update', so the 'edit' operation is used here.
     foreach ($entity->_restSubmittedFields as $key => $field_name) {
       if (!$entity->get($field_name)->access('edit')) {
-        throw new AccessDeniedHttpException(String::format('Access denied on creating field @field', array('@field' => $field_name)));
+        throw new AccessDeniedHttpException(SafeMarkup::format('Access denied on creating field @field', array('@field' => $field_name)));
       }
     }
 
@@ -145,13 +150,11 @@ class EntityResource extends ResourceBase {
       if ($field_name == $langcode_key && $field->isEmpty()) {
         continue;
       }
-      if ($field->isEmpty() && !$original_entity->get($field_name)->access('delete')) {
-        throw new AccessDeniedHttpException(String::format('Access denied on deleting field @field.', array('@field' => $field_name)));
+
+      if (!$original_entity->get($field_name)->access('edit')) {
+        throw new AccessDeniedHttpException(SafeMarkup::format('Access denied on updating field @field.', array('@field' => $field_name)));
       }
       $original_entity->set($field_name, $field->getValue());
-      if (!$original_entity->get($field_name)->access('update')) {
-        throw new AccessDeniedHttpException(String::format('Access denied on updating field @field.', array('@field' => $field_name)));
-      }
     }
 
     // Validate the received data before saving.

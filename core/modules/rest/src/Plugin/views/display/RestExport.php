@@ -7,7 +7,7 @@
 
 namespace Drupal\rest\Plugin\views\display;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\views\ViewExecutable;
@@ -244,7 +244,7 @@ class RestExport extends PathPluginBase {
       // REST exports should only respond to get methods.
       $requirements = array('_method' => 'GET');
 
-      // Format as a string using pipes as a delimeter.
+      // Format as a string using pipes as a delimiter.
       $requirements['_format'] = implode('|', $style_plugin->getFormats());
 
       // Add the new requirements to the route.
@@ -272,7 +272,7 @@ class RestExport extends PathPluginBase {
     // Wrap the output in a pre tag if this is for a live preview.
     if (!empty($this->view->live_preview)) {
       $build['#prefix'] = '<pre>';
-      $build['#markup'] = String::checkPlain($build['#markup']);
+      $build['#markup'] = SafeMarkup::checkPlain($build['#markup']);
       $build['#suffix'] = '</pre>';
     }
 

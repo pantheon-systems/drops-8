@@ -11,7 +11,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Access\AccessResultNeutral;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Cache\CacheableInterface;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -21,11 +21,8 @@ use Drupal\Tests\UnitTestCase;
 class AccessResultTest extends UnitTestCase {
 
   protected function assertDefaultCacheability(AccessResult $access) {
-    $this->assertTrue($access->isCacheable());
-    $this->assertSame([], $access->getCacheKeys());
     $this->assertSame([], $access->getCacheContexts());
     $this->assertSame([], $access->getCacheTags());
-    $this->assertSame('default', $access->getCacheBin());
     $this->assertSame(Cache::PERMANENT, $access->getCacheMaxAge());
   }
 
@@ -34,7 +31,6 @@ class AccessResultTest extends UnitTestCase {
    *
    * @covers ::__construct
    * @covers ::neutral
-   * @covers ::getCacheBin
    */
   public function testConstruction() {
     $verify = function (AccessResult $access) {
@@ -298,16 +294,6 @@ class AccessResultTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::setCacheable
-   * @covers ::isCacheable
-   */
-  public function testCacheable() {
-    $this->assertTrue(AccessResult::neutral()->isCacheable());
-    $this->assertTrue(AccessResult::neutral()->setCacheable(TRUE)->isCacheable());
-    $this->assertFalse(AccessResult::neutral()->setCacheable(FALSE)->isCacheable());
-  }
-
-  /**
    * @covers ::setCacheMaxAge
    * @covers ::getCacheMaxAge
    */
@@ -320,7 +306,7 @@ class AccessResultTest extends UnitTestCase {
    * @covers ::addCacheContexts
    * @covers ::resetCacheContexts
    * @covers ::getCacheContexts
-   * @covers ::cachePerRole
+   * @covers ::cachePerPermissions
    * @covers ::cachePerUser
    * @covers ::allowedIfHasPermission
    */
@@ -329,8 +315,6 @@ class AccessResultTest extends UnitTestCase {
       $this->assertFalse($access->isAllowed());
       $this->assertFalse($access->isForbidden());
       $this->assertTrue($access->isNeutral());
-      $this->assertTrue($access->isCacheable());
-      $this->assertSame('default', $access->getCacheBin());
       $this->assertSame(Cache::PERMANENT, $access->getCacheMaxAge());
       $this->assertSame($contexts, $access->getCacheContexts());
       $this->assertSame([], $access->getCacheTags());
@@ -355,11 +339,11 @@ class AccessResultTest extends UnitTestCase {
       ->addCacheContexts(['foo']);
     $verify($access, ['bar', 'foo']);
 
-    // ::cachePerRole() convenience method.
-    $contexts = array('user.roles');
+    // ::cachePerPermissions() convenience method.
+    $contexts = array('user.permissions');
     $a = AccessResult::neutral()->addCacheContexts($contexts);
     $verify($a, $contexts);
-    $b = AccessResult::neutral()->cachePerRole();
+    $b = AccessResult::neutral()->cachePerPermissions();
     $verify($b, $contexts);
     $this->assertEquals($a, $b);
 
@@ -372,12 +356,12 @@ class AccessResultTest extends UnitTestCase {
     $this->assertEquals($a, $b);
 
     // Both.
-    $contexts = array('user', 'user.roles');
+    $contexts = array('user', 'user.permissions');
     $a = AccessResult::neutral()->addCacheContexts($contexts);
     $verify($a, $contexts);
-    $b = AccessResult::neutral()->cachePerRole()->cachePerUser();
+    $b = AccessResult::neutral()->cachePerPermissions()->cachePerUser();
     $verify($b, $contexts);
-    $c = AccessResult::neutral()->cachePerUser()->cachePerRole();
+    $c = AccessResult::neutral()->cachePerUser()->cachePerPermissions();
     $verify($c, $contexts);
     $this->assertEquals($a, $b);
     $this->assertEquals($a, $c);
@@ -388,7 +372,7 @@ class AccessResultTest extends UnitTestCase {
       ->method('hasPermission')
       ->with('may herd llamas')
       ->will($this->returnValue(FALSE));
-    $contexts = array('user.roles');
+    $contexts = array('user.permissions');
 
     // Verify the object when using the ::allowedIfHasPermission() convenience
     // static method.
@@ -408,8 +392,6 @@ class AccessResultTest extends UnitTestCase {
       $this->assertFalse($access->isAllowed());
       $this->assertFalse($access->isForbidden());
       $this->assertTrue($access->isNeutral());
-      $this->assertTrue($access->isCacheable());
-      $this->assertSame('default', $access->getCacheBin());
       $this->assertSame(Cache::PERMANENT, $access->getCacheMaxAge());
       $this->assertSame([], $access->getCacheContexts());
       $this->assertSame($tags, $access->getCacheTags());
@@ -469,22 +451,18 @@ class AccessResultTest extends UnitTestCase {
   public function testInheritCacheability() {
     // andIf(); 1st has defaults, 2nd has custom tags, contexts and max-age.
     $access = AccessResult::allowed();
-    $other = AccessResult::allowed()->setCacheMaxAge(1500)->cachePerRole()->addCacheTags(['node:20011988']);
+    $other = AccessResult::allowed()->setCacheMaxAge(1500)->cachePerPermissions()->addCacheTags(['node:20011988']);
     $this->assertTrue($access->inheritCacheability($other) instanceof AccessResult);
-    $this->assertTrue($access->isCacheable());
-    $this->assertSame(['user.roles'], $access->getCacheContexts());
+    $this->assertSame(['user.permissions'], $access->getCacheContexts());
     $this->assertSame(['node:20011988'], $access->getCacheTags());
-    $this->assertSame('default', $access->getCacheBin());
     $this->assertSame(1500, $access->getCacheMaxAge());
 
     // andIf(); 1st has custom tags, max-age, 2nd has custom contexts and max-age.
     $access = AccessResult::allowed()->cachePerUser()->setCacheMaxAge(43200);
     $other = AccessResult::forbidden()->addCacheTags(['node:14031991'])->setCacheMaxAge(86400);
     $this->assertTrue($access->inheritCacheability($other) instanceof AccessResult);
-    $this->assertTrue($access->isCacheable());
     $this->assertSame(['user'], $access->getCacheContexts());
     $this->assertSame(['node:14031991'], $access->getCacheTags());
-    $this->assertSame('default', $access->getCacheBin());
     $this->assertSame(43200, $access->getCacheMaxAge());
   }
 
@@ -495,30 +473,32 @@ class AccessResultTest extends UnitTestCase {
    * every single bit of cacheability metadata, which would lead to a mind-
    * boggling number of permutations, in this test, we only consider the
    * permutations of all pairs of the following set:
-   * 1. Allowed, implements cacheable interface, is cacheable
-   * 2. Allowed, implements cacheable interface, is not cacheable
-   * 3. Allowed, does not implement cacheable interface (hence not cacheable)
-   * 4. Forbidden, implements cacheable interface, is cacheable
-   * 5. Forbidden, implements cacheable interface, is not cacheable
-   * 6. Forbidden, does not implement cacheable interface (hence not cacheable)
-   * 7. Neutral, implements cacheable interface, is cacheable
-   * 8. Neutral, implements cacheable interface, is not cacheable
-   * 9. Neutral, does not implement cacheable interface (hence not cacheable)
+   * - Allowed, implements CDI and is cacheable.
+   * - Allowed, implements CDI and is not cacheable.
+   * - Allowed, does not implement CDI (hence not cacheable).
+   * - Forbidden, implements CDI and is cacheable.
+   * - Forbidden, implements CDI and is not cacheable.
+   * - Forbidden, does not implement CDI (hence not cacheable).
+   * - Neutral, implements CDI and is cacheable.
+   * - Neutral, implements CDI and is not cacheable.
+   * - Neutral, does not implement CDI (hence not cacheable).
+   *
+   * (Where "CDI" is CacheableDependencyInterface.)
    *
    * This leads to 72 permutations (9!/(9-2)! = 9*8 = 72) per operation. There
    * are two operations to test (AND and OR), so that leads to a grand total of
    * 144 permutations, all of which are tested.
    *
    * There are two "contagious" patterns:
-   * 1. Any operation with a forbidden access result yields a forbidden result.
-   *    This therefore also applies to the cacheability metadata associated with
-   *    a forbidden result.
-   *    This is the case for items 4, 5 and 6 in the set above.
-   * 2. Any operation yields an access result object that is of the same class
-   *    (implementation) as the first operand. This is because operations are
-   *    invoked on the first operand. Therefore, if the first implementation
-   *    does not implement CacheableInterface, then the result won't either.
-   *    This is the case for items 3, 6 and 9 in the set above.
+   * - Any operation with a forbidden access result yields a forbidden result.
+   *   This therefore also applies to the cacheability metadata associated with
+   *   a forbidden result. This is the case for bullets 4, 5 and 6 in the set
+   *   above.
+   * - Any operation yields an access result object that is of the same class
+   *   (implementation) as the first operand. This is because operations are
+   *   invoked on the first operand. Therefore, if the first implementation
+   *   does not implement CacheableDependencyInterface, then the result won't
+   *   either. This is the case for bullets 3, 6 and 9 in the set above.
    */
   public function andOrCacheabilityPropagationProvider() {
     // ct: cacheable=true, cf: cacheable=false, un: uncacheable.
@@ -526,23 +506,23 @@ class AccessResultTest extends UnitTestCase {
     // test UncacheableTestAccessResult, not AccessResult. However, we
     // definitely want to verify that AccessResult's orIf() and andIf() methods
     // work correctly when given an AccessResultInterface implementation that
-    // does not implement CacheableInterface, and we want to test the full gamut
-    // of permutations, so that's not a problem.
+    // does not implement CacheableDependencyInterface, and we want to test the
+    // full gamut of permutations, so that's not a problem.
     $allowed_ct = AccessResult::allowed();
-    $allowed_cf = AccessResult::allowed()->setCacheable(FALSE);
+    $allowed_cf = AccessResult::allowed()->setCacheMaxAge(0);
     $allowed_un = new UncacheableTestAccessResult('ALLOWED');
     $forbidden_ct = AccessResult::forbidden();
-    $forbidden_cf = AccessResult::forbidden()->setCacheable(FALSE);
+    $forbidden_cf = AccessResult::forbidden()->setCacheMaxAge(0);
     $forbidden_un = new UncacheableTestAccessResult('FORBIDDEN');
     $neutral_ct = AccessResult::neutral();
-    $neutral_cf = AccessResult::neutral()->setCacheable(FALSE);
+    $neutral_cf = AccessResult::neutral()->setCacheMaxAge(0);
     $neutral_un = new UncacheableTestAccessResult('NEUTRAL');
 
     // Structure:
     // - First column: first access result.
     // - Second column: operator ('OR' or 'AND').
     // - Third column: second access result.
-    // - Fourth column: whether the result implements CacheableInterface
+    // - Fourth column: whether result implements CacheableDependencyInterface
     // - Fifth column: whether the result is cacheable (if column 4 is TRUE)
     return [
       // Allowed (ct) OR allowed (ct,cf,un).
@@ -795,7 +775,7 @@ class AccessResultTest extends UnitTestCase {
    *
    * @dataProvider andOrCacheabilityPropagationProvider
    */
-  public function testAndOrCacheabilityPropagation(AccessResultInterface $first, $op, AccessResultInterface $second, $implements_cacheable_interface, $is_cacheable) {
+  public function testAndOrCacheabilityPropagation(AccessResultInterface $first, $op, AccessResultInterface $second, $implements_cacheable_dependency_interface, $is_cacheable) {
     if ($op === 'OR') {
       $result = $first->orIf($second);
     }
@@ -805,15 +785,46 @@ class AccessResultTest extends UnitTestCase {
     else {
       throw new \LogicException('Invalid operator specified');
     }
-    if ($implements_cacheable_interface) {
-      $this->assertTrue($result instanceof CacheableInterface, 'Result is an instance of CacheableInterface.');
-      if ($result instanceof CacheableInterface) {
-        $this->assertSame($is_cacheable, $result->isCacheable(), 'isCacheable() matches expectations.');
+    if ($implements_cacheable_dependency_interface) {
+      $this->assertTrue($result instanceof CacheableDependencyInterface, 'Result is an instance of CacheableDependencyInterface.');
+      if ($result instanceof CacheableDependencyInterface) {
+        $this->assertSame($is_cacheable, $result->getCacheMaxAge() !== 0, 'getCacheMaxAge() matches expectations.');
       }
     }
     else {
-      $this->assertFalse($result instanceof CacheableInterface, 'Result is not an instance of CacheableInterface.');
+      $this->assertFalse($result instanceof CacheableDependencyInterface, 'Result is not an instance of CacheableDependencyInterface.');
     }
+  }
+
+  /**
+   * @covers ::orIf
+   *
+   * Tests the special case of ORing non-forbidden access results that are both
+   * cacheable but have different cacheability metadata.
+   * This is only the case for non-forbidden access results; we still abort the
+   * ORing process as soon as a forbidden access result is encountered. This is
+   * tested in ::testOrIf().
+   */
+  public function testOrIfCacheabilityMerging() {
+    $merge_both_directions = function(AccessResult $a, AccessResult $b) {
+      // A globally cacheable access result.
+      $a->setCacheMaxAge(3600);
+      // Another access result that is cacheable per permissions.
+      $b->setCacheMaxAge(86400)->cachePerPermissions();
+
+      $r1 = $a->orIf($b);
+      $this->assertTrue($r1->getCacheMaxAge() === 3600);
+      $this->assertSame(['user.permissions'], $r1->getCacheContexts());
+      $r2 = $b->orIf($a);
+      $this->assertTrue($r2->getCacheMaxAge() === 3600);
+      $this->assertSame(['user.permissions'], $r2->getCacheContexts());
+    };
+
+    // Merge either direction, get the same result.
+    $merge_both_directions(AccessResult::allowed(), AccessResult::allowed());
+    $merge_both_directions(AccessResult::allowed(), AccessResult::neutral());
+    $merge_both_directions(AccessResult::neutral(), AccessResult::neutral());
+    $merge_both_directions(AccessResult::neutral(), AccessResult::allowed());
   }
 
   /**
@@ -823,7 +834,7 @@ class AccessResultTest extends UnitTestCase {
    *
    * @dataProvider providerTestAllowedIfHasPermissions
    */
-  public function testAllowIfHasPermissions($permissions, $conjunction, $expected_access) {
+  public function testAllowedIfHasPermissions($permissions, $conjunction, $expected_access) {
     $account = $this->getMock('\Drupal\Core\Session\AccountInterface');
     $account->expects($this->any())
       ->method('hasPermission')
@@ -843,15 +854,16 @@ class AccessResultTest extends UnitTestCase {
    */
   public function providerTestAllowedIfHasPermissions() {
     return [
-      [[], 'AND', AccessResult::allowedIf(FALSE)->cachePerRole()],
-      [[], 'OR', AccessResult::allowedIf(FALSE)->cachePerRole()],
-      [['allowed'], 'OR', AccessResult::allowedIf(TRUE)->cachePerRole()],
-      [['allowed'], 'AND', AccessResult::allowedIf(TRUE)->cachePerRole()],
-      [['denied'], 'OR', AccessResult::allowedIf(FALSE)->cachePerRole()],
-      [['denied'], 'AND', AccessResult::allowedIf(FALSE)->cachePerRole()],
-      [['allowed', 'denied'], 'OR', AccessResult::allowedIf(TRUE)->cachePerRole()],
-      [['allowed', 'denied', 'other'], 'OR', AccessResult::allowedIf(TRUE)->cachePerRole()],
-      [['allowed', 'denied'], 'AND', AccessResult::allowedIf(FALSE)->cachePerRole()],
+      [[], 'AND', AccessResult::allowedIf(FALSE)],
+      [[], 'OR', AccessResult::allowedIf(FALSE)],
+      [['allowed'], 'OR', AccessResult::allowedIf(TRUE)->addCacheContexts(['user.permissions'])],
+      [['allowed'], 'AND', AccessResult::allowedIf(TRUE)->addCacheContexts(['user.permissions'])],
+      [['denied'], 'OR', AccessResult::allowedIf(FALSE)->addCacheContexts(['user.permissions'])],
+      [['denied'], 'AND', AccessResult::allowedIf(FALSE)->addCacheContexts(['user.permissions'])],
+      [['allowed', 'denied'], 'OR', AccessResult::allowedIf(TRUE)->addCacheContexts(['user.permissions'])],
+      [['denied', 'allowed'], 'OR', AccessResult::allowedIf(TRUE)->addCacheContexts(['user.permissions'])],
+      [['allowed', 'denied', 'other'], 'OR', AccessResult::allowedIf(TRUE)->addCacheContexts(['user.permissions'])],
+      [['allowed', 'denied'], 'AND', AccessResult::allowedIf(FALSE)->addCacheContexts(['user.permissions'])],
     ];
   }
 

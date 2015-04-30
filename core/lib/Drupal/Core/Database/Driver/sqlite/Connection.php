@@ -9,26 +9,12 @@ namespace Drupal\Core\Database\Driver\sqlite;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseNotFoundException;
-use Drupal\Core\Database\TransactionNoActiveException;
-use Drupal\Core\Database\TransactionNameNonUniqueException;
-use Drupal\Core\Database\TransactionCommitFailedException;
-use Drupal\Core\Database\Driver\sqlite\Statement;
 use Drupal\Core\Database\Connection as DatabaseConnection;
 
 /**
  * Specific SQLite implementation of DatabaseConnection.
  */
 class Connection extends DatabaseConnection {
-
-  /**
-   * Whether this database connection supports savepoints.
-   *
-   * Version of sqlite lower then 3.6.8 can't use savepoints.
-   * See http://www.sqlite.org/releaselog/3_6_8.html
-   *
-   * @var boolean
-   */
-  protected $savepointSupport = FALSE;
 
   /**
    * Error code for "Unable to open database file" error.
@@ -38,7 +24,7 @@ class Connection extends DatabaseConnection {
   /**
    * Whether or not the active transaction (if any) will be rolled back.
    *
-   * @var boolean
+   * @var bool
    */
   protected $willRollback;
 
@@ -58,7 +44,7 @@ class Connection extends DatabaseConnection {
    * This variable is set to public because Schema needs to
    * access it. However, it should not be manually set.
    *
-   * @var boolean
+   * @var bool
    */
   var $tableDropped = FALSE;
 
@@ -66,6 +52,10 @@ class Connection extends DatabaseConnection {
    * Constructs a \Drupal\Core\Database\Driver\sqlite\Connection object.
    */
   public function __construct(\PDO $connection, array $connection_options) {
+    // We don't need a specific PDOStatement class here, we simulate it in
+    // static::prepare().
+    $this->statementClass = NULL;
+
     parent::__construct($connection, $connection_options);
 
     // This driver defaults to transaction support, except if explicitly passed FALSE.
@@ -91,10 +81,6 @@ class Connection extends DatabaseConnection {
     }
     // Regenerate the prefixes replacement table.
     $this->setPrefix($prefixes);
-
-    // Detect support for SAVEPOINT.
-    $version = $this->query('SELECT sqlite_version()')->fetchField();
-    $this->savepointSupport = (version_compare($version, '3.6.8') >= 0);
   }
 
   /**
@@ -116,6 +102,7 @@ class Connection extends DatabaseConnection {
     $pdo->sqliteCreateFunction('if', array(__CLASS__, 'sqlFunctionIf'));
     $pdo->sqliteCreateFunction('greatest', array(__CLASS__, 'sqlFunctionGreatest'));
     $pdo->sqliteCreateFunction('pow', 'pow', 2);
+    $pdo->sqliteCreateFunction('exp', 'exp', 1);
     $pdo->sqliteCreateFunction('length', 'strlen', 1);
     $pdo->sqliteCreateFunction('md5', 'md5', 1);
     $pdo->sqliteCreateFunction('concat', array(__CLASS__, 'sqlFunctionConcat'));
@@ -124,6 +111,9 @@ class Connection extends DatabaseConnection {
     $pdo->sqliteCreateFunction('substring_index', array(__CLASS__, 'sqlFunctionSubstringIndex'), 3);
     $pdo->sqliteCreateFunction('rand', array(__CLASS__, 'sqlFunctionRand'));
     $pdo->sqliteCreateFunction('regexp', array(__CLASS__, 'sqlFunctionRegexp'));
+
+    // Create a user-space case-insensitive collation with UTF-8 support.
+    $pdo->sqliteCreateCollation('NOCASE_UTF8', array('Drupal\Component\Utility\Unicode', 'strcasecmp'));
 
     // Execute sqlite init_commands.
     if (isset($connection_options['init_commands'])) {
@@ -269,69 +259,25 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  protected function expandArguments(&$query, &$args) {
-    $modified = parent::expandArguments($query, $args);
+  public function prepare($statement, array $driver_options = array()) {
+    return new Statement($this->connection, $this, $statement, $driver_options);
+  }
 
-    // The PDO SQLite driver always replaces placeholders with strings, which
-    // breaks numeric expressions (e.g., COUNT(*) >= :count). Replace numeric
-    // placeholders in the query to work around this bug.
-    // @see http://bugs.php.net/bug.php?id=45259
-    if (empty($args)) {
-      return $modified;
+  /**
+   * {@inheritdoc}
+   */
+  protected function handleQueryException(\PDOException $e, $query, array $args = array(), $options = array()) {
+    // The database schema might be changed by another process in between the
+    // time that the statement was prepared and the time the statement was run
+    // (e.g. usually happens when running tests). In this case, we need to
+    // re-run the query.
+    // @see http://www.sqlite.org/faq.html#q15
+    // @see http://www.sqlite.org/rescode.html#schema
+    if (!empty($e->errorInfo[1]) && $e->errorInfo[1] === 17) {
+      return $this->query($query, $args, $options);
     }
-    // Check if $args is a simple numeric array.
-    if (range(0, count($args) - 1) === array_keys($args)) {
-      // In that case, we have unnamed placeholders.
-      $count = 0;
-      $new_args = array();
-      foreach ($args as $value) {
-        if (is_float($value) || is_int($value) || is_numeric($value)) {
-          if (is_float($value)) {
-            // Force the conversion to float so as not to loose precision
-            // in the automatic cast.
-            $value = sprintf('%F', $value);
-          }
-          $query = substr_replace($query, $value, strpos($query, '?'), 1);
-        }
-        else {
-          $placeholder = ':db_statement_placeholder_' . $count++;
-          $query = substr_replace($query, $placeholder, strpos($query, '?'), 1);
-          $new_args[$placeholder] = $value;
-        }
-      }
-      $args = $new_args;
-      $modified = TRUE;
-    }
-    // Otherwise this is using named placeholders.
-    else {
-      foreach ($args as $placeholder => $value) {
-        if (is_float($value) || is_int($value) || is_numeric($value)) {
-          if (is_float($value)) {
-            // Force the conversion to float so as not to loose precision
-            // in the automatic cast.
-            $value = sprintf('%F', $value);
-          }
 
-          // We will remove this placeholder from the query as PDO throws an
-          // exception if the number of placeholders in the query and the
-          // arguments does not match.
-          unset($args[$placeholder]);
-          // PDO allows placeholders to not be prefixed by a colon. See
-          // http://marc.info/?l=php-internals&m=111234321827149&w=2 for
-          // more.
-          if ($placeholder[0] != ':') {
-            $placeholder = ":$placeholder";
-          }
-          // When replacing the placeholders, make sure we search for the
-          // exact placeholder. For example, if searching for
-          // ':db_placeholder_1', do not replace ':db_placeholder_11'.
-          $query = preg_replace('/' . preg_quote($placeholder, '/') . '\b/', $value, $query);
-
-          $modified = TRUE;
-        }
-      }
-    }
-    return $modified;
+    parent::handleQueryException($e, $query, $args, $options);
   }
 
   public function queryRange($query, $from, $count, array $args = array(), array $options = array()) {
@@ -383,6 +329,13 @@ class Connection extends DatabaseConnection {
     return isset($specials[$operator]) ? $specials[$operator] : NULL;
   }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function prepareQuery($query) {
+    return $this->prepare($this->prefixTables($query));
+  }
+
   public function nextId($existing_id = 0) {
     $this->startTransaction();
     // We can safely use literal queries here instead of the slower query
@@ -406,86 +359,14 @@ class Connection extends DatabaseConnection {
     return $this->query('SELECT value FROM {sequences}')->fetchField();
   }
 
-  public function rollback($savepoint_name = 'drupal_transaction') {
-    if ($this->savepointSupport) {
-      return parent::rollBack($savepoint_name);
-    }
+  /**
+   * {@inheritdoc}
+   */
+  public function getFullQualifiedTableName($table) {
+    $prefix = $this->tablePrefix($table);
 
-    if (!$this->inTransaction()) {
-      throw new TransactionNoActiveException();
-    }
-    // A previous rollback to an earlier savepoint may mean that the savepoint
-    // in question has already been rolled back.
-    if (!isset($this->transactionLayers[$savepoint_name])) {
-      return;
-    }
-
-    // We need to find the point we're rolling back to, all other savepoints
-    // before are no longer needed.
-    while ($savepoint = array_pop($this->transactionLayers)) {
-      if ($savepoint == $savepoint_name) {
-        // Mark whole stack of transactions as needed roll back.
-        $this->willRollback = TRUE;
-        // If it is the last the transaction in the stack, then it is not a
-        // savepoint, it is the transaction itself so we will need to roll back
-        // the transaction rather than a savepoint.
-        if (empty($this->transactionLayers)) {
-          break;
-        }
-        return;
-      }
-    }
-    if ($this->supportsTransactions()) {
-      $this->connection->rollBack();
-    }
-  }
-
-  public function pushTransaction($name) {
-    if ($this->savepointSupport) {
-      return parent::pushTransaction($name);
-    }
-    if (!$this->supportsTransactions()) {
-      return;
-    }
-    if (isset($this->transactionLayers[$name])) {
-      throw new TransactionNameNonUniqueException($name . " is already in use.");
-    }
-    if (!$this->inTransaction()) {
-      $this->connection->beginTransaction();
-    }
-    $this->transactionLayers[$name] = $name;
-  }
-
-  public function popTransaction($name) {
-    if ($this->savepointSupport) {
-      return parent::popTransaction($name);
-    }
-    if (!$this->supportsTransactions()) {
-      return;
-    }
-    if (!$this->inTransaction()) {
-      throw new TransactionNoActiveException();
-    }
-
-    // Commit everything since SAVEPOINT $name.
-    while($savepoint = array_pop($this->transactionLayers)) {
-      if ($savepoint != $name) continue;
-
-      // If there are no more layers left then we should commit or rollback.
-      if (empty($this->transactionLayers)) {
-        // If there was any rollback() we should roll back whole transaction.
-        if ($this->willRollback) {
-          $this->willRollback = FALSE;
-          $this->connection->rollBack();
-        }
-        elseif (!$this->connection->commit()) {
-          throw new TransactionCommitFailedException();
-        }
-      }
-      else {
-        break;
-      }
-    }
+    // Don't include the SQLite database file name as part of the table name.
+    return $prefix . $table;
   }
 
 }

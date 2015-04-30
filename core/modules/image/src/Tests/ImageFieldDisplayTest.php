@@ -10,6 +10,7 @@ namespace Drupal\image\Tests;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\user\RoleInterface;
+use Drupal\image\Entity\ImageStyle;
 
 /**
  * Tests the display of image fields.
@@ -93,7 +94,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $node = $node_storage->load($nid);
 
     // Test that the default formatter is being used.
-    $image_uri = file_load($node->{$field_name}->target_id)->getFileUri();
+    $file = $node->{$field_name}->entity;
+    $image_uri = $file->getFileUri();
     $image = array(
       '#theme' => 'image',
       '#uri' => $image_uri,
@@ -122,6 +124,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     );
     $default_output = '<a href="' . file_create_url($image_uri) . '">' . drupal_render($image) . '</a>';
     $this->drupalGet('node/' . $nid);
+    $this->assertCacheTag($file->getCacheTags()[0]);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
     $this->assertRaw($default_output, 'Image linked to file formatter displaying correctly on full node view.');
@@ -153,6 +156,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#height' => 20,
     );
     $this->drupalGet('node/' . $nid);
+    $this->assertCacheTag($file->getCacheTags()[0]);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
     $elements = $this->xpath(
@@ -175,7 +179,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Ensure the derivative image is generated so we do not have to deal with
     // image style callback paths.
-    $this->drupalGet(entity_load('image_style', 'thumbnail')->buildUrl($image_uri));
+    $this->drupalGet(ImageStyle::load('thumbnail')->buildUrl($image_uri));
     $image_style = array(
       '#theme' => 'image_style',
       '#uri' => $image_uri,
@@ -186,14 +190,14 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     );
     $default_output = drupal_render($image_style);
     $this->drupalGet('node/' . $nid);
-    $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
-    $this->assertTrue(in_array('config:image.style.thumbnail', $cache_tags));
+    $image_style = ImageStyle::load('thumbnail');
+    $this->assertCacheTag($image_style->getCacheTags()[0]);
     $this->assertRaw($default_output, 'Image style thumbnail formatter displaying correctly on full node view.');
 
     if ($scheme == 'private') {
       // Log out and try to access the file.
       $this->drupalLogout();
-      $this->drupalGet(entity_load('image_style', 'thumbnail')->buildUrl($image_uri));
+      $this->drupalGet(ImageStyle::load('thumbnail')->buildUrl($image_uri));
       $this->assertResponse('403', 'Access denied to image style thumbnail as anonymous user.');
     }
   }
@@ -222,10 +226,10 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // Verify that the min/max resolution set on the field are properly
     // extracted, and displayed, on the image field's configuration form.
     $this->drupalGet('admin/structure/types/manage/article/fields/' . $field->id());
-    $this->assertFieldByName('field[settings][max_resolution][x]', '100', 'Expected max resolution X value of 100.');
-    $this->assertFieldByName('field[settings][max_resolution][y]', '100', 'Expected max resolution Y value of 100.');
-    $this->assertFieldByName('field[settings][min_resolution][x]', '10', 'Expected min resolution X value of 10.');
-    $this->assertFieldByName('field[settings][min_resolution][y]', '10', 'Expected min resolution Y value of 10.');
+    $this->assertFieldByName('settings[max_resolution][x]', '100', 'Expected max resolution X value of 100.');
+    $this->assertFieldByName('settings[max_resolution][y]', '100', 'Expected max resolution Y value of 100.');
+    $this->assertFieldByName('settings[min_resolution][x]', '10', 'Expected min resolution X value of 10.');
+    $this->assertFieldByName('settings[min_resolution][y]', '10', 'Expected min resolution Y value of 10.');
 
     $this->drupalGet('node/add/article');
     $this->assertText(t('50 KB limit.'), 'Image widget max file size is displayed on article form.');
@@ -246,9 +250,10 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // style.
     $node_storage->resetCache(array($nid));
     $node = $node_storage->load($nid);
+    $file = $node->{$field_name}->entity;
     $image_style = array(
       '#theme' => 'image_style',
-      '#uri' => file_load($node->{$field_name}->target_id)->getFileUri(),
+      '#uri' => $file->getFileUri(),
       '#width' => 40,
       '#height' => 20,
       '#style_name' => 'medium',
@@ -259,7 +264,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // Add alt/title fields to the image and verify that they are displayed.
     $image = array(
       '#theme' => 'image',
-      '#uri' => file_load($node->{$field_name}->target_id)->getFileUri(),
+      '#uri' => $file->getFileUri(),
       '#alt' => $alt,
       '#title' => $this->randomMachineName(),
       '#width' => 40,
@@ -297,7 +302,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // 1, so we need to make sure the file widget prevents these notices by
     // providing all settings, even if they are not used.
     // @see FileWidget::formMultipleElements().
-    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/storage', array('field_storage[cardinality]' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED), t('Save field settings'));
+    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/storage', array('cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED), t('Save field settings'));
     $edit = array(
       'files[' . $field_name . '_1][]' => drupal_realpath($test_image->uri),
     );
@@ -340,9 +345,9 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $alt = $this->randomString(512);
     $title = $this->randomString(1024);
     $edit = array(
-      'files[field_storage_settings_default_image_uuid]' => drupal_realpath($images[0]->uri),
-      'field_storage[settings][default_image][alt]' => $alt,
-      'field_storage[settings][default_image][title]' => $title,
+      'files[settings_default_image_uuid]' => drupal_realpath($images[0]->uri),
+      'settings[default_image][alt]' => $alt,
+      'settings[default_image][title]' => $title,
     );
     $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/storage", $edit, t('Save field settings'));
     // Clear field definition cache so the new default image is detected.
@@ -361,6 +366,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     );
     $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->drupalGet('node/' . $node->id());
+    $this->assertCacheTag($file->getCacheTags()[0]);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
     $this->assertRaw($default_output, 'Default image displayed when no user supplied image is present.');
@@ -374,15 +380,17 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $nid = $this->uploadNodeImage($images[1], $field_name, 'article', $alt);
     $node_storage->resetCache(array($nid));
     $node = $node_storage->load($nid);
+    $file = $node->{$field_name}->entity;
     $image = array(
       '#theme' => 'image',
-      '#uri' => file_load($node->{$field_name}->target_id)->getFileUri(),
+      '#uri' => $file->getFileUri(),
       '#width' => 40,
       '#height' => 20,
       '#alt' => $alt,
     );
     $image_output = str_replace("\n", NULL, drupal_render($image));
     $this->drupalGet('node/' . $nid);
+    $this->assertCacheTag($file->getCacheTags()[0]);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
     $this->assertNoRaw($default_output, 'Default image is not displayed when user supplied image is present.');
@@ -390,7 +398,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
 
     // Remove default image from the field and make sure it is no longer used.
     $edit = array(
-      'field_storage[settings][default_image][uuid][fids]' => 0,
+      'settings[default_image][uuid][fids]' => 0,
     );
     $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/storage", $edit, t('Save field settings'));
     // Clear field definition cache so the new default image is detected.
@@ -404,9 +412,9 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->createImageField($private_field_name, 'article', array('uri_scheme' => 'private'));
     // Add a default image to the new field.
     $edit = array(
-      'files[field_storage_settings_default_image_uuid]' => drupal_realpath($images[1]->uri),
-      'field_storage[settings][default_image][alt]' => $alt,
-      'field_storage[settings][default_image][title]' => $title,
+      'files[settings_default_image_uuid]' => drupal_realpath($images[1]->uri),
+      'settings[default_image][alt]' => $alt,
+      'settings[default_image][title]' => $title,
     );
     $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $private_field_name . '/storage', $edit, t('Save field settings'));
     // Clear field definition cache so the new default image is detected.
@@ -430,6 +438,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     );
     $default_output = str_replace("\n", NULL, drupal_render($image));
     $this->drupalGet('node/' . $node->id());
+    $this->assertCacheTag($file->getCacheTags()[0]);
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
     $this->assertRaw($default_output, 'Default private image displayed when no user supplied image is present.');

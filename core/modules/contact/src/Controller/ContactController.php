@@ -7,15 +7,12 @@
 
 namespace Drupal\contact\Controller;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Datetime\DateFormatter;
-use Drupal\Core\Flood\FloodInterface;
 use Drupal\contact\ContactFormInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\user\UserInterface;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -24,30 +21,20 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class ContactController extends ControllerBase {
 
   /**
-   * The flood service.
+   * The renderer.
    *
-   * @var \Drupal\Core\Flood\FloodInterface
+   * @var \Drupal\Core\Render\RendererInterface
    */
-  protected $flood;
-
-  /**
-   * The date formatter service.
-   *
-   * @var \Drupal\Core\Datetime\DateFormatter
-   */
-  protected $dateFormatter;
+  protected $renderer;
 
   /**
    * Constructs a ContactController object.
    *
-   * @param \Drupal\Core\Flood\FloodInterface $flood
-   *   The flood service.
-   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
-   *   The date service.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer.
    */
-  public function __construct(FloodInterface $flood, DateFormatter $date_formatter) {
-    $this->flood = $flood;
-    $this->dateFormatter = $date_formatter;
+  public function __construct(RendererInterface $renderer) {
+    $this->renderer = $renderer;
   }
 
   /**
@@ -55,8 +42,7 @@ class ContactController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('flood'),
-      $container->get('date.formatter')
+      $container->get('renderer')
     );
   }
 
@@ -74,10 +60,6 @@ class ContactController extends ControllerBase {
    *   contact form.
    */
   public function contactSitePage(ContactFormInterface $contact_form = NULL) {
-    // Check if flood control has been activated for sending emails.
-    if (!$this->currentUser()->hasPermission('administer contact forms')) {
-      $this->contactFloodControl();
-    }
     $config = $this->config('contact.settings');
 
     // Use the default form if no form has been passed.
@@ -105,8 +87,9 @@ class ContactController extends ControllerBase {
       ));
 
     $form = $this->entityFormBuilder()->getForm($message);
-    $form['#title'] = String::checkPlain($contact_form->label());
-    $form['#cache']['tags'] = Cache::mergeTags(isset($form['#cache']['tags']) ? $form['#cache']['tags'] : [],  $config->getCacheTags());
+    $form['#title'] = SafeMarkup::checkPlain($contact_form->label());
+    $form['#cache']['contexts'][] = 'user.permissions';
+    $this->renderer->addCacheableDependency($form, $config);
     return $form;
   }
 
@@ -129,11 +112,6 @@ class ContactController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    // Check if flood control has been activated for sending emails.
-    if (!$this->currentUser()->hasPermission('administer contact forms') && !$this->currentUser()->hasPermission('administer users')) {
-      $this->contactFloodControl();
-    }
-
     $message = $this->entityManager()->getStorage('contact_message')->create(array(
       'contact_form' => 'personal',
       'recipient' => $user->id(),
@@ -141,24 +119,8 @@ class ContactController extends ControllerBase {
 
     $form = $this->entityFormBuilder()->getForm($message);
     $form['#title'] = $this->t('Contact @username', array('@username' => $user->getUsername()));
+    $form['#cache']['contexts'][] = 'user.permissions';
     return $form;
-  }
-
-  /**
-   * Throws an exception if the current user triggers flood control.
-   *
-   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
-   */
-  protected function contactFloodControl() {
-    $limit = $this->config('contact.settings')->get('flood.limit');
-    $interval = $this->config('contact.settings')->get('flood.interval');
-    if (!$this->flood->isAllowed('contact', $limit, $interval)) {
-      drupal_set_message($this->t('You cannot send more than %limit messages in @interval. Try again later.', array(
-        '%limit' => $limit,
-        '@interval' => $this->dateFormatter->formatInterval($interval),
-      )), 'error');
-      throw new AccessDeniedHttpException();
-    }
   }
 
 }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Hooks provided the Entity module.
+ * Hooks and documentation related to entities.
  */
 
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -429,7 +429,7 @@ use Drupal\node\Entity\NodeType;
  * $query_service = $container->get('entity.query');
  * $query = $query_service->get('your_entity_type');
  * @endcode
- * If you need aggregation, there is an aggregate query avaialable, which
+ * If you need aggregation, there is an aggregate query available, which
  * implements \Drupal\Core\Entity\Query\QueryAggregateInterface:
  * @code
  * $query \Drupal::entityQueryAggregate('your_entity_type');
@@ -1844,6 +1844,7 @@ function hook_entity_field_access($operation, \Drupal\Core\Field\FieldDefinition
   if ($field_definition->getName() == 'field_of_interest' && $operation == 'edit') {
     return AccessResult::allowedIfHasPermission($account, 'update field of interest');
   }
+  return AccessResult::neutral();
 }
 
 /**

@@ -34,6 +34,8 @@ system_test.lock_acquire:
   defaults:
     _title: 'Lock acquire'
     _controller: '\Drupal\system_test\Controller\SystemTestController::lockAcquire'
+  options:
+    no_cache: TRUE
   requirements:
     _access: 'TRUE'
 
@@ -42,6 +44,8 @@ system_test.lock_exit:
   defaults:
     _title: 'Lock acquire then exit'
     _controller: '\Drupal\system_test\Controller\SystemTestController::lockExit'
+  options:
+    no_cache: TRUE
   requirements:
     _access: 'TRUE'
 
@@ -50,6 +54,8 @@ system_test.lock_persist:
   defaults:
     _title: 'Persistent lock acquire'
     _controller: '\Drupal\system_test\Controller\SystemTestController::lockPersist'
+  options:
+    no_cache: TRUE
   requirements:
     _access: 'TRUE'
 
@@ -57,6 +63,13 @@ system_test.cache_tags_page:
   path: '/system-test/cache_tags_page'
   defaults:
     _controller: '\Drupal\system_test\Controller\SystemTestController::system_test_cache_tags_page'
+  requirements:
+    _access: 'TRUE'
+
+system_test.cache_maxage_page:
+  path: '/system-test/cache_maxage_page'
+  defaults:
+    _controller: '\Drupal\system_test\Controller\SystemTestController::system_test_cache_maxage_page'
   requirements:
     _access: 'TRUE'
 
@@ -103,3 +116,16 @@ system_test.get_destination:
   requirements:
     _access: 'TRUE'
 
+system_test.permission_dependent_content:
+  path: '/system-test/permission-dependent-content'
+  defaults:
+    _controller: '\Drupal\system_test\Controller\SystemTestController::permissionDependentContent'
+  requirements:
+    _access: 'TRUE'
+
+system_test.permission_dependent_route_access:
+  path: '/system-test/permission-dependent-route-access'
+  defaults:
+    _controller: '\Drupal\system_test\Controller\SystemTestController::mainContentFallback'
+  requirements:
+    _permission: 'pet llamas'

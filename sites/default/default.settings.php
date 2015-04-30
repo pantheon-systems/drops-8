@@ -256,6 +256,18 @@ $config_directories = array();
  */
 
 /**
+ * The active installation profile.
+ *
+ * Changing this after installation is not recommended as it changes which
+ * directories are scanned during extension discovery. If this is set prior to
+ * installation this value will be rewritten according to the profile selected
+ * by the user.
+ *
+ * @see install_select_profile()
+ */
+# $settings['install_profile'] = '';
+
+/**
  * Salt for one-time login links, cancel links, form tokens, etc.
  *
  * This variable will be set to a random value by the installer. All one-time
@@ -371,18 +383,29 @@ $settings['update_free_access'] = FALSE;
 /**
  * Class Loader.
  *
- * By default, Composer's ClassLoader is used, which is best for development, as
- * it does not break when code is moved in the file system. You can decorate the
- * class loader with a cached solution for better performance, which is
- * recommended for production sites.
+ * If the APC extension is detected, the Symfony APC class loader is used for
+ * performance reasons. Detection can be prevented by setting
+ * class_loader_auto_detect to false, as in the example below.
+ */
+# $settings['class_loader_auto_detect'] = FALSE;
+
+/*
+ * If the APC extension is not detected, either because APC is missing or
+ * because auto-detection has been disabled, auto-loading falls back to
+ * Composer's ClassLoader, which is good for development as it does not break
+ * when code is moved in the file system. You can also decorate the base class
+ * loader with another cached solution than the Symfony APC class loader, as
+ * all production sites should have a cached class loader of some sort enabled.
  *
- * To do so, you may decorate and replace the local $class_loader variable.
- *
- * For example, to use Symfony's APC class loader, uncomment the code below.
+ * To do so, you may decorate and replace the local $class_loader variable. For
+ * example, to use Symfony's APC class loader without automatic detection,
+ * uncomment the code below.
  */
 /*
 if ($settings['hash_salt']) {
-  $apc_loader = new \Symfony\Component\ClassLoader\ApcClassLoader('drupal.' . $settings['hash_salt'], $class_loader);
+  $prefix = 'drupal.' . hash('sha256', 'drupal.' . $settings['hash_salt']);
+  $apc_loader = new \Symfony\Component\ClassLoader\ApcClassLoader($prefix, $class_loader);
+  unset($prefix);
   $class_loader->unregister();
   $apc_loader->register();
   $class_loader = $apc_loader;
@@ -434,7 +457,7 @@ if ($settings['hash_salt']) {
  * Private file path:
  *
  * A local file system path where private files will be stored. This directory
- * must be absolute, outside of the the Drupal installation directory and not
+ * must be absolute, outside of the Drupal installation directory and not
  * accessible over the web.
  *
  * Note: Caches need to be cleared when this value is changed to make the

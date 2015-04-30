@@ -8,7 +8,7 @@
 namespace Drupal\menu_link_content\Plugin\Menu;
 
 use Drupal\Component\Plugin\Exception\PluginException;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Menu\MenuLinkBase;
@@ -124,7 +124,7 @@ class MenuLinkContent extends MenuLinkBase implements ContainerFactoryPluginInte
       if (!empty($this->pluginDefinition['metadata']['entity_id'])) {
         $entity_id = $this->pluginDefinition['metadata']['entity_id'];
         // Make sure the current ID is in the list, since each plugin empties
-        // the list after calling loadMultple(). Note that the list may include
+        // the list after calling loadMultiple(). Note that the list may include
         // multiple IDs added earlier in each plugin's constructor.
         static::$entityIdsToLoad[$entity_id] = $entity_id;
         $entities = $storage->loadMultiple(array_values(static::$entityIdsToLoad));
@@ -138,7 +138,7 @@ class MenuLinkContent extends MenuLinkBase implements ContainerFactoryPluginInte
         $entity = reset($loaded_entities);
       }
       if (!$entity) {
-        throw new PluginException(String::format('Entity not found through the menu link plugin definition and could not fallback on UUID @uuid', array('@uuid' => $uuid)));
+        throw new PluginException(SafeMarkup::format('Entity not found through the menu link plugin definition and could not fallback on UUID @uuid', array('@uuid' => $uuid)));
       }
       // Clone the entity object to avoid tampering with the static cache.
       $this->entity = clone $entity;

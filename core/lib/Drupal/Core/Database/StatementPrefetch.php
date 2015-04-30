@@ -187,8 +187,8 @@ class StatementPrefetch implements \Iterator, StatementInterface {
     // Fetch all the data from the reply, in order to release any lock
     // as soon as possible.
     $this->data = $statement->fetchAll(\PDO::FETCH_ASSOC);
-    // Destroy the statement as soon as possible. See
-    // DatabaseConnection_sqlite::PDOPrepare() for explanation.
+    // Destroy the statement as soon as possible. See the documentation of
+    // \Drupal\Core\Database\Driver\sqlite\Statement for an explanation.
     unset($statement);
 
     $this->resultRowCount = count($this->data);
@@ -356,10 +356,17 @@ class StatementPrefetch implements \Iterator, StatementInterface {
     return isset($this->currentRow);
   }
 
-  /* Implementations of StatementInterface. */
-
+  /**
+   * {@inheritdoc}
+   */
   public function rowCount() {
-    return $this->rowCount;
+    // SELECT query should not use the method.
+    if ($this->allowRowCount) {
+      return $this->rowCount;
+    }
+    else {
+      throw new RowCountException();
+    }
   }
 
   public function fetch($fetch_style = NULL, $cursor_orientation = \PDO::FETCH_ORI_NEXT, $cursor_offset = NULL) {

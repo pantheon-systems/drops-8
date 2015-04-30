@@ -11,6 +11,7 @@ use Drupal\Core\Asset\Exception\IncompleteLibraryDefinitionException;
 use Drupal\Core\Asset\Exception\InvalidLibraryFileException;
 use Drupal\Core\Asset\Exception\LibraryDefinitionMissingLicenseException;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Component\Utility\NestedArray;
@@ -28,6 +29,13 @@ class LibraryDiscoveryParser {
   protected $moduleHandler;
 
   /**
+   * The theme manager.
+   *
+   * @var \Drupal\Core\Theme\ThemeManagerInterface
+   */
+  protected $themeManager;
+
+  /**
    * The app root.
    *
    * @var string
@@ -42,9 +50,10 @@ class LibraryDiscoveryParser {
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    */
-  public function __construct($root, ModuleHandlerInterface $module_handler) {
+  public function __construct($root, ModuleHandlerInterface $module_handler, ThemeManagerInterface $theme_manager) {
     $this->root = $root;
     $this->moduleHandler = $module_handler;
+    $this->themeManager = $theme_manager;
   }
 
   /**
@@ -208,6 +217,64 @@ class LibraryDiscoveryParser {
    *
    * This method sets the parsed information onto the library property.
    *
+   * Library information is parsed from *.libraries.yml files; see
+   * editor.library.yml for an example. Every library must have at least one js
+   * or css entry. Each entry starts with a machine name and defines the
+   * following elements:
+   * - js: A list of JavaScript files to include. Each file is keyed by the file
+   *   path. An item can have several attributes (like HTML
+   *   attributes). For example:
+   *   @code
+   *   js:
+   *     path/js/file.js: { attributes: { defer: true } }
+   *   @endcode
+   *   If the file has no special attributes, just use an empty object:
+   *   @code
+   *   js:
+   *     path/js/file.js: {}
+   *   @endcode
+   *   The path of the file is relative to the module or theme directory, unless
+   *   it starts with a /, in which case it is relative to the Drupal root. If
+   *   the file path starts with //, it will be treated as a protocol-free,
+   *   external resource (e.g., //cdn.com/library.js). Full URLs
+   *   (e.g., http://cdn.com/library.js) as well as URLs that use a valid
+   *   stream wrapper (e.g., public://path/to/file.js) are also supported.
+   * - css: A list of categories for which the library provides CSS files. The
+   *   available categories are:
+   *   - base
+   *   - layout
+   *   - component
+   *   - state
+   *   - theme
+   *   Each category is itself a key for a sub-list of CSS files to include:
+   *   @code
+   *   css:
+   *     component:
+   *       css/file.css: {}
+   *   @endcode
+   *   Just like with JavaScript files, each CSS file is the key of an object
+   *   that can define specific attributes. The format of the file path is the
+   *   same as for the JavaScript files.
+   * - dependencies: A list of libraries this library depends on.
+   * - version: The library version. The string "VERSION" can be used to mean
+   *   the current Drupal core version.
+   * - header: By default, JavaScript files are included in the footer. If the
+   *   script must be included in the header (along with all its dependencies),
+   *   set this to true. Defaults to false.
+   * - minified: If the file is already minified, set this to true to avoid
+   *   minifying it again. Defaults to false.
+   * - remote: If the library is a third-party script, this provides the
+   *   repository URL for reference.
+   * - license: If the remote property is set, the license information is
+   *   required. It has 3 properties:
+   *   - name: The human-readable name of the license.
+   *   - url: The URL of the license file/information for the version of the
+   *     library used.
+   *   - gpl-compatible: A Boolean for whether this library is GPL compatible.
+   *
+   * See https://www.drupal.org/node/2274843#define-library for more
+   * information.
+   *
    * @param string $extension
    *   The name of the extension that registered a library.
    * @param string $path
@@ -241,6 +308,7 @@ class LibraryDiscoveryParser {
 
     // Allow modules to alter the module's registered libraries.
     $this->moduleHandler->alter('library_info', $libraries, $extension);
+    $this->themeManager->alter('library_info', $libraries, $extension);
 
     return $libraries;
   }

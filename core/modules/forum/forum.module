@@ -10,12 +10,13 @@ use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Url;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Drupal\user\Entity\User;
 
 /**
  * Implements hook_help().
@@ -57,12 +58,15 @@ function forum_help($route_name, RouteMatchInterface $route_match) {
         '#type' => 'link',
         '#url' => Url::fromRoute('help.page', ['name' => 'forum']),
         '#title' => t('More help'),
+        '#attributes' => array(
+          'class' => array('icon-help'),
+        ),
       );
       $container = array(
         '#theme' => 'container',
         '#children' => drupal_render($more_help_link),
         '#attributes' => array(
-          'class' => array('more-help-link'),
+          'class' => array('more-link'),
         ),
       );
       $output .= drupal_render($container);
@@ -446,7 +450,7 @@ function template_preprocess_forums(&$variables) {
         // them is a shadow copy.
         if ($variables['tid'] != $topic->forum_tid) {
           $variables['topics'][$id]->moved = TRUE;
-          $variables['topics'][$id]->title = String::checkPlain($topic->getTitle());
+          $variables['topics'][$id]->title = SafeMarkup::checkPlain($topic->getTitle());
           $variables['topics'][$id]->message = \Drupal::l(t('This topic has been moved'), new Url('forum.page', ['taxonomy_term' => $topic->forum_tid]));
         }
         else {
@@ -483,10 +487,10 @@ function template_preprocess_forums(&$variables) {
           'data' => array(
             $topic->icon,
             array(
-              '#markup' => '<div class="title"><div>' . $topic->title_link . '</div><div>' . $topic->submitted . '</div></div>',
+              '#markup' => '<div class="forum__title"><div>' . $topic->title_link . '</div><div>' . $topic->submitted . '</div></div>',
             ),
           ),
-          'class' => array('topic'),
+          'class' => array('forum__topic'),
         );
 
         if ($topic->moved) {
@@ -503,11 +507,11 @@ function template_preprocess_forums(&$variables) {
 
           $row[] = array(
             'data' => $topic->comment_count . $new_replies,
-            'class' => array('replies'),
+            'class' => array('forum__replies'),
           );
           $row[] = array(
             'data' => $topic->last_reply,
-            'class' => array('last-reply'),
+            'class' => array('forum__last-reply'),
           );
         }
         $table['#rows'][] = $row;
@@ -541,7 +545,7 @@ function template_preprocess_forum_list(&$variables) {
   foreach ($variables['forums'] as $id => $forum) {
     $variables['forums'][$id]->description = Xss::filterAdmin($forum->description->value);
     $variables['forums'][$id]->link = forum_uri($forum);
-    $variables['forums'][$id]->name = String::checkPlain($forum->label());
+    $variables['forums'][$id]->name = SafeMarkup::checkPlain($forum->label());
     $variables['forums'][$id]->is_container = !empty($forum->forum_container->value);
     $variables['forums'][$id]->zebra = $row % 2 == 0 ? 'odd' : 'even';
     $row++;
@@ -629,7 +633,7 @@ function template_preprocess_forum_icon(&$variables) {
 function template_preprocess_forum_submitted(&$variables) {
   $variables['author'] = '';
   if (isset($variables['topic']->uid)) {
-    $username = array('#theme' => 'username', '#account' => user_load($variables['topic']->uid));
+    $username = array('#theme' => 'username', '#account' => User::load($variables['topic']->uid));
     $variables['author'] = drupal_render($username);
   }
   $variables['time'] = isset($variables['topic']->created) ? \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $variables['topic']->created) : '';

@@ -467,8 +467,6 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
     }
 
     if ($field_definition->getName() == $this->entityType->getKey('bundle')) {
-      // @todo Use the other bundle handlers, once
-      //   https://www.drupal.org/node/2322949 is in.
       $views_field['filter']['id'] = 'bundle';
     }
   }
@@ -491,6 +489,23 @@ class EntityViewsData implements EntityHandlerInterface, EntityViewsDataInterfac
       $views_field['field']['format'] = $field_definition->getName() . '__format';
       $views_field['field']['id'] = 'field';
     }
+  }
+
+  /**
+   * Processes the views data for a UUID field.
+   *
+   * @param string $table
+   *   The table the field is added to.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition.
+   * @param array $views_field
+   *   The views field data.
+   * @param string $field_column_name
+   *   The field column being processed.
+   */
+  protected function processViewsDataForUuid($table, FieldDefinitionInterface $field_definition, array &$views_field, $field_column_name) {
+    // It does not make sense for UUID fields to be click sortable.
+    $views_field['field']['click sortable'] = FALSE;
   }
 
   /**

@@ -25,7 +25,6 @@ class FileViewsData extends EntityViewsData {
     $data['file_managed']['table']['base']['defaults']['field'] = 'filename';
     $data['file_managed']['table']['wizard_id'] = 'file_managed';
 
-    $data['file_managed']['fid']['field']['id'] ='file';
     $data['file_managed']['fid']['argument'] = array(
       'id' => 'file_fid',
       // The field to display in the summary.
@@ -42,25 +41,30 @@ class FileViewsData extends EntityViewsData {
       'label' => t('File usage'),
     );
 
-    $data['file_managed']['filename']['field']['id'] = 'file';
+    $data['file_managed']['uri']['field']['default_formatter'] = 'file_uri';
 
-    $data['file_managed']['uri']['field']['id'] = 'file_uri';
-
-    $data['file_managed']['filemime']['field']['id'] = 'file_filemime';
+    $data['file_managed']['filemime']['field']['default_formatter'] = 'file_filemime';
 
     $data['file_managed']['extension'] = array(
       'title' => t('Extension'),
       'help' => t('The extension of the file.'),
       'real field' => 'filename',
       'field' => array(
-        'id' => 'file_extension',
+        'entity_type' => 'file',
+        'field_name' => 'filename',
+        'default_formatter' => 'file_extension',
+        'id' => 'field',
         'click sortable' => FALSE,
        ),
     );
 
-    $data['file_managed']['filesize']['field']['id'] = 'file_size';
+    $data['file_managed']['filesize']['field']['default_formatter'] = 'file_size';
 
-    $data['file_managed']['status']['field']['id'] = 'file_status';
+    $data['file_managed']['status']['field']['default_formatter_settings'] = [
+      'format' => 'custom',
+      'format_custom_false' => $this->t('Temporary'),
+      'format_custom_true' => t('Permanent'),
+    ];
     $data['file_managed']['status']['filter']['id'] = 'file_status';
 
     $data['file_managed']['uid']['relationship']['title'] = t('User who uploaded');
@@ -77,28 +81,28 @@ class FileViewsData extends EntityViewsData {
         'field' => 'fid',
         'left_field' => 'fid',
       ),
-      // Link ourself to the {node_field_data} table
+      // Link ourselves to the {node_field_data} table
       // so we can provide node->file relationships.
       'node_field_data' => array(
         'field' => 'id',
         'left_field' => 'nid',
         'extra' => array(array('field' => 'type', 'value' => 'node')),
       ),
-      // Link ourself to the {users_field_data} table
+      // Link ourselves to the {users_field_data} table
       // so we can provide user->file relationships.
       'users_field_data' => array(
         'field' => 'id',
         'left_field' => 'uid',
         'extra' => array(array('field' => 'type', 'value' => 'user')),
       ),
-      // Link ourself to the {comment_field_data} table
+      // Link ourselves to the {comment_field_data} table
       // so we can provide comment->file relationships.
       'comment' => array(
         'field' => 'id',
         'left_field' => 'cid',
         'extra' => array(array('field' => 'type', 'value' => 'comment')),
       ),
-      // Link ourself to the {taxonomy_term_field_data} table
+      // Link ourselves to the {taxonomy_term_field_data} table
       // so we can provide taxonomy_term->file relationships.
       'taxonomy_term_data' => array(
         'field' => 'id',

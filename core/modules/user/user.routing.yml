@@ -5,6 +5,9 @@ user.register:
     _title: 'Create new account'
   requirements:
     _access_user_register: 'TRUE'
+  # @todo Remove when https://www.drupal.org/node/2465053 lands.
+  options:
+    no_cache: TRUE
 
 user.logout:
   path: '/user/logout'
@@ -148,3 +151,4 @@ user.reset:
     _access: 'TRUE'
   options:
     _maintenance_access: TRUE
+    no_cache: TRUE

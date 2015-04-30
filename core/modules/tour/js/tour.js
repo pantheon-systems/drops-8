@@ -86,7 +86,7 @@
       // Render the state.
       var isActive = this.model.get('isActive');
       this.$el.find('button')
-        .toggleClass('active', isActive)
+        .toggleClass('is-active', isActive)
         .prop('aria-pressed', isActive);
       return this;
     },
@@ -206,7 +206,7 @@
             $(this).find('.tour-progress').text(progress);
           })
           // Update the last item to have "End tour" as the button.
-          .last()
+          .eq(-1)
           .attr('data-text', Drupal.t('End tour'));
       }
     }

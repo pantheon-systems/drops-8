@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * @file
+ * Hooks and documentation related to the theme and render system.
+ */
+
+/**
  * @defgroup themeable Theme system overview
  * @{
  * Functions and templates for the user interface that themes can override.
@@ -35,12 +40,13 @@
  * The theme system is invoked in drupal_render() by calling the internal
  * _theme() function, which operates on the concept of "theme hooks". Theme
  * hooks define how a particular type of data should be rendered. They are
- * registered by modules by implenting hook_theme(), which specifies the name of
- * the hook, the input "variables" used to provide data and options, and other
- * information. Modules implementing hook_theme() also need to provide a default
- * implementation for each of their theme hooks, normally in a Twig file, and
- * they may also provide preprocessing functions. For example, the core Search
- * module defines a theme hook for a search result item in search_theme():
+ * registered by modules by implementing hook_theme(), which specifies the name
+ * of the hook, the input "variables" used to provide data and options, and
+ * other information. Modules implementing hook_theme() also need to provide a
+ * default implementation for each of their theme hooks, normally in a Twig
+ * file, and they may also provide preprocessing functions. For example, the
+ * core Search module defines a theme hook for a search result item in
+ * search_theme():
  * @code
  * return array(
  *   'search_result' => array(
@@ -80,7 +86,7 @@
  * template file, a module would provide a default implementation function
  * called theme_HOOK, where HOOK is the name of the theme hook (for example,
  * theme_search_result() would be the name of the function for search result
- * theming). In this case, a theme can override the default implentation by
+ * theming). In this case, a theme can override the default implementation by
  * defining a function called THEME_HOOK() in its THEME.theme file, where THEME
  * is the machine name of the theme (for example, 'bartik' is the machine name
  * of the core Bartik theme, and it would define a function called
@@ -163,27 +169,27 @@
  *
  * @section assets Assets
  * We can distinguish between three types of assets:
- * 1. unconditional page-level assets (loaded on all pages where the theme is in
- *    use): these are defined in the theme's *.info.yml file.
- * 2. conditional page-level assets (loaded on all pages where the theme is in
- *    use and a certain condition is met): these are attached in
- *    hook_page_attachments_alter(), e.g.:
- *    @code
- *    function THEME_page_attachments_alter(array &$page) {
- *      if ($some_condition) {
- *        $page['#attached']['library'][] = 'mytheme/something';
- *      }
- *    }
- *    @endcode
- * 3. template-specific assets (loaded on all pages where a specific template is
- *    in use): these can be added by in preprocessing functions, using @code
- *    $variables['#attached'] @endcode, e.g.:
- *    @code
- *    function THEME_preprocess_menu_local_action(array &$variables) {
- *      // We require Modernizr's touch test for button styling.
- *      $variables['#attached']['library'][] = 'core/modernizr';
- *    }
- *    @endcode
+ * - Unconditional page-level assets (loaded on all pages where the theme is in
+ *   use): these are defined in the theme's *.info.yml file.
+ * - Conditional page-level assets (loaded on all pages where the theme is in
+ *   use and a certain condition is met): these are attached in
+ *   hook_page_attachments_alter(), e.g.:
+ *   @code
+ *   function THEME_page_attachments_alter(array &$page) {
+ *     if ($some_condition) {
+ *       $page['#attached']['library'][] = 'mytheme/something';
+ *     }
+ *   }
+ *   @endcode
+ * - Template-specific assets (loaded on all pages where a specific template is
+ *   in use): these can be added by in preprocessing functions, using @code
+ *   $variables['#attached'] @endcode, e.g.:
+ *   @code
+ *   function THEME_preprocess_menu_local_action(array &$variables) {
+ *     // We require Modernizr's touch test for button styling.
+ *     $variables['#attached']['library'][] = 'core/modernizr';
+ *   }
+ *   @endcode
  *
  * @see hooks
  * @see callbacks
@@ -356,6 +362,9 @@
  *
  * See drupal_process_attached() for additional information.
  *
+ * See \Drupal\Core\Asset\LibraryDiscoveryParser::parseLibraryInfo() for more
+ * information on how to define libraries.
+ *
  * @section render_pipeline The Render Pipeline
  * The term "render pipeline" refers to the process Drupal uses to take
  * information provided by modules and render it into a response. For more
@@ -503,13 +512,12 @@ function hook_preprocess_HOOK(&$variables) {
 /**
  * Provides alternate named suggestions for a specific theme hook.
  *
- * This hook allows the module implementing hook_theme() for a theme hook to
- * provide alternative theme function or template name suggestions. This hook is
- * only invoked for the first module implementing hook_theme() for a theme hook.
+ * This hook allows modules to provide alternative theme function or template
+ * name suggestions.
  *
  * HOOK is the least-specific version of the hook being called. For example, if
- * '#theme' => 'node__article' is called, then node_theme_suggestions_node()
- * will be invoked, not node_theme_suggestions_node__article(). The specific
+ * '#theme' => 'node__article' is called, then hook_theme_suggestions_node()
+ * will be invoked, not hook_theme_suggestions_node__article(). The specific
  * hook called (in this case 'node__article') is available in
  * $variables['theme_hook_original'].
  *
@@ -584,7 +592,7 @@ function hook_theme_suggestions_alter(array &$suggestions, array $variables, $ho
 /**
  * Alters named suggestions for a specific theme hook.
  *
- * This hook allows any module or theme to provide altenative theme function or
+ * This hook allows any module or theme to provide alternative theme function or
  * template name suggestions and reorder or remove suggestions provided by
  * hook_theme_suggestions_HOOK() or by earlier invocations of this hook.
  *
@@ -1106,17 +1114,22 @@ function hook_theme($existing, $type, $theme, $path) {
  *
  * For example:
  * @code
- * $theme_registry['user'] = array(
- *   'variables' => array(
- *     'account' => NULL,
+ * $theme_registry['block_content_add_list'] = array (
+ *   'template' => 'block-content-add-list',
+ *   'path' => 'core/themes/seven/templates',
+ *   'type' => 'theme_engine',
+ *   'theme path' => 'core/themes/seven',
+ *   'includes' => array (
+ *     0 => 'core/modules/block_content/block_content.pages.inc',
  *   ),
- *   'template' => 'core/modules/user/user',
- *   'file' => 'core/modules/user/user.pages.inc',
- *   'type' => 'module',
- *   'theme path' => 'core/modules/user',
- *   'preprocess functions' => array(
+ *   'variables' => array (
+ *     'content' => NULL,
+ *   ),
+ *   'preprocess functions' => array (
  *     0 => 'template_preprocess',
- *     1 => 'template_preprocess_user_profile',
+ *     1 => 'template_preprocess_block_content_add_list',
+ *     2 => 'contextual_preprocess',
+ *     3 => 'seven_preprocess_block_content_add_list',
  *   ),
  * );
  * @endcode

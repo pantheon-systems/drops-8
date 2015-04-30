@@ -35,6 +35,11 @@ class Rss extends RssPluginBase {
   protected $base_field = 'cid';
 
   /**
+   * @var \Drupal\comment\CommentInterface[]
+   */
+  protected $comments;
+
+  /**
    * {@inheritdoc}
    */
   protected $entityTypeId = 'comment';
@@ -46,11 +51,7 @@ class Rss extends RssPluginBase {
       $cids[] = $row->cid;
     }
 
-    $this->comments = entity_load_multiple('comment', $cids);
-    foreach ($this->comments as $comment) {
-      $comment->depth = count(explode('.', $comment->getThread())) - 1;
-    }
-
+    $this->comments = $this->entityManager->getStorage('comment')->loadMultiple($cids);
   }
 
   /**

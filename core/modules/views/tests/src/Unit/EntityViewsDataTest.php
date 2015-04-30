@@ -766,6 +766,7 @@ class EntityViewsDataTest extends UnitTestCase {
   protected function assertUuidField($data) {
     // @todo Can we provide additional support for UUIDs in views?
     $this->assertEquals('field', $data['field']['id']);
+    $this->assertFalse($data['field']['click sortable']);
     $this->assertEquals('string', $data['filter']['id']);
     $this->assertEquals('string', $data['argument']['id']);
     $this->assertEquals('standard', $data['sort']['id']);
@@ -868,11 +869,11 @@ class TestEntityType extends EntityType {
 
 
 namespace {
-  use Drupal\Component\Utility\String;
+  use Drupal\Component\Utility\SafeMarkup;
 
   if (!function_exists('t')) {
     function t($string, array $args = []) {
-      return String::format($string, $args);
+      return SafeMarkup::format($string, $args);
     }
   }
 }

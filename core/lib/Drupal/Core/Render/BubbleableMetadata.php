@@ -8,35 +8,14 @@
 namespace Drupal\Core\Render;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableMetadata;
 
 /**
  * Value object used for bubbleable rendering metadata.
  *
  * @see \Drupal\Core\Render\RendererInterface::render()
  */
-class BubbleableMetadata {
-
-  /**
-   * Cache contexts.
-   *
-   * @var string[]
-   */
-  protected $contexts = [];
-
-  /**
-   * Cache tags.
-   *
-   * @var string[]
-   */
-  protected $tags = [];
-
-  /**
-   * Cache max-age.
-   *
-   * @var int
-   */
-  protected $maxAge = Cache::PERMANENT;
+class BubbleableMetadata extends CacheableMetadata {
 
   /**
    * Attached assets.
@@ -55,23 +34,18 @@ class BubbleableMetadata {
   /**
    * Merges the values of another bubbleable metadata object with this one.
    *
-   * @param \Drupal\Core\Render\BubbleableMetadata $other
+   * @param \Drupal\Core\Cache\CacheableMetadata $other
    *   The other bubbleable metadata object.
+   *
    * @return static
    *   A new bubbleable metadata object, with the merged data.
-   *
-   * @todo Add unit test for this in
-   *       \Drupal\Tests\Core\Render\BubbleableMetadataTest when
-   *       drupal_merge_attached() no longer is a procedural function and remove
-   *       the '@codeCoverageIgnore' annotation.
    */
-  public function merge(BubbleableMetadata $other) {
-    $result = new BubbleableMetadata();
-    $result->contexts = Cache::mergeContexts($this->contexts, $other->contexts);
-    $result->tags = Cache::mergeTags($this->tags, $other->tags);
-    $result->maxAge = Cache::mergeMaxAges($this->maxAge, $other->maxAge);
-    $result->attached = Renderer::mergeAttachments($this->attached, $other->attached);
-    $result->postRenderCache = NestedArray::mergeDeep($this->postRenderCache, $other->postRenderCache);
+  public function merge(CacheableMetadata $other) {
+    $result = parent::merge($other);
+    if ($other instanceof BubbleableMetadata) {
+      $result->attached = \Drupal::service('renderer')->mergeAttachments($this->attached, $other->attached);
+      $result->postRenderCache = NestedArray::mergeDeep($this->postRenderCache, $other->postRenderCache);
+    }
     return $result;
   }
 
@@ -82,9 +56,7 @@ class BubbleableMetadata {
    *   A render array.
    */
   public function applyTo(array &$build) {
-    $build['#cache']['contexts'] = $this->contexts;
-    $build['#cache']['tags'] = $this->tags;
-    $build['#cache']['max-age'] = $this->maxAge;
+    parent::applyTo($build);
     $build['#attached'] = $this->attached;
     $build['#post_render_cache'] = $this->postRenderCache;
   }
@@ -98,113 +70,10 @@ class BubbleableMetadata {
    * @return static
    */
   public static function createFromRenderArray(array $build) {
-    $meta = new static();
-    $meta->contexts = (isset($build['#cache']['contexts'])) ? $build['#cache']['contexts'] : [];
-    $meta->tags = (isset($build['#cache']['tags'])) ? $build['#cache']['tags'] : [];
-    $meta->maxAge = (isset($build['#cache']['max-age'])) ? $build['#cache']['max-age'] : Cache::PERMANENT;
+    $meta = parent::createFromRenderArray($build);
     $meta->attached = (isset($build['#attached'])) ? $build['#attached'] : [];
     $meta->postRenderCache = (isset($build['#post_render_cache'])) ? $build['#post_render_cache'] : [];
     return $meta;
-  }
-
-  /**
-   * Gets cache tags.
-   *
-   * @return string[]
-   */
-  public function getCacheTags() {
-    return $this->tags;
-  }
-
-  /**
-   * Adds cache tags.
-   *
-   * @param string[] $cache_tags
-   *   The cache tags to be added.
-   *
-   * @return $this
-   */
-  public function addCacheTags(array $cache_tags) {
-    $this->tags = Cache::mergeTags($this->tags, $cache_tags);
-    return $this;
-  }
-
-  /**
-   * Sets cache tags.
-   *
-   * @param string[] $cache_tags
-   *   The cache tags to be associated.
-   *
-   * @return $this
-   */
-  public function setCacheTags(array $cache_tags) {
-    $this->tags = $cache_tags;
-    return $this;
-  }
-
-  /**
-   * Gets cache contexts.
-   *
-   * @return string[]
-   */
-  public function getCacheContexts() {
-    return $this->contexts;
-  }
-
-  /**
-   * Adds cache contexts.
-   *
-   * @param string[] $cache_contexts
-   *   The cache contexts to be added.
-   *
-   * @return $this
-   */
-  public function addCacheContexts(array $cache_contexts) {
-    $this->contexts = Cache::mergeContexts($this->contexts, $cache_contexts);
-    return $this;
-  }
-
-  /**
-   * Sets cache contexts.
-   *
-   * @param string[] $cache_contexts
-   *   The cache contexts to be associated.
-   *
-   * @return $this
-   */
-  public function setCacheContexts(array $cache_contexts) {
-    $this->contexts = $cache_contexts;
-    return $this;
-  }
-
-  /**
-   * Gets the maximum age (in seconds).
-   *
-   * @return int
-   */
-  public function getCacheMaxAge() {
-    return $this->maxAge;
-  }
-
-  /**
-   * Sets the maximum age (in seconds).
-   *
-   * Defaults to Cache::PERMANENT
-   *
-   * @param int $max_age
-   *   The max age to associate.
-   *
-   * @return $this
-   *
-   * @throws \InvalidArgumentException
-   */
-  public function setCacheMaxAge($max_age) {
-    if (!is_int($max_age)) {
-      throw new \InvalidArgumentException('$max_age must be an integer');
-    }
-
-    $this->maxAge = $max_age;
-    return $this;
   }
 
   /**

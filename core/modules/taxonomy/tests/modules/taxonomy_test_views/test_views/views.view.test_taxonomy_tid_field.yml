@@ -128,9 +128,10 @@ display:
           hide_empty: false
           empty_zero: false
           hide_alter_empty: true
-          link_to_taxonomy: true
-          convert_spaces: false
-          plugin_id: taxonomy
+          plugin_id: field
+          type: string
+          settings:
+            link_to_entity: true
           entity_type: taxonomy_term
           entity_field: name
       filters: {  }

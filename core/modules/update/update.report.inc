@@ -17,8 +17,6 @@ use Drupal\Core\Url;
  * @param array $variables
  *   An associative array containing:
  *   - data: An array of data about each project's status.
- *
- * @ingroup themeable
  */
 function template_preprocess_update_report(&$variables) {
   $data = $variables['data'];
@@ -76,22 +74,18 @@ function template_preprocess_update_report(&$variables) {
     // Add project status class attribute to the table row.
     switch ($project['status']) {
       case UPDATE_CURRENT:
-        $rows[$project['project_type']][$row_key]['#attributes'] = array('class' => array('ok'));
-        break;
       case UPDATE_UNKNOWN:
       case UPDATE_FETCH_PENDING:
       case UPDATE_NOT_FETCHED:
-        $rows[$project['project_type']][$row_key]['#attributes'] = array('class' => array('unknown'));
-        break;
       case UPDATE_NOT_SECURE:
       case UPDATE_REVOKED:
       case UPDATE_NOT_SUPPORTED:
-        $rows[$project['project_type']][$row_key]['#attributes'] = array('class' => array('error'));
+        $rows[$project['project_type']][$row_key]['#attributes'] = array('class' => array('color-error'));
         break;
       case UPDATE_NOT_CHECKED:
       case UPDATE_NOT_CURRENT:
       default:
-        $rows[$project['project_type']][$row_key]['#attributes'] = array('class' => array('warning'));
+        $rows[$project['project_type']][$row_key]['#attributes'] = array('class' => array('color-warning'));
         break;
     }
   }
@@ -127,8 +121,6 @@ function template_preprocess_update_report(&$variables) {
  *   - includes_status: An array of sub-project statuses where the keys are the
  *     shortnames of each project and the values are UPDATE_* integer constants
  *     as defined in update.module.
- *
- * @ingroup themeable
  */
 function template_preprocess_update_project_status(&$variables) {
   // Storing by reference because we are sorting the project values.
@@ -160,11 +152,11 @@ function template_preprocess_update_project_status(&$variables) {
         && count($project['security updates']) == 1
         && $project['security updates'][0]['version'] === $project['recommended']
       ) {
-        $security_class[] = 'version-recommended';
-        $security_class[] = 'version-recommended-strong';
+        $security_class[] = 'project-update__version--recommended';
+        $security_class[] = 'project-update__version---strong';
       }
       else {
-        $version_class[] = 'version-recommended';
+        $version_class[] = 'project-update__version--recommended';
         // Apply an extra class if we're displaying both a recommended
         // version and anything else for an extra visual hint.
         if ($project['recommended'] !== $project['latest_version']
@@ -176,7 +168,7 @@ function template_preprocess_update_project_status(&$variables) {
           || (isset($project['security updates'][0])
             && $project['recommended'] !== $project['security updates'][0])
         ) {
-          $version_class[] = 'version-recommended-strong';
+          $version_class[] = 'project-update__version--recommended-strong';
         }
         $versions_inner[] = array(
           '#theme' => 'update_version',

@@ -36,7 +36,7 @@ class Twig_NodeVisitor_Optimizer implements Twig_NodeVisitorInterface
     /**
      * Constructor.
      *
-     * @param int     $optimizers The optimizer mode
+     * @param int $optimizers The optimizer mode
      */
     public function __construct($optimizers = -1)
     {
@@ -56,7 +56,7 @@ class Twig_NodeVisitor_Optimizer implements Twig_NodeVisitorInterface
             $this->enterOptimizeFor($node, $env);
         }
 
-        if (!version_compare(phpversion(), '5.4.0RC1', '>=') && self::OPTIMIZE_VAR_ACCESS === (self::OPTIMIZE_VAR_ACCESS & $this->optimizers) && !$env->isStrictVariables() && !$env->hasExtension('sandbox')) {
+        if (PHP_VERSION_ID < 50400 && self::OPTIMIZE_VAR_ACCESS === (self::OPTIMIZE_VAR_ACCESS & $this->optimizers) && !$env->isStrictVariables() && !$env->hasExtension('sandbox')) {
             if ($this->inABody) {
                 if (!$node instanceof Twig_Node_Expression) {
                     if (get_class($node) !== 'Twig_Node') {
@@ -202,6 +202,16 @@ class Twig_NodeVisitor_Optimizer implements Twig_NodeVisitorInterface
 
         // include without the only attribute
         elseif ($node instanceof Twig_Node_Include && !$node->getAttribute('only')) {
+            $this->addLoopToAll();
+        }
+
+        // include function without the with_context=false parameter
+        elseif ($node instanceof Twig_Node_Expression_Function
+            && 'include' === $node->getAttribute('name')
+            && (!$node->getNode('arguments')->hasNode('with_context')
+                 || false !== $node->getNode('arguments')->getNode('with_context')->getAttribute('value')
+               )
+        ) {
             $this->addLoopToAll();
         }
 

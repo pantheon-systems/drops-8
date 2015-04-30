@@ -8,6 +8,7 @@
 namespace Drupal\views\Plugin\views\cache;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Render\RenderCacheInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\views\Plugin\views\PluginBase;
 use Drupal\Core\Database\Query\Select;
@@ -81,6 +82,13 @@ abstract class CachePluginBase extends PluginBase {
   protected $renderer;
 
   /**
+   * The render cache service.
+   *
+   * @var \Drupal\Core\Render\RenderCacheInterface
+   */
+  protected $renderCache;
+
+  /**
    * Constructs a CachePluginBase object.
    *
    * @param array $configuration
@@ -91,11 +99,14 @@ abstract class CachePluginBase extends PluginBase {
    *   The plugin implementation definition.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The HTML renderer.
+   * @param \Drupal\Core\Render\RenderCacheInterface $render_cache
+   *   The render cache service.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RendererInterface $renderer) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, RendererInterface $renderer, RenderCacheInterface $render_cache) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->renderer = $renderer;
+    $this->renderCache = $render_cache;
   }
 
   /**
@@ -106,7 +117,8 @@ abstract class CachePluginBase extends PluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('renderer')
+      $container->get('renderer'),
+      $container->get('render_cache')
     );
   }
 
@@ -190,7 +202,7 @@ abstract class CachePluginBase extends PluginBase {
         // Also assign the cacheable render array back to the display handler so
         // that is used to render the view for this request and rendering does
         // not happen twice.
-        $this->storage = $this->view->display_handler->output = $this->renderer->getCacheableRenderArray($output);
+        $this->storage = $this->view->display_handler->output = $this->renderCache->getCacheableRenderArray($output);
         \Drupal::cache($this->outputBin)->set($this->generateOutputKey(), $this->storage, $this->cacheSetExpire($type), Cache::mergeTags($this->storage['#cache']['tags'], ['rendered']));
         break;
     }
@@ -287,28 +299,24 @@ abstract class CachePluginBase extends PluginBase {
         if ($build_info[$index] instanceof Select) {
           $query = clone $build_info[$index];
           $query->preExecute();
-          $build_info[$index] = (string)$query;
-        }
-      }
-      $user = \Drupal::currentUser();
-      $key_data = array(
-        'build_info' => $build_info,
-        'roles' => $user->getRoles(),
-        'super-user' => $user->id() == 1, // special caching for super user.
-        'langcode' => \Drupal::languageManager()->getCurrentLanguage()->getId(),
-        'base_url' => $GLOBALS['base_url'],
-      );
-      foreach (array('exposed_info', 'sort', 'order') as $key) {
-        if ($this->view->getRequest()->query->has($key)) {
-          $key_data[$key] = $this->view->getRequest()->query->get($key);
+          $build_info[$index] = array(
+            'query' => (string)$query,
+            'arguments' => $query->getArguments(),
+          );
         }
       }
 
+      $key_data = [
+        'build_info' => $build_info,
+      ];
+      // @todo https://www.drupal.org/node/2433591 might solve it to not require
+      //    the pager information here.
       $key_data['pager'] = [
         'page' => $this->view->getCurrentPage(),
         'items_per_page' => $this->view->getItemsPerPage(),
         'offset' => $this->view->getOffset(),
       ];
+      $key_data += \Drupal::service('cache_contexts_manager')->convertTokensToKeys($this->displayHandler->getCacheMetadata()['contexts']);
 
       $this->resultsKey = $this->view->storage->id() . ':' . $this->displayHandler->display['id'] . ':results:' . hash('sha256', serialize($key_data));
     }

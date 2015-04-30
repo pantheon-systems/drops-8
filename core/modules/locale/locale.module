@@ -11,7 +11,7 @@
  */
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Url;
@@ -24,6 +24,9 @@ use Drupal\Core\StringTranslation\TranslationWrapper;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\language\ConfigurableLanguageInterface;
 use Drupal\Component\Utility\Crypt;
+use Drupal\locale\Locale;
+use Drupal\locale\LocaleEvent;
+use Drupal\locale\LocaleEvents;
 
 /**
  * Regular expression pattern used to localize JavaScript strings.
@@ -226,7 +229,7 @@ function locale_configurable_language_delete(ConfigurableLanguageInterface $lang
   locale_translate_delete_translation_files(array(), array($language->id()));
 
   // Remove translated configuration objects.
-  \Drupal\locale\Locale::config()->deleteLanguageTranslations($language->id());
+  Locale::config()->deleteLanguageTranslations($language->id());
 
   // Changing the language settings impacts the interface:
   _locale_invalidate_js($language->id());
@@ -246,7 +249,7 @@ function locale_configurable_language_delete(ConfigurableLanguageInterface $lang
  */
 function locale_translatable_language_list() {
   $languages = \Drupal::languageManager()->getLanguages();
-  if (!locale_translate_english()) {
+  if (!locale_is_translatable('en')) {
     unset($languages['en']);
   }
   return $languages;
@@ -312,6 +315,8 @@ function locale_get_plural($count, $langcode = NULL) {
  * Implements hook_modules_installed().
  */
 function locale_modules_installed($modules) {
+  locale_system_set_config_langcodes();
+
   $components['module'] = $modules;
   locale_system_update($components);
 }
@@ -328,6 +333,8 @@ function locale_module_preuninstall($module) {
  * Implements hook_themes_installed().
  */
 function locale_themes_installed($themes) {
+  locale_system_set_config_langcodes();
+
   $components['theme'] = $themes;
   locale_system_update($components);
 }
@@ -356,6 +363,34 @@ function locale_cron() {
 }
 
 /**
+ * Updates default configuration when new modules or themes are installed.
+ */
+function locale_system_set_config_langcodes() {
+  // Need to rewrite some default configuration language codes if the default
+  // site language is not English.
+  $default_langcode = \Drupal::languageManager()->getDefaultLanguage()->getId();
+  if ($default_langcode != 'en') {
+    // Update active configuration copies of all prior shipped configuration if
+    // they are still English. It is not enough to change configuration shipped
+    // with the components just installed, because installing a component such
+    // as views or tour module may bring in default configuration from prior
+    // components.
+    $names = Locale::config()->getComponentNames();
+    foreach ($names as $name) {
+      $config = \Drupal::configFactory()->reset($name)->getEditable($name);
+      // Should only update if still exists in active configuration. If locale
+      // module is enabled later, then some configuration may not exist anymore.
+      if (!$config->isNew()) {
+        $langcode = $config->get('langcode');
+        if (empty($langcode) || $langcode == 'en') {
+          $config->set('langcode', $default_langcode)->save();
+        }
+      }
+    }
+  }
+}
+
+/**
  * Imports translations when new modules or themes are installed.
  *
  * This function will start a batch to import translations for the added
@@ -372,23 +407,30 @@ function locale_system_update(array $components) {
   // Skip running the translation imports if in the installer,
   // because it would break out of the installer flow. We have
   // built-in support for translation imports in the installer.
-  if (!drupal_installation_attempted() && locale_translatable_language_list() && \Drupal::config('locale.settings')->get('translation.import_enabled')) {
-    module_load_include('compare.inc', 'locale');
+  if (!drupal_installation_attempted() && locale_translatable_language_list()) {
+    if (\Drupal::config('locale.settings')->get('translation.import_enabled')) {
+      module_load_include('compare.inc', 'locale');
 
-    // Update the list of translatable projects and start the import batch.
-    // Only when new projects are added the update batch will be triggered. Not
-    // each enabled module will introduce a new project. E.g. sub modules.
-    $projects = array_keys(locale_translation_build_projects());
-    if ($list = array_intersect($list, $projects)) {
-      module_load_include('fetch.inc', 'locale');
-      // Get translation status of the projects, download and update
-      // translations.
-      $options = _locale_translation_default_update_options();
-      $batch = locale_translation_batch_update_build($list, array(), $options);
-      batch_set($batch);
+      // Update the list of translatable projects and start the import batch.
+      // Only when new projects are added the update batch will be triggered.
+      // Not each enabled module will introduce a new project. E.g. sub modules.
+      $projects = array_keys(locale_translation_build_projects());
+      if ($list = array_intersect($list, $projects)) {
+        module_load_include('fetch.inc', 'locale');
+        // Get translation status of the projects, download and update
+        // translations.
+        $options = _locale_translation_default_update_options();
+        $batch = locale_translation_batch_update_build($list, [], $options);
+        batch_set($batch);
+      }
     }
+
+    // Construct a batch to update configuration for all components. Installing
+    // this component may have installed configuration from any number of other
+    // components. Do this even if import is not enabled because parsing new
+    // configuration may expose new source strings.
     \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
-    if ($batch = locale_config_batch_update_components(array(), array(), $components)) {
+    if ($batch = locale_config_batch_update_components([])) {
       batch_set($batch);
     }
   }
@@ -411,8 +453,6 @@ function locale_system_remove($components) {
   if ($language_list = locale_translatable_language_list()) {
     module_load_include('compare.inc', 'locale');
     \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
-    // Delete configuration translations.
-    \Drupal\locale\Locale::config()->deleteComponentTranslations($components, array_keys($language_list));
 
     // Only when projects are removed, the translation files and records will be
     // deleted. Not each disabled module will remove a project, e.g., sub
@@ -606,7 +646,7 @@ function locale_form_language_admin_overview_form_alter(&$form, FormStateInterfa
       'translated' => 0,
       'ratio' => 0,
     );
-    if (!$language->isLocked() && ($langcode != 'en' || locale_translate_english())) {
+    if (!$language->isLocked() && locale_is_translatable($langcode)) {
       $form['languages'][$langcode]['locale_statistics'] = array(
         '#markup' => \Drupal::l(
           t('@translated/@total (@ratio%)', array(
@@ -645,21 +685,26 @@ function locale_form_language_admin_add_form_alter(&$form, FormStateInterface $f
  * Set a batch for a newly-added language.
  */
 function locale_form_language_admin_add_form_alter_submit($form, FormStateInterface $form_state) {
-  if (\Drupal::config('locale.settings')->get('translation.import_enabled')) {
-    if ($form_state->isValueEmpty('predefined_langcode') || $form_state->getValue('predefined_langcode') == 'custom') {
-      $langcode = $form_state->getValue('langcode');
-    }
-    else {
-      $langcode = $form_state->getValue('predefined_langcode');
-    }
+  \Drupal::moduleHandler()->loadInclude('locale', 'fetch.inc');
+  $options = _locale_translation_default_update_options();
 
+  if ($form_state->isValueEmpty('predefined_langcode') || $form_state->getValue('predefined_langcode') == 'custom') {
+    $langcode = $form_state->getValue('langcode');
+  }
+  else {
+    $langcode = $form_state->getValue('predefined_langcode');
+  }
+
+  if (\Drupal::config('locale.settings')->get('translation.import_enabled')) {
     // Download and import translations for the newly added language.
-    module_load_include('fetch.inc', 'locale');
-    $options = _locale_translation_default_update_options();
     $batch = locale_translation_batch_update_build(array(), array($langcode), $options);
     batch_set($batch);
+  }
 
-    // Create or update all configuration translations for this language.
+  // Create or update all configuration translations for this language. If we
+  // are adding English then we need to run this even if import is not enabled,
+  // because then we extract English sources from shipped configuration.
+  if (\Drupal::config('locale.settings')->get('translation.import_enabled') || $langcode == 'en') {
     \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
     if ($batch = locale_config_batch_update_components($options, array($langcode))) {
       batch_set($batch);
@@ -689,13 +734,16 @@ function locale_form_language_admin_edit_form_alter_submit($form, FormStateInter
 }
 
 /**
- * Checks whether locale translates to English.
+ * Checks whether $langcode is a language supported as a locale target.
+ *
+ * @param string $langcode
+ *   The language code.
  *
  * @return bool
- *   Returns TRUE if content should be translated to English, FALSE otherwise.
+ *   Whether $langcode can be translated to in locale.
  */
-function locale_translate_english() {
-  return \Drupal::config('locale.settings')->get('translate_english');
+function locale_is_translatable($langcode) {
+  return $langcode != 'en' || \Drupal::config('locale.settings')->get('translate_english');
 }
 
 /**
@@ -989,7 +1037,7 @@ function locale_translation_use_remote_source() {
  * layout issues (div) or a possible attack vector (img).
  */
 function locale_string_is_safe($string) {
-  return String::decodeEntities($string) == String::decodeEntities(Xss::filter($string, array('a', 'abbr', 'acronym', 'address', 'b', 'bdo', 'big', 'blockquote', 'br', 'caption', 'cite', 'code', 'col', 'colgroup', 'dd', 'del', 'dfn', 'dl', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'ins', 'kbd', 'li', 'ol', 'p', 'pre', 'q', 'samp', 'small', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'tt', 'ul', 'var')));
+  return Html::decodeEntities($string) == Html::decodeEntities(Xss::filter($string, array('a', 'abbr', 'acronym', 'address', 'b', 'bdo', 'big', 'blockquote', 'br', 'caption', 'cite', 'code', 'col', 'colgroup', 'dd', 'del', 'dfn', 'dl', 'dt', 'em', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'hr', 'i', 'ins', 'kbd', 'li', 'ol', 'p', 'pre', 'q', 'samp', 'small', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'tr', 'tt', 'ul', 'var')));
 }
 
 /**
@@ -998,6 +1046,7 @@ function locale_string_is_safe($string) {
  * The information that will be refreshed includes:
  * - JavaScript translations.
  * - Locale cache.
+ * - Render cache.
  *
  * @param array $langcodes
  *   Language codes for updated translations.
@@ -1013,16 +1062,13 @@ function _locale_refresh_translations($langcodes, $lids = array()) {
       array_map('_locale_invalidate_js', $langcodes);
     }
   }
-  // Clear locale cache.
-  Cache::invalidateTags(array('locale'));
+
+  // Throw locale.save_translation event.
+  \Drupal::service('event_dispatcher')->dispatch(LocaleEvents::SAVE_TRANSLATION, new LocaleEvent($langcodes, $lids));
 }
 
 /**
  * Refreshes configuration after string translations have been updated.
- *
- * The information that will be refreshed includes:
- * - JavaScript translations.
- * - Locale cache.
  *
  * @param array $langcodes
  *   Language codes for updated translations.
@@ -1030,9 +1076,8 @@ function _locale_refresh_translations($langcodes, $lids = array()) {
  *   List of string identifiers that have been updated / created.
  */
 function _locale_refresh_configuration(array $langcodes, array $lids) {
-  if ($lids && $langcodes && $names = \Drupal\locale\Locale::config()->getStringNames($lids)) {
-    \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
-    locale_config_update_multiple($names, $langcodes);
+  if ($lids && $langcodes && $names = Locale::config()->getStringNames($lids)) {
+    Locale::config()->updateConfigTranslations($names, $langcodes);
   }
 }
 

@@ -7,7 +7,7 @@
 namespace Drupal\Core\Access;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Cache\CacheableInterface;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Config\ConfigBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -26,20 +26,13 @@ use Drupal\Core\Session\AccountInterface;
  * When using ::orIf() and ::andIf(), cacheability metadata will be merged
  * accordingly as well.
  */
-abstract class AccessResult implements AccessResultInterface, CacheableInterface {
-
-  /**
-   * Whether the access result is cacheable.
-   *
-   * @var bool
-   */
-  protected $isCacheable;
+abstract class AccessResult implements AccessResultInterface, CacheableDependencyInterface {
 
   /**
    * The cache context IDs (to vary a cache item ID based on active contexts).
    *
    * @see \Drupal\Core\Cache\CacheContextInterface
-   * @see \Drupal\Core\Cache\CacheContexts::convertTokensToKeys()
+   * @see \Drupal\Core\Cache\CacheContextsManager::convertTokensToKeys()
    *
    * @var string[]
    */
@@ -63,9 +56,9 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
    * Constructs a new AccessResult object.
    */
   public function __construct() {
-    $this->setCacheable(TRUE)
-      ->resetCacheContexts()
+    $this->resetCacheContexts()
       ->resetCacheTags()
+      // Max-age must be non-zero for an access result to be cacheable.
       // Typically, cache items are invalidated via associated cache tags, not
       // via a maximum age.
       ->setCacheMaxAge(Cache::PERMANENT);
@@ -132,7 +125,7 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
   /**
    * Creates an allowed access result if the permission is present, neutral otherwise.
    *
-   * Convenience method, checks the permission and calls ::cachePerRole().
+   * Checks the permission and adds a 'user.permissions' cache context.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The account for which to check a permission.
@@ -144,13 +137,13 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
    *   isNeutral() will be TRUE.
    */
   public static function allowedIfHasPermission(AccountInterface $account, $permission) {
-    return static::allowedIf($account->hasPermission($permission))->cachePerRole();
+    return static::allowedIf($account->hasPermission($permission))->addCacheContexts(['user.permissions']);
   }
 
   /**
    * Creates an allowed access result if the permissions are present, neutral otherwise.
    *
-   * Convenience method, checks the permissions and calls ::cachePerRole().
+   * Checks the permission and adds a 'user.permissions' cache contexts.
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The account for which to check permissions.
@@ -185,7 +178,7 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
       }
     }
 
-    return static::allowedIf($access)->cachePerRole();
+    return static::allowedIf($access)->addCacheContexts(empty($permissions) ? [] : ['user.permissions']);
   }
 
   /**
@@ -218,13 +211,6 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
   /**
    * {@inheritdoc}
    */
-  public function getCacheKeys() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getCacheContexts() {
     sort($this->contexts);
     return $this->contexts;
@@ -239,39 +225,9 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
 
   /**
    * {@inheritdoc}
-   *
-   * It's not very useful to cache individual access results, but the interface
-   * forces us to implement this method, so just use the default cache bin.
-   */
-  public function getCacheBin() {
-    return 'default';
-  }
-
-  /**
-   * {@inheritdoc}
    */
   public function getCacheMaxAge() {
     return $this->maxAge;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isCacheable() {
-    return $this->isCacheable;
-  }
-
-  /**
-   * Sets whether this access result is cacheable. It is cacheable by default.
-   *
-   * @param bool $is_cacheable
-   *   Whether this access result is cacheable.
-   *
-   * @return $this
-   */
-  public function setCacheable($is_cacheable) {
-    $this->isCacheable = $is_cacheable;
-    return $this;
   }
 
   /**
@@ -334,12 +290,12 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
   }
 
   /**
-   * Convenience method, adds the "user.roles" cache context.
+   * Convenience method, adds the "user.permissions" cache context.
    *
    * @return $this
    */
-  public function cachePerRole() {
-    $this->addCacheContexts(array('user.roles'));
+  public function cachePerPermissions() {
+    $this->addCacheContexts(array('user.permissions'));
     return $this;
   }
 
@@ -383,28 +339,39 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
    * {@inheritdoc}
    */
   public function orIf(AccessResultInterface $other) {
+    $merge_other = FALSE;
     // $other's cacheability metadata is merged if $merge_other gets set to TRUE
-    // and this happens in two cases:
+    // and this happens in three cases:
     // 1. $other's access result is the one that determines the combined access
     //    result.
     // 2. This access result is not cacheable and $other's access result is the
     //    same. i.e. attempt to return a cacheable access result.
-    $merge_other = FALSE;
+    // 3. Neither access result is 'forbidden' and both are cacheable: inherit
+    //    the other's cacheability metadata because it may turn into a
+    //    'forbidden' for another value of the cache contexts in the
+    //    cacheability metadata. In other words: this is necessary to respect
+    //    the contagious nature of the 'forbidden' access result.
+    //    e.g. we have two access results A and B. Neither is forbidden. A is
+    //    globally cacheable (no cache contexts). B is cacheable per role. If we
+    //    don't have merging case 3, then A->orIf(B) will be globally cacheable,
+    //    which means that even if a user of a different role logs in, the
+    //    cached access result will be used, even though for that other role, B
+    //    is forbidden!
     if ($this->isForbidden() || $other->isForbidden()) {
       $result = static::forbidden();
-      if (!$this->isForbidden() || (!$this->isCacheable() && $other->isForbidden())) {
+      if (!$this->isForbidden() || ($this->getCacheMaxAge() === 0 && $other->isForbidden())) {
         $merge_other = TRUE;
       }
     }
     elseif ($this->isAllowed() || $other->isAllowed()) {
       $result = static::allowed();
-      if (!$this->isAllowed() || (!$this->isCacheable() && $other->isAllowed())) {
+      if (!$this->isAllowed() || ($this->getCacheMaxAge() === 0 && $other->isAllowed()) || ($this->getCacheMaxAge() !== 0 && $other instanceof CacheableDependencyInterface && $other->getCacheMaxAge() !== 0)) {
         $merge_other = TRUE;
       }
     }
     else {
       $result = static::neutral();
-      if (!$this->isNeutral() || (!$this->isCacheable() && $other->isNeutral())) {
+      if (!$this->isNeutral() || ($this->getCacheMaxAge() === 0 && $other->isNeutral()) || ($this->getCacheMaxAge() !== 0 && $other instanceof CacheableDependencyInterface && $other->getCacheMaxAge() !== 0)) {
         $merge_other = TRUE;
       }
     }
@@ -446,8 +413,8 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
       // result must also not be cacheable, except if the other access result
       // has isForbidden() === TRUE. isForbidden() access results are contagious
       // in that they propagate regardless of the other value.
-      if (!$this->isCacheable() && !$result->isForbidden()) {
-        $result->setCacheable(FALSE);
+      if ($this->getCacheMaxAge() === 0 && !$result->isForbidden()) {
+        $result->setCacheMaxAge(0);
       }
     }
     return $result;
@@ -462,17 +429,21 @@ abstract class AccessResult implements AccessResultInterface, CacheableInterface
    * @return $this
    */
   public function inheritCacheability(AccessResultInterface $other) {
-    if ($other instanceof CacheableInterface) {
-      $this->setCacheable($other->isCacheable());
+    if ($other instanceof CacheableDependencyInterface) {
+      if ($this->getCacheMaxAge() !== 0 && $other->getCacheMaxAge() !== 0) {
+        $this->setCacheMaxAge(Cache::mergeMaxAges($this->getCacheMaxAge(), $other->getCacheMaxAge()));
+      }
+      else {
+        $this->setCacheMaxAge($other->getCacheMaxAge());
+      }
       $this->addCacheContexts($other->getCacheContexts());
       $this->addCacheTags($other->getCacheTags());
-      $this->setCacheMaxAge(Cache::mergeMaxAges($this->getCacheMaxAge(), $other->getCacheMaxAge()));
     }
     // If any of the access results don't provide cacheability metadata, then
     // we cannot cache the combined access result, for we may not make
     // assumptions.
     else {
-      $this->setCacheable(FALSE);
+      $this->setCacheMaxAge(0);
     }
     return $this;
   }

@@ -8,6 +8,8 @@
 namespace Drupal\Core\EventSubscriber;
 
 use Drupal\Component\Datetime\DateTimePlus;
+use Drupal\Core\Cache\CacheableResponseInterface;
+use Drupal\Core\Cache\CacheContextsManager;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -57,6 +59,13 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
   protected $responsePolicy;
 
   /**
+   * The cache contexts manager service.
+   *
+   * @var \Drupal\Core\Cache\CacheContextsManager
+   */
+  protected $cacheContexts;
+
+  /**
    * Constructs a FinishResponseSubscriber object.
    *
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
@@ -67,12 +76,15 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
    *   A policy rule determining the cacheability of a request.
    * @param \Drupal\Core\PageCache\ResponsePolicyInterface $response_policy
    *   A policy rule determining the cacheability of a response.
+   * @param \Drupal\Core\Cache\CacheContextsManager $cache_contexts_manager
+   *   The cache contexts manager service.
    */
-  public function __construct(LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, RequestPolicyInterface $request_policy, ResponsePolicyInterface $response_policy) {
+  public function __construct(LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, RequestPolicyInterface $request_policy, ResponsePolicyInterface $response_policy, CacheContextsManager $cache_contexts_manager) {
     $this->languageManager = $language_manager;
     $this->config = $config_factory->get('system.performance');
     $this->requestPolicy = $request_policy;
     $this->responsePolicy = $response_policy;
+    $this->cacheContextsManager = $cache_contexts_manager;
   }
 
   /**
@@ -82,7 +94,7 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
    *   The event to process.
    */
   public function onRespond(FilterResponseEvent $event) {
-    if ($event->getRequestType() !== HttpKernelInterface::MASTER_REQUEST) {
+    if (!$event->isMasterRequest()) {
       return;
     }
 
@@ -117,6 +129,14 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
         $response->setStatusCode($value);
       }
       $response->headers->set($name, $value, FALSE);
+    }
+
+    // Expose the cache contexts and cache tags associated with this page in a
+    // X-Drupal-Cache-Contexts and X-Drupal-Cache-Tags header respectively.
+    if ($response instanceof CacheableResponseInterface) {
+      $response_cacheability = $response->getCacheableMetadata();
+      $response->headers->set('X-Drupal-Cache-Tags', implode(' ', $response_cacheability->getCacheTags()));
+      $response->headers->set('X-Drupal-Cache-Contexts', implode(' ', $this->cacheContextsManager->optimizeTokens($response_cacheability->getCacheContexts())));
     }
 
     $is_cacheable = ($this->requestPolicy->check($request) === RequestPolicyInterface::ALLOW) && ($this->responsePolicy->check($response, $request) !== ResponsePolicyInterface::DENY);

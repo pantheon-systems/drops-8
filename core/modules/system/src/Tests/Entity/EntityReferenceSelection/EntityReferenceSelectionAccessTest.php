@@ -8,10 +8,11 @@
 namespace Drupal\system\Tests\Entity\EntityReferenceSelection;
 
 use Drupal\comment\Tests\CommentTestTrait;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
 use Drupal\simpletest\WebTestBase;
+use Drupal\user\Entity\User;
 
 /**
  * Tests for the base handlers provided by Entity Reference.
@@ -109,7 +110,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
       $node = entity_create('node', $values);
       $node->save();
       $nodes[$key] = $node;
-      $node_labels[$key] = String::checkPlain($node->label());
+      $node_labels[$key] = SafeMarkup::checkPlain($node->label());
     }
 
     // Test as a non-admin.
@@ -209,8 +210,8 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
 
     // Build a set of test data.
     $user_values = array(
-      'anonymous' => user_load(0),
-      'admin' => user_load(1),
+      'anonymous' => User::load(0),
+      'admin' => User::load(1),
       'non_admin' => array(
         'name' => 'non_admin <&>',
         'mail' => 'non_admin@example.com',
@@ -240,7 +241,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
         $account = $values;
       }
       $users[$key] = $account;
-      $user_labels[$key] = String::checkPlain($account->getUsername());
+      $user_labels[$key] = SafeMarkup::checkPlain($account->getUsername());
     }
 
     // Test as a non-admin.
@@ -415,7 +416,7 @@ class EntityReferenceSelectionAccessTest extends WebTestBase {
       $comment = entity_create('comment', $values);
       $comment->save();
       $comments[$key] = $comment;
-      $comment_labels[$key] = String::checkPlain($comment->label());
+      $comment_labels[$key] = SafeMarkup::checkPlain($comment->label());
     }
 
     // Test as a non-admin.

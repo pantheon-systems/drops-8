@@ -14,6 +14,7 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PrivateStream;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\system\SystemRequirements;
 
 /**
  * Implements hook_requirements().
@@ -56,18 +57,21 @@ function system_requirements($phase) {
   );
 
   // Test PHP version and show link to phpinfo() if it's available
-  $phpversion = phpversion();
+  $phpversion = $phpversion_label = phpversion();
   if (function_exists('phpinfo')) {
+    // $phpversion is safe and output of l() is safe, so this value is safe.
+    if ($phase === 'runtime') {
+      $phpversion_label = SafeMarkup::set($phpversion . ' (' . \Drupal::l(t('more information'), new Url('system.php')) . ')');
+    }
     $requirements['php'] = array(
       'title' => t('PHP'),
-      // $phpversion is safe and output of l() is safe, so this value is safe.
-      'value' => SafeMarkup::set(($phase == 'runtime') ? $phpversion . ' (' . \Drupal::l(t('more information'), new Url('system.php')) . ')' : $phpversion),
+      'value' => $phpversion_label,
     );
   }
   else {
     $requirements['php'] = array(
       'title' => t('PHP'),
-      'value' => $phpversion,
+      'value' => $phpversion_label,
       'description' => t('The phpinfo() function has been disabled for security reasons. To see your server\'s phpinfo() information, change your PHP settings or contact your server administrator. For more information, <a href="@phpinfo">Enabling and disabling phpinfo()</a> handbook page.', array('@phpinfo' => 'http://drupal.org/node/243993')),
       'severity' => REQUIREMENT_INFO,
     );
@@ -78,6 +82,17 @@ function system_requirements($phase) {
     $requirements['php']['severity'] = REQUIREMENT_ERROR;
     // If PHP is old, it's not safe to continue with the requirements check.
     return $requirements;
+  }
+
+  // Suggest to update to at least 5.5.21 or 5.6.5 for disabling multiple
+  // statements.
+  if (($phase === 'install' || \Drupal::database()->driver() === 'mysql') && !SystemRequirements::phpVersionWithPdoDisallowMultipleStatements($phpversion)) {
+    $requirements['php'] = array(
+      'title' => t('PHP (multiple statement disabling)'),
+      'value' => $phpversion_label,
+      'description' => t('PHP versions higher than 5.6.5 or 5.5.21 provide built-in SQL injection protection for mysql databases. It is recommended to update.'),
+      'severity' => REQUIREMENT_INFO,
+    );
   }
 
   // Test for PHP extensions.
@@ -644,10 +659,13 @@ function system_install() {
   $cron_key = Crypt::randomBytesBase64(55);
   \Drupal::state()->set('system.cron_key', $cron_key);
 
-  // Populate the site UUID.
-  \Drupal::configFactory()->getEditable('system.site')
-    ->set('uuid', \Drupal::service('uuid')->generate())
-    ->save();
+  // Populate the site UUID and default name (if not set).
+  $site = \Drupal::configFactory()->getEditable('system.site');
+  $site->set('uuid', \Drupal::service('uuid')->generate());
+  if (!$site->get('name')) {
+    $site->set('name', 'Drupal');
+  }
+  $site->save();
 }
 
 /**

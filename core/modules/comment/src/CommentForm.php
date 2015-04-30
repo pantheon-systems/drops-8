@@ -9,7 +9,6 @@ namespace Drupal\comment;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -17,6 +16,7 @@ use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -33,12 +33,20 @@ class CommentForm extends ContentEntityForm {
   protected $currentUser;
 
   /**
+   * The renderer.
+   *
+   * @var \Drupal\Core\Render\RendererInterface
+   */
+  protected $renderer;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('entity.manager'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('renderer')
     );
   }
 
@@ -49,10 +57,13 @@ class CommentForm extends ContentEntityForm {
    *   The entity manager service.
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer.
    */
-  public function __construct(EntityManagerInterface $entity_manager, AccountInterface $current_user) {
+  public function __construct(EntityManagerInterface $entity_manager, AccountInterface $current_user, RendererInterface $renderer) {
     parent::__construct($entity_manager);
     $this->currentUser = $current_user;
+    $this->renderer = $renderer;
   }
 
   /**
@@ -214,12 +225,9 @@ class CommentForm extends ContentEntityForm {
       '#access' => $is_admin,
     );
 
-    $form['#cache']['tags'] = Cache::mergeTags(
-      isset($form['#cache']['tags']) ? $form['#cache']['tags'] : [],
-      $config->getCacheTags(),
-      // The form depends on the field definition.
-      $field_definition->getConfig($entity->bundle())->getCacheTags()
-    );
+    $this->renderer->addCacheableDependency($form, $config);
+    // The form depends on the field definition.
+    $this->renderer->addCacheableDependency($form, $field_definition->getConfig($entity->bundle()));
 
     return parent::form($form, $form_state, $comment);
   }
@@ -293,7 +301,7 @@ class CommentForm extends ContentEntityForm {
       // 2) Strip out all HTML tags
       // 3) Convert entities back to plain-text.
       $comment_text = $comment->comment_body->processed;
-      $comment->setSubject(Unicode::truncate(trim(String::decodeEntities(strip_tags($comment_text))), 29, TRUE));
+      $comment->setSubject(Unicode::truncate(trim(Html::decodeEntities(strip_tags($comment_text))), 29, TRUE, TRUE));
       // Edge cases where the comment body is populated only by HTML tags will
       // require a default subject.
       if ($comment->getSubject() == '') {

@@ -9,8 +9,10 @@ namespace Drupal\Tests\Core\Render;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\MemoryBackend;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Renderer;
+use Drupal\Core\Render\RenderCache;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +31,13 @@ class RendererTestBase extends UnitTestCase {
   protected $renderer;
 
   /**
+   * The tested render cache.
+   *
+   * @var \Drupal\Core\Render\RenderCache
+   */
+  protected $renderCache;
+
+  /**
    * @var \Symfony\Component\HttpFoundation\RequestStack
    */
   protected $requestStack;
@@ -39,7 +48,7 @@ class RendererTestBase extends UnitTestCase {
   protected $cacheFactory;
 
   /**
-   * @var \Drupal\Core\Cache\CacheContexts|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheContextsManager|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $cacheContexts;
 
@@ -70,6 +79,18 @@ class RendererTestBase extends UnitTestCase {
   protected $memoryCache;
 
   /**
+   * The mocked renderer configuration.
+   *
+   * @var array
+   */
+  protected $rendererConfig = [
+    'required_cache_contexts' => [
+      'languages:language_interface',
+      'theme',
+    ],
+  ];
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp() {
@@ -80,12 +101,37 @@ class RendererTestBase extends UnitTestCase {
     $this->elementInfo = $this->getMock('Drupal\Core\Render\ElementInfoManagerInterface');
     $this->requestStack = new RequestStack();
     $this->cacheFactory = $this->getMock('Drupal\Core\Cache\CacheFactoryInterface');
-    $this->cacheContexts = $this->getMockBuilder('Drupal\Core\Cache\CacheContexts')
+    $this->cacheContextsManager = $this->getMockBuilder('Drupal\Core\Cache\CacheContextsManager')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->renderer = new Renderer($this->controllerResolver, $this->themeManager, $this->elementInfo, $this->requestStack, $this->cacheFactory, $this->cacheContexts);
+    $this->cacheContextsManager->expects($this->any())
+      ->method('convertTokensToKeys')
+      ->willReturnCallback(function($context_tokens) {
+        global $current_user_role;
+        $keys = [];
+        foreach ($context_tokens as $context_id) {
+          switch ($context_id) {
+            case 'user.roles':
+              $keys[] = 'r.' . $current_user_role;
+              break;
+            case 'languages:language_interface':
+              $keys[] = 'en';
+              break;
+            case 'theme':
+              $keys[] = 'stark';
+              break;
+            default:
+              $keys[] = $context_id;
+          }
+        }
+        return $keys;
+      });
+    $this->renderCache = new RenderCache($this->requestStack, $this->cacheFactory, $this->cacheContextsManager);
+    $this->renderer = new Renderer($this->controllerResolver, $this->themeManager, $this->elementInfo, $this->renderCache, $this->rendererConfig);
 
     $container = new ContainerBuilder();
+    $container->set('cache_contexts_manager', $this->cacheContextsManager);
+    $container->set('render_cache', $this->renderCache);
     $container->set('renderer', $this->renderer);
     \Drupal::setContainer($container);
   }
@@ -137,6 +183,8 @@ class RendererTestBase extends UnitTestCase {
    */
   protected function setUpRequest($method = 'GET') {
     $request = Request::create('/', $method);
+    // Ensure that the request time is set as expected.
+    $request->server->set('REQUEST_TIME', (int) $_SERVER['REQUEST_TIME']);
     $this->requestStack->push($request);
   }
 

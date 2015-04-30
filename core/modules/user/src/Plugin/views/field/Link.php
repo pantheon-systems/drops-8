@@ -8,6 +8,7 @@
 namespace Drupal\user\Plugin\views\field;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RedirectDestinationTrait;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -23,6 +24,8 @@ use Drupal\Core\Entity\EntityInterface;
  * @ViewsField("user_link")
  */
 class Link extends FieldPluginBase {
+
+  use RedirectDestinationTrait;
 
   /**
    * {@inheritdoc}
@@ -93,7 +96,7 @@ class Link extends FieldPluginBase {
    *   The current row of the views result.
    *
    * @return string
-   *   The acutal rendered text (without the link) of this field.
+   *   The actual rendered text (without the link) of this field.
    */
   protected function renderLink(EntityInterface $entity, ResultRow $values) {
     $text = !empty($this->options['text']) ? $this->options['text'] : $this->t('View');

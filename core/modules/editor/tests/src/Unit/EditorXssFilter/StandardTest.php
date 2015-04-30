@@ -181,7 +181,7 @@ class StandardTest extends UnitTestCase {
 
     // Escaping JavaScript escapes.
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#Escaping_JavaScript_escapes
-    // This one is irrelevent for Drupal; we *never* output any JavaScript code
+    // This one is irrelevant for Drupal; we *never* output any JavaScript code
     // that depends on the URL's query string.
 
     // End title tag.
@@ -200,7 +200,7 @@ class StandardTest extends UnitTestCase {
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#IMG_Dynsrc
     $data[] = array('<IMG DYNSRC="javascript:alert(\'XSS\')">', '<IMG dynsrc="alert(&#039;XSS&#039;)">');
 
-    // IMG lowrsc.
+    // IMG lowsrc.
     // @see https://www.owasp.org/index.php/XSS_Filter_Evasion_Cheat_Sheet#IMG_lowsrc
     $data[] = array('<IMG LOWSRC="javascript:alert(\'XSS\')">', '<IMG lowsrc="alert(&#039;XSS&#039;)">');
 
@@ -511,6 +511,17 @@ xss:ex/*XSS*//*/*/pression(alert("XSS"))\'>', 'exp/*<A>');
     // This one is irrelevant for Drupal; Drupal doesn't forbid linking to some
     // sites, it only forbids linking to any protocols other than those that are
     // whitelisted.
+
+    // Test XSS filtering on data-attributes.
+    // @see \Drupal\editor\EditorXssFilter::filterXssDataAttributes()
+
+    // The following two test cases verify that XSS attack vectors are filtered.
+    $data[] = array('<img src="butterfly.jpg" data-caption="&lt;script&gt;alert();&lt;/script&gt;" />', '<img src="butterfly.jpg" data-caption="alert();" />');
+    $data[] = array('<img src="butterfly.jpg" data-caption="&lt;EMBED SRC=&quot;http://ha.ckers.org/xss.swf&quot; AllowScriptAccess=&quot;always&quot;&gt;&lt;/EMBED&gt;" />', '<img src="butterfly.jpg" data-caption="" />');
+
+    // When including HTML-tags as visible content, they are double-escaped.
+    // This test case ensures that we leave that content unchanged.
+    $data[] = array('<img src="butterfly.jpg" data-caption="&amp;lt;script&amp;gt;alert();&amp;lt;/script&amp;gt;" />', '<img src="butterfly.jpg" data-caption="&amp;lt;script&amp;gt;alert();&amp;lt;/script&amp;gt;" />');
 
     return $data;
   }

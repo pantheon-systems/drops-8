@@ -9,7 +9,7 @@ namespace Drupal\Core\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\Entity\Exception\ConfigEntityIdLengthException;
 use Drupal\Core\Entity\Exception\UndefinedLinkTemplateException;
@@ -156,12 +156,18 @@ abstract class Entity implements EntityInterface {
    * {@inheritdoc}
    */
   public function urlInfo($rel = 'canonical', array $options = []) {
-    if ($this->isNew()) {
-      throw new EntityMalformedException(sprintf('The "%s" entity type has not been saved, and cannot have a URI.', $this->getEntityTypeId()));
+    if ($this->id() === NULL) {
+      throw new EntityMalformedException(sprintf('The "%s" entity cannot have a URI as it does have an ID', $this->getEntityTypeId()));
     }
 
     // The links array might contain URI templates set in annotations.
     $link_templates = $this->linkTemplates();
+
+    // Links pointing to the current revision point to the actual entity. So
+    // instead of using the 'revision' link, use the 'canonical' link.
+    if ($rel === 'revision' && $this instanceof RevisionableInterface && $this->isDefaultRevision()) {
+      $rel = 'canonical';
+    }
 
     if (isset($link_templates[$rel])) {
       $route_parameters = $this->urlRouteParameters($rel);
@@ -186,7 +192,7 @@ abstract class Entity implements EntityInterface {
         $uri = call_user_func($uri_callback, $this);
       }
       else {
-        throw new UndefinedLinkTemplateException(String::format('No link template "@rel" found for the "@entity_type" entity type', array(
+        throw new UndefinedLinkTemplateException(SafeMarkup::format('No link template "@rel" found for the "@entity_type" entity type', array(
           '@rel' => $rel,
           '@entity_type' => $this->getEntityTypeId(),
         )));
@@ -280,6 +286,10 @@ abstract class Entity implements EntityInterface {
       // The entity ID is needed as a route parameter.
       $uri_route_parameters[$this->getEntityTypeId()] = $this->id();
     }
+    if ($rel === 'revision') {
+      $uri_route_parameters[$this->getEntityTypeId() . '_revision'] = $this->getRevisionId();
+    }
+
     return $uri_route_parameters;
   }
 
@@ -371,7 +381,7 @@ abstract class Entity implements EntityInterface {
     if ($this->getEntityType()->getBundleOf()) {
       // Throw an exception if the bundle ID is longer than 32 characters.
       if (Unicode::strlen($this->id()) > EntityTypeInterface::BUNDLE_MAX_LENGTH) {
-        throw new ConfigEntityIdLengthException(String::format(
+        throw new ConfigEntityIdLengthException(SafeMarkup::format(
           'Attempt to create a bundle with an ID longer than @max characters: @id.', array(
             '@max' => EntityTypeInterface::BUNDLE_MAX_LENGTH,
             '@id' => $this->id(),
@@ -429,9 +439,23 @@ abstract class Entity implements EntityInterface {
   /**
    * {@inheritdoc}
    */
+  public function getCacheContexts() {
+    return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getCacheTags() {
     // @todo Add bundle-specific listing cache tag? https://drupal.org/node/2145751
     return [$this->entityTypeId . ':' . $this->id()];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    return Cache::PERMANENT;
   }
 
   /**
@@ -480,6 +504,10 @@ abstract class Entity implements EntityInterface {
     // listing's filtering requirements. A newly created entity may start to
     // appear in listings because it did not exist before.)
     $tags = $this->getEntityType()->getListCacheTags();
+    if ($this->hasLinkTemplate('canonical')) {
+      // Creating or updating an entity may change a cached 403 or 404 response.
+      $tags = Cache::mergeTags($tags, ['4xx-response']);
+    }
     if ($update) {
       // An existing entity was updated, also invalidate its unique cache tag.
       $tags = Cache::mergeTags($tags, $this->getCacheTags());

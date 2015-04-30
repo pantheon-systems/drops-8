@@ -95,9 +95,9 @@ class Twig_Extension_Core extends Twig_Extension
     /**
      * Sets the default format to be used by the number_format filter.
      *
-     * @param int     $decimal      The number of decimal places to use.
-     * @param string  $decimalPoint The character(s) to use for the decimal point.
-     * @param string  $thousandSep  The character(s) to use for the thousands separator.
+     * @param int    $decimal      The number of decimal places to use.
+     * @param string $decimalPoint The character(s) to use for the decimal point.
+     * @param string $thousandSep  The character(s) to use for the thousands separator.
      */
     public function setNumberFormat($decimal, $decimalPoint, $thousandSep)
     {
@@ -617,12 +617,12 @@ function twig_urlencode_filter($url)
     return rawurlencode($url);
 }
 
-if (version_compare(PHP_VERSION, '5.3.0', '<')) {
+if (PHP_VERSION_ID < 50300) {
     /**
      * JSON encodes a variable.
      *
-     * @param mixed   $value   The value to encode.
-     * @param int     $options Not used on PHP 5.2.x
+     * @param mixed $value   The value to encode.
+     * @param int   $options Not used on PHP 5.2.x
      *
      * @return mixed The JSON encoded value
      */
@@ -640,8 +640,8 @@ if (version_compare(PHP_VERSION, '5.3.0', '<')) {
     /**
      * JSON encodes a variable.
      *
-     * @param mixed   $value   The value to encode.
-     * @param int     $options Bitmask consisting of JSON_HEX_QUOT, JSON_HEX_TAG, JSON_HEX_AMP, JSON_HEX_APOS, JSON_NUMERIC_CHECK, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES, JSON_FORCE_OBJECT
+     * @param mixed $value   The value to encode.
+     * @param int   $options Bitmask consisting of JSON_HEX_QUOT, JSON_HEX_TAG, JSON_HEX_AMP, JSON_HEX_APOS, JSON_NUMERIC_CHECK, JSON_PRETTY_PRINT, JSON_UNESCAPED_SLASHES, JSON_FORCE_OBJECT
      *
      * @return mixed The JSON encoded value
      */
@@ -707,8 +707,12 @@ function twig_slice(Twig_Environment $env, $item, $start, $length = null, $prese
             $item = $item->getIterator();
         }
 
-        if ($start >= 0 && $length >= 0) {
-            return iterator_to_array(new LimitIterator($item, $start, $length === null ? -1 : $length), $preserveKeys);
+        if ($start >= 0 && $length >= 0 && $item instanceof Iterator) {
+            try {
+                return iterator_to_array(new LimitIterator($item, $start, $length === null ? -1 : $length), $preserveKeys);
+            } catch (OutOfBoundsException $exception) {
+                return array();
+            }
         }
 
         $item = iterator_to_array($item, $preserveKeys);
@@ -930,15 +934,11 @@ function twig_sort_filter($array)
 function twig_in_filter($value, $compare)
 {
     if (is_array($compare)) {
-        return in_array($value, $compare, is_object($value));
-    } elseif (is_string($compare)) {
-        if (!strlen($value)) {
-            return empty($compare);
-        }
-
-        return false !== strpos($compare, (string) $value);
+        return in_array($value, $compare, is_object($value) || is_resource($value));
+    } elseif (is_string($compare) && (is_string($value) || is_int($value) || is_float($value))) {
+        return '' === $value || false !== strpos($compare, (string) $value);
     } elseif ($compare instanceof Traversable) {
-        return in_array($value, iterator_to_array($compare, false), is_object($value));
+        return in_array($value, iterator_to_array($compare, false), is_object($value) || is_resource($value));
     }
 
     return false;
@@ -1073,9 +1073,7 @@ function twig_escape_filter(Twig_Environment $env, $string, $strategy = 'html', 
             return $string;
 
         case 'url':
-            // hackish test to avoid version_compare that is much slower, this works unless PHP releases a 5.10.*
-            // at that point however PHP 5.2.* support can be removed
-            if (PHP_VERSION < '5.3.0') {
+            if (PHP_VERSION_ID < 50300) {
                 return str_replace('%7E', '~', rawurlencode($string));
             }
 
@@ -1216,7 +1214,6 @@ function _twig_escape_html_attr_callback($matches)
      * Per OWASP recommendations, we'll use hex entities for any other
      * characters where a named entity does not exist.
      */
-
     return sprintf('&#x%s;', $hex);
 }
 
@@ -1228,7 +1225,7 @@ if (function_exists('mb_get_info')) {
      * @param Twig_Environment $env   A Twig_Environment instance
      * @param mixed            $thing A variable
      *
-     * @return int     The length of the value
+     * @return int The length of the value
      */
     function twig_length_filter(Twig_Environment $env, $thing)
     {
@@ -1312,7 +1309,7 @@ else {
      * @param Twig_Environment $env   A Twig_Environment instance
      * @param mixed            $thing A variable
      *
-     * @return int     The length of the value
+     * @return int The length of the value
      */
     function twig_length_filter(Twig_Environment $env, $thing)
     {

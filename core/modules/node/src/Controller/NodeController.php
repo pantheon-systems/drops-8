@@ -7,7 +7,7 @@
 
 namespace Drupal\node\Controller;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatter;
@@ -185,14 +185,14 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
           $row[] = array('data' => $this->t('!date by !username', array('!date' => $node->link($this->dateFormatter->format($revision->revision_timestamp->value, 'short')), '!username' => drupal_render($username)))
             . (($revision->revision_log->value != '') ? '<p class="revision-log">' . Xss::filter($revision->revision_log->value) . '</p>' : ''),
             'class' => array('revision-current'));
-          $row[] = array('data' => String::placeholder($this->t('current revision')), 'class' => array('revision-current'));
+          $row[] = array('data' => SafeMarkup::placeholder($this->t('current revision')), 'class' => array('revision-current'));
         }
         else {
           $username = array(
             '#theme' => 'username',
             '#account' => $revision_author,
           );
-          $row[] = $this->t('!date by !username', array('!date' => $this->l($this->dateFormatter->format($revision->revision_timestamp->value, 'short'), new Url('node.revision_show', array('node' => $node->id(), 'node_revision' => $vid))), '!username' => drupal_render($username)))
+          $row[] = $this->t('!date by !username', array('!date' => $this->l($this->dateFormatter->format($revision->revision_timestamp->value, 'short'), new Url('entity.node.revision', array('node' => $node->id(), 'node_revision' => $vid))), '!username' => drupal_render($username)))
             . (($revision->revision_log->value != '') ? '<p class="revision-log">' . Xss::filter($revision->revision_log->value) . '</p>' : '');
 
           if ($revert_permission) {

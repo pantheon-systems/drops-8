@@ -7,7 +7,7 @@
 
 namespace Drupal\shortcut\Tests;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Url;
 use Drupal\shortcut\Entity\Shortcut;
 use Drupal\shortcut\Entity\ShortcutSet;
@@ -64,15 +64,16 @@ class ShortcutLinksTest extends ShortcutTestBase {
       );
       $this->drupalPostForm('admin/config/user-interface/shortcut/manage/' . $set->id() . '/add-link', $form_data, t('Save'));
       $this->assertResponse(200);
+      $this->assertText(t('Added a shortcut for @title.', array('@title' => $title)));
       $saved_set = ShortcutSet::load($set->id());
       $paths = $this->getShortcutInformation($saved_set, 'link');
       $this->assertTrue(in_array('internal:' . $test_path, $paths), 'Shortcut created: ' . $test_path);
 
       if (in_array($test_path, $test_cases_non_access)) {
-        $this->assertNoLink($title, String::format('Shortcut link %url not accessible on the page.', ['%url' => $test_path]));
+        $this->assertNoLink($title, SafeMarkup::format('Shortcut link %url not accessible on the page.', ['%url' => $test_path]));
       }
       else {
-        $this->assertLink($title, 0, String::format('Shortcut link %url found on the page.', ['%url' => $test_path]));
+        $this->assertLink($title, 0, SafeMarkup::format('Shortcut link %url found on the page.', ['%url' => $test_path]));
       }
     }
     $saved_set = ShortcutSet::load($set->id());
@@ -152,6 +153,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $titles = $this->getShortcutInformation($saved_set, 'title');
     $this->assertTrue(in_array($new_link_name, $titles), 'Shortcut renamed: ' . $new_link_name);
     $this->assertLink($new_link_name, 0, 'Renamed shortcut link appears on the page.');
+    $this->assertText(t('The shortcut @link has been updated.', array('@link' => $new_link_name)));
   }
 
   /**
@@ -170,6 +172,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $paths = $this->getShortcutInformation($saved_set, 'link');
     $this->assertTrue(in_array('internal:' . $new_link_path, $paths), 'Shortcut path changed: ' . $new_link_path);
     $this->assertLinkByHref($new_link_path, 0, 'Shortcut with new path appears on the page.');
+    $this->assertText(t('The shortcut @link has been updated.', array('@link' => $shortcut->getTitle())));
   }
 
   /**

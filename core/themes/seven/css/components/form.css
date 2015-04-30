@@ -5,8 +5,20 @@ form {
   margin: 0;
   padding: 0;
 }
-fieldset {
+fieldset:not(.fieldgroup) {
+  background-color: #fcfcfa;
+  border-radius: 2px;
   margin: 1em 0;
+  padding: 30px 18px 18px;
+  position: relative;
+}
+fieldset:not(.fieldgroup) legend {
+  font-size: 1em;
+  font-weight: bold;
+  letter-spacing: 0.08em;
+  position: absolute;
+  text-transform: uppercase;
+  top: 10px;
 }
 .fieldgroup {
   min-width: 0;
@@ -85,15 +97,12 @@ label[for] {
 
 
 /* Filter */
-.filter-wrapper {
-  font-size: 0.923em;
-}
 ul.tips,
 div.description,
 .form-item .description {
   margin: 0.2em 0 0 0;
   color: #595959;
-  font-size: 0.9em;
+  font-size: 0.95em;
 }
 .form-item .description.error {
   color: #a51b00;
@@ -133,8 +142,8 @@ input.form-file,
 input.form-date,
 input.form-time,
 textarea.form-textarea {
-  box-sizing:         border-box;
-  padding: .3em .4em .3em .5em;
+  box-sizing: border-box;
+  padding: .3em .4em .3em .5em; /* LTR */
   max-width: 100%;
   border: 1px solid #b8b8b8;
   border-top-color: #999;
@@ -147,6 +156,9 @@ textarea.form-textarea {
   color: #595959;
   -webkit-transition: border linear 0.2s, box-shadow linear 0.2s;
   transition: border linear 0.2s, box-shadow linear 0.2s;
+}
+[dir="rtl"] textarea.form-textarea {
+  padding: .3em .5em .3em .4em;
 }
 .form-text:focus,
 .form-tel:focus,
@@ -173,11 +185,12 @@ textarea.form-textarea {
 
 .form-item .password-suggestions {
   float: left; /* LTR */
-  clear: left;
+  clear: left; /* LTR */
   width: 100%;
 }
 [dir="rtl"] .form-item .password-suggestions {
   float: right;
+  clear: right;
 }
 .form-item-pass .description {
   clear: both;

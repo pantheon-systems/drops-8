@@ -7,7 +7,6 @@ global-styling:
       css/base/print.css: {}
     component:
       css/components/admin-list.css: {}
-      css/components/block-recent-content.css: {}
       css/components/content-header.css: {}
       css/components/breadcrumb.css: {}
       css/components/buttons.css: {}
@@ -26,12 +25,14 @@ global-styling:
       css/components/panel.css: {}
       css/components/skip-link.css: {}
       css/components/tables.css: {}
+      css/components/system-status-report.css: {}
       css/components/tabs.css: {}
       css/components/tour.theme.css: {}
-      css/components/update-status.css: {}
       css/components/views-ui.css: {}
     layout:
       css/layout/layout.css: {}
+  dependencies:
+    - system/admin
 
 node-form:
   version: VERSION
@@ -71,4 +72,22 @@ drupal.nav-tabs:
     - core/jquery
     - core/drupal
     - core/jquery.once
-    - core/jquery.intrinsic
+    - core/drupal.debounce
+
+vertical-tabs:
+  version: VERSION
+  css:
+    component:
+      css/components/vertical-tabs.css: {}
+
+seven.jquery.ui:
+  version: VERSION
+  css:
+    component:
+      css/components/jquery.ui/theme.css: { weight: -1 }
+
+seven.drupal.dialog:
+  version: VERSION
+  css:
+    theme:
+      css/components/dialog.theme.css: {}

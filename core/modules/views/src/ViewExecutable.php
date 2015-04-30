@@ -7,8 +7,9 @@
 
 namespace Drupal\views;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Cache\Cache;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Routing\RouteProviderInterface;
@@ -20,6 +21,7 @@ use Drupal\views\ViewEntityInterface;
 use Drupal\Component\Utility\Tags;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Represents a view as a whole.
@@ -993,7 +995,7 @@ class ViewExecutable implements \Serializable {
 
         // Add this argument's substitution
         $substitutions['%' . ($position + 1)] = $arg_title;
-        $substitutions['!' . ($position + 1)] = strip_tags(String::decodeEntities($arg));
+        $substitutions['!' . ($position + 1)] = strip_tags(Html::decodeEntities($arg));
 
         // Test to see if we should use this argument's title
         if (!empty($argument->options['title_enable']) && !empty($argument->options['title'])) {
@@ -1762,6 +1764,17 @@ class ViewExecutable implements \Serializable {
       return FALSE;
     }
 
+    // Look up the route name to make sure it exists.  The name may exist, but
+    // not be available yet in some instances when editing a view and doing
+    // a live preview.
+    $provider = \Drupal::service('router.route_provider');
+    try {
+      $provider->getRouteByName($display_handler->getRouteName());
+    }
+    catch (RouteNotFoundException $e) {
+      return FALSE;
+    }
+
     return TRUE;
   }
 
@@ -1859,7 +1872,7 @@ class ViewExecutable implements \Serializable {
   public function getUrlInfo($display_id = '') {
     $this->initDisplay();
     if (!$this->display_handler instanceof DisplayRouterInterface) {
-      throw new \InvalidArgumentException(String::format('You cannot generate a URL for the display @display_id', ['@display_id' => $display_id]));
+      throw new \InvalidArgumentException(SafeMarkup::format('You cannot generate a URL for the display @display_id', ['@display_id' => $display_id]));
     }
     return $this->display_handler->getUrlInfo();
   }
@@ -2057,7 +2070,7 @@ class ViewExecutable implements \Serializable {
    * @param string $requested_id
    *   The requested ID for the handler instance.
    * @param array $existing_items
-   *   An array of existing handler instancess, keyed by their IDs.
+   *   An array of existing handler instances, keyed by their IDs.
    *
    * @return string
    *   A unique ID. This will be equal to $requested_id if no handler instance

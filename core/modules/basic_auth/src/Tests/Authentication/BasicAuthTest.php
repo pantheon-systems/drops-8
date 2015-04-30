@@ -7,7 +7,7 @@
 
 namespace Drupal\basic_auth\Tests\Authentication;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\simpletest\WebTestBase;
@@ -32,7 +32,6 @@ class BasicAuthTest extends WebTestBase {
   public function testBasicAuth() {
     // Enable page caching.
     $config = $this->config('system.performance');
-    $config->set('cache.page.use_internal', 1);
     $config->set('cache.page.max_age', 300);
     $config->save();
 
@@ -51,10 +50,8 @@ class BasicAuthTest extends WebTestBase {
     $this->assertResponse('403', 'Access is not granted.');
     $this->curlClose();
 
-    // @todo Change ->drupalGet() calls to just pass $url when
-    //   https://www.drupal.org/node/2350837 gets committed
-    $this->drupalGet($url->setAbsolute()->toString());
-    $this->assertEqual($this->drupalGetHeader('WWW-Authenticate'), String::format('Basic realm="@realm"', ['@realm' => \Drupal::config('system.site')->get('name')]));
+    $this->drupalGet($url);
+    $this->assertEqual($this->drupalGetHeader('WWW-Authenticate'), SafeMarkup::format('Basic realm="@realm"', ['@realm' => \Drupal::config('system.site')->get('name')]));
     $this->assertResponse('401', 'Not authenticated on the route that allows only basic_auth. Prompt to authenticate received.');
 
     $this->drupalGet('admin');
@@ -145,7 +142,7 @@ class BasicAuthTest extends WebTestBase {
    */
   function testLocale() {
     ConfigurableLanguage::createFromLangcode('de')->save();
-    $this->config('system.site')->set('langcode', 'de')->save();
+    $this->config('system.site')->set('default_langcode', 'de')->save();
 
     $account = $this->drupalCreateUser();
     $url = Url::fromRoute('router_test.11');
@@ -154,6 +151,30 @@ class BasicAuthTest extends WebTestBase {
     $this->assertText($account->getUsername(), 'Account name is displayed.');
     $this->assertResponse('200', 'HTTP response is OK');
     $this->curlClose();
+  }
+
+  /**
+   * Tests if a comprehensive message is displayed when the route is denied.
+   */
+  function testUnauthorizedErrorMessage() {
+    $account = $this->drupalCreateUser();
+    $url = Url::fromRoute('router_test.11');
+
+    // Case when no credentials are passed.
+    $this->drupalGet($url);
+    $this->assertResponse('401', 'The user is blocked when no credentials are passed.');
+    $this->assertNoText('Exception', "No raw exception is displayed on the page.");
+    $this->assertText('Please log in to access this page.', "A user friendly access unauthorized message is displayed.");
+
+    // Case when empty credentials are passed.
+    $this->basicAuthGet($url, NULL, NULL);
+    $this->assertResponse('403', 'The user is blocked when empty credentials are passed.');
+    $this->assertText('Access denied', "A user friendly access denied message is displayed");
+
+    // Case when wrong credentials are passed.
+    $this->basicAuthGet($url, $account->getUsername(), $this->randomMachineName());
+    $this->assertResponse('403', 'The user is blocked when wrong credentials are passed.');
+    $this->assertText('Access denied', "A user friendly access denied message is displayed");
   }
 
   /**

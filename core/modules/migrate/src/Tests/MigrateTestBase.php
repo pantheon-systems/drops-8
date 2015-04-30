@@ -56,6 +56,9 @@ abstract class MigrateTestBase extends WebTestBase implements MigrateMessageInte
         // Simpletest uses 7 character prefixes at most so this can't cause
         // collisions.
         'default' => $value['prefix']['default'] . '0',
+        // Add the original simpletest prefix so SQLite can attach its database.
+        // @see \Drupal\Core\Database\Driver\sqlite\Connection::init()
+        $value['prefix']['default'] => $value['prefix']['default'],
       );
     }
     Database::addConnectionInfo('migrate', 'default', $connection_info['default']);
@@ -79,6 +82,9 @@ abstract class MigrateTestBase extends WebTestBase implements MigrateMessageInte
    */
   protected function prepare(MigrationInterface $migration, array $files = array()) {
     $this->loadDumps($files);
+    if ($this instanceof MigrateDumpAlterInterface) {
+      static::migrateDumpAlter($this);
+    }
   }
 
   /**

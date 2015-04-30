@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\entity\Tests\ContentTranslationUITest.
+ * Contains \Drupal\content_translation\Tests\ContentTranslationUITest.
  */
 
 namespace Drupal\content_translation\Tests;
@@ -28,7 +28,7 @@ abstract class ContentTranslationUITest extends ContentTranslationTestBase {
   /**
    * Whether the behavior of the language selector should be tested.
    *
-   * @var boolean
+   * @var bool
    */
   protected $testLanguageSelector = TRUE;
 

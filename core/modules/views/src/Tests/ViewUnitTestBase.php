@@ -33,11 +33,23 @@ abstract class ViewUnitTestBase extends KernelTestBase {
    */
   public static $modules = array('system', 'views', 'views_test_config', 'views_test_data');
 
-  protected function setUp() {
+  /**
+   * {@inheritdoc}
+   *
+   * @param bool $import_test_views
+   *   Should the views specififed on the test class be imported. If you need
+   *   to setup some additional stuff, like fields, you need to call false and
+   *   then call createTestViews for your own.
+   */
+  protected function setUp($import_test_views = TRUE) {
     parent::setUp();
 
     $this->installSchema('system', array('router', 'sequences'));
     $this->setUpFixtures();
+
+    if ($import_test_views) {
+      ViewTestData::createTestViews(get_class($this), array('views_test_config'));
+    }
   }
 
   /**
@@ -70,8 +82,6 @@ abstract class ViewUnitTestBase extends KernelTestBase {
       $query->values($record);
     }
     $query->execute();
-
-    ViewTestData::createTestViews(get_class($this), array('views_test_config'));
   }
 
   /**

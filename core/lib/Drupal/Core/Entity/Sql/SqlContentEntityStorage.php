@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Entity\Sql;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Database\Connection;
@@ -22,6 +22,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Entity\Schema\DynamicallyFieldableEntityStorageSchemaInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\field\FieldStorageConfigInterface;
@@ -283,7 +284,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $this->initTableLayout();
     }
     else {
-      throw new EntityStorageException(String::format('Unsupported entity type @id', array('@id' => $entity_type->id())));
+      throw new EntityStorageException(SafeMarkup::format('Unsupported entity type @id', array('@id' => $entity_type->id())));
     }
   }
 
@@ -960,9 +961,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       if ($this->revisionDataTable) {
         $this->saveToSharedTables($entity, $this->revisionDataTable);
       }
-      if ($this->revisionTable) {
-        $entity->setNewRevision(FALSE);
-      }
     }
     else {
       // Ensure the entity is still seen as new after assigning it an id,
@@ -990,17 +988,16 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       if ($this->revisionDataTable) {
         $this->saveToSharedTables($entity, $this->revisionDataTable);
       }
-
-      $entity->enforceIsNew(FALSE);
-      if ($this->revisionTable) {
-        $entity->setNewRevision(FALSE);
-      }
     }
     $this->invokeFieldMethod($is_new ? 'insert' : 'update', $entity);
     $this->saveToDedicatedTables($entity, !$is_new);
 
     if (!$is_new && $this->dataTable) {
       $this->invokeTranslationHooks($entity);
+    }
+    $entity->enforceIsNew(FALSE);
+    if ($this->revisionTable) {
+      $entity->setNewRevision(FALSE);
     }
     return $return;
   }
@@ -1070,7 +1067,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     foreach ($table_mapping->getFieldNames($table_name) as $field_name) {
 
       if (empty($this->getFieldStorageDefinitions()[$field_name])) {
-        throw new EntityStorageException(String::format('Table mapping contains invalid field %field.', array('%field' => $field_name)));
+        throw new EntityStorageException(SafeMarkup::format('Table mapping contains invalid field %field.', array('%field' => $field_name)));
       }
       $definition = $this->getFieldStorageDefinitions()[$field_name];
       $columns = $table_mapping->getColumnNames($field_name);
@@ -1317,11 +1314,20 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $vid = $id;
     }
 
+    $original = !empty($entity->original) ? $entity->original: NULL;
+
     foreach ($this->entityManager->getFieldDefinitions($entity_type, $bundle) as $field_name => $field_definition) {
       $storage_definition = $field_definition->getFieldStorageDefinition();
       if (!$table_mapping->requiresDedicatedTableStorage($storage_definition)) {
         continue;
       }
+
+      // When updating an existing revision, keep the existing records if the
+      // field values did not change.
+      if (!$entity->isNewRevision() && $original && !$this->hasFieldValueChanged($field_definition, $entity, $original)) {
+        continue;
+      }
+
       $table_name = $table_mapping->getDedicatedDataTableName($storage_definition);
       $revision_name = $table_mapping->getDedicatedRevisionTableName($storage_definition);
 

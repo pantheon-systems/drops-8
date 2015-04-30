@@ -31,12 +31,10 @@ class InstallerExistingSettingsTest extends InstallerTestBase {
       'required' => TRUE,
     );
 
-    // Actually the install profile should be skipped to because it is written
-    // to settings.php.
-    // @todo https://www.drupal.org/node/2451369 Fix install_profile so that it
-    //   is written to an existing settings.php if possible or if set used.
+    // During interactive install we'll change this to a different profile and
+    // this test will ensure that the new value is written to settings.php.
     $this->settings['settings']['install_profile'] = (object) array(
-      'value' => 'testing',
+      'value' => 'minimal',
       'required' => TRUE,
     );
 
@@ -81,6 +79,7 @@ class InstallerExistingSettingsTest extends InstallerTestBase {
   public function testInstaller() {
     $this->assertUrl('user/1');
     $this->assertResponse(200);
+    $this->assertEqual('testing', drupal_get_profile(), 'Profile was changed from minimal to testing during interactive install.');
   }
 
 }

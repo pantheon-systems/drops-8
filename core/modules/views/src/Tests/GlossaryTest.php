@@ -8,6 +8,7 @@
 namespace Drupal\views\Tests;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
 use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\views\Views;
@@ -33,7 +34,7 @@ class GlossaryTest extends ViewTestBase {
    * Tests the default glossary view.
    */
   public function testGlossaryView() {
-    // create a contentype and add some nodes, with a non random title.
+    // Create a content type and add some nodes, with a non-random title.
     $type = $this->drupalCreateContentType();
     $nodes_per_char = array(
       'd' => 1,
@@ -69,10 +70,24 @@ class GlossaryTest extends ViewTestBase {
     // Enable the glossary to be displayed.
     $view->storage->enable()->save();
     $this->container->get('router.builder')->rebuildIfNeeded();
-    // Check the actual page response.
-    $this->drupalGet('glossary');
-    $this->assertResponse(200);
+    $url = Url::fromRoute('view.glossary.page_1');
 
+    // Verify cache tags.
+    $this->assertPageCacheContextsAndTags($url, ['languages:' . LanguageInterface::TYPE_CONTENT, 'languages:' . LanguageInterface::TYPE_INTERFACE, 'theme', 'url', 'user.node_grants:view', 'user.permissions'], [
+      'config:views.view.glossary',
+      'node:' . $nodes_by_char['a'][0]->id(), 'node:' . $nodes_by_char['a'][1]->id(), 'node:' . $nodes_by_char['a'][2]->id(),
+      'node_list',
+      'user:0',
+      'user_list',
+      'rendered',
+      // FinishResponseSubscriber adds this cache tag to responses that have the
+      // 'user.permissions' cache context for anonymous users.
+      'config:user.role.anonymous',
+    ]);
+
+    // Check the actual page response.
+    $this->drupalGet($url);
+    $this->assertResponse(200);
     foreach ($nodes_per_char as $char => $count) {
       $href = Url::fromRoute('view.glossary.page_1', ['arg_0' => $char])->toString();
       $label = Unicode::strtoupper($char);
@@ -84,16 +99,6 @@ class GlossaryTest extends ViewTestBase {
       $result_count = trim(str_replace(array('|', '(', ')'), '', (string) $result[0]));
       $this->assertEqual($result_count, $count, 'The expected number got rendered.');
     }
-
-    // Verify cache tags.
-    $this->enablePageCaching();
-    $this->assertPageCacheContextsAndTags(Url::fromRoute('view.glossary.page_1'), ['languages', 'url', 'user'], [
-      'config:views.view.glossary',
-      'node:' . $nodes_by_char['a'][0]->id(), 'node:' . $nodes_by_char['a'][1]->id(), 'node:' . $nodes_by_char['a'][2]->id(),
-      'node_list',
-      'user_list',
-      'rendered',
-    ]);
   }
 
 }

@@ -15,7 +15,6 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Render\Renderer;
-use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Defines a service for comment post render cache callbacks.
@@ -99,19 +98,17 @@ class CommentPostRenderCache {
    *   - entity_type: an entity type
    *   - entity_id: an entity ID
    *   - field_name: a comment field name
+   *   - comment_type: the comment type
    *
    * @return array
    *   A renderable array containing the comment form.
    */
   public function renderForm(array $element, array $context) {
-    $field_name = $context['field_name'];
-    $entity = $this->entityManager->getStorage($context['entity_type'])->load($context['entity_id']);
-    $field_storage = FieldStorageConfig::loadByName($entity->getEntityTypeId(), $field_name);
     $values = array(
-      'entity_type' => $entity->getEntityTypeId(),
-      'entity_id' => $entity->id(),
-      'field_name' => $field_name,
-      'comment_type' => $field_storage->getSetting('bundle'),
+      'entity_type' => $context['entity_type'],
+      'entity_id' => $context['entity_id'],
+      'field_name' => $context['field_name'],
+      'comment_type' => $context['comment_type'],
       'pid' => NULL,
     );
     $comment = $this->entityManager->getStorage('comment')->create($values);
@@ -121,7 +118,7 @@ class CommentPostRenderCache {
     $callback = 'comment.post_render_cache:renderForm';
     $placeholder = $this->generatePlaceholder($callback, $context);
     $element['#markup'] = str_replace($placeholder, $markup, $element['#markup']);
-    $element = Renderer::mergeBubbleableMetadata($element, $form);
+    $element = $this->renderer->mergeBubbleableMetadata($element, $form);
 
     return $element;
   }

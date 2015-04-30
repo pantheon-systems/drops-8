@@ -15,9 +15,8 @@ use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Number;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\SortArray;
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Tags;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AttachedAssets;
@@ -280,10 +279,10 @@ function valid_email_address($mail) {
  *   \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols() instead.
  *
  * @see \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols()
- * @see \Drupal\Component\Utility\String::checkPlain()
+ * @see \Drupal\Component\Utility\SafeMarkup::checkPlain()
  */
 function check_url($uri) {
-  return String::checkPlain(UrlHelper::stripDangerousProtocols($uri));
+  return SafeMarkup::checkPlain(UrlHelper::stripDangerousProtocols($uri));
 }
 
 /**
@@ -325,7 +324,7 @@ function format_xml_elements($array) {
         }
 
         if (isset($value['value']) && $value['value'] != '') {
-          $output .= '>' . (is_array($value['value']) ? format_xml_elements($value['value']) : String::checkPlain($value['value'])) . '</' . $value['key'] . ">\n";
+          $output .= '>' . (is_array($value['value']) ? format_xml_elements($value['value']) : SafeMarkup::checkPlain($value['value'])) . '</' . $value['key'] . ">\n";
         }
         else {
           $output .= " />\n";
@@ -333,7 +332,7 @@ function format_xml_elements($array) {
       }
     }
     else {
-      $output .= ' <' . $key . '>' . (is_array($value) ? format_xml_elements($value) : String::checkPlain($value)) . "</$key>\n";
+      $output .= ' <' . $key . '>' . (is_array($value) ? format_xml_elements($value) : SafeMarkup::checkPlain($value)) . "</$key>\n";
     }
   }
   // @todo This is marking the output string as safe HTML, but we have only
@@ -570,7 +569,7 @@ function _drupal_add_html_head_link($attributes, $header = FALSE) {
 
   if ($header) {
     // Also add a HTTP header "Link:".
-    $href = '<' . String::checkPlain($attributes['href']) . '>;';
+    $href = '<' . SafeMarkup::checkPlain($attributes['href']) . '>;';
     unset($attributes['href']);
     $element['#attached']['http_header'][] = array('Link',  $href . drupal_http_header_attributes($attributes), TRUE);
   }
@@ -658,7 +657,7 @@ function drupal_js_defaults($data = NULL) {
  *   \Drupal\Core\Render\Renderer::mergeAttachments() instead.
  */
 function drupal_merge_attached(array $a, array $b) {
-  return Renderer::mergeAttachments($a, $b);
+  return \Drupal::service('renderer')->mergeAttachments($a, $b);
 }
 
 /**
@@ -1186,9 +1185,9 @@ function drupal_render_children(&$element, $children_keys = NULL) {
 /**
  * Renders an element.
  *
- * This function renders an element using drupal_render(). The top level
- * element is shown with show() before rendering, so it will always be rendered
- * even if hide() had been previously used on it.
+ * This function renders an element. The top level element is shown with show()
+ * before rendering, so it will always be rendered even if hide() had been
+ * previously used on it.
  *
  * @param $element
  *   The element to be rendered.
@@ -1196,7 +1195,7 @@ function drupal_render_children(&$element, $children_keys = NULL) {
  * @return
  *   The rendered element.
  *
- * @see drupal_render()
+ * @see \Drupal\Core\Render\RendererInterface
  * @see show()
  * @see hide()
  */
@@ -1210,7 +1209,7 @@ function render(&$element) {
       return $element['#markup'];
     }
     show($element);
-    return drupal_render($element);
+    return \Drupal::service('renderer')->render($element);
   }
   else {
     // Safe-guard for inappropriate use of render() on flat variables: return
@@ -1307,8 +1306,8 @@ function drupal_render_cache_generate_placeholder($callback, array &$context) {
  * @param $type
  *   An element type as defined by hook_element_info().
  *
- * @deprecated As of Drupal 8.0, use \Drupal::service('element_info')->getInfo()
- *   instead.
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use \Drupal::service('element_info')->getInfo() instead.
  */
 function element_info($type) {
   return \Drupal::service('element_info')->getInfo($type);
@@ -1324,95 +1323,12 @@ function element_info($type) {
  * @param $default
  *   (Optional) The value to return if the element type does not specify a
  *   value for the property. Defaults to NULL.
+ *
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use \Drupal::service('element_info')->getInfoProperty() instead.
  */
 function element_info_property($type, $property_name, $default = NULL) {
-  return (($info = element_info($type)) && array_key_exists($property_name, $info)) ? $info[$property_name] : $default;
-}
-
-/**
- * Checks if the key is a property.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Render\Element::property().
- */
-function element_property($key) {
-  return Element::property($key);
-}
-
-/**
- * Gets properties of a structured array element (keys beginning with '#').
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Render\Element::properties().
- */
-function element_properties($element) {
-  return Element::properties($element);
-}
-
-/**
- * Checks if the key is a child.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Render\Element::child().
- */
-function element_child($key) {
-  return Element::child($key);
-}
-
-/**
- * Identifies the children of an element array, optionally sorted by weight.
- *
- * The children of a element array are those key/value pairs whose key does
- * not start with a '#'. See drupal_render() for details.
- *
- * @param $elements
- *   The element array whose children are to be identified.
- * @param $sort
- *   Boolean to indicate whether the children should be sorted by weight.
- *
- * @return
- *   The array keys of the element's children.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Render\Element::children().
- */
-function element_children(&$elements, $sort = FALSE) {
-  return Element::children($elements, $sort);
-}
-
-/**
- * Returns the visible children of an element.
- *
- * @param $elements
- *   The parent element.
- *
- * @return
- *   The array keys of the element's visible children.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Render\Element::getVisibleChildren().
- */
-function element_get_visible_children(array $elements) {
-  return Element::getVisibleChildren($elements);
-}
-
-/**
- * Sets HTML attributes based on element properties.
- *
- * @param $element
- *   The renderable element to process.
- * @param $map
- *   An associative array whose keys are element property names and whose values
- *   are the HTML attribute names to set for corresponding the property; e.g.,
- *   array('#propertyname' => 'attributename'). If both names are identical
- *   except for the leading '#', then an attribute name value is sufficient and
- *   no property name needs to be specified.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Render\Element::setAttributes().
- */
-function element_set_attributes(array &$element, array $map) {
-  Element::setAttributes($element, $map);
+  return \Drupal::service('element_info')->getInfoProperty($type, $property_name, $default);
 }
 
 /**
@@ -1581,7 +1497,7 @@ function _drupal_flush_css_js() {
  */
 function debug($data, $label = NULL, $print_r = TRUE) {
   // Print $data contents to string.
-  $string = String::checkPlain($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
+  $string = SafeMarkup::checkPlain($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
 
   // Display values with pre-formatting to increase readability.
   $string = '<pre>' . $string . '</pre>';

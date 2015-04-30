@@ -7,7 +7,7 @@
 
 namespace Drupal\views\Plugin\views\exposed_form;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Form\ViewsExposedForm;
@@ -210,7 +210,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
     $exposed_sorts = array();
     foreach ($this->view->sort as $id => $handler) {
       if ($handler->canExpose() && $handler->isExposed()) {
-        $exposed_sorts[$id] = String::checkPlain($handler->options['expose']['label']);
+        $exposed_sorts[$id] = SafeMarkup::checkPlain($handler->options['expose']['label']);
       }
     }
 
@@ -285,7 +285,7 @@ abstract class ExposedFormPluginBase extends PluginBase {
   }
 
   /**
-   * This function is executed when exposed form is submited.
+   * This function is executed when exposed form is submitted.
    *
    * @param $form
    *   Nested array of form elements that comprise the form.

@@ -10,7 +10,6 @@ namespace Drupal\views\Plugin\views\field;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\String;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
@@ -241,7 +240,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       }
     }
     if ($this->options['element_type']) {
-      return String::checkPlain($this->options['element_type']);
+      return SafeMarkup::checkPlain($this->options['element_type']);
     }
 
     if ($default_empty) {
@@ -269,7 +268,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       }
     }
     if ($this->options['element_label_type']) {
-      return String::checkPlain($this->options['element_label_type']);
+      return SafeMarkup::checkPlain($this->options['element_label_type']);
     }
 
     if ($default_empty) {
@@ -289,7 +288,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       }
     }
     if ($this->options['element_wrapper_type']) {
-      return String::checkPlain($this->options['element_wrapper_type']);
+      return SafeMarkup::checkPlain($this->options['element_wrapper_type']);
     }
 
     if ($default_empty) {
@@ -1239,7 +1238,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         $more_link_text = $this->options['alter']['more_link_text'] ? $this->options['alter']['more_link_text'] : $this->t('more');
         $more_link_text = strtr(Xss::filterAdmin($more_link_text), $tokens);
         $more_link_path = $this->options['alter']['more_link_path'];
-        $more_link_path = strip_tags(String::decodeEntities($this->viewsTokenReplace($more_link_path, $tokens)));
+        $more_link_path = strip_tags(Html::decodeEntities($this->viewsTokenReplace($more_link_path, $tokens)));
 
         // Make sure that paths which were run through _url() work as well.
         $base_path = base_path();
@@ -1339,8 +1338,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
       // Use strip tags as there should never be HTML in the path.
       // However, we need to preserve special characters like " that
-      // were removed by String::checkPlain().
-      $path = strip_tags(String::decodeEntities($this->viewsTokenReplace($path, $tokens)));
+      // were removed by SafeMarkup::checkPlain().
+      $path = strip_tags(Html::decodeEntities($this->viewsTokenReplace($path, $tokens)));
 
       if (!empty($alter['path_case']) && $alter['path_case'] != 'none' && !$alter['url']->isRouted()) {
         $path = str_replace($alter['path'], $this->caseTransform($alter['path'], $this->options['alter']['path_case']), $path);
@@ -1413,7 +1412,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     $alt = $this->viewsTokenReplace($alter['alt'], $tokens);
     // Set the title attribute of the link only if it improves accessibility
     if ($alt && $alt != $text) {
-      $options['attributes']['title'] = String::decodeEntities($alt);
+      $options['attributes']['title'] = Html::decodeEntities($alt);
     }
 
     $class = $this->viewsTokenReplace($alter['link_class'], $tokens);
@@ -1425,8 +1424,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $options['attributes']['rel'] = $rel;
     }
 
-    // Not sure if this String::checkPlain() is needed here?
-    $target = String::checkPlain(trim($this->viewsTokenReplace($alter['target'], $tokens)));
+    // Not sure if this SafeMarkup::checkPlain() is needed here?
+    $target = SafeMarkup::checkPlain(trim($this->viewsTokenReplace($alter['target'], $tokens)));
     if (!empty($target)) {
       $options['attributes']['target'] = $target;
     }
@@ -1441,7 +1440,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       }
     }
 
-    // If the query and fragment were programatically assigned overwrite any
+    // If the query and fragment were programmatically assigned overwrite any
     // parsed values.
     if (isset($alter['query'])) {
       // Convert the query to a string, perform token replacement, and then
@@ -1508,8 +1507,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
 
       // Use strip tags as there should never be HTML in the path.
       // However, we need to preserve special characters like " that
-      // were removed by String::checkPlain().
-      $tokens['!' . $count] = isset($this->view->args[$count - 1]) ? strip_tags(String::decodeEntities($this->view->args[$count - 1])) : '';
+      // were removed by SafeMarkup::checkPlain().
+      $tokens['!' . $count] = isset($this->view->args[$count - 1]) ? strip_tags(Html::decodeEntities($this->view->args[$count - 1])) : '';
     }
 
     // Get flattened set of tokens for any array depth in query parameters.
@@ -1593,7 +1592,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       else {
         // Create a token key based on array element structure.
         $token_string = !empty($parent_keys) ? implode('_', $parent_keys) . '_' . $param : $param;
-        $tokens['%' . $token_string] = strip_tags(String::decodeEntities($val));
+        $tokens['%' . $token_string] = strip_tags(Html::decodeEntities($val));
       }
     }
 

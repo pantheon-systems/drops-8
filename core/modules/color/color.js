@@ -9,7 +9,9 @@
 
   Drupal.behaviors.color = {
     attach: function (context, settings) {
-      var i, j, colors;
+      var i;
+      var j;
+      var colors;
       // This behavior attaches by ID, so is only valid once on a page.
       var form = $(context).find('#system-theme-settings .color-form').once('color');
       if (form.length === 0) {
@@ -56,7 +58,8 @@
 
       // Set up colorScheme selector.
       form.find('#edit-scheme').on('change', function () {
-        var schemes = settings.color.schemes, colorScheme = this.options[this.selectedIndex].value;
+        var schemes = settings.color.schemes;
+        var colorScheme = this.options[this.selectedIndex].value;
         if (colorScheme !== '' && schemes[colorScheme]) {
           // Get colors of active scheme.
           colors = schemes[colorScheme];
@@ -210,9 +213,10 @@
           i = inputs.length;
           if (inputs.length) {
             var toggleClick = true;
-            var lock = $('<div class="lock"></div>').on('click', function () {
+            var lock = $('<button class="lock link">' + Drupal.t('Unlock') + '</button>').on('click', function (e) {
+              e.preventDefault();
               if (toggleClick) {
-                $(this).addClass('unlocked');
+                $(this).addClass('unlocked').html(Drupal.t('Lock'));
                 $(hooks[i - 1]).attr('class',
                   locks[i - 2] && $(locks[i - 2]).is(':not(.unlocked)') ? 'hook up' : 'hook'
                 );
@@ -221,7 +225,7 @@
                 );
               }
               else {
-                $(this).removeClass('unlocked');
+                $(this).removeClass('unlocked').html(Drupal.t('Unlock'));
                 $(hooks[i - 1]).attr('class',
                   locks[i - 2] && $(locks[i - 2]).is(':not(.unlocked)') ? 'hook both' : 'hook down'
                 );

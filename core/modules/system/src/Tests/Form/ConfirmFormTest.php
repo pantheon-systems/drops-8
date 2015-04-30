@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Form;
 
-use Drupal\Component\Utility\String;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
 
@@ -33,7 +33,7 @@ class ConfirmFormTest extends WebTestBase {
     $this->assertText(t('ConfirmFormTestForm::getDescription().'), 'The description was used.');
     $this->assertFieldByXPath('//input[@id="edit-submit"]', t('ConfirmFormTestForm::getConfirmText().'), 'The confirm text was used.');
 
-    // Test canelling the form.
+    // Test cancelling the form.
     $this->clickLink(t('ConfirmFormTestForm::getCancelText().'));
     $this->assertUrl('form-test/autocomplete', array(), "The form's cancel link was followed.");
 
@@ -79,7 +79,7 @@ class ConfirmFormTest extends WebTestBase {
    */
   public function assertCancelLinkUrl(Url $url, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[@href=:url]', [':url' => $url->toString()]);
-    $message = ($message ? $message : String::format('Cancel link with url %url found.', ['%url' => $url->toString()]));
+    $message = ($message ? $message : SafeMarkup::format('Cancel link with url %url found.', ['%url' => $url->toString()]));
     return $this->assertTrue(isset($links[0]), $message, $group);
   }
 

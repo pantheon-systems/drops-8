@@ -7,9 +7,11 @@
 
 namespace Drupal\user\Plugin\Field\FieldFormatter;
 
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
-use Drupal\Core\Field\FormatterBase;
+use Drupal\Core\Field\Plugin\Field\FieldFormatter\EntityReferenceFormatterBase;
 
 /**
  * Plugin implementation of the 'author' formatter.
@@ -23,7 +25,7 @@ use Drupal\Core\Field\FormatterBase;
  *   }
  * )
  */
-class AuthorFormatter extends FormatterBase {
+class AuthorFormatter extends EntityReferenceFormatterBase {
 
   /**
    * {@inheritdoc}
@@ -31,18 +33,16 @@ class AuthorFormatter extends FormatterBase {
   public function viewElements(FieldItemListInterface $items) {
     $elements = array();
 
-    foreach ($items as $delta => $item) {
+    foreach ($this->getEntitiesToView($items) as $delta => $entity) {
       /** @var $referenced_user \Drupal\user\UserInterface */
-      if ($referenced_user = $item->entity) {
-        $elements[$delta] = array(
-          '#theme' => 'username',
-          '#account' => $referenced_user,
-          '#link_options' => array('attributes' => array('rel' => 'author')),
-          '#cache' => array(
-            'tags' => $referenced_user->getCacheTags(),
-          ),
-        );
-      }
+      $elements[$delta] = array(
+        '#theme' => 'username',
+        '#account' => $entity,
+        '#link_options' => array('attributes' => array('rel' => 'author')),
+        '#cache' => array(
+          'tags' => $entity->getCacheTags(),
+        ),
+      );
     }
 
     return $elements;
@@ -53,6 +53,15 @@ class AuthorFormatter extends FormatterBase {
    */
   public static function isApplicable(FieldDefinitionInterface $field_definition) {
     return $field_definition->getFieldStorageDefinition()->getSetting('target_type') == 'user';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function checkAccess(EntityInterface $entity) {
+    // Always allow an entity author's username to be read, even if the current
+    // user does not have permission to view the entity author's profile.
+    return AccessResult::allowed();
   }
 
 }

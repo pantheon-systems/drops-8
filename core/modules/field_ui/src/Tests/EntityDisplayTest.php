@@ -26,7 +26,6 @@ class EntityDisplayTest extends KernelTestBase {
 
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('router'));
     $this->installEntitySchema('node');
     $this->installConfig(array('field', 'node'));
   }
@@ -91,7 +90,7 @@ class EntityDisplayTest extends KernelTestBase {
     $display = entity_load('entity_view_display', $display->id());
     $this->assertNULL($display->getComponent('component_3'));
 
-    // Check that CreateCopy() creates a new component that can be correclty
+    // Check that createCopy() creates a new component that can be correctly
     // saved.
     EntityViewMode::create(array('id' => $display->getTargetEntityTypeId() . '.other_view_mode', 'targetEntityType' => $display->getTargetEntityTypeId()))->save();
     $new_display = $display->createCopy('other_view_mode');
@@ -392,7 +391,7 @@ class EntityDisplayTest extends KernelTestBase {
   }
 
   /**
-   * Tests \Drupal\entity\EntityDisplayBase::onDependencyRemoval().
+   * Tests \Drupal\Core\Entity\EntityDisplayBase::onDependencyRemoval().
    */
   public function testOnDependencyRemoval() {
     $this->enableModules(array('field_plugins_test'));
