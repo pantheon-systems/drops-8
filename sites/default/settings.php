@@ -82,7 +82,12 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  *
  */
 if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
-  $settings['hash_salt'] = $drupal_hash_salt;
+  if (defined('PANTHEON_ENVIRONMENT')) {
+    $settings['hash_salt'] = $drupal_hash_salt;
+  }
+  else {
+    $settings['hash_salt'] = hash('sha256', serialize($databases));
+  }
 }
 
 /**
