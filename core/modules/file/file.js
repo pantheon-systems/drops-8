@@ -67,13 +67,13 @@
   Drupal.behaviors.fileButtons = {
     attach: function (context) {
       var $context = $(context);
-      $context.find('.form-submit').on('mousedown', Drupal.file.disableFields);
-      $context.find('.form-managed-file .form-submit').on('mousedown', Drupal.file.progressBar);
+      $context.find('.js-form-submit').on('mousedown', Drupal.file.disableFields);
+      $context.find('.form-managed-file .js-form-submit').on('mousedown', Drupal.file.progressBar);
     },
     detach: function (context) {
       var $context = $(context);
-      $context.find('.form-submit').off('mousedown', Drupal.file.disableFields);
-      $context.find('.form-managed-file .form-submit').off('mousedown', Drupal.file.progressBar);
+      $context.find('.js-form-submit').off('mousedown', Drupal.file.disableFields);
+      $context.find('.form-managed-file .js-form-submit').off('mousedown', Drupal.file.progressBar);
     }
   };
 
@@ -128,7 +128,7 @@
      * Trigger the upload_button mouse event to auto-upload as a managed file.
      */
     triggerUploadButton: function (event) {
-      $(event.target).closest('.form-managed-file').find('.form-submit').trigger('mousedown');
+      $(event.target).closest('.form-managed-file').find('.js-form-submit').trigger('mousedown');
     },
     /**
      * Prevent file uploads when using buttons not intended to upload.
@@ -152,7 +152,7 @@
       // do not get enabled when we re-enable these fields at the end of behavior
       // processing. Re-enable in a setTimeout set to a relatively short amount
       // of time (1 second). All the other mousedown handlers (like Drupal's Ajax
-      // behaviors) are excuted before any timeout functions are called, so we
+      // behaviors) are executed before any timeout functions are called, so we
       // don't have to worry about the fields being re-enabled too soon.
       // @todo If the previous sentence is true, why not set the timeout to 0?
       var $fieldsToTemporarilyDisable = $('div.form-managed-file input.form-file').not($enabledFields).not(':disabled');

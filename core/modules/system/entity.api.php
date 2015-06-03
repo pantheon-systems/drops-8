@@ -255,7 +255,8 @@ use Drupal\node\Entity\NodeType;
  * user accounts, has only one bundle.
  *
  * The sections below have more information about entities and the Entity API;
- * for more detailed information, see https://drupal.org/developing/api/entity
+ * for more detailed information, see
+ * https://www.drupal.org/developing/api/entity.
  *
  * @section define Defining an entity type
  * Entity types are defined by modules, using Drupal's Plugin API (see the
@@ -315,8 +316,7 @@ use Drupal\node\Entity\NodeType;
  * - For content entities, the annotation will refer to a number of database
  *   tables and their fields. These annotation properties, such as 'base_table',
  *   'data_table', 'entity_keys', etc., are documented on
- *   \Drupal\Core\Entity\EntityType. Your module will also need to set up its
- *   database tables using hook_schema().
+ *   \Drupal\Core\Entity\EntityType.
  * - For content entities that are displayed on their own pages, the annotation
  *   will refer to a 'uri_callback' function, which takes an object of the
  *   entity interface you have defined as its parameter, and returns routing
@@ -522,7 +522,14 @@ use Drupal\node\Entity\NodeType;
  *    The code of the language $entity is accessed in.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
- *    The access result.
+ *    The access result. The final result is calculated by using
+ *    \Drupal\Core\Access\AccessResultInterface::orIf() on the result of every
+ *    hook_entity_access() and hook_ENTITY_TYPE_access() implementation, and the
+ *    result of the entity-specific checkAccess() method in the entity access
+ *    control handler. Be careful when writing generalized access checks shared
+ *    between routing and entity checks: routing uses the andIf() operator. So
+ *    returning an isNeutral() does not determine entity access at all but it
+ *    always ends up denying access while routing.
  *
  * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_entity_create_access()
@@ -548,7 +555,7 @@ function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operat
  *    The code of the language $entity is accessed in.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
- *    The access result.
+ *    The access result. hook_entity_access() has detailed documentation.
  *
  * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_ENTITY_TYPE_create_access()
@@ -619,12 +626,16 @@ function hook_ENTITY_TYPE_create_access(\Drupal\Core\Session\AccountInterface $a
  * Modules may implement this hook to add information to defined entity types,
  * as defined in \Drupal\Core\Entity\EntityTypeInterface.
  *
+ * To alter existing information or to add information dynamically, use
+ * hook_entity_type_alter().
+ *
  * @param \Drupal\Core\Entity\EntityTypeInterface[] $entity_types
  *   An associative array of all entity type definitions, keyed by the entity
  *   type name. Passed by reference.
  *
  * @see \Drupal\Core\Entity\Entity
  * @see \Drupal\Core\Entity\EntityTypeInterface
+ * @see hook_entity_type_alter()
  */
 function hook_entity_type_build(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
@@ -641,8 +652,12 @@ function hook_entity_type_build(array &$entity_types) {
  * \Drupal\Core\Entity\Annotation\EntityType and all the ones additionally
  * provided by modules can be altered here.
  *
- * Do not use this hook to add information to entity types, unless you are just
- * filling-in default values. Use hook_entity_type_build() instead.
+ * Do not use this hook to add information to entity types, unless one of the
+ * following is true:
+ * - You are filling in default values.
+ * - You need to dynamically add information only in certain circumstances.
+ * - Your hook needs to run after hook_entity_type_build() implementations.
+ * Use hook_entity_type_build() instead in all other cases.
  *
  * @param \Drupal\Core\Entity\EntityTypeInterface[] $entity_types
  *   An associative array of all entity type definitions, keyed by the entity
@@ -1312,7 +1327,9 @@ function hook_ENTITY_TYPE_view(array &$build, \Drupal\Core\Entity\EntityInterfac
  * structured content array, it may use this hook to add a #post_render
  * callback. Alternatively, it could also implement hook_preprocess_HOOK() for
  * the particular entity type template, if there is one (e.g., node.html.twig).
- * See drupal_render() and _theme() for details.
+ *
+ * See the @link themeable Default theme implementations topic @endlink and
+ * drupal_render() for details.
  *
  * @param array &$build
  *   A renderable array representing the entity content.
@@ -1322,10 +1339,10 @@ function hook_ENTITY_TYPE_view(array &$build, \Drupal\Core\Entity\EntityInterfac
  *   The entity view display holding the display options configured for the
  *   entity components.
  *
+ * @ingroup entity_crud
+ *
  * @see hook_entity_view()
  * @see hook_ENTITY_TYPE_view_alter()
- *
- * @ingroup entity_crud
  */
 function hook_entity_view_alter(array &$build, Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display) {
   if ($build['#view_mode'] == 'full' && isset($build['an_additional_field'])) {
@@ -1348,7 +1365,9 @@ function hook_entity_view_alter(array &$build, Drupal\Core\Entity\EntityInterfac
  * structured content array, it may use this hook to add a #post_render
  * callback. Alternatively, it could also implement hook_preprocess_HOOK() for
  * the particular entity type template, if there is one (e.g., node.html.twig).
- * See drupal_render() and _theme() for details.
+ *
+ * See the @link themeable Default theme implementations topic @endlink and
+ * drupal_render() for details.
  *
  * @param array &$build
  *   A renderable array representing the entity content.
@@ -1358,10 +1377,10 @@ function hook_entity_view_alter(array &$build, Drupal\Core\Entity\EntityInterfac
  *   The entity view display holding the display options configured for the
  *   entity components.
  *
+ * @ingroup entity_crud
+ *
  * @see hook_ENTITY_TYPE_view()
  * @see hook_entity_view_alter()
- *
- * @ingroup entity_crud
  */
 function hook_ENTITY_TYPE_view_alter(array &$build, Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display) {
   if ($build['#view_mode'] == 'full' && isset($build['an_additional_field'])) {

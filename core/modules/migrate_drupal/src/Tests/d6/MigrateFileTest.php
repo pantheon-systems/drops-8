@@ -10,7 +10,6 @@ namespace Drupal\migrate_drupal\Tests\d6;
 use Drupal\Component\Utility\Random;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\Tests\MigrateDumpAlterInterface;
-use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 use Drupal\Core\Database\Database;
 use Drupal\simpletest\TestBase;
 
@@ -40,6 +39,10 @@ class MigrateFileTest extends MigrateDrupal6TestBase implements MigrateDumpAlter
    */
   protected function setUp() {
     parent::setUp();
+
+    $this->installEntitySchema('file');
+    $this->installConfig(['file']);
+
     $dumps = array(
       $this->getDumpDirectory() . '/Files.php',
     );
@@ -64,6 +67,8 @@ class MigrateFileTest extends MigrateDrupal6TestBase implements MigrateDumpAlter
     $this->assertIdentical('39325', $file->getSize());
     $this->assertIdentical('public://image-1.png', $file->getFileUri());
     $this->assertIdentical('image/png', $file->getMimeType());
+    $this->assertIdentical("1", $file->getOwnerId());
+
     // It is pointless to run the second half from MigrateDrupal6Test.
     if (empty($this->standalone)) {
       return;
@@ -114,6 +119,7 @@ class MigrateFileTest extends MigrateDrupal6TestBase implements MigrateDumpAlter
     // Creates a random filename and updates the source database.
     $random = new Random();
     $temp_directory = $test->getTempFilesDirectory();
+    file_prepare_directory($temp_directory, FILE_CREATE_DIRECTORY);
     static::$tempFilename = $test->getDatabasePrefix() . $random->name() . '.jpg';
     $file_path = $temp_directory . '/' . static::$tempFilename;
     file_put_contents($file_path, '');

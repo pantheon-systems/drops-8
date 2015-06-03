@@ -2,11 +2,11 @@
 
 /**
  * @file
- * Contains \Drupal\migrate_drupal\Tests\Dump\ContentNodeFieldInstance.
+ * Contains \Drupal\migrate_drupal\Tests\Table\d6\ContentNodeFieldInstance.
  *
  * THIS IS A GENERATED FILE. DO NOT EDIT.
  *
- * @see cores/scripts/dump-database-d6.sh
+ * @see core/scripts/migrate-db.sh
  * @see https://www.drupal.org/sandbox/benjy/2405029
  */
 
@@ -80,7 +80,7 @@ class ContentNodeFieldInstance extends DrupalDumpBase {
         'widget_active' => array(
           'type' => 'int',
           'not null' => TRUE,
-          'length' => '4',
+          'length' => '11',
           'default' => '0',
         ),
       ),
@@ -279,7 +279,7 @@ class ContentNodeFieldInstance extends DrupalDumpBase {
       'weight' => '7',
       'label' => 'Link Field',
       'widget_type' => 'link',
-      'widget_settings' => 'a:2:{s:13:"default_value";a:1:{i:0;a:2:{s:5:"title";s:18:"default link title";s:3:"url";s:17:"http://drupal.org";}}s:17:"default_value_php";N;}',
+      'widget_settings' => 'a:2:{s:13:"default_value";a:1:{i:0;a:2:{s:5:"title";s:18:"default link title";s:3:"url";s:22:"https://www.drupal.org";}}s:17:"default_value_php";N;}',
       'display_settings' => 'a:7:{s:6:"weight";s:1:"7";s:6:"parent";s:0:"";i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:1;}s:5:"label";a:1:{s:6:"format";s:5:"above";}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:8:"absolute";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
       'description' => 'An example link field.',
       'widget_module' => 'link',
@@ -332,3 +332,4 @@ class ContentNodeFieldInstance extends DrupalDumpBase {
   }
 
 }
+#017d067779f912426f8b1c61a06736d7

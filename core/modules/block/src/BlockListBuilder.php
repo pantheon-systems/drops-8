@@ -247,9 +247,9 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
             ),
           );
           if ($placement && $placement == Html::getClass($entity_id)) {
-            $form['blocks'][$entity_id]['#attributes']['id'] = 'block-placed';
+            $form['blocks'][$entity_id]['#attributes']['class'][] = 'color-warning';
+            $form['blocks'][$entity_id]['#attributes']['class'][] = 'js-block-placed';
           }
-
           $form['blocks'][$entity_id]['info'] = array(
             '#markup' => SafeMarkup::checkPlain($info['label']),
             '#wrapper_attributes' => array(
@@ -362,7 +362,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
         ]),
         'attributes' => array(
           'class' => array('use-ajax', 'block-filter-text-source'),
-          'data-accepts' => 'application/vnd.drupal-modal',
+          'data-dialog-type' => 'modal',
           'data-dialog-options' => Json::encode(array(
             'width' => 700,
           )),

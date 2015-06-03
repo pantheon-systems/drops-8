@@ -6,7 +6,7 @@ package: Core
 version: VERSION
 core: 8.x
 stylesheets-remove:
-  - @classy/css/layout.css
+  - '@classy/css/layout.css'
 libraries:
   - bartik/global-styling
 ckeditor_stylesheets:
@@ -21,7 +21,7 @@ regions:
   help: Help
   page_top: 'Page top'
   page_bottom: 'Page bottom'
-  messages: Messages
+  highlighted: Highlighted
   featured_top: 'Featured top'
   breadcrumb: Breadcrumb
   content: Content

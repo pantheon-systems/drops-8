@@ -25,7 +25,7 @@ function dblog_schema() {
         'description' => 'The {users}.uid of the user who triggered the event.',
       ),
       'type' => array(
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 64,
         'not null' => TRUE,
         'default' => '',
@@ -52,10 +52,8 @@ function dblog_schema() {
         'description' => 'The severity level of the event; ranges from 0 (Emergency) to 7 (Debug)',
       ),
       'link' => array(
-        'type' => 'varchar',
-        'length' => 255,
+        'type' => 'text',
         'not null' => FALSE,
-        'default' => '',
         'description' => 'Link to view the result of the event.',
       ),
       'location'  => array(
@@ -69,7 +67,7 @@ function dblog_schema() {
         'description' => 'URL of referring page.',
       ),
       'hostname' => array(
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',

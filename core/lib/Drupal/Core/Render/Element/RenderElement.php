@@ -179,7 +179,7 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
           // the form's first submit button. Triggering Ajax in this situation
           // leads to problems, like breaking autocomplete textfields, so we bind
           // to mousedown instead of click.
-          // @see http://drupal.org/node/216059
+          // @see https://www.drupal.org/node/216059
           $element['#ajax']['event'] = 'mousedown';
           // Retain keyboard accessibility by setting 'keypress'. This causes
           // ajax.js to trigger 'event' when SPACE or ENTER are pressed while the
@@ -240,7 +240,7 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
       $settings += array(
         'url' => isset($settings['callback']) ? Url::fromRoute('system.ajax') : NULL,
         'options' => array(),
-        'accepts' => 'application/vnd.drupal-ajax'
+        'dialogType' => 'ajax',
       );
 
       // @todo Legacy support. Remove in Drupal 8.

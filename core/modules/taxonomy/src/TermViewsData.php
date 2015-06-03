@@ -75,25 +75,6 @@ class TermViewsData extends EntityViewsData {
     unset($data['taxonomy_term_field_data']['vid']['argument']);
     unset($data['taxonomy_term_field_data']['vid']['sort']);
 
-    $data['taxonomy_term_data']['edit_term'] = array(
-      'field' => array(
-        'title' => t('Term edit link'),
-        'help' => t('Provide a simple link to edit the term.'),
-        'id' => 'term_link_edit',
-        'click sortable' => FALSE,
-      ),
-    );
-
-    if (\Drupal::moduleHandler()->moduleExists('content_translation')) {
-      $data['taxonomy_term_data']['translation_link'] = array(
-        'title' => t('Translation link'),
-        'help' => t('Provide a link to the translations overview for taxonomy terms.'),
-        'field' => array(
-          'id' => 'content_translation_link',
-        ),
-      );
-    }
-
     $data['taxonomy_term_field_data']['name']['field']['id'] = 'term_name';
     $data['taxonomy_term_field_data']['name']['argument']['many to one'] = TRUE;
     $data['taxonomy_term_field_data']['name']['argument']['empty field name'] = t('Uncategorized');
@@ -160,8 +141,8 @@ class TermViewsData extends EntityViewsData {
     $data['taxonomy_index']['table']['group']  = t('Taxonomy term');
 
     $data['taxonomy_index']['table']['join'] = array(
-      'taxonomy_term_data' => array(
-        // links directly to taxonomy_term_data via tid
+      'taxonomy_term_field_data' => array(
+        // links directly to taxonomy_term_field_data via tid
         'left_field' => 'tid',
         'field' => 'tid',
       ),
@@ -188,8 +169,8 @@ class TermViewsData extends EntityViewsData {
       ),
     );
 
-    // @todo This stuff needs to move to a node field since really it's all about
-    //   nodes.
+    // @todo This stuff needs to move to a node field since really it's all
+    //   about nodes.
     $data['taxonomy_index']['tid'] = array(
       'group' => t('Content'),
       'title' => t('Has taxonomy term ID'),
@@ -248,6 +229,7 @@ class TermViewsData extends EntityViewsData {
     ];
 
     $data['taxonomy_term_hierarchy']['table']['group']  = t('Taxonomy term');
+    $data['taxonomy_term_hierarchy']['table']['provider']  = 'taxonomy';
 
     $data['taxonomy_term_hierarchy']['table']['join'] = array(
       'taxonomy_term_hierarchy' => array(
@@ -255,8 +237,8 @@ class TermViewsData extends EntityViewsData {
         'left_field' => 'tid',
         'field' => 'parent',
       ),
-      'taxonomy_term_data' => array(
-        // Link directly to taxonomy_term_data via tid.
+      'taxonomy_term_field_data' => array(
+        // Link directly to taxonomy_term_field_data via tid.
         'left_field' => 'tid',
         'field' => 'tid',
       ),
@@ -266,7 +248,7 @@ class TermViewsData extends EntityViewsData {
       'title' => t('Parent term'),
       'help' => t('The parent term of the term. This can produce duplicate entries if you are using a vocabulary that allows multiple parents.'),
       'relationship' => array(
-        'base' => 'taxonomy_term_data',
+        'base' => 'taxonomy_term_field_data',
         'field' => 'parent',
         'label' => t('Parent'),
         'id' => 'standard',

@@ -57,6 +57,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $this->drupalLogin($account);
 
     $this->account = User::load($account->id());
+    $this->account->pass_raw = $account->pass_raw;
     $this->drupalLogout();
 
     // Set the last login time that is used to generate the one-time link so
@@ -152,6 +153,15 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $blocked_account->save();
     $this->drupalGet("user/reset/" . $blocked_account->id() . "/$timestamp/" . user_pass_rehash($blocked_account->getPassword(), $timestamp, $blocked_account->getLastLoginTime(), $this->account->id()));
     $this->assertResponse(403);
+
+    // Verify a blocked user can not request a new password.
+    $this->drupalGet('user/password');
+    // Count email messages before to compare with after.
+    $before = count($this->drupalGetMails(array('id' => 'user_password_reset')));
+    $edit = array('name' => $blocked_account->getUsername());
+    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->assertRaw(t('%name is blocked or has not been activated yet.', array('%name' => $blocked_account->getUsername())), 'Notified user blocked accounts can not request a new password');
+    $this->assertTrue(count($this->drupalGetMails(array('id' => 'user_password_reset'))) === $before, 'No email was sent when requesting password reset for a blocked account');
   }
 
   /**
@@ -165,6 +175,29 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     preg_match('#.+user/reset/.+#', $email['body'], $urls);
 
     return $urls[0];
+  }
+
+  /**
+   * Test user password reset while logged in.
+   */
+  public function testUserPasswordResetLoggedIn() {
+    // Log in.
+    $this->drupalLogin($this->account);
+
+    // Reset the password by username via the password reset page.
+    $this->drupalGet('user/password');
+    $this->drupalPostForm(NULL, NULL, t('Submit'));
+
+    // Click the reset URL while logged and change our password.
+    $resetURL = $this->getResetURL();
+    $this->drupalGet($resetURL);
+    $this->drupalPostForm(NULL, NULL, t('Log in'));
+
+    // Change the password.
+    $password = user_password();
+    $edit = array('pass[pass1]' => $password, 'pass[pass2]' => $password);
+    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->assertText(t('The changes have been saved.'), 'Password changed.');
   }
 
   /**

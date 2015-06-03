@@ -8,10 +8,10 @@
 namespace Drupal\file\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Language\LanguageInterface;
 use Drupal\file\FileInterface;
 use Drupal\user\UserInterface;
 
@@ -37,6 +37,8 @@ use Drupal\user\UserInterface;
  * )
  */
 class File extends ContentEntityBase implements FileInterface {
+
+  use EntityChangedTrait;
 
   /**
    * {@inheritdoc}
@@ -254,6 +256,7 @@ class File extends ContentEntityBase implements FileInterface {
 
     $fields['filemime'] = BaseFieldDefinition::create('string')
       ->setLabel(t('File MIME type'))
+      ->setSetting('is_ascii', TRUE)
       ->setDescription(t("The file's MIME type."));
 
     $fields['filesize'] = BaseFieldDefinition::create('integer')

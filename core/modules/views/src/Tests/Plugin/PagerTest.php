@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests\Plugin;
 
+use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\views\Views;
 use Drupal\language\Entity\ConfigurableLanguage;
 
@@ -16,6 +17,8 @@ use Drupal\language\Entity\ConfigurableLanguage;
  * @group views
  */
 class PagerTest extends PluginTestBase {
+
+  use AssertPageCacheContextsAndTagsTrait;
 
   /**
    * Views used by this test.
@@ -41,12 +44,13 @@ class PagerTest extends PluginTestBase {
   /**
    * Pagers was sometimes not stored.
    *
-   * @see http://drupal.org/node/652712
+   * @see https://www.drupal.org/node/652712
    */
   public function testStorePagerSettings() {
     $admin_user = $this->drupalCreateUser(array('administer views', 'administer site configuration'));
     $this->drupalLogin($admin_user);
-    // Test behavior described in http://drupal.org/node/652712#comment-2354918.
+    // Test behavior described in
+    //   https://www.drupal.org/node/652712#comment-2354918.
 
     $this->drupalGet('admin/structure/views/view/test_view/edit');
 
@@ -68,7 +72,8 @@ class PagerTest extends PluginTestBase {
     $this->drupalGet('admin/structure/views/view/test_view/edit');
     $this->assertText('Mini', 'Changed pager plugin, should change some text');
 
-    // Test behavior described in http://drupal.org/node/652712#comment-2354400
+    // Test behavior described in
+    //   https://www.drupal.org/node/652712#comment-2354400.
     $view = Views::getView('test_store_pager_settings');
     // Make it editable in the admin interface.
     $view->save();
@@ -253,6 +258,10 @@ class PagerTest extends PluginTestBase {
     $this->executeView($view);
     $this->assertEqual($view->pager->getItemsPerPage(), 0);
     $this->assertEqual(count($view->result), 11);
+
+    // Test pager cache contexts.
+    $this->drupalGet('test_pager_full');
+    $this->assertCacheContexts(['languages:language_interface', 'theme', 'timezone', 'url.query_args.pagers:0', 'user.node_grants:view']);
   }
 
   /**

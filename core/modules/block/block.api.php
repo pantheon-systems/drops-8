@@ -50,10 +50,10 @@ use Drupal\Core\Access\AccessResult;
  *   block placement condition plugin.
  * - \Drupal\book\Plugin\Block\BookNavigationBlock is an example of a block with
  *   a custom configuration form.
- * - For a more in-depth discussion of the Block API see
- *   https://drupal.org/developing/api/8/block_api
+ * - For a more in-depth discussion of the Block API, see
+ *   https://www.drupal.org/developing/api/8/block_api.
  * - The Examples for Developers project also provides a Block example in
- *   https://drupal.org/project/examples.
+ *   https://www.drupal.org/project/examples.
  * @}
  */
 
@@ -72,8 +72,8 @@ use Drupal\Core\Access\AccessResult;
  * If the module wishes to act on the rendered HTML of the block rather than
  * the structured content array, it may use this hook to add a #post_render
  * callback. Alternatively, it could also implement hook_preprocess_HOOK() for
- * block.html.twig. See drupal_render() and _theme() documentation respectively
- * for details.
+ * block.html.twig. See drupal_render() documentation or the
+ * @link themeable Default theme implementations topic @endlink for details.
  *
  * In addition to hook_block_view_alter(), which is called for all blocks, there
  * is hook_block_view_BASE_BLOCK_ID_alter(), which can be used to target a

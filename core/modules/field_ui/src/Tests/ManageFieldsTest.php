@@ -14,6 +14,7 @@ use Drupal\entity_reference\Tests\EntityReferenceTestTrait;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\simpletest\WebTestBase;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
  * Tests the Field UI "Manage fields" screen.
@@ -86,7 +87,7 @@ class ManageFieldsTest extends WebTestBase {
     $this->drupalCreateContentType(array('type' => 'article', 'name' => 'Article'));
 
     // Create a vocabulary named "Tags".
-    $vocabulary = entity_create('taxonomy_vocabulary', array(
+    $vocabulary = Vocabulary::create(array(
       'name' => 'Tags',
       'vid' => 'tags',
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
@@ -305,8 +306,11 @@ class ManageFieldsTest extends WebTestBase {
     // Check "Re-use existing field" appears.
     $this->drupalGet('admin/structure/types/manage/page/fields/add-field');
     $this->assertRaw(t('Re-use an existing field'), '"Re-use existing field" was found.');
+
+    // Ensure that we test with a label that contains HTML.
+    $label = $this->randomString(4) . '<br/>' . $this->randomString(4);
     // Add a new field for the orphaned storage.
-    $this->fieldUIAddExistingField("admin/structure/types/manage/page", $this->fieldName);
+    $this->fieldUIAddExistingField("admin/structure/types/manage/page", $this->fieldName, $label);
   }
 
   /**
@@ -363,12 +367,12 @@ class ManageFieldsTest extends WebTestBase {
   function testDefaultValue() {
     // Create a test field storage and field.
     $field_name = 'test';
-    entity_create('field_storage_config', array(
+    FieldStorageConfig::create(array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'type' => 'test_field'
     ))->save();
-    $field = entity_create('field_config', array(
+    $field = FieldConfig::create(array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'bundle' => $this->contentType,
@@ -388,7 +392,7 @@ class ManageFieldsTest extends WebTestBase {
     // Check that invalid default values are rejected.
     $edit = array($element_name => '-1');
     $this->drupalPostForm($admin_path, $edit, t('Save settings'));
-    $this->assertText("$field_name does not accept the value -1", 'Form vaildation failed.');
+    $this->assertText("$field_name does not accept the value -1", 'Form validation failed.');
 
     // Check that the default value is saved.
     $edit = array($element_name => '1');
@@ -427,7 +431,7 @@ class ManageFieldsTest extends WebTestBase {
     $this->assertEqual($field->default_value, NULL, 'The default value was correctly saved.');
 
     // Check that the default widget is used when the field is hidden.
-    entity_get_form_display($field->entity_type, $field->bundle, 'default')
+    entity_get_form_display($field->getTargetEntityTypeId(), $field->getTargetBundle(), 'default')
       ->removeComponent($field_name)->save();
     $this->drupalGet($admin_path);
     $this->assertFieldById($element_id, '', 'The default value widget was displayed when field is hidden.');
@@ -500,7 +504,7 @@ class ManageFieldsTest extends WebTestBase {
     // Create a locked field and attach it to a bundle. We need to do this
     // programmatically as there's no way to create a locked field through UI.
     $field_name = strtolower($this->randomMachineName(8));
-    $field_storage = entity_create('field_storage_config', array(
+    $field_storage = FieldStorageConfig::create(array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'type' => 'test_field',
@@ -508,7 +512,7 @@ class ManageFieldsTest extends WebTestBase {
       'locked' => TRUE
     ));
     $field_storage->save();
-    entity_create('field_config', array(
+    FieldConfig::create(array(
       'field_storage' => $field_storage,
       'bundle' => $this->contentType,
     ))->save();
@@ -541,7 +545,7 @@ class ManageFieldsTest extends WebTestBase {
 
     // Create a field storage and a field programmatically.
     $field_name = 'hidden_test_field';
-    entity_create('field_storage_config', array(
+    FieldStorageConfig::create(array(
       'field_name' => $field_name,
       'entity_type' => 'node',
       'type' => $field_name,
@@ -552,7 +556,7 @@ class ManageFieldsTest extends WebTestBase {
       'entity_type' => 'node',
       'label' => t('Hidden field'),
     );
-    entity_create('field_config', $field)->save();
+    FieldConfig::create($field)->save();
     entity_get_form_display('node', $this->contentType, 'default')
       ->setComponent($field_name)
       ->save();
@@ -635,13 +639,13 @@ class ManageFieldsTest extends WebTestBase {
    */
   function testHelpDescriptions() {
     // Create an image field
-    entity_create('field_storage_config', array(
+    FieldStorageConfig::create(array(
       'field_name' => 'field_image',
       'entity_type' => 'node',
       'type' => 'image',
     ))->save();
 
-    entity_create('field_config', array(
+    FieldConfig::create(array(
       'field_name' => 'field_image',
       'entity_type' => 'node',
       'label' => 'Image',

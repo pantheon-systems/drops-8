@@ -20,7 +20,7 @@
  * practices.
  *
  * For more detailed information on the database abstraction layer, see
- * https://drupal.org/developing/api/database
+ * https://www.drupal.org/developing/api/database.
  *
  * @section sec_entity Querying entities
  * Any query on Drupal entities or fields should use the Entity Query API. See
@@ -108,7 +108,7 @@
  *
  * There are also methods to join to other tables, add fields with aliases,
  * isNull() to have a @code WHERE e.foo IS NULL @endcode condition, etc. See
- * https://drupal.org/developing/api/database for many more details.
+ * https://www.drupal.org/developing/api/database for many more details.
  *
  * One note on chaining: It is common in the dynamic database API to chain
  * method calls (as illustrated here), because most of the query methods modify
@@ -213,7 +213,7 @@
  * if you had a connection object variable $connection available to use. See
  * also the @link container Services and Dependency Injection topic. @endlink
  *
- * @see http://drupal.org/developing/api/database
+ * @see https://www.drupal.org/developing/api/database
  * @see entity_api
  * @see schemaapi
  *
@@ -256,6 +256,8 @@
  *       'float', 'numeric', or 'serial'. Most types just map to the according
  *       database engine specific datatypes. Use 'serial' for auto incrementing
  *       fields. This will expand to 'INT auto_increment' on MySQL.
+ *       A special 'varchar_ascii' type is also available for limiting machine
+ *       name field to US ASCII characters.
  *     - 'mysql_type', 'pgsql_type', 'sqlite_type', etc.: If you need to
  *       use a record type not included in the officially supported list
  *       of types above, you can specify a type for each database
@@ -464,8 +466,8 @@ function hook_query_TAG_alter(Drupal\Core\Database\Query\AlterableInterface $que
  * engines. You don't have to deal with the different SQL dialects for table
  * creation and alteration of the supported database engines.
  *
- * See the Schema API Handbook at http://drupal.org/node/146843 for details on
- * schema definition structures.
+ * See the Schema API Handbook at https://www.drupal.org/node/146843 for details
+ * on schema definition structures.
  *
  * @return array
  *   A schema definition structure array. For each element of the

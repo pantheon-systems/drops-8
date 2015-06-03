@@ -34,8 +34,7 @@
 
       function clickEditHandler(e) {
         var data = e.data;
-        e.preventDefault();
-        data.$wrapper.show();
+        data.$wrapper.removeClass('visually-hidden');
         data.$target.trigger('focus');
         data.$suffix.hide();
         data.$source.off('.machineName');
@@ -75,7 +74,7 @@
       }
 
       Object.keys(settings.machineName).forEach(function (source_id) {
-        var machine;
+        var machine = '';
         var eventData;
         var options = settings.machineName[source_id];
 
@@ -94,14 +93,14 @@
         // Figure out the maximum length for the machine name.
         options.maxlength = $target.attr('maxlength');
         // Hide the form item container of the machine name form element.
-        $wrapper.hide();
+        $wrapper.addClass('visually-hidden');
         // Determine the initial machine name value. Unless the machine name form
         // element is disabled or not empty, the initial default value is based on
         // the human-readable form element value.
         if ($target.is(':disabled') || $target.val() !== '') {
           machine = $target.val();
         }
-        else {
+        else if ($source.val() !== '') {
           machine = self.transliterate($source.val(), options);
         }
         // Append the machine name preview to the source field.
@@ -137,6 +136,10 @@
             // Initialize machine name preview.
             .trigger('keyup');
         }
+
+        // Add a listener for an invalid event on the machine name input
+        // to show its container and focus it.
+        $target.on('invalid', eventData, clickEditHandler);
       });
     },
 

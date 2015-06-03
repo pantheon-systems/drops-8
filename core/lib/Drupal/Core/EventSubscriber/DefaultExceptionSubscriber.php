@@ -128,7 +128,7 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
       drupal_set_message(SafeMarkup::set($message), $class, TRUE);
     }
 
-    $content = $this->t('The website has encountered an error. Please try again later.');
+    $content = $this->t('The website encountered an unexpected error. Please try again later.');
     $output = $this->bareHtmlPageRenderer->renderBarePage(['#markup' => $content], $this->t('Error'), 'maintenance_page');
     $response = new Response($output);
 
@@ -159,7 +159,7 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
     // of message to be displayed,
     $data = NULL;
     if (error_displayable($error) && $message = $exception->getMessage()) {
-      $data = ['error' => sprintf('A fatal error occurred: %s', $message)];
+      $data = ['message' => sprintf('A fatal error occurred: %s', $message)];
     }
 
     $response = new JsonResponse($data, Response::HTTP_INTERNAL_SERVER_ERROR);

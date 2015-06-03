@@ -242,7 +242,7 @@
       var $displayButtons = $menu.nextAll('input.add-display').detach();
       $displayButtons.appendTo($addDisplayDropdown.find('.action-list')).wrap('<li>')
         .parent().eq(0).addClass('first').end().eq(-1).addClass('last');
-      // Remove the 'Add ' prefix from the button labels since they're being palced
+      // Remove the 'Add ' prefix from the button labels since they're being placed
       // in an 'Add' dropdown.
       // @todo This assumes English, but so does $addDisplayDropdown above. Add
       //   support for translation.
@@ -551,10 +551,7 @@
      *   form button that should be clicked.
      */
     clickRemoveGroupButton: function (event) {
-      // For some reason, here we only need to trigger .submit(), unlike for
-      // Drupal.viewsUi.RearrangeFilterHandler.prototype.clickAddGroupButton()
-      // where we had to trigger .mousedown() also.
-      this.table.find('#' + event.data.buttonId).trigger('submit');
+      this.table.find('#' + event.data.buttonId).trigger('mousedown').trigger('submit');
       event.preventDefault();
     },
 
@@ -567,18 +564,14 @@
       var newRow;
       var titleRow;
 
-      var titleRows = $('tr.views-group-title');
+      var titleRows = $('tr.views-group-title').once('duplicateGroupsOperator');
+
+      if (!titleRows.length) {
+        return this.operator;
+      }
 
       // Get rid of the explanatory text around the operator; its placement is
       // explanatory enough.
-      this.operator.find('label').add('div.description').addClass('visually-hidden');
-      this.operator.find('select').addClass('form-select');
-
-      // Keep a list of the operator dropdowns, so we can sync their behavior later.
-      dropdowns = this.operator;
-
-      // Move the operator to a new row just above the second group.
-      titleRow = $('tr#views-group-title-2');
       this.operator.find('label').add('div.description').addClass('visually-hidden');
       this.operator.find('select').addClass('form-select');
 
@@ -795,7 +788,7 @@
           });
         });
       // Uncheck the select all checkbox if any of the others are unchecked.
-      $('#views-ui-handler-form').find('div.form-type-checkbox').not($('.form-item-options-value-all'))
+      $('#views-ui-handler-form').find('div.js-form-type-checkbox').not($('.form-item-options-value-all'))
         .find('input[type=checkbox]')
         .on('click', function () {
           if ($(this).is('checked') === false) {

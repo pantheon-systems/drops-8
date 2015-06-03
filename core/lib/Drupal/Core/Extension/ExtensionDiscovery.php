@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Extension;
 
+use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Core\Extension\Discovery\RecursiveExtensionFilterIterator;
 use Drupal\Core\Site\Settings;
 
@@ -81,6 +82,13 @@ class ExtensionDiscovery {
   protected $root;
 
   /**
+   * The file cache object.
+   *
+   * @var \Drupal\Component\FileCache\FileCacheInterface
+   */
+  protected $fileCache;
+
+  /**
    * Constructs a new ExtensionDiscovery object.
    *
    * @param string $root
@@ -88,6 +96,7 @@ class ExtensionDiscovery {
    */
   public function __construct($root) {
     $this->root = $root;
+    $this->fileCache = FileCacheFactory::get('extension_discovery');
   }
 
   /**
@@ -125,8 +134,9 @@ class ExtensionDiscovery {
    */
   public function scan($type, $include_tests = NULL) {
     // Determine the installation profile directories to scan for extensions,
-    // unless explicit profile directories have been set.
-    if (!isset($this->profileDirectories)) {
+    // unless explicit profile directories have been set. Exclude profiles as we
+    // cannot have profiles within profiles.
+    if (!isset($this->profileDirectories) && $type != 'profile') {
       $this->setProfileDirectoriesFromSettings();
     }
 
@@ -406,6 +416,12 @@ class ExtensionDiscovery {
       if (!preg_match(static::PHP_FUNCTION_PATTERN, $fileinfo->getBasename('.info.yml'))) {
         continue;
       }
+
+      if ($cached_extension = $this->fileCache->get($fileinfo->getPathName())) {
+        $files[$cached_extension->getType()][$key] = $cached_extension;
+        continue;
+      }
+
       // Determine extension type from info file.
       $type = FALSE;
       $file = $fileinfo->openFile('r');
@@ -441,6 +457,7 @@ class ExtensionDiscovery {
       $extension->origin = $dir;
 
       $files[$type][$key] = $extension;
+      $this->fileCache->set($fileinfo->getPathName(), $extension);
     }
     return $files;
   }

@@ -160,9 +160,13 @@ class TestDiscovery {
       try {
         $info = static::getTestInfo($classname, $parser->getDocComment());
       }
-      catch (\LogicException $e) {
-        // If the class is missing a summary line or an @group annotation just
-        // skip it. Most likely it is an abstract class, trait or test fixture.
+      catch (MissingGroupException $e) {
+        // If the class name ends in Test and is not a migrate table dump.
+        if (preg_match('/Test$/', $classname) && strpos($classname, 'migrate_drupal\Tests\Table') === FALSE) {
+          throw $e;
+        }
+        // If the class is @group annotation just skip it. Most likely it is an
+        // abstract class, trait or test fixture.
         continue;
       }
       // Skip this test class if it requires unavailable modules.
@@ -308,7 +312,9 @@ class TestDiscovery {
       'name' => $classname,
     );
     $annotations = array();
-    preg_match_all('/^ \* \@([^\s]*) (.*$)/m', $doc_comment, $matches);
+    // Look for annotations, allow an arbitrary amount of spaces before the
+    // * but nothing else.
+    preg_match_all('/^[ ]*\* \@([^\s]*) (.*$)/m', $doc_comment, $matches);
     if (isset($matches[1])) {
       foreach ($matches[1] as $key => $annotation) {
         if (!empty($annotations[$annotation])) {
@@ -365,8 +371,10 @@ class TestDiscovery {
 
     $lines = explode("\n", $doc_comment);
     $summary = [];
+    // Add every line to the summary until the first empty line or annotation
+    // is found.
     foreach ($lines as $line) {
-      if ($line == ' *' || preg_match('/^ \* \@/', $line)) {
+      if (preg_match('/^[ ]*\*$/', $line) || preg_match('/^[ ]*\* \@/', $line)) {
         break;
       }
       $summary[] = trim($line, ' *');

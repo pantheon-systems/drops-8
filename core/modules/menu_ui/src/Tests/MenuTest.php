@@ -450,8 +450,8 @@ class MenuTest extends MenuWebTestBase {
     $this->assertMenuLink($item1->getPluginId(), array('enabled' => 1));
 
     // Add an external link.
-    $item7 = $this->addMenuLink('', 'http://drupal.org', $menu_name);
-    $this->assertMenuLink($item7->getPluginId(), array('url' => 'http://drupal.org'));
+    $item7 = $this->addMenuLink('', 'https://www.drupal.org', $menu_name);
+    $this->assertMenuLink($item7->getPluginId(), array('url' => 'https://www.drupal.org'));
 
     // Add <front> menu item.
     $item8 = $this->addMenuLink('', '/', $menu_name);
@@ -555,6 +555,9 @@ class MenuTest extends MenuWebTestBase {
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/structure/menu/manage/' . $item->getMenuName());
     $this->assertNoText($item->getTitle(), "Menu link pointing to unpublished node is only visible to users with 'bypass node access' permission");
+    // The cache contexts associated with the (in)accessible menu links are
+    // bubbled. See DefaultMenuLinkTreeManipulators::menuLinkCheckAccess().
+    $this->assertCacheContext('user.permissions');
   }
 
   /**
@@ -567,7 +570,7 @@ class MenuTest extends MenuWebTestBase {
     $block = $this->drupalPlaceBlock('system_menu_block:' . $custom_menu->id(), array('label' => 'Custom menu', 'provider' => 'system'));
     $this->drupalGet('test-page');
 
-    $id = 'block:block=' . $block->id() . ':|menu:menu=' . $custom_menu->id() . ':';
+    $id = 'block:block=' . $block->id() . ':langcode=en|menu:menu=' . $custom_menu->id() . ':langcode=en';
     // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:assertContextualLinkPlaceHolder()
     $this->assertRaw('<div data-contextual-id="'. $id . '"></div>', format_string('Contextual link placeholder with id @id exists.', array('@id' => $id)));
 

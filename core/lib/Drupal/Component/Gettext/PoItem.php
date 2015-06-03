@@ -11,7 +11,7 @@ namespace Drupal\Component\Gettext;
  * PoItem handles one translation.
  *
  * @todo: This class contains some really old legacy code.
- * @see https://drupal.org/node/1637662
+ * @see https://www.drupal.org/node/1637662
  */
 class PoItem {
 
@@ -60,7 +60,7 @@ class PoItem {
   private $_translation;
 
   /**
-   * Get the language code of the currently used language.
+   * Gets the language code of the currently used language.
    *
    * @return string with langcode
    */
@@ -78,7 +78,7 @@ class PoItem {
   }
 
   /**
-   * Get the context this translation belongs to.
+   * Gets the context this translation belongs to.
    *
    * @return string $context
    */
@@ -96,7 +96,7 @@ class PoItem {
   }
 
   /**
-   * Get the source string or the array of strings if the translation has
+   * Gets the source string or the array of strings if the translation has
    * plurals.
    *
    * @return string or array $translation
@@ -116,7 +116,7 @@ class PoItem {
   }
 
   /**
-   * Get the translation string or the array of strings if the translation has
+   * Gets the translation string or the array of strings if the translation has
    * plurals.
    *
    * @return string or array $translation
@@ -154,7 +154,7 @@ class PoItem {
   }
 
   /**
-   * Get the comment of this translation.
+   * Gets the comment of this translation.
    *
    * @return String $comment
    */

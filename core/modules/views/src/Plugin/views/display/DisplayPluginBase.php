@@ -1454,14 +1454,14 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         $form['css_class'] = array(
           '#type' => 'textfield',
           '#title' => $this->t('CSS class name(s)'),
-          '#description' => $this->t('Multiples classes should be separated by spaces.'),
+          '#description' => $this->t('Seperate multiples classes by spaces.'),
           '#default_value' => $this->getOption('css_class'),
         );
         break;
       case 'use_ajax':
-        $form['#title'] .= $this->t('Use AJAX when available to load this view');
+        $form['#title'] .= $this->t('AJAX');
         $form['use_ajax'] = array(
-          '#description' => $this->t('When viewing a view, things like paging, table sorting, and exposed filters will not trigger a page refresh.'),
+          '#description' => $this->t('Options such as paging, table sorting, and exposed filters will not initiate a page refresh.'),
           '#type' => 'checkbox',
           '#title' => $this->t('Use AJAX'),
           '#default_value' => $this->getOption('use_ajax') ? 1 : 0,
@@ -1812,7 +1812,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         }
         break;
       case 'pager':
-        $form['#title'] .= $this->t('Select which pager, if any, to use for this view');
+        $form['#title'] .= $this->t('Select pager');
         $form['pager'] = array(
           '#prefix' => '<div class="clearfix">',
           '#suffix' => '</div>',
@@ -2293,7 +2293,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       $cache_plugin->alterCacheMetadata($is_cacheable, $cache_contexts);
     }
 
-    return [$is_cacheable, $cache_contexts];
+    return [(bool) $is_cacheable, $cache_contexts];
   }
 
   /**
@@ -2607,8 +2607,11 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
    *   An array of available entity row renderers keyed by renderer identifiers.
    */
   protected function buildRenderingLanguageOptions() {
-    // @todo Consider making these plugins. See https://drupal.org/node/2173811.
-    return $this->listLanguages(LanguageInterface::STATE_CONFIGURABLE | LanguageInterface::STATE_SITE_DEFAULT | PluginBase::INCLUDE_NEGOTIATED | PluginBase::INCLUDE_ENTITY);
+    // @todo Consider making these plugins. See
+    //   https://www.drupal.org/node/2173811.
+    // Pass the current rendering language (in this case a one element array) so
+    // is not lost when there are language configuration changes.
+    return $this->listLanguages(LanguageInterface::STATE_CONFIGURABLE | LanguageInterface::STATE_SITE_DEFAULT | PluginBase::INCLUDE_NEGOTIATED | PluginBase::INCLUDE_ENTITY, array($this->getOption('rendering_language')));
   }
 
   /**

@@ -748,7 +748,8 @@ class Sql extends QueryPluginBase {
     // Make sure an alias is assigned
     $alias = $alias ? $alias : $field;
 
-    // PostgreSQL truncates aliases to 63 characters: http://drupal.org/node/571548
+    // PostgreSQL truncates aliases to 63 characters:
+    //   https://www.drupal.org/node/571548.
 
     // We limit the length of the original alias up to 60 characters
     // to get a unique alias later if its have duplicates
@@ -1400,7 +1401,7 @@ class Sql extends QueryPluginBase {
       // (e.g. COUNT DISTINCT(1) ...) and no pager will return.
       // See pager.inc > PagerDefault::execute()
       // http://api.drupal.org/api/drupal/includes--pager.inc/function/PagerDefault::execute/7
-      // See http://drupal.org/node/1046170.
+      // See https://www.drupal.org/node/1046170.
       $count_query->preExecute();
 
       // Build the count query.
@@ -1552,14 +1553,43 @@ class Sql extends QueryPluginBase {
     $tags = [];
     // Add cache tags for each row, if there is an entity associated with it.
     if (!$this->hasAggregate) {
-      foreach ($this->view->result as $row)  {
-        if ($row->_entity) {
-          $tags = Cache::mergeTags($row->_entity->getCacheTags(), $tags);
-        }
+      foreach ($this->getAllEntities() as $entity) {
+        $tags = Cache::mergeTags($entity->getCacheTags(), $tags);
       }
     }
 
     return $tags;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    $max_age = parent::getCacheMaxAge();
+    foreach ($this->getAllEntities() as $entity) {
+      $max_age = Cache::mergeMaxAges($max_age, $entity->getCacheMaxAge());
+    }
+
+    return $max_age;
+  }
+
+  /**
+   * Gets all the involved entities of the view.
+   *
+   * @return \Drupal\Core\Entity\EntityInterface[]
+   */
+  protected function getAllEntities() {
+    $entities = [];
+    foreach ($this->view->result as $row) {
+      if ($row->_entity) {
+        $entities[] = $row->_entity;
+      }
+      foreach ($row->_relationship_entities as $entity) {
+        $entities[] = $entity;
+      }
+    }
+
+    return $entities;
   }
 
   public function addSignature(ViewExecutable $view) {

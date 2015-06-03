@@ -15,44 +15,12 @@ use Drupal\Component\Utility\SafeMarkup;
 /**
  * Provides an implementation of a configuration entity type and its metadata.
  */
-class ConfigEntityType extends EntityType {
+class ConfigEntityType extends EntityType implements ConfigEntityTypeInterface {
 
   /**
-   * Length limit of the configuration entity prefix.
+   * The config prefix set in the configuration entity type annotation.
    *
-   * Configuration entity names are composed of two parts:
-   * - The config prefix, which is returned by getConfigPrefix() and is
-   *   composed of:
-   *   - The provider module name (limited to 50 characters by
-   *     DRUPAL_EXTENSION_NAME_MAX_LENGTH).
-   *   - The module-specific namespace identifier, which defaults to the
-   *     configuration entity type ID. Entity type IDs are limited to 32
-   *     characters by EntityTypeInterface::ID_MAX_LENGTH.
-   * - The configuration entity ID.
-   * So, a typical configuration entity filename will look something like:
-   * provider_module_name.namespace_identifier.config_entity_id.yml
-   *
-   * Most file systems limit a file name's length to 255 characters, so
-   * ConfigBase::MAX_NAME_LENGTH restricts the full configuration object name
-   * to 250 characters (leaving 5 for the file extension). Therefore, in
-   * order to leave sufficient characters to construct a configuration ID,
-   * the configuration entity prefix is limited to 83 characters: up to 50
-   * characters for the module name, 1 for the dot, and 32 for the namespace
-   * identifier. This also allows modules with shorter names to define longer
-   * namespace identifiers if desired.
-   *
-   * @see \Drupal\Core\Config\ConfigBase::MAX_NAME_LENGTH
    * @see \Drupal\Core\Config\Entity\ConfigEntityTypeInterface::getConfigPrefix()
-   * @see DRUPAL_EXTENSION_NAME_MAX_LENGTH
-   * @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
-   * @see \Drupal\Core\Entity\EntityTypeInterface::ID_MAX_LENGTH
-   */
-  const PREFIX_LENGTH = 83;
-
-  /**
-   * Returns the config prefix used by the configuration entity type.
-   *
-   * @var string
    */
   protected $config_prefix;
 
@@ -60,6 +28,29 @@ class ConfigEntityType extends EntityType {
    * {@inheritdoc}
    */
   protected $static_cache = FALSE;
+
+  /**
+   * Keys that are stored key value store for fast lookup.
+   *
+   * @var array
+   */
+  protected $lookup_keys = [];
+
+  /**
+   * The list of configuration entity properties to export from the annotation.
+   *
+   * @var array
+   */
+  protected $config_export = [];
+
+  /**
+   * The result of merging config_export annotation with the defaults.
+   *
+   * This is stored on the class so that it does not have to be recalculated.
+   *
+   * @var array
+   */
+  protected $mergedConfigExport = [];
 
   /**
    * {@inheritdoc}
@@ -85,6 +76,7 @@ class ConfigEntityType extends EntityType {
     $this->handlers += array(
       'storage' => 'Drupal\Core\Config\Entity\ConfigEntityStorage',
     );
+    $this->lookup_keys[] = 'uuid';
   }
 
   /**
@@ -92,10 +84,7 @@ class ConfigEntityType extends EntityType {
    */
   public function getConfigPrefix() {
     // Ensure that all configuration entities are prefixed by the name of the
-    // module that provides the configuration entity type. This ensures that
-    // default configuration will be created as expected during module
-    // installation and dependencies can be calculated without the modules that
-    // provide the entity types being installed.
+    // module that provides the configuration entity type.
     if (isset($this->config_prefix)) {
       $config_prefix = $this->provider . '.' . $this->config_prefix;
     }
@@ -171,6 +160,41 @@ class ConfigEntityType extends EntityType {
     if (!is_a($class, 'Drupal\Core\Config\Entity\ConfigEntityStorage', TRUE)) {
       throw new ConfigEntityStorageClassException(SafeMarkup::format('@class is not \Drupal\Core\Config\Entity\ConfigEntityStorage or it does not extend it', ['@class' => $class]));
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPropertiesToExport() {
+    if (!empty($this->config_export)) {
+      if (empty($this->mergedConfigExport)) {
+        // Always add default properties to be exported.
+        $this->mergedConfigExport = [
+          'uuid' => 'uuid',
+          'langcode' => 'langcode',
+          'status' => 'status',
+          'dependencies' => 'dependencies',
+          'third_party_settings' => 'third_party_settings',
+        ];
+        foreach ($this->config_export as $property => $name) {
+          if (is_numeric($property)) {
+            $this->mergedConfigExport[$name] = $name;
+          }
+          else {
+            $this->mergedConfigExport[$property] = $name;
+          }
+        }
+      }
+      return $this->mergedConfigExport;
+    }
+    return NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLookupKeys() {
+    return $this->lookup_keys;
   }
 
 }

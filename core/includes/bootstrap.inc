@@ -28,8 +28,9 @@ const DRUPAL_MINIMUM_PHP = '5.4.5';
 /**
  * Minimum recommended value of PHP memory_limit.
  *
- * @todo Reduce the memory required to install on some environments in
- *   https://www.drupal.org/node/2289201 and then decrease this limit.
+ * 64M was chosen as a minimum requirement in order to allow for additional
+ * contributed modules to be installed prior to hitting the limit. However,
+ * 40M is the target for the Standard installation profile.
  */
 const DRUPAL_MINIMUM_PHP_MEMORY_LIMIT = '64M';
 
@@ -249,16 +250,9 @@ function drupal_get_filename($type, $name, $filename = NULL) {
     if (!isset($files[$type][$name]) && \Drupal::hasService('state')) {
       $files[$type] += \Drupal::state()->get('system.' . $type . '.files', array());
     }
-    // If still unknown, perform a filesystem scan.
+    // If still unknown, create a user-level error message.
     if (!isset($files[$type][$name])) {
-      $listing = new ExtensionDiscovery(DRUPAL_ROOT);
-      // Prevent an infinite recursion by this legacy function.
-      if ($original_type == 'profile') {
-        $listing->setProfileDirectories(array());
-      }
-      foreach ($listing->scan($original_type) as $extension_name => $file) {
-        $files[$type][$extension_name] = $file->getPathname();
-      }
+      trigger_error(SafeMarkup::format('The following @type is missing from the file system: @name', array('@type' => $type, '@name' => $name)), E_USER_WARNING);
     }
   }
 
@@ -301,7 +295,7 @@ function drupal_get_path($type, $name) {
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
  *   Use \Symfony\Component\HttpFoundation\Response->headers->set().
- *   See https://drupal.org/node/2181523.
+ *   See https://www.drupal.org/node/2181523.
  */
 function _drupal_add_http_header($name, $value, $append = FALSE) {
   // The headers as name/value pairs.
@@ -336,7 +330,7 @@ function _drupal_add_http_header($name, $value, $append = FALSE) {
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
  *   Use \Symfony\Component\HttpFoundation\Response->headers->get().
- *   See https://drupal.org/node/2181523.
+ *   See https://www.drupal.org/node/2181523.
  */
 function drupal_get_http_header($name = NULL) {
   $headers = &drupal_static('drupal_http_headers', array());
@@ -356,7 +350,7 @@ function drupal_get_http_header($name = NULL) {
  * follow "common form" (see RFC 2616, section 4.2).
  *
  * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   See https://drupal.org/node/2181523.
+ *   See https://www.drupal.org/node/2181523.
  */
 function _drupal_set_preferred_header_name($name = NULL) {
   static $header_names = array();
@@ -378,7 +372,7 @@ function _drupal_set_preferred_header_name($name = NULL) {
  * always be in English. To enable a fully-translatable site, it is important
  * that all human-readable text that will be displayed on the site or sent to
  * a user is passed through the t() function, or a related function. See the
- * @link http://drupal.org/node/322729 Localization API @endlink pages for
+ * @link https://www.drupal.org/node/322729 Localization API @endlink pages for
  * more information, including recommendations on how to break up or not
  * break up strings for translation.
  *
@@ -963,7 +957,7 @@ function drupal_classloader_register($name, $path) {
  * - http://php.net/manual/language.variables.scope.php#language.variables.scope.static
  * - http://php.net/manual/language.variables.scope.php#language.variables.scope.references
  * The example below shows the syntax needed to work around both limitations.
- * For benchmarks and more information, see http://drupal.org/node/619666.
+ * For benchmarks and more information, see https://www.drupal.org/node/619666.
  *
  * Example:
  * @code

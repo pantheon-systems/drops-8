@@ -16,7 +16,7 @@
       el: null,
       // An entity ID, of the form "<entity type>/<entity ID>", e.g. "node/1".
       entityID: null,
-      // An entity instance ID. The first intance of a specific entity (i.e. with
+      // An entity instance ID. The first instance of a specific entity (i.e. with
       // a given entity ID) is assigned 0, the second 1, and so on.
       entityInstanceID: null,
       // The unique ID of this entity instance on the page, of the form "<entity
@@ -362,18 +362,10 @@
     save: function (options) {
       var entityModel = this;
 
-      // @todo Simplify this once https://drupal.org/node/1533366 lands.
-      // @see https://drupal.org/node/2029999.
-      var id = 'quickedit-save-entity';
-      // Create a temporary element to be able to use Drupal.ajax.
-      var $el = $('#quickedit-entity-toolbar').find('.action-save'); // This is the span element inside the button.
       // Create a Drupal.ajax instance to save the entity.
-      var entitySaverAjax = new Drupal.ajax(id, $el, {
+      var entitySaverAjax = Drupal.ajax({
         url: Drupal.url('quickedit/entity/' + entityModel.get('entityID')),
-        event: 'quickedit-save.quickedit',
-        progress: {type: 'none'},
         error: function () {
-          $el.off('quickedit-save.quickedit');
           // Let the Drupal.quickedit.EntityModel Backbone model's error()=
           // method handle errors.
           options.error.call(entityModel);
@@ -381,8 +373,6 @@
       });
       // Entity saved successfully.
       entitySaverAjax.commands.quickeditEntitySaved = function (ajax, response, status) {
-        // Clean up.
-        $(ajax.element).off('quickedit-save.quickedit');
         // All fields have been moved from PrivateTempStore to permanent
         // storage, update the "inTempStore" attribute on FieldModels, on the
         // EntityModel and clear EntityModel's "fieldInTempStore" attribute.
@@ -399,7 +389,7 @@
       };
       // Trigger the AJAX request, which will will return the
       // quickeditEntitySaved AJAX command to which we then react.
-      $el.trigger('quickedit-save.quickedit');
+      entitySaverAjax.execute();
     },
 
     /**
@@ -450,7 +440,7 @@
         }
       }
       else if (currentIsCommitting === true && nextIsCommitting === true) {
-        return "isCommiting is a mutex, hence only changes are allowed";
+        return "isCommitting is a mutex, hence only changes are allowed";
       }
     },
 

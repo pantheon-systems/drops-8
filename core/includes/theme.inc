@@ -109,17 +109,17 @@ function drupal_theme_rebuild() {
 /**
  * Allows themes and/or theme engines to discover overridden theme functions.
  *
- * @param $cache
+ * @param array $cache
  *   The existing cache of theme hooks to test against.
- * @param $prefixes
+ * @param array $prefixes
  *   An array of prefixes to test, in reverse order of importance.
  *
- * @return $implementations
+ * @return array
  *   The functions found, suitable for returning from hook_theme;
  */
 function drupal_find_theme_functions($cache, $prefixes) {
-  $implementations = array();
-  $functions = get_defined_functions();
+  $implementations = [];
+  $grouped_functions = drupal_group_functions_by_prefix();
 
   foreach ($cache as $hook => $info) {
     foreach ($prefixes as $prefix) {
@@ -135,8 +135,10 @@ function drupal_find_theme_functions($cache, $prefixes) {
       // are found using the base hook's pattern, not a pattern from an
       // intermediary suggestion.
       $pattern = isset($info['pattern']) ? $info['pattern'] : ($hook . '__');
-      if (!isset($info['base hook']) && !empty($pattern)) {
-        $matches = preg_grep('/^' . $prefix . '_' . $pattern . '/', $functions['user']);
+      // Grep only the functions which are within the prefix group.
+      list($first_prefix,) = explode('_', $prefix, 2);
+      if (!isset($info['base hook']) && !empty($pattern) && isset($grouped_functions[$first_prefix])) {
+        $matches = preg_grep('/^' . $prefix . '_' . $pattern . '/', $grouped_functions[$first_prefix]);
         if ($matches) {
           foreach ($matches as $match) {
             $new_hook = substr($match, strlen($prefix) + 1);
@@ -161,6 +163,25 @@ function drupal_find_theme_functions($cache, $prefixes) {
   }
 
   return $implementations;
+}
+
+/**
+ * Group all user functions by word before first underscore.
+ *
+ * @return array
+ *   Functions grouped by the first prefix.
+ */
+function drupal_group_functions_by_prefix() {
+  $functions = get_defined_functions();
+
+  $grouped_functions = [];
+  // Splitting user defined functions into groups by the first prefix.
+  foreach ($functions['user'] as $function) {
+    list($first_prefix,) = explode('_', $function, 2);
+    $grouped_functions[$first_prefix][] = $function;
+  }
+
+  return $grouped_functions;
 }
 
 /**
@@ -1002,7 +1023,7 @@ function template_preprocess_tablesort_indicator(&$variables) {
  *   - title: A title to be prepended to the list.
  *   - list_type: The type of list to return (e.g. "ul", "ol").
  *
- * @see http://drupal.org/node/1842756
+ * @see https://www.drupal.org/node/1842756
  */
 function template_preprocess_item_list(&$variables) {
   foreach ($variables['items'] as &$item) {
@@ -1088,7 +1109,7 @@ function template_preprocess_feed_icon(&$variables) {
 function theme_indentation($variables) {
   $output = '';
   for ($n = 0; $n < $variables['size']; $n++) {
-    $output .= '<div class="js-indentation">&nbsp;</div>';
+    $output .= '<div class="js-indentation indentation">&nbsp;</div>';
   }
   return $output;
 }
@@ -1162,10 +1183,10 @@ function template_preprocess_maintenance_task_list(&$variables) {
  * This function is called for theme hooks implemented as templates only, not
  * for theme hooks implemented as functions. This preprocess function is the
  * first in the sequence of preprocessing functions that are called when
- * preparing variables for a template. See _theme() for more details about the
- * full sequence.
+ * preparing variables for a template.
  *
- * @see _theme()
+ * See the @link themeable Default theme implementations topic @endlink for
+ * details.
  */
 function template_preprocess(&$variables, $hook, $info) {
   // Tell all templates where they are located.
@@ -1267,33 +1288,28 @@ function template_preprocess_html(&$variables) {
   // Construct page title.
   if (!empty($variables['page']['#title'])) {
     $head_title = array(
-      'title' => SafeMarkup::set(trim(strip_tags($variables['page']['#title']))),
-      'name' => SafeMarkup::checkPlain($site_config->get('name')),
+      'title' => trim(strip_tags($variables['page']['#title'])),
+      'name' => $site_config->get('name'),
     );
   }
   // @todo Remove once views is not bypassing the view subscriber anymore.
-  //   @see http://drupal.org/node/2068471
+  //   @see https://www.drupal.org/node/2068471
   elseif ($is_front_page) {
     $head_title = array(
       'title' => t('Home'),
-      'name' => SafeMarkup::checkPlain($site_config->get('name')),
+      'name' => $site_config->get('name'),
     );
   }
   else {
-    $head_title = array('name' => SafeMarkup::checkPlain($site_config->get('name')));
+    $head_title = ['name' => $site_config->get('name')];
     if ($site_config->get('slogan')) {
-      $head_title['slogan'] = strip_tags(Xss::filterAdmin($site_config->get('slogan')));
+      $head_title['slogan'] = strip_tags($site_config->get('slogan'));
     }
   }
 
+  $variables['head_title'] = $head_title;
+  // @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
   $variables['head_title_array'] = $head_title;
-  $output = '';
-  $separator = '';
-  foreach ($head_title as $item) {
-    $output .= $separator . SafeMarkup::escape($item);
-    $separator = ' | ';
-  }
-  $variables['head_title'] = SafeMarkup::set($output);
 
   // Collect all attachments. This must happen in the preprocess function for
   // #type => html, to ensure that attachments added in #pre_render callbacks
@@ -1491,11 +1507,8 @@ function template_preprocess_install_page(&$variables) {
 
   // Override the site name that is displayed on the page, since Drupal is
   // still in the process of being installed.
-  $distribution_name = SafeMarkup::checkPlain(drupal_install_profile_distribution_name());
+  $distribution_name = drupal_install_profile_distribution_name();
   $variables['site_name'] = $distribution_name;
-  $variables['head_title_array']['name'] = $distribution_name;
-
-  $variables['head_title'] = implode(' | ', $variables['head_title_array']);
 }
 
 /**

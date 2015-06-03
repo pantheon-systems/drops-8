@@ -209,6 +209,7 @@ class ConfigSchemaTest extends KernelTestBase {
 
     $this->assertEqual($definition, $expected, 'Retrieved the right metadata for the first effect of image.style.medium');
 
+    $a = \Drupal::config('config_test.dynamic.third_party');
     $test = \Drupal::service('config.typed')->get('config_test.dynamic.third_party')->get('third_party_settings.config_schema_test');
     $definition = $test->getDataDefinition()->toArray();
     $expected = array();
@@ -226,7 +227,7 @@ class ConfigSchemaTest extends KernelTestBase {
     $definition = \Drupal::service('config.typed')->getDefinition('config_schema_test.someschema.somemodule.section_one.subsection');
     // This should be the schema of config_schema_test.someschema.somemodule.*.*.
     $expected = array();
-    $expected['label'] = 'Schema multiple filesytem marker test';
+    $expected['label'] = 'Schema multiple filesystem marker test';
     $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
     $expected['mapping']['langcode']['type'] = 'string';
     $expected['mapping']['langcode']['label'] = 'Language code';

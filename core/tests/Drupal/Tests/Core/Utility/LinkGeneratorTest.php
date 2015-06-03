@@ -8,7 +8,9 @@
 namespace Drupal\Tests\Core\Utility {
 
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\LinkGenerator;
 use Drupal\Tests\UnitTestCase;
@@ -152,7 +154,7 @@ class LinkGeneratorTest extends UnitTestCase {
   public function testGenerateExternal() {
     $this->urlAssembler->expects($this->once())
       ->method('assemble')
-      ->with('http://drupal.org', array('set_active_class' => TRUE, 'external' => TRUE) + $this->defaultOptions)
+      ->with('https://www.drupal.org', array('set_active_class' => TRUE, 'external' => TRUE) + $this->defaultOptions)
       ->will($this->returnArgument(0));
 
     $this->moduleHandler->expects($this->once())
@@ -161,10 +163,10 @@ class LinkGeneratorTest extends UnitTestCase {
 
     $this->urlAssembler->expects($this->once())
       ->method('assemble')
-      ->with('http://drupal.org', array('set_active_class' => TRUE, 'external' => TRUE) + $this->defaultOptions)
+      ->with('https://www.drupal.org', array('set_active_class' => TRUE, 'external' => TRUE) + $this->defaultOptions)
       ->willReturnArgument(0);
 
-    $url = Url::fromUri('http://drupal.org');
+    $url = Url::fromUri('https://www.drupal.org');
     $url->setUrlGenerator($this->urlGenerator);
     $url->setUnroutedUrlAssembler($this->urlAssembler);
     $url->setOption('set_active_class', TRUE);
@@ -172,7 +174,7 @@ class LinkGeneratorTest extends UnitTestCase {
     $result = $this->linkGenerator->generate('Drupal', $url);
     $this->assertLink(array(
       'attributes' => array(
-        'href' => 'http://drupal.org',
+        'href' => 'https://www.drupal.org',
       ),
       'content' => 'Drupal',
     ), $result);
@@ -422,6 +424,39 @@ class LinkGeneratorTest extends UnitTestCase {
         'data-drupal-link-query' => '{"value":"example_1"}',
       ),
     ), $result);
+  }
+
+  /**
+   * Tests the LinkGenerator's support for collecting cacheability metadata.
+   *
+   * @see \Drupal\Core\Utility\LinkGenerator::generate()
+   * @see \Drupal\Core\Utility\LinkGenerator::generateFromLink()
+   */
+  public function testGenerateCacheability() {
+    $options = ['query' => [], 'language' => NULL, 'set_active_class' => FALSE, 'absolute' => FALSE];
+    $this->urlGenerator->expects($this->any())
+      ->method('generateFromRoute')
+      ->will($this->returnValueMap([
+        ['test_route_1', [], $options, FALSE, '/test-route-1'],
+        ['test_route_1', [], $options, TRUE, (new GeneratedUrl())->setGeneratedUrl('/test-route-1')],
+      ]));
+
+    $url = new Url('test_route_1');
+    $url->setUrlGenerator($this->urlGenerator);
+    $expected_link_markup = '<a href="/test-route-1">Test</a>';
+
+    // Test ::generate().
+    $this->assertSame($expected_link_markup, $this->linkGenerator->generate('Test', $url));
+    $generated_link = $this->linkGenerator->generate('Test', $url, TRUE);
+    $this->assertSame($expected_link_markup, $generated_link->getGeneratedLink());
+    $this->assertInstanceOf('\Drupal\Core\Cache\CacheableMetadata', $generated_link);
+
+    // Test ::generateFromLink().
+    $link = new Link('Test', $url);
+    $this->assertSame($expected_link_markup, $this->linkGenerator->generateFromLink($link));
+    $generated_link = $this->linkGenerator->generateFromLink($link, TRUE);
+    $this->assertSame($expected_link_markup, $generated_link->getGeneratedLink());
+    $this->assertInstanceOf('\Drupal\Core\Cache\CacheableMetadata', $generated_link);
   }
 
   /**

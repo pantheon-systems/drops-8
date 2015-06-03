@@ -23,7 +23,7 @@ function toolbar_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.toolbar':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Toolbar module provides a toolbar for site administrators, which displays tabs and trays provided by the Toolbar module itself and other modules. For more information, see the <a href="!toolbar_docs">online documentation for the Toolbar module</a>.', array('!toolbar_docs' => 'https://drupal.org/documentation/modules/toolbar')) . '</p>';
+      $output .= '<p>' . t('The Toolbar module provides a toolbar for site administrators, which displays tabs and trays provided by the Toolbar module itself and other modules. For more information, see the <a href="!toolbar_docs">online documentation for the Toolbar module</a>.', array('!toolbar_docs' => 'https://www.drupal.org/documentation/modules/toolbar')) . '</p>';
       $output .= '<h4>' . t('Terminology') . '</h4>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Tabs') . '</dt>';
@@ -41,6 +41,10 @@ function toolbar_help($route_name, RouteMatchInterface $route_match) {
 function toolbar_theme($existing, $type, $theme, $path) {
   $items['toolbar'] = array(
     'render element' => 'element',
+  );
+  $items['menu__toolbar'] = array(
+    'base hook' => 'menu',
+    'variables' => array('items' => array(), 'attributes' => array()),
   );
 
   return $items;
@@ -204,7 +208,7 @@ function toolbar_toolbar() {
  * @see drupal_render()
  */
 function toolbar_prerender_toolbar_administration_tray(array $element) {
-  $menu_tree = \Drupal::menuTree();
+  $menu_tree = \Drupal::service('toolbar.menu_tree');
   // Render the top-level administration menu links.
   $parameters = new MenuTreeParameters();
   $parameters->setRoot('system.admin')->excludeRoot()->setTopLevelOnly()->onlyEnabledLinks();
@@ -261,7 +265,7 @@ function toolbar_menu_navigation_links(array $tree) {
  * Returns the rendered subtree of each top-level toolbar link.
  */
 function toolbar_get_rendered_subtrees() {
-  $menu_tree = \Drupal::menuTree();
+  $menu_tree = \Drupal::service('toolbar.menu_tree');
   $parameters = new MenuTreeParameters();
   $parameters->setRoot('system.admin')->excludeRoot()->setMaxDepth(3)->onlyEnabledLinks();
   $tree = $menu_tree->load(NULL, $parameters);

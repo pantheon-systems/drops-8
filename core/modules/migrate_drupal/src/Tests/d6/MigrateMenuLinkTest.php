@@ -22,13 +22,16 @@ class MigrateMenuLinkTest extends MigrateDrupal6TestBase {
    *
    * @var array
    */
-  public static $modules = array('menu_ui');
+  public static $modules = array('link', 'menu_ui', 'menu_link_content');
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
+
+    $this->installSchema('system', ['router']);
+    $this->installEntitySchema('menu_link_content');
 
     $menu = entity_create('menu', array('id' => 'secondary-links'));
     $menu->enforceIsNew(TRUE);
@@ -77,7 +80,7 @@ class MigrateMenuLinkTest extends MigrateDrupal6TestBase {
     $this->assertIdentical(TRUE, $menu_link->isEnabled());
     $this->assertIdentical(FALSE, $menu_link->isExpanded());
     $this->assertIdentical(['attributes' => ['title' => '']], $menu_link->link->options);
-    $this->assertIdentical('http://drupal.org', $menu_link->link->uri);
+    $this->assertIdentical('https://www.drupal.org', $menu_link->link->uri);
     $this->assertIdentical(0, $menu_link->getWeight());
   }
 
