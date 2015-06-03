@@ -34,10 +34,10 @@ ckeditor:
 
 domready:
   remote: https://github.com/ded/domready
-  version: "1.0.7"
+  version: "1.0.8"
   license:
     name: MIT
-    url: https://github.com/ded/domready/blob/v1.0.7/LICENSE
+    url: https://github.com/ded/domready/blob/v1.0.8/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/domready/ready.min.js: { weight: -21, minified: true }
@@ -321,10 +321,10 @@ html5shiv:
 
 jquery:
   remote: https://github.com/jquery/jquery
-  version: "2.1.3"
+  version: "2.1.4"
   license:
     name: MIT
-    url: https://github.com/jquery/jquery/blob/2.1.3/MIT-LICENSE.txt
+    url: https://github.com/jquery/jquery/blob/2.1.4/MIT-LICENSE.txt
     gpl-compatible: true
   js:
     assets/vendor/jquery/jquery.min.js: { minified: true, weight: -20 }
@@ -384,10 +384,10 @@ jquery.joyride:
 
 jquery.once:
   remote: https://github.com/RobLoach/jquery-once
-  version: "2.0.0"
+  version: "2.0.1"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/RobLoach/jquery-once/blob/master/LICENSE.md
+    url: https://github.com/RobLoach/jquery-once/blob/2.0.1/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/jquery-once/jquery.once.min.js: { weight: -19, minified: true }
@@ -815,7 +815,7 @@ modernizr:
 
 normalize:
   remote: https://github.com/necolas/normalize.css
-  version: "3.0.2"
+  version: "3.0.3"
   license:
     name: MIT
     url: https://github.com/necolas/normalize.css/blob/master/LICENSE.md
@@ -826,10 +826,10 @@ normalize:
 
 picturefill:
   remote: https://github.com/scottjehl/picturefill
-  version: "2.3.0"
+  version: "2.3.1"
   license:
     name: MIT
-    url: https://github.com/scottjehl/picturefill/blob/2.3/LICENSE
+    url: https://github.com/scottjehl/picturefill/blob/2.3.1/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/picturefill/picturefill.min.js: { weight: -10, minified: true }

@@ -280,7 +280,7 @@ class Schema extends DatabaseSchema {
       unset($spec['not null']);
     }
 
-    if (in_array($spec['pgsql_type'], array('varchar', 'character', 'text')) && isset($spec['length'])) {
+    if (in_array($spec['pgsql_type'], array('varchar', 'character')) && isset($spec['length'])) {
       $sql .= '(' . $spec['length'] . ')';
     }
     elseif (isset($spec['precision']) && isset($spec['scale'])) {
@@ -363,6 +363,8 @@ class Schema extends DatabaseSchema {
     // database types back into schema types.
     // $map does not use drupal_static as its value never changes.
     static $map = array(
+      'varchar_ascii:normal' => 'varchar',
+
       'varchar:normal' => 'varchar',
       'char:normal' => 'character',
 

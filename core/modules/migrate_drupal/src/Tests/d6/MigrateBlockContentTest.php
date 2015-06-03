@@ -21,13 +21,16 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
  */
 class MigrateBlockContentTest extends MigrateDrupal6TestBase {
 
-  static $modules = array('block', 'block_content');
+  static $modules = array('block', 'block_content', 'filter', 'text');
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
+    $this->installConfig(array('block_content'));
+    $this->installEntitySchema('block_content');
+
     $migration = entity_load('migration', 'd6_block_content_type');
     $executable = new MigrateExecutable($migration, $this);
     $executable->import();
@@ -57,7 +60,6 @@ class MigrateBlockContentTest extends MigrateDrupal6TestBase {
     /** @var BlockContent $block */
     $block = BlockContent::load(1);
     $this->assertIdentical('My block 1', $block->label());
-    $this->assertIdentical('1', $block->getRevisionId());
     $this->assertTrue(REQUEST_TIME <= $block->getChangedTime() && $block->getChangedTime() <= time());
     $this->assertIdentical('en', $block->language()->getId());
     $this->assertIdentical('<h3>My first custom block body</h3>', $block->body->value);
@@ -65,7 +67,6 @@ class MigrateBlockContentTest extends MigrateDrupal6TestBase {
 
     $block = BlockContent::load(2);
     $this->assertIdentical('My block 2', $block->label());
-    $this->assertIdentical('2', $block->getRevisionId());
     $this->assertTrue(REQUEST_TIME <= $block->getChangedTime() && $block->getChangedTime() <= time());
     $this->assertIdentical('en', $block->language()->getId());
     $this->assertIdentical('<h3>My second custom block body</h3>', $block->body->value);

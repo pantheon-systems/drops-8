@@ -40,6 +40,13 @@ use Drupal\user\RoleInterface;
  *     "edit-form" = "/admin/people/roles/manage/{user_role}",
  *     "edit-permissions-form" = "/admin/people/permissions/{user_role}",
  *     "collection" = "/admin/people/roles",
+ *   },
+ *   config_export = {
+ *     "id",
+ *     "label",
+ *     "weight",
+ *     "is_admin",
+ *     "permissions",
  *   }
  * )
  */
@@ -177,16 +184,6 @@ class Role extends ConfigEntityBase implements RoleInterface {
       });
       $this->weight = $max + 1;
     }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
-    parent::postSave($storage, $update);
-
-    // Clear render cache.
-    entity_render_cache_clear();
   }
 
 }

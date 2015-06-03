@@ -1,6 +1,6 @@
 # Base types provided by Drupal core.
 
-# Read https://drupal.org/node/1905070 for more details about configuration
+# Read https://www.drupal.org/node/1905070 for more details about configuration
 # schema, types and type resolution.
 
 # Undefined type used by the system to assign to elements at any level where
@@ -445,6 +445,9 @@ field.storage_settings.string:
     case_sensitive:
       type: boolean
       label: 'Case sensitive'
+    is_ascii:
+      type: boolean
+      label: 'Contains US ASCII characters only'
 
 field.field_settings.string:
   type: mapping

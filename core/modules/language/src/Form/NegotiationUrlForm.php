@@ -153,7 +153,9 @@ class NegotiationUrlForm extends ConfigFormBase {
         if (!($default_langcode == $langcode) && $form_state->getValue('language_negotiation_url_part') == LanguageNegotiationUrl::CONFIG_PATH_PREFIX) {
           // Throw a form error if the prefix is blank for a non-default language,
           // although it is required for selected negotiation type.
-          $form_state->setErrorByName("prefix][$langcode", $this->t('The prefix may only be left blank for the selected detection fallback language.'));
+          $form_state->setErrorByName("prefix][$langcode", $this->t('The prefix may only be left blank for the <a href="@url">selected detection fallback language.</a>', [
+            '@url' => $this->getUrlGenerator()->generate('language.negotiation_selected'),
+          ]));
         }
       }
       elseif (strpos($value, '/') !== FALSE) {
@@ -188,13 +190,13 @@ class NegotiationUrlForm extends ConfigFormBase {
     }
 
     // Domain names should not contain protocol and/or ports.
-    foreach ($languages as $langcode => $name) {
+    foreach ($languages as $langcode => $language) {
       $value = $form_state->getValue(array('domain', $langcode));
       if (!empty($value)) {
         // Ensure we have exactly one protocol when checking the hostname.
         $host = 'http://' . str_replace(array('http://', 'https://'), '', $value);
         if (parse_url($host, PHP_URL_HOST) != $value) {
-          $form_state->setErrorByName("domain][$langcode", $this->t('The domain for %language may only contain the domain name, not a protocol and/or port.', array('%language' => $name)));
+          $form_state->setErrorByName("domain][$langcode", $this->t('The domain for %language may only contain the domain name, not a trailing slash, protocol and/or port.', ['%language' => $language->getName()]));
         }
       }
     }

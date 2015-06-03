@@ -11,6 +11,7 @@ use Drupal\Component\Diff\Diff;
 use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Config\Entity\ConfigEntityTypeInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -102,7 +103,7 @@ class ConfigManager implements ConfigManagerInterface {
    */
   public function getEntityTypeIdByName($name) {
     $entities = array_filter($this->entityManager->getDefinitions(), function (EntityTypeInterface $entity_type) use ($name) {
-      return ($config_prefix = $entity_type->getConfigPrefix()) && strpos($name, $config_prefix . '.') === 0;
+      return ($entity_type instanceof ConfigEntityTypeInterface && $config_prefix = $entity_type->getConfigPrefix()) && strpos($name, $config_prefix . '.') === 0;
     });
     return key($entities);
   }
@@ -444,6 +445,31 @@ class ConfigManager implements ConfigManagerInterface {
 
     // Inform the entity.
     return $entity->onDependencyRemoval($affected_dependencies);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function findMissingContentDependencies() {
+    $content_dependencies = array();
+    $missing_dependencies = array();
+    foreach ($this->activeStorage->readMultiple($this->activeStorage->listAll()) as $config_data) {
+      if (isset($config_data['dependencies']['content'])) {
+        $content_dependencies = array_merge($content_dependencies, $config_data['dependencies']['content']);
+      }
+    }
+    foreach (array_unique($content_dependencies) as $content_dependency) {
+      // Format of the dependency is entity_type:bundle:uuid.
+      list($entity_type, $bundle, $uuid) = explode(':', $content_dependency, 3);
+      if (!$this->entityManager->loadEntityByUuid($entity_type, $uuid)) {
+        $missing_dependencies[$uuid] = array(
+          'entity_type' => $entity_type,
+          'bundle' => $bundle,
+          'uuid' => $uuid,
+        );
+      }
+    }
+    return $missing_dependencies;
   }
 
 }

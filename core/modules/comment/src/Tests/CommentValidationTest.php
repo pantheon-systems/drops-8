@@ -125,7 +125,8 @@ class CommentValidationTest extends EntityUnitTestBase {
     $this->assertEqual(count($violations), 1, 'Violation found when homepage is invalid');
     $this->assertEqual($violations[0]->getPropertyPath(), 'homepage.0.value');
 
-    // @todo This message should be improved in https://drupal.org/node/2012690
+    // @todo This message should be improved in
+    //   https://www.drupal.org/node/2012690.
     $this->assertEqual($violations[0]->getMessage(), t('This value should be of the correct primitive type.'));
 
     $comment->set('homepage', NULL);
@@ -139,7 +140,7 @@ class CommentValidationTest extends EntityUnitTestBase {
     $comment->set('thread', NULL);
 
     // Force anonymous users to enter contact details.
-    $field->settings['anonymous'] = COMMENT_ANONYMOUS_MUST_CONTACT;
+    $field->setSetting('anonymous', COMMENT_ANONYMOUS_MUST_CONTACT);
     $field->save();
     // Reset the node entity.
     \Drupal::entityManager()->getStorage('node')->resetCache([$node->id()]);

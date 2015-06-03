@@ -7,9 +7,9 @@
 
 namespace Drupal\Core;
 
+use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\ProxyBuilder\ProxyDumper;
 use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Utility\Timer;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
@@ -249,9 +249,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // loader.
     if ($class_loader_class == get_class($class_loader)
         && Settings::get('class_loader_auto_detect', TRUE)
-        && Settings::get('hash_salt', FALSE)
         && function_exists('apc_fetch')) {
-      $prefix = 'drupal.' . hash('sha256', 'drupal.' . Settings::getHashSalt());
+      $prefix = Settings::getApcuPrefix('class_loader', $core_root);
       $apc_loader = new \Symfony\Component\ClassLoader\ApcClassLoader($prefix, $class_loader);
       $class_loader->unregister();
       $apc_loader->register();
@@ -308,7 +307,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * loaded prior to scanning for directories. That file can define aliases in
    * an associative array named $sites. The array is written in the format
    * '<port>.<domain>.<path>' => 'directory'. As an example, to create a
-   * directory alias for http://www.drupal.org:8080/mysite/test whose
+   * directory alias for https://www.drupal.org:8080/mysite/test whose
    * configuration file is in sites/example.com, the array should be defined as:
    * @code
    * $sites = array(
@@ -405,13 +404,32 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       return $this;
     }
 
-    // Start a page timer:
-    Timer::start('page');
-
     // Ensure that findSitePath is set.
     if (!$this->sitePath) {
       throw new \Exception('Kernel does not have site path set before calling boot()');
     }
+
+    // Initialize the FileCacheFactory component. We have to do it here instead
+    // of in \Drupal\Component\FileCache\FileCacheFactory because we can not use
+    // the Settings object in a component.
+    $configuration = Settings::get('file_cache');
+
+    // Provide a default configuration, if not set.
+    if (!isset($configuration['default'])) {
+      $configuration['default'] = [
+        'class' => '\Drupal\Component\FileCache\FileCache',
+        'cache_backend_class' => NULL,
+        'cache_backend_configuration' => [],
+      ];
+      // @todo Use extension_loaded('apcu') for non-testbot
+      //  https://www.drupal.org/node/2447753.
+      if (function_exists('apc_fetch')) {
+        $configuration['default']['cache_backend_class'] = '\Drupal\Component\FileCache\ApcuFileCacheBackend';
+      }
+    }
+    FileCacheFactory::setConfiguration($configuration);
+    FileCacheFactory::setPrefix(Settings::getApcuPrefix('file_cache', $this->root));
+
     // Initialize the container.
     $this->initializeContainer();
 

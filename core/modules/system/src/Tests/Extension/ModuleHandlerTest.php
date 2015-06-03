@@ -23,6 +23,14 @@ class ModuleHandlerTest extends KernelTestBase {
    */
   public static $modules = array('system');
 
+  public function setUp() {
+    parent::setUp();
+    // Set up the state values so we know where to find the files when running
+    // drupal_get_filename().
+    // @todo Remove as part of https://www.drupal.org/node/2186491
+    system_rebuild_module_data();
+  }
+
   /**
    * {@inheritdoc}
    */
@@ -37,6 +45,11 @@ class ModuleHandlerTest extends KernelTestBase {
    * The basic functionality of retrieving enabled modules.
    */
   function testModuleList() {
+    // Prime the drupal_get_filename() static cache with the location of the
+    // testing profile as it is not the currently active profile and we don't
+    // yet have any cached way to retrieve its location.
+    // @todo Remove as part of https://www.drupal.org/node/2186491
+    drupal_get_filename('profile', 'testing', 'core/profiles/testing/testing.info.yml');
     // Build a list of modules, sorted alphabetically.
     $profile_info = install_profile_info('testing', 'en');
     $module_list = $profile_info['dependencies'];
@@ -99,7 +112,7 @@ class ModuleHandlerTest extends KernelTestBase {
    * purely UI-facing or live at the "bottom" of all dependency chains.
    *
    * @see module_test_system_info_alter()
-   * @see https://drupal.org/files/issues/dep.gv__0.png
+   * @see https://www.drupal.org/files/issues/dep.gv__0.png
    */
   function testDependencyResolution() {
     $this->enableModules(array('module_test'));
@@ -184,6 +197,11 @@ class ModuleHandlerTest extends KernelTestBase {
     $profile = 'minimal';
     $dependency = 'dblog';
     $this->settingsSet('install_profile', $profile);
+    // Prime the drupal_get_filename() static cache with the location of the
+    // minimal profile as it is not the currently active profile and we don't
+    // yet have any cached way to retrieve its location.
+    // @todo Remove as part of https://www.drupal.org/node/2186491
+    drupal_get_filename('profile', $profile, 'core/profiles/' . $profile . '/' . $profile . '.info.yml');
     $this->enableModules(array('module_test', $profile));
 
     drupal_static_reset('system_rebuild_module_data');

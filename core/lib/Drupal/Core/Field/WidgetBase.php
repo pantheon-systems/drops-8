@@ -176,10 +176,21 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
 
       // For multiple fields, title and description are handled by the wrapping
       // table.
-      $element = array(
-        '#title' => $is_multiple ? '' : $title,
-        '#description' => $is_multiple ? '' : $description,
-      );
+      if ($is_multiple) {
+        $element = [
+          '#title' => $title . ' ' . $this->t('(value @number)', ['@number' => $delta + 1]),
+          '#title_display' => 'invisible',
+          '#description' => '',
+        ];
+      }
+      else {
+        $element = [
+          '#title' => $title,
+          '#title_display' => 'before',
+          '#description' => $description,
+        ];
+      }
+
       $element = $this->formSingleElement($items, $delta, $element, $form, $form_state);
 
       if ($element) {
@@ -189,7 +200,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
           // defined by widget.
           $element['_weight'] = array(
             '#type' => 'weight',
-            '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
+            '#title' => $this->t('Weight for row @number', array('@number' => $delta + 1)),
             '#title_display' => 'invisible',
             // Note: this 'delta' is the FAPI #type 'weight' element's property.
             '#delta' => $max,
@@ -394,7 +405,7 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
       // Do not report entity-level validation errors if Form API errors have
       // already been reported for the field.
       // @todo Field validation should not be run on fields with FAPI errors to
-      //   begin with. See https://drupal.org/node/2070429.
+      //   begin with. See https://www.drupal.org/node/2070429.
       $element_path = implode('][', $element['#parents']);
       if ($reported_errors = $form_state->getErrors()) {
         foreach (array_keys($reported_errors) as $error_path) {

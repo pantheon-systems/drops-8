@@ -166,29 +166,6 @@ class ConfigSync extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    if ($this->snapshotStorage->exists('core.extension')) {
-      $snapshot_comparer = new StorageComparer($this->activeStorage, $this->snapshotStorage, $this->configManager);
-      if (!$form_state->getUserInput() && $snapshot_comparer->createChangelist()->hasChanges()) {
-        $change_list = array();
-        foreach ($snapshot_comparer->getAllCollectionNames() as $collection) {
-          foreach ($snapshot_comparer->getChangelist(NULL, $collection) as $config_names) {
-            if (empty($config_names)) {
-              continue;
-            }
-            foreach ($config_names as $config_name) {
-              $change_list[] = $config_name;
-            }
-          }
-        }
-        sort($change_list);
-        $change_list_render = array(
-          '#theme' => 'item_list',
-          '#items' => $change_list,
-        );
-        $change_list_html = drupal_render($change_list_render);
-        drupal_set_message($this->t('Your current configuration has changed. Changes to these configuration items will be lost on the next synchronization: !changes', array('!changes' => $change_list_html)), 'warning');
-      }
-    }
     $form['actions'] = array('#type' => 'actions');
     $form['actions']['submit'] = array(
       '#type' => 'submit',
@@ -211,10 +188,34 @@ class ConfigSync extends FormBase {
       $form['actions']['#access'] = FALSE;
       return $form;
     }
-    else {
-      // Store the comparer for use in the submit.
-      $form_state->set('storage_comparer', $storage_comparer);
+    // A list of changes will be displayed, so check if the user should be
+    // warned of potential losses to configuration.
+    if ($this->snapshotStorage->exists('core.extension')) {
+      $snapshot_comparer = new StorageComparer($this->activeStorage, $this->snapshotStorage, $this->configManager);
+      if (!$form_state->getUserInput() && $snapshot_comparer->createChangelist()->hasChanges()) {
+        $change_list = array();
+        foreach ($snapshot_comparer->getAllCollectionNames() as $collection) {
+          foreach ($snapshot_comparer->getChangelist(NULL, $collection) as $config_names) {
+            if (empty($config_names)) {
+              continue;
+            }
+            foreach ($config_names as $config_name) {
+              $change_list[] = $config_name;
+            }
+          }
+        }
+        sort($change_list);
+        $change_list_render = array(
+          '#theme' => 'item_list',
+          '#items' => $change_list,
+        );
+        $change_list_html = drupal_render($change_list_render);
+        drupal_set_message($this->t('The following items in your active configuration have changes since the last import that may be lost on the next import. !changes', array('!changes' => $change_list_html)), 'warning');
+      }
     }
+
+    // Store the comparer for use in the submit.
+    $form_state->set('storage_comparer', $storage_comparer);
 
     // Add the AJAX library to the form for dialog support.
     $form['#attached']['library'][] = 'core/drupal.ajax';
@@ -281,7 +282,7 @@ class ConfigSync extends FormBase {
             'url' => Url::fromRoute($route_name, $route_options),
             'attributes' => array(
               'class' => array('use-ajax'),
-              'data-accepts' => 'application/vnd.drupal-modal',
+              'data-dialog-type' => 'modal',
               'data-dialog-options' => json_encode(array(
                 'width' => 700
               )),
@@ -340,7 +341,7 @@ class ConfigSync extends FormBase {
       }
       catch (ConfigImporterException $e) {
         // There are validation errors.
-        drupal_set_message($this->t('The configuration synchronization failed validation.'));
+        drupal_set_message($this->t('The configuration cannot be imported because it failed validation for the following reasons:'), 'error');
         foreach ($config_importer->getErrors() as $message) {
           drupal_set_message($message, 'error');
         }

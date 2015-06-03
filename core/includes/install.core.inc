@@ -302,6 +302,12 @@ function install_begin_request($class_loader, &$install_state) {
   // Allow command line scripts to override server variables used by Drupal.
   require_once __DIR__ . '/bootstrap.inc';
 
+  // Before having installed the system module and being able to do a module
+  // rebuild, prime the drupal_get_filename() static cache with the module's
+  // exact location.
+  // @todo Remove as part of https://www.drupal.org/node/2186491
+  drupal_get_filename('module', 'system', 'core/modules/system/system.info.yml');
+
   // If the hash salt leaks, it becomes possible to forge a valid testing user
   // agent, install a new copy of Drupal, and take over the original site.
   // The user agent header is used to pass a database prefix in the request when
@@ -1028,6 +1034,11 @@ function install_base_system(&$install_state) {
   // file_ensure_access() any earlier than this, since it relies on
   // system.module in order to work.
   file_ensure_htaccess();
+
+  // Prime the drupal_get_filename() static cache with the user module's
+  // exact location.
+  // @todo Remove as part of https://www.drupal.org/node/2186491
+  drupal_get_filename('module', 'user', 'core/modules/user/user.info.yml');
 
   // Enable the user module so that sessions can be recorded during the
   // upcoming bootstrap step.
@@ -1968,7 +1979,7 @@ function install_check_translations($langcode, $server_pattern) {
         'title'       => t('Translations directory'),
         'value'       => t('The translations directory is not readable.'),
         'severity'    => REQUIREMENT_ERROR,
-        'description' => t('The installer requires read permissions to %translations_directory at all times. If you are unsure how to grant file permissions, consult the <a href="@handbook_url">online handbook</a>.', array('%translations_directory' => $translations_directory, '@handbook_url' => 'http://drupal.org/server-permissions')),
+        'description' => t('The installer requires read permissions to %translations_directory at all times. If you are unsure how to grant file permissions, consult the <a href="@handbook_url">online handbook</a>.', array('%translations_directory' => $translations_directory, '@handbook_url' => 'https://www.drupal.org/server-permissions')),
       );
     }
     // If translations directory is not writable, throw an error.
@@ -1977,7 +1988,7 @@ function install_check_translations($langcode, $server_pattern) {
         'title'       => t('Translations directory'),
         'value'       => t('The translations directory is not writable.'),
         'severity'    => REQUIREMENT_ERROR,
-        'description' => t('The installer requires write permissions to %translations_directory during the installation process. If you are unsure how to grant file permissions, consult the <a href="@handbook_url">online handbook</a>.', array('%translations_directory' => $translations_directory, '@handbook_url' => 'http://drupal.org/server-permissions')),
+        'description' => t('The installer requires write permissions to %translations_directory during the installation process. If you are unsure how to grant file permissions, consult the <a href="@handbook_url">online handbook</a>.', array('%translations_directory' => $translations_directory, '@handbook_url' => 'https://www.drupal.org/server-permissions')),
       );
     }
     else {
@@ -2172,7 +2183,7 @@ function install_check_requirements($install_state) {
           'description' => t('@drupal requires read permissions to %file at all times. If you are unsure how to grant file permissions, consult the <a href="@handbook_url">online handbook</a>.', array(
               '@drupal' => drupal_install_profile_distribution_name(),
               '%file' => $file,
-              '@handbook_url' => 'http://drupal.org/server-permissions'
+              '@handbook_url' => 'https://www.drupal.org/server-permissions'
             )),
         );
       }
@@ -2185,7 +2196,7 @@ function install_check_requirements($install_state) {
           'description' => t('The @drupal installer requires write permissions to %file during the installation process. If you are unsure how to grant file permissions, consult the <a href="@handbook_url">online handbook</a>.', array(
               '@drupal' => drupal_install_profile_distribution_name(),
               '%file' => $file,
-              '@handbook_url' => 'http://drupal.org/server-permissions'
+              '@handbook_url' => 'https://www.drupal.org/server-permissions'
             )),
         );
       }
@@ -2205,7 +2216,7 @@ function install_check_requirements($install_state) {
               '%file' => $file,
               '%default_file' => $default_file,
               '@install_txt' => base_path() . 'core/INSTALL.txt',
-              '@handbook_url' => 'http://drupal.org/server-permissions'
+              '@handbook_url' => 'https://www.drupal.org/server-permissions'
             )),
         );
       }

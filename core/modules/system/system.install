@@ -72,7 +72,7 @@ function system_requirements($phase) {
     $requirements['php'] = array(
       'title' => t('PHP'),
       'value' => $phpversion_label,
-      'description' => t('The phpinfo() function has been disabled for security reasons. To see your server\'s phpinfo() information, change your PHP settings or contact your server administrator. For more information, <a href="@phpinfo">Enabling and disabling phpinfo()</a> handbook page.', array('@phpinfo' => 'http://drupal.org/node/243993')),
+      'description' => t('The phpinfo() function has been disabled for security reasons. To see your server\'s phpinfo() information, change your PHP settings or contact your server administrator. For more information, <a href="@phpinfo">Enabling and disabling phpinfo()</a> handbook page.', array('@phpinfo' => 'https://www.drupal.org/node/243993')),
       'severity' => REQUIREMENT_INFO,
     );
   }
@@ -124,7 +124,7 @@ function system_requirements($phase) {
 
   if (!empty($missing_extensions)) {
     $description = t('Drupal requires you to enable the PHP extensions in the following list (see the <a href="@system_requirements">system requirements page</a> for more information):', array(
-      '@system_requirements' => 'http://drupal.org/requirements',
+      '@system_requirements' => 'https://www.drupal.org/requirements',
     ));
 
     // We use twig inline_template to avoid twig's autoescape.
@@ -158,7 +158,7 @@ function system_requirements($phase) {
     $database_ok = extension_loaded('pdo');
     if (!$database_ok) {
       $pdo_message = t('Your web server does not appear to support PDO (PHP Data Objects). Ask your hosting provider if they support the native PDO extension. See the <a href="@link">system requirements</a> page for more information.', array(
-        '@link' => 'http://drupal.org/requirements/pdo',
+        '@link' => 'https://www.drupal.org/requirements/pdo',
       ));
     }
     else {
@@ -167,7 +167,7 @@ function system_requirements($phase) {
       if (empty($drivers)) {
         $database_ok = FALSE;
         $pdo_message = t('Your web server does not appear to support any common PDO database extensions. Check with your hosting provider to see if they support PDO (PHP Data Objects) and offer any databases that <a href="@drupal-databases">Drupal supports</a>.', array(
-          '@drupal-databases' => 'http://drupal.org/node/270#database',
+          '@drupal-databases' => 'https://www.drupal.org/node/270#database',
         ));
       }
       // Make sure the native PDO extension is available, not the older PEAR
@@ -175,7 +175,7 @@ function system_requirements($phase) {
       if (!defined('PDO::ATTR_DEFAULT_FETCH_MODE')) {
         $database_ok = FALSE;
         $pdo_message = t('Your web server seems to have the wrong version of PDO installed. Drupal requires the PDO extension from PHP core. This system has the older PECL version. See the <a href="@link">system requirements</a> page for more information.', array(
-          '@link' => 'http://drupal.org/requirements/pdo#pecl',
+          '@link' => 'https://www.drupal.org/requirements/pdo#pecl',
         ));
       }
     }
@@ -230,7 +230,7 @@ function system_requirements($phase) {
         $description['memory'] = t('Contact your system administrator or hosting provider for assistance with increasing your PHP memory limit.');
       }
 
-      $handbook_link = t('For more information, see the online handbook entry for <a href="@memory-limit">increasing the PHP memory limit</a>.', array('@memory-limit' => 'http://drupal.org/node/207036'));
+      $handbook_link = t('For more information, see the online handbook entry for <a href="@memory-limit">increasing the PHP memory limit</a>.', array('@memory-limit' => 'https://www.drupal.org/node/207036'));
 
       $description = array(
         '#type' => 'inline_template',
@@ -318,7 +318,7 @@ function system_requirements($phase) {
           'title' => $info['title'],
           'value' => t('Not fully protected'),
           'severity' => REQUIREMENT_ERROR,
-          'description' => t('See <a href="@url">@url</a> for information about the recommended .htaccess file which should be added to the %directory directory to help protect against arbitrary code execution.', array('@url' => 'http://drupal.org/SA-CORE-2013-003', '%directory' => $info['directory'])),
+          'description' => t('See <a href="@url">@url</a> for information about the recommended .htaccess file which should be added to the %directory directory to help protect against arbitrary code execution.', array('@url' => 'https://www.drupal.org/SA-CORE-2013-003', '%directory' => $info['directory'])),
         );
       }
     }
@@ -332,7 +332,7 @@ function system_requirements($phase) {
     // Cron error threshold defaults to two weeks.
     $threshold_error = $cron_config->get('threshold.requirements_error');
     // Cron configuration help text.
-    $help = t('For more information, see the online handbook entry for <a href="@cron-handbook">configuring cron jobs</a>.', array('@cron-handbook' => 'http://drupal.org/cron'));
+    $help = t('For more information, see the online handbook entry for <a href="@cron-handbook">configuring cron jobs</a>.', array('@cron-handbook' => 'https://www.drupal.org/cron'));
 
     // Determine when cron last ran.
     $cron_last = \Drupal::state()->get('system.cron_last');
@@ -366,7 +366,7 @@ function system_requirements($phase) {
       // @todo This string is concatenated from t() calls, safe drupal_render()
       //   output, whitespace, and <br /> tags, so is safe. However, as a best
       //   practice, we should not use SafeMarkup::set() around a variable. Fix
-      //   in: https://www.drupal.org/node/2296929
+      //   in: https://www.drupal.org/node/2296929.
       'description' => SafeMarkup::set($description),
     );
   }
@@ -454,7 +454,7 @@ function system_requirements($phase) {
       elseif ($phase == 'install') {
         // For the installer UI, we need different wording. 'value' will
         // be treated as version, so provide none there.
-        $description = t('An automated attempt to create this directory failed, possibly due to a permissions problem. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see INSTALL.txt or the <a href="@handbook_url">online handbook</a>.', array('@handbook_url' => 'http://drupal.org/server-permissions'));
+        $description = t('An automated attempt to create this directory failed, possibly due to a permissions problem. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see INSTALL.txt or the <a href="@handbook_url">online handbook</a>.', array('@handbook_url' => 'https://www.drupal.org/server-permissions'));
         $requirements['file system']['value'] = '';
       }
       if (!empty($description)) {
@@ -585,7 +585,7 @@ function system_requirements($phase) {
         'value' => t('Not enabled'),
         'severity' => REQUIREMENT_WARNING,
         'description' => t('Update notifications are not enabled. It is <strong>highly recommended</strong> that you enable the Update Manager module from the <a href="@module">module administration page</a> in order to stay up-to-date on new releases. For more information, <a href="@update">Update status handbook page</a>.', array(
-          '@update' => 'http://drupal.org/documentation/modules/update',
+          '@update' => 'https://www.drupal.org/documentation/modules/update',
           '@module' => \Drupal::url('system.modules_list'),
         )),
       );
@@ -648,6 +648,40 @@ function system_requirements($phase) {
     }
   }
 
+  // Check if the Twig C extension is available.
+  if ($phase == 'runtime') {
+    $url = 'http://twig.sensiolabs.org/doc/installation.html#installing-the-c-extension';
+    $requirements['twig_c_extension'] = [
+      'title' => t('Twig C extension'),
+      'severity' => REQUIREMENT_INFO,
+    ];
+    if (!function_exists('twig_template_get_attributes')) {
+      $requirements['twig_c_extension']['value'] = t('Not available');
+      $requirements['twig_c_extension']['description'] = t('Enabling the Twig C extension can greatly increase rendering performance. See <a href="@url">the installation instructions</a> for more detail.', ['@url' => $url]);
+    }
+    else {
+      $requirements['twig_c_extension']['description'] = t('The <a href="@url">Twig C extension</a> is available', ['@url' => $url]);
+    }
+  }
+
+  // Check xdebug.max_nesting_level, as some pages will not work if it is too
+  // low.
+  if (extension_loaded('xdebug')) {
+    // Setting this value to 256 was considered adequate on Xdebug 2.3
+    // (see http://bugs.xdebug.org/bug_view_page.php?bug_id=00001100)
+    $minimum_nesting_level = 256;
+    $current_nesting_level = ini_get('xdebug.max_nesting_level');
+
+    if ($current_nesting_level < $minimum_nesting_level) {
+      $requirements['xdebug_max_nesting_level'] = [
+        'title' => t('Xdebug settings'),
+        'value' => t('xdebug.max_nesting_level is set to %value.', ['%value' => $current_nesting_level]),
+        'description' => t('Set <code>xdebug.max_nesting_level=@level</code> in your PHP configuration as some pages in your Drupal site will not work when this setting is too low.', ['@level' => $minimum_nesting_level]),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+
   return $requirements;
 }
 
@@ -665,7 +699,7 @@ function system_install() {
   if (!$site->get('name')) {
     $site->set('name', 'Drupal');
   }
-  $site->save();
+  $site->save(TRUE);
 }
 
 /**
@@ -685,7 +719,7 @@ function system_schema() {
       ),
       'token' => array(
         'description' => "A string token generated against the current user's session id and the batch id, used to ensure that only the user who submitted the batch can effectively access it.",
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 64,
         'not null' => TRUE,
       ),
@@ -717,14 +751,14 @@ function system_schema() {
       ),
       'event' => array(
         'description' => 'Name of event (e.g. contact).',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 64,
         'not null' => TRUE,
         'default' => '',
       ),
       'identifier' => array(
         'description' => 'Identifier of the visitor, such as an IP address or hostname.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
@@ -754,14 +788,14 @@ function system_schema() {
     'fields' => array(
       'collection' => array(
         'description' => 'A named collection of key and value pairs.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
       ),
       'name' => array(
         'description' => 'The key of the key-value pair. As KEY is a SQL reserved keyword, name was chosen instead.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
@@ -781,7 +815,7 @@ function system_schema() {
     'fields' => array(
       'collection' => array(
         'description' => 'A named collection of key and value pairs.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
@@ -789,7 +823,7 @@ function system_schema() {
       'name' => array(
         // KEY is an SQL reserved word, so use 'name' as the key's field name.
         'description' => 'The key of the key/value pair.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
@@ -824,7 +858,7 @@ function system_schema() {
         'description' => 'Primary Key: Unique item ID.',
       ),
       'name' => array(
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
@@ -862,7 +896,7 @@ function system_schema() {
     'fields' => array(
       'name' => array(
         'description' => 'Primary Key: Machine name of this route',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
@@ -911,14 +945,14 @@ function system_schema() {
     'fields' => array(
       'name' => array(
         'description' => 'Primary Key: Unique name.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 255,
         'not null' => TRUE,
         'default' => ''
       ),
       'value' => array(
         'description' => 'A value for the semaphore.',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 255,
         'not null' => TRUE,
         'default' => ''
@@ -961,13 +995,13 @@ function system_schema() {
       ),
       'sid' => array(
         'description' => "A session ID (hashed). The value is generated by Drupal's session handlers.",
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
       ),
       'hostname' => array(
         'description' => 'The IP address that last used this session ID (sid).',
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 128,
         'not null' => TRUE,
         'default' => '',
@@ -1025,7 +1059,7 @@ function system_schema() {
       ),
       'langcode' => array(
         'description' => "The language code this alias is for; if 'und', the alias will be used for unknown languages. Each Drupal path can have an alias for each supported language.",
-        'type' => 'varchar',
+        'type' => 'varchar_ascii',
         'length' => 12,
         'not null' => TRUE,
         'default' => '',

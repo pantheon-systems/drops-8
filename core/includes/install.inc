@@ -497,7 +497,7 @@ function drupal_install_config_directories() {
     if (!install_ensure_config_directory($config_type)) {
       throw new Exception(t('The directory %directory could not be created or could not be made writable. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see the <a href="@handbook_url">online handbook</a>.', array(
         '%directory' => config_get_config_directory($config_type),
-        '@handbook_url' => 'http://drupal.org/server-permissions',
+        '@handbook_url' => 'https://www.drupal.org/server-permissions',
       )));
     }
 
@@ -513,7 +513,7 @@ function drupal_install_config_directories() {
         $text = 'This directory contains configuration to be imported into your Drupal site. To make this configuration active, visit admin/config/development/configuration/sync.';
         break;
     }
-    $text .=  ' For information about deploying configuration between servers, see http://drupal.org/documentation/administer/config';
+    $text .=  ' For information about deploying configuration between servers, see https://www.drupal.org/documentation/administer/config';
     file_put_contents(config_get_config_directory($config_type) . '/README.txt', $text);
   }
 }
@@ -556,7 +556,7 @@ function drupal_verify_profile($install_state) {
   $info = $install_state['profile_info'];
 
   // Get the list of available modules for the selected installation profile.
-  $listing = new ExtensionDiscovery(DRUPAL_ROOT);
+  $listing = new ExtensionDiscovery(\Drupal::root());
   $present_modules = array();
   foreach ($listing->scan('module') as $present_module) {
     $present_modules[] = $present_module->getName();
@@ -619,9 +619,9 @@ function drupal_install_system($install_state) {
   // Ensure default language is saved.
   if (isset($install_state['parameters']['langcode'])) {
     \Drupal::configFactory()->getEditable('system.site')
-      ->set('langcode', $install_state['parameters']['langcode'])
-      ->set('default_langcode', $install_state['parameters']['langcode'])
-      ->save();
+      ->set('langcode', (string) $install_state['parameters']['langcode'])
+      ->set('default_langcode', (string) $install_state['parameters']['langcode'])
+      ->save(TRUE);
   }
 }
 
@@ -922,11 +922,20 @@ function drupal_check_profile($profile, array $install_state) {
 
   // Collect requirement testing results.
   $requirements = array();
+
+  // Performs an ExtensionDiscovery scan as the system module is unavailable and
+  // we don't yet know where all the modules are located.
+  // @todo Remove as part of https://www.drupal.org/node/2186491
+  $listing = new ExtensionDiscovery(\Drupal::root());
+  $module_list = $listing->scan('module');
   foreach ($info['dependencies'] as $module) {
-    module_load_install($module);
+    $file = \Drupal::root() . '/' . $module_list[$module]->getPath() . "/$module.install";
+    if (is_file($file)) {
+      require_once $file;
+    }
     $function = $module . '_requirements';
 
-    drupal_classloader_register($module, drupal_get_path('module', $module));
+    drupal_classloader_register($module, $module_list[$module]->getPath());
     if (function_exists($function)) {
       $requirements = array_merge($requirements, $function('install'));
     }
@@ -1036,7 +1045,7 @@ function drupal_check_module($module) {
 function install_profile_info($profile, $langcode = 'en') {
   $cache = &drupal_static(__FUNCTION__, array());
 
-  if (!isset($cache[$profile])) {
+  if (!isset($cache[$profile][$langcode])) {
     // Set defaults for module info.
     $defaults = array(
       'dependencies' => array(),
@@ -1058,9 +1067,9 @@ function install_profile_info($profile, $langcode = 'en') {
 
     $info['dependencies'] = array_unique(array_merge($required, $info['dependencies'], $locale));
 
-    $cache[$profile] = $info;
+    $cache[$profile][$langcode] = $info;
   }
-  return $cache[$profile];
+  return $cache[$profile][$langcode];
 }
 
 /**

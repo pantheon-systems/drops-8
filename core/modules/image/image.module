@@ -7,7 +7,6 @@
 
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\field\FieldConfigInterface;
@@ -56,7 +55,7 @@ function image_help($route_name, RouteMatchInterface $route_match) {
 
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Image module allows you to create fields that contain image files and to configure <a href="!image_styles">Image styles</a> that can be used to manipulate the display of images. See the <a href="!field">Field module help</a> and the <a href="!field_ui">Field UI help</a> pages for terminology and general information on entities, fields, and how to create and manage fields. For more information, see the <a href="!image_documentation">online documentation for the Image module</a>.', array('!image_styles' => \Drupal::url('entity.image_style.collection'), '!field' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui' => $field_ui_url, '!image_documentation' => 'https://drupal.org/documentation/modules/image')) . '</p>';
+      $output .= '<p>' . t('The Image module allows you to create fields that contain image files and to configure <a href="!image_styles">Image styles</a> that can be used to manipulate the display of images. See the <a href="!field">Field module help</a> and the <a href="!field_ui">Field UI help</a> pages for terminology and general information on entities, fields, and how to create and manage fields. For more information, see the <a href="!image_documentation">online documentation for the Image module</a>.', array('!image_styles' => \Drupal::url('entity.image_style.collection'), '!field' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui' => $field_ui_url, '!image_documentation' => 'https://www.drupal.org/documentation/modules/image')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dt>' . t('Defining image styles') . '</dt>';
       $output .= '<dd>' . t('The concept of image styles is that you can upload a single image but display it in several ways; each display variation, or <em>image style</em>, is the result of applying one or more <em>effects</em> to the original image. As an example, you might upload a high-resolution image with a 4:3 aspect ratio, and display it scaled down, square cropped, or black-and-white (or any combination of these effects). The Image module provides a way to do this efficiently: you configure an image style with the desired effects on the <a href="!image">Image styles page</a>, and the first time a particular image is requested in that style, the effects are applied. The resulting image is saved, and the next time that same style is requested, the saved image is retrieved without the need to recalculate the effects. Drupal core provides several effects that you can use to define styles; others may be provided by contributed modules.', array('!image' => \Drupal::url('entity.image_style.collection')));
@@ -330,6 +329,7 @@ function image_filter_keyword($value, $current_pixels, $new_pixels) {
 function image_entity_presave(EntityInterface $entity) {
   // Get the default image settings, return if not saving an image field storage
   // or image field entity.
+  $default_image = [];
   if (($entity instanceof FieldStorageConfigInterface || $entity instanceof FieldConfigInterface) && $entity->getType() == 'image') {
     $default_image = $entity->getSetting('default_image');
   }
@@ -356,16 +356,9 @@ function image_entity_presave(EntityInterface $entity) {
       }
     }
   }
-
-  // @todo Simplify this in https://www.drupal.org/node/2030637, when both
-  //   interfaces have a setSetting() method.
-  if ($entity instanceof FieldStorageConfigInterface) {
-    $entity->setSetting('default_image', $default_image);
-  }
-  elseif ($entity instanceof FieldConfig) {
-    $entity->settings['default_image'] = $default_image;
-  }
-
+  // Both FieldStorageConfigInterface and FieldConfigInterface have a
+  // setSetting() method.
+  $entity->setSetting('default_image', $default_image);
 }
 
 /**
@@ -421,7 +414,7 @@ function image_field_config_update(FieldConfigInterface $field) {
   $prior_instance = $field->original;
 
   $uuid_new = $field->getSetting('default_image')['uuid'];
-  $uuid_old = $prior_instance->settings['default_image']['uuid'];
+  $uuid_old = $prior_instance->getSetting('default_image')['uuid'];
 
   // If the old and new files do not match, update the default accordingly.
   $file_new = $uuid_new ? \Drupal::entityManager()->loadEntityByUuid('file', $uuid_new) : FALSE;
@@ -473,7 +466,7 @@ function image_field_config_delete(FieldConfigInterface $field) {
   }
 
   // The value of a managed_file element can be an array if #extended == TRUE.
-  $uuid = $field->settings['default_image']['uuid'];
+  $uuid = $field->getSetting('default_image')['uuid'];
 
   // Remove the default image when the instance is deleted.
   if ($uuid && ($file = \Drupal::entityManager()->loadEntityByUuid('file', $uuid))) {

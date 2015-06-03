@@ -96,8 +96,8 @@ class LanguageManager implements LanguageManagerInterface {
     // access names and descriptions of the default language types.
     return array(
       LanguageInterface::TYPE_INTERFACE => array(
-        'name' => $this->t('User interface text'),
-        'description' => $this->t('Order of language detection methods for user interface text. If a translation of user interface text is available in the detected language, it will be displayed.'),
+        'name' => $this->t('Interface text'),
+        'description' => $this->t('Order of language detection methods for interface text. If a translation of interface text is available in the detected language, it will be displayed.'),
         'locked' => TRUE,
       ),
       LanguageInterface::TYPE_CONTENT => array(
@@ -242,7 +242,7 @@ class LanguageManager implements LanguageManagerInterface {
     //
     // The "Left-to-right marker" comments and the enclosed UTF-8 markers are to
     // make otherwise strange looking PHP syntax natural (to not be displayed in
-    // right to left). See http://drupal.org/node/128866#comment-528929.
+    // right to left). See https://www.drupal.org/node/128866#comment-528929.
     return array(
       'af' => array('Afrikaans', 'Afrikaans'),
       'am' => array('Amharic', 'አማርኛ'),

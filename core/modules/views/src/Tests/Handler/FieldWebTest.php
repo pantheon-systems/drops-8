@@ -10,6 +10,7 @@ namespace Drupal\views\Tests\Handler;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\views\Views;
 
 /**
@@ -19,6 +20,8 @@ use Drupal\views\Views;
  * @see \Drupal\views\Plugin\views\field\FieldPluginBase
  */
 class FieldWebTest extends HandlerTestBase {
+
+  use AssertPageCacheContextsAndTagsTrait;
 
   /**
    * Views used by this test.
@@ -62,10 +65,21 @@ class FieldWebTest extends HandlerTestBase {
   public function testClickSorting() {
     $this->drupalGet('test_click_sort');
     $this->assertResponse(200);
+
     // Only the id and name should be click sortable, but not the name.
     $this->assertLinkByHref(\Drupal::url('view.test_click_sort.page_1', [], ['query' => ['order' => 'id', 'sort' => 'asc']]));
     $this->assertLinkByHref(\Drupal::url('view.test_click_sort.page_1', [], ['query' => ['order' => 'name', 'sort' => 'desc']]));
     $this->assertNoLinkByHref(\Drupal::url('view.test_click_sort.page_1', [], ['query' => ['order' => 'created']]));
+
+    // Check that the view returns the click sorting cache contexts.
+    $expected_contexts = [
+      'languages:language_interface',
+      'theme',
+      'url.query_args.pagers:0',
+      'url.query_args:order',
+      'url.query_args:sort',
+    ];
+    $this->assertCacheContexts($expected_contexts);
 
     // Clicking a click sort should change the order.
     $this->clickLink(t('ID'));
@@ -260,15 +274,15 @@ class FieldWebTest extends HandlerTestBase {
     // Tests the external flag.
     // Switch on the external flag should output an external url as well.
     $id_field->options['alter']['external'] = TRUE;
-    $id_field->options['alter']['path'] = $path = 'drupal.org';
+    $id_field->options['alter']['path'] = $path = 'www.drupal.org';
     $output = $id_field->theme($row);
-    $this->assertSubString($output, 'http://drupal.org');
+    $this->assertSubString($output, 'http://www.drupal.org');
 
     // Setup a not external url, which shouldn't lead to an external url.
     $id_field->options['alter']['external'] = FALSE;
-    $id_field->options['alter']['path'] = $path = 'drupal.org';
+    $id_field->options['alter']['path'] = $path = 'www.drupal.org';
     $output = $id_field->theme($row);
-    $this->assertNotSubString($output, 'http://drupal.org');
+    $this->assertNotSubString($output, 'http://www.drupal.org');
 
     // Tests the transforming of the case setting.
     $id_field->options['alter']['path'] = $path = $this->randomMachineName();
@@ -504,7 +518,7 @@ class FieldWebTest extends HandlerTestBase {
     $random_text_2 = $this->randomMachineName(2);
     $random_text_4 = $this->randomMachineName(4);
     $random_text_8 = $this->randomMachineName(8);
-    $touples = array(
+    $tuples = array(
       // Create one string which doesn't fit at all into the limit.
       array(
         'value' => $random_text_8,
@@ -533,15 +547,15 @@ class FieldWebTest extends HandlerTestBase {
       )
     );
 
-    foreach ($touples as $touple) {
-      $row->views_test_data_name = $touple['value'];
+    foreach ($tuples as $tuple) {
+      $row->views_test_data_name = $tuple['value'];
       $output = $name_field->advancedRender($row);
 
-      if ($touple['trimmed']) {
-        $this->assertNotSubString($output, $touple['value'], format_string('The untrimmed value (!untrimmed) should not appear in the trimmed output (!output).', array('!untrimmed' => $touple['value'], '!output' => $output)));
+      if ($tuple['trimmed']) {
+        $this->assertNotSubString($output, $tuple['value'], format_string('The untrimmed value (!untrimmed) should not appear in the trimmed output (!output).', array('!untrimmed' => $tuple['value'], '!output' => $output)));
       }
-      if (!empty($touble['trimmed_value'])) {
-        $this->assertSubString($output, $touple['trimmed_value'], format_string('The trimmed value (!trimmed) should appear in the trimmed output (!output).', array('!trimmed' => $touple['trimmed_value'], '!output' => $output)));
+      if (!empty($tuple['trimmed_value'])) {
+        $this->assertSubString($output, $tuple['trimmed_value'], format_string('The trimmed value (!trimmed) should appear in the trimmed output (!output).', array('!trimmed' => $tuple['trimmed_value'], '!output' => $output)));
       }
     }
 

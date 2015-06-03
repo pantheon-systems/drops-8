@@ -329,7 +329,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   }
 
   /**
-   * {inheritdoc}
+   * {@inheritdoc}
    */
   public function uuid() {
     return $this->getEntityKey('uuid');
@@ -762,15 +762,6 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   /**
    * {@inheritdoc}
    */
-  public function initTranslation($langcode) {
-    if ($langcode != LanguageInterface::LANGCODE_DEFAULT && $langcode != $this->defaultLangcode) {
-      $this->translations[$langcode]['status'] = static::TRANSLATION_EXISTING;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getTranslationLanguages($include_default = TRUE) {
     $translations = array_filter($this->translations, function($translation) { return $translation['status']; });
     unset($translations[LanguageInterface::LANGCODE_DEFAULT]);
@@ -990,7 +981,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   }
 
   /**
-   * Returns the value of the given entity key, if defined.
+   * Gets the value of the given entity key, if defined.
    *
    * @param string $key
    *   Name of the entity key, for example id, revision or bundle.

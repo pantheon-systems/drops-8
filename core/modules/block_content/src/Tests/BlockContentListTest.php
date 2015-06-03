@@ -7,13 +7,14 @@
 
 namespace Drupal\block_content\Tests;
 
-use Drupal\simpletest\WebTestBase;
-
 /**
  * Tests the listing of custom blocks.
  *
+ * Tests the fallback block content list when Views is disabled.
+ *
  * @group block_content
  * @see \Drupal\block\BlockContentListBuilder
+ * @see \Drupal\block_content\Tests\BlockContentListViewsTest
  */
 class BlockContentListTest extends BlockContentTestBase {
 

@@ -8,6 +8,7 @@
 namespace Drupal\menu_ui;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
@@ -327,9 +328,9 @@ class MenuForm extends EntityForm {
   /**
    * Recursive helper function for buildOverviewForm().
    *
-   * @param $tree
+   * @param \Drupal\Core\Menu\MenuLinkTreeElement[] $tree
    *   The tree retrieved by \Drupal\Core\Menu\MenuLinkTreeInterface::load().
-   * @param $delta
+   * @param int $delta
    *   The default number of menu items used in the menu weight selector is 50.
    *
    * @return array
@@ -337,14 +338,22 @@ class MenuForm extends EntityForm {
    */
   protected function buildOverviewTreeForm($tree, $delta) {
     $form = &$this->overviewTreeForm;
+    $tree_access_cacheability = new CacheableMetadata();
     foreach ($tree as $element) {
+      $tree_access_cacheability = $tree_access_cacheability->merge(CacheableMetadata::createFromObject($element->access));
+
+      // Only render accessible links.
+      if (!$element->access->isAllowed()) {
+        continue;
+      }
+
       /** @var \Drupal\Core\Menu\MenuLinkInterface $link */
       $link = $element->link;
       if ($link) {
         $id = 'menu_plugin_id:' . $link->getPluginId();
         $form[$id]['#item'] = $element;
         $form[$id]['#attributes'] = $link->isEnabled() ? array('class' => array('menu-enabled')) : array('class' => array('menu-disabled'));
-        $form[$id]['title']['#markup'] = $this->linkGenerator->generate($link->getTitle(), $link->getUrlObject(), $link->getOptions());
+        $form[$id]['title']['#markup'] = $this->linkGenerator->generate($link->getTitle(), $link->getUrlObject());
         if (!$link->isEnabled()) {
           $form[$id]['title']['#markup'] .= ' (' . $this->t('disabled') . ')';
         }
@@ -419,6 +428,11 @@ class MenuForm extends EntityForm {
         $this->buildOverviewTreeForm($element->subtree, $delta);
       }
     }
+
+    $tree_access_cacheability
+      ->merge(CacheableMetadata::createFromRenderArray($form))
+      ->applyTo($form);
+
     return $form;
   }
 
@@ -442,7 +456,7 @@ class MenuForm extends EntityForm {
     // the child item could be saved with an invalid path past its immediate
     // parent. To prevent this, save items in the form in the same order they
     // are sent, ensuring parents are saved first, then their children.
-    // See http://drupal.org/node/181126#comment-632270
+    // See https://www.drupal.org/node/181126#comment-632270.
     $order = is_array($input) ? array_flip(array_keys($input)) : array();
     // Update our original form with the new order.
     $form = array_intersect_key(array_merge($order, $form), $form);

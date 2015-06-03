@@ -96,7 +96,7 @@ class Element {
           $child_weights[$key] = floor($weight * 1000) + $i / $count;
         }
         // Only trigger an error if the value is not null.
-        // @see http://drupal.org/node/1283892
+        // @see https://www.drupal.org/node/1283892
         elseif (isset($value)) {
           trigger_error(SafeMarkup::format('"@key" is an invalid render array key', array('@key' => $key)), E_USER_ERROR);
         }
@@ -175,6 +175,22 @@ class Element {
         $element['#attributes'][$attribute] = $element[$property];
       }
     }
+  }
+
+  /**
+   * Indicates whether the given element is empty.
+   *
+   * An element that only has #cache set is considered empty, because it will
+   * render to the empty string.
+   *
+   * @param array $elements
+   *   The element.
+   *
+   * @return bool
+   *   Whether the given element is empty.
+   */
+  public static function isEmpty(array $elements) {
+    return empty($elements) || (count($elements) === 1 && array_keys($elements) === ['#cache']);
   }
 
 }

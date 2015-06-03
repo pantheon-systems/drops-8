@@ -309,7 +309,7 @@ class ViewEditForm extends ViewFormBase {
     }
     $view->set('display', $displays);
 
-    // @todo: Revisit this when http://drupal.org/node/1668866 is in.
+    // @todo: Revisit this when https://www.drupal.org/node/1668866 is in.
     $query = $this->requestStack->getCurrentRequest()->query;
     $destination = $query->get('destination');
 
@@ -1143,7 +1143,12 @@ class ViewEditForm extends ViewFormBase {
         $last = end($keys);
         foreach ($contents as $key => $pid) {
           if ($key != $last) {
-            $store[$pid]['#link'] .= '&nbsp;&nbsp;' . ($group_info['groups'][$gid] == 'OR' ? $this->t('OR') : $this->t('AND'));
+            if ($group_info['groups'][$gid] == 'OR') {
+              $store[$pid]['#link'] = $this->t('!link &nbsp;&nbsp; OR', ['!link' => $store[$pid]['#link']]);
+            }
+            else {
+              $store[$pid]['#link'] = $this->t('!link &nbsp;&nbsp; AND', ['!link' => $store[$pid]['#link']]);
+            }
           }
           $build['fields'][$pid] = $store[$pid];
         }

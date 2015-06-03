@@ -10,6 +10,7 @@ namespace Drupal\comment\Entity;
 use Drupal\Component\Utility\Number;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\comment\CommentInterface;
+use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -54,9 +55,14 @@ use Drupal\user\UserInterface;
  *   },
  *   bundle_entity_type = "comment_type",
  *   field_ui_base_route  = "entity.comment_type.edit_form",
+ *   constraints = {
+ *     "CommentName" = {}
+ *   }
  * )
  */
 class Comment extends ContentEntityBase implements CommentInterface {
+
+  use EntityChangedTrait;
 
   /**
    * The thread for which a lock was acquired.
@@ -257,8 +263,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
       ->setDescription(t("The comment author's name."))
       ->setTranslatable(TRUE)
       ->setSetting('max_length', 60)
-      ->setDefaultValue('')
-      ->addConstraint('CommentName', array());
+      ->setDefaultValue('');
 
     $fields['mail'] = BaseFieldDefinition::create('email')
       ->setLabel(t('Email'))
@@ -303,6 +308,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $fields['entity_type'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Entity type'))
       ->setDescription(t('The entity type to which this comment is attached.'))
+      ->setSetting('is_ascii', TRUE)
       ->setSetting('max_length', EntityTypeInterface::ID_MAX_LENGTH);
 
     $fields['comment_type'] = BaseFieldDefinition::create('entity_reference')
@@ -313,6 +319,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
     $fields['field_name'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Comment field name'))
       ->setDescription(t('The field name through which this comment was added.'))
+      ->setSetting('is_ascii', TRUE)
       ->setSetting('max_length', FieldStorageConfig::NAME_MAX_LENGTH);
 
     return $fields;

@@ -34,8 +34,8 @@ services:
     arguments: ['@request_stack']
     tags:
       - { name: cache.context }
-  cache_context.url.host:
-    class: Drupal\Core\Cache\HostCacheContext
+  cache_context.url.site:
+    class: Drupal\Core\Cache\SiteCacheContext
     arguments: ['@request_stack']
     tags:
       - { name: cache.context }
@@ -234,6 +234,10 @@ services:
       - { name: event_subscriber }
       - { name: service_collector, tag: 'config.factory.override', call: addOverride }
     arguments: ['@config.storage', '@event_dispatcher', '@config.typed']
+  config.importer_subscriber:
+    class: Drupal\Core\Config\Importer\FinalMissingContentSubscriber
+    tags:
+      - { name: event_subscriber }
   config.installer:
     class: Drupal\Core\Config\ConfigInstaller
     arguments: ['@config.factory', '@config.storage', '@config.typed', '@config.manager', '@event_dispatcher']
@@ -430,10 +434,13 @@ services:
     lazy: true
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
-    arguments: ['@app.root', '@config.factory', '@module_handler', '@state', '@info_parser', '@logger.channel.default', '@asset.css.collection_optimizer', '@config.installer', '@config.manager', '@router.builder']
+    arguments: ['@app.root', '@config.factory', '@module_handler', '@state', '@info_parser']
+  theme_installer:
+    class: Drupal\Core\Extension\ThemeInstaller
+    arguments: ['@theme_handler', '@config.factory', '@config.installer', '@module_handler', '@config.manager', '@asset.css.collection_optimizer', '@router.builder', '@logger.channel.default', '@state']
   entity.manager:
     class: Drupal\Core\Entity\EntityManager
-    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation', '@class_resolver', '@typed_data_manager', '@entity.definitions.installed', '@event_dispatcher']
+    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@language_manager', '@string_translation', '@class_resolver', '@typed_data_manager', '@keyvalue', '@event_dispatcher']
     parent: container.trait
     tags:
       - { name: plugin_manager_cache_clear }
@@ -442,11 +449,6 @@ services:
     arguments: ['@entity.manager']
     tags:
       - { name: event_subscriber }
-  entity.definitions.installed:
-    class: Drupal\Core\KeyValueStore\KeyValueStoreInterface
-    factory_method: get
-    factory_service: keyvalue
-    arguments: ['entity.definitions.installed']
   entity.definition_update_manager:
     class: Drupal\Core\Entity\EntityDefinitionUpdateManager
     arguments: ['@entity.manager']
@@ -487,13 +489,15 @@ services:
     arguments: ['@menu.tree_storage', '@menu_link.static.overrides', '@module_handler']
   menu.link_tree:
     class: Drupal\Core\Menu\MenuLinkTree
-    arguments: ['@menu.tree_storage', '@plugin.manager.menu.link', '@router.route_provider', '@menu.active_trail', '@controller_resolver', '@cache.menu', '@current_route_match']
+    arguments: ['@menu.tree_storage', '@plugin.manager.menu.link', '@router.route_provider', '@menu.active_trail', '@controller_resolver']
   menu.default_tree_manipulators:
     class: Drupal\Core\Menu\DefaultMenuLinkTreeManipulators
     arguments: ['@access_manager', '@current_user', '@entity.query']
   menu.active_trail:
     class: Drupal\Core\Menu\MenuActiveTrail
-    arguments: ['@plugin.manager.menu.link', '@current_route_match']
+    arguments: ['@plugin.manager.menu.link', '@current_route_match', '@cache.menu', '@lock']
+    tags:
+      - { name: needs_destruction }
   menu.parent_form_selector:
     class: Drupal\Core\Menu\MenuParentFormSelector
     arguments: ['@menu.link_tree', '@entity.manager', '@string_translation']
@@ -719,12 +723,16 @@ services:
       - [setContainer, ['@service_container']]
   entity.query.config:
     class: Drupal\Core\Config\Entity\Query\QueryFactory
-    arguments: ['@config.factory']
+    arguments: ['@config.factory', '@keyvalue', '@config.manager']
+    tags:
+      - { name: event_subscriber }
   entity.query.sql:
     class: Drupal\Core\Entity\Query\Sql\QueryFactory
     arguments: ['@database']
     tags:
       - { name: backend_overridable }
+  entity.query.null:
+    class: Drupal\Core\Entity\Query\Null\QueryFactory
   entity.query.keyvalue:
     class: Drupal\Core\Entity\KeyValueStore\Query\QueryFactory
     arguments: ['@keyvalue']
@@ -851,9 +859,13 @@ services:
     arguments: ['@class_resolver', '@current_route_match', '%main_content_renderers%']
     tags:
       - { name: event_subscriber }
+  accept_negotiation_406:
+    class: Drupal\Core\EventSubscriber\AcceptNegotiation406
+    tags:
+      - { name: event_subscriber }
   main_content_renderer.html:
     class: Drupal\Core\Render\MainContent\HtmlRenderer
-    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@element_info', '@module_handler', '@renderer', '@render_cache', '@cache_contexts_manager']
+    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@module_handler', '@renderer', '@render_cache']
     tags:
       - { name: render.main_content_renderer, format: html }
   main_content_renderer.ajax:
@@ -883,11 +895,6 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@router', '@router.request_context', NULL, '@request_stack']
-  view_subscriber:
-    class: Drupal\Core\EventSubscriber\ViewSubscriber
-    arguments: ['@title_resolver']
-    tags:
-      - { name: event_subscriber }
   bare_html_page_renderer:
     class: Drupal\Core\Render\BareHtmlPageRenderer
     arguments: ['@renderer']
@@ -981,6 +988,7 @@ services:
     class: Drupal\Core\EventSubscriber\ConfigImportSubscriber
     tags:
       - { name: event_subscriber }
+    arguments: ['@theme_handler']
   config_snapshot_subscriber:
     class: Drupal\Core\EventSubscriber\ConfigSnapshotSubscriber
     tags:
@@ -1315,9 +1323,8 @@ services:
       - { name: twig.extension, priority: 100 }
     calls:
       - [setGenerators, ['@url_generator']]
-      - [setLinkGenerator, ['@link_generator']]
   # @todo Figure out what to do about debugging functions.
-  # @see http://drupal.org/node/1804998
+  # @see https://www.drupal.org/node/1804998
   twig.extension.debug:
     class: Twig_Extension_Debug
     tags:

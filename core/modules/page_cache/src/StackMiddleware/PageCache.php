@@ -156,7 +156,8 @@ class PageCache implements HttpKernelInterface {
     }
 
     // Perform HTTP revalidation.
-    // @todo Use Response::isNotModified() as per https://drupal.org/node/2259489
+    // @todo Use Response::isNotModified() as
+    //   per https://www.drupal.org/node/2259489.
     $last_modified = $response->getLastModified();
     if ($last_modified) {
       // See if the client has provided the required HTTP headers.
@@ -222,8 +223,8 @@ class PageCache implements HttpKernelInterface {
     }
 
     // Use the actual timestamp from an Expires header, if available.
-    $date = $response->getExpires();
-    $expire = ($date > (new \DateTime())) ? $date->getTimestamp() : Cache::PERMANENT;
+    $date = $response->getExpires()->getTimestamp();
+    $expire = ($date > time()) ? $date : Cache::PERMANENT;
 
     $tags = explode(' ', $response->headers->get('X-Drupal-Cache-Tags'));
     $this->set($request, $response, $expire, $tags);

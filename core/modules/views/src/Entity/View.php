@@ -20,7 +20,7 @@ use Drupal\views\ViewEntityInterface;
  *
  * @ConfigEntityType(
  *   id = "view",
- *   label = @Translation("View"),
+ *   label = @Translation("View", context = "View entity type"),
  *   handlers = {
  *     "access" = "Drupal\views\ViewAccessControlHandler"
  *   },
@@ -29,6 +29,17 @@ use Drupal\views\ViewEntityInterface;
  *     "id" = "id",
  *     "label" = "label",
  *     "status" = "status"
+ *   },
+ *   config_export = {
+ *     "id",
+ *     "label",
+ *     "module",
+ *     "description",
+ *     "tag",
+ *     "base_table",
+ *     "base_field",
+ *     "core",
+ *     "display",
  *   }
  * )
  */
@@ -333,6 +344,7 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
 
     // @todo Remove if views implements a view_builder controller.
     views_invalidate_cache();
+    $this->invalidateCaches();
 
     // Rebuild the router if this is a new view, or it's status changed.
     if (!isset($this->original) || ($this->status() != $this->original->status())) {
@@ -446,6 +458,15 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
     $keys = parent::__sleep();
     unset($keys[array_search('executable', $keys)]);
     return $keys;
+  }
+
+  /**
+   * Invalidates cache tags.
+   */
+  public function invalidateCaches() {
+    // Invalidate cache tags for cached rows.
+    $tags = $this->getCacheTags();
+    \Drupal::service('cache_tags.invalidator')->invalidateTags($tags);
   }
 
 }

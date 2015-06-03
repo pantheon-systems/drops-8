@@ -127,7 +127,7 @@ class RendererTest extends RendererTestBase {
         ],
       ],
       '#attributes' => ['id' => 'foo'],
-      '#url' => 'http://drupal.org',
+      '#url' => 'https://www.drupal.org',
       '#title' => 'bar',
     ];
     $setup_code_type_link = function() {
@@ -144,13 +144,13 @@ class RendererTest extends RendererTestBase {
         ->with('link')
         ->willReturn(['#theme' => 'link']);
     };
-    $data[] = [$build, '<div class="baz"><a href="http://drupal.org" id="foo">bar</a></div>' . "\n", $setup_code_type_link];
+    $data[] = [$build, '<div class="baz"><a href="https://www.drupal.org" id="foo">bar</a></div>' . "\n", $setup_code_type_link];
 
     // Tests that #theme_wrappers can disambiguate element attributes when the
     // "base" attribute is not set for #theme.
     $build = [
       '#type' => 'link',
-      '#url' => 'http://drupal.org',
+      '#url' => 'https://www.drupal.org',
       '#title' => 'foo',
       '#theme_wrappers' => [
         'container' => [
@@ -158,7 +158,7 @@ class RendererTest extends RendererTestBase {
         ],
       ],
     ];
-    $data[] = [$build, '<div class="baz"><a href="http://drupal.org">foo</a></div>' . "\n", $setup_code_type_link];
+    $data[] = [$build, '<div class="baz"><a href="https://www.drupal.org">foo</a></div>' . "\n", $setup_code_type_link];
 
     // Tests two 'container' #theme_wrappers, one using the "base" attributes
     // and one using an override.
@@ -618,6 +618,75 @@ class RendererTest extends RendererTestBase {
       [0, FALSE, NULL],
       [60, TRUE, (int) $_SERVER['REQUEST_TIME'] + 60],
       [Cache::PERMANENT, TRUE, -1],
+    ];
+  }
+
+  /**
+   * Tests that #cache_properties are properly handled.
+   *
+   * @param array $expected_results
+   *   An associative array of expected results keyed by property name.
+   *
+   * @covers ::render
+   * @covers ::doRender
+   * @covers \Drupal\Core\Render\RenderCache::get
+   * @covers \Drupal\Core\Render\RenderCache::set
+   * @covers \Drupal\Core\Render\RenderCache::createCacheID
+   * @covers \Drupal\Core\Render\RenderCache::getCacheableRenderArray
+   *
+   * @dataProvider providerTestRenderCacheProperties
+   */
+  public function testRenderCacheProperties(array $expected_results) {
+    $this->setUpRequest();
+    $this->setupMemoryCache();
+
+    $element = $original = [
+      '#cache' => [
+        'keys' => ['render_cache_test'],
+      ],
+      // Collect expected property names.
+      '#cache_properties' => array_keys(array_filter($expected_results)),
+      'child1' => ['#markup' => 1],
+      'child2' => ['#markup' => 2],
+      '#custom_property' => ['custom_value'],
+    ];
+    $this->renderer->render($element);
+
+    $cache = $this->cacheFactory->get('render');
+    $data = $cache->get('render_cache_test:en:stark')->data;
+
+    // Check that parent markup is ignored when caching children's markup.
+    $this->assertEquals($data['#markup'] === '', (bool) Element::children($data));
+
+    // Check that the element properties are cached as specified.
+    foreach ($expected_results as $property => $expected) {
+      $cached = !empty($data[$property]);
+      $this->assertEquals($cached, (bool) $expected);
+      // Check that only the #markup key is preserved for children.
+      if ($cached) {
+        $this->assertArrayEquals($data[$property], $original[$property]);
+      }
+    }
+  }
+
+  /**
+   * Data provider for ::testRenderCacheProperties().
+   *
+   * @return array
+   *   An array of associative arrays of expected results keyed by property
+   *   name.
+   */
+  public function providerTestRenderCacheProperties() {
+    return [
+      [[]],
+      [['child1' => 0, 'child2' => 0, '#custom_property' => 0]],
+      [['child1' => 0, 'child2' => 0, '#custom_property' => 1]],
+      [['child1' => 0, 'child2' => 1, '#custom_property' => 0]],
+      [['child1' => 0, 'child2' => 1, '#custom_property' => 1]],
+      [['child1' => 1, 'child2' => 0, '#custom_property' => 0]],
+      [['child1' => 1, 'child2' => 0, '#custom_property' => 1]],
+      [['child1' => 1, 'child2' => 1, '#custom_property' => 0]],
+      [['child1' => 1, 'child2' => 1, '#custom_property' => 1]],
     ];
   }
 

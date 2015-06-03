@@ -9,13 +9,19 @@ namespace Drupal\views_ui\Form\Ajax;
 
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\views_ui\ViewUI;
 use Drupal\views\ViewExecutable;
 
 /**
  * Provides a rearrange form for Views filters.
  */
 class RearrangeFilter extends ViewsFormBase {
+
+  /**
+   * Constructs a new RearrangeFilter object.
+   */
+  public function __construct($type = NULL) {
+    $this->setType($type);
+  }
 
   /**
    * {@inheritdoc}
@@ -128,6 +134,7 @@ class RearrangeFilter extends ViewsFormBase {
             'class' => array('views-remove-group'),
           ),
           '#group' => $id,
+          '#ajax' => ['url' => NULL],
         );
       }
       $group_options[$id] = $id == 1 ? $this->t('Default group') : $this->t('Group @group', array('@group' => $id));
@@ -208,6 +215,7 @@ class RearrangeFilter extends ViewsFormBase {
       '#value' => $this->t('Create new filter group'),
       '#id' => 'views-add-group',
       '#group' => 'add',
+      '#ajax' => ['url' => NULL],
     );
 
     return $form;
@@ -259,16 +267,16 @@ class RearrangeFilter extends ViewsFormBase {
 
     // If the #group property is set on the clicked button, that means we are
     // either adding or removing a group, not actually updating the filters.
-    $clicked_button = $form_state->get('clicked_button');
-    if (!empty($clicked_button['#group'])) {
-      if ($clicked_button['#group'] == 'add') {
+    $triggering_element = $form_state->getTriggeringElement();
+    if (!empty($triggering_element['#group'])) {
+      if ($triggering_element['#group'] == 'add') {
         // Add a new group
         $groups['groups'][] = 'AND';
       }
       else {
         // Renumber groups above the removed one down.
         foreach (array_keys($groups['groups']) as $group_id) {
-          if ($group_id >= $clicked_button['#group']) {
+          if ($group_id >= $triggering_element['#group']) {
             $old_group = $group_id + 1;
             if (isset($groups['groups'][$old_group])) {
               $groups['groups'][$group_id] = $groups['groups'][$old_group];

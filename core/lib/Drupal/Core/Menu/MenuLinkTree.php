@@ -8,6 +8,8 @@
 namespace Drupal\Core\Menu;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerResolverInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -48,30 +50,6 @@ class MenuLinkTree implements MenuLinkTreeInterface {
   protected $controllerResolver;
 
   /**
-   * The cache backend.
-   *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
-   */
-  protected $cache;
-
-  /**
-   * The current route match.
-   *
-   * @var \Drupal\Core\Routing\RouteMatchInterface
-   */
-  protected $routeMatch;
-
-  /**
-   * Stores the cached current route parameters by menu and current route match.
-   *
-   * @todo Remove this non-static caching in
-   *   https://www.drupal.org/node/1805054.
-   *
-   * @var \Drupal\Core\Menu\MenuTreeParameters[]
-   */
-  protected $cachedCurrentRouteParameters;
-
-  /**
    * Constructs a \Drupal\Core\Menu\MenuLinkTree object.
    *
    * @param \Drupal\Core\Menu\MenuTreeStorageInterface $tree_storage
@@ -84,53 +62,31 @@ class MenuLinkTree implements MenuLinkTreeInterface {
    *   The active menu trail service.
    * @param \Drupal\Core\Controller\ControllerResolverInterface $controller_resolver
    *   The controller resolver.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
-   *   The cache backend.
-   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
-   *   The current route match.
    */
-  public function __construct(MenuTreeStorageInterface $tree_storage, MenuLinkManagerInterface $menu_link_manager, RouteProviderInterface $route_provider, MenuActiveTrailInterface $menu_active_trail, ControllerResolverInterface $controller_resolver, CacheBackendInterface $cache, RouteMatchInterface $route_match) {
+  public function __construct(MenuTreeStorageInterface $tree_storage, MenuLinkManagerInterface $menu_link_manager, RouteProviderInterface $route_provider, MenuActiveTrailInterface $menu_active_trail, ControllerResolverInterface $controller_resolver) {
     $this->treeStorage = $tree_storage;
     $this->menuLinkManager = $menu_link_manager;
     $this->routeProvider = $route_provider;
     $this->menuActiveTrail = $menu_active_trail;
     $this->controllerResolver = $controller_resolver;
-    // @todo Remove these two in https://www.drupal.org/node/1805054.
-    $this->cache = $cache;
-    $this->routeMatch = $route_match;
   }
 
   /**
    * {@inheritdoc}
    */
   public function getCurrentRouteMenuTreeParameters($menu_name) {
-    $route_parameters = $this->routeMatch->getRawParameters()->all();
-    ksort($route_parameters);
-    $cid = 'current-route-parameters:' . $menu_name . ':route:' . $this->routeMatch->getRouteName() . ':route_parameters:' . serialize($route_parameters);
+    $active_trail = $this->menuActiveTrail->getActiveTrailIds($menu_name);
 
-    if (!isset($this->cachedCurrentRouteParameters[$cid])) {
-      $cache = $this->cache->get($cid);
-      if ($cache && $cache->data) {
-        $parameters = $cache->data;
-      }
-      else {
-        $active_trail = $this->menuActiveTrail->getActiveTrailIds($menu_name);
+    $parameters = new MenuTreeParameters();
+    $parameters->setActiveTrail($active_trail)
+      // We want links in the active trail to be expanded.
+      ->addExpandedParents($active_trail)
+      // We marked the links in the active trail to be expanded, but we also
+      // want their descendants that have the "expanded" flag enabled to be
+      // expanded.
+      ->addExpandedParents($this->treeStorage->getExpanded($menu_name, $active_trail));
 
-        $parameters = new MenuTreeParameters();
-        $parameters->setActiveTrail($active_trail)
-          // We want links in the active trail to be expanded.
-          ->addExpandedParents($active_trail)
-          // We marked the links in the active trail to be expanded, but we also
-          // want their descendants that have the "expanded" flag enabled to be
-          // expanded.
-          ->addExpandedParents($this->treeStorage->getExpanded($menu_name, $active_trail));
-
-        $this->cache->set($cid, $parameters, CacheBackendInterface::CACHE_PERMANENT, array('config:system.menu.' . $menu_name));
-      }
-      $this->cachedCurrentRouteParameters[$menu_name] = $parameters;
-    }
-
-    return $this->cachedCurrentRouteParameters[$menu_name];
+    return $parameters;
   }
 
   /**
@@ -198,17 +154,97 @@ class MenuLinkTree implements MenuLinkTreeInterface {
   /**
    * {@inheritdoc}
    */
-  public function build(array $tree, $level = 0) {
+  public function build(array $tree) {
+    $tree_access_cacheability = new CacheableMetadata();
+    $tree_link_cacheability = new CacheableMetadata();
+    $items = $this->buildItems($tree, $tree_access_cacheability, $tree_link_cacheability);
+
+    $build = [];
+
+    // Apply the tree-wide gathered access cacheability metadata and link
+    // cacheability metadata to the render array. This ensures that the
+    // rendered menu is varied by the cache contexts that the access results
+    // and (dynamic) links depended upon, and invalidated by the cache tags
+    // that may change the values of the access results and links.
+    $tree_cacheability = $tree_access_cacheability->merge($tree_link_cacheability);
+    $tree_cacheability->applyTo($build);
+
+    if ($items) {
+      // Make sure drupal_render() does not re-order the links.
+      $build['#sorted'] = TRUE;
+      // Get the menu name from the last link.
+      $item = end($items);
+      $link = $item['original_link'];
+      $menu_name = $link->getMenuName();
+      // Add the theme wrapper for outer markup.
+      // Allow menu-specific theme overrides.
+      $build['#theme'] = 'menu__' . strtr($menu_name, '-', '_');
+      $build['#items'] = $items;
+      // Set cache tag.
+      $build['#cache']['tags'][] = 'config:system.menu.' . $menu_name;
+    }
+
+    return $build;
+  }
+
+  /**
+   * Builds the #items property for a menu tree's renderable array.
+   *
+   * Helper function for ::build().
+   *
+   * @param \Drupal\Core\Menu\MenuLinkTreeElement[] $tree
+   *   A data structure representing the tree, as returned from
+   *   MenuLinkTreeInterface::load().
+   * @param \Drupal\Core\Cache\CacheableMetadata &$tree_access_cacheability
+   *   Internal use only. The aggregated cacheability metadata for the access
+   *   results across the entire tree. Used when rendering the root level.
+   * @param \Drupal\Core\Cache\CacheableMetadata &$tree_link_cacheability
+   *   Internal use only. The aggregated cacheability metadata for the menu
+   *   links across the entire tree. Used when rendering the root level.
+   *
+   * @return array
+   *   The value to use for the #items property of a renderable menu.
+   *
+   * @throws \DomainException
+   */
+  protected function buildItems(array $tree, CacheableMetadata &$tree_access_cacheability, CacheableMetadata &$tree_link_cacheability) {
     $items = array();
 
     foreach ($tree as $data) {
-      $class = ['menu-item'];
       /** @var \Drupal\Core\Menu\MenuLinkInterface $link */
       $link = $data->link;
       // Generally we only deal with visible links, but just in case.
       if (!$link->isEnabled()) {
         continue;
       }
+
+      if ($data->access !== NULL && !$data->access instanceof AccessResultInterface) {
+        throw new \DomainException('MenuLinkTreeElement::access must be either NULL or an AccessResultInterface object.');
+      }
+
+      // Gather the access cacheability of every item in the menu link tree,
+      // including inaccessible items. This allows us to render cache the menu
+      // tree, yet still automatically vary the rendered menu by the same cache
+      // contexts that the access results vary by.
+      // However, if $data->access is not an AccessResultInterface object, this
+      // will still render the menu link, because this method does not want to
+      // require access checking to be able to render a menu tree.
+      if ($data->access instanceof AccessResultInterface) {
+        $tree_access_cacheability = $tree_access_cacheability->merge(CacheableMetadata::createFromObject($data->access));
+      }
+
+      // Gather the cacheability of every item in the menu link tree. Some links
+      // may be dynamic: they may have a dynamic text (e.g. a "Hi, <user>" link
+      // text, which would vary by 'user' cache context), or a dynamic route
+      // name or route parameters.
+      $tree_link_cacheability = $tree_link_cacheability->merge(CacheableMetadata::createFromObject($data->link));
+
+      // Only render accessible links.
+      if ($data->access instanceof AccessResultInterface && !$data->access->isAllowed()) {
+        continue;
+      }
+
+      $class = ['menu-item'];
       // Set a class for the <li>-tag. Only set 'expanded' class if the link
       // also has visible children within the current tree.
       if ($data->hasChildren && !empty($data->subtree)) {
@@ -222,14 +258,15 @@ class MenuLinkTree implements MenuLinkTreeInterface {
         $class[] = 'menu-item--active-trail';
       }
 
-      // Allow menu-specific theme overrides.
+      // Note: links are rendered in the menu.html.twig template; and they
+      // automatically bubble their associated cacheability metadata.
       $element = array();
       $element['attributes'] = new Attribute();
       $element['attributes']['class'] = $class;
       $element['title'] = $link->getTitle();
       $element['url'] = $link->getUrlObject();
       $element['url']->setOption('set_active_class', TRUE);
-      $element['below'] = $data->subtree ? $this->build($data->subtree, $level + 1) : array();
+      $element['below'] = $data->subtree ? $this->buildItems($data->subtree, $tree_access_cacheability, $tree_link_cacheability) : array();
       if (isset($data->options)) {
         $element['url']->setOptions(NestedArray::mergeDeep($element['url']->getOptions(), $data->options));
       }
@@ -238,26 +275,7 @@ class MenuLinkTree implements MenuLinkTreeInterface {
       $items[$link->getPluginId()] = $element;
     }
 
-    if (!$items) {
-      return array();
-    }
-    elseif ($level == 0) {
-      $build = array();
-      // Make sure drupal_render() does not re-order the links.
-      $build['#sorted'] = TRUE;
-      // Get the menu name from the last link.
-      $menu_name = $link->getMenuName();
-      // Add the theme wrapper for outer markup.
-      // Allow menu-specific theme overrides.
-      $build['#theme'] = 'menu__' . strtr($menu_name, '-', '_');
-      $build['#items'] = $items;
-      // Set cache tag.
-      $build['#cache']['tags'][] = 'config:system.menu.' . $menu_name;
-      return $build;
-    }
-    else {
-      return $items;
-    }
+    return $items;
   }
 
   /**

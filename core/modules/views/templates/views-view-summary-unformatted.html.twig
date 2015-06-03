@@ -21,11 +21,11 @@
  */
 #}
 {% for row in rows  %}
-  {{ options.inline ? '<span' : '<div' }} class="views-summary views-summary-unformatted">
+  {{ options.inline ? '<span' : '<div' }} >
   {% if row.separator -%}
     {{ row.separator }}
   {%- endif %}
-  <a href="{{ row.url }}"{{ row.attributes.addClass(row.active ? 'is-active') }}>{{ row.link }}</a>
+  <a href="{{ row.url }}"{{ row.attributes.addClass(row.active ? 'is-active')|without('href') }}>{{ row.link }}</a>
   {% if options.count %}
     ({{ row.count }})
   {% endif %}
