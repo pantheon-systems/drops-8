@@ -13,8 +13,10 @@
 namespace Drupal\Core\Template;
 
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\SafeStringInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
 use Drupal\Core\Url;
 
 /**
@@ -41,6 +43,13 @@ class TwigExtension extends \Twig_Extension {
   protected $renderer;
 
   /**
+   * The theme manager.
+   *
+   * @var \Drupal\Core\Theme\ThemeManagerInterface
+   */
+  protected $themeManager;
+
+  /**
    * Constructs \Drupal\Core\Template\TwigExtension.
    *
    * @param \Drupal\Core\Render\RendererInterface $renderer
@@ -57,9 +66,37 @@ class TwigExtension extends \Twig_Extension {
    *   The URL generator.
    *
    * @return $this
+   *
+   * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+   *   Use \Drupal\Core\Template\TwigExtension::setUrlGenerator().
    */
   public function setGenerators(UrlGeneratorInterface $url_generator) {
+    return $this->setUrlGenerator($url_generator);
+  }
+
+  /**
+   * Sets the URL generator.
+   *
+   * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
+   *   The URL generator.
+   *
+   * @return $this
+   */
+  public function setUrlGenerator(UrlGeneratorInterface $url_generator) {
     $this->urlGenerator = $url_generator;
+    return $this;
+  }
+
+  /**
+   * Sets the theme manager.
+   *
+   * @param \Drupal\Core\Theme\ThemeManagerInterface $theme_manager
+   *   The theme manager.
+   *
+   * @return $this
+   */
+  public function setThemeManager(ThemeManagerInterface $theme_manager) {
+    $this->themeManager = $theme_manager;
     return $this;
   }
 
@@ -67,7 +104,7 @@ class TwigExtension extends \Twig_Extension {
    * {@inheritdoc}
    */
   public function getFunctions() {
-    return array(
+    return [
       // This function will receive a renderable array, if an array is detected.
       new \Twig_SimpleFunction('render_var', array($this, 'renderVar')),
       // The url and path function are defined in close parallel to those found
@@ -77,8 +114,9 @@ class TwigExtension extends \Twig_Extension {
       new \Twig_SimpleFunction('url_from_path', array($this, 'getUrlFromPath'), array('is_safe_callback' => array($this, 'isUrlGenerationSafe'))),
       new \Twig_SimpleFunction('link', array($this, 'getLink')),
       new \Twig_SimpleFunction('file_url', 'file_create_url'),
-      new \Twig_SimpleFunction('attach_library', array($this, 'attachLibrary'))
-    );
+      new \Twig_SimpleFunction('attach_library', [$this, 'attachLibrary']),
+      new \Twig_SimpleFunction('active_theme', [$this, 'getActiveTheme']),
+    ];
   }
 
   /**
@@ -95,7 +133,7 @@ class TwigExtension extends \Twig_Extension {
       // be used in "trans" tags.
       // @see TwigNodeTrans::compileString()
       new \Twig_SimpleFilter('passthrough', 'twig_raw_filter', array('is_safe' => array('html'))),
-      new \Twig_SimpleFilter('placeholder', 'twig_raw_filter', array('is_safe' => array('html'))),
+      new \Twig_SimpleFilter('placeholder', [$this, 'escapePlaceholder'], array('is_safe' => array('html'), 'needs_environment' => TRUE)),
 
       // Replace twig's escape filter with our own.
       new \Twig_SimpleFilter('drupal_escape', [$this, 'escapeFilter'], array('needs_environment' => true, 'is_safe_callback' => 'twig_escape_filter_is_safe')),
@@ -247,6 +285,16 @@ class TwigExtension extends \Twig_Extension {
   }
 
   /**
+   * Gets the name of the active theme.
+   *
+   * @return string
+   *   The name of the active theme.
+   */
+  public function getActiveTheme() {
+    return $this->themeManager->getActiveTheme()->getName();
+  }
+
+  /**
    * Determines at compile time whether the generated URL will be safe.
    *
    * Saves the unneeded automatic escaping for performance reasons.
@@ -304,6 +352,21 @@ class TwigExtension extends \Twig_Extension {
   }
 
   /**
+   * Provides a placeholder wrapper around ::escapeFilter.
+   *
+   * @param \Twig_Environment $env
+   *   A Twig_Environment instance.
+   * @param mixed $string
+   *   The value to be escaped.
+   *
+   * @return string|null
+   *   The escaped, rendered output, or NULL if there is no valid output.
+   */
+  public function escapePlaceholder($env, $string) {
+    return '<em class="placeholder">' . $this->escapeFilter($env, $string) . '</em>';
+  }
+
+  /**
    * Overrides twig_escape_filter().
    *
    * Replacement function for Twig's escape filter.
@@ -335,7 +398,7 @@ class TwigExtension extends \Twig_Extension {
     }
 
     // Keep Twig_Markup objects intact to support autoescaping.
-    if ($autoescape && $arg instanceOf \Twig_Markup) {
+    if ($autoescape && ($arg instanceOf \Twig_Markup || $arg instanceOf SafeStringInterface)) {
       return $arg;
     }
 

@@ -7,6 +7,7 @@
 
 namespace Drupal\Core\Path;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -48,6 +49,14 @@ class AliasStorage implements AliasStorageInterface {
    */
   public function save($source, $alias, $langcode = LanguageInterface::LANGCODE_NOT_SPECIFIED, $pid = NULL) {
 
+    if ($source[0] !== '/') {
+      throw new \InvalidArgumentException(sprintf('Source path %s has to start with a slash.', $source));
+    }
+
+    if ($alias[0] !== '/') {
+      throw new \InvalidArgumentException(sprintf('Alias path %s has to start with a slash.', $alias));
+    }
+
     $fields = array(
       'source' => $source,
       'alias' => $alias,
@@ -77,6 +86,7 @@ class AliasStorage implements AliasStorageInterface {
     if ($pid) {
       // @todo Switch to using an event for this instead of a hook.
       $this->moduleHandler->invokeAll('path_' . $operation, array($fields));
+      Cache::invalidateTags(['route_match']);
       return $fields;
     }
     return FALSE;
@@ -110,6 +120,7 @@ class AliasStorage implements AliasStorageInterface {
     $deleted = $query->execute();
     // @todo Switch to using an event for this instead of a hook.
     $this->moduleHandler->invokeAll('path_delete', array($path));
+    Cache::invalidateTags(['route_match']);
     return $deleted;
   }
 

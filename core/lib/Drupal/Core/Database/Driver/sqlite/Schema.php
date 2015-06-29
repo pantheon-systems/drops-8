@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Database\Driver\sqlite\Schema
+ * Contains \Drupal\Core\Database\Driver\sqlite\Schema.
  */
 
 namespace Drupal\Core\Database\Driver\sqlite;
@@ -260,7 +260,7 @@ class Schema extends DatabaseSchema {
     $schema = $this->introspectSchema($table);
 
     // SQLite doesn't allow you to rename tables outside of the current
-    // database. So the syntax '...RENAME TO database.table' would fail.
+    // database. So the syntax '... RENAME TO database.table' would fail.
     // So we must determine the full table name here rather than surrounding
     // the table with curly braces in case the db_prefix contains a reference
     // to a database outside of our existing database.
@@ -424,7 +424,6 @@ class Schema extends DatabaseSchema {
    *   Name of the table.
    * @return
    *   An array representing the schema, from drupal_get_schema().
-   * @see drupal_get_schema()
    */
   protected function introspectSchema($table) {
     $mapped_fields = array_flip($this->getFieldTypeMap());

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\views\Tests\Plugin\StyleMappingTest.
+ * Contains \Drupal\views\Tests\Plugin\StyleMappingTest.
  */
 
 namespace Drupal\views\Tests\Plugin;
@@ -51,7 +51,7 @@ class StyleMappingTest extends StyleTestBase {
    */
   protected function mappedOutputHelper($view) {
     $output = $view->preview();
-    $rendered_output = drupal_render($output);
+    $rendered_output = \Drupal::service('renderer')->renderRoot($output);
     $this->storeViewPreview($rendered_output);
     $rows = $this->elements->body->div->div->div;
     $data_set = $this->dataSet();

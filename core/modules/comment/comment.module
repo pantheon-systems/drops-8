@@ -211,6 +211,31 @@ function comment_node_links_alter(array &$node_links, NodeInterface $node, array
 }
 
 /**
+ * Implements hook_entity_view().
+ */
+function comment_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode, $langcode) {
+  if ($entity instanceof FieldableEntityInterface && $view_mode == 'rss' && $display->getComponent('links')) {
+    /** @var \Drupal\comment\CommentManagerInterface $comment_manager */
+    $comment_manager = \Drupal::service('comment.manager');
+    $fields = $comment_manager->getFields($entity->getEntityTypeId());
+    foreach ($fields as $field_name => $detail) {
+      if ($entity->hasField($field_name) && $entity->get($field_name)->status != CommentItemInterface::HIDDEN) {
+        // Add a comments RSS element which is a URL to the comments of this
+        // entity.
+        $options = array(
+          'fragment' => 'comments',
+          'absolute' => TRUE,
+        );
+        $entity->rss_elements[] = array(
+          'key' => 'comments',
+          'value' => $entity->url('canonical', $options),
+        );
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_ENTITY_TYPE_view_alter() for node entities.
  */
 function comment_node_view_alter(array &$build, EntityInterface $node, EntityViewDisplayInterface $display) {
@@ -225,7 +250,7 @@ function comment_node_view_alter(array &$build, EntityInterface $node, EntityVie
  * @param \Drupal\comment\CommentInterface $comment
  *   The comment object.
  * @param $view_mode
- *   (optional) View mode, e.g. 'full', 'teaser'... Defaults to 'full'.
+ *   (optional) View mode; e.g., 'full', 'teaser', etc. Defaults to 'full'.
  * @param $langcode
  *   (optional) A language code to use for rendering. Defaults to the global
  *   content language of the current request.
@@ -243,7 +268,7 @@ function comment_view(CommentInterface $comment, $view_mode = 'full', $langcode 
  * @param $comments
  *   An array of comments as returned by entity_load_multiple().
  * @param $view_mode
- *   View mode, e.g. 'full', 'teaser'...
+ *   View mode; e.g., 'full', 'teaser', etc.
  * @param $langcode
  *   (optional) A string indicating the language field values are to be shown
  *   in. If no language is provided the current content language is used.
@@ -437,7 +462,7 @@ function comment_node_update_index(EntityInterface $node, $langcode) {
       }
     }
   }
-  return drupal_render($build);
+  return \Drupal::service('renderer')->renderPlain($build);
 }
 
 /**
@@ -613,6 +638,7 @@ function template_preprocess_comment(&$variables) {
   $commented_entity = $comment->getCommentedEntity();
   $variables['comment'] = $comment;
   $variables['commented_entity'] = $commented_entity;
+  $variables['threaded'] = $variables['elements']['#comment_threaded'];
 
   $account = $comment->getOwner();
   $username = array(

@@ -46,7 +46,12 @@ class HtmlTag extends RenderElement {
    * Pre-render callback: Renders a generic HTML tag with attributes into #markup.
    *
    * Note: It is the caller's responsibility to sanitize any input parameters.
-   * This callback does not perform sanitization.
+   * This callback does not perform sanitization. Despite the result of this
+   * pre-render callback being a #markup element, it is not passed through
+   * \Drupal\Component\Utility\Xss::filterAdmin(). This is because it is marked
+   * safe here, which causes
+   * \Drupal\Component\Utility\SafeMarkup::checkAdminXss() to regard it as safe
+   * and bypass the call to \Drupal\Component\Utility\Xss::filterAdmin().
    *
    * @param array $element
    *   An associative array containing:
@@ -64,6 +69,9 @@ class HtmlTag extends RenderElement {
    *     wrapper prefix.
    *   - #value_suffix: (optional) A string to append to #value, e.g. a CDATA
    *     wrapper suffix.
+   *   - #noscript: (optional) If TRUE, the markup (including any prefix or
+   *     suffix) will be wrapped in a <noscript> element. (Note that passing
+   *     any non-empty value here will add the <noscript> tag.)
    *
    * @return array
    */
@@ -94,7 +102,7 @@ class HtmlTag extends RenderElement {
       $markup = SafeMarkup::set($markup);
     }
     if (!empty($element['#noscript'])) {
-      $element['#markup'] = '<noscript>' . $markup . '</noscript>';
+      $element['#markup'] = SafeMarkup::format('<noscript>@markup</noscript>', ['@markup' => $markup]);
     }
     else {
       $element['#markup'] = $markup;

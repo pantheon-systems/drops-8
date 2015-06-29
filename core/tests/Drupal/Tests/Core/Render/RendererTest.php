@@ -28,7 +28,6 @@ class RendererTest extends RendererTestBase {
       'max-age' => Cache::PERMANENT,
     ],
     '#attached' => [],
-    '#post_render_cache' => [],
     '#children' => '',
   ];
 
@@ -44,7 +43,7 @@ class RendererTest extends RendererTestBase {
       $setup_code();
     }
 
-    $this->assertSame($expected, $this->renderer->render($build));
+    $this->assertSame($expected, $this->renderer->renderRoot($build));
   }
 
   /**
@@ -81,6 +80,14 @@ class RendererTest extends RendererTestBase {
     $data[] = [[
       'child' => ['#markup' => 'bar'],
     ], 'bar'];
+    // XSS filtering test.
+    $data[] = [[
+      'child' => ['#markup' => "This is <script>alert('XSS')</script> test"],
+    ], "This is alert('XSS') test"];
+    // Ensure non-XSS tags are not filtered out.
+    $data[] = [[
+      'child' => ['#markup' => "This is <strong><script>alert('not a giraffe')</script></strong> test"],
+    ], "This is <strong>alert('not a giraffe')</strong> test"];
     // #children set but empty, and renderable children.
     $data[] = [[
       '#children' => '',
@@ -315,7 +322,7 @@ class RendererTest extends RendererTestBase {
         '#markup' => $first,
       ],
     ];
-    $output = $this->renderer->render($elements);
+    $output = $this->renderer->renderRoot($elements);
 
     // The lowest weight element should appear last in $output.
     $this->assertTrue(strpos($output, $second) > strpos($output, $first), 'Elements were sorted correctly by weight.');
@@ -350,7 +357,7 @@ class RendererTest extends RendererTestBase {
       ),
       '#sorted' => TRUE,
     );
-    $output = $this->renderer->render($elements);
+    $output = $this->renderer->renderRoot($elements);
 
     // The elements should appear in output in the same order as the array.
     $this->assertTrue(strpos($output, $second) < strpos($output, $first), 'Elements were not sorted.');
@@ -432,11 +439,11 @@ class RendererTest extends RendererTestBase {
       '#markup' => 'test',
     ];
 
-    $this->assertEquals('test', $this->renderer->render($build));
+    $this->assertEquals('test', $this->renderer->renderRoot($build));
     $this->assertTrue($build['#printed']);
 
     // We don't want to reprint already printed render arrays.
-    $this->assertEquals('', $this->renderer->render($build));
+    $this->assertEquals('', $this->renderer->renderRoot($build));
   }
 
   /**
@@ -463,10 +470,10 @@ class RendererTest extends RendererTestBase {
     $sensitive_content = $this->randomContextValue();
     $build['#markup'] = $sensitive_content;
     if ($access) {
-      $this->assertSame($sensitive_content, $this->renderer->render($build));
+      $this->assertSame($sensitive_content, $this->renderer->renderRoot($build));
     }
     else {
-      $this->assertSame('', $this->renderer->render($build));
+      $this->assertSame('', $this->renderer->renderRoot($build));
     }
   }
 
@@ -558,13 +565,13 @@ class RendererTest extends RendererTestBase {
     // Render the element and confirm that it goes through the rendering
     // process (which will set $element['#printed']).
     $element = $test_element;
-    $this->renderer->render($element);
+    $this->renderer->renderRoot($element);
     $this->assertTrue(isset($element['#printed']), 'No cache hit');
 
     // Render the element again and confirm that it is retrieved from the cache
     // instead (so $element['#printed'] will not be set).
     $element = $test_element;
-    $this->renderer->render($element);
+    $this->renderer->renderRoot($element);
     $this->assertFalse(isset($element['#printed']), 'Cache hit');
 
     // Test that cache tags are correctly collected from the render element,
@@ -601,7 +608,7 @@ class RendererTest extends RendererTestBase {
       ],
       '#markup' => '',
     ];
-    $this->renderer->render($element);
+    $this->renderer->renderRoot($element);
 
     $cache_item = $this->cacheFactory->get('render')->get('render_cache_test:en:stark');
     if (!$is_render_cached) {
@@ -650,7 +657,7 @@ class RendererTest extends RendererTestBase {
       'child2' => ['#markup' => 2],
       '#custom_property' => ['custom_value'],
     ];
-    $this->renderer->render($element);
+    $this->renderer->renderRoot($element);
 
     $cache = $this->cacheFactory->get('render');
     $data = $cache->get('render_cache_test:en:stark')->data;

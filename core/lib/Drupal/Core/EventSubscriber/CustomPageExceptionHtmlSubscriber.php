@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Core\EventSubscriber\DefaultExceptionHtmlSubscriber.
+ * Contains \Drupal\Core\EventSubscriber\CustomPageExceptionHtmlSubscriber.
  */
 
 namespace Drupal\Core\EventSubscriber;
@@ -66,7 +66,7 @@ class CustomPageExceptionHtmlSubscriber extends DefaultExceptionHtmlSubscriber {
    */
   public function on403(GetResponseForExceptionEvent $event) {
     $path = $this->aliasManager->getPathByAlias($this->configFactory->get('system.site')->get('page.403'));
-    $this->makeSubrequest($event, $path, Response::HTTP_FORBIDDEN);
+    $this->makeSubrequest($event, trim($path, '/'), Response::HTTP_FORBIDDEN);
   }
 
   /**
@@ -74,7 +74,7 @@ class CustomPageExceptionHtmlSubscriber extends DefaultExceptionHtmlSubscriber {
    */
   public function on404(GetResponseForExceptionEvent $event) {
     $path = $this->aliasManager->getPathByAlias($this->configFactory->get('system.site')->get('page.404'));
-    $this->makeSubrequest($event, $path, Response::HTTP_NOT_FOUND);
+    $this->makeSubrequest($event, trim($path, '/'), Response::HTTP_NOT_FOUND);
   }
 
 }

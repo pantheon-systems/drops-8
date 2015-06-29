@@ -8,7 +8,7 @@
 namespace Drupal\Core\Render;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Cache\CacheContextsManager;
+use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\Cache\CacheFactoryInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -34,7 +34,7 @@ class RenderCache implements RenderCacheInterface {
   /**
    * The cache contexts manager.
    *
-   * @var \Drupal\Core\Cache\CacheContextsManager
+   * @var \Drupal\Core\Cache\Context\CacheContextsManager
    */
   protected $cacheContextsManager;
 
@@ -45,7 +45,7 @@ class RenderCache implements RenderCacheInterface {
    *   The request stack.
    * @param \Drupal\Core\Cache\CacheFactoryInterface $cache_factory
    *   The cache factory.
-   * @param \Drupal\Core\Cache\CacheContextsManager $cache_contexts_manager
+   * @param \Drupal\Core\Cache\Context\CacheContextsManager $cache_contexts_manager
    *   The cache contexts manager.
    */
   public function __construct(RequestStack $request_stack, CacheFactoryInterface $cache_factory, CacheContextsManager $cache_contexts_manager) {
@@ -237,6 +237,8 @@ class RenderCache implements RenderCacheInterface {
             'contexts' => $merged_cache_contexts,
             // The union of the current element's and stored cache tags.
             'tags' => Cache::mergeTags($stored_cache_tags, $data['#cache']['tags']),
+            // The same cache bin as the one for the actual render cache items.
+            'bin' => $bin,
           ],
         ];
         $cache->set($pre_bubbling_cid, $redirect_data, $expire, Cache::mergeTags($redirect_data['#cache']['tags'], ['rendered']));
@@ -298,7 +300,6 @@ class RenderCache implements RenderCacheInterface {
     $data = [
       '#markup' => $elements['#markup'],
       '#attached' => $elements['#attached'],
-      '#post_render_cache' => $elements['#post_render_cache'],
       '#cache' => [
         'contexts' => $elements['#cache']['contexts'],
         'tags' => $elements['#cache']['tags'],

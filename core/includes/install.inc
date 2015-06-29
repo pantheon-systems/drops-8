@@ -9,7 +9,6 @@ use Drupal\Component\Utility\Unicode;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\OpCodeCache;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Site\Settings;
@@ -197,7 +196,7 @@ function drupal_get_database_types() {
  */
 function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
   if (!isset($settings_file)) {
-    $settings_file = conf_path(FALSE) . '/settings.php';
+    $settings_file = \Drupal::service('site.path') . '/settings.php';
   }
   // Build list of setting names and insert the values into the global namespace.
   $variable_names = array();
@@ -470,13 +469,13 @@ function drupal_install_config_directories() {
   $config_directories_hash = Crypt::randomBytesBase64(55);
   if (empty($config_directories[CONFIG_ACTIVE_DIRECTORY])) {
     $settings['config_directories'][CONFIG_ACTIVE_DIRECTORY] = (object) [
-      'value' => conf_path() . '/files/config_' . $config_directories_hash . '/active',
+      'value' => \Drupal::service('site.path') . '/files/config_' . $config_directories_hash . '/active',
       'required' => TRUE,
     ];
   }
   if (empty($config_directories[CONFIG_STAGING_DIRECTORY])) {
     $settings['config_directories'][CONFIG_STAGING_DIRECTORY] = (object) [
-      'value' => conf_path() . '/files/config_' . $config_directories_hash . '/staging',
+      'value' => \Drupal::service('site.path') . '/files/config_' . $config_directories_hash . '/staging',
       'required' => TRUE,
     ];
   }
@@ -980,14 +979,11 @@ function drupal_check_module($module) {
     // Print any error messages
     foreach ($requirements as $requirement) {
       if (isset($requirement['severity']) && $requirement['severity'] == REQUIREMENT_ERROR) {
-        $message = SafeMarkup::escape($requirement['description']);
+        $message = $requirement['description'];
         if (isset($requirement['value']) && $requirement['value']) {
-          $message .= ' (' . t('Currently using !item !version', array('!item' => $requirement['title'], '!version' => $requirement['value'])) . ')';
+          $message = t('@requirements_message (Currently using @item version @version)', array('@requirements_message' => $requirement['description'], '@item' => $requirement['title'], '@version' => $requirement['value']));
         }
-        // The string was previously checked as safe or escaped properly with
-        // SafeMarkup::escape() method and the concatinated message string is
-        // designated safe by running through the t() function.
-        drupal_set_message(SafeMarkup::set($message), 'error');
+        drupal_set_message($message, 'error');
       }
     }
     return FALSE;

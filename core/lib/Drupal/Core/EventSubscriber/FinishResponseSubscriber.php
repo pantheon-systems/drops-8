@@ -2,14 +2,14 @@
 
 /**
  * @file
- * Definition of Drupal\Core\EventSubscriber\FinishResponseSubscriber.
+ * Contains \Drupal\Core\EventSubscriber\FinishResponseSubscriber.
  */
 
 namespace Drupal\Core\EventSubscriber;
 
 use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Core\Cache\CacheableResponseInterface;
-use Drupal\Core\Cache\CacheContextsManager;
+use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -61,7 +61,7 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
   /**
    * The cache contexts manager service.
    *
-   * @var \Drupal\Core\Cache\CacheContextsManager
+   * @var \Drupal\Core\Cache\Context\CacheContextsManager
    */
   protected $cacheContexts;
 
@@ -76,7 +76,7 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
    *   A policy rule determining the cacheability of a request.
    * @param \Drupal\Core\PageCache\ResponsePolicyInterface $response_policy
    *   A policy rule determining the cacheability of a response.
-   * @param \Drupal\Core\Cache\CacheContextsManager $cache_contexts_manager
+   * @param \Drupal\Core\Cache\Context\CacheContextsManager $cache_contexts_manager
    *   The cache contexts manager service.
    */
   public function __construct(LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, RequestPolicyInterface $request_policy, ResponsePolicyInterface $response_policy, CacheContextsManager $cache_contexts_manager) {
@@ -113,23 +113,6 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
     // XSS and other vulnerabilities.
     // https://www.owasp.org/index.php/List_of_useful_HTTP_headers
     $response->headers->set('X-Content-Type-Options', 'nosniff', FALSE);
-
-    // Attach globally-declared headers to the response object so that Symfony
-    // can send them for us correctly.
-    // @todo Remove this once drupal_process_attached() no longer calls
-    //    _drupal_add_http_header(), which has its own static. Instead,
-    //    _drupal_process_attached() should use
-    //    \Symfony\Component\HttpFoundation\Response->headers->set(), which is
-    //    already documented on the (deprecated) _drupal_process_attached() to
-    //    become the final, intended mechanism.
-    $headers = drupal_get_http_header();
-    foreach ($headers as $name => $value) {
-      // Symfony special-cases the 'Status' header.
-      if ($name === 'status') {
-        $response->setStatusCode($value);
-      }
-      $response->headers->set($name, $value, FALSE);
-    }
 
     // Expose the cache contexts and cache tags associated with this page in a
     // X-Drupal-Cache-Contexts and X-Drupal-Cache-Tags header respectively.

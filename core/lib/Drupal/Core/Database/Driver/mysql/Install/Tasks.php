@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Database\Driver\mysql\Install\Tasks
+ * Contains \Drupal\Core\Database\Driver\mysql\Install\Tasks.
  */
 
 namespace Drupal\Core\Database\Driver\mysql\Install;
@@ -33,6 +33,10 @@ class Tasks extends InstallTasks {
         'The %name database server supports utf8mb4 character encoding.',
         'The %name database server must support utf8mb4 character encoding to work with Drupal. Make sure to use a database server that supports utf8mb4 character encoding, such as MySQL/MariaDB/Percona versions 5.5.3 and up.',
       ),
+    );
+    $this->tasks[] = array(
+      'arguments' => array(),
+      'function' => 'ensureInnoDbAvailable',
     );
   }
 
@@ -106,4 +110,15 @@ class Tasks extends InstallTasks {
 
     return $form;
   }
+
+  /**
+   * Ensure that InnoDB is available.
+   */
+  function ensureInnoDbAvailable() {
+    $engines = Database::getConnection()->query('SHOW ENGINES')->fetchAllKeyed();
+    if (isset($engines['MyISAM']) && $engines['MyISAM'] == 'DEFAULT' && !isset($engines['InnoDB'])) {
+      $this->fail(t('The MyISAM storage engine is not supported.'));
+    }
+  }
+
 }

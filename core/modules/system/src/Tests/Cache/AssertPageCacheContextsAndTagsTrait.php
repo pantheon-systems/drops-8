@@ -76,9 +76,21 @@ trait AssertPageCacheContextsAndTagsTrait {
     $cache_entry = \Drupal::cache('render')->get($cid);
     sort($cache_entry->tags);
     $this->assertEqual($cache_entry->tags, $expected_tags);
-    if ($cache_entry->tags !== $expected_tags) {
-      debug('Missing cache tags: ' . implode(',', array_diff($cache_entry->tags, $expected_tags)));
-      debug('Unwanted cache tags: ' . implode(',', array_diff($expected_tags, $cache_entry->tags)));
+    $this->debugCacheTags($cache_entry->tags, $expected_tags);
+  }
+
+  /**
+   * Provides debug information for cache tags.
+   *
+   * @param string[] $actual_tags
+   *   The actual cache tags.
+   * @param string[] $expected_tags
+   *   The expected cache tags.
+   */
+  protected function debugCacheTags(array $actual_tags, array $expected_tags) {
+    if ($actual_tags !== $expected_tags) {
+      debug('Missing cache tags: ' . implode(',', array_diff($expected_tags, $actual_tags)));
+      debug('Unwanted cache tags: ' . implode(',', array_diff($actual_tags, $expected_tags)));
     }
   }
 
@@ -90,11 +102,10 @@ trait AssertPageCacheContextsAndTagsTrait {
    */
   protected function assertCacheTags(array $expected_tags) {
     $actual_tags = $this->getCacheHeaderValues('X-Drupal-Cache-Tags');
+    sort($expected_tags);
+    sort($actual_tags);
     $this->assertIdentical($actual_tags, $expected_tags);
-    if ($actual_tags !== $expected_tags) {
-      debug('Missing cache tags: ' . implode(',', array_diff($actual_tags, $expected_tags)));
-      debug('Unwanted cache tags: ' . implode(',', array_diff($expected_tags, $actual_tags)));
-    }
+    $this->debugCacheTags($actual_tags, $expected_tags);
   }
 
   /**
@@ -102,16 +113,22 @@ trait AssertPageCacheContextsAndTagsTrait {
    *
    * @param string[] $expected_contexts
    *   The expected cache contexts.
+   * @param string $message
+   *   (optional) A verbose message to output.
+   *
+   * @return
+   *   TRUE if the assertion succeeded, FALSE otherwise.
    */
-  protected function assertCacheContexts(array $expected_contexts) {
+  protected function assertCacheContexts(array $expected_contexts, $message = NULL) {
     $actual_contexts = $this->getCacheHeaderValues('X-Drupal-Cache-Contexts');
     sort($expected_contexts);
     sort($actual_contexts);
-    $this->assertIdentical($actual_contexts, $expected_contexts);
-    if ($actual_contexts !== $expected_contexts) {
+    $return = $this->assertIdentical($actual_contexts, $expected_contexts, $message);
+    if (!$return) {
       debug('Missing cache contexts: ' . implode(',', array_diff($actual_contexts, $expected_contexts)));
       debug('Unwanted cache contexts: ' . implode(',', array_diff($expected_contexts, $actual_contexts)));
     }
+    return $return;
   }
 
   /**

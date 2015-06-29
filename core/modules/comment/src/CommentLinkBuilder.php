@@ -8,6 +8,8 @@
 namespace Drupal\comment;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -46,6 +48,13 @@ class CommentLinkBuilder implements CommentLinkBuilderInterface {
   protected $moduleHandler;
 
   /**
+   * The entity manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityManagerInterface
+   */
+  protected $entityManager;
+
+  /**
    * Constructs a new CommentLinkBuilder object.
    *
    * @param \Drupal\Core\Session\AccountInterface $current_user
@@ -56,12 +65,15 @@ class CommentLinkBuilder implements CommentLinkBuilderInterface {
    *   Module handler service.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
    *   String translation service.
+   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
+   *   The entity manager service.
    */
-  public function __construct(AccountInterface $current_user, CommentManagerInterface $comment_manager, ModuleHandlerInterface $module_handler, TranslationInterface $string_translation) {
+  public function __construct(AccountInterface $current_user, CommentManagerInterface $comment_manager, ModuleHandlerInterface $module_handler, TranslationInterface $string_translation, EntityManagerInterface $entity_manager) {
     $this->currentUser = $current_user;
     $this->commentManager = $comment_manager;
     $this->moduleHandler = $module_handler;
     $this->stringTranslation = $string_translation;
+    $this->entityManager = $entity_manager;
   }
 
   /**
@@ -70,11 +82,12 @@ class CommentLinkBuilder implements CommentLinkBuilderInterface {
   public function buildCommentedEntityLinks(FieldableEntityInterface $entity, array &$context) {
     $entity_links = array();
     $view_mode = $context['view_mode'];
-    if ($view_mode == 'search_index' || $view_mode == 'search_result' || $view_mode == 'print') {
+    if ($view_mode == 'search_index' || $view_mode == 'search_result' || $view_mode == 'print' || $view_mode == 'rss') {
       // Do not add any links if the entity is displayed for:
       // - search indexing.
       // - constructing a search result excerpt.
       // - print.
+      // - rss.
       return array();
     }
 
@@ -89,19 +102,7 @@ class CommentLinkBuilder implements CommentLinkBuilderInterface {
       if ($commenting_status != CommentItemInterface::HIDDEN) {
         // Entity has commenting status open or closed.
         $field_definition = $entity->getFieldDefinition($field_name);
-        if ($view_mode == 'rss') {
-          // Add a comments RSS element which is a URL to the comments of this
-          // entity.
-          $options = array(
-            'fragment' => 'comments',
-            'absolute' => TRUE,
-          );
-          $entity->rss_elements[] = array(
-            'key' => 'comments',
-            'value' => $entity->url('canonical', $options),
-          );
-        }
-        elseif ($view_mode == 'teaser') {
+        if ($view_mode == 'teaser') {
           // Teaser view: display the number of comments that have been posted,
           // or a link to add new comments if the user has permission, the
           // entity is open to new comments, and there currently are none.
@@ -198,20 +199,27 @@ class CommentLinkBuilder implements CommentLinkBuilderInterface {
           '#attributes' => array('class' => array('links', 'inline')),
         );
         if ($view_mode == 'teaser' && $this->moduleHandler->moduleExists('history') && $this->currentUser->isAuthenticated()) {
+          $entity_links['comment__' . $field_name]['#cache']['contexts'][] = 'user';
           $entity_links['comment__' . $field_name]['#attached']['library'][] = 'comment/drupal.node-new-comments-link';
-
           // Embed the metadata for the "X new comments" link (if any) on this
           // entity.
-          $entity_links['comment__' . $field_name]['#post_render_cache']['history_attach_timestamp'] = array(
-            array('node_id' => $entity->id()),
-          );
-          $entity_links['comment__' . $field_name]['#post_render_cache']['comment.post_render_cache:attachNewCommentsLinkMetadata'] = array(
-            array(
-              'entity_type' => $entity->getEntityTypeId(),
-              'entity_id' => $entity->id(),
-              'field_name' => $field_name,
-            ),
-          );
+          $entity_links['comment__' . $field_name]['#attached']['drupalSettings']['history']['lastReadTimestamps'][$entity->id()] = (int) history_read($entity->id());
+          $new_comments = $this->commentManager->getCountNewComments($entity);
+          if ($new_comments > 0) {
+            $page_number = $this->entityManager
+              ->getStorage('comment')
+              ->getNewCommentPageNumber($entity->{$field_name}->comment_count, $new_comments, $entity);
+            $query = $page_number ? ['page' => $page_number] : NULL;
+            $value = [
+              'new_comment_count' => (int) $new_comments,
+              'first_new_comment_link' => $entity->url('canonical', [
+                'query' => $query,
+                'fragment' => 'new',
+              ]),
+            ];
+            $parents = ['comment', 'newCommentsLinks', $entity->getEntityTypeId(), $field_name, $entity->id()];
+            NestedArray::setValue($entity_links['comment__' . $field_name]['#attached']['drupalSettings'], $parents, $value);
+          }
         }
       }
     }

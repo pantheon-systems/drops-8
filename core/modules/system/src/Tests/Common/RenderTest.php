@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\system\Tests\Common\RenderTest.
+ * Contains \Drupal\system\Tests\Common\RenderTest.
  */
 
 namespace Drupal\system\Tests\Common;
@@ -39,7 +39,7 @@ class RenderTest extends KernelTestBase {
         '#markup' => 'Kittens!',
       ],
     ];
-    drupal_render($test_element);
+    \Drupal::service('renderer')->renderRoot($test_element);
 
     $expected_attached = [
       'library' => [

@@ -114,7 +114,7 @@ class BooleanFieldTest extends WebTestBase {
     $entity = entity_load('entity_test', $id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
-    $this->setRawContent(drupal_render($content));
+    $this->setRawContent(\Drupal::service('renderer')->renderRoot($content));
     $this->assertRaw('<div class="field-item">' . $on . '</div>');
 
     // Test if we can change the on label.
@@ -171,7 +171,7 @@ class BooleanFieldTest extends WebTestBase {
       t('Display setting checkbox is available')
     );
     $this->assertFieldByXPath(
-      '*//input[@id="edit-fields-' . $field_name . '-settings-edit-form-settings-display-label" and @value="1"]',
+      '*//input[starts-with(@id, "edit-fields-' . $field_name . '-settings-edit-form-settings-display-label") and @value="1"]',
       TRUE,
       t('Display label changes label of the checkbox')
     );

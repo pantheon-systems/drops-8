@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\Core\Routing\UrlGenerator.
+ * Contains \Drupal\Core\Routing\UrlGenerator.
  */
 
 namespace Drupal\Core\Routing;
@@ -345,8 +345,8 @@ class UrlGenerator implements UrlGeneratorInterface {
     else {
       $scheme = $this->context->getScheme();
     }
-    $scheme_req = $route->getRequirement('_scheme');
-    if (isset($scheme_req) && ($req = strtolower($scheme_req)) && $scheme !== $req) {
+    $scheme_req = $route->getSchemes();
+    if ($scheme_req && ($req = $scheme_req[0]) && $scheme !== $req) {
       $scheme = $req;
     }
     $port = '';
@@ -435,7 +435,7 @@ class UrlGenerator implements UrlGeneratorInterface {
       return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($url) : $url;
     }
     else {
-      $path = ltrim($this->processPath($path, $options, $generated_url), '/');
+      $path = ltrim($this->processPath('/' . $path, $options, $generated_url), '/');
     }
 
     if (!isset($options['script'])) {
@@ -488,7 +488,7 @@ class UrlGenerator implements UrlGeneratorInterface {
       $actual_path = $path;
       $query_string = '';
     }
-    $path = '/' . $this->pathProcessor->processOutbound(trim($actual_path, '/'), $options, $this->requestStack->getCurrentRequest(), $cacheable_metadata);
+    $path = $this->pathProcessor->processOutbound($actual_path === '/' ? $actual_path : rtrim($actual_path, '/'), $options, $this->requestStack->getCurrentRequest(), $cacheable_metadata);
     $path .= $query_string;
     return $path;
   }
@@ -512,8 +512,8 @@ class UrlGenerator implements UrlGeneratorInterface {
   /**
    * Find the route using the provided route name.
    *
-   * @param string $name
-   *   The route name to fetch
+   * @param string|\Symfony\Component\Routing\Route $name
+   *   The route name or a route object.
    *
    * @return \Symfony\Component\Routing\Route
    *   The found route.

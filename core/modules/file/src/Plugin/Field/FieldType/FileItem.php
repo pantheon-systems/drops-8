@@ -192,7 +192,6 @@ class FileItem extends EntityReferenceItem {
       '#title' => t('Enable <em>Description</em> field'),
       '#default_value' => isset($settings['description_field']) ? $settings['description_field'] : '',
       '#description' => t('The description field allows users to enter a description about the uploaded file.'),
-      '#parents' => array('instance', 'settings', 'description_field'),
       '#weight' => 11,
     );
 
@@ -257,10 +256,10 @@ class FileItem extends EntityReferenceItem {
   /**
    * Determines the URI for a file field.
    *
-   * @param $data
+   * @param array $data
    *   An array of token objects to pass to token_replace().
    *
-   * @return
+   * @return string
    *   A file directory URI with tokens replaced.
    *
    * @see token_replace()
@@ -278,7 +277,7 @@ class FileItem extends EntityReferenceItem {
   /**
    * Retrieves the upload validators for a file field.
    *
-   * @return
+   * @return array
    *   An array suitable for passing to file_save_upload() or the file field
    *   element's '#upload_validators' property.
    */

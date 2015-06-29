@@ -70,16 +70,28 @@ abstract class MigrateSqlSourceTestCase extends MigrateTestCase {
    */
   protected function setUp() {
     $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
     $migration = $this->getMigration();
     $migration->expects($this->any())
       ->method('getHighWater')
       ->will($this->returnValue(static::ORIGINAL_HIGH_WATER));
-    // Need the test class, not the original because we need a setDatabase method. This is not pretty :/
-    $plugin_class  = preg_replace('/^Drupal\\\\(\w+)\\\\Plugin\\\\migrate(\\\\source(\\\\.+)?\\\\)([^\\\\]+)$/', 'Drupal\\Tests\\\$1\\Unit$2Test$4', static::PLUGIN_CLASS);
-    $plugin = new $plugin_class($this->migrationConfiguration['source'], $this->migrationConfiguration['source']['plugin'], array(), $migration);
-    $plugin->setDatabase($this->getDatabase($this->databaseContents + array('test_map' => array())));
-    $plugin->setModuleHandler($module_handler);
+
+    // Setup the plugin.
+    $plugin_class = static::PLUGIN_CLASS;
+    $plugin = new $plugin_class($this->migrationConfiguration['source'], $this->migrationConfiguration['source']['plugin'], array(), $migration, $entity_manager);
+
+    // Do some reflection to set the database and moduleHandler.
+    $plugin_reflection = new \ReflectionClass($plugin);
+    $database_property = $plugin_reflection->getProperty('database');
+    $database_property->setAccessible(TRUE);
+    $module_handler_property = $plugin_reflection->getProperty('moduleHandler');
+    $module_handler_property->setAccessible(TRUE);
+
+    // Set the database and the module handler onto our plugin.
+    $database_property->setValue($plugin, $this->getDatabase($this->databaseContents + array('test_map' => array())));
+    $module_handler_property->setValue($plugin, $module_handler);
+
     $plugin->setStringTranslation($this->getStringTranslationStub());
     $migration->expects($this->any())
       ->method('getSourcePlugin')

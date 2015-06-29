@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Contains \Drupal\Core\CacheableDependencyInterface
+ * Contains \Drupal\Core\Cache\CacheableDependencyInterface.
  */
 
 namespace Drupal\Core\Cache;
@@ -31,7 +31,7 @@ interface CacheableDependencyInterface {
    * @return string[]
    *   An array of cache context tokens, used to generate a cache ID.
    *
-   * @see \Drupal\Core\Cache\CacheContextsManager::convertTokensToKeys()
+   * @see \Drupal\Core\Cache\Context\CacheContextsManager::convertTokensToKeys()
    */
   public function getCacheContexts();
 

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\user\Plugin\views\argument_default\User.
+ * Contains \Drupal\user\Plugin\views\argument_default\User.
  */
 
 namespace Drupal\user\Plugin\views\argument_default;
@@ -102,13 +102,6 @@ class User extends ArgumentDefaultPluginBase implements CacheablePluginInterface
       if ($node instanceof NodeInterface) {
         return $node->getOwnerId();
       }
-    }
-
-    // If the current page is a view that takes uid as an argument.
-    $view = views_get_page_view();
-
-    if ($view && isset($view->argument['uid'])) {
-      return $view->argument['uid']->argument;
     }
   }
 

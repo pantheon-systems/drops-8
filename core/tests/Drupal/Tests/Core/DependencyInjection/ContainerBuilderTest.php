@@ -9,37 +9,13 @@ namespace Drupal\Tests\Core\DependencyInjection;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
-use Drupal\Tests\Core\DependencyInjection\Fixture\BazClass;
 use Drupal\Tests\Core\DependencyInjection\Fixture\BarClass;
-use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * @coversDefaultClass \Drupal\Core\DependencyInjection\ContainerBuilder
  * @group DependencyInjection
  */
 class ContainerBuilderTest extends UnitTestCase {
-
-  /**
-   * Tests set with a synchronized service.
-   *
-   * @covers ::set
-   */
-  public function testSetOnSynchronizedService() {
-    $container = new ContainerBuilder();
-    $container->register('baz', '\Drupal\Tests\Core\DependencyInjection\Fixture\BazClass')
-      ->setSynchronized(TRUE);
-    $container->register('bar', '\Drupal\Tests\Core\DependencyInjection\Fixture\BarClass')
-      ->addMethodCall('setBaz', array(new Reference('baz')));
-
-    // Ensure that we can set services on a compiled container.
-    $container->compile();
-
-    $container->set('baz', $baz = new BazClass());
-    $this->assertSame($baz, $container->get('bar')->getBaz());
-
-    $container->set('baz', $baz = new BazClass());
-    $this->assertSame($baz, $container->get('bar')->getBaz());
-  }
 
   /**
    * @covers ::get
@@ -60,6 +36,38 @@ class ContainerBuilderTest extends UnitTestCase {
     $class = new BarClass();
     $container->set('bar', $class);
     $this->assertEquals('bar', $class->_serviceId);
+  }
+
+  /**
+   * @covers ::set
+   * @expectedException \InvalidArgumentException
+   * @expectedExceptionMessage Service ID names must be lowercase: Bar
+   */
+  public function testSetException() {
+    $container = new ContainerBuilder();
+    $class = new BarClass();
+    $container->set('Bar', $class);
+    $this->assertNotEquals('bar', $class->_serviceId);
+  }
+
+  /**
+   * @covers ::setParameter
+   * @expectedException \InvalidArgumentException
+   * @expectedExceptionMessage Parameter names must be lowercase: Buzz
+   */
+  public function testSetParameterException() {
+    $container = new ContainerBuilder();
+    $container->setParameter('Buzz', 'buzz');
+  }
+
+  /**
+   * @covers ::register
+   * @expectedException \InvalidArgumentException
+   * @expectedExceptionMessage Service ID names must be lowercase: Bar
+   */
+  public function testRegisterException() {
+    $container = new ContainerBuilder();
+    $container->register('Bar');
   }
 
 }

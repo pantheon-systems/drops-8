@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\field\Tests\FormTest.
+ * Contains \Drupal\field\Tests\FormTest.
  */
 
 namespace Drupal\field\Tests;
@@ -259,7 +259,7 @@ class FormTest extends FieldTestBase {
     $this->assertFieldByName("{$field_name}[0][value]", '', 'Widget 1 is displayed');
     $this->assertFieldByName("{$field_name}[1][value]", '', 'New widget is displayed');
     $this->assertNoField("{$field_name}[2][value]", 'No extraneous widget is displayed');
-    // TODO : check that non-field inputs are preserved ('title')...
+    // TODO : check that non-field inputs are preserved ('title'), etc.
 
     // Yet another time so that we can play with more values -> 3 widgets.
     $this->drupalPostForm(NULL, array(), t('Add another item'));
@@ -435,7 +435,7 @@ class FormTest extends FieldTestBase {
     // Press 'add more' button through Ajax, and place the expected HTML result
     // as the tested content.
     $commands = $this->drupalPostAjaxForm(NULL, $edit, $field_name . '_add_more');
-    $this->setRawContent($commands[1]['data']);
+    $this->setRawContent($commands[2]['data']);
 
     for ($delta = 0; $delta <= $delta_range; $delta++) {
       $this->assertFieldByName("{$field_name}[$delta][value]", $values[$delta], "Widget $delta is displayed and has the right value");

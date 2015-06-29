@@ -32,6 +32,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Routing\GeneratorNotInitializedException;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Session\AnonymousUserSession;
 
@@ -194,7 +195,7 @@ function drupal_get_html_head($render = TRUE) {
   $elements = _drupal_add_html_head();
   \Drupal::moduleHandler()->alter('html_head', $elements);
   if ($render) {
-    return drupal_render($elements);
+    return \Drupal::service('renderer')->renderPlain($elements);
   }
   else {
     return $elements;
@@ -386,42 +387,6 @@ function date_iso8601($date) {
 }
 
 /**
- * Translates a formatted date string.
- *
- * Callback for preg_replace_callback() within format_date().
- */
-function _format_date_callback(array $matches = NULL, $new_langcode = NULL) {
-  // We cache translations to avoid redundant and rather costly calls to t().
-  static $cache, $langcode;
-
-  if (!isset($matches)) {
-    $langcode = $new_langcode;
-    return;
-  }
-
-  $code = $matches[1];
-  $string = $matches[2];
-
-  if (!isset($cache[$langcode][$code][$string])) {
-    $options = array(
-      'langcode' => $langcode,
-    );
-
-    if ($code == 'F') {
-      $options['context'] = 'Long month name';
-    }
-
-    if ($code == '') {
-      $cache[$langcode][$code][$string] = $string;
-    }
-    else {
-      $cache[$langcode][$code][$string] = t($string, array(), $options);
-    }
-  }
-  return $cache[$langcode][$code][$string];
-}
-
-/**
  * @} End of "defgroup format".
  */
 
@@ -607,10 +572,10 @@ function drupal_js_defaults($data = NULL) {
  *   The merged #attached array.
  *
  * @deprecated To be removed in Drupal 8.0.x. Use
- *   \Drupal\Core\Render\Renderer::mergeAttachments() instead.
+ *   \Drupal\Core\Render\BubbleableMetadata::mergeAttachments() instead.
  */
 function drupal_merge_attached(array $a, array $b) {
-  return \Drupal::service('renderer')->mergeAttachments($a, $b);
+  return BubbleableMetadata::mergeAttachments($a, $b);
 }
 
 /**
@@ -1228,33 +1193,6 @@ function show(&$element) {
 }
 
 /**
- * Generates a render cache placeholder.
- *
- * This can be used to generate placeholders, and hence should also be used by
- * #post_render_cache callbacks that want to replace the placeholder with the
- * final markup.
- *
- * @param string $callback
- *   The #post_render_cache callback that will replace the placeholder with its
- *   eventual markup.
- * @param array $context
- *   An array providing context for the #post_render_cache callback. This array
- *   will be altered to provide a 'token' key/value pair, if not already
- *   provided, to uniquely identify the generated placeholder.
- *
- * @return string
- *   The generated placeholder HTML.
- *
- * @throws \Exception
- *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
- *   Use \Drupal::service('renderer')->generateCachePlaceholder().
- */
-function drupal_render_cache_generate_placeholder($callback, array &$context) {
-  return \Drupal::service('renderer')->generateCachePlaceholder($callback, $context);
-}
-
-/**
  * Retrieves the default properties for the defined element type.
  *
  * @param $type
@@ -1366,13 +1304,6 @@ function drupal_flush_all_caches() {
   /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
   $theme_handler = \Drupal::service('theme_handler');
   $theme_handler->refreshInfo();
-  // Remove the cache of the active theme's info file information in state.
-  // @see \Drupal\Core\Theme\ThemeInitialization::getActiveByThemeName()
-  $keys = [];
-  foreach ($theme_handler->listInfo() as $theme_name => $theme) {
-    $keys[] = 'theme.active_theme.' . $theme_name;
-  }
-  \Drupal::state()->deleteMultiple($keys);
   // In case the active theme gets requested later in the same request we need
   // to reset the theme manager.
   \Drupal::theme()->resetActiveTheme();
@@ -1394,14 +1325,6 @@ function drupal_flush_all_caches() {
   // Ensure that all modules that are currently supposed to be enabled are
   // actually loaded.
   $module_handler->loadAll();
-
-  // Rebuild the schema and cache a fully-built schema based on new module data.
-  // This is necessary for any invocation of index.php, because setting cache
-  // table entries requires schema information and that occurs during bootstrap
-  // before any modules are loaded, so if there is no cached schema,
-  // drupal_get_schema() will try to generate one, but with no loaded modules,
-  // it will return nothing.
-  drupal_get_schema(NULL, TRUE);
 
   // Rebuild all information based on new module data.
   $module_handler->invokeAll('rebuild');

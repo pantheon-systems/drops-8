@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\views\Plugin\views\relationship\GroupwiseMax.
+ * Contains \Drupal\views\Plugin\views\relationship\GroupwiseMax.
  */
 
 namespace Drupal\views\Plugin\views\relationship;
@@ -269,7 +269,7 @@ class GroupwiseMax extends RelationshipPluginBase {
     // Not sure why, but our sort order clause doesn't have a table.
     // TODO: the call to addHandler() above to add the sort handler is probably
     // wrong -- needs attention from someone who understands it.
-    // In the meantime, this works, but with a leap of faith...
+    // In the meantime, this works, but with a leap of faith.
     $orders = &$subquery->getOrderBy();
     foreach ($orders as $order_key => $order) {
       // But if we're using a whole view, we don't know what we have!

@@ -129,8 +129,7 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
     }
 
     $content = $this->t('The website encountered an unexpected error. Please try again later.');
-    $output = $this->bareHtmlPageRenderer->renderBarePage(['#markup' => $content], $this->t('Error'), 'maintenance_page');
-    $response = new Response($output);
+    $response = $this->bareHtmlPageRenderer->renderBarePage(['#markup' => $content], $this->t('Error'), 'maintenance_page');
 
     if ($exception instanceof HttpExceptionInterface) {
       $response->setStatusCode($exception->getStatusCode());
@@ -198,13 +197,7 @@ class DefaultExceptionSubscriber implements EventSubscriberInterface {
    *   The format as which to treat the exception.
    */
   protected function getFormat(Request $request) {
-    // @todo We are trying to switch to a more robust content negotiation
-    // library in https://www.drupal.org/node/1505080 that will make
-    // $request->getRequestFormat() reliable as a better alternative
-    // to this code. We therefore use this style for now on the expectation
-    // that it will get replaced with better code later. This approach makes
-    // that change easier when we get to it.
-    $format = \Drupal::service('http_negotiation.format_negotiator')->getContentType($request);
+    $format = $request->query->get(MainContentViewSubscriber::WRAPPER_FORMAT, $request->getRequestFormat());
 
     // These are all JSON errors for our purposes. Any special handling for
     // them can/should happen in earlier listeners if desired.

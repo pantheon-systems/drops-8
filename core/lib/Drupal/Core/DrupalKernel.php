@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\DrupalKernel.
+ * Contains \Drupal\Core\DrupalKernel.
  */
 
 namespace Drupal\Core;
@@ -35,6 +35,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Symfony\Component\Routing\Route;
 
@@ -213,53 +214,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   In case the host name in the request is not trusted.
    */
   public static function createFromRequest(Request $request, $class_loader, $environment, $allow_dumping = TRUE) {
-    // Include our bootstrap file.
-    $core_root = dirname(dirname(dirname(__DIR__)));
-    require_once $core_root . '/includes/bootstrap.inc';
-    $class_loader_class = get_class($class_loader);
-
     $kernel = new static($environment, $class_loader, $allow_dumping);
-
-    // Ensure sane php environment variables..
     static::bootEnvironment();
-
-    // Get our most basic settings setup.
-    $site_path = static::findSitePath($request);
-    $kernel->setSitePath($site_path);
-    Settings::initialize(dirname($core_root), $site_path, $class_loader);
-
-    // Initialize our list of trusted HTTP Host headers to protect against
-    // header attacks.
-    $host_patterns = Settings::get('trusted_host_patterns', array());
-    if (PHP_SAPI !== 'cli' && !empty($host_patterns)) {
-      if (static::setupTrustedHosts($request, $host_patterns) === FALSE) {
-        throw new BadRequestHttpException('The provided host name is not valid for this server.');
-      }
-    }
-
-    // Redirect the user to the installation script if Drupal has not been
-    // installed yet (i.e., if no $databases array has been defined in the
-    // settings.php file) and we are not already installing.
-    if (!Database::getConnectionInfo() && !drupal_installation_attempted() && PHP_SAPI !== 'cli') {
-      $response = new RedirectResponse($request->getBasePath() . '/core/install.php');
-      $response->prepare($request)->send();
-    }
-
-    // If the class loader is still the same, possibly upgrade to the APC class
-    // loader.
-    if ($class_loader_class == get_class($class_loader)
-        && Settings::get('class_loader_auto_detect', TRUE)
-        && function_exists('apc_fetch')) {
-      $prefix = Settings::getApcuPrefix('class_loader', $core_root);
-      $apc_loader = new \Symfony\Component\ClassLoader\ApcClassLoader($prefix, $class_loader);
-      $class_loader->unregister();
-      $apc_loader->register();
-      $class_loader = $apc_loader;
-    }
-
-    // Ensure that the class loader reference is up-to-date.
-    $kernel->classLoader = $class_loader;
-
+    $kernel->initializeSettings($request);
     return $kernel;
   }
 
@@ -354,7 +311,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     if (!$script_name) {
       $script_name = $request->server->get('SCRIPT_FILENAME');
     }
-    $http_host = $request->getHost();
+    $http_host = $request->getHttpHost();
 
     $sites = array();
     include DRUPAL_ROOT . '/sites/sites.php';
@@ -379,6 +336,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * {@inheritdoc}
    */
   public function setSitePath($path) {
+    if ($this->booted) {
+      throw new \LogicException('Site path cannot be changed after calling boot()');
+    }
     $this->sitePath = $path;
   }
 
@@ -595,8 +555,77 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * {@inheritdoc}
    */
   public function handle(Request $request, $type = self::MASTER_REQUEST, $catch = TRUE) {
-    $this->boot();
-    return $this->getHttpKernel()->handle($request, $type, $catch);
+    // Ensure sane PHP environment variables.
+    static::bootEnvironment();
+
+    try {
+      $this->initializeSettings($request);
+
+      // Redirect the user to the installation script if Drupal has not been
+      // installed yet (i.e., if no $databases array has been defined in the
+      // settings.php file) and we are not already installing.
+      if (!Database::getConnectionInfo() && !drupal_installation_attempted() && PHP_SAPI !== 'cli') {
+        $response = new RedirectResponse($request->getBasePath() . '/core/install.php');
+      }
+      else {
+        $this->boot();
+        $response = $this->getHttpKernel()->handle($request, $type, $catch);
+      }
+    }
+    catch (\Exception $e) {
+      if ($catch === FALSE) {
+        throw $e;
+      }
+
+      $response = $this->handleException($e, $request, $type);
+    }
+
+    // Adapt response headers to the current request.
+    $response->prepare($request);
+
+    return $response;
+  }
+
+  /**
+   * Converts an exception into a response.
+   *
+   * @param \Exception $e
+   *   An exception
+   * @param Request $request
+   *   A Request instance
+   * @param int $type
+   *   The type of the request (one of HttpKernelInterface::MASTER_REQUEST or
+   *   HttpKernelInterface::SUB_REQUEST)
+   *
+   * @return Response
+   *   A Response instance
+   */
+  protected function handleException(\Exception $e, $request, $type) {
+    if ($e instanceof HttpExceptionInterface) {
+      $response = new Response($e->getMessage(), $e->getStatusCode());
+      $response->headers->add($e->getHeaders());
+      return $response;
+    }
+    else {
+      // @todo: _drupal_log_error() and thus _drupal_exception_handler() prints
+      // the message directly. Extract a function which generates and returns it
+      // instead, then remove the output buffer hack here.
+      ob_start();
+      try {
+        // @todo: The exception handler prints the message directly. Extract a
+        // function which returns the message instead.
+        _drupal_exception_handler($e);
+      }
+      catch (\Exception $e) {
+        $message = Settings::get('rebuild_message', 'If you have just changed code (for example deployed a new module or moved an existing one) read <a href="https://www.drupal.org/documentation/rebuild">https://www.drupal.org/documentation/rebuild</a>');
+        if ($message && Settings::get('rebuild_access', FALSE)) {
+          $rebuild_path = $GLOBALS['base_url'] . '/rebuild.php';
+          $message .= " or run the <a href=\"$rebuild_path\">rebuild script</a>";
+        }
+        print $message;
+      }
+      return new Response(ob_get_clean(), 500);
+    }
   }
 
   /**
@@ -683,7 +712,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   The class name.
    */
   protected function getClassName() {
-    $parts = array('service_container', $this->environment);
+    $parts = array('service_container', $this->environment, hash('crc32b', \Drupal::VERSION . Settings::get('deployment_identifier')));
     return implode('_', $parts);
   }
 
@@ -717,21 +746,21 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    */
   protected function initializeContainer($rebuild = FALSE) {
     $this->containerNeedsDumping = FALSE;
-    $session_manager_started = FALSE;
+    $session_started = FALSE;
     if (isset($this->container)) {
       // Save the id of the currently logged in user.
       if ($this->container->initialized('current_user')) {
         $current_user_id = $this->container->get('current_user')->id();
       }
 
-      // If there is a session manager, close and save the session.
-      if ($this->container->initialized('session_manager')) {
-        $session_manager = $this->container->get('session_manager');
-        if ($session_manager->isStarted()) {
-          $session_manager_started = TRUE;
-          $session_manager->save();
+      // If there is a session, close and save it.
+      if ($this->container->initialized('session')) {
+        $session = $this->container->get('session');
+        if ($session->isStarted()) {
+          $session_started = TRUE;
+          $session->save();
         }
-        unset($session_manager);
+        unset($session);
       }
     }
 
@@ -757,8 +786,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->attachSynthetic($container);
 
     $this->container = $container;
-    if ($session_manager_started) {
-      $this->container->get('session_manager')->start();
+    if ($session_started) {
+      $this->container->get('session')->start();
     }
 
     // The request stack is preserved across container rebuilds. Reinject the
@@ -795,6 +824,10 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     if (static::$isEnvironmentInitialized) {
       return;
     }
+
+    // Include our bootstrap file.
+    $core_root = dirname(dirname(dirname(__DIR__)));
+    require_once $core_root . '/includes/bootstrap.inc';
 
     // Enforce E_STRICT, but allow users to set levels not part of E_STRICT.
     error_reporting(E_STRICT | E_ALL);
@@ -845,6 +878,43 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     set_exception_handler('_drupal_exception_handler');
 
     static::$isEnvironmentInitialized = TRUE;
+  }
+
+  /**
+   * Locate site path and initialize settings singleton.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
+   *   In case the host name in the request is not trusted.
+   */
+  protected function initializeSettings(Request $request) {
+    $site_path = static::findSitePath($request);
+    $this->setSitePath($site_path);
+    $class_loader_class = get_class($this->classLoader);
+    Settings::initialize($this->root, $site_path, $this->classLoader);
+
+    // Initialize our list of trusted HTTP Host headers to protect against
+    // header attacks.
+    $host_patterns = Settings::get('trusted_host_patterns', array());
+    if (PHP_SAPI !== 'cli' && !empty($host_patterns)) {
+      if (static::setupTrustedHosts($request, $host_patterns) === FALSE) {
+        throw new BadRequestHttpException('The provided host name is not valid for this server.');
+      }
+    }
+
+    // If the class loader is still the same, possibly upgrade to the APC class
+    // loader.
+    if ($class_loader_class == get_class($this->classLoader)
+        && Settings::get('class_loader_auto_detect', TRUE)
+        && function_exists('apc_fetch')) {
+      $prefix = Settings::getApcuPrefix('class_loader', $this->root);
+      $apc_loader = new \Symfony\Component\ClassLoader\ApcClassLoader($prefix, $this->classLoader);
+      $this->classLoader->unregister();
+      $apc_loader->register();
+      $this->classLoader = $apc_loader;
+    }
   }
 
   /**
@@ -907,7 +977,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    */
   protected function getServicesToPersist(ContainerInterface $container) {
     $persist = array();
-    foreach ($container->getParameter('persistIds') as $id) {
+    foreach ($container->getParameter('persist_ids') as $id) {
       // It's pointless to persist services not yet initialized.
       if ($container->initialized($id)) {
         $persist[$id] = $container->get($id);
@@ -1057,7 +1127,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
         $persist_ids[] = $id;
       }
     }
-    $container->setParameter('persistIds', $persist_ids);
+    $container->setParameter('persist_ids', $persist_ids);
 
     $container->compile();
     return $container;

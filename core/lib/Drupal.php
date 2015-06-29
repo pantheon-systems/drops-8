@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal.
+ * Contains \Drupal.
  */
 
 use Drupal\Core\DependencyInjection\ContainerNotInitializedException;
@@ -81,7 +81,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.0.0-beta11';
+  const VERSION = '8.0.0-beta12';
 
   /**
    * Core API compatibility.

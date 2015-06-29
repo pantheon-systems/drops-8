@@ -9,21 +9,17 @@
  */
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\StorageException;
-use Drupal\Core\Extension\Extension;
-use Drupal\Core\Extension\ExtensionNameLengthException;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeSettings;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Render\Element;
-use Symfony\Component\HttpFoundation\Request;
 
 /**
  * @defgroup content_flags Content markers
@@ -445,12 +441,10 @@ function template_preprocess_time(&$variables) {
     // Format and use a human-readable version of the timestamp, if any.
     if (isset($variables['timestamp'])) {
       $variables['text'] = format_date($variables['timestamp']);
-      $variables['html'] = FALSE;
     }
     // Otherwise, use the literal datetime attribute.
     elseif (isset($variables['attributes']['datetime'])) {
       $variables['text'] = $variables['attributes']['datetime'];
-      $variables['html'] = FALSE;
     }
   }
 }
@@ -500,6 +494,12 @@ function template_preprocess_datetime_wrapper(&$variables) {
 
   if (!empty($element['#title'])) {
     $variables['title'] = $element['#title'];
+  }
+
+  // Display any error messages.
+  $variables['errors'] = NULL;
+  if (!empty($element['#errors']) && empty($element['#error_no_message'])) {
+    $variables['errors'] = $element['#errors'];
   }
 
   if (!empty($element['#description'])) {
@@ -737,7 +737,8 @@ function template_preprocess_image(&$variables) {
  *   - header: An array containing the table headers. Each element of the array
  *     can be either a localized string or an associative array with the
  *     following keys:
- *     - data: The localized title of the table column.
+ *     - data: The localized title of the table column, as a string or render
+ *       array.
  *     - field: The database field represented in the table column (required
  *       if user is to be able to sort on this column).
  *     - sort: A default sort order for this column ("asc" or "desc"). Only
@@ -761,7 +762,7 @@ function template_preprocess_image(&$variables) {
  *       'even / odd' styling. Defaults to FALSE.
  *     Each cell can be either a string or an associative array with the
  *     following keys:
- *     - data: The string to display in the table cell.
+ *     - data: The string or render array to display in the table cell.
  *     - header: Indicates this cell is a header.
  *     - Any HTML attributes, such as "colspan", to apply to the table cell.
  *     Here's an example for $rows:
@@ -897,10 +898,6 @@ function template_preprocess_table(&$variables) {
           }
         }
 
-        if (is_array($cell_content)) {
-          $cell_content = drupal_render($cell_content);
-        }
-
         tablesort_header($cell_content, $cell, $variables['header'], $ts);
 
         // tablesort_header() removes the 'sort' and 'field' keys.
@@ -961,10 +958,6 @@ function template_preprocess_table(&$variables) {
               unset($cell['header']);
 
               $cell_attributes = $cell;
-
-              if (is_array($cell_content)) {
-                $cell_content = drupal_render($cell_content);
-              }
             }
             // Active table sort information.
             if (isset($variables['header'][$col_key]['data']) && $variables['header'][$col_key]['data'] == $ts['name'] && !empty($variables['header'][$col_key]['field'])) {
@@ -1311,41 +1304,23 @@ function template_preprocess_html(&$variables) {
   // @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
   $variables['head_title_array'] = $head_title;
 
-  // Collect all attachments. This must happen in the preprocess function for
-  // #type => html, to ensure that attachments added in #pre_render callbacks
-  // for #type => html are included.
-  $attached = $variables['html']['#attached'];
-  $attached = drupal_merge_attached($attached, $variables['page']['#attached']);
-  if (isset($variables['page_top'])) {
-    $attached = drupal_merge_attached($attached, $variables['page_top']['#attached']);
+  // Create placeholder strings for these keys.
+  // @see \Drupal\Core\Render\HtmlResponseSubscriber
+  $types = [
+    'styles',
+    'scripts',
+    'scripts_bottom',
+    'head',
+  ];
+  $token = Crypt::randomBytesBase64(55);
+  foreach ($types as $type) {
+    $placeholder = SafeMarkup::format('<drupal-html-response-attachment-placeholder type="@type" token="@token"></drupal-html-response-attachment-placeholder>', [
+      '@type' => $type,
+      '@token' => $token,
+    ]);
+    $variables[$type]['#markup'] = $placeholder;
+    $variables[$type]['#attached']['html_response_placeholders'][$type] = $placeholder;
   }
-  if (isset($variables['page_bottom'])) {
-    $attached = drupal_merge_attached($attached, $variables['page_bottom']['#attached']);
-  }
-
-  // Render the attachments into HTML markup to be used directly in the template
-  // for #type => html: html.html.twig.
-  $all_attached = ['#attached' => $attached];
-  $assets = AttachedAssets::createFromRenderArray($all_attached);
-  // Take Ajax page state into account, to allow for something like Turbolinks
-  // to be implemented without altering core.
-  // @see https://github.com/rails/turbolinks/
-  $ajax_page_state = \Drupal::request()->request->get('ajax_page_state');
-  $assets->setAlreadyLoadedLibraries(isset($ajax_page_state) ? explode(',', $ajax_page_state['libraries']) : []);
-  // Optimize CSS/JS if necessary, but only during normal site operation.
-  $optimize_css = !defined('MAINTENANCE_MODE') && \Drupal::config('system.performance')->get('css.preprocess');
-  $optimize_js = !defined('MAINTENANCE_MODE') && \Drupal::config('system.performance')->get('js.preprocess');
-  // Render the asset collections.
-  $asset_resolver = \Drupal::service('asset.resolver');
-  $variables['styles'] = \Drupal::service('asset.css.collection_renderer')->render($asset_resolver->getCssAssets($assets, $optimize_css));
-  list($js_assets_header, $js_assets_footer) = $asset_resolver->getJsAssets($assets, $optimize_js);
-  $js_collection_renderer = \Drupal::service('asset.js.collection_renderer');
-  $variables['scripts'] = $js_collection_renderer->render($js_assets_header);
-  $variables['scripts_bottom'] = $js_collection_renderer->render($js_assets_footer);
-
-  // Handle all non-asset attachments.
-  drupal_process_attached($all_attached);
-  $variables['head'] = drupal_get_html_head(FALSE);
 }
 
 /**
@@ -1364,9 +1339,9 @@ function template_preprocess_page(&$variables) {
   // Move some variables to the top level for themer convenience and template cleanliness.
   $variables['title'] = $variables['page']['#title'];
 
-  foreach (system_region_list(\Drupal::theme()->getActiveTheme()->getName()) as $region_key => $region_name) {
-    if (!isset($variables['page'][$region_key])) {
-      $variables['page'][$region_key] = array();
+  foreach (\Drupal::theme()->getActiveTheme()->getRegions() as $region) {
+    if (!isset($variables['page'][$region])) {
+      $variables['page'][$region] = array();
     }
   }
 
@@ -1729,7 +1704,7 @@ function drupal_common_theme() {
       'render element' => 'elements',
     ),
     'time' => array(
-      'variables' => array('timestamp' => NULL, 'text' => NULL, 'attributes' => array(), 'html' => FALSE),
+      'variables' => array('timestamp' => NULL, 'text' => NULL, 'attributes' => array()),
     ),
     'datetime_form' => array(
       'render element' => 'element',
@@ -1774,7 +1749,7 @@ function drupal_common_theme() {
       'variables' => array('status' => MARK_NEW),
     ),
     'item_list' => array(
-      'variables' => array('items' => array(), 'title' => '', 'list_type' => 'ul', 'attributes' => array(), 'empty' => NULL),
+      'variables' => array('items' => array(), 'title' => '', 'list_type' => 'ul', 'attributes' => array(), 'empty' => NULL, 'context' => array()),
     ),
     'feed_icon' => array(
       'variables' => array('url' => NULL, 'title' => NULL),

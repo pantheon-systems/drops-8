@@ -2,12 +2,12 @@
 
 /**
  * @file
- * Definition of Drupal\Core\CoreServiceProvider.
+ * Contains \Drupal\Core\CoreServiceProvider.
  */
 
 namespace Drupal\Core;
 
-use Drupal\Core\Cache\CacheContextsPass;
+use Drupal\Core\Cache\Context\CacheContextsPass;
 use Drupal\Core\Cache\ListCacheBinsPass;
 use Drupal\Core\DependencyInjection\Compiler\BackendCompilerPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterLazyRouteEnhancers;

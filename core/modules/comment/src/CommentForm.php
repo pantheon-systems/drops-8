@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\comment\CommentForm.
+ * Contains \Drupal\comment\CommentForm.
  */
 
 namespace Drupal\comment;
@@ -13,6 +13,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\ContentEntityForm;
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -296,12 +297,14 @@ class CommentForm extends ContentEntityForm {
     // Validate the comment's subject. If not specified, extract from comment
     // body.
     if (trim($comment->getSubject()) == '') {
-      // The body may be in any format, so:
-      // 1) Filter it into HTML
-      // 2) Strip out all HTML tags
-      // 3) Convert entities back to plain-text.
-      $comment_text = $comment->comment_body->processed;
-      $comment->setSubject(Unicode::truncate(trim(Html::decodeEntities(strip_tags($comment_text))), 29, TRUE, TRUE));
+      if ($comment->hasField('comment_body')) {
+        // The body may be in any format, so:
+        // 1) Filter it into HTML
+        // 2) Strip out all HTML tags
+        // 3) Convert entities back to plain-text.
+        $comment_text = $comment->comment_body->processed;
+        $comment->setSubject(Unicode::truncate(trim(Html::decodeEntities(strip_tags($comment_text))), 29, TRUE, TRUE));
+      }
       // Edge cases where the comment body is populated only by HTML tags will
       // require a default subject.
       if ($comment->getSubject() == '') {
@@ -314,24 +317,22 @@ class CommentForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, FormStateInterface $form_state) {
-    $comment = parent::validate($form, $form_state);
+  protected function getEditedFieldNames(FormStateInterface $form_state) {
+    return array_merge(['created', 'name'], parent::getEditedFieldNames($form_state));
+  }
 
-    // Customly trigger validation of manually added fields and add in
-    // violations.
-    $violations = $comment->created->validate();
-    foreach ($violations as $violation) {
+  /**
+   * {@inheritdoc}
+   */
+  protected function flagViolations(EntityConstraintViolationListInterface $violations, array $form, FormStateInterface $form_state) {
+    // Manually flag violations of fields not handled by the form display.
+    foreach ($violations->getByField('created') as $violation) {
       $form_state->setErrorByName('date', $violation->getMessage());
     }
-    $violations = $comment->validate();
-    // Filter out violations for the name path.
-    foreach ($violations as $violation) {
-      if ($violation->getPropertyPath() === 'name') {
-        $form_state->setErrorByName('name', $violation->getMessage());
-      }
+    foreach ($violations->getByField('name') as $violation) {
+      $form_state->setErrorByName('name', $violation->getMessage());
     }
-
-    return $comment;
+    parent::flagViolations($violations, $form, $form_state);
   }
 
   /**

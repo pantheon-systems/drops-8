@@ -2,15 +2,17 @@
 
 /**
  * @file
- * Definition of Drupal\tracker\Tests\TrackerTest.
+ * Contains \Drupal\tracker\Tests\TrackerTest.
  */
 
 namespace Drupal\tracker\Tests;
 
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestTrait;
+use Drupal\Core\Cache\Cache;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\simpletest\WebTestBase;
+use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * Create and delete nodes and check for their display in the tracker listings.
@@ -20,6 +22,7 @@ use Drupal\simpletest\WebTestBase;
 class TrackerTest extends WebTestBase {
 
   use CommentTestTrait;
+  use AssertPageCacheContextsAndTagsTrait;
 
   /**
    * Modules to enable.
@@ -73,6 +76,11 @@ class TrackerTest extends WebTestBase {
     $this->assertText($published->label(), 'Published node shows up in the tracker listing.');
     $this->assertLink(t('My recent content'), 0, 'User tab shows up on the global tracker page.');
 
+    // Assert cache contexts, specifically the pager and node access contexts.
+    $this->assertCacheContexts(['languages:language_interface', 'theme', 'url.query_args.pagers:0', 'user.node_grants:view', 'user.permissions']);
+    // Assert cache tags for the visible node and node list cache tag.
+    $this->assertCacheTags(Cache::mergeTags($published->getCacheTags(), $published->getOwner()->getCacheTags(), ['node_list', 'rendered']));
+
     // Delete a node and ensure it no longer appears on the tracker.
     $published->delete();
     $this->drupalGet('activity');
@@ -91,7 +99,7 @@ class TrackerTest extends WebTestBase {
 
     $this->drupalGet('activity');
     $this->assertText($node->label(), 'Published node shows up in the tracker listing.');
-    $this->assertText(\Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $node->getChangedTime()), 'The changed time was displayed on the tracker listing.');
+    $this->assertText(\Drupal::service('date.formatter')->formatTimeDiffSince($node->getChangedTime()), 'The changed time was displayed on the tracker listing.');
   }
 
   /**
@@ -131,6 +139,21 @@ class TrackerTest extends WebTestBase {
     $this->assertText($my_published->label(), "Published nodes show up in the user's tracker listing.");
     $this->assertNoText($other_published_no_comment->label(), "Another user's nodes do not show up in the user's tracker listing.");
     $this->assertText($other_published_my_comment->label(), "Nodes that the user has commented on appear in the user's tracker listing.");
+
+    // Assert cache contexts; the node grant context is not directly visible due
+    // to it being implied by the user context.
+    $this->assertCacheContexts(['languages:language_interface', 'theme', 'url.query_args.pagers:0', 'user']);
+    // Assert cache tags for the visible nodes (including owners) and node list
+    // cache tag.
+    $tags = Cache::mergeTags(
+      $my_published->getCacheTags(),
+      $my_published->getOwner()->getCacheTags(),
+      $other_published_my_comment->getCacheTags(),
+      $other_published_my_comment->getOwner()->getCacheTags(),
+      ['node_list', 'rendered']
+    );
+    $this->assertCacheTags($tags);
+
     $this->assertLink($my_published->label());
     $this->assertNoLink($unpublished->label());
     // Verify that title and tab title have been set correctly.

@@ -9,10 +9,13 @@ namespace Drupal\Tests\Core\Form;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * @coversDefaultClass \Drupal\Core\Form\FormBuilder
@@ -370,15 +373,11 @@ class FormBuilderTest extends FormTestBase {
       ->method('buildForm')
       ->will($this->returnValue($expected_form));
 
-    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
-      ->setMethods(array('drupalSetMessage'))
-      ->getMock();
+    $form_state = new FormState();
     $form = $this->simulateFormSubmission($form_id, $form_arg, $form_state);
     $this->assertSame('test-form-id', $form['#id']);
 
-    $form_state = $this->getMockBuilder('Drupal\Core\Form\FormState')
-      ->setMethods(array('drupalSetMessage'))
-      ->getMock();
+    $form_state = new FormState();
     $form = $this->simulateFormSubmission($form_id, $form_arg, $form_state);
     $this->assertSame('test-form-id--2', $form['#id']);
   }
@@ -425,6 +424,29 @@ class FormBuilderTest extends FormTestBase {
 
     $form_state = new FormState();
     $this->simulateFormSubmission($form_id, $form_arg, $form_state);
+  }
+
+  /**
+   * @covers ::buildForm
+   *
+   * @expectedException \Drupal\Core\Form\Exception\BrokenPostRequestException
+   */
+  public function testExceededFileSize() {
+    $request = new Request([FormBuilderInterface::AJAX_FORM_REQUEST => TRUE]);
+    $request_stack = new RequestStack();
+    $request_stack->push($request);
+    $this->formBuilder = $this->getMockBuilder('\Drupal\Core\Form\FormBuilder')
+      ->setConstructorArgs([$this->formValidator, $this->formSubmitter, $this->formCache, $this->moduleHandler, $this->eventDispatcher, $request_stack, $this->classResolver, $this->elementInfo, $this->themeManager, $this->csrfToken])
+      ->setMethods(['getFileUploadMaxSize'])
+      ->getMock();
+    $this->formBuilder->expects($this->once())
+      ->method('getFileUploadMaxSize')
+      ->willReturn(33554432);
+
+    $form_arg = $this->getMockForm('test_form_id');
+    $form_state = new FormState();
+
+    $this->formBuilder->buildForm($form_arg, $form_state);
   }
 
 }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\link\Tests\LinkFieldTest.
+ * Contains \Drupal\link\Tests\LinkFieldTest.
  */
 
 namespace Drupal\link\Tests;
@@ -92,7 +92,7 @@ class LinkFieldTest extends WebTestBase {
     $this->assertRaw('placeholder="http://example.com"');
 
     // Create a path alias.
-    \Drupal::service('path.alias_storage')->save('admin', 'a/path/alias');
+    \Drupal::service('path.alias_storage')->save('/admin', '/a/path/alias');
 
     // Create a node to test the link widget.
     $node = $this->drupalCreateNode();
@@ -588,7 +588,7 @@ class LinkFieldTest extends WebTestBase {
     $entity = entity_load('entity_test', $id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), $view_mode);
     $content = $display->build($entity);
-    $output = drupal_render($content);
+    $output = \Drupal::service('renderer')->renderRoot($content);
     $this->setRawContent($output);
     $this->verbose($output);
   }

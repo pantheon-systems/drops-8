@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Cache\Cache;
 use Drupal\node\Entity\Node;
 
 /**
@@ -43,7 +44,8 @@ function tracker_page($account = NULL) {
     ->execute()
     ->fetchAllAssoc('nid');
 
-  $rows = array();
+  $cache_tags = [];
+  $rows = [];
   if (!empty($tracker_data)) {
     // Load nodes into an array with the same order as $tracker_data.
     $nodes = Node::loadMultiple(array_keys($tracker_data));
@@ -114,14 +116,23 @@ function tracker_page($account = NULL) {
         ),
         'last updated' => array(
           'data' => t('!time ago', array(
-            '!time' => \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $node->last_activity),
+            '!time' => \Drupal::service('date.formatter')->formatTimeDiffSince($node->last_activity),
           )),
         ),
       );
 
       $rows[] = $row;
+
+      // Add node and node owner to cache tags.
+      $cache_tags = Cache::mergeTags($cache_tags, $node->getCacheTags());
+      if ($node->getOwner()) {
+        $cache_tags = Cache::mergeTags($cache_tags, $node->getOwner()->getCacheTags());
+      }
     }
   }
+
+  // Add the list cache tag for nodes.
+  $cache_tags = Cache::mergeTags($cache_tags, \Drupal::entityManager()->getDefinition('node')->getListCacheTags());
 
   $page['tracker'] = array(
     '#rows' => $rows,
@@ -134,6 +145,8 @@ function tracker_page($account = NULL) {
     '#weight' => 10,
   );
   $page['#sorted'] = TRUE;
+  $page['#cache']['tags'] = $cache_tags;
+  $page['#cache']['contexts'][] = 'user.node_grants:view';
 
   return $page;
 }

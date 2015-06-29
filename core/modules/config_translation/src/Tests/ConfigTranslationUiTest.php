@@ -446,6 +446,9 @@ class ConfigTranslationUiTest extends WebTestBase {
       $this->drupalGet($translation_page_url);
       $this->assertText($label);
 
+      // Make sure that the date library is added.
+      $this->assertRaw('core/modules/system/js/system.date.js');
+
       // Update translatable fields.
       $edit = array(
         'translation[config_names][core.date_format.' . $id . '][label]' => $id . ' - FR',
@@ -901,7 +904,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     for ($i = 0; $i < count($ids); $i++) {
       $post['ids[' . $i . ']'] = $ids[$i];
     }
-    return $this->drupalPost('contextual/render', 'application/json', $post, array('query' => array('destination' => $current_path)));
+    return $this->drupalPostWithFormat('contextual/render', 'json', $post, array('query' => array('destination' => $current_path)));
   }
 
   /**

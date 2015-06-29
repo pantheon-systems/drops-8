@@ -26,10 +26,10 @@ use Drupal\Core\StringTranslation\TranslationWrapper;
  * module would have to prefix any constraints with "Profile".
  *
  * Constraint plugins may specify data types to which support is limited via the
- * 'type' key of plugin definitions. Valid values are any types registered via
- * the typed data API, or an array of multiple type names. For supporting all
- * types FALSE may be specified. The key defaults to an empty array, i.e. no
- * types are supported.
+ * 'type' key of plugin definitions. See
+ * \Drupal\Core\Validation\Annotation\Constraint for details.
+ *
+ * @see \Drupal\Core\Validation\Annotation\Constraint
  */
 class ConstraintManager extends DefaultPluginManager {
 
@@ -45,11 +45,22 @@ class ConstraintManager extends DefaultPluginManager {
    *   The module handler to invoke the alter hook with.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/Validation/Constraint', $namespaces, $module_handler);
-    $this->discovery = new StaticDiscoveryDecorator($this->discovery, array($this, 'registerDefinitions'));
+    parent::__construct('Plugin/Validation/Constraint', $namespaces, $module_handler, NULL, 'Drupal\Core\Validation\Annotation\Constraint');
     $this->alterInfo('validation_constraint');
     $this->setCacheBackend($cache_backend, 'validation_constraint_plugins');
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getDiscovery() {
+    if (!isset($this->discovery)) {
+      $this->discovery = parent::getDiscovery();
+      $this->discovery = new StaticDiscoveryDecorator($this->discovery, [$this, 'registerDefinitions']);
+    }
+    return $this->discovery;
+  }
+
 
   /**
    * Creates a validation constraint.
@@ -79,22 +90,22 @@ class ConstraintManager extends DefaultPluginManager {
    * @see ConstraintManager::__construct()
    */
   public function registerDefinitions() {
-    $this->discovery->setDefinition('Callback', array(
+    $this->getDiscovery()->setDefinition('Callback', array(
       'label' => new TranslationWrapper('Callback'),
       'class' => '\Symfony\Component\Validator\Constraints\Callback',
       'type' => FALSE,
     ));
-    $this->discovery->setDefinition('Blank', array(
+    $this->getDiscovery()->setDefinition('Blank', array(
       'label' => new TranslationWrapper('Blank'),
       'class' => '\Symfony\Component\Validator\Constraints\Blank',
       'type' => FALSE,
     ));
-    $this->discovery->setDefinition('NotBlank', array(
+    $this->getDiscovery()->setDefinition('NotBlank', array(
       'label' => new TranslationWrapper('Not blank'),
       'class' => '\Symfony\Component\Validator\Constraints\NotBlank',
       'type' => FALSE,
     ));
-    $this->discovery->setDefinition('Email', array(
+    $this->getDiscovery()->setDefinition('Email', array(
       'label' => new TranslationWrapper('Email'),
       'class' => '\Drupal\Core\Validation\Plugin\Validation\Constraint\EmailConstraint',
       'type' => array('string'),
@@ -106,10 +117,7 @@ class ConstraintManager extends DefaultPluginManager {
    */
   public function processDefinition(&$definition, $plugin_id) {
     // Make sure 'type' is set and either an array or FALSE.
-    if (!isset($definition['type'])) {
-      $definition['type'] = array();
-    }
-    elseif ($definition['type'] !== FALSE && !is_array($definition['type'])) {
+    if ($definition['type'] !== FALSE && !is_array($definition['type'])) {
       $definition['type'] = array($definition['type']);
     }
   }

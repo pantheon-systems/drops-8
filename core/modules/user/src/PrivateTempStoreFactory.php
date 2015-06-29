@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\user\PrivateTempStoreFactory.
+ * Contains \Drupal\user\PrivateTempStoreFactory.
  */
 
 namespace Drupal\user;
@@ -13,7 +13,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Creates a PrivateTempStore object for a given collecton.
+ * Creates a PrivateTempStore object for a given collection.
  */
 class PrivateTempStoreFactory {
 

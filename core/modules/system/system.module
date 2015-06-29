@@ -87,8 +87,8 @@ function system_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('The System module provides pages for managing basic site configuration, including <a href="!date-time-settings">Date and time formats</a> and basic <a href="!site-info">Site information</a> (site name, email address to send mail from, home page, and error pages). Additional configuration pages are listed on the main <a href="!config">Configuration page</a>.', array('!date-time-settings' => \Drupal::url('entity.date_format.collection'), '!site-info' => \Drupal::url('system.site_information_settings'), '!config' => \Drupal::url('system.admin_config'))) . '</dd>';
       $output .= '<dt>' . t('Using maintenance mode') . '</dt>';
       $output .= '<dd>' . t('When you are performing site maintenance, you can prevent non-administrative users (including anonymous visitors) from viewing your site by putting it in <a href="!maintenance-mode">Maintenance mode</a>. This will prevent unauthorized users from making changes to the site while you are performing maintenance, or from seeing a broken site while updates are in progress.', array('!maintenance-mode' => \Drupal::url('system.site_maintenance_mode'))) . '</dd>';
-      $output .= '<dt>' . t('Managing the cache') . '</dt>';
-      $output .= '<dd>' . t('Users with appropriate permission can manage the system cache on the <a href="!cache-settings">Performance page</a>. If enabled, the cache system will re-use previously-built pages for anonymous page requests, instead of building them again. The site can also be configured to aggregate CSS and JavaScript files, making the total request size smaller. Depending on your site configuration and the amount of web traffic from anonymous visitors, the cache system may significantly increase the speed of your site.', array('!cache-settings' => \Drupal::url('system.performance_settings'))) . '</dd>';
+      $output .= '<dt>' . t('Configuring for performance') . '</dt>';
+      $output .= '<dd>' . t('On the <a href="!performance-page">Performance page</a>, the site can be configured to aggregate CSS and JavaScript files, making the total request size smaller. Note that, for small- to medium-sized websites, the <a href="!page-cache">Internal Page Cache module</a> should be installed so that pages are efficiently cached and reused.', array('!performance-page' => \Drupal::url('system.performance_settings'), '!page-cache' => (\Drupal::moduleHandler()->moduleExists('page_cache')) ? \Drupal::url('help.page', array('name' => 'page_cache')) : '#')) . '</dd>';
       $output .= '<dt>' . t('Configuring cron') . '</dt>';
       $output .= '<dd>' . t('In order for the site and its modules to continue to operate well, a set of routine administrative operations must run on a regular basis; these operations are known as <em>cron</em> tasks. On the <a href="!cron">Cron page</a>, you can configure cron to run periodically as part of normal page requests, or you can turn this off and trigger cron from an outside process on your web server. You can verify the status of cron tasks by visiting the <a href="!status">Status report page</a>. For more information, see the <a href="!handbook">online documentation for configuring cron jobs</a>.', array('!status' => \Drupal::url('system.status'), '!handbook' => 'https://www.drupal.org/cron', '!cron' => \Drupal::url('system.cron_settings'))) . '</dd>';
       $output .= '<dt>' . t('Configuring the file system') . '</dt>';
@@ -607,9 +607,45 @@ function system_page_attachments(array &$page) {
 }
 
 /**
+ * Implements hook_js_settings_build().
+ *
+ * Sets values for the core/drupal.ajax library, which just depends on the
+ * active theme but no other request-dependent values.
+ */
+function system_js_settings_build(&$settings, AttachedAssetsInterface $assets) {
+  // Generate the values for the core/drupal.ajax library.
+  // We need to send ajaxPageState settings for core/drupal.ajax if:
+  // - ajaxPageState is being loaded in this Response, in which case it will
+  //   already exist at $settings['ajaxPageState'] (because the core/drupal.ajax
+  //   library definition specifies a placeholder 'ajaxPageState' setting).
+  // - core/drupal.ajax already has been loaded and hence this is an AJAX
+  //   Response in which we must send the list of extra asset libraries that are
+  //   being added in this AJAX Response.
+  /** @var \Drupal\Core\Asset\LibraryDependencyResolver $library_dependency_resolver */
+  $library_dependency_resolver = \Drupal::service('library.dependency_resolver');
+  if (isset($settings['ajaxPageState']) || in_array('core/drupal.ajax', $library_dependency_resolver->getLibrariesWithDependencies($assets->getAlreadyLoadedLibraries()))) {
+    // Provide the page with information about the theme that's used, so that
+    // a later AJAX request can be rendered using the same theme.
+    // @see \Drupal\Core\Theme\AjaxBasePageNegotiator
+    $theme_key = \Drupal::theme()->getActiveTheme()->getName();
+    $settings['ajaxPageState']['theme'] = $theme_key;
+
+    // Provide the page with information about the individual asset libraries
+    // used, information not otherwise available when aggregation is enabled.
+    $minimal_libraries = $library_dependency_resolver->getMinimalRepresentativeSubset(array_merge(
+      $assets->getLibraries(),
+      $assets->getAlreadyLoadedLibraries()
+    ));
+    sort($minimal_libraries);
+    $settings['ajaxPageState']['libraries'] = implode(',', $minimal_libraries);
+  }
+}
+
+/**
  * Implements hook_js_settings_alter().
  *
- * Sets values for the core/drupalSettings and core/drupal.ajax libraries.
+ * Sets values which depend on the current request, like core/drupalSettings
+ * as well as theme_token ajax state.
  */
 function system_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
   // url() generates the script and prefix using hook_url_outbound_alter().
@@ -647,36 +683,15 @@ function system_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
   if (!isset($settings['pluralDelimiter'])) {
     $settings['pluralDelimiter'] = LOCALE_PLURAL_DELIMITER;
   }
-
-  // Now generate the values for the core/drupal.ajax library.
-  // We need to send ajaxPageState settings for core/drupal.ajax if:
-  // - ajaxPageState is being loaded in this Response, in which case it will
-  //   already exist at $settings['ajaxPageState'] (because the core/drupal.ajax
-  //   library definition specifies a placeholder 'ajaxPageState' setting).
-  // - core/drupal.ajax already has been loaded and hence this is an AJAX
-  //   Response in which we must send the list of extra asset libraries that are
-  //   being added in this AJAX Response.
+  // Add the theme token to ajaxPageState, ensuring the database is available
+  // before doing so.
   /** @var \Drupal\Core\Asset\LibraryDependencyResolver $library_dependency_resolver */
   $library_dependency_resolver = \Drupal::service('library.dependency_resolver');
   if (isset($settings['ajaxPageState']) || in_array('core/drupal.ajax', $library_dependency_resolver->getLibrariesWithDependencies($assets->getAlreadyLoadedLibraries()))) {
-    // Provide the page with information about the theme that's used, so that
-    // a later AJAX request can be rendered using the same theme.
-    // @see \Drupal\Core\Theme\AjaxBasePageNegotiator
-    $theme_key = \Drupal::theme()->getActiveTheme()->getName();
-    $settings['ajaxPageState']['theme'] = $theme_key;
-    // Checks that the DB is available before filling theme_token.
     if (!defined('MAINTENANCE_MODE')) {
-      $settings['ajaxPageState']['theme_token'] = \Drupal::csrfToken()->get($theme_key);
+      $settings['ajaxPageState']['theme_token'] = \Drupal::csrfToken()
+        ->get(\Drupal::theme()->getActiveTheme()->getName());
     }
-
-    // Provide the page with information about the individual asset libraries
-    // used, information not otherwise available when aggregation is enabled.
-    $minimal_libraries = $library_dependency_resolver->getMinimalRepresentativeSubset(array_merge(
-      $assets->getLibraries(),
-      $assets->getAlreadyLoadedLibraries()
-    ));
-    sort($minimal_libraries);
-    $settings['ajaxPageState']['libraries'] = implode(',', $minimal_libraries);
   }
 }
 

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Plugin\Discovery\HookDiscovery.
+ * Contains \Drupal\Core\Plugin\Discovery\HookDiscovery.
  */
 
 namespace Drupal\Core\Plugin\Discovery;
@@ -54,7 +54,7 @@ class HookDiscovery implements DiscoveryInterface {
     foreach ($this->moduleHandler->getImplementations($this->hook) as $module) {
       $result = $this->moduleHandler->invoke($module, $this->hook);
       foreach ($result as $plugin_id => $definition) {
-        $definition['module'] = $module;
+        $definition['provider'] = $module;
         $definitions[$plugin_id] = $definition;
       }
     }

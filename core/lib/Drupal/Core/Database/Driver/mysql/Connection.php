@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Database\Driver\mysql\Connection
+ * Contains \Drupal\Core\Database\Driver\mysql\Connection.
  */
 
 namespace Drupal\Core\Database\Driver\mysql;
@@ -64,7 +64,7 @@ class Connection extends DatabaseConnection {
     // Character set is added to dsn to ensure PDO uses the proper character
     // set when escaping. This has security implications. See
     // https://www.drupal.org/node/1201452 for further discussion.
-    $dsn .= ';charset=utf8';
+    $dsn .= ';charset=utf8mb4';
     if (!empty($connection_options['database'])) {
       $dsn .= ';dbname=' . $connection_options['database'];
     }
@@ -92,13 +92,13 @@ class Connection extends DatabaseConnection {
     $pdo = new \PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
 
     // Force MySQL to use the UTF-8 character set. Also set the collation, if a
-    // certain one has been set; otherwise, MySQL defaults to 'utf8_general_ci'
-    // for UTF-8.
+    // certain one has been set; otherwise, MySQL defaults to
+    // 'utf8mb4_general_ci' for utf8mb4.
     if (!empty($connection_options['collation'])) {
-      $pdo->exec('SET NAMES utf8 COLLATE ' . $connection_options['collation']);
+      $pdo->exec('SET NAMES utf8mb4 COLLATE ' . $connection_options['collation']);
     }
     else {
-      $pdo->exec('SET NAMES utf8');
+      $pdo->exec('SET NAMES utf8mb4');
     }
 
     // Set MySQL init_commands if not already defined.  Default Drupal's MySQL
@@ -211,7 +211,7 @@ class Connection extends DatabaseConnection {
   public function nextIdDelete() {
     // While we want to clean up the table to keep it up from occupying too
     // much storage and memory, we must keep the highest value in the table
-    // because InnoDB  uses an in-memory auto-increment counter as long as the
+    // because InnoDB uses an in-memory auto-increment counter as long as the
     // server runs. When the server is stopped and restarted, InnoDB
     // reinitializes the counter for each table for the first INSERT to the
     // table based solely on values from the table so deleting all values would

@@ -27,8 +27,8 @@ function template_preprocess_file_widget(&$variables) {
     $element['file_' . $file->id()]['filename']['#suffix'] = ' <span class="file-size">(' . format_size($file->getSize()) . ')</span> ';
   }
   $variables['element'] = $element;
-  // The "form-managed-file" class is required for proper Ajax functionality.
-  $variables['attributes'] = array('class' => array('file-widget', 'form-managed-file', 'clearfix'));
+  // The "js-form-managed-file" class is required for proper Ajax functionality.
+  $variables['attributes'] = array('class' => array('file-widget', 'js-form-managed-file', 'form-managed-file', 'clearfix'));
 }
 
 /**
@@ -72,7 +72,7 @@ function template_preprocess_file_widget_multiple(&$variables) {
     // Save the uploading row for last.
     if (empty($widget['#files'])) {
       $widget['#title'] = $element['#file_upload_title'];
-      $widget['#description'] = drupal_render($element['#file_upload_description']);
+      $widget['#description'] = \Drupal::service('renderer')->renderPlain($element['#file_upload_description']);
       continue;
     }
 

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\Component\Utility\NestedArray.
+ * Contains \Drupal\Component\Utility\NestedArray.
  */
 
 namespace Drupal\Component\Utility;
@@ -42,7 +42,7 @@ class NestedArray {
    * $key_exists = NULL;
    * $value = NestedArray::getValue($form, $parents, $key_exists);
    * if ($key_exists) {
-   *   // ... do something with $value ...
+   *   // Do something with $value.
    * }
    * @endcode
    *

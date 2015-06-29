@@ -149,7 +149,12 @@ abstract class FormTestBase extends UnitTestCase {
    */
   protected $themeManager;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
+    parent::setUp();
+
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $this->formCache = $this->getMock('Drupal\Core\Form\FormCacheInterface');
@@ -178,9 +183,10 @@ abstract class FormTestBase extends UnitTestCase {
     $this->requestStack = new RequestStack();
     $this->requestStack->push($this->request);
     $this->logger = $this->getMock('Drupal\Core\Logger\LoggerChannelInterface');
+    $form_error_handler = $this->getMock('Drupal\Core\Form\FormErrorHandlerInterface');
     $this->formValidator = $this->getMockBuilder('Drupal\Core\Form\FormValidator')
-      ->setConstructorArgs(array($this->requestStack, $this->getStringTranslationStub(), $this->csrfToken, $this->logger))
-      ->setMethods(array('drupalSetMessage'))
+      ->setConstructorArgs([$this->requestStack, $this->getStringTranslationStub(), $this->csrfToken, $this->logger, $form_error_handler])
+      ->setMethods(NULL)
       ->getMock();
     $this->formSubmitter = $this->getMockBuilder('Drupal\Core\Form\FormSubmitter')
       ->setConstructorArgs(array($this->requestStack, $this->urlGenerator))
@@ -188,7 +194,7 @@ abstract class FormTestBase extends UnitTestCase {
       ->getMock();
     $this->root = dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
 
-    $this->formBuilder = new FormBuilder($this->formValidator, $this->formSubmitter, $this->formCache, $this->moduleHandler, $this->eventDispatcher, $this->requestStack, $this->classResolver, $this->elementInfo, $this->themeManager, $this->csrfToken, $this->kernel);
+    $this->formBuilder = new FormBuilder($this->formValidator, $this->formSubmitter, $this->formCache, $this->moduleHandler, $this->eventDispatcher, $this->requestStack, $this->classResolver, $this->elementInfo, $this->themeManager, $this->csrfToken);
   }
 
   /**

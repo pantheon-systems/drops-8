@@ -7,7 +7,7 @@
 
 namespace Drupal\entity_test\Cache;
 
-use Drupal\Core\Cache\CacheContextInterface;
+use Drupal\Core\Cache\Context\CacheContextInterface;
 
 /**
  * Defines the entity_test view grants cache context service.
@@ -27,7 +27,9 @@ class EntityTestViewGrantsCacheContext implements CacheContextInterface {
    * {@inheritdoc}
    */
   public function getContext() {
-    return hash('sha256', REQUEST_TIME);
+    // Return a constant value, so we can fetch render cache both in actual
+    // requests and test code itself.
+    return '299792458';
   }
 
 }

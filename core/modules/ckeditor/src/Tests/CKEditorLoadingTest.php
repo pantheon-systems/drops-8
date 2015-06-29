@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of \Drupal\ckeditor\Tests\CKEditorLoadingTest.
+ * Contains \Drupal\ckeditor\Tests\CKEditorLoadingTest.
  */
 
 namespace Drupal\ckeditor\Tests;
@@ -158,7 +158,7 @@ class CKEditorLoadingTest extends WebTestBase {
       // Editor.module's JS present. Note: ckeditor/drupal.ckeditor depends on
       // editor/drupal.editor, hence presence of the former implies presence of
       // the latter.
-      isset($settings['ajaxPageState']) && in_array('ckeditor/drupal.ckeditor', explode(',', $settings['ajaxPageState']['libraries'])),
+      isset($settings['ajaxPageState']['libraries']) && in_array('ckeditor/drupal.ckeditor', explode(',', $settings['ajaxPageState']['libraries'])),
       // Body field.
       $this->xpath('//textarea[@id="edit-body-0-value"]'),
       // Format selector.

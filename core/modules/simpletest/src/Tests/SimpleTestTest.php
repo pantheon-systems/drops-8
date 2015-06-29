@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of \Drupal\simpletest\Tests\SimpleTestTest.
+ * Contains \Drupal\simpletest\Tests\SimpleTestTest.
  */
 
 namespace Drupal\simpletest\Tests;
@@ -24,7 +24,7 @@ class SimpleTestTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('simpletest', 'test_page_test');
+  public static $modules = ['simpletest'];
 
   /**
    * The results array that has been parsed by getTestResults().
@@ -161,6 +161,7 @@ EOD;
     // @see drupal_generate_test_ua();
     $key_file = DRUPAL_ROOT . '/sites/simpletest/' . substr($this->databasePrefix, 10) . '/.htkey';
     $private_key = Crypt::randomBytesBase64(55);
+    $site_path = $this->container->get('site.path');
     file_put_contents($key_file, $private_key);
 
     // This causes the first of the fifteen passes asserted in
@@ -192,7 +193,7 @@ EOD;
 
     // These cause the eleventh to fourteenth of the fifteen passes asserted in
     // confirmStubResults().
-    $this->assertTrue(file_exists(conf_path() . '/settings.testing.php'));
+    $this->assertTrue(file_exists($site_path . '/settings.testing.php'));
     // Check the settings.testing.php file got included.
     $this->assertTrue(function_exists('simpletest_test_stub_settings_function'));
     // Check that the test-specific service file got loaded.

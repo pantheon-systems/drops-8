@@ -321,7 +321,7 @@ function shortcut_preprocess_page(&$variables) {
     $shortcuts = \Drupal::entityManager()->getStorage('shortcut')->loadByProperties(array('shortcut_set' => $shortcut_set->id()));
     /** @var \Drupal\shortcut\ShortcutInterface $shortcut */
     foreach ($shortcuts as $shortcut) {
-      if (($shortcut_url = $shortcut->getUrl()) && $shortcut_url->isRouted() && $shortcut_url->getRouteName() == $route_match->getRouteName()) {
+      if (($shortcut_url = $shortcut->getUrl()) && $shortcut_url->isRouted() && $shortcut_url->getRouteName() == $route_match->getRouteName() && $shortcut_url->getRouteParameters() == $route_match->getRawParameters()->all()) {
         $shortcut_id = $shortcut->id();
         break;
       }
@@ -347,12 +347,16 @@ function shortcut_preprocess_page(&$variables) {
             'shortcut/drupal.shortcut',
           ),
         ),
-        '#prefix' => '<div class="add-or-remove-shortcuts ' . $link_mode . '-shortcut">',
         '#type' => 'link',
-        '#title' => SafeMarkup::format('<span class="icon"></span><span class="text">@text</span>', array('@text' => $link_text)),
+        '#title' => SafeMarkup::format('<span class="shortcut-action__icon"></span><span class="shortcut-action__message">@text</span>', array('@text' => $link_text)),
         '#url' => Url::fromRoute($route_name, $route_parameters),
         '#options' => array('query' => $query),
-        '#suffix' => '</div>',
+        '#attributes' => array(
+          'class' => array(
+            'shortcut-action',
+            'shortcut-action--' . $link_mode,
+          ),
+        ),
       );
     }
   }
@@ -364,10 +368,22 @@ function shortcut_preprocess_page(&$variables) {
 function shortcut_toolbar() {
   $user = \Drupal::currentUser();
 
-  $items = array();
+  $items = [];
+  $items['shortcuts'] = [
+    '#cache' => [
+      'contexts' => [
+        // Cacheable per user, because each user can have their own shortcut
+        // set, even if they cannot create or select a shortcut set, because
+        // an administrator may have assigned a non-default shortcut set.
+        'user',
+      ],
+    ],
+  ];
+
   if ($user->hasPermission('access shortcuts')) {
     $links = shortcut_renderable_links();
     $shortcut_set = shortcut_current_displayed_set();
+    \Drupal::service('renderer')->addCacheableDependency($items['shortcuts'], $shortcut_set);
     $configure_link = NULL;
     if (shortcut_set_edit_access($shortcut_set)->isAllowed()) {
       $configure_link = array(
@@ -378,7 +394,7 @@ function shortcut_toolbar() {
       );
     }
     if (!empty($links) || !empty($configure_link)) {
-      $items['shortcuts'] = array(
+      $items['shortcuts'] += array(
         '#type' => 'toolbar_item',
         'tab' => array(
           '#type' => 'link',

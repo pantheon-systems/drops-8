@@ -12,6 +12,7 @@ use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Path\CurrentPathStack;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RedirectDestinationInterface;
@@ -133,7 +134,7 @@ class ViewAjaxController implements ContainerInjectionInterface {
 
       // Remove all of this stuff from the query of the request so it doesn't
       // end up in pagers and tablesort URLs.
-      foreach (array('view_name', 'view_display_id', 'view_args', 'view_path', 'view_dom_id', 'pager_element', 'view_base_path', 'ajax_html_ids') as $key) {
+      foreach (array('view_name', 'view_display_id', 'view_args', 'view_path', 'view_dom_id', 'pager_element', 'view_base_path', AjaxResponseSubscriber::AJAX_REQUEST_PARAMETER) as $key) {
         $request->query->remove($key);
         $request->request->remove($key);
       }
@@ -174,8 +175,7 @@ class ViewAjaxController implements ContainerInjectionInterface {
         $view->dom_id = $dom_id;
 
         if ($preview = $view->preview($display_id, $args)) {
-          $response->addCommand(new ReplaceCommand(".js-view-dom-id-$dom_id", $this->renderer->render($preview)));
-          $response->setAttachments($preview['#attached']);
+          $response->addCommand(new ReplaceCommand(".js-view-dom-id-$dom_id", $preview));
         }
         return $response;
       }

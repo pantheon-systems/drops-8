@@ -98,7 +98,7 @@ class ImageWidget extends FileWidget {
       // If there's only one field, return it as delta 0.
       if (empty($elements[0]['#default_value']['fids'])) {
         $file_upload_help['#description'] = $this->fieldFilterXss($this->fieldDefinition->getDescription());
-        $elements[0]['#description'] = drupal_render($file_upload_help);
+        $elements[0]['#description'] = \Drupal::service('renderer')->renderPlain($file_upload_help);
       }
     }
     else {
@@ -127,8 +127,6 @@ class ImageWidget extends FileWidget {
     $extensions = array_intersect(explode(' ', $extensions), $supported_extensions);
     $element['#upload_validators']['file_validate_extensions'][0] = implode(' ', $extensions);
 
-    // Add all extra functionality provided by the image widget.
-    $element['#process'][] = array(get_class($this), 'process');
     // Add properties needed by process() method.
     $element['#preview_image_style'] = $this->getSetting('preview_image_style');
     $element['#title_field'] = $field_settings['title_field'];

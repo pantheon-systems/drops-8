@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\node\Tests\NodeCreationTest.
+ * Contains \Drupal\node\Tests\NodeCreationTest.
  */
 
 namespace Drupal\node\Tests;
@@ -122,7 +122,7 @@ class NodeCreationTest extends NodeTestBase {
    */
   function testUnpublishedNodeCreation() {
     // Set the front page to the test page.
-    $this->config('system.site')->set('page.front', 'test-page')->save();
+    $this->config('system.site')->set('page.front', '/test-page')->save();
 
     // Set "Basic page" content type to be unpublished by default.
     $fields = \Drupal::entityManager()->getFieldDefinitions('node', 'page');

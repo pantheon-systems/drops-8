@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\search\SearchQuery.
+ * Contains \Drupal\search\SearchQuery.
  *
  * Search query extender and helper functions.
  */
@@ -464,7 +464,7 @@ class SearchQuery extends SelectExtender {
   }
 
   /**
-   * {@inhertidoc}
+   * {@inheritdoc}
    */
   public function preExecute(SelectInterface $query = NULL) {
     if (!$this->executedPrepare) {

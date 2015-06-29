@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\Tests\Core\Routing\UrlGeneratorTest.
+ * Contains \Drupal\Tests\Core\Routing\UrlGeneratorTest.
  */
 
 namespace Drupal\Tests\Core\Routing;
@@ -59,7 +59,7 @@ class UrlGeneratorTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $cache_contexts_manager = $this->getMockBuilder('Drupal\Core\Cache\CacheContextsManager')
+    $cache_contexts_manager = $this->getMockBuilder('Drupal\Core\Cache\Context\CacheContextsManager')
       ->disableOriginalConstructor()
       ->getMock();
     $container = new ContainerBuilder();
@@ -70,7 +70,7 @@ class UrlGeneratorTest extends UnitTestCase {
     $first_route = new Route('/test/one');
     $second_route = new Route('/test/two/{narf}');
     $third_route = new Route('/test/two/');
-    $fourth_route = new Route('/test/four', array(), array('_scheme' => 'https'));
+    $fourth_route = new Route('/test/four', array(), array(), array(), '', ['https']);
     $routes->add('test_1', $first_route);
     $routes->add('test_2', $second_route);
     $routes->add('test_3', $third_route);
@@ -159,12 +159,12 @@ class UrlGeneratorTest extends UnitTestCase {
   public function aliasManagerCallback() {
     $args = func_get_args();
     switch($args[0]) {
-      case 'test/one':
-        return 'hello/world';
-      case 'test/two/5':
-        return 'goodbye/cruel/world';
-      case '<front>':
-        return '';
+      case '/test/one':
+        return '/hello/world';
+      case '/test/two/5':
+        return '/goodbye/cruel/world';
+      case '/<front>':
+        return '/';
       default:
         return $args[0];
     }

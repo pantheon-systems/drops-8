@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\migrate\Plugin\Derivative\MigrateEntityDerivative.
+ * Contains \Drupal\migrate\Plugin\Derivative\MigrateEntityRevision.
  */
 
 namespace Drupal\migrate\Plugin\Derivative;
@@ -66,6 +66,7 @@ class MigrateEntityRevision implements ContainerDeriverInterface {
           'id' => "entity_revision:$entity_type",
           'class' => 'Drupal\migrate\Plugin\migrate\destination\EntityRevision',
           'requirements_met' => 1,
+          'provider' => $entity_info->getProvider(),
         );
       }
     }

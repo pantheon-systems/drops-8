@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\rest\Plugin\rest\resource\EntityResource.
+ * Contains \Drupal\rest\Plugin\rest\resource\EntityResource.
  */
 
 namespace Drupal\rest\Plugin\rest\resource;
@@ -209,6 +209,11 @@ class EntityResource extends ResourceBase {
    */
   protected function validate(EntityInterface $entity) {
     $violations = $entity->validate();
+
+    // Remove violations of inaccessible fields as they cannot stem from our
+    // changes.
+    $violations->filterByFieldAccess();
+
     if (count($violations) > 0) {
       $message = "Unprocessable Entity: validation failed.\n";
       foreach ($violations as $violation) {

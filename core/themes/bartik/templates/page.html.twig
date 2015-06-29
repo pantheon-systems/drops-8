@@ -109,7 +109,13 @@
         {{ page.primary_menu }}
       </div>
     </header>
-    {{ page.highlighted }}
+    {% if page.highlighted %}
+      <div class="highlighted">
+        <aside class="layout-container section clearfix" role="complementary">
+          {{ page.highlighted }}
+        </aside>
+      </div>
+    {% endif %}
     {% if page.featured_top %}
       <div class="featured-top">
         <aside class="featured-top__inner section layout-container clearfix" role="complementary">
@@ -168,19 +174,21 @@
       </div>
     {% endif %}
     <footer class="site-footer">
-      {% if page.footer_first or page.footer_second or page.footer_third or page.footer_fourth %}
-        <div class="site-footer__top layout-container clearfix">
-          {{ page.footer_first }}
-          {{ page.footer_second }}
-          {{ page.footer_third }}
-          {{ page.footer_fourth }}
-        </div>
-      {% endif %}
-      {% if page.footer_fifth %}
-        <div class="site-footer__bottom layout-container" role="contentinfo">
-          {{ page.footer_fifth }}
-        </div>
-      {% endif %}
+      <div class="layout-container">
+        {% if page.footer_first or page.footer_second or page.footer_third or page.footer_fourth %}
+          <div class="site-footer__top clearfix">
+            {{ page.footer_first }}
+            {{ page.footer_second }}
+            {{ page.footer_third }}
+            {{ page.footer_fourth }}
+          </div>
+        {% endif %}
+        {% if page.footer_fifth %}
+          <div class="site-footer__bottom">
+            {{ page.footer_fifth }}
+          </div>
+        {% endif %}
+      </div>
     </footer>
   </div>
 </div>

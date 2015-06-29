@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\Core\Entity\ContentUninstallValidator.
+ * Contains \Drupal\Core\Entity\ContentUninstallValidator.
  */
 
 namespace Drupal\Core\Entity;
@@ -16,6 +16,13 @@ use Drupal\Core\StringTranslation\TranslationInterface;
  */
 class ContentUninstallValidator implements ModuleUninstallValidatorInterface {
   use StringTranslationTrait;
+
+  /**
+   * The entity manager.
+   *
+   * @var \Drupal\Core\Entity\EntityManagerInterface
+   */
+  protected $entityManager;
 
   /**
    * Constructs a new ContentUninstallValidator.

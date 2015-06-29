@@ -23,7 +23,6 @@ use Drupal\block_content\BlockContentInterface;
  *   bundle_label = @Translation("Custom block type"),
  *   handlers = {
  *     "storage" = "Drupal\Core\Entity\Sql\SqlContentEntityStorage",
- *     "storage_schema" = "Drupal\block_content\BlockContentStorageSchema",
  *     "access" = "Drupal\block_content\BlockContentAccessControlHandler",
  *     "list_builder" = "Drupal\block_content\BlockContentListBuilder",
  *     "view_builder" = "Drupal\block_content\BlockContentViewBuilder",
@@ -207,6 +206,13 @@ class BlockContent extends ContentEntityBase implements BlockContentInterface {
       ->setDescription(t('The time that the custom block was last edited.'))
       ->setTranslatable(TRUE)
       ->setRevisionable(TRUE);
+
+    $fields['revision_translation_affected'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(t('Revision translation affected'))
+      ->setDescription(t('Indicates if the last edit of a translation belongs to current revision.'))
+      ->setReadOnly(TRUE)
+      ->setRevisionable(TRUE)
+      ->setTranslatable(TRUE);
 
     return $fields;
   }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\link\Plugin\Validation\Constraint\LinkNotExistingInternal.
+ * Contains \Drupal\link\Plugin\Validation\Constraint\LinkNotExistingInternalConstraint.
  */
 
 namespace Drupal\link\Plugin\Validation\Constraint;
@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraint;
 /**
  * Defines a protocol validation constraint for links to broken internal URLs.
  *
- * @Plugin(
+ * @Constraint(
  *   id = "LinkNotExistingInternal",
  *   label = @Translation("No broken internal links", context = "Validation"),
  * )

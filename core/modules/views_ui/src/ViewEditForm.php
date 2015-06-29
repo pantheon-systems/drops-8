@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains Drupal\views_ui\ViewEditForm.
+ * Contains \Drupal\views_ui\ViewEditForm.
  */
 
 namespace Drupal\views_ui;
@@ -123,10 +123,9 @@ class ViewEditForm extends ViewFormBase {
     $form['#attached']['library'][] = 'views_ui/admin.styling';
 
     $form['#attached']['drupalSettings']['views']['ajax'] = [
-      'id' => '#views-ajax-body',
-      'title' => '#views-ajax-title',
-      'popup' => '#views-ajax-popup',
-      'defaultForm' => $view->getDefaultAJAXMessage(),
+      'id' => '.views-ajax-body',
+      'title' => '.views-ajax-title',
+      'popup' => '.views-ajax-popup',
     ];
 
     $form += array(
@@ -147,7 +146,7 @@ class ViewEditForm extends ViewFormBase {
       );
       $lock_message_substitutions = array(
         '!user' => drupal_render($username),
-        '!age' => $this->dateFormatter->formatInterval(REQUEST_TIME - $view->lock->updated),
+        '!age' => $this->dateFormatter->formatTimeDiffSince($view->lock->updated),
         '@url' => $view->url('break-lock-form'),
       );
       $form['locked'] = array(
@@ -190,6 +189,9 @@ class ViewEditForm extends ViewFormBase {
       $form['displays']['settings'] = array(
         '#type' => 'container',
         '#id' => 'edit-display-settings',
+        '#attributes' => array(
+          'class' => array('edit-display-settings'),
+        ),
       );
 
       // Add a text that the display is disabled.
@@ -222,14 +224,18 @@ class ViewEditForm extends ViewFormBase {
       // The content of the popup dialog.
       $form['ajax-area'] = array(
         '#type' => 'container',
-        '#id' => 'views-ajax-popup',
+        '#attributes' => array(
+          'class' => array('views-ajax-popup'),
+        ),
       );
       $form['ajax-area']['ajax-title'] = array(
-        '#markup' => '<div id="views-ajax-title"></div>',
+        '#markup' => '<div class="views-ajax-title"></div>',
       );
       $form['ajax-area']['ajax-body'] = array(
         '#type' => 'container',
-        '#id' => 'views-ajax-body',
+        '#attributes' => array(
+          'class' => array('views-ajax-body'),
+        ),
       );
     }
 
@@ -404,7 +410,7 @@ class ViewEditForm extends ViewFormBase {
     if ($display['id'] != 'default') {
       $build['top']['#theme_wrappers'] = array('container');
       $build['top']['#attributes']['id'] = 'edit-display-settings-top';
-      $build['top']['#attributes']['class'] = array('views-ui-display-tab-actions', 'views-ui-display-tab-bucket', 'clearfix');
+      $build['top']['#attributes']['class'] = array('views-ui-display-tab-actions', 'edit-display-settings-top', 'views-ui-display-tab-bucket', 'clearfix');
 
       // The Delete, Duplicate and Undo Delete buttons.
       $build['top']['actions'] = array(
@@ -679,12 +685,12 @@ class ViewEditForm extends ViewFormBase {
     // Regenerate the main display area.
     $build = $this->getDisplayTab($view);
     static::addMicroweights($build);
-    $response->addCommand(new HtmlCommand('#views-tab-' . $display_id, drupal_render($build)));
+    $response->addCommand(new HtmlCommand('#views-tab-' . $display_id, $build));
 
     // Regenerate the top area so changes to display names and order will appear.
     $build = $this->renderDisplayTop($view);
     static::addMicroweights($build);
-    $response->addCommand(new ReplaceCommand('#views-display-top', drupal_render($build)));
+    $response->addCommand(new ReplaceCommand('#views-display-top', $build));
   }
 
   /**

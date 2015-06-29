@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of \Drupal\Component\Transliteration\PhpTransliteration.
+ * Contains \Drupal\Component\Transliteration\PhpTransliteration.
  *
  * Some parts of this code were derived from the MediaWiki project's UtfNormal
  * class, Copyright © 2004 Brion Vibber <brion@pobox.com>,
@@ -243,7 +243,7 @@ class PhpTransliteration implements TransliterationInterface {
   protected function readLanguageOverrides($langcode) {
     // Figure out the file name to use by sanitizing the language code,
     // just in case.
-    $file = $this->dataDirectory . '/' . preg_replace('[^a-zA-Z\-]', '', $langcode) . '.php';
+    $file = $this->dataDirectory . '/' . preg_replace('/[^a-zA-Z\-]/', '', $langcode) . '.php';
 
     // Read in this file, which should set up a variable called $overrides,
     // which will be local to this function.

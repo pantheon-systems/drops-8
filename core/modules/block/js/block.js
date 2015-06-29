@@ -1,9 +1,16 @@
+/**
+ * @file
+ * Block behaviors.
+ */
+
 (function ($, window) {
 
   "use strict";
 
   /**
    * Provide the summary information for the block settings vertical tabs.
+   *
+   * @type {Drupal~behavior}
    */
   Drupal.behaviors.blockSettingsSummary = {
     attach: function () {
@@ -27,9 +34,9 @@
         return vals.join(', ');
       }
 
-      $('#edit-visibility-node-type, #edit-visibility-language, #edit-visibility-user-role').drupalSetSummary(checkboxesSummary);
+      $('[data-drupal-selector="edit-visibility-node-type"], [data-drupal-selector="edit-visibility-language"], [data-drupal-selector="edit-visibility-user-role"]').drupalSetSummary(checkboxesSummary);
 
-      $('#edit-visibility-request-path').drupalSetSummary(function (context) {
+      $('[data-drupal-selector="edit-visibility-request-path"]').drupalSetSummary(function (context) {
         var $pages = $(context).find('textarea[name="visibility[request_path][pages]"]');
         if (!$pages.val()) {
           return Drupal.t('Not restricted');
@@ -46,6 +53,8 @@
    *
    * This behavior is dependent on the tableDrag behavior, since it uses the
    * objects initialized in that behavior to update the row.
+   *
+   * @type {Drupal~behavior}
    */
   Drupal.behaviors.blockDrag = {
     attach: function (context, settings) {
@@ -55,8 +64,8 @@
       }
 
       var table = $('#blocks');
-      var tableDrag = Drupal.tableDrag.blocks; // Get the blocks tableDrag object.
-
+      // Get the blocks tableDrag object.
+      var tableDrag = Drupal.tableDrag.blocks;
       // Add a handler for when a row is swapped, update empty regions.
       tableDrag.row.prototype.onSwap = function (swappedRow) {
         checkEmptyRegions(table, this);

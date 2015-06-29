@@ -7,10 +7,15 @@
 
 namespace Drupal\file\Element;
 
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element\FormElement;
 use Drupal\Core\Url;
 use Drupal\file\Entity\File;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Provides an AJAX/progress aware widget for uploading and saving a file.
@@ -124,15 +129,59 @@ class ManagedFile extends FormElement {
   }
 
   /**
+   * #ajax callback for managed_file upload forms.
+   *
+   * This ajax callback takes care of the following things:
+   *   - Ensures that broken requests due to too big files are caught.
+   *   - Adds a class to the response to be able to highlight in the UI, that a
+   *     new file got uploaded.
+   *
+   * @param array $form
+   *   The build form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   *   The ajax response of the ajax upload.
+   */
+  public static function uploadAjaxCallback(&$form, FormStateInterface &$form_state, Request $request) {
+    /** @var \Drupal\Core\Render\RendererInterface $renderer */
+    $renderer = \Drupal::service('renderer');
+
+    $form_parents = explode('/', $request->query->get('element_parents'));
+
+    // Retrieve the element to be rendered.
+    $form = NestedArray::getValue($form, $form_parents);
+
+    // Add the special AJAX class if a new file was added.
+    $current_file_count = $form_state->get('file_upload_delta_initial');
+    if (isset($form['#file_upload_delta']) && $current_file_count < $form['#file_upload_delta']) {
+      $form[$current_file_count]['#attributes']['class'][] = 'ajax-new-content';
+    }
+    // Otherwise just add the new content class on a placeholder.
+    else {
+      $form['#suffix'] .= '<span class="ajax-new-content"></span>';
+    }
+
+    $status_messages = ['#type' => 'status_messages'];
+    $form['#prefix'] .= $renderer->renderRoot($status_messages);
+    $output = $renderer->renderRoot($form);
+
+    $response = new AjaxResponse();
+    $response->setAttachments($form['#attached']);
+
+    return $response->addCommand(new ReplaceCommand(NULL, $output));
+  }
+
+  /**
    * Render API callback: Expands the managed_file element type.
    *
    * Expands the file type to include Upload and Remove buttons, as well as
    * support for a default value.
    */
   public static function processManagedFile(&$element, FormStateInterface $form_state, &$complete_form) {
-    // Append the '-upload' to the #id so the field label's 'for' attribute
-    // corresponds with the file element.
-    $element['#id'] .= '-upload';
 
     // This is used sometimes so let's implode it just once.
     $parents_prefix = implode('_', $element['#parents']);
@@ -144,15 +193,17 @@ class ManagedFile extends FormElement {
     $element['#files'] = !empty($fids) ? File::loadMultiple($fids) : FALSE;
     $element['#tree'] = TRUE;
 
+    // Generate a unique wrapper HTML ID.
+    $ajax_wrapper_id = Html::getUniqueId('ajax-wrapper');
+
     $ajax_settings = [
-      'url' => Url::fromRoute('file.ajax_upload'),
+      'callback' => [get_called_class(), 'uploadAjaxCallback'],
       'options' => [
         'query' => [
           'element_parents' => implode('/', $element['#array_parents']),
-          'form_build_id' => $complete_form['form_build_id']['#value'],
         ],
       ],
-      'wrapper' => $element['#id'] . '-ajax-wrapper',
+      'wrapper' => $ajax_wrapper_id,
       'effect' => 'fade',
       'progress' => [
         'type' => $element['#progress_indicator'],
@@ -233,6 +284,7 @@ class ManagedFile extends FormElement {
       '#multiple' => $element['#multiple'],
       '#theme_wrappers' => [],
       '#weight' => -10,
+      '#error_no_message' => TRUE,
     ];
 
     if (!empty($fids) && $element['#files']) {
@@ -244,7 +296,7 @@ class ManagedFile extends FormElement {
         if ($element['#multiple']) {
           $element['file_' . $delta]['selected'] = [
             '#type' => 'checkbox',
-            '#title' => drupal_render($file_link),
+            '#title' => \Drupal::service('renderer')->renderPlain($file_link),
           ];
         }
         else {
@@ -259,8 +311,12 @@ class ManagedFile extends FormElement {
       $element['upload']['#attached']['drupalSettings']['file']['elements']['#' . $element['#id']] = $extension_list;
     }
 
+    // Let #id point to the file element, so the field label's 'for' corresponds
+    // with it.
+    $element['#id'] = &$element['upload']['#id'];
+
     // Prefix and suffix used for Ajax replacement.
-    $element['#prefix'] = '<div id="' . $element['#id'] . '-ajax-wrapper">';
+    $element['#prefix'] = '<div id="' . $ajax_wrapper_id . '">';
     $element['#suffix'] = '</div>';
 
     return $element;
@@ -328,7 +384,7 @@ class ManagedFile extends FormElement {
 
     // Check required property based on the FID.
     if ($element['#required'] && empty($element['fids']['#value']) && !in_array($clicked_button, ['upload_button', 'remove_button'])) {
-      $form_state->setError($element['upload'], t('!name field is required.', ['!name' => $element['#title']]));
+      $form_state->setError($element, t('!name is required.', ['!name' => $element['#title']]));
     }
 
     // Consolidate the array value of this field to array of FIDs.

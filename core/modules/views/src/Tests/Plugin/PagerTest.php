@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\views\Tests\Plugin\PagerTest.
+ * Contains \Drupal\views\Tests\Plugin\PagerTest.
  */
 
 namespace Drupal\views\Tests\Plugin;
@@ -280,7 +280,7 @@ class PagerTest extends PluginTestBase {
     $view->setAjaxEnabled(TRUE);
     $view->pager = NULL;
     $output = $view->render();
-    $output = drupal_render($output);
+    $output = \Drupal::service('renderer')->renderRoot($output);
     $this->assertEqual(preg_match('/<ul class="pager">/', $output), 0, 'The pager is not rendered.');
   }
 

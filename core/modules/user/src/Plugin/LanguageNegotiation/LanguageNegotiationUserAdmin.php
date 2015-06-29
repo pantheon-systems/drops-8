@@ -23,7 +23,7 @@ use Symfony\Component\Routing\Matcher\UrlMatcherInterface;
 /**
  * Identifies admin language from the user preferences.
  *
- * @Plugin(
+ * @LanguageNegotiation(
  *   id = Drupal\user\Plugin\LanguageNegotiation\LanguageNegotiationUserAdmin::METHOD_ID,
  *   types = {Drupal\Core\Language\LanguageInterface::TYPE_INTERFACE},
  *   weight = -10,
@@ -136,8 +136,8 @@ class LanguageNegotiationUserAdmin extends LanguageNegotiationMethodBase impleme
           // Process the path as an inbound path. This will remove any language
           // prefixes and other path components that inbound processing would
           // clear out, so we can attempt to load the route clearly.
-          $path = $this->pathProcessorManager->processInbound(urldecode(trim($request->getPathInfo(), '/')), $request);
-          $attributes = $this->router->match('/' . $path);
+          $path = $this->pathProcessorManager->processInbound(urldecode(rtrim($request->getPathInfo(), '/')), $request);
+          $attributes = $this->router->match($path);
         }
         catch (ResourceNotFoundException $e) {
           return FALSE;

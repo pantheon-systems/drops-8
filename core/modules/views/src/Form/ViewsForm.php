@@ -123,12 +123,6 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
     }
     $form_state->set(['step_controller', 'views_form_views_form'], 'Drupal\views\Form\ViewsFormMainForm');
 
-    // Cache the built form to prevent it from being rebuilt prior to validation
-    // and submission, which could lead to data being processed incorrectly,
-    // because the views rows (and thus, the form elements as well) have changed
-    // in the meantime.
-    $form_state->setCached();
-
     $form = array();
 
     $query = $this->requestStack->getCurrentRequest()->query->all();
@@ -136,7 +130,8 @@ class ViewsForm implements FormInterface, ContainerInjectionInterface {
 
     $options = array('query' => $query);
     $form['#action'] = $view->hasUrl() ? $view->getUrl()->setOptions($options)->toString() : Url::fromRoute('<current>')->setOptions($options)->toString();
-    // Tell the preprocessor whether it should hide the header, footer, pager...
+    // Tell the preprocessor whether it should hide the header, footer, pager,
+    // etc.
     $form['show_view_elements'] = array(
       '#type' => 'value',
       '#value' => ($step == 'views_form_views_form') ? TRUE : FALSE,

@@ -21,6 +21,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class SiteConfigureForm extends ConfigFormBase {
 
   /**
+   * The site path.
+   *
+   * @var string
+   */
+  protected $sitePath;
+
+  /**
    * The user storage.
    *
    * @var \Drupal\user\UserStorageInterface
@@ -60,6 +67,8 @@ class SiteConfigureForm extends ConfigFormBase {
    *
    * @param string $root
    *   The app root.
+   * @param string $site_path
+   *   The site path.
    * @param \Drupal\user\UserStorageInterface $user_storage
    *   The user storage.
    * @param \Drupal\Core\State\StateInterface $state
@@ -69,8 +78,9 @@ class SiteConfigureForm extends ConfigFormBase {
    * @param \Drupal\Core\Locale\CountryManagerInterface $country_manager
    *   The country manager.
    */
-  public function __construct($root, UserStorageInterface $user_storage, StateInterface $state, ModuleInstallerInterface $module_installer, CountryManagerInterface $country_manager) {
+  public function __construct($root, $site_path, UserStorageInterface $user_storage, StateInterface $state, ModuleInstallerInterface $module_installer, CountryManagerInterface $country_manager) {
     $this->root = $root;
+    $this->sitePath = $site_path;
     $this->userStorage = $user_storage;
     $this->state = $state;
     $this->moduleInstaller = $module_installer;
@@ -83,6 +93,7 @@ class SiteConfigureForm extends ConfigFormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('app.root'),
+      $container->get('site.path'),
       $container->get('entity.manager')->getStorage('user'),
       $container->get('state'),
       $container->get('module_installer'),
@@ -115,7 +126,7 @@ class SiteConfigureForm extends ConfigFormBase {
     $form['#title'] = $this->t('Configure site');
 
     // Warn about settings.php permissions risk
-    $settings_dir = conf_path();
+    $settings_dir = $this->sitePath;
     $settings_file = $settings_dir . '/settings.php';
     // Check that $_POST is empty so we only show this message when the form is
     // first displayed, not on the next page after it is submitted. (We do not
@@ -135,15 +146,6 @@ class SiteConfigureForm extends ConfigFormBase {
     // We add these strings as settings because JavaScript translation does not
     // work during installation.
     $form['#attached']['drupalSettings']['copyFieldValue']['edit-site-mail'] = ['edit-account-mail'];
-
-    // Cache a fully-built schema. This is necessary for any invocation of
-    // index.php because: (1) setting cache table entries requires schema
-    // information, (2) that occurs during bootstrap before any module are
-    // loaded, so (3) if there is no cached schema, drupal_get_schema() will
-    // try to generate one but with no loaded modules will return nothing.
-    //
-    // @todo Move this to the 'install_finished' task?
-    drupal_get_schema(NULL, TRUE);
 
     $form['site_information'] = array(
       '#type' => 'fieldgroup',

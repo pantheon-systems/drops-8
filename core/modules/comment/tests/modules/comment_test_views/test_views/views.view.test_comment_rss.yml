@@ -23,7 +23,7 @@ display:
       access:
         type: perm
       cache:
-        type: none
+        type: tag
       query:
         type: views_query
       exposed_form:
@@ -72,3 +72,8 @@ display:
     position: null
     display_options:
       path: test-comment-rss
+      defaults:
+        row: false
+      row:
+        type: comment_rss
+        options: {}

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Definition of Drupal\Component\Plugin\Factory\DefaultFactory.
+ * Contains \Drupal\Component\Plugin\Factory\DefaultFactory.
  */
 
 namespace Drupal\Component\Plugin\Factory;
@@ -88,7 +88,7 @@ class DefaultFactory implements FactoryInterface {
     }
 
     if ($required_interface && !is_subclass_of($plugin_definition['class'], $required_interface)) {
-      throw new PluginException(sprintf('Plugin "%s" (%s) in %s should implement interface %s.', $plugin_id, $plugin_definition['class'], $plugin_definition['provider'], $required_interface));
+      throw new PluginException(sprintf('Plugin "%s" (%s) must implement interface %s.', $plugin_id, $plugin_definition['class'], $required_interface));
     }
 
     return $class;

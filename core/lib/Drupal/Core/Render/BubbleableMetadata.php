@@ -15,21 +15,9 @@ use Drupal\Core\Cache\CacheableMetadata;
  *
  * @see \Drupal\Core\Render\RendererInterface::render()
  */
-class BubbleableMetadata extends CacheableMetadata {
+class BubbleableMetadata extends CacheableMetadata implements AttachmentsInterface {
 
-  /**
-   * Attached assets.
-   *
-   * @var string[][]
-   */
-  protected $attached = [];
-
-  /**
-   * #post_render_cache metadata.
-   *
-   * @var array[]
-   */
-  protected $postRenderCache = [];
+  use AttachmentsTrait;
 
   /**
    * Merges the values of another bubbleable metadata object with this one.
@@ -42,10 +30,21 @@ class BubbleableMetadata extends CacheableMetadata {
    */
   public function merge(CacheableMetadata $other) {
     $result = parent::merge($other);
+
+    // This is called many times per request, so avoid merging unless absolutely
+    // necessary.
     if ($other instanceof BubbleableMetadata) {
-      $result->attached = \Drupal::service('renderer')->mergeAttachments($this->attached, $other->attached);
-      $result->postRenderCache = NestedArray::mergeDeep($this->postRenderCache, $other->postRenderCache);
+      if (empty($this->attachments)) {
+        $result->attachments = $other->attachments;
+      }
+      elseif (empty($other->attachments)) {
+        $result->attachments = $this->attachments;
+      }
+      else {
+        $result->attachments = static::mergeAttachments($this->attachments, $other->attachments);
+      }
     }
+
     return $result;
   }
 
@@ -57,8 +56,7 @@ class BubbleableMetadata extends CacheableMetadata {
    */
   public function applyTo(array &$build) {
     parent::applyTo($build);
-    $build['#attached'] = $this->attached;
-    $build['#post_render_cache'] = $this->postRenderCache;
+    $build['#attached'] = $this->attachments;
   }
 
   /**
@@ -71,84 +69,80 @@ class BubbleableMetadata extends CacheableMetadata {
    */
   public static function createFromRenderArray(array $build) {
     $meta = parent::createFromRenderArray($build);
-    $meta->attached = (isset($build['#attached'])) ? $build['#attached'] : [];
-    $meta->postRenderCache = (isset($build['#post_render_cache'])) ? $build['#post_render_cache'] : [];
+    $meta->attachments = (isset($build['#attached'])) ? $build['#attached'] : [];
     return $meta;
   }
 
   /**
-   * Gets assets.
+   * Merges two attachments arrays (which live under the '#attached' key).
+   *
+   * The values under the 'drupalSettings' key are merged in a special way, to
+   * match the behavior of:
+   *
+   * @code
+   *   jQuery.extend(true, {}, $settings_items[0], $settings_items[1], ...)
+   * @endcode
+   *
+   * This means integer indices are preserved just like string indices are,
+   * rather than re-indexed as is common in PHP array merging.
+   *
+   * Example:
+   * @code
+   * function module1_page_attachments(&$page) {
+   *   $page['a']['#attached']['drupalSettings']['foo'] = ['a', 'b', 'c'];
+   * }
+   * function module2_page_attachments(&$page) {
+   *   $page['#attached']['drupalSettings']['foo'] = ['d'];
+   * }
+   * // When the page is rendered after the above code, and the browser runs the
+   * // resulting <SCRIPT> tags, the value of drupalSettings.foo is
+   * // ['d', 'b', 'c'], not ['a', 'b', 'c', 'd'].
+   * @endcode
+   *
+   * By following jQuery.extend() merge logic rather than common PHP array merge
+   * logic, the following are ensured:
+   * - Attaching JavaScript settings is idempotent: attaching the same settings
+   *   twice does not change the output sent to the browser.
+   * - If pieces of the page are rendered in separate PHP requests and the
+   *   returned settings are merged by JavaScript, the resulting settings are
+   *   the same as if rendered in one PHP request and merged by PHP.
+   *
+   * @param array $a
+   *   An attachments array.
+   * @param array $b
+   *   Another attachments array.
    *
    * @return array
+   *   The merged attachments array.
    */
-  public function getAssets() {
-    return $this->attached;
-  }
-
-  /**
-   * Adds assets.
-   *
-   * @param array $assets
-   *   The associated assets to be attached.
-   *
-   * @return $this
-   */
-  public function addAssets(array $assets) {
-    $this->attached = NestedArray::mergeDeep($this->attached, $assets);
-    return $this;
-  }
-
-  /**
-   * Sets assets.
-   *
-   * @param array $assets
-   *   The associated assets to be attached.
-   *
-   * @return $this
-   */
-  public function setAssets(array $assets) {
-    $this->attached = $assets;
-    return $this;
-  }
-
-  /**
-   * Gets #post_render_cache callbacks.
-   *
-   * @return array
-   */
-  public function getPostRenderCacheCallbacks() {
-    return $this->postRenderCache;
-  }
-
-  /**
-   * Adds #post_render_cache callbacks.
-   *
-   * @param string $callback
-   *   The #post_render_cache callback that will replace the placeholder with
-   *   its eventual markup.
-   * @param array $context
-   *   An array providing context for the #post_render_cache callback.
-   *
-   * @see \Drupal\Core\Render\RendererInterface::generateCachePlaceholder()
-   *
-   * @return $this
-   */
-  public function addPostRenderCacheCallback($callback, array $context) {
-    $this->postRenderCache[$callback][] = $context;
-    return $this;
-  }
-
-  /**
-   * Sets #post_render_cache callbacks.
-   *
-   * @param array $post_render_cache_callbacks
-   *   The associated #post_render_cache callbacks to be executed.
-   *
-   * @return $this
-   */
-  public function setPostRenderCacheCallbacks(array $post_render_cache_callbacks) {
-    $this->postRenderCache = $post_render_cache_callbacks;
-    return $this;
+  public static function mergeAttachments(array $a, array $b) {
+    // If both #attached arrays contain drupalSettings, then merge them
+    // correctly; adding the same settings multiple times needs to behave
+    // idempotently.
+    if (!empty($a['drupalSettings']) && !empty($b['drupalSettings'])) {
+      $drupalSettings = NestedArray::mergeDeepArray(array($a['drupalSettings'], $b['drupalSettings']), TRUE);
+      // No need for re-merging them.
+      unset($a['drupalSettings']);
+      unset($b['drupalSettings']);
+    }
+    // Optimize merging of placeholders: no need for deep merging.
+    if (!empty($a['placeholders']) && !empty($b['placeholders'])) {
+      $placeholders = $a['placeholders'] + $b['placeholders'];
+      // No need for re-merging them.
+      unset($a['placeholders']);
+      unset($b['placeholders']);
+    }
+    // Apply the normal merge.
+    $a = array_merge_recursive($a, $b);
+    if (isset($drupalSettings)) {
+      // Save the custom merge for the drupalSettings.
+      $a['drupalSettings'] = $drupalSettings;
+    }
+    if (isset($placeholders)) {
+      // Save the custom merge for the placeholders.
+      $a['placeholders'] = $placeholders;
+    }
+    return $a;
   }
 
 }

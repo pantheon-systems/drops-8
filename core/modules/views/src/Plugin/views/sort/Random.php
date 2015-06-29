@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\views\Plugin\views\sort\Random.
+ * Contains \Drupal\views\Plugin\views\sort\Random.
  */
 
 namespace Drupal\views\Plugin\views\sort;
@@ -26,6 +26,8 @@ class Random extends SortPluginBase implements CacheablePluginInterface {
 
   public function query() {
     $this->query->addOrderBy('rand');
+    // @todo Replace this once https://www.drupal.org/node/2464427 is in.
+    $this->view->element['#cache']['max-age'] = 0;
   }
 
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {

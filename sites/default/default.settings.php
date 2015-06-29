@@ -48,7 +48,7 @@
  * sites/8080.www.drupal.org.mysite.test/.
  *
  * @see example.sites.php
- * @see conf_path()
+ * @see \Drupal\Core\DrupalKernel::getSitePath()
  *
  * In addition to customizing application settings through variables in
  * settings.php, you can create a services.yml file in the same directory to
@@ -75,7 +75,7 @@
  *   'host' => 'localhost',
  *   'port' => 3306,
  *   'prefix' => 'myprefix_',
- *   'collation' => 'utf8_general_ci',
+ *   'collation' => 'utf8mb4_general_ci',
  * );
  * @endcode
  *
@@ -127,7 +127,7 @@
  *   'password' => 'password',
  *   'host' => 'localhost',
  *   'prefix' => 'main_',
- *   'collation' => 'utf8_general_ci',
+ *   'collation' => 'utf8mb4_general_ci',
  * );
  * @endcode
  *
@@ -285,6 +285,16 @@ $config_directories = array();
  * @endcode
  */
 $settings['hash_salt'] = '';
+
+/**
+ * Deployment identifier.
+ *
+ * Drupal's dependency injection container will be automatically invalidated and
+ * rebuilt when the Drupal core version changes. When updating contributed or
+ * custom code that changes the container, changing this identifier will also
+ * allow the container to be invalidated as soon as code is deployed.
+ */
+# $settings['deployment_identifier'] = \Drupal::VERSION;
 
 /**
  * Access control for update.php script.

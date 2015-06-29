@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\link\Plugin\Validation\Constraint\LinkExternalProtocols.
+ * Contains \Drupal\link\Plugin\Validation\Constraint\LinkExternalProtocolsConstraint.
  */
 
 namespace Drupal\link\Plugin\Validation\Constraint;
@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraint;
 /**
  * Defines a protocol validation constraint for links to external URLs.
  *
- * @Plugin(
+ * @Constraint(
  *   id = "LinkExternalProtocols",
  *   label = @Translation("No dangerous external protocols", context = "Validation"),
  * )

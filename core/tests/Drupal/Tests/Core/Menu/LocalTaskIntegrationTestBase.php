@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\Core\Menu\LocalTaskUnitTest.
+ * Contains \Drupal\Tests\Core\Menu\LocalTaskIntegrationTestBase.
  */
 
 namespace Drupal\Tests\Core\Menu;
@@ -87,11 +87,6 @@ abstract class LocalTaskIntegrationTestBase extends UnitTestCase {
     $property = new \ReflectionProperty('Drupal\Core\Menu\LocalTaskManager', 'routeProvider');
     $property->setAccessible(TRUE);
     $property->setValue($manager, $route_provider);
-
-    $route_builder = $this->getMock('Drupal\Core\Routing\RouteBuilderInterface');
-    $property = new \ReflectionProperty('Drupal\Core\Menu\LocalTaskManager', 'routeBuilder');
-    $property->setAccessible(TRUE);
-    $property->setValue($manager, $route_builder);
 
     $module_handler = $this->getMockBuilder('Drupal\Core\Extension\ModuleHandlerInterface')
       ->disableOriginalConstructor()

@@ -48,7 +48,7 @@ class RendererTestBase extends UnitTestCase {
   protected $cacheFactory;
 
   /**
-   * @var \Drupal\Core\Cache\CacheContextsManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\Context\CacheContextsManager|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $cacheContexts;
 
@@ -101,7 +101,7 @@ class RendererTestBase extends UnitTestCase {
     $this->elementInfo = $this->getMock('Drupal\Core\Render\ElementInfoManagerInterface');
     $this->requestStack = new RequestStack();
     $this->cacheFactory = $this->getMock('Drupal\Core\Cache\CacheFactoryInterface');
-    $this->cacheContextsManager = $this->getMockBuilder('Drupal\Core\Cache\CacheContextsManager')
+    $this->cacheContextsManager = $this->getMockBuilder('Drupal\Core\Cache\Context\CacheContextsManager')
       ->disableOriginalConstructor()
       ->getMock();
     $this->cacheContextsManager->expects($this->any())
@@ -137,18 +137,17 @@ class RendererTestBase extends UnitTestCase {
   }
 
   /**
-   * Generates a random context value for the post-render cache tests.
+   * Generates a random context value for the placeholder tests.
    *
-   * The #context array used by the post-render cache callback will generally
-   * be used to provide metadata like entity IDs, field machine names, paths,
-   * etc. for JavaScript replacement of content or assets. In this test, the
-   * callbacks PostRenderCache::callback() and PostRenderCache::placeholder()
-   * render the context inside test HTML, so using any random string would
-   * sometimes cause random test failures because the test output would be
-   * unparseable. Instead, we provide random tokens for replacement.
+   * The #context array used by the placeholder #lazy_builder callback will
+   * generally be used to provide metadata like entity IDs, field machine names,
+   * paths, etc. for JavaScript replacement of content or assets. In this test,
+   * the #lazy_builder callback PlaceholdersTest::callback() renders the context
+   * inside test HTML, so using any random string would sometimes cause random
+   * test failures because the test output would be unparseable. Instead, we
+   * provide random tokens for replacement.
    *
-   * @see PostRenderCache::callback()
-   * @see PostRenderCache::placeholder()
+   * @see PlaceholdersTest::callback()
    * @see https://www.drupal.org/node/2151609
    */
   protected function randomContextValue() {
@@ -172,6 +171,7 @@ class RendererTestBase extends UnitTestCase {
 
     $this->cacheFactory->expects($this->atLeastOnce())
       ->method('get')
+      ->with('render')
       ->willReturn($this->memoryCache);
   }
 
@@ -195,9 +195,12 @@ class RendererTestBase extends UnitTestCase {
    *   The expected cache ID.
    * @param mixed $data
    *   The expected data for that cache ID.
+   * @param string $bin
+   *   The expected cache bin.
    */
-  protected function assertRenderCacheItem($cid, $data) {
-    $cached = $this->memoryCache->get($cid);
+  protected function assertRenderCacheItem($cid, $data, $bin = 'render') {
+    $cache_backend = $this->cacheFactory->get($bin);
+    $cached = $cache_backend->get($cid);
     $this->assertNotFalse($cached, sprintf('Expected cache item "%s" exists.', $cid));
     if ($cached !== FALSE) {
       $this->assertEquals($data, $cached->data, sprintf('Cache item "%s" has the expected data.', $cid));
@@ -208,64 +211,30 @@ class RendererTestBase extends UnitTestCase {
 }
 
 
-class PostRenderCache {
+class PlaceholdersTest {
 
   /**
-   * #post_render_cache callback; modifies #markup, #attached and #context_test.
+   * #lazy_builder callback; attaches setting, generates markup.
    *
-   * @param array $element
-   *  A render array with the following keys:
-   *    - #markup
-   *    - #attached
-   * @param array $context
-   *  An array with the following keys:
-   *    - foo: contains a random string.
-   *
-   * @return array $element
-   *   The updated $element.
-   */
-  public static function callback(array $element, array $context) {
-    // Override #markup.
-    $element['#markup'] = '<p>overridden</p>';
-
-    // Extend #attached.
-    if (!isset($element['#attached']['drupalSettings']['common_test'])) {
-      $element['#attached']['drupalSettings']['common_test'] = [];
-    }
-    $element['#attached']['drupalSettings']['common_test'] += $context;
-
-    // Set new property.
-    $element['#context_test'] = $context;
-
-    return $element;
-  }
-
-  /**
-   * #post_render_cache callback; replaces placeholder, extends #attached.
-   *
-   * @param array $element
-   *   The renderable array that contains the to be replaced placeholder.
-   * @param array $context
-   *  An array with the following keys:
-   *    - bar: contains a random string.
+   * @param string $animal
+   *  An animal.
    *
    * @return array
-   *   A render array.
+   *   A renderable array.
    */
-  public static function placeholder(array $element, array $context) {
-    $placeholder = \Drupal::service('renderer')->generateCachePlaceholder(__NAMESPACE__ . '\\PostRenderCache::placeholder', $context);
-    $replace_element = array(
-      '#markup' => '<bar>' . $context['bar'] . '</bar>',
-      '#attached' => array(
+  public static function callback($animal, $use_animal_as_array_key = FALSE) {
+    $value = $animal;
+    if ($use_animal_as_array_key) {
+      $value = [$animal => TRUE];
+    }
+    return [
+      '#markup' => '<p>This is a rendered placeholder!</p>',
+      '#attached' => [
         'drupalSettings' => [
-          'common_test' => $context,
+          'dynamic_animal' => $value,
         ],
-      ),
-    );
-    $markup = \Drupal::service('renderer')->render($replace_element);
-    $element['#markup'] = str_replace($placeholder, $markup, $element['#markup']);
-
-    return $element;
+      ],
+    ];
   }
 
 }

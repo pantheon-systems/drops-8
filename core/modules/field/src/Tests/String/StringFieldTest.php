@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of \Drupal\field\Tests\String\StringFieldTest.
+ * Contains \Drupal\field\Tests\String\StringFieldTest.
  */
 
 namespace Drupal\field\Tests\String;
@@ -97,7 +97,7 @@ class StringFieldTest extends WebTestBase {
     $entity = entity_load('entity_test', $id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
-    $this->setRawContent(drupal_render($content));
+    $this->setRawContent(\Drupal::service('renderer')->renderRoot($content));
     $this->assertText($value, 'Filtered tags are not displayed');
   }
 }

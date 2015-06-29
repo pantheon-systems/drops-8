@@ -1,3 +1,8 @@
+/**
+ * @file
+ * CKEditor SylesCombo admin behavior.
+ */
+
 (function ($, Drupal, drupalSettings) {
 
   "use strict";
@@ -9,6 +14,8 @@
    * plugin settings change, to ensure that the corresponding feature metadata is
    * immediately updated — i.e. ensure that HTML tags and classes entered here are
    * known to be "required", which may affect filter settings.
+   *
+   * @type {Drupal~behavior}
    */
   Drupal.behaviors.ckeditorStylesComboSettings = {
     attach: function (context) {
@@ -26,7 +33,7 @@
       var that = this;
       $context.find('[name="editor[settings][plugins][stylescombo][styles]"]')
         .on('blur.ckeditorStylesComboSettings', function () {
-          var styles = $.trim($('#edit-editor-settings-plugins-stylescombo-styles').val());
+          var styles = $.trim($(this).val());
           var stylesSet = that._generateStylesSetSetting(styles);
           if (!_.isEqual(previousStylesSet, stylesSet)) {
             previousStylesSet = stylesSet;
@@ -46,10 +53,10 @@
      * parsing works identically, but instead of failing on invalid styles, we
      * just ignore those.
      *
-     * @param String styles
+     * @param {string} styles
      *   The "styles" setting.
      *
-     * @return array
+     * @return {Array}
      *   An array containing the "stylesSet" configuration.
      */
     _generateStylesSetSetting: function (styles) {
@@ -93,11 +100,13 @@
 
   /**
    * Provides the summary for the "stylescombo" plugin settings vertical tab.
+   *
+   * @type {Drupal~behavior}
    */
   Drupal.behaviors.ckeditorStylesComboSettingsSummary = {
     attach: function () {
-      $('#edit-editor-settings-plugins-stylescombo').drupalSetSummary(function (context) {
-        var styles = $.trim($('#edit-editor-settings-plugins-stylescombo-styles').val());
+      $('[data-ckeditor-plugin-id="stylescombo"]').drupalSetSummary(function (context) {
+        var styles = $.trim($('[data-drupal-selector="edit-editor-settings-plugins-stylescombo-styles"]').val());
         if (styles.length === 0) {
           return Drupal.t('No styles configured');
         }

@@ -14,7 +14,9 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Form\Exception\BrokenPostRequestException;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -244,6 +246,12 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       }
     }
 
+    // If this form is an AJAX request, disable all form redirects.
+    $request = $this->requestStack->getCurrentRequest();
+    if ($ajax_form_request = $request->query->has(static::AJAX_FORM_REQUEST)) {
+      $form_state->disableRedirect();
+    }
+
     // Now that we have a constructed form, process it. This is where:
     // - Element #process functions get called to further refine $form.
     // - User input, if any, gets incorporated in the #value property of the
@@ -256,6 +264,24 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // All of the handlers in the pipeline receive $form_state by reference and
     // can use it to know or update information about the state of the form.
     $response = $this->processForm($form_id, $form, $form_state);
+
+    // In case the post request exceeds the configured allowed size
+    // (post_max_size), the post request is potentially broken. Add some
+    // protection against that and at the same time have a nice error message.
+    if ($ajax_form_request && !isset($form_state->getUserInput()['form_id'])) {
+      throw new BrokenPostRequestException($this->getFileUploadMaxSize());
+    }
+
+    // After processing the form, if this is an AJAX form request, interrupt
+    // form rendering and return by throwing an exception that contains the
+    // processed form and form state. This exception will be caught by
+    // \Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber::onException() and
+    // then passed through
+    // \Drupal\Core\Form\FormAjaxResponseBuilderInterface::buildResponse() to
+    // build a proper AJAX response.
+    if ($ajax_form_request && $form_state->isProcessingInput()) {
+      throw new FormAjaxException($form, $form_state);
+    }
 
     // If the form returns a response, skip subsequent page construction by
     // throwing an exception.
@@ -559,7 +585,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     // Only update the action if it is not already set.
     if (!isset($form['#action'])) {
-      $form['#action'] = $this->requestStack->getMasterRequest()->getRequestUri();
+      $form['#action'] = $this->buildFormAction();
     }
 
     // Fix the form method, if it is 'get' in $form_state, but not in $form.
@@ -629,6 +655,9 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     }
     if (!isset($form['#id'])) {
       $form['#id'] = Html::getUniqueId($form_id);
+      // Provide a selector usable by JavaScript. As the ID is unique, its not
+      // possible to rely on it in JavaScript.
+      $form['#attributes']['data-drupal-selector'] = Html::getId($form_id);
     }
 
     $form += $this->elementInfo->getInfo('form');
@@ -657,6 +686,24 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     $hooks[] = 'form_' . $form_id;
     $this->moduleHandler->alter($hooks, $form, $form_state, $form_id);
     $this->themeManager->alter($hooks, $form, $form_state, $form_id);
+  }
+
+  /**
+   * Builds the $form['#action'].
+   *
+   * @return string
+   *   The URL to be used as the $form['#action'].
+   */
+  protected function buildFormAction() {
+    // @todo Use <current> instead of the master request in
+    //   https://www.drupal.org/node/2505339.
+    $request_uri = $this->requestStack->getMasterRequest()->getRequestUri();
+
+    // @todo Remove this parsing once these are removed from the request in
+    //   https://www.drupal.org/node/2504709.
+    $parsed = UrlHelper::parse($request_uri);
+    unset($parsed['query'][static::AJAX_FORM_REQUEST], $parsed['query'][MainContentViewSubscriber::WRAPPER_FORMAT]);
+    return $parsed['path'] . ($parsed['query'] ? ('?' . UrlHelper::buildQuery($parsed['query'])) : '');
   }
 
   /**
@@ -746,7 +793,16 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     }
 
     if (!isset($element['#id'])) {
-      $element['#id'] = Html::getUniqueId('edit-' . implode('-', $element['#parents']));
+      $unprocessed_id = 'edit-' . implode('-', $element['#parents']);
+      $element['#id'] = Html::getUniqueId($unprocessed_id);
+      // Provide a selector usable by JavaScript. As the ID is unique, its not
+      // possible to rely on it in JavaScript.
+      $element['#attributes']['data-drupal-selector'] = Html::getId($unprocessed_id);
+    }
+    else {
+      // Provide a selector usable by JavaScript. As the ID is unique, its not
+      // possible to rely on it in JavaScript.
+      $element['#attributes']['data-drupal-selector'] = Html::getId($element['#id']);
     }
 
     // Add the aria-describedby attribute to associate the form control with its
@@ -1101,6 +1157,17 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       return TRUE;
     }
     return FALSE;
+  }
+
+  /**
+   * Wraps file_upload_max_size().
+   *
+   * @return string
+   *   A translated string representation of the size of the file size limit
+   *   based on the PHP upload_max_filesize and post_max_size.
+   */
+  protected function getFileUploadMaxSize() {
+    return file_upload_max_size();
   }
 
   /**

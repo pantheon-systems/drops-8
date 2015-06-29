@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Template;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\SafeStringInterface;
 
 /**
  * Collects, sanitizes, and renders HTML attributes.
@@ -40,10 +40,9 @@ use Drupal\Component\Utility\SafeMarkup;
  * @endcode
  *
  * The attribute keys and values are automatically sanitized for output with
- * \Drupal\Component\Utility\SafeMarkup::checkPlain().
+ * htmlspecialchars() and the entire attribute string is marked safe for output.
  */
-class Attribute implements \ArrayAccess, \IteratorAggregate {
-
+class Attribute implements \ArrayAccess, \IteratorAggregate, SafeStringInterface {
   /**
    * Stores the attribute data.
    *
@@ -252,13 +251,14 @@ class Attribute implements \ArrayAccess, \IteratorAggregate {
    */
   public function __toString() {
     $return = '';
+    /** @var \Drupal\Core\Template\AttributeValueBase $value */
     foreach ($this->storage as $name => $value) {
       $rendered = $value->render();
       if ($rendered) {
         $return .= ' ' . $rendered;
       }
     }
-    return SafeMarkup::set($return);
+    return $return;
   }
 
   /**

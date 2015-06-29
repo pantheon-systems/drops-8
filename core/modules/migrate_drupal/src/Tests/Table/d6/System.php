@@ -85,6 +85,7 @@ class System extends DrupalDumpBase {
           'length' => 100,
         ),
       ),
+      'mysql_character_set' => 'utf8',
     ));
     $this->database->insert("system")->fields(array(
       'filename',
@@ -916,4 +917,4 @@ class System extends DrupalDumpBase {
   }
 
 }
-#8867fc0eccc6c8439bff0a269ec597ae
+#f48594e66407fef659b575523a75c6e6

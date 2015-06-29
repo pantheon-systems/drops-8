@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Tests\migrate_drupal\Unit\source\d6\BoxesTest.
+ * Contains \Drupal\Tests\migrate_drupal\Unit\source\d6\BoxTest.
  */
 
 namespace Drupal\Tests\migrate_drupal\Unit\source\d6;
@@ -56,19 +56,4 @@ class BoxTest extends MigrateSqlSourceTestCase {
     parent::setUp();
   }
 
-}
-
-namespace Drupal\Tests\migrate_drupal\Unit\source\d6;
-
-use Drupal\Core\Database\Connection;
-use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\migrate_drupal\Plugin\migrate\source\d6\Box;
-
-class TestBox extends Box {
-  public function setDatabase(Connection $database) {
-    $this->database = $database;
-  }
-  public function setModuleHandler(ModuleHandlerInterface $module_handler) {
-    $this->moduleHandler = $module_handler;
-  }
 }

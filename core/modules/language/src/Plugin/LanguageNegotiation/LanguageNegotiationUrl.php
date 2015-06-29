@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Class for identifying language via URL prefix or domain.
  *
- * @Plugin(
+ * @LanguageNegotiation(
  *   id = \Drupal\language\Plugin\LanguageNegotiation\LanguageNegotiationUrl::METHOD_ID,
  *   types = {\Drupal\Core\Language\LanguageInterface::TYPE_INTERFACE,
  *   \Drupal\Core\Language\LanguageInterface::TYPE_CONTENT,
@@ -105,14 +105,14 @@ class LanguageNegotiationUrl extends LanguageNegotiationMethodBase implements In
    */
   public function processInbound($path, Request $request) {
     $config = $this->config->get('language.negotiation')->get('url');
-    $parts = explode('/', $path);
+    $parts = explode('/', trim($path, '/'));
     $prefix = array_shift($parts);
 
     // Search prefix within added languages.
     foreach ($this->languageManager->getLanguages() as $language) {
       if (isset($config['prefixes'][$language->getId()]) && $config['prefixes'][$language->getId()] == $prefix) {
         // Rebuild $path with the language removed.
-        $path = implode('/', $parts);
+        $path = '/' . implode('/', $parts);
         break;
       }
     }

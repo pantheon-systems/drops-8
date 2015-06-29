@@ -2,15 +2,13 @@
 
 /**
  * @file
- * Definition of Drupal\views\Plugin\views\cache\Time.
+ * Contains \Drupal\views\Plugin\views\cache\Time.
  */
 
 namespace Drupal\views\Plugin\views\cache;
 
 use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Render\RenderCacheInterface;
-use Drupal\Core\Render\RendererInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,20 +54,16 @@ class Time extends CachePluginBase {
    *   The plugin_id for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Render\RendererInterface $renderer
-   *   The HTML renderer.
    * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
    *   The date formatter service.
-   * @param \Drupal\Core\Render\RenderCacheInterface $render_cache
-   *   The render cache service.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The current request.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, RendererInterface $renderer, RenderCacheInterface $render_cache, DateFormatter $date_formatter, Request $request) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, DateFormatter $date_formatter, Request $request) {
     $this->dateFormatter = $date_formatter;
     $this->request = $request;
 
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $renderer, $render_cache);
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
   /**
@@ -80,8 +74,6 @@ class Time extends CachePluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('renderer'),
-      $container->get('render_cache'),
       $container->get('date.formatter'),
       $container->get('request_stack')->getCurrentRequest()
     );
@@ -101,7 +93,7 @@ class Time extends CachePluginBase {
     parent::buildOptionsForm($form, $form_state);
     $options = array(60, 300, 1800, 3600, 21600, 518400);
     $options = array_map(array($this->dateFormatter, 'formatInterval'), array_combine($options, $options));
-    $options = array(-1 => $this->t('Never cache')) + $options + array('custom' => $this->t('Custom'));
+    $options = array(0 => $this->t('Never cache')) + $options + array('custom' => $this->t('Custom'));
 
     $form['results_lifespan'] = array(
       '#type' => 'select',
@@ -177,10 +169,13 @@ class Time extends CachePluginBase {
     }
   }
 
-  protected function cacheSetExpire($type) {
+  /**
+   * {@inheritdoc}
+   */
+  protected function cacheSetMaxAge($type) {
     $lifespan = $this->getLifespan($type);
     if ($lifespan) {
-      return time() + $lifespan;
+      return $lifespan;
     }
     else {
       return Cache::PERMANENT;
@@ -193,7 +188,7 @@ class Time extends CachePluginBase {
   protected function getDefaultCacheMaxAge() {
     // The max age, unless overridden by some other piece of the rendered code
     // is determined by the output time setting.
-    return $this->cacheSetExpire('output');
+    return (int) $this->cacheSetMaxAge('output');
   }
 
 }

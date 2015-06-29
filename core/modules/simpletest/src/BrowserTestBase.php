@@ -1258,6 +1258,9 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     $server = array_merge($server, $override_server_vars);
 
     $request = Request::create($request_path, 'GET', array(), array(), array(), $server);
+    // Ensure the the request time is REQUEST_TIME to ensure that API calls
+    // in the test use the right timestamp.
+    $request->server->set('REQUEST_TIME', REQUEST_TIME);
     $this->container->get('request_stack')->push($request);
 
     // The request context is normally set by the router_listener from within
@@ -1326,12 +1329,14 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
    *   Return TRUE if the user is logged in, FALSE otherwise.
    */
   protected function drupalUserIsLoggedIn(UserInterface $account) {
-    if (!isset($account->sessionId)) {
-      return FALSE;
+    $logged_in = FALSE;
+
+    if (isset($account->sessionId)) {
+      $session_handler = $this->container->get('session_handler.storage');
+      $logged_in = (bool) $session_handler->read($account->sessionId);
     }
-    // The session ID is hashed before being stored in the database.
-    // @see \Drupal\Core\Session\SessionHandler::read()
-    return (bool) db_query("SELECT sid FROM {users_field_data} u INNER JOIN {sessions} s ON u.uid = s.uid AND u.default_langcode = 1 WHERE s.sid = :sid", array(':sid' => Crypt::hashBase64($account->sessionId)))->fetchField();
+
+    return $logged_in;
   }
 
 }

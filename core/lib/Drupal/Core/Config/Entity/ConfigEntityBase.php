@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Definition of Drupal\Core\Config\Entity\ConfigEntityBase.
+ * Contains \Drupal\Core\Config\Entity\ConfigEntityBase.
  */
 
 namespace Drupal\Core\Config\Entity;
@@ -390,13 +390,6 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    */
   public function urlInfo($rel = 'edit-form', array $options = []) {
     return parent::urlInfo($rel, $options);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getSystemPath($rel = 'edit-form') {
-    return parent::getSystemPath($rel);
   }
 
   /**
