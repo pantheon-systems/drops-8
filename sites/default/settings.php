@@ -89,3 +89,12 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  * Prevents fatal error https://github.com/pantheon-systems/drops-8/issues/23
 */
 $settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
+
+
+/**
+ * If there is a local settings file, then include it
+ */
+$local_settings = __DIR__ . "/settings.local.php";
+if (file_exists($local_settings)) {
+  include $local_settings;
+}
