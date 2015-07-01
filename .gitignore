@@ -1,0 +1,5 @@
+# Pantheon manages this path as a symlink
+sites/default/files
+
+# Also see the example.gitignore for other helpful
+# patterns to ignore from git.
