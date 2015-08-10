@@ -126,6 +126,12 @@ class BlockUiTest extends WebTestBase {
         'The block "' . $label . '" has the correct weight assignment (' . $values['test_weight'] . ').'
       );
     }
+
+    // Add a block with a machine name the same as a region name.
+    $this->drupalPlaceBlock('system_powered_by_block', ['region' => 'header', 'id' => 'header']);
+    $this->drupalGet('admin/structure/block');
+    $element = $this->xpath('//tr[contains(@class, :class)]', [':class' => 'region-title-header']);
+    $this->assertTrue(!empty($element));
   }
 
   /**
@@ -133,14 +139,15 @@ class BlockUiTest extends WebTestBase {
    */
   public function testCandidateBlockList() {
     $arguments = array(
-      ':ul_class' => 'block-list',
-      ':li_class' => 'test-block-instantiation',
+      ':title' => 'Display message',
+      ':category' => 'Block test',
       ':href' => 'admin/structure/block/add/test_block_instantiation/classy',
-      ':text' => 'Display message',
     );
+    $pattern = '//tr[.//td/div[text()=:title] and .//td[text()=:category] and .//td//a[contains(@href, :href)]]';
 
     $this->drupalGet('admin/structure/block');
-    $elements = $this->xpath('//details[@id="edit-category-block-test"]//ul[contains(@class, :ul_class)]/li[contains(@class, :li_class)]/a[contains(@href, :href) and text()=:text]', $arguments);
+    $this->clickLinkPartialName('Place block');
+    $elements = $this->xpath($pattern, $arguments);
     $this->assertTrue(!empty($elements), 'The test block appears in the category for its module.');
 
     // Trigger the custom category addition in block_test_block_alter().
@@ -148,7 +155,9 @@ class BlockUiTest extends WebTestBase {
     $this->container->get('plugin.manager.block')->clearCachedDefinitions();
 
     $this->drupalGet('admin/structure/block');
-    $elements = $this->xpath('//details[@id="edit-category-custom-category"]//ul[contains(@class, :ul_class)]/li[contains(@class, :li_class)]/a[contains(@href, :href) and text()=:text]', $arguments);
+    $this->clickLinkPartialName('Place block');
+    $arguments[':category'] = 'Custom category';
+    $elements = $this->xpath($pattern, $arguments);
     $this->assertTrue(!empty($elements), 'The test block appears in a custom category controlled by block_test_block_alter().');
   }
 

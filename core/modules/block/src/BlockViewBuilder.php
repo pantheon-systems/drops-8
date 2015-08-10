@@ -48,6 +48,9 @@ class BlockViewBuilder extends EntityViewBuilder {
       $derivative_id = $plugin->getDerivativeId();
       $configuration = $plugin->getConfiguration();
 
+      $cache_tags = Cache::mergeTags($this->getCacheTags(), $entity->getCacheTags());
+      $cache_tags = Cache::mergeTags($cache_tags, $plugin->getCacheTags());
+
       // Create the render array for the block as a whole.
       // @see template_preprocess_block().
       $build[$entity_id] = array(
@@ -67,12 +70,11 @@ class BlockViewBuilder extends EntityViewBuilder {
         '#id' => $entity->id(),
         '#cache' => [
           'keys' => ['entity_view', 'block', $entity->id()],
-          'contexts' => $plugin->getCacheContexts(),
-          'tags' => Cache::mergeTags(
-            $this->getCacheTags(), // Block view builder cache tag.
-            $entity->getCacheTags(), // Block entity cache tag.
-            $plugin->getCacheTags() // Block plugin cache tags.
+          'contexts' => Cache::mergeContexts(
+            $entity->getCacheContexts(),
+            $plugin->getCacheContexts()
           ),
+          'tags' => $cache_tags,
           'max-age' => $plugin->getCacheMaxAge(),
         ],
         '#pre_render' => [

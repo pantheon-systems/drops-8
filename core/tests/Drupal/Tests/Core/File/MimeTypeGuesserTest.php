@@ -9,6 +9,7 @@ namespace Drupal\Tests\Core\File;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\File\MimeType\MimeTypeGuesser;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesser as SymfonyMimeTypeGuesser;
 
@@ -34,10 +35,23 @@ class MimeTypeGuesserTest extends UnitTestCase {
       $this->assertNotInstanceOf('Drupal\Core\File\MimeType\MimeTypeGuesser', $guessers[0]);
     }
     $container = new ContainerBuilder();
-    $container->set('file.mime_type.guesser', new MimeTypeGuesser());
+    $container->set('file.mime_type.guesser', new MimeTypeGuesser(new StreamWrapperManager()));
     MimeTypeGuesser::registerWithSymfonyGuesser($container);
+    $symfony_guesser = SymfonyMimeTypeGuesser::getInstance();
     $guessers = $this->readAttribute($symfony_guesser, 'guessers');
+    $this->assertSame($container->get('file.mime_type.guesser'), $guessers[0]);
     $this->assertInstanceOf('Drupal\Core\File\MimeType\MimeTypeGuesser', $guessers[0]);
+    $count = count($guessers);
+
+    $container = new ContainerBuilder();
+    $container->set('file.mime_type.guesser', new MimeTypeGuesser(new StreamWrapperManager()));
+    MimeTypeGuesser::registerWithSymfonyGuesser($container);
+    $symfony_guesser = SymfonyMimeTypeGuesser::getInstance();
+    $guessers = $this->readAttribute($symfony_guesser, 'guessers');
+    $this->assertSame($container->get('file.mime_type.guesser'), $guessers[0]);
+    $this->assertInstanceOf('Drupal\Core\File\MimeType\MimeTypeGuesser', $guessers[0]);
+    $new_count = count($guessers);
+    $this->assertEquals($count, $new_count, 'The count of mime type guessers remains the same after container re-init.');
   }
 
 }

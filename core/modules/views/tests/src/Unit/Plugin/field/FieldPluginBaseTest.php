@@ -168,20 +168,12 @@ class FieldPluginBaseTest extends UnitTestCase {
    * Sets up the unrouted url assembler and the link generator.
    */
   protected function setUpUrlIntegrationServices() {
-    $config = $this->getMockBuilder('Drupal\Core\Config\ImmutableConfig')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $config_factory = $this->getMock('\Drupal\Core\Config\ConfigFactoryInterface');
-    $config_factory->expects($this->any())
-      ->method('get')
-      ->willReturn($config);
-
     $this->pathProcessor = $this->getMock('Drupal\Core\PathProcessor\OutboundPathProcessorInterface');
-    $this->unroutedUrlAssembler = new UnroutedUrlAssembler($this->requestStack, $config_factory, $this->pathProcessor);
+    $this->unroutedUrlAssembler = new UnroutedUrlAssembler($this->requestStack, $this->pathProcessor);
 
     \Drupal::getContainer()->set('unrouted_url_assembler', $this->unroutedUrlAssembler);
 
-    $this->linkGenerator = new LinkGenerator($this->urlGenerator, $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface'));
+    $this->linkGenerator = new LinkGenerator($this->urlGenerator, $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface'), $this->renderer);
   }
 
   /**
@@ -453,6 +445,7 @@ class FieldPluginBaseTest extends UnitTestCase {
       '#type' => 'inline_template',
       '#template' => 'base:test-path/' . explode('/', $path)[1],
       '#context' => ['foo' => 123],
+      '#post_render' => [function() {}],
     ];
 
     $this->renderer->expects($this->once())

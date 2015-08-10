@@ -276,6 +276,6 @@ input.form-submit:focus {
 }
 
 /* Form error message styles. */
-.form-error-message {
-  color: #ea2800;
+.form-item--error-message {
+  color: #e32700;
 }

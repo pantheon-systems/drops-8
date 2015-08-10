@@ -1350,7 +1350,7 @@ function install_download_translation(&$install_state) {
  *   original name. If the path contains a filename as well, that one will be
  *   used instead.
  *
- * @return boolean
+ * @return bool
  *   TRUE on success, FALSE on failure.
  */
 function install_retrieve_file($uri, $destination) {
@@ -1364,8 +1364,8 @@ function install_retrieve_file($uri, $destination) {
   }
 
   try {
-    $request = \Drupal::httpClient()->get($uri, array('headers' => array('Accept' => 'text/plain')));
-    $data = $request->getBody(TRUE);
+    $response = \Drupal::httpClient()->get($uri, array('headers' => array('Accept' => 'text/plain')));
+    $data = (string) $response->getBody();
     if (empty($data)) {
       return FALSE;
     }
@@ -1656,6 +1656,12 @@ function install_profile_themes(&$install_state) {
  *   An array of information about the current installation state.
  */
 function install_install_profile(&$install_state) {
+  // Now that all modules are installed, make sure the entity storage and other
+  // handlers are up to date with the current entity and field definitions. For
+  // example, Path module adds a base field to nodes and taxonomy terms after
+  // those modules are already installed.
+  \Drupal::service('entity.definition_update_manager')->applyUpdates();
+
   \Drupal::service('module_installer')->install(array(drupal_get_profile()), FALSE);
   // Install all available optional config. During installation the module order
   // is determined by dependencies. If there are no dependencies between modules

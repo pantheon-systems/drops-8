@@ -122,12 +122,6 @@ class ViewEditForm extends ViewFormBase {
     $form['#attached']['library'][] = 'views_ui/views_ui.admin';
     $form['#attached']['library'][] = 'views_ui/admin.styling';
 
-    $form['#attached']['drupalSettings']['views']['ajax'] = [
-      'id' => '.views-ajax-body',
-      'title' => '.views-ajax-title',
-      'popup' => '.views-ajax-popup',
-    ];
-
     $form += array(
       '#prefix' => '',
       '#suffix' => '',
@@ -220,23 +214,6 @@ class ViewEditForm extends ViewFormBase {
         '#type' => 'container',
         'tab_content' => $tab_content,
       );
-
-      // The content of the popup dialog.
-      $form['ajax-area'] = array(
-        '#type' => 'container',
-        '#attributes' => array(
-          'class' => array('views-ajax-popup'),
-        ),
-      );
-      $form['ajax-area']['ajax-title'] = array(
-        '#markup' => '<div class="views-ajax-title"></div>',
-      );
-      $form['ajax-area']['ajax-body'] = array(
-        '#type' => 'container',
-        '#attributes' => array(
-          'class' => array('views-ajax-body'),
-        ),
-      );
     }
 
     return $form;
@@ -264,8 +241,8 @@ class ViewEditForm extends ViewFormBase {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, FormStateInterface $form_state) {
-    parent::validate($form, $form_state);
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    parent::validateForm($form, $form_state);
 
     $view = $this->entity;
     if ($view->isLocked()) {

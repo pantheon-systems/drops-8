@@ -167,7 +167,7 @@ class ThemeHandler implements ThemeHandlerInterface {
   public function install(array $theme_list, $install_dependencies = TRUE) {
     // We keep the old install() method as BC layer but redirect directly to the
     // theme installer.
-    \Drupal::service('theme_installer')->install($theme_list, $install_dependencies);
+    return \Drupal::service('theme_installer')->install($theme_list, $install_dependencies);
   }
 
   /**
@@ -429,7 +429,7 @@ class ThemeHandler implements ThemeHandlerInterface {
   public function getName($theme) {
     $themes = $this->listInfo();
     if (!isset($themes[$theme])) {
-      throw new \InvalidArgumentException(SafeMarkup::format('Requested the name of a non-existing theme @theme', array('@theme' => $theme)));
+      throw new \InvalidArgumentException("Requested the name of a non-existing theme $theme");
     }
     return SafeMarkup::checkPlain($themes[$theme]->info['name']);
   }

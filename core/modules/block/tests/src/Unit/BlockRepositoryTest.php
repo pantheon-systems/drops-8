@@ -8,6 +8,7 @@
 namespace Drupal\Tests\block\Unit;
 
 use Drupal\block\BlockRepository;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Tests\UnitTestCase;
@@ -59,7 +60,7 @@ class BlockRepositoryTest extends UnitTestCase {
       ]);
 
     $theme_manager = $this->getMock('Drupal\Core\Theme\ThemeManagerInterface');
-    $theme_manager->expects($this->once())
+    $theme_manager->expects($this->atLeastOnce())
       ->method('getActiveTheme')
       ->will($this->returnValue($active_theme));
 
@@ -85,14 +86,17 @@ class BlockRepositoryTest extends UnitTestCase {
     foreach ($blocks_config as $block_id => $block_config) {
       $block = $this->getMock('Drupal\block\BlockInterface');
       $block->expects($this->once())
-        ->method('setContexts')
-        ->willReturnSelf();
-      $block->expects($this->once())
         ->method('access')
         ->will($this->returnValue($block_config[0]));
       $block->expects($block_config[0] ? $this->atLeastOnce() : $this->never())
         ->method('getRegion')
         ->willReturn($block_config[1]);
+      $block->expects($this->any())
+        ->method('label')
+        ->willReturn($block_id);
+      $block->expects($this->any())
+        ->method('getWeight')
+        ->willReturn($block_config[2]);
       $blocks[$block_id] = $block;
     }
 
@@ -101,30 +105,34 @@ class BlockRepositoryTest extends UnitTestCase {
       ->with(['theme' => $this->theme])
       ->willReturn($blocks);
     $result = [];
-    foreach ($this->blockRepository->getVisibleBlocksPerRegion([]) as $region => $resulting_blocks) {
+    $cacheable_metadata = [];
+    foreach ($this->blockRepository->getVisibleBlocksPerRegion($cacheable_metadata) as $region => $resulting_blocks) {
       $result[$region] = [];
       foreach ($resulting_blocks as $plugin_id => $block) {
         $result[$region][] = $plugin_id;
       }
     }
-    $this->assertSame($result, $expected_blocks);
+    $this->assertEquals($expected_blocks, $result);
   }
 
   public function providerBlocksConfig() {
     $blocks_config = array(
       'block1' => array(
-        TRUE, 'top', 0
+        AccessResult::allowed(), 'top', 0
       ),
       // Test a block without access.
       'block2' => array(
-        FALSE, 'bottom', 0
+        AccessResult::forbidden(), 'bottom', 0
       ),
-      // Test two blocks in the same region with specific weight.
-      'block3' => array(
-        TRUE, 'bottom', 5
-      ),
+      // Test some blocks in the same region with specific weight.
       'block4' => array(
-        TRUE, 'bottom', -5
+        AccessResult::allowed(), 'bottom', 5
+      ),
+      'block3' => array(
+        AccessResult::allowed(), 'bottom', 5
+      ),
+      'block5' => array(
+        AccessResult::allowed(), 'bottom', -5
       ),
     );
 
@@ -133,7 +141,7 @@ class BlockRepositoryTest extends UnitTestCase {
       [
         'top' => ['block1'],
         'center' => [],
-        'bottom' => ['block4', 'block3'],
+        'bottom' => ['block5', 'block3', 'block4'],
       ]
     ];
     return $test_cases;
@@ -147,23 +155,20 @@ class BlockRepositoryTest extends UnitTestCase {
   public function testGetVisibleBlocksPerRegionWithContext() {
     $block = $this->getMock('Drupal\block\BlockInterface');
     $block->expects($this->once())
-      ->method('setContexts')
-      ->willReturnSelf();
-    $block->expects($this->once())
       ->method('access')
-      ->willReturn(TRUE);
+      ->willReturn(AccessResult::allowed()->addCacheTags(['config:block.block.block_id']));
     $block->expects($this->once())
       ->method('getRegion')
       ->willReturn('top');
     $blocks['block_id'] = $block;
 
-    $contexts = [];
     $this->blockStorage->expects($this->once())
       ->method('loadByProperties')
       ->with(['theme' => $this->theme])
       ->willReturn($blocks);
     $result = [];
-    foreach ($this->blockRepository->getVisibleBlocksPerRegion($contexts) as $region => $resulting_blocks) {
+    $cacheable_metadata = [];
+    foreach ($this->blockRepository->getVisibleBlocksPerRegion($cacheable_metadata) as $region => $resulting_blocks) {
       $result[$region] = [];
       foreach ($resulting_blocks as $plugin_id => $block) {
         $result[$region][] = $plugin_id;
@@ -177,6 +182,10 @@ class BlockRepositoryTest extends UnitTestCase {
       'bottom' => [],
     ];
     $this->assertSame($expected, $result);
+
+    // Assert that the cacheable metadata from the block access results was
+    // collected.
+    $this->assertEquals(['config:block.block.block_id'], $cacheable_metadata['top']->getCacheTags());
   }
 
 }

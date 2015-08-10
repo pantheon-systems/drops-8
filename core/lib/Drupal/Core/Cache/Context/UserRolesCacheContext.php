@@ -7,13 +7,19 @@
 
 namespace Drupal\Core\Cache\Context;
 
+use Drupal\Core\Cache\CacheableMetadata;
+
 /**
  * Defines the UserRolesCacheContext service, for "per role" caching.
  *
  * Only use this cache context when checking explicitly for certain roles. Use
  * user.permissions for anything that checks permissions.
+ *
+ * Cache context ID: 'user.roles' (to vary by all roles of the current user).
+ * Calculated cache context ID: 'user.roles:%role', e.g. 'user.roles:anonymous'
+ * (to vary by the presence/absence of a specific role).
  */
-class UserRolesCacheContext extends UserCacheContext implements CalculatedCacheContextInterface{
+class UserRolesCacheContext extends UserCacheContextBase implements CalculatedCacheContextInterface {
 
   /**
    * {@inheritdoc}
@@ -34,11 +40,18 @@ class UserRolesCacheContext extends UserCacheContext implements CalculatedCacheC
       return 'is-super-user';
     }
     if ($role === NULL) {
-      return 'r.' . implode(',', $this->user->getRoles());
+      return implode(',', $this->user->getRoles());
     }
     else {
-      return 'r.' . $role . '.' . (in_array($role, $this->user->getRoles()) ? '0' : '1');
+      return (in_array($role, $this->user->getRoles()) ? '0' : '1');
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata($role = NULL) {
+    return (new CacheableMetadata())->setCacheTags(['user:' . $this->user->id()]);
   }
 
 }

@@ -273,6 +273,10 @@ class ThemeTest extends WebTestBase {
     $this->drupalGet('admin/appearance');
     $this->assertText(t('This theme requires the base theme @base_theme to operate correctly.', array('@base_theme' => 'not_real_test_basetheme')));
     $this->assertText(t('This theme requires the theme engine @theme_engine to operate correctly.', array('@theme_engine' => 'not_real_engine')));
+    // Check for the error text of a theme with the wrong core version.
+    $this->assertText("This theme is not compatible with Drupal 8.x. Check that the .info.yml file contains the correct 'core' value.");
+    // Check for the error text of a theme without a content region.
+    $this->assertText("This theme is missing a 'content' region.");
   }
 
   /**
@@ -334,4 +338,28 @@ class ThemeTest extends WebTestBase {
     $this->clickLink(t('Uninstall'));
     $this->assertRaw('The <em class="placeholder">Classy</em> theme has been uninstalled');
   }
+
+  /**
+   * Tests installing a theme and setting it as default.
+   */
+  function testInstallAndSetAsDefault() {
+    $this->drupalGet('admin/appearance');
+    // Bartik is uninstalled in the test profile and has the second "Install and
+    // set as default" link.
+    $this->clickLink(t('Install and set as default'), 1);
+    // Test the confirmation message.
+    $this->assertText('Bartik is now the default theme.');
+    // Make sure Bartik is now set as the default theme in config.
+    $this->assertEqual($this->config('system.theme')->get('default'), 'bartik');
+
+    // This checks for a regression. See https://www.drupal.org/node/2498691.
+    $this->assertNoText('The bartik theme was not found.');
+
+    $themes = \Drupal::service('theme_handler')->rebuildThemeData();
+    $version = $themes['bartik']->info['version'];
+
+    // Confirm Bartik is indicated as the default theme.
+    $this->assertTextPattern('/Bartik ' . preg_quote($version) . '\s{2,}\(default theme\)/');
+  }
+
 }

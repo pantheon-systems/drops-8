@@ -7,10 +7,6 @@
 
 namespace Drupal\migrate_drupal\Tests;
 
-use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Core\Config\ExtensionInstallStorage;
-use Drupal\Core\Config\InstallStorage;
-use Drupal\Core\Config\StorageInterface;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\simpletest\TestBase;
 
@@ -18,6 +14,19 @@ use Drupal\simpletest\TestBase;
  * Test helper for running a complete Drupal migration.
  */
 abstract class MigrateFullDrupalTestBase extends MigrateDrupalTestBase {
+
+  /**
+   * The test class which discovered migration tests must extend in order to be
+   * included in this test run.
+   */
+  const BASE_TEST_CLASS = 'Drupal\migrate_drupal\Tests\MigrateDrupalTestBase';
+
+  /**
+   * A list of fully-qualified test classes which should be ignored.
+   *
+   * @var string[]
+   */
+  protected static $blacklist = [];
 
   /**
    * Get the dump classes required for this migration test.
@@ -31,9 +40,24 @@ abstract class MigrateFullDrupalTestBase extends MigrateDrupalTestBase {
    * Get the test classes that needs to be run for this test.
    *
    * @return array
-   *   The list of test fully-classified class names.
+   *   The list of fully-classified test class names.
    */
-  protected abstract function getTestClassesList();
+  protected function getTestClassesList() {
+    $classes = [];
+
+    $discovery = \Drupal::getContainer()->get('test_discovery');
+    foreach (static::$modules as $module) {
+      foreach ($discovery->getTestClasses($module) as $group) {
+        foreach (array_keys($group) as $class) {
+          if (is_subclass_of($class, static::BASE_TEST_CLASS)) {
+            $classes[] = $class;
+          }
+        }
+      }
+    }
+    // Exclude blacklisted classes.
+    return array_diff($classes, static::$blacklist);
+  }
 
   /**
    * {@inheritdoc}
@@ -58,7 +82,6 @@ abstract class MigrateFullDrupalTestBase extends MigrateDrupalTestBase {
     $this->loadDumps($dumps);
 
     $classes = $this->getTestClassesList();
-    $extension_install_storage = new ExtensionInstallStorage(\Drupal::service('config.storage'), InstallStorage::CONFIG_OPTIONAL_DIRECTORY, StorageInterface::DEFAULT_COLLECTION, TRUE);
     foreach ($classes as $class) {
       if (is_subclass_of($class, '\Drupal\migrate\Tests\MigrateDumpAlterInterface')) {
         $class::migrateDumpAlter($this);
@@ -68,16 +91,6 @@ abstract class MigrateFullDrupalTestBase extends MigrateDrupalTestBase {
     // Run every migration in the order specified by the storage controller.
     foreach (entity_load_multiple('migration', static::$migrations) as $migration) {
       (new MigrateExecutable($migration, $this))->import();
-
-      // Ensure that the default migration has the correct dependencies.
-      list($base_name, ) = explode(':', $migration->id(), 2);
-      $default_configuration = $extension_install_storage->read('migrate.migration.' . $base_name);
-      $default_dependencies = isset($default_configuration['dependencies']) ? $default_configuration['dependencies'] : [];
-      $this->assertEqual($default_dependencies, $migration->getDependencies(), SafeMarkup::format('Dependencies in @id match after installing. Default configuration @first is equal to active configuration @second.', array(
-        '@id' => $migration->id(),
-        '@first' => var_export($default_dependencies, TRUE),
-        '@second' => var_export($migration->getDependencies(), TRUE)
-      )));
     }
     foreach ($classes as $class) {
       $test_object = new $class($this->testId);

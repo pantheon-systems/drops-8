@@ -57,6 +57,7 @@
  * - @link queue Queue API @endlink
  * - @link typed_data Typed Data @endlink
  * - @link testing Automated tests @endlink
+ * - @link php_assert PHP Runtime Assert Statements @endlink
  * - @link third_party Integrating third-party applications @endlink
  *
  * @section more_info Further information
@@ -979,6 +980,55 @@
  *
  * PHPUnit tests can also be run from the command line, using the PHPUnit
  * framework. See https://www.drupal.org/node/2116263 for more information.
+ * @}
+ */
+
+/**
+ * @defgroup php_assert PHP Runtime Assert Statements
+ * @{
+ * Use of the assert() statement in Drupal.
+ *
+ * Unit tests also use the term "assertion" to refer to test conditions, so to
+ * avoid confusion the term "runtime assertion" will be used for the assert()
+ * statement throughout the documentation.
+ *
+ * A runtime assertion is a statement that is expected to always be true at
+ * the point in the code it appears at. They are tested using PHP's internal
+ * @link http://www.php.net/assert assert() @endlink statement. If an
+ * assertion is ever FALSE it indicates an error in the code or in module or
+ * theme configuration files. User-provided configuration files should be
+ * verified with standard control structures at all times, not just checked in
+ * development environments with assert() statements on.
+ *
+ * When runtime assertions fail in PHP 7 an \AssertionException is thrown.
+ * Drupal uses an assertion callback to do the same in PHP 5.x so that unit
+ * tests involving runtime assertions will work uniformly across both versions.
+ *
+ * The Drupal project primarily uses runtime assertions to enforce the
+ * expectations of the API by failing when incorrect calls are made by code
+ * under development. While PHP type hinting does this for objects and arrays,
+ * runtime assertions do this for scalars (strings, integers, floats, etc.) and
+ * complex data structures such as cache and render arrays. They ensure that
+ * methods' return values are the documented datatypes. They also verify that
+ * objects have been properly configured and set up by the service container.
+ * Runtime assertions are checked throughout development. They supplement unit
+ * tests by checking scenarios that do not have unit tests written for them,
+ * and by testing the API calls made by all the code in the system.
+ *
+ * When using assert() keep the following in mind:
+ * - Runtime assertions are disabled by default in production and enabled in
+ *   development, so they can't be used as control structures. Use exceptions
+ *   for errors that can occur in production no matter how unlikely they are.
+ * - Assert() functions in a buggy manner prior to PHP 7. If you do not use a
+ *   string for the first argument of the statement but instead use a function
+ *   call or expression then that code will be evaluated even when runtime
+ *   assertions are turned off. To avoid this you must use a string as the
+ *   first argument, and assert will pass this string to the eval() statement.
+ * - Since runtime assertion strings are parsed by eval() use caution when
+ *   using them to work with data that may be unsanitized.
+ *
+ * See https://www.drupal.org/node/2492225 for more information on runtime
+ * assertions.
  * @}
  */
 
@@ -2054,12 +2104,6 @@ function hook_validation_constraint_alter(array &$definitions) {
  * an array. Here are the details of its elements, all of which are optional:
  * - callback: The callback to invoke to handle the server side of the
  *   Ajax event. More information on callbacks is below in @ref sub_callback.
- * - path: The URL path to use for the request. If omitted, defaults to
- *   'system/ajax', which invokes the default Drupal Ajax processing (this will
- *   call the callback supplied in the 'callback' element). If you supply a
- *   path, you must set up a routing entry to handle the request yourself and
- *   return output described in @ref sub_callback below. See the
- *   @link menu Routing topic @endlink for more information on routing.
  * - wrapper: The HTML 'id' attribute of the area where the content returned by
  *   the callback should be placed. Note that callbacks have a choice of
  *   returning content or JavaScript commands; 'wrapper' is used for content
@@ -2085,6 +2129,13 @@ function hook_validation_constraint_alter(array &$definitions) {
  *   - message: Translated message to display.
  *   - url: For a bar progress indicator, URL path for determining progress.
  *   - interval: For a bar progress indicator, how often to update it.
+ * - url: A \Drupal\Core\Url to which to submit the Ajax request. If omitted,
+ *   defaults to either the same URL as the form or link destination is for
+ *   someone with JavaScript disabled, or a slightly modified version (e.g.,
+ *   with a query parameter added, removed, or changed) of that URL if
+ *   necessary to support Drupal's content negotiation. It is recommended to
+ *   omit this key and use Drupal's content negotiation rather than using
+ *   substantially different URLs between Ajax and non-Ajax.
  *
  * @subsection sub_callback Setting up a callback to process Ajax
  * Once you have set up your form to trigger an Ajax response (see @ref sub_form
@@ -2186,6 +2237,13 @@ function hook_validation_constraint_alter(array &$definitions) {
  *   at the end of a request to finalize operations, if this service was
  *   instantiated. Services should implement \Drupal\Core\DestructableInterface
  *   in this case.
+ * - context_provider: Indicates a block context provider, used for example
+ *   by block conditions. It has to implement
+ *   \Drupal\Core\Plugin\Context\ContextProviderInterface.
+ * - http_client_middleware: Indicates that the service provides a guzzle
+ *   middleware, see
+ *   https://guzzle.readthedocs.org/en/latest/handlers-and-middleware.html for
+ *   more information.
  *
  * Creating a tag for a service does not do anything on its own, but tags
  * can be discovered or queried in a compiler pass when the container is built,

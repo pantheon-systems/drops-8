@@ -7,14 +7,16 @@
 
 namespace Drupal\Core\Render;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Component\Utility\Xss;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerResolverInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeManagerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Turns a render array into a HTML string.
@@ -57,11 +59,35 @@ class Renderer implements RendererInterface {
   protected $rendererConfig;
 
   /**
-   * The stack containing bubbleable rendering metadata.
+   * Whether we're currently in a ::renderRoot() call.
    *
-   * @var \SplStack|null
+   * @var bool
    */
-  protected static $stack;
+  protected $isRenderingRoot = FALSE;
+
+  /**
+   * The request stack.
+   *
+   * @var \Symfony\Component\HttpFoundation\RequestStack
+   */
+  protected $requestStack;
+
+  /**
+   * The render context collection.
+   *
+   * An individual global render context is tied to the current request. We then
+   * need to maintain a different context for each request to correctly handle
+   * rendering in subrequests.
+   *
+   * This must be static as long as some controllers rebuild the container
+   * during a request. This causes multiple renderer instances to co-exist
+   * simultaneously, render state getting lost, and therefore causing pages to
+   * fail to render correctly. As soon as it is guaranteed that during a request
+   * the same container is used, it no longer needs to be static.
+   *
+   * @var \Drupal\Core\Render\RenderContext[]
+   */
+  protected static $contextCollection;
 
   /**
    * Constructs a new Renderer.
@@ -74,33 +100,52 @@ class Renderer implements RendererInterface {
    *   The element info.
    * @param \Drupal\Core\Render\RenderCacheInterface $render_cache
    *   The render cache service.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
    * @param array $renderer_config
    *   The renderer configuration array.
    */
-  public function __construct(ControllerResolverInterface $controller_resolver, ThemeManagerInterface $theme, ElementInfoManagerInterface $element_info, RenderCacheInterface $render_cache, array $renderer_config) {
+  public function __construct(ControllerResolverInterface $controller_resolver, ThemeManagerInterface $theme, ElementInfoManagerInterface $element_info, RenderCacheInterface $render_cache, RequestStack $request_stack, array $renderer_config) {
     $this->controllerResolver = $controller_resolver;
     $this->theme = $theme;
     $this->elementInfo = $element_info;
     $this->renderCache = $render_cache;
     $this->rendererConfig = $renderer_config;
+    $this->requestStack = $request_stack;
+
+    // Initialize the context collection if needed.
+    if (!isset(static::$contextCollection)) {
+      static::$contextCollection = new \SplObjectStorage();
+    }
   }
 
   /**
    * {@inheritdoc}
    */
   public function renderRoot(&$elements) {
-    return $this->render($elements, TRUE);
+    // Disallow calling ::renderRoot() from within another ::renderRoot() call.
+    if ($this->isRenderingRoot) {
+      $this->isRenderingRoot = FALSE;
+      throw new \LogicException('A stray renderRoot() invocation is causing bubbling of attached assets to break.');
+    }
+
+    // Render in its own render context.
+    $this->isRenderingRoot = TRUE;
+    $output = $this->executeInRenderContext(new RenderContext(), function () use (&$elements) {
+      return $this->render($elements, TRUE);
+    });
+    $this->isRenderingRoot = FALSE;
+
+    return $output;
   }
 
   /**
    * {@inheritdoc}
    */
   public function renderPlain(&$elements) {
-    $current_stack = static::$stack;
-    $this->resetStack();
-    $output = $this->renderRoot($elements);
-    static::$stack = $current_stack;
-    return $output;
+    return $this->executeInRenderContext(new RenderContext(), function () use (&$elements) {
+      return $this->render($elements, TRUE);
+    });
   }
 
   /**
@@ -150,16 +195,17 @@ class Renderer implements RendererInterface {
     // possible that any of them throw an exception that will cause a different
     // page to be rendered (e.g. throwing
     // \Symfony\Component\HttpKernel\Exception\NotFoundHttpException will cause
-    // the 404 page to be rendered). That page might also use Renderer::render()
-    // but if exceptions aren't caught here, the stack will be left in an
-    // inconsistent state.
-    // Hence, catch all exceptions and reset the stack and re-throw them.
+    // the 404 page to be rendered). That page might also use
+    // Renderer::renderRoot() but if exceptions aren't caught here, it will be
+    // impossible to call Renderer::renderRoot() again.
+    // Hence, catch all exceptions, reset the isRenderingRoot property and
+    // re-throw exceptions.
     try {
       return $this->doRender($elements, $is_root_call);
     }
     catch (\Exception $e) {
-      // Reset stack and re-throw exception.
-      $this->resetStack();
+      // Mark the ::rootRender() call finished due to this exception & re-throw.
+      $this->isRenderingRoot = FALSE;
       throw $e;
     }
   }
@@ -168,6 +214,10 @@ class Renderer implements RendererInterface {
    * See the docs for ::render().
    */
   protected function doRender(&$elements, $is_root_call = FALSE) {
+    if (empty($elements)) {
+      return '';
+    }
+
     if (!isset($elements['#access']) && isset($elements['#access_callback'])) {
       if (is_string($elements['#access_callback']) && strpos($elements['#access_callback'], '::') === FALSE) {
         $elements['#access_callback'] = $this->controllerResolver->getControllerFromDefinition($elements['#access_callback']);
@@ -176,8 +226,18 @@ class Renderer implements RendererInterface {
     }
 
     // Early-return nothing if user does not have access.
-    if (empty($elements) || (isset($elements['#access']) && !$elements['#access'])) {
-      return '';
+    if (isset($elements['#access'])) {
+      // If #access is an AccessResultInterface object, we must apply it's
+      // cacheability metadata to the render array.
+      if ($elements['#access'] instanceof AccessResultInterface) {
+        $this->addCacheableDependency($elements, $elements['#access']);
+        if (!$elements['#access']->isAllowed()) {
+          return '';
+        }
+      }
+      elseif ($elements['#access'] === FALSE) {
+        return '';
+      }
     }
 
     // Do not print elements twice.
@@ -185,10 +245,11 @@ class Renderer implements RendererInterface {
       return '';
     }
 
-    if (!isset(static::$stack)) {
-      static::$stack = new \SplStack();
+    $context = $this->getCurrentRenderContext();
+    if (!isset($context)) {
+      throw new \LogicException("Render context is empty, because render() was called outside of a renderRoot() or renderPlain() call. Use renderPlain()/renderRoot() or #lazy_builder/#pre_render instead.");
     }
-    static::$stack->push(new BubbleableMetadata());
+    $context->push(new BubbleableMetadata());
 
     // Set the bubbleable rendering metadata that has configurable defaults, if:
     // - this is the root call, to ensure that the final render array definitely
@@ -217,22 +278,16 @@ class Renderer implements RendererInterface {
         if ($is_root_call) {
           $this->replacePlaceholders($elements);
         }
-        // Mark the element markup as safe. If we have cached children, we need
-        // to mark them as safe too. The parent markup contains the child
-        // markup, so if the parent markup is safe, then the markup of the
-        // individual children must be safe as well.
-        $elements['#markup'] = SafeMarkup::set($elements['#markup']);
-        if (!empty($elements['#cache_properties'])) {
-          foreach (Element::children($cached_element) as $key) {
-            SafeMarkup::set($cached_element[$key]['#markup']);
-          }
+        // Mark the element markup as safe if is it a string.
+        if (is_string($elements['#markup'])) {
+          $elements['#markup'] = SafeString::create($elements['#markup']);
         }
         // The render cache item contains all the bubbleable rendering metadata
         // for the subtree.
-        $this->updateStack($elements);
+        $context->update($elements);
         // Render cache hit, so rendering is finished, all necessary info
         // collected!
-        $this->bubbleStack();
+        $context->bubble();
         return $elements['#markup'];
       }
     }
@@ -330,9 +385,9 @@ class Renderer implements RendererInterface {
     if (!empty($elements['#printed'])) {
       // The #printed element contains all the bubbleable rendering metadata for
       // the subtree.
-      $this->updateStack($elements);
+      $context->update($elements);
       // #printed, so rendering is finished, all necessary info collected!
-      $this->bubbleStack();
+      $context->bubble();
       return '';
     }
 
@@ -350,10 +405,10 @@ class Renderer implements RendererInterface {
       $elements['#children'] = '';
     }
 
-    if (isset($elements['#markup'])) {
+    if (!empty($elements['#markup'])) {
       // @todo Decide how to support non-HTML in the render API in
       //   https://www.drupal.org/node/2501313.
-      $elements['#markup'] = SafeMarkup::checkAdminXss($elements['#markup']);
+      $elements['#markup'] = $this->xssFilterAdminIfUnsafe($elements['#markup']);
     }
 
     // Assume that if #theme is set it represents an implemented hook.
@@ -367,7 +422,7 @@ class Renderer implements RendererInterface {
       );
       foreach ($markup_keys as $key) {
         if (!empty($elements[$key]) && is_scalar($elements[$key])) {
-          $elements[$key] = SafeMarkup::checkAdminXss($elements[$key]);
+          $elements[$key] = $this->xssFilterAdminIfUnsafe($elements[$key]);
         }
       }
     }
@@ -392,7 +447,7 @@ class Renderer implements RendererInterface {
       foreach ($children as $key) {
         $elements['#children'] .= $this->doRender($elements[$key]);
       }
-      $elements['#children'] = SafeMarkup::set($elements['#children']);
+      $elements['#children'] = SafeString::create($elements['#children']);
     }
 
     // If #theme is not implemented and the element has raw #markup as a
@@ -403,7 +458,7 @@ class Renderer implements RendererInterface {
     // required. Eventually #theme_wrappers will expect both #markup and
     // #children to be a single string as #children.
     if (!$theme_is_implemented && isset($elements['#markup'])) {
-      $elements['#children'] = SafeMarkup::set($elements['#markup'] . $elements['#children']);
+      $elements['#children'] = SafeString::create($elements['#markup'] . $elements['#children']);
     }
 
     // Let the theme functions in #theme_wrappers add markup around the rendered
@@ -453,13 +508,13 @@ class Renderer implements RendererInterface {
     // with how render cached output gets stored. This ensures that placeholder
     // replacement logic gets the same data to work with, no matter if #cache is
     // disabled, #cache is enabled, there is a cache hit or miss.
-    $prefix = isset($elements['#prefix']) ? SafeMarkup::checkAdminXss($elements['#prefix']) : '';
-    $suffix = isset($elements['#suffix']) ? SafeMarkup::checkAdminXss($elements['#suffix']) : '';
+    $prefix = isset($elements['#prefix']) ? $this->xssFilterAdminIfUnsafe($elements['#prefix']) : '';
+    $suffix = isset($elements['#suffix']) ? $this->xssFilterAdminIfUnsafe($elements['#suffix']) : '';
 
     $elements['#markup'] = $prefix . $elements['#children'] . $suffix;
 
-    // We've rendered this element (and its subtree!), now update the stack.
-    $this->updateStack($elements);
+    // We've rendered this element (and its subtree!), now update the context.
+    $context->update($elements);
 
     // Cache the processed element if both $pre_bubbling_elements and $elements
     // have the metadata necessary to generate a cache ID.
@@ -481,66 +536,71 @@ class Renderer implements RendererInterface {
     // that is handled earlier in Renderer::render().
     if ($is_root_call) {
       $this->replacePlaceholders($elements);
-      if (static::$stack->count() !== 1) {
+      // @todo remove as part of https://www.drupal.org/node/2511330.
+      if ($context->count() !== 1) {
         throw new \LogicException('A stray drupal_render() invocation with $is_root_call = TRUE is causing bubbling of attached assets to break.');
       }
     }
 
     // Rendering is finished, all necessary info collected!
-    $this->bubbleStack();
+    $context->bubble();
 
     $elements['#printed'] = TRUE;
-    $elements['#markup'] = SafeMarkup::set($elements['#markup']);
-    return $elements['#markup'];
+    return SafeString::create($elements['#markup']);
   }
 
   /**
-   * Resets the renderer service's internal stack (used for bubbling metadata).
-   *
-   * Only necessary in very rare/advanced situations, such as when rendering an
-   * error page if an exception occurred *during* rendering.
+   * {@inheritdoc}
    */
-  protected function resetStack() {
-    static::$stack = NULL;
+  public function hasRenderContext() {
+    return (bool) $this->getCurrentRenderContext();
   }
 
   /**
-   * Updates the stack.
-   *
-   * @param array &$element
-   *   The element of the render array that has just been rendered. The stack
-   *   frame for this element will be updated with the bubbleable rendering
-   *   metadata of this element.
+   * {@inheritdoc}
    */
-  protected function updateStack(&$element) {
-    // The latest frame represents the bubbleable metadata for the subtree.
-    $frame = static::$stack->pop();
-    // Update the frame, but also update the current element, to ensure it
-    // contains up-to-date information in case it gets render cached.
-    $updated_frame = BubbleableMetadata::createFromRenderArray($element)->merge($frame);
-    $updated_frame->applyTo($element);
-    static::$stack->push($updated_frame);
-  }
+  public function executeInRenderContext(RenderContext $context, callable $callable) {
+    // Store the current render context.
+    $previous_context = $this->getCurrentRenderContext();
 
-  /**
-   * Bubbles the stack.
-   *
-   * Whenever another level in the render array has been rendered, the stack
-   * must be bubbled, to merge its rendering metadata with that of the parent
-   * element.
-   */
-  protected function bubbleStack() {
-    // If there's only one frame on the stack, then this is the root call, and
-    // we can't bubble up further. Reset the stack for the next root call.
-    if (static::$stack->count() === 1) {
-      $this->resetStack();
-      return;
+    // Set the provided context and call the callable, it will use that context.
+    $this->setCurrentRenderContext($context);
+    $result = $callable();
+    // @todo Convert to an assertion in https://www.drupal.org/node/2408013
+    if ($context->count() > 1) {
+      throw new \LogicException('Bubbling failed.');
     }
 
-    // Merge the current and the parent stack frame.
-    $current = static::$stack->pop();
-    $parent = static::$stack->pop();
-    static::$stack->push($current->merge($parent));
+    // Restore the original render context.
+    $this->setCurrentRenderContext($previous_context);
+
+    return $result;
+  }
+
+  /**
+   * Returns the current render context.
+   *
+   * @return \Drupal\Core\Render\RenderContext
+   *   The current render context.
+   */
+  protected function getCurrentRenderContext() {
+    $request = $this->requestStack->getCurrentRequest();
+    return isset(static::$contextCollection[$request]) ? static::$contextCollection[$request] : NULL;
+  }
+
+  /**
+   * Sets the current render context.
+   *
+   * @param \Drupal\Core\Render\RenderContext|null $context
+   *   The render context. This can be NULL for instance when restoring the
+   *   original render context, which is in fact NULL.
+   *
+   * @return $this
+   */
+  protected function setCurrentRenderContext(RenderContext $context = NULL) {
+    $request = $this->requestStack->getCurrentRequest();
+    static::$contextCollection[$request] = $context;
+    return $this;
   }
 
   /**
@@ -636,6 +696,26 @@ class Renderer implements RendererInterface {
     $meta_a = CacheableMetadata::createFromRenderArray($elements);
     $meta_b = CacheableMetadata::createFromObject($dependency);
     $meta_a->merge($meta_b)->applyTo($elements);
+  }
+
+  /**
+   * Applies a very permissive XSS/HTML filter for admin-only use.
+   *
+   * Note: This method only filters if $string is not marked safe already. This
+   * ensures that HTML intended for display is not filtered.
+   *
+   * @param string|\Drupal\Core\Render\SafeString $string
+   *   A string.
+   *
+   * @return \Drupal\Core\Render\SafeString
+   *   The escaped string wrapped in a SafeString object. If
+   *   SafeMarkup::isSafe($string) returns TRUE, it won't be escaped again.
+   */
+  protected function xssFilterAdminIfUnsafe($string) {
+    if (!SafeMarkup::isSafe($string)) {
+      $string = Xss::filterAdmin($string);
+    }
+    return SafeString::create($string);
   }
 
 }

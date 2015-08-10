@@ -288,7 +288,7 @@ function filter_fallback_format() {
  *   FilterInterface::TYPE_HTML_RESTRICTOR is the only type that cannot be
  *   skipped.
  *
- * @return string
+ * @return \Drupal\Component\Utility\SafeStringInterface
  *   The filtered text.
  *
  * @see filter_process_text()
@@ -353,7 +353,10 @@ function _filter_tips($format_id, $long = FALSE) {
       if ($filter->status) {
         $tip = $filter->tips($long);
         if (isset($tip)) {
-          $tips[$format->label()][$name] = array('tip' => $tip, 'id' => $name);
+          $tips[$format->label()][$name] = array(
+            'tip' => array('#markup' => $tip),
+            'id' => $name,
+          );
         }
       }
     }
@@ -430,7 +433,6 @@ function template_preprocess_filter_tips(&$variables) {
   foreach ($variables['tips'] as $name => $tiplist) {
     foreach ($tiplist as $tip_key => $tip) {
       $tiplist[$tip_key]['attributes'] = new Attribute();
-      $tiplist[$tip_key]['tip'] = Xss::filterAdmin($tiplist[$tip_key]['tip']);
     }
 
     $variables['tips'][$name] = array(
@@ -499,7 +501,7 @@ function _filter_url($text, $filter) {
   // we cannot cleanly differ between protocols here without hard-coding MAILTO,
   // so '//' is optional for all protocols.
   // @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
-  $protocols = \Drupal::config('system.filter')->get('protocols');
+  $protocols = \Drupal::getContainer()->getParameter('filter_protocols') ?: ['http', 'https'];
   $protocols = implode(':(?://)?|', $protocols) . ':(?://)?';
 
   $valid_url_path_characters = "[\p{L}\p{M}\p{N}!\*\';:=\+,\.\$\/%#\[\]\-_~@&]";
@@ -535,7 +537,7 @@ function _filter_url($text, $filter) {
   $tasks['_filter_url_parse_full_links'] = $pattern;
 
   // Match email addresses.
-  $url_pattern = "[\p{L}\p{M}\p{N}._-]{1,254}@(?:$domain)";
+  $url_pattern = "[\p{L}\p{M}\p{N}._+-]{1,254}@(?:$domain)";
   $pattern = "`($url_pattern)`u";
   $tasks['_filter_url_parse_email_links'] = $pattern;
 

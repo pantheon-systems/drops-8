@@ -68,22 +68,6 @@ class CommentForm extends ContentEntityForm {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  protected function init(FormStateInterface $form_state) {
-    $comment = $this->entity;
-
-    // Make the comment inherit the current content language unless specifically
-    // set.
-    if ($comment->isNew()) {
-      $language_content = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT);
-      $comment->langcode->value = $language_content->getId();
-    }
-
-    parent::init($form_state);
-  }
-
-  /**
    * Overrides Drupal\Core\Entity\EntityForm::form().
    */
   public function form(array $form, FormStateInterface $form_state) {
@@ -258,7 +242,6 @@ class CommentForm extends ContentEntityForm {
       '#type' => 'submit',
       '#value' => $this->t('Preview'),
       '#access' => $preview_mode != DRUPAL_DISABLED,
-      '#validate' => array('::validate'),
       '#submit' => array('::submitForm', '::preview'),
     );
 

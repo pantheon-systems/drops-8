@@ -101,6 +101,12 @@ class EntityForm extends FormBase implements EntityFormInterface {
       $this->init($form_state);
     }
 
+    // Ensure that edit forms have the correct cacheability metadata so they can
+    // be cached.
+    if (!$this->entity->isNew()) {
+      \Drupal::service('renderer')->addCacheableDependency($form, $this->entity);
+    }
+
     // Retrieve the form array using the possibly updated entity in form state.
     $form = $this->form($form, $form_state);
 
@@ -219,7 +225,6 @@ class EntityForm extends FormBase implements EntityFormInterface {
     $actions['submit'] = array(
       '#type' => 'submit',
       '#value' => $this->t('Save'),
-      '#validate' => array('::validate'),
       '#submit' => array('::submitForm', '::save'),
     );
 
@@ -242,16 +247,6 @@ class EntityForm extends FormBase implements EntityFormInterface {
     }
 
     return $actions;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validate(array $form, FormStateInterface $form_state) {
-    // @todo Remove this.
-    // Execute legacy global validation handlers.
-    $form_state->setValidateHandlers([]);
-    \Drupal::service('form_validator')->executeValidateHandlers($form, $form_state);
   }
 
   /**

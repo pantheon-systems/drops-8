@@ -10,6 +10,7 @@ namespace Drupal\Core\Block;
 use Drupal\block\BlockInterface;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContextAwarePluginBase;
 use Drupal\Component\Utility\Unicode;
@@ -265,16 +266,21 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
     //   \Drupal\system\MachineNameController::transliterate(), so it might make
     //   sense to provide a common service for the two.
     $transliterated = $this->transliteration()->transliterate($admin_label, LanguageInterface::LANGCODE_DEFAULT, '_');
-
-    $replace_pattern = '[^a-z0-9_.]+';
-
     $transliterated = Unicode::strtolower($transliterated);
 
-    if (isset($replace_pattern)) {
-      $transliterated = preg_replace('@' . $replace_pattern . '@', '', $transliterated);
-    }
+    $transliterated = preg_replace('@[^a-z0-9_.]+@', '', $transliterated);
 
     return $transliterated;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    $max_age = parent::getCacheMaxAge();
+    // @todo Configurability of this will be removed in
+    //   https://www.drupal.org/node/2458763.
+    return Cache::mergeMaxAges($max_age, (int) $this->configuration['cache']['max_age']);
   }
 
   /**
@@ -297,27 +303,6 @@ abstract class BlockBase extends ContextAwarePluginBase implements BlockPluginIn
    */
   public function setTransliteration(TransliterationInterface $transliteration) {
     $this->transliteration = $transliteration;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheContexts() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheTags() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getCacheMaxAge() {
-    return (int)$this->configuration['cache']['max_age'];
   }
 
 }

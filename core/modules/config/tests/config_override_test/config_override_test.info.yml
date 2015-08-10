@@ -3,3 +3,7 @@ type: module
 package: Testing
 version: VERSION
 core: 8.x
+
+dependencies:
+  - block
+  - block_content

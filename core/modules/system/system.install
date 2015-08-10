@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
  * Implements hook_requirements().
  */
 function system_requirements($phase) {
+  global $install_state;
   $requirements = array();
 
   // Report Drupal version
@@ -57,6 +58,80 @@ function system_requirements($phase) {
     'title' => t('Web server'),
     'value' => $software,
   );
+
+  // Tests clean URL support.
+  if ($phase == 'install' && $install_state['interactive'] && !isset($_GET['rewrite']) && strpos($software, 'Apache') !== FALSE) {
+    // If the Apache rewrite module is not enabled, Apache version must be >=
+    // 2.2.16 because of the FallbackResource directive in the root .htaccess
+    // file. Since the Apache version reported by the server is dependent on the
+    // ServerTokens setting in httpd.conf, we may not be able to determine if a
+    // given config is valid. Thus we are unable to use version_compare() as we
+    // need have three possible outcomes: the version of Apache is greater than
+    // 2.2.16, is less than 2.2.16, or cannot be determined accurately. In the
+    // first case, we encourage the use of mod_rewrite; in the second case, we
+    // raise an error regarding the minimum Apache version; in the third case,
+    // we raise a warning that the current version of Apache may not be
+    // supported.
+    $rewrite_warning = FALSE;
+    $rewrite_error = FALSE;
+    $apache_version_string = 'Apache';
+
+    // Determine the Apache version number: major, minor and revision.
+    if (preg_match('/Apache\/(\d+)\.?(\d+)?\.?(\d+)?/', $software, $matches)) {
+      $apache_version_string = $matches[0];
+
+      // Major version number
+      if ($matches[1] < 2) {
+        $rewrite_error = TRUE;
+      }
+      else if ($matches[1] == 2) {
+        if (!isset($matches[2])) {
+          $rewrite_warning = TRUE;
+        }
+        else if ($matches[2] < 2) {
+          $rewrite_error = TRUE;
+        }
+        else if ($matches[2] == 2) {
+          if (!isset($matches[3])) {
+            $rewrite_warning = TRUE;
+          }
+          else if ($matches[3] < 16) {
+            $rewrite_error = TRUE;
+          }
+        }
+      }
+    }
+    else {
+      $rewrite_warning = TRUE;
+    }
+
+    if ($rewrite_warning) {
+      $requirements['apache_version'] = array (
+        'title' => t('Apache version'),
+        'value' => $apache_version_string,
+        'severity' => REQUIREMENT_WARNING,
+        'description' => t('Due to the settings for ServerTokens in httpd.conf, it is impossible to accurately determine the version of Apache running on this server. The reported value is @reported, to run Drupal without mod_rewrite, a minimum version of 2.2.16 is needed.', array('@reported' => $apache_version_string)),
+      );
+    }
+
+    if ($rewrite_error) {
+      $requirements['Apache version'] = array (
+        'title' => t('Apache version'),
+        'value' => $apache_version_string,
+        'severity' => REQUIREMENT_ERROR,
+        'description' => t('The minimum version of Apache needed to run Drupal without mod_rewrite enabled is 2.2.16. See the <a href="@link">enabling clean URLs</a> page for more information on mod_rewrite.', array('@link' => 'http://drupal.org/node/15365')),
+      );
+    }
+
+    if (!$rewrite_error && !$rewrite_warning) {
+      $requirements['rewrite_module'] = array (
+        'title' => t('Clean URLs'),
+        'value' => t('Disabled'),
+        'severity' => REQUIREMENT_WARNING,
+        'description' => t('Your server is capable of using clean URLs, but it is not enabled. Using clean URLs gives an improved user experience and is recommended. <a href="@link">Enable clean URLs</a>', array('@link' => 'http://drupal.org/node/15365')),
+      );
+    }
+  }
 
   // Test PHP version and show link to phpinfo() if it's available
   $phpversion = $phpversion_label = phpversion();
@@ -618,26 +693,6 @@ function system_requirements($phase) {
     }
   }
 
-  // Ensure that if upgrading from 7 to 8 we have no disabled modules.
-  if ($phase == 'update' && db_table_exists('system')) {
-    $modules = db_query('SELECT name, info FROM {system} WHERE type = :module AND status = 0 AND schema_version <> :schema_uninstalled', array(
-      ':module' => 'module',
-      ':schema_uninstalled' => SCHEMA_UNINSTALLED,
-    ))->fetchAllKeyed(0, 1);
-    array_walk($modules, function (&$value, $key) {
-      $info = unserialize($value);
-      $value = $info['name'];
-    });
-    if (!empty($modules)) {
-      $requirements['disabled_modules'] = array(
-        'severity' => REQUIREMENT_ERROR,
-        'title' => t('Disabled modules'),
-        'value' => \Drupal::translation()->formatPlural(count($modules), 'The %modules module is disabled.', 'The following modules are disabled: %modules', array('%modules' => implode(', ', $modules))),
-        'description' => t('Drupal 8 no longer supports disabled modules. Please either enable or uninstall them before upgrading.'),
-      );
-    }
-  }
-
   // See if trusted hostnames have been configured, and warn the user if they
   // are not set.
   if ($phase == 'runtime') {
@@ -1085,3 +1140,66 @@ function system_schema() {
 
   return $schema;
 }
+
+/**
+ * Change two fields on the default menu link storage to be serialized data.
+ */
+function system_update_8001(&$sandbox = NULL) {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  if ($schema->tableExists('menu_tree')) {
+
+    if (!isset($sandbox['current'])) {
+      $spec = array(
+        'description' => 'The title for the link. May be a serialized TranslationWrapper.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+      );
+      $schema->changeField('menu_tree', 'title', 'title', $spec);
+      $spec = array(
+        'description' => 'The description of this link - used for admin pages and title attribute.',
+        'type' => 'blob',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+      );
+      $schema->changeField('menu_tree', 'description', 'description', $spec);
+
+      $sandbox['current'] = 0;
+      $sandbox['max'] = $database->query('SELECT COUNT(mlid) FROM {menu_tree}')
+        ->fetchField();
+    }
+
+    $menu_links = $database->queryRange('SELECT mlid, title, description FROM {menu_tree} ORDER BY mlid ASC', $sandbox['current'], $sandbox['current'] + 50)
+      ->fetchAllAssoc('mlid');
+
+    foreach ($menu_links as $menu_link) {
+      $menu_link = (array) $menu_link;
+      // Convert title and description to serialized strings.
+      $menu_link['title'] = serialize($menu_link['title']);
+      $menu_link['description'] = serialize($menu_link['description']);
+
+      $database->update('menu_tree')
+        ->fields($menu_link)
+        ->condition('mlid', $menu_link['mlid'])
+        ->execute();
+
+      $sandbox['current']++;
+    }
+
+    $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['current'] / $sandbox['max']);
+
+    if ($sandbox['#finished'] >= 1) {
+      // Drop unnecessary fields from {menu_tree}.
+      $schema->dropField('menu_tree', 'title_arguments');
+      $schema->dropField('menu_tree', 'title_context');
+    }
+    return t('Menu links converted');
+  }
+  else {
+    return t('Menu link conversion skipped, because the {menu_tree} table did not exist yet.');
+  }
+}
+

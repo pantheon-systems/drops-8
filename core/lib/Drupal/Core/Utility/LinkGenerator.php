@@ -9,10 +9,12 @@ namespace Drupal\Core\Utility;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\SafeStringInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\GeneratedLink;
 use Drupal\Core\Link;
 use Drupal\Core\Path\AliasManagerInterface;
+use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
@@ -37,23 +39,33 @@ class LinkGenerator implements LinkGeneratorInterface {
   protected $moduleHandler;
 
   /**
+   * The renderer service.
+   *
+   * @var \Drupal\Core\Render\RendererInterface
+   */
+  protected $renderer;
+
+  /**
    * Constructs a LinkGenerator instance.
    *
    * @param \Drupal\Core\Routing\UrlGeneratorInterface $url_generator
    *   The url generator.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
+   * @param \Drupal\Core\Render\RendererInterface $renderer
+   *   The renderer service.
    */
-  public function __construct(UrlGeneratorInterface $url_generator, ModuleHandlerInterface $module_handler) {
+  public function __construct(UrlGeneratorInterface $url_generator, ModuleHandlerInterface $module_handler, RendererInterface $renderer) {
     $this->urlGenerator = $url_generator;
     $this->moduleHandler = $module_handler;
+    $this->renderer = $renderer;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function generateFromLink(Link $link, $collect_cacheability_metadata = FALSE) {
-    return $this->generate($link->getText(), $link->getUrl(), $collect_cacheability_metadata);
+  public function generateFromLink(Link $link, $collect_bubbleable_metadata = FALSE) {
+    return $this->generate($link->getText(), $link->getUrl(), $collect_bubbleable_metadata);
   }
 
   /**
@@ -68,15 +80,14 @@ class LinkGenerator implements LinkGeneratorInterface {
    *
    * @see system_page_attachments()
    */
-  public function generate($text, Url $url, $collect_cacheability_metadata = FALSE) {
+  public function generate($text, Url $url, $collect_bubbleable_metadata = FALSE) {
     // Performance: avoid Url::toString() needing to retrieve the URL generator
     // service from the container.
     $url->setUrlGenerator($this->urlGenerator);
 
     // Start building a structured representation of our link to be altered later.
     $variables = array(
-      // @todo Inject the service when drupal_render() is converted to one.
-      'text' => is_array($text) ? drupal_render($text) : $text,
+      'text' => is_array($text) ? $this->renderer->render($text) : $text,
       'url' => $url,
       'options' => $url->getOptions(),
     );
@@ -95,6 +106,13 @@ class LinkGenerator implements LinkGeneratorInterface {
     if (!empty($variables['options']['language']) && !isset($variables['options']['attributes']['hreflang'])) {
       $variables['options']['attributes']['hreflang'] = $variables['options']['language']->getId();
     }
+
+    // Ensure that query values are strings.
+    array_walk($variables['options']['query'], function(&$value) {
+      if ($value instanceof SafeStringInterface) {
+        $value = (string) $value;
+      }
+    });
 
     // Set the "active" class if the 'set_active_class' option is not empty.
     if (!empty($variables['options']['set_active_class']) && !$url->isExternal()) {
@@ -131,11 +149,11 @@ class LinkGenerator implements LinkGeneratorInterface {
     unset($variables['options']['attributes']);
     $url->setOptions($variables['options']);
 
-    if (!$collect_cacheability_metadata) {
-      $url_string = $url->toString($collect_cacheability_metadata);
+    if (!$collect_bubbleable_metadata) {
+      $url_string = $url->toString($collect_bubbleable_metadata);
     }
     else {
-      $generated_url = $url->toString($collect_cacheability_metadata);
+      $generated_url = $url->toString($collect_bubbleable_metadata);
       $url_string = $generated_url->getGeneratedUrl();
       $generated_link = GeneratedLink::createFromObject($generated_url);
     }
@@ -145,7 +163,7 @@ class LinkGenerator implements LinkGeneratorInterface {
 
     $result = SafeMarkup::format('<a@attributes>@text</a>', array('@attributes' => new Attribute($attributes), '@text' => $variables['text']));
 
-    return $collect_cacheability_metadata ? $generated_link->setGeneratedLink($result) : $result;
+    return $collect_bubbleable_metadata ? $generated_link->setGeneratedLink($result) : $result;
   }
 
 }

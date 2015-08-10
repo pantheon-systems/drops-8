@@ -10,8 +10,8 @@ namespace Drupal\Core\Form;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
@@ -152,7 +152,7 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     }
 
     if (!is_object($form_arg) || !($form_arg instanceof FormInterface)) {
-      throw new \InvalidArgumentException(SafeMarkup::format('The form argument @form_arg is not a valid form.', array('@form_arg' => $form_arg)));
+      throw new \InvalidArgumentException("The form argument $form_arg is not a valid form.");
     }
 
     // Add the $form_arg as the callback object and determine the form ID.
@@ -184,9 +184,22 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // Ensure the form ID is prepared.
     $form_id = $this->getFormId($form_id, $form_state);
 
+    $request = $this->requestStack->getCurrentRequest();
+
+    // Inform $form_state about the request method that's building it, so that
+    // it can prevent persisting state changes during HTTP methods for which
+    // that is disallowed by HTTP: GET and HEAD.
+    $form_state->setRequestMethod($request->getMethod());
+
+    // Initialize the form's user input. The user input should include only the
+    // input meant to be treated as part of what is submitted to the form, so
+    // we base it on the form's method rather than the request's method. For
+    // example, when someone does a GET request for
+    // /node/add/article?destination=foo, which is a form that expects its
+    // submission method to be POST, the user input during the GET request
+    // should be initialized to empty rather than to ['destination' => 'foo'].
     $input = $form_state->getUserInput();
     if (!isset($input)) {
-      $request = $this->requestStack->getCurrentRequest();
       $input = $form_state->isMethodType('get') ? $request->query->all() : $request->request->all();
       $form_state->setUserInput($input);
     }
@@ -312,8 +325,22 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
    */
   public function rebuildForm($form_id, FormStateInterface &$form_state, $old_form = NULL) {
     $form = $this->retrieveForm($form_id, $form_state);
-    // All rebuilt forms will be cached.
-    $form_state->setCached();
+
+    // Only GET and POST are valid form methods. If the form receives its input
+    // via POST, then $form_state must be persisted when it is rebuilt between
+    // submissions. If the form receives its input via GET, then persisting
+    // state is forbidden by $form_state->setCached(), and the form must use
+    // the URL itself to transfer its state across steps. Although $form_state
+    // throws an exception based on the request method rather than the form's
+    // method, we base the decision to cache on the form method, because:
+    // - It's the form method that defines what the form needs to do to manage
+    //   its state.
+    // - rebuildForm() should only be called after successful input processing,
+    //   which means the request method matches the form method, and if not,
+    //   there's some other error, so it's ok if an exception is thrown.
+    if ($form_state->isMethodType('POST')) {
+      $form_state->setCached();
+    }
 
     // If only parts of the form will be returned to the browser (e.g., Ajax or
     // RIA clients), or if the form already had a new build ID regenerated when
@@ -697,7 +724,14 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
   protected function buildFormAction() {
     // @todo Use <current> instead of the master request in
     //   https://www.drupal.org/node/2505339.
-    $request_uri = $this->requestStack->getMasterRequest()->getRequestUri();
+    $request = $this->requestStack->getMasterRequest();
+    $request_uri = $request->getRequestUri();
+
+    // Prevent cross site requests via the Form API by using an absolute URL
+    // when the request uri starts with multiple slashes..
+    if (strpos($request_uri, '//') === 0) {
+      $request_uri = $request->getUri();
+    }
 
     // @todo Remove this parsing once these are removed from the request in
     //   https://www.drupal.org/node/2504709.
@@ -829,6 +863,13 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     // Recurse through all child elements.
     $count = 0;
+    if (isset($element['#access'])) {
+      $access = $element['#access'];
+      $inherited_access = NULL;
+      if (($access instanceof AccessResultInterface && !$access->isAllowed()) || $access === FALSE) {
+        $inherited_access = $access;
+      }
+    }
     foreach (Element::children($element) as $key) {
       // Prior to checking properties of child elements, their default
       // properties need to be loaded.
@@ -842,9 +883,9 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
         $element[$key]['#tree'] = $element['#tree'];
       }
 
-      // Deny access to child elements if parent is denied.
-      if (isset($element['#access']) && !$element['#access']) {
-        $element[$key]['#access'] = FALSE;
+      // Children inherit #access from parent.
+      if (isset($inherited_access)) {
+        $element[$key]['#access'] = $inherited_access;
       }
 
       // Make child elements inherit their parent's #disabled and #allow_focus

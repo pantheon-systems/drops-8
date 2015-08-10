@@ -10,7 +10,6 @@ namespace Drupal\views_ui;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Timer;
 use Drupal\Component\Utility\Xss;
-use Drupal\Core\Config\Entity\ThirdPartySettingsInterface;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
@@ -18,7 +17,6 @@ use Drupal\views\Views;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\Core\Database\Database;
-use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\Entity\View;
@@ -1334,6 +1332,42 @@ class ViewUI implements ViewEntityInterface {
    */
   public function hasTrustedData() {
     return $this->storage->hasTrustedData();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function addCacheableDependency($other_object) {
+    $this->storage->addCacheableDependency($other_object);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function addCacheContexts(array $cache_contexts) {
+    return $this->storage->addCacheContexts($cache_contexts);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function mergeCacheMaxAge($max_age) {
+    return $this->storage->mergeCacheMaxAge($max_age);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTagsToInvalidate() {
+    return $this->storage->getCacheTagsToInvalidate();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function addCacheTags(array $cache_tags) {
+    return $this->storage->addCacheTags($cache_tags);
   }
 
 }

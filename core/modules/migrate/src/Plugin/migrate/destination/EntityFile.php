@@ -7,7 +7,6 @@
 
 namespace Drupal\migrate\Plugin\migrate\destination;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\File\FileSystemInterface;
@@ -83,7 +82,7 @@ class EntityFile extends EntityContentBase {
 
     // Ensure the source file exists, if it's a local URI or path.
     if ($this->isLocalUri($source) && !file_exists($source)) {
-      throw new MigrateException(SafeMarkup::format('File @source does not exist.', ['@source' => $source]));
+      throw new MigrateException("File '$source' does not exist.");
     }
 
     // If the start and end file is exactly the same, there is nothing to do.
@@ -99,7 +98,7 @@ class EntityFile extends EntityContentBase {
         $success = $this->writeFile($source, $destination, $replace);
       }
       else {
-        throw new MigrateException(SafeMarkup::format('Could not create directory @dir', ['@dir' => $dir]));
+        throw new MigrateException("Could not create directory '$dir'");
       }
     }
 
@@ -107,7 +106,7 @@ class EntityFile extends EntityContentBase {
       return parent::import($row, $old_destination_id_values);
     }
     else {
-      throw new MigrateException(SafeMarkup::format('File %source could not be copied to %destination.', ['%source' => $source, '%destination' => $destination]));
+      throw new MigrateException("File $source could not be copied to $destination.");
     }
   }
 
@@ -121,7 +120,7 @@ class EntityFile extends EntityContentBase {
    * @param integer $replace
    *  FILE_EXISTS_REPLACE (default) or FILE_EXISTS_RENAME.
    *
-   * @return boolean
+   * @return bool
    *  TRUE on success, FALSE on failure.
    */
   protected function writeFile($source, $destination, $replace = FILE_EXISTS_REPLACE) {
@@ -164,7 +163,7 @@ class EntityFile extends EntityContentBase {
    * @param string $uri
    *  The URI or path.
    *
-   * @return boolean|string
+   * @return string|false
    *  The directory component of the path or URI, or FALSE if it could not
    *  be determined.
    */
@@ -187,7 +186,7 @@ class EntityFile extends EntityContentBase {
    * @param string $destination
    *  The destination URI.
    *
-   * @return boolean
+   * @return bool
    *  TRUE if the source and destination URIs refer to the same physical path,
    *  otherwise FALSE.
    */
@@ -210,7 +209,7 @@ class EntityFile extends EntityContentBase {
    * @param string $uri
    *  The URI or path to test.
    *
-   * @return boolean
+   * @return bool
    */
   protected function isLocalUri($uri) {
     $scheme = $this->fileSystem->uriScheme($uri);

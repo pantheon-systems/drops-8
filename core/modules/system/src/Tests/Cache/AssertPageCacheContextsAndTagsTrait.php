@@ -7,6 +7,7 @@
 
 namespace Drupal\system\Tests\Cache;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Url;
 
 /**
@@ -89,8 +90,8 @@ trait AssertPageCacheContextsAndTagsTrait {
    */
   protected function debugCacheTags(array $actual_tags, array $expected_tags) {
     if ($actual_tags !== $expected_tags) {
-      debug('Missing cache tags: ' . implode(',', array_diff($expected_tags, $actual_tags)));
-      debug('Unwanted cache tags: ' . implode(',', array_diff($actual_tags, $expected_tags)));
+      debug('Unwanted cache tags in response: ' . implode(',', array_diff($actual_tags, $expected_tags)));
+      debug('Missing cache tags in response: ' . implode(',', array_diff($expected_tags, $actual_tags)));
     }
   }
 
@@ -99,8 +100,14 @@ trait AssertPageCacheContextsAndTagsTrait {
    *
    * @param string[] $expected_tags
    *   The expected tags.
+   * @param bool $include_default_tags
+   *   (optional) Whether the default cache tags should be included.
    */
-  protected function assertCacheTags(array $expected_tags) {
+  protected function assertCacheTags(array $expected_tags, $include_default_tags = TRUE) {
+    // The anonymous role cache tag is only added if the user is anonymous.
+    if ($include_default_tags && \Drupal::currentUser()->isAnonymous()) {
+      $expected_tags = Cache::mergeTags($expected_tags, ['config:user.role.anonymous']);
+    }
     $actual_tags = $this->getCacheHeaderValues('X-Drupal-Cache-Tags');
     sort($expected_tags);
     sort($actual_tags);
@@ -115,18 +122,30 @@ trait AssertPageCacheContextsAndTagsTrait {
    *   The expected cache contexts.
    * @param string $message
    *   (optional) A verbose message to output.
+   * @param bool $include_default_contexts
+   *   (optional) Whether the default contexts should automatically be included.
    *
    * @return
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
-  protected function assertCacheContexts(array $expected_contexts, $message = NULL) {
+  protected function assertCacheContexts(array $expected_contexts, $message = NULL, $include_default_contexts = TRUE) {
+    if ($include_default_contexts) {
+      $default_contexts = ['languages:language_interface', 'theme'];
+      // Add the user.permission context to the list of default contexts except
+      // when user is already there.
+      if (!in_array('user', $expected_contexts)) {
+        $default_contexts[] = 'user.permissions';
+      }
+      $expected_contexts = Cache::mergeContexts($expected_contexts, $default_contexts);
+    }
+
     $actual_contexts = $this->getCacheHeaderValues('X-Drupal-Cache-Contexts');
     sort($expected_contexts);
     sort($actual_contexts);
     $return = $this->assertIdentical($actual_contexts, $expected_contexts, $message);
     if (!$return) {
-      debug('Missing cache contexts: ' . implode(',', array_diff($actual_contexts, $expected_contexts)));
-      debug('Unwanted cache contexts: ' . implode(',', array_diff($expected_contexts, $actual_contexts)));
+      debug('Unwanted cache contexts in response: ' . implode(',', array_diff($actual_contexts, $expected_contexts)));
+      debug('Missing cache contexts in response: ' . implode(',', array_diff($expected_contexts, $actual_contexts)));
     }
     return $return;
   }

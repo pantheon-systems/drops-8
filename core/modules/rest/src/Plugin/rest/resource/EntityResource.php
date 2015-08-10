@@ -11,7 +11,6 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
-use Drupal\Component\Utility\SafeMarkup;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -98,7 +97,7 @@ class EntityResource extends ResourceBase {
     // and 'update', so the 'edit' operation is used here.
     foreach ($entity->_restSubmittedFields as $key => $field_name) {
       if (!$entity->get($field_name)->access('edit')) {
-        throw new AccessDeniedHttpException(SafeMarkup::format('Access denied on creating field @field', array('@field' => $field_name)));
+        throw new AccessDeniedHttpException("Access denied on creating field '$field_name'");
       }
     }
 
@@ -109,7 +108,10 @@ class EntityResource extends ResourceBase {
       $this->logger->notice('Created entity %type with ID %id.', array('%type' => $entity->getEntityTypeId(), '%id' => $entity->id()));
 
       // 201 Created responses have an empty body.
-      return new ResourceResponse(NULL, 201, array('Location' => $entity->url('canonical', ['absolute' => TRUE])));
+      $url = $entity->urlInfo('canonical', ['absolute' => TRUE])->toString(TRUE);
+      $response = new ResourceResponse(NULL, 201, ['Location' => $url->getGeneratedUrl()]);
+      $response->addCacheableDependency($url);
+      return $response;
     }
     catch (EntityStorageException $e) {
       throw new HttpException(500, 'Internal Server Error', $e);
@@ -152,7 +154,7 @@ class EntityResource extends ResourceBase {
       }
 
       if (!$original_entity->get($field_name)->access('edit')) {
-        throw new AccessDeniedHttpException(SafeMarkup::format('Access denied on updating field @field.', array('@field' => $field_name)));
+        throw new AccessDeniedHttpException("Access denied on updating field '$field_name'.");
       }
       $original_entity->set($field_name, $field->getValue());
     }

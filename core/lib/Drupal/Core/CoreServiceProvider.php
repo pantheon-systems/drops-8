@@ -10,6 +10,9 @@ namespace Drupal\Core;
 use Drupal\Core\Cache\Context\CacheContextsPass;
 use Drupal\Core\Cache\ListCacheBinsPass;
 use Drupal\Core\DependencyInjection\Compiler\BackendCompilerPass;
+use Drupal\Core\DependencyInjection\Compiler\GuzzleMiddlewarePass;
+use Drupal\Core\DependencyInjection\Compiler\ContextProvidersPass;
+use Drupal\Core\DependencyInjection\Compiler\ProxyServicesPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterLazyRouteEnhancers;
 use Drupal\Core\DependencyInjection\Compiler\RegisterLazyRouteFilters;
 use Drupal\Core\DependencyInjection\Compiler\DependencySerializationTraitPass;
@@ -60,6 +63,8 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     // list-building passes are operating on the post-alter services list.
     $container->addCompilerPass(new ModifyServiceDefinitionsPass());
 
+    $container->addCompilerPass(new ProxyServicesPass());
+
     $container->addCompilerPass(new BackendCompilerPass());
 
     $container->addCompilerPass(new StackedKernelPass());
@@ -71,6 +76,7 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     // Collect tagged handler services as method calls on consumer services.
     $container->addCompilerPass(new TaggedHandlersPass());
     $container->addCompilerPass(new RegisterStreamWrappersPass());
+    $container->addCompilerPass(new GuzzleMiddlewarePass());
 
     // Add a compiler pass for registering event subscribers.
     $container->addCompilerPass(new RegisterKernelListenersPass(), PassConfig::TYPE_AFTER_REMOVING);
@@ -85,6 +91,7 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     // Add the compiler pass that will process the tagged services.
     $container->addCompilerPass(new ListCacheBinsPass());
     $container->addCompilerPass(new CacheContextsPass());
+    $container->addCompilerPass(new ContextProvidersPass());
 
     // Register plugin managers.
     $container->addCompilerPass(new PluginManagerPass());
@@ -127,10 +134,10 @@ class CoreServiceProvider implements ServiceProviderInterface  {
     if (!drupal_valid_test_ua()) {
       return;
     }
-    // Add the HTTP request subscriber to Guzzle.
+    // Add the HTTP request middleware to Guzzle.
     $container
-      ->register('test.http_client.request_subscriber', 'Drupal\Core\Test\EventSubscriber\HttpRequestSubscriber')
-      ->addTag('http_client_subscriber');
+      ->register('test.http_client.middleware', 'Drupal\Core\Test\HttpClientMiddleware\TestHttpClientMiddleware')
+      ->addTag('http_client_middleware');
   }
 
 }

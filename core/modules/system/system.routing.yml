@@ -1,12 +1,3 @@
-system.ajax:
-  path: '/system/ajax'
-  defaults:
-    _controller: '\Drupal\system\Controller\FormAjaxController::content'
-  options:
-    _theme: ajax_base_page
-  requirements:
-    _access: 'TRUE'
-
 system.401:
   path: '/system/401'
   defaults:
@@ -394,7 +385,7 @@ system.theme_settings_theme:
 '<none>':
   path: ''
   options:
-    _only_fragment: TRUE
+    _no_path: TRUE
   requirements:
     _access: 'TRUE'
 
@@ -463,6 +454,8 @@ system.db_update:
     _title: 'Drupal database update'
     _controller: '\Drupal\system\Controller\DbUpdateController::handle'
     op: 'info'
+  options:
+    _maintenance_access: TRUE
   requirements:
     _access_system_update: 'TRUE'
 

@@ -12,6 +12,7 @@ use Drupal\Core\Extension\Extension;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueDatabaseExpirableFactory;
+use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
@@ -124,7 +125,7 @@ function system_help($route_name, RouteMatchInterface $route_match) {
         }
       }
       else {
-        $output .= '<p>' . t('Regularly review available updates to maintain a secure and current site. Always run the <a href="!update-php">update script</a> each time a module is updated. Enable the Update Manager module to update and install modules and themes.', array('!update-php' => \Drupal::url('system.db_update'))) . '</p>';
+        $output .= '<p>' . t('Regularly review available updates to maintain a secure and current site. Always run the <a href="!update-php">update script</a> each time a module is updated. Enable the <a href="!update-manager">Update Manager module</a> to update and install modules and themes.', array('!update-php' => \Drupal::url('system.db_update'), '!update-manager' => \Drupal::url('system.modules_list', [], ['fragment' => 'module-update']))) . '</p>';
       }
       return $output;
 
@@ -519,7 +520,6 @@ function system_filetransfer_info() {
  */
 function system_page_attachments(array &$page) {
   // Ensure the same CSS is loaded in template_preprocess_maintenance_page().
-  $page['#attached']['library'][] = 'core/normalize';
   $page['#attached']['library'][] = 'system/base';
   if (\Drupal::service('router.admin_context')->isAdminRoute()) {
     $page['#attached']['library'][] = 'system/admin';
@@ -648,21 +648,20 @@ function system_js_settings_build(&$settings, AttachedAssetsInterface $assets) {
  * as well as theme_token ajax state.
  */
 function system_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
-  // url() generates the script and prefix using hook_url_outbound_alter().
-  // Instead of running the hook_url_outbound_alter() again here, extract
-  // them from url().
-  // @todo Make this less hacky: https://www.drupal.org/node/1547376.
   $request = \Drupal::request();
-  $scriptPath = $request->getScriptName();
-
-  $pathPrefix = '';
   $current_query = $request->query->all();
-  Url::fromRoute('<front>', [], array('script' => &$scriptPath, 'prefix' => &$pathPrefix))->toString();
+
+  // Let output path processors set a prefix.
+  /** @var \Drupal\Core\PathProcessor\OutboundPathProcessorInterface $path_processor */
+  $path_processor = \Drupal::service('path_processor_manager');
+  $options = ['prefix' => ''];
+  $path_processor->processOutbound('/', $options);
+  $pathPrefix = $options['prefix'];
+
   $current_path = \Drupal::routeMatch()->getRouteName() ? Url::fromRouteMatch(\Drupal::routeMatch())->getInternalPath() : '';
   $current_path_is_admin = \Drupal::service('router.admin_context')->isAdminRoute();
   $path_settings = [
     'baseUrl' => $request->getBaseUrl() . '/',
-    'scriptPath' => $scriptPath,
     'pathPrefix' => $pathPrefix,
     'currentPath' => $current_path,
     'currentPathIsAdmin' => $current_path_is_admin,
@@ -689,9 +688,38 @@ function system_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
   $library_dependency_resolver = \Drupal::service('library.dependency_resolver');
   if (isset($settings['ajaxPageState']) || in_array('core/drupal.ajax', $library_dependency_resolver->getLibrariesWithDependencies($assets->getAlreadyLoadedLibraries()))) {
     if (!defined('MAINTENANCE_MODE')) {
-      $settings['ajaxPageState']['theme_token'] = \Drupal::csrfToken()
-        ->get(\Drupal::theme()->getActiveTheme()->getName());
+      // The theme token is only validated when the theme requested is not the
+      // default, so don't generate it unless necessary.
+      // @see \Drupal\Core\Theme\AjaxBasePageNegotiator::determineActiveTheme()
+      $active_theme_key = \Drupal::theme()->getActiveTheme()->getName();
+      if ($active_theme_key !== \Drupal::service('theme_handler')->getDefault()) {
+        $settings['ajaxPageState']['theme_token'] = \Drupal::csrfToken()
+          ->get($active_theme_key);
+      }
     }
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function system_form_alter(&$form, FormStateInterface $form_state) {
+  // If the page that's being built is cacheable, set the 'immutable' flag, to
+  // ensure that when the form is used, a new form build ID is generated when
+  // appropriate, to prevent information disclosure.
+
+  // Note: This code just wants to know whether cache response headers are set,
+  // not whether page_cache module will be active.
+  // \Drupal\Core\EventSubscriber\FinishResponseSubscriber::onRespond will
+  // send those headers, in case $request_policy->check($request) succeeds. In
+  // that case we need to ensure that the immutable flag is sot, so future POST
+  // request won't take over the form state of another user.
+  /** @var \Drupal\Core\PageCache\RequestPolicyInterface $request_policy */
+  $request_policy = \Drupal::service('page_cache_request_policy');
+  $request = \Drupal::requestStack()->getCurrentRequest();
+  $request_is_cacheable = $request_policy->check($request) === RequestPolicyInterface::ALLOW;
+  if ($request_is_cacheable) {
+    $form_state->addBuildInfo('immutable', TRUE);
   }
 }
 
@@ -778,7 +806,7 @@ function system_preprocess_block(&$variables) {
       }
       $variables['site_slogan'] = '';
       if ($variables['content']['site_slogan']['#access'] && $variables['content']['site_slogan']['#markup']) {
-        $variables['site_slogan'] = $variables['content']['site_slogan']['#markup'];
+        $variables['site_slogan']['#markup'] = $variables['content']['site_slogan']['#markup'];
       }
       break;
 
@@ -1339,9 +1367,9 @@ function system_retrieve_file($url, $destination = NULL, $managed = FALSE, $repl
     }
   }
   try {
-    $data = \Drupal::httpClient()
+    $data = (string) \Drupal::httpClient()
       ->get($url)
-      ->getBody(TRUE);
+      ->getBody();
     $local = $managed ? file_save_data($data, $path, $replace) : file_unmanaged_save_data($data, $path, $replace);
   }
   catch (RequestException $exception) {

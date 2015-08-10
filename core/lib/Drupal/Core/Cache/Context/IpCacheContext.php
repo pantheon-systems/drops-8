@@ -7,10 +7,14 @@
 
 namespace Drupal\Core\Cache\Context;
 
+use Drupal\Core\Cache\CacheableMetadata;
+
 /**
  * Defines the IpCacheContext service, for "per IP address" caching.
+ *
+ * Cache context ID: 'ip'.
  */
-class IpCacheContext extends RequestStackCacheContextBase {
+class IpCacheContext extends RequestStackCacheContextBase implements CacheContextInterface {
 
   /**
    * {@inheritdoc}
@@ -24,6 +28,13 @@ class IpCacheContext extends RequestStackCacheContextBase {
    */
   public function getContext() {
     return $this->requestStack->getCurrentRequest()->getClientIp();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata() {
+    return new CacheableMetadata();
   }
 
 }
