@@ -39,7 +39,7 @@ if (isset($_SERVER['PRESSFLOW_SETTINGS'])) {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/3
  *
  */
-if (isset($_SERVER['PRESSFLOW_SETTINGS']) && ($_SERVER['SCRIPT_NAME'] != '/core/install.php') && (!is_dir(__DIR__ . '/files/styles'))) {
+if (isset($_SERVER['PRESSFLOW_SETTINGS']) && (substr($_SERVER['SCRIPT_NAME'],0,17) != '/core/install.php') && (!is_dir(__DIR__ . '/files/styles'))) {
   include_once __DIR__ . '/../../core/includes/install.inc';
   install_goto('core/install.php');
 }
