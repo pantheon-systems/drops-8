@@ -1,5 +1,5 @@
 {
-  "name": "drupal/core",
+  "name": "greg-1-anderson/drupal-core",
   "description": "Drupal is an open source content management platform powering millions of websites and applications.",
   "type": "drupal-core",
   "license": "GPL-2.0+",
@@ -36,6 +36,7 @@
     "masterminds/html5": "~2.1"
   },
   "replace": {
+    "drupal/core": "self.version",
     "drupal/action": "self.version",
     "drupal/aggregator": "self.version",
     "drupal/bartik": "self.version",
