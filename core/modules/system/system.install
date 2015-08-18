@@ -1,0 +1,1087 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the system module.
+ */
+
+use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\Environment;
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Url;
+use Drupal\Core\Database\Database;
+use Drupal\Core\DrupalKernel;
+use Drupal\Core\Language\Language;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\StreamWrapper\PrivateStream;
+use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\system\SystemRequirements;
+use Symfony\Component\HttpFoundation\Request;
+
+/**
+ * Implements hook_requirements().
+ */
+function system_requirements($phase) {
+  $requirements = array();
+
+  // Report Drupal version
+  if ($phase == 'runtime') {
+    $requirements['drupal'] = array(
+      'title' => t('Drupal'),
+      'value' => \Drupal::VERSION,
+      'severity' => REQUIREMENT_INFO,
+      'weight' => -10,
+    );
+
+    // Display the currently active installation profile, if the site
+    // is not running the default installation profile.
+    $profile = drupal_get_profile();
+    if ($profile != 'standard') {
+      $info = system_get_info('module', $profile);
+      $requirements['install_profile'] = array(
+        'title' => t('Installation profile'),
+        'value' => t('%profile_name (%profile-%version)', array(
+          '%profile_name' => $info['name'],
+          '%profile' => $profile,
+          '%version' => $info['version']
+        )),
+        'severity' => REQUIREMENT_INFO,
+        'weight' => -9
+      );
+    }
+  }
+
+  // Web server information.
+  $software = \Drupal::request()->server->get('SERVER_SOFTWARE');
+  $requirements['webserver'] = array(
+    'title' => t('Web server'),
+    'value' => $software,
+  );
+
+  // Test PHP version and show link to phpinfo() if it's available
+  $phpversion = $phpversion_label = phpversion();
+  if (function_exists('phpinfo')) {
+    // $phpversion is safe and output of l() is safe, so this value is safe.
+    if ($phase === 'runtime') {
+      $phpversion_label = SafeMarkup::set($phpversion . ' (' . \Drupal::l(t('more information'), new Url('system.php')) . ')');
+    }
+    $requirements['php'] = array(
+      'title' => t('PHP'),
+      'value' => $phpversion_label,
+    );
+  }
+  else {
+    $requirements['php'] = array(
+      'title' => t('PHP'),
+      'value' => $phpversion_label,
+      'description' => t('The phpinfo() function has been disabled for security reasons. To see your server\'s phpinfo() information, change your PHP settings or contact your server administrator. For more information, <a href="@phpinfo">Enabling and disabling phpinfo()</a> handbook page.', array('@phpinfo' => 'https://www.drupal.org/node/243993')),
+      'severity' => REQUIREMENT_INFO,
+    );
+  }
+
+  if (version_compare($phpversion, DRUPAL_MINIMUM_PHP) < 0) {
+    $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version.', array('%version' => DRUPAL_MINIMUM_PHP));
+    $requirements['php']['severity'] = REQUIREMENT_ERROR;
+    // If PHP is old, it's not safe to continue with the requirements check.
+    return $requirements;
+  }
+
+  // Suggest to update to at least 5.5.21 or 5.6.5 for disabling multiple
+  // statements.
+  if (($phase === 'install' || \Drupal::database()->driver() === 'mysql') && !SystemRequirements::phpVersionWithPdoDisallowMultipleStatements($phpversion)) {
+    $requirements['php'] = array(
+      'title' => t('PHP (multiple statement disabling)'),
+      'value' => $phpversion_label,
+      'description' => t('PHP versions higher than 5.6.5 or 5.5.21 provide built-in SQL injection protection for mysql databases. It is recommended to update.'),
+      'severity' => REQUIREMENT_INFO,
+    );
+  }
+
+  // Test for PHP extensions.
+  $requirements['php_extensions'] = array(
+    'title' => t('PHP extensions'),
+  );
+
+  $missing_extensions = array();
+  $required_extensions = array(
+    'date',
+    'dom',
+    'filter',
+    'gd',
+    'hash',
+    'json',
+    'pcre',
+    'pdo',
+    'session',
+    'SimpleXML',
+    'SPL',
+    'tokenizer',
+    'xml',
+  );
+  foreach ($required_extensions as $extension) {
+    if (!extension_loaded($extension)) {
+      $missing_extensions[] = $extension;
+    }
+  }
+
+  if (!empty($missing_extensions)) {
+    $description = t('Drupal requires you to enable the PHP extensions in the following list (see the <a href="@system_requirements">system requirements page</a> for more information):', array(
+      '@system_requirements' => 'https://www.drupal.org/requirements',
+    ));
+
+    // We use twig inline_template to avoid twig's autoescape.
+    $description = array(
+      '#type' => 'inline_template',
+      '#template' => '{{ description }}{{ missing_extensions }}',
+      '#context' => array(
+        'description' => $description,
+        'missing_extensions' => array(
+          '#theme' => 'item_list',
+          '#items' => $missing_extensions,
+        ),
+      ),
+    );
+
+    $requirements['php_extensions']['value'] = t('Disabled');
+    $requirements['php_extensions']['severity'] = REQUIREMENT_ERROR;
+    $requirements['php_extensions']['description'] = $description;
+  }
+  else {
+    $requirements['php_extensions']['value'] = t('Enabled');
+  }
+
+  if ($phase == 'install' || $phase == 'update') {
+    // Test for PDO (database).
+    $requirements['database_extensions'] = array(
+      'title' => t('Database support'),
+    );
+
+    // Make sure PDO is available.
+    $database_ok = extension_loaded('pdo');
+    if (!$database_ok) {
+      $pdo_message = t('Your web server does not appear to support PDO (PHP Data Objects). Ask your hosting provider if they support the native PDO extension. See the <a href="@link">system requirements</a> page for more information.', array(
+        '@link' => 'https://www.drupal.org/requirements/pdo',
+      ));
+    }
+    else {
+      // Make sure at least one supported database driver exists.
+      $drivers = drupal_detect_database_types();
+      if (empty($drivers)) {
+        $database_ok = FALSE;
+        $pdo_message = t('Your web server does not appear to support any common PDO database extensions. Check with your hosting provider to see if they support PDO (PHP Data Objects) and offer any databases that <a href="@drupal-databases">Drupal supports</a>.', array(
+          '@drupal-databases' => 'https://www.drupal.org/node/270#database',
+        ));
+      }
+      // Make sure the native PDO extension is available, not the older PEAR
+      // version. (See install_verify_pdo() for details.)
+      if (!defined('PDO::ATTR_DEFAULT_FETCH_MODE')) {
+        $database_ok = FALSE;
+        $pdo_message = t('Your web server seems to have the wrong version of PDO installed. Drupal requires the PDO extension from PHP core. This system has the older PECL version. See the <a href="@link">system requirements</a> page for more information.', array(
+          '@link' => 'https://www.drupal.org/requirements/pdo#pecl',
+        ));
+      }
+    }
+
+    if (!$database_ok) {
+      $requirements['database_extensions']['value'] = t('Disabled');
+      $requirements['database_extensions']['severity'] = REQUIREMENT_ERROR;
+      $requirements['database_extensions']['description'] = $pdo_message;
+    }
+    else {
+      $requirements['database_extensions']['value'] = t('Enabled');
+    }
+  }
+  else {
+    // Database information.
+    $class = Database::getConnection()->getDriverClass('Install\\Tasks');
+    $tasks = new $class();
+    $requirements['database_system'] = array(
+      'title' => t('Database system'),
+      'value' => $tasks->name(),
+    );
+    $requirements['database_system_version'] = array(
+      'title' => t('Database system version'),
+      'value' => Database::getConnection()->version(),
+    );
+  }
+
+  // Test PHP memory_limit
+  $memory_limit = ini_get('memory_limit');
+  $requirements['php_memory_limit'] = array(
+    'title' => t('PHP memory limit'),
+    'value' => $memory_limit == -1 ? t('-1 (Unlimited)') : $memory_limit,
+  );
+
+  if (!Environment::checkMemoryLimit(DRUPAL_MINIMUM_PHP_MEMORY_LIMIT, $memory_limit)) {
+    $description = array();
+    if ($phase == 'install') {
+      $description['phase'] = t('Consider increasing your PHP memory limit to %memory_minimum_limit to help prevent errors in the installation process.', array('%memory_minimum_limit' => DRUPAL_MINIMUM_PHP_MEMORY_LIMIT));
+    }
+    elseif ($phase == 'update') {
+      $description['phase'] = t('Consider increasing your PHP memory limit to %memory_minimum_limit to help prevent errors in the update process.', array('%memory_minimum_limit' => DRUPAL_MINIMUM_PHP_MEMORY_LIMIT));
+    }
+    elseif ($phase == 'runtime') {
+      $description['phase'] = t('Depending on your configuration, Drupal can run with a %memory_limit PHP memory limit. However, a %memory_minimum_limit PHP memory limit or above is recommended, especially if your site uses additional custom or contributed modules.', array('%memory_limit' => $memory_limit, '%memory_minimum_limit' => DRUPAL_MINIMUM_PHP_MEMORY_LIMIT));
+    }
+
+    if (!empty($description['phase'])) {
+      if ($php_ini_path = get_cfg_var('cfg_file_path')) {
+        $description['memory'] = t('Increase the memory limit by editing the memory_limit parameter in the file %configuration-file and then restart your web server (or contact your system administrator or hosting provider for assistance).', array('%configuration-file' => $php_ini_path));
+      }
+      else {
+        $description['memory'] = t('Contact your system administrator or hosting provider for assistance with increasing your PHP memory limit.');
+      }
+
+      $handbook_link = t('For more information, see the online handbook entry for <a href="@memory-limit">increasing the PHP memory limit</a>.', array('@memory-limit' => 'https://www.drupal.org/node/207036'));
+
+      $description = array(
+        '#type' => 'inline_template',
+        '#template' => '{{ description_phase }} {{ description_memory }} {{ handbook }}',
+        '#context' => array(
+          'description_phase' => $description['phase'],
+          'description_memory' => $description['memory'],
+          'handbook' => $handbook_link,
+        ),
+      );
+
+      $requirements['php_memory_limit']['description'] = $description;
+      $requirements['php_memory_limit']['severity'] = REQUIREMENT_WARNING;
+    }
+  }
+
+  // Test configuration files and directory for writability.
+  if ($phase == 'runtime') {
+    $conf_errors = array();
+    // Find the site path. Kernel service is not always available at this point,
+    // but is preferred, when available.
+    if (\Drupal::hasService('kernel')) {
+      $site_path = \Drupal::service('site.path');
+    }
+    else {
+      $site_path = DrupalKernel::findSitePath(Request::createFromGlobals());
+    }
+    if (!drupal_verify_install_file($site_path, FILE_NOT_WRITABLE, 'dir')) {
+      $conf_errors[] = t("The directory %file is not protected from modifications and poses a security risk. You must change the directory's permissions to be non-writable.", array('%file' => $site_path));
+    }
+    foreach (array('settings.php', 'settings.local.php', 'services.yml') as $conf_file) {
+      $full_path = $site_path . '/' . $conf_file;
+      if (file_exists($full_path) && !drupal_verify_install_file($full_path, FILE_EXIST|FILE_READABLE|FILE_NOT_WRITABLE)) {
+        $conf_errors[] = t("The file %file is not protected from modifications and poses a security risk. You must change the file's permissions to be non-writable.", array('%file' => $full_path));
+      }
+    }
+    if (!empty($conf_errors)) {
+      if (count($conf_errors) == 1) {
+        $description = $conf_errors[0];
+      }
+      else {
+        // We use twig inline_template to avoid double escaping.
+        $description = array(
+          '#type' => 'inline_template',
+          '#template' => '{{ configuration_error_list }}',
+          '#context' => array(
+            'configuration_error_list' => array(
+              '#theme' => 'item_list',
+              '#items' => $conf_errors,
+            ),
+          ),
+        );
+      }
+      $requirements['configuration_files'] = array(
+        'value' => t('Not protected'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $description,
+      );
+    }
+    else {
+      $requirements['configuration_files'] = array(
+        'value' => t('Protected'),
+      );
+    }
+    $requirements['configuration_files']['title'] = t('Configuration files');
+  }
+
+  // Test the contents of the .htaccess files.
+  if ($phase == 'runtime') {
+    // Try to write the .htaccess files first, to prevent false alarms in case
+    // (for example) the /tmp directory was wiped.
+    file_ensure_htaccess();
+    $htaccess_files['public://.htaccess'] = array(
+      'title' => t('Public files directory'),
+      'directory' => drupal_realpath('public://'),
+    );
+    if (PrivateStream::basePath()) {
+      $htaccess_files['private://.htaccess'] = array(
+        'title' => t('Private files directory'),
+        'directory' => drupal_realpath('private://'),
+      );
+    }
+    $htaccess_files['temporary://.htaccess'] = array(
+      'title' => t('Temporary files directory'),
+      'directory' => drupal_realpath('temporary://'),
+    );
+    foreach ($htaccess_files as $htaccess_file => $info) {
+      // Check for the string which was added to the recommended .htaccess file
+      // in the latest security update.
+      if (!file_exists($htaccess_file) || !($contents = @file_get_contents($htaccess_file)) || strpos($contents, 'Drupal_Security_Do_Not_Remove_See_SA_2013_003') === FALSE) {
+        $requirements[$htaccess_file] = array(
+          'title' => $info['title'],
+          'value' => t('Not fully protected'),
+          'severity' => REQUIREMENT_ERROR,
+          'description' => t('See <a href="@url">@url</a> for information about the recommended .htaccess file which should be added to the %directory directory to help protect against arbitrary code execution.', array('@url' => 'https://www.drupal.org/SA-CORE-2013-003', '%directory' => $info['directory'])),
+        );
+      }
+    }
+  }
+
+  // Report cron status.
+  if ($phase == 'runtime') {
+    $cron_config = \Drupal::config('system.cron');
+    // Cron warning threshold defaults to two days.
+    $threshold_warning = $cron_config->get('threshold.requirements_warning');
+    // Cron error threshold defaults to two weeks.
+    $threshold_error = $cron_config->get('threshold.requirements_error');
+    // Cron configuration help text.
+    $help = t('For more information, see the online handbook entry for <a href="@cron-handbook">configuring cron jobs</a>.', array('@cron-handbook' => 'https://www.drupal.org/cron'));
+
+    // Determine when cron last ran.
+    $cron_last = \Drupal::state()->get('system.cron_last');
+    if (!is_numeric($cron_last)) {
+      $cron_last = \Drupal::state()->get('install_time', 0);
+    }
+
+    // Determine severity based on time since cron last ran.
+    $severity = REQUIREMENT_INFO;
+    if (REQUEST_TIME - $cron_last > $threshold_error) {
+      $severity = REQUIREMENT_ERROR;
+    }
+    elseif (REQUEST_TIME - $cron_last > $threshold_warning) {
+      $severity = REQUIREMENT_WARNING;
+    }
+
+    // Set summary and description based on values determined above.
+    $summary = t('Last run !time ago', array('!time' => \Drupal::service('date.formatter')->formatTimeDiffSince($cron_last)));
+    $description = '';
+    if ($severity != REQUIREMENT_INFO) {
+      $description = t('Cron has not run recently.') . ' ' . $help;
+    }
+
+    $description .= ' ' . t('You can <a href="@cron">run cron manually</a>.', array('@cron' => \Drupal::url('system.run_cron')));
+    $description .= '<br />' . t('To run cron from outside the site, go to <a href="!cron">!cron</a>', array('!cron' => \Drupal::url('system.cron', array('key' => \Drupal::state()->get('system.cron_key'), array('absolute' => TRUE)))));
+
+    $requirements['cron'] = array(
+      'title' => t('Cron maintenance tasks'),
+      'severity' => $severity,
+      'value' => $summary,
+      // @todo This string is concatenated from t() calls, safe drupal_render()
+      //   output, whitespace, and <br /> tags, so is safe. However, as a best
+      //   practice, we should not use SafeMarkup::set() around a variable. Fix
+      //   in: https://www.drupal.org/node/2296929.
+      'description' => SafeMarkup::set($description),
+    );
+  }
+  if ($phase != 'install') {
+    $filesystem_config = \Drupal::config('system.file');
+    $directories = array(
+      PublicStream::basePath(),
+      // By default no private files directory is configured. For private files
+      // to be secure the admin needs to provide a path outside the webroot.
+      PrivateStream::basePath(),
+      file_directory_temp(),
+    );
+  }
+
+  // During an install we need to make assumptions about the file system
+  // unless overrides are provided in settings.php.
+  if ($phase == 'install') {
+    $directories = array();
+    if ($file_public_path = Settings::get('file_public_path')) {
+      $directories[] = $file_public_path;
+    }
+    else {
+      // If we are installing Drupal, the settings.php file might not exist yet
+      // in the intended site directory, so don't require it.
+      $request = Request::createFromGlobals();
+      $site_path = DrupalKernel::findSitePath($request);
+      $directories[] = $site_path . '/files';
+    }
+    if ($file_private_path = Settings::get('file_private_path')) {
+      $directories[] = $file_private_path;
+    }
+    if (!empty($GLOBALS['config']['system.file']['path']['temporary'])) {
+      $directories[] = $GLOBALS['config']['system.file']['path']['temporary'];
+    }
+    else {
+      // If the temporary directory is not overridden use an appropriate
+      // temporary path for the system.
+      $directories[] = file_directory_os_temp();
+    }
+  }
+
+  // Check the config directory if it is defined in settings.php. If it isn't
+  // defined, the installer will create a valid config directory later, but
+  // during runtime we must always display an error.
+  if (!empty($GLOBALS['config_directories'])) {
+    foreach ($GLOBALS['config_directories'] as $type => $directory) {
+      $directories[] = config_get_config_directory($type);
+    }
+  }
+  elseif ($phase != 'install') {
+    $requirements['config directories'] = array(
+      'title' => t('Configuration directories'),
+      'value' => t('Not present'),
+      'description' => t('Your %file file must define the $config_directories variable as an array containing the name of a directories in which configuration files can be written.', array('%file' => $site_path . '/settings.php')),
+      'severity' => REQUIREMENT_ERROR,
+    );
+  }
+
+  $requirements['file system'] = array(
+    'title' => t('File system'),
+  );
+
+  $error = '';
+  // For installer, create the directories if possible.
+  foreach ($directories as $directory) {
+    if (!$directory) {
+      continue;
+    }
+    if ($phase == 'install') {
+      file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    }
+    $is_writable = is_writable($directory);
+    $is_directory = is_dir($directory);
+    if (!$is_writable || !$is_directory) {
+      $description = '';
+      $requirements['file system']['value'] = t('Not writable');
+      if (!$is_directory) {
+        $error = t('The directory %directory does not exist.', array('%directory' => $directory));
+      }
+      else {
+        $error = t('The directory %directory is not writable.', array('%directory' => $directory));
+      }
+      // The files directory requirement check is done only during install and runtime.
+      if ($phase == 'runtime') {
+        $description = t('You may need to set the correct directory at the <a href="@admin-file-system">file system settings page</a> or change the current directory\'s permissions so that it is writable.', array('@admin-file-system' => \Drupal::url('system.file_system_settings')));
+      }
+      elseif ($phase == 'install') {
+        // For the installer UI, we need different wording. 'value' will
+        // be treated as version, so provide none there.
+        $description = t('An automated attempt to create this directory failed, possibly due to a permissions problem. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see INSTALL.txt or the <a href="@handbook_url">online handbook</a>.', array('@handbook_url' => 'https://www.drupal.org/server-permissions'));
+        $requirements['file system']['value'] = '';
+      }
+      if (!empty($description)) {
+        $description = array(
+          '#type' => 'inline_template',
+          '#template' => '{{ error }} {{ description }}',
+          '#context' => array(
+            'error' => $error,
+            'description' => $description,
+          ),
+        );
+        $requirements['file system']['description'] = $description;
+        $requirements['file system']['severity'] = REQUIREMENT_ERROR;
+      }
+    }
+    else {
+      // This function can be called before the config_cache table has been
+      // created.
+      if ($phase == 'install' || file_default_scheme() == 'public') {
+        $requirements['file system']['value'] = t('Writable (<em>public</em> download method)');
+      }
+      else {
+        $requirements['file system']['value'] = t('Writable (<em>private</em> download method)');
+      }
+    }
+  }
+
+  // See if updates are available in update.php.
+  if ($phase == 'runtime') {
+    $requirements['update'] = array(
+      'title' => t('Database updates'),
+      'value' => t('Up to date'),
+    );
+
+    // Check installed modules.
+    foreach (\Drupal::moduleHandler()->getModuleList() as $module => $filename) {
+      $updates = drupal_get_schema_versions($module);
+      if ($updates !== FALSE) {
+        $default = drupal_get_installed_schema_version($module);
+        if (max($updates) > $default) {
+          $requirements['update']['severity'] = REQUIREMENT_ERROR;
+          $requirements['update']['value'] = t('Out of date');
+          $requirements['update']['description'] = t('Some modules have database schema updates to install. You should run the <a href="@update">database update script</a> immediately.', array('@update' => \Drupal::url('system.db_update')));
+          break;
+        }
+      }
+    }
+    if (!isset($requirements['update']['severity']) && \Drupal::service('entity.definition_update_manager')->needsUpdates()) {
+      $requirements['update']['severity'] = REQUIREMENT_ERROR;
+      $requirements['update']['value'] = t('Out of date');
+      $requirements['update']['description'] = t('Some modules have database schema updates to install. You should run the <a href="@update">database update script</a> immediately.', array('@update' => \Drupal::url('system.db_update')));
+    }
+  }
+
+  // Verify the update.php access setting
+  if ($phase == 'runtime') {
+    if (Settings::get('update_free_access')) {
+      $requirements['update access'] = array(
+        'value' => t('Not protected'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => t('The update.php script is accessible to everyone without authentication check, which is a security risk. You must change the @settings_name value in your settings.php back to FALSE.', array('@settings_name' => '$settings[\'update_free_access\']')),
+      );
+    }
+    else {
+      $requirements['update access'] = array(
+        'value' => t('Protected'),
+      );
+    }
+    $requirements['update access']['title'] = t('Access to update.php');
+  }
+
+  // Display an error if a newly introduced dependency in a module is not resolved.
+  if ($phase == 'update') {
+    $profile = drupal_get_profile();
+    $files = system_rebuild_module_data();
+    foreach ($files as $module => $file) {
+      // Ignore disabled modules and installation profiles.
+      if (!$file->status || $module == $profile) {
+        continue;
+      }
+      // Check the module's PHP version.
+      $name = $file->info['name'];
+      $php = $file->info['php'];
+      if (version_compare($php, PHP_VERSION, '>')) {
+        $requirements['php']['description'] .= t('@name requires at least PHP @version.', array('@name' => $name, '@version' => $php));
+        $requirements['php']['severity'] = REQUIREMENT_ERROR;
+      }
+      // Check the module's required modules.
+      foreach ($file->requires as $requirement) {
+        $required_module = $requirement['name'];
+        // Check if the module exists.
+        if (!isset($files[$required_module])) {
+          $requirements["$module-$required_module"] = array(
+            'title' => t('Unresolved dependency'),
+            'description' => t('@name requires this module.', array('@name' => $name)),
+            'value' => t('@required_name (Missing)', array('@required_name' => $required_module)),
+            'severity' => REQUIREMENT_ERROR,
+          );
+          continue;
+        }
+        // Check for an incompatible version.
+        $required_file = $files[$required_module];
+        $required_name = $required_file->info['name'];
+        $version = str_replace(\Drupal::CORE_COMPATIBILITY . '-', '', $required_file->info['version']);
+        $compatibility = drupal_check_incompatibility($requirement, $version);
+        if ($compatibility) {
+          $compatibility = rtrim(substr($compatibility, 2), ')');
+          $requirements["$module-$required_module"] = array(
+            'title' => t('Unresolved dependency'),
+            'description' => t('@name requires this module and version. Currently using @required_name version @version', array('@name' => $name, '@required_name' => $required_name, '@version' => $version)),
+            'value' => t('@required_name (Version @compatibility required)', array('@required_name' => $required_name, '@compatibility' => $compatibility)),
+            'severity' => REQUIREMENT_ERROR,
+          );
+          continue;
+        }
+      }
+    }
+  }
+
+  // Test Unicode library
+  include_once DRUPAL_ROOT . '/core/includes/unicode.inc';
+  $requirements = array_merge($requirements, unicode_requirements());
+
+  if ($phase == 'runtime') {
+    // Check for update status module.
+    if (!\Drupal::moduleHandler()->moduleExists('update')) {
+      $requirements['update status'] = array(
+        'value' => t('Not enabled'),
+        'severity' => REQUIREMENT_WARNING,
+        'description' => t('Update notifications are not enabled. It is <strong>highly recommended</strong> that you enable the Update Manager module from the <a href="@module">module administration page</a> in order to stay up-to-date on new releases. For more information, <a href="@update">Update status handbook page</a>.', array(
+          '@update' => 'https://www.drupal.org/documentation/modules/update',
+          '@module' => \Drupal::url('system.modules_list'),
+        )),
+      );
+    }
+    else {
+      $requirements['update status'] = array(
+        'value' => t('Enabled'),
+      );
+    }
+    $requirements['update status']['title'] = t('Update notifications');
+
+    if (Settings::get('rebuild_access')) {
+      $requirements['rebuild access'] = array(
+        'title' => t('Rebuild access'),
+        'value' => t('Enabled'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => t('The rebuild_access setting is enabled in settings.php. It is recommended to have this setting disabled unless you are performing a rebuild.'),
+      );
+    }
+  }
+
+  // Ensure that if upgrading from 7 to 8 we have no disabled modules.
+  if ($phase == 'update' && db_table_exists('system')) {
+    $modules = db_query('SELECT name, info FROM {system} WHERE type = :module AND status = 0 AND schema_version <> :schema_uninstalled', array(
+      ':module' => 'module',
+      ':schema_uninstalled' => SCHEMA_UNINSTALLED,
+    ))->fetchAllKeyed(0, 1);
+    array_walk($modules, function (&$value, $key) {
+      $info = unserialize($value);
+      $value = $info['name'];
+    });
+    if (!empty($modules)) {
+      $requirements['disabled_modules'] = array(
+        'severity' => REQUIREMENT_ERROR,
+        'title' => t('Disabled modules'),
+        'value' => \Drupal::translation()->formatPlural(count($modules), 'The %modules module is disabled.', 'The following modules are disabled: %modules', array('%modules' => implode(', ', $modules))),
+        'description' => t('Drupal 8 no longer supports disabled modules. Please either enable or uninstall them before upgrading.'),
+      );
+    }
+  }
+
+  // See if trusted hostnames have been configured, and warn the user if they
+  // are not set.
+  if ($phase == 'runtime') {
+    $trusted_host_patterns = Settings::get('trusted_host_patterns');
+    if (empty($trusted_host_patterns)) {
+      $requirements['trusted_host_patterns'] = array(
+        'title' => t('Trusted Host Settings'),
+        'value' => t('Not enabled'),
+        'description' => t('The trusted_host_patterns setting is not configured in settings.php. This can lead to security vulnerabilities. It is <strong>highly recommended</strong> that you configure this. See <a href="@url">Protecting against HTTP HOST Header attacks</a> for more information.', array('@url' => 'https://www.drupal.org/node/1992030')),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+    else {
+      $requirements['trusted_host_patterns'] = array(
+        'title' => t('Trusted Host Settings'),
+        'value' => t('Enabled'),
+        'description' => t('The trusted_host_patterns setting is set to allow %trusted_host_patterns', array('%trusted_host_patterns' => join(', ', $trusted_host_patterns))),
+      );
+    }
+  }
+
+  // Check if the Twig C extension is available.
+  if ($phase == 'runtime') {
+    $url = 'http://twig.sensiolabs.org/doc/installation.html#installing-the-c-extension';
+    $requirements['twig_c_extension'] = [
+      'title' => t('Twig C extension'),
+      'severity' => REQUIREMENT_INFO,
+    ];
+    if (!function_exists('twig_template_get_attributes')) {
+      $requirements['twig_c_extension']['value'] = t('Not available');
+      $requirements['twig_c_extension']['description'] = t('Enabling the Twig C extension can greatly increase rendering performance. See <a href="@url">the installation instructions</a> for more detail.', ['@url' => $url]);
+    }
+    else {
+      $requirements['twig_c_extension']['description'] = t('The <a href="@url">Twig C extension</a> is available', ['@url' => $url]);
+    }
+  }
+
+  // Check xdebug.max_nesting_level, as some pages will not work if it is too
+  // low.
+  if (extension_loaded('xdebug')) {
+    // Setting this value to 256 was considered adequate on Xdebug 2.3
+    // (see http://bugs.xdebug.org/bug_view_page.php?bug_id=00001100)
+    $minimum_nesting_level = 256;
+    $current_nesting_level = ini_get('xdebug.max_nesting_level');
+
+    if ($current_nesting_level < $minimum_nesting_level) {
+      $requirements['xdebug_max_nesting_level'] = [
+        'title' => t('Xdebug settings'),
+        'value' => t('xdebug.max_nesting_level is set to %value.', ['%value' => $current_nesting_level]),
+        'description' => t('Set <code>xdebug.max_nesting_level=@level</code> in your PHP configuration as some pages in your Drupal site will not work when this setting is too low.', ['@level' => $minimum_nesting_level]),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_install().
+ */
+function system_install() {
+  // Populate the cron key state variable.
+  $cron_key = Crypt::randomBytesBase64(55);
+  \Drupal::state()->set('system.cron_key', $cron_key);
+
+  // Populate the site UUID and default name (if not set).
+  $site = \Drupal::configFactory()->getEditable('system.site');
+  $site->set('uuid', \Drupal::service('uuid')->generate());
+  if (!$site->get('name')) {
+    $site->set('name', 'Drupal');
+  }
+  $site->save(TRUE);
+}
+
+/**
+ * Implements hook_schema().
+ */
+function system_schema() {
+  $schema['batch'] = array(
+    'description' => 'Stores details about batches (processes that run in multiple HTTP requests).',
+    'fields' => array(
+      'bid' => array(
+        'description' => 'Primary Key: Unique batch ID.',
+        // This is not a serial column, to allow both progressive and
+        // non-progressive batches. See batch_process().
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'token' => array(
+        'description' => "A string token generated against the current user's session id and the batch id, used to ensure that only the user who submitted the batch can effectively access it.",
+        'type' => 'varchar_ascii',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'description' => 'A Unix timestamp indicating when this batch was submitted for processing. Stale batches are purged at cron time.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'batch' => array(
+        'description' => 'A serialized array containing the processing data for the batch.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+      ),
+    ),
+    'primary key' => array('bid'),
+    'indexes' => array(
+      'token' => array('token'),
+    ),
+  );
+
+  $schema['flood'] = array(
+    'description' => 'Flood controls the threshold of events, such as the number of contact attempts.',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'Unique flood event ID.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'event' => array(
+        'description' => 'Name of event (e.g. contact).',
+        'type' => 'varchar_ascii',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'identifier' => array(
+        'description' => 'Identifier of the visitor, such as an IP address or hostname.',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'description' => 'Timestamp of the event.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'expiration' => array(
+        'description' => 'Expiration timestamp. Expired events are purged on cron run.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('fid'),
+    'indexes' => array(
+      'allow' => array('event', 'identifier', 'timestamp'),
+      'purge' => array('expiration'),
+    ),
+  );
+
+  $schema['key_value'] = array(
+    'description' => 'Generic key-value storage table. See the state system for an example.',
+    'fields' => array(
+      'collection' => array(
+        'description' => 'A named collection of key and value pairs.',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'name' => array(
+        'description' => 'The key of the key-value pair. As KEY is a SQL reserved keyword, name was chosen instead.',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'value' => array(
+        'description' => 'The value.',
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+    ),
+    'primary key' => array('collection', 'name'),
+  );
+
+  $schema['key_value_expire'] = array(
+    'description' => 'Generic key/value storage table with an expiration.',
+    'fields' => array(
+      'collection' => array(
+        'description' => 'A named collection of key and value pairs.',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'name' => array(
+        // KEY is an SQL reserved word, so use 'name' as the key's field name.
+        'description' => 'The key of the key/value pair.',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'value' => array(
+        'description' => 'The value of the key/value pair.',
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+      'expire' => array(
+        'description' => 'The time since Unix epoch in seconds when this item expires. Defaults to the maximum possible time.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 2147483647,
+      ),
+    ),
+    'primary key' => array('collection', 'name'),
+    'indexes' => array(
+      'all' => array('name', 'collection', 'expire'),
+      'expire' => array('expire'),
+    ),
+  );
+
+  $schema['queue'] = array(
+    'description' => 'Stores items in queues.',
+    'fields' => array(
+      'item_id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique item ID.',
+      ),
+      'name' => array(
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The queue name.',
+      ),
+      'data' => array(
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+        'description' => 'The arbitrary data for the item.',
+      ),
+      'expire' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when the claim lease expires on the item.',
+      ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when the item was created.',
+      ),
+    ),
+    'primary key' => array('item_id'),
+    'indexes' => array(
+      'name_created' => array('name', 'created'),
+      'expire' => array('expire'),
+    ),
+  );
+
+  $schema['router'] = array(
+    'description' => 'Maps paths to various callbacks (access, page and title)',
+    'fields' => array(
+      'name' => array(
+        'description' => 'Primary Key: Machine name of this route',
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'path' => array(
+        'description' => 'The path for this URI',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'pattern_outline' => array(
+        'description' => 'The pattern',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'fit' => array(
+        'description' => 'A numeric representation of how specific the path is.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'route' => array(
+        'description' => 'A serialized Route object',
+        'type' => 'blob',
+        'size' => 'big',
+      ),
+      'number_parts' => array(
+        'description' => 'Number of parts in this router path.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'small',
+      ),
+    ),
+    'indexes' => array(
+      'pattern_outline_fit' => array('pattern_outline', 'fit'),
+    ),
+    'primary key' => array('name'),
+  );
+
+  $schema['semaphore'] = array(
+    'description' => 'Table for holding semaphores, locks, flags, etc. that cannot be stored as state since they must not be cached.',
+    'fields' => array(
+      'name' => array(
+        'description' => 'Primary Key: Unique name.',
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'value' => array(
+        'description' => 'A value for the semaphore.',
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => ''
+      ),
+      'expire' => array(
+        'description' => 'A Unix timestamp with microseconds indicating when the semaphore should expire.',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE
+      ),
+    ),
+    'indexes' => array(
+      'value' => array('value'),
+      'expire' => array('expire'),
+    ),
+    'primary key' => array('name'),
+  );
+
+  $schema['sequences'] = array(
+    'description' => 'Stores IDs.',
+    'fields' => array(
+      'value' => array(
+        'description' => 'The value of the sequence.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+     ),
+    'primary key' => array('value'),
+  );
+
+  $schema['sessions'] = array(
+    'description' => "Drupal's session handlers read and write into the sessions table. Each record represents a user session, either anonymous or authenticated.",
+    'fields' => array(
+      'uid' => array(
+        'description' => 'The {users}.uid corresponding to a session, or 0 for anonymous user.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'sid' => array(
+        'description' => "A session ID (hashed). The value is generated by Drupal's session handlers.",
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+      ),
+      'hostname' => array(
+        'description' => 'The IP address that last used this session ID (sid).',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'timestamp' => array(
+        'description' => 'The Unix timestamp when this session last requested a page. Old records are purged by PHP automatically.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'session' => array(
+        'description' => 'The serialized contents of $_SESSION, an array of name/value pairs that persists across page requests by this session ID. Drupal loads $_SESSION from here at the start of each request and saves it at the end.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+      ),
+    ),
+    'primary key' => array(
+      'sid',
+    ),
+    'indexes' => array(
+      'timestamp' => array('timestamp'),
+      'uid' => array('uid'),
+    ),
+    'foreign keys' => array(
+      'session_user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
+  $schema['url_alias'] = array(
+    'description' => 'A list of URL aliases for Drupal paths; a user may visit either the source or destination path.',
+    'fields' => array(
+      'pid' => array(
+        'description' => 'A unique path alias identifier.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'source' => array(
+        'description' => 'The Drupal path this alias is for; e.g. node/12.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'alias' => array(
+        'description' => 'The alias for this path; e.g. title-of-the-story.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'langcode' => array(
+        'description' => "The language code this alias is for; if 'und', the alias will be used for unknown languages. Each Drupal path can have an alias for each supported language.",
+        'type' => 'varchar_ascii',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'primary key' => array('pid'),
+    'indexes' => array(
+      'alias_langcode_pid' => array('alias', 'langcode', 'pid'),
+      'source_langcode_pid' => array('source', 'langcode', 'pid'),
+    ),
+  );
+
+  return $schema;
+}

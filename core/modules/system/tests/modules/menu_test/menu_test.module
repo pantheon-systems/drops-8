@@ -1,0 +1,143 @@
+<?php
+
+/**
+ * @file
+ * Module that implements various hooks for menu tests.
+ */
+
+/**
+ * Implements hook_menu_links_discovered_alter().
+ */
+function menu_test_menu_links_discovered_alter(&$links) {
+  // Many of the machine names here are slightly different from the route name.
+  // Since the machine name is arbitrary, this helps ensure that core does not
+  // add mistaken assumptions about the correlation.
+  $links['menu_test.menu_name_test']['menu_name'] = menu_test_menu_name();
+  $links['menu_test.context']['title'] = \Drupal::config('menu_test.menu_item')->get('title');
+
+  // Adds a custom menu link.
+  $links['menu_test.custom'] = array(
+    'title' => 'Custom link',
+    'route_name' => 'menu_test.custom',
+    'description' => 'Custom link used to check the integrity of manually added menu links.',
+    'parent' => 'menu_test',
+  );
+}
+
+/**
+ * Implements hook_menu_local_tasks().
+ *
+ * If the menu_test.settings configuration 'tasks.add' has been set, adds
+ * several local tasks to menu-test/tasks.
+ */
+function menu_test_menu_local_tasks(&$data, $route_name) {
+  if (!\Drupal::config('menu_test.settings')->get('tasks.add')) {
+    return;
+  }
+  if (in_array($route_name, array('menu_test.tasks_default', 'menu_test.tasks_empty', 'menu_test.tasks_tasks'))) {
+    $data['tabs'][0]['foo'] = array(
+      '#theme' => 'menu_local_task',
+      '#link' => array(
+        'title' => 'Task 1',
+        'href' => 'task/foo',
+      ),
+      '#weight' => 10,
+    );
+    $data['tabs'][0]['bar'] = array(
+      '#theme' => 'menu_local_task',
+      '#link' => array(
+        'title' => 'Task 2',
+        'href' => 'task/bar',
+      ),
+      '#weight' => 20,
+    );
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ *
+ * If the menu_test.settings configuration 'tasks.alter' has been set, adds
+ * several local tasks to menu-test/tasks.
+ */
+function menu_test_menu_local_tasks_alter(&$data, $route_name) {
+  if (!\Drupal::config('menu_test.settings')->get('tasks.alter')) {
+    return;
+  }
+  if (in_array($route_name, array('menu_test.tasks_default', 'menu_test.tasks_empty', 'menu_test.tasks_tasks'))) {
+    // Rename the default local task from 'View' to 'Show'.
+    // $data['tabs'] is expected to be keyed by link hrefs.
+    // The default local task always links to its parent path, which means that
+    // if the tab root path appears as key in $data['tabs'], then that key is
+    // the default local task.
+    $key = $route_name . '_tab';
+    if (isset($data['tabs'][0][$key])) {
+      $data['tabs'][0][$key]['#link']['title'] = 'Show it';
+    }
+    // Rename the 'foo' task to "Advanced settings" and put it last.
+    $data['tabs'][0]['foo']['#link']['title'] = 'Advanced settings';
+    $data['tabs'][0]['foo']['#weight'] = 110;
+  }
+}
+
+/**
+ * Page callback: Tests the theme negotiation functionality.
+ *
+ * @param bool $inherited
+ *   (optional) TRUE when the requested page is intended to inherit
+ *   the theme of its parent.
+ *
+ * @return string
+ *   A string describing the requested custom theme and actual theme being used
+ *   for the current page request.
+ *
+ * @see menu_test_menu().
+ *
+ * @deprecated Use \Drupal\menu_test\Controller\MenuTestController::themePage()
+ */
+function menu_test_theme_page_callback($inherited = FALSE) {
+  $theme_key = \Drupal::theme()->getActiveTheme()->getName();
+  // Now we check what the theme negotiator service returns.
+  $active_theme = \Drupal::service('theme.negotiator')->determineActiveTheme(\Drupal::routeMatch());
+  $output = "Active theme: $active_theme. Actual theme: $theme_key.";
+  if ($inherited) {
+    $output .= ' Theme negotiation inheritance is being tested.';
+  }
+  return ['#markup' => $output];
+}
+
+/**
+ * Sets a static variable for the testMenuName() test.
+ *
+ * Used to change the menu_name parameter of a menu.
+ *
+ * @param string $new_name
+ *   (optional) If set, will change the $menu_name value.
+ *
+ * @return string
+ *   The $menu_name value to use.
+ */
+function menu_test_menu_name($new_name = '') {
+  static $menu_name = 'original';
+  if ($new_name) {
+    $menu_name = $new_name;
+  }
+  return $menu_name;
+}
+
+/**
+ * Title callback: Concatenates the title and case number.
+ *
+ * @param string $title
+ *   Title string.
+ * @param int $case_number
+ *   (optional) The current case number which it tests (defaults to 3).
+ *
+ * @return string
+ *   A string containing the title and case number.
+ *
+ * @see menu_test_menu().
+ */
+function menu_test_title_callback($title, $case_number = 3) {
+  return t($title) . ' - Case ' . $case_number;
+}

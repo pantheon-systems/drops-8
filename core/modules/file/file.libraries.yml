@@ -1,0 +1,21 @@
+drupal.file:
+  version: VERSION
+  js:
+    file.js: {}
+  css:
+    theme:
+      css/file.admin.css: {}
+    component:
+      css/file.theme.css: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+    - core/drupalSettings
+
+drupal.file.formatter.generic:
+  version: VERSION
+  css:
+    theme:
+      css/file.theme.css: {}
+

@@ -1,0 +1,13 @@
+# Schema for the migrate source plugins.
+
+migrate.source.*:
+  type: migrate_source
+  label: 'Default source'
+
+migrate.source.empty:
+  type: migrate_source_sql
+  label: 'Empty source'
+  mapping:
+    provider:
+      type: string
+      label: 'Provider'

@@ -1,0 +1,6 @@
+id: html_week
+label: 'HTML Week'
+status: true
+langcode: en
+locked: true
+pattern: Y-\WW

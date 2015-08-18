@@ -1,0 +1,17 @@
+base:
+  version: VERSION
+  css:
+    theme:
+      css/layout.css: {}
+
+book-navigation:
+  version: VERSION
+  css:
+    theme:
+      css/navigation/book.theme.css: {}
+
+drupal.comment.threaded:
+  version: VERSION
+  css:
+    theme:
+      css/comment/comment.theme.css: {}

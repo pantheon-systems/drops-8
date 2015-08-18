@@ -1,0 +1,6 @@
+global-styling:
+  version: VERSION
+  css:
+    base:
+      css/sub-add.css: {}
+      css/samename.css: {}

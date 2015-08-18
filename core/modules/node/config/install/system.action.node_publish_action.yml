@@ -1,0 +1,9 @@
+id: node_publish_action
+label: 'Publish content'
+status: true
+langcode: en
+type: node
+plugin: node_publish_action
+dependencies:
+  module:
+    - node

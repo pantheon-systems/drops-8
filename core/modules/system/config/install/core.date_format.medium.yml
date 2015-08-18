@@ -1,0 +1,6 @@
+id: medium
+label: 'Default medium date'
+status: true
+langcode: en
+locked: false
+pattern: 'D, m/d/Y - H:i'

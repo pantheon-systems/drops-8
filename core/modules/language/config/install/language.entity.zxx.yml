@@ -1,0 +1,7 @@
+id: zxx
+label: 'Not applicable'
+direction: 'ltr'
+weight: 2
+locked: true
+status: true
+langcode: en

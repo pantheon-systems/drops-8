@@ -1,0 +1,9 @@
+type: article
+name: Article
+description: 'Use <em>articles</em> for time-sensitive content like news, press releases or blog posts.'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: true
+status: true
+langcode: en

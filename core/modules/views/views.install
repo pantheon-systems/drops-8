@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for Views.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function views_install() {
+  module_set_weight('views', 10);
+}

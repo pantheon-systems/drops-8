@@ -1,0 +1,4 @@
+access_log:
+  enabled: false
+  max_lifetime: 259200
+count_content_views: 0

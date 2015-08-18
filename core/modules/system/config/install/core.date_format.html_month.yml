@@ -1,0 +1,6 @@
+id: html_month
+label: 'HTML Month'
+status: true
+langcode: en
+locked: true
+pattern: Y-m

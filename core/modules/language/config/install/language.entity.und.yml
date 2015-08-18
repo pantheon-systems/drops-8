@@ -1,0 +1,7 @@
+id: und
+label: 'Not specified'
+direction: 'ltr'
+weight: 1
+locked: true
+status: true
+langcode: en

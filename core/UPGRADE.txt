@@ -1,0 +1,134 @@
+INTRODUCTION
+------------
+This document describes how to:
+
+  * Update your Drupal site from one minor 8.x version to another minor 8.x
+    version; for example, from 8.8 to 8.9, or from 8.6 to 8.10.
+
+  * Migrate your Drupal site to version 8.x.
+
+First steps and definitions:
+
+  * If you are upgrading to Drupal version x.y, then x is known as the major
+    version number, and y is known as the minor version number. The download
+    file will be named drupal-x.y.tar.gz (or drupal-x.y.zip).
+
+  * All directories mentioned in this document are relative to the directory of
+    your Drupal installation.
+
+  * Make a full backup of all files, directories, and your database(s) before
+    starting, and save it outside your Drupal installation directory.
+    Instructions may be found at
+    https://www.drupal.org/upgrade/backing-up-the-db
+
+  * It is wise to try an update or upgrade on a test copy of your site before
+    applying it to your live site. Even minor updates can cause your site's
+    behavior to change.
+
+  * Each new release of Drupal has release notes, which explain the changes made
+    since the previous version and any special instructions needed to update or
+    upgrade to the new version. You can find a link to the release notes for the
+    version you are upgrading or updating to on the Drupal project page
+    (https://www.drupal.org/project/drupal).
+
+UPGRADE PROBLEMS
+----------------
+If you encounter errors during this process,
+
+  * Note any error messages you see.
+
+  * Restore your site to its previous state, using the file and database backups
+    you created before you started the upgrade process. Do not attempt to do
+    further upgrades on a site that had update problems.
+
+  * Consult one of the support options listed on https://www.drupal.org/support
+
+More in-depth information on upgrading can be found at
+https://www.drupal.org/upgrade
+
+MINOR VERSION UPDATES
+---------------------
+To update from one minor 8.x version of Drupal to any later 8.x version, after
+following the instructions in the INTRODUCTION section at the top of this file:
+
+1. Log in as a user with the permission "Administer software updates".
+
+2. Go to Administration > Configuration > Development > Maintenance mode.
+   Enable the "Put site into maintenance mode" checkbox and save the
+   configuration.
+
+3. Remove all old core files and directories, except for the 'sites' directory
+   and any custom files you added elsewhere.
+
+   If you made modifications to files like .htaccess, composer.json, or
+   robots.txt you will need to re-apply them from your backup, after the new
+   files are in place.
+
+   Sometimes an update includes changes to default.settings.php (this will be
+   noted in the release notes). If that's the case, follow these steps:
+
+   - Make a backup copy of your settings.php file, with a different file name.
+
+   - Make a copy of the new default.settings.php file, and name the copy
+     settings.php (overwriting your previous settings.php file).
+
+   - Copy the custom and site-specific entries from the backup you made into the
+     new settings.php file. You will definitely need the lines giving the
+     database information, and you will also want to copy in any other
+     customizations you have added.
+
+4. Download the latest Drupal 8.x release from https://www.drupal.org to a
+   directory outside of your web root. Extract the archive and copy the files
+   into your Drupal directory.
+
+   On a typical Unix/Linux command line, use the following commands to download
+   and extract:
+
+     wget https://www.drupal.org/files/projects/drupal-x.y.tar.gz
+     tar -zxvf drupal-x.y.tar.gz
+
+   This creates a new directory drupal-x.y/ containing all Drupal files and
+   directories. Copy the files into your Drupal installation directory:
+
+     cp -R drupal-x.y/* drupal-x.y/.htaccess /path/to/your/installation
+
+   If you do not have command line access to your server, download the archive
+   from https://www.drupal.org using your web browser, extract it, and then use
+   an FTP client to upload the files to your web root.
+
+5. Re-apply any modifications to files such as .htaccess, composer.json, or
+   robots.txt.
+
+6. Run update.php by visiting http://www.example.com/update.php (replace
+   www.example.com with your domain name). This will update the core database
+   tables.
+
+   If you are unable to access update.php do the following:
+
+   - Open settings.php with a text editor.
+
+   - Find the line that says:
+     $settings['update_free_access'] = FALSE;
+
+   - Change it into:
+     $settings['update_free_access'] = TRUE;
+
+   - Once the upgrade is done, $settings['update_free_access'] must be
+     reverted to FALSE.
+
+7. Go to Administration > Reports > Status report. Verify that everything is
+   working as expected.
+
+8. Ensure that $settings['update_free_access'] is FALSE in settings.php.
+
+9. Go to Administration > Configuration > Development > Maintenance mode.
+   Disable the "Put site into maintenance mode" checkbox and save the
+   configuration.
+
+MAJOR VERSION MIGRATION
+-----------------------
+Upgrading from a prior major version of Drupal to Drupal 8.x is not possible.
+The process now requires a migration to a Drupal 8.x site, using the Migrate
+module in Drupal core.
+
+Note that migration support in Drupal 8 is currently only partially implemented.

@@ -1,0 +1,41 @@
+/**
+ * @file
+ * Stylesheet for the Field UI module.
+ */
+
+/* 'Manage fields' and 'Manage display' overviews */
+.field-ui-overview .region-title td {
+  font-weight: bold;
+}
+.field-ui-overview .region-message td {
+  font-style: italic;
+}
+
+/* 'Manage form display' and 'Manage display' overview */
+.field-ui-overview .field-plugin-summary-cell {
+  line-height: 1em;
+}
+.field-ui-overview .field-plugin-summary {
+  float: left;
+  font-size: .9em;
+}
+.field-ui-overview .field-plugin-summary-cell .warning {
+  display: block;
+  float: left;
+  margin-right: .5em;
+}
+.field-ui-overview .field-plugin-settings-edit-wrapper {
+  float: right;
+}
+.field-ui-overview .field-plugin-settings-edit {
+  float: right;
+}
+.field-ui-overview .field-plugin-settings-editing td {
+  vertical-align: top;
+}
+.field-ui-overview .field-plugin-settings-editing .field-plugin-type {
+  display: none;
+}
+.field-ui-overview .field-plugin-settings-edit-form .plugin-name {
+  font-weight: bold;
+}

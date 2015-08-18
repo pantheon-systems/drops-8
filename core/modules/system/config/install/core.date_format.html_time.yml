@@ -1,0 +1,6 @@
+id: html_time
+label: 'HTML Time'
+status: true
+langcode: en
+locked: true
+pattern: 'H:i:s'

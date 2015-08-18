@@ -1,0 +1,9 @@
+id: comment_save_action
+label: 'Save comment'
+status: true
+langcode: en
+type: comment
+plugin: comment_save_action
+dependencies:
+  module:
+    - comment

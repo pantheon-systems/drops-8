@@ -1,0 +1,46 @@
+<?php
+
+/**
+ * @file
+ * Allows site administrators to modify configuration.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function config_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.config':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Configuration manager module provides a user interface for importing and exporting configuration changes; i.e., for staging configuration data between multiple instances of this web site. For more information, see the online handbook entry for <a href="!url">Configuration manager module</a>', array(
+        '!url' => 'https://www.drupal.org/documentation/administer/config',
+      )) . '</p>';
+      return $output;
+
+    case 'config.sync':
+      $output = '';
+      $output .= '<p>' . t('Import configuration that is placed in your staging directory. All changes, deletions, renames, and additions are listed below.') . '</p>';
+      return $output;
+
+    case 'config.import_full':
+      $output = '';
+      $output .= '<p>' . t('After uploading a configuration archive, you will be able to examine the changes and import them.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_file_download().
+ */
+function config_file_download($uri) {
+  $scheme = file_uri_scheme($uri);
+  $target = file_uri_target($uri);
+  if ($scheme == 'temporary' && $target == 'config.tar.gz') {
+    return array(
+      'Content-disposition' => 'attachment; filename="config.tar.gz"',
+    );
+  }
+}

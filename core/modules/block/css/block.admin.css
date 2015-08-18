@@ -1,0 +1,108 @@
+.block-region {
+  background-color: #ff6;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  padding: 3px;
+}
+a.block-demo-backlink,
+a.block-demo-backlink:link,
+a.block-demo-backlink:visited {
+  background-color: #b4d7f0;
+  border-radius: 0 0 10px 10px;
+  color: #000;
+  font-family: "Lucida Grande", Verdana, sans-serif;
+  font-size: small;
+  line-height: 20px;
+  left: 20px; /*LTR*/
+  padding: 5px 10px;
+  position: fixed;
+  z-index: 499;
+}
+a.block-demo-backlink:hover {
+  text-decoration: underline;
+}
+
+.layout-region {
+  box-sizing: border-box;
+}
+.block-list-secondary {
+  border: 1px solid #bfbfbf;
+  border-bottom-width: 0;
+}
+.block-list {
+  padding: 0 0.75em;
+  margin: 0;
+}
+.block-list li {
+  list-style: none;
+  padding: 0.1em 0;
+}
+.block-list a:before {
+  content: '+ ';
+}
+.block-list-secondary .form-type-search {
+  padding: 0 1em;
+}
+.block-form .form-item-settings-admin-label label {
+  display: inline;
+}
+.block-form .form-item-settings-admin-label label:after {
+  content: ':';
+}
+
+/* Wide screens */
+@media
+screen and (min-width: 780px),
+(orientation: landscape) and (min-device-height: 780px) {
+
+  .block-list-primary {
+    float: left; /* LTR */
+    width: 75%;
+    padding-right: 2em;
+  }
+  [dir="rtl"] .block-list-primary {
+    float: right;
+    padding-left: 2em;
+    padding-right: 0;
+  }
+
+  .block-list-secondary {
+    float: right; /* LTR */
+    width: 25%;
+  }
+  [dir="rtl"] .block-list-secondary {
+    float: left;
+  }
+
+  /* @todo File an issue to add a standard class to all text-like inputs */
+  .block-list-secondary .form-autocomplete,
+  .block-list-secondary .form-text,
+  .block-list-secondary .form-tel,
+  .block-list-secondary .form-email,
+  .block-list-secondary .form-url,
+  .block-list-secondary .form-search,
+  .block-list-secondary .form-number,
+  .block-list-secondary .form-color,
+  .block-list-secondary textarea {
+    box-sizing:         border-box;
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/**
+ * The vertical toolbar mode gets triggered for narrow screens, which throws off
+ * the intent of media queries written for the viewport width. When the vertical
+ * toolbar is on, we need to suppress layout for the original media width + the
+ * toolbar width (240px). In this case, 240px + 780px.
+ */
+@media
+screen and (max-width: 1020px) {
+
+  .toolbar-vertical.toolbar-tray-open .block-list-primary,
+  .toolbar-vertical.toolbar-tray-open .block-list-secondary {
+    float: none;
+    width: auto;
+    padding-right: 0;
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "drupal/drupal",
+  "description": "Drupal is an open source content management platform powering millions of websites and applications.",
+  "type": "project",
+  "license": "GPL-2.0+",
+  "require": {
+    "composer/installers": "^1.0.20",
+    "drupal/core": "~8.0"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "config": {
+    "preferred-install": "dist",
+    "autoloader-suffix": "Drupal8"
+  },
+  "extra": {
+    "_readme": [
+      "By default Drupal loads the autoloader from ./core/vendor/autoload.php.",
+      "To change the autoloader you can edit ./autoload.php."
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+# Themes are not supposed to provide/install this kind of config normally.
+# This exists for testing purposes only.
+# @see \Drupal\system\Tests\Extension\ThemeInstallerTest
+id: fancy
+label: 'Fancy date'
+status: true
+langcode: en
+locked: false
+pattern: 'U'
+dependencies:
+  theme:
+    - test_basetheme
+  enforced:
+    theme:
+      - test_basetheme

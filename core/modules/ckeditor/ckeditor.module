@@ -1,0 +1,173 @@
+<?php
+
+/**
+ * @file
+ * Provides integration with the CKEditor WYSIWYG editor.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\editor\Entity\Editor;
+
+/**
+ * Implements hook_help().
+ */
+function ckeditor_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.ckeditor':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The CKEditor module provides a visual text editor and adds a toolbar to text fields. Users can use buttons to format content and to create semantically correct and valid HTML. The CKEditor module uses the framework provided by the <a href="!text_editor">Text Editor module</a>. It requires JavaScript to be enabled in the browser. For more information, see <a href="!doc_url">the online documentation for the CKEditor module</a> and the <a href="!cke_url">CKEditor website</a>.', array( '!doc_url' => 'https://www.drupal.org/documentation/modules/ckeditor', '!cke_url' => 'http://ckeditor.com', '!text_editor' => \Drupal::url('help.page', array('name' => 'editor')))) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Enabling CKEditor for individual text formats') . '</dt>';
+      $output .= '<dd>' . t('CKEditor has to be enabled and configured separately for individual text formats from the <a href="!formats">Text formats and editors page</a> because the filter settings for each text format can be different. For more information, see the <a href="!text_editor">Text Editor help page</a> and <a href="!filter">Filter help page</a>.', array('!formats' => \Drupal::url('filter.admin_overview'), '!text_editor' => \Drupal::url('help.page', array('name' => 'editor')), '!filter' => \Drupal::url('help.page', array('name' => 'filter')))) . '</dd>';
+      $output .= '<dt>' . t('Configuring the toolbar') . '</dt>';
+      $output .= '<dd>' . t('When CKEditor is chosen from the <em>Text editor</em> drop-down menu, its toolbar configuration is displayed. You can add and remove buttons from the <em>Active toolbar</em> by dragging and dropping them, and additional rows can be added to organize the buttons.') . '</dd>';
+      $output .= '<dt>' . t('Formatting content') . '</dt>';
+      $output .= '<dd>' . t('CKEditor only allow users to format content in accordance with the filter configuration of the specific text format. If a text format excludes certain HTML tags, the corresponding toolbar buttons are not displayed to users when they edit a text field in this format. For more information see the <a href="!filter">Filter help page</a>.', array('!filter' => \Drupal::url('help.page', array('name' => 'filter')))) . '</dd>';
+      $output .= '<dt>' . t('Toggling between formatted text and HTML source') . '</dt>';
+      $output .= '<dd>' . t('If the <em>Source</em> button is available in the toolbar, users can click this button to disable the visual editor and edit the HTML source directly. After toggling back, the visual editor uses the allowed HTML tags to format the text — independent of whether buttons for these tags are available in the toolbar. If the text format is set to <em>limit the use of HTML tags</em>, then all excluded tags will be stripped out of the HTML source when the user toggles back to the text editor.') . '</dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function ckeditor_theme() {
+  return array(
+    'ckeditor_settings_toolbar' => array(
+      'file' => 'ckeditor.admin.inc',
+      'variables' => array('editor' => NULL, 'plugins' => NULL),
+    ),
+  );
+}
+
+/**
+ * Implements hook_ckeditor_css_alter().
+ */
+function ckeditor_ckeditor_css_alter(array &$css, Editor $editor) {
+  if (!$editor->hasAssociatedFilterFormat()) {
+    return;
+  }
+
+  // Add the filter caption CSS if the text format associated with this text
+  // editor uses the filter_caption filter. This is used by the included
+  // CKEditor DrupalImageCaption plugin.
+  if ($editor->getFilterFormat()->filters('filter_caption')->status) {
+    $css[] = drupal_get_path('module', 'filter') . '/css/filter.caption.css';
+  }
+
+  // Add the filter caption CSS if the text format associated with this text
+  // editor uses the filter_align filter. This is used by the included
+  // CKEditor DrupalImageCaption plugin.
+  if ($editor->getFilterFormat()->filters('filter_align')->status) {
+    $css[] = drupal_get_path('module', 'ckeditor') . '/css/plugins/drupalimagecaption/ckeditor.drupalimagecaption.css';
+  }
+}
+
+/**
+ * Retrieves the default theme's CKEditor stylesheets defined in the .info file.
+ *
+ * Themes may specify iframe-specific CSS files for use with CKEditor by
+ * including a "ckeditor_stylesheets" key in the theme .info file.
+ *
+ * @code
+ * ckeditor_stylesheets[] = css/ckeditor-iframe.css
+ * @endcode
+ */
+function _ckeditor_theme_css($theme = NULL) {
+  $css = array();
+  if (!isset($theme)) {
+    $theme = \Drupal::config('system.theme')->get('default');
+  }
+  if (isset($theme) && $theme_path = drupal_get_path('theme', $theme)) {
+    $info = system_get_info('theme', $theme);
+    if (isset($info['ckeditor_stylesheets'])) {
+      $css = $info['ckeditor_stylesheets'];
+      foreach ($css as $key => $path) {
+        $css[$key] = $theme_path . '/' . $path;
+      }
+    }
+    if (isset($info['base theme'])) {
+      $css = array_merge(_ckeditor_theme_css($info['base theme']), $css);
+    }
+  }
+  return $css;
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for 'filter_format'.
+ *
+ * Recalculates the 'format_tags' CKEditor setting when a text format is added.
+ *
+ * @see \Drupal\ckeditor\Plugin\CKEditorPlugin\Internal::generateFormatTagsSetting()
+ * @see ckeditor_rebuild()
+ */
+function ckeditor_filter_format_insert() {
+  ckeditor_rebuild();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update() for 'filter_format'.
+ *
+ * Recalculates the 'format_tags' CKEditor setting when a text format changes.
+ *
+ * @see \Drupal\ckeditor\Plugin\CKEditorPlugin\Internal::generateFormatTagsSetting()
+ * @see ckeditor_rebuild()
+ */
+function ckeditor_filter_format_update() {
+  ckeditor_rebuild();
+}
+
+/**
+ * Implements hook_rebuild().
+ *
+ * Calculates the 'format_tags' CKEditor setting for each text format.
+ *
+ * If this wouldn't happen in hook_rebuild(), then the first drupal_render()
+ * call that occurs for a page that contains a #type 'text_format' element will
+ * cause the CKEditor::getJSSettings() to be called, which will cause
+ * Internal::generateFormatTagsSetting() to be called, which calls
+ * check_markup(), which finally calls drupal_render() non-recursively, because
+ * a filter might add placeholders to replace.
+ * This would be a root call inside a root call, which breaks the stack-based
+ * logic for bubbling rendering metadata.
+ * Therefore this pre-calculates the needed values, and hence performs the
+ * check_markup() calls outside of a drupal_render() call tree.
+ *
+ * @see \Drupal\ckeditor\Plugin\CKEditorPlugin\Internal::generateFormatTagsSetting()
+ * @see ckeditor_filter_format_insert()
+ * @see ckeditor_filter_format_update()
+ */
+function ckeditor_rebuild() {
+  /** @var \Drupal\filter\FilterFormatInterface[] $formats */
+  $formats = filter_formats();
+
+  foreach ($formats as $format) {
+    $key = 'ckeditor_internal_format_tags:' . $format->id();
+
+    // The <p> tag is always allowed — HTML without <p> tags is nonsensical.
+    $format_tags = array('p');
+
+    // Given the list of possible format tags, automatically determine whether
+    // the current text format allows this tag, and thus whether it should show
+    // up in the "Format" dropdown.
+    $possible_format_tags = array('h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre');
+    foreach ($possible_format_tags as $tag) {
+      $input = '<' . $tag . '>TEST</' . $tag . '>';
+      $output = trim(check_markup($input, $format->id()));
+      if ($input == $output) {
+        $format_tags[] = $tag;
+      }
+    }
+    $format_tags = implode(';', $format_tags);
+
+    // Cache the "format_tags" configuration. This cache item is infinitely
+    // valid; it only changes whenever the text format is changed, which is
+    // guaranteed by the hook_ENTITY_TYPE_update() and hook_ENTITY_TYPE_insert()
+    // hook implementations.
+    \Drupal::state()->set($key, $format_tags);
+  }
+}

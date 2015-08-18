@@ -1,0 +1,6 @@
+id: html_yearless_date
+label: 'HTML Yearless date'
+status: true
+langcode: en
+locked: true
+pattern: m-d

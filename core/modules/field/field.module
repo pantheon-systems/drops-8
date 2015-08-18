@@ -1,0 +1,306 @@
+<?php
+/**
+ * @file
+ * Attach custom data fields to Drupal entities.
+ */
+
+use Drupal\Core\Config\ConfigImporter;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\DynamicallyFieldableEntityStorageInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\field\Entity\FieldStorageConfig;
+
+/*
+ * Load all public Field API functions. Drupal currently has no
+ * mechanism for auto-loading core APIs, so we have to load them on
+ * every page request.
+ */
+require_once __DIR__ . '/field.purge.inc';
+
+/**
+ * @defgroup field Field API
+ * @{
+ * Attaches custom data fields to Drupal entities.
+ *
+ * The Field API allows custom data fields to be attached to Drupal entities and
+ * takes care of storing, loading, editing, and rendering field data. Any entity
+ * type (node, user, etc.) can use the Field API to make itself "fieldable" and
+ * thus allow fields to be attached to it. Other modules can provide a user
+ * interface for managing custom fields via a web browser as well as a wide and
+ * flexible variety of data type, form element, and display format capabilities.
+ *
+ * The Field API defines two primary data structures, FieldStorage and Field,
+ * and the concept of a Bundle. A FieldStorage defines a particular type of data
+ * that can be attached to entities. A Field is attached to a single
+ * Bundle. A Bundle is a set of fields that are treated as a group by the Field
+ * Attach API and is related to a single fieldable entity type.
+ *
+ * For example, suppose a site administrator wants Article nodes to have a
+ * subtitle and photo. Using the Field API or Field UI module, the administrator
+ * creates a field named 'subtitle' of type 'text' and a field named 'photo' of
+ * type 'image'. The administrator (again, via a UI) creates two Field
+ * Instances, one attaching the field 'subtitle' to the 'node' bundle 'article'
+ * and one attaching the field 'photo' to the 'node' bundle 'article'. When the
+ * node storage loads an Article node, it loads the values of the
+ * 'subtitle' and 'photo' fields because they are both attached to the 'node'
+ * bundle 'article'.
+ *
+ * - @link field_types Field Types API @endlink: Defines field types, widget
+ *   types, and display formatters. Field modules use this API to provide field
+ *   types like Text and Node Reference along with the associated form elements
+ *   and display formatters.
+ *
+ * - @link field_purge Field API bulk data deletion @endlink: Cleans up after
+ *   bulk deletion operations such as deletion of field storage or field.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function field_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.field':
+      $field_ui_url = \Drupal::moduleHandler()->moduleExists('field_ui') ? \Drupal::url('help.page', array('name' => 'field_ui')) : '#';
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Field module allows custom data fields to be defined for <em>entity</em> types (see below). The Field module takes care of storing, loading, editing, and rendering field data. Most users will not interact with the Field module directly, but will instead use the <a href="!field-ui-help">Field UI module</a> user interface. Module developers can use the Field API to make new entity types "fieldable" and thus allow fields to be attached to them. For more information, see the <a href="!field">online documentation for the Field module</a>.', array('!field-ui-help' => (\Drupal::moduleHandler()->moduleExists('field_ui')) ? \Drupal::url('help.page', array('name' => 'field_ui')) :'#', '!field' => 'https://www.drupal.org/documentation/modules/field')). '</p>';
+      $output .= '<h3>' . t('Terminology') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Entities and entity types') . '</dt>';
+      $output .= '<dd>' . t('The website\'s content and configuration is managed using <em>entities</em>, which are grouped into <em>entity types</em>. <em>Content entity types</em> are the entity types for site content (such as the main site content, comments, custom blocks, taxonomy terms, and user accounts). <em>Configuration entity types</em> are used to store configuration information for your site, such as individual views in the Views module, and settings for your main site content types.') . '</dd>';
+      $output .= '<dt>' . t('Entity sub-types') . '</dt>';
+      $output .= '<dd>' . t('Some content entity types are further grouped into sub-types (for example, you could have article and page content types within the main site content entity type, and tag and category vocabularies within the taxonomy term entity type); other entity types, such as user accounts, do not have sub-types. Programmers use the term <em>bundle</em> for entity sub-types.') . '</dd>';
+      $output .= '<dt>' . t('Fields and field types') . '</dt>';
+      $output .= '<dd>' . t('Content entity types and sub-types store most of their text, file, and other information in <em>fields</em>. Fields are grouped by <em>field type</em>; field types define what type of data can be stored in that field, such as text, images, or taxonomy term references.') . '</dd>';
+      $output .= '<dt>' . t('Formatters and view modes') . '</dd>';
+      $output .= '<dd>' . t('Content entity types and sub-types can have one or more <em>view modes</em>, used for displaying the entity items. For instance, a content item could be viewed in full content mode on its own page, teaser mode in a list, or RSS mode in a feed. In each view mode, each field can be hidden or displayed, and if it is displayed, you can choose and configure the <em>formatter</em> that is used to display the field. For instance, a long text field can be displayed trimmed or full-length, and taxonomy term reference fields can be displayed in plain text or linked to the taxonomy term page.') . '</dd>';
+      $output .= '<dt>' . t('Widgets and form modes') . '</dd>';
+      $output .= '<dd>' . t('Content entity types and sub-types can have one or more <em>form modes</em>, used for editing. For instance, a content item could be edited in a compact format with only some fields editable, or a full format that allows all fields to be edited. In each form mode, each field can be hidden or displayed, and if it is displayed, you can choose and configure the <em>widget</em> that is used to edit the field. For instance, a taxonomy term reference field can be edited using a select list, radio buttons, or an autocomplete widget.') . '</dd>';
+      $output .= '</dl>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Enabling field types, widgets, and formatters') . '</dt>';
+      $output .= '<dd>' . t('The Field module provides the infrastructure for fields; the field types, formatters, and widgets are provided by Drupal core or additional modules. Some of the modules are required; the optional modules can be enabled from the <a href="!modules">Extend administration page</a>. Additional fields, formatters, and widgets may be provided by contributed modules, which you can find in the <a href="!contrib">contributed module section of Drupal.org</a>.', array('!modules' => \Drupal::url('system.modules_list'), '!contrib' => 'https://www.drupal.org/project/modules')) . '</dd>';
+
+      $output .= '<h3>' . t('Field, widget, and formatter information') . '</h3>';
+
+      // Make a list of all widget, formatter, and field modules currently
+      // enabled, ordered by displayed module name (module names are not
+      // translated).
+      $items = array();
+      $modules = \Drupal::moduleHandler()->getModuleList();
+      $widgets = \Drupal::service('plugin.manager.field.widget')->getDefinitions();
+      $field_types = \Drupal::service('plugin.manager.field.field_type')->getUiDefinitions();
+      $formatters = \Drupal::service('plugin.manager.field.formatter')->getDefinitions();
+      $providers = array();
+      foreach (array_merge($field_types, $widgets, $formatters) as $plugin) {
+        $providers[] = $plugin['provider'];
+      }
+      $providers = array_unique($providers);
+      sort($providers);
+      foreach ($providers as $provider) {
+        // Skip plugins provided by core components as they do not implement
+        // hook_help().
+        if (isset($modules[$provider])) {
+          $display = \Drupal::moduleHandler()->getName($provider);
+          if (\Drupal::moduleHandler()->implementsHook($provider, 'help')) {
+            $items[] = \Drupal::l($display, new Url('help.page', array('name' => $provider)));
+          }
+          else {
+            $items[] = $display;
+          }
+        }
+      }
+      if ($items) {
+        $output .= '<dt>' . t('Provided by modules') . '</dt>';
+        $output .= '<dd>' . t('Here is a list of the currently enabled field, formatter, and widget modules:');
+        $item_list = array(
+          '#theme' => 'item_list',
+          '#items' => $items,
+        );
+        $output .= \Drupal::service('renderer')->renderPlain($item_list);
+        $output .= '</dd>';
+      }
+
+      $output .= '<dt>' . t('Provided by Drupal core') . '</dt>';
+      $output .= '<dd>' . t('As mentioned previously, some field types, widgets, and formatters are provided by Drupal core. Here are some notes on how to use some of these:');
+      $output .= '<ul>';
+      $output .= '<li>' . t('<strong>Number fields</strong>: When you add a number field you can choose from three types: <em>decimal</em>, <em>float</em>, and <em>integer</em>. The <em>decimal</em> number field type allows users to enter exact decimal values, with fixed numbers of decimal places. The <em>float</em> number field type allows users to enter approximate decimal values. The <em>integer</em> number field type allows users to enter whole numbers, such as years (for example, 2012) or values (for example, 1, 2, 5, 305). It does not allow decimals.') . '</li>';
+      $output .= '</ul></dd>';
+      $output .= '</dl>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function field_cron() {
+  // Do a pass of purging on deleted Field API data, if any exists.
+  $limit = \Drupal::config('field.settings')->get('purge_batch_size');
+  field_purge_batch($limit);
+}
+
+/**
+ * Implements hook_entity_field_storage_info().
+ */
+function field_entity_field_storage_info(\Drupal\Core\Entity\EntityTypeInterface $entity_type) {
+  if (\Drupal::entityManager()->getStorage($entity_type->id()) instanceof DynamicallyFieldableEntityStorageInterface) {
+    // Query by filtering on the ID as this is more efficient than filtering
+    // on the entity_type property directly.
+    $ids = \Drupal::entityQuery('field_storage_config')
+      ->condition('id', $entity_type->id() . '.', 'STARTS_WITH')
+      ->execute();
+    // Fetch all fields and key them by field name.
+    $field_storages = FieldStorageConfig::loadMultiple($ids);
+    $result = array();
+    foreach ($field_storages as $field_storage) {
+      $result[$field_storage->getName()] = $field_storage;
+    }
+
+    return $result;
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_field_info().
+ */
+function field_entity_bundle_field_info(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
+  if (\Drupal::entityManager()->getStorage($entity_type->id()) instanceof DynamicallyFieldableEntityStorageInterface) {
+    // Query by filtering on the ID as this is more efficient than filtering
+    // on the entity_type property directly.
+    $ids = \Drupal::entityQuery('field_config')
+      ->condition('id', $entity_type->id() . '.' . $bundle . '.', 'STARTS_WITH')
+      ->execute();
+    // Fetch all fields and key them by field name.
+    $field_configs = FieldConfig::loadMultiple($ids);
+    $result = array();
+    foreach ($field_configs as $field_instance) {
+      $result[$field_instance->getName()] = $field_instance;
+    }
+
+    return $result;
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_rename().
+ */
+function field_entity_bundle_rename($entity_type, $bundle_old, $bundle_new) {
+  $fields = entity_load_multiple_by_properties('field_config', array('entity_type' => $entity_type, 'bundle' => $bundle_old, 'include_deleted' => TRUE));
+  foreach ($fields as $field) {
+    $id_new = $field->getTargetEntityTypeId() . '.' . $bundle_new . '.' . $field->getName();
+    $field->set('id', $id_new);
+    $field->set('bundle', $bundle_new);
+    // Save non-deleted fields.
+    if (!$field->isDeleted()) {
+      $field->allowBundleRename();
+      $field->save();
+    }
+    // Update deleted fields directly in the state storage.
+    else {
+      $state = \Drupal::state();
+      $deleted_fields = $state->get('field.field.deleted') ?: array();
+      $deleted_fields[$field->uuid] = $field->toArray();
+      $state->set('field.field.deleted', $deleted_fields);
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_delete().
+ *
+ * This deletes the data for the field as well as the field themselves. This
+ * function actually just marks the data and fields as deleted, leaving the
+ * garbage collection for a separate process, because it is not always
+ * possible to delete this much data in a single page request (particularly
+ * since for some field types, the deletion is more than just a simple DELETE
+ * query).
+ */
+function field_entity_bundle_delete($entity_type, $bundle) {
+  // Get the fields on the bundle.
+  $fields = entity_load_multiple_by_properties('field_config', array('entity_type' => $entity_type, 'bundle' => $bundle));
+  foreach ($fields as $field) {
+    $field->delete();
+  }
+}
+
+/**
+ * @} End of "defgroup field".
+ */
+
+/**
+ * Assembles a partial entity structure with initial IDs.
+ *
+ * @param object $ids
+ *   An object with the properties entity_type (required), entity_id (required),
+ *   revision_id (optional) and bundle (optional).
+ *
+ * @return \Drupal\Core\Entity\EntityInterface
+ *   An entity, initialized with the provided IDs.
+ */
+function _field_create_entity_from_ids($ids) {
+  $id_properties = array();
+  $entity_type = \Drupal::entityManager()->getDefinition($ids->entity_type);
+  if ($id_key = $entity_type->getKey('id')) {
+    $id_properties[$id_key] = $ids->entity_id;
+  }
+  if (isset($ids->revision_id) && $revision_key = $entity_type->getKey('revision')) {
+    $id_properties[$revision_key] = $ids->revision_id;
+  }
+  if (isset($ids->bundle) && $bundle_key = $entity_type->getKey('bundle')) {
+    $id_properties[$bundle_key] = $ids->bundle;
+  }
+  return entity_create($ids->entity_type, $id_properties);
+}
+
+/**
+ * Implements hook_config_import_steps_alter().
+ */
+function field_config_import_steps_alter(&$sync_steps, ConfigImporter $config_importer) {
+  $field_storages = \Drupal\field\ConfigImporterFieldPurger::getFieldStoragesToPurge(
+    $config_importer->getStorageComparer()->getSourceStorage()->read('core.extension'),
+    $config_importer->getStorageComparer()->getChangelist('delete')
+  );
+  if ($field_storages) {
+    // Add a step to the beginning of the configuration synchronization process
+    // to purge field data where the module that provides the field is being
+    // uninstalled.
+    array_unshift($sync_steps, array('\Drupal\field\ConfigImporterFieldPurger', 'process'));
+  };
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds a warning if field data will be permanently removed by the configuration
+ * synchronization.
+ *
+ * @see \Drupal\field\ConfigImporterFieldPurger
+ */
+function field_form_config_admin_import_form_alter(&$form, FormStateInterface $form_state) {
+  // Only display the message when there is a storage comparer available and the
+  // form is not submitted.
+  $user_input = $form_state->getUserInput();
+  $storage_comparer = $form_state->get('storage_comparer');
+  if ($storage_comparer && empty($user_input)) {
+    $field_storages = \Drupal\field\ConfigImporterFieldPurger::getFieldStoragesToPurge(
+      $storage_comparer->getSourceStorage()->read('core.extension'),
+      $storage_comparer->getChangelist('delete')
+    );
+    if ($field_storages) {
+      foreach ($field_storages as $field) {
+        $field_labels[] = $field->label();
+      }
+      drupal_set_message(\Drupal::translation()->formatPlural(
+        count($field_storages),
+        'This synchronization will delete data from the field %fields.',
+        'This synchronization will delete data from the fields: %fields.',
+        array('%fields' => implode(', ', $field_labels))
+      ), 'warning');
+    }
+  }
+}
