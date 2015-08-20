@@ -13,7 +13,7 @@
  * at https://www.drupal.org/node/2431247
  *
  */
-if (substr($_SERVER['SCRIPT_NAME'],0,17) != '/core/install.php') {
+if (substr($_SERVER['SCRIPT_NAME'],0,17) == '/core/install.php') {
   $config_directories = array(
     CONFIG_ACTIVE_DIRECTORY => 'sites/default/files',
     CONFIG_STAGING_DIRECTORY => 'sites/default/files',
