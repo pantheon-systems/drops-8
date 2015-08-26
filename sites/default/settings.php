@@ -1,6 +1,11 @@
 <?php
 
 /**
+ * Load services definition file.
+ */
+$settings['container_yamls'][] = __DIR__ . '/services.yml';
+
+/**
  * Include the Pantheon-specific settings file.
  *
  * n.b. The settings.pantheon.php file makes some changes
