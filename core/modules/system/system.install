@@ -36,7 +36,7 @@ function system_requirements($phase) {
 
     // Display the currently active installation profile, if the site
     // is not running the default installation profile.
-    $profile = (drupal_get_profile()) ? drupal_get_profile() : 'standard';
+    $profile = drupal_get_profile();
     if ($profile != 'standard') {
       $info = system_get_info('module', $profile);
       $requirements['install_profile'] = array(
