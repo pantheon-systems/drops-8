@@ -38,18 +38,6 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
 }
 
 /**
- * Pre-select the 'standard' installation profile.  Drupal complains if we
- * do not do this, and operational problems result.
- *
- * https://github.com/pantheon-systems/drops-8/issues/17
- */
-if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
-  // Pre-select the standard profile
-  $GLOBALS['install_state']['profile_info']['distribution']['name'] = 'standard';
-  $GLOBALS['install_state']['parameters']['profile'] = 'standard';
-}
-
-/**
  * Allow Drupal 8 to Cleanly Redirect to Install.php For New Sites.
  *
  * Issue: https://github.com/pantheon-systems/drops-8/issues/3
