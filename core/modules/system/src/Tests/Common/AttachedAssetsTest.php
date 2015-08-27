@@ -215,7 +215,6 @@ class AttachedAssetsTest extends KernelTestBase {
 
     // Test whether the settings for core/drupalSettings are available.
     $this->assertTrue(isset($parsed_settings['path']['baseUrl']), 'drupalSettings.path.baseUrl is present.');
-    $this->assertTrue(isset($parsed_settings['path']['scriptPath']), 'drupalSettings.path.scriptPath is present.');
     $this->assertIdentical($parsed_settings['path']['pathPrefix'], 'yarhar', 'drupalSettings.path.pathPrefix is present and has the correct (overridden) value.');
     $this->assertIdentical($parsed_settings['path']['currentPath'], '', 'drupalSettings.path.currentPath is present and has the correct value.');
     $this->assertIdentical($parsed_settings['path']['currentPathIsAdmin'], FALSE, 'drupalSettings.path.currentPathIsAdmin is present and has the correct value.');
@@ -287,8 +286,9 @@ class AttachedAssetsTest extends KernelTestBase {
 
     $js = $this->assetResolver->getJsAssets($assets, FALSE)[1];
     $js_render_array = \Drupal::service('asset.js.collection_renderer')->render($js);
+
     $rendered_js = $this->renderer->renderPlain($js_render_array);
-    $this->assertTrue(strpos($rendered_js, 'core/assets/vendor/backbone/backbone-min.js?v=1.1.2') > 0 && strpos($rendered_js, 'core/assets/vendor/domready/ready.min.js?v=1.0.8') > 0 , 'JavaScript version identifiers correctly appended to URLs');
+    $this->assertTrue(strpos($rendered_js, 'core/assets/vendor/backbone/backbone-min.js?v=1.2.1') > 0 && strpos($rendered_js, 'core/assets/vendor/domready/ready.min.js?v=1.0.8') > 0 , 'JavaScript version identifiers correctly appended to URLs');
   }
 
   /**

@@ -9,6 +9,7 @@ namespace Drupal\filter\Tests;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Render\RenderContext;
 use Drupal\editor\EditorXssFilter\Standard;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\filter\FilterPluginCollection;
@@ -101,10 +102,14 @@ class FilterUnitTest extends KernelTestBase {
    * Tests the caption filter.
    */
   function testCaptionFilter() {
+    /** @var \Drupal\Core\Render\RendererInterface $renderer */
+    $renderer = \Drupal::service('renderer');
     $filter = $this->filters['filter_caption'];
 
-    $test = function($input) use ($filter) {
-      return $filter->process($input, 'und');
+    $test = function($input) use ($filter, $renderer) {
+      return $renderer->executeInRenderContext(new RenderContext(), function () use ($input, $filter) {
+        return $filter->process($input, 'und');
+      });
     };
 
     $attached_library = array(
@@ -190,12 +195,14 @@ class FilterUnitTest extends KernelTestBase {
         'filter_html_nofollow' => 0,
       )
     ));
-    $test_with_html_filter = function ($input) use ($filter, $html_filter) {
-      // 1. Apply HTML filter's processing step.
-      $output = $html_filter->process($input, 'und');
-      // 2. Apply caption filter's processing step.
-      $output = $filter->process($output, 'und');
-      return $output->getProcessedText();
+    $test_with_html_filter = function ($input) use ($filter, $html_filter, $renderer) {
+      return $renderer->executeInRenderContext(new RenderContext(), function () use ($input, $filter, $html_filter) {
+        // 1. Apply HTML filter's processing step.
+        $output = $html_filter->process($input, 'und');
+        // 2. Apply caption filter's processing step.
+        $output = $filter->process($output, 'und');
+        return $output->getProcessedText();
+      });
     };
     // Editor XSS filter.
     $test_editor_xss_filter = function ($input) {
@@ -252,11 +259,15 @@ class FilterUnitTest extends KernelTestBase {
    * Tests the combination of the align and caption filters.
    */
   function testAlignAndCaptionFilters() {
+    /** @var \Drupal\Core\Render\RendererInterface $renderer */
+    $renderer = \Drupal::service('renderer');
     $align_filter = $this->filters['filter_align'];
     $caption_filter = $this->filters['filter_caption'];
 
-    $test = function($input) use ($align_filter, $caption_filter) {
-      return $caption_filter->process($align_filter->process($input, 'und'), 'und');
+    $test = function($input) use ($align_filter, $caption_filter, $renderer) {
+      return $renderer->executeInRenderContext(new RenderContext(), function () use ($input, $align_filter, $caption_filter) {
+        return $caption_filter->process($align_filter->process($input, 'und'), 'und');
+      });
     };
 
     $attached_library = array(
@@ -504,7 +515,7 @@ class FilterUnitTest extends KernelTestBase {
     // Create a email that is too long.
     $long_email = str_repeat('a', 254) . '@example.com';
     $too_long_email = str_repeat('b', 255) . '@example.com';
-
+    $email_with_plus_sign = 'one+two@example.com';
 
     // Filter selection/pattern matching.
     $tests = array(
@@ -517,12 +528,13 @@ http://example.com or www.example.com
       ),
       // MAILTO URLs.
       '
-person@example.com or mailto:person2@example.com or ' . $long_email . ' but not ' . $too_long_email . '
+person@example.com or mailto:person2@example.com or ' . $email_with_plus_sign . ' or ' . $long_email . ' but not ' . $too_long_email . '
 ' => array(
         '<a href="mailto:person@example.com">person@example.com</a>' => TRUE,
         '<a href="mailto:person2@example.com">mailto:person2@example.com</a>' => TRUE,
         '<a href="mailto:' . $long_email . '">' . $long_email . '</a>' => TRUE,
         '<a href="mailto:' . $too_long_email . '">' . $too_long_email . '</a>' => FALSE,
+        '<a href="mailto:' . $email_with_plus_sign . '">' . $email_with_plus_sign . '</a>' => TRUE,
       ),
       // URI parts and special characters.
       '
@@ -582,7 +594,7 @@ me@me.tv
       ),
       // Absolute URL protocols.
       // The list to test is found in the beginning of _filter_url() at
-      // $protocols = $this->config('system.filter')->get('protocols').
+      // $protocols = \Drupal::getContainer()->getParameter('filter_protocols').
       '
 https://example.com,
 ftp://ftp.example.com,

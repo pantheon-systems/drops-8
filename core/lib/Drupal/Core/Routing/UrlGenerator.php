@@ -7,8 +7,8 @@
 
 namespace Drupal\Core\Routing;
 
-use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Render\BubbleableMetadata;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\RequestContext as SymfonyRequestContext;
 use Symfony\Component\Routing\Route as SymfonyRoute;
@@ -54,14 +54,19 @@ class UrlGenerator implements UrlGeneratorInterface {
   /**
    * Overrides characters that will not be percent-encoded in the path segment.
    *
+   * The first two elements are the first two parameters of str_replace(), so
+   * if you override this variable you can also use arrays for the encoded
+   * and decoded characters.
+   *
    * @see \Symfony\Component\Routing\Generator\UrlGenerator
    */
-  protected $decodedChars = array(
+  protected $decodedChars = [
     // the slash can be used to designate a hierarchical structure and we want allow using it with this meaning
     // some webservers don't allow the slash in encoded form in the path for security reasons anyway
     // see http://stackoverflow.com/questions/4069002/http-400-if-2f-part-of-get-url-in-jboss
-    '%2F' => '/',
-  );
+    '%2F', // Map from these encoded characters.
+    '/', // Map to these decoded characters.
+  ];
 
   /**
    *  Constructs a new generator object.
@@ -72,19 +77,18 @@ class UrlGenerator implements UrlGeneratorInterface {
    *   The path processor to convert the system path to one suitable for urls.
    * @param \Drupal\Core\RouteProcessor\OutboundRouteProcessorInterface $route_processor
    *   The route processor.
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config
-   *    The config factory.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   A request stack object.
+   * @param string[] $filter_protocols
+   *   (optional) An array of protocols allowed for URL generation.
    */
-  public function __construct(RouteProviderInterface $provider, OutboundPathProcessorInterface $path_processor, OutboundRouteProcessorInterface $route_processor, ConfigFactoryInterface $config, RequestStack $request_stack) {
+  public function __construct(RouteProviderInterface $provider, OutboundPathProcessorInterface $path_processor, OutboundRouteProcessorInterface $route_processor, RequestStack $request_stack, array $filter_protocols = ['http', 'https']) {
     $this->provider = $provider;
     $this->context = new RequestContext();
 
     $this->pathProcessor = $path_processor;
     $this->routeProcessor = $route_processor;
-    $allowed_protocols = $config->get('system.filter')->get('protocols') ?: array('http', 'https');
-    UrlHelper::setAllowedProtocols($allowed_protocols);
+    UrlHelper::setAllowedProtocols($filter_protocols);
     $this->requestStack = $request_stack;
   }
 
@@ -212,7 +216,7 @@ class UrlGenerator implements UrlGeneratorInterface {
     }
 
     // The contexts base URL is already encoded (see Symfony\Component\HttpFoundation\Request)
-    $url = strtr(rawurlencode($url), $this->decodedChars);
+    $url = str_replace($this->decodedChars[0], $this->decodedChars[1], rawurlencode($url));
 
     // Drupal paths rarely include dots, so skip this processing if possible.
     if (strpos($url, '/.') !== FALSE) {
@@ -277,13 +281,10 @@ class UrlGenerator implements UrlGeneratorInterface {
   /**
    * {@inheritdoc}
    */
-  public function generateFromRoute($name, $parameters = array(), $options = array(), $collect_cacheability_metadata = FALSE) {
-    $generated_url = $collect_cacheability_metadata ? new GeneratedUrl() : NULL;
-
+  public function generateFromRoute($name, $parameters = array(), $options = array(), $collect_bubbleable_metadata = FALSE) {
     $options += array('prefix' => '');
     $route = $this->getRoute($name);
-    $name = $this->getRouteDebugMessage($name);
-    $this->processRoute($name, $route, $parameters, $generated_url);
+    $generated_url = $collect_bubbleable_metadata ? new GeneratedUrl() : NULL;
 
     $query_params = [];
     // Symfony adds any parameters that are not path slugs as query strings.
@@ -291,6 +292,23 @@ class UrlGenerator implements UrlGeneratorInterface {
       $query_params = $options['query'];
     }
 
+    $fragment = '';
+    if (isset($options['fragment'])) {
+      if (($fragment = trim($options['fragment'])) != '') {
+        $fragment = '#' . $fragment;
+      }
+    }
+
+    // Generate a relative URL having no path, just query string and fragment.
+    if ($route->getOption('_no_path')) {
+      $query = $query_params ? '?' . http_build_query($query_params, '', '&') : '';
+      $url = $query . $fragment;
+      return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
+    }
+
+    $options += array('prefix' => '');
+    $name = $this->getRouteDebugMessage($name);
+    $this->processRoute($name, $route, $parameters, $generated_url);
     $path = $this->getInternalPathFromRoute($name, $route, $parameters, $query_params);
     $path = $this->processPath($path, $options, $generated_url);
 
@@ -298,13 +316,6 @@ class UrlGenerator implements UrlGeneratorInterface {
       $path = ltrim($path, '/');
       $prefix = empty($path) ? rtrim($options['prefix'], '/') : $options['prefix'];
       $path = '/' . str_replace('%2F', '/', rawurlencode($prefix)) . $path;
-    }
-
-    $fragment = '';
-    if (isset($options['fragment'])) {
-      if (($fragment = trim($options['fragment'])) != '') {
-        $fragment = '#' . $fragment;
-      }
     }
 
     // The base_url might be rewritten from the language rewrite in domain mode.
@@ -321,20 +332,15 @@ class UrlGenerator implements UrlGeneratorInterface {
       }
 
       $url = $base_url . $path . $fragment;
-      return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($url) : $url;
+      return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
     }
 
     $base_url = $this->context->getBaseUrl();
 
     $absolute = !empty($options['absolute']);
     if (!$absolute || !$host = $this->context->getHost()) {
-
-      if ($route->getOption('_only_fragment')) {
-        return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($fragment) : $fragment;
-      }
-
       $url = $base_url . $path . $fragment;
-      return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($url) : $url;
+      return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
     }
 
     // Prepare an absolute URL by getting the correct scheme, host and port from
@@ -355,19 +361,19 @@ class UrlGenerator implements UrlGeneratorInterface {
     } elseif ('https' === $scheme && 443 != $this->context->getHttpsPort()) {
       $port = ':' . $this->context->getHttpsPort();
     }
-    if ($collect_cacheability_metadata) {
+    if ($collect_bubbleable_metadata) {
       $generated_url->addCacheContexts(['url.site']);
     }
     $url = $scheme . '://' . $host . $port . $base_url . $path . $fragment;
-    return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($url) : $url;
+    return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
 
   }
 
   /**
    * {@inheritdoc}
    */
-  public function generateFromPath($path = NULL, $options = array(), $collect_cacheability_metadata = FALSE) {
-    $generated_url = $collect_cacheability_metadata ? new GeneratedUrl() : NULL;
+  public function generateFromPath($path = NULL, $options = array(), $collect_bubbleable_metadata = FALSE) {
+    $generated_url = $collect_bubbleable_metadata ? new GeneratedUrl() : NULL;
 
     $request = $this->requestStack->getCurrentRequest();
     $current_base_path = $request->getBasePath() . '/';
@@ -432,7 +438,7 @@ class UrlGenerator implements UrlGeneratorInterface {
       }
       // Reassemble.
       $url = $path . $options['fragment'];
-      return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($url) : $url;
+      return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
     }
     else {
       $path = ltrim($this->processPath('/' . $path, $options, $generated_url), '/');
@@ -463,20 +469,20 @@ class UrlGenerator implements UrlGeneratorInterface {
     $base = $options['absolute'] ? $options['base_url'] : $current_base_path;
     $prefix = empty($path) ? rtrim($options['prefix'], '/') : $options['prefix'];
 
-    if ($options['absolute'] && $collect_cacheability_metadata) {
+    if ($options['absolute'] && $collect_bubbleable_metadata) {
       $generated_url->addCacheContexts(['url.site']);
     }
 
     $path = str_replace('%2F', '/', rawurlencode($prefix . $path));
     $query = $options['query'] ? ('?' . UrlHelper::buildQuery($options['query'])) : '';
     $url = $base . $options['script'] . $path . $query . $options['fragment'];
-    return $collect_cacheability_metadata ? $generated_url->setGeneratedUrl($url) : $url;
+    return $collect_bubbleable_metadata ? $generated_url->setGeneratedUrl($url) : $url;
   }
 
   /**
    * Passes the path to a processor manager to allow alterations.
    */
-  protected function processPath($path, &$options = array(), CacheableMetadata $cacheable_metadata = NULL) {
+  protected function processPath($path, &$options = array(), BubbleableMetadata $bubbleable_metadata = NULL) {
     // Router-based paths may have a querystring on them.
     if ($query_pos = strpos($path, '?')) {
       // We don't need to do a strict check here because position 0 would mean we
@@ -488,7 +494,7 @@ class UrlGenerator implements UrlGeneratorInterface {
       $actual_path = $path;
       $query_string = '';
     }
-    $path = $this->pathProcessor->processOutbound($actual_path === '/' ? $actual_path : rtrim($actual_path, '/'), $options, $this->requestStack->getCurrentRequest(), $cacheable_metadata);
+    $path = $this->pathProcessor->processOutbound($actual_path === '/' ? $actual_path : rtrim($actual_path, '/'), $options, $this->requestStack->getCurrentRequest(), $bubbleable_metadata);
     $path .= $query_string;
     return $path;
   }
@@ -502,11 +508,11 @@ class UrlGenerator implements UrlGeneratorInterface {
    *   The route object to process.
    * @param array $parameters
    *   An array of parameters to be passed to the route compiler.
-   * @param \Drupal\Core\Cache\CacheableMetadata $cacheable_metadata
-   *   (optional) Object to collect route processors' cacheability.
+   * @param \Drupal\Core\Render\BubbleableMetadata $bubbleable_metadata
+   *   (optional) Object to collect route processors' bubbleable metadata.
    */
-  protected function processRoute($name, SymfonyRoute $route, array &$parameters, CacheableMetadata $cacheable_metadata = NULL) {
-    $this->routeProcessor->processOutbound($name, $route, $parameters, $cacheable_metadata);
+  protected function processRoute($name, SymfonyRoute $route, array &$parameters, BubbleableMetadata $bubbleable_metadata = NULL) {
+    $this->routeProcessor->processOutbound($name, $route, $parameters, $bubbleable_metadata);
   }
 
   /**

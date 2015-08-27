@@ -185,12 +185,35 @@ abstract class UpdatePathTestBase extends WebTestBase {
       $this->fail('Missing zlib requirement for upgrade tests.');
       return FALSE;
     }
-    $this->drupalLogin($this->rootUser);
+    // The site might be broken at the time so logging in using the UI might
+    // not work, so we use the API itself.
+    drupal_rewrite_settings(['settings' => ['update_free_access' => (object) [
+      'value' => TRUE,
+      'required' => TRUE,
+    ]]]);
+
     $this->drupalGet($this->updateUrl);
     $this->clickLink(t('Continue'));
 
     // Run the update hooks.
     $this->clickLink(t('Apply pending updates'));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function rebuildAll() {
+    parent::rebuildAll();
+
+    // Remove the notices we get due to the menu link rebuild prior to running
+    // the system updates for the schema change.
+    foreach ($this->assertions as $key => $assertion) {
+      if ($assertion['message_group'] == 'Notice' && basename($assertion['file']) == 'MenuTreeStorage.php' && strpos($assertion['message'], 'unserialize(): Error at offset 0') !== FALSE) {
+        unset($this->assertions[$key]);
+        $this->deleteAssert($assertion['message_id']);
+        $this->results['#exception']--;
+      }
+    }
   }
 
 }

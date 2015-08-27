@@ -7,18 +7,21 @@
 
 namespace Drupal\Core\Cache\Context;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\PermissionsHashGeneratorInterface;
 
 /**
  * Defines the AccountPermissionsCacheContext service, for "per permission" caching.
+ *
+ * Cache context ID: 'user.permissions'.
  */
-class AccountPermissionsCacheContext extends UserCacheContext {
+class AccountPermissionsCacheContext extends UserCacheContextBase implements CacheContextInterface {
 
   /**
    * The permissions hash generator.
    *
-   * @var \Drupal\user\PermissionsHashInterface
+   * @var \Drupal\Core\Session\PermissionsHashGeneratorInterface
    */
   protected $permissionsHashGenerator;
 
@@ -27,7 +30,7 @@ class AccountPermissionsCacheContext extends UserCacheContext {
    *
    * @param \Drupal\Core\Session\AccountInterface $user
    *   The current user.
-   * @param \Drupal\user\PermissionsHashInterface $permissions_hash_generator
+   * @param \Drupal\Core\Session\PermissionsHashGeneratorInterface $permissions_hash_generator
    *   The permissions hash generator.
    */
   public function __construct(AccountInterface $user, PermissionsHashGeneratorInterface $permissions_hash_generator) {
@@ -46,7 +49,24 @@ class AccountPermissionsCacheContext extends UserCacheContext {
    * {@inheritdoc}
    */
   public function getContext() {
-    return 'ph.' . $this->permissionsHashGenerator->generate($this->user);
+    return $this->permissionsHashGenerator->generate($this->user);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata() {
+    $cacheable_metadata = new CacheableMetadata();
+
+    // The permissions hash changes when:
+    // - a user is updated to have different roles;
+    $tags = ['user:' . $this->user->id()];
+    // - a role is updated to have different permissions.
+    foreach ($this->user->getRoles() as $rid) {
+      $tags[] = "config:user.role.$rid";
+    }
+
+    return $cacheable_metadata->setCacheTags($tags);
   }
 
 }

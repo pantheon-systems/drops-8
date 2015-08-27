@@ -67,6 +67,7 @@ class PageCacheTest extends WebTestBase {
     $cache_entry = \Drupal::cache('render')->get($cid);
     sort($cache_entry->tags);
     $expected_tags = array(
+      'config:user.role.anonymous',
       'pre_render',
       'rendered',
       'system_test_cache_tags_page',
@@ -384,17 +385,25 @@ class PageCacheTest extends WebTestBase {
     // Install the module that provides the test form.
     $this->container->get('module_installer')
       ->install(['page_cache_form_test']);
+    // Uninstall the page_cache module to verify that form is immutable
+    // regardless of the internal page cache module.
+    $this->container->get('module_installer')->uninstall(['page_cache']);
     \Drupal::service('router.builder')->rebuild();
 
     $this->drupalGet('page_cache_form_test_immutability');
 
     $this->assertText("Immutable: TRUE", "Form is immutable.");
 
-    // Uninstall the page_cache module, verify the flag is not set.
-    $this->container->get('module_installer')->uninstall(['page_cache']);
+    // The immutable flag is set unconditionally by system_form_alter(), set
+    // a flag to tell page_cache_form_test_module_implements_alter() to disable
+    // that implementation.
+    \Drupal::state()->set('page_cache_bypass_form_immutability', TRUE);
+    \Drupal::moduleHandler()->resetImplementations();
+    \Drupal::cache('render')->deleteAll();
 
     $this->drupalGet('page_cache_form_test_immutability');
 
     $this->assertText("Immutable: FALSE", "Form is not immutable,");
   }
+
 }

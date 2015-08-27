@@ -70,7 +70,7 @@ interface FormBuilderInterface {
    * Builds and processes a form for a given form ID.
    *
    * The form may also be retrieved from the cache if the form was built in a
-   * previous page-load. The form is then passed on for processing, validation
+   * previous page load. The form is then passed on for processing, validation,
    * and submission if there is proper input.
    *
    * @param \Drupal\Core\Form\FormInterface|string $form_id
@@ -108,9 +108,7 @@ interface FormBuilderInterface {
    * form workflow, to be returned for rendering.
    *
    * Ajax form submissions are almost always multi-step workflows, so that is
-   * one common use-case during which form rebuilding occurs. See
-   * Drupal\system\FormAjaxController::content() for more information about
-   * creating Ajax-enabled forms.
+   * one common use-case during which form rebuilding occurs.
    *
    * @param string $form_id
    *   The unique string identifying the desired form. If a function with that
@@ -130,7 +128,6 @@ interface FormBuilderInterface {
    *   The newly built form.
    *
    * @see self::processForm()
-   * @see \Drupal\system\FormAjaxController::content()
    */
   public function rebuildForm($form_id, FormStateInterface &$form_state, $old_form = NULL);
 

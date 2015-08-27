@@ -9,6 +9,7 @@ namespace Drupal\Core\Condition;
 
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Executable\ExecutableInterface;
 use Drupal\Core\Executable\ExecutableManagerInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -46,12 +47,12 @@ use Drupal\Core\Plugin\PluginFormInterface;
  *
  * @ingroup plugin_api
  */
-interface ConditionInterface extends ExecutableInterface, PluginFormInterface, ConfigurablePluginInterface, PluginInspectionInterface {
+interface ConditionInterface extends ExecutableInterface, PluginFormInterface, ConfigurablePluginInterface, PluginInspectionInterface, CacheableDependencyInterface {
 
   /**
    * Determines whether condition result will be negated.
    *
-   * @return boolean
+   * @return bool
    *   Whether the condition result will be negated.
    */
   public function isNegated();

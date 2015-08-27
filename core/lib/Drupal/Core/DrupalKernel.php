@@ -8,7 +8,6 @@
 namespace Drupal\Core;
 
 use Drupal\Component\FileCache\FileCacheFactory;
-use Drupal\Component\ProxyBuilder\ProxyDumper;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
@@ -24,7 +23,6 @@ use Drupal\Core\Http\TrustedHostsRequestFactory;
 use Drupal\Core\Language\Language;
 use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\PhpStorage\PhpStorageFactory;
-use Drupal\Core\ProxyBuilder\ProxyBuilder;
 use Drupal\Core\Site\Settings;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -53,8 +51,6 @@ use Symfony\Component\Routing\Route;
  * container, or modify existing services.
  */
 class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
-
-  const CONTAINER_BASE_CLASS = '\Drupal\Core\DependencyInjection\Container';
 
   /**
    * Holds the container instance.
@@ -127,6 +123,13 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @var bool
    */
   protected $allowDumping;
+
+  /**
+   * Whether the container needs to be rebuilt the next time it is initialized.
+   *
+   * @var bool
+   */
+  protected $containerNeedsRebuild = FALSE;
 
   /**
    * Whether the container needs to be dumped once booting is complete.
@@ -463,8 +466,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $this->container->get('request_stack')->push($request);
 
     // Set the allowed protocols once we have the config available.
-    $allowed_protocols = $this->container->get('config.factory')->get('system.filter')->get('protocols');
-    if (!isset($allowed_protocols)) {
+    $allowed_protocols = $this->container->getParameter('filter_protocols');
+    if (!$allowed_protocols) {
       // \Drupal\Component\Utility\UrlHelper::filterBadProtocol() is called by
       // the installer and update.php, in which case the configuration may not
       // exist (yet). Provide a minimal default set of allowed protocols for
@@ -697,11 +700,13 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
 
     // If we haven't yet booted, we don't need to do anything: the new module
-    // list will take effect when boot() is called. If we have already booted,
-    // then rebuild the container in order to refresh the serviceProvider list
-    // and container.
+    // list will take effect when boot() is called. However we set a
+    // flag that the container needs a rebuild, so that a potentially cached
+    // container is not used. If we have already booted, then rebuild the
+    // container in order to refresh the serviceProvider list and container.
+    $this->containerNeedsRebuild = TRUE;
     if ($this->booted) {
-      $this->initializeContainer(TRUE);
+      $this->initializeContainer();
     }
   }
 
@@ -740,11 +745,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   /**
    * Initializes the service container.
    *
-   * @param bool $rebuild
-   *   Force a container rebuild.
    * @return \Symfony\Component\DependencyInjection\ContainerInterface
    */
-  protected function initializeContainer($rebuild = FALSE) {
+  protected function initializeContainer() {
     $this->containerNeedsDumping = FALSE;
     $session_started = FALSE;
     if (isset($this->container)) {
@@ -766,7 +769,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
     // If the module list hasn't already been set in updateModules and we are
     // not forcing a rebuild, then try and load the container from the disk.
-    if (empty($this->moduleList) && !$rebuild) {
+    if (empty($this->moduleList) && !$this->containerNeedsRebuild) {
       $fully_qualified_class_name = '\\' . $this->getClassNamespace() . '\\' . $this->getClassName();
 
       // First, try to load from storage.
@@ -782,6 +785,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     if (!isset($container)) {
       $container = $this->compileContainer();
     }
+
+    // The container was rebuilt successfully.
+    $this->containerNeedsRebuild = FALSE;
 
     $this->attachSynthetic($container);
 
@@ -807,7 +813,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     \Drupal::setContainer($this->container);
 
     // If needs dumping flag was set, dump the container.
-    if ($this->containerNeedsDumping && !$this->dumpDrupalContainer($this->container, static::CONTAINER_BASE_CLASS)) {
+    $base_class = Settings::get('container_base_class', '\Drupal\Core\DependencyInjection\Container');
+    if ($this->containerNeedsDumping && !$this->dumpDrupalContainer($this->container, $base_class)) {
       $this->container->get('logger.factory')->get('DrupalKernel')->notice('Container cannot be written to disk');
     }
 
@@ -1000,15 +1007,33 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
   }
 
   /**
-   * Force a container rebuild.
-   *
-   * @return \Symfony\Component\DependencyInjection\ContainerInterface
+   * {@inheritdoc}
    */
   public function rebuildContainer() {
     // Empty module properties and for them to be reloaded from scratch.
     $this->moduleList = NULL;
     $this->moduleData = array();
-    return $this->initializeContainer(TRUE);
+    $this->containerNeedsRebuild = TRUE;
+    return $this->initializeContainer();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function invalidateContainer() {
+    // An invalidated container needs a rebuild.
+    $this->containerNeedsRebuild = TRUE;
+
+    // If we have not yet booted, settings or bootstrap services might not yet
+    // be available. In that case the container will not be loaded from cache
+    // due to the above setting when the Kernel is booted.
+    if (!$this->booted) {
+      return;
+    }
+
+    // Also wipe the PHP Storage caches, so that the container is rebuilt
+    // for the next request.
+    $this->storage()->deleteAll();
   }
 
   /**
@@ -1180,7 +1205,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
     // Cache the container.
     $dumper = new PhpDumper($container);
-    $dumper->setProxyDumper(new ProxyDumper(new ProxyBuilder()));
     $class = $this->getClassName();
     $namespace = $this->getClassNamespace();
     $content = $dumper->dump([
@@ -1336,8 +1360,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *
    * @return bool
    *   TRUE if the hostmame is valid, or FALSE otherwise.
-   *
-   * @todo Adjust per resolution to https://github.com/symfony/symfony/issues/12349
    */
   public static function validateHostname(Request $request) {
     // $request->getHost() can throw an UnexpectedValueException if it
@@ -1380,7 +1402,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @param array $host_patterns
    *   The array of trusted host patterns.
    *
-   * @return boolean
+   * @return bool
    *   TRUE if the Host header is trusted, FALSE otherwise.
    *
    * @see https://www.drupal.org/node/1992030

@@ -5,7 +5,6 @@
  * Responsive image display formatter for image fields.
  */
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Routing\RouteMatchInterface;
 use \Drupal\Core\Template\Attribute;
@@ -41,30 +40,6 @@ function responsive_image_help($route_name, RouteMatchInterface $route_match) {
     case 'entity.responsive_image_style.collection':
       return '<p>' . t('A responsive image style associates an image style with each breakpoint defined by your theme.') . '</p>';
   }
-}
-
-/**
- * Implements hook_menu().
- */
-function responsive_image_menu() {
-  $items = array();
-
-  $items['admin/config/media/responsive-image-style'] = array(
-    'title' => 'Responsive image styles',
-    'description' => 'Manage responsive image styles',
-    'weight' => 10,
-    'route_name' => 'entity.responsive_image_style.collection',
-  );
-  $items['admin/config/media/responsive-image-style/%responsive_image_style'] = array(
-    'title' => 'Edit responsive image style',
-    'route_name' => 'entity.responsive_image_style.edit_form',
-  );
-  $items['admin/config/media/responsive-image-style/%responsive_image_style/duplicate'] = array(
-    'title' => 'Duplicate responsive image style',
-    'route_name' => 'entity.responsive_image_style.duplicate_form',
-  );
-
-  return $items;
 }
 
 /**
@@ -157,8 +132,13 @@ function template_preprocess_responsive_image(&$variables) {
 
   $image = \Drupal::service('image.factory')->get($variables['uri']);
   $responsive_image_style = ResponsiveImageStyle::load($variables['responsive_image_style_id']);
-  // All breakpoints and multipliers.
-  $breakpoints = \Drupal::service('breakpoint.manager')->getBreakpointsByGroup($responsive_image_style->getBreakpointGroup());
+  // Retrieve all breakpoints and multipliers and reverse order of breakpoints.
+  // By default, breakpoints are ordered from smallest weight to largest:
+  // the smallest weight is expected to have the smallest breakpoint width,
+  // while the largest weight is expected to have the largest breakpoint
+  // width. For responsive images, we need largest breakpoint widths first, so
+  // we need to reverse the order of these breakpoints.
+  $breakpoints = array_reverse(\Drupal::service('breakpoint.manager')->getBreakpointsByGroup($responsive_image_style->getBreakpointGroup()));
   foreach ($responsive_image_style->getKeyedImageStyleMappings() as $breakpoint_id => $multipliers) {
     if (isset($breakpoints[$breakpoint_id])) {
       $variables['sources'][] = responsive_image_build_source_attributes($image, $variables, $breakpoints[$breakpoint_id], $multipliers);
@@ -352,7 +332,7 @@ function responsive_image_build_source_attributes(ImageInterface $image, array $
           // this breakpoint should be merged into one srcset and the sizes
           // attribute should be merged as well.
           if (is_null($dimensions['width'])) {
-            throw new \LogicException(SafeMarkup::format('Could not determine image width for @file using image style with ID: @image_style_name. This image style can not be used for a responsive image style mapping using the \'sizes\' attribute.', array('@file' => $image->getSource(), '@image_style_name' => $image_style_name)));
+            throw new \LogicException("Could not determine image width for '{$image->getSource()}' using image style with ID: $image_style_name. This image style can not be used for a responsive image style mapping using the 'sizes' attribute.");
           }
           // Use the image width as key so we can sort the array later on.
           // Images within a srcset should be sorted from small to large, since

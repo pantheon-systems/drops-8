@@ -9,6 +9,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -95,6 +96,23 @@ function entity_test_entity_type_alter(array &$entity_types) {
   if (!$state->get('entity_test_new')) {
     unset($entity_types['entity_test_new']);
   }
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function entity_test_entity_base_field_info(EntityTypeInterface $entity_type) {
+  $fields = [];
+
+  if ($entity_type->id() == 'entity_test_mulrev' && \Drupal::state()->get('entity_test.field_test_item')) {
+    $fields['field_test_item'] = BaseFieldDefinition::create('field_test')
+      ->setLabel(t('Field test'))
+      ->setDescription(t('A field test.'))
+      ->setRevisionable(TRUE)
+      ->setTranslatable(TRUE);
+  }
+
+  return $fields;
 }
 
 /**
@@ -255,6 +273,37 @@ function entity_test_entity_extra_field_info() {
   );
 
   return $extra;
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function entity_test_form_entity_test_form_alter(&$form) {
+  switch (\Drupal::state()->get('entity_test.form.validate.test')) {
+    case 'form-level':
+      $form['#validate'][] = 'entity_test_form_entity_test_form_validate';
+      $form['#validate'][] = 'entity_test_form_entity_test_form_validate_check';
+      break;
+
+    case 'button-level':
+      $form['actions']['submit']['#validate'][] = 'entity_test_form_entity_test_form_validate';
+  }
+}
+
+/**
+ * Validation handler for the entity_test entity form.
+ */
+function entity_test_form_entity_test_form_validate(array &$form, FormStateInterface $form_state) {
+  $form['#entity_test_form_validate'] = TRUE;
+}
+
+/**
+ * Validation handler for the entity_test entity form.
+ */
+function entity_test_form_entity_test_form_validate_check(array &$form, FormStateInterface $form_state) {
+  if (!empty($form['#entity_test_form_validate'])) {
+    \Drupal::state()->set('entity_test.form.validate.result', TRUE);
+  }
 }
 
 /**

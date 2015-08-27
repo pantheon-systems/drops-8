@@ -58,7 +58,7 @@ function template_preprocess_admin_block_content(&$variables) {
     foreach ($variables['content'] as $key => $item) {
       $variables['content'][$key]['link'] = \Drupal::l($item['title'], $item['url']);
       if (!$variables['compact'] && isset($item['description'])) {
-        $variables['content'][$key]['description'] = Xss::filterAdmin($item['description']);
+        $variables['content'][$key]['description'] = ['#markup' => $item['description']];
       }
       else {
         $variables['content'][$key]['description'] = FALSE;
@@ -259,7 +259,7 @@ function theme_system_modules_details($variables) {
     }
     $details = array(
       '#type' => 'details',
-      '#title' => SafeMarkup::set('<span class="text"> ' . drupal_render($module['description']) . '</span>'),
+      '#title' => SafeMarkup::set('<span class="text module-description">' . drupal_render($module['description']) . '</span>'),
       '#attributes' => array('id' => $module['enable']['#id'] . '-description'),
       '#description' => $description,
     );
@@ -332,7 +332,7 @@ function theme_system_modules_uninstall($variables) {
       array(
         'data' => array(
           '#type' => 'inline_template',
-          '#template' => '{{ module_description }} {% if disabled_header is not empty %} <div class="admin-requirements">{{ disabled_header }}{{ disabled_reasons }}</div> {% endif %}',
+          '#template' => '<span class="text module-description">{{ module_description }}</span>{% if disabled_header is not empty %}<div class="admin-requirements">{{ disabled_header }}{{ disabled_reasons }}</div>{% endif %}',
           '#context' => array(
             'module_description' => drupal_render($form['modules'][$module]['description']),
             'disabled_header' => $disabled_header,
@@ -420,7 +420,10 @@ function template_preprocess_system_themes_page(&$variables) {
       // Make sure to provide feedback on compatibility.
       $current_theme['incompatible'] = '';
       if (!empty($theme->incompatible_core)) {
-        $current_theme['incompatible'] = t('This version is not compatible with Drupal !core_version and should be replaced.', array('!core_version' => \Drupal::CORE_COMPATIBILITY));
+        $current_theme['incompatible'] = t("This theme is not compatible with Drupal @core_version. Check that the .info.yml file contains the correct 'core' value.", ['@core_version' => \Drupal::CORE_COMPATIBILITY]);
+      }
+      elseif (!empty($theme->incompatible_region)) {
+        $current_theme['incompatible'] = t("This theme is missing a 'content' region.");
       }
       elseif (!empty($theme->incompatible_php)) {
         if (substr_count($theme->info['php'], '.') < 2) {

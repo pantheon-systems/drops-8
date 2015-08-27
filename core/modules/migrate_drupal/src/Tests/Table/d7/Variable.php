@@ -50,6 +50,27 @@ class Variable extends DrupalDumpBase {
       'name' => 'admin_theme',
       'value' => 's:5:"seven";',
     ))->values(array(
+      'name' => 'aggregator_allowed_html_tags',
+      'value' => 's:13:"<p> <div> <a>";',
+    ))->values(array(
+      'name' => 'aggregator_clear',
+      'value' => 'i:86400;',
+    ))->values(array(
+      'name' => 'aggregator_fetcher',
+      'value' => 's:10:"aggregator";',
+    ))->values(array(
+      'name' => 'aggregator_parser',
+      'value' => 's:10:"aggregator";',
+    ))->values(array(
+      'name' => 'aggregator_processors',
+      'value' => 'a:1:{i:0;s:10:"aggregator";}',
+    ))->values(array(
+      'name' => 'aggregator_summary_items',
+      'value' => 'i:6;',
+    ))->values(array(
+      'name' => 'aggregator_teaser_length',
+      'value' => 'i:500;',
+    ))->values(array(
       'name' => 'allow_insecure_derivatives',
       'value' => 'b:1;',
     ))->values(array(
@@ -305,6 +326,15 @@ class Variable extends DrupalDumpBase {
       'name' => 'suppress_itok_output',
       'value' => 'b:1;',
     ))->values(array(
+      'name' => 'syslog_facility',
+      'value' => 'i:8;',
+    ))->values(array(
+      'name' => 'syslog_format',
+      'value' => 's:72:"!base_url|!timestamp|!type|!ip|!request_uri|!referer|!uid|!link|!message";',
+    ))->values(array(
+      'name' => 'syslog_identity',
+      'value' => 's:6:"drupal";',
+    ))->values(array(
       'name' => 'theme_default',
       'value' => 's:6:"bartik";',
     ))->values(array(
@@ -419,4 +449,4 @@ class Variable extends DrupalDumpBase {
   }
 
 }
-#dfc4cdd451a6575677b8c10442893d26
+#5b6552f715939e2b33c22779e47e73e3

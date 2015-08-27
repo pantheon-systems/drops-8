@@ -7,8 +7,7 @@
 
 namespace Drupal\migrate_drupal\Tests\d6;
 
-use Drupal\migrate\MigrateExecutable;
-use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
+use Drupal\file\Entity\File;
 
 /**
  * User pictures migration.
@@ -31,21 +30,19 @@ class MigrateUserPictureFileTest extends MigrateDrupal6TestBase {
     parent::setUp();
 
     $this->installEntitySchema('file');
+    $this->loadDumps([
+      'Users.php',
+      'ProfileValues.php',
+      'UsersRoles.php',
+      'EventTimezones.php',
+    ]);
 
-    $dumps = array(
-      $this->getDumpDirectory() . '/Users.php',
-      $this->getDumpDirectory() . '/ProfileValues.php',
-      $this->getDumpDirectory() . '/UsersRoles.php',
-      $this->getDumpDirectory() . '/EventTimezones.php',
-    );
     /** @var \Drupal\migrate\Entity\MigrationInterface $migration */
     $migration = entity_load('migration', 'd6_user_picture_file');
     $source = $migration->get('source');
     $source['site_path'] = 'core/modules/simpletest';
     $migration->set('source', $source);
-    $this->prepare($migration, $dumps);
-    $executable = new MigrateExecutable($migration, $this);
-    $executable->import();
+    $this->executeMigration($migration);
   }
 
   /**
@@ -56,7 +53,7 @@ class MigrateUserPictureFileTest extends MigrateDrupal6TestBase {
     foreach (entity_load('migration', 'd6_user_picture_file')->getIdMap() as $destination_ids) {
       $file_ids[] = reset($destination_ids);
     }
-    $files = entity_load_multiple('file', $file_ids);
+    $files = File::loadMultiple($file_ids);
     /** @var \Drupal\file\FileInterface $file */
     $file = array_shift($files);
     $this->assertIdentical('image-test.jpg', $file->getFilename());

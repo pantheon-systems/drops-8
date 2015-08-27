@@ -57,6 +57,8 @@ class InstallerTranslationTest extends InstallerTestBase {
     $this->assertText('German');
     $this->assertNoText('English');
 
+    // The current container still has the english as current language, rebuild.
+    $this->rebuildContainer();
     /** @var \Drupal\user\Entity\User $account */
     $account = User::load(0);
     $this->assertEqual($account->language()->getId(), 'en', 'Anonymous user is English.');
@@ -66,7 +68,7 @@ class InstallerTranslationTest extends InstallerTestBase {
     $this->assertEqual($account->language()->getId(), 'de', 'New user is German.');
 
     // Ensure that we can enable basic_auth on a non-english site.
-    $this->drupalPostForm('admin/modules', array('modules[Web services][basic_auth][enable]' => TRUE), t('Save configuration'));
+    $this->drupalPostForm('admin/modules', array('modules[Web services][basic_auth][enable]' => TRUE), t('Install'));
     $this->assertResponse(200);
 
     // Assert that the theme CSS was added to the page.

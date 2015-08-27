@@ -7,6 +7,8 @@
 
 namespace Drupal\Tests\block\Unit\Plugin\DisplayVariant;
 
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\DependencyInjection\Container;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -30,13 +32,6 @@ class BlockPageVariantTest extends UnitTestCase {
   protected $blockViewBuilder;
 
   /**
-   * The event dispatcher.
-   *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit_Framework_MockObject_MockObject
-   */
-  protected $dispatcher;
-
-  /**
    * The plugin context handler.
    *
    * @var \Drupal\Core\Plugin\Context\ContextHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
@@ -55,14 +50,23 @@ class BlockPageVariantTest extends UnitTestCase {
    *   A mocked display variant plugin.
    */
   public function setUpDisplayVariant($configuration = array(), $definition = array()) {
+
+    $container = new Container();
+    $cache_context_manager = $this->getMockBuilder('Drupal\Core\Cache\CacheContextsManager')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $container->set('cache_contexts_manager', $cache_context_manager);
+    $cache_context_manager->expects($this->any())
+      ->method('validateTokens')
+      ->with([])
+      ->willReturn([]);
+    \Drupal::setContainer($container);
+
     $this->blockRepository = $this->getMock('Drupal\block\BlockRepositoryInterface');
     $this->blockViewBuilder = $this->getMock('Drupal\Core\Entity\EntityViewBuilderInterface');
-    $this->dispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
-    $this->dispatcher->expects($this->any())
-      ->method('dispatch')
-      ->willReturnArgument(1);
+
     return $this->getMockBuilder('Drupal\block\Plugin\DisplayVariant\BlockPageVariant')
-      ->setConstructorArgs(array($configuration, 'test', $definition, $this->blockRepository, $this->blockViewBuilder, $this->dispatcher, ['config:block_list']))
+      ->setConstructorArgs(array($configuration, 'test', $definition, $this->blockRepository, $this->blockViewBuilder, ['config:block_list']))
       ->setMethods(array('getRegionNames'))
       ->getMock();
   }
@@ -96,7 +100,10 @@ class BlockPageVariantTest extends UnitTestCase {
         '#cache' => [
           'tags' => [
             'config:block_list',
+            'route',
           ],
+          'contexts' => [],
+          'max-age' => -1,
         ],
         'top' => [
           'block1' => [],
@@ -121,7 +128,10 @@ class BlockPageVariantTest extends UnitTestCase {
         '#cache' => [
           'tags' => [
             'config:block_list',
+            'route',
           ],
+          'contexts' => [],
+          'max-age' => -1,
         ],
         'top' => [
           'block1' => [],
@@ -152,7 +162,10 @@ class BlockPageVariantTest extends UnitTestCase {
         '#cache' => [
           'tags' => [
             'config:block_list',
+            'route',
           ],
+          'contexts' => [],
+          'max-age' => -1,
         ],
         'top' => [
           'block1' => [],
@@ -194,20 +207,26 @@ class BlockPageVariantTest extends UnitTestCase {
     $messages_block_plugin = $this->getMock('Drupal\Core\Block\MessagesBlockPluginInterface');
     foreach ($blocks_config as $block_id => $block_config) {
       $block = $this->getMock('Drupal\block\BlockInterface');
+      $block->expects($this->any())
+        ->method('getContexts')
+        ->willReturn([]);
       $block->expects($this->atLeastOnce())
         ->method('getPlugin')
         ->willReturn($block_config[1] ? $main_content_block_plugin : ($block_config[2] ? $messages_block_plugin : $block_plugin));
       $blocks[$block_config[0]][$block_id] = $block;
     }
-
     $this->blockViewBuilder->expects($this->exactly($visible_block_count))
       ->method('view')
       ->will($this->returnValue(array()));
     $this->blockRepository->expects($this->once())
       ->method('getVisibleBlocksPerRegion')
-      ->will($this->returnValue($blocks));
+      ->willReturnCallback(function (&$cacheable_metadata) use ($blocks) {
+        $cacheable_metadata['top'] = (new CacheableMetadata())->addCacheTags(['route']);
+        return $blocks;
+      });
 
-    $this->assertSame($expected_render_array, $display_variant->build());
+    $value = $display_variant->build();
+    $this->assertSame($expected_render_array, $value);
   }
 
   /**
@@ -226,6 +245,8 @@ class BlockPageVariantTest extends UnitTestCase {
         'tags' => [
           'config:block_list',
         ],
+        'contexts' => [],
+        'max-age' => -1,
       ],
       'content' => [
         'system_main' => [],

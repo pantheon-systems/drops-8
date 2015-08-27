@@ -7,12 +7,14 @@
 
 namespace Drupal\Core\Cache\Context;
 
+use Drupal\Core\Cache\CacheableMetadata;
+
 /**
  * Defines the QueryArgsCacheContext service, for "per query args" caching.
  *
- * A "host" is defined as the combination of URI scheme, domain name and port.
- *
- * @see Symfony\Component\HttpFoundation::getSchemeAndHttpHost()
+ * Cache context ID: 'url.query_args' (to vary by all query arguments).
+ * Calculated cache context ID: 'url.query_args:%key', e.g.'url.query_args:foo'
+ * (to vary by the 'foo' query argument).
  */
 class QueryArgsCacheContext extends RequestStackCacheContextBase implements CalculatedCacheContextInterface {
 
@@ -33,6 +35,13 @@ class QueryArgsCacheContext extends RequestStackCacheContextBase implements Calc
     else {
       return $this->requestStack->getCurrentRequest()->query->get($query_arg);
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata($query_arg = NULL) {
+    return new CacheableMetadata();
   }
 
 }

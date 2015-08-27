@@ -10,6 +10,7 @@ namespace Drupal\Core\Render\Element;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 
@@ -128,14 +129,7 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
    * @see self::preRenderAjaxForm()
    */
   public static function processAjaxForm(&$element, FormStateInterface $form_state, &$complete_form) {
-    $element = static::preRenderAjaxForm($element);
-
-    // If the element was processed as an #ajax element, and a custom URL was
-    // provided, set the form to be cached.
-    if (!empty($element['#ajax_processed']) && !empty($element['#ajax']['url'])) {
-      $form_state->setCached();
-    }
-    return $element;
+    return static::preRenderAjaxForm($element);
   }
 
   /**
@@ -238,10 +232,6 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
       // content negotiation takes care of formatting the response appropriately.
       // However, 'url' and 'options' may be set when wanting server processing
       // to be substantially different for a JavaScript triggered submission.
-      // One such substantial difference is form elements that use
-      // #ajax['callback'] for determining which part of the form needs
-      // re-rendering. For that, we have a special 'system.ajax' route which
-      // must be manually set.
       $settings += [
         'url' => NULL,
         'options' => ['query' => []],
@@ -264,7 +254,11 @@ abstract class RenderElement extends PluginBase implements ElementInterface {
 
       // Convert \Drupal\Core\Url object to string.
       if (isset($settings['url']) && $settings['url'] instanceof Url) {
-        $settings['url'] = $settings['url']->setOptions($settings['options'])->toString();
+        $url = $settings['url']->setOptions($settings['options'])->toString(TRUE);
+        BubbleableMetadata::createFromRenderArray($element)
+          ->merge($url)
+          ->applyTo($element);
+        $settings['url'] = $url->getGeneratedUrl();
       }
       else {
         $settings['url'] = NULL;

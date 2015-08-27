@@ -7,8 +7,12 @@
 
 namespace Drupal\Core\Cache\Context;
 
+use Drupal\Core\Cache\CacheableMetadata;
+
 /**
  * Defines the SiteCacheContext service, for "per site" caching.
+ *
+ * Cache context ID: 'site'.
  *
  * A "site" is defined as the combination of URI scheme, domain name, port and
  * base path. It allows for varying between the *same* site being accessed via
@@ -18,7 +22,7 @@ namespace Drupal\Core\Cache\Context;
  * @see \Symfony\Component\HttpFoundation\Request::getSchemeAndHttpHost()
  * @see \Symfony\Component\HttpFoundation\Request::getBaseUrl()
  */
-class SiteCacheContext extends RequestStackCacheContextBase {
+class SiteCacheContext extends RequestStackCacheContextBase implements CacheContextInterface {
 
   /**
    * {@inheritdoc}
@@ -33,6 +37,13 @@ class SiteCacheContext extends RequestStackCacheContextBase {
   public function getContext() {
     $request = $this->requestStack->getCurrentRequest();
     return $request->getSchemeAndHttpHost() . $request->getBaseUrl();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata() {
+    return new CacheableMetadata();
   }
 
 }

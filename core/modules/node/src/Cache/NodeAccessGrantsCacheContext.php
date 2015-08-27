@@ -7,18 +7,23 @@
 
 namespace Drupal\node\Cache;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\Context\CalculatedCacheContextInterface;
-use Drupal\Core\Cache\Context\UserCacheContext;
+use Drupal\Core\Cache\Context\UserCacheContextBase;
 
 /**
  * Defines the node access view cache context service.
+ *
+ * Cache context ID: 'user.node_grants' (to vary by all operations' grants).
+ * Calculated cache context ID: 'user.node_grants:%operation', e.g.
+ * 'user.node_grants:view' (to vary by the view operation's grants).
  *
  * This allows for node access grants-sensitive caching when listing nodes.
  *
  * @see node_query_node_access_alter()
  * @ingroup node_access
  */
-class NodeAccessGrantsCacheContext extends UserCacheContext implements CalculatedCacheContextInterface {
+class NodeAccessGrantsCacheContext extends UserCacheContextBase implements CalculatedCacheContextInterface {
 
   /**
    * {@inheritdoc}
@@ -76,6 +81,26 @@ class NodeAccessGrantsCacheContext extends UserCacheContext implements Calculate
       $grants_context_parts[] = $realm . ':' . implode(',', $gids);
     }
     return $operation . '.' . implode(';', $grants_context_parts);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata($operation = NULL) {
+    $cacheable_metadata = new CacheableMetadata();
+
+    if (!\Drupal::moduleHandler()->getImplementations('node_grants')) {
+      return $cacheable_metadata;
+    }
+
+    // The node grants may change if the user is updated. (The max-age is set to
+    // zero below, but sites may override this cache context, and change it to a
+    // non-zero value. In such cases, this cache tag is needed for correctness.)
+    $cacheable_metadata->setCacheTags(['user:' . $this->user->id()]);
+
+    // If the site is using node grants, this cache context can not be
+    // optimized.
+    return $cacheable_metadata->setCacheMaxAge(0);
   }
 
 }

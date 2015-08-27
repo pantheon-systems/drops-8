@@ -14,6 +14,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Render\PageDisplayVariantSelectionEvent;
 use Drupal\Core\Render\RenderCacheInterface;
+use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Render\RenderEvents;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -181,7 +182,15 @@ class HtmlRenderer implements MainContentRendererInterface {
       // ::renderResponse().
       // @todo Remove this once https://www.drupal.org/node/2359901 lands.
       if (!empty($main_content)) {
-        $this->renderer->render($main_content, FALSE);
+        $this->renderer->executeInRenderContext(new RenderContext(), function() use (&$main_content) {
+          if (isset($main_content['#cache']['keys'])) {
+            // Retain #title, otherwise, dynamically generated titles would be
+            // missing for controllers whose entire returned render array is
+            // render cached.
+            $main_content['#cache_properties'][] = '#title';
+          }
+          return $this->renderer->render($main_content, FALSE);
+        });
         $main_content = $this->renderCache->getCacheableRenderArray($main_content) + [
           '#title' => isset($main_content['#title']) ? $main_content['#title'] : NULL
         ];
@@ -192,7 +201,9 @@ class HtmlRenderer implements MainContentRendererInterface {
       if (!$page_display instanceof PageVariantInterface) {
         throw new \LogicException('Cannot render the main content for this page because the provided display variant does not implement PageVariantInterface.');
       }
-      $page_display->setMainContent($main_content);
+      $page_display
+        ->setMainContent($main_content)
+        ->setConfiguration($event->getPluginConfiguration());
 
       // Generate a #type => page render array using the page display variant,
       // the page display will build the content for the various page regions.

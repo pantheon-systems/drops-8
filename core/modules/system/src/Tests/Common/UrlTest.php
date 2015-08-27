@@ -10,6 +10,7 @@ namespace Drupal\system\Tests\Common;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
 
@@ -43,21 +44,21 @@ class UrlTest extends WebTestBase {
   }
 
   /**
-   * Tests that #type=link bubbles outbound route/path processors' cacheability.
+   * Tests that #type=link bubbles outbound route/path processors' metadata.
    */
-  function testLinkCacheability() {
+  function testLinkBubbleableMetadata() {
     $cases = [
-      ['Regular link', 'internal:/user', [], ['contexts' => [], 'tags' => [], 'max-age' => Cache::PERMANENT]],
-      ['Regular link, absolute', 'internal:/user', ['absolute' => TRUE], ['contexts' => ['url.site'], 'tags' => [], 'max-age' => Cache::PERMANENT]],
-      ['Route processor link', 'route:system.run_cron', [], ['contexts' => [], 'tags' => [], 'max-age' => 0]],
-      ['Route processor link, absolute', 'route:system.run_cron', ['absolute' => TRUE], ['contexts' => ['url.site'], 'tags' => [], 'max-age' => 0]],
-      ['Path processor link', 'internal:/user/1', [], ['contexts' => [], 'tags' => ['user:1'], 'max-age' => Cache::PERMANENT]],
-      ['Path processor link, absolute', 'internal:/user/1', ['absolute' => TRUE], ['contexts' => ['url.site'], 'tags' => ['user:1'], 'max-age' => Cache::PERMANENT]],
+      ['Regular link', 'internal:/user', [], ['contexts' => [], 'tags' => [], 'max-age' => Cache::PERMANENT], []],
+      ['Regular link, absolute', 'internal:/user', ['absolute' => TRUE], ['contexts' => ['url.site'], 'tags' => [], 'max-age' => Cache::PERMANENT], []],
+      ['Route processor link', 'route:system.run_cron', [], ['contexts' => ['session'], 'tags' => [], 'max-age' => Cache::PERMANENT], ['placeholders' => []]],
+      ['Route processor link, absolute', 'route:system.run_cron', ['absolute' => TRUE], ['contexts' => ['url.site', 'session'], 'tags' => [], 'max-age' => Cache::PERMANENT], ['placeholders' => []]],
+      ['Path processor link', 'internal:/user/1', [], ['contexts' => [], 'tags' => ['user:1'], 'max-age' => Cache::PERMANENT], []],
+      ['Path processor link, absolute', 'internal:/user/1', ['absolute' => TRUE], ['contexts' => ['url.site'], 'tags' => ['user:1'], 'max-age' => Cache::PERMANENT], []],
     ];
 
     foreach ($cases as $case) {
-      list($title, $uri, $options, $expected_cacheability) = $case;
-      $expected_cacheability['contexts'] = Cache::mergeContexts($expected_cacheability['contexts'], ['languages:language_interface', 'theme']);
+      list($title, $uri, $options, $expected_cacheability, $expected_attachments) = $case;
+      $expected_cacheability['contexts'] = Cache::mergeContexts($expected_cacheability['contexts'], ['languages:language_interface', 'theme', 'user.permissions']);
       $link = [
         '#type' => 'link',
         '#title' => $title,
@@ -67,6 +68,7 @@ class UrlTest extends WebTestBase {
       \Drupal::service('renderer')->renderRoot($link);
       $this->pass($title);
       $this->assertEqual($expected_cacheability, $link['#cache']);
+      $this->assertEqual($expected_attachments, $link['#attached']);
     }
   }
 
@@ -168,9 +170,11 @@ class UrlTest extends WebTestBase {
     $l = \Drupal::l('foo', Url::fromUri('https://www.drupal.org'));
 
     // Test a renderable array passed to _l().
-    $renderable_text = array('#markup' => 'foo');
-    $l_renderable_text = \Drupal::l($renderable_text, Url::fromUri('https://www.drupal.org'));
-    $this->assertEqual($l_renderable_text, $l);
+    $renderer->executeInRenderContext(new RenderContext(), function() use ($renderer, $l) {
+      $renderable_text = array('#markup' => 'foo');
+      $l_renderable_text = \Drupal::l($renderable_text, Url::fromUri('https://www.drupal.org'));
+      $this->assertEqual($l_renderable_text, $l);
+    });
 
     // Test a themed link with plain text 'text'.
     $type_link_plain_array = array(

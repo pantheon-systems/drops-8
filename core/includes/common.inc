@@ -856,9 +856,9 @@ function drupal_process_states(&$elements) {
  * foreach ($regions as $region) {
  *   drupal_attach_tabledrag('my-module-table', array(
  *     'action' => 'order',
- *     'relationship' => sibling',
+ *     'relationship' => 'sibling',
  *     'group' => 'my-elements-weight',
- *     'subgroup' => my-elements-weight-' . $region,
+ *     'subgroup' => 'my-elements-weight-' . $region,
  *   ));
  * }
  * @endcode
@@ -1036,7 +1036,7 @@ function drupal_pre_render_links($element) {
     $child = &$element[$key];
     // If the child has links which have not been printed yet and the user has
     // access to it, merge its links in to the parent.
-    if (isset($child['#links']) && empty($child['#printed']) && (!isset($child['#access']) || $child['#access'])) {
+    if (isset($child['#links']) && empty($child['#printed']) && Element::isVisibleElement($child)) {
       $element['#links'] += $child['#links'];
       // Mark the child as having been printed already (so that its links
       // cannot be mistakenly rendered twice).
@@ -1295,8 +1295,10 @@ function drupal_flush_all_caches() {
   // Reset all static caches.
   drupal_static_reset();
 
-  // Wipe the PHP Storage caches.
-  PhpStorageFactory::get('service_container')->deleteAll();
+  // Invalidate the container.
+  \Drupal::service('kernel')->invalidateContainer();
+
+  // Wipe the Twig PHP Storage cache.
   PhpStorageFactory::get('twig')->deleteAll();
 
   // Rebuild module and theme data.

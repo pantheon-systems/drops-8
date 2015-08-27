@@ -612,10 +612,10 @@ class EntityTranslationTest extends EntityLanguageTestBase {
     // Get an view builder.
     $controller = $this->entityManager->getViewBuilder($entity_type);
     $entity2_build = $controller->view($entity2);
-    $entity2_output = $renderer->renderRoot($entity2_build);
+    $entity2_output = (string) $renderer->renderRoot($entity2_build);
     $translation = $this->entityManager->getTranslationFromContext($entity2, $default_langcode);
     $translation_build = $controller->view($translation);
-    $translation_output = $renderer->renderRoot($translation_build);
+    $translation_output = (string) $renderer->renderRoot($translation_build);
     $this->assertIdentical($entity2_output, $translation_output, 'When the entity has no translation no fallback is applied.');
 
     // Checks that entity translations are rendered properly.
@@ -766,6 +766,35 @@ class EntityTranslationTest extends EntityLanguageTestBase {
       $adapter = $entity->getTranslation($langcode)->getTypedData();
       $name = $adapter->get('name')->value;
       $this->assertEqual($name, $values[$langcode]['name'], SafeMarkup::format('Name correctly retrieved from "@langcode" adapter', array('@langcode' => $langcode)));
+    }
+  }
+
+  /**
+   * Tests if entity references are correct after adding a new translation.
+   */
+  public function testFieldEntityReference() {
+    $entity_type = 'entity_test_mul';
+    $controller = $this->entityManager->getStorage($entity_type);
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
+    $entity = $controller->create();
+
+    foreach ($this->langcodes as $langcode) {
+      $entity->addTranslation($langcode);
+    }
+
+    $default_langcode = $entity->getUntranslated()->language()->getId();
+    foreach (array_keys($entity->getTranslationLanguages()) as $langcode) {
+      $translation = $entity->getTranslation($langcode);
+      foreach ($translation->getFields() as $field_name => $field) {
+        if ($field->getFieldDefinition()->isTranslatable()) {
+          $args = ['%field_name' => $field_name, '%langcode' => $langcode];
+          $this->assertEqual($langcode, $field->getEntity()->language()->getId(), format_string('Translatable field %field_name on translation %langcode has correct entity reference in translation %langcode.', $args));
+        }
+        else {
+          $args = ['%field_name' => $field_name, '%langcode' => $langcode, '%default_langcode' => $default_langcode];
+          $this->assertEqual($default_langcode, $field->getEntity()->language()->getId(), format_string('Non translatable field %field_name on translation %langcode has correct entity reference in the default translation %default_langcode.', $args));
+        }
+      }
     }
   }
 

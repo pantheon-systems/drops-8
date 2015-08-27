@@ -222,7 +222,7 @@ class TwigExtension extends \Twig_Extension {
     $options['absolute'] = TRUE;
     $generated_url = $this->urlGenerator->generateFromRoute($name, $parameters, $options, TRUE);
 
-    // Return as render array, so we can bubble the cacheability metadata.
+    // Return as render array, so we can bubble the bubbleable metadata.
     $build = ['#markup' => $generated_url->getGeneratedUrl()];
     $generated_url->applyTo($build);
     return $build;
@@ -247,7 +247,7 @@ class TwigExtension extends \Twig_Extension {
     $options['absolute'] = TRUE;
     $generated_url = $this->urlGenerator->generateFromPath($path, $options, TRUE);
 
-    // Return as render array, so we can bubble the cacheability metadata.
+    // Return as render array, so we can bubble the bubbleable metadata.
     $build = ['#markup' => $generated_url->getGeneratedUrl()];
     $generated_url->applyTo($build);
     return $build;
@@ -260,17 +260,20 @@ class TwigExtension extends \Twig_Extension {
    *   The link text for the anchor tag as a translated string.
    * @param \Drupal\Core\Url|string $url
    *   The URL object or string used for the link.
-   * @param array $attributes
-   *   An optional array of link attributes.
+   * @param array|\Drupal\Core\Template\Attribute $attributes
+   *   An optional array or Attribute object of link attributes.
    *
    * @return array
    *   A render array representing a link to the given URL.
    */
-  public function getLink($text, $url, array $attributes = []) {
+  public function getLink($text, $url, $attributes = []) {
     if (!$url instanceof Url) {
       $url = Url::fromUri($url);
     }
     if ($attributes) {
+      if ($attributes instanceof Attribute) {
+        $attributes = $attributes->toArray();
+      }
       if ($existing_attributes = $url->getOption('attributes')) {
         $attributes = array_merge($existing_attributes, $attributes);
       }

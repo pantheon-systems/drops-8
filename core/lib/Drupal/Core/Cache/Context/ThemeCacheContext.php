@@ -7,11 +7,13 @@
 
 namespace Drupal\Core\Cache\Context;
 
-use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Theme\ThemeManagerInterface;
 
 /**
  * Defines the ThemeCacheContext service, for "per theme" caching.
+ *
+ * Cache context ID: 'theme'.
  */
 class ThemeCacheContext implements CacheContextInterface {
 
@@ -44,6 +46,13 @@ class ThemeCacheContext implements CacheContextInterface {
    */
   public function getContext() {
     return $this->themeManager->getActiveTheme()->getName() ?: 'stark';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadata() {
+    return new CacheableMetadata();
   }
 
 }

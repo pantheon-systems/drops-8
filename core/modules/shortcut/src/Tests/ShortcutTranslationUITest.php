@@ -19,6 +19,11 @@ use Drupal\Core\Language\Language;
 class ShortcutTranslationUITest extends ContentTranslationUITestBase {
 
   /**
+   * {inheritdoc}
+   */
+  protected $defaultCacheContexts = ['languages:language_interface', 'theme', 'user', 'url.site'];
+
+  /**
    * Modules to enable.
    *
    * @var array

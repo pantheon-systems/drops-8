@@ -168,8 +168,8 @@ class MessageForm extends ContentEntityForm {
     $elements = parent::actions($form, $form_state);
     $elements['submit']['#value'] = $this->t('Send message');
     $elements['preview'] = array(
+      '#type' => 'submit',
       '#value' => $this->t('Preview'),
-      '#validate' => array('::validate'),
       '#submit' => array('::submitForm', '::preview'),
     );
     return $elements;
@@ -187,10 +187,8 @@ class MessageForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
-  public function validate(array $form, FormStateInterface $form_state) {
-    parent::validate($form, $form_state);
-
-    $message = $this->entity;
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    $message = parent::validateForm($form, $form_state);
 
     // Check if flood control has been activated for sending emails.
     if (!$this->currentUser()->hasPermission('administer contact forms') && (!$message->isPersonal() || !$this->currentUser()->hasPermission('administer users'))) {
@@ -204,6 +202,8 @@ class MessageForm extends ContentEntityForm {
         )));
       }
     }
+
+    return $message;
   }
 
   /**
@@ -229,22 +229,6 @@ class MessageForm extends ContentEntityForm {
     // implement message storage, this will make the task of swapping in a real
     // storage controller straight-forward.
     $message->save();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function init(FormStateInterface $form_state) {
-    $message = $this->entity;
-
-    // Make the message inherit the current content language unless specifically
-    // set.
-    if ($message->isNew() && !$message->langcode->value) {
-      $language_content = $this->languageManager->getCurrentLanguage(LanguageInterface::TYPE_CONTENT);
-      $message->langcode->value = $language_content->getId();
-    }
-
-    parent::init($form_state);
   }
 
 }

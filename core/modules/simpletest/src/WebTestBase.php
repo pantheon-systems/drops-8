@@ -32,6 +32,7 @@ use Drupal\Core\Url;
 use Drupal\node\Entity\NodeType;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Zend\Diactoros\Uri;
 
 /**
  * Test case for typical Drupal tests.
@@ -457,16 +458,37 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Gets a list files that can be used in tests.
+   * Gets a list of files that can be used in tests.
+   *
+   * The first time this method is called, it will call
+   * simpletest_generate_file() to generate binary and ASCII text files in the
+   * public:// directory. It will also copy all files in
+   * core/modules/simpletest/files to public://. These contain image, SQL, PHP,
+   * JavaScript, and HTML files.
+   *
+   * All filenames are prefixed with their type and have appropriate extensions:
+   * - text-*.txt
+   * - binary-*.txt
+   * - html-*.html and html-*.txt
+   * - image-*.png, image-*.jpg, and image-*.gif
+   * - javascript-*.txt and javascript-*.script
+   * - php-*.txt and php-*.php
+   * - sql-*.txt and sql-*.sql
+   *
+   * Any subsequent calls will not generate any new files, or copy the files
+   * over again. However, if a test class adds a new file to public:// that
+   * is prefixed with one of the above types, it will get returned as well, even
+   * on subsequent calls.
    *
    * @param $type
    *   File type, possible values: 'binary', 'html', 'image', 'javascript',
    *   'php', 'sql', 'text'.
    * @param $size
-   *   File size in bytes to match. Please check the tests/files folder.
+   *   (optional) File size in bytes to match. Defaults to NULL, which will not
+   *   filter the returned list by size.
    *
    * @return
-   *   List of files that match filter.
+   *   List of files in public:// that match the filter(s).
    */
   protected function drupalGetTestFiles($type, $size = NULL) {
     if (empty($this->generatedTestFiles)) {
@@ -477,11 +499,11 @@ abstract class WebTestBase extends TestBase {
         simpletest_generate_file('binary-' . $count++, 64, $line, 'binary');
       }
 
-      // Generate text test files.
+      // Generate ASCII text test files.
       $lines = array(16, 256, 1024, 2048, 20480);
       $count = 0;
       foreach ($lines as $line) {
-        simpletest_generate_file('text-' . $count++, 64, $line);
+        simpletest_generate_file('text-' . $count++, 64, $line, 'text');
       }
 
       // Copy other test files from simpletest.
@@ -1533,7 +1555,15 @@ abstract class WebTestBase extends TestBase {
     if (!isset($options['query'][MainContentViewSubscriber::WRAPPER_FORMAT])) {
       $options['query'][MainContentViewSubscriber::WRAPPER_FORMAT] = 'drupal_ajax';
     }
-    return Json::decode($this->drupalGet($path, $options, $headers));
+    return Json::decode($this->drupalGetXHR($path, $options, $headers));
+  }
+
+  /**
+   * Requests a Drupal path as if it is a XMLHttpRequest.
+   */
+  protected function drupalGetXHR($path, array $options = array(), array $headers = array()) {
+    $headers[] = 'X-Requested-With: XMLHttpRequest';
+    return $this->drupalGet($path, $options, $headers);
   }
 
   /**
@@ -1591,17 +1621,14 @@ abstract class WebTestBase extends TestBase {
    *
    *   This function can also be called to emulate an Ajax submission. In this
    *   case, this value needs to be an array with the following keys:
-   *   - path: A path to submit the form values to for Ajax-specific processing,
-   *     which is likely different than the $path parameter used for retrieving
-   *     the initial form. Defaults to 'system/ajax'.
-   *   - triggering_element: If the value for the 'path' key is 'system/ajax' or
-   *     another generic Ajax processing path, this needs to be set to the name
-   *     of the element. If the name doesn't identify the element uniquely, then
-   *     this should instead be an array with a single key/value pair,
-   *     corresponding to the element name and value. The callback for the
-   *     generic Ajax processing path uses this to find the #ajax information
-   *     for the element, including which specific callback to use for
-   *     processing the request.
+   *   - path: A path to submit the form values to for Ajax-specific processing.
+   *   - triggering_element: If the value for the 'path' key is a generic Ajax
+   *     processing path, this needs to be set to the name of the element. If
+   *     the name doesn't identify the element uniquely, then this should
+   *     instead be an array with a single key/value pair, corresponding to the
+   *     element name and value. The \Drupal\Core\Form\FormAjaxResponseBuilder
+   *     uses this to find the #ajax information for the element, including
+   *     which specific callback to use for processing the request.
    *
    *   This can also be set to NULL in order to emulate an Internet Explorer
    *   submission of a form with a single text field, and pressing ENTER in that
@@ -1649,7 +1676,10 @@ abstract class WebTestBase extends TestBase {
         $submit_matches = $this->handleForm($post, $edit, $upload, $ajax ? NULL : $submit, $form);
         $action = isset($form['action']) ? $this->getAbsoluteUrl((string) $form['action']) : $this->getUrl();
         if ($ajax) {
-          $action = $this->getAbsoluteUrl(!empty($submit['path']) ? $submit['path'] : 'system/ajax');
+          if (empty($submit['path'])) {
+            throw new \Exception('No #ajax path specified.');
+          }
+          $action = $this->getAbsoluteUrl($submit['path']);
           // Ajax callbacks verify the triggering element if necessary, so while
           // we may eventually want extra code that verifies it in the
           // handleForm() function, it's not currently a requirement.
@@ -1661,16 +1691,20 @@ abstract class WebTestBase extends TestBase {
           $post_array = $post;
           if ($upload) {
             foreach ($upload as $key => $file) {
-              $file = drupal_realpath($file);
-              if ($file && is_file($file)) {
-                // Use the new CurlFile class for file uploads when using PHP
-                // 5.5.
-                if (class_exists('CurlFile')) {
-                  $post[$key] = curl_file_create($file);
+              if (is_array($file) && count($file)) {
+                // There seems to be no way via php's API to cURL to upload
+                // several files with the same post field name. However, Drupal
+                // still sees array-index syntax in a similar way.
+                for ($i = 0; $i < count($file); $i++) {
+                  $postfield = str_replace('[]', '', $key) . '[' . $i . ']';
+                  $file_path = $this->container->get('file_system')->realpath($file[$i]);
+                  $post[$postfield] = curl_file_create($file_path);
                 }
-                else {
-                  // @todo: Drop support for this when PHP 5.5 is required.
-                  $post[$key] = '@' . $file;
+              }
+              else {
+                $file = $this->container->get('file_system')->realpath($file);
+                if ($file && is_file($file)) {
+                  $post[$key] = curl_file_create($file);
                 }
               }
             }
@@ -1735,8 +1769,7 @@ abstract class WebTestBase extends TestBase {
    *   and the value is the button label. i.e.) array('op' => t('Refresh')).
    * @param $ajax_path
    *   (optional) Override the path set by the Ajax settings of the triggering
-   *   element. In the absence of both the triggering element's Ajax path and
-   *   $ajax_path 'system/ajax' will be used.
+   *   element.
    * @param $options
    *   (optional) Options to be forwarded to the url generator.
    * @param $headers
@@ -1807,7 +1840,7 @@ abstract class WebTestBase extends TestBase {
     $extra_post = '&' . $this->serializePostValues($extra_post);
 
     // Unless a particular path is specified, use the one specified by the
-    // Ajax settings, or else 'system/ajax'.
+    // Ajax settings.
     if (!isset($ajax_path)) {
       if (isset($ajax_settings['url'])) {
         // In order to allow to set for example the wrapper envelope query
@@ -1824,10 +1857,12 @@ abstract class WebTestBase extends TestBase {
           $parsed_url['path']
         );
       }
-      else {
-        $ajax_path = 'system/ajax';
-      }
     }
+
+    if (empty($ajax_path)) {
+      throw new \Exception('No #ajax path specified.');
+    }
+
     $ajax_path = $this->container->get('unrouted_url_assembler')->assemble('base://' . $ajax_path, $options);
 
     // Submit the POST request.
@@ -2324,7 +2359,7 @@ abstract class WebTestBase extends TestBase {
   }
 
   /**
-   * Follows a link by name.
+   * Follows a link by complete name.
    *
    * Will click the first link found with this link text by default, or a later
    * one if an index is given. Match is case sensitive with normalized space.
@@ -2332,17 +2367,54 @@ abstract class WebTestBase extends TestBase {
    *
    * If the link is discovered and clicked, the test passes. Fail otherwise.
    *
-   * @param $label
+   * @param string $label
    *   Text between the anchor tags.
-   * @param $index
+   * @param int $index
    *   Link position counting from zero.
    *
-   * @return
+   * @return string|bool
    *   Page contents on success, or FALSE on failure.
    */
   protected function clickLink($label, $index = 0) {
+    return $this->clickLinkHelper($label, $index, '//a[normalize-space()=:label]');
+  }
+
+  /**
+   * Follows a link by partial name.
+   *
+   *
+   * If the link is discovered and clicked, the test passes. Fail otherwise.
+   *
+   * @param string $label
+   *   Text between the anchor tags, uses starts-with().
+   * @param int $index
+   *   Link position counting from zero.
+   *
+   * @return string|bool
+   *   Page contents on success, or FALSE on failure.
+   *
+   * @see ::clickLink()
+   */
+  protected function clickLinkPartialName($label, $index = 0) {
+    return $this->clickLinkHelper($label, $index, '//a[starts-with(normalize-space(), :label)]');
+  }
+
+  /**
+   * Provides a helper for ::clickLink() and ::clickLinkPartialName().
+   *
+   * @param string $label
+   *   Text between the anchor tags, uses starts-with().
+   * @param int $index
+   *   Link position counting from zero.
+   * @param string $pattern
+   *   A pattern to use for the XPath.
+   *
+   * @return bool|string
+   *   Page contents on success, or FALSE on failure.
+   */
+  protected function clickLinkHelper($label, $index, $pattern) {
     $url_before = $this->getUrl();
-    $urls = $this->xpath('//a[normalize-space()=:label]', array(':label' => $label));
+    $urls = $this->xpath($pattern, array(':label' => $label));
     if (isset($urls[$index])) {
       $url_target = $this->getAbsoluteUrl($urls[$index]['href']);
       $this->pass(SafeMarkup::format('Clicked link %label (@url_target) from @url_before', array('%label' => $label, '@url_target' => $url_target, '@url_before' => $url_before)), 'Browser');
@@ -2355,16 +2427,35 @@ abstract class WebTestBase extends TestBase {
   /**
    * Takes a path and returns an absolute path.
    *
-   * @param $path
+   * This method is implemented in the way that browsers work, see
+   * https://url.spec.whatwg.org/#relative-state for more information about the
+   * possible cases.
+   *
+   * @param string $path
    *   A path from the internal browser content.
    *
-   * @return
+   * @return string
    *   The $path with $base_url prepended, if necessary.
    */
   protected function getAbsoluteUrl($path) {
     global $base_url, $base_path;
 
     $parts = parse_url($path);
+
+    // In case the $path has a host, it is already an absolute URL and we are
+    // done.
+    if (!empty($parts['host'])) {
+      return $path;
+    }
+
+    // In case the $path contains just a query, we turn it into an absolute URL
+    // with the same scheme, host and path, see
+    // https://url.spec.whatwg.org/#relative-state.
+    if (array_keys($parts) === ['query']) {
+      $current_uri = new Uri($this->getUrl());
+      return (string) $current_uri->withQuery($parts['query']);
+    }
+
     if (empty($parts['host'])) {
       // Ensure that we have a string (and no xpath object).
       $path = (string) $path;
@@ -2820,6 +2911,17 @@ abstract class WebTestBase extends TestBase {
   protected function assertCacheContext($expected_cache_context) {
     $cache_contexts = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Contexts'));
     $this->assertTrue(in_array($expected_cache_context, $cache_contexts), "'" . $expected_cache_context . "' is present in the X-Drupal-Cache-Contexts header.");
+  }
+
+  /**
+   * Asserts that a cache context was not present in the last response.
+   *
+   * @param string $not_expected_cache_context
+   *   The expected cache context.
+   */
+  protected function assertNoCacheContext($not_expected_cache_context) {
+    $cache_contexts = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Contexts'));
+    $this->assertFalse(in_array($not_expected_cache_context, $cache_contexts), "'" . $not_expected_cache_context . "' is not present in the X-Drupal-Cache-Contexts header.");
   }
 
   /**
