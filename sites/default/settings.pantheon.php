@@ -57,7 +57,7 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
  * c.f. https://github.com/pantheon-systems/drops-8/pull/53
  *
  */
-if (isset($_ENV['PANTHEON_ENVIRONMENT']) && (substr($_SERVER['SCRIPT_NAME'],0,17) != '/core/install.php') && (!is_dir(__DIR__ . '/files/styles'))) {
+if (isset($_ENV['PANTHEON_ENVIRONMENT']) && (substr($_SERVER['SCRIPT_NAME'],0,17) != '/core/install.php') && (!is_dir(__DIR__ . '/files/styles')) && (php_sapi_name() != "cli")) {
   include_once __DIR__ . '/../../core/includes/install.core.inc';
   include_once __DIR__ . '/../../core/includes/install.inc';
   install_goto('core/install.php');
