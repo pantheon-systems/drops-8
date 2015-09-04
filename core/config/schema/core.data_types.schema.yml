@@ -491,7 +491,7 @@ field.value.string_long:
 # Schema for the configuration of the URI field type.
 
 field.storage_settings.uri:
-  type: mapping
+  type: field.storage_settings.string
   label: 'URI settings'
   mapping:
     max_length:
@@ -646,10 +646,10 @@ field.field_settings.integer:
       type: integer
       label: 'Maximum'
     prefix:
-      type: string
+      type: label
       label: 'Prefix'
     suffix:
-      type: string
+      type: label
       label: 'Suffix'
 
 field.value.integer:
@@ -684,10 +684,10 @@ field.field_settings.decimal:
       type: float
       label: 'Maximum'
     prefix:
-      type: string
+      type: label
       label: 'Prefix'
     suffix:
-      type: string
+      type: label
       label: 'Suffix'
 
 field.value.decimal:
@@ -715,10 +715,10 @@ field.field_settings.float:
       type: float
       label: 'Maximum'
     prefix:
-      type: string
+      type: label
       label: 'Prefix'
     suffix:
-      type: string
+      type: label
       label: 'Suffix'
 
 field.value.float:

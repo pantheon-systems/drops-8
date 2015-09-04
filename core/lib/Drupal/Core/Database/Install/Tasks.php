@@ -7,7 +7,6 @@
 
 namespace Drupal\Core\Database\Install;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Database\Database;
 
 /**
@@ -80,7 +79,10 @@ abstract class Tasks {
    *
    * @var array
    */
-  protected $results = array();
+  protected $results = array(
+    'fail' => array(),
+    'pass' => array(),
+  );
 
   /**
    * Ensure the PDO driver is supported by the version of PHP in use.
@@ -93,14 +95,14 @@ abstract class Tasks {
    * Assert test as failed.
    */
   protected function fail($message) {
-    $this->results[$message] = FALSE;
+    $this->results['fail'][] = $message;
   }
 
   /**
    * Assert test as a pass.
    */
   protected function pass($message) {
-    $this->results[$message] = TRUE;
+    $this->results['pass'][] = $message;
   }
 
   /**
@@ -128,6 +130,9 @@ abstract class Tasks {
 
   /**
    * Run database tasks and tests to see if Drupal can run on the database.
+   *
+   * @return array
+   *   A list of error messages.
    */
   public function runTasks() {
     // We need to establish a connection before we can run tests.
@@ -143,21 +148,11 @@ abstract class Tasks {
           }
         }
         else {
-          throw new TaskException(t("Failed to run all tasks against the database server. The task %task wasn't found.", array('%task' => $task['function'])));
+          $this->fail(t("Failed to run all tasks against the database server. The task %task wasn't found.", array('%task' => $task['function'])));
         }
       }
     }
-    // Check for failed results and compile message
-    $message = '';
-    foreach ($this->results as $result => $success) {
-      if (!$success) {
-        $message = SafeMarkup::isSafe($result) ? $result : SafeMarkup::checkPlain($result);
-      }
-    }
-    if (!empty($message)) {
-      $message = SafeMarkup::set('Resolve all issues below to continue the installation. For help configuring your database server, see the <a href="https://www.drupal.org/getting-started/install">installation handbook</a>, or contact your hosting provider.' . $message);
-      throw new TaskException($message);
-    }
+    return $this->results['fail'];
   }
 
   /**
@@ -196,8 +191,9 @@ abstract class Tasks {
    * Check the engine version.
    */
   protected function checkEngineVersion() {
+    // Ensure that the database server has the right version.
     if ($this->minimumVersion() && version_compare(Database::getConnection()->version(), $this->minimumVersion(), '<')) {
-      $this->fail(t("The database version %version is less than the minimum required version %minimum_version.", array('%version' => Database::getConnection()->version(), '%minimum_version' => $this->minimumVersion())));
+      $this->fail(t("The database server version %version is less than the minimum required version %minimum_version.", array('%version' => Database::getConnection()->version(), '%minimum_version' => $this->minimumVersion())));
     }
   }
 

@@ -7,7 +7,6 @@
 
 namespace Drupal\rest\Plugin\views\display;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Render\RenderContext;
@@ -15,6 +14,7 @@ use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\views\Plugin\views\display\ResponseDisplayPluginInterface;
+use Drupal\views\Render\ViewsRenderPipelineSafeString;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\PathPluginBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -317,11 +317,12 @@ class RestExport extends PathPluginBase implements ResponseDisplayPluginInterfac
     $this->view->element['#content_type'] = $this->getMimeType();
     $this->view->element['#cache_properties'][] = '#content_type';
 
-      // Wrap the output in a pre tag if this is for a live preview.
+    // Encode and wrap the output in a pre tag if this is for a live preview.
     if (!empty($this->view->live_preview)) {
       $build['#prefix'] = '<pre>';
-      $build['#markup'] = SafeMarkup::checkPlain($build['#markup']);
+      $build['#plain_text'] = $build['#markup'];
       $build['#suffix'] = '</pre>';
+      unset($build['#markup']);
     }
     elseif ($this->view->getRequest()->getFormat($this->view->element['#content_type']) !== 'html') {
       // This display plugin is primarily for returning non-HTML formats.
@@ -334,7 +335,7 @@ class RestExport extends PathPluginBase implements ResponseDisplayPluginInterfac
       // executed by an HTML agent.
       // @todo Decide how to support non-HTML in the render API in
       //   https://www.drupal.org/node/2501313.
-      $build['#markup'] = SafeMarkup::set($build['#markup']);
+      $build['#markup'] = ViewsRenderPipelineSafeString::create($build['#markup']);
     }
 
     parent::applyDisplayCachablityMetadata($build);

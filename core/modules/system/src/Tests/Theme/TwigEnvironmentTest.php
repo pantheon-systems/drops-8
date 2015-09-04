@@ -7,7 +7,7 @@
 
 namespace Drupal\system\Tests\Theme;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Site\Settings;
 use Drupal\simpletest\KernelTestBase;
 
@@ -44,7 +44,7 @@ class TwigEnvironmentTest extends KernelTestBase {
       '#template' => 'test-with-context <label>{{ unsafe_content }}</label>',
       '#context' => array('unsafe_content' => $unsafe_string),
     );
-    $this->assertEqual($renderer->renderRoot($element), 'test-with-context <label>' . SafeMarkup::checkPlain($unsafe_string) . '</label>');
+    $this->assertEqual($renderer->renderRoot($element), 'test-with-context <label>' . Html::escape($unsafe_string) . '</label>');
 
     // Enable twig_auto_reload and twig_debug.
     $settings = Settings::getAll();
@@ -81,6 +81,26 @@ class TwigEnvironmentTest extends KernelTestBase {
     catch (\Twig_Error_Loader $e) {
       $this->assertTrue(strpos($e->getMessage(), 'Template "this-template-does-not-exist.html.twig" is not defined') === 0);
     }
+  }
+
+  /**
+   * Ensures that cacheFilename() varies by extensions + deployment identifier.
+   */
+  public function testCacheFilename() {
+    /** @var \Drupal\Core\Template\TwigEnvironment $environment */
+    // Note: Later we refetch the twig service in order to bypass its internal
+    // static cache.
+    $environment = \Drupal::service('twig');
+
+    $original_filename = $environment->getCacheFilename('core/modules/system/templates/container.html.twig');
+    \Drupal::getContainer()->set('twig', NULL);
+
+    \Drupal::service('module_installer')->install(['twig_extension_test']);
+    $environment = \Drupal::service('twig');
+    $new_extension_filename = $environment->getCacheFilename('core/modules/system/templates/container.html.twig');
+    \Drupal::getContainer()->set('twig', NULL);
+
+    $this->assertNotEqual($new_extension_filename, $original_filename);
   }
 
 }

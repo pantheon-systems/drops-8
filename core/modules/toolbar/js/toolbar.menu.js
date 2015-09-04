@@ -20,8 +20,8 @@
   $.fn.drupalToolbarMenu = function () {
 
     var ui = {
-      'handleOpen': Drupal.t('Extend'),
-      'handleClose': Drupal.t('Collapse')
+      handleOpen: Drupal.t('Extend'),
+      handleClose: Drupal.t('Collapse')
     };
 
     /**
@@ -97,9 +97,9 @@
      */
     function initItems($menu) {
       var options = {
-        'class': 'toolbar-icon toolbar-handle',
-        'action': ui.handleOpen,
-        'text': ''
+        class: 'toolbar-icon toolbar-handle',
+        action: ui.handleOpen,
+        text: ''
       };
       // Initialize items and their links.
       $menu.find('li > a').wrap('<div class="toolbar-box">');
@@ -179,9 +179,13 @@
    * A toggle is an interactive element often bound to a click handler.
    *
    * @param {object} options
+   *   Options for the button.
    * @param {string} options.class
+   *   Class to set on the button.
    * @param {string} options.action
+   *   Action for the button.
    * @param {string} options.text
+   *   Used as label for the button.
    *
    * @return {string}
    *   A string representing a DOM fragment.

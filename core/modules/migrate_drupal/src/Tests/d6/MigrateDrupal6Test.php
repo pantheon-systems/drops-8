@@ -17,11 +17,7 @@ use Drupal\user\Entity\User;
  */
 class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
 
-  const BASE_TEST_CLASS = 'Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase';
-
-  protected static $blacklist = array(
-    'Drupal\migrate_drupal\Tests\dependencies\MigrateDependenciesTest',
-  );
+  const TEST_GROUP = 'migrate_drupal_6';
 
   /**
    * Modules to enable.
@@ -52,6 +48,7 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'migrate_drupal',
     'node',
     'options',
+    'path',
     'search',
     'system',
     'simpletest',
@@ -80,8 +77,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_block_content_type',
     'd6_book',
     'd6_book_settings',
-    'd6_cck_field_values:*',
-    'd6_cck_field_revision:*',
     'd6_comment_type',
     'd6_comment',
     'd6_comment_entity_display',
@@ -102,24 +97,25 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_file',
     'd6_filter_format',
     'd6_forum_settings',
-    'd6_locale_settings',
+    'locale_settings',
     'd6_menu_settings',
-    'd6_menu',
+    'menu',
     'd6_menu_links',
-    'd6_node_revision',
+    'd6_node_revision:*',
     'd6_node_setting_promote',
     'd6_node_setting_status',
     'd6_node_setting_sticky',
-    'd6_node',
+    'd6_node:*',
     'd6_node_settings',
     'd6_node_type',
-    'd6_profile_values:user',
+    'd6_profile_values',
     'd6_search_page',
     'd6_search_settings',
     'd6_simpletest_settings',
     'd6_statistics_settings',
     'd6_syslog_settings',
     'd6_system_cron',
+    'd6_system_date',
     'd6_system_file',
     'd6_system_image',
     'd6_system_image_gd',
@@ -133,7 +129,7 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_taxonomy_vocabulary',
     'd6_term_node_revision:*',
     'd6_term_node:*',
-    'd6_text_settings',
+    'text_settings',
     'd6_update_settings',
     'd6_upload_entity_display',
     'd6_upload_entity_form_display',
@@ -143,14 +139,14 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     'd6_url_alias',
     'd6_user_mail',
     'd6_user_contact_settings',
-    'd6_user_profile_field_instance',
-    'd6_user_profile_entity_display',
-    'd6_user_profile_entity_form_display',
-    'd6_user_profile_field',
-    'd6_user_picture_entity_display',
-    'd6_user_picture_entity_form_display',
-    'd6_user_picture_field_instance',
-    'd6_user_picture_field',
+    'user_profile_field_instance',
+    'user_profile_entity_display',
+    'user_profile_entity_form_display',
+    'user_profile_field',
+    'user_picture_entity_display',
+    'user_picture_entity_form_display',
+    'user_picture_field_instance',
+    'user_picture_field',
     'd6_user_picture_file',
     'd6_user_role',
     'd6_user_settings',
@@ -206,52 +202,6 @@ class MigrateDrupal6Test extends MigrateFullDrupalTestBase {
     ])->enforceIsNew(TRUE)->save();
 
     $this->installMigrations('Drupal 6');
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function getDumps() {
-    return array(
-      'AggregatorFeed.php',
-      'AggregatorItem.php',
-      'Blocks.php',
-      'BlocksRoles.php',
-      'Book.php',
-      'Boxes.php',
-      'Comments.php',
-      'Contact.php',
-      'ContentFieldMultivalue.php',
-      'ContentFieldTest.php',
-      'ContentFieldTestTwo.php',
-      'ContentNodeField.php',
-      'ContentNodeFieldInstance.php',
-      'ContentTypeStory.php',
-      'ContentTypeTestPlanet.php',
-      'EventTimezones.php',
-      'Files.php',
-      'FilterFormats.php',
-      'Filters.php',
-      'MenuCustom.php',
-      'MenuLinks.php',
-      'Node.php',
-      'NodeRevisions.php',
-      'NodeType.php',
-      'Permission.php',
-      'ProfileFields.php',
-      'ProfileValues.php',
-      'Role.php',
-      'TermData.php',
-      'TermHierarchy.php',
-      'TermNode.php',
-      'Upload.php',
-      'UrlAlias.php',
-      'Users.php',
-      'UsersRoles.php',
-      'Variable.php',
-      'Vocabulary.php',
-      'VocabularyNodeTypes.php',
-    );
   }
 
   /**

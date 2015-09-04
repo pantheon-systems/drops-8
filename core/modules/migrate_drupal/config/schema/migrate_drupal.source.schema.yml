@@ -39,50 +39,6 @@ migrate.source.variable:
           type: string
           label: 'Slash'
 
-migrate.source.d6_comment:
-  type: migrate_source_sql
-  label: 'Drupal 6 comment'
-  mapping:
-    constants:
-      type: mapping
-      label: 'Constants'
-      mapping:
-        entity_type:
-          type: string
-          label: 'Entity type'
-
-migrate.source.d6_comment_variable_per_comment_type:
-  type: migrate_source_sql
-  label: 'Drupal 6 comment variable'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_comment_entity_form_display_subject:
-  type: migrate_source_sql
-  label: 'Drupal 6 comment subject entity form display'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_field_instance_per_form_display:
-  type: migrate_source_sql
-  label: 'Drupal 6 field instance form display'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_field:
-  type: migrate_source_sql
-  label: 'Drupal 6 field'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
 migrate.source.variable_multirow:
   type: migrate_source_sql
   label: 'Drupal variable multirow'
@@ -93,92 +49,6 @@ migrate.source.variable_multirow:
       sequence:
         type: string
         label: 'Variable'
-
-migrate.source.d6_comment_variable:
-  type: migrate_source_sql
-  label: 'Drupal 6 comment variable'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_profile_field:
-  type: migrate_source_sql
-  label: 'Drupal 6 profile field'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_field_formatter_settings:
-  type: migrate_source_sql
-  label: 'Drupal 6 field formatter settings'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_upload_instance:
-  type: migrate_source_sql
-  label: 'Drupal 6 upload form display'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_field_instance:
-  type: migrate_source_sql
-  label: 'Drupal 6 field instance'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_field_instance_per_view_mode:
-  type: migrate_source_sql
-  label: 'Drupal 6 field formatter'
-  mapping:
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
-
-migrate.source.d6_user:
-  type: migrate_source_sql
-  label: 'Drupal 6 user'
-  mapping:
-    constants:
-      type: mapping
-      label: 'Constants'
-      mapping:
-        key:
-          type: string
-          label: 'User data key'
-        module:
-          type: string
-          label: 'Module name'
-
-migrate.source.d6_user_picture_file:
-  type: migrate_source_sql
-  label: 'Drupal 6 user picure display'
-  mapping:
-    constants:
-      type: mapping
-      label: 'Constant'
-      mapping:
-        is_public:
-          type: boolean
-          label: 'Public'
-
-migrate.source.d6_user_picture_instance:
-  type: migrate_source_sql
-  label: 'Drupal 6 user picure display'
-  mapping:
-    provider:
-      type: string
-      label: 'Provider'
-    constants:
-      type: migrate_entity_constant
-      label: 'Constants'
 
 migrate_entity_constant:
   type: mapping
@@ -274,6 +144,9 @@ migrate_entity_constant:
     auto_create:
       type: boolean
       label: 'Entity reference selection setting: Auto-create new entities'
+    status:
+      type: boolean
+      label: 'Status'
 
 migrate.source.md_empty:
   type: migrate.source.empty

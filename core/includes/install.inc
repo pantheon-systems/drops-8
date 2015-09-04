@@ -210,7 +210,7 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
     }
     $variable_names['$'. $setting] = $setting;
   }
-  $contents = file_get_contents(DRUPAL_ROOT . '/' . $settings_file);
+  $contents = file_get_contents($settings_file);
   if ($contents !== FALSE) {
     // Initialize the contents for the settings.php file if it is empty.
     if (trim($contents) === '') {
@@ -315,7 +315,7 @@ function drupal_rewrite_settings($settings = array(), $settings_file = NULL) {
     }
 
     // Write the new settings file.
-    if (file_put_contents(DRUPAL_ROOT . '/' . $settings_file, $buffer) === FALSE) {
+    if (file_put_contents($settings_file, $buffer) === FALSE) {
       throw new Exception(t('Failed to modify %settings. Verify the file permissions.', array('%settings' => $settings_file)));
     }
     else {
@@ -864,9 +864,11 @@ function install_goto($path) {
  * @return
  *   The URL of the current script, with query parameters modified by the
  *   passed-in $query. The URL is not sanitized, so it still needs to be run
- *   through check_url() if it will be used as an HTML attribute value.
+ *   through \Drupal\Component\Utility\UrlHelper::filterBadProtocol() if it will be
+ *   used as an HTML attribute value.
  *
  * @see drupal_requirements_url()
+ * @see Drupal\Component\Utility\UrlHelper::filterBadProtocol()
  */
 function drupal_current_script_url($query = array()) {
   $uri = $_SERVER['SCRIPT_NAME'];
@@ -890,10 +892,12 @@ function drupal_current_script_url($query = array()) {
  *
  * @return
  *   A URL for attempting to proceed to the next step of the script. The URL is
- *   not sanitized, so it still needs to be run through check_url() if it will
- *   be used as an HTML attribute value.
+ *   not sanitized, so it still needs to be run through
+ *   \Drupal\Component\Utility\UrlHelper::filterBadProtocol() if it will be used
+ *   as an HTML attribute value.
  *
  * @see drupal_current_script_url()
+ * @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
  */
 function drupal_requirements_url($severity) {
   $query = array();
@@ -1066,19 +1070,6 @@ function install_profile_info($profile, $langcode = 'en') {
     $cache[$profile][$langcode] = $info;
   }
   return $cache[$profile][$langcode];
-}
-
-/**
- * Ensures the environment for a Drupal database on a predefined connection.
- *
- * This will run tasks that check that Drupal can perform all of the functions
- * on a database, that Drupal needs. Tasks include simple checks like CREATE
- * TABLE to database specific functions like stored procedures and client
- * encoding.
- */
-function db_run_tasks($driver) {
-  db_installer_object($driver)->runTasks();
-  return TRUE;
 }
 
 /**

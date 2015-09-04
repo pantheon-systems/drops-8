@@ -50,6 +50,22 @@ function system_requirements($phase) {
         'weight' => -9
       );
     }
+
+    // Warn if any experimental modules are installed.
+    $experimental = array();
+    $enabled_modules = system_rebuild_module_data();
+    foreach ($enabled_modules as $module => $data) {
+      if ($data->info['package'] === 'Core (Experimental)') {
+        $experimental[$module] = $data->info['name'];
+      }
+    }
+    if (!empty($experimental)) {
+      $requirements['experimental'] = array(
+        'title' => t('Experimental modules enabled'),
+        'value' => t('Experimental modules found: %module_list. Experimental modules are provided for testing purposes only. Use at your own risk.', array('%module_list' => implode(', ', $experimental))),
+        'severity' => REQUIREMENT_WARNING,
+      );
+    }
   }
 
   // Web server information.
@@ -136,9 +152,8 @@ function system_requirements($phase) {
   // Test PHP version and show link to phpinfo() if it's available
   $phpversion = $phpversion_label = phpversion();
   if (function_exists('phpinfo')) {
-    // $phpversion is safe and output of l() is safe, so this value is safe.
     if ($phase === 'runtime') {
-      $phpversion_label = SafeMarkup::set($phpversion . ' (' . \Drupal::l(t('more information'), new Url('system.php')) . ')');
+      $phpversion_label = t('@phpversion (<a href="@url">more information</a>)', ['@phpversion' => $phpversion, '@url' => (new Url('system.php'))->toString()]);
     }
     $requirements['php'] = array(
       'title' => t('PHP'),
@@ -415,8 +430,6 @@ function system_requirements($phase) {
     $threshold_warning = $cron_config->get('threshold.requirements_warning');
     // Cron error threshold defaults to two weeks.
     $threshold_error = $cron_config->get('threshold.requirements_error');
-    // Cron configuration help text.
-    $help = t('For more information, see the online handbook entry for <a href="@cron-handbook">configuring cron jobs</a>.', array('@cron-handbook' => 'https://www.drupal.org/cron'));
 
     // Determine when cron last ran.
     $cron_last = \Drupal::state()->get('system.cron_last');
@@ -435,24 +448,33 @@ function system_requirements($phase) {
 
     // Set summary and description based on values determined above.
     $summary = t('Last run !time ago', array('!time' => \Drupal::service('date.formatter')->formatTimeDiffSince($cron_last)));
-    $description = '';
-    if ($severity != REQUIREMENT_INFO) {
-      $description = t('Cron has not run recently.') . ' ' . $help;
-    }
-
-    $description .= ' ' . t('You can <a href="@cron">run cron manually</a>.', array('@cron' => \Drupal::url('system.run_cron')));
-    $description .= '<br />' . t('To run cron from outside the site, go to <a href="!cron">!cron</a>', array('!cron' => \Drupal::url('system.cron', array('key' => \Drupal::state()->get('system.cron_key'), array('absolute' => TRUE)))));
 
     $requirements['cron'] = array(
       'title' => t('Cron maintenance tasks'),
       'severity' => $severity,
       'value' => $summary,
-      // @todo This string is concatenated from t() calls, safe drupal_render()
-      //   output, whitespace, and <br /> tags, so is safe. However, as a best
-      //   practice, we should not use SafeMarkup::set() around a variable. Fix
-      //   in: https://www.drupal.org/node/2296929.
-      'description' => SafeMarkup::set($description),
     );
+    if ($severity != REQUIREMENT_INFO) {
+      $requirements['cron']['description'][] = [
+        [
+          '#markup' => t('Cron has not run recently.'),
+          '#suffix' => ' ',
+        ],
+        [
+          '#markup' => t('For more information, see the online handbook entry for <a href="@cron-handbook">configuring cron jobs</a>.', ['@cron-handbook' => 'https://www.drupal.org/cron']),
+          '#suffix' => ' ',
+        ],
+      ];
+    }
+    $requirements['cron']['description'][] = [
+      [
+        '#markup' => t('You can <a href="@cron">run cron manually</a>.', ['@cron' => \Drupal::url('system.run_cron')]),
+      ],
+      [
+        '#prefix' => '<br />',
+        '#markup' => t('To run cron from outside the site, go to <a href="@cron">@cron</a>', ['@cron' => \Drupal::url('system.cron', ['key' => \Drupal::state()->get('system.cron_key'), ['absolute' => TRUE]])]),
+      ],
+    ];
   }
   if ($phase != 'install') {
     $filesystem_config = \Drupal::config('system.file');
@@ -588,10 +610,16 @@ function system_requirements($phase) {
         }
       }
     }
-    if (!isset($requirements['update']['severity']) && \Drupal::service('entity.definition_update_manager')->needsUpdates()) {
-      $requirements['update']['severity'] = REQUIREMENT_ERROR;
-      $requirements['update']['value'] = t('Out of date');
-      $requirements['update']['description'] = t('Some modules have database schema updates to install. You should run the <a href="@update">database update script</a> immediately.', array('@update' => \Drupal::url('system.db_update')));
+
+    // Verify that no entity updates are pending after running every DB update.
+    if (!isset($requirements['update']['severity']) && \Drupal::entityDefinitionUpdateManager()->needsUpdates()) {
+      $requirements['entity_update'] = array(
+        'title' => t('Entity/field definitions'),
+        'value' => t('Mismatch detected'),
+        'severity' => REQUIREMENT_ERROR,
+        // @todo Provide details: https://www.drupal.org/node/2554911
+        'description' => t('Mismatched entity and/or field definitions.'),
+      );
     }
   }
 
@@ -1001,7 +1029,7 @@ function system_schema() {
       ),
     ),
     'indexes' => array(
-      'pattern_outline_fit' => array('pattern_outline', 'fit'),
+      'pattern_outline_parts' => array('pattern_outline', 'number_parts'),
     ),
     'primary key' => array('name'),
   );
@@ -1142,6 +1170,11 @@ function system_schema() {
 }
 
 /**
+ * @addtogroup updates-8.0.0-beta
+ * @{
+ */
+
+/*
  * Change two fields on the default menu link storage to be serialized data.
  */
 function system_update_8001(&$sandbox = NULL) {
@@ -1150,6 +1183,26 @@ function system_update_8001(&$sandbox = NULL) {
   if ($schema->tableExists('menu_tree')) {
 
     if (!isset($sandbox['current'])) {
+      // Converting directly to blob can cause problems with reading out and
+      // serializing the string data later on postgres, so rename the existing
+      // columns and create replacement ones to hold the serialized objects.
+      $old_fields = array(
+        'title' => array(
+          'description' => 'The text displayed for the link.',
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ),
+        'description' => array(
+          'description' => 'The description of this link - used for admin pages and title attribute.',
+          'type' => 'text',
+          'not null' => FALSE,
+        ),
+      );
+      foreach ($old_fields as $name => $spec) {
+        $schema->changeField('menu_tree', $name, 'system_update_8001_' . $name, $spec);
+      }
       $spec = array(
         'description' => 'The title for the link. May be a serialized TranslationWrapper.',
         'type' => 'blob',
@@ -1157,7 +1210,7 @@ function system_update_8001(&$sandbox = NULL) {
         'not null' => FALSE,
         'serialize' => TRUE,
       );
-      $schema->changeField('menu_tree', 'title', 'title', $spec);
+      $schema->addField('menu_tree', 'title', $spec);
       $spec = array(
         'description' => 'The description of this link - used for admin pages and title attribute.',
         'type' => 'blob',
@@ -1165,14 +1218,14 @@ function system_update_8001(&$sandbox = NULL) {
         'not null' => FALSE,
         'serialize' => TRUE,
       );
-      $schema->changeField('menu_tree', 'description', 'description', $spec);
+      $schema->addField('menu_tree', 'description', $spec);
 
       $sandbox['current'] = 0;
       $sandbox['max'] = $database->query('SELECT COUNT(mlid) FROM {menu_tree}')
         ->fetchField();
     }
 
-    $menu_links = $database->queryRange('SELECT mlid, title, description FROM {menu_tree} ORDER BY mlid ASC', $sandbox['current'], $sandbox['current'] + 50)
+    $menu_links = $database->queryRange('SELECT mlid, system_update_8001_title AS title, system_update_8001_description AS description FROM {menu_tree} ORDER BY mlid ASC', $sandbox['current'], $sandbox['current'] + 50)
       ->fetchAllAssoc('mlid');
 
     foreach ($menu_links as $menu_link) {
@@ -1193,8 +1246,10 @@ function system_update_8001(&$sandbox = NULL) {
 
     if ($sandbox['#finished'] >= 1) {
       // Drop unnecessary fields from {menu_tree}.
+      $schema->dropField('menu_tree', 'system_update_8001_title');
       $schema->dropField('menu_tree', 'title_arguments');
       $schema->dropField('menu_tree', 'title_context');
+      $schema->dropField('menu_tree', 'system_update_8001_description');
     }
     return t('Menu links converted');
   }
@@ -1203,3 +1258,232 @@ function system_update_8001(&$sandbox = NULL) {
   }
 }
 
+/**
+ * Removes the system.filter configuration.
+ */
+function system_update_8002() {
+  \Drupal::configFactory()->getEditable('system.filter')->delete();
+  return t('The system.filter configuration has been moved to a container parameter, see default.services.yml for more information.');
+}
+
+/**
+ * Change the index on the {router} table.
+ */
+function system_update_8003() {
+  $database = \Drupal::database();
+  $database->schema()->dropIndex('router', 'pattern_outline_fit');
+  $database->schema()->addIndex(
+    'router',
+    'pattern_outline_parts',
+    ['pattern_outline', 'number_parts'],
+    [
+      'fields' => [
+        'pattern_outline' => [
+          'description' => 'The pattern',
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+        'number_parts' => [
+          'description' => 'Number of parts in this router path.',
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'size' => 'small',
+        ],
+      ],
+    ]
+  );
+}
+
+/**
+ * Add a (id, default_langcode, langcode) composite index to entities.
+ */
+function system_update_8004() {
+  // \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema was changed in
+  // https://www.drupal.org/node/2261669 to include a (id, default_langcode,
+  // langcode) compound index, but this update function wasn't added until
+  // https://www.drupal.org/node/2542748. Regenerate the related schemas to
+  // ensure they match the currently expected status.
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  foreach (array_keys(\Drupal::entityManager()->getDefinitions()) as $entity_type_id) {
+    $manager->updateEntityType($manager->getEntityType($entity_type_id));
+  }
+}
+
+/**
+ * Place local actions and tasks blocks in every theme.
+ */
+function system_update_8005() {
+  // When block module is not installed, there is nothing that could be done
+  // except showing a warning.
+  if (!\Drupal::moduleHandler()->moduleExists('block')) {
+    return t('Block module is not enabled so local actions and tasks which have been converted to blocks, are not visible anymore.');
+  }
+  $config_factory = \Drupal::configFactory();
+  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
+  $theme_handler = \Drupal::service('theme_handler');
+  $custom_themes_installed = FALSE;
+  $message = NULL;
+  $langcode = \Drupal::service('language_manager')->getCurrentLanguage()->getId();
+
+  $local_actions_default_settings = [
+    'plugin' => 'local_actions_block',
+    'region' => 'content',
+    'settings.label' => 'Primary admin actions',
+    'settings.label_display' => 0,
+    'settings.cache.max_age' => 0,
+    'visibility' => [],
+    'weight' => 0,
+    'langcode' => $langcode,
+  ];
+  $tabs_default_settings = [
+    'plugin' => 'local_tasks_block',
+    'region' => 'content',
+    'settings.label' => 'Tabs',
+    'settings.label_display' => 0,
+    'settings.cache.max_age' => 0,
+    'visibility' => [],
+    'weight' => 0,
+    'langcode' => $langcode,
+  ];
+  foreach ($theme_handler->listInfo() as $theme) {
+    $theme_name = $theme->getName();
+    switch ($theme_name) {
+      case 'bartik':
+        $name = 'block.block.bartik_local_actions';
+        $values = [
+          'id' => 'bartik_local_actions',
+          'weight' => -1,
+        ] + $local_actions_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+
+        $name = 'block.block.bartik_local_tasks';
+        $values = [
+          'id' => 'bartik_local_tasks',
+          'weight' => -7,
+        ] + $tabs_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+
+        // Help region has been removed so all the blocks inside has to be moved
+        // to content region.
+        $weight = -6;
+        $blocks = [];
+        foreach ($config_factory->listAll('block.block.') as $block_config) {
+          $block = $config_factory->getEditable($block_config);
+          if ($block->get('theme') == 'bartik' && $block->get('region') == 'help') {
+            $blocks[] = $block;
+          }
+        }
+        // Sort blocks by block weight.
+        uasort($blocks, function ($a, $b) {
+          return $a->get('weight') - $b->get('weight');
+        });
+        // Move blocks to content region and set them in right order by their
+        // weight.
+        foreach ($blocks as $block) {
+          $block->set('region', 'content');
+          $block->set('weight', $weight++);
+          $block->save();
+        }
+        break;
+
+      case 'seven':
+        $name = 'block.block.seven_local_actions';
+          $values = [
+            'id' => 'seven_local_actions',
+            'weight' => -10,
+          ] + $local_actions_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+
+        $name = 'block.block.seven_primary_local_tasks';
+        $values = [
+          'region' => 'header',
+          'id' => 'seven_primary_local_tasks',
+          'settings.label' => 'Primary tabs',
+          'settings.primary' => TRUE,
+          'settings.secondary' => FALSE,
+        ] + $tabs_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+
+        $values = [
+          'region' => 'pre_content',
+          'id' => 'seven_secondary_local_tasks',
+          'settings.label' => 'Secondary tabs',
+          'settings.primary' => FALSE,
+          'settings.secondary' => TRUE,
+        ] + $tabs_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+        break;
+
+      case 'stark':
+        $name = 'block.block.stark_local_actions';
+        $values = [
+          'id' => 'stark_local_actions',
+        ] + $local_actions_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+
+        $name = 'block.block.stark_local_tasks';
+        $values = [
+          'id' => 'stark_local_tasks',
+        ] + $tabs_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+        break;
+
+      case 'classy':
+        // Don't place any blocks or trigger custom themes installed warning.
+        break;
+
+      default:
+        $custom_themes_installed = TRUE;
+        $name = sprintf('block.block.%s_local_actions', $theme_name);
+        $values = [
+          'id' => sprintf('%s_local_actions', $theme_name),
+          'weight' => -10,
+        ] + $local_actions_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+
+        $name = sprintf('block.block.%s_local_tasks', $theme_name);
+        $values = [
+          'id' => sprintf('%s_local_tasks', $theme_name),
+          'weight' => -20,
+        ] + $tabs_default_settings;
+        _system_update_create_block($name, $theme_name, $values);
+        break;
+    }
+  }
+
+  if ($custom_themes_installed) {
+    $message = t('Because your site has custom theme(s) installed, we had to set local actions and tasks blocks into the content region. Please manually review the block configurations and remove the removed variables from your templates.');
+  }
+
+  return $message;
+}
+
+/**
+ * Helper function to create block configuration objects for the update.
+ *
+ * @param string $name
+ *   The name of the config object.
+ * @param string $theme_name
+ *   The name of the theme the block is associated with.
+ * @param array $values
+ *   The block config values.
+ */
+function _system_update_create_block($name, $theme_name, array $values) {
+  if (!\Drupal::service('config.storage')->exists($name)) {
+    $block = \Drupal::configFactory()->getEditable($name);
+    $values['uuid'] = \Drupal::service('uuid')->generate();
+    $values['theme'] = $theme_name;
+    $values['dependencies.theme'] = [$theme_name];
+    foreach ($values as $key => $value) {
+      $block->set($key, $value);
+    }
+    $block->save();
+  }
+}
+
+/**
+ * @} End of "addtogroup updates-8.0.0-beta".
+ */

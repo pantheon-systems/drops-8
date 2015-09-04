@@ -71,6 +71,13 @@ class RouteProviderTest extends KernelTestBase {
    */
   protected $pathProcessor;
 
+  /**
+   * The cache tags invalidator.
+   *
+   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface
+   */
+  protected $cacheTagsInvalidator;
+
   protected function setUp() {
     parent::setUp();
     $this->fixtures = new RoutingFixtures();
@@ -78,6 +85,7 @@ class RouteProviderTest extends KernelTestBase {
     $this->currentPath = new CurrentPathStack(new RequestStack());
     $this->cache = new MemoryBackend('data');
     $this->pathProcessor = \Drupal::service('path_processor_manager');
+    $this->cacheTagsInvalidator = \Drupal::service('cache_tags.invalidator');
 
     $this->installSchema('system', 'url_alias');
   }
@@ -107,7 +115,7 @@ class RouteProviderTest extends KernelTestBase {
   public function testCandidateOutlines() {
 
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $parts = array('node', '5', 'edit');
 
@@ -130,7 +138,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testExactPathMatch() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -154,7 +162,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testOutlinePathMatch() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -183,7 +191,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testOutlinePathMatchTrailingSlash() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -212,7 +220,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testOutlinePathMatchDefaults() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -250,7 +258,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testOutlinePathMatchDefaultsCollision() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -289,7 +297,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testOutlinePathMatchDefaultsCollision2() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -316,7 +324,46 @@ class RouteProviderTest extends KernelTestBase {
       $this->assertEqual(array('narf', 'poink'), array_keys($routes_array), 'Ensure the fitness was taken into account.');
       $this->assertNotNull($routes->get('narf'), 'The first matching route was found.');
       $this->assertNotNull($routes->get('poink'), 'The second matching route was found.');
-      $this->assertNull($routes->get('eep'), 'Noin-matching route was not found.');
+      $this->assertNull($routes->get('eep'), 'Non-matching route was not found.');
+    }
+    catch (ResourceNotFoundException $e) {
+      $this->fail('No matching route found with default argument value.');
+    }
+  }
+
+  /**
+   * Confirms that we can find multiple routes that match the request equally.
+   */
+  function testOutlinePathMatchDefaultsCollision3() {
+    $connection = Database::getConnection();
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
+
+    $this->fixtures->createTables($connection);
+
+    $collection = new RouteCollection();
+    $collection->add('poink', new Route('/some/{value}/path'));
+    // Add a second route matching the same path pattern.
+    $collection->add('poink2', new Route('/some/{object}/path'));
+    $collection->add('narf', new Route('/some/here/path'));
+    $collection->add('eep', new Route('/something/completely/different'));
+
+    $dumper = new MatcherDumper($connection, $this->state, 'test_routes');
+    $dumper->addRoutes($collection);
+    $dumper->dump();
+
+    $path = '/some/over-there/path';
+
+    $request = Request::create($path, 'GET');
+
+    try {
+      $routes = $provider->getRouteCollectionForRequest($request);
+      $routes_array = $routes->all();
+
+      $this->assertEqual(count($routes), 2, 'The correct number of routes was found.');
+      $this->assertEqual(array('poink', 'poink2'), array_keys($routes_array), 'Ensure the fitness and name were taken into account in the sort.');
+      $this->assertNotNull($routes->get('poink'), 'The first matching route was found.');
+      $this->assertNotNull($routes->get('poink2'), 'The second matching route was found.');
+      $this->assertNull($routes->get('eep'), 'Non-matching route was not found.');
     }
     catch (ResourceNotFoundException $e) {
       $this->fail('No matching route found with default argument value.');
@@ -328,7 +375,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   public function testOutlinePathMatchZero() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -363,7 +410,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   function testOutlinePathNoMatch() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -388,7 +435,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   public function testRouteCaching() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -450,7 +497,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   public function testRouteByName() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
 
@@ -485,7 +532,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   public function testGetRoutesByPatternWithLongPatterns() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
     // This pattern has only 3 parts, so we will get candidates, but no routes,
@@ -543,7 +590,7 @@ class RouteProviderTest extends KernelTestBase {
    */
   public function testGetRoutesPaged() {
     $connection = Database::getConnection();
-    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, 'test_routes');
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
     $this->fixtures->createTables($connection);
     $dumper = new MatcherDumper($connection, $this->state, 'test_routes');

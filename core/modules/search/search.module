@@ -5,7 +5,6 @@
  * Enables site-wide keyword searching.
  */
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
@@ -618,7 +617,8 @@ function search_mark_for_reindex($type = NULL, $sid = NULL, $langcode = NULL) {
 /**
  * Returns snippets from a piece of text, with search keywords highlighted.
  *
- * Used for formatting search results.
+ * Used for formatting search results. All HTML tags will be stripped from
+ * $text.
  *
  * @param string $keys
  *   A string containing a search query.
@@ -627,8 +627,8 @@ function search_mark_for_reindex($type = NULL, $sid = NULL, $langcode = NULL) {
  * @param string|null $langcode
  *   Language code for the language of $text, if known.
  *
- * @return string
- *   A string containing HTML for the excerpt.
+ * @return array
+ *   A render array containing HTML for the excerpt.
  */
 function search_excerpt($keys, $text, $langcode = NULL) {
   // We highlight around non-indexable or CJK characters.
@@ -721,7 +721,9 @@ function search_excerpt($keys, $text, $langcode = NULL) {
     // We didn't find any keyword matches, so just return the first part of the
     // text. We also need to re-encode any HTML special characters that we
     // entity-decoded above.
-    return SafeMarkup::checkPlain(Unicode::truncate($text, 256, TRUE, TRUE));
+    return [
+      '#plain_text' => Unicode::truncate($text, 256, TRUE, TRUE),
+    ];
   }
 
   // Sort the text ranges by starting position.
@@ -762,12 +764,15 @@ function search_excerpt($keys, $text, $langcode = NULL) {
   // translated. Let translators have the … separator text as one chunk.
   $ellipses = explode('!excerpt', t('… !excerpt … !excerpt …'));
   $text = (isset($new_ranges[0]) ? '' : $ellipses[0]) . implode($ellipses[1], $out) . (($max_end < strlen($text) - 1) ? $ellipses[2] : '');
-  $text = SafeMarkup::checkPlain($text);
+  $text = Html::escape($text);
 
   // Highlight keywords. Must be done at once to prevent conflicts ('strong'
   // and '<strong>').
   $text = trim(preg_replace('/' . $boundary . '(?:' . implode('|', $keys) . ')' . $boundary . '/iu', '<strong>\0</strong>', ' ' . $text . ' '));
-  return SafeMarkup::xssFilter($text, ['strong']);
+  return [
+    '#markup' => $text,
+    '#allowed_tags' => ['strong']
+  ];
 }
 
 /**

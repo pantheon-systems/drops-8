@@ -3,7 +3,7 @@ label: Drupal 6 menu links
 migration_tags:
   - Drupal 6
 source:
-  plugin: d6_menu_link
+  plugin: menu_link
   constants:
     bundle: menu_link_content
 process:
@@ -18,9 +18,10 @@ process:
       - 0
       - attributes
       - title
+    default: ''
   menu_name:
     plugin: migration
-    migration: d6_menu
+    migration: menu
     source: menu_name
   'link/uri':
     plugin: internal_uri
@@ -44,4 +45,4 @@ destination:
   plugin: entity:menu_link_content
 migration_dependencies:
   required:
-    - d6_menu
+    - menu

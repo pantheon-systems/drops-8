@@ -38,10 +38,10 @@ class CommentTranslationUITest extends ContentTranslationUITestBase {
   protected $defaultCacheContexts = [
     'languages:language_interface',
     'theme',
-    'user.permissions',
     'timezone',
+    'url.query_args:_wrapper_format',
     'url.query_args.pagers:0',
-    'user.roles'
+    'user'
   ];
 
   /**

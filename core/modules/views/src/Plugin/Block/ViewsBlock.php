@@ -7,10 +7,10 @@
 
 namespace Drupal\views\Plugin\Block;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\Entity\Query\Query;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\views\Element\View;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -33,13 +33,26 @@ class ViewsBlock extends ViewsBlockBase {
     if ($output = $this->view->buildRenderable($this->displayID, [], FALSE)) {
       // Override the label to the dynamic title configured in the view.
       if (empty($this->configuration['views_label']) && $this->view->getTitle()) {
-        // @todo https://www.drupal.org/node/2527360 remove call to SafeMarkup.
-        $output['#title'] = SafeMarkup::xssFilter($this->view->getTitle(), Xss::getAdminTagList());
+        $output['#title'] = ['#markup' => $this->view->getTitle(), '#allowed_tags' => Xss::getHtmlTagList()];
       }
 
       // Before returning the block output, convert it to a renderable array
       // with contextual links.
       $this->addContextualLinks($output);
+
+      // Block module expects to get a final render array, without another
+      // top-level #pre_render callback. So, here we make sure that Views'
+      // #pre_render callback has already been applied.
+      $output = View::preRenderViewElement($output);
+
+      // When view_build is empty, the actual render array output for this View
+      // is going to be empty. In that case, return just #cache, so that the
+      // render system knows the reasons (cache contexts & tags) why this Views
+      // block is empty, and can cache it accordingly.
+      if (empty($output['view_build'])) {
+        $output = ['#cache' => $output['#cache']];
+      }
+
       return $output;
     }
 

@@ -78,7 +78,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    *
    * @param array $values
    *   An array of field properties, keyed by property name. The
-   *   storage associated to the field can be specified either with:
+   *   storage associated with the field can be specified either with:
    *   - field_storage: the FieldStorageConfigInterface object,
    *   or by referring to an existing field storage in the current configuration
    *   with:
@@ -270,7 +270,8 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
   protected function urlRouteParameters($rel) {
     $parameters = parent::urlRouteParameters($rel);
     $entity_type = \Drupal::entityManager()->getDefinition($this->entity_type);
-    $parameters[$entity_type->getBundleEntityType()] = $this->bundle;
+    $bundle_parameter_key = $entity_type->getBundleEntityType() ?: 'bundle';
+    $parameters[$bundle_parameter_key] = $this->bundle;
     return $parameters;
   }
 
@@ -288,7 +289,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
     if (!$this->fieldStorage) {
       $fields = $this->entityManager()->getFieldStorageDefinitions($this->entity_type);
       if (!isset($fields[$this->field_name])) {
-        throw new FieldException('Attempt to create a field {$this->field_name} that does not exist on entity type {$this->entity_type}.');
+        throw new FieldException("Attempt to create a field {$this->field_name} that does not exist on entity type {$this->entity_type}.");
       }
       if (!$fields[$this->field_name] instanceof FieldStorageConfigInterface) {
         throw new FieldException("Attempt to create a configurable field of non-configurable field storage {$this->field_name}.");

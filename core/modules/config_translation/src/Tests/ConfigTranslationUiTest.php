@@ -31,6 +31,7 @@ class ConfigTranslationUiTest extends WebTestBase {
    * @var array
    */
   public static $modules = [
+    'block',
     'config_translation',
     'config_translation_test',
     'contact',
@@ -117,6 +118,7 @@ class ConfigTranslationUiTest extends WebTestBase {
       ConfigurableLanguage::createFromLangcode($langcode)->save();
     }
     $this->localeStorage = $this->container->get('locale.storage');
+    $this->drupalPlaceBlock('local_tasks_block');
   }
 
   /**
@@ -485,7 +487,7 @@ class ConfigTranslationUiTest extends WebTestBase {
 
       // Formatting the date 8 / 27 / 1985 @ 13:37 EST with pattern D should
       // display "Tue".
-      $formatted_date = format_date(494015820, $id, NULL, NULL, 'fr');
+      $formatted_date = format_date(494015820, $id, NULL, 'America/New_York', 'fr');
       $this->assertEqual($formatted_date, 'Tue', 'Got the right formatted date using the date format translation pattern.');
     }
   }
@@ -585,7 +587,7 @@ class ConfigTranslationUiTest extends WebTestBase {
     $response = $this->renderContextualLinks($ids, 'node');
     $this->assertResponse(200);
     $json = Json::decode($response);
-    $this->assertTrue(strpos($json[$ids[0]], t('Translate view')), 'Translate view contextual link added.');
+    $this->assertTrue(strpos($json[$ids[0]], 'Translate view'), 'Translate view contextual link added.');
 
     $description = 'All content promoted to the front page.';
     $human_readable_name = 'Frontpage';
@@ -751,9 +753,9 @@ class ConfigTranslationUiTest extends WebTestBase {
     $this->clickLink('Add');
 
     $this->assertText('Translatable field setting');
-    $this->assertRaw(SafeMarkup::checkPlain($translatable_field_setting));
+    $this->assertEscaped($translatable_field_setting);
     $this->assertText('Translatable storage setting');
-    $this->assertRaw(SafeMarkup::checkPlain($translatable_storage_setting));
+    $this->assertEscaped($translatable_storage_setting);
   }
 
   /**

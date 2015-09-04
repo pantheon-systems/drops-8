@@ -8,6 +8,7 @@
 namespace Drupal\system\Tests\Routing;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\simpletest\WebTestBase;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,6 +33,7 @@ class RouterTest extends WebTestBase {
    */
   public function testFinishResponseSubscriber() {
     $renderer_required_cache_contexts = ['languages:' . LanguageInterface::TYPE_INTERFACE, 'theme', 'user.permissions'];
+    $expected_cache_contexts = Cache::mergeContexts($renderer_required_cache_contexts, ['url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT]);
 
     // Confirm that the router can get to a controller.
     $this->drupalGet('router_test/test1');
@@ -47,7 +49,7 @@ class RouterTest extends WebTestBase {
     $this->assertRaw('test2', 'The correct string was returned because the route was successful.');
     // Check expected headers from FinishResponseSubscriber.
     $headers = $this->drupalGetHeaders();
-    $this->assertEqual($headers['x-drupal-cache-contexts'], implode(' ', $renderer_required_cache_contexts));
+    $this->assertEqual($headers['x-drupal-cache-contexts'], implode(' ', $expected_cache_contexts));
     $this->assertEqual($headers['x-drupal-cache-tags'], 'config:user.role.anonymous rendered');
     // Confirm that the page wrapping is being added, so we're not getting a
     // raw body returned.
@@ -197,6 +199,15 @@ class RouterTest extends WebTestBase {
     $this->drupalGet('router_test/test14/2');
     $this->assertResponse(200);
     $this->assertText('Route not matched.');
+
+    // Check that very long paths don't cause an error.
+    $path = 'router_test/test1';
+    $suffix = '/d/r/u/p/a/l';
+    for ($i = 0; $i < 10; $i++) {
+      $path .= $suffix;
+      $this->drupalGet($path);
+      $this->assertResponse(404);
+    }
   }
 
   /**

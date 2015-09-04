@@ -7,7 +7,9 @@
 
 namespace Drupal\Core\Routing;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Path\CurrentPathStack;
 use Drupal\Core\PathProcessor\InboundPathProcessorInterface;
 use Drupal\Core\State\StateInterface;
@@ -76,11 +78,23 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
   protected $cache;
 
   /**
+   * The cache tag invalidator.
+   *
+   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface
+   */
+  protected $cacheTagInvalidator;
+
+  /**
    * A path processor manager for resolving the system path.
    *
    * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface
    */
   protected $pathProcessor;
+
+  /**
+   * Cache ID prefix used to load routes.
+   */
+  const ROUTE_LOAD_CID_PREFIX = 'route_provider.route_load:';
 
   /**
    * Constructs a new PathMatcher.
@@ -95,16 +109,19 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
    *   The cache backend.
    * @param \Drupal\Core\PathProcessor\InboundPathProcessorInterface $path_processor
    *   The path processor.
+   * @param \Drupal\Core\Cache\CacheTagsInvalidatorInterface $cache_tag_invalidator
+   *   The cache tag invalidator.
    * @param string $table
-   *   The table in the database to use for matching.
+   *   (Optional) The table in the database to use for matching. Defaults to 'router'
    */
-  public function __construct(Connection $connection, StateInterface $state, CurrentPathStack $current_path, CacheBackendInterface $cache_backend, InboundPathProcessorInterface $path_processor, $table = 'router') {
+  public function __construct(Connection $connection, StateInterface $state, CurrentPathStack $current_path, CacheBackendInterface $cache_backend, InboundPathProcessorInterface $path_processor, CacheTagsInvalidatorInterface $cache_tag_invalidator, $table = 'router') {
     $this->connection = $connection;
     $this->state = $state;
-    $this->tableName = $table;
     $this->currentPath = $current_path;
     $this->cache = $cache_backend;
+    $this->cacheTagInvalidator = $cache_tag_invalidator;
     $this->pathProcessor = $path_processor;
+    $this->tableName = $table;
   }
 
   /**
@@ -189,8 +206,18 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
 
     $routes_to_load = array_diff($names, array_keys($this->routes), array_keys($this->serializedRoutes));
     if ($routes_to_load) {
-      $result = $this->connection->query('SELECT name, route FROM {' . $this->connection->escapeTable($this->tableName) . '} WHERE name IN ( :names[] )', array(':names[]' => $routes_to_load));
-      $routes = $result->fetchAllKeyed();
+
+      $cid = static::ROUTE_LOAD_CID_PREFIX . hash('sha512', serialize($routes_to_load));
+      if ($cache = $this->cache->get($cid)) {
+        $routes = $cache->data;
+      }
+      else {
+        $result = $this->connection->query('SELECT name, route FROM {' . $this->connection->escapeTable($this->tableName) . '} WHERE name IN ( :names[] )', array(':names[]' => $routes_to_load));
+        $routes = $result->fetchAllKeyed();
+
+        $this->cache->set($cid, $routes, Cache::PERMANENT, ['routes']);
+      }
+
       $this->serializedRoutes += $routes;
     }
   }
@@ -298,11 +325,9 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
    *   Returns a route collection of matching routes.
    */
   protected function getRoutesByPath($path) {
-    // Filter out each empty value, though allow '0' and 0, which would be
-    // filtered out by empty().
-    $parts = array_values(array_filter(explode('/', $path), function($value) {
-      return $value !== NULL && $value !== '';
-    }));
+    // Split the path up on the slashes, ignoring multiple slashes in a row
+    // or leading or trailing slashes.
+    $parts = preg_split('@/+@', $path, NULL, PREG_SPLIT_NO_EMPTY);
 
     $collection = new RouteCollection();
 
@@ -311,19 +336,34 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
       return $collection;
     }
 
-    $routes = $this->connection->query("SELECT name, route FROM {" . $this->connection->escapeTable($this->tableName) . "} WHERE pattern_outline IN ( :patterns[] ) ORDER BY fit DESC, name ASC", array(
-      ':patterns[]' => $ancestors,
+    // The >= check on number_parts allows us to match routes with optional
+    // trailing wildcard parts as long as the pattern matches, since we
+    // dump the route pattern without those optional parts.
+    $routes = $this->connection->query("SELECT name, route, fit FROM {" . $this->connection->escapeTable($this->tableName) . "} WHERE pattern_outline IN ( :patterns[] ) AND number_parts >= :count_parts", array(
+      ':patterns[]' => $ancestors, ':count_parts' => count($parts),
     ))
-      ->fetchAllKeyed();
+      ->fetchAll(\PDO::FETCH_ASSOC);
 
-    foreach ($routes as $name => $route) {
-      $route = unserialize($route);
-      if (preg_match($route->compile()->getRegex(), $path, $matches)) {
-        $collection->add($name, $route);
-      }
+    // We sort by fit and name in PHP to avoid a SQL filesort.
+    usort($routes, array($this, 'routeProviderRouteCompare'));
+
+    foreach ($routes as $row) {
+      $collection->add($row['name'], unserialize($row['route']));
     }
 
     return $collection;
+  }
+
+  /**
+   * Comparison function for usort on routes.
+   */
+  public function routeProviderRouteCompare(array $a, array $b) {
+    if ($a['fit'] == $b['fit']) {
+      return strcmp($a['name'], $b['name']);
+    }
+    // Reverse sort from highest to lowest fit. PHP should cast to int, but
+    // the explicit cast makes this sort more robust against unexpected input.
+    return (int) $a['fit'] < (int) $b['fit'] ? 1 : -1;
   }
 
   /**
@@ -339,6 +379,7 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
   public function reset() {
     $this->routes  = array();
     $this->serializedRoutes = array();
+    $this->cacheTagInvalidator->invalidateTags(['routes']);
   }
 
   /**

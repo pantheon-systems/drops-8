@@ -7,9 +7,9 @@
 
 namespace Drupal\file\Plugin\Field\FieldWidget;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldFilteredString;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\WidgetBase;
@@ -118,8 +118,8 @@ class FileWidget extends WidgetBase implements ContainerFactoryPluginInterface {
         break;
     }
 
-    $title = SafeMarkup::checkPlain($this->fieldDefinition->getLabel());
-    $description = $this->fieldFilterXss($this->fieldDefinition->getDescription());
+    $title = $this->fieldDefinition->getLabel();
+    $description = FieldFilteredString::create($this->fieldDefinition->getDescription());
 
     $elements = array();
 

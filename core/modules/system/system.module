@@ -13,6 +13,7 @@ use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueDatabaseExpirableFactory;
 use Drupal\Core\PageCache\RequestPolicyInterface;
+use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
@@ -104,6 +105,9 @@ function system_help($route_name, RouteMatchInterface $route_match) {
 
     case 'system.themes_page':
       $output = '<p>' . t('Set and configure the default theme for your website.  Alternative <a href="!themes">themes</a> are available.', array('!themes' => 'https://www.drupal.org/project/themes')) . '</p>';
+      if (\Drupal::moduleHandler()->moduleExists('block')) {
+        $output .= '<p>' . t('You can place blocks for each theme on the <a href="@blocks">block layout</a> page.', array('@blocks' => \Drupal::url('block.admin_display'))) . '</p>';
+      }
       return $output;
 
     case 'system.theme_settings_theme':
@@ -116,15 +120,7 @@ function system_help($route_name, RouteMatchInterface $route_match) {
 
     case 'system.modules_list':
       $output = '<p>' . t('Download additional <a href="!modules">contributed modules</a> to extend your site\'s functionality.', array('!modules' => 'https://www.drupal.org/project/modules')) . '</p>';
-      if (\Drupal::moduleHandler()->moduleExists('update')) {
-        if (update_manager_access()) {
-          $output .= '<p>' . t('Regularly review and install <a href="!updates">available updates</a> to maintain a secure and current site. Always run the <a href="!update-php">update script</a> each time a module is updated.', array('!update-php' => \Drupal::url('system.db_update'), '!updates' => \Drupal::url('update.status'))) . '</p>';
-        }
-        else {
-          $output .= '<p>' . t('Regularly review <a href="!updates">available updates</a> to maintain a secure and current site. Always run the <a href="!update-php">update script</a> each time a module is updated.', array('!update-php' => \Drupal::url('system.db_update'), '!updates' => \Drupal::url('update.status'))) . '</p>';
-        }
-      }
-      else {
+      if (!\Drupal::moduleHandler()->moduleExists('update')) {
         $output .= '<p>' . t('Regularly review available updates to maintain a secure and current site. Always run the <a href="!update-php">update script</a> each time a module is updated. Enable the <a href="!update-manager">Update Manager module</a> to update and install modules and themes.', array('!update-php' => \Drupal::url('system.db_update'), '!update-manager' => \Drupal::url('system.modules_list', [], ['fragment' => 'module-update']))) . '</p>';
       }
       return $output;
@@ -248,7 +244,7 @@ function system_theme_suggestions_html(array $variables) {
     $path_args = [''];
   }
   else {
-    $path_args = explode('/', Url::fromRoute('<current>')->getInternalPath());
+    $path_args = explode('/', ltrim(\Drupal::service('path.current')->getPath(), '/'));
   }
   return theme_get_suggestions($path_args, 'html');
 }
@@ -460,7 +456,7 @@ function system_authorized_run($callback, $file, $arguments = array(), $page_tit
 function system_authorized_batch_process() {
   $finish_url = system_authorized_get_url();
   $process_url = system_authorized_batch_processing_url();
-  return batch_process($finish_url->toString(), $process_url);
+  return batch_process($finish_url->setAbsolute()->toString(), $process_url);
 }
 
 /**
@@ -1283,6 +1279,10 @@ function system_cron() {
     ->condition('expire', 0, '<>')
     ->condition('expire', REQUEST_TIME, '<')
     ->execute();
+
+  // Clean up PHP storage.
+  PhpStorageFactory::get('container')->garbageCollection();
+  PhpStorageFactory::get('service_container')->garbageCollection();
 }
 
 /**

@@ -38,6 +38,12 @@ class View extends RenderElement {
    * View element pre render callback.
    */
   public static function preRenderViewElement($element) {
+    // Allow specific Views displays to explicitly perform pre-rendering, for
+    // those displays that need to be able to know the fully built render array.
+    if (!empty($element['#pre_rendered'])) {
+      return $element;
+    }
+
     if (!isset($element['#view'])) {
       $view = Views::getView($element['#name']);
     }
@@ -58,7 +64,7 @@ class View extends RenderElement {
 
     if ($view && $view->access($element['#display_id'])) {
       if (!empty($element['#embed'])) {
-        $element += $view->preview($element['#display_id'], $element['#arguments']);
+        $element['view_build'] = $view->preview($element['#display_id'], $element['#arguments']);
       }
       else {
         // Add contextual links to the view. We need to attach them to the dummy

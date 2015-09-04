@@ -7,6 +7,7 @@
 
 namespace Drupal\simpletest;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Variable;
 use Drupal\Core\Database\Database;
@@ -32,6 +33,9 @@ use Symfony\Component\HttpFoundation\Request;
  * The module/hook system is functional and operates on a fixed module list.
  * Additional modules needed in a test may be loaded and added to the fixed
  * module list.
+ *
+ * @deprecated in Drupal 8.0.x, will be removed before Drupal 8.2.x. Use
+ *   \Drupal\KernelTests\KernelTestBase instead.
  *
  * @see \Drupal\simpletest\KernelTestBase::$modules
  * @see \Drupal\simpletest\KernelTestBase::enableModules()
@@ -571,7 +575,7 @@ EOD;
     $content = $this->container->get('renderer')->renderRoot($elements);
     drupal_process_attached($elements);
     $this->setRawContent($content);
-    $this->verbose('<pre style="white-space: pre-wrap">' . SafeMarkup::checkPlain($content));
+    $this->verbose('<pre style="white-space: pre-wrap">' . Html::escape($content));
     return $content;
   }
 

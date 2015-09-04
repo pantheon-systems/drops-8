@@ -7,7 +7,6 @@
 
 namespace Drupal\Tests\user\Unit\Views\Argument;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
 use Drupal\user\Entity\Role;
@@ -20,9 +19,9 @@ use Drupal\user\Plugin\views\argument\RolesRid;
 class RolesRidTest extends UnitTestCase {
 
   /**
-   * Tests the title_query method.
+   * Tests the titleQuery method.
    *
-   * @see \Drupal\user\Plugin\views\argument\RolesRid::title_query()
+   * @covers ::titleQuery
    */
   public function testTitleQuery() {
     $role1 = new Role(array(
@@ -72,16 +71,16 @@ class RolesRidTest extends UnitTestCase {
     $roles_rid_argument = new RolesRid(array(), 'user__roles_rid', array(), $entity_manager);
 
     $roles_rid_argument->value = array();
-    $titles = $roles_rid_argument->title_query();
+    $titles = $roles_rid_argument->titleQuery();
     $this->assertEquals(array(), $titles);
 
     $roles_rid_argument->value = array('test_rid_1');
-    $titles = $roles_rid_argument->title_query();
+    $titles = $roles_rid_argument->titleQuery();
     $this->assertEquals(array('test rid 1'), $titles);
 
     $roles_rid_argument->value = array('test_rid_1', 'test_rid_2');
-    $titles = $roles_rid_argument->title_query();
-    $this->assertEquals(array('test rid 1', SafeMarkup::checkPlain('test <strong>rid 2</strong>')), $titles);
+    $titles = $roles_rid_argument->titleQuery();
+    $this->assertEquals(array('test rid 1', 'test <strong>rid 2</strong>'), $titles);
   }
 
 }

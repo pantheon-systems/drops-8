@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade error_level variable to system.logging.yml.
  *
- * @group system
+ * @group migrate_drupal_6
  */
 class MigrateSystemLoggingTest extends MigrateDrupal6TestBase {
 
@@ -24,7 +24,6 @@ class MigrateSystemLoggingTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_system_logging');
   }
 

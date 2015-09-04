@@ -206,7 +206,10 @@ function template_preprocess_fieldset(&$variables) {
   $variables['children'] = $element['#children'];
   $variables['required'] = !empty($element['#required']) ? $element['#required'] : NULL;
 
-  $variables['legend']['title'] = (isset($element['#title']) && $element['#title'] !== '') ? Xss::filterAdmin($element['#title']) : '';
+  if (isset($element['#title']) && $element['#title'] !== '') {
+    $variables['legend']['title'] = ['#markup' => $element['#title']];
+  }
+
   $variables['legend']['attributes'] = new Attribute();
   $variables['legend_span']['attributes'] = new Attribute();
 
@@ -373,7 +376,7 @@ function template_preprocess_textarea(&$variables) {
   Element\RenderElement::setAttributes($element, array('form-textarea'));
   $variables['wrapper_attributes'] = new Attribute();
   $variables['attributes'] = new Attribute($element['#attributes']);
-  $variables['value'] = SafeMarkup::checkPlain($element['#value']);
+  $variables['value'] = $element['#value'];
   $variables['resizable'] = !empty($element['#resizable']) ? $element['#resizable'] : NULL;
   $variables['required'] = !empty($element['#required']) ? $element['#required'] : NULL;
 }
@@ -504,7 +507,10 @@ function template_preprocess_form_element(&$variables) {
 function template_preprocess_form_element_label(&$variables) {
   $element = $variables['element'];
   // If title and required marker are both empty, output no label.
-  $variables['title'] = (isset($element['#title']) && $element['#title'] !== '') ? Xss::filterAdmin($element['#title']) : '';
+  if (isset($element['#title']) && $element['#title'] !== '') {
+    $variables['title'] = ['#markup' => $element['#title']];
+  }
+
   $variables['attributes'] = array();
 
   // Pass elements title_display to template.
@@ -770,7 +776,14 @@ function batch_set($batch_definition) {
  *
  * @param \Drupal\Core\Url|string $redirect
  *   (optional) Either path or Url object to redirect to when the batch has
- *   finished processing.
+ *   finished processing. Note that to simply force a batch to (conditionally)
+ *   redirect to a custom location after it is finished processing but to
+ *   otherwise allow the standard form API batch handling to occur, it is not
+ *   necessary to call batch_process() and use this parameter. Instead, make
+ *   the batch 'finished' callback return an instance of
+ *   \Symfony\Component\HttpFoundation\RedirectResponse, which will be used
+ *   automatically by the standard batch processing pipeline (and which takes
+ *   precedence over this parameter).
  * @param \Drupal\Core\Url $url
  *   (optional - should only be used for separate scripts like update.php)
  *   URL of the batch processing page.

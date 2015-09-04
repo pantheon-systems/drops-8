@@ -71,6 +71,7 @@ abstract class MigrateTermNodeTestBase extends MigrateDrupal6TestBase {
         'type' => 'story',
         'nid' => $i,
         'vid' => array_shift($vids),
+        'title' => $this->randomString(),
       ));
       $node->enforceIsNew();
       $node->save();
@@ -82,17 +83,6 @@ abstract class MigrateTermNodeTestBase extends MigrateDrupal6TestBase {
         $node->save();
       }
     }
-    $this->loadDumps([
-      'Node.php',
-      'NodeRevisions.php',
-      'ContentTypeStory.php',
-      'ContentTypeTestPlanet.php',
-      'TermNode.php',
-      'TermHierarchy.php',
-      'TermData.php',
-      'Vocabulary.php',
-      'VocabularyNodeTypes.php',
-    ]);
   }
 
 }

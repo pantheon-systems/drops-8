@@ -90,12 +90,13 @@ class ViewAjaxControllerTest extends UnitTestCase {
 
     $this->viewAjaxController = new ViewAjaxController($this->viewStorage, $this->executableFactory, $this->renderer, $this->currentPath, $this->redirectDestination);
 
+    $element_info_manager = $this->getMock('\Drupal\Core\Render\ElementInfoManagerInterface');
     $request_stack = new RequestStack();
     $request_stack->push(new Request());
     $args = [
       $this->getMock('\Drupal\Core\Controller\ControllerResolverInterface'),
       $this->getMock('\Drupal\Core\Theme\ThemeManagerInterface'),
-      $this->getMock('\Drupal\Core\Render\ElementInfoManagerInterface'),
+      $element_info_manager,
       $this->getMock('\Drupal\Core\Render\RenderCacheInterface'),
       $request_stack,
       [

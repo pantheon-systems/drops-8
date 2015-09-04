@@ -331,10 +331,12 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     if (empty($langcodes)) {
       $langcodes = array();
       // Collect languages included with CKEditor based on file listing.
-      $ckeditor_languages = new \GlobIterator(\Drupal::root() . '/core/assets/vendor/ckeditor/lang/*.js');
-      foreach ($ckeditor_languages as $language_file) {
-        $langcode = $language_file->getBasename('.js');
-        $langcodes[$langcode] = $langcode;
+      $files = scandir('core/assets/vendor/ckeditor/lang');
+      foreach ($files as $file) {
+        if ($file[0] !== '.' && fnmatch('*.js', $file)) {
+          $langcode = basename($file, '.js');
+          $langcodes[$langcode] = $langcode;
+        }
       }
       \Drupal::cache()->set('ckeditor.langcodes', $langcodes);
     }
@@ -414,7 +416,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   public function buildContentsCssJSSetting(EditorEntity $editor) {
     $css = array(
       drupal_get_path('module', 'ckeditor') . '/css/ckeditor-iframe.css',
-      drupal_get_path('module', 'system') . '/css/system.module.css',
+      drupal_get_path('module', 'system') . '/css/components/align.module.css',
     );
     $this->moduleHandler->alter('ckeditor_css', $css, $editor);
     $css = array_merge($css, _ckeditor_theme_css());

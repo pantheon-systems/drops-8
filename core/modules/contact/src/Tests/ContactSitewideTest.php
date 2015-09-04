@@ -39,6 +39,7 @@ class ContactSitewideTest extends WebTestBase {
   protected function setUp() {
     parent::setUp();
     $this->drupalPlaceBlock('system_breadcrumb_block');
+    $this->drupalPlaceBlock('local_actions_block');
   }
 
   /**
@@ -124,7 +125,7 @@ class ContactSitewideTest extends WebTestBase {
     $this->assertText(t('Recipients field is required.'));
 
     // Test validation of max_length machine name.
-    $recipients = array('simpletest@example.com', 'simpletest2@example.com', 'simpletest3@example.com');
+    $recipients = array('simpletest&@example.com', 'simpletest2@example.com', 'simpletest3@example.com');
     $max_length = EntityTypeInterface::BUNDLE_MAX_LENGTH;
     $max_length_exceeded = $max_length + 1;
     $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length_exceeded)), $label = $this->randomMachineName($max_length_exceeded), implode(',', array($recipients[0])), '', TRUE);
@@ -143,6 +144,10 @@ class ContactSitewideTest extends WebTestBase {
 
     // Make sure the newly created form is included in the list of forms.
     $this->assertNoUniqueText($label, 'New form included in forms list.');
+
+    // Ensure that the recipient email is escaped on the listing.
+    $this->drupalGet('admin/structure/contact');
+    $this->assertEscaped($recipients[0]);
 
     // Test update contact form.
     $this->updateContactForm($id, $label = $this->randomMachineName(16), $recipients_str = implode(',', array($recipients[0], $recipients[1])), $reply = $this->randomMachineName(30), FALSE);

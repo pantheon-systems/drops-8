@@ -8,13 +8,13 @@
 namespace Drupal\filter\Element;
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element\RenderElement;
 use Drupal\Core\Render\Renderer;
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\filter\Plugin\FilterInterface;
+use Drupal\filter\Render\FilteredString;
 
 /**
  * Provides a processed text render element.
@@ -78,10 +78,13 @@ class ProcessedText extends RenderElement {
     if (!isset($format_id)) {
       $format_id = static::configFactory()->get('filter.settings')->get('fallback_format');
     }
-    // If the requested text format does not exist, the text cannot be filtered.
     /** @var \Drupal\filter\Entity\FilterFormat $format **/
-    if (!$format = FilterFormat::load($format_id)) {
-      static::logger('filter')->alert('Missing text format: %format.', array('%format' => $format_id));
+    $format = FilterFormat::load($format_id);
+    // If the requested text format doesn't exist or its disabled, the text
+    // cannot be filtered.
+    if (!$format || !$format->status()) {
+      $message = !$format ? 'Missing text format: %format.' : 'Disabled text format: %format.';
+      static::logger('filter')->alert($message, array('%format' => $format_id));
       $element['#markup'] = '';
       return $element;
     }
@@ -124,7 +127,7 @@ class ProcessedText extends RenderElement {
     // safe, but it has been passed through the filter system and checked with
     // a text format, so it must be printed as is. (See the note about security
     // in the method documentation above.)
-    $element['#markup'] = SafeMarkup::set($text);
+    $element['#markup'] = FilteredString::create($text);
 
     // Set the updated bubbleable rendering metadata and the text format's
     // cache tag.

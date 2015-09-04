@@ -8,8 +8,8 @@
 namespace Drupal\block\Tests;
 
 use Drupal\Component\Utility\Html;
-use Drupal\simpletest\WebTestBase;
 use Drupal\block\Entity\Block;
+use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 
 /**
@@ -222,6 +222,7 @@ class BlockTest extends BlockTestBase {
   function testThemeName() {
     // Enable the help block.
     $this->drupalPlaceBlock('help_block', array('region' => 'help'));
+    $this->drupalPlaceBlock('local_tasks_block');
     // Explicitly set the default and admin themes.
     $theme = 'block_test_specialchars_theme';
     \Drupal::service('theme_handler')->install(array($theme));
@@ -410,6 +411,22 @@ class BlockTest extends BlockTestBase {
   }
 
   /**
+   * Tests that a link exists to block layout from the appearance form.
+   */
+  public function testThemeAdminLink() {
+    $this->drupalPlaceBlock('help_block', ['region' => 'help']);
+    $theme_admin = $this->drupalCreateUser([
+      'administer blocks',
+      'administer themes',
+      'access administration pages',
+    ]);
+    $this->drupalLogin($theme_admin);
+    $this->drupalGet('admin/appearance');
+    $this->assertText('You can place blocks for each theme on the block layout page');
+    $this->assertLinkByHref('admin/structure/block');
+  }
+
+  /**
    * Tests that uninstalling a theme removes its block configuration.
    */
   public function testUninstallTheme() {
@@ -441,6 +458,43 @@ class BlockTest extends BlockTestBase {
     \Drupal::state()->set('test_block_access', TRUE);
     $this->drupalGet('<front>');
     $this->assertText('Hello test world');
+  }
+
+  /**
+   * Tests block_user_role_delete.
+   */
+  public function testBlockUserRoleDelete() {
+    $role1 = Role::create(['id' => 'test_role1', 'name' => $this->randomString()]);
+    $role1->save();
+
+    $role2 = Role::create(['id' => 'test_role2', 'name' => $this->randomString()]);
+    $role2->save();
+
+    $block = Block::create([
+      'id' => $this->randomMachineName(),
+      'plugin' => 'system_powered_by_block',
+    ]);
+
+    $block->setVisibilityConfig('user_role', [
+      'roles' => [
+        $role1->id() => $role1->id(),
+        $role2->id() => $role2->id(),
+      ],
+    ]);
+
+    $block->save();
+
+    $this->assertEqual($block->getVisibility()['user_role']['roles'], [
+      $role1->id() => $role1->id(),
+      $role2->id() => $role2->id()
+    ]);
+
+    $role1->delete();
+
+    $block = Block::load($block->id());
+    $this->assertEqual($block->getVisibility()['user_role']['roles'], [
+      $role2->id() => $role2->id()
+    ]);
   }
 
 }

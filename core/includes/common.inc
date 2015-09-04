@@ -22,6 +22,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Render\SafeString;
 use Drupal\Core\Render\Renderer;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
@@ -270,7 +271,7 @@ function valid_email_address($mail) {
  * @param $uri
  *   A plain-text URI that might contain dangerous protocols.
  *
- * @return
+ * @return string
  *   A URI stripped of dangerous protocols and encoded for output to an HTML
  *   attribute value. Because it is already encoded, it should not be set as a
  *   value within a $attributes array passed to Drupal\Core\Template\Attribute,
@@ -280,10 +281,20 @@ function valid_email_address($mail) {
  *   \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols() instead.
  *
  * @see \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols()
- * @see \Drupal\Component\Utility\SafeMarkup::checkPlain()
+ * @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
+ *
+ * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ *   Use UrlHelper::stripDangerousProtocols() or UrlHelper::filterBadProtocol()
+ *   instead. UrlHelper::stripDangerousProtocols() can be used in conjunction
+ *   with \Drupal\Component\Utility\SafeMarkup::format() and an @variable
+ *   placeholder which will perform the necessary escaping.
+ *   UrlHelper::filterBadProtocol() is functionality equivalent to check_url()
+ *   apart from the fact it is protected from double escaping bugs. Note that
+ *   this method no longer marks its output as safe.
+ *
  */
 function check_url($uri) {
-  return SafeMarkup::checkPlain(UrlHelper::stripDangerousProtocols($uri));
+  return Html::escape(UrlHelper::stripDangerousProtocols($uri));
 }
 
 /**
@@ -366,6 +377,9 @@ function format_size($size, $langcode = NULL) {
  *   A translated date string in the requested format.
  *
  * @see \Drupal\Core\Datetime\DateFormatter::format()
+ *
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use \Drupal::service('date.formatter')->format().
  */
 function format_date($timestamp, $type = 'medium', $format = '', $timezone = NULL, $langcode = NULL) {
   return \Drupal::service('date.formatter')->format($timestamp, $type, $format, $timezone, $langcode);
@@ -487,7 +501,7 @@ function _drupal_add_html_head_link($attributes, $header = FALSE) {
 
   if ($header) {
     // Also add a HTTP header "Link:".
-    $href = '<' . SafeMarkup::checkPlain($attributes['href']) . '>;';
+    $href = '<' . Html::escape($attributes['href']) . '>;';
     unset($attributes['href']);
     $element['#attached']['http_header'][] = array('Link',  $href . drupal_http_header_attributes($attributes), TRUE);
   }
@@ -517,7 +531,6 @@ function drupal_js_defaults($data = NULL) {
   return array(
     'type' => 'file',
     'group' => JS_DEFAULT,
-    'every_page' => FALSE,
     'weight' => 0,
     'scope' => 'header',
     'cache' => TRUE,
@@ -642,7 +655,7 @@ function drupal_process_attached(array $elements) {
           call_user_func_array('_drupal_add_html_head_link', $args);
           break;
         case 'http_header':
-          call_user_func_array('_drupal_add_http_header', $args);
+          // @todo Remove validation in https://www.drupal.org/node/2477223
           break;
         default:
           throw new \LogicException(sprintf('You are not allowed to use %s in #attached', $callback));
@@ -1084,8 +1097,9 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
  *   can be passed in to save another run of
  *   \Drupal\Core\Render\Element::children().
  *
- * @return string
+ * @return string|\Drupal\Component\Utility\SafeStringInterface
  *   The rendered HTML of all children of the element.
+ *
  * @see drupal_render()
  */
 function drupal_render_children(&$element, $children_keys = NULL) {
@@ -1098,7 +1112,7 @@ function drupal_render_children(&$element, $children_keys = NULL) {
       $output .= drupal_render($element[$key]);
     }
   }
-  return SafeMarkup::set($output);
+  return SafeString::create($output);
 }
 
 /**
@@ -1196,7 +1210,7 @@ function show(&$element) {
  * Retrieves the default properties for the defined element type.
  *
  * @param $type
- *   An element type as defined by hook_element_info().
+ *   An element type as defined by an element plugin.
  *
  * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
  *   Use \Drupal::service('element_info')->getInfo() instead.
@@ -1209,7 +1223,7 @@ function element_info($type) {
  * Retrieves a single property for the defined element type.
  *
  * @param $type
- *   An element type as defined by hook_element_info().
+ *   An element type as defined by an element plugin.
  * @param $property_name
  *   The property within the element type that should be returned.
  * @param $default
@@ -1376,7 +1390,7 @@ function _drupal_flush_css_js() {
  */
 function debug($data, $label = NULL, $print_r = TRUE) {
   // Print $data contents to string.
-  $string = SafeMarkup::checkPlain($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
+  $string = Html::escape($print_r ? print_r($data, TRUE) : var_export($data, TRUE));
 
   // Display values with pre-formatting to increase readability.
   $string = '<pre>' . $string . '</pre>';

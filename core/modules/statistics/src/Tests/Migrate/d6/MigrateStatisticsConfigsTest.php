@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade variables to statistics.settings.yml.
  *
- * @group statistics
+ * @group migrate_drupal_6
  */
 class MigrateStatisticsConfigsTest extends MigrateDrupal6TestBase {
 
@@ -31,7 +31,6 @@ class MigrateStatisticsConfigsTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_statistics_settings');
   }
 

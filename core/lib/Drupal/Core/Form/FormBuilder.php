@@ -21,6 +21,7 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\HttpFoundation\FileBag;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -103,6 +104,45 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
    * @var \Drupal\Core\Form\FormCacheInterface
    */
   protected $formCache;
+
+  /**
+   * Defines element value callables which are safe to run even when the form
+   * state has an invalid CSRF token.
+   *
+   * Excluded from this list on purpose:
+   *  - Drupal\file\Element\ManagedFile::valueCallback
+   *  - Drupal\Core\Datetime\Element\Datelist::valueCallback
+   *  - Drupal\Core\Datetime\Element\Datetime::valueCallback
+   *  - Drupal\Core\Render\Element\ImageButton::valueCallback
+   *  - Drupal\file\Plugin\Field\FieldWidget\FileWidget::value
+   *  - color_palette_color_value
+   *
+   * @var array
+   */
+  protected $safeCoreValueCallables = [
+    'Drupal\Core\Render\Element\Checkbox::valueCallback',
+    'Drupal\Core\Render\Element\Checkboxes::valueCallback',
+    'Drupal\Core\Render\Element\Email::valueCallback',
+    'Drupal\Core\Render\Element\FormElement::valueCallback',
+    'Drupal\Core\Render\Element\MachineName::valueCallback',
+    'Drupal\Core\Render\Element\Number::valueCallback',
+    'Drupal\Core\Render\Element\PathElement::valueCallback',
+    'Drupal\Core\Render\Element\Password::valueCallback',
+    'Drupal\Core\Render\Element\PasswordConfirm::valueCallback',
+    'Drupal\Core\Render\Element\Radio::valueCallback',
+    'Drupal\Core\Render\Element\Radios::valueCallback',
+    'Drupal\Core\Render\Element\Range::valueCallback',
+    'Drupal\Core\Render\Element\Search::valueCallback',
+    'Drupal\Core\Render\Element\Select::valueCallback',
+    'Drupal\Core\Render\Element\Tableselect::valueCallback',
+    'Drupal\Core\Render\Element\Table::valueCallback',
+    'Drupal\Core\Render\Element\Tel::valueCallback',
+    'Drupal\Core\Render\Element\Textarea::valueCallback',
+    'Drupal\Core\Render\Element\Textfield::valueCallback',
+    'Drupal\Core\Render\Element\Token::valueCallback',
+    'Drupal\Core\Render\Element\Url::valueCallback',
+    'Drupal\Core\Render\Element\Weight::valueCallback',
+  ];
 
   /**
    * Constructs a new FormBuilder.
@@ -521,11 +561,6 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     // Only process the input if we have a correct form submission.
     if ($form_state->isProcessingInput()) {
-      // Form constructors may explicitly set #token to FALSE when cross site
-      // request forgery is irrelevant to the form, such as search forms.
-      if (isset($form['#token']) && $form['#token'] === FALSE) {
-        unset($form['#token']);
-      }
       // Form values for programmed form submissions typically do not include a
       // value for the submit button. But without a triggering element, a
       // potentially existing #limit_validation_errors property on the primary
@@ -603,6 +638,20 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
   }
 
   /**
+   * #lazy_builder callback; renders a form action URL.
+   *
+   * @return array
+   *   A renderable array representing the form action.
+   */
+  public function renderPlaceholderFormAction() {
+    return [
+      '#type' => 'markup',
+      '#markup' => $this->buildFormAction(),
+      '#cache' => ['contexts' => ['url.path', 'url.query_args']],
+    ];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function prepareForm($form_id, &$form, FormStateInterface &$form_state) {
@@ -612,7 +661,17 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
 
     // Only update the action if it is not already set.
     if (!isset($form['#action'])) {
-      $form['#action'] = $this->buildFormAction();
+      // Instead of setting an actual action URL, we set the placeholder, which
+      // will be replaced at the very last moment. This ensures forms with
+      // dynamically generated action URLs don't have poor cacheability.
+      // Use the proper API to generate the placeholder, when we have one. See
+      // https://www.drupal.org/node/2562341.
+      $placeholder = 'form_action_' . hash('crc32b', __METHOD__);
+
+      $form['#attached']['placeholders'][$placeholder] = [
+        '#lazy_builder' => ['form_builder:renderPlaceholderFormAction', []],
+      ];
+      $form['#action'] = $placeholder;
     }
 
     // Fix the form method, if it is 'get' in $form_state, but not in $form.
@@ -648,14 +707,15 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // since tokens are session-bound and forms displayed to anonymous users are
     // very likely cached, we cannot assign a token for them.
     // During installation, there is no $user yet.
-    if ($user && $user->isAuthenticated() && !$form_state->isProgrammed()) {
-      // Form constructors may explicitly set #token to FALSE when cross site
-      // request forgery is irrelevant to the form, such as search forms.
-      if (isset($form['#token']) && $form['#token'] === FALSE) {
-        unset($form['#token']);
-      }
-      // Otherwise, generate a public token based on the form id.
-      else {
+    // Form constructors may explicitly set #token to FALSE when cross site
+    // request forgery is irrelevant to the form, such as search forms.
+    if ($form_state->isProgrammed() || (isset($form['#token']) && $form['#token'] === FALSE)) {
+      unset($form['#token']);
+    }
+    else {
+      $form['#cache']['contexts'][] = 'user.roles:authenticated';
+      if ($user && $user->isAuthenticated()) {
+        // Generate a public token based on the form id.
         $form['#token'] = $form_id;
         $form['form_token'] = array(
           '#id' => Html::getUniqueId('edit-' . $form_id . '-form-token'),
@@ -665,6 +725,9 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
           // submitted form value appears literally, regardless of custom #tree
           // and #parents being set elsewhere.
           '#parents' => array('form_token'),
+          '#cache' => [
+            'max-age' => 0,
+          ],
         );
       }
     }
@@ -738,6 +801,13 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     $parsed = UrlHelper::parse($request_uri);
     unset($parsed['query'][static::AJAX_FORM_REQUEST], $parsed['query'][MainContentViewSubscriber::WRAPPER_FORMAT]);
     return $parsed['path'] . ($parsed['query'] ? ('?' . UrlHelper::buildQuery($parsed['query'])) : '');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setInvalidTokenError(FormStateInterface $form_state) {
+    $this->formValidator->setInvalidTokenError($form_state);
   }
 
   /**
@@ -817,6 +887,20 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       $input = $form_state->getUserInput();
       if ($form_state->isProgrammed() || (!empty($input) && (isset($input['form_id']) && ($input['form_id'] == $form_id)))) {
         $form_state->setProcessInput();
+        if (isset($element['#token'])) {
+          $input = $form_state->getUserInput();
+          if (empty($input['form_token']) || !$this->csrfToken->validate($input['form_token'], $element['#token'])) {
+            // Set an early form error to block certain input processing since
+            // that opens the door for CSRF vulnerabilities.
+            $this->setInvalidTokenError($form_state);
+
+            // This value is checked in self::handleInputElement().
+            $form_state->setInvalidToken(TRUE);
+
+            // Make sure file uploads do not get processed.
+            $this->requestStack->getCurrentRequest()->files = new FileBag();
+          }
+        }
       }
       else {
         $form_state->setProcessInput(FALSE);
@@ -943,6 +1027,11 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
         $element['#attributes']['enctype'] = 'multipart/form-data';
       }
 
+      // Allow Ajax submissions to the form action to bypass verification. This
+      // is especially useful for multipart forms, which cannot be verified via
+      // a response header.
+      $element['#attached']['drupalSettings']['ajaxTrustedUrl'][$element['#action']] = TRUE;
+
       // If a form contains a single textfield, and the ENTER key is pressed
       // within it, Internet Explorer submits the form with no POST data
       // identifying any submit button. Other browsers submit POST data as
@@ -986,6 +1075,31 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       }
     }
     return $element;
+  }
+
+  /**
+   * Helper function to normalize the different callable formats.
+   *
+   * @param callable $value_callable
+   *   The callable to be checked.
+   *
+   * @return bool
+   *   TRUE if the callable is safe even if the CSRF token is invalid, FALSE
+   *   otherwise.
+   */
+  protected function valueCallableIsSafe(callable $value_callable) {
+    // The same static class method callable may be formatted in two array and
+    // two string forms:
+    // ['\Classname', 'methodname']
+    // ['Classname', 'methodname']
+    // '\Classname::methodname'
+    // 'Classname::methodname'
+    if (is_callable($value_callable, FALSE, $callable_name)) {
+      // The third parameter of is_callable() is set to a string form, but we
+      // still have to normalize further by stripping a leading '\'.
+      return in_array(ltrim($callable_name, '\\'), $this->safeCoreValueCallables);
+    }
+    return FALSE;
   }
 
   /**
@@ -1077,7 +1191,14 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
         // If we have input for the current element, assign it to the #value
         // property, optionally filtered through $value_callback.
         if ($input_exists) {
-          $element['#value'] = call_user_func_array($value_callable, array(&$element, $input, &$form_state));
+          // Skip all value callbacks except safe ones like text if the CSRF
+          // token was invalid.
+          if (!$form_state->hasInvalidToken() || $this->valueCallableIsSafe($value_callable)) {
+            $element['#value'] = call_user_func_array($value_callable, array(&$element, $input, &$form_state));
+          }
+          else {
+            $input = NULL;
+          }
 
           if (!isset($element['#value']) && isset($input)) {
             $element['#value'] = $input;

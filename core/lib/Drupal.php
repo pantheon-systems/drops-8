@@ -81,7 +81,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.0.0-beta14';
+  const VERSION = '8.0.0-beta15';
 
   /**
    * Core API compatibility.
@@ -685,6 +685,16 @@ class Drupal {
    */
   public static function destination() {
     return static::getContainer()->get('redirect.destination');
+  }
+
+  /**
+   * Returns the entity definition update manager.
+   *
+   * @return \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface
+   *   The entity definition update manager.
+   */
+  public static function entityDefinitionUpdateManager() {
+    return static::getContainer()->get('entity.definition_update_manager');
   }
 
 }

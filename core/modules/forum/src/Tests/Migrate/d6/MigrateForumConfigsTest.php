@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade variables to forum.settings.yml.
  *
- * @group forum
+ * @group migrate_drupal_6
  */
 class MigrateForumConfigsTest extends MigrateDrupal6TestBase {
 
@@ -36,7 +36,6 @@ class MigrateForumConfigsTest extends MigrateDrupal6TestBase {
         array(array(1), array('vocabulary_1_i_0_')),
       )
     ));
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_forum_settings');
   }
 

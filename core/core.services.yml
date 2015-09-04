@@ -1,8 +1,19 @@
 parameters:
-  session.storage.options: {}
-  twig.config: {}
+  session.storage.options:
+    gc_probability: 1
+    gc_divisor: 100
+    gc_maxlifetime: 200000
+    cookie_lifetime: 2000000
+  twig.config:
+    debug: false
+    auto_reload: null
+    cache: true
   renderer.config:
     required_cache_contexts: ['languages:language_interface', 'theme', 'user.permissions']
+    auto_placeholder_conditions:
+      max-age: 0
+      contexts: ['session', 'user']
+      tags: []
   factory.keyvalue:
     default: keyvalue.database
   factory.keyvalue.expirable:
@@ -55,6 +66,11 @@ services:
       - { name: cache.context }
   cache_context.url.site:
     class: Drupal\Core\Cache\Context\SiteCacheContext
+    arguments: ['@request_stack']
+    tags:
+      - { name: cache.context }
+  cache_context.url.path:
+    class: Drupal\Core\Cache\Context\PathCacheContext
     arguments: ['@request_stack']
     tags:
       - { name: cache.context }
@@ -159,6 +175,15 @@ services:
   cache.backend.php:
     class: Drupal\Core\Cache\PhpBackendFactory
     arguments: ['@cache_tags.invalidator.checksum']
+  cache.backend.memory:
+    class: Drupal\Core\Cache\MemoryBackendFactory
+  # A special cache bin that does not persist beyond the length of the request.
+  cache.static:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin, default_backend: cache.backend.memory }
+    factory: cache_factory:get
+    arguments: [static]
   cache.bootstrap:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
@@ -313,7 +338,7 @@ services:
     arguments: ['@request_stack', '@url_generator']
   form_error_handler:
     class: Drupal\Core\Form\FormErrorHandler
-    arguments: ['@string_translation', '@link_generator']
+    arguments: ['@string_translation', '@link_generator', '@renderer']
   form_cache:
     class: Drupal\Core\Form\FormCache
     arguments: ['@app.root', '@keyvalue.expirable', '@module_handler', '@current_user', '@csrf_token', '@logger.channel.form', '@request_stack', '@page_cache_request_policy']
@@ -592,7 +617,7 @@ services:
     public: false
   controller_resolver:
     class: Drupal\Core\Controller\ControllerResolver
-    arguments: ['@class_resolver']
+    arguments: ['@psr7.http_message_factory', '@class_resolver']
   class_resolver:
     class: Drupal\Core\DependencyInjection\ClassResolver
     calls:
@@ -605,12 +630,8 @@ services:
   http_kernel.basic:
     class: Symfony\Component\HttpKernel\HttpKernel
     arguments: ['@event_dispatcher', '@controller_resolver', '@request_stack']
-  http_negotiation.format_negotiator:
-    class: Drupal\Core\ContentNegotiation
-    private: true
   http_middleware.negotiation:
     class: Drupal\Core\StackMiddleware\NegotiationMiddleware
-    arguments: ['@http_negotiation.format_negotiator']
     tags:
       - { name: http_middleware, priority: 400 }
   http_middleware.reverse_proxy:
@@ -695,13 +716,13 @@ services:
     arguments: ['@current_route_match']
   router.route_provider:
     class: Drupal\Core\Routing\RouteProvider
-    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager']
+    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator']
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
   router.route_preloader:
     class: Drupal\Core\Routing\RoutePreloader
-    arguments: ['@router.route_provider', '@state']
+    arguments: ['@router.route_provider', '@state', '@cache.bootstrap']
     tags:
       - { name: 'event_subscriber' }
   router.matcher.final_matcher:
@@ -925,7 +946,7 @@ services:
       - { name: event_subscriber }
   main_content_renderer.html:
     class: Drupal\Core\Render\MainContent\HtmlRenderer
-    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@module_handler', '@renderer', '@render_cache']
+    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@module_handler', '@renderer', '@render_cache', '%renderer.config%']
     tags:
       - { name: render.main_content_renderer, format: html }
   main_content_renderer.ajax:
@@ -1336,7 +1357,7 @@ services:
     arguments: ['@current_user', '@session_handler.write_safe']
   user_permissions_hash_generator:
     class: Drupal\Core\Session\PermissionsHashGenerator
-    arguments: ['@private_key', '@cache.default']
+    arguments: ['@private_key', '@cache.default', '@cache.static']
   current_user:
     class: Drupal\Core\Session\AccountProxy
   session_configuration:
@@ -1421,7 +1442,7 @@ services:
     class: Drupal\Core\Extension\InfoParser
   twig:
     class: Drupal\Core\Template\TwigEnvironment
-    arguments: ['@app.root', '@cache.default', '@twig.loader', '%twig.config%']
+    arguments: ['@app.root', '@cache.default', '%twig_extension_hash%', '@twig.loader', '%twig.config%']
     tags:
       - { name: service_collector, tag: 'twig.extension', call: addExtension }
   twig.extension:

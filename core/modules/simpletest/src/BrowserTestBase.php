@@ -12,8 +12,6 @@ use Behat\Mink\Element\Element;
 use Behat\Mink\Exception\Exception;
 use Behat\Mink\Mink;
 use Behat\Mink\Session;
-use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Utility\Random;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\ConnectionNotDefinedException;
@@ -52,6 +50,7 @@ use Symfony\Component\HttpFoundation\Request;
  */
 abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
 
+  use RandomGeneratorTrait;
   use SessionTestTrait;
 
   /**
@@ -145,13 +144,6 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
    * @var \Drupal\Core\Config\ConfigImporter
    */
   protected $configImporter;
-
-  /**
-   * The random data generator.
-   *
-   * @var \Drupal\Component\Utility\Random
-   */
-  protected $randomGenerator;
 
   /**
    * The profile to install as a basis for testing.
@@ -324,10 +316,9 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     $test_connection_info = Database::getConnectionInfo('default');
     $test_prefix = $test_connection_info['default']['prefix']['default'];
     if ($original_prefix != $test_prefix) {
-      $tables = Database::getConnection()->schema()->findTables($test_prefix . '%');
-      $prefix_length = strlen($test_prefix);
+      $tables = Database::getConnection()->schema()->findTables('%');
       foreach ($tables as $table) {
-        if (Database::getConnection()->schema()->dropTable(substr($table, $prefix_length))) {
+        if (Database::getConnection()->schema()->dropTable($table)) {
           unset($tables[$table]);
         }
       }
@@ -452,7 +443,7 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
         $path = substr($path, $length);
       }
       // Ensure that we have an absolute path.
-      if ($path[0] !== '/') {
+      if (empty($path) || $path[0] !== '/') {
         $path = '/' . $path;
       }
       // Finally, prepend the $base_url.
@@ -571,69 +562,6 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     }
 
     return FALSE;
-  }
-
-  /**
-   * Gets the random generator for the utility methods.
-   *
-   * @return \Drupal\Component\Utility\Random
-   *   The random generator
-   */
-  protected function getRandomGenerator() {
-    if (!is_object($this->randomGenerator)) {
-      $this->randomGenerator = new Random();
-    }
-    return $this->randomGenerator;
-  }
-
-  /**
-   * Generates a unique random string containing letters and numbers.
-   *
-   * Do not use this method when testing unvalidated user input. Instead, use
-   * \Drupal\simpletest\BrowserTestBase::randomString().
-   *
-   * @param int $length
-   *   (optional) Length of random string to generate.
-   *
-   * @return string
-   *   Randomly generated unique string.
-   *
-   * @see \Drupal\Component\Utility\Random::name()
-   */
-  public function randomMachineName($length = 8) {
-    return $this->getRandomGenerator()->name($length, TRUE);
-  }
-
-  /**
-   * Generates a pseudo-random string of ASCII characters of codes 32 to 126.
-   *
-   * Do not use this method when special characters are not possible (e.g., in
-   * machine or file names that have already been validated); instead, use
-   * \Drupal\simpletest\TestBase::randomMachineName(). If $length is greater
-   * than 2 the random string will include at least one ampersand ('&')
-   * character to ensure coverage for special characters and avoid the
-   * introduction of random test failures.
-   *
-   * @param int $length
-   *   (optional) Length of random string to generate.
-   *
-   * @return string
-   *   Pseudo-randomly generated unique string including special characters.
-   *
-   * @see \Drupal\Component\Utility\Random::string()
-   */
-  public function randomString($length = 8) {
-    if ($length < 3) {
-      return $this->getRandomGenerator()->string($length, TRUE, array($this, 'randomStringValidate'));
-    }
-
-    // To prevent the introduction of random test failures, ensure that the
-    // returned string contains a character that needs to be escaped in HTML by
-    // injecting an ampersand into it.
-    $replacement_pos = floor($length / 2);
-    // Remove 1 from the length to account for the ampersand character.
-    $string = $this->getRandomGenerator()->string($length - 1, TRUE, array($this, 'randomStringValidate'));
-    return substr_replace($string, '&', $replacement_pos, 0);
   }
 
   /**
@@ -843,7 +771,6 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     // Not using File API; a potential error must trigger a PHP warning.
     $directory = DRUPAL_ROOT . '/' . $this->siteDirectory;
     copy(DRUPAL_ROOT . '/sites/default/default.settings.php', $directory . '/settings.php');
-    copy(DRUPAL_ROOT . '/sites/default/default.services.yml', $directory . '/services.yml');
 
     // All file system paths are created by System module during installation.
     // @see system_requirements()

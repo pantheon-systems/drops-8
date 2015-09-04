@@ -14,7 +14,7 @@ use Drupal\node\Entity\NodeType;
 /**
  * Upgrade node types to node.type.*.yml.
  *
- * @group node
+ * @group migrate_drupal_6
  */
 class MigrateNodeTypeTest extends MigrateDrupal6TestBase {
 
@@ -30,9 +30,7 @@ class MigrateNodeTypeTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-
     $this->installConfig(array('node'));
-    $this->loadDumps(['NodeType.php', 'Variable.php']);
     $this->executeMigration('d6_node_type');
   }
 

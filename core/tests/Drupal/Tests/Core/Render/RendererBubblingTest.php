@@ -38,9 +38,6 @@ class RendererBubblingTest extends RendererTestBase {
     $this->setUpRequest();
     $this->setupMemoryCache();
 
-    $this->elementInfo->expects($this->any())
-      ->method('getInfo')
-      ->willReturn([]);
     $this->cacheContextsManager->expects($this->any())
       ->method('convertTokensToKeys')
       ->willReturnArgument(0);
@@ -302,7 +299,7 @@ class RendererBubblingTest extends RendererTestBase {
    * Tests the self-healing of the redirect with conditional cache contexts.
    */
   public function testConditionalCacheContextBubblingSelfHealing() {
-    global $current_user_role;
+    $current_user_role = &$this->currentUserRole;
 
     $this->setUpRequest();
     $this->setupMemoryCache();
@@ -319,8 +316,7 @@ class RendererBubblingTest extends RendererTestBase {
           'tags' => ['b'],
         ],
         'grandchild' => [
-          '#access_callback' => function () {
-            global $current_user_role;
+          '#access_callback' => function() use (&$current_user_role) {
             // Only role A cannot access this subtree.
             return $current_user_role !== 'A';
           },
@@ -331,8 +327,7 @@ class RendererBubblingTest extends RendererTestBase {
             'max-age' => 1800,
           ],
           'grandgrandchild' => [
-            '#access_callback' => function () {
-                global $current_user_role;
+            '#access_callback' => function () use (&$current_user_role) {
                 // Only role C can access this subtree.
                 return $current_user_role === 'C';
               },

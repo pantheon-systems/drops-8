@@ -8,9 +8,7 @@
 namespace Drupal\dblog\Controller;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\Xss;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatter;
@@ -184,14 +182,16 @@ class DbLogController extends ControllerBase {
     foreach ($result as $dblog) {
       $message = $this->formatMessage($dblog);
       if ($message && isset($dblog->wid)) {
-        // Truncate link_text to 56 chars of message.
-        // @todo Reevaluate the SafeMarkup::set() in
-        //   https://www.drupal.org/node/2399261.
-        $log_text = SafeMarkup::set(Unicode::truncate(Xss::filter($message, array()), 56, TRUE, TRUE));
+        $title = Unicode::truncate(Html::decodeEntities(strip_tags($message)), 256, TRUE, TRUE);
+        $log_text = Unicode::truncate($title, 56, TRUE, TRUE);
+        // The link generator will escape any unsafe HTML entities in the final
+        // text.
         $message = $this->l($log_text, new Url('dblog.event', array('event_id' => $dblog->wid), array(
           'attributes' => array(
-            // Provide a title for the link for useful hover hints.
-            'title' => Unicode::truncate(strip_tags($message), 256, TRUE, TRUE),
+            // Provide a title for the link for useful hover hints. The
+            // Attribute object will escape any unsafe HTML entities in the
+            // final text.
+            'title' => $title,
           ),
         )));
       }
@@ -207,7 +207,7 @@ class DbLogController extends ControllerBase {
           $this->dateFormatter->format($dblog->timestamp, 'short'),
           $message,
           array('data' => $username),
-          SafeMarkup::xssFilter($dblog->link),
+          array('data' => array('#markup' => $dblog->link)),
         ),
         // Attributes for table row.
         'class' => array(Html::getClass('dblog-' . $dblog->type), $classes[$dblog->severity]),
@@ -281,7 +281,7 @@ class DbLogController extends ControllerBase {
         ),
         array(
           array('data' => $this->t('Hostname'), 'header' => TRUE),
-          SafeMarkup::checkPlain($dblog->hostname),
+          $dblog->hostname,
         ),
         array(
           array('data' => $this->t('Operations'), 'header' => TRUE),

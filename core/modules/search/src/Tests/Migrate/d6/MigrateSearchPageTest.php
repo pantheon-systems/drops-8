@@ -14,7 +14,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade search rank settings to search.page.*.yml.
  *
- * @group search
+ * @group migrate_drupal_6
  */
 class MigrateSearchPageTest extends MigrateDrupal6TestBase {
 
@@ -30,7 +30,6 @@ class MigrateSearchPageTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_search_page');
   }
 

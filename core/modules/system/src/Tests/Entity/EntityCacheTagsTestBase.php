@@ -9,6 +9,7 @@ namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
@@ -337,6 +338,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     // The default cache contexts for rendered entities.
     $default_cache_contexts = ['languages:' . LanguageInterface::TYPE_INTERFACE, 'theme', 'user.permissions'];
     $entity_cache_contexts = $default_cache_contexts;
+    $page_cache_contexts = Cache::mergeContexts($default_cache_contexts, ['url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT]);
 
     // Cache tags present on every rendered page.
     // 'user.permissions' is a required cache context, and responses that vary
@@ -428,7 +430,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $this->verifyPageCache($empty_entity_listing_url, 'HIT', $empty_entity_listing_cache_tags);
     // Verify the entity type's list cache contexts are present.
     $contexts_in_header = $this->drupalGetHeader('X-Drupal-Cache-Contexts');
-    $this->assertEqual(Cache::mergeContexts($default_cache_contexts, $this->getAdditionalCacheContextsForEntityListing()), empty($contexts_in_header) ? [] : explode(' ', $contexts_in_header));
+    $this->assertEqual(Cache::mergeContexts($page_cache_contexts, $this->getAdditionalCacheContextsForEntityListing()), empty($contexts_in_header) ? [] : explode(' ', $contexts_in_header));
 
 
     $this->pass("Test listing containing referenced entity.", 'Debug');
@@ -438,7 +440,7 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     $this->verifyPageCache($nonempty_entity_listing_url, 'HIT', $nonempty_entity_listing_cache_tags);
     // Verify the entity type's list cache contexts are present.
     $contexts_in_header = $this->drupalGetHeader('X-Drupal-Cache-Contexts');
-    $this->assertEqual(Cache::mergeContexts($default_cache_contexts, $this->getAdditionalCacheContextsForEntityListing()), empty($contexts_in_header) ? [] : explode(' ', $contexts_in_header));
+    $this->assertEqual(Cache::mergeContexts($page_cache_contexts, $this->getAdditionalCacheContextsForEntityListing()), empty($contexts_in_header) ? [] : explode(' ', $contexts_in_header));
 
 
     // Verify that after modifying the referenced entity, there is a cache miss
@@ -509,13 +511,12 @@ abstract class EntityCacheTagsTestBase extends PageCacheTagsTestBase {
     }
 
 
-    $bundle_entity_type = $this->entity->getEntityType()->getBundleEntityType();
-    if ($bundle_entity_type !== 'bundle') {
+    if ($bundle_entity_type_id = $this->entity->getEntityType()->getBundleEntityType()) {
       // Verify that after modifying the corresponding bundle entity, there is a
       // cache miss for both the referencing entity, and the listing of
       // referencing entities, but not for any other routes.
       $this->pass("Test modification of referenced entity's bundle entity.", 'Debug');
-      $bundle_entity = entity_load($bundle_entity_type, $this->entity->bundle());
+      $bundle_entity = entity_load($bundle_entity_type_id, $this->entity->bundle());
       $bundle_entity->save();
       $this->verifyPageCache($referencing_entity_url, 'MISS');
       $this->verifyPageCache($listing_url, 'MISS');

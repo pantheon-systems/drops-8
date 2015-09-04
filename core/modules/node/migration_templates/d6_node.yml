@@ -2,6 +2,8 @@ id: d6_node
 label: Drupal 6 nodes
 migration_tags:
   - Drupal 6
+builder:
+  plugin: d6_node
 source:
   plugin: d6_node
 process:
@@ -14,13 +16,6 @@ process:
     default_value: "und"
   title: title
   uid: node_uid
-# Core migrations are designed for replacing the upgrade path and therefore
-# all node and user ids are preserved. For that reason we do not need to look-up
-# the user id for the node. If you're writing a custom migration, user ids will
-# vary from the source site and a lookup as shown below will be required.
-#    plugin: migration
-#    migration: d6_user
-#    source: node_uid
   status: status
   created: created
   changed: changed
@@ -53,3 +48,4 @@ migration_dependencies:
   optional:
     - d6_field_instance_widget_settings
     - d6_field_formatter_settings
+    - d6_upload_field_instance

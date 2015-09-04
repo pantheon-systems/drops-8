@@ -23,17 +23,19 @@ body {
 .shortcut-action {
   display: none;
 }
-.one-sidebar #content,
-.two-sidebars #content {
+.one-sidebar .main-content,
+.two-sidebars .main-content {
   width: 100%;
 }
-#featured-bottom-wrapper {
+.featured-bottom {
   width: 960px;
   margin: 0;
   padding: 0;
   border: none;
 }
-#featured-bottom-first, #featured-bottom-second, #featured-bottom-third {
+.featured-bottom-first,
+.featured-bottom-second,
+.featured-bottom-third {
   width: 250px;
 }
 

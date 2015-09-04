@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Migrate view modes.
  *
- * @group node
+ * @group migrate_drupal_6
  */
 class MigrateViewModesTest extends MigrateDrupal6TestBase {
 
@@ -29,13 +29,6 @@ class MigrateViewModesTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps([
-      'ContentNodeFieldInstance.php',
-      'ContentNodeField.php',
-      'ContentFieldTest.php',
-      'ContentFieldTestTwo.php',
-      'ContentFieldMultivalue.php',
-    ]);
     $this->executeMigration('d6_view_modes');
   }
 

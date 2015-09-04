@@ -10,7 +10,8 @@ namespace Drupal\views\Tests\Handler;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\simpletest\UserCreationTrait;
-use Drupal\views\Tests\ViewUnitTestBase;
+use Drupal\user\Entity\Role;
+use Drupal\views\Tests\ViewKernelTestBase;
 use Drupal\views\Views;
 
 /**
@@ -18,7 +19,7 @@ use Drupal\views\Views;
  *
  * @group views
  */
-class FieldEntityLinkTest extends ViewUnitTestBase {
+class FieldEntityLinkTest extends ViewKernelTestBase {
 
   use UserCreationTrait;
 
@@ -51,6 +52,7 @@ class FieldEntityLinkTest extends ViewUnitTestBase {
 
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test');
+    $this->installConfig(['user']);
 
     // Create some test entities.
     for ($i = 0; $i < 5; $i++) {
@@ -58,7 +60,11 @@ class FieldEntityLinkTest extends ViewUnitTestBase {
     }
 
     // Create and admin user.
-    $this->adminUser = $this->createUser([], FALSE, TRUE);
+    $this->adminUser = $this->createUser(['view test entity'], FALSE, TRUE);
+
+    Role::load(AccountInterface::ANONYMOUS_ROLE)
+      ->grantPermission('view test entity')
+      ->save();
   }
 
   /**

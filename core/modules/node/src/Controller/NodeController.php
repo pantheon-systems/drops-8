@@ -7,7 +7,7 @@
 
 namespace Drupal\node\Controller;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Xss;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatter;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -59,19 +59,16 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
     );
   }
 
-
   /**
    * Displays add content links for available content types.
    *
    * Redirects to node/add/[type] if only one content type is available.
    *
-   * @return array
+   * @return array|\Symfony\Component\HttpFoundation\RedirectResponse
    *   A render array for a list of the node types that can be added; however,
    *   if there is only one node type defined for the site, the function
-   *   redirects to the node add page for that one node type and does not return
-   *   at all.
-   *
-   * @see node_menu()
+   *   will return a RedirectResponse to the node add page for that one node
+   *   type.
    */
   public function addPage() {
     $content = array();
@@ -194,7 +191,7 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
           '#context' => [
             'date' => $link,
             'username' => $this->renderer->renderPlain($username),
-            'message' => SafeMarkup::xssFilter($revision->revision_log->value),
+            'message' => ['#markup' => $revision->revision_log->value, '#allowed_tags' => Xss::getHtmlTagList()],
           ],
         ],
       ];
@@ -205,7 +202,11 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
       if ($vid == $node->getRevisionId()) {
         $row[0]['class'] = ['revision-current'];
         $row[] = [
-          'data' => SafeMarkup::placeholder($this->t('current revision')),
+          'data' => [
+            '#prefix' => '<em>',
+            '#markup' => $this->t('current revision'),
+            '#suffix' => '</em>',
+          ],
           'class' => ['revision-current'],
         ];
       }

@@ -23,14 +23,15 @@ abstract class MigrateDrupalTestBase extends MigrateTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'user', 'field', 'migrate_drupal', 'options');
+  public static $modules = array('system', 'user', 'field', 'migrate_drupal', 'options', 'file');
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['System.php']);
+    $tables = file_scan_directory($this->getDumpDirectory(), '/.php$/', array('recurse' => FALSE));
+    $this->loadDumps(array_keys($tables));
 
     $this->installEntitySchema('user');
     $this->installConfig(['migrate_drupal', 'system']);
@@ -47,14 +48,6 @@ abstract class MigrateDrupalTestBase extends MigrateTestBase {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  protected function loadDumps(array $files, $method = 'load') {
-    $files = array_map(function($file) { return $this->getDumpDirectory() . '/' . $file; }, $files);
-    parent::loadDumps($files, $method);
-  }
-
-  /**
    * Turn all the migration templates for the specified drupal version into
    * real migration entities so we can test them.
    *
@@ -63,9 +56,9 @@ abstract class MigrateDrupalTestBase extends MigrateTestBase {
    */
   protected function installMigrations($version) {
     $migration_templates = \Drupal::service('migrate.template_storage')->findTemplatesByTag($version);
-    foreach ($migration_templates as $template) {
+    $migrations = \Drupal::service('migrate.migration_builder')->createMigrations($migration_templates);
+    foreach ($migrations as $migration) {
       try {
-        $migration = Migration::create($template);
         $migration->save();
       }
       catch (PluginNotFoundException $e) {

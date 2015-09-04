@@ -15,11 +15,28 @@ namespace Drupal\content_translation\Tests;
 class ContentTestTranslationUITest extends ContentTranslationUITestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $testHTMLEscapeForAllLanguages = TRUE;
+
+  /**
    * Modules to enable.
    *
    * @var array
    */
   public static $modules = array('language', 'content_translation', 'entity_test');
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultCacheContexts = [
+    'languages:language_interface',
+    'theme',
+    'url.path',
+    'url.query_args',
+    'user.permissions',
+    'user.roles:authenticated',
+  ];
 
   /**
    * Overrides \Drupal\simpletest\WebTestBase::setUp().
@@ -34,7 +51,7 @@ class ContentTestTranslationUITest extends ContentTranslationUITestBase {
    * Overrides \Drupal\content_translation\Tests\ContentTranslationUITestBase::getTranslatorPermission().
    */
   protected function getTranslatorPermissions() {
-    return array_merge(parent::getTranslatorPermissions(), array('administer entity_test content'));
+    return array_merge(parent::getTranslatorPermissions(), array('administer entity_test content', 'view test entity'));
   }
 
 }

@@ -9,6 +9,7 @@ namespace Drupal\Tests\migrate\Unit;
 
 use Drupal\Core\Database\Driver\sqlite\Connection;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\migrate\Entity\MigrationInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -17,6 +18,13 @@ use Drupal\Tests\UnitTestCase;
 abstract class MigrateTestCase extends UnitTestCase {
 
   protected $migrationConfiguration = [];
+
+  /**
+   * Local store for mocking setStatus()/getStatus().
+   *
+   * @var \Drupal\migrate\Entity\MigrationInterface::STATUS_*
+   */
+  protected $migrationStatus = MigrationInterface::STATUS_IDLE;
 
   /**
    * Retrieve a mocked migration.
@@ -28,29 +36,54 @@ abstract class MigrateTestCase extends UnitTestCase {
     $this->migrationConfiguration += ['migrationClass' => 'Drupal\migrate\Entity\Migration'];
     $this->idMap = $this->getMock('Drupal\migrate\Plugin\MigrateIdMapInterface');
 
-    $this->idMap->expects($this->any())
+    $this->idMap
       ->method('getQualifiedMapTableName')
-      ->will($this->returnValue('test_map'));
+      ->willReturn('test_map');
 
     $migration = $this->getMockBuilder($this->migrationConfiguration['migrationClass'])
       ->disableOriginalConstructor()
       ->getMock();
+
+    $migration->method('checkRequirements')
+      ->willReturn(TRUE);
+
+    $migration->method('getIdMap')
+      ->willReturn($this->idMap);
+
+    // We need the state to be toggled throughout the test so we store the value
+    // on the test class and use a return callback.
     $migration->expects($this->any())
-      ->method('checkRequirements')
-      ->will($this->returnValue(TRUE));
+      ->method('getStatus')
+      ->willReturnCallback(function() {
+        return $this->migrationStatus;
+      });
     $migration->expects($this->any())
-      ->method('getIdMap')
-      ->will($this->returnValue($this->idMap));
+      ->method('setStatus')
+      ->willReturnCallback(function($status) {
+        $this->migrationStatus = $status;
+      });
+
+    $migration->method('getMigrationDependencies')
+      ->willReturn([
+        'required' => [],
+        'optional' => [],
+      ]);
+
     $configuration = &$this->migrationConfiguration;
-    $migration->expects($this->any())->method('get')->will($this->returnCallback(function ($argument) use (&$configuration) {
-      return isset($configuration[$argument]) ? $configuration[$argument] : '';
-    }));
-    $migration->expects($this->any())->method('set')->will($this->returnCallback(function ($argument, $value) use (&$configuration) {
+
+    $migration->method('get')
+      ->willReturnCallback(function ($argument) use (&$configuration) {
+        return isset($configuration[$argument]) ? $configuration[$argument] : '';
+      });
+
+    $migration->method('set')
+      ->willReturnCallback(function ($argument, $value) use (&$configuration) {
       $configuration[$argument] = $value;
-    }));
-    $migration->expects($this->any())
-      ->method('id')
-      ->will($this->returnValue($configuration['id']));
+    });
+
+    $migration->method('id')
+      ->willReturn($configuration['id']);
+
     return $migration;
   }
 

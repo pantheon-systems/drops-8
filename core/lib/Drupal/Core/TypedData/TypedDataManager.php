@@ -92,6 +92,8 @@ class TypedDataManager extends DefaultPluginManager {
    *
    * @return \Drupal\Core\TypedData\TypedDataInterface
    *   The instantiated typed data object.
+   *
+   * @see \Drupal\Core\TypedData\TypedDataManager::create()
    */
   public function createInstance($data_type, array $configuration = array()) {
     $data_definition = $configuration['data_definition'];
@@ -168,10 +170,12 @@ class TypedDataManager extends DefaultPluginManager {
    * @endcode
    *
    * @param string $data_type
-   *   The data type, for which a data definition should be created.
+   *   The data type plugin ID, for which a data definition object should be
+   *   created.
    *
    * @return \Drupal\Core\TypedData\DataDefinitionInterface
-   *   A data definition for the given data type.
+   *   A data definition object for the given data type. The class of this
+   *   object is provided by the definition_class in the plugin annotation.
    *
    * @see \Drupal\Core\TypedData\TypedDataManager::createListDataDefinition()
    */
@@ -277,7 +281,7 @@ class TypedDataManager extends DefaultPluginManager {
     if ($settings = $root_definition->getSettings()) {
       // Hash the settings into a string. crc32 is the fastest way to hash
       // something for non-cryptographic purposes.
-      $parts[] = crc32(serialize($settings));
+      $parts[] = hash('crc32b', serialize($settings));
     }
     // Property path for the requested data object. When creating a list item,
     // use 0 in the key as all items look the same.

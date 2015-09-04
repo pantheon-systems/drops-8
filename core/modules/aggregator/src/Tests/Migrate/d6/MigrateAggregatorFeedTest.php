@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade variables to aggregator_feed entities.
  *
- * @group aggregator
+ * @group migrate_drupal_6
  */
 class MigrateAggregatorFeedTest extends MigrateDrupal6TestBase {
 
@@ -25,7 +25,6 @@ class MigrateAggregatorFeedTest extends MigrateDrupal6TestBase {
   protected function setUp() {
     parent::setUp();
     $this->installEntitySchema('aggregator_feed');
-    $this->loadDumps(['AggregatorFeed.php']);
     $this->executeMigration('d6_aggregator_feed');
   }
 

@@ -22,6 +22,7 @@ class ComposerIntegrationTest extends UnitTestCase {
    */
   protected function getErrorMessages() {
     $messages = [
+      0 => 'No errors found',
       JSON_ERROR_DEPTH => 'The maximum stack depth has been exceeded',
       JSON_ERROR_STATE_MISMATCH => 'Invalid or malformed JSON',
       JSON_ERROR_CTRL_CHAR => 'Control character error, possibly incorrectly encoded',
@@ -63,9 +64,31 @@ class ComposerIntegrationTest extends UnitTestCase {
       $json = file_get_contents($path . '/composer.json');
 
       $result = json_decode($json);
-      if (is_null($result)) {
-        $this->fail($this->getErrorMessages()[json_last_error()]);
+      $this->assertNotNull($result, $this->getErrorMessages()[json_last_error()]);
+    }
+  }
+
+  /**
+   * Tests core's composer.json replace section.
+   *
+   * Verify that all core modules are also listed in the 'replace' section of
+   * core's composer.json.
+   */
+  public function testAllModulesReplaced() {
+    $json = json_decode(file_get_contents($this->root . '/core/composer.json'));
+    $composer_replace_packages = $json->replace;
+
+    $folders = scandir($this->root . '/core/modules');
+
+    $module_names = [];
+    foreach ($folders as $file_name) {
+      if ($file_name !== '.' && $file_name !== '..' && is_dir($file_name)) {
+        $module_names[] = $file_name;
       }
+    }
+
+    foreach ($module_names as $module_name) {
+      $this->assertTrue(array_key_exists('drupal/'.$module_name, $composer_replace_packages), 'Found ' . $module_name . ' in replace list of composer.json');
     }
   }
 

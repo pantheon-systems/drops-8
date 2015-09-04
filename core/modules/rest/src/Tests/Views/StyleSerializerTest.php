@@ -7,9 +7,12 @@
 
 namespace Drupal\rest\Tests\Views;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\entity_test\Entity\EntityTest;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\views\Entity\View;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -480,16 +483,16 @@ class StyleSerializerTest extends PluginTestBase {
       $entities[] = $row->_entity;
     }
 
-    $expected = SafeMarkup::checkPlain($serializer->serialize($entities, 'json'));
+    $expected = $serializer->serialize($entities, 'json');
 
     $view->live_preview = TRUE;
 
     $build = $view->preview();
-    $rendered_json = $build['#markup'];
-    $this->assertEqual($rendered_json, $expected, 'Ensure the previewed json is escaped.');
+    $rendered_json = $build['#plain_text'];
+    $this->assertTrue(!isset($build['#markup']) && $rendered_json == $expected, 'Ensure the previewed json is escaped.');
     $view->destroy();
 
-    $expected = SafeMarkup::checkPlain($serializer->serialize($entities, 'xml'));
+    $expected = $serializer->serialize($entities, 'xml');
 
     // Change the request format to xml.
     $view->setDisplay('rest_export_1');
@@ -505,7 +508,7 @@ class StyleSerializerTest extends PluginTestBase {
 
     $this->executeView($view);
     $build = $view->preview();
-    $rendered_xml = $build['#markup'];
+    $rendered_xml = $build['#plain_text'];
     $this->assertEqual($rendered_xml, $expected, 'Ensure we preview xml when we change the request format.');
   }
 
@@ -543,5 +546,68 @@ class StyleSerializerTest extends PluginTestBase {
     $result = $this->drupalGetJSON('test/serialize/node-field');
     $this->assertEqual($result[1]['nid'], $node->id());
     $this->assertTrue(strpos($this->getRawContent(), "<script") === FALSE, "No script tag is present in the raw page contents.");
+  }
+
+  /**
+   * Tests the "Grouped rows" functionality.
+   */
+  public function testGroupRows() {
+    /** @var \Drupal\Core\Render\RendererInterface $renderer */
+    $renderer = $this->container->get('renderer');
+    $this->drupalCreateContentType(['type' => 'page']);
+    // Create a text field with cardinality set to unlimited.
+    $field_name = 'field_group_rows';
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'type' => 'string',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    ]);
+    $field_storage->save();
+    // Create an instance of the text field on the content type.
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'page',
+    ]);
+    $field->save();
+    $grouped_field_values = ['a', 'b', 'c'];
+    $edit = [
+      'title' => $this->randomMachineName(),
+      $field_name => $grouped_field_values,
+    ];
+    $this->drupalCreateNode($edit);
+    $view = Views::getView('test_serializer_node_display_field');
+    $view->setDisplay('rest_export_1');
+    // Override the view's fields to include the field_group_rows field, set the
+    // group_rows setting to true.
+    $fields = [
+      $field_name => [
+        'id' => $field_name,
+        'table' => 'node__' . $field_name,
+        'field' => $field_name,
+        'type' => 'string',
+        'group_rows' => TRUE,
+      ],
+    ];
+    $view->displayHandlers->get('default')->overrideOption('fields', $fields);
+    $build = $view->preview();
+    // Get the serializer service.
+    $serializer = $this->container->get('serializer');
+    // Check if the field_group_rows field is grouped.
+    $expected = [];
+    $expected[] = [$field_name => implode(', ', $grouped_field_values)];
+    $this->assertEqual($serializer->serialize($expected, 'json'), (string) $renderer->renderRoot($build));
+    // Set the group rows setting to false.
+    $view = Views::getView('test_serializer_node_display_field');
+    $view->setDisplay('rest_export_1');
+    $fields[$field_name]['group_rows'] = FALSE;
+    $view->displayHandlers->get('default')->overrideOption('fields', $fields);
+    $build = $view->preview();
+    // Check if the field_group_rows field is ungrouped and displayed per row.
+    $expected = [];
+    foreach ($grouped_field_values as $grouped_field_value) {
+      $expected[] = [$field_name => $grouped_field_value];
+    }
+    $this->assertEqual($serializer->serialize($expected, 'json'), (string) $renderer->renderRoot($build));
   }
 }

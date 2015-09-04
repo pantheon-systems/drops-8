@@ -9,7 +9,7 @@
  */
 
 use Drupal\Component\Graph\Graph;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Utility\Error;
 
@@ -188,10 +188,7 @@ function update_do_one($module, $number, $dependency_map, &$context) {
 
       $variables = Error::decodeException($e);
       unset($variables['backtrace']);
-      // The exception message is run through
-      // \Drupal\Component\Utility\SafeMarkup::checkPlain() by
-      // \Drupal\Core\Utility\Error::decodeException().
-      $ret['#abort'] = array('success' => FALSE, 'query' => t('%type: !message in %function (line %line of %file).', $variables));
+      $ret['#abort'] = array('success' => FALSE, 'query' => t('%type: @message in %function (line %line of %file).', $variables));
     }
   }
 
@@ -218,30 +215,7 @@ function update_do_one($module, $number, $dependency_map, &$context) {
     drupal_set_installed_schema_version($module, $number);
   }
 
-  $context['message'] = 'Updating ' . SafeMarkup::checkPlain($module) . ' module';
-}
-
-/**
- * Performs entity definition updates, which can trigger schema updates.
- *
- * @param $context
- *   The batch context array.
- */
-function update_entity_definitions(&$context) {
-  try {
-    \Drupal::service('entity.definition_update_manager')->applyUpdates();
-  }
-  catch (EntityStorageException $e) {
-    watchdog_exception('update', $e);
-    $variables = Error::decodeException($e);
-    unset($variables['backtrace']);
-    // The exception message is run through
-    // \Drupal\Component\Utility\SafeMarkup::checkPlain() by
-    // \Drupal\Core\Utility\Error::decodeException().
-    $ret['#abort'] = array('success' => FALSE, 'query' => t('%type: !message in %function (line %line of %file).', $variables));
-    $context['results']['core']['update_entity_definitions'] = $ret;
-    $context['results']['#abort'][] = 'update_entity_definitions';
-  }
+  $context['message'] = 'Updating ' . Html::escape($module) . ' module';
 }
 
 /**

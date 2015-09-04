@@ -10,6 +10,8 @@ namespace Drupal\migrate\Plugin\migrate\source;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\migrate\Entity\MigrationInterface;
 use Drupal\migrate\MigrateException;
+use Drupal\migrate\MigrateExecutableInterface;
+use Drupal\migrate\MigrateSkipRowException;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\migrate\Plugin\MigrateSourceInterface;
 use Drupal\migrate\Row;
@@ -60,20 +62,6 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
   protected $currentSourceIds;
 
   /**
-   * Number of rows intentionally ignored (prepareRow() returned FALSE)
-   *
-   * @var int
-   */
-  protected $numIgnored = 0;
-
-  /**
-   * Number of rows we've at least looked at.
-   *
-   * @var int
-   */
-  protected $numProcessed = 0;
-
-  /**
    * The high water mark at the beginning of the import operation.
    *
    * If the source has a property for tracking changes (like Drupal ha
@@ -82,13 +70,6 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
    * @var int
    */
   protected $originalHighWater;
-
-  /**
-   * List of source IDs to process.
-   *
-   * @var array
-   */
-  protected $idList = array();
 
   /**
    * Whether this instance should cache the source count.
@@ -144,8 +125,12 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
    */
   protected $iterator;
 
-  // @TODO, find out how to remove this.
-  // @see https://www.drupal.org/node/2443617
+  /**
+   * @TODO, find out how to remove this.
+   * @see https://www.drupal.org/node/2443617
+   *
+   * @var MigrateExecutableInterface
+   */
   public $migrateExecutable;
 
   /**
@@ -164,10 +149,6 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
     // Pull out the current highwater mark if we have a highwater property.
     if ($this->highWaterProperty = $this->migration->get('highWaterProperty')) {
       $this->originalHighWater = $this->migration->getHighWater();
-    }
-
-    if ($id_list = $this->migration->get('idlist')) {
-      $this->idList = $id_list;
     }
 
     // Don't allow the use of both highwater and track changes together.
@@ -201,22 +182,31 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
    * {@inheritdoc}
    */
   public function prepareRow(Row $row) {
-
     $result = TRUE;
-    $result_hook = $this->getModuleHandler()->invokeAll('migrate_prepare_row', array($row, $this, $this->migration));
-    $result_named_hook = $this->getModuleHandler()->invokeAll('migrate_' . $this->migration->id() . '_prepare_row', array($row, $this, $this->migration));
+    try {
+      $result_hook = $this->getModuleHandler()->invokeAll('migrate_prepare_row', array($row, $this, $this->migration));
+      $result_named_hook = $this->getModuleHandler()->invokeAll('migrate_' . $this->migration->id() . '_prepare_row', array($row, $this, $this->migration));
+      // We will skip if any hook returned FALSE.
+      $skip = ($result_hook && in_array(FALSE, $result_hook)) || ($result_named_hook && in_array(FALSE, $result_named_hook));
+      $save_to_map = TRUE;
+    }
+    catch (MigrateSkipRowException $e) {
+      $skip = TRUE;
+      $save_to_map = $e->getSaveToMap();
+    }
 
     // We're explicitly skipping this row - keep track in the map table.
-    if (($result_hook && in_array(FALSE, $result_hook)) || ($result_named_hook && in_array(FALSE, $result_named_hook))) {
+    if ($skip) {
       // Make sure we replace any previous messages for this item with any
       // new ones.
       $id_map = $this->migration->getIdMap();
       $id_map->delete($this->currentSourceIds, TRUE);
       $this->migrateExecutable->saveQueuedMessages();
-      $id_map->saveIdMapping($row, array(), MigrateIdMapInterface::STATUS_IGNORED, $this->migrateExecutable->rollbackAction);
-      $this->numIgnored++;
-      $this->currentRow = NULL;
-      $this->currentSourceIds = NULL;
+      if ($save_to_map) {
+        $id_map->saveIdMapping($row, array(), MigrateIdMapInterface::STATUS_IGNORED, $this->migrateExecutable->rollbackAction);
+        $this->currentRow = NULL;
+        $this->currentSourceIds = NULL;
+      }
       $result = FALSE;
     }
     elseif ($this->trackChanges) {
@@ -226,7 +216,6 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
       // after hashes).
       $row->rehash();
     }
-    $this->numProcessed++;
     return $result;
   }
 
@@ -280,8 +269,6 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
    */
   public function rewind() {
     $this->idMap = $this->migration->getIdMap();
-    $this->numProcessed = 0;
-    $this->numIgnored = 0;
     $this->getIterator()->rewind();
     $this->next();
   }
@@ -320,25 +307,17 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
         $row->setIdMap($id_map);
       }
 
-      // In case we have specified an ID list, but the ID given by the source is
-      // not in there, we skip the row.
-      $id_in_the_list = $this->idList && in_array(reset($this->currentSourceIds), $this->idList);
-      if ($this->idList && !$id_in_the_list) {
-        continue;
-      }
-
       // Preparing the row gives source plugins the chance to skip.
       if ($this->prepareRow($row) === FALSE) {
         continue;
       }
 
       // Check whether the row needs processing.
-      // 1. Explicitly specified IDs.
-      // 2. This row has not been imported yet.
-      // 3. Explicitly set to update.
-      // 4. The row is newer than the current highwater mark.
-      // 5. If no such property exists then try by checking the hash of the row.
-      if ($id_in_the_list || !$row->getIdMap() || $row->needsUpdate() || $this->aboveHighwater($row) || $this->rowChanged($row) ) {
+      // 1. This row has not been imported yet.
+      // 2. Explicitly set to update.
+      // 3. The row is newer than the current highwater mark.
+      // 4. If no such property exists then try by checking the hash of the row.
+      if (!$row->getIdMap() || $row->needsUpdate() || $this->aboveHighwater($row) || $this->rowChanged($row) ) {
         $this->currentRow = $row->freezeSource();
       }
     }
@@ -378,27 +357,6 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
   }
 
   /**
-   * Getter for numIgnored data member.
-   */
-  public function getIgnored() {
-    return $this->numIgnored;
-  }
-
-  /**
-   * Getter for numProcessed data member.
-   */
-  public function getProcessed() {
-    return $this->numProcessed;
-  }
-
-  /**
-   * Reset numIgnored back to 0.
-   */
-  public function resetStats() {
-    $this->numIgnored = 0;
-  }
-
-  /**
    * Get the source count.
    *
    * Return a count of available source records, from the cache if appropriate.
@@ -423,7 +381,7 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
     // class to get the count from the source.
     if ($refresh || !$this->cacheCounts) {
       $count = $this->getIterator()->count();
-      $this->getCache()->set($this->cacheKey, $count, 'cache');
+      $this->getCache()->set($this->cacheKey, $count);
     }
     else {
       // Caching is in play, first try to retrieve a cached count.
@@ -436,7 +394,7 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
         // No cached count, ask the derived class to count 'em up, and cache
         // the result.
         $count = $this->getIterator()->count();
-        $this->getCache()->set($this->cacheKey, $count, 'cache');
+        $this->getCache()->set($this->cacheKey, $count);
       }
     }
     return $count;

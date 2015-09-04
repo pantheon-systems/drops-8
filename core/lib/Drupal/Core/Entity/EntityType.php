@@ -119,7 +119,7 @@ class EntityType implements EntityTypeInterface {
    *
    * @var string
    */
-  protected $bundle_entity_type = 'bundle';
+  protected $bundle_entity_type = NULL;
 
   /**
    * The name of the entity type for which bundles are provided.
@@ -233,6 +233,13 @@ class EntityType implements EntityTypeInterface {
   protected $constraints = array();
 
   /**
+   * Any additional properties and values.
+   *
+   * @var array
+   */
+  protected $additional = [];
+
+  /**
    * Constructs a new EntityType.
    *
    * @param array $definition
@@ -248,7 +255,7 @@ class EntityType implements EntityTypeInterface {
     }
 
     foreach ($definition as $property => $value) {
-      $this->{$property} = $value;
+      $this->set($property, $value);
     }
 
     // Ensure defaults.
@@ -279,14 +286,25 @@ class EntityType implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function get($property) {
-    return isset($this->{$property}) ? $this->{$property} : NULL;
+    if (property_exists($this, $property)) {
+      $value = isset($this->{$property}) ? $this->{$property} : NULL;
+    }
+    else {
+      $value = isset($this->additional[$property]) ? $this->additional[$property] : NULL;
+    }
+    return $value;
   }
 
   /**
    * {@inheritdoc}
    */
   public function set($property, $value) {
-    $this->{$property} = $value;
+    if (property_exists($this, $property)) {
+      $this->{$property} = $value;
+    }
+    else {
+      $this->additional[$property] = $value;
+    }
     return $this;
   }
 
@@ -762,6 +780,32 @@ class EntityType implements EntityTypeInterface {
   public function addConstraint($constraint_name, $options = NULL) {
     $this->constraints[$constraint_name] = $options;
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getBundleConfigDependency($bundle) {
+    // If this entity type uses entities to manage its bundles then depend on
+    // the bundle entity.
+    if ($bundle_entity_type_id = $this->getBundleEntityType()) {
+      if (!$bundle_entity = \Drupal::entityManager()->getStorage($bundle_entity_type_id)->load($bundle)) {
+        throw new \LogicException(sprintf('Missing bundle entity, entity type %s, entity id %s.', $bundle_entity_type_id, $bundle));
+      }
+      $config_dependency = [
+        'type' => 'config',
+        'name' => $bundle_entity->getConfigDependencyName(),
+      ];
+    }
+    else {
+      // Depend on the provider of the entity type.
+      $config_dependency = [
+        'type' => 'module',
+        'name' => $this->getProvider(),
+      ];
+    }
+
+    return $config_dependency;
   }
 
 }

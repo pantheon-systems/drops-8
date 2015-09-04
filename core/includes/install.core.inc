@@ -6,7 +6,6 @@ use Drupal\Core\DrupalKernel;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
-use Drupal\Core\Database\Install\TaskException;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Installer\Exception\AlreadyInstalledException;
 use Drupal\Core\Installer\Exception\InstallerException;
@@ -1133,14 +1132,24 @@ function install_database_errors($database, $settings_file) {
     // Run tasks associated with the database type. Any errors are caught in the
     // calling function.
     Database::addConnectionInfo('default', 'default', $database);
-    try {
-      db_run_tasks($driver);
-    }
-    catch (TaskException $e) {
+
+    $errors = db_installer_object($driver)->runTasks();
+    if (count($errors)) {
+      $error_message = [
+        '#type' => 'inline_template',
+        '#template' => '{% trans %}Resolve all issues below to continue the installation. For help configuring your database server, see the <a href="https://www.drupal.org/getting-started/install">installation handbook</a>, or contact your hosting provider.{% endtrans%}{{ errors }}',
+        '#context' => [
+          'errors' => [
+            '#theme' => 'item_list',
+            '#items' => $errors,
+          ],
+        ],
+      ];
+
       // These are generic errors, so we do not have any specific key of the
       // database connection array to attach them to; therefore, we just put
       // them in the error array with standard numeric keys.
-      $errors[$driver . '][0'] = $e->getMessage();
+      $errors[$driver . '][0'] = \Drupal::service('renderer')->renderPlain($error_message);
     }
   }
   return $errors;
@@ -1590,6 +1599,10 @@ function install_bootstrap_full() {
  *   The batch definition.
  */
 function install_profile_modules(&$install_state) {
+  // We need to manually trigger the installation of core-provided entity types,
+  // as those will not be handled by the module installer.
+  install_core_entity_type_definitions();
+
   $modules = \Drupal::state()->get('install_profile_modules') ?: array();
   $files = system_rebuild_module_data();
   \Drupal::state()->delete('install_profile_modules');
@@ -1630,6 +1643,18 @@ function install_profile_modules(&$install_state) {
 }
 
 /**
+ * Installs entity type definitions provided by core.
+ */
+function install_core_entity_type_definitions() {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  foreach (\Drupal::entityManager()->getDefinitions() as $entity_type) {
+    if ($entity_type->getProvider() == 'core') {
+      $update_manager->installEntityType($entity_type);
+    }
+  }
+}
+
+/**
  * Installs themes.
  *
  * This does not use a batch, since installing themes is faster than modules and
@@ -1656,12 +1681,6 @@ function install_profile_themes(&$install_state) {
  *   An array of information about the current installation state.
  */
 function install_install_profile(&$install_state) {
-  // Now that all modules are installed, make sure the entity storage and other
-  // handlers are up to date with the current entity and field definitions. For
-  // example, Path module adds a base field to nodes and taxonomy terms after
-  // those modules are already installed.
-  \Drupal::service('entity.definition_update_manager')->applyUpdates();
-
   \Drupal::service('module_installer')->install(array(drupal_get_profile()), FALSE);
   // Install all available optional config. During installation the module order
   // is determined by dependencies. If there are no dependencies between modules
@@ -2033,7 +2052,7 @@ function install_check_translations($langcode, $server_pattern) {
         'title'       => t('Translation'),
         'value'       => t('The %language translation is not available.', array('%language' => $language)),
         'severity'    => REQUIREMENT_ERROR,
-        'description' => t('The %language translation file is not available at the translation server. <a href="!url">Choose a different language</a> or select English and translate your website later.', array('%language' => $language, '!url' => check_url($_SERVER['SCRIPT_NAME']))),
+        'description' => t('The %language translation file is not available at the translation server. <a href="@url">Choose a different language</a> or select English and translate your website later.', array('%language' => $language, '@url' => UrlHelper::stripDangerousProtocols($_SERVER['SCRIPT_NAME']))),
       );
     }
     else {
@@ -2052,7 +2071,7 @@ function install_check_translations($langcode, $server_pattern) {
         'title'       => t('Translation'),
         'value'       => t('The %language translation could not be downloaded.', array('%language' => $language)),
         'severity'    => REQUIREMENT_ERROR,
-        'description' => t('The %language translation file could not be downloaded. <a href="!url">Choose a different language</a> or select English and translate your website later.', array('%language' => $language, '!url' => check_url($_SERVER['SCRIPT_NAME']))),
+        'description' => t('The %language translation file could not be downloaded. <a href="@url">Choose a different language</a> or select English and translate your website later.', array('%language' => $language, '@url' => UrlHelper::stripDangerousProtocols($_SERVER['SCRIPT_NAME']))),
       );
     }
   }
@@ -2082,13 +2101,6 @@ function install_check_requirements($install_state) {
     'title_default' => t('Default settings file'),
     'description_default' => t('The default settings file does not exist.'),
     'title' => t('Settings file'),
-  );
-  $default_files['services.yml'] = array(
-    'file' => 'services.yml',
-    'file_default' => 'default.services.yml',
-    'title_default' => t('Default services file'),
-    'description_default' => t('The default services file does not exist.'),
-    'title' => t('Services file'),
   );
 
   foreach ($default_files as $default_file_info) {
@@ -2269,11 +2281,11 @@ function install_display_requirements($install_state, $requirements) {
       $build['report']['#requirements'] = $requirements;
       if ($severity == REQUIREMENT_WARNING) {
         $build['#title'] = t('Requirements review');
-        $build['#suffix'] = t('Check the messages and <a href="!retry">retry</a>, or you may choose to <a href="!cont">continue anyway</a>.', array('!retry' => check_url(drupal_requirements_url(REQUIREMENT_ERROR)), '!cont' => check_url(drupal_requirements_url($severity))));
+        $build['#suffix'] = t('Check the messages and <a href="@retry">retry</a>, or you may choose to <a href="@cont">continue anyway</a>.', array('@retry' => UrlHelper::stripDangerousProtocols(drupal_requirements_url(REQUIREMENT_ERROR)), '@cont' => UrlHelper::stripDangerousProtocols(drupal_requirements_url($severity))));
       }
       else {
         $build['#title'] = t('Requirements problem');
-        $build['#suffix'] = t('Check the messages and <a href="!url">try again</a>.', array('!url' => check_url(drupal_requirements_url($severity))));
+        $build['#suffix'] = t('Check the messages and <a href="@url">try again</a>.', array('@url' => UrlHelper::stripDangerousProtocols(drupal_requirements_url($severity))));
       }
       return $build;
     }

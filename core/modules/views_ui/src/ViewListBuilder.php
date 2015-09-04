@@ -7,7 +7,6 @@
 
 namespace Drupal\views_ui;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
@@ -29,6 +28,11 @@ class ViewListBuilder extends ConfigEntityListBuilder {
    * @var \Drupal\Component\Plugin\PluginManagerInterface
    */
   protected $displayManager;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $limit;
 
   /**
    * {@inheritdoc}
@@ -55,6 +59,11 @@ class ViewListBuilder extends ConfigEntityListBuilder {
     parent::__construct($entity_type, $storage);
 
     $this->displayManager = $display_manager;
+    // This list builder uses client-side filters which requires all entities to
+    // be listed, disable the pager.
+    // @todo https://www.drupal.org/node/2536826 change the filtering to support
+    //   a pager.
+    $this->limit = FALSE;
   }
 
   /**
@@ -81,12 +90,6 @@ class ViewListBuilder extends ConfigEntityListBuilder {
    */
   public function buildRow(EntityInterface $view) {
     $row = parent::buildRow($view);
-    $display_paths = '';
-    $separator = '';
-    foreach ($this->getDisplayPaths($view) as $display_path) {
-      $display_paths .= $separator . SafeMarkup::escape($display_path);
-      $separator = ', ';
-    }
     return array(
       'data' => array(
         'view_name' => array(
@@ -98,12 +101,18 @@ class ViewListBuilder extends ConfigEntityListBuilder {
         ),
         'description' => array(
           'data' => array(
-            '#markup' => SafeMarkup::checkPlain($view->get('description')),
+            '#plain_text' => $view->get('description'),
           ),
           'class' => array('views-table-filter-text-source'),
         ),
         'tag' => $view->get('tag'),
-        'path' => SafeMarkup::set($display_paths),
+        'path' => array(
+          'data' => array(
+            '#theme' => 'item_list',
+            '#items' => $this->getDisplayPaths($view),
+            '#context' => ['list_style' => 'comma-list'],
+          ),
+        ),
         'operations' => $row['operations'],
       ),
       'title' => $this->t('Machine name: @name', array('@name' => $view->id())),
@@ -268,7 +277,7 @@ class ViewListBuilder extends ConfigEntityListBuilder {
           $all_paths[] = \Drupal::l('/' . $path, Url::fromUserInput('/' . $path));
         }
         else {
-          $all_paths[] = SafeMarkup::checkPlain('/' . $path);
+          $all_paths[] = '/' . $path;
         }
       }
     }

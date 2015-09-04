@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade variables to contact.settings.yml.
  *
- * @group contact
+ * @group migrate_drupal_6
  */
 class MigrateContactConfigsTest extends MigrateDrupal6TestBase {
 
@@ -39,7 +39,6 @@ class MigrateContactConfigsTest extends MigrateDrupal6TestBase {
       ),
     );
     $this->prepareMigrations($id_mappings);
-    $this->loadDumps(['Variable.php', 'Contact.php']);
     $this->executeMigration('d6_contact_settings');
   }
 

@@ -1,0 +1,13 @@
+id: d7_filter_format
+label: Drupal 7 filter format configuration
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_filter_format
+process:
+  format: format
+  name: name
+  cache: cache
+  filters: filters
+destination:
+  plugin: entity:filter_format

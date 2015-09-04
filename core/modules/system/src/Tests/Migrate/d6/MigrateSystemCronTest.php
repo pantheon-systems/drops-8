@@ -12,7 +12,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade cron variable to system.*.yml.
  *
- * @group system
+ * @group migrate_drupal_6
  */
 class MigrateSystemCronTest extends MigrateDrupal6TestBase {
 
@@ -21,7 +21,6 @@ class MigrateSystemCronTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_system_cron');
   }
 

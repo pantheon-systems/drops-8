@@ -7,6 +7,7 @@
 use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Environment;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\DrupalKernel;
@@ -279,89 +280,6 @@ function drupal_get_path($type, $name) {
 }
 
 /**
- * Sets an HTTP response header for the current page.
- *
- * Note: When sending a Content-Type header, always include a 'charset' type,
- * too. This is necessary to avoid security bugs (e.g. UTF-7 XSS).
- *
- * @param $name
- *   The HTTP header name, or the special 'Status' header name.
- * @param $value
- *   The HTTP header value; if equal to FALSE, the specified header is unset.
- *   If $name is 'Status', this is expected to be a status code followed by a
- *   reason phrase, e.g. "404 Not Found".
- * @param $append
- *   Whether to append the value to an existing header or to replace it.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Symfony\Component\HttpFoundation\Response->headers->set().
- *   See https://www.drupal.org/node/2181523.
- */
-function _drupal_add_http_header($name, $value, $append = FALSE) {
-  // The headers as name/value pairs.
-  $headers = &drupal_static('drupal_http_headers', array());
-
-  $name_lower = strtolower($name);
-  _drupal_set_preferred_header_name($name);
-
-  if ($value === FALSE) {
-    $headers[$name_lower] = FALSE;
-  }
-  elseif (isset($headers[$name_lower]) && $append) {
-    // Multiple headers with identical names may be combined using comma (RFC
-    // 2616, section 4.2).
-    $headers[$name_lower] .= ',' . $value;
-  }
-  else {
-    $headers[$name_lower] = $value;
-  }
-}
-
-/**
- * Gets the HTTP response headers for the current page.
- *
- * @param $name
- *   An HTTP header name. If omitted, all headers are returned as name/value
- *   pairs. If an array value is FALSE, the header has been unset.
- *
- * @return
- *   A string containing the header value, or FALSE if the header has been set,
- *   or NULL if the header has not been set.
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Symfony\Component\HttpFoundation\Response->headers->get().
- *   See https://www.drupal.org/node/2181523.
- */
-function drupal_get_http_header($name = NULL) {
-  $headers = &drupal_static('drupal_http_headers', array());
-  if (isset($name)) {
-    $name = strtolower($name);
-    return isset($headers[$name]) ? $headers[$name] : NULL;
-  }
-  else {
-    return $headers;
-  }
-}
-
-/**
- * Sets the preferred name for the HTTP header.
- *
- * Header names are case-insensitive, but for maximum compatibility they should
- * follow "common form" (see RFC 2616, section 4.2).
- *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   See https://www.drupal.org/node/2181523.
- */
-function _drupal_set_preferred_header_name($name = NULL) {
-  static $header_names = array();
-
-  if (!isset($name)) {
-    return $header_names;
-  }
-  $header_names[strtolower($name)] = $name;
-}
-
-/**
  * Translates a string to the current language or to a given language.
  *
  * The t() function serves two purposes. First, at run-time it translates
@@ -426,8 +344,11 @@ function t($string, array $args = array(), array $options = array()) {
  * @see \Drupal\Component\Utility\SafeMarkup::format()
  * @see t()
  * @ingroup sanitization
+ *
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Component\Utility\SafeMarkup::format().
  */
-function format_string($string, array $args = array()) {
+function format_string($string, array $args) {
   return SafeMarkup::format($string, $args);
 }
 
@@ -456,6 +377,9 @@ function format_string($string, array $args = array()) {
  *   TRUE if the text is valid UTF-8, FALSE if not.
  *
  * @see \Drupal\Component\Utility\Unicode::validateUtf8()
+ *
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Component\Utility\Unicode::validateUtf8().
  */
 function drupal_validate_utf8($text) {
   return Unicode::validateUtf8($text);
@@ -488,10 +412,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
 
   // Use a default value if $message is not set.
   if (empty($message)) {
-    // The exception message is run through
-    // \Drupal\Component\Utility\SafeMarkup::checkPlain() by
-    // \Drupal\Core\Utility\Error:decodeException().
-    $message = '%type: !message in %function (line %line of %file).';
+    $message = '%type: @message in %function (line %line of %file).';
   }
 
   if ($link) {
@@ -514,7 +435,7 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
  * drupal_set_message(t('An error occurred and processing did not complete.'), 'error');
  * @endcode
  *
- * @param string $message
+ * @param string|\Drupal\Component\Utility\SafeStringInterface $message
  *   (optional) The translated message to be displayed to the user. For
  *   consistency with other messages, it should begin with a capital letter and
  *   end with a period.
@@ -561,12 +482,15 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) 
       $_SESSION['messages'][$type] = array();
     }
 
-    $new = array(
-      'safe' => SafeMarkup::isSafe($message),
-      'message' => (string) $message,
-    );
-    if ($repeat || !in_array($new, $_SESSION['messages'][$type])) {
-      $_SESSION['messages'][$type][] = $new;
+    // Convert strings which are in the safe markup list to SafeString objects.
+    if (is_string($message) && SafeMarkup::isSafe($message)) {
+      $message = \Drupal\Core\Render\SafeString::create($message);
+    }
+
+    // Do not use strict type checking so that equivalent string and
+    // SafeStringInterface objects are detected.
+    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
+      $_SESSION['messages'][$type][] = $message;
     }
 
     // Mark this page as being uncacheable.
@@ -604,18 +528,6 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) 
  */
 function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
   if ($messages = drupal_set_message()) {
-    foreach ($messages as $message_type => $message_typed_messages) {
-      foreach ($message_typed_messages as $key => $message) {
-        // Because the messages are stored in the session, the safe status of
-        // the messages also needs to be stored in the session. We retrieve the
-        // safe status here and determine whether to mark the string as safe or
-        // let autoescape do its thing. See drupal_set_message().
-        if ($message['safe']) {
-          $message['message'] = SafeMarkup::set($message['message']);
-        }
-        $messages[$message_type][$key] = $message['message'];
-      }
-    }
     if ($type) {
       if ($clear_queue) {
         unset($_SESSION['messages'][$type]);
@@ -1042,10 +954,16 @@ function drupal_static_reset($name = NULL) {
 /**
  * Formats text for emphasized display in a placeholder inside a sentence.
  *
- * @see \Drupal\Component\Utility\SafeMarkup::placeholder()
+ * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0. Use
+ *   \Drupal\Component\Utility\SafeMarkup::format() or Twig's "placeholder"
+ *   filter instead. Note this method should not be used to simply emphasize a
+ *   string and therefore has few valid use-cases. Note also, that this method
+ *   does not mark the string as safe.
+ *
+ * @see \Drupal\Component\Utility\SafeMarkup::format()
  */
 function drupal_placeholder($text) {
-  return SafeMarkup::placeholder($text);
+  return '<em class="placeholder">' . Html::escape($text) . '</em>';
 }
 
 /**

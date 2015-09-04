@@ -12,7 +12,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade image gd variables to system.*.yml.
  *
- * @group system
+ * @group migrate_drupal_6
  */
 class MigrateSystemImageGdTest extends MigrateDrupal6TestBase {
 
@@ -21,7 +21,6 @@ class MigrateSystemImageGdTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_system_image_gd');
   }
 

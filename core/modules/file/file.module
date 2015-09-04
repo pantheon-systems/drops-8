@@ -5,7 +5,7 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -629,7 +629,7 @@ function file_file_download($uri) {
 }
 
 /**
- * Implements file_cron()
+ * Implements hook_cron().
  */
 function file_cron() {
   $age = \Drupal::config('system.file')->get('temporary_maximum_age');
@@ -968,15 +968,15 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
 
         // Essential file data
         case 'name':
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($file->getFilename()) : $file->getFilename();
+          $replacements[$original] = $sanitize ? Html::escape($file->getFilename()) : $file->getFilename();
           break;
 
         case 'path':
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($file->getFileUri()) : $file->getFileUri();
+          $replacements[$original] = $sanitize ? Html::escape($file->getFileUri()) : $file->getFileUri();
           break;
 
         case 'mime':
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($file->getMimeType()) : $file->getMimeType();
+          $replacements[$original] = $sanitize ? Html::escape($file->getMimeType()) : $file->getMimeType();
           break;
 
         case 'size':
@@ -984,7 +984,7 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
           break;
 
         case 'url':
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain(file_create_url($file->getFileUri())) : file_create_url($file->getFileUri());
+          $replacements[$original] = $sanitize ? Html::escape(file_create_url($file->getFileUri())) : file_create_url($file->getFileUri());
           break;
 
         // These tokens are default variations on the chained tokens handled below.
@@ -1004,7 +1004,7 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
           $owner = $file->getOwner();
           $bubbleable_metadata->addCacheableDependency($owner);
           $name = $owner->label();
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($name) : $name;
+          $replacements[$original] = $sanitize ? Html::escape($name) : $name;
           break;
       }
     }
@@ -1248,7 +1248,7 @@ function template_preprocess_file_link(&$variables) {
   }
   else {
     $link_text = $variables['description'];
-    $options['attributes']['title'] = SafeMarkup::checkPlain($file_entity->getFilename());
+    $options['attributes']['title'] = $file_entity->getFilename();
   }
 
   // Classes to add to the file field for icons.
@@ -1274,7 +1274,7 @@ function template_preprocess_file_link(&$variables) {
  *   A MIME type.
  *
  * @return string
- *   A class associated to the file.
+ *   A class associated with the file.
  */
 function file_icon_class($mime_type) {
   // Search for a group with the files MIME type.

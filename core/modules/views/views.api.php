@@ -6,7 +6,9 @@
  */
 
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\views\Plugin\views\cache\CachePluginBase;
 use Drupal\views\Plugin\views\PluginBase;
+use Drupal\views\ViewExecutable;
 
 /**
  * @defgroup views_overview Views overview
@@ -623,7 +625,8 @@ function hook_views_query_substitutions(ViewExecutable $view) {
  *
  * @return array
  *   An associative array where each key is a string to be replaced, and the
- *   corresponding value is its replacement.
+ *   corresponding value is its replacement. The value will be escaped unless it
+ *   is already marked safe.
  */
 function hook_views_form_substitutions() {
   return array(
@@ -796,12 +799,12 @@ function hook_views_pre_render(ViewExecutable $view) {
  *   The view object about to be processed.
  * @param string $output
  *   A flat string with the rendered output of the view.
- * @param CacheBackendInterface $cache
+ * @param \Drupal\views\Plugin\views\cache\CachePluginBase $cache
  *   The cache settings.
  *
  * @see \Drupal\views\ViewExecutable
  */
-function hook_views_post_render(ViewExecutable $view, &$output, CacheBackendInterface $cache) {
+function hook_views_post_render(ViewExecutable $view, &$output, CachePluginBase $cache) {
   // When using full pager, disable any time-based caching if there are fewer
   // than 10 results.
   if ($view->pager instanceof Drupal\views\Plugin\views\pager\Full && $cache instanceof Drupal\views\Plugin\views\cache\Time && count($view->result) < 10) {

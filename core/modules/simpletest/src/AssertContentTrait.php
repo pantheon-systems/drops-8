@@ -8,6 +8,7 @@
 namespace Drupal\simpletest;
 
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Render\RenderContext;
@@ -66,7 +67,7 @@ trait AssertContentTrait {
     $this->plainTextContent = NULL;
     $this->elements = NULL;
     $this->drupalSettings = array();
-    if (preg_match('/var drupalSettings = (.*?);$/m', $content, $matches)) {
+    if (preg_match('@<script type="application/json" data-drupal-selector="drupal-settings-json">([^<]*)</script>@', $content, $matches)) {
       $this->drupalSettings = Json::decode($matches[1]);
     }
   }
@@ -76,7 +77,10 @@ trait AssertContentTrait {
    */
   protected function getTextContent() {
     if (!isset($this->plainTextContent)) {
-      $this->plainTextContent = Xss::filter($this->getRawContent(), array());
+      $raw_content = $this->getRawContent();
+      // Strip everything between the HEAD tags.
+      $raw_content = preg_replace('@<head>(.+?)</head>@si', '', $raw_content);
+      $this->plainTextContent = Xss::filter($raw_content, array());
     }
     return $this->plainTextContent;
   }
@@ -283,7 +287,7 @@ trait AssertContentTrait {
    *   Link position counting from zero.
    * @param string $message
    *   (optional) A message to display with the assertion. Do not translate
-   *   messages: use format_string() to embed variables in the message text, not
+   *   messages: use strtr() to embed variables in the message text, not
    *   t(). If left blank, a default message will be displayed.
    * @param string $group
    *   (optional) The group this message is in, which is displayed in a column
@@ -296,7 +300,7 @@ trait AssertContentTrait {
    */
   protected function assertLink($label, $index = 0, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[normalize-space(text())=:label]', array(':label' => $label));
-    $message = ($message ? $message : SafeMarkup::format('Link with label %label found.', array('%label' => $label)));
+    $message = ($message ? $message : strtr('Link with label %label found.', array('%label' => $label)));
     return $this->assert(isset($links[$index]), $message, $group);
   }
 
@@ -370,6 +374,30 @@ trait AssertContentTrait {
    */
   protected function assertNoLinkByHref($href, $message = '', $group = 'Other') {
     $links = $this->xpath('//a[contains(@href, :href)]', array(':href' => $href));
+    $message = ($message ? $message : SafeMarkup::format('No link containing href %href found.', array('%href' => $href)));
+    return $this->assert(empty($links), $message, $group);
+  }
+
+  /**
+   * Passes if a link containing a given href is not found in the main region.
+   *
+   * @param string $href
+   *   The full or partial value of the 'href' attribute of the anchor tag.
+   * @param string $message
+   *   (optional) A message to display with the assertion. Do not translate
+   *   messages: use format_string() to embed variables in the message text, not
+   *   t(). If left blank, a default message will be displayed.
+   * @param string $group
+   *   (optional) The group this message is in, which is displayed in a column
+   *   in test output. Use 'Debug' to indicate this is debugging output. Do not
+   *   translate this string. Defaults to 'Other'; most tests do not override
+   *   this default.
+   *
+   * @return bool
+   *   TRUE if the assertion succeeded, FALSE otherwise.
+   */
+  protected function assertNoLinkByHrefInMainRegion($href, $message = '', $group = 'Other') {
+    $links = $this->xpath('//main//a[contains(@href, :href)]', array(':href' => $href));
     $message = ($message ? $message : SafeMarkup::format('No link containing href %href found.', array('%href' => $href)));
     return $this->assert(empty($links), $message, $group);
   }
@@ -452,7 +480,7 @@ trait AssertContentTrait {
     if (!$message) {
       $message = SafeMarkup::format('Escaped "@raw" found', array('@raw' => $raw));
     }
-    return $this->assert(strpos($this->getRawContent(), SafeMarkup::checkPlain($raw)) !== FALSE, $message, $group);
+    return $this->assert(strpos($this->getRawContent(), Html::escape($raw)) !== FALSE, $message, $group);
   }
 
   /**
@@ -480,7 +508,7 @@ trait AssertContentTrait {
     if (!$message) {
       $message = SafeMarkup::format('Escaped "@raw" not found', array('@raw' => $raw));
     }
-    return $this->assert(strpos($this->getRawContent(), SafeMarkup::checkPlain($raw)) === FALSE, $message, $group);
+    return $this->assert(strpos($this->getRawContent(), Html::escape($raw)) === FALSE, $message, $group);
   }
 
   /**
@@ -747,14 +775,19 @@ trait AssertContentTrait {
    *   TRUE on pass, FALSE on fail.
    */
   protected function assertTitle($title, $message = '', $group = 'Other') {
-    $actual = (string) current($this->xpath('//title'));
-    if (!$message) {
-      $message = SafeMarkup::format('Page title @actual is equal to @expected.', array(
-        '@actual' => var_export($actual, TRUE),
-        '@expected' => var_export($title, TRUE),
-      ));
+    // Don't use xpath as it messes with HTML escaping.
+    preg_match('@<title>(.*)</title>@', $this->getRawContent(), $matches);
+    if (isset($matches[1])) {
+      $actual = $matches[1];
+      if (!$message) {
+        $message = SafeMarkup::format('Page title @actual is equal to @expected.', array(
+          '@actual' => var_export($actual, TRUE),
+          '@expected' => var_export($title, TRUE),
+        ));
+      }
+      return $this->assertEqual($actual, $title, $message, $group);
     }
-    return $this->assertEqual($actual, $title, $message, $group);
+    return $this->fail('No title element found on the page.');
   }
 
   /**
@@ -812,12 +845,15 @@ trait AssertContentTrait {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = \Drupal::service('renderer');
 
-    $output = $renderer->executeInRenderContext(new RenderContext(), function() use ($callback, $variables) {
+    // The string cast is necessary because theme functions return
+    // SafeStringInterface objects. This means we can assert that $expected
+    // matches the theme output without having to worry about 0 == ''.
+    $output = (string) $renderer->executeInRenderContext(new RenderContext(), function() use ($callback, $variables) {
       return \Drupal::theme()->render($callback, $variables);
     });
     $this->verbose(
-      '<hr />' . 'Result:' . '<pre>' . SafeMarkup::checkPlain(var_export($output, TRUE)) . '</pre>'
-      . '<hr />' . 'Expected:' . '<pre>' . SafeMarkup::checkPlain(var_export($expected, TRUE)) . '</pre>'
+      '<hr />' . 'Result:' . '<pre>' . Html::escape(var_export($output, TRUE)) . '</pre>'
+      . '<hr />' . 'Expected:' . '<pre>' . Html::escape(var_export($expected, TRUE)) . '</pre>'
       . '<hr />' . $output
     );
     if (!$message) {

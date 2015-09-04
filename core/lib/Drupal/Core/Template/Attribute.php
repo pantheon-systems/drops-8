@@ -40,7 +40,9 @@ use Drupal\Component\Utility\SafeStringInterface;
  * @endcode
  *
  * The attribute keys and values are automatically sanitized for output with
- * htmlspecialchars() and the entire attribute string is marked safe for output.
+ * Html::escape() and the entire attribute string is marked safe for output.
+ *
+ * @see \Drupal\Component\Utility\Html::escape()
  */
 class Attribute implements \ArrayAccess, \IteratorAggregate, SafeStringInterface {
 
@@ -298,6 +300,16 @@ class Attribute implements \ArrayAccess, \IteratorAggregate, SafeStringInterface
    */
   public function storage() {
     return $this->storage;
+  }
+
+  /**
+   * Returns a representation of the object for use in JSON serialization.
+   *
+   * @return string
+   *   The safe string content.
+   */
+  public function jsonSerialize() {
+    return (string) $this;
   }
 
 }

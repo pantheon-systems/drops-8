@@ -229,23 +229,29 @@ function theme_system_modules_details($variables) {
 
     // Add the module label and expand/collapse functionality.
     $id = Html::getUniqueId('module-' . $key);
-    $col2 = '<label id="' . $id . '" for="' . $module['enable']['#id'] . '" class="module-name table-filter-text-source">' . drupal_render($module['name']) . '</label>';
-    $row[] = array('class' => array('module'), 'data' => SafeMarkup::set($col2));
+    $col2 = [
+      '#type' => 'inline_template',
+      '#template' => '<label id="{{ id }}" for="{{ enable_id }}" class="module-name table-filter-text-source">{{ module_name }}</label>',
+      '#context' => [
+        'id' => $id,
+        'enable_id' => $module['enable']['#id'],
+        'module_name' => $module['name'],
+      ],
+    ];
+    $row[] = ['class' => ['module'], 'data' => $col2];
 
     // Add the description, along with any modules it requires.
     $description = '';
     $description .= '<div class="requirements">';
     $description .= '<div class="admin-requirements">' . t('Machine name: !machine-name', array('!machine-name' => '<span dir="ltr" class="table-filter-text-source">' . $key . '</span>')) . '</div>';
-    if ($version || $requires || $required_by) {
-      if ($version) {
-        $description .= '<div class="admin-requirements">' . t('Version: !module-version', array('!module-version' => drupal_render($module['version']))) . '</div>';
-      }
-      if ($requires) {
-        $description .= '<div class="admin-requirements">' . t('Requires: !module-list', array('!module-list' => implode(', ', $module['#requires']))) . '</div>';
-      }
-      if ($required_by) {
-        $description .= '<div class="admin-requirements">' . t('Required by: !module-list', array('!module-list' => implode(', ', $module['#required_by']))) . '</div>';
-      }
+    if ($version) {
+      $description .= '<div class="admin-requirements">' . t('Version: !module-version', array('!module-version' => drupal_render($module['version']))) . '</div>';
+    }
+    if ($requires) {
+      $description .= '<div class="admin-requirements">' . t('Requires: !module-list', array('!module-list' => implode(', ', $module['#requires']))) . '</div>';
+    }
+    if ($required_by) {
+      $description .= '<div class="admin-requirements">' . t('Required by: !module-list', array('!module-list' => implode(', ', $module['#required_by']))) . '</div>';
     }
     $description .= '</div>';
     $links = '';
@@ -257,14 +263,18 @@ function theme_system_modules_details($variables) {
       $description .= $links;
       $description .= '</div>';
     }
+    $title = [
+      '#type' => 'inline_template',
+      '#template' => '<span class="text module-description">{{ module_description }}</span>',
+      '#context' => ['module_description' => $module['description']],
+    ];
     $details = array(
       '#type' => 'details',
-      '#title' => SafeMarkup::set('<span class="text module-description">' . drupal_render($module['description']) . '</span>'),
+      '#title' => $title,
       '#attributes' => array('id' => $module['enable']['#id'] . '-description'),
       '#description' => $description,
     );
-    $col4 = drupal_render($details);
-    $row[] = array('class' => array('description', 'expand'), 'data' => $col4);
+    $row[] = ['class' => ['description', 'expand'], 'data' => $details];
 
     $rows[] = $module['#attributes'] + array('data' => $row);
   }

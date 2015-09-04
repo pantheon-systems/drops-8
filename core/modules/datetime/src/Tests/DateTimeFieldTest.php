@@ -69,6 +69,7 @@ class DateTimeFieldTest extends WebTestBase {
       'access content',
       'view test entity',
       'administer entity_test content',
+      'administer entity_test form display',
       'administer content types',
       'administer node fields',
     ));
@@ -119,7 +120,7 @@ class DateTimeFieldTest extends WebTestBase {
     // Display creation form.
     $this->drupalGet('entity_test/add');
     $this->assertFieldByName("{$field_name}[0][value][date]", '', 'Date element found.');
-    $this->assertFieldByXPath('//*[@id="edit-' . $field_name . '-wrapper"]/h4[contains(@class, "form-required")]', TRUE, 'Required markup found');
+    $this->assertFieldByXPath('//*[@id="edit-' . $field_name . '-wrapper"]/h4[contains(@class, "js-form-required")]', TRUE, 'Required markup found');
     $this->assertNoFieldByName("{$field_name}[0][value][time]", '', 'Time element not found.');
 
     // Build up a date in the UTC timezone.
@@ -383,6 +384,38 @@ class DateTimeFieldTest extends WebTestBase {
    */
   function testDatelistWidget() {
     $field_name = $this->fieldStorage->getName();
+
+    // Ensure field is set to a date only field.
+    $this->fieldStorage->setSetting('datetime_type', 'date');
+    $this->fieldStorage->save();
+
+    // Change the widget to a datelist widget.
+    entity_get_form_display($this->field->getTargetEntityTypeId(), $this->field->getTargetBundle(), 'default')
+      ->setComponent($field_name, array(
+        'type' => 'datetime_datelist',
+        'settings' => array(
+          'date_order' => 'YMD',
+        ),
+      ))
+      ->save();
+    \Drupal::entityManager()->clearCachedFieldDefinitions();
+
+    // Display creation form.
+    $this->drupalGet('entity_test/add');
+
+    // Assert that Hour and Minute Elements do not appear on Date Only
+    $this->assertNoFieldByXPath("//*[@id=\"edit-$field_name-0-value-hour\"]", NULL, 'Hour element not found on Date Only.');
+    $this->assertNoFieldByXPath("//*[@id=\"edit-$field_name-0-value-minute\"]", NULL, 'Minute element not found on Date Only.');
+
+    // Go to the form display page to assert that increment option does not appear on Date Only
+    $fieldEditUrl = 'entity_test/structure/entity_test/form-display';
+    $this->drupalGet($fieldEditUrl);
+
+    // Click on the widget settings button to open the widget settings form.
+    $this->drupalPostAjaxForm(NULL, array(), $field_name . "_settings_edit");
+    $xpathIncr = "//select[starts-with(@id, \"edit-fields-$field_name-settings-edit-form-settings-increment\")]";
+    $this->assertNoFieldByXPath($xpathIncr, NULL, 'Increment element not found for Date Only.');
+
     // Change the field to a datetime field.
     $this->fieldStorage->setSetting('datetime_type', 'datetime');
     $this->fieldStorage->save();
@@ -399,6 +432,14 @@ class DateTimeFieldTest extends WebTestBase {
       ))
       ->save();
     \Drupal::entityManager()->clearCachedFieldDefinitions();
+
+    // Go to the form display page to assert that increment option does appear on Date Time
+    $fieldEditUrl = 'entity_test/structure/entity_test/form-display';
+    $this->drupalGet($fieldEditUrl);
+
+    // Click on the widget settings button to open the widget settings form.
+    $this->drupalPostAjaxForm(NULL, array(), $field_name . "_settings_edit");
+    $this->assertFieldByXPath($xpathIncr, NULL, 'Increment element found for Date and time.');
 
     // Display creation form.
     $this->drupalGet('entity_test/add');
@@ -478,6 +519,84 @@ class DateTimeFieldTest extends WebTestBase {
     $this->assertOptionSelected("edit-$field_name-0-value-day", '31', 'Correct day selected.');
     $this->assertOptionSelected("edit-$field_name-0-value-hour", '17', 'Correct hour selected.');
     $this->assertOptionSelected("edit-$field_name-0-value-minute", '15', 'Correct minute selected.');
+
+    // Test the widget for partial completion of fields.
+    entity_get_form_display($this->field->getTargetEntityTypeId(), $this->field->getTargetBundle(), 'default')
+      ->setComponent($field_name, array(
+        'type' => 'datetime_datelist',
+        'settings' => array(
+          'increment' => 1,
+          'date_order' => 'YMD',
+          'time_type' => '24',
+        ),
+      ))
+      ->save();
+    \Drupal::entityManager()->clearCachedFieldDefinitions();
+
+    // Test the widget for validation notifications.
+    foreach ($this->datelistDataProvider() as $data) {
+      list($date_value, $expected) = $data;
+
+      // Display creation form.
+      $this->drupalGet('entity_test/add');
+
+      // Submit a partial date and ensure and error message is provided.
+      $edit = array();
+      foreach ($date_value as $part => $value) {
+        $edit["{$field_name}[0][value][$part]"] = $value;
+      }
+
+      $this->drupalPostForm(NULL, $edit, t('Save'));
+      $this->assertResponse(200);
+      $this->assertText(t($expected));
+    }
+
+    // Test the widget for complete input with zeros as part of selections.
+    $this->drupalGet('entity_test/add');
+
+    $date_value = array('year' => 2012, 'month' => '12', 'day' => '31', 'hour' => '0', 'minute' => '0');
+    $edit = array();
+    foreach ($date_value as $part => $value) {
+      $edit["{$field_name}[0][value][$part]"] = $value;
+    }
+
+    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->assertResponse(200);
+    preg_match('|entity_test/manage/(\d+)|', $this->url, $match);
+    $id = $match[1];
+    $this->assertText(t('entity_test @id has been created.', array('@id' => $id)));
+
+    // Test the widget to ensure zeros are not deselected on validation.
+    $this->drupalGet('entity_test/add');
+
+    $date_value = array('year' => 2012, 'month' => '12', 'day' => '31', 'hour' => '', 'minute' => '0');
+    $edit = array();
+    foreach ($date_value as $part => $value) {
+      $edit["{$field_name}[0][value][$part]"] = $value;
+    }
+
+    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->assertResponse(200);
+    $this->assertOptionSelected("edit-$field_name-0-value-minute", '0', 'Correct minute selected.');
+ }
+
+  /**
+   * The data provider for testing the validation of the datelist widget.
+   *
+   * @return array
+   *   An array of datelist input permutations to test.
+   */
+  protected function datelistDataProvider() {
+    return [
+      // Year only selected, validation error on Month, Day, Hour, Minute.
+      [['year' => 2012, 'month' => '', 'day' => '', 'hour' => '', 'minute' => ''], '4 errors have been found:   MonthDayHourMinute'],
+      // Year and Month selected, validation error on Day, Hour, Minute.
+      [['year' => 2012, 'month' => '12', 'day' => '', 'hour' => '', 'minute' => ''], '3 errors have been found:   DayHourMinute'],
+      // Year, Month and Day selected, validation error on Hour, Minute.
+      [['year' => 2012, 'month' => '12', 'day' => '31', 'hour' => '', 'minute' => ''], '2 errors have been found:   HourMinute'],
+      // Year, Month, Day and Hour selected, validation error on Minute only.
+      [['year' => 2012, 'month' => '12', 'day' => '31', 'hour' => '0', 'minute' => ''], '1 error has been found:   Minute'],
+    ];
   }
 
   /**

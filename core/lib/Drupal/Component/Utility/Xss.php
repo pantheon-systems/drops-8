@@ -15,7 +15,7 @@ namespace Drupal\Component\Utility;
 class Xss {
 
   /**
-   * The list of html tags allowed by filterAdmin().
+   * The list of HTML tags allowed by filterAdmin().
    *
    * @var array
    *
@@ -24,17 +24,19 @@ class Xss {
   protected static $adminTags = array('a', 'abbr', 'acronym', 'address', 'article', 'aside', 'b', 'bdi', 'bdo', 'big', 'blockquote', 'br', 'caption', 'cite', 'code', 'col', 'colgroup', 'command', 'dd', 'del', 'details', 'dfn', 'div', 'dl', 'dt', 'em', 'figcaption', 'figure', 'footer', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'header', 'hgroup', 'hr', 'i', 'img', 'ins', 'kbd', 'li', 'mark', 'menu', 'meter', 'nav', 'ol', 'output', 'p', 'pre', 'progress', 'q', 'rp', 'rt', 'ruby', 's', 'samp', 'section', 'small', 'span', 'strong', 'sub', 'summary', 'sup', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead', 'time', 'tr', 'tt', 'u', 'ul', 'var', 'wbr');
 
   /**
+   * The default list of HTML tags allowed by filter().
+   *
+   * @var array
+   *
+   * @see \Drupal\Component\Utility\Xss::filter()
+   */
+  protected static $htmlTags = array('a', 'em', 'strong', 'cite', 'blockquote', 'code', 'ul', 'ol', 'li', 'dl', 'dt', 'dd');
+
+  /**
    * Filters HTML to prevent cross-site-scripting (XSS) vulnerabilities.
    *
    * Based on kses by Ulf Harnhammar, see http://sourceforge.net/projects/kses.
    * For examples of various XSS attacks, see: http://ha.ckers.org/xss.html.
-   *
-   * This method is preferred to
-   * \Drupal\Component\Utility\SafeMarkup::xssFilter() when the result is not
-   * being used directly in the rendering system (for example, when its result
-   * is being combined with other strings before rendering). This avoids
-   * bloating the safe string list with partial strings if the whole result will
-   * be marked safe.
    *
    * This code does four things:
    * - Removes characters and constructs that can trick browsers.
@@ -54,11 +56,13 @@ class Xss {
    *   valid UTF-8.
    *
    * @see \Drupal\Component\Utility\Unicode::validateUtf8()
-   * @see \Drupal\Component\Utility\SafeMarkup::xssFilter()
    *
    * @ingroup sanitization
    */
-  public static function filter($string, $html_tags = array('a', 'em', 'strong', 'cite', 'blockquote', 'code', 'ul', 'ol', 'li', 'dl', 'dt', 'dd')) {
+  public static function filter($string, array $html_tags = NULL) {
+    if (is_null($html_tags)) {
+      $html_tags = static::$htmlTags;
+    }
     // Only operate on valid UTF-8 strings. This is necessary to prevent cross
     // site scripting issues on Internet Explorer 6.
     if (!Unicode::validateUtf8($string)) {
@@ -84,10 +88,7 @@ class Xss {
     $splitter = function ($matches) use ($html_tags, $class) {
       return $class::split($matches[1], $html_tags, $class);
     };
-    // Strip any tags that are not in the whitelist, then mark the text as safe
-    // for output. All other known XSS vectors have been filtered out by this
-    // point and any HTML tags remaining will have been deliberately allowed, so
-    // it is acceptable to call SafeMarkup::set() on the resultant string.
+    // Strip any tags that are not in the whitelist.
     return preg_replace_callback('%
       (
       <(?=[^a-zA-Z!/])  # a lone <
@@ -108,13 +109,6 @@ class Xss {
    * is desired (so \Drupal\Component\Utility\SafeMarkup::checkPlain() is
    * not acceptable).
    *
-   * This method is preferred to
-   * \Drupal\Component\Utility\SafeMarkup::xssFilter() when the result is
-   * not being used directly in the rendering system (for example, when its
-   * result is being combined with other strings before rendering). This avoids
-   * bloating the safe string list with partial strings if the whole result will
-   * be marked safe.
-   *
    * Allows all tags that can be used inside an HTML body, save
    * for scripts and styles.
    *
@@ -126,7 +120,6 @@ class Xss {
    *
    * @ingroup sanitization
    *
-   * @see \Drupal\Component\Utility\SafeMarkup::xssFilter()
    * @see \Drupal\Component\Utility\Xss::getAdminTagList()
    *
    */
@@ -338,13 +331,22 @@ class Xss {
   }
 
   /**
-   * Gets the list of html tags allowed by Xss::filterAdmin().
+   * Gets the list of HTML tags allowed by Xss::filterAdmin().
    *
    * @return array
-   *   The list of html tags allowed by filterAdmin().
+   *   The list of HTML tags allowed by filterAdmin().
    */
   public static function getAdminTagList() {
     return static::$adminTags;
   }
 
+  /**
+   * Gets the standard list of HTML tags allowed by Xss::filter().
+   *
+   * @return array
+   *   The list of HTML tags allowed by Xss::filter().
+   */
+  public static function getHtmlTagList() {
+    return static::$htmlTags;
+  }
 }

@@ -174,7 +174,6 @@ class QuickEditLoadingTest extends WebTestBase {
         'label' => 'Body',
         'access' => TRUE,
         'editor' => 'form',
-        'aria' => 'Entity node 1, field Body',
       )
     );
     $this->assertIdentical(Json::decode($response), $expected, 'The metadata HTTP request answers with the correct JSON response.');
@@ -333,7 +332,6 @@ class QuickEditLoadingTest extends WebTestBase {
         'label' => 'Title',
         'access' => TRUE,
         'editor' => 'plain_text',
-        'aria' => 'Entity node 1, field Title',
       )
     );
     $this->assertIdentical(Json::decode($response), $expected, 'The metadata HTTP request answers with the correct JSON response.');
@@ -514,7 +512,7 @@ class QuickEditLoadingTest extends WebTestBase {
       $ajax_commands = Json::decode($response);
       $this->assertIdentical(2, count($ajax_commands), 'The field form HTTP request results in two AJAX commands.');
       $this->assertIdentical('quickeditFieldFormValidationErrors', $ajax_commands[1]['command'], 'The second AJAX command is a quickeditFieldFormValidationErrors command.');
-      $this->assertTrue(strpos($ajax_commands[1]['data'], t('The content has either been modified by another user, or you have already submitted modifications. As a result, your changes cannot be saved.')), 'Error message returned to user.');
+      $this->assertTrue(strpos($ajax_commands[1]['data'], 'The content has either been modified by another user, or you have already submitted modifications. As a result, your changes cannot be saved.'), 'Error message returned to user.');
     }
   }
 

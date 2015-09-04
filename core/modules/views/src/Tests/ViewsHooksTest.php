@@ -7,6 +7,7 @@
 
 namespace Drupal\views\Tests;
 
+use Drupal\Core\Render\RenderContext;
 use Drupal\views\Views;
 
 /**
@@ -16,7 +17,7 @@ use Drupal\views\Views;
  * @see views_hook_info().
  * @see field_hook_info().
  */
-class ViewsHooksTest extends ViewUnitTestBase {
+class ViewsHooksTest extends ViewKernelTestBase {
 
   /**
    * Views used by this test.
@@ -65,10 +66,16 @@ class ViewsHooksTest extends ViewUnitTestBase {
    */
   public function testHooks() {
     $view = Views::getView('test_view');
+    $view->setDisplay();
 
     // Test each hook is found in the implementations array and is invoked.
     foreach (static::$hooks as $hook => $type) {
       $this->assertTrue($this->moduleHandler->implementsHook('views_test_data', $hook), format_string('The hook @hook was registered.', array('@hook' => $hook)));
+
+      if ($hook == 'views_post_render') {
+        $this->moduleHandler->invoke('views_test_data', $hook, array($view, &$view->display_handler->output, $view->display_handler->getPlugin('cache')));
+        continue;
+      }
 
       switch ($type) {
         case 'view':
@@ -89,6 +96,27 @@ class ViewsHooksTest extends ViewUnitTestBase {
       // .views.inc file is loaded actively.
       $this->moduleHandler->resetImplementations();
     }
+  }
+
+  /**
+   * Tests how hook_views_form_substitutions() makes substitutions.
+   *
+   * @see views_test_data_views_form_substitutions()
+   * @see views_pre_render_views_form_views_form()
+   */
+  public function testViewsPreRenderViewsFormViewsForm() {
+    $element = [
+      'output' => [
+        '#plain_text' => '<!--will-be-escaped--><!--will-be-not-escaped-->',
+      ],
+      '#substitutions' => ['#value' => []],
+    ];
+    $element = \Drupal::service('renderer')->executeInRenderContext(new RenderContext(), function() use ($element) {
+      return views_pre_render_views_form_views_form($element);
+    });
+    $this->setRawContent((string) $element['output']['#markup']);
+    $this->assertEscaped('<em>escaped</em>');
+    $this->assertRaw('<em>unescaped</em>');
   }
 
 }

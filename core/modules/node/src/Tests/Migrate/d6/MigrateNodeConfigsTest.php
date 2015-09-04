@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade variables to node.settings.yml.
  *
- * @group node
+ * @group migrate_drupal_6
  */
 class MigrateNodeConfigsTest extends MigrateDrupal6TestBase {
 
@@ -31,7 +31,6 @@ class MigrateNodeConfigsTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->loadDumps(['Variable.php']);
     $this->executeMigration('d6_node_settings');
   }
 

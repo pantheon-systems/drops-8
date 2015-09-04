@@ -12,6 +12,7 @@
 
 namespace Drupal\Core\Template;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\SafeStringInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -111,7 +112,6 @@ class TwigExtension extends \Twig_Extension {
       // in \Symfony\Bridge\Twig\Extension\RoutingExtension
       new \Twig_SimpleFunction('url', array($this, 'getUrl'), array('is_safe_callback' => array($this, 'isUrlGenerationSafe'))),
       new \Twig_SimpleFunction('path', array($this, 'getPath'), array('is_safe_callback' => array($this, 'isUrlGenerationSafe'))),
-      new \Twig_SimpleFunction('url_from_path', array($this, 'getUrlFromPath'), array('is_safe_callback' => array($this, 'isUrlGenerationSafe'))),
       new \Twig_SimpleFunction('link', array($this, 'getLink')),
       new \Twig_SimpleFunction('file_url', 'file_create_url'),
       new \Twig_SimpleFunction('attach_library', [$this, 'attachLibrary']),
@@ -141,7 +141,7 @@ class TwigExtension extends \Twig_Extension {
       // Implements safe joining.
       // @todo Make that the default for |join? Upstream issue:
       //   https://github.com/fabpot/Twig/issues/1420
-      new \Twig_SimpleFilter('safe_join', 'twig_drupal_join_filter', array('is_safe' => array('html'))),
+      new \Twig_SimpleFilter('safe_join', [$this, 'safeJoin'], ['needs_environment' => true, 'is_safe' => ['html']]),
 
       // Array filters.
       new \Twig_SimpleFilter('without', 'twig_without'),
@@ -221,31 +221,6 @@ class TwigExtension extends \Twig_Extension {
     // Generate URL.
     $options['absolute'] = TRUE;
     $generated_url = $this->urlGenerator->generateFromRoute($name, $parameters, $options, TRUE);
-
-    // Return as render array, so we can bubble the bubbleable metadata.
-    $build = ['#markup' => $generated_url->getGeneratedUrl()];
-    $generated_url->applyTo($build);
-    return $build;
-  }
-
-  /**
-   * Generates an absolute URL given a path.
-   *
-   * @param string $path
-   *   The path.
-   * @param array $options
-   *   (optional) An associative array of additional options. The 'absolute'
-   *   option is forced to be TRUE.
-   *
-   * @return string
-   *   The generated absolute URL for the given path.
-   *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 8.0.0.
-   */
-  public function getUrlFromPath($path, $options = array()) {
-    // Generate URL.
-    $options['absolute'] = TRUE;
-    $generated_url = $this->urlGenerator->generateFromPath($path, $options, TRUE);
 
     // Return as render array, so we can bubble the bubbleable metadata.
     $build = ['#markup' => $generated_url->getGeneratedUrl()];
@@ -433,7 +408,7 @@ class TwigExtension extends \Twig_Extension {
       // Drupal only supports the HTML escaping strategy, so provide a
       // fallback for other strategies.
       if ($strategy == 'html') {
-        return SafeMarkup::checkPlain($return);
+        return Html::escape($return);
       }
       return twig_escape_filter($env, $return, $strategy, $charset, $autoescape);
     }
@@ -480,11 +455,7 @@ class TwigExtension extends \Twig_Extension {
       return NULL;
     }
 
-    // Optimize for strings as it is likely they come from the escape filter.
-    if (is_string($arg)) {
-      return $arg;
-    }
-
+    // Optimize for scalars as it is likely they come from the escape filter.
     if (is_scalar($arg)) {
       return $arg;
     }
@@ -511,6 +482,28 @@ class TwigExtension extends \Twig_Extension {
     }
     $arg['#printed'] = FALSE;
     return $this->renderer->render($arg);
+  }
+
+  /**
+   * Joins several strings together safely.
+   *
+   * @param \Twig_Environment $env
+   *   A Twig_Environment instance.
+   * @param mixed[]|\Traversable $value
+   *   The pieces to join.
+   * @param string $glue
+   *   The delimiter with which to join the string. Defaults to an empty string.
+   *   This value is expected to be safe for output and user provided data
+   *   should never be used as a glue.
+   *
+   * @return string
+   *   The strings joined together.
+   */
+  public function safeJoin(\Twig_Environment $env, $value, $glue = '') {
+    return implode($glue, array_map(function($item) use ($env) {
+      // If $item is not marked safe then it will be escaped.
+      return $this->escapeFilter($env, $item, 'html', NULL, TRUE);
+    }, $value));
   }
 
 }

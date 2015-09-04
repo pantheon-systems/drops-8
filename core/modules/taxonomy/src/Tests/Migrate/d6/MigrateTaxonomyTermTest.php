@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade taxonomy terms.
  *
- * @group taxonomy
+ * @group migrate_drupal_6
  */
 class MigrateTaxonomyTermTest extends MigrateDrupal6TestBase {
 
@@ -33,12 +33,6 @@ class MigrateTaxonomyTermTest extends MigrateDrupal6TestBase {
         array(array(2), array('vocabulary_2_i_1_')),
         array(array(3), array('vocabulary_3_i_2_')),
     )));
-    $this->loadDumps([
-      'TermData.php',
-      'TermHierarchy.php',
-      'Vocabulary.php',
-      'VocabularyNodeTypes.php',
-    ]);
     $this->executeMigration('d6_taxonomy_term');
   }
 

@@ -10,6 +10,7 @@ use Drupal\Core\Asset\AssetCollectionRendererInterface;
 use Drupal\Core\Asset\AssetResolverInterface;
 use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Form\EnforcedResponseException;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -99,30 +100,96 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
       throw new \InvalidArgumentException('\Drupal\Core\Render\HtmlResponse instance expected.');
     }
 
+    // First, render the actual placeholders; this may cause additional
+    // attachments to be added to the response, which the attachment
+    // placeholders rendered by renderHtmlResponseAttachmentPlaceholders() will
+    // need to include.
+    //
+    // @todo Exceptions should not be used for code flow control. However, the
+    //   Form API does not integrate with the HTTP Kernel based architecture of
+    //   Drupal 8. In order to resolve this issue properly it is necessary to
+    //   completely separate form submission from rendering.
+    //   @see https://www.drupal.org/node/2367555
+    try {
+      $response = $this->renderPlaceholders($response);
+    }
+    catch (EnforcedResponseException $e) {
+      return $e->getResponse();
+    }
+
     $attached = $response->getAttachments();
 
     // Get the placeholders from attached and then remove them.
-    $placeholders = $attached['html_response_placeholders'];
-    unset($attached['html_response_placeholders']);
+    $attachment_placeholders = $attached['html_response_attachment_placeholders'];
+    unset($attached['html_response_attachment_placeholders']);
 
-    $variables = $this->processAssetLibraries($attached, $placeholders);
+    $variables = $this->processAssetLibraries($attached, $attachment_placeholders);
 
-    // Handle all non-asset attachments. This populates drupal_get_html_head()
-    // and drupal_get_http_header().
+    // Handle all non-asset attachments. This populates drupal_get_html_head().
     $all_attached = ['#attached' => $attached];
     drupal_process_attached($all_attached);
 
     // Get HTML head elements - if present.
-    if (isset($placeholders['head'])) {
+    if (isset($attachment_placeholders['head'])) {
       $variables['head'] = drupal_get_html_head(FALSE);
     }
 
-    // Now replace the placeholders in the response content with the real data.
-    $this->renderPlaceholders($response, $placeholders, $variables);
+    // Now replace the attachment placeholders.
+    $this->renderHtmlResponseAttachmentPlaceholders($response, $attachment_placeholders, $variables);
 
-    // Finally set the headers on the response.
-    $headers = drupal_get_http_header();
-    $this->setHeaders($response, $headers);
+    // Finally set the headers on the response if any bubbled.
+    if (!empty($attached['http_header'])) {
+      $this->setHeaders($response, $attached['http_header']);
+    }
+
+    return $response;
+  }
+
+  /**
+   * Renders placeholders (#attached['placeholders']).
+   *
+   * First, the HTML response object is converted to an equivalent render array,
+   * with #markup being set to the response's content and #attached being set to
+   * the response's attachments. Among these attachments, there may be
+   * placeholders that need to be rendered (replaced).
+   *
+   * Next, RendererInterface::renderRoot() is called, which renders the
+   * placeholders into their final markup.
+   *
+   * The markup that results from RendererInterface::renderRoot() is now the
+   * original HTML response's content, but with the placeholders rendered. We
+   * overwrite the existing content in the original HTML response object with
+   * this markup. The markup that was rendered for the placeholders may also
+   * have attachments (e.g. for CSS/JS assets) itself, and cacheability metadata
+   * that indicates what that markup depends on. That metadata is also added to
+   * the HTML response object.
+   *
+   * @param \Drupal\Core\Render\HtmlResponse $response
+   *   The HTML response whose placeholders are being replaced.
+   *
+   * @return \Drupal\Core\Render\HtmlResponse
+   *   The updated HTML response, with replaced placeholders.
+   *
+   * @see \Drupal\Core\Render\Renderer::replacePlaceholders()
+   * @see \Drupal\Core\Render\Renderer::renderPlaceholder()
+   */
+  protected function renderPlaceholders(HtmlResponse $response) {
+    $build = [
+      '#markup' => SafeString::create($response->getContent()),
+      '#attached' => $response->getAttachments(),
+    ];
+    // RendererInterface::renderRoot() renders the $build render array and
+    // updates it in place. We don't care about the return value (which is just
+    // $build['#markup']), but about the resulting render array.
+    // @todo Simplify this when https://www.drupal.org/node/2495001 lands.
+    $this->renderer->renderRoot($build);
+
+    // Update the Response object now that the placeholders have been rendered.
+    $placeholders_bubbleable_metadata = BubbleableMetadata::createFromRenderArray($build);
+    $response
+      ->setContent($build['#markup'])
+      ->addCacheableDependency($placeholders_bubbleable_metadata)
+      ->setAttachments($placeholders_bubbleable_metadata->getAttachments());
 
     return $response;
   }
@@ -164,7 +231,7 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
     // Print scripts - if any are present.
     if (isset($placeholders['scripts']) || isset($placeholders['scripts_bottom'])) {
       // Optimize JS if necessary, but only during normal site operation.
-      $optimize_js = !defined('MAINTENANCE_MODE') && $this->config->get('js.preprocess');
+      $optimize_js = !defined('MAINTENANCE_MODE') && !\Drupal::state()->get('system.maintenance_mode') && $this->config->get('js.preprocess');
       list($js_assets_header, $js_assets_footer) = $this->assetResolver->getJsAssets($assets, $optimize_js);
       $variables['scripts'] = $this->jsCollectionRenderer->render($js_assets_header);
       $variables['scripts_bottom'] = $this->jsCollectionRenderer->render($js_assets_footer);
@@ -174,8 +241,7 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
   }
 
   /**
-   * Renders variables into HTML markup and replaces placeholders in the
-   * response content.
+   * Renders HTML response attachment placeholders.
    *
    * @param \Drupal\Core\Render\HtmlResponse $response
    *   The HTML response to update.
@@ -186,7 +252,7 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
    *   The variables to render and replace, keyed by type with renderable
    *   arrays as values.
    */
-  protected function renderPlaceholders(HtmlResponse $response, array $placeholders, array $variables) {
+  protected function renderHtmlResponseAttachmentPlaceholders(HtmlResponse $response, array $placeholders, array $variables) {
     $content = $response->getContent();
     foreach ($placeholders as $type => $placeholder) {
       if (isset($variables[$type])) {
@@ -205,13 +271,17 @@ class HtmlResponseAttachmentsProcessor implements AttachmentsResponseProcessorIn
    *   The headers to set.
    */
   protected function setHeaders(HtmlResponse $response, array $headers) {
-    foreach ($headers as $name => $value) {
+    foreach ($headers as $values) {
+      $name = $values[0];
+      $value = $values[1];
+      $replace = !empty($values[2]);
+
       // Drupal treats the HTTP response status code like a header, even though
       // it really is not.
-      if ($name === 'status') {
+      if (strtolower($name) === 'status') {
         $response->setStatusCode($value);
       }
-      $response->headers->set($name, $value, FALSE);
+      $response->headers->set($name, $value, $replace);
     }
   }
 

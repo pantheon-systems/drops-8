@@ -12,19 +12,43 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\EnforcedResponseException;
+use Drupal\Core\Form\FormBuilder;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Drupal\Core\Cache\Context\CacheContextsManager;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * @coversDefaultClass \Drupal\Core\Form\FormBuilder
  * @group Form
  */
 class FormBuilderTest extends FormTestBase {
+
+  /**
+   * The dependency injection container.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerBuilder
+   */
+  protected $container;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+
+    $this->container = new ContainerBuilder();
+    $cache_contexts_manager = $this->prophesize(CacheContextsManager::class)->reveal();
+    $this->container->set('cache_contexts_manager', $cache_contexts_manager);
+    \Drupal::setContainer($this->container);
+  }
 
   /**
    * Tests the getFormId() method with a string based form ID.
@@ -571,7 +595,7 @@ class FormBuilderTest extends FormTestBase {
     $data['access-false-root'] = [$clone, $expected_access];
 
     $clone = $element;
-    $access_result = AccessResult::forbidden()->addCacheContexts(['user']);
+    $access_result = AccessResult::forbidden();
     $clone['#access'] = $access_result;
 
     $expected_access = [];
@@ -603,11 +627,9 @@ class FormBuilderTest extends FormTestBase {
 
     // Allow access on the most outer level but forbid otherwise.
     $clone = $element;
-    $access_result_allowed = AccessResult::allowed()
-      ->addCacheContexts(['user']);
+    $access_result_allowed = AccessResult::allowed();
     $clone['#access'] = $access_result_allowed;
-    $access_result_forbidden = AccessResult::forbidden()
-      ->addCacheContexts(['user']);
+    $access_result_forbidden = AccessResult::forbidden();
     $clone['child0']['#access'] = $access_result_forbidden;
 
     $expected_access = [];
@@ -660,6 +682,149 @@ class FormBuilderTest extends FormTestBase {
     $data['access-mixed-parents-object'] = [$clone, $expected_access];
 
     return $data;
+  }
+
+  /**
+   * @covers ::valueCallableIsSafe
+   *
+   * @dataProvider providerTestValueCallableIsSafe
+   */
+  public function testValueCallableIsSafe($callback, $expected) {
+    $method = new \ReflectionMethod(FormBuilder::class, 'valueCallableIsSafe');
+    $method->setAccessible(true);
+    $is_safe = $method->invoke($this->formBuilder, $callback);
+    $this->assertSame($expected, $is_safe);
+  }
+
+  public function providerTestValueCallableIsSafe() {
+    $data = [];
+    $data['string_no_slash'] = [
+      'Drupal\Core\Render\Element\Token::valueCallback',
+      TRUE,
+    ];
+    $data['string_with_slash'] = [
+      '\Drupal\Core\Render\Element\Token::valueCallback',
+      TRUE,
+    ];
+    $data['array_no_slash'] = [
+      ['Drupal\Core\Render\Element\Token', 'valueCallback'],
+      TRUE,
+    ];
+    $data['array_with_slash'] = [
+      ['\Drupal\Core\Render\Element\Token', 'valueCallback'],
+      TRUE,
+    ];
+    $data['closure'] = [
+      function () {},
+      FALSE,
+    ];
+    return $data;
+  }
+
+  /**
+   * @covers ::doBuildForm
+   *
+   * @dataProvider providerTestInvalidToken
+   */
+  public function testInvalidToken($expected, $valid_token, $user_is_authenticated) {
+    $form_token = 'the_form_token';
+    $form_id = 'test_form_id';
+
+    if (is_bool($valid_token)) {
+      $this->csrfToken->expects($this->any())
+        ->method('get')
+        ->willReturnArgument(0);
+      $this->csrfToken->expects($this->atLeastOnce())
+        ->method('validate')
+        ->will($this->returnValueMap([
+          [$form_token, $form_id, $valid_token],
+          [$form_id, $form_id, $valid_token],
+        ]));
+    }
+
+    $current_user = $this->prophesize(AccountInterface::class);
+    $current_user->isAuthenticated()->willReturn($user_is_authenticated);
+    $property = new \ReflectionProperty(FormBuilder::class, 'currentUser');
+    $property->setAccessible(TRUE);
+    $property->setValue($this->formBuilder, $current_user->reveal());
+
+    $expected_form = $form_id();
+    $form_arg = $this->getMockForm($form_id, $expected_form);
+
+    $form_state = new FormState();
+    $input['form_id'] = $form_id;
+    $input['form_token'] = $form_token;
+    $form_state->setUserInput($input);
+    $this->simulateFormSubmission($form_id, $form_arg, $form_state, FALSE);
+    $this->assertSame($expected, $form_state->hasInvalidToken());
+  }
+
+  public function providerTestInvalidToken() {
+    $data = [];
+    $data['authenticated_invalid'] = [TRUE, FALSE, TRUE];
+    $data['authenticated_valid'] = [FALSE, TRUE, TRUE];
+    // If the user is not authenticated, we will not have a token.
+    $data['anonymous'] = [FALSE, NULL, FALSE];
+    return $data;
+  }
+
+  /**
+   * @covers ::prepareForm
+   *
+   * @dataProvider providerTestFormTokenCacheability
+   */
+  function testFormTokenCacheability($token, $is_authenticated, $expected_form_cacheability, $expected_token_cacheability) {
+    $user = $this->prophesize(AccountProxyInterface::class);
+    $user->isAuthenticated()
+      ->willReturn($is_authenticated);
+    $this->container->set('current_user', $user->reveal());
+    \Drupal::setContainer($this->container);
+
+    $form_id = 'test_form_id';
+    $form = $form_id();
+
+    if (isset($token)) {
+      $form['#token'] = $token;
+    }
+
+    $form_arg = $this->getMock('Drupal\Core\Form\FormInterface');
+    $form_arg->expects($this->once())
+      ->method('getFormId')
+      ->will($this->returnValue($form_id));
+    $form_arg->expects($this->once())
+      ->method('buildForm')
+      ->will($this->returnValue($form));
+
+    $form_state = new FormState();
+    $built_form = $this->formBuilder->buildForm($form_arg, $form_state);
+    if (!isset($expected_form_cacheability)) {
+      $this->assertFalse(isset($built_form['#cache']));
+    }
+    else {
+      $this->assertTrue(isset($built_form['#cache']));
+      $this->assertEquals($expected_form_cacheability, $built_form['#cache']);
+    }
+    if (!isset($expected_token_cacheability)) {
+      $this->assertFalse(isset($built_form['form_token']));
+    }
+    else {
+      $this->assertTrue(isset($built_form['form_token']));
+      $this->assertEquals($expected_token_cacheability, $built_form['form_token']['#cache']);
+    }
+  }
+
+  /**
+   * Data provider for testFormTokenCacheability.
+   *
+   * @return array
+   */
+  function providerTestFormTokenCacheability() {
+    return [
+      'token:none,authenticated:true' => [NULL, TRUE, ['contexts' => ['user.roles:authenticated']], ['max-age' => 0]],
+      'token:false,authenticated:true' => [FALSE, TRUE, NULL, NULL],
+      'token:none,authenticated:false' => [NULL, FALSE, ['contexts' => ['user.roles:authenticated']], NULL],
+      'token:false,authenticated:false' => [FALSE, FALSE, NULL, NULL],
+    ];
   }
 
 }

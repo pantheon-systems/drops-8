@@ -8,6 +8,7 @@
 namespace Drupal\aggregator\Tests;
 
 use Drupal\aggregator\Entity\Feed;
+use Drupal\Component\Utility\Html;
 use Drupal\simpletest\WebTestBase;
 use Drupal\aggregator\FeedInterface;
 
@@ -28,7 +29,7 @@ abstract class AggregatorTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'aggregator', 'aggregator_test', 'views');
+  public static $modules = ['block', 'node', 'aggregator', 'aggregator_test', 'views'];
 
   /**
    * {@inheritdoc}
@@ -43,6 +44,7 @@ abstract class AggregatorTestBase extends WebTestBase {
 
     $this->adminUser = $this->drupalCreateUser(array('access administration pages', 'administer news feeds', 'access news feeds', 'create article content'));
     $this->drupalLogin($this->adminUser);
+    $this->drupalPlaceBlock('local_tasks_block');
   }
 
   /**
@@ -243,7 +245,7 @@ abstract class AggregatorTestBase extends WebTestBase {
   public function getValidOpml(array $feeds) {
     // Properly escape URLs so that XML parsers don't choke on them.
     foreach ($feeds as &$feed) {
-      $feed['url[0][value]'] = htmlspecialchars($feed['url[0][value]']);
+      $feed['url[0][value]'] = Html::escape($feed['url[0][value]']);
     }
     /**
      * Does not have an XML declaration, must pass the parser.

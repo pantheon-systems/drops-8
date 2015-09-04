@@ -10,8 +10,13 @@ namespace Drupal\migrate;
 use Drupal\Core\Utility\Error;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Event\MigrateEvents;
+use Drupal\migrate\Event\MigrateImportEvent;
+use Drupal\migrate\Event\MigratePostRowSaveEvent;
+use Drupal\migrate\Event\MigratePreRowSaveEvent;
 use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Defines a migrate executable class.
@@ -27,20 +32,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $migration;
 
   /**
-   * The number of successfully imported rows since feedback was given.
-   *
-   * @var int
-   */
-  protected $successesSinceFeedback;
-
-  /**
-   * The number of rows that were successfully processed.
-   *
-   * @var int
-   */
-  protected $totalSuccesses;
-
-  /**
    * Status of one row.
    *
    * The value is a MigrateIdMapInterface::STATUS_* constant, for example:
@@ -49,15 +40,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
    * @var int
    */
   protected $sourceRowStatus;
-
-  /**
-   * The number of rows processed.
-   *
-   * The total attempted, whether or not they were successful.
-   *
-   * @var int
-   */
-  protected $totalProcessed;
 
   /**
    * The queued messages not yet saved.
@@ -71,23 +53,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $queuedMessages = array();
 
   /**
-   * The options that can be set when executing the migration.
-   *
-   * Values can be set for:
-   * - 'limit': Sets a time limit.
-   *
-   * @var array
-   */
-  protected $options;
-
-  /**
-   * The PHP max_execution_time.
-   *
-   * @var int
-   */
-  protected $maxExecTime;
-
-  /**
    * The ratio of the memory limit at which an operation will be interrupted.
    *
    * @var float
@@ -95,18 +60,11 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $memoryThreshold = 0.85;
 
   /**
-   * The ratio of the time limit at which an operation will be interrupted.
+   * The PHP memory_limit expressed in bytes.
    *
-   * @var float
+   * @var int
    */
-  public $timeThreshold = 0.90;
-
-  /**
-   * The time limit when executing the migration.
-   *
-   * @var array
-   */
-  public $limit = array();
+  protected $memoryLimit;
 
   /**
    * The configuration values of the source.
@@ -114,20 +72,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
    * @var array
    */
   protected $sourceIdValues;
-
-  /**
-   * The number of rows processed since feedback was given.
-   *
-   * @var int
-   */
-  protected $processedSinceFeedback = 0;
-
-  /**
-   * The PHP memory_limit expressed in bytes.
-   *
-   * @var int
-   */
-  protected $memoryLimit;
 
   /**
    * The rollback action to be saved for the current row.
@@ -174,19 +118,29 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $sourceValues;
 
   /**
+   * The event dispatcher.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
+
+  /**
    * Constructs a MigrateExecutable and verifies and sets the memory limit.
    *
    * @param \Drupal\migrate\Entity\MigrationInterface $migration
    *   The migration to run.
    * @param \Drupal\migrate\MigrateMessageInterface $message
    *   The message to record.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
+   *   The event dispatcher.
    *
    * @throws \Drupal\migrate\MigrateException
    */
-  public function __construct(MigrationInterface $migration, MigrateMessageInterface $message) {
+  public function __construct(MigrationInterface $migration, MigrateMessageInterface $message, EventDispatcherInterface $event_dispatcher = NULL) {
     $this->migration = $migration;
     $this->message = $message;
     $this->migration->getIdMap()->setMessage($message);
+    $this->eventDispatcher = $event_dispatcher;
     // Record the memory limit in bytes
     $limit = trim(ini_get('memory_limit'));
     if ($limit == '-1') {
@@ -204,14 +158,13 @@ class MigrateExecutable implements MigrateExecutableInterface {
             $limit *= 1024;
             break;
           default:
-            throw new MigrateException($this->t('Invalid PHP memory_limit !limit',
+            $limit = PHP_INT_MAX;
+            $this->message->display($this->t('Invalid PHP memory_limit !limit, setting to unlimited.',
               array('!limit' => $limit)));
         }
       }
       $this->memoryLimit = $limit;
     }
-    // Record the maximum execution time limit.
-    $this->maxExecTime = ini_get('max_execution_time');
   }
 
   /**
@@ -234,9 +187,32 @@ class MigrateExecutable implements MigrateExecutableInterface {
   }
 
   /**
+   * Gets the event dispatcher.
+   *
+   * @return \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected function getEventDispatcher() {
+    if (!$this->eventDispatcher) {
+      $this->eventDispatcher = \Drupal::service('event_dispatcher');
+    }
+    return $this->eventDispatcher;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function import() {
+    // Only begin the import operation if the migration is currently idle.
+    if ($this->migration->getStatus() !== MigrationInterface::STATUS_IDLE) {
+      $this->message->display($this->t('Migration @id is busy with another operation: @status',
+        array(
+          '@id' => $this->migration->id(),
+          '@status' => $this->t($this->migration->getStatusLabel()),
+        )), 'error');
+      return MigrationInterface::RESULT_FAILED;
+    }
+    $this->getEventDispatcher()->dispatch(MigrateEvents::PRE_IMPORT, new MigrateImportEvent($this->migration));
+
     // Knock off migration if the requirements haven't been met.
     try {
       $this->migration->checkRequirements();
@@ -251,6 +227,7 @@ class MigrateExecutable implements MigrateExecutableInterface {
       return MigrationInterface::RESULT_FAILED;
     }
 
+    $this->migration->setStatus(MigrationInterface::STATUS_IMPORTING);
     $return = MigrationInterface::RESULT_COMPLETED;
     $source = $this->getSource();
     $id_map = $this->migration->getIdMap();
@@ -261,6 +238,7 @@ class MigrateExecutable implements MigrateExecutableInterface {
     catch (\Exception $e) {
       $this->message->display(
         $this->t('Migration failed with source plugin exception: !e', array('!e' => $e->getMessage())), 'error');
+      $this->migration->setStatus(MigrationInterface::STATUS_IDLE);
       return MigrationInterface::RESULT_FAILED;
     }
 
@@ -284,14 +262,14 @@ class MigrateExecutable implements MigrateExecutableInterface {
 
       if ($save) {
         try {
+          $this->getEventDispatcher()->dispatch(MigrateEvents::PRE_ROW_SAVE, new MigratePreRowSaveEvent($this->migration, $row));
           $destination_id_values = $destination->import($row, $id_map->lookupDestinationId($this->sourceIdValues));
+          $this->getEventDispatcher()->dispatch(MigrateEvents::POST_ROW_SAVE, new MigratePostRowSaveEvent($this->migration, $row, $destination_id_values));
           if ($destination_id_values) {
             // We do not save an idMap entry for config.
             if ($destination_id_values !== TRUE) {
               $id_map->saveIdMapping($row, $destination_id_values, $this->sourceRowStatus, $this->rollbackAction);
             }
-            $this->successesSinceFeedback++;
-            $this->totalSuccesses++;
           }
           else {
             $id_map->saveIdMapping($row, array(), MigrateIdMapInterface::STATUS_FAILED, $this->rollbackAction);
@@ -312,8 +290,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
           $this->handleException($e);
         }
       }
-      $this->totalProcessed++;
-      $this->processedSinceFeedback++;
       if ($high_water_property = $this->migration->get('highWaterProperty')) {
         $this->migration->saveHighWater($row->getSourceProperty($high_water_property['name']));
       }
@@ -322,12 +298,17 @@ class MigrateExecutable implements MigrateExecutableInterface {
       unset($sourceValues, $destinationValues);
       $this->sourceRowStatus = MigrateIdMapInterface::STATUS_IMPORTED;
 
+      // Check for memory exhaustion.
       if (($return = $this->checkStatus()) != MigrationInterface::RESULT_COMPLETED) {
         break;
       }
-      if ($this->timeOptionExceeded()) {
+
+      // If anyone has requested we stop, return the requested result.
+      if ($this->migration->getStatus() == MigrationInterface::STATUS_STOPPING) {
+        $return = $this->migration->getMigrationResult();
         break;
       }
+
       try {
         $source->next();
       }
@@ -335,16 +316,14 @@ class MigrateExecutable implements MigrateExecutableInterface {
         $this->message->display(
           $this->t('Migration failed with source plugin exception: !e',
             array('!e' => $e->getMessage())), 'error');
+        $this->migration->setStatus(MigrationInterface::STATUS_IDLE);
         return MigrationInterface::RESULT_FAILED;
       }
     }
 
-    /**
-     * @TODO uncomment this
-     */
-    #$this->progressMessage($return);
-
     $this->migration->setMigrationResult($return);
+    $this->getEventDispatcher()->dispatch(MigrateEvents::POST_IMPORT, new MigrateImportEvent($this->migration));
+    $this->migration->setStatus(MigrationInterface::STATUS_IDLE);
     return $return;
   }
 
@@ -410,40 +389,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
   }
 
   /**
-   * Tests whether we've exceeded the designated time limit.
-   *
-   * @return bool
-   *   TRUE if the threshold is exceeded, FALSE if not.
-   */
-  protected function timeOptionExceeded() {
-    // If there is no time limit, then it is not exceeded.
-    if (!$time_limit = $this->getTimeLimit()) {
-      return FALSE;
-    }
-    // Calculate if the time limit is exceeded.
-    $time_elapsed = $this->getTimeElapsed();
-    if ($time_elapsed >= $time_limit) {
-      return TRUE;
-    }
-    else {
-      return FALSE;
-    }
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getTimeLimit() {
-    $limit = $this->limit;
-    if (isset($limit['unit']) && isset($limit['value']) && ($limit['unit'] == 'seconds' || $limit['unit'] == 'second')) {
-      return $limit['value'];
-    }
-    else {
-      return NULL;
-    }
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function saveMessage($message, $level = MigrationInterface::MESSAGE_ERROR) {
@@ -468,34 +413,32 @@ class MigrateExecutable implements MigrateExecutableInterface {
   }
 
   /**
-   * Checks for exceptional conditions, and display feedback.
+   * Takes an Exception object and both saves and displays it.
    *
-   * Standard top-of-loop stuff, common between rollback and import.
+   * Pulls in additional information on the location triggering the exception.
+   *
+   * @param \Exception $exception
+   *   Object representing the exception.
+   * @param bool $save
+   *   (optional) Whether to save the message in the migration's mapping table.
+   *   Set to FALSE in contexts where this doesn't make sense.
+   */
+  protected function handleException(\Exception $exception, $save = TRUE) {
+    $result = Error::decodeException($exception);
+    $message = $result['@message'] . ' (' . $result['%file'] . ':' . $result['%line'] . ')';
+    if ($save) {
+      $this->saveMessage($message);
+    }
+    $this->message->display($message, 'error');
+  }
+
+  /**
+   * Checks for exceptional conditions, and display feedback.
    */
   protected function checkStatus() {
     if ($this->memoryExceeded()) {
       return MigrationInterface::RESULT_INCOMPLETE;
     }
-    if ($this->maxExecTimeExceeded()) {
-      return MigrationInterface::RESULT_INCOMPLETE;
-    }
-    /*
-     * @TODO uncomment this
-    if ($this->getStatus() == MigrationInterface::STATUS_STOPPING) {
-      return MigrationBase::RESULT_STOPPED;
-    }
-    */
-    // If feedback is requested, produce a progress message at the proper time
-    /*
-     * @TODO uncomment this
-    if (isset($this->feedback)) {
-      if (($this->feedback_unit == 'seconds' && time() - $this->lastfeedback >= $this->feedback) ||
-          ($this->feedback_unit == 'items' && $this->processed_since_feedback >= $this->feedback)) {
-        $this->progressMessage(MigrationInterface::RESULT_INCOMPLETE);
-      }
-    }
-    */
-
     return MigrationInterface::RESULT_COMPLETED;
   }
 
@@ -568,7 +511,15 @@ class MigrateExecutable implements MigrateExecutableInterface {
     // First, try resetting Drupal's static storage - this frequently releases
     // plenty of memory to continue.
     drupal_static_reset();
+
+    // Entity storage can blow up with caches so clear them out.
+    $manager =  \Drupal::entityManager();
+    foreach ($manager->getDefinitions() as $id => $definition) {
+      $manager->getStorage($id)->resetCache();
+    }
+
     // @TODO: explore resetting the container.
+
     return memory_get_usage();
   }
 
@@ -583,45 +534,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
    */
   protected function formatSize($size) {
     return format_size($size);
-  }
-
-  /**
-   * Tests whether we're approaching the PHP maximum execution time limit.
-   *
-   * @return bool
-   *   TRUE if the threshold is exceeded, FALSE if not.
-   */
-  protected function maxExecTimeExceeded() {
-    return $this->maxExecTime && (($this->getTimeElapsed() / $this->maxExecTime) > $this->timeThreshold);
-  }
-
-  /**
-   * Returns the time elapsed.
-   *
-   * This allows a test to set a fake elapsed time.
-   */
-  protected function getTimeElapsed() {
-    return time() - REQUEST_TIME;
-  }
-
-  /**
-   * Takes an Exception object and both saves and displays it.
-   *
-   * Pulls in additional information on the location triggering the exception.
-   *
-   * @param \Exception $exception
-   *   Object representing the exception.
-   * @param bool $save
-   *   (optional) Whether to save the message in the migration's mapping table.
-   *   Set to FALSE in contexts where this doesn't make sense.
-   */
-  protected function handleException(\Exception $exception, $save = TRUE) {
-    $result = Error::decodeException($exception);
-    $message = $result['!message'] . ' (' . $result['%file'] . ':' . $result['%line'] . ')';
-    if ($save) {
-      $this->saveMessage($message);
-    }
-    $this->message->display($message, 'error');
   }
 
 }

@@ -13,7 +13,7 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 /**
  * Upgrade aggregator items.
  *
- * @group aggregator
+ * @group migrate_drupal_6
  */
 class MigrateAggregatorItemTest extends MigrateDrupal6TestBase {
 
@@ -45,7 +45,6 @@ class MigrateAggregatorItemTest extends MigrateDrupal6TestBase {
     ));
     $entity->enforceIsNew();
     $entity->save();
-    $this->loadDumps(['AggregatorItem.php']);
     $this->executeMigration('d6_aggregator_item');
   }
 

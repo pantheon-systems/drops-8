@@ -54,7 +54,7 @@ class CKEditorTest extends KernelTestBase {
         'filter_html' => array(
           'status' => 1,
           'settings' => array(
-            'allowed_html' => '<h4> <h5> <h6> <p> <br> <strong> <a>',
+            'allowed_html' => '<h2> <h3> <h4> <h5> <h6> <p> <br> <strong> <a>',
           )
         ),
       ),
@@ -103,9 +103,6 @@ class CKEditorTest extends KernelTestBase {
     $this->container->get('plugin.manager.editor')->clearCachedDefinitions();
     $this->ckeditor = $this->container->get('plugin.manager.editor')->createInstance('ckeditor');
     $this->container->get('plugin.manager.ckeditor.plugin')->clearCachedDefinitions();
-    // KernelTestBase::enableModules() unfortunately doesn't invoke
-    // hook_rebuild() just like a "real" Drupal site would. Do it manually.
-    \Drupal::moduleHandler()->invoke('ckeditor', 'rebuild');
     $settings = $editor->getSettings();
     $settings['toolbar']['rows'][0][0]['items'][] = 'Strike';
     $settings['toolbar']['rows'][0][0]['items'][] = 'Format';
@@ -113,7 +110,7 @@ class CKEditorTest extends KernelTestBase {
     $editor->save();
     $expected_config['toolbar'][0]['items'][] = 'Strike';
     $expected_config['toolbar'][0]['items'][] = 'Format';
-    $expected_config['format_tags'] = 'p;h4;h5;h6';
+    $expected_config['format_tags'] = 'p;h2;h3;h4;h5;h6';
     $expected_config['extraPlugins'] .= ',llama_contextual,llama_contextual_and_button';
     $expected_config['drupalExternalPlugins']['llama_contextual'] = file_create_url('core/modules/ckeditor/tests/modules/js/llama_contextual.js');
     $expected_config['drupalExternalPlugins']['llama_contextual_and_button'] = file_create_url('core/modules/ckeditor/tests/modules/js/llama_contextual_and_button.js');
@@ -129,7 +126,7 @@ class CKEditorTest extends KernelTestBase {
 
     $expected_config['allowedContent']['pre'] = array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE);
     $expected_config['allowedContent']['h3'] = array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE);
-    $expected_config['format_tags'] = 'p;h3;h4;h5;h6;pre';
+    $expected_config['format_tags'] = 'p;h2;h3;h4;h5;h6;pre';
     $this->assertIdentical($expected_config, $this->ckeditor->getJSSettings($editor), 'Generated JS settings are correct for customized configuration.');
 
     // Disable the filter_html filter: allow *all *tags.
@@ -209,11 +206,6 @@ class CKEditorTest extends KernelTestBase {
     $expected_config['format_tags'] = 'p';
     ksort($expected_config);
     $this->assertIdentical($expected_config, $this->ckeditor->getJSSettings($editor), 'Generated JS settings are correct for customized configuration.');
-
-    // Assert that we're robust enough to withstand people messing with State
-    // manually.
-    \Drupal::state()->delete('ckeditor_internal_format_tags:' . $format->id());
-    $this->assertIdentical($expected_config, $this->ckeditor->getJSSettings($editor), 'Even when somebody manually deleted the key-value pair in State with the pre-calculated format_tags setting, it returns "p" — because the <p> tag is always allowed.');
   }
 
   /**
@@ -267,7 +259,6 @@ class CKEditorTest extends KernelTestBase {
     $this->config('system.theme')->set('default', 'bartik')->save();
     $expected[] = file_create_url('core/themes/bartik/css/base/elements.css');
     $expected[] = file_create_url('core/themes/bartik/css/components/captions.css');
-    $expected[] = file_create_url('core/themes/bartik/css/components/content.css');
     $expected[] = file_create_url('core/themes/bartik/css/components/table.css');
     $this->assertIdentical($expected, $this->ckeditor->buildContentsCssJSSetting($editor), '"contentsCss" configuration part of JS settings built correctly while a theme providing a CKEditor stylesheet exists.');
   }
@@ -289,7 +280,7 @@ class CKEditorTest extends KernelTestBase {
     $settings = $editor->getSettings();
     $settings['toolbar']['rows'][0][0]['items'][] = 'Format';
     $editor->setSettings($settings);
-    $expected['format_tags'] = 'p;h4;h5;h6';
+    $expected['format_tags'] = 'p;h2;h3;h4;h5;h6';
     $this->assertEqual($expected, $internal_plugin->getConfig($editor), '"Internal" plugin configuration built correctly for customized toolbar.');
   }
 
@@ -430,6 +421,8 @@ class CKEditorTest extends KernelTestBase {
 
   protected function getDefaultAllowedContentConfig() {
     return array(
+      'h2' => array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE),
+      'h3' => array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE),
       'h4' => array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE),
       'h5' => array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE),
       'h6' => array('attributes' => TRUE, 'styles' => FALSE, 'classes' => TRUE),
@@ -475,7 +468,7 @@ class CKEditorTest extends KernelTestBase {
   protected function getDefaultContentsCssConfig() {
     return array(
       file_create_url('core/modules/ckeditor/css/ckeditor-iframe.css'),
-      file_create_url('core/modules/system/css/system.module.css'),
+      file_create_url('core/modules/system/css/components/align.module.css'),
     );
   }
 

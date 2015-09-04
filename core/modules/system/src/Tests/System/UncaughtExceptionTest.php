@@ -90,14 +90,74 @@ class UncaughtExceptionTest extends WebTestBase {
   }
 
   /**
+   * Tests uncaught exception handling with custom exception handler.
+   */
+  public function testUncaughtExceptionCustomExceptionHandler() {
+    $settings_filename = $this->siteDirectory . '/settings.php';
+    chmod($settings_filename, 0777);
+    $settings_php = file_get_contents($settings_filename);
+    $settings_php .= "\n";
+    $settings_php .= "set_exception_handler(function() {\n";
+    $settings_php .= "  header('HTTP/1.1 418 I\'m a teapot');\n";
+    $settings_php .= "  print('Oh oh, flying teapots');\n";
+    $settings_php .= "});\n";
+    file_put_contents($settings_filename, $settings_php);
+
+    \Drupal::state()->set('error_service_test.break_bare_html_renderer', TRUE);
+
+    $this->drupalGet('');
+    $this->assertResponse(418);
+    $this->assertNoText('The website encountered an unexpected error. Please try again later.');
+    $this->assertNoText('Oh oh, bananas in the instruments');
+    $this->assertText('Oh oh, flying teapots');
+  }
+
+  /**
    * Tests a missing dependency on a service.
    */
   public function testMissingDependency() {
     $this->expectedExceptionMessage = 'Argument 1 passed to Drupal\error_service_test\LonelyMonkeyClass::__construct() must be an instance of Drupal\Core\Database\Connection, non';
     $this->drupalGet('broken-service-class');
+    $this->assertResponse(500);
 
     $this->assertRaw('The website encountered an unexpected error.');
     $this->assertRaw($this->expectedExceptionMessage);
+  }
+
+  /**
+   * Tests a missing dependency on a service with a custom error handler.
+   */
+  public function testMissingDependencyCustomErrorHandler() {
+    $settings_filename = $this->siteDirectory . '/settings.php';
+    chmod($settings_filename, 0777);
+    $settings_php = file_get_contents($settings_filename);
+    $settings_php .= "\n";
+    $settings_php .= "set_error_handler(function() {\n";
+    $settings_php .= "  header('HTTP/1.1 418 I\'m a teapot');\n";
+    $settings_php .= "  print('Oh oh, flying teapots');\n";
+    $settings_php .= "  exit();\n";
+    $settings_php .= "});\n";
+    file_put_contents($settings_filename, $settings_php);
+
+    $this->drupalGet('broken-service-class');
+    $this->assertResponse(418);
+    $this->assertRaw('Oh oh, flying teapots');
+
+    $message = 'Argument 1 passed to Drupal\error_service_test\LonelyMonkeyClass::__construct() must be an instance of Drupal\Core\Database\Connection, non';
+
+    $this->assertNoRaw('The website encountered an unexpected error.');
+    $this->assertNoRaw($message);
+
+    $found_exception = FALSE;
+    foreach ($this->assertions as &$assertion) {
+      if (strpos($assertion['message'], $message) !== FALSE) {
+        $found_exception = TRUE;
+        $this->deleteAssert($assertion['message_id']);
+        unset($assertion);
+      }
+    }
+
+    $this->assertTrue($found_exception, 'Ensure that the exception of a missing constructor argument was triggered.');
   }
 
   /**
@@ -110,17 +170,11 @@ class UncaughtExceptionTest extends WebTestBase {
       'required' => TRUE,
     ];
     $this->writeSettings($settings);
-
-    // Need to rebuild the container, so the dumped container can be tested
-    // and not the container builder.
-    \Drupal::service('kernel')->rebuildContainer();
-
-    // Ensure that we don't use the now broken generated container on the test
-    // process.
-    \Drupal::setContainer($this->container);
+    \Drupal::service('kernel')->invalidateContainer();
 
     $this->expectedExceptionMessage = 'Argument 1 passed to Drupal\system\Tests\Bootstrap\ErrorContainer::Drupal\system\Tests\Bootstrap\{closur';
     $this->drupalGet('');
+    $this->assertResponse(500);
 
     $this->assertRaw($this->expectedExceptionMessage);
   }
@@ -135,17 +189,11 @@ class UncaughtExceptionTest extends WebTestBase {
       'required' => TRUE,
     ];
     $this->writeSettings($settings);
-
-    // Need to rebuild the container, so the dumped container can be tested
-    // and not the container builder.
-    \Drupal::service('kernel')->rebuildContainer();
-
-    // Ensure that we don't use the now broken generated container on the test
-    // process.
-    \Drupal::setContainer($this->container);
+    \Drupal::service('kernel')->invalidateContainer();
 
     $this->expectedExceptionMessage = 'Thrown exception during Container::get';
     $this->drupalGet('');
+    $this->assertResponse(500);
 
 
     $this->assertRaw('The website encountered an unexpected error');
@@ -182,7 +230,37 @@ class UncaughtExceptionTest extends WebTestBase {
     $this->writeSettings($settings);
 
     $this->drupalGet('');
+    $this->assertResponse(500);
     $this->assertRaw('PDOException');
+  }
+
+  /**
+   * Tests fallback to PHP error log when an exception is thrown while logging.
+   */
+  public function testLoggerException() {
+    // Ensure the test error log is empty before these tests.
+    $this->assertNoErrorsLogged();
+
+    $this->expectedExceptionMessage = 'Deforestation';
+    \Drupal::state()->set('error_service_test.break_logger', TRUE);
+
+    $this->drupalGet('');
+    $this->assertResponse(500);
+    $this->assertText('The website encountered an unexpected error. Please try again later.');
+    $this->assertRaw($this->expectedExceptionMessage);
+
+    // Find fatal error logged to the simpletest error.log
+    $errors = file(\Drupal::root() . '/' . $this->siteDirectory . '/error.log');
+    $this->assertIdentical(count($errors), 1, 'Exactly one line logged to the PHP error log');
+
+    $expected_path = \Drupal::root() . '/core/modules/system/tests/modules/error_service_test/src/MonkeysInTheControlRoom.php';
+    $expected_line = 61;
+    $expected_entry = "Failed to log error: Exception: Deforestation in Drupal\\error_service_test\\MonkeysInTheControlRoom->handle() (line ${expected_line} of ${expected_path})";
+    $this->assert(strpos($errors[0], $expected_entry) !== FALSE, 'Original error logged to the PHP error log when an exception is thrown by a logger');
+
+    // The exception is expected. Do not interpret it as a test failure. Not
+    // using File API; a potential error must trigger a PHP warning.
+    unlink(\Drupal::root() . '/' . $this->siteDirectory . '/error.log');
   }
 
   /**

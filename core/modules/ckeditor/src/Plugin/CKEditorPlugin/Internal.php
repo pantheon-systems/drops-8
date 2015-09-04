@@ -127,7 +127,18 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
    */
   public function getButtons() {
     $button = function($name, $direction = 'ltr') {
-      return '<a href="#" class="cke-icon-only cke_' . $direction . '" role="button" title="' . $name . '" aria-label="' . $name . '"><span class="cke_button_icon cke_button__' . str_replace(' ', '', $name) . '_icon">' . $name . '</span></a>';
+      // In the markup below, we mostly use the name (which may include spaces),
+      // but in one spot we use it as a CSS class, so strip spaces.
+      $class_name = str_replace(' ', '', $name);
+      return [
+        '#type' => 'inline_template',
+        '#template' => '<a href="#" class="cke-icon-only cke_{{ direction }}" role="button" title="{{ name }}" aria-label="{{ name }}"><span class="cke_button_icon cke_button__{{ classname }}_icon">{{ name }}</span></a>',
+        '#context' => [
+          'direction' => $direction,
+          'name' => $name,
+          'classname' => $class_name,
+        ],
+      ];
     };
 
     return array(
@@ -256,7 +267,13 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
       ),
       'Format' => array(
         'label' => t('HTML block format'),
-        'image_alternative' => '<a href="#" role="button" aria-label="' . t('Format') . '"><span class="ckeditor-button-dropdown">' . t('Format') . '<span class="ckeditor-button-arrow"></span></span></a>',
+        'image_alternative' => [
+          '#type' => 'inline_template',
+          '#template' => '<a href="#" role="button" aria-label="{{ format_text }}"><span class="ckeditor-button-dropdown">{{ format_text }}<span class="ckeditor-button-arrow"></span></span></a>',
+          '#context' => [
+            'format_text' => t('Format'),
+          ],
+        ],
       ),
       // "table" plugin.
       'Table' => array(
@@ -282,7 +299,13 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
       // No plugin, separator "button" for toolbar builder UI use only.
       '-' => array(
         'label' => t('Separator'),
-        'image_alternative' => '<a href="#" role="button" aria-label="' . t('Button separator') . '" class="ckeditor-separator"></a>',
+        'image_alternative' => [
+          '#type' => 'inline_template',
+          '#template' => '<a href="#" role="button" aria-label="{{ button_separator_text }}" class="ckeditor-separator"></a>',
+          '#context' => [
+            'button_separator_text' => t('Button separator'),
+          ],
+        ],
         'attributes' => array(
           'class' => array('ckeditor-button-separator'),
           'data-drupal-ckeditor-type' => 'separator',
@@ -302,10 +325,6 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
    *
    * @return array
    *   An array containing the "format_tags" configuration.
-   *
-   * @see ckeditor_rebuild()
-   * @see ckeditor_filter_format_insert()
-   * @see ckeditor_filter_format_update()
    */
   protected function generateFormatTagsSetting(Editor $editor) {
     // When no text format is associated yet, assume no tag is allowed.
@@ -315,9 +334,35 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
     }
 
     $format = $editor->getFilterFormat();
-    // The <p> tag is always allowed — HTML without <p> tags is nonsensical.
-    $default = 'p';
-    return \Drupal::state()->get('ckeditor_internal_format_tags:' . $format->id(), $default);
+    $cid = 'ckeditor_internal_format_tags:' . $format->id();
+
+    if ($cached = $this->cache->get($cid)) {
+      $format_tags = $cached->data;
+    }
+    else {
+      // The <p> tag is always allowed — HTML without <p> tags is nonsensical.
+      $format_tags = ['p'];
+
+      // Given the list of possible format tags, automatically determine whether
+      // the current text format allows this tag, and thus whether it should show
+      // up in the "Format" dropdown.
+      $possible_format_tags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre'];
+      foreach ($possible_format_tags as $tag) {
+        $input = '<' . $tag . '>TEST</' . $tag . '>';
+        $output = trim(check_markup($input, $editor->id()));
+        if ($input == $output) {
+          $format_tags[] = $tag;
+        }
+      }
+      $format_tags = implode(';', $format_tags);
+
+      // Cache the "format_tags" configuration. This cache item is infinitely
+      // valid; it only changes whenever the text format is changed, hence it's
+      // tagged with the text format's cache tag.
+      $this->cache->set($cid, $format_tags, Cache::PERMANENT, $format->getCacheTags());
+    }
+
+    return $format_tags;
   }
 
   /**

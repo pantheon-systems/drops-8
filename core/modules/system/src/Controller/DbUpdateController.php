@@ -9,7 +9,6 @@ namespace Drupal\system\Controller;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface;
 use Drupal\Core\Render\BareHtmlPageRendererInterface;
@@ -62,13 +61,6 @@ class DbUpdateController extends ControllerBase {
   protected $account;
 
   /**
-   * The entity definition update manager.
-   *
-   * @var \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface
-   */
-  protected $entityDefinitionUpdateManager;
-
-  /**
    * The bare HTML page renderer.
    *
    * @var \Drupal\Core\Render\BareHtmlPageRendererInterface
@@ -97,19 +89,16 @@ class DbUpdateController extends ControllerBase {
    *   The module handler.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The current user.
-   * @param \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface $entity_definition_update_manager
-   *   The entity definition update manager.
    * @param \Drupal\Core\Render\BareHtmlPageRendererInterface $bare_html_page_renderer
    *   The bare HTML page renderer.
    */
-  public function __construct($root, KeyValueExpirableFactoryInterface $key_value_expirable_factory, CacheBackendInterface $cache, StateInterface $state, ModuleHandlerInterface $module_handler, AccountInterface $account, EntityDefinitionUpdateManagerInterface $entity_definition_update_manager, BareHtmlPageRendererInterface $bare_html_page_renderer) {
+  public function __construct($root, KeyValueExpirableFactoryInterface $key_value_expirable_factory, CacheBackendInterface $cache, StateInterface $state, ModuleHandlerInterface $module_handler, AccountInterface $account, BareHtmlPageRendererInterface $bare_html_page_renderer) {
     $this->root = $root;
     $this->keyValueExpirableFactory = $key_value_expirable_factory;
     $this->cache = $cache;
     $this->state = $state;
     $this->moduleHandler = $module_handler;
     $this->account = $account;
-    $this->entityDefinitionUpdateManager = $entity_definition_update_manager;
     $this->bareHtmlPageRenderer = $bare_html_page_renderer;
   }
 
@@ -124,7 +113,6 @@ class DbUpdateController extends ControllerBase {
       $container->get('state'),
       $container->get('module_handler'),
       $container->get('current_user'),
-      $container->get('entity.definition_update_manager'),
       $container->get('bare_html_page_renderer')
     );
   }
@@ -160,13 +148,13 @@ class DbUpdateController extends ControllerBase {
     $severity = drupal_requirements_severity($requirements);
     if ($severity == REQUIREMENT_ERROR || ($severity == REQUIREMENT_WARNING && empty($_SESSION['update_ignore_warnings']))) {
       $regions['sidebar_first'] = $this->updateTasksList('requirements');
-      $output = $this->requirements($severity, $requirements);
+      $output = $this->requirements($severity, $requirements, $request);
     }
     else {
       switch ($op) {
         case 'selection':
           $regions['sidebar_first'] = $this->updateTasksList('selection');
-          $output = $this->selection();
+          $output = $this->selection($request);
           break;
 
         case 'run':
@@ -176,12 +164,12 @@ class DbUpdateController extends ControllerBase {
 
         case 'info':
           $regions['sidebar_first'] = $this->updateTasksList('info');
-          $output = $this->info();
+          $output = $this->info($request);
           break;
 
         case 'results':
           $regions['sidebar_first'] = $this->updateTasksList('results');
-          $output = $this->results();
+          $output = $this->results($request);
           break;
 
         // Regular batch ops : defer to batch processing API.
@@ -204,10 +192,13 @@ class DbUpdateController extends ControllerBase {
   /**
    * Returns the info database update page.
    *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
    * @return array
    *   A render array.
    */
-  protected function info() {
+  protected function info(Request $request) {
     // Change query-strings on css/js files to enforce reload for all users.
     _drupal_flush_css_js();
     // Flush the cache of all data for the update status module.
@@ -233,12 +224,12 @@ class DbUpdateController extends ControllerBase {
       '#markup' => '<p>' . $this->t('When you have performed the steps above, you may proceed.') . '</p>',
     );
 
-    $url = new Url('system.db_update', array('op' => 'selection'));
     $build['link'] = array(
       '#type' => 'link',
       '#title' => $this->t('Continue'),
       '#attributes' => array('class' => array('button', 'button--primary')),
-      '#url' => $url,
+      // @todo Revisit once https://www.drupal.org/node/2548095 is in.
+      '#url' => Url::fromUri('base://selection'),
     );
     return $build;
   }
@@ -246,10 +237,13 @@ class DbUpdateController extends ControllerBase {
   /**
    * Renders a list of available database updates.
    *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
    * @return array
    *   A render array.
    */
-  protected function selection() {
+  protected function selection(Request $request) {
     // Make sure there is no stale theme registry.
     $this->cache->deleteAll();
 
@@ -320,29 +314,12 @@ class DbUpdateController extends ControllerBase {
       drupal_set_message($this->t('Some of the pending updates cannot be applied because their dependencies were not met.'), 'warning');
     }
 
-    // If there are entity definition updates, display their summary.
-    if ($this->entityDefinitionUpdateManager->needsUpdates()) {
-      $entity_build = array();
-      $summary = $this->entityDefinitionUpdateManager->getChangeSummary();
-      foreach ($summary as $entity_type_id => $items) {
-        $entity_update_key = 'entity_type_updates_' . $entity_type_id;
-        $entity_build[$entity_update_key] = array(
-          '#theme' => 'item_list',
-          '#items' => $items,
-          '#title' => $entity_type_id . ' entity type',
-        );
-        $count++;
-      }
-      // Display these above the module updates, since they will be run first.
-      $build['start'] = $entity_build + $build['start'];
-    }
-
     if (empty($count)) {
       drupal_set_message($this->t('No pending updates.'));
       unset($build);
       $build['links'] = array(
         '#theme' => 'links',
-        '#links' => $this->helpfulLinks(),
+        '#links' => $this->helpfulLinks($request),
       );
 
       // No updates to run, so caches won't get flushed later.  Clear them now.
@@ -364,7 +341,9 @@ class DbUpdateController extends ControllerBase {
       else {
         $build['start']['#title'] = $this->formatPlural($count, '1 pending update', '@count pending updates');
       }
-      $url = new Url('system.db_update', array('op' => 'run'));
+      // @todo Simplify with https://www.drupal.org/node/2548095
+      $base_url = str_replace('/update.php', '', $request->getBaseUrl());
+      $url = (new Url('system.db_update', array('op' => 'run')))->setOption('base_url', $base_url);
       $build['link'] = array(
         '#type' => 'link',
         '#title' => $this->t('Apply pending updates'),
@@ -380,15 +359,21 @@ class DbUpdateController extends ControllerBase {
   /**
    * Displays results of the update script with any accompanying errors.
    *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
    * @return array
    *   A render array.
    */
-  protected function results() {
+  protected function results(Request $request) {
+    // @todo Simplify with https://www.drupal.org/node/2548095
+    $base_url = str_replace('/update.php', '', $request->getBaseUrl());
+
     // Report end result.
     $dblog_exists = $this->moduleHandler->moduleExists('dblog');
     if ($dblog_exists && $this->account->hasPermission('access site reports')) {
       $log_message = $this->t('All errors have been <a href="@url">logged</a>.', array(
-        '@url' => Url::fromRoute('dblog.overview')->toString(TRUE)->getGeneratedUrl(),
+        '@url' => Url::fromRoute('dblog.overview')->setOption('base_url', $base_url)->toString(TRUE)->getGeneratedUrl(),
       ));
     }
     else {
@@ -396,7 +381,7 @@ class DbUpdateController extends ControllerBase {
     }
 
     if (!empty($_SESSION['update_success'])) {
-      $message = '<p>' . $this->t('Updates were attempted. If you see no failures below, you may proceed happily back to your <a href="@url">site</a>. Otherwise, you may need to update your database manually.', array('@url' => Url::fromRoute('<front>')->toString(TRUE)->getGeneratedUrl())) . ' ' . $log_message . '</p>';
+      $message = '<p>' . $this->t('Updates were attempted. If you see no failures below, you may proceed happily back to your <a href="@url">site</a>. Otherwise, you may need to update your database manually.', array('@url' => Url::fromRoute('<front>')->setOption('base_url', $base_url)->toString(TRUE)->getGeneratedUrl())) . ' ' . $log_message . '</p>';
     }
     else {
       $last = reset($_SESSION['updates_remaining']);
@@ -420,7 +405,7 @@ class DbUpdateController extends ControllerBase {
     );
     $build['links'] = array(
       '#theme' => 'links',
-      '#links' => $this->helpfulLinks(),
+      '#links' => $this->helpfulLinks($request),
     );
 
     // Output a list of info messages.
@@ -492,12 +477,18 @@ class DbUpdateController extends ControllerBase {
   /**
    * Renders a list of requirement errors or warnings.
    *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
    * @return array
    *   A render array.
    */
-  public function requirements($severity, array $requirements) {
+  public function requirements($severity, array $requirements, Request $request) {
     $options = $severity == REQUIREMENT_WARNING ? array('continue' => 1) : array();
-    $try_again_url = Url::fromRoute('system.db_update', $options)->toString(TRUE)->getGeneratedUrl();
+    // @todo Revisit once https://www.drupal.org/node/2548095 is in. Something
+    // like Url::fromRoute('system.db_update')->setOptions() should then be
+    // possible.
+    $try_again_url = Url::fromUri($request->getUriForPath(''))->setOptions(['query' => $options])->toString(TRUE)->getGeneratedUrl();
 
     $build['status_report'] = array(
       '#theme' => 'status_report',
@@ -544,13 +535,13 @@ class DbUpdateController extends ControllerBase {
    *   The current request object.
    */
   protected function triggerBatch(Request $request) {
-    // During the update, bring the site offline so that schema changes do not
-    // affect visiting users.
-    $maintenance_mode = $this->config('system.maintenance')->get('enabled');
-    if (isset($maintenance_mode)) {
-      $_SESSION['maintenance_mode'] = $maintenance_mode;
-    }
-    if (empty($_SESSION['maintenance_mode'])) {
+    $maintenance_mode = $this->state->get('system.maintenance_mode', FALSE);
+    // Store the current maintenance mode status in the session so that it can
+    // be restored at the end of the batch.
+    $_SESSION['maintenance_mode'] = $maintenance_mode;
+    // During the update, always put the site into maintenance mode so that
+    // in-progress schema changes do not affect visiting users.
+    if (empty($maintenance_mode)) {
       $this->state->set('system.maintenance_mode', TRUE);
     }
 
@@ -584,16 +575,6 @@ class DbUpdateController extends ControllerBase {
       }
     }
 
-    // Lastly, perform entity definition updates, which will update storage
-    // schema if needed. If module update functions need to work with specific
-    // entity schema they should call the entity update service for the specific
-    // update themselves.
-    // @see \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface::applyEntityUpdate()
-    // @see \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface::applyFieldUpdate()
-    if ($this->entityDefinitionUpdateManager->needsUpdates()) {
-      $operations[] = array('update_entity_definitions', array());
-    }
-
     $batch['operations'] = $operations;
     $batch += array(
       'title' => $this->t('Updating'),
@@ -603,7 +584,8 @@ class DbUpdateController extends ControllerBase {
     );
     batch_set($batch);
 
-    return batch_process('update.php/results', Url::fromRoute('system.db_update', array('op' => 'start')));
+    // @todo Revisit once https://www.drupal.org/node/2548095 is in.
+    return batch_process(Url::fromUri('base://results'), Url::fromUri('base://start'));
   }
 
   /**
@@ -630,28 +612,33 @@ class DbUpdateController extends ControllerBase {
     $_SESSION['updates_remaining'] = $operations;
 
     // Now that the update is done, we can put the site back online if it was
-    // previously in maintenance mode.
-    if (isset($_SESSION['maintenance_mode'])) {
+    // previously not in maintenance mode.
+    if (empty($_SESSION['maintenance_mode'])) {
       \Drupal::state()->set('system.maintenance_mode', FALSE);
-      unset($_SESSION['maintenance_mode']);
     }
+    unset($_SESSION['maintenance_mode']);
   }
 
   /**
    * Provides links to the homepage and administration pages.
    *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
    * @return array
    *   An array of links.
    */
-  protected function helpfulLinks() {
+  protected function helpfulLinks(Request $request) {
+    // @todo Simplify with https://www.drupal.org/node/2548095
+    $base_url = str_replace('/update.php', '', $request->getBaseUrl());
     $links['front'] = array(
       'title' => $this->t('Front page'),
-      'url' => Url::fromRoute('<front>'),
+      'url' => Url::fromRoute('<front>')->setOption('base_url', $base_url),
     );
     if ($this->account->hasPermission('access administration pages')) {
       $links['admin-pages'] = array(
         'title' => $this->t('Administration pages'),
-        'url' => Url::fromRoute('system.admin'),
+        'url' => Url::fromRoute('system.admin')->setOption('base_url', $base_url),
       );
     }
     return $links;

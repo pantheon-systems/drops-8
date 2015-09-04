@@ -47,15 +47,14 @@ class RouteSubscriber extends RouteSubscriberBase {
         }
         $path = $entity_route->getPath();
 
-        $options = array();
-        if (($bundle_entity_type = $entity_type->getBundleEntityType()) && $bundle_entity_type !== 'bundle') {
+        $options = $entity_route->getOptions();
+        if ($bundle_entity_type = $entity_type->getBundleEntityType()) {
           $options['parameters'][$bundle_entity_type] = array(
             'type' => 'entity:' . $bundle_entity_type,
           );
-
-          // Special parameter used to easily recognize all Field UI routes.
-          $options['_field_ui'] = TRUE;
         }
+        // Special parameter used to easily recognize all Field UI routes.
+        $options['_field_ui'] = TRUE;
 
         $defaults = array(
           'entity_type_id' => $entity_type_id,

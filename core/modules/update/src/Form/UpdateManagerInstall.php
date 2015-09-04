@@ -13,6 +13,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Updater\Updater;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Configure update settings for this site.
@@ -27,7 +28,7 @@ class UpdateManagerInstall extends FormBase {
   protected $moduleHandler;
 
   /**
-   * The app root.
+   * The root location under which installed projects will be saved.
    *
    * @var string
    */
@@ -44,7 +45,7 @@ class UpdateManagerInstall extends FormBase {
    * Constructs a new UpdateManagerInstall.
    *
    * @param string $root
-   *   The app root.
+   *   The root location under which installed projects will be saved.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param string $site_path
@@ -68,7 +69,7 @@ class UpdateManagerInstall extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('app.root'),
+      $container->get('update.root'),
       $container->get('module_handler'),
       $container->get('site.path')
     );
@@ -192,7 +193,7 @@ class UpdateManagerInstall extends FormBase {
 
     $project_location = $directory . '/' . $project;
     try {
-      $updater = Updater::factory($project_location);
+      $updater = Updater::factory($project_location, $this->root);
     }
     catch (\Exception $e) {
       drupal_set_message($e->getMessage(), 'error');
@@ -231,13 +232,19 @@ class UpdateManagerInstall extends FormBase {
     if (fileowner($project_real_location) == fileowner($this->sitePath)) {
       $this->moduleHandler->loadInclude('update', 'inc', 'update.authorize');
       $filetransfer = new Local($this->root);
-      call_user_func_array('update_authorize_run_install', array_merge(array($filetransfer), $arguments));
+      $response = call_user_func_array('update_authorize_run_install', array_merge(array($filetransfer), $arguments));
+      if ($response instanceof Response) {
+        $form_state->setResponse($response);
+      }
     }
 
     // Otherwise, go through the regular workflow to prompt for FTP/SSH
     // credentials and invoke update_authorize_run_install() indirectly with
     // whatever FileTransfer object authorize.php creates for us.
     else {
+      // The page title must be passed here to ensure it is initially used when
+      // authorize.php loads for the first time with the FTP/SSH credentials
+      // form.
       system_authorized_init('update_authorize_run_install', drupal_get_path('module', 'update') . '/update.authorize.inc', $arguments, $this->t('Update manager'));
       $form_state->setRedirectUrl(system_authorized_get_url());
     }

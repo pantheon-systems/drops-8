@@ -5,7 +5,9 @@
  * Batch callbacks for the Batch API tests.
  */
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Implements callback_batch_operation().
@@ -86,10 +88,9 @@ function _batch_test_nested_batch_callback() {
  * Provides a common 'finished' callback for batches 1 to 4.
  */
 function _batch_test_finished_helper($batch_id, $success, $results, $operations) {
-  $messages = array("results for batch $batch_id");
   if ($results) {
     foreach ($results as $op => $op_results) {
-      $messages[] = 'op '. SafeMarkup::escape($op) . ': processed ' . count($op_results) . ' elements';
+      $messages[] = 'op '. Html::escape($op) . ': processed ' . count($op_results) . ' elements';
     }
   }
   else {
@@ -102,7 +103,20 @@ function _batch_test_finished_helper($batch_id, $success, $results, $operations)
     $messages[] = t('An error occurred while processing @op with arguments:<br />@args', array('@op' => $error_operation[0], '@args' => print_r($error_operation[1], TRUE)));
   }
 
-  drupal_set_message(SafeMarkup::set(implode('<br>', $messages)));
+  // Use item list template to render the messages.
+  $error_message = [
+    '#type' => 'inline_template',
+    '#template' => 'results for batch {{ batch_id }}{{ errors }}',
+    '#context' => [
+      'batch_id' => $batch_id,
+      'errors' => [
+        '#theme' => 'item_list',
+        '#items' => $messages,
+      ],
+    ],
+  ];
+
+  drupal_set_message(\Drupal::service('renderer')->renderPlain($error_message));
 }
 
 /**
@@ -121,6 +135,16 @@ function _batch_test_finished_0($success, $results, $operations) {
  */
 function _batch_test_finished_1($success, $results, $operations) {
   _batch_test_finished_helper(1, $success, $results, $operations);
+}
+
+/**
+ * Implements callback_batch_finished().
+ *
+ * Triggers 'finished' callback for batch 1.
+ */
+function _batch_test_finished_1_finished($success, $results, $operations) {
+  _batch_test_finished_helper(1, $success, $results, $operations);
+  return new RedirectResponse(Url::fromRoute('test_page_test.test_page', [], ['absolute' => TRUE])->toString());
 }
 
 /**

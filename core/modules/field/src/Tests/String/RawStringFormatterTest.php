@@ -7,7 +7,7 @@
 
 namespace Drupal\field\Tests\String;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -119,11 +119,11 @@ class RawStringFormatterTest extends KernelTestBase {
     // Verify that all HTML is escaped and newlines are retained.
     $this->renderEntityFields($entity, $this->display);
     $this->assertNoRaw($value);
-    $this->assertRaw(nl2br(SafeMarkup::checkPlain($value)));
+    $this->assertRaw(nl2br(Html::escape($value)));
 
     // Verify the cache tags.
     $build = $entity->{$this->fieldName}->view();
-    $this->assertTrue(!isset($build[0]['#cache']), format_string('The string formatter has no cache tags.'));
+    $this->assertTrue(!isset($build[0]['#cache']), 'The string formatter has no cache tags.');
   }
 
 }

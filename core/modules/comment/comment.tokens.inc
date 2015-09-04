@@ -5,7 +5,8 @@
  * Builds placeholder replacement tokens for comment-related data.
  */
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Render\BubbleableMetadata;
@@ -135,7 +136,7 @@ function comment_tokens($type, $tokens, array $data, array $options, BubbleableM
 
         // Poster identity information for comments.
         case 'hostname':
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($comment->getHostname()) : $comment->getHostname();
+          $replacements[$original] = $sanitize ? Html::escape($comment->getHostname()) : $comment->getHostname();
           break;
 
         case 'mail':
@@ -145,11 +146,11 @@ function comment_tokens($type, $tokens, array $data, array $options, BubbleableM
           if ($comment->getOwnerId()) {
             $bubbleable_metadata->addCacheableDependency($comment->getOwner());
           }
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($mail) : $mail;
+          $replacements[$original] = $sanitize ? Html::escape($mail) : $mail;
           break;
 
         case 'homepage':
-          $replacements[$original] = $sanitize ? check_url($comment->getHomepage()) : $comment->getHomepage();
+          $replacements[$original] = $sanitize ? UrlHelper::filterBadProtocol($comment->getHomepage()) : $comment->getHomepage();
           break;
 
         case 'title':
@@ -161,7 +162,7 @@ function comment_tokens($type, $tokens, array $data, array $options, BubbleableM
           break;
 
         case 'langcode':
-          $replacements[$original] = $sanitize ? SafeMarkup::checkPlain($comment->language()->getId()) : $comment->language()->getId();
+          $replacements[$original] = $sanitize ? Html::escape($comment->language()->getId()) : $comment->language()->getId();
           break;
 
         // Comment related URLs.
