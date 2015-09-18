@@ -1,5 +1,8 @@
 <?php
 
+// Check to see if we are serving an installer page.
+$is_installer_url = (strpos('/core/install.php', $_SERVER['SCRIPT_NAME']) === 0);
+
 /**
  * Add the Drupal 8 CMI Directory Information directly in settings.php to make sure
  * Drupal knows all about that.
@@ -13,7 +16,7 @@
  * at https://www.drupal.org/node/2431247
  *
  */
-if (substr($_SERVER['SCRIPT_NAME'],0,17) == '/core/install.php') {
+if ($is_installer_url) {
   $config_directories = array(
     CONFIG_ACTIVE_DIRECTORY => 'sites/default/files',
     CONFIG_STAGING_DIRECTORY => 'sites/default/files',
@@ -33,7 +36,11 @@ else {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/9
  *
  */
-if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
+if (
+  isset($_ENV['PANTHEON_ENVIRONMENT']) &&
+  $is_installer_url &&
+  (php_sapi_name() != "cli")
+) {
   $GLOBALS['install_state']['settings_verified'] = TRUE;
 }
 
@@ -45,7 +52,13 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
  * c.f. https://github.com/pantheon-systems/drops-8/pull/53
  *
  */
-if (isset($_ENV['PANTHEON_ENVIRONMENT']) && (substr($_SERVER['SCRIPT_NAME'],0,17) != '/core/install.php') && (!is_dir(__DIR__ . '/files/styles')) && (php_sapi_name() != "cli")) {
+if (
+  isset($_ENV['PANTHEON_ENVIRONMENT']) &&
+  !$is_installer_url &&
+  (!is_dir(__DIR__ . '/files/styles')) &&
+  (empty($GLOBALS['install_state'])) &&
+  (php_sapi_name() != "cli")
+) {
   include_once __DIR__ . '/../../core/includes/install.core.inc';
   include_once __DIR__ . '/../../core/includes/install.inc';
   install_goto('core/install.php');
