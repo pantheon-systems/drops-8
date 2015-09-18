@@ -33,7 +33,7 @@ else {
  * Issue: https://github.com/pantheon-systems/drops-8/issues/9
  *
  */
-if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
+if (isset($_ENV['PANTHEON_ENVIRONMENT']) && (substr($_SERVER['SCRIPT_NAME'],0,17) == '/core/install.php') && (php_sapi_name() != "cli")) {
   $GLOBALS['install_state']['settings_verified'] = TRUE;
 }
 
