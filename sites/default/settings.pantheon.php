@@ -1,7 +1,7 @@
 <?php
 
 // Check to see if we are serving an installer page.
-$is_installer_url = (strpos('/core/install.php', $_SERVER['SCRIPT_NAME']) === 0);
+$is_installer_url = (strpos($_SERVER['SCRIPT_NAME'], '/core/install.php') === 0);
 
 /**
  * Add the Drupal 8 CMI Directory Information directly in settings.php to make sure
