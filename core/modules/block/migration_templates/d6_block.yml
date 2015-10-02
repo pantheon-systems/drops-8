@@ -1,12 +1,12 @@
 id: d6_block
-label: Drupal 6 blocks
+label: Blocks
 migration_tags:
   - Drupal 6
 source:
-  plugin: d6_block
+  plugin: block
 process:
-  # Drupal 8 does not have a status but it doesn't matter; this is here to
-  # skip disabled blocks.
+  # Block status is not a thing in Drupal 8, so this is how we skip over
+  # disabled blocks.
   status:
     plugin: skip_on_empty
     method: row
@@ -50,19 +50,22 @@ process:
           2: views_block:who_s_new-block_1
           3: views_block:who_s_online-who_s_online_block
     -
-      plugin: d6_block_plugin_id
+      plugin: block_plugin_id
+    -
+      plugin: skip_on_empty
+      method: row
   theme:
-    plugin: d6_block_theme
+    plugin: block_theme
     source:
       - theme
       - default_theme
       - admin_theme
   region:
-    plugin: d6_block_region
+    plugin: block_region
     source:
       - region
       - theme
-      - @theme
+      - '@theme'
     region_map:
       left: sidebar_first
       right: sidebar_second
@@ -74,17 +77,20 @@ process:
   label: title
   weight: weight
   settings:
-    plugin: d6_block_settings
+    plugin: block_settings
     source:
-      - @plugin
+      - '@plugin'
       - delta
       - settings
   visibility:
-    plugin: d6_block_visibility
+    plugin: block_visibility
     source:
+      - visibility
       - pages
       - roles
-      - visibility
+    # If the block uses PHP visibility, don't migrate it unless the PHP module
+    # is enabled.
+    skip_php: true
 destination:
   plugin: entity:block
 migration_dependencies:

@@ -208,7 +208,7 @@ class FormTest extends FieldTestBase {
     // Submit with missing required value.
     $edit = array();
     $this->drupalPostForm('entity_test/add', $edit, t('Save'));
-    $this->assertRaw(t('!name field is required.', array('!name' => $this->field['label'])), 'Required field with no value fails validation');
+    $this->assertRaw(t('@name field is required.', array('@name' => $this->field['label'])), 'Required field with no value fails validation');
 
     // Create an entity
     $value = mt_rand(1, 127);
@@ -228,7 +228,7 @@ class FormTest extends FieldTestBase {
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm('entity_test/manage/' . $id, $edit, t('Save'));
-    $this->assertRaw(t('!name field is required.', array('!name' => $this->field['label'])), 'Required field with no value fails validation');
+    $this->assertRaw(t('@name field is required.', array('@name' => $this->field['label'])), 'Required field with no value fails validation');
   }
 
 //  function testFieldFormMultiple() {
@@ -613,7 +613,7 @@ class FormTest extends FieldTestBase {
 
     // Update the field to remove the default value, and switch to the default
     // widget.
-    $this->field->default_value = array();
+    $this->field->setDefaultValue(array());
     $this->field->save();
     entity_get_form_display($entity_type, $this->field->getTargetBundle(), 'default')
       ->setComponent($this->field->getName(), array(

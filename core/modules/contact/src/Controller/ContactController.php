@@ -69,8 +69,8 @@ class ContactController extends ControllerBase {
       // If there are no forms, do not display the form.
       if (empty($contact_form)) {
         if ($this->currentUser()->hasPermission('administer contact forms')) {
-          drupal_set_message($this->t('The contact form has not been configured. <a href="@add">Add one or more forms</a> .', array(
-            '@add' => $this->url('contact.form_add'))), 'error');
+          drupal_set_message($this->t('The contact form has not been configured. <a href=":add">Add one or more forms</a> .', array(
+            ':add' => $this->url('contact.form_add'))), 'error');
           return array();
         }
         else {
@@ -103,10 +103,10 @@ class ContactController extends ControllerBase {
    *
    * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
    *   Exception is thrown when user tries to access a contact form for a
-   *   user who does not have an e-mail address configured.
+   *   user who does not have an email address configured.
    */
   public function contactPersonalPage(UserInterface $user) {
-    // Do not continue if the user does not have an e-mail address configured.
+    // Do not continue if the user does not have an email address configured.
     if (!$user->getEmail()) {
       throw new NotFoundHttpException();
     }
@@ -117,7 +117,7 @@ class ContactController extends ControllerBase {
     ));
 
     $form = $this->entityFormBuilder()->getForm($message);
-    $form['#title'] = $this->t('Contact @username', array('@username' => $user->getUsername()));
+    $form['#title'] = $this->t('Contact @username', array('@username' => $user->getDisplayName()));
     $form['#cache']['contexts'][] = 'user.permissions';
     return $form;
   }

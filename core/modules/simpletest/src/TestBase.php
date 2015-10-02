@@ -7,6 +7,7 @@
 
 namespace Drupal\simpletest;
 
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Random;
 use Drupal\Component\Utility\SafeMarkup;
@@ -29,6 +30,7 @@ abstract class TestBase {
 
   use SessionTestTrait;
   use RandomGeneratorTrait;
+  use AssertHelperTrait;
 
   /**
    * The test run ID.
@@ -359,7 +361,7 @@ abstract class TestBase {
    * @param $status
    *   Can be 'pass', 'fail', 'exception', 'debug'.
    *   TRUE is a synonym for 'pass', FALSE for 'fail'.
-   * @param $message
+   * @param string|\Drupal\Component\Render\MarkupInterface $message
    *   (optional) A message to display with the assertion. Do not translate
    *   messages: use \Drupal\Component\Utility\SafeMarkup::format() to embed
    *   variables in the message text, not t(). If left blank, a default message
@@ -377,6 +379,9 @@ abstract class TestBase {
    *   is the caller function itself.
    */
   protected function assert($status, $message = '', $group = 'Other', array $caller = NULL) {
+    if ($message instanceof MarkupInterface) {
+      $message = (string) $message;
+    }
     // Convert boolean status to string status.
     if (is_bool($status)) {
       $status = $status ? 'pass' : 'fail';
@@ -654,7 +659,17 @@ abstract class TestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertEqual($first, $second, $message = '', $group = 'Other') {
-    return $this->assert($first == $second, $message ? $message : SafeMarkup::format('Value @first is equal to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE))), $group);
+    // Cast objects implementing MarkupInterface to string instead of
+    // relying on PHP casting them to string depending on what they are being
+    // comparing with.
+    $first = $this->castSafeStrings($first);
+    $second = $this->castSafeStrings($second);
+    $is_equal = $first == $second;
+    if (!$is_equal || !$message) {
+      $default_message = SafeMarkup::format('Value @first is equal to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE)));
+      $message = $message ? $message . PHP_EOL . $default_message : $default_message;
+    }
+    return $this->assert($is_equal, $message, $group);
   }
 
   /**
@@ -679,7 +694,17 @@ abstract class TestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertNotEqual($first, $second, $message = '', $group = 'Other') {
-    return $this->assert($first != $second, $message ? $message : SafeMarkup::format('Value @first is not equal to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE))), $group);
+    // Cast objects implementing MarkupInterface to string instead of
+    // relying on PHP casting them to string depending on what they are being
+    // comparing with.
+    $first = $this->castSafeStrings($first);
+    $second = $this->castSafeStrings($second);
+    $not_equal = $first != $second;
+    if (!$not_equal || !$message) {
+      $default_message = SafeMarkup::format('Value @first is not equal to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE)));
+      $message = $message ? $message . PHP_EOL . $default_message : $default_message;
+    }
+    return $this->assert($not_equal, $message, $group);
   }
 
   /**
@@ -704,7 +729,12 @@ abstract class TestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertIdentical($first, $second, $message = '', $group = 'Other') {
-    return $this->assert($first === $second, $message ? $message : SafeMarkup::format('Value @first is identical to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE))), $group);
+    $is_identical = $first === $second;
+    if (!$is_identical || !$message) {
+      $default_message = SafeMarkup::format('Value @first is identical to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE)));
+      $message = $message ? $message . PHP_EOL . $default_message : $default_message;
+    }
+    return $this->assert($is_identical, $message, $group);
   }
 
   /**
@@ -729,7 +759,12 @@ abstract class TestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertNotIdentical($first, $second, $message = '', $group = 'Other') {
-    return $this->assert($first !== $second, $message ? $message : SafeMarkup::format('Value @first is not identical to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE))), $group);
+    $not_identical = $first !== $second;
+    if (!$not_identical || !$message) {
+      $default_message = SafeMarkup::format('Value @first is not identical to value @second.', array('@first' => var_export($first, TRUE), '@second' => var_export($second, TRUE)));
+      $message = $message ? $message . PHP_EOL . $default_message : $default_message;
+    }
+    return $this->assert($not_identical, $message, $group);
   }
 
   /**
@@ -754,9 +789,9 @@ abstract class TestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertIdenticalObject($object1, $object2, $message = '', $group = 'Other') {
-    $message = $message ?: SafeMarkup::format('!object1 is identical to !object2', array(
-      '!object1' => var_export($object1, TRUE),
-      '!object2' => var_export($object2, TRUE),
+    $message = $message ?: SafeMarkup::format('@object1 is identical to @object2', array(
+      '@object1' => var_export($object1, TRUE),
+      '@object2' => var_export($object2, TRUE),
     ));
     $identical = TRUE;
     foreach ($object1 as $key => $value) {

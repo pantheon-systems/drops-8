@@ -27,7 +27,7 @@ class FieldKernelTest extends ViewKernelTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_view', 'test_field_tokens', 'test_field_output');
+  public static $testViews = array('test_view', 'test_field_tokens', 'test_field_argument_tokens', 'test_field_output');
 
   /**
    * Map column names.
@@ -105,8 +105,9 @@ class FieldKernelTest extends ViewKernelTestBase {
    *   The value to search for.
    * @param string $message
    *   (optional) A message to display with the assertion. Do not translate
-   *   messages: use format_string() to embed variables in the message text, not
-   *   t(). If left blank, a default message will be displayed.
+   *   messages: use \Drupal\Component\Utility\SafeMarkup::format() to embed
+   *   variables in the message text, not t(). If left blank, a default message
+   *   will be displayed.
    * @param string $group
    *   (optional) The group this message is in, which is displayed in a column
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
@@ -129,8 +130,9 @@ class FieldKernelTest extends ViewKernelTestBase {
    *   The value to search for.
    * @param string $message
    *   (optional) A message to display with the assertion. Do not translate
-   *   messages: use format_string() to embed variables in the message text, not
-   *   t(). If left blank, a default message will be displayed.
+   *   messages: use \Drupal\Component\Utility\SafeMarkup::format() to embed
+   *   variables in the message text, not t(). If left blank, a default message
+   *   will be displayed.
    * @param string $group
    *   (optional) The group this message is in, which is displayed in a column
    *   in test output. Use 'Debug' to indicate this is debugging output. Do not
@@ -172,6 +174,44 @@ class FieldKernelTest extends ViewKernelTestBase {
   }
 
   /**
+   * Tests the arguments tokens on field level.
+   */
+  public function testArgumentTokens() {
+    /** @var \Drupal\Core\Render\RendererInterface $renderer */
+    $renderer = \Drupal::service('renderer');
+
+    $view = Views::getView('test_field_argument_tokens');
+    $this->executeView($view, ['{{ { "#pre_render": ["views_test_data_test_pre_render_function"]} }}']);
+
+    $name_field_0 = $view->field['name'];
+
+    // Test the old style tokens.
+    $name_field_0->options['alter']['alter_text'] = TRUE;
+    $name_field_0->options['alter']['text'] = '%1 !1';
+
+    $row = $view->result[0];
+    $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_0, $row) {
+      return $name_field_0->advancedRender($row);
+    });
+
+    $this->assertFalse(strpos((string) $output, 'views_test_data_test_pre_render_function executed') !== FALSE, 'Ensure that the pre_render function was not executed');
+    $this->assertEqual('%1 !1', (string) $output, "Ensure that old style placeholders aren't replaced");
+
+    // This time use new style tokens but ensure that we still don't allow
+    // arbitrary code execution.
+    $name_field_0->options['alter']['alter_text'] = TRUE;
+    $name_field_0->options['alter']['text'] = '{{ arguments.null }} {{ raw_arguments.null }}';
+
+    $row = $view->result[0];
+    $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_0, $row) {
+      return $name_field_0->advancedRender($row);
+    });
+
+    $this->assertFalse(strpos((string) $output, 'views_test_data_test_pre_render_function executed') !== FALSE, 'Ensure that the pre_render function was not executed');
+    $this->assertEqual('{{ { &quot;#pre_render&quot;: [&quot;views_test_data_test_pre_render_function&quot;]} }} {{ { &quot;#pre_render&quot;: [&quot;views_test_data_test_pre_render_function&quot;]} }}', (string) $output, 'Ensure that new style placeholders are replaced');
+  }
+
+  /**
    * Tests the field tokens, row level and field level.
    */
   public function testFieldTokens() {
@@ -202,25 +242,25 @@ class FieldKernelTest extends ViewKernelTestBase {
       $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_0, $row) {
         return $name_field_0->advancedRender($row);
       });
-      $this->assertEqual($output, $expected_output_0, format_string('Test token replacement: "!token" gave "!output"', [
-        '!token' => $name_field_0->options['alter']['text'],
-        '!output' => $output,
+      $this->assertEqual($output, $expected_output_0, format_string('Test token replacement: "@token" gave "@output"', [
+        '@token' => $name_field_0->options['alter']['text'],
+        '@output' => $output,
       ]));
 
       $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_1, $row) {
         return $name_field_1->advancedRender($row);
       });
-      $this->assertEqual($output, $expected_output_1, format_string('Test token replacement: "!token" gave "!output"', [
-        '!token' => $name_field_1->options['alter']['text'],
-        '!output' => $output,
+      $this->assertEqual($output, $expected_output_1, format_string('Test token replacement: "@token" gave "@output"', [
+        '@token' => $name_field_1->options['alter']['text'],
+        '@output' => $output,
       ]));
 
       $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_2, $row) {
         return $name_field_2->advancedRender($row);
       });
-      $this->assertEqual($output, $expected_output_2, format_string('Test token replacement: "!token" gave "!output"', [
-        '!token' => $name_field_2->options['alter']['text'],
-        '!output' => $output,
+      $this->assertEqual($output, $expected_output_2, format_string('Test token replacement: "@token" gave "@output"', [
+        '@token' => $name_field_2->options['alter']['text'],
+        '@output' => $output,
       ]));
     }
 
@@ -233,10 +273,10 @@ class FieldKernelTest extends ViewKernelTestBase {
     $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($job_field, $row) {
       return $job_field->advancedRender($row);
     });
-    $this->assertSubString($output, $random_text, format_string('Make sure the self token (!token => !value) appears in the output (!output)', [
-      '!value' => $random_text,
-      '!output' => $output,
-      '!token' => $job_field->options['alter']['text'],
+    $this->assertSubString($output, $random_text, format_string('Make sure the self token (@token => @value) appears in the output (@output)', [
+      '@value' => $random_text,
+      '@output' => $output,
+      '@token' => $job_field->options['alter']['text'],
     ]));
 
     // Verify the token format used in D7 and earlier does not get substituted.
@@ -247,10 +287,10 @@ class FieldKernelTest extends ViewKernelTestBase {
     $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($job_field, $row) {
       return $job_field->advancedRender($row);
     });
-    $this->assertEqual($output, $old_token, format_string('Make sure the old token style (!token => !value) is not changed in the output (!output)', [
-      '!value' => $random_text,
-      '!output' => $output,
-      '!token' => $job_field->options['alter']['text'],
+    $this->assertEqual($output, $old_token, format_string('Make sure the old token style (@token => @value) is not changed in the output (@output)', [
+      '@value' => $random_text,
+      '@output' => $output,
+      '@token' => $job_field->options['alter']['text'],
     ]));
 
     // Verify HTML tags are allowed in rewrite templates while token
@@ -280,9 +320,9 @@ class FieldKernelTest extends ViewKernelTestBase {
     $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($job_field, $row) {
       return $job_field->advancedRender($row);
     });
-    $this->assertEqual($output, $random_text, format_string('Make sure a script tag in the template (!template) is removed, leaving only the replaced token in the output (!output)', [
-      '!output' => $output,
-      '!template' => $rewrite_template,
+    $this->assertEqual($output, $random_text, format_string('Make sure a script tag in the template (@template) is removed, leaving only the replaced token in the output (@output)', [
+      '@output' => $output,
+      '@template' => $rewrite_template,
     ]));
   }
 

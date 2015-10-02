@@ -105,7 +105,7 @@ display:
             title_enable: false
             title: All
           title_enable: true
-          title: '%1'
+          title: '{{ arguments.tid }}'
           default_argument_type: fixed
           default_argument_options:
             argument: ''
@@ -231,7 +231,7 @@ display:
           admin_label: ''
           empty: true
           tokenize: true
-          target: '!1'
+          target: '{{ raw_arguments.tid }}'
           view_mode: full
           bypass_access: false
           plugin_id: entity
@@ -246,7 +246,9 @@ display:
       contexts:
         - 'languages:language_interface'
         - url
+        - url.query_args
         - 'user.node_grants:view'
+        - user.permissions
       cacheable: false
   feed_1:
     id: feed_1
@@ -283,6 +285,7 @@ display:
         - 'languages:language_interface'
         - url
         - 'user.node_grants:view'
+        - user.permissions
       cacheable: false
   page_1:
     id: page_1
@@ -299,5 +302,7 @@ display:
       contexts:
         - 'languages:language_interface'
         - url
+        - url.query_args
         - 'user.node_grants:view'
+        - user.permissions
       cacheable: false

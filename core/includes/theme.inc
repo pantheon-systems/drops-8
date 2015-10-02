@@ -12,15 +12,17 @@ use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\StorageException;
+use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeSettings;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Render\Element;
-use Drupal\Core\Render\SafeString;
+use Drupal\Core\Render\Markup;
 
 /**
  * @defgroup content_flags Content markers
@@ -326,14 +328,11 @@ function theme_get_setting($setting_name, $theme = NULL) {
       }
 
       // Generate the path to the logo image.
-      if ($cache[$theme]->get('features.logo')) {
-        $logo_path = $cache[$theme]->get('logo.path');
-        if ($cache[$theme]->get('logo.use_default')) {
-          $cache[$theme]->set('logo.url', file_create_url($theme_object->getPath() . '/logo.svg'));
-        }
-        elseif ($logo_path) {
-          $cache[$theme]->set('logo.url', file_create_url($logo_path));
-        }
+      if ($cache[$theme]->get('logo.use_default')) {
+        $cache[$theme]->set('logo.url', file_create_url($theme_object->getPath() . '/logo.svg'));
+      }
+      elseif ($logo_path = $cache[$theme]->get('logo.path')) {
+        $cache[$theme]->set('logo.url', file_create_url($logo_path));
       }
 
       // Generate the path to the favicon.
@@ -358,6 +357,75 @@ function theme_get_setting($setting_name, $theme = NULL) {
   }
 
   return $cache[$theme]->get($setting_name);
+}
+
+/**
+ * Escapes and renders variables for theme functions.
+ *
+ * This method is used in theme functions to ensure that the result is safe for
+ * output inside HTML fragments. This mimics the behavior of the auto-escape
+ * functionality in Twig.
+ *
+ * Note: This function should be kept in sync with
+ * \Drupal\Core\Template\TwigExtension::escapeFilter().
+ *
+ * @param mixed $arg
+ *   The string, object, or render array to escape if needed.
+ *
+ * @return string
+ *   The rendered string, safe for use in HTML. The string is not safe when used
+ *   as any part of an HTML attribute name or value.
+ *
+ * @throws \Exception
+ *   Thrown when an object is passed in which cannot be printed.
+ *
+ * @see \Drupal\Core\Template\TwigExtension::escapeFilter()
+ *
+ * @todo Discuss deprecating this in https://www.drupal.org/node/2575081.
+ * @todo Refactor this to keep it in sync with Twig filtering in
+ *   https://www.drupal.org/node/2575065
+ */
+function theme_render_and_autoescape($arg) {
+  if ($arg instanceOf MarkupInterface) {
+    return (string) $arg;
+  }
+  $return = NULL;
+
+  if (is_scalar($arg)) {
+    $return = (string) $arg;
+  }
+  elseif (is_object($arg)) {
+    if ($arg instanceof RenderableInterface) {
+      $arg = $arg->toRenderable();
+    }
+    elseif (method_exists($arg, '__toString')) {
+      $return = (string) $arg;
+    }
+    // You can't throw exceptions in the magic PHP __toString methods, see
+    // http://php.net/manual/en/language.oop5.magic.php#object.tostring so
+    // we also support a toString method.
+    elseif (method_exists($arg, 'toString')) {
+      $return = $arg->toString();
+    }
+    else {
+      throw new \Exception(t('Object of type "@class" cannot be printed.', array('@class' => get_class($arg))));
+    }
+  }
+
+  // We have a string or an object converted to a string: Escape it!
+  if (isset($return)) {
+    return SafeMarkup::isSafe($return, 'html') ? $return : Html::escape($return);
+  }
+
+  // This is a normal render array, which is safe by definition, with special
+  // simple cases already handled.
+
+  // Early return if this element was pre-rendered (no need to re-render).
+  if (isset($arg['#printed']) && $arg['#printed'] == TRUE && isset($arg['#markup']) && strlen($arg['#markup']) > 0) {
+    return (string) $arg['#markup'];
+  }
+  $arg['#printed'] = FALSE;
+  return (string) \Drupal::service('renderer')->render($arg);
 }
 
 /**
@@ -963,25 +1031,6 @@ function template_preprocess_table(&$variables) {
 }
 
 /**
- * Prepares variables for tablesort indicator templates.
- *
- * Default template: tablesort-indicator.html.twig.
- *
- * @param array $variables
- *   An associative array containing:
- *   - style: Set to either 'asc' or 'desc'. This determines which icon to show.
- */
-function template_preprocess_tablesort_indicator(&$variables) {
-  // Provide the image attributes for an ascending or descending image.
-  if ($variables['style'] == 'asc') {
-    $variables['arrow_asc'] = file_create_url('core/misc/arrow-asc.png');
-  }
-  else {
-    $variables['arrow_desc'] = file_create_url('core/misc/arrow-desc.png');
-  }
-}
-
-/**
  * Prepares variables for item list templates.
  *
  * Default template: item-list.html.twig.
@@ -1243,7 +1292,7 @@ function template_preprocess_html(&$variables) {
   if (!empty($variables['page']['#title'])) {
     $head_title = array(
       // Marking the title as safe since it has had the tags stripped.
-      'title' => SafeString::create(trim(strip_tags($variables['page']['#title']))),
+      'title' => Markup::create(trim(strip_tags($variables['page']['#title']))),
       'name' => $site_config->get('name'),
     );
   }
@@ -1269,19 +1318,15 @@ function template_preprocess_html(&$variables) {
   // Create placeholder strings for these keys.
   // @see \Drupal\Core\Render\HtmlResponseSubscriber
   $types = [
-    'styles',
-    'scripts',
-    'scripts_bottom',
-    'head',
+    'styles' => 'css',
+    'scripts' => 'js',
+    'scripts_bottom' => 'js-bottom',
+    'head' => 'head',
   ];
-  $token = Crypt::randomBytesBase64(55);
-  foreach ($types as $type) {
-    $placeholder = SafeMarkup::format('<drupal-html-response-attachment-placeholder type="@type" token="@token"></drupal-html-response-attachment-placeholder>', [
-      '@type' => $type,
-      '@token' => $token,
-    ]);
-    $variables[$type]['#markup'] = $placeholder;
-    $variables[$type]['#attached']['html_response_attachment_placeholders'][$type] = $placeholder;
+  $variables['placeholder_token'] = Crypt::randomBytesBase64(55);
+  foreach ($types as $type => $placeholder_name) {
+    $placeholder = '<' . $placeholder_name . '-placeholder token="' . $variables['placeholder_token'] . '">';
+    $variables['#attached']['html_response_attachment_placeholders'][$type] = $placeholder;
   }
 }
 
@@ -1296,10 +1341,6 @@ function template_preprocess_html(&$variables) {
  */
 function template_preprocess_page(&$variables) {
   $language_interface = \Drupal::languageManager()->getCurrentLanguage();
-  $site_config = \Drupal::config('system.site');
-
-  // Move some variables to the top level for themer convenience and template cleanliness.
-  $variables['title'] = $variables['page']['#title'];
 
   foreach (\Drupal::theme()->getActiveTheme()->getRegions() as $region) {
     if (!isset($variables['page'][$region])) {
@@ -1310,9 +1351,6 @@ function template_preprocess_page(&$variables) {
   $variables['base_path']         = base_path();
   $variables['front_page']        = \Drupal::url('<front>');
   $variables['language']          = $language_interface;
-  $variables['logo']              = theme_get_setting('logo.url');
-  $variables['site_name']         = (theme_get_setting('features.name') ? $site_config->get('name') : '');
-  $variables['site_slogan']['#markup'] = (theme_get_setting('features.slogan') ? $site_config->get('slogan') : '');
 
   // An exception might be thrown.
   try {
@@ -1417,6 +1455,17 @@ function template_preprocess_maintenance_page(&$variables) {
 
   // @see system_page_attachments()
   $variables['#attached']['library'][] = 'system/maintenance';
+
+  // Maintenance page and install page need branding info in variables because
+  // there is no blocks.
+  $site_config = \Drupal::config('system.site');
+  $variables['logo'] = theme_get_setting('logo.url');
+  $variables['site_name'] = $site_config->get('name');
+  $variables['site_slogan'] = $site_config->get('slogan');
+
+  // Maintenance page and install page need page title in variable because there
+  // are no blocks.
+  $variables['title'] = $variables['page']['#title'];
 }
 
 /**
@@ -1484,11 +1533,7 @@ function template_preprocess_field(&$variables, $hook) {
   // readers.
   $variables['label'] = $element['#title'];
 
-
-  // @todo Check for is_object() required due to pseudo field used in
-  // quickedit_test_entity_view_alter(). Remove this check after this is fixed
-  // in https://www.drupal.org/node/2550225.
-  $variables['multiple'] = is_object($element['#items']) ? $element['#items']->getFieldDefinition()->getFieldStorageDefinition()->isMultiple() : FALSE;
+  $variables['multiple'] = $element['#is_multiple'];
 
   static $default_attributes;
   if (!isset($default_attributes)) {
@@ -1496,7 +1541,7 @@ function template_preprocess_field(&$variables, $hook) {
   }
 
   // Merge attributes when a single-value field has a hidden label.
-  if ($element['#label_display'] == 'hidden' && !$variables['multiple'] && is_object($element['#items'][0])) {
+  if ($element['#label_display'] == 'hidden' && !$variables['multiple']) {
     $variables['attributes'] = NestedArray::mergeDeep($variables['attributes'], (array) $element['#items'][0]->_attributes);
   }
 
@@ -1662,6 +1707,9 @@ function drupal_common_theme() {
     ),
     'page' => array(
       'render element' => 'page',
+    ),
+    'page_title' => array(
+      'variables' => array('title' => NULL),
     ),
     'region' => array(
       'render element' => 'elements',

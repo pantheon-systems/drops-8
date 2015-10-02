@@ -7,8 +7,6 @@
  * This file handles tokens for the global 'site' and 'date' tokens.
  */
 
-use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\Xss;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Render\BubbleableMetadata;
 
@@ -100,8 +98,6 @@ function system_tokens($type, $tokens, array $data, array $options, BubbleableMe
   else {
     $langcode = NULL;
   }
-  $sanitize = !empty($options['sanitize']);
-
   $replacements = array();
 
   if ($type == 'site') {
@@ -111,14 +107,18 @@ function system_tokens($type, $tokens, array $data, array $options, BubbleableMe
           $config = \Drupal::config('system.site');
           $bubbleable_metadata->addCacheableDependency($config);
           $site_name = $config->get('name');
-          $replacements[$original] = $sanitize ? Html::escape($site_name) : $site_name;
+          $replacements[$original] = $site_name;
           break;
 
         case 'slogan':
           $config = \Drupal::config('system.site');
           $bubbleable_metadata->addCacheableDependency($config);
           $slogan = $config->get('slogan');
-          $replacements[$original] = $sanitize ? Xss::filterAdmin($slogan) : $slogan;
+          $build = [
+            '#markup' => $slogan,
+          ];
+          // @todo Fix in https://www.drupal.org/node/2577827
+          $replacements[$original] = \Drupal::service('renderer')->renderPlain($build);
           break;
 
         case 'mail':
@@ -165,21 +165,11 @@ function system_tokens($type, $tokens, array $data, array $options, BubbleableMe
     foreach ($tokens as $name => $original) {
       switch ($name) {
         case 'short':
-          $date_format = DateFormat::load('short');
-          $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($date, 'short', '', NULL, $langcode);
-          break;
-
         case 'medium':
-          $date_format = DateFormat::load('medium');
-          $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($date, 'medium', '', NULL, $langcode);
-          break;
-
         case 'long':
-          $date_format = DateFormat::load('long');
+          $date_format = DateFormat::load($name);
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($date, 'long', '', NULL, $langcode);
+          $replacements[$original] = format_date($date, $name, '', NULL, $langcode);
           break;
 
         case 'since':
@@ -188,7 +178,7 @@ function system_tokens($type, $tokens, array $data, array $options, BubbleableMe
           break;
 
         case 'raw':
-          $replacements[$original] = $sanitize ? Html::escape($date) : $date;
+          $replacements[$original] = $date;
           break;
       }
     }

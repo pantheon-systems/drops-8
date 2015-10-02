@@ -2,10 +2,10 @@
 
 backbone:
   remote: https://github.com/jashkenas/backbone
-  version: "1.2.1"
+  version: "1.2.3"
   license:
     name: MIT
-    url: https://github.com/jashkenas/backbone/blob/1.2.1/LICENSE
+    url: https://github.com/jashkenas/backbone/blob/1.2.3/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/backbone/backbone-min.js: { weight: -19, minified: true }
@@ -24,10 +24,10 @@ classList:
 
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
-  version: "4.4.7"
+  version: "4.5.3"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/ckeditor/ckeditor-dev/blob/4.4.7/LICENSE.md
+    url: https://github.com/ckeditor/ckeditor-dev/blob/4.5.3/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
@@ -161,9 +161,6 @@ drupal.dialog:
     misc/dialog/dialog.js: {}
     misc/dialog/dialog.position.js: {}
     misc/dialog/dialog.jquery-ui.js: {}
-  css:
-    theme:
-      misc/dialog.theme.css: {}
   dependencies:
     - core/jquery
     - core/drupal
@@ -199,8 +196,6 @@ drupal.dropbutton:
   css:
     component:
       misc/dropbutton/dropbutton.css: {}
-    theme:
-      misc/dropbutton/dropbutton.theme.css: {}
   dependencies:
     - core/jquery
     - core/drupal
@@ -327,7 +322,7 @@ html5shiv:
   # Block the page from being loaded until html5shiv is initialized.
   header: true
   remote: https://github.com/aFarkas/html5shiv
-  version: "3.7.2"
+  version: "3.7.3"
   license:
     name: GNU-GPL-2.0-or-later
     url: http://www.gnu.org/licenses/gpl-2.0.html
@@ -400,10 +395,10 @@ jquery.joyride:
 
 jquery.once:
   remote: https://github.com/RobLoach/jquery-once
-  version: "2.0.2"
+  version: "2.1.1"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/RobLoach/jquery-once/blob/2.0.2/LICENSE.md
+    url: https://github.com/RobLoach/jquery-once/blob/2.1.1/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/jquery-once/jquery.once.min.js: { weight: -19, minified: true }

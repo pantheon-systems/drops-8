@@ -174,7 +174,7 @@ class AccountSettingsForm extends ConfigFormBase {
       '#type' => 'radios',
       '#title' => $this->t('When cancelling a user account'),
       '#default_value' => $config->get('cancel_method'),
-      '#description' => $this->t('Users with the %select-cancel-method or %administer-users <a href="@permissions-url">permissions</a> can override this default method.', array('%select-cancel-method' => $this->t('Select method for cancelling account'), '%administer-users' => $this->t('Administer users'), '@permissions-url' => $this->url('user.admin_permissions'))),
+      '#description' => $this->t('Users with the %select-cancel-method or %administer-users <a href=":permissions-url">permissions</a> can override this default method.', array('%select-cancel-method' => $this->t('Select method for cancelling account'), '%administer-users' => $this->t('Administer users'), ':permissions-url' => $this->url('user.admin_permissions'))),
     );
     $form['registration_cancellation']['user_cancel_method'] += user_cancel_methods();
     foreach (Element::children($form['registration_cancellation']['user_cancel_method']) as $key) {
@@ -201,7 +201,7 @@ class AccountSettingsForm extends ConfigFormBase {
     );
     // These email tokens are shared for all settings, so just define
     // the list once to help ensure they stay in sync.
-    $email_token_help = $this->t('Available variables are: [site:name], [site:url], [user:name], [user:mail], [site:login-url], [site:url-brief], [user:edit-url], [user:one-time-login-url], [user:cancel-url].');
+    $email_token_help = $this->t('Available variables are: [site:name], [site:url], [user:display-name], [user:account-name], [user:mail], [site:login-url], [site:url-brief], [user:edit-url], [user:one-time-login-url], [user:cancel-url].');
 
     $form['email_admin_created'] = array(
       '#type' => 'details',

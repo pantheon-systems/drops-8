@@ -9,7 +9,7 @@ namespace Drupal\Core\Field\Plugin\Field\FieldType;
 
 use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\StringTranslation\TranslationWrapper;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataDefinition;
 
 /**
@@ -29,10 +29,10 @@ class PasswordItem extends StringItem {
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('string')
-      ->setLabel(new TranslationWrapper('The hashed password'))
+      ->setLabel(new TranslatableMarkup('The hashed password'))
       ->setSetting('case_sensitive', TRUE);
     $properties['existing'] = DataDefinition::create('string')
-      ->setLabel(new TranslationWrapper('Existing password'));
+      ->setLabel(new TranslatableMarkup('Existing password'));
 
     return $properties;
   }
@@ -46,7 +46,7 @@ class PasswordItem extends StringItem {
     $entity = $this->getEntity();
 
     // Update the user password if it has changed.
-    if ($entity->isNew() || ($this->value && $this->value != $entity->original->{$this->getFieldDefinition()->getName()}->value)) {
+    if ($entity->isNew() || (strlen(trim($this->value)) > 0 && $this->value != $entity->original->{$this->getFieldDefinition()->getName()}->value)) {
       // Allow alternate password hashing schemes.
       $this->value = \Drupal::service('password')->hash(trim($this->value));
       // Abort if the hashing failed and returned FALSE.

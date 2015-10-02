@@ -7,8 +7,6 @@
 
 namespace Drupal\views;
 
-use Drupal\Component\Utility\SafeMarkup;
-
 /**
  * Static service container wrapper for views.
  */
@@ -157,7 +155,7 @@ class Views {
       }
 
       if (empty($plugin['no_ui']) && (empty($base) || empty($plugin['base']) || array_intersect($base, $plugin['base']))) {
-        $plugins[$id] = (string) $plugin['title'];
+        $plugins[$id] = $plugin['title'];
       }
     }
 
@@ -398,8 +396,8 @@ class Views {
           if (!isset($plugins[$key])) {
             $plugins[$key] = array(
               'type' => $type,
-              'title' => SafeMarkup::checkPlain($info[$name]['title']),
-              'provider' => SafeMarkup::checkPlain($info[$name]['provider']),
+              'title' => $info[$name]['title'],
+              'provider' => $info[$name]['provider'],
               'views' => array(),
             );
           }

@@ -17,8 +17,6 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
  */
 class MigrateUserProfileFieldTest extends MigrateDrupal6TestBase {
 
-  static $modules = array('link', 'options', 'datetime', 'text');
-
   /**
    * {@inheritdoc}
    */
@@ -64,11 +62,9 @@ class MigrateUserProfileFieldTest extends MigrateDrupal6TestBase {
     $this->assertIdentical('text', $field_storage->getType(), 'Field type is text.');
     $this->assertIdentical(-1, $field_storage->getCardinality(), 'List field has correct cardinality');
 
-/*
     // Migrated URL field.
     $field_storage = FieldStorageConfig::load('user.profile_blog');
     $this->assertIdentical('link', $field_storage->getType(), 'Field type is link.');
-*/
 
     // Migrated date field.
     $field_storage = FieldStorageConfig::load('user.profile_birthdate');

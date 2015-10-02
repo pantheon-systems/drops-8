@@ -1,5 +1,5 @@
 id: d6_imagecache_presets
-label: Drupal 6 ImageCache Presets
+label: ImageCache Presets
 migration_tags:
   - Drupal 6
 source:
@@ -18,7 +18,7 @@ process:
   effects:
     plugin: d6_imagecache_actions
     source:
-      - @plugin
+      - '@plugin'
       - data
 destination:
   plugin: entity:image_style

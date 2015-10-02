@@ -91,9 +91,9 @@ class Node extends ContentEntityBase implements NodeInterface {
   public function preSave(EntityStorageInterface $storage) {
     parent::preSave($storage);
 
-    // If no owner has been set explicitly, make the current user the owner.
+    // If no owner has been set explicitly, make the anonymous user the owner.
     if (!$this->getOwner()) {
-      $this->setOwnerId(\Drupal::currentUser()->id());
+      $this->setOwnerId(0);
     }
     // If no revision author has been set explicitly, make the node owner the
     // revision author.
@@ -229,13 +229,6 @@ class Node extends ContentEntityBase implements NodeInterface {
   public function setCreatedTime($timestamp) {
     $this->set('created', $timestamp);
     return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getChangedTime() {
-    return $this->get('changed')->value;
   }
 
   /**
@@ -498,6 +491,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setDescription(t('Briefly describe the changes you have made.'))
       ->setRevisionable(TRUE)
       ->setTranslatable(TRUE)
+      ->setDefaultValue('')
       ->setDisplayOptions('form', array(
         'type' => 'string_textarea',
         'weight' => 25,

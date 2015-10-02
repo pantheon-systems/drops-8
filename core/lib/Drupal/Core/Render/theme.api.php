@@ -70,7 +70,10 @@
  * hook_theme() implementations can also specify that a theme hook
  * implementation is a theme function, but that is uncommon. It is only used for
  * special cases, for performance reasons, because rendering using theme
- * functions is somewhat faster than theme templates.
+ * functions is somewhat faster than theme templates. Note that while Twig
+ * templates will auto-escape variables, theme functions must explicitly escape
+ * any variables by using theme_render_and_autoescape(). Failure to do so is
+ * likely to result in security vulnerabilities.
  *
  * @section sec_overriding_theme_hooks Overriding Theme Hooks
  * Themes may register new theme hooks within a hook_theme() implementation, but
@@ -93,6 +96,9 @@
  * bartik_search_result() in the bartik.theme file, if the search_result hook
  * implementation was a function instead of a template). Normally, copying the
  * default function is again a good starting point for overriding its behavior.
+ * Again, note that theme functions (unlike templates) must explicitly escape
+ * variables using theme_render_and_autoescape() or risk security
+ * vulnerabilities.
  *
  * @section sec_preprocess_templates Preprocessing for Template Files
  * If the theme implementation is a template file, several functions are called
@@ -375,7 +381,10 @@
  * Libraries, JavaScript settings, feeds, HTML <head> tags and HTML <head> links
  * are attached to elements using the #attached property. The #attached property
  * is an associative array, where the keys are the attachment types and the
- * values are the attached data. For example:
+ * values are the attached data.
+ *
+ * The #attached property can also be used to specify HTTP headers and the
+ * response status code.
  *
  * The #attached property allows loading of asset libraries (which may contain
  * CSS assets, JavaScript assets, and JavaScript setting assets), JavaScript
@@ -386,10 +395,11 @@
  * @code
  * $build['#attached']['library'][] = 'core/jquery';
  * $build['#attached']['drupalSettings']['foo'] = 'bar';
- * $build['#attached']['feed'][] = ['aggregator/rss', $this->t('Feed title')];
+ * $build['#attached']['feed'][] = [$url, $this->t('Feed title')];
  * @endcode
  *
- * See drupal_process_attached() for additional information.
+ * See \Drupal\Core\Render\AttachmentsResponseProcessorInterface for additional
+ * information.
  *
  * See \Drupal\Core\Asset\LibraryDiscoveryParser::parseLibraryInfo() for more
  * information on how to define libraries.

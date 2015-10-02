@@ -8,6 +8,7 @@
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
+use Drupal\Core\Render\Markup;
 use Drupal\field\FieldConfigInterface;
 use Drupal\field\FieldStorageConfigInterface;
 use Drupal\system\ActionConfigEntityInterface;
@@ -449,7 +450,16 @@ function views_field_default_views_data(FieldStorageConfigInterface $field_stora
     }
     if ($aliases) {
       $data[$table_alias][$field_alias]['aliases'] = $aliases;
-      $data[$table_alias][$field_alias]['help'] .= ' ' . t('Also known as: !also.', array('!also' => implode(', ', $also_known)));
+      // The $also_known variable contains markup that is HTML escaped and that
+      // loses safeness when imploded. The help text is used in #description
+      // and therefore XSS admin filtered by default. Escaped HTML is not
+      // altered by XSS filtering, therefore it is safe to just concatenate the
+      // strings. Afterwards we mark the entire string as safe, so it won't be
+      // escaped, no matter where it is used.
+      // Considering the dual use of this help data (both as metadata and as
+      // help text), other patterns such as use of #markup would not be correct
+      // here.
+      $data[$table_alias][$field_alias]['help'] = Markup::create($data[$table_alias][$field_alias]['help'] . ' ' . t('Also known as:') . ' ' . implode(', ', $also_known));
     }
 
     $keys = array_keys($field_columns);
@@ -497,12 +507,12 @@ function views_field_default_views_data(FieldStorageConfigInterface $field_stora
     }
 
     if (count($field_columns) == 1 || $column == 'value') {
-      $title = t('@label (!name)', array('@label' => $label, '!name' => $field_name));
+      $title = t('@label (@name)', array('@label' => $label, '@name' => $field_name));
       $title_short = $label;
     }
     else {
-      $title = t('@label (!name:!column)', array('@label' => $label, '!name' => $field_name, '!column' => $column));
-      $title_short = t('@label:!column', array('@label' => $label, '!column' => $column));
+      $title = t('@label (@name:@column)', array('@label' => $label, '@name' => $field_name, '@column' => $column));
+      $title_short = t('@label:@column', array('@label' => $label, '@column' => $column));
     }
 
     // Expose data for the property.
@@ -535,10 +545,10 @@ function views_field_default_views_data(FieldStorageConfigInterface $field_stora
       foreach ($all_labels as $label_name => $true) {
         if ($label != $label_name) {
           if (count($field_columns) == 1 || $column == 'value') {
-            $alias_title = t('@label (!name)', array('@label' => $label_name, '!name' => $field_name));
+            $alias_title = t('@label (@name)', array('@label' => $label_name, '@name' => $field_name));
           }
           else {
-            $alias_title = t('@label (!name:!column)', array('@label' => $label_name, '!name' => $field_name, '!column' => $column));
+            $alias_title = t('@label (@name:@column)', array('@label' => $label_name, '@name' => $field_name, '@column' => $column));
           }
           $aliases[] = array(
             'group' => $group_name,
@@ -550,7 +560,16 @@ function views_field_default_views_data(FieldStorageConfigInterface $field_stora
       }
       if ($aliases) {
         $data[$table_alias][$column_real_name]['aliases'] = $aliases;
-        $data[$table_alias][$column_real_name]['help'] .= ' ' . t('Also known as: !also.', array('!also' => implode(', ', $also_known)));
+        // The $also_known variable contains markup that is HTML escaped and
+        // that loses safeness when imploded. The help text is used in
+        // #description and therefore XSS admin filtered by default. Escaped
+        // HTML is not altered by XSS filtering, therefore it is safe to just
+        // concatenate the strings. Afterwards we mark the entire string as
+        // safe, so it won't be escaped, no matter where it is used.
+        // Considering the dual use of this help data (both as metadata and as
+        // help text), other patterns such as use of #markup would not be
+        // correct here.
+        $data[$table_alias][$column_real_name]['help'] = Markup::create($data[$table_alias][$column_real_name]['help'] . ' ' . t('Also known as:') . ' ' . implode(', ', $also_known));
       }
 
       $data[$table_alias][$column_real_name]['argument'] = array(
@@ -589,7 +608,7 @@ function views_field_default_views_data(FieldStorageConfigInterface $field_stora
 
       // Expose additional delta column for multiple value fields.
       if ($field_storage->isMultiple()) {
-        $title_delta = t('@label (!name:delta)', array('@label' => $label, '!name' => $field_name));
+        $title_delta = t('@label (@name:delta)', array('@label' => $label, '@name' => $field_name));
         $title_short_delta = t('@label:delta', array('@label' => $label));
 
         $data[$table_alias]['delta'] = array(

@@ -96,7 +96,7 @@ class ThemeTest extends WebTestBase {
 
       // Verify logo path examples.
       $elements = $this->xpath('//div[contains(@class, :item)]/div[@class=:description]/code', array(
-        ':item' => 'form-item-logo-path',
+        ':item' => 'js-form-item-logo-path',
         ':description' => 'description',
       ));
       // Expected default values (if all else fails).
@@ -123,9 +123,11 @@ class ThemeTest extends WebTestBase {
       $this->assertEqual((string) $elements[1], $explicit_file);
       $this->assertEqual((string) $elements[2], $local_file);
 
-      // Verify the actual 'src' attribute of the logo being output.
+      // Verify the actual 'src' attribute of the logo being output in a site
+      // branding block.
+      $this->drupalPlaceBlock('system_branding_block', ['region' => 'header']);
       $this->drupalGet('');
-      $elements = $this->xpath('//header/a[@rel=:rel]/img', array(
+      $elements = $this->xpath('//header//a[@rel=:rel]/img', array(
           ':rel' => 'home',
         )
       );
@@ -175,8 +177,9 @@ class ThemeTest extends WebTestBase {
     $fields = $this->xpath($this->constructFieldXpath('name', 'logo_path'));
     $uploaded_filename = 'public://' . $fields[0]['value'];
 
+    $this->drupalPlaceBlock('system_branding_block', ['region' => 'header']);
     $this->drupalGet('');
-    $elements = $this->xpath('//header/a[@rel=:rel]/img', array(
+    $elements = $this->xpath('//header//a[@rel=:rel]/img', array(
         ':rel' => 'home',
       )
     );
@@ -345,9 +348,9 @@ class ThemeTest extends WebTestBase {
    */
   function testInstallAndSetAsDefault() {
     $this->drupalGet('admin/appearance');
-    // Bartik is uninstalled in the test profile and has the second "Install and
+    // Bartik is uninstalled in the test profile and has the third "Install and
     // set as default" link.
-    $this->clickLink(t('Install and set as default'), 1);
+    $this->clickLink(t('Install and set as default'), 2);
     // Test the confirmation message.
     $this->assertText('Bartik is now the default theme.');
     // Make sure Bartik is now set as the default theme in config.

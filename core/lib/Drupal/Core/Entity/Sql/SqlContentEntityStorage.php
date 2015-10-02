@@ -258,8 +258,8 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The update entity type.
    *
-   * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
-   *   See https://www.drupal.org/node/2274017.
+   * @internal Only to be used internally by Entity API. Expected to be
+   *   removed by https://www.drupal.org/node/2274017.
    */
   public function setEntityType(EntityTypeInterface $entity_type) {
     if ($this->entityType->id() == $entity_type->id()) {
@@ -1492,40 +1492,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    * {@inheritdoc}
    */
   public function onBundleDelete($bundle, $entity_type_id) { }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function onBundleRename($bundle, $bundle_new, $entity_type_id) {
-    // The method runs before the field definitions are updated, so we use the
-    // old bundle name.
-    $field_definitions = $this->entityManager->getFieldDefinitions($this->entityTypeId, $bundle);
-    // We need to handle deleted fields too. For now, this only makes sense for
-    // configurable fields, so we use the specific API.
-    // @todo Use the unified store of deleted field definitions instead in
-    //   https://www.drupal.org/node/2282119
-    $field_definitions += entity_load_multiple_by_properties('field_config', array('entity_type' => $this->entityTypeId, 'bundle' => $bundle, 'deleted' => TRUE, 'include_deleted' => TRUE));
-    $table_mapping = $this->getTableMapping();
-
-    foreach ($field_definitions as $field_definition) {
-      $storage_definition = $field_definition->getFieldStorageDefinition();
-      if ($table_mapping->requiresDedicatedTableStorage($storage_definition)) {
-        $is_deleted = $this->storageDefinitionIsDeleted($storage_definition);
-        $table_name = $table_mapping->getDedicatedDataTableName($storage_definition, $is_deleted);
-        $revision_name = $table_mapping->getDedicatedRevisionTableName($storage_definition, $is_deleted);
-        $this->database->update($table_name)
-          ->fields(array('bundle' => $bundle_new))
-          ->condition('bundle', $bundle)
-          ->execute();
-        if ($this->entityType->isRevisionable()) {
-          $this->database->update($revision_name)
-            ->fields(array('bundle' => $bundle_new))
-            ->condition('bundle', $bundle)
-            ->execute();
-        }
-      }
-    }
-  }
 
   /**
    * {@inheritdoc}

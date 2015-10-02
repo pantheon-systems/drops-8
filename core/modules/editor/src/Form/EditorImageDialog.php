@@ -63,12 +63,22 @@ class EditorImageDialog extends FormBase {
    *   The filter format for which this dialog corresponds.
    */
   public function buildForm(array $form, FormStateInterface $form_state, FilterFormat $filter_format = NULL) {
-    // The default values are set directly from \Drupal::request()->request,
-    // provided by the editor plugin opening the dialog.
-    if (!$image_element = $form_state->get('image_element')) {
-      $user_input = $form_state->getUserInput();
-      $image_element = isset($user_input['editor_object']) ? $user_input['editor_object'] : [];
+    // This form is special, in that the default values do not come from the
+    // server side, but from the client side, from a text editor. We must cache
+    // this data in form state, because when the form is rebuilt, we will be
+    // receiving values from the form, instead of the values from the text
+    // editor. If we don't cache it, this data will be lost.
+    if (isset($form_state->getUserInput()['editor_object'])) {
+      // By convention, the data that the text editor sends to any dialog is in
+      // the 'editor_object' key. And the image dialog for text editors expects
+      // that data to be the attributes for an <img> element.
+      $image_element = $form_state->getUserInput()['editor_object'];
       $form_state->set('image_element', $image_element);
+      $form_state->setCached(TRUE);
+    }
+    else {
+      // Retrieve the image element's attributes from form state.
+      $image_element = $form_state->get('image_element') ?: [];
     }
 
     $form['#tree'] = TRUE;
@@ -142,41 +152,6 @@ class EditorImageDialog extends FormBase {
       '#required_error' => $this->t('Alternative text is required.<br />(Only in rare cases should this be left empty. To create empty alternative text, enter <code>""</code> — two double quotes without any content).'),
       '#default_value' => $alt,
       '#maxlength' => 2048,
-    );
-    $form['dimensions'] = array(
-      '#type' => 'fieldset',
-      '#title' => $this->t('Image size'),
-      '#attributes' => array('class' => array(
-        'container-inline',
-        'fieldgroup',
-        'form-composite',
-      )),
-    );
-    $form['dimensions']['width'] = array(
-      '#title' => $this->t('Width'),
-      '#title_display' => 'invisible',
-      '#type' => 'number',
-      '#default_value' => isset($image_element['width']) ? $image_element['width'] : '',
-      '#size' => 8,
-      '#maxlength' => 8,
-      '#min' => 1,
-      '#max' => 99999,
-      '#placeholder' => $this->t('width'),
-      '#field_suffix' => ' × ',
-      '#parents' => array('attributes', 'width'),
-    );
-    $form['dimensions']['height'] = array(
-      '#title' => $this->t('Height'),
-      '#title_display' => 'invisible',
-      '#type' => 'number',
-      '#default_value' => isset($image_element['height']) ? $image_element['height'] : '',
-      '#size' => 8,
-      '#maxlength' => 8,
-      '#min' => 1,
-      '#max' => 99999,
-      '#placeholder' => $this->t('height'),
-      '#field_suffix' => $this->t('pixels'),
-      '#parents' => array('attributes', 'height'),
     );
 
     // When Drupal core's filter_align is being used, the text editor may

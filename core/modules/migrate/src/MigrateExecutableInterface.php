@@ -17,6 +17,11 @@ interface MigrateExecutableInterface {
   public function import();
 
   /**
+   * Performs a rollback operation - remove previously-imported items.
+   */
+  public function rollback();
+
+  /**
    * Processes a row.
    *
    * @param \Drupal\migrate\Row $row
@@ -46,18 +51,4 @@ interface MigrateExecutableInterface {
    */
   public function saveMessage($message, $level = MigrationInterface::MESSAGE_ERROR);
 
-  /**
-   * Queues messages to be later saved through the map class.
-   *
-   * @param string $message
-   *   The message to record.
-   * @param int $level
-   *   (optional) Message severity (defaults to MESSAGE_ERROR).
-   */
-  public function queueMessage($message, $level = MigrationInterface::MESSAGE_ERROR);
-
-  /**
-   * Saves any messages we've queued up to the message table.
-   */
-  public function saveQueuedMessages();
 }

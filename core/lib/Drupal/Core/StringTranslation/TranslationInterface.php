@@ -33,7 +33,7 @@ interface TranslationInterface {
    *      what is used to display the page.
    *   - 'context': The context the source string belongs to.
    *
-   * @return string
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
    *   The translated string.
    *
    * @see \Drupal\Component\Utility\SafeMarkup::format()
@@ -41,11 +41,23 @@ interface TranslationInterface {
   public function translate($string, array $args = array(), array $options = array());
 
   /**
+   * Translates a TranslatableMarkup object to a string.
+   *
+   * @param \Drupal\Core\StringTranslation\TranslatableMarkup $translated_string
+   *   A TranslatableMarkup object.
+   *
+   * @return string
+   *   The translated string.
+   */
+  public function translateString(TranslatableMarkup $translated_string);
+
+  /**
    * Formats a string containing a count of items.
    *
-   * This function ensures that the string is pluralized correctly. Since t() is
-   * called by this function, make sure not to pass already-localized strings to
-   * it. See formatPluralTranslated() for that.
+   * This function ensures that the string is pluralized correctly. Since
+   * TranslationInterface::translate() is called by this function, make sure not
+   * to pass already-localized strings to it. See
+   * PluralTranslatableMarkup::createFromTranslatedString() for that.
    *
    * For example:
    * @code
@@ -80,60 +92,14 @@ interface TranslationInterface {
    * @param array $options
    *   An associative array of additional options. See t() for allowed keys.
    *
-   * @return string
+   * @return \Drupal\Core\StringTranslation\PluralTranslatableMarkup
    *   A translated string.
    *
-   * @see self::translate()
+   * @see \Drupal\Core\StringTranslation\TranslationInterface::translate()
    * @see t()
    * @see \Drupal\Component\Utility\SafeMarkup::format()
-   * @see self::formatPluralTranslated
+   * @see \Drupal\Core\StringTranslation\PluralTranslatableMarkup::createFromTranslatedString()
    */
   public function formatPlural($count, $singular, $plural, array $args = array(), array $options = array());
-
-  /**
-   * Formats an already translated string containing a count of items.
-   *
-   * This function ensures that the string is pluralized correctly. As opposed
-   * to the formatPlural() method, this method is designed to be invoked with
-   * a string already translated (such as with configuration translation).
-   *
-   * @param int $count
-   *   The item count to display.
-   * @param string $translation
-   *   The string containing the translation of a singular/plural pair. It may
-   *   contain any number of possible variants (depending on the language
-   *   translated to) separated by the value of the LOCALE_PLURAL_DELIMITER
-   *   constant.
-   * @param array $args
-   *   Associative array of replacements to make in the translation. Instances
-   *   of any key in this array are replaced with the corresponding value.
-   *   Based on the first character of the key, the value is escaped and/or
-   *   themed. See \Drupal\Component\Utility\SafeMarkup::format(). Note that you do
-   *   not need to include @count in this array; this replacement is done
-   *   automatically for the plural cases.
-   * @param array $options
-   *   An associative array of additional options. The 'context' key is not
-   *   supported because the passed string is already translated. Use the
-   *   'langcode' key to ensure the proper plural logic is used.
-   *
-   * @return string
-   *   The correct substring for the given $count with $args replaced.
-   *
-   * @see self::formatPlural()
-   * @see \Drupal\Component\Utility\SafeMarkup::format()
-   */
-  public function formatPluralTranslated($count, $translation, array $args = array(), array $options = array());
-
-   /**
-    * Returns the number of plurals supported by a given language.
-    *
-    * @param null|string $langcode
-    *   (optional) The language code. If not provided, the current language
-    *   will be used.
-    *
-    * @return int
-    *   Number of plural variants supported by the given language.
-    */
-   public function getNumberOfPlurals($langcode = NULL);
 
 }

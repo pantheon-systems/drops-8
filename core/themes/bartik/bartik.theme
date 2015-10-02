@@ -39,10 +39,7 @@ function bartik_preprocess_html(&$variables) {
 /**
  * Implements hook_preprocess_HOOK() for page templates.
  */
-function bartik_preprocess_page(&$variables) {
-  // Set the options that apply to both page and maintenance page.
-  _bartik_process_page($variables);
-
+function bartik_preprocess_page_title(&$variables) {
   // Since the title and the shortcut link are both block level elements,
   // positioning them next to each other is much simpler with a wrapper div.
   if (!empty($variables['title_suffix']['add_or_remove_shortcut']) && $variables['title']) {
@@ -75,9 +72,6 @@ function bartik_preprocess_maintenance_page(&$variables) {
 
   // Bartik has custom styling for the maintenance page.
   $variables['#attached']['library'][] = 'bartik/maintenance_page';
-
-  // Set the options that apply to both page and maintenance page.
-  _bartik_process_page($variables);
 }
 
 /**
@@ -109,21 +103,23 @@ function bartik_preprocess_menu(&$variables) {
 }
 
 /**
- * Helper function for handling the site name and slogan.
+ * Implements hook_theme_suggestions_HOOK_alter() for form templates.
  */
-function _bartik_process_page(&$variables) {
-  $site_config = \Drupal::config('system.site');
-  // Always print the site name and slogan, but if they are toggled off, we'll
-  // just hide them visually.
-  $variables['hide_site_name']   = theme_get_setting('features.name') ? FALSE : TRUE;
-  $variables['hide_site_slogan'] = theme_get_setting('features.slogan') ? FALSE : TRUE;
-  if ($variables['hide_site_name']) {
-    // If toggle_name is FALSE, the site_name will be empty, so we rebuild it.
-    $variables['site_name'] = $site_config->get('name');
+function bartik_theme_suggestions_form_alter(array &$suggestions, array $variables) {
+  if ($variables['element']['#form_id'] == 'search_block_form') {
+    $suggestions[] = 'form__search_block_form';
   }
-  if ($variables['hide_site_slogan']) {
-    // If toggle_site_slogan is FALSE, the site_slogan will be empty, so we
-    // rebuild it.
-    $variables['site_slogan']['#markup'] = $site_config->get('slogan');
+}
+
+/**
+ * Implements hook_form_alter() to add classes to the search form.
+ */
+function bartik_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  if (in_array($form_id, ['search_block_form', 'search_form'])) {
+    $key = ($form_id == 'search_block_form') ? 'actions' : 'basic';
+    if (!isset($form[$key]['submit']['#attributes'])) {
+      $form[$key]['submit']['#attributes'] = new Attribute();
+    }
+    $form[$key]['submit']['#attributes']->addClass('search-form__submit');
   }
 }

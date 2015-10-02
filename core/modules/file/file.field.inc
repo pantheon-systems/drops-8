@@ -7,7 +7,7 @@
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldFilteredString;
+use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Render\Element;
 
 /**
@@ -169,7 +169,7 @@ function template_preprocess_file_upload_help(&$variables) {
   $descriptions = array();
 
   if (!empty($description)) {
-    $descriptions[] = FieldFilteredString::create($description);
+    $descriptions[] = FieldFilteredMarkup::create($description);
   }
   if (isset($cardinality)) {
     if ($cardinality == -1) {
@@ -180,7 +180,7 @@ function template_preprocess_file_upload_help(&$variables) {
     }
   }
   if (isset($upload_validators['file_validate_size'])) {
-    $descriptions[] = t('!size limit.', array('!size' => format_size($upload_validators['file_validate_size'][0])));
+    $descriptions[] = t('@size limit.', array('@size' => format_size($upload_validators['file_validate_size'][0])));
   }
   if (isset($upload_validators['file_validate_extensions'])) {
     $descriptions[] = t('Allowed types: @extensions.', array('@extensions' => $upload_validators['file_validate_extensions'][0]));

@@ -78,6 +78,11 @@ use Drupal\views\ViewExecutable;
  */
 
 /**
+ * @addtogroup hooks
+ * @{
+ */
+
+/**
  * Analyze a view to provide warnings about its configuration.
  *
  * @param \Drupal\views\ViewExecutable $view
@@ -482,7 +487,7 @@ function hook_field_views_data(\Drupal\field\FieldStorageConfigInterface $field_
       'id' => 'standard',
       'base' => 'file_managed',
       'base field' => 'target_id',
-      'label' => t('image from !field_name', array('!field_name' => $field_storage->getName())),
+      'label' => t('image from @field_name', array('@field_name' => $field_storage->getName())),
     );
   }
 
@@ -526,7 +531,7 @@ function hook_field_views_data_alter(array &$data, \Drupal\field\FieldStorageCon
     'field field' => $field_name . '_target_id',
     'base' => $entity_type->getBaseTable(),
     'base field' => $entity_type->getKey('id'),
-    'label' => t('!field_name', array('!field_name' => $field_name)),
+    'label' => $field_name,
     'join_extra' => array(
       0 => array(
         'field' => 'deleted',
@@ -583,7 +588,7 @@ function hook_field_views_data_views_data_alter(array &$data, \Drupal\field\Fiel
     'field field' => $field_name . '_target_id',
     'base' => $entity_type->getBaseTable(),
     'base field' => $entity_type->getKey('id'),
-    'label' => t('!field_name', array('!field_name' => $field_name)),
+    'label' => $field_name,
     'join_extra' => array(
       0 => array(
         'field' => 'deleted',
@@ -1213,6 +1218,10 @@ function hook_views_plugins_sort_alter(array &$plugins) {
   // Change the 'title' handler class.
   $plugins['title']['class'] = 'Drupal\\example\\ExampleClass';
 }
+
+/**
+ * @} End of "addtogroup hooks".
+ */
 
 /**
  * @}

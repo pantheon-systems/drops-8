@@ -13,9 +13,9 @@ use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\Core\StringTranslation\TranslationWrapper;
-use Drupal\Core\TypedData\DataDefinition;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\TypedData\DataReferenceDefinition;
+use Drupal\Core\TypedData\DataReferenceTargetDefinition;
 
 /**
  * Defines the 'entity_reference' entity field type.
@@ -40,19 +40,11 @@ use Drupal\Core\TypedData\DataReferenceDefinition;
 class EntityReferenceItem extends FieldItemBase {
 
   /**
-   * Marker value to identify a newly created entity.
-   *
-   * @var int
-   */
-  protected static $NEW_ENTITY_MARKER = -1;
-
-  /**
    * {@inheritdoc}
    */
   public static function defaultStorageSettings() {
     return array(
       'target_type' => \Drupal::moduleHandler()->moduleExists('node') ? 'node' : 'user',
-      'target_bundle' => NULL,
     ) + parent::defaultStorageSettings();
   }
 
@@ -82,34 +74,29 @@ class EntityReferenceItem extends FieldItemBase {
     }
 
     if ($target_id_data_type === 'integer') {
-      $target_id_definition = DataDefinition::create('integer')
-        ->setLabel(new TranslationWrapper('@label ID', ['@label' => $target_type_info->getLabel()]))
+      $target_id_definition = DataReferenceTargetDefinition::create('integer')
+        ->setLabel(new TranslatableMarkup('@label ID', ['@label' => $target_type_info->getLabel()]))
         ->setSetting('unsigned', TRUE);
     }
     else {
-      $target_id_definition = DataDefinition::create('string')
-        ->setLabel(new TranslationWrapper('@label ID', ['@label' => $target_type_info->getLabel()]));
+      $target_id_definition = DataReferenceTargetDefinition::create('string')
+        ->setLabel(new TranslatableMarkup('@label ID', ['@label' => $target_type_info->getLabel()]));
     }
     $target_id_definition->setRequired(TRUE);
     $properties['target_id'] = $target_id_definition;
 
     $properties['entity'] = DataReferenceDefinition::create('entity')
       ->setLabel($target_type_info->getLabel())
-      ->setDescription(new TranslationWrapper('The referenced entity'))
+      ->setDescription(new TranslatableMarkup('The referenced entity'))
       // The entity object is computed out of the entity ID.
       ->setComputed(TRUE)
       ->setReadOnly(FALSE)
       ->setTargetDefinition(EntityDataDefinition::create($settings['target_type']))
+      // We can add a constraint for the target entity type. The list of
+      // referenceable bundles is a field setting, so the corresponding
+      // constraint is added dynamically in ::getConstraints().
       ->addConstraint('EntityType', $settings['target_type']);
 
-    if (isset($settings['target_bundle'])) {
-      $properties['entity']->addConstraint('Bundle', $settings['target_bundle']);
-      // Set any further bundle constraints on the target definition as well,
-      // such that it can derive more special data types if possible. For
-      // example, "entity:node:page" instead of "entity:node".
-      $properties['entity']->getTargetDefinition()
-        ->addConstraint('Bundle', $settings['target_bundle']);
-    }
     return $properties;
   }
 
@@ -161,6 +148,28 @@ class EntityReferenceItem extends FieldItemBase {
   /**
    * {@inheritdoc}
    */
+  public function getConstraints() {
+    $constraints = parent::getConstraints();
+    list($current_handler) = explode(':', $this->getSetting('handler'), 2);
+    if ($current_handler === 'default') {
+      $handler_settings = $this->getSetting('handler_settings');
+      if (!empty($handler_settings['target_bundles'])) {
+        $constraint_manager = \Drupal::typedDataManager()->getValidationConstraintManager();
+        $constraints[] = $constraint_manager->create('ComplexData', [
+          'entity' => [
+            'Bundle' => [
+              'bundle' => $handler_settings['target_bundles'],
+            ],
+          ],
+        ]);
+      }
+    }
+    return $constraints;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function setValue($values, $notify = TRUE) {
     if (isset($values) && !is_array($values)) {
       // If either a scalar or an object was passed as the value for the item,
@@ -171,19 +180,23 @@ class EntityReferenceItem extends FieldItemBase {
       parent::setValue($values, FALSE);
       // Support setting the field item with only one property, but make sure
       // values stay in sync if only property is passed.
-      if (isset($values['target_id']) && !isset($values['entity'])) {
+      // NULL is a valid value, so we use array_key_exists().
+      if (is_array($values) && array_key_exists('target_id', $values) && !isset($values['entity'])) {
         $this->onChange('target_id', FALSE);
       }
-      elseif (!isset($values['target_id']) && isset($values['entity'])) {
+      elseif (is_array($values) && !array_key_exists('target_id', $values) && isset($values['entity'])) {
         $this->onChange('entity', FALSE);
       }
-      elseif (isset($values['target_id']) && isset($values['entity'])) {
+      elseif (is_array($values) && array_key_exists('target_id', $values) && isset($values['entity'])) {
         // If both properties are passed, verify the passed values match. The
         // only exception we allow is when we have a new entity: in this case
         // its actual id and target_id will be different, due to the new entity
         // marker.
         $entity_id = $this->get('entity')->getTargetIdentifier();
-        if ($entity_id != $values['target_id'] && ($values['target_id'] != static::$NEW_ENTITY_MARKER || !$this->entity->isNew())) {
+        // If the entity has been saved and we're trying to set both the
+        // target_id and the entity values with a non-null target ID, then the
+        // value for target_id should match the ID of the entity value.
+        if (!$this->entity->isNew() && $values['target_id'] !== NULL && ($entity_id !== $values['target_id'])) {
           throw new \InvalidArgumentException('The target id and entity passed to the entity reference item do not match.');
         }
       }
@@ -216,10 +229,10 @@ class EntityReferenceItem extends FieldItemBase {
     // Make sure that the target ID and the target property stay in sync.
     if ($property_name == 'entity') {
       $property = $this->get('entity');
-      $target_id = $property->isTargetNew() ? static::$NEW_ENTITY_MARKER : $property->getTargetIdentifier();
+      $target_id = $property->isTargetNew() ? NULL : $property->getTargetIdentifier();
       $this->writePropertyValue('target_id', $target_id);
     }
-    elseif ($property_name == 'target_id' && $this->target_id != static::$NEW_ENTITY_MARKER) {
+    elseif ($property_name == 'target_id') {
       $this->writePropertyValue('entity', $this->target_id);
     }
     parent::onChange($property_name, $notify);
@@ -252,6 +265,9 @@ class EntityReferenceItem extends FieldItemBase {
       // react properly.
       $this->target_id = $this->entity->id();
     }
+    if (!$this->isEmpty() && $this->target_id === NULL) {
+      $this->target_id = $this->entity->id();
+    }
   }
 
   /**
@@ -277,7 +293,7 @@ class EntityReferenceItem extends FieldItemBase {
    *   TRUE if the item holds an unsaved entity.
    */
   public function hasNewEntity() {
-    return $this->target_id === static::$NEW_ENTITY_MARKER;
+    return !$this->isEmpty() && $this->target_id === NULL && $this->entity->isNew();
   }
 
   /**
@@ -285,11 +301,11 @@ class EntityReferenceItem extends FieldItemBase {
    */
   public static function calculateDependencies(FieldDefinitionInterface $field_definition) {
     $dependencies = [];
-    if (is_array($field_definition->default_value) && count($field_definition->default_value)) {
+    if ($default_value = $field_definition->getDefaultValueLiteral()) {
       $target_entity_type = \Drupal::entityManager()->getDefinition($field_definition->getFieldStorageDefinition()->getSetting('target_type'));
-      foreach ($field_definition->default_value as $default_value) {
-        if (is_array($default_value) && isset($default_value['target_uuid'])) {
-          $entity = \Drupal::entityManager()->loadEntityByUuid($target_entity_type->id(), $default_value['target_uuid']);
+      foreach ($default_value as $value) {
+        if (is_array($value) && isset($value['target_uuid'])) {
+          $entity = \Drupal::entityManager()->loadEntityByUuid($target_entity_type->id(), $value['target_uuid']);
           // If the entity does not exist do not create the dependency.
           // @see \Drupal\Core\Field\EntityReferenceFieldItemList::processDefaultValue()
           if ($entity) {
@@ -306,17 +322,20 @@ class EntityReferenceItem extends FieldItemBase {
    */
   public static function onDependencyRemoval(FieldDefinitionInterface $field_definition, array $dependencies) {
     $changed = FALSE;
-    if (!empty($field_definition->default_value)) {
+    if ($default_value = $field_definition->getDefaultValueLiteral()) {
       $target_entity_type = \Drupal::entityManager()->getDefinition($field_definition->getFieldStorageDefinition()->getSetting('target_type'));
-      foreach ($field_definition->default_value as $key => $default_value) {
-        if (is_array($default_value) && isset($default_value['target_uuid'])) {
-          $entity = \Drupal::entityManager()->loadEntityByUuid($target_entity_type->id(), $default_value['target_uuid']);
+      foreach ($default_value as $key => $value) {
+        if (is_array($value) && isset($value['target_uuid'])) {
+          $entity = \Drupal::entityManager()->loadEntityByUuid($target_entity_type->id(), $value['target_uuid']);
           // @see \Drupal\Core\Field\EntityReferenceFieldItemList::processDefaultValue()
           if ($entity && isset($dependencies[$entity->getConfigDependencyKey()][$entity->getConfigDependencyName()])) {
-            unset($field_definition->default_value[$key]);
+            unset($default_value[$key]);
             $changed = TRUE;
           }
         }
+      }
+      if ($changed) {
+        $field_definition->setDefaultValue($default_value);
       }
     }
     return $changed;

@@ -83,7 +83,10 @@ class NodeForm extends ContentEntityForm {
 
     if ($preview = $store->get($uuid)) {
       /** @var $preview \Drupal\Core\Form\FormStateInterface */
-      $form_state = $preview;
+
+      foreach ($preview->getValues() as $name => $value) {
+        $form_state->setValue($name, $value);
+      }
 
       // Rebuild the form.
       $form_state->setRebuild();
@@ -348,24 +351,6 @@ class NodeForm extends ContentEntityForm {
       'node_preview' => $this->entity->uuid(),
       'view_mode_id' => 'default',
     ));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function buildEntity(array $form, FormStateInterface $form_state) {
-    /** @var \Drupal\node\NodeInterface $entity */
-    $entity = parent::buildEntity($form, $form_state);
-    // A user might assign the node author by entering a user name in the node
-    // form, which we then need to translate to a user ID.
-    // @todo: Remove it when https://www.drupal.org/node/2322525 is pushed.
-    if (!empty($form_state->getValue('uid')[0]['target_id']) && $account = User::load($form_state->getValue('uid')[0]['target_id'])) {
-      $entity->setOwnerId($account->id());
-    }
-    else {
-      $entity->setOwnerId(0);
-    }
-    return $entity;
   }
 
   /**

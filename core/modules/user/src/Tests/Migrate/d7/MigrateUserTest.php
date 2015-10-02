@@ -20,11 +20,9 @@ use Drupal\user\UserInterface;
 class MigrateUserTest extends MigrateDrupal7TestBase {
 
   /**
-   * The modules to be enabled during the test.
-   *
-   * @var array
+   * {@inheritdoc}
    */
-  static $modules = array('file', 'image', 'user');
+  public static $modules = ['file', 'image'];
 
   /**
    * {@inheritdoc}
@@ -34,11 +32,12 @@ class MigrateUserTest extends MigrateDrupal7TestBase {
 
     // Prepare to migrate user pictures as well.
     $this->installEntitySchema('file');
-    $this->executeMigration('user_picture_field');
-    $this->executeMigration('user_picture_field_instance');
-
-    $this->executeMigration('d7_user_role');
-    $this->executeMigration('d7_user');
+    $this->executeMigrations([
+      'user_picture_field',
+      'user_picture_field_instance',
+      'd7_user_role',
+      'd7_user',
+    ]);
   }
 
   /**
@@ -49,7 +48,7 @@ class MigrateUserTest extends MigrateDrupal7TestBase {
    * @param string $label
    *   The username.
    * @param string $mail
-   *   The user's e-mail address.
+   *   The user's email address.
    * @param int $access
    *   The last access time.
    * @param int $login
@@ -59,7 +58,7 @@ class MigrateUserTest extends MigrateDrupal7TestBase {
    * @param string $langcode
    *   The user account's language code.
    * @param string $init
-   *   The user's initial e-mail address.
+   *   The user's initial email address.
    * @param string[] $roles
    *   Role IDs the user account is expected to have.
    * @param bool $has_picture

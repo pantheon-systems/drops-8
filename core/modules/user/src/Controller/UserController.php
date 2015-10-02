@@ -98,12 +98,12 @@ class UserController extends ControllerBase {
       // A different user is already logged in on the computer.
       else {
         if ($reset_link_user = $this->userStorage->load($uid)) {
-          drupal_set_message($this->t('Another user (%other_user) is already logged into the site on this computer, but you tried to use a one-time link for user %resetting_user. Please <a href="@logout">logout</a> and try using the link again.',
-            array('%other_user' => $account->getUsername(), '%resetting_user' => $reset_link_user->getUsername(), '@logout' => $this->url('user.logout'))), 'warning');
+          drupal_set_message($this->t('Another user (%other_user) is already logged into the site on this computer, but you tried to use a one-time link for user %resetting_user. Please <a href=":logout">logout</a> and try using the link again.',
+            array('%other_user' => $account->getUsername(), '%resetting_user' => $reset_link_user->getUsername(), ':logout' => $this->url('user.logout'))), 'warning');
         }
         else {
           // Invalid one-time link specifies an unknown user.
-          drupal_set_message($this->t('The one-time login link you clicked is invalid.'));
+          drupal_set_message($this->t('The one-time login link you clicked is invalid.'), 'error');
         }
         return $this->redirect('<front>');
       }
@@ -209,7 +209,7 @@ class UserController extends ControllerBase {
         return batch_process('');
       }
       else {
-        drupal_set_message(t('You have tried to use an account cancellation link that has expired. Please request a new one using the form below.'));
+        drupal_set_message(t('You have tried to use an account cancellation link that has expired. Please request a new one using the form below.'), 'error');
         return $this->redirect('entity.user.cancel_form', ['user' => $user->id()], ['absolute' => TRUE]);
       }
     }

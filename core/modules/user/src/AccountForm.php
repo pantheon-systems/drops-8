@@ -133,42 +133,30 @@ abstract class AccountForm extends ContentEntityForm {
         $form_state->set('user_pass_reset', $user_pass_reset);
       }
 
-      $protected_values = array();
-      $current_pass_description = '';
-
-      // The user may only change their own password without their current
-      // password if they logged in via a one-time login link.
-      if (!$form_state->get('user_pass_reset')) {
-        $protected_values['mail'] = $form['account']['mail']['#title'];
-        $protected_values['pass'] = $this->t('Password');
-        $request_new = $this->l($this->t('Reset your password'), new Url('user.pass',
-          array(), array('attributes' => array('title' => $this->t('Send password reset instructions via e-mail.'))))
-        );
-        $current_pass_description = $this->t('Required if you want to change the %mail or %pass below. !request_new.',
-          array(
-            '%mail' => $protected_values['mail'],
-            '%pass' => $protected_values['pass'],
-            '!request_new' => $request_new,
-          )
-        );
-      }
-
       // The user must enter their current password to change to a new one.
       if ($user->id() == $account->id()) {
         $form['account']['current_pass'] = array(
           '#type' => 'password',
           '#title' => $this->t('Current password'),
           '#size' => 25,
-          '#access' => !empty($protected_values),
-          '#description' => $current_pass_description,
+          '#access' => !$form_state->get('user_pass_reset'),
           '#weight' => -5,
           // Do not let web browsers remember this password, since we are
           // trying to confirm that the person submitting the form actually
           // knows the current one.
           '#attributes' => array('autocomplete' => 'off'),
         );
-
         $form_state->set('user', $account);
+
+        // The user may only change their own password without their current
+        // password if they logged in via a one-time login link.
+        if (!$form_state->get('user_pass_reset')) {
+          $form['account']['current_pass']['#description'] = $this->t('Required if you want to change the %mail or %pass below. <a href=":request_new_url" title="Send password reset instructions via email.">Reset your password</a>.', array(
+            '%mail' => $form['account']['mail']['#title'],
+            '%pass' => $this->t('Password'),
+            ':request_new_url' => $this->url('user.pass'),
+          ));
+        }
       }
     }
     elseif (!$config->get('verify_mail') || $admin) {
@@ -190,11 +178,11 @@ abstract class AccountForm extends ContentEntityForm {
       }
     }
 
-    if ($admin) {
-      $status = $account->isActive();
+    if ($admin || !$register) {
+      $status = $account->get('status')->value;
     }
     else {
-      $status = $register ? $config->get('register') == USER_REGISTER_VISITORS : $account->isActive();
+      $status = $config->get('register') == USER_REGISTER_VISITORS ? 1 : 0;
     }
 
     $form['account']['status'] = array(
@@ -205,7 +193,7 @@ abstract class AccountForm extends ContentEntityForm {
       '#access' => $admin,
     );
 
-    $roles = array_map(array('\Drupal\Component\Utility\SafeMarkup', 'checkPlain'), user_role_names(TRUE));
+    $roles = array_map(array('\Drupal\Component\Utility\Html', 'escape'), user_role_names(TRUE));
 
     $form['account']['roles'] = array(
       '#type' => 'checkboxes',
@@ -345,7 +333,8 @@ abstract class AccountForm extends ContentEntityForm {
     }
 
     // Set existing password if set in the form state.
-    if ($current_pass = $form_state->getValue('current_pass')) {
+    $current_pass = trim($form_state->getValue('current_pass'));
+    if (strlen($current_pass) > 0) {
       $account->setExistingPassword($current_pass);
     }
 

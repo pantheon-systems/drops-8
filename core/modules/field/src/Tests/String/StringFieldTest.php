@@ -22,7 +22,7 @@ class StringFieldTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('entity_test');
+  public static $modules = array('entity_test', 'file');
 
   /**
    * A user without any special permissions.
@@ -81,7 +81,7 @@ class StringFieldTest extends WebTestBase {
     $this->drupalGet('entity_test/add');
     $this->assertFieldByName("{$field_name}[0][value]", '', 'Widget is displayed');
     $this->assertNoFieldByName("{$field_name}[0][format]", '1', 'Format selector is not displayed');
-    $this->assertRaw(format_string('placeholder="A placeholder on !widget_type"', array('!widget_type' => $widget_type)));
+    $this->assertRaw(format_string('placeholder="A placeholder on @widget_type"', array('@widget_type' => $widget_type)));
 
     // Submit with some value.
     $value = $this->randomMachineName();

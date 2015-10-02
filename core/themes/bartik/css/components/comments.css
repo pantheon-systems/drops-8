@@ -10,6 +10,9 @@
 #content .comment-wrapper h2.comment-form__title {
   margin-bottom: 1em;
 }
+.field-node--comment {
+  font-size: 0.934em;
+}
 .comment {
   margin-bottom: 19px;
   vertical-align: top;
@@ -61,6 +64,7 @@
   border: 1px solid #d3d7d9;
   font-size: 0.929em;
   line-height: 1.6;
+  word-break: break-all;
 }
 
 .comment__content:before {

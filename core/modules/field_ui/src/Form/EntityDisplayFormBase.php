@@ -153,7 +153,7 @@ abstract class EntityDisplayFormBase extends EntityForm {
     );
 
     if (empty($field_definitions) && empty($extra_fields) && $route_info = FieldUI::getOverviewRouteInfo($this->entity->getTargetEntityTypeId(), $this->entity->getTargetBundle())) {
-      drupal_set_message($this->t('There are no fields yet added. You can add new fields on the <a href="@link">Manage fields</a> page.', array('@link' => $route_info->toString())), 'warning');
+      drupal_set_message($this->t('There are no fields yet added. You can add new fields on the <a href=":link">Manage fields</a> page.', array(':link' => $route_info->toString())), 'warning');
       return $form;
     }
 
@@ -201,26 +201,23 @@ abstract class EntityDisplayFormBase extends EntityForm {
     // Custom display settings.
     if ($this->entity->getMode() == 'default') {
       // Only show the settings if there is at least one custom display mode.
-      if ($display_modes = $this->getDisplayModes()) {
+      $display_mode_options = $this->getDisplayModeOptions();
+      // Unset default option.
+      unset($display_mode_options['default']);
+      if ($display_mode_options) {
         $form['modes'] = array(
           '#type' => 'details',
           '#title' => $this->t('Custom display settings'),
         );
-        // Collect options and default values for the 'Custom display settings'
-        // checkboxes.
-        $options = array();
+        // Prepare default values for the 'Custom display settings' checkboxes.
         $default = array();
-        $display_statuses = $this->getDisplayStatuses();
-        foreach ($display_modes as $mode_name => $mode_info) {
-          $options[$mode_name] = $mode_info['label'];
-          if (!empty($display_statuses[$mode_name])) {
-            $default[] = $mode_name;
-          }
+        if ($display_statuses = array_filter($this->getDisplayStatuses())) {
+          $default = array_keys(array_intersect_key($display_mode_options, $display_statuses));
         }
         $form['modes']['display_modes_custom'] = array(
           '#type' => 'checkboxes',
           '#title' => $this->t('Use custom display settings for the following modes'),
-          '#options' => $options,
+          '#options' => $display_mode_options,
           '#default_value' => $default,
         );
       }
@@ -530,7 +527,7 @@ abstract class EntityDisplayFormBase extends EntityForm {
 
           $display_mode_label = $display_modes[$mode]['label'];
           $url = $this->getOverviewUrl($mode);
-          drupal_set_message($this->t('The %display_mode mode now uses custom display settings. You might want to <a href="@url">configure them</a>.', ['%display_mode' => $display_mode_label, '@url' => $url->toString()]));
+          drupal_set_message($this->t('The %display_mode mode now uses custom display settings. You might want to <a href=":url">configure them</a>.', ['%display_mode' => $display_mode_label, ':url' => $url->toString()]));
         }
         $statuses[$mode] = !empty($value);
       }
@@ -855,6 +852,14 @@ abstract class EntityDisplayFormBase extends EntityForm {
    *   An array of form or view mode info.
    */
   abstract protected function getDisplayModes();
+
+  /**
+   * Returns an array of form or view mode options.
+   *
+   * @return array
+   *   An array of form or view mode options.
+   */
+  abstract protected function getDisplayModeOptions();
 
   /**
    * Returns the region to which a row in the display overview belongs.

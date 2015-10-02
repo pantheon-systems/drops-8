@@ -1,6 +1,7 @@
 <?php
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Cache\Cache;
@@ -54,19 +55,19 @@ function user_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.user':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The User module allows users to register, log in, and log out. It also allows users with proper permissions to manage user roles and permissions. For more information, see the <a href="!user_docs">online documentation for the User module</a>.', array('!user_docs' => 'https://www.drupal.org/documentation/modules/user')) . '</p>';
+      $output .= '<p>' . t('The User module allows users to register, log in, and log out. It also allows users with proper permissions to manage user roles and permissions. For more information, see the <a href=":user_docs">online documentation for the User module</a>.', array(':user_docs' => 'https://www.drupal.org/documentation/modules/user')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Creating and managing users') . '</dt>';
-      $output .= '<dd>' . t('Through the <a href="!people">People administration page</a> you can add and cancel user accounts and assign users to roles. By editing one particular user you can change their username, email address, password, and information in other fields.', array('!people' => \Drupal::url('entity.user.collection'))) . '</dd>';
+      $output .= '<dd>' . t('Through the <a href=":people">People administration page</a> you can add and cancel user accounts and assign users to roles. By editing one particular user you can change their username, email address, password, and information in other fields.', array(':people' => \Drupal::url('entity.user.collection'))) . '</dd>';
       $output .= '<dt>' . t('Configuring user roles') . '</dt>';
-      $output .= '<dd>' . t('<em>Roles</em> are used to group and classify users; each user can be assigned one or more roles. Typically there are two pre-defined roles: <em>Anonymous user</em> (users that are not logged in), and <em>Authenticated user</em> (users that are registered and logged in). Depending on how your site was set up, an <em>Administrator</em> role may also be available: users with this role will automatically be assigned any new permissions whenever a module is enabled. You can create additional roles on the <a href="!roles">Roles administration page</a>.', array('!roles' => \Drupal::url('entity.user_role.collection'))) . '</dd>';
+      $output .= '<dd>' . t('<em>Roles</em> are used to group and classify users; each user can be assigned one or more roles. Typically there are two pre-defined roles: <em>Anonymous user</em> (users that are not logged in), and <em>Authenticated user</em> (users that are registered and logged in). Depending on how your site was set up, an <em>Administrator</em> role may also be available: users with this role will automatically be assigned any new permissions whenever a module is enabled. You can create additional roles on the <a href=":roles">Roles administration page</a>.', array(':roles' => \Drupal::url('entity.user_role.collection'))) . '</dd>';
       $output .= '<dt>' . t('Setting permissions') . '</dt>';
-      $output .= '<dd>' . t('After creating roles, you can set permissions for each role on the <a href="!permissions_user">Permissions page</a>. Granting a permission allows users who have been assigned a particular role to perform an action on the site, such as viewing content, editing or creating  a particular type of content, administering settings for a particular module, or using a particular function of the site (such as search).', array('!permissions_user' => \Drupal::url('user.admin_permissions'))) . '</dd>';
+      $output .= '<dd>' . t('After creating roles, you can set permissions for each role on the <a href=":permissions_user">Permissions page</a>. Granting a permission allows users who have been assigned a particular role to perform an action on the site, such as viewing content, editing or creating  a particular type of content, administering settings for a particular module, or using a particular function of the site (such as search).', array(':permissions_user' => \Drupal::url('user.admin_permissions'))) . '</dd>';
       $output .= '<dt>' . t('Managing account settings') . '</dt>';
-      $output .= '<dd>' . t('The <a href="!accounts">Account settings page</a> allows you to manage settings for the displayed name of the Anonymous user role, personal contact forms, user registration settings, and account cancellation settings. On this page you can also manage settings for account personalization, and adapt the text for the email messages that users receive when they register or request a password recovery. You may also set which role is automatically assigned new permissions whenever a module is enabled (the Administrator role).', array('!accounts'  => \Drupal::url('entity.user.admin_form'))) . '</dd>';
+      $output .= '<dd>' . t('The <a href=":accounts">Account settings page</a> allows you to manage settings for the displayed name of the Anonymous user role, personal contact forms, user registration settings, and account cancellation settings. On this page you can also manage settings for account personalization, and adapt the text for the email messages that users receive when they register or request a password recovery. You may also set which role is automatically assigned new permissions whenever a module is enabled (the Administrator role).', array(':accounts'  => \Drupal::url('entity.user.admin_form'))) . '</dd>';
       $output .= '<dt>' . t('Managing user account fields') . '</dt>';
-      $output .= '<dd>' . t('Because User accounts are an entity type, you can extend them by adding fields through the Manage fields tab on the <a href="!accounts">Account settings page</a>. By adding fields for e.g., a picture, a biography, or address, you can a create a custom profile for the users of the website. For background information on entities and fields, see the <a href="!field_help">Field module help page</a>.', array('!field_help'=>(\Drupal::moduleHandler()->moduleExists('field')) ? \Drupal::url('help.page', array('name' => 'field')) : '#', '!accounts' => \Drupal::url('entity.user.admin_form'))) . '</dd>';
+      $output .= '<dd>' . t('Because User accounts are an entity type, you can extend them by adding fields through the Manage fields tab on the <a href=":accounts">Account settings page</a>. By adding fields for e.g., a picture, a biography, or address, you can a create a custom profile for the users of the website. For background information on entities and fields, see the <a href=":field_help">Field module help page</a>.', array(':field_help'=>(\Drupal::moduleHandler()->moduleExists('field')) ? \Drupal::url('help.page', array('name' => 'field')) : '#', ':accounts' => \Drupal::url('entity.user.admin_form'))) . '</dd>';
       $output .= '</dl>';
       return $output;
 
@@ -74,10 +75,10 @@ function user_help($route_name, RouteMatchInterface $route_match) {
       return '<p>' . t("This web page allows administrators to register new users. Users' email addresses and usernames must be unique.") . '</p>';
 
     case 'user.admin_permissions':
-      return '<p>' . t('Permissions let you control what users can do and see on your site. You can define a specific set of permissions for each role. (See the <a href="!role">Roles</a> page to create a role.) Any permissions granted to the Authenticated user role will be given to any user who is logged in to your site. From the <a href="!settings">Account settings</a> page, you can make any role into an Administrator role for the site, meaning that role will be granted all new permissions automatically. You should be careful to ensure that only trusted users are given this access and level of control of your site.', array('!role' => \Drupal::url('entity.user_role.collection'), '!settings' => \Drupal::url('entity.user.admin_form'))) . '</p>';
+      return '<p>' . t('Permissions let you control what users can do and see on your site. You can define a specific set of permissions for each role. (See the <a href=":role">Roles</a> page to create a role.) Any permissions granted to the Authenticated user role will be given to any user who is logged in to your site. From the <a href=":settings">Account settings</a> page, you can make any role into an Administrator role for the site, meaning that role will be granted all new permissions automatically. You should be careful to ensure that only trusted users are given this access and level of control of your site.', array(':role' => \Drupal::url('entity.user_role.collection'), ':settings' => \Drupal::url('entity.user.admin_form'))) . '</p>';
 
     case 'entity.user_role.collection':
-      return '<p>' . t('A role defines a group of users that have certain privileges. These privileges are defined on the <a href="!permissions">Permissions page</a>. Here, you can define the names and the display sort order of the roles on your site. It is recommended to order roles from least permissive (for example, Anonymous user) to most permissive (for example, Administrator user). Users who are not logged in have the Anonymous user role. Users who are logged in have the Authenticated user role, plus any other roles granted to their user account.', array('!permissions' => \Drupal::url('user.admin_permissions'))) . '</p>';
+      return '<p>' . t('A role defines a group of users that have certain privileges. These privileges are defined on the <a href=":permissions">Permissions page</a>. Here, you can define the names and the display sort order of the roles on your site. It is recommended to order roles from least permissive (for example, Anonymous user) to most permissive (for example, Administrator user). Users who are not logged in have the Anonymous user role. Users who are logged in have the Authenticated user role, plus any other roles granted to their user account.', array(':permissions' => \Drupal::url('user.admin_permissions'))) . '</p>';
 
     case 'entity.user.field_ui_fields':
       return '<p>' . t('This form lets administrators add and edit fields for storing user data.') . '</p>';
@@ -377,6 +378,23 @@ function user_user_view(array &$build, UserInterface $account, EntityViewDisplay
 }
 
 /**
+ * Implements hook_ENTITY_TYPE_view_alter() for user entities.
+ *
+ * This function adds a default alt tag to the user_picture field to maintain
+ * accessibility.
+ */
+function user_user_view_alter(array &$build, UserInterface $account, EntityViewDisplayInterface $display) {
+  if (user_picture_enabled() && !empty($build['user_picture'])) {
+    foreach (Element::children($build['user_picture']) as $key) {
+      $item = $build['user_picture'][$key]['#item'];
+      if (!$item->get('alt')->getValue()) {
+        $item->get('alt')->setValue(\Drupal::translation()->translate('Profile picture for user @username', ['@username' => $account->getUsername()]));
+      }
+    }
+  }
+}
+
+/**
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function user_preprocess_block(&$variables) {
@@ -396,15 +414,15 @@ function user_preprocess_block(&$variables) {
  *   The account object for the user whose name is to be formatted.
  *
  * @return string
- *   An unsanitized string with the username to display. The code receiving
- *   this result must ensure that \Drupal\Component\Utility\SafeMarkup::checkPlain()
- *   is called on it before it is printed to the page.
+ *   An unsanitized string with the username to display.
  *
- * @deprecated in Drupal 8.x-dev, will be removed before Drupal 8.0.
- *   Use \Drupal\Core\Session\Interface::getUsername().
+ * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Core\Session\AccountInterface::getDisplayName().
+ *
+ * @todo Remove usage in https://www.drupal.org/node/2311219.
  */
 function user_format_name(AccountInterface $account) {
-  return $account->getUsername();
+  return $account->getDisplayName();
 }
 
 /**
@@ -434,9 +452,7 @@ function user_template_preprocess_default_variables_alter(&$variables) {
  *   - account: The user account (\Drupal\Core\Session\AccountInterface).
  *
  * Modules that make any changes to variables like 'name' or 'extra' must ensure
- * that the final string is safe to include directly in the output by using
- * \Drupal\Component\Utility\SafeMarkup::checkPlain() or
- * \Drupal\Component\Utility\Xss::filter().
+ * that the final string is safe.
  */
 function template_preprocess_username(&$variables) {
   $account = $variables['account'] ?: new AnonymousUserSession();
@@ -454,7 +470,8 @@ function template_preprocess_username(&$variables) {
   // unsanitized version, in case other preprocess functions want to implement
   // their own shortening logic or add markup. If they do so, they must ensure
   // that $variables['name'] is safe for printing.
-  $name = $variables['name_raw'] = $account->getUsername();
+  $name  = $account->getDisplayName();
+  $variables['name_raw'] = $account->getUsername();
   if (Unicode::strlen($name) > 20) {
     $name = Unicode::truncate($name, 15, FALSE, TRUE);
     $variables['truncated'] = TRUE;
@@ -723,8 +740,8 @@ function _user_cancel($edit, $account, $method) {
       }
       $account->block();
       $account->save();
-      drupal_set_message(t('%name has been disabled.', array('%name' => $account->getUsername())));
-      $logger->notice('Blocked user: %name %email.', array('%name' => $account->getUsername(), '%email' => '<' . $account->getEmail() . '>'));
+      drupal_set_message(t('%name has been disabled.', array('%name' => $account->getDisplayName())));
+      $logger->notice('Blocked user: %name %email.', array('%name' => $account->getAccountName(), '%email' => '<' . $account->getEmail() . '>'));
       break;
 
     case 'user_cancel_reassign':
@@ -734,8 +751,8 @@ function _user_cancel($edit, $account, $method) {
         _user_mail_notify('status_canceled', $account);
       }
       $account->delete();
-      drupal_set_message(t('%name has been deleted.', array('%name' => $account->getUsername())));
-      $logger->notice('Deleted user: %name %email.', array('%name' => $account->getUsername(), '%email' => '<' . $account->getEmail() . '>'));
+      drupal_set_message(t('%name has been deleted.', array('%name' => $account->getDisplayName())));
+      $logger->notice('Deleted user: %name %email.', array('%name' => $account->getAccountName(), '%email' => '<' . $account->getEmail() . '>'));
       break;
   }
 
@@ -900,10 +917,8 @@ function user_mail($key, &$message, $params) {
   $language_manager->setConfigOverrideLanguage($language);
   $mail_config = \Drupal::config('user.mail');
 
-   // We do not sanitize the token replacement, since the output of this
-   // replacement is intended for an email message, not a web browser.
-  $token_options = array('langcode' => $langcode, 'callback' => 'user_mail_tokens', 'sanitize' => FALSE, 'clear' => TRUE);
-  $message['subject'] .= $token_service->replace($mail_config->get($key . '.subject'), $variables, $token_options);
+  $token_options = ['langcode' => $langcode, 'callback' => 'user_mail_tokens', 'clear' => TRUE];
+  $message['subject'] .= PlainTextOutput::renderFromHtml($token_service->replace($mail_config->get($key . '.subject'), $variables, $token_options));
   $message['body'][] = $token_service->replace($mail_config->get($key . '.body'), $variables, $token_options);
 
   $language_manager->setConfigOverrideLanguage($original_language);
@@ -1035,17 +1050,6 @@ function user_user_role_delete(RoleInterface $role) {
  *   value.
  */
 function user_roles($membersonly = FALSE, $permission = NULL) {
-  $user_roles = &drupal_static(__FUNCTION__);
-
-  // Do not cache roles for specific permissions. This data is not requested
-  // frequently enough to justify the additional memory use.
-  if (empty($permission)) {
-    $cid = $membersonly ? RoleInterface::AUTHENTICATED_ID : RoleInterface::ANONYMOUS_ID;
-    if (isset($user_roles[$cid])) {
-      return $user_roles[$cid];
-    }
-  }
-
   $roles = Role::loadMultiple();
   if ($membersonly) {
     unset($roles[RoleInterface::ANONYMOUS_ID]);
@@ -1055,10 +1059,6 @@ function user_roles($membersonly = FALSE, $permission = NULL) {
     $roles = array_filter($roles, function ($role) use ($permission) {
       return $role->hasPermission($permission);
     });
-  }
-
-  if (empty($permission)) {
-    $user_roles[$cid] = $roles;
   }
 
   return $roles;
@@ -1251,7 +1251,7 @@ function user_form_process_password_confirm($element) {
     $password_settings += array(
       'strengthTitle' => t('Password strength:'),
       'hasWeaknesses' => t('To make your password stronger:'),
-      'tooShort' => t('Make it at least 6 characters'),
+      'tooShort' => t('Make it at least 12 characters'),
       'addLowerCase' => t('Add lowercase letters'),
       'addUpperCase' => t('Add uppercase letters'),
       'addNumbers' => t('Add numbers'),
@@ -1347,7 +1347,7 @@ function user_toolbar() {
     '#type' => 'toolbar_item',
     'tab' => array(
       '#type' => 'link',
-      '#title' => $user->getUsername(),
+      '#title' => $user->getDisplayName(),
       '#url' => Url::fromRoute('user.page'),
       '#attributes' => array(
         'title' => t('My account'),
@@ -1392,7 +1392,7 @@ function user_toolbar() {
 function user_logout() {
   $user = \Drupal::currentUser();
 
-  \Drupal::logger('user')->notice('Session closed for %name.', array('%name' => $user->getUsername()));
+  \Drupal::logger('user')->notice('Session closed for %name.', array('%name' => $user->getAccountName()));
 
   \Drupal::moduleHandler()->invokeAll('user_logout', array($user));
 

@@ -7,9 +7,9 @@
 
 namespace Drupal\search\Tests\Migrate\d6;
 
-use Drupal\migrate\MigrateExecutable;
 use Drupal\Core\Database\Database;
 use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
+use Drupal\search\Entity\SearchPage;
 
 /**
  * Upgrade search rank settings to search.page.*.yml.
@@ -19,11 +19,9 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 class MigrateSearchPageTest extends MigrateDrupal6TestBase {
 
   /**
-   * The modules to be enabled during the test.
-   *
-   * @var array
+   * {@inheritdoc}
    */
-  static $modules = array('node', 'search');
+  public static $modules = ['search'];
 
   /**
    * {@inheritdoc}
@@ -39,7 +37,7 @@ class MigrateSearchPageTest extends MigrateDrupal6TestBase {
   public function testSearchPage() {
     $id = 'node_search';
     /** @var \Drupal\search\Entity\SearchPage $search_page */
-    $search_page = entity_load('search_page', $id);
+    $search_page = SearchPage::load($id);
     $this->assertIdentical($id, $search_page->id());
     $configuration = $search_page->getPlugin()->getConfiguration();
     $this->assertIdentical($configuration['rankings'], array(
@@ -57,12 +55,15 @@ class MigrateSearchPageTest extends MigrateDrupal6TestBase {
       ->condition('name', 'node_rank_comments')
       ->execute();
 
-    $migration = entity_load_unchanged('migration', 'd6_search_page');
-    $executable = new MigrateExecutable($migration, $this);
-    $executable->import();
+    /** @var \Drupal\migrate\Entity\MigrationInterface $migration */
+    $migration = \Drupal::entityManager()
+      ->getStorage('migration')
+      ->loadUnchanged('d6_search_page');
+    // Indicate we're rerunning a migration that's already run.
+    $migration->getIdMap()->prepareUpdate();
+    $this->executeMigration($migration);
 
-    $search_page = entity_load('search_page', $id);
-    $configuration = $search_page->getPlugin()->getConfiguration();
+    $configuration = SearchPage::load($id)->getPlugin()->getConfiguration();
     $this->assertIdentical(4, $configuration['rankings']['comments']);
   }
 
