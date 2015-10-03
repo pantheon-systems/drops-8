@@ -23,7 +23,7 @@ if ($is_installer_url) {
 }
 else {
   $config_directories = array(
-    CONFIG_STAGING_DIRECTORY => 'sites/default/config',
+    CONFIG_STAGING_DIRECTORY => 'sites/default/config/staging',
   );
 }
 
