@@ -217,12 +217,16 @@ class ConfigSync extends FormBase {
           }
         }
         sort($change_list);
-        $change_list_render = array(
-          '#theme' => 'item_list',
-          '#items' => $change_list,
-        );
-        $change_list_html = $this->renderer->renderPlain($change_list_render);
-        drupal_set_message($this->t('The following items in your active configuration have changes since the last import that may be lost on the next import. !changes', array('!changes' => $change_list_html)), 'warning');
+        $message = [
+          [
+            '#markup' => $this->t('The following items in your active configuration have changes since the last import that may be lost on the next import.')
+          ],
+          [
+            '#theme' => 'item_list',
+            '#items' => $change_list,
+          ]
+        ];
+        drupal_set_message($this->renderer->renderPlain($message), 'warning');
       }
     }
 
@@ -237,7 +241,7 @@ class ConfigSync extends FormBase {
         $form[$collection]['collection_heading'] = array(
           '#type' => 'html_tag',
           '#tag' => 'h2',
-          '#value' => $this->t('!collection configuration collection', array('!collection' => $collection)),
+          '#value' => $this->t('@collection configuration collection', array('@collection' => $collection)),
         );
       }
       foreach ($storage_comparer->getChangelist(NULL, $collection) as $config_change_type => $config_names) {
@@ -277,7 +281,7 @@ class ConfigSync extends FormBase {
           if ($config_change_type == 'rename') {
             $names = $storage_comparer->extractRenameNames($config_name);
             $route_options = array('source_name' => $names['old_name'], 'target_name' => $names['new_name']);
-            $config_name = $this->t('!source_name to !target_name', array('!source_name' => $names['old_name'], '!target_name' => $names['new_name']));
+            $config_name = $this->t('@source_name to @target_name', array('@source_name' => $names['old_name'], '@target_name' => $names['new_name']));
           }
           else {
             $route_options = array('source_name' => $config_name);

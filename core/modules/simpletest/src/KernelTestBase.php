@@ -116,23 +116,20 @@ abstract class KernelTestBase extends TestBase {
    * @see config_get_config_directory()
    *
    * @throws \RuntimeException
-   *   Thrown when CONFIG_ACTIVE_DIRECTORY or CONFIG_STAGING_DIRECTORY cannot
-   *   be created or made writable.
+   *   Thrown when CONFIG_STAGING_DIRECTORY cannot be created or made writable.
    */
   protected function prepareConfigDirectories() {
     $this->configDirectories = array();
     include_once DRUPAL_ROOT . '/core/includes/install.inc';
-    foreach (array(CONFIG_ACTIVE_DIRECTORY, CONFIG_STAGING_DIRECTORY) as $type) {
-      // Assign the relative path to the global variable.
-      $path = $this->siteDirectory . '/config_' . $type;
-      $GLOBALS['config_directories'][$type] = $path;
-      // Ensure the directory can be created and is writeable.
-      if (!install_ensure_config_directory($type)) {
-        throw new \RuntimeException("Failed to create '$type' config directory $path");
-      }
-      // Provide the already resolved path for tests.
-      $this->configDirectories[$type] = $path;
+    // Assign the relative path to the global variable.
+    $path = $this->siteDirectory . '/config_' . CONFIG_STAGING_DIRECTORY;
+    $GLOBALS['config_directories'][CONFIG_STAGING_DIRECTORY] = $path;
+    // Ensure the directory can be created and is writeable.
+    if (!install_ensure_config_directory(CONFIG_STAGING_DIRECTORY)) {
+      throw new \RuntimeException("Failed to create '" . CONFIG_STAGING_DIRECTORY . "' config directory $path");
     }
+    // Provide the already resolved path for tests.
+    $this->configDirectories[CONFIG_STAGING_DIRECTORY] = $path;
   }
 
   /**
@@ -192,6 +189,22 @@ EOD;
       Settings::initialize(DRUPAL_ROOT, $site_path, $class_loader);
     }
     $this->kernel->boot();
+
+    // Ensure database install tasks have been run.
+    require_once __DIR__ . '/../../../includes/install.inc';
+    $connection = Database::getConnection();
+    $errors = db_installer_object($connection->driver())->runTasks();
+    if (!empty($errors)) {
+      $this->fail('Failed to run installer database tasks: ' . implode(', ', $errors));
+    }
+
+    // Reboot the kernel because the container might contain a connection to the
+    // database that has been closed during the database install tasks. This
+    // prevents any services created during the first boot from having stale
+    // database connections, for example, \Drupal\Core\Config\DatabaseStorage.
+    $this->kernel->shutdown();
+    $this->kernel->boot();
+
 
     // Save the original site directory path, so that extensions in the
     // site-specific directory can still be discovered in the test site
@@ -573,7 +586,6 @@ EOD;
    */
   protected function render(array &$elements) {
     $content = $this->container->get('renderer')->renderRoot($elements);
-    drupal_process_attached($elements);
     $this->setRawContent($content);
     $this->verbose('<pre style="white-space: pre-wrap">' . Html::escape($content));
     return $content;

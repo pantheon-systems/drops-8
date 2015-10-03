@@ -7,7 +7,6 @@
 
 namespace Drupal\Core\Extension;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\State\StateInterface;
 
@@ -22,10 +21,7 @@ class ThemeHandler implements ThemeHandlerInterface {
    * @var array
    */
   protected $defaultFeatures = array(
-    'logo',
     'favicon',
-    'name',
-    'slogan',
     'node_user_picture',
     'comment_user_picture',
     'comment_user_verification',
@@ -431,7 +427,7 @@ class ThemeHandler implements ThemeHandlerInterface {
     if (!isset($themes[$theme])) {
       throw new \InvalidArgumentException("Requested the name of a non-existing theme $theme");
     }
-    return SafeMarkup::checkPlain($themes[$theme]->info['name']);
+    return $themes[$theme]->info['name'];
   }
 
   /**

@@ -11,13 +11,16 @@ use Drupal\aggregator\Entity\Item;
 use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
- * Upgrade aggregator items.
+ * Tests migration of aggregator items.
  *
  * @group migrate_drupal_6
  */
 class MigrateAggregatorItemTest extends MigrateDrupal6TestBase {
 
-  static $modules = array('aggregator');
+  /**
+   * {@inheritdoc}
+   */
+  public static $modules = ['aggregator'];
 
   /**
    * {@inheritdoc}
@@ -26,33 +29,14 @@ class MigrateAggregatorItemTest extends MigrateDrupal6TestBase {
     parent::setUp();
     $this->installEntitySchema('aggregator_feed');
     $this->installEntitySchema('aggregator_item');
-
-    // Add some id mappings for the dependant migrations.
-    $id_mappings = array(
-      'd6_aggregator_feed' => array(
-        array(array(5), array(5)),
-      ),
-    );
-    $this->prepareMigrations($id_mappings);
-
-    $entity = entity_create('aggregator_feed', array(
-      'fid' => 5,
-      'title' => 'Drupal Core',
-      'url' => 'https://groups.drupal.org/not_used/167169',
-      'refresh' => 900,
-      'checked' => 1389919932,
-      'description' => 'Drupal Core Group feed',
-    ));
-    $entity->enforceIsNew();
-    $entity->save();
-    $this->executeMigration('d6_aggregator_item');
+    $this->executeMigrations(['d6_aggregator_feed', 'd6_aggregator_item']);
   }
 
   /**
    * Test Drupal 6 aggregator item migration to Drupal 8.
    */
   public function testAggregatorItem() {
-    /** @var Item $item */
+    /** @var \Drupal\aggregator\Entity\Item $item */
     $item = Item::load(1);
     $this->assertIdentical('1', $item->id());
     $this->assertIdentical('5', $item->getFeedId());

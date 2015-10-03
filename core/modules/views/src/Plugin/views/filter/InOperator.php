@@ -7,7 +7,6 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -330,17 +329,19 @@ class InOperator extends FilterPluginBase {
     $info = $this->operators();
 
     $this->getValueOptions();
+    // Some filter_in_operator usage uses optgroups forms, so flatten it.
+    $flat_options = OptGroup::flattenOptions($this->valueOptions);
 
     if (!is_array($this->value)) {
       return;
     }
 
-    $operator = SafeMarkup::checkPlain($info[$this->operator]['short']);
+    $operator = $info[$this->operator]['short'];
     $values = '';
     if (in_array($this->operator, $this->operatorValues(1))) {
       // Remove every element which is not known.
       foreach ($this->value as $value) {
-        if (!isset($this->valueOptions[$value])) {
+        if (!isset($flat_options[$value])) {
           unset($this->value[$value]);
         }
       }
@@ -351,13 +352,13 @@ class InOperator extends FilterPluginBase {
       else if (count($this->value) == 1) {
         // If any, use the 'single' short name of the operator instead.
         if (isset($info[$this->operator]['short_single'])) {
-          $operator = SafeMarkup::checkPlain($info[$this->operator]['short_single']);
+          $operator = $info[$this->operator]['short_single'];
         }
 
         $keys = $this->value;
         $value = array_shift($keys);
-        if (isset($this->valueOptions[$value])) {
-          $values = SafeMarkup::checkPlain($this->valueOptions[$value]);
+        if (isset($flat_options[$value])) {
+          $values = $flat_options[$value];
         }
         else {
           $values = '';
@@ -372,8 +373,8 @@ class InOperator extends FilterPluginBase {
             $values = Unicode::truncate($values, 8, FALSE, TRUE);
             break;
           }
-          if (isset($this->valueOptions[$value])) {
-            $values .= SafeMarkup::checkPlain($this->valueOptions[$value]);
+          if (isset($flat_options[$value])) {
+            $values .= $flat_options[$value];
           }
         }
       }

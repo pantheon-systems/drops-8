@@ -357,7 +357,7 @@ class BookManager implements BookManagerInterface {
         '#type' => 'select',
         '#title' => $this->t('Parent item'),
         '#default_value' => $book_link['pid'],
-        '#description' => $this->t('The parent page in the book. The maximum depth for a book and all child pages is !maxdepth. Some pages in the selected book may not be available as parents if selecting them would exceed this limit.', array('!maxdepth' => static::BOOK_MAX_DEPTH)),
+        '#description' => $this->t('The parent page in the book. The maximum depth for a book and all child pages is @maxdepth. Some pages in the selected book may not be available as parents if selecting them would exceed this limit.', array('@maxdepth' => static::BOOK_MAX_DEPTH)),
         '#options' => $this->getTableOfContents($book_link['bid'], $book_link['parent_depth_limit'], array($book_link['nid'])),
         '#attributes' => array('class' => array('book-title-select')),
         '#prefix' => '<div id="edit-book-plid-wrapper">',
@@ -539,30 +539,33 @@ class BookManager implements BookManagerInterface {
     $items = [];
 
     foreach ($tree as $data) {
-      $class = ['menu-item'];
+      $element = [];
+
       // Generally we only deal with visible links, but just in case.
       if (!$data['link']['access']) {
         continue;
       }
-      // Set a class for the <li>-tag. Since $data['below'] may contain local
-      // tasks, only set 'expanded' class if the link also has children within
+      // Set a class for the <li> tag. Since $data['below'] may contain local
+      // tasks, only set 'expanded' to true if the link also has children within
       // the current book.
+      $element['is_expanded'] = FALSE;
+      $element['is_collapsed'] = FALSE;
       if ($data['link']['has_children'] && $data['below']) {
-        $class[] = 'menu-item--expanded';
+        $element['is_expanded'] = TRUE;
       }
       elseif ($data['link']['has_children']) {
-        $class[] = 'menu-item--collapsed';
+        $element['is_collapsed'] = TRUE;
       }
 
-      // Set a class if the link is in the active trail.
+      // Set a helper variable to indicate whether the link is in the active
+      // trail.
+      $element['in_active_trail'] = FALSE;
       if ($data['link']['in_active_trail']) {
-        $class[] = 'menu-item--active-trail';
+        $element['in_active_trail'] = TRUE;
       }
 
       // Allow book-specific theme overrides.
-      $element = [];
       $element['attributes'] = new Attribute();
-      $element['attributes']['class'] = $class;
       $element['title'] = $data['link']['title'];
       $node = $this->entityManager->getStorage('node')->load($data['link']['nid']);
       $element['url'] = $node->urlInfo();

@@ -7,12 +7,15 @@
 
 namespace Drupal\field_ui\Tests;
 
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\NodeType;
 use Drupal\simpletest\KernelTestBase;
+use Drupal\Tests\Core\Entity\EntityManagerTest;
 
 /**
  * Tests the entity display configuration entities.
@@ -31,7 +34,8 @@ class EntityDisplayTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
     $this->installEntitySchema('node');
-    $this->installConfig(array('field', 'node'));
+    $this->installEntitySchema('user');
+    $this->installConfig(array('field', 'node', 'user'));
   }
 
   /**
@@ -296,9 +300,9 @@ class EntityDisplayTest extends KernelTestBase {
   }
 
   /**
-   * Tests renaming and deleting a bundle.
+   * Tests deleting a bundle.
    */
-  public function testRenameDeleteBundle() {
+  public function testDeleteBundle() {
     // Create a node bundle, display and form display object.
     $type = NodeType::create(array('type' => 'article'));
     $type->save();
@@ -306,44 +310,11 @@ class EntityDisplayTest extends KernelTestBase {
     entity_get_display('node', 'article', 'default')->save();
     entity_get_form_display('node', 'article', 'default')->save();
 
-    // Rename the article bundle and assert the entity display is renamed.
-    $type->old_type = 'article';
-    $type->set('type', 'article_rename');
-    $type->save();
-    $old_display = entity_load('entity_view_display', 'node.article.default');
-    $this->assertFalse((bool) $old_display);
-    $old_form_display = entity_load('entity_form_display', 'node.article.default');
-    $this->assertFalse((bool) $old_form_display);
-    $new_display = entity_load('entity_view_display', 'node.article_rename.default');
-    $this->assertEqual('article_rename', $new_display->getTargetBundle());
-    $this->assertEqual('node.article_rename.default', $new_display->id());
-    $new_form_display = entity_load('entity_form_display', 'node.article_rename.default');
-    $this->assertEqual('article_rename', $new_form_display->getTargetBundle());
-    $this->assertEqual('node.article_rename.default', $new_form_display->id());
-
-    $expected_view_dependencies = array(
-      'config' => array('field.field.node.article_rename.body', 'node.type.article_rename'),
-      'module' => array('entity_test', 'text', 'user')
-    );
-    // Check that the display has dependencies on the bundle, fields and the
-    // modules that provide the formatters.
-    $dependencies = $new_display->calculateDependencies();
-    $this->assertEqual($expected_view_dependencies, $dependencies);
-
-    // Check that the form display has dependencies on the bundle, fields and
-    // the modules that provide the formatters.
-    $dependencies = $new_form_display->calculateDependencies();
-    $expected_form_dependencies = array(
-      'config' => array('field.field.node.article_rename.body', 'node.type.article_rename'),
-      'module' => array('text')
-    );
-    $this->assertEqual($expected_form_dependencies, $dependencies);
-
     // Delete the bundle.
     $type->delete();
-    $display = entity_load('entity_view_display', 'node.article_rename.default');
+    $display = entity_load('entity_view_display', 'node.article.default');
     $this->assertFalse((bool) $display);
-    $form_display = entity_load('entity_form_display', 'node.article_rename.default');
+    $form_display = entity_load('entity_form_display', 'node.article.default');
     $this->assertFalse((bool) $form_display);
   }
 
@@ -435,4 +406,68 @@ class EntityDisplayTest extends KernelTestBase {
     $display = entity_get_display('entity_test', 'entity_test', 'default');
     $this->assertFalse($display->getComponent($field_name));
   }
+
+  /**
+   * Ensure that entity view display changes invalidates cache tags.
+   */
+  public function testEntityDisplayInvalidateCacheTags() {
+    $cache = \Drupal::cache();
+    $cache->set('cid', 'kittens', Cache::PERMANENT, ['config:entity_view_display_list']);
+    $display = EntityViewDisplay::create([
+      'targetEntityType' => 'entity_test',
+      'bundle' => 'entity_test',
+      'mode' => 'default',
+    ]);
+    $display->setComponent('kitten');
+    $display->save();
+    $this->assertFalse($cache->get('cid'));
+  }
+
+  /**
+   * Test getDisplayModeOptions().
+   */
+  public function testGetDisplayModeOptions() {
+    NodeType::create(array('type' => 'article'))->save();
+
+    EntityViewDisplay::create(array(
+      'targetEntityType' => 'node',
+      'bundle' => 'article',
+      'mode' => 'default',
+    ))->setStatus(TRUE)->save();
+
+    $display_teaser = EntityViewDisplay::create(array(
+      'targetEntityType' => 'node',
+      'bundle' => 'article',
+      'mode' => 'teaser',
+    ));
+    $display_teaser->save();
+
+    EntityFormDisplay::create(array(
+      'targetEntityType' => 'user',
+      'bundle' => 'user',
+      'mode' => 'default',
+    ))->setStatus(TRUE)->save();
+
+    $form_display_teaser = EntityFormDisplay::create(array(
+      'targetEntityType' => 'user',
+      'bundle' => 'user',
+      'mode' => 'register',
+    ));
+    $form_display_teaser->save();
+
+    // Test getViewModeOptionsByBundle().
+    $view_modes = \Drupal::entityManager()->getViewModeOptionsByBundle('node', 'article');
+    $this->assertEqual($view_modes, array('default' => 'Default'));
+    $display_teaser->setStatus(TRUE)->save();
+    $view_modes = \Drupal::entityManager()->getViewModeOptionsByBundle('node', 'article');
+    $this->assertEqual($view_modes, array('default' => 'Default', 'teaser' => 'Teaser'));
+
+    // Test getFormModeOptionsByBundle().
+    $form_modes = \Drupal::entityManager()->getFormModeOptionsByBundle('user', 'user');
+    $this->assertEqual($form_modes, array('default' => 'Default'));
+    $form_display_teaser->setStatus(TRUE)->save();
+    $form_modes = \Drupal::entityManager()->getFormModeOptionsByBundle('user', 'user');
+    $this->assertEqual($form_modes, array('default' => 'Default', 'register' => 'Register'));
+  }
+
 }

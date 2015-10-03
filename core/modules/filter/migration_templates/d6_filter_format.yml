@@ -1,5 +1,5 @@
 id: d6_filter_format
-label: Drupal 6 filter format configuration
+label: Filter format configuration
 migration_tags:
   - Drupal 6
 source:
@@ -19,7 +19,7 @@ process:
   filters:
     plugin: iterator
     source: filters
-    key: @id
+    key: '@id'
     process:
       id:
         plugin: static_map
@@ -34,9 +34,9 @@ process:
             - filter_url
             - filter_htmlcorrector
             - filter_html_escape
-          php:
-            - php_code
-      settings: settings
+      settings:
+        plugin: filter_settings
+        source: settings
       status:
         plugin: default_value
         default_value: true

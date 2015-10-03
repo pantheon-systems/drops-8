@@ -107,22 +107,22 @@ function hook_user_cancel_methods_alter(&$methods) {
 /**
  * Alter the username that is displayed for a user.
  *
- * Called by user_format_name() to allow modules to alter the username that's
- * displayed. Can be used to ensure user privacy in situations where
+ * Called by $account->getDisplayName() to allow modules to alter the username
+ * that is displayed. Can be used to ensure user privacy in situations where
  * $account->name is too revealing.
  *
  * @param string $name
- *   The string that user_format_name() will return.
+ *   The string that $account->getDisplayName() will return.
  *
- * @param object $account
+ * @param $account
  *   The account object passed to user_format_name().
  *
- * @see user_format_name()
+ * @see $account->getDisplayName()
  */
 function hook_user_format_name_alter(&$name, $account) {
   // Display the user's uid instead of name.
   if ($account->id()) {
-    $name = t('User !uid', array('!uid' => $account->id()));
+    $name = t('User @uid', array('@uid' => $account->id()));
   }
 }
 
@@ -136,7 +136,7 @@ function hook_user_login($account) {
   $config = \Drupal::config('system.date');
   // If the user has a NULL time zone, notify them to set a time zone.
   if (!$account->getTimezone() && $config->get('timezone.user.configurable') && $config->get('timezone.user.warn')) {
-    drupal_set_message(t('Configure your <a href="@user-edit">account time zone setting</a>.', array('@user-edit' => $account->url('edit-form', array('query' => \Drupal::destination()->getAsArray(), 'fragment' => 'edit-timezone')))));
+    drupal_set_message(t('Configure your <a href=":user-edit">account time zone setting</a>.', array(':user-edit' => $account->url('edit-form', array('query' => \Drupal::destination()->getAsArray(), 'fragment' => 'edit-timezone')))));
   }
 }
 

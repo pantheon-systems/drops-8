@@ -126,7 +126,7 @@ class TimestampFormatter extends FormatterBase implements ContainerFactoryPlugin
     $elements['custom_date_format'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Custom date format'),
-      '#description' => $this->t('See <a href="@url" target="_blank">the documentation for PHP date formats</a>.', ['@url' => 'http://php.net/manual/function.date.php']),
+      '#description' => $this->t('See <a href=":url" target="_blank">the documentation for PHP date formats</a>.', [':url' => 'http://php.net/manual/function.date.php']),
       '#default_value' => $this->getSetting('custom_date_format') ?: '',
     );
 
@@ -165,7 +165,7 @@ class TimestampFormatter extends FormatterBase implements ContainerFactoryPlugin
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = array();
 
     $date_format = $this->getSetting('date_format');

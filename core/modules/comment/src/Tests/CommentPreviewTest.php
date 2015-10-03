@@ -8,6 +8,7 @@
 namespace Drupal\comment\Tests;
 
 use Drupal\comment\CommentManagerInterface;
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\comment\Entity\Comment;
 
@@ -39,16 +40,30 @@ class CommentPreviewTest extends CommentTestBase {
     $this->setCommentSettings('default_mode', CommentManagerInterface::COMMENT_MODE_THREADED, 'Comment paging changed.');
     $this->drupalLogout();
 
-    // Login as web user and add a user picture.
+    // Login as web user.
     $this->drupalLogin($this->webUser);
-    $image = current($this->drupalGetTestFiles('image'));
-    $edit['files[user_picture_0]'] = drupal_realpath($image->uri);
-    $this->drupalPostForm('user/' . $this->webUser->id() . '/edit', $edit, t('Save'));
 
-    // As the web user, fill in the comment form and preview the comment.
+    // Test escaping of the username on the preview form.
+    \Drupal::service('module_installer')->install(['user_hooks_test']);
+    \Drupal::state()->set('user_hooks_test_user_format_name_alter', TRUE);
     $edit = array();
     $edit['subject[0][value]'] = $this->randomMachineName(8);
     $edit['comment_body[0][value]'] = $this->randomMachineName(16);
+    $this->drupalPostForm('node/' . $this->node->id(), $edit, t('Preview'));
+    $this->assertEscaped('<em>' . $this->webUser->id() . '</em>');
+
+    \Drupal::state()->set('user_hooks_test_user_format_name_alter_safe', TRUE);
+    $this->drupalPostForm('node/' . $this->node->id(), $edit, t('Preview'));
+    $this->assertTrue(SafeMarkup::isSafe($this->webUser->getDisplayName()), 'Username is marked safe');
+    $this->assertNoEscaped('<em>' . $this->webUser->id() . '</em>');
+    $this->assertRaw('<em>' . $this->webUser->id() . '</em>');
+
+    // Add a user picture.
+    $image = current($this->drupalGetTestFiles('image'));
+    $user_edit['files[user_picture_0]'] = drupal_realpath($image->uri);
+    $this->drupalPostForm('user/' . $this->webUser->id() . '/edit', $user_edit, t('Save'));
+
+    // As the web user, fill in the comment form and preview the comment.
     $this->drupalPostForm('node/' . $this->node->id(), $edit, t('Preview'));
 
     // Check that the preview is displaying the title and body.
@@ -125,7 +140,7 @@ class CommentPreviewTest extends CommentTestBase {
     $date = new DrupalDateTime('2008-03-02 17:23');
     $edit['subject[0][value]'] = $this->randomMachineName(8);
     $edit['comment_body[0][value]'] = $this->randomMachineName(16);
-    $edit['name'] = $web_user->getUsername();
+    $edit['uid'] = $web_user->getUsername() . ' (' . $web_user->id() . ')';
     $edit['date[date]'] = $date->format('Y-m-d');
     $edit['date[time]'] = $date->format('H:i:s');
     $raw_date = $date->getTimestamp();
@@ -139,13 +154,13 @@ class CommentPreviewTest extends CommentTestBase {
     $this->assertTitle(t('Preview comment | Drupal'), 'Page title is "Preview comment".');
     $this->assertText($edit['subject[0][value]'], 'Subject displayed.');
     $this->assertText($edit['comment_body[0][value]'], 'Comment displayed.');
-    $this->assertText($edit['name'], 'Author displayed.');
+    $this->assertText($web_user->getUsername(), 'Author displayed.');
     $this->assertText($expected_text_date, 'Date displayed.');
 
     // Check that the subject, comment, author and date fields are displayed with the correct values.
     $this->assertFieldByName('subject[0][value]', $edit['subject[0][value]'], 'Subject field displayed.');
     $this->assertFieldByName('comment_body[0][value]', $edit['comment_body[0][value]'], 'Comment field displayed.');
-    $this->assertFieldByName('name', $edit['name'], 'Author field displayed.');
+    $this->assertFieldByName('uid', $edit['uid'], 'Author field displayed.');
     $this->assertFieldByName('date[date]', $edit['date[date]'], 'Date field displayed.');
     $this->assertFieldByName('date[time]', $edit['date[time]'], 'Time field displayed.');
 
@@ -157,7 +172,7 @@ class CommentPreviewTest extends CommentTestBase {
     $this->drupalGet('comment/' . $comment->id() . '/edit');
     $this->assertFieldByName('subject[0][value]', $edit['subject[0][value]'], 'Subject field displayed.');
     $this->assertFieldByName('comment_body[0][value]', $edit['comment_body[0][value]'], 'Comment field displayed.');
-    $this->assertFieldByName('name', $edit['name'], 'Author field displayed.');
+    $this->assertFieldByName('uid', $edit['uid'], 'Author field displayed.');
     $this->assertFieldByName('date[date]', $expected_form_date, 'Date field displayed.');
     $this->assertFieldByName('date[time]', $expected_form_time, 'Time field displayed.');
 
@@ -165,7 +180,7 @@ class CommentPreviewTest extends CommentTestBase {
     $displayed = array();
     $displayed['subject[0][value]'] = (string) current($this->xpath("//input[@id='edit-subject-0-value']/@value"));
     $displayed['comment_body[0][value]'] = (string) current($this->xpath("//textarea[@id='edit-comment-body-0-value']"));
-    $displayed['name'] = (string) current($this->xpath("//input[@id='edit-name']/@value"));
+    $displayed['uid'] = (string) current($this->xpath("//input[@id='edit-uid']/@value"));
     $displayed['date[date]'] = (string) current($this->xpath("//input[@id='edit-date-date']/@value"));
     $displayed['date[time]'] = (string) current($this->xpath("//input[@id='edit-date-time']/@value"));
     $this->drupalPostForm('comment/' . $comment->id() . '/edit', $displayed, t('Save'));
@@ -173,10 +188,11 @@ class CommentPreviewTest extends CommentTestBase {
     // Check that the saved comment is still correct.
     $comment_storage = \Drupal::entityManager()->getStorage('comment');
     $comment_storage->resetCache(array($comment->id()));
+    /** @var \Drupal\comment\CommentInterface $comment_loaded */
     $comment_loaded = Comment::load($comment->id());
     $this->assertEqual($comment_loaded->getSubject(), $edit['subject[0][value]'], 'Subject loaded.');
     $this->assertEqual($comment_loaded->comment_body->value, $edit['comment_body[0][value]'], 'Comment body loaded.');
-    $this->assertEqual($comment_loaded->getAuthorName(), $edit['name'], 'Name loaded.');
+    $this->assertEqual($comment_loaded->getOwner()->id(), $web_user->id(), 'Name loaded.');
     $this->assertEqual($comment_loaded->getCreatedTime(), $raw_date, 'Date loaded.');
     $this->drupalLogout();
 
@@ -185,6 +201,8 @@ class CommentPreviewTest extends CommentTestBase {
     $user_edit = array();
     $expected_created_time = $comment_loaded->getCreatedTime();
     $this->drupalLogin($web_user);
+    // Web user cannot change the comment author.
+    unset($edit['uid']);
     $this->drupalPostForm('comment/' . $comment->id() . '/edit', $user_edit, t('Save'));
     $comment_storage->resetCache(array($comment->id()));
     $comment_loaded = Comment::load($comment->id());

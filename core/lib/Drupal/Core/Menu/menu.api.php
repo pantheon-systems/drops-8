@@ -2,28 +2,18 @@
 
 /**
  * @file
- * Hooks and documentation related to the menu system, routing, and links.
+ * Hooks and documentation related to the menu system and links.
  */
 
 /**
- * @defgroup menu Menu and routing system
+ * @defgroup menu Menu system
  * @{
- * Define the navigation menus, and route page requests to code based on URLs.
+ * Define the navigation menus, local actions and tasks, and contextual links.
  *
  * @section sec_overview Overview and terminology
- * The Drupal routing system defines how Drupal responds to URL requests that
- * the web server passes on to Drupal. The routing system is based on the
- * @link http://symfony.com Symfony framework. @endlink The central idea is
- * that Drupal subsystems and modules can register routes (basically, URL
- * paths and context); they can also register to respond dynamically to
- * routes, for more flexibility. When Drupal receives a URL request, it will
- * attempt to match the request to a registered route, and query dynamic
- * responders. If a match is made, Drupal will then instantiate the required
- * classes, gather the data, format it, and send it back to the web browser.
- * Otherwise, Drupal will return a 404 or 403 response.
- *
- * The menu system uses routes; it is used for navigation menus, local tasks,
- * local actions, and contextual links:
+ * The menu system uses routes; see the
+ * @link routing Routing API topic @endlink for more information. It is used
+ * for navigation menus, local tasks, local actions, and contextual links:
  * - Navigation menus are hierarchies of menu links; links point to routes or
  *   URLs.
  * - Menu links and their hierarchies can be defined by Drupal subsystems
@@ -38,115 +28,9 @@
  *   Contextual Links module handles the gathering and rendering of contextual
  *   links.
  *
- * The following sections of this topic provide an overview of the routing and
- * menu APIs. For more detailed information, see
- * https://www.drupal.org/developing/api/8/routing and
+ * The following sections of this topic provide an overview of the menu API.
+ * For more detailed information, see
  * https://www.drupal.org/developing/api/8/menu
- *
- * @section sec_register Registering simple routes
- * To register a route, add lines similar to this to a module_name.routing.yml
- * file in your top-level module directory:
- * @code
- * dblog.overview:
- *   path: '/admin/reports/dblog'
- *   defaults:
- *     _controller: '\Drupal\dblog\Controller\DbLogController::overview'
- *     _title: 'Recent log messages'
- *   requirements:
- *     _permission: 'access site reports'
- * @endcode
- * Some notes:
- * - The first line is the machine name of the route. Typically, it is prefixed
- *   by the machine name of the module that defines the route, or the name of
- *   a subsystem.
- * - The 'path' line gives the URL path of the route (relative to the site's
- *   base URL).
- * - The 'defaults' section tells how to build the main content of the route,
- *   and can also give other information, such as the page title and additional
- *   arguments for the route controller method. There are several possibilities
- *   for how to build the main content, including:
- *   - _controller: A callable, usually a method on a page controller class
- *     (see @ref sec_controller below for details).
- *   - _form: A form controller class. See the
- *     @link form_api Form API topic @endlink for more information about
- *     form controllers.
- *   - _entity_form: A form for editing an entity. See the
- *     @link entity_api Entity API topic @endlink for more information.
- * - The 'requirements' section is used in Drupal to give access permission
- *   instructions (it has other uses in the Symfony framework). Most
- *   routes have a simple permission-based access scheme, as shown in this
- *   example. See the @link user_api Permission system topic @endlink for
- *   more information about permissions.
- *
- * See https://www.drupal.org/node/2092643 for more details about *.routing.yml
- * files, and https://www.drupal.org/node/2122201 for information on how to
- * set up dynamic routes. The @link events Events topic @endlink is also
- * relevant to dynamic routes.
- *
- * @section sec_placeholders Defining routes with placeholders
- * Some routes have placeholders in them, and these can also be defined in a
- * module_name.routing.yml file, as in this example from the Block module:
- * @code
- * entity.block.edit_form:
- *   path: '/admin/structure/block/manage/{block}'
- *   defaults:
- *     _entity_form: 'block.default'
- *     _title: 'Configure block'
- *   requirements:
- *     _entity_access: 'block.update'
- * @endcode
- * In the path, '{block}' is a placeholder - it will be replaced by the
- * ID of the block that is being configured by the entity system. See the
- * @link entity_api Entity API topic @endlink for more information.
- *
- * @section sec_controller Route controllers for simple routes
- * For simple routes, after you have defined the route in a *.routing.yml file
- * (see @ref sec_register above), the next step is to define a page controller
- * class and method. Page controller classes do not necessarily need to
- * implement any particular interface or extend any particular base class. The
- * only requirement is that the method specified in your *.routing.yml file
- * returns:
- * - A render array (see the
- *   @link theme_render Theme and render topic @endlink for more information).
- *   This render array is then rendered in the requested format (HTML, dialog,
- *   modal, AJAX are supported by default). In the case of HTML, it will be
- *   surrounded by blocks by default: the Block module is enabled by default,
- *   and hence its Page Display Variant that surrounds the main content with
- *   blocks is also used by default.
- * - A \Symfony\Component\HttpFoundation\Response object.
- * As a note, if your module registers multiple simple routes, it is usual
- * (and usually easiest) to put all of their methods on one controller class.
- *
- * If the route has placeholders (see @ref sec_placeholders above) the
- * placeholders will be passed to the method (using reflection) by name.
- * For example, the placeholder '{myvar}' in a route will become the $myvar
- * parameter to the method.
- *
- * Additionally, if a parameter is typed to one of the following special classes
- * the system will pass those values as well.
- *
- * - \Symfony\Component\HttpFoundation\Request: The raw Symfony request object.
- *   It is generally only useful if the controller needs access to the query
- *   parameters of the request. By convention, this parameter is usually named
- *   $request.
- * - \Psr\Http\Message\ServerRequestInterface: The raw request, represented
- *   using the PSR-7 ServerRequest format. This object is derived as necessary
- *   from the Symfony request, so if either will suffice the Symfony request
- *   will be slightly more performant. By convention this parameter is usually
- *   named $request.
- * - \Drupal\Core\Routing\RouteMatchInterface: The "route match" data from
- *   this request. This object contains various standard data derived from
- *   the request and routing process. Consult the interface for details.
- *
- * Most controllers will need to display some information stored in the Drupal
- * database, which will involve using one or more Drupal services (see the
- * @link container Services and container topic @endlink). In order to properly
- * inject services, a controller should implement
- * \Drupal\Core\DependencyInjection\ContainerInjectionInterface; simple
- * controllers can do this by extending the
- * \Drupal\Core\Controller\ControllerBase class. See
- * \Drupal\dblog\Controller\DbLogController for a straightforward example of
- * a controller class.
  *
  * @section sec_links Defining menu links for the administrative menu
  * Routes for administrative tasks can be added to the main Drupal
@@ -351,10 +235,10 @@
  *   The value corresponding to each machine name key is an associative array
  *   that may contain the following key-value pairs:
  *   - title: (required) The title of the menu link. If this should be
- *     translated, create a \Drupal\Core\StringTranslation\TranslationWrapper
+ *     translated, create a \Drupal\Core\StringTranslation\TranslatableMarkup
  *     object.
  *   - description: The description of the link. If this should be
- *     translated, create a \Drupal\Core\StringTranslation\TranslationWrapper
+ *     translated, create a \Drupal\Core\StringTranslation\TranslatableMarkup
  *     object.
  *   - route_name: (optional) The route name to be used to build the path.
  *     Either the route_name or url element must be provided.
@@ -380,13 +264,13 @@
 function hook_menu_links_discovered_alter(&$links) {
   // Change the weight and title of the user.logout link.
   $links['user.logout']['weight'] = -10;
-  $links['user.logout']['title'] = new \Drupal\Core\StringTranslation\TranslationWrapper('Logout');
+  $links['user.logout']['title'] = new \Drupal\Core\StringTranslation\TranslatableMarkup('Logout');
   // Conditionally add an additional link with a title that's not translated.
   if (\Drupal::moduleHandler()->moduleExists('search')) {
     $links['menu.api.search'] = array(
       'title' => \Drupal::config('system.site')->get('name'),
       'route_name' => 'menu.api.search',
-      'description' => new \Drupal\Core\StringTranslation\TranslationWrapper('View popular search phrases for this site.'),
+      'description' => new \Drupal\Core\StringTranslation\TranslatableMarkup('View popular search phrases for this site.'),
       'parent' => 'system.admin_reports',
     );
   }
@@ -504,7 +388,7 @@ function hook_contextual_links_alter(array &$links, $group, array $route_paramet
     // Dynamically use the menu name for the title of the menu_edit contextual
     // link.
     $menu = \Drupal::entityManager()->getStorage('menu')->load($route_parameters['menu']);
-    $links['menu_edit']['title'] = t('Edit menu: !label', array('!label' => $menu->label()));
+    $links['menu_edit']['title'] = t('Edit menu: @label', array('@label' => $menu->label()));
   }
 }
 
@@ -544,7 +428,7 @@ function hook_contextual_links_plugins_alter(array &$contextual_links) {
  */
 function hook_system_breadcrumb_alter(\Drupal\Core\Breadcrumb\Breadcrumb &$breadcrumb, \Drupal\Core\Routing\RouteMatchInterface $route_match, array $context) {
   // Add an item to the end of the breadcrumb.
-  $breadcrumb->addLink(Drupal::l(t('Text'), 'example_route_name'));
+  $breadcrumb->addLink(\Drupal\Core\Link::createFromRoute(t('Text'), 'example_route_name'));
 }
 
 /**
@@ -556,7 +440,11 @@ function hook_system_breadcrumb_alter(\Drupal\Core\Breadcrumb\Breadcrumb &$bread
  *   exposed as the 'link_generator' service or a link generated by _l(). If the
  *   link is a "route link", 'route_name' will be set, otherwise 'path' will be
  *   set. The following keys can be altered:
- *   - text: The link text for the anchor tag as a translated string.
+ *   - text: The link text for the anchor tag. If the hook implementation
+ *     changes this text it needs to preserve the safeness of the original text.
+ *     Using t() or \Drupal\Component\Utility\SafeMarkup::format() with
+ *     @placeholder is recommended as this will escape the original text if
+ *     necessary. If the resulting text is not marked safe it will be escaped.
  *   - url_is_active: Whether or not the link points to the currently active
  *     URL.
  *   - url: The \Drupal\Core\Url object.
@@ -577,9 +465,6 @@ function hook_system_breadcrumb_alter(\Drupal\Core\Breadcrumb\Breadcrumb &$bread
  *       must be a string; other elements are more flexible, as they just need
  *       to work as an argument for the constructor of the class
  *       Drupal\Core\Template\Attribute($options['attributes']).
- *     - html: Whether or not HTML should be allowed as the link text. If FALSE,
- *       the text will be run through
- *       \Drupal\Component\Utility\SafeMarkup::checkPlain() before being output.
  *
  * @see \Drupal\Core\Routing\UrlGenerator::generateFromPath()
  * @see \Drupal\Core\Routing\UrlGenerator::generateFromRoute()
@@ -587,7 +472,7 @@ function hook_system_breadcrumb_alter(\Drupal\Core\Breadcrumb\Breadcrumb &$bread
 function hook_link_alter(&$variables) {
   // Add a warning to the end of route links to the admin section.
   if (isset($variables['route_name']) && strpos($variables['route_name'], 'admin') !== FALSE) {
-    $variables['text'] .= ' (Warning!)';
+    $variables['text'] = t('@text (Warning!)', ['@text' => $variables['text']]);
   }
 }
 

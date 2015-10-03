@@ -1,5 +1,5 @@
 id: d6_vocabulary_field_instance
-label: Drupal 6 vocabulary field instance configuration
+label: Vocabulary field instance configuration
 migration_tags:
   - Drupal 6
 source:
@@ -20,7 +20,7 @@ process:
       plugin: skip_on_empty
       method: row
   'settings/handler': 'constants/selection_handler'
-  'settings/handler_settings/target_bundles/0': @field_name
+  'settings/handler_settings/target_bundles/0': '@field_name'
   'settings/handler_settings/auto_create': 'constants/auto_create'
 destination:
   plugin: entity:field_config

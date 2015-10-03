@@ -1,5 +1,5 @@
 id: d6_custom_block
-label: Drupal 6 custom blocks
+label: Custom blocks
 migration_tags:
   - Drupal 6
 source:
@@ -21,4 +21,4 @@ destination:
 migration_dependencies:
   required:
     - d6_filter_format
-    - d6_block_content_body_field
+    - block_content_body_field

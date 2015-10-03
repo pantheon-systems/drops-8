@@ -27,11 +27,11 @@ class EntityReferenceFieldItemList extends FieldItemList implements EntityRefere
     // "autocreate" entities that are already populated in $item->entity.
     $target_entities = $ids = array();
     foreach ($this->list as $delta => $item) {
-      if ($item->hasNewEntity()) {
-        $target_entities[$delta] = $item->entity;
-      }
-      elseif ($item->target_id !== NULL) {
+      if ($item->target_id !== NULL) {
         $ids[$delta] = $item->target_id;
+      }
+      elseif ($item->hasNewEntity()) {
+        $target_entities[$delta] = $item->entity;
       }
     }
 
@@ -104,7 +104,13 @@ class EntityReferenceFieldItemList extends FieldItemList implements EntityRefere
     // Convert numeric IDs to UUIDs to ensure config deployability.
     $ids = array();
     foreach ($default_value as $delta => $properties) {
-      $ids[] = $properties['target_id'];
+      if (isset($properties['entity']) && $properties['entity']->isNew()) {
+        // This may be a newly created term.
+        $properties['entity']->save();
+        $default_value[$delta]['target_id'] = $properties['entity']->id();
+        unset($default_value[$delta]['entity']);
+      }
+      $ids[] = $default_value[$delta]['target_id'];
     }
     $entities = \Drupal::entityManager()
       ->getStorage($this->getSetting('target_type'))

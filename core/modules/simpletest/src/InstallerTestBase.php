@@ -112,11 +112,8 @@ abstract class InstallerTestBase extends WebTestBase {
       ->register('language.default', 'Drupal\Core\Language\LanguageDefault')
       ->addArgument('%language.default_values%');
     $this->container
-      ->register('language_manager', 'Drupal\Core\Language\LanguageManager')
-      ->addArgument(new Reference('language.default'));
-    $this->container
       ->register('string_translation', 'Drupal\Core\StringTranslation\TranslationManager')
-      ->addArgument(new Reference('language_manager'));
+      ->addArgument(new Reference('language.default'));
     $this->container
       ->set('app.root', DRUPAL_ROOT);
     \Drupal::setContainer($this->container);
@@ -159,7 +156,7 @@ abstract class InstallerTestBase extends WebTestBase {
       $this->container = $this->kernel->getContainer();
 
       // Manually configure the test mail collector implementation to prevent
-      // tests from sending out e-mails and collect them in state instead.
+      // tests from sending out emails and collect them in state instead.
       $this->container->get('config.factory')
         ->getEditable('system.mail')
         ->set('interface.default', 'test_mail_collector')

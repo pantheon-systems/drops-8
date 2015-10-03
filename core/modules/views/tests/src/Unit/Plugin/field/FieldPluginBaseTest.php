@@ -7,7 +7,10 @@
 
 namespace Drupal\Tests\views\Unit\Plugin\field;
 
+use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Language\Language;
+use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\LinkGenerator;
 use Drupal\Core\Utility\LinkGeneratorInterface;
@@ -174,6 +177,22 @@ class FieldPluginBaseTest extends UnitTestCase {
     \Drupal::getContainer()->set('unrouted_url_assembler', $this->unroutedUrlAssembler);
 
     $this->linkGenerator = new LinkGenerator($this->urlGenerator, $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface'), $this->renderer);
+    $this->renderer
+      ->method('render')
+      ->willReturnCallback(
+        // Pretend to do a render.
+        function (&$elements, $is_root_call = FALSE) {
+          // Mock the ability to theme links
+          $link = $this->linkGenerator->generate($elements['#title'], $elements['#url']);
+          if (isset($elements['#prefix'])) {
+            $link = $elements['#prefix'] . $link;
+          }
+          if (isset($elements['#suffix'])) {
+            $link = $link . $elements['#suffix'];
+          }
+          return Markup::create($link);
+        }
+      );
   }
 
   /**
@@ -229,7 +248,7 @@ class FieldPluginBaseTest extends UnitTestCase {
     $row = new ResultRow(['key' => 'value']);
 
     $result = $field->advancedRender($row);
-    $this->assertEquals($final_html, $result);
+    $this->assertEquals($final_html, (string) $result);
   }
 
   /**
@@ -308,8 +327,8 @@ class FieldPluginBaseTest extends UnitTestCase {
 
     $this->urlGenerator->expects($this->once())
       ->method('generateFromRoute')
-      ->with($expected_url->getRouteName(), $expected_url->getRouteParameters(), $expected_url_options)
-      ->willReturn($url_path);
+      ->with($expected_url->getRouteName(), $expected_url->getRouteParameters(), $expected_url_options, TRUE)
+      ->willReturn((new GeneratedUrl())->setGeneratedUrl($url_path));
 
     $result = $field->advancedRender($row);
     $this->assertEquals($final_html, $result);
@@ -449,8 +468,8 @@ class FieldPluginBaseTest extends UnitTestCase {
     ];
 
     $this->renderer->expects($this->once())
-      ->method('render')
-      ->with($build, FALSE)
+      ->method('renderPlain')
+      ->with($build)
       ->willReturn('base:test-path/123');
 
     $result = $field->advancedRender($row);
@@ -495,6 +514,67 @@ class FieldPluginBaseTest extends UnitTestCase {
     $field->setLinkGenerator($this->linkGenerator);
 
     return $field;
+  }
+
+  /**
+   * @covers ::getRenderTokens
+   */
+  public function testGetRenderTokensWithoutFieldsAndArguments() {
+    $field = $this->setupTestField();
+
+    $this->display->expects($this->any())
+      ->method('getHandlers')
+      ->willReturnMap([
+        ['argument', []],
+        ['field', []],
+      ]);
+
+    $this->assertEquals([], $field->getRenderTokens([]));
+  }
+
+  /**
+   * @covers ::getRenderTokens
+   */
+  public function testGetRenderTokensWithoutArguments() {
+    $field = $this->setupTestField(['id' => 'id']);
+
+    $field->last_render = 'last rendered output';
+    $this->display->expects($this->any())
+      ->method('getHandlers')
+      ->willReturnMap([
+        ['argument', []],
+        ['field', ['id' => $field]],
+      ]);
+
+    $this->assertEquals(['{{ id }}' => 'last rendered output'], $field->getRenderTokens([]));
+  }
+
+  /**
+   * @covers ::getRenderTokens
+   */
+  public function testGetRenderTokensWithArguments() {
+    $field = $this->setupTestField(['id' => 'id']);
+    $field->view->args = ['argument value'];
+    $field->view->build_info['substitutions']['{{ arguments.name }}'] = 'argument value';
+
+    $argument = $this->getMockBuilder('\Drupal\views\Plugin\views\argument\ArgumentPluginBase')
+      ->disableOriginalConstructor()
+      ->getMock();
+
+    $field->last_render = 'last rendered output';
+    $this->display->expects($this->any())
+      ->method('getHandlers')
+      ->willReturnMap([
+        ['argument', ['name' => $argument]],
+        ['field', ['id' => $field]],
+      ]);
+
+    $expected = [
+      '{{ id }}' => 'last rendered output',
+      '{{ arguments.name }}' => 'argument value',
+      '{{ raw_arguments.name }}' => 'argument value',
+    ];
+    $this->assertEquals($expected, $field->getRenderTokens([]));
   }
 
 }

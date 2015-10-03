@@ -28,3 +28,14 @@ function block_content_update_8001() {
   \Drupal::entityDefinitionUpdateManager()
     ->installFieldStorageDefinition('revision_translation_affected', 'block_content', 'block_content', $storage_definition);
 }
+
+/**
+ * Generalizes the d6_block_content_type and d6_block_content_body_field
+ * migrations.
+ */
+function block_content_update_8002() {
+  // Removed in issue #2569605. The Migrate and Migrate Drupal modules are
+  // marked experimental and do not need to support the update path until they
+  // are stable.
+  // @see https://www.drupal.org/node/2569469
+}

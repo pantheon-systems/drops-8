@@ -18,7 +18,18 @@ use Drupal\node\NodeInterface;
  */
 class MigrateNodeTest extends MigrateDrupal7TestBase {
 
-  static $modules = array('node', 'text', 'filter', 'entity_reference');
+  static $modules = array(
+    'comment',
+    'datetime',
+    'entity_reference',
+    'filter',
+    'image',
+    'link',
+    'node',
+    'taxonomy',
+    'telephone',
+    'text',
+  );
 
   /**
    * {@inheritdoc}
@@ -27,14 +38,21 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
     parent::setUp();
 
     $this->installEntitySchema('node');
-    $this->installConfig(['node']);
+    $this->installEntitySchema('comment');
+    $this->installEntitySchema('taxonomy_term');
+    $this->installConfig(static::$modules);
     $this->installSchema('node', ['node_access']);
     $this->installSchema('system', ['sequences']);
 
-    $this->executeMigration('d7_user_role');
-    $this->executeMigration('d7_user');
-    $this->executeMigration('d7_node_type');
-    $this->executeMigration('d7_node__test_content_type');
+    $this->executeMigrations([
+      'd7_user_role',
+      'd7_user',
+      'd7_node_type',
+      'd7_comment_type',
+      'd7_field',
+      'd7_field_instance',
+      'd7_node__test_content_type',
+    ]);
   }
 
   /**
@@ -107,6 +125,16 @@ class MigrateNodeTest extends MigrateDrupal7TestBase {
   public function testNode() {
     $this->assertEntity(1, 'test_content_type', 'en', 'A Node', '2', TRUE, '1421727515', '1441032132', TRUE, FALSE);
     $this->assertRevision(1, 'A Node', '2', NULL, '1441032132');
+
+    $node = Node::load(1);
+    $this->assertTrue($node->field_boolean->value);
+    $this->assertIdentical('99-99-99-99', $node->field_phone->value);
+    // Use assertEqual() here instead, since SQLite interprets floats strictly.
+    $this->assertEqual('1', $node->field_float->value);
+    $this->assertIdentical('5', $node->field_integer->value);
+    $this->assertIdentical('Some more text', $node->field_text_list[0]->value);
+    $this->assertIdentical('7', $node->field_integer_list[0]->value);
+    $this->assertIdentical('qwerty', $node->field_text->value);
   }
 
 }

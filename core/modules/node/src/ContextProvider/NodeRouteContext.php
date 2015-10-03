@@ -13,11 +13,14 @@ use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\ContextProviderInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\node\Entity\Node;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 
 /**
  * Sets the current node as a context on node routes.
  */
 class NodeRouteContext implements ContextProviderInterface {
+
+  use StringTranslationTrait;
 
   /**
    * The route match object.
@@ -41,18 +44,22 @@ class NodeRouteContext implements ContextProviderInterface {
    */
   public function getRuntimeContexts(array $unqualified_context_ids) {
     $result = [];
-    $context = new Context(new ContextDefinition('entity:node', NULL, FALSE));
+    $context_definition = new ContextDefinition('entity:node', NULL, FALSE);
+    $value = NULL;
     if (($route_object = $this->routeMatch->getRouteObject()) && ($route_contexts = $route_object->getOption('parameters')) && isset($route_contexts['node'])) {
       if ($node = $this->routeMatch->getParameter('node')) {
-        $context->setContextValue($node);
+        $value = $node;
       }
     }
     elseif ($this->routeMatch->getRouteName() == 'node.add') {
       $node_type = $this->routeMatch->getParameter('node_type');
-      $context->setContextValue(Node::create(array('type' => $node_type->id())));
+      $value = Node::create(array('type' => $node_type->id()));
     }
+
     $cacheability = new CacheableMetadata();
     $cacheability->setCacheContexts(['route']);
+
+    $context = new Context($context_definition, $value);
     $context->addCacheableDependency($cacheability);
     $result['node'] = $context;
 
@@ -63,7 +70,7 @@ class NodeRouteContext implements ContextProviderInterface {
    * {@inheritdoc}
    */
   public function getAvailableContexts() {
-    $context = new Context(new ContextDefinition('entity:node'));
+    $context = new Context(new ContextDefinition('entity:node', $this->t('Node from URL')));
     return ['node' => $context];
   }
 

@@ -5,7 +5,6 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -32,15 +31,15 @@ function file_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.file':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The File module allows you to create fields that contain files. See the <a href="!field">Field module help</a> and the <a href="!field_ui">Field UI help</a> pages for general information on fields and how to create and manage them. For more information, see the <a href="!file_documentation">online documentation for the File module</a>.', array('!field' => \Drupal::url('help.page', array('name' => 'field')), '!field_ui' => (\Drupal::moduleHandler()->moduleExists('field_ui')) ? \Drupal::url('help.page', array('name' => 'field_ui')) :'#', '!file_documentation' => 'https://www.drupal.org/documentation/modules/file')) . '</p>';
+      $output .= '<p>' . t('The File module allows you to create fields that contain files. See the <a href=":field">Field module help</a> and the <a href=":field_ui">Field UI help</a> pages for general information on fields and how to create and manage them. For more information, see the <a href=":file_documentation">online documentation for the File module</a>.', array(':field' => \Drupal::url('help.page', array('name' => 'field')), ':field_ui' => (\Drupal::moduleHandler()->moduleExists('field_ui')) ? \Drupal::url('help.page', array('name' => 'field_ui')) :'#', ':file_documentation' => 'https://www.drupal.org/documentation/modules/file')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Managing and displaying file fields') . '</dt>';
-      $output .= '<dd>' . t('The <em>settings</em> and the <em>display</em> of the file field can be configured separately. See the <a href="!field_ui">Field UI help</a> for more information on how to manage fields and their display.', array('!field_ui' => (\Drupal::moduleHandler()->moduleExists('field_ui')) ? \Drupal::url('help.page', array('name' => 'field_ui')) : '#')) . '</dd>';
+      $output .= '<dd>' . t('The <em>settings</em> and the <em>display</em> of the file field can be configured separately. See the <a href=":field_ui">Field UI help</a> for more information on how to manage fields and their display.', array(':field_ui' => (\Drupal::moduleHandler()->moduleExists('field_ui')) ? \Drupal::url('help.page', array('name' => 'field_ui')) : '#')) . '</dd>';
       $output .= '<dt>' . t('Allowing file extensions') . '</dt>';
       $output .= '<dd>' . t('In the field settings, you can define the allowed file extensions (for example <em>pdf docx psd</em>) for the files that will be uploaded with the file field.') . '</dd>';
       $output .= '<dt>' . t('Storing files ') . '</dt>';
-      $output .= '<dd>' . t('Uploaded files can either be stored as <em>public</em> or <em>private</em>, depending on the <a href="!file-system">File system settings</a>. For more information, see the <a href="!system-help">System module help page</a>.', array('!file-system' => \Drupal::url('system.file_system_settings'), '!system-help' => \Drupal::url('help.page', array('name' => 'system')))) . '</dd>';
+      $output .= '<dd>' . t('Uploaded files can either be stored as <em>public</em> or <em>private</em>, depending on the <a href=":file-system">File system settings</a>. For more information, see the <a href=":system-help">System module help page</a>.', array(':file-system' => \Drupal::url('system.file_system_settings'), ':system-help' => \Drupal::url('help.page', array('name' => 'system')))) . '</dd>';
       $output .= '<dt>' . t('Restricting the maximum file size') . '</dt>';
       $output .= '<dd>' . t('The maximum file size that users can upload is limited by PHP settings of the server, but you can restrict by entering the desired value as the <em>Maximum upload size</em> setting. The maximum file size is automatically displayed to users in the help text of the file field.') . '</dd>';
       $output .= '<dt>' . t('Displaying files and descriptions') . '<dt>';
@@ -951,7 +950,6 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
   else {
     $langcode = NULL;
   }
-  $sanitize = !empty($options['sanitize']);
 
   $replacements = array();
 
@@ -968,15 +966,15 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
 
         // Essential file data
         case 'name':
-          $replacements[$original] = $sanitize ? Html::escape($file->getFilename()) : $file->getFilename();
+          $replacements[$original] = $file->getFilename();
           break;
 
         case 'path':
-          $replacements[$original] = $sanitize ? Html::escape($file->getFileUri()) : $file->getFileUri();
+          $replacements[$original] = $file->getFileUri();
           break;
 
         case 'mime':
-          $replacements[$original] = $sanitize ? Html::escape($file->getMimeType()) : $file->getMimeType();
+          $replacements[$original] = $file->getMimeType();
           break;
 
         case 'size':
@@ -984,7 +982,7 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
           break;
 
         case 'url':
-          $replacements[$original] = $sanitize ? Html::escape(file_create_url($file->getFileUri())) : file_create_url($file->getFileUri());
+          $replacements[$original] = file_create_url($file->getFileUri());
           break;
 
         // These tokens are default variations on the chained tokens handled below.
@@ -1004,7 +1002,7 @@ function file_tokens($type, $tokens, array $data, array $options, BubbleableMeta
           $owner = $file->getOwner();
           $bubbleable_metadata->addCacheableDependency($owner);
           $name = $owner->label();
-          $replacements[$original] = $sanitize ? Html::escape($name) : $name;
+          $replacements[$original] = $name;
           break;
       }
     }
@@ -1182,7 +1180,7 @@ function file_managed_file_save_upload($element, FormStateInterface $form_state)
   if ($files_uploaded) {
     if (!$files = file_save_upload($upload_name, $element['#upload_validators'], $destination)) {
       \Drupal::logger('file')->notice('The file upload failed. %upload', array('%upload' => $upload_name));
-      $form_state->setError($element, t('Files in the !name field were unable to be uploaded.', array('!name' => $element['#title'])));
+      $form_state->setError($element, t('Files in the @name field were unable to be uploaded.', array('@name' => $element['#title'])));
       return array();
     }
 

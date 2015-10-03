@@ -679,6 +679,15 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
       $form['#method'] = 'get';
     }
 
+    // GET forms should not use a CSRF token.
+    if (isset($form['#method']) && $form['#method'] === 'get') {
+      // Merges in a default, this means if you've explicitly set #token to the
+      // the $form_id on a GET form, which we don't recommend, it will work.
+      $form += [
+        '#token' => FALSE,
+      ];
+    }
+
     // Generate a new #build_id for this form, if none has been set already.
     // The form_build_id is used as key to cache a particular build of the form.
     // For multi-step forms, this allows the user to go back to an earlier
@@ -1307,7 +1316,11 @@ class FormBuilder implements FormBuilderInterface, FormValidatorInterface, FormS
     // long as $form['#name'] puts the value at the top level of the tree of
     // \Drupal::request()->request data.
     $input = $form_state->getUserInput();
-    if (isset($input[$element['#name']]) && $input[$element['#name']] == $element['#value']) {
+    // The input value attribute is treated as CDATA by browsers. This means
+    // that they replace character entities with characters. Therefore, we need
+    // to decode the value in $element['#value']. For more details see
+    // http://www.w3.org/TR/html401/types.html#type-cdata.
+    if (isset($input[$element['#name']]) && $input[$element['#name']] == Html::decodeEntities($element['#value'])) {
       return TRUE;
     }
     // When image buttons are clicked, browsers do NOT pass the form element

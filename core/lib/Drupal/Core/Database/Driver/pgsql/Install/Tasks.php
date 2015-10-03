@@ -35,6 +35,10 @@ class Tasks extends InstallTasks {
       'arguments' => array(),
     );
     $this->tasks[] = array(
+      'function' => 'checkStandardConformingStrings',
+      'arguments' => array(),
+    );
+    $this->tasks[] = array(
       'function' => 'initializeDatabase',
       'arguments' => array(),
     );
@@ -118,10 +122,9 @@ class Tasks extends InstallTasks {
         $this->pass(t('Database is encoded in UTF-8'));
       }
       else {
-        $this->fail(t('The %driver database must use %encoding encoding to work with Drupal. Recreate the database with %encoding encoding. See !link for more details.', array(
+        $this->fail(t('The %driver database must use %encoding encoding to work with Drupal. Recreate the database with %encoding encoding. See <a href="INSTALL.pgsql.txt">INSTALL.pgsql.txt</a> for more details.', array(
           '%encoding' => 'UTF8',
           '%driver' => $this->name(),
-          '!link' => '<a href="INSTALL.pgsql.txt">INSTALL.pgsql.txt</a>'
         )));
       }
     }
@@ -168,9 +171,9 @@ class Tasks extends InstallTasks {
             '%setting' => 'bytea_output',
             '%current_value' => 'hex',
             '%needed_value' => 'escape',
-            '!query' => "<code>" . $query . "</code>",
+            '@query' => $query,
           );
-          $this->fail(t("The %setting setting is currently set to '%current_value', but needs to be '%needed_value'. Change this by running the following query: !query", $replacements));
+          $this->fail(t("The %setting setting is currently set to '%current_value', but needs to be '%needed_value'. Change this by running the following query: <code>@query</code>", $replacements));
         }
       }
     }
@@ -185,6 +188,58 @@ class Tasks extends InstallTasks {
   }
 
   /**
+   * Ensures standard_conforming_strings setting is 'on'.
+   *
+   * When standard_conforming_strings setting is 'on' string literals ('...')
+   * treat backslashes literally, as specified in the SQL standard. This allows
+   * Drupal to convert between bytea, text and varchar columns.
+   */
+  public function checkStandardConformingStrings() {
+    $database_connection = Database::getConnection();
+    if (!$this->checkStandardConformingStringsSuccess()) {
+      // First try to alter the database. If it fails, raise an error telling
+      // the user to do it themselves.
+      $connection_options = $database_connection->getConnectionOptions();
+      // It is safe to include the database name directly here, because this
+      // code is only called when a connection to the database is already
+      // established, thus the database name is guaranteed to be a correct
+      // value.
+      $query = "ALTER DATABASE \"" . $connection_options['database'] . "\" SET standard_conforming_strings = 'on';";
+      try {
+        $database_connection->query($query);
+      }
+      catch (\Exception $e) {
+        // Ignore possible errors when the user doesn't have the necessary
+        // privileges to ALTER the database.
+      }
+
+      // Close the database connection so that the configuration parameter
+      // is applied to the current connection.
+      Database::closeConnection();
+
+      // Recheck, if it fails, finally just rely on the end user to do the
+      // right thing.
+      if (!$this->checkStandardConformingStringsSuccess()) {
+        $replacements = array(
+          '%setting' => 'standard_conforming_strings',
+          '%current_value' => 'off',
+          '%needed_value' => 'on',
+          '@query' => $query,
+        );
+        $this->fail(t("The %setting setting is currently set to '%current_value', but needs to be '%needed_value'. Change this by running the following query: <code>@query</code>", $replacements));
+      }
+    }
+  }
+
+  /**
+   * Verifies the standard_conforming_strings setting.
+   */
+  protected function checkStandardConformingStringsSuccess() {
+    $standard_conforming_strings = Database::getConnection()->query("SHOW standard_conforming_strings")->fetchField();
+    return ($standard_conforming_strings == 'on');
+  }
+
+  /**
    * Make PostgreSQL Drupal friendly.
    */
   function initializeDatabase() {
@@ -195,18 +250,23 @@ class Tasks extends InstallTasks {
     // At the same time checking for the existence of the function fixes
     // concurrency issues, when both try to update at the same time.
     try {
+      $connection = Database::getConnection();
       // Don't use {} around pg_proc table.
-      if (!db_query("SELECT COUNT(*) FROM pg_proc WHERE proname = 'rand'")->fetchField()) {
-        db_query('CREATE OR REPLACE FUNCTION "rand"() RETURNS float AS
+      if (!$connection->query("SELECT COUNT(*) FROM pg_proc WHERE proname = 'rand'")->fetchField()) {
+        $connection->query('CREATE OR REPLACE FUNCTION "rand"() RETURNS float AS
           \'SELECT random();\'
-          LANGUAGE \'sql\''
+          LANGUAGE \'sql\'',
+          [],
+          [ 'allow_delimiter_in_query' => TRUE ]
         );
       }
 
-      if (!db_query("SELECT COUNT(*) FROM pg_proc WHERE proname = 'substring_index'")->fetchField()) {
-        db_query('CREATE OR REPLACE FUNCTION "substring_index"(text, text, integer) RETURNS text AS
+      if (!$connection->query("SELECT COUNT(*) FROM pg_proc WHERE proname = 'substring_index'")->fetchField()) {
+        $connection->query('CREATE OR REPLACE FUNCTION "substring_index"(text, text, integer) RETURNS text AS
           \'SELECT array_to_string((string_to_array($1, $2)) [1:$3], $2);\'
-          LANGUAGE \'sql\''
+          LANGUAGE \'sql\'',
+          [],
+          [ 'allow_delimiter_in_query' => TRUE ]
         );
       }
 

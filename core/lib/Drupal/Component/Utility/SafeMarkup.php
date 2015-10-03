@@ -7,6 +7,9 @@
 
 namespace Drupal\Component\Utility;
 
+use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Render\MarkupInterface;
+
 /**
  * Manages known safe strings for rendering at the theme layer.
  *
@@ -47,7 +50,7 @@ class SafeMarkup {
   /**
    * Checks if a string is safe to output.
    *
-   * @param string|\Drupal\Component\Utility\SafeStringInterface $string
+   * @param string|\Drupal\Component\Render\MarkupInterface $string
    *   The content to be checked.
    * @param string $strategy
    *   The escaping strategy. Defaults to 'html'. Two escaping strategies are
@@ -64,7 +67,7 @@ class SafeMarkup {
   public static function isSafe($string, $strategy = 'html') {
     // Do the instanceof checks first to save unnecessarily casting the object
     // to a string.
-    return $string instanceOf SafeStringInterface || isset(static::$safeStrings[(string) $string][$strategy]) ||
+    return $string instanceOf MarkupInterface || isset(static::$safeStrings[(string) $string][$strategy]) ||
       isset(static::$safeStrings[(string) $string]['all']);
   }
 
@@ -161,83 +164,28 @@ class SafeMarkup {
   /**
    * Formats a string for HTML display by replacing variable placeholders.
    *
-   * This function replaces variable placeholders in a string with the requested
-   * values and escapes the values so they can be safely displayed as HTML. It
-   * should be used on any unknown text that is intended to be printed to an
-   * HTML page (especially text that may have come from untrusted users, since
-   * in that case it prevents cross-site scripting and other security problems).
-   *
-   * In most cases, you should use t() rather than calling this function
-   * directly, since it will translate the text (on non-English-only sites) in
-   * addition to formatting it.
-   *
    * @param string $string
-   *   A string containing placeholders. The string itself is not escaped, any
-   *   unsafe content must be in $args and inserted via placeholders.
+   *   A string containing placeholders. The string itself will not be escaped,
+   *   any unsafe content must be in $args and inserted via placeholders.
    * @param array $args
-   *   An associative array of replacements to make. Occurrences in $string of
-   *   any key in $args are replaced with the corresponding value, after
-   *   optional sanitization and formatting. The type of sanitization and
-   *   formatting depends on the first character of the key:
-   *   - @variable: Escaped to HTML using self::escape(). Use this as the
-   *     default choice for anything displayed on a page on the site.
-   *   - %variable: Escaped to HTML wrapped in <em> tags, which makes the
-   *     following HTML code:
-   *     @code
-   *       <em class="placeholder">text output here.</em>
-   *     @endcode
-   *   - !variable: Inserted as is, with no sanitization or formatting. Only
-   *     use this when the resulting string is being generated for one of:
-   *     - Non-HTML usage, such as a plain-text email.
-   *     - Non-direct HTML output, such as a plain-text variable that will be
-   *       printed as an HTML attribute value and therefore formatted with
-   *       self::checkPlain() as part of that.
-   *     - Some other special reason for suppressing sanitization.
+   *   An array with placeholder replacements, keyed by placeholder. See
+   *   \Drupal\Component\Render\FormattableMarkup::placeholderFormat() for
+   *   additional information about placeholders.
    *
-   * @return string
-   *   The formatted string, which is marked as safe unless sanitization of an
-   *   unsafe argument was suppressed (see above).
+   * @return string|\Drupal\Component\Render\MarkupInterface
+   *   The formatted string, which is an instance of MarkupInterface unless
+   *   sanitization of an unsafe argument was suppressed (see above).
    *
    * @ingroup sanitization
    *
-   * @see t()
+   * @see \Drupal\Component\Render\FormattableMarkup::placeholderFormat()
+   * @see \Drupal\Component\Render\FormattableMarkup
+   *
+   * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+   *   Use \Drupal\Component\Render\FormattableMarkup.
    */
   public static function format($string, array $args) {
-    $safe = TRUE;
-
-    // Transform arguments before inserting them.
-    foreach ($args as $key => $value) {
-      switch ($key[0]) {
-        case '@':
-          // Escaped only.
-          if (!SafeMarkup::isSafe($value)) {
-            $args[$key] = Html::escape($value);
-          }
-          break;
-
-        case '%':
-        default:
-          // Escaped and placeholder.
-          if (!SafeMarkup::isSafe($value)) {
-            $value = Html::escape($value);
-          }
-          $args[$key] = '<em class="placeholder">' . $value . '</em>';
-          break;
-
-        case '!':
-          // Pass-through.
-          if (!static::isSafe($value)) {
-            $safe = FALSE;
-          }
-      }
-    }
-
-    $output = strtr($string, $args);
-    if ($safe) {
-      static::$safeStrings[$output]['html'] = TRUE;
-    }
-
-    return $output;
+    return new FormattableMarkup($string, $args);
   }
 
 }

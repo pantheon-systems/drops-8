@@ -5,9 +5,10 @@
  * Contains \Drupal\Tests\Core\StringTranslation\TranslationManagerTest.
  */
 
-namespace Drupal\Tests\Core\StringTranslation {
+namespace Drupal\Tests\Core\StringTranslation;
 
 use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\StringTranslation\TranslationManager;
 use Drupal\Tests\UnitTestCase;
 
@@ -24,6 +25,9 @@ class TranslationManagerTest extends UnitTestCase {
    */
   protected $translationManager;
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     $this->translationManager = new TestTranslationManager();
   }
@@ -34,19 +38,18 @@ class TranslationManagerTest extends UnitTestCase {
    */
   public function providerTestFormatPlural() {
     return array(
-      array(1, 'Singular', '@count plural', array(), array(), 'Singular', TRUE),
-      array(2, 'Singular', '@count plural', array(), array(), '2 plural', TRUE),
+      [1, 'Singular', '@count plural', array(), array(), 'Singular'],
+      [2, 'Singular', '@count plural', array(), array(), '2 plural'],
       // @todo support locale_get_plural
-      array(2, 'Singular', '@count @arg', array('@arg' => '<script>'), array(), '2 &lt;script&gt;', TRUE),
-      array(2, 'Singular', '@count %arg', array('%arg' => '<script>'), array(), '2 <em class="placeholder">&lt;script&gt;</em>', TRUE),
-      array(2, 'Singular', '@count !arg', array('!arg' => '<script>'), array(), '2 <script>', FALSE),
+      [2, 'Singular', '@count @arg', array('@arg' => '<script>'), array(), '2 &lt;script&gt;'],
+      [2, 'Singular', '@count %arg', array('%arg' => '<script>'), array(), '2 <em class="placeholder">&lt;script&gt;</em>'],
     );
   }
 
   /**
    * @dataProvider providerTestFormatPlural
    */
-  public function testFormatPlural($count, $singular, $plural, array $args = array(), array $options = array(), $expected, $safe) {
+  public function testFormatPlural($count, $singular, $plural, array $args = array(), array $options = array(), $expected) {
     $translator = $this->getMock('\Drupal\Core\StringTranslation\Translator\TranslatorInterface');
     $translator->expects($this->once())
       ->method('getStringTranslation')
@@ -56,9 +59,40 @@ class TranslationManagerTest extends UnitTestCase {
     $this->translationManager->addTranslator($translator);
     $result = $this->translationManager->formatPlural($count, $singular, $plural, $args, $options);
     $this->assertEquals($expected, $result);
-    $this->assertEquals(SafeMarkup::isSafe($result), $safe);
+    $this->assertTrue(SafeMarkup::isSafe($result));
   }
 
+  /**
+   * Tests translation using placeholders.
+   *
+   * @param string $string
+   *   A string containing the English string to translate.
+   * @param array $args
+   *   An associative array of replacements to make after translation.
+   * @param string $expected_string
+   *   The expected translated string value.
+   *
+   * @dataProvider providerTestTranslatePlaceholder
+   */
+  public function testTranslatePlaceholder($string, array $args = array(), $expected_string) {
+    $actual = $this->translationManager->translate($string, $args);
+    $this->assertInstanceOf(MarkupInterface::class, $actual);
+    $this->assertEquals($expected_string, (string) $actual);
+  }
+
+  /**
+   * Provides test data for translate().
+   *
+   * @return array
+   */
+  public function providerTestTranslatePlaceholder() {
+    return [
+      ['foo @bar', ['@bar' => 'bar'], 'foo bar'],
+      ['bar %baz', ['%baz' => 'baz'], 'bar <em class="placeholder">baz</em>'],
+      ['bar @bar %baz', ['@bar' => 'bar', '%baz' => 'baz'], 'bar bar <em class="placeholder">baz</em>'],
+      ['bar %baz @bar', ['%baz' => 'baz', '@bar' => 'bar'], 'bar <em class="placeholder">baz</em> bar'],
+    ];
+  }
 }
 
 class TestTranslationManager extends TranslationManager {
@@ -66,12 +100,4 @@ class TestTranslationManager extends TranslationManager {
   public function __construct() {
   }
 
-}
-
-}
-
-namespace {
-  if (!defined('LOCALE_PLURAL_DELIMITER')) {
-    define('LOCALE_PLURAL_DELIMITER', "\03");
-  }
 }

@@ -40,6 +40,7 @@ class ContactSitewideTest extends WebTestBase {
     parent::setUp();
     $this->drupalPlaceBlock('system_breadcrumb_block');
     $this->drupalPlaceBlock('local_actions_block');
+    $this->drupalPlaceBlock('page_title_block');
   }
 
   /**
@@ -129,7 +130,7 @@ class ContactSitewideTest extends WebTestBase {
     $max_length = EntityTypeInterface::BUNDLE_MAX_LENGTH;
     $max_length_exceeded = $max_length + 1;
     $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length_exceeded)), $label = $this->randomMachineName($max_length_exceeded), implode(',', array($recipients[0])), '', TRUE);
-    $this->assertText(format_string('Machine-readable name cannot be longer than !max characters but is currently !exceeded characters long.', array('!max' => $max_length, '!exceeded' => $max_length_exceeded)));
+    $this->assertText(format_string('Machine-readable name cannot be longer than @max characters but is currently @exceeded characters long.', array('@max' => $max_length, '@exceeded' => $max_length_exceeded)));
     $this->addContactForm($id = Unicode::strtolower($this->randomMachineName($max_length)), $label = $this->randomMachineName($max_length), implode(',', array($recipients[0])), '', TRUE);
     $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
 

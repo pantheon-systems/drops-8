@@ -145,6 +145,9 @@ class ImageItem extends FileItem {
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties = parent::propertyDefinitions($field_definition);
 
+    unset($properties['display']);
+    unset($properties['description']);
+
     $properties['alt'] = DataDefinition::create('string')
       ->setLabel(t('Alternative text'))
       ->setDescription(t("Alternative image text, for the image's 'alt' attribute."));
@@ -209,7 +212,7 @@ class ImageItem extends FileItem {
       '#weight' => 4.1,
       '#field_prefix' => '<div class="container-inline">',
       '#field_suffix' => '</div>',
-      '#description' => t('The maximum allowed image size expressed as WIDTH×HEIGHT (e.g. 640×480). Leave blank for no restriction. If a larger image is uploaded, it will be resized to reflect the given width and height. Resizing images on upload will cause the loss of <a href="@url">EXIF data</a> in the image.', array('@url' => 'http://en.wikipedia.org/wiki/Exchangeable_image_file_format')),
+      '#description' => t('The maximum allowed image size expressed as WIDTH×HEIGHT (e.g. 640×480). Leave blank for no restriction. If a larger image is uploaded, it will be resized to reflect the given width and height. Resizing images on upload will cause the loss of <a href=":url">EXIF data</a> in the image.', array(':url' => 'http://en.wikipedia.org/wiki/Exchangeable_image_file_format')),
     );
     $element['max_resolution']['x'] = array(
       '#type' => 'number',
@@ -380,7 +383,9 @@ class ImageItem extends FileItem {
     if (!empty($element['x']['#value']) || !empty($element['y']['#value'])) {
       foreach (array('x', 'y') as $dimension) {
         if (!$element[$dimension]['#value']) {
-          $form_state->setError($element[$dimension], t('Both a height and width value must be specified in the !name field.', array('!name' => $element['#title'])));
+          // We expect the field name placeholder value to be wrapped in t()
+          // here, so it won't be escaped again as it's already marked safe.
+          $form_state->setError($element[$dimension], t('Both a height and width value must be specified in the @name field.', array('@name' => $element['#title'])));
           return;
         }
       }

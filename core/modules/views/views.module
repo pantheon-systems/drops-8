@@ -23,7 +23,7 @@ use Drupal\views\Plugin\views\display\Page;
 use Drupal\views\ViewExecutable;
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\views\Entity\View;
-use Drupal\views\Render\ViewsRenderPipelineSafeString;
+use Drupal\views\Render\ViewsRenderPipelineMarkup;
 use Drupal\views\Views;
 use Drupal\field\FieldConfigInterface;
 
@@ -36,14 +36,14 @@ function views_help($route_name, RouteMatchInterface $route_match) {
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Views module provides a back end to fetch information from content, user accounts, taxonomy terms, and other entities from the database and present it to the user as a grid, HTML list, table, unformatted list, etc. The resulting displays are known generally as <em>views</em>.') . '</p>';
-      $output .= '<p>' . t('For more information, see the <a href="!views">online documentation for the Views module</a>.', array('!views' => 'https://www.drupal.org/documentation/modules/views')) . '</p>';
-      $output .= '<p>' . t('In order to create and modify your own views using the administration and configuration user interface, you will need to enable either the Views UI module in core or a contributed module that provides a user interface for Views. See the <a href="!views-ui">Views UI module help page</a> for more information.', array('!views-ui' => (\Drupal::moduleHandler()->moduleExists('views_ui')) ? \Drupal::url('help.page', array('name' => 'views_ui'))  : '#')) . '</p>';
+      $output .= '<p>' . t('For more information, see the <a href=":views">online documentation for the Views module</a>.', array(':views' => 'https://www.drupal.org/documentation/modules/views')) . '</p>';
+      $output .= '<p>' . t('In order to create and modify your own views using the administration and configuration user interface, you will need to enable either the Views UI module in core or a contributed module that provides a user interface for Views. See the <a href=":views-ui">Views UI module help page</a> for more information.', array(':views-ui' => (\Drupal::moduleHandler()->moduleExists('views_ui')) ? \Drupal::url('help.page', array('name' => 'views_ui'))  : '#')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Adding functionality to administrative pages') . '</dt>';
       $output .= '<dd>' . t('The Views module adds functionality to some core administration pages. For example, <em>admin/content</em> uses Views to filter and sort content. With Views uninstalled, <em>admin/content</em> is more limited.') . '</dd>';
       $output .= '<dt>' . t('Expanding Views functionality') . '</dt>';
-      $output .= '<dd>' . t('Contributed projects that support the Views module can be found in the <a href="!node">online documentation for Views-related contributed modules</a>.', array('!node' => 'https://www.drupal.org/documentation/modules/views/add-ons')) . '</dd>';
+      $output .= '<dd>' . t('Contributed projects that support the Views module can be found in the <a href=":node">online documentation for Views-related contributed modules</a>.', array(':node' => 'https://www.drupal.org/documentation/modules/views/add-ons')) . '</dd>';
       $output .= '<dt>' . t('Improving table accessibility') . '</dt>';
       $output .= '<dd>' . t('Views tables include semantic markup to improve accessibility. Data cells are automatically associated with header cells through id and header attributes. To improve the accessibility of your tables you can add descriptive elements within the Views table settings. The <em>caption</em> element can introduce context for a table, making it easier to understand. The <em>summary</em> element can provide an overview of how the data has been organized and how to navigate the table. Both the caption and summary are visible by default and also implemented according to HTML5 guidelines.') . '</dd>';
       $output .= '<dt>' . t('Working with multilingual views') . '</dt>';
@@ -67,8 +67,8 @@ function views_views_pre_render($view) {
         'views_dom_id:' . $view->dom_id => array(
           'view_name' => $view->storage->id(),
           'view_display_id' => $view->current_display,
-          'view_args' => SafeMarkup::checkPlain(implode('/', $view->args)),
-          'view_path' => SafeMarkup::checkPlain(Url::fromRoute('<current>')->toString()),
+          'view_args' => Html::escape(implode('/', $view->args)),
+          'view_path' => Html::escape(Url::fromRoute('<current>')->toString()),
           'view_base_path' => $view->getPath(),
           'view_dom_id' => $view->dom_id,
           // To fit multiple views on a page, the programmer may have
@@ -302,39 +302,6 @@ function views_theme_suggestions_container_alter(array &$suggestions, array $var
 }
 
 /**
- * Implements MODULE_preprocess_HOOK().
- */
-function views_preprocess_html(&$variables) {
-  if (!\Drupal::moduleHandler()->moduleExists('contextual')) {
-    return;
-  }
-
-  // If the main content of this page contains a view, attach its contextual
-  // links to the overall page array. This allows them to be rendered directly
-  // next to the page title.
-  if ($render_array = Page::getPageRenderArray()) {
-    views_add_contextual_links($variables['page'], 'page', $render_array['#display_id'], $render_array);
-  }
-
-  // If the page contains a view as its main content, contextual links may have
-  // been attached to the page as a whole; for example, by
-  // views_page_display_pre_render().
-  // This allows them to be associated with the page and rendered by default
-  // next to the page title (which we want). However, it also causes the
-  // Contextual Links module to treat the wrapper for the entire page (i.e.,
-  // the <body> tag) as the HTML element that these contextual links are
-  // associated with. This we don't want; for better visual highlighting, we
-  // prefer a smaller region to be chosen. The region we prefer differs from
-  // theme to theme and depends on the details of the theme's markup in
-  // page.html.twig, so we can only find it using JavaScript. We therefore
-  // remove the "contextual-region" class from the <body> tag here and add
-  // JavaScript that will insert it back in the correct place.
-  if (!empty($variables['page']['#views_contextual_links'])) {
-    $variables['attributes']['data-views-page-contextual-id'] = _contextual_links_to_id($variables['page']['#contextual_links']);
-  }
-}
-
-/**
  * Adds contextual links associated with a view display to a renderable array.
  *
  * This function should be called when a view is being rendered in a particular
@@ -470,9 +437,6 @@ function views_add_contextual_links(&$render_element, $location, $display_id, ar
           // user that may use contextual links, attach Views' contextual links
           // JavaScript.
           $render_element['#cache']['contexts'][] = 'user.permissions';
-          if ($location === 'page' && $render_element['#type'] === 'page' && \Drupal::currentUser()->hasPermission('access contextual links')) {
-            $render_element['#attached']['library'][] = 'views/views.contextual-links';
-          }
         }
       }
     }
@@ -674,11 +638,7 @@ function views_pre_render_views_form_views_form($element) {
 
   // Apply substitutions to the rendered output.
   $output = str_replace($search, $replace, drupal_render($element['output']));
-  $element['output'] = ['#markup' => ViewsRenderPipelineSafeString::create($output)];
-
-  // Sort, render and add remaining form fields.
-  $children = Element::children($element, TRUE);
-  $element['#children'] = drupal_render_children($element, $children);
+  $element['output'] = ['#markup' => ViewsRenderPipelineMarkup::create($output)];
 
   return $element;
 }

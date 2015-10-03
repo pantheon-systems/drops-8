@@ -85,6 +85,45 @@ class UserEditTest extends WebTestBase {
     $config->set('password_strength', FALSE)->save();
     $this->drupalPostForm("user/" . $user1->id() . "/edit", $edit, t('Save'));
     $this->assertNoRaw(t('Password strength:'), 'The password strength indicator is not displayed.');
+
+    // Check that the user status field has the correct value and that it is
+    // properly displayed.
+    $admin_user = $this->drupalCreateUser(array('administer users'));
+    $this->drupalLogin($admin_user);
+
+    $this->drupalGet('user/' . $user1->id() . '/edit');
+    $this->assertNoFieldChecked('edit-status-0');
+    $this->assertFieldChecked('edit-status-1');
+
+    $edit = array('status' => 0);
+    $this->drupalPostForm('user/' . $user1->id() . '/edit', $edit, t('Save'));
+    $this->assertText(t('The changes have been saved.'));
+    $this->assertFieldChecked('edit-status-0');
+    $this->assertNoFieldChecked('edit-status-1');
+
+    $edit = array('status' => 1);
+    $this->drupalPostForm('user/' . $user1->id() . '/edit', $edit, t('Save'));
+    $this->assertText(t('The changes have been saved.'));
+    $this->assertNoFieldChecked('edit-status-0');
+    $this->assertFieldChecked('edit-status-1');
+  }
+
+  /**
+   * Tests setting the password to "0".
+   *
+   * We discovered in https://www.drupal.org/node/2563751 that logging in with a
+   * password that is literally "0" was not possible. This test ensures that
+   * this regression can't happen again.
+   */
+  public function testUserWith0Password() {
+    $admin = $this->drupalCreateUser(['administer users']);
+    $this->drupalLogin($admin);
+    // Create a regular user.
+    $user1 = $this->drupalCreateUser([]);
+
+    $edit = ['pass[pass1]' => '0', 'pass[pass2]' => '0'];
+    $this->drupalPostForm("user/" . $user1->id() . "/edit", $edit, t('Save'));
+    $this->assertRaw(t("The changes have been saved."));
   }
 
   /**

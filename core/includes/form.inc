@@ -257,6 +257,12 @@ function template_preprocess_details(&$variables) {
   $variables['description'] = (!empty($element['#description'])) ? $element['#description'] : '';
   $variables['children'] = (isset($element['#children'])) ? $element['#children'] : '';
   $variables['value'] = (isset($element['#value'])) ? $element['#value'] : '';
+
+  // Display any error messages.
+  $variables['errors'] = NULL;
+  if (!empty($element['#errors']) && empty($element['#error_no_message'])) {
+    $variables['errors'] = $element['#errors'];
+  }
 }
 
 /**
@@ -838,7 +844,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
       $query_options['op'] = 'finished';
       $error_url->setOption('query', $query_options);
 
-      $batch['error_message'] = t('Please continue to <a href="@error_url">the error page</a>', array('@error_url' => $error_url->toString(TRUE)->getGeneratedUrl()));
+      $batch['error_message'] = t('Please continue to <a href=":error_url">the error page</a>', array(':error_url' => $error_url->toString(TRUE)->getGeneratedUrl()));
 
       // Clear the way for the redirection to the batch processing page, by
       // saving and unsetting the 'destination', if there is any.

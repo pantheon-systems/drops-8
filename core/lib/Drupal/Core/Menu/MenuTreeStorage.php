@@ -157,6 +157,9 @@ class MenuTreeStorage implements MenuTreeStorageInterface {
       foreach ($definitions as $id => $link) {
         // Flag this link as discovered, i.e. saved via rebuild().
         $link['discovered'] = 1;
+        // Note: The parent we set here might be just stored in the {menu_tree}
+        // table, so it will not end up in $top_links. Therefore the later loop
+        // on the orphan links, will handle those cases.
         if (!empty($link['parent'])) {
           $children[$link['parent']][$id] = $id;
         }
@@ -174,8 +177,18 @@ class MenuTreeStorage implements MenuTreeStorageInterface {
     // Handle any children we didn't find starting from top-level links.
     foreach ($children as $orphan_links) {
       foreach ($orphan_links as $id) {
-        // Force it to the top level.
-        $links[$id]['parent'] = '';
+        // Check for a parent that is not loaded above since only internal links
+        // are loaded above.
+        $parent = $this->loadFull($links[$id]['parent']);
+        // If there is a parent add it to the links to be used in
+        // ::saveRecursive().
+        if ($parent) {
+          $links[$links[$id]['parent']] = $parent;
+        }
+        else {
+          // Force it to the top level.
+          $links[$id]['parent'] = '';
+        }
         $this->saveRecursive($id, $children, $links);
       }
     }
@@ -1249,14 +1262,14 @@ class MenuTreeStorage implements MenuTreeStorageInterface {
           'default' => '',
         ),
         'title' => array(
-          'description' => 'The serialized title for the link. May be a TranslationWrapper.',
+          'description' => 'The serialized title for the link. May be a TranslatableMarkup.',
           'type' => 'blob',
           'size' => 'big',
           'not null' => FALSE,
           'serialize' => TRUE,
         ),
         'description' => array(
-          'description' => 'The serialized description of this link - used for admin pages and title attribute. May be a TranslationWrapper.',
+          'description' => 'The serialized description of this link - used for admin pages and title attribute. May be a TranslatableMarkup.',
           'type' => 'blob',
           'size' => 'big',
           'not null' => FALSE,

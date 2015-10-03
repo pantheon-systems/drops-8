@@ -42,7 +42,7 @@ class LinkSeparateFormatter extends LinkFormatter {
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $element = array();
     $entity = $items->getEntity();
     $settings = $this->getSettings();
@@ -54,9 +54,7 @@ class LinkSeparateFormatter extends LinkFormatter {
 
       // If the link text field value is available, use it for the text.
       if (empty($settings['url_only']) && !empty($item->title)) {
-        // Unsanitized token replacement here because the entire link title
-        // gets auto-escaped during link generation.
-        $link_title = \Drupal::token()->replace($item->title, array($entity->getEntityTypeId() => $entity), array('sanitize' => FALSE, 'clear' => TRUE));
+        $link_title = \Drupal::token()->replace($item->title, [$entity->getEntityTypeId() => $entity], ['clear' => TRUE]);
       }
 
       // The link_separate formatter has two titles; the link text (as in the

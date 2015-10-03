@@ -45,12 +45,17 @@ class ViewEditTest extends UITestBase {
   }
 
   /**
-   * Tests the machine name form.
+   * Tests the machine name and administrative comment forms.
    */
-  public function testMachineNameOption() {
+  public function testOtherOptions() {
     $this->drupalGet('admin/structure/views/view/test_view');
     // Add a new attachment display.
     $this->drupalPostForm(NULL, array(), 'Add Attachment');
+
+    // Test that a long administrative comment is truncated.
+    $edit = array('display_comment' => 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen');
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/attachment_1/display_comment', $edit, 'Apply');
+    $this->assertText('one two three four five six seven eight nine ten eleven twelve thirteen fourteen...');
 
     // Change the machine name for the display from page_1 to test_1.
     $edit = array('display_id' => 'test_1');
@@ -105,7 +110,7 @@ class ViewEditTest extends UITestBase {
       $this->assertResponse(200);
       $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/rendering_language';
       $this->assertNoLinkByHref($langcode_url);
-      $this->assertNoLink(t('!type language selected for page', array('!type' => t('Content'))));
+      $this->assertNoLink(t('@type language selected for page', array('@type' => t('Content'))));
       $this->assertNoLink(t('Content language of view row'));
     }
 
@@ -122,12 +127,12 @@ class ViewEditTest extends UITestBase {
       $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/rendering_language';
       if ($view_name == 'test_view') {
         $this->assertNoLinkByHref($langcode_url);
-        $this->assertNoLink(t('!type language selected for page', array('!type' => t('Content'))));
+        $this->assertNoLink(t('@type language selected for page', array('@type' => t('Content'))));
         $this->assertNoLink(t('Content language of view row'));
       }
       else {
         $this->assertLinkByHref($langcode_url);
-        $this->assertNoLink(t('!type language selected for page', array('!type' => t('Content'))));
+        $this->assertNoLink(t('@type language selected for page', array('@type' => t('Content'))));
         $this->assertLink(t('Content language of view row'));
       }
 

@@ -13,12 +13,12 @@ use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Routing\RouteMatch;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\locale\LocaleConfigManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
 
 /**
@@ -110,13 +110,23 @@ class ConfigEntityMapper extends ConfigNamesMapper {
   /**
    * {@inheritdoc}
    */
-  public function populateFromRequest(Request $request) {
-    parent::populateFromRequest($request);
-    $entity = $request->attributes->get($this->entityType);
+  public function populateFromRouteMatch(RouteMatchInterface $route_match) {
+    parent::populateFromRouteMatch($route_match);
+    $entity = $route_match->getParameter($this->entityType);
     $this->setEntity($entity);
   }
 
   /**
+   * Gets the entity instance for this mapper.
+   *
+   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface $entity
+   *   The configuration entity.
+   */
+  public function getEntity() {
+    return $this->entity;
+  }
+
+    /**
    * Sets the entity instance for this mapper.
    *
    * This method can only be invoked when the concrete entity is known, that is
@@ -154,11 +164,7 @@ class ConfigEntityMapper extends ConfigNamesMapper {
    * {@inheritdoc}
    */
   public function getTitle() {
-    // Title based on the entity label. Should be translated for display in the
-    // current page language. The title placeholder is later escaped for
-    // display.
-    $entity_type_info = $this->entityManager->getDefinition($this->entityType);
-    return $this->t($this->pluginDefinition['title'], array('!label' => $this->entity->label(), '!entity_type' => $entity_type_info->getLowercaseLabel()));
+    return $this->entity->label() . ' ' . $this->pluginDefinition['title'];
   }
 
   /**

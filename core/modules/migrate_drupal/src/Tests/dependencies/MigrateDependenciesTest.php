@@ -19,7 +19,10 @@ use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
  */
 class MigrateDependenciesTest extends MigrateDrupal6TestBase {
 
-  static $modules = array('aggregator', 'node', 'comment', 'filter');
+  /**
+   * {@inheritdoc}
+   */
+  public static $modules = ['aggregator', 'comment'];
 
   /**
    * Tests that the order is correct when loading several migrations.
@@ -65,11 +68,11 @@ class MigrateDependenciesTest extends MigrateDrupal6TestBase {
    */
   public function testAggregatorMigrateDependencies() {
     /** @var \Drupal\migrate\entity\Migration $migration */
-    $migration = entity_load('migration', 'd6_aggregator_item');
+    $migration = Migration::load('d6_aggregator_item');
     $executable = new MigrateExecutable($migration, $this);
     $this->startCollectingMessages();
     $executable->import();
-    $this->assertIdentical($this->migrateMessages['error'], array(SafeMarkup::format('Migration @id did not meet the requirements. Missing migrations d6_aggregator_feed. requirements: d6_aggregator_feed.', array('@id' => $migration->id()))));
+    $this->assertEqual($this->migrateMessages['error'], array(SafeMarkup::format('Migration @id did not meet the requirements. Missing migrations d6_aggregator_feed. requirements: d6_aggregator_feed.', array('@id' => $migration->id()))));
     $this->collectMessages = FALSE;
   }
 

@@ -1,9 +1,9 @@
 id: d6_taxonomy_term
-label: Drupal 6 taxonomy terms
+label: Taxonomy terms
 migration_tags:
   - Drupal 6
 source:
-  plugin: d6_taxonomy_term
+  plugin: taxonomy_term
 process:
   tid: tid
   vid:
@@ -14,13 +14,9 @@ process:
   description: description
   weight: weight
   parent:
-    -
-      plugin: skip_on_empty
-      method: process
-      source: parent
-    -
-      plugin: migration
-      migration: d6_taxonomy_term
+    plugin: migration
+    migration: d6_taxonomy_term
+    source: parent
   changed: timestamp
 destination:
   plugin: entity:taxonomy_term

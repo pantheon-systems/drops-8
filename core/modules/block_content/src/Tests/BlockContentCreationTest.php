@@ -21,11 +21,22 @@ class BlockContentCreationTest extends BlockContentTestBase {
   /**
    * Modules to enable.
    *
-   * Enable dummy module that implements hook_block_insert() for exceptions.
+   * Enable dummy module that implements hook_block_insert() for exceptions and
+   * field_ui to edit display settings.
    *
    * @var array
    */
   public static $modules = array('block_content_test', 'dblog', 'field_ui');
+
+  /**
+   * Permissions to grant admin user.
+   *
+   * @var array
+   */
+  protected $permissions = array(
+    'administer blocks',
+    'administer block_content display'
+  );
 
   /**
    * Sets the test up.
@@ -48,8 +59,8 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $this->drupalPostForm('block/add/basic', $edit, t('Save'));
 
     // Check that the Basic block has been created.
-    $this->assertRaw(format_string('!block %name has been created.', array(
-      '!block' => 'basic',
+    $this->assertRaw(format_string('@block %name has been created.', array(
+      '@block' => 'basic',
       '%name' => $edit['info[0][value]']
     )), 'Basic block created.');
 
@@ -66,8 +77,8 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $this->drupalPostForm('block/add/basic', $edit, t('Save'));
 
     // Check that the Basic block has been created.
-    $this->assertRaw(format_string('A block with description %name already exists.', array(
-      '%name' => $edit['info[0][value]']
+    $this->assertRaw(format_string('A custom block with block description %value already exists.', array(
+      '%value' => $edit['info[0][value]']
     )));
     $this->assertResponse(200);
   }
@@ -95,24 +106,45 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $this->drupalPostForm('block/add/basic', $edit, t('Save'));
 
     // Check that the Basic block has been created.
-    $this->assertRaw(format_string('!block %name has been created.', array(
-      '!block' => 'basic',
+    $this->assertRaw(format_string('@block %name has been created.', array(
+      '@block' => 'basic',
       '%name' => $edit['info[0][value]']
     )), 'Basic block created.');
 
+    // Save our block permanently
+    $this->drupalPostForm(NULL, NULL, t('Save block'));
+
+    // Set test_view_mode as a custom display to be available on the list.
+    $this->drupalGet('admin/structure/block/block-content');
+    $this->drupalGet('admin/structure/block/block-content/types');
+    $this->clickLink(t('Manage display'));
+    $this->drupalGet('admin/structure/block/block-content/manage/basic/display');
+    $custom_view_mode = array(
+      'display_modes_custom[test_view_mode]' => 1,
+    );
+    $this->drupalPostForm(NULL, $custom_view_mode, t('Save'));
+
+    // Go to the configure page and change the view mode.
+    $this->drupalGet('admin/structure/block/manage/testblock');
+
+    // Test the available view mode options.
+    $this->assertOption('edit-settings-view-mode', 'default', 'The default view mode is available.');
+    $this->assertOption('edit-settings-view-mode', 'test_view_mode', 'The test view mode is available.');
+
+    $view_mode['settings[view_mode]'] = 'test_view_mode';
+    $this->drupalPostForm(NULL, $view_mode, t('Save block'));
+
     // Check that the view mode setting is shown because more than one exists.
+    $this->drupalGet('admin/structure/block/manage/testblock');
     $this->assertFieldByXPath('//select[@name="settings[view_mode]"]', NULL, 'View mode setting shown because multiple exist');
 
     // Change the view mode.
     $view_mode['settings[view_mode]'] = 'test_view_mode';
     $this->drupalPostForm(NULL, $view_mode, t('Save block'));
 
-    // Go to the configure page and verify that the new view mode is correct.
+    // Go to the configure page and verify the view mode has changed.
     $this->drupalGet('admin/structure/block/manage/testblock');
     $this->assertFieldByXPath('//select[@name="settings[view_mode]"]/option[@selected="selected"]/@value', 'test_view_mode', 'View mode changed to Test View Mode');
-
-    // Test the available view mode options.
-    $this->assertOption('edit-settings-view-mode', 'default', 'The default view mode is available.');
 
     // Check that the block exists in the database.
     $blocks = entity_load_multiple_by_properties('block_content', array('info' => $edit['info[0][value]']));
@@ -124,8 +156,8 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $this->drupalPostForm('block/add/basic', $edit, t('Save'));
 
     // Check that the Basic block has been created.
-    $this->assertRaw(format_string('A block with description %name already exists.', array(
-      '%name' => $edit['info[0][value]']
+    $this->assertRaw(format_string('A custom block with block description %value already exists.', array(
+      '%value' => $edit['info[0][value]']
     )));
     $this->assertResponse(200);
   }
@@ -144,8 +176,8 @@ class BlockContentCreationTest extends BlockContentTestBase {
     $this->drupalPostForm('block/add', $edit, t('Save'));
 
     // Check that the block has been created and that it is a basic block.
-    $this->assertRaw(format_string('!block %name has been created.', array(
-      '!block' => 'basic',
+    $this->assertRaw(format_string('@block %name has been created.', array(
+      '@block' => 'basic',
       '%name' => $edit['info[0][value]'],
     )), 'Basic block created.');
 

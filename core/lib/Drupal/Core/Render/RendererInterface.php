@@ -27,7 +27,7 @@ interface RendererInterface {
    * @param array $elements
    *   The structured array describing the data to be rendered.
    *
-   * @return \Drupal\Component\Utility\SafeStringInterface
+   * @return \Drupal\Component\Render\MarkupInterface
    *   The rendered HTML.
    *
    * @see ::render()
@@ -42,7 +42,7 @@ interface RendererInterface {
    *
    * Calls ::render() in such a way that placeholders are replaced.
    *
-   * Useful for e.g. rendering the values of tokens or e-mails, which need a
+   * Useful for e.g. rendering the values of tokens or emails, which need a
    * render array being turned into a string, but don't need any of the
    * bubbleable metadata (the attached assets the cache tags).
    *
@@ -58,7 +58,7 @@ interface RendererInterface {
    * @param array $elements
    *   The structured array describing the data to be rendered.
    *
-   * @return \Drupal\Component\Utility\SafeStringInterface
+   * @return \Drupal\Component\Render\MarkupInterface
    *   The rendered HTML.
    *
    * @see ::renderRoot()
@@ -302,7 +302,7 @@ interface RendererInterface {
    *   (Internal use only.) Whether this is a recursive call or not. See
    *   ::renderRoot().
    *
-   * @return \Drupal\Component\Utility\SafeStringInterface
+   * @return \Drupal\Component\Render\MarkupInterface
    *   The rendered HTML.
    *
    * @throws \LogicException

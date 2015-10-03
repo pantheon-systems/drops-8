@@ -16,7 +16,6 @@ use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -66,15 +65,17 @@ function comment_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.comment':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Comment module allows users to comment on site content, set commenting defaults and permissions, and moderate comments. For more information, see the <a href="!comment">online documentation for the Comment module</a>.', array('!comment' => 'https://www.drupal.org/documentation/modules/comment')) . '</p>';
+      $output .= '<p>' . t('The Comment module allows users to comment on site content, set commenting defaults and permissions, and moderate comments. For more information, see the <a href=":comment">online documentation for the Comment module</a>.', array(':comment' => 'https://www.drupal.org/documentation/modules/comment')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
-      $output .= '<dt>' . t('Enabling commenting and configuring defaults') . '</dt>';
-      $output .= '<dd>' . t('Comment functionality can be enabled for any entity sub-type (for example, a <a href="!content-type">content type</a>). On the Manage fields page for each entity sub-type, you can enable commenting by adding a Comments field. The entity sub-types each have their own default comment settings configured as: <em>Open</em> to allow new comments, <em>Closed</em> to view existing comments, but prevent new comments, or <em>Hidden</em> to hide existing comments and prevent new comments. For background information about entities, see the <a href="!field">Field module help page</a>.', array('!content-type' => (\Drupal::moduleHandler()->moduleExists('node')) ? \Drupal::url('entity.node_type.collection') : '#', '!field' => \Drupal::url('help.page', array('name' => 'field')))) . '</dd>';
+      $output .= '<dt>' . t('Enabling commenting') . '</dt>';
+      $output .= '<dd>' . t('Comment functionality can be enabled for any entity sub-type (for example, a <a href=":content-type">content type</a>) by adding a <em>Comments</em> field on its <em>Manage fields page</em>. Adding or removing commenting for an entity through the user interface requires the <a href=":field_ui">Field UI</a> module to be enabled, even though the commenting functionality works without it. For more information on fields and entities, see the <a href=":field">Field module help page</a>.', array(':content-type' => (\Drupal::moduleHandler()->moduleExists('node')) ? \Drupal::url('entity.node_type.collection') : '#', ':field' => \Drupal::url('help.page', array('name' => 'field')), ':field_ui' => (\Drupal::moduleHandler()->moduleExists('field_ui')) ? \Drupal::url('help.page', array('name' => 'field_ui')) : '#')) . '</dd>';
+      $output .= '<dt>' . t('Configuring commenting settings') . '</dt>';
+      $output .= '<dd>' . t('Commenting settings can be configured by editing the <em>Comments</em> field on the <em>Manage fields page</em> of an entity type if the <em>Field UI module</em> is enabled. Configuration includes the label of the comments field, the number of comments to be displayed, and whether they are shown in threaded list. Commenting can be be configured as: <em>Open</em> to allow new comments, <em>Closed</em> to view existing comments, but prevent new comments, or <em>Hidden</em> to hide existing comments and prevent new comments. Changing this configuration for an entity type will not change existing entity items.') . '</dd>';
       $output .= '<dt>' . t('Overriding default settings') . '</dt>';
-      $output .= '<dd>' . t('When you create an entity item, you can override the default comment settings. Changing the entity sub-type defaults will not affect existing entity items, whether they used the default settings or had overrides.') . '</dd>';
+      $output .= '<dd>' . t('Users with the appropriate permissions can override the default commenting settings of an entity type when they create an item of that type.') . '</dd>';
       $output .= '<dt>' . t('Approving and managing comments') . '</dt>';
-      $output .= '<dd>' . t('Comments from users who have the <em>Skip comment approval</em> permission are published immediately. All other comments are placed in the <a href="!comment-approval">Unapproved comments</a> queue, until a user who has permission to <em>Administer comments and comment settings</em> publishes or deletes them. Published comments can be bulk managed on the <a href="!admin-comment">Published comments</a> administration page. When a comment has no replies, it remains editable by its author, as long as the author has <em>Edit own comments</em> permission.', array('!comment-approval' => \Drupal::url('comment.admin_approval'), '!admin-comment' => \Drupal::url('comment.admin'))) . '</dd>';
+      $output .= '<dd>' . t('Comments from users who have the <em>Skip comment approval</em> permission are published immediately. All other comments are placed in the <a href=":comment-approval">Unapproved comments</a> queue, until a user who has permission to <em>Administer comments and comment settings</em> publishes or deletes them. Published comments can be bulk managed on the <a href=":admin-comment">Published comments</a> administration page. When a comment has no replies, it remains editable by its author, as long as the author has <em>Edit own comments</em> permission.', array(':comment-approval' => \Drupal::url('comment.admin_approval'), ':admin-comment' => \Drupal::url('comment.admin'))) . '</dd>';
       $output .= '</dl>';
       return $output;
 
@@ -143,11 +144,9 @@ function comment_theme() {
 function comment_field_config_create(FieldConfigInterface $field) {
   if ($field->getType() == 'comment' && !$field->isSyncing()) {
     // Assign default values for the field.
-    if (!isset($field->default_value)) {
-      $field->setDefaultValue(array());
-    }
-    $field->default_value += array(array());
-    $field->default_value[0] += array(
+    $default_value = $field->getDefaultValueLiteral();
+    $default_value += array(array());
+    $default_value[0] += array(
       'status' => CommentItemInterface::OPEN,
       'cid' => 0,
       'last_comment_timestamp' => 0,
@@ -155,6 +154,7 @@ function comment_field_config_create(FieldConfigInterface $field) {
       'last_comment_uid' => 0,
       'comment_count' => 0,
     );
+    $field->setDefaultValue($default_value);
   }
 }
 
@@ -298,8 +298,9 @@ function comment_form_field_ui_field_storage_add_form_alter(&$form, FormStateInt
     $form['#title'] = \Drupal::service('comment.manager')->getFieldUIPageTitle($route_match->getParameter('commented_entity_type'), $route_match->getParameter('field_name'));
   }
   if (!_comment_entity_uses_integer_id($form_state->get('entity_type_id'))) {
+    $optgroup = (string) t('General');
     // You cannot use comment fields on entity types with non-integer IDs.
-    unset($form['add']['new_storage_type']['#options'][t('General')]['comment']);
+    unset($form['add']['new_storage_type']['#options'][$optgroup]['comment']);
   }
 }
 
@@ -564,26 +565,6 @@ function comment_preview(CommentInterface $comment, FormStateInterface $form_sta
   $entity = $comment->getCommentedEntity();
 
   if (!$form_state->getErrors()) {
-    // Attach the user and time information.
-    $author_name = $comment->getAuthorName();
-    if (!empty($author_name)) {
-      $account = user_load_by_name($author_name);
-    }
-    elseif (\Drupal::currentUser()->isAuthenticated() && empty($comment->is_anonymous)) {
-      $account = \Drupal::currentUser();
-    }
-
-    if (!empty($account) && $account->isAuthenticated()) {
-      $comment->setOwner($account);
-      $comment->setAuthorName(SafeMarkup::checkPlain($account->getUsername()));
-    }
-    elseif (empty($author_name)) {
-      $comment->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
-    }
-
-    $created_time = !is_null($comment->getCreatedTime()) ? $comment->getCreatedTime() : REQUEST_TIME;
-    $comment->setCreatedTime($created_time);
-    $comment->changed->value = REQUEST_TIME;
     $comment->in_preview = TRUE;
     $comment_build = comment_view($comment);
     $comment_build['#weight'] = -100;
@@ -713,8 +694,8 @@ function template_preprocess_comment(&$variables) {
     $permalink_uri_parent->setOption('attributes', $attributes);
     $variables['parent_title'] = \Drupal::l($comment_parent->getSubject(), $permalink_uri_parent);
     $variables['parent_permalink'] = \Drupal::l(t('Parent permalink'), $permalink_uri_parent);
-    $variables['parent'] = t('In reply to !parent_title by !parent_username',
-        array('!parent_username' => $variables['parent_author'], '!parent_title' => $variables['parent_title']));
+    $variables['parent'] = t('In reply to @parent_title by @parent_username',
+        array('@parent_username' => $variables['parent_author'], '@parent_title' => $variables['parent_title']));
   }
   else {
     $variables['parent_comment'] = '';

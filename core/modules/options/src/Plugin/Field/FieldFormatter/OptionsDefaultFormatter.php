@@ -8,7 +8,7 @@
 namespace Drupal\options\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Field\AllowedTagsXssTrait;
-use Drupal\Core\Field\FieldFilteredString;
+use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Field\FormatterBase;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\OptGroup;
@@ -33,7 +33,7 @@ class OptionsDefaultFormatter extends FormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = array();
 
     // Only collect allowed options if there are actually items to display.
@@ -51,7 +51,7 @@ class OptionsDefaultFormatter extends FormatterBase {
         $output = isset($options[$value]) ? $options[$value] : $value;
         $elements[$delta] = array(
           '#markup' => $output,
-          '#allowed_tags' => FieldFilteredString::allowedTags(),
+          '#allowed_tags' => FieldFilteredMarkup::allowedTags(),
         );
       }
     }
