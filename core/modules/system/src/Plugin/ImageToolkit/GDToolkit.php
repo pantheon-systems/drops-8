@@ -13,10 +13,10 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\ImageToolkit\ImageToolkitBase;
 use Drupal\Core\ImageToolkit\ImageToolkitOperationManagerInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 
 /**
  * Defines the GD2 toolkit for image manipulation within Drupal.
@@ -65,7 +65,7 @@ class GDToolkit extends ImageToolkitBase {
   protected $streamWrapperManager;
 
   /**
-   * Constructs a TestToolkit object.
+   * Constructs a GDToolkit object.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
@@ -85,6 +85,17 @@ class GDToolkit extends ImageToolkitBase {
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, ImageToolkitOperationManagerInterface $operation_manager, LoggerInterface $logger, ConfigFactoryInterface $config_factory, StreamWrapperManagerInterface $stream_wrapper_manager) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $operation_manager, $logger, $config_factory);
     $this->streamWrapperManager = $stream_wrapper_manager;
+  }
+
+  /**
+   * Destructs a GDToolkit object.
+   *
+   * Frees memory associated with a GD image resource.
+   */
+  public function __destruct() {
+    if (is_resource($this->resource)) {
+      imagedestroy($this->resource);
+    }
   }
 
   /**
@@ -108,9 +119,13 @@ class GDToolkit extends ImageToolkitBase {
    * @param resource $resource
    *   The GD image resource.
    *
-   * @return $this
+   * @return \Drupal\system\Plugin\ImageToolkit\GDToolkit
+   *   An instance of the current toolkit object.
    */
   public function setResource($resource) {
+    if (!is_resource($resource) || get_resource_type($resource) != 'gd') {
+      throw new \InvalidArgumentException('Invalid resource argument');
+    }
     $this->preLoadInfo = NULL;
     $this->resource = $resource;
     return $this;
@@ -123,7 +138,7 @@ class GDToolkit extends ImageToolkitBase {
    *   The GD image resource, or NULL if not available.
    */
   public function getResource() {
-    if (!$this->resource) {
+    if (!is_resource($this->resource)) {
       $this->load();
     }
     return $this->resource;
@@ -167,7 +182,7 @@ class GDToolkit extends ImageToolkitBase {
     }
 
     $function = 'imagecreatefrom' . image_type_to_extension($this->getType(), FALSE);
-    if (function_exists($function) && $resource = $function($this->getImage()->getSource())) {
+    if (function_exists($function) && $resource = $function($this->getSource())) {
       $this->setResource($resource);
       if (imageistruecolor($resource)) {
         return TRUE;
@@ -181,6 +196,7 @@ class GDToolkit extends ImageToolkitBase {
           'height' => imagesy($resource),
           'extension' => image_type_to_extension($this->getType(), FALSE),
           'transparent_color' => $this->getTransparentColor(),
+          'is_temp' => TRUE,
         );
         if ($this->apply('create_new', $data)) {
           imagecopy($this->getResource(), $resource, 0, 0, 0, 0, imagesx($resource), imagesy($resource));
@@ -242,7 +258,7 @@ class GDToolkit extends ImageToolkitBase {
    * {@inheritdoc}
    */
   public function parseFile() {
-    $data = @getimagesize($this->getImage()->getSource());
+    $data = @getimagesize($this->getSource());
     if ($data && in_array($data[2], static::supportedTypes())) {
       $this->setType($data[2]);
       $this->preLoadInfo = $data;
@@ -362,7 +378,7 @@ class GDToolkit extends ImageToolkitBase {
     // Check for filter and rotate support.
     if (!function_exists('imagefilter') || !function_exists('imagerotate')) {
       $requirements['version']['severity'] = REQUIREMENT_WARNING;
-      $requirements['version']['description'] = t('The GD Library for PHP is enabled, but was compiled without support for functions used by the rotate and desaturate effects. It was probably compiled using the official GD libraries from http://www.libgd.org instead of the GD library bundled with PHP. You should recompile PHP --with-gd using the bundled GD library. See <a href="@url">the PHP manual</a>.', array('@url' => 'http://www.php.net/manual/book.image.php'));
+      $requirements['version']['description'] = t('The GD Library for PHP is enabled, but was compiled without support for functions used by the rotate and desaturate effects. It was probably compiled using the official GD libraries from http://www.libgd.org instead of the GD library bundled with PHP. You should recompile PHP --with-gd using the bundled GD library. See <a href=":url">the PHP manual</a>.', array(':url' => 'http://www.php.net/manual/book.image.php'));
     }
 
     return $requirements;

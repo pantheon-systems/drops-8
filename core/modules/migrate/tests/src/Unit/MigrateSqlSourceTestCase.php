@@ -7,6 +7,8 @@
 
 namespace Drupal\Tests\migrate\Unit;
 
+use Drupal\Core\Database\Query\SelectInterface;
+
 /**
  * Base class for Migrate module source unit tests.
  */
@@ -77,6 +79,7 @@ abstract class MigrateSqlSourceTestCase extends MigrateTestCase {
    */
   protected function setUp() {
     $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $state = $this->getMock('Drupal\Core\State\StateInterface');
     $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
 
     $migration = $this->getMigration();
@@ -86,7 +89,7 @@ abstract class MigrateSqlSourceTestCase extends MigrateTestCase {
 
     // Setup the plugin.
     $plugin_class = static::PLUGIN_CLASS;
-    $plugin = new $plugin_class($this->migrationConfiguration['source'], $this->migrationConfiguration['source']['plugin'], array(), $migration, $entity_manager);
+    $plugin = new $plugin_class($this->migrationConfiguration['source'], $this->migrationConfiguration['source']['plugin'], array(), $migration, $state, $entity_manager);
 
     // Do some reflection to set the database and moduleHandler.
     $plugin_reflection = new \ReflectionClass($plugin);
@@ -111,6 +114,7 @@ abstract class MigrateSqlSourceTestCase extends MigrateTestCase {
    * Test the source returns the same rows as expected.
    */
   public function testRetrieval() {
+    $this->assertInstanceOf(SelectInterface::class, $this->source->query());
     $this->queryResultTest($this->source, $this->expectedResults);
   }
 
@@ -118,7 +122,16 @@ abstract class MigrateSqlSourceTestCase extends MigrateTestCase {
    * Test the source returns the row count expected.
    */
   public function testSourceCount() {
-    $this->assertEquals($this->source->count(), $this->expectedCount);
+    $count = $this->source->count();
+    $this->assertTrue(is_numeric($count));
+    $this->assertEquals($count, $this->expectedCount);
+  }
+
+  /**
+   * Test the source defines a valid ID.
+   */
+  public function testSourceId() {
+    $this->assertNotEmpty($this->source->getIds());
   }
 
   /**

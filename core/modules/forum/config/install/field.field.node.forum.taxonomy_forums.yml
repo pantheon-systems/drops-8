@@ -4,8 +4,7 @@ dependencies:
   config:
     - field.storage.node.taxonomy_forums
     - node.type.forum
-  module:
-    - taxonomy
+    - taxonomy.vocabulary.forums
 id: node.forum.taxonomy_forums
 field_name: taxonomy_forums
 entity_type: node
@@ -17,12 +16,11 @@ translatable: true
 default_value: {  }
 default_value_callback: ''
 settings:
-  handler: default
+  handler: 'default:taxonomy_term'
   handler_settings:
     target_bundles:
       forums: forums
     sort:
       field: _none
     auto_create: true
-third_party_settings: {  }
 field_type: entity_reference

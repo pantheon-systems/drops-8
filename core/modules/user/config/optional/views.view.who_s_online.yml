@@ -193,6 +193,14 @@ display:
           plugin_id: text_custom
       relationships: {  }
       arguments: {  }
+      display_extenders: {  }
+    cache_metadata:
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - user.permissions
+      max-age: -1
+      tags: {  }
   who_s_online_block:
     display_plugin: block
     id: who_s_online_block
@@ -201,3 +209,11 @@ display:
     display_options:
       block_description: 'Who''s online'
       display_description: 'A list of users that are currently logged in.'
+      display_extenders: {  }
+    cache_metadata:
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - user.permissions
+      max-age: -1
+      tags: {  }

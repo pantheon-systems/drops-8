@@ -8,6 +8,7 @@
 namespace Drupal\migrate_drupal\Plugin\migrate\source;
 
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\migrate\Entity\MigrationInterface;
 
 /**
@@ -32,8 +33,8 @@ class Variable extends DrupalSqlBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, EntityManagerInterface $entity_manager) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $entity_manager);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, StateInterface $state, EntityManagerInterface $entity_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $state, $entity_manager);
     $this->variables = $this->configuration['variables'];
   }
 
@@ -53,7 +54,10 @@ class Variable extends DrupalSqlBase {
    *   Only those values are returned that are actually in the database.
    */
   protected function values() {
-    return array_map('unserialize', $this->prepareQuery()->execute()->fetchAllKeyed());
+    // Create an ID field so we can record migration in the map table.
+    // Arbitrarily, use the first variable name.
+    $values['id'] = reset($this->variables);
+    return $values + array_map('unserialize', $this->prepareQuery()->execute()->fetchAllKeyed());
   }
 
   /**
@@ -84,7 +88,8 @@ class Variable extends DrupalSqlBase {
    * {@inheritdoc}
    */
   public function getIds() {
-    return array();
+    $ids['id']['type'] = 'string';
+    return $ids;
   }
 
 }

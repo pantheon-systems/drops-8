@@ -7,7 +7,7 @@
 
 namespace Drupal\Core\Field\Plugin\Field\FieldFormatter;
 
-use Drupal\Core\Datetime\DateFormatter;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
@@ -34,7 +34,7 @@ class TimestampFormatter extends FormatterBase implements ContainerFactoryPlugin
   /**
    * The date formatter service.
    *
-   * @var \Drupal\Core\Datetime\DateFormatter
+   * @var \Drupal\Core\Datetime\DateFormatterInterface
    */
   protected $dateFormatter;
 
@@ -62,12 +62,12 @@ class TimestampFormatter extends FormatterBase implements ContainerFactoryPlugin
    *   The view mode.
    * @param array $third_party_settings
    *   Third party settings.
-   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter service.
    * @param \Drupal\Core\Entity\EntityStorageInterface $date_format_storage
    *   The date format storage.
    */
-  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, DateFormatter $date_formatter, EntityStorageInterface $date_format_storage) {
+  public function __construct($plugin_id, $plugin_definition, FieldDefinitionInterface $field_definition, array $settings, $label, $view_mode, array $third_party_settings, DateFormatterInterface $date_formatter, EntityStorageInterface $date_format_storage) {
     parent::__construct($plugin_id, $plugin_definition, $field_definition, $settings, $label, $view_mode, $third_party_settings);
 
     $this->dateFormatter = $date_formatter;
@@ -126,7 +126,7 @@ class TimestampFormatter extends FormatterBase implements ContainerFactoryPlugin
     $elements['custom_date_format'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Custom date format'),
-      '#description' => $this->t('See <a href="@url" target="_blank">the documentation for PHP date formats</a>.', ['@url' => 'http://php.net/manual/function.date.php']),
+      '#description' => $this->t('See <a href=":url" target="_blank">the documentation for PHP date formats</a>.', [':url' => 'http://php.net/manual/function.date.php']),
       '#default_value' => $this->getSetting('custom_date_format') ?: '',
     );
 
@@ -165,7 +165,7 @@ class TimestampFormatter extends FormatterBase implements ContainerFactoryPlugin
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = array();
 
     $date_format = $this->getSetting('date_format');

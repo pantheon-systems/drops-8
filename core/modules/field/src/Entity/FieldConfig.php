@@ -167,7 +167,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
       if ($this->entity_type != $this->original->entity_type) {
         throw new FieldException("Cannot change an existing field's entity_type.");
       }
-      if ($this->bundle != $this->original->bundle && empty($this->bundleRenameAllowed)) {
+      if ($this->bundle != $this->original->bundle) {
         throw new FieldException("Cannot change an existing field's bundle.");
       }
       if ($storage_definition->uuid() != $this->original->getFieldStorageDefinition()->uuid()) {
@@ -187,7 +187,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
     parent::calculateDependencies();
     // Mark the field_storage_config as a a dependency.
     $this->addDependency('config', $this->getFieldStorageDefinition()->getConfigDependencyName());
-    return $this->dependencies;
+    return $this;
   }
 
   /**

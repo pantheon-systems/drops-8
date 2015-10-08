@@ -91,10 +91,15 @@ class Node extends ContentEntityBase implements NodeInterface {
   public function preSave(EntityStorageInterface $storage) {
     parent::preSave($storage);
 
-    // If no owner has been set explicitly, make the current user the owner.
-    if (!$this->getOwner()) {
-      $this->setOwnerId(\Drupal::currentUser()->id());
+    foreach (array_keys($this->getTranslationLanguages()) as $langcode) {
+      $translation = $this->getTranslation($langcode);
+
+      // If no owner has been set explicitly, make the anonymous user the owner.
+      if (!$translation->getOwner()) {
+        $translation->setOwnerId(0);
+      }
     }
+
     // If no revision author has been set explicitly, make the node owner the
     // revision author.
     if (!$this->getRevisionAuthor()) {
@@ -176,29 +181,8 @@ class Node extends ContentEntityBase implements NodeInterface {
 
     return \Drupal::entityManager()
       ->getAccessControlHandler($this->entityTypeId)
-      ->access($this, $operation, $this->prepareLangcode(), $account, $return_as_object);
+      ->access($this, $operation, $account, $return_as_object);
   }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function prepareLangcode() {
-    $langcode = $this->language()->getId();
-    // If the Language module is enabled, try to use the language from content
-    // negotiation.
-    if (\Drupal::moduleHandler()->moduleExists('language')) {
-      // Load languages the node exists in.
-      $node_translations = $this->getTranslationLanguages();
-      // Load the language from content negotiation.
-      $content_negotiation_langcode = \Drupal::languageManager()->getCurrentLanguage(LanguageInterface::TYPE_CONTENT)->getId();
-      // If there is a translation available, use it.
-      if (isset($node_translations[$content_negotiation_langcode])) {
-        $langcode = $content_negotiation_langcode;
-      }
-    }
-    return $langcode;
-  }
-
 
   /**
    * {@inheritdoc}
@@ -229,13 +213,6 @@ class Node extends ContentEntityBase implements NodeInterface {
   public function setCreatedTime($timestamp) {
     $this->set('created', $timestamp);
     return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getChangedTime() {
-    return $this->get('changed')->value;
   }
 
   /**
@@ -404,7 +381,6 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setDescription(t('The username of the content author.'))
       ->setRevisionable(TRUE)
       ->setSetting('target_type', 'user')
-      ->setSetting('handler', 'default')
       ->setDefaultValueCallback('Drupal\node\Entity\Node::getCurrentUserId')
       ->setTranslatable(TRUE)
       ->setDisplayOptions('view', array(
@@ -497,7 +473,7 @@ class Node extends ContentEntityBase implements NodeInterface {
       ->setLabel(t('Revision log message'))
       ->setDescription(t('Briefly describe the changes you have made.'))
       ->setRevisionable(TRUE)
-      ->setTranslatable(TRUE)
+      ->setDefaultValue('')
       ->setDisplayOptions('form', array(
         'type' => 'string_textarea',
         'weight' => 25,

@@ -8,6 +8,7 @@
 namespace Drupal\field_ui\Tests;
 
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\node\Entity\NodeType;
@@ -141,7 +142,7 @@ class ManageDisplayTest extends WebTestBase {
     \Drupal::entityManager()->clearCachedFieldDefinitions();
     $display = entity_load('entity_view_display', 'node.' . $this->type . '.default', TRUE);
     $this->assertEqual($display->getRenderer('field_test')->getThirdPartySetting('field_third_party_test', 'field_test_field_formatter_third_party_settings_form'), 'foo');
-    $this->assertTrue(in_array('field_third_party_test', $display->calculateDependencies()['module']), 'The display has a dependency on field_third_party_test module.');
+    $this->assertTrue(in_array('field_third_party_test', $display->calculateDependencies()->getDependencies()['module']), 'The display has a dependency on field_third_party_test module.');
 
     // Confirm that the third party settings are not updated on the settings form.
     $this->drupalPostAjaxForm(NULL, array(), "field_test_settings_edit");
@@ -168,12 +169,26 @@ class ManageDisplayTest extends WebTestBase {
     $this->drupalPostAjaxForm(NULL, array(), "field_test_settings_edit");
     $this->drupalPostAjaxForm(NULL, $edit, "field_test_plugin_settings_update");
 
-    // Uninstall the module providing third party settings and ensure the button
-    // is no longer there.
+    // When a module providing third-party settings to a formatter (or widget)
+    // is uninstalled, the formatter remains enabled but the provided settings,
+    // together with the corresponding form elements, are removed from the
+    // display component.
     \Drupal::service('module_installer')->uninstall(array('field_third_party_test'));
+
+    // Ensure the button is still there after the module has been disabled.
     $this->drupalGet($manage_display);
     $this->assertResponse(200);
-    $this->assertNoFieldByName('field_test_settings_edit');
+    $this->assertFieldByName('field_test_settings_edit');
+
+    // Ensure that third-party form elements are not present anymore.
+    $this->drupalPostAjaxForm(NULL, array(), 'field_test_settings_edit');
+    $fieldname = 'fields[field_test][settings_edit_form][third_party_settings][field_third_party_test][field_test_field_formatter_third_party_settings_form]';
+    $this->assertNoField($fieldname);
+
+    // Ensure that third-party settings were removed from the formatter.
+    $display = EntityViewDisplay::load("node.{$this->type}.default");
+    $component = $display->getComponent('field_test');
+    $this->assertFalse(array_key_exists('field_third_party_test', $component['third_party_settings']));
   }
 
   /**
@@ -253,7 +268,7 @@ class ManageDisplayTest extends WebTestBase {
     \Drupal::entityManager()->clearCachedFieldDefinitions();
     $display = entity_load('entity_form_display', 'node.' . $this->type . '.default', TRUE);
     $this->assertEqual($display->getRenderer('field_test')->getThirdPartySetting('field_third_party_test', 'field_test_widget_third_party_settings_form'), 'foo');
-    $this->assertTrue(in_array('field_third_party_test', $display->calculateDependencies()['module']), 'Form display does not have a dependency on field_third_party_test module.');
+    $this->assertTrue(in_array('field_third_party_test', $display->calculateDependencies()->getDependencies()['module']), 'Form display does not have a dependency on field_third_party_test module.');
 
     // Confirm that the third party settings are not updated on the settings form.
     $this->drupalPostAjaxForm(NULL, array(), "field_test_settings_edit");
@@ -388,7 +403,7 @@ class ManageDisplayTest extends WebTestBase {
     ))->save();
 
     $this->drupalGet('admin/structure/types/manage/no_fields/display');
-    $this->assertRaw(t('There are no fields yet added. You can add new fields on the <a href="@link">Manage fields</a> page.', array('@link' => \Drupal::url('entity.node.field_ui_fields', array('node_type' => 'no_fields')))));
+    $this->assertRaw(t('There are no fields yet added. You can add new fields on the <a href=":link">Manage fields</a> page.', array(':link' => \Drupal::url('entity.node.field_ui_fields', array('node_type' => 'no_fields')))));
   }
 
   /**

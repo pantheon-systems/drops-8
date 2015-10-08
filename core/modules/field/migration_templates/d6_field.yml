@@ -1,5 +1,5 @@
 id: d6_field
-label: Drupal 6 field configuration
+label: Field configuration
 migration_tags:
   - Drupal 6
 builder:
@@ -128,9 +128,8 @@ process:
   settings:
     plugin: field_settings
     source:
-      - @type
+      - '@type'
       - global_settings
-      - widget_settings
 
 destination:
   plugin: md_entity:field_storage_config

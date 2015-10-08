@@ -63,10 +63,10 @@ display:
             offset: false
             offset_label: Offset
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
-            first: '« first'
-            last: 'last »'
+            previous: '‹ Previous'
+            next: 'Next ›'
+            first: '« First'
+            last: 'Last »'
           quantity: 9
       style:
         type: default
@@ -141,7 +141,9 @@ display:
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0
   feed_1:
     display_plugin: feed
     id: feed_1
@@ -398,7 +400,8 @@ display:
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
-      cacheable: false
+        - user.permissions
+      max-age: 0
   page_1:
     display_plugin: page
     id: page_1
@@ -418,4 +421,6 @@ display:
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0

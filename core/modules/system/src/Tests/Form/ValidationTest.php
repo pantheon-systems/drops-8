@@ -8,7 +8,6 @@
 namespace Drupal\system\Tests\Form;
 
 use Drupal\Core\Render\Element;
-use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -76,6 +75,14 @@ class ValidationTest extends WebTestBase {
   }
 
   /**
+   * Tests that a form with a disabled CSRF token can be validated.
+   */
+  function testDisabledToken() {
+    $this->drupalPostForm('form-test/validate-no-token', [], 'Save');
+    $this->assertText('The form_test_validate_no_token form has been submitted successfully.');
+  }
+
+  /**
    * Tests partial form validation through #limit_validation_errors.
    */
   function testValidateLimitErrors() {
@@ -110,19 +117,19 @@ class ValidationTest extends WebTestBase {
     // validated, but the #element_validate handler for the 'test' field
     // is triggered.
     $this->drupalPostForm($path, $edit, t('Partial validate'));
-    $this->assertNoText(t('!name field is required.', array('!name' => 'Title')));
+    $this->assertNoText(t('@name field is required.', array('@name' => 'Title')));
     $this->assertText('Test element is invalid');
 
     // Edge case of #limit_validation_errors containing numeric indexes: same
     // thing with the 'Partial validate (numeric index)' button and the
     // 'test_numeric_index' field.
     $this->drupalPostForm($path, $edit, t('Partial validate (numeric index)'));
-    $this->assertNoText(t('!name field is required.', array('!name' => 'Title')));
+    $this->assertNoText(t('@name field is required.', array('@name' => 'Title')));
     $this->assertText('Test (numeric index) element is invalid');
 
     // Ensure something like 'foobar' isn't considered "inside" 'foo'.
     $this->drupalPostForm($path, $edit, t('Partial validate (substring)'));
-    $this->assertNoText(t('!name field is required.', array('!name' => 'Title')));
+    $this->assertNoText(t('@name field is required.', array('@name' => 'Title')));
     $this->assertText('Test (substring) foo element is invalid');
 
     // Ensure not validated values are not available to submit handlers.
@@ -132,7 +139,7 @@ class ValidationTest extends WebTestBase {
     // Now test full form validation and ensure that the #element_validate
     // handler is still triggered.
     $this->drupalPostForm($path, $edit, t('Full validate'));
-    $this->assertText(t('!name field is required.', array('!name' => 'Title')));
+    $this->assertText(t('@name field is required.', array('@name' => 'Title')));
     $this->assertText('Test element is invalid');
   }
 
@@ -207,33 +214,17 @@ class ValidationTest extends WebTestBase {
     $edit = array();
     $this->drupalPostForm('form-test/validate-required', $edit, 'Submit');
 
-    $messages = [];
     foreach (Element::children($form) as $key) {
       if (isset($form[$key]['#required_error'])) {
-        $this->assertNoText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
-        $messages[] = [
-          'title' => $form[$key]['#title'],
-          'message' => $form[$key]['#required_error'],
-          'key' => $key,
-        ];
+        $this->assertNoText(t('@name field is required.', array('@name' => $form[$key]['#title'])));
+        $this->assertText($form[$key]['#required_error']);
       }
       elseif (isset($form[$key]['#form_test_required_error'])) {
-        $this->assertNoText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
-        $messages[] = [
-          'title' => $form[$key]['#title'],
-          'message' => $form[$key]['#form_test_required_error'],
-          'key' => $key,
-        ];
-      }
-      elseif (!empty($form[$key]['#required'])) {
-        $messages[] = [
-          'title' => $form[$key]['#title'],
-          'message' => t('!name field is required.', ['!name' => $form[$key]['#title']]),
-          'key' => $key,
-        ];
+        $this->assertNoText(t('@name field is required.', array('@name' => $form[$key]['#title'])));
+        $this->assertText($form[$key]['#form_test_required_error']);
       }
     }
-    $this->assertErrorMessages($messages);
+    $this->assertNoText(t('An illegal choice has been detected. Please contact the site administrator.'));
 
     // Verify that no custom validation error appears with valid values.
     $edit = array(
@@ -243,60 +234,17 @@ class ValidationTest extends WebTestBase {
     );
     $this->drupalPostForm('form-test/validate-required', $edit, 'Submit');
 
-    $messages = [];
     foreach (Element::children($form) as $key) {
       if (isset($form[$key]['#required_error'])) {
-        $this->assertNoText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
+        $this->assertNoText(t('@name field is required.', array('@name' => $form[$key]['#title'])));
         $this->assertNoText($form[$key]['#required_error']);
       }
       elseif (isset($form[$key]['#form_test_required_error'])) {
-        $this->assertNoText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
+        $this->assertNoText(t('@name field is required.', array('@name' => $form[$key]['#title'])));
         $this->assertNoText($form[$key]['#form_test_required_error']);
       }
-      elseif (!empty($form[$key]['#required'])) {
-        $messages[] = [
-          'title' => $form[$key]['#title'],
-          'message' => t('!name field is required.', ['!name' => $form[$key]['#title']]),
-          'key' => $key,
-        ];
-      }
     }
-    $this->assertErrorMessages($messages);
-  }
-
-  /**
-   * Asserts that the given error messages are displayed.
-   *
-   * @param array $messages
-   *   An associative array of error messages keyed by the order they appear on
-   *   the page, with the following key-value pairs:
-   *   - title: The human readable form element title.
-   *   - message: The error message for this form element.
-   *   - key: The key used for the form element.
-   */
-  protected function assertErrorMessages($messages) {
-    $element = $this->xpath('//div[@class = "form-item--error-message"]/strong');
-    $this->assertIdentical(count($messages), count($element));
-
-    $error_links = [];
-    foreach ($messages as $delta => $message) {
-      // Ensure the message appears in the correct place.
-      if (!isset($element[$delta])) {
-        $this->fail(format_string('The error message for the "@title" element with key "@key" was not found.', ['@title' => $message['title'], '@key' => $message['key']]));
-      }
-      else {
-        $this->assertIdentical($message['message'], (string) $element[$delta]);
-      }
-
-      // Gather the element for checking the jump link section.
-      $error_links[] = \Drupal::l($message['title'], Url::fromRoute('<none>', [], ['fragment' => 'edit-' . str_replace('_', '-', $message['key']), 'external' => TRUE]));
-    }
-    $top_message = \Drupal::translation()->formatPlural(count($error_links), '1 error has been found:', '@count errors have been found:');
-    $this->assertRaw($top_message);
-    foreach ($error_links as $error_link) {
-      $this->assertRaw($error_link);
-    }
-    $this->assertNoText('An illegal choice has been detected. Please contact the site administrator.');
+    $this->assertNoText(t('An illegal choice has been detected. Please contact the site administrator.'));
   }
 
 }

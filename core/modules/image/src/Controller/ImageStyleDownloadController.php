@@ -102,9 +102,14 @@ class ImageStyleDownloadController extends FileDownloadController {
     // generated without a token can set the
     // 'image.settings:allow_insecure_derivatives' configuration to TRUE to
     // bypass the latter check, but this will increase the site's vulnerability
-    // to denial-of-service attacks.
+    // to denial-of-service attacks. To prevent this variable from leaving the
+    // site vulnerable to the most serious attacks, a token is always required
+    // when a derivative of a style is requested.
+    // The $target variable for a derivative of a style has
+    // styles/<style_name>/... as structure, so we check if the $target variable
+    // starts with styles/.
     $valid = !empty($image_style) && file_stream_wrapper_valid_scheme($scheme);
-    if (!$this->config('image.settings')->get('allow_insecure_derivatives')) {
+    if (!$this->config('image.settings')->get('allow_insecure_derivatives') || strpos(ltrim($target, '\/'), 'styles/') === 0) {
       $valid &= $request->query->get(IMAGE_DERIVATIVE_TOKEN) === $image_style->getPathToken($image_uri);
     }
     if (!$valid) {
@@ -173,7 +178,11 @@ class ImageStyleDownloadController extends FileDownloadController {
         'Content-Type' => $image->getMimeType(),
         'Content-Length' => $image->getFileSize(),
       );
-      return new BinaryFileResponse($uri, 200, $headers);
+      // \Drupal\Core\EventSubscriber\FinishResponseSubscriber::onRespond()
+      // sets response as not cacheable if the Cache-Control header is not
+      // already modified. We pass in FALSE for non-private schemes for the
+      // $public parameter to make sure we don't change the headers.
+      return new BinaryFileResponse($uri, 200, $headers, $scheme !== 'private');
     }
     else {
       $this->logger->notice('Unable to generate the derived image located at %path.', array('%path' => $derivative_uri));

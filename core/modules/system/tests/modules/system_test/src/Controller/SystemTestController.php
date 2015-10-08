@@ -8,9 +8,10 @@
 namespace Drupal\system_test\Controller;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\Core\Render\SafeString;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -114,18 +115,18 @@ class SystemTestController extends ControllerBase {
     drupal_set_message('Duplicated message', 'status', TRUE);
     drupal_set_message('Duplicated message', 'status', TRUE);
 
-    // Add a SafeString message.
-    drupal_set_message(SafeString::create('SafeString with <em>markup!</em>'));
-    // Test duplicate SafeString messages.
-    drupal_set_message(SafeString::create('SafeString with <em>markup!</em>'));
-    // Ensure that multiple SafeString messages work.
-    drupal_set_message(SafeString::create('SafeString2 with <em>markup!</em>'));
+    // Add a Markup message.
+    drupal_set_message(Markup::create('Markup with <em>markup!</em>'));
+    // Test duplicate Markup messages.
+    drupal_set_message(Markup::create('Markup with <em>markup!</em>'));
+    // Ensure that multiple Markup messages work.
+    drupal_set_message(Markup::create('Markup2 with <em>markup!</em>'));
 
     // Test mixing of types.
-    drupal_set_message(SafeString::create('Non duplicate SafeString / string.'));
-    drupal_set_message('Non duplicate SafeString / string.');
-    drupal_set_message(SafeString::create('Duplicate SafeString / string.'), 'status', TRUE);
-    drupal_set_message('Duplicate SafeString / string.', 'status', TRUE);
+    drupal_set_message(Markup::create('Non duplicate Markup / string.'));
+    drupal_set_message('Non duplicate Markup / string.');
+    drupal_set_message(Markup::create('Duplicate Markup / string.'), 'status', TRUE);
+    drupal_set_message('Duplicate Markup / string.', 'status', TRUE);
 
     // Test auto-escape of non safe strings.
     drupal_set_message('<em>This<span>markup will be</span> escaped</em>.');
@@ -259,11 +260,26 @@ class SystemTestController extends ControllerBase {
    */
   public function setHeader(Request $request) {
     $query = $request->query->all();
-    $response = new Response();
+    $response = new CacheableResponse();
     $response->headers->set($query['name'], $query['value']);
+    $response->getCacheableMetadata()->addCacheContexts(['url.query_args:name', 'url.query_args:value']);
     $response->setContent($this->t('The following header was set: %name: %value', array('%name' => $query['name'], '%value' => $query['value'])));
 
     return $response;
+  }
+
+  /**
+   * A simple page callback that uses a plain Symfony response object.
+   */
+  public function respondWithReponse(Request $request) {
+    return new Response('test');
+  }
+
+  /**
+   * A simple page callback that uses a CacheableResponse object.
+   */
+  public function respondWithCacheableReponse(Request $request) {
+    return new CacheableResponse('test');
   }
 
   /**

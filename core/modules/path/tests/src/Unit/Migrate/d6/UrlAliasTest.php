@@ -7,14 +7,14 @@
 
 namespace Drupal\Tests\path\Unit\Migrate\d6;
 
-use Drupal\Tests\migrate\Unit\MigrateSqlSourceTestCase;
+use Drupal\Tests\path\Unit\Migrate\UrlAliasTestBase;
 
 /**
- * Tests the D6 url alias migrations.
+ * Tests the d6_url_alias source plugin.
  *
  * @group path
  */
-class UrlAliasTest extends MigrateSqlSourceTestCase {
+class UrlAliasTest extends UrlAliasTestBase {
 
   const PLUGIN_CLASS = 'Drupal\path\Plugin\migrate\source\d6\UrlAlias';
 
@@ -40,15 +40,5 @@ class UrlAliasTest extends MigrateSqlSourceTestCase {
       'language' => 'en',
     ),
   );
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp() {
-    foreach ($this->expectedResults as $row) {
-      $this->databaseContents['url_alias'][] = $row;
-    }
-    parent::setUp();
-  }
 
 }

@@ -9,13 +9,11 @@ namespace Drupal\Core\Render;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerResolverInterface;
-use Drupal\Core\Template\Attribute;
 use Drupal\Core\Theme\ThemeManagerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -44,6 +42,13 @@ class Renderer implements RendererInterface {
    * @var \Drupal\Core\Render\ElementInfoManagerInterface
    */
   protected $elementInfo;
+
+  /**
+   * The placeholder generator.
+   *
+   * @var \Drupal\Core\Render\PlaceholderGeneratorInterface
+   */
+  protected $placeholderGenerator;
 
   /**
    * The render cache service.
@@ -99,6 +104,8 @@ class Renderer implements RendererInterface {
    *   The theme manager.
    * @param \Drupal\Core\Render\ElementInfoManagerInterface $element_info
    *   The element info.
+   * @param \Drupal\Core\Render\PlaceholderGeneratorInterface $placeholder_generator
+   *   The placeholder generator.
    * @param \Drupal\Core\Render\RenderCacheInterface $render_cache
    *   The render cache service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
@@ -106,10 +113,11 @@ class Renderer implements RendererInterface {
    * @param array $renderer_config
    *   The renderer configuration array.
    */
-  public function __construct(ControllerResolverInterface $controller_resolver, ThemeManagerInterface $theme, ElementInfoManagerInterface $element_info, RenderCacheInterface $render_cache, RequestStack $request_stack, array $renderer_config) {
+  public function __construct(ControllerResolverInterface $controller_resolver, ThemeManagerInterface $theme, ElementInfoManagerInterface $element_info, PlaceholderGeneratorInterface $placeholder_generator, RenderCacheInterface $render_cache, RequestStack $request_stack, array $renderer_config) {
     $this->controllerResolver = $controller_resolver;
     $this->theme = $theme;
     $this->elementInfo = $element_info;
+    $this->placeholderGenerator = $placeholder_generator;
     $this->renderCache = $render_cache;
     $this->rendererConfig = $renderer_config;
     $this->requestStack = $request_stack;
@@ -179,7 +187,7 @@ class Renderer implements RendererInterface {
 
     // Replace the placeholder with its rendered markup, and merge its
     // bubbleable metadata with the main elements'.
-    $elements['#markup'] = SafeString::create(str_replace($placeholder, $markup, $elements['#markup']));
+    $elements['#markup'] = Markup::create(str_replace($placeholder, $markup, $elements['#markup']));
     $elements = $this->mergeBubbleableMetadata($elements, $placeholder_elements);
 
     // Remove the placeholder that we've just rendered.
@@ -284,7 +292,7 @@ class Renderer implements RendererInterface {
         }
         // Mark the element markup as safe if is it a string.
         if (is_string($elements['#markup'])) {
-          $elements['#markup'] = SafeString::create($elements['#markup']);
+          $elements['#markup'] = Markup::create($elements['#markup']);
         }
         // The render cache item contains all the bubbleable rendering metadata
         // for the subtree.
@@ -295,12 +303,15 @@ class Renderer implements RendererInterface {
         return $elements['#markup'];
       }
     }
-    // Two-tier caching: track pre-bubbling elements' #cache for later
-    // comparison.
+    // Two-tier caching: track pre-bubbling elements' #cache, #lazy_builder and
+    // #create_placeholder for later comparison.
     // @see \Drupal\Core\Render\RenderCacheInterface::get()
     // @see \Drupal\Core\Render\RenderCacheInterface::set()
-    $pre_bubbling_elements = [];
-    $pre_bubbling_elements['#cache'] = isset($elements['#cache']) ? $elements['#cache'] : [];
+    $pre_bubbling_elements = array_intersect_key($elements, [
+      '#cache' => TRUE,
+      '#lazy_builder' => TRUE,
+      '#create_placeholder' => TRUE,
+    ]);
 
     // If the default values for this element have not been loaded yet, populate
     // them.
@@ -342,7 +353,7 @@ class Renderer implements RendererInterface {
       }
     }
     // Determine whether to do auto-placeholdering.
-    if (isset($elements['#lazy_builder']) && (!isset($elements['#create_placeholder']) || $elements['#create_placeholder'] !== FALSE) && $this->shouldAutomaticallyPlaceholder($elements)) {
+    if ($this->placeholderGenerator->canCreatePlaceholder($elements) && $this->placeholderGenerator->shouldAutomaticallyPlaceholder($elements)) {
       $elements['#create_placeholder'] = TRUE;
     }
     // If instructed to create a placeholder, and a #lazy_builder callback is
@@ -352,7 +363,7 @@ class Renderer implements RendererInterface {
       if (!isset($elements['#lazy_builder'])) {
         throw new \LogicException('When #create_placeholder is set, a #lazy_builder callback must be present as well.');
       }
-      $elements = $this->createPlaceholder($elements);
+      $elements = $this->placeholderGenerator->createPlaceholder($elements);
     }
     // Build the element if it is still empty.
     if (isset($elements['#lazy_builder'])) {
@@ -455,7 +466,7 @@ class Renderer implements RendererInterface {
       foreach ($children as $key) {
         $elements['#children'] .= $this->doRender($elements[$key]);
       }
-      $elements['#children'] = SafeString::create($elements['#children']);
+      $elements['#children'] = Markup::create($elements['#children']);
     }
 
     // If #theme is not implemented and the element has raw #markup as a
@@ -466,7 +477,7 @@ class Renderer implements RendererInterface {
     // required. Eventually #theme_wrappers will expect both #markup and
     // #children to be a single string as #children.
     if (!$theme_is_implemented && isset($elements['#markup'])) {
-      $elements['#children'] = SafeString::create($elements['#markup'] . $elements['#children']);
+      $elements['#children'] = Markup::create($elements['#markup'] . $elements['#children']);
     }
 
     // Let the theme functions in #theme_wrappers add markup around the rendered
@@ -519,7 +530,7 @@ class Renderer implements RendererInterface {
     $prefix = isset($elements['#prefix']) ? $this->xssFilterAdminIfUnsafe($elements['#prefix']) : '';
     $suffix = isset($elements['#suffix']) ? $this->xssFilterAdminIfUnsafe($elements['#suffix']) : '';
 
-    $elements['#markup'] = SafeString::create($prefix . $elements['#children'] . $suffix);
+    $elements['#markup'] = Markup::create($prefix . $elements['#children'] . $suffix);
 
     // We've rendered this element (and its subtree!), now update the context.
     $context->update($elements);
@@ -531,6 +542,12 @@ class Renderer implements RendererInterface {
         throw new \LogicException('Cache keys may not be changed after initial setup. Use the contexts property instead to bubble additional metadata.');
       }
       $this->renderCache->set($elements, $pre_bubbling_elements);
+      // Update the render context; the render cache implementation may update
+      // the element, and it may have different bubbleable metadata now.
+      // @see \Drupal\Core\Render\PlaceholderingRenderCache::set()
+      $context->pop();
+      $context->push(new BubbleableMetadata());
+      $context->update($elements);
     }
 
     // Only when we're in a root (non-recursive) Renderer::render() call,
@@ -644,81 +661,6 @@ class Renderer implements RendererInterface {
   }
 
   /**
-   * Whether the given render array should be automatically placeholdered.
-   *
-   * @param array $element
-   *   The render array whose cacheability to analyze.
-   *
-   * @return bool
-   *   Whether the given render array's cacheability meets the placeholdering
-   *   conditions.
-   */
-  protected function shouldAutomaticallyPlaceholder(array $element) {
-    $conditions = $this->rendererConfig['auto_placeholder_conditions'];
-
-    // Auto-placeholder if max-age is at or below the configured threshold.
-    if (isset($element['#cache']['max-age']) && $element['#cache']['max-age'] !== Cache::PERMANENT && $element['#cache']['max-age'] <= $conditions['max-age']) {
-      return TRUE;
-    }
-
-    // Auto-placeholder if a high-cardinality cache context is set.
-    if (isset($element['#cache']['contexts']) && array_intersect($element['#cache']['contexts'], $conditions['contexts'])) {
-      return TRUE;
-    }
-
-    // Auto-placeholder if a high-invalidation frequency cache tag is set.
-    if (isset($element['#cache']['tags']) && array_intersect($element['#cache']['tags'], $conditions['tags'])) {
-      return TRUE;
-    }
-
-    return FALSE;
-  }
-
-  /**
-   * Turns this element into a placeholder.
-   *
-   * Placeholdering allows us to avoid "poor cacheability contamination": this
-   * maps the current render array to one that only has #markup and #attached,
-   * and #attached contains a placeholder with this element's prior cacheability
-   * metadata. In other words: this placeholder is perfectly cacheable, the
-   * placeholder replacement logic effectively cordons off poor cacheability.
-   *
-   * @param array $element
-   *   The render array to create a placeholder for.
-   *
-   * @return array
-   *   Render array with placeholder markup and the attached placeholder
-   *   replacement metadata.
-   */
-  protected function createPlaceholder(array $element) {
-    $placeholder_render_array = array_intersect_key($element, [
-      // Placeholders are replaced with markup by executing the associated
-      // #lazy_builder callback, which generates a render array, and which the
-      // Renderer will render and replace the placeholder with.
-      '#lazy_builder' => TRUE,
-      // The cacheability metadata for the placeholder. The rendered result of
-      // the placeholder may itself be cached, if [#cache][keys] are specified.
-      '#cache' => TRUE,
-    ]);
-
-    // Generate placeholder markup. Note that the only requirement is that this
-    // is unique markup that isn't easily guessable. The #lazy_builder callback
-    // and its arguments are put in the placeholder markup solely to simplify
-    // debugging.
-    $attributes = new Attribute();
-    $attributes['callback'] = $placeholder_render_array['#lazy_builder'][0];
-    $attributes['arguments'] = UrlHelper::buildQuery($placeholder_render_array['#lazy_builder'][1]);
-    $attributes['token'] = hash('crc32b', serialize($placeholder_render_array));
-    $placeholder_markup = SafeMarkup::format('<drupal-render-placeholder@attributes></drupal-render-placeholder>', ['@attributes' => $attributes]);
-
-    // Build the placeholder element to return.
-    $placeholder_element = [];
-    $placeholder_element['#markup'] = $placeholder_markup;
-    $placeholder_element['#attached']['placeholders'][$placeholder_markup] = $placeholder_render_array;
-    return $placeholder_element;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function mergeBubbleableMetadata(array $a, array $b) {
@@ -743,18 +685,18 @@ class Renderer implements RendererInterface {
    * Note: This method only filters if $string is not marked safe already. This
    * ensures that HTML intended for display is not filtered.
    *
-   * @param string|\Drupal\Core\Render\SafeString $string
+   * @param string|\Drupal\Core\Render\Markup $string
    *   A string.
    *
-   * @return \Drupal\Core\Render\SafeString
-   *   The escaped string wrapped in a SafeString object. If
+   * @return \Drupal\Core\Render\Markup
+   *   The escaped string wrapped in a Markup object. If
    *   SafeMarkup::isSafe($string) returns TRUE, it won't be escaped again.
    */
   protected function xssFilterAdminIfUnsafe($string) {
     if (!SafeMarkup::isSafe($string)) {
       $string = Xss::filterAdmin($string);
     }
-    return SafeString::create($string);
+    return Markup::create($string);
   }
 
   /**
@@ -775,8 +717,8 @@ class Renderer implements RendererInterface {
    * @param array $elements
    *   A render array with #markup set.
    *
-   * @return \Drupal\Component\Utility\SafeStringInterface|string
-   *   The escaped markup wrapped in a SafeString object. If
+   * @return \Drupal\Component\Render\MarkupInterface|string
+   *   The escaped markup wrapped in a Markup object. If
    *   SafeMarkup::isSafe($elements['#markup']) returns TRUE, it won't be
    *   escaped or filtered again.
    *
@@ -790,12 +732,12 @@ class Renderer implements RendererInterface {
     }
 
     if (!empty($elements['#plain_text'])) {
-      $elements['#markup'] = SafeString::create(Html::escape($elements['#plain_text']));
+      $elements['#markup'] = Markup::create(Html::escape($elements['#plain_text']));
     }
     elseif (!SafeMarkup::isSafe($elements['#markup'])) {
       // The default behaviour is to XSS filter using the admin tag list.
       $tags = isset($elements['#allowed_tags']) ? $elements['#allowed_tags'] : Xss::getAdminTagList();
-      $elements['#markup'] = SafeString::create(Xss::filter($elements['#markup'], $tags));
+      $elements['#markup'] = Markup::create(Xss::filter($elements['#markup'], $tags));
     }
 
     return $elements;

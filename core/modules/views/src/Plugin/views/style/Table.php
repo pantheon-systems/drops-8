@@ -9,8 +9,8 @@ namespace Drupal\views\Plugin\views\style;
 
 use Drupal\Component\Plugin\Discovery\DiscoveryInterface;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\wizard\WizardInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -28,7 +28,7 @@ use Symfony\Component\HttpFoundation\Request;
  *   display_types = {"normal"}
  * )
  */
-class Table extends StylePluginBase implements CacheablePluginInterface {
+class Table extends StylePluginBase implements CacheableDependencyInterface {
 
   /**
    * Does the style plugin for itself support to add fields to it's output.
@@ -413,7 +413,7 @@ class Table extends StylePluginBase implements CacheablePluginInterface {
     );
 
     $form['description_markup'] = array(
-      '#markup' => '<div class="description form-item">' . $this->t('Place fields into columns; you may combine multiple fields into the same column. If you do, the separator in the column specified will be used to separate the fields. Check the sortable box to make that column click sortable, and check the default sort radio to determine which column will be sorted by default, if any. You may control column order and field labels in the fields section.') . '</div>',
+      '#markup' => '<div class="js-form-item form-item description">' . $this->t('Place fields into columns; you may combine multiple fields into the same column. If you do, the separator in the column specified will be used to separate the fields. Check the sortable box to make that column click sortable, and check the default sort radio to determine which column will be sorted by default, if any. You may control column order and field labels in the fields section.') . '</div>',
     );
   }
 
@@ -432,8 +432,8 @@ class Table extends StylePluginBase implements CacheablePluginInterface {
   /**
    * {@inheritdoc}
    */
-  public function isCacheable() {
-    return TRUE;
+  public function getCacheMaxAge() {
+    return 0;
   }
 
   /**
@@ -452,6 +452,13 @@ class Table extends StylePluginBase implements CacheablePluginInterface {
     }
 
     return $contexts;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTags() {
+    return [];
   }
 
 }

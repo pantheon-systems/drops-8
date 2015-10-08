@@ -171,26 +171,6 @@ function entity_test_create_bundle($bundle, $text = NULL, $entity_type = 'entity
 }
 
 /**
- * Renames a bundle for entity_test entities.
- *
- * @param string $bundle_old
- *   The machine-readable name of the bundle to rename.
- * @param string $bundle_new
- *   The new machine-readable name of the bundle.
- * @param string $entity_type
- *   (optional) The entity type for which the bundle is renamed. Defaults to
- *   'entity_test'.
- */
-function entity_test_rename_bundle($bundle_old, $bundle_new, $entity_type = 'entity_test') {
-  $bundles = \Drupal::state()->get($entity_type . '.bundles') ?: array($entity_type => array('label' => 'Entity Test Bundle'));
-  $bundles[$bundle_new] = $bundles[$bundle_old];
-  unset($bundles[$bundle_old]);
-  \Drupal::state()->set($entity_type . '.bundles', $bundles);
-
-  \Drupal::entityManager()->onBundleRename($bundle_old, $bundle_new, $entity_type);
-}
-
-/**
  * Deletes a bundle for entity_test entities.
  *
  * @param string $bundle
@@ -641,7 +621,11 @@ function entity_test_entity_prepare_view($entity_type, array $entities, array $d
 /**
  * Implements hook_entity_access().
  */
-function entity_test_entity_access(EntityInterface $entity, $operation, AccountInterface $account, $langcode) {
+function entity_test_entity_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  // Only apply to the 'entity_test' entities.
+  if ($entity->getEntityType()->getProvider() != 'entity_test') {
+    return AccessResult::neutral();
+  }
   \Drupal::state()->set('entity_test_entity_access', TRUE);
 
   // Attempt to allow access to entities with the title forbid_access,
@@ -660,7 +644,7 @@ function entity_test_entity_access(EntityInterface $entity, $operation, AccountI
 /**
  * Implements hook_ENTITY_TYPE_access() for 'entity_test'.
  */
-function entity_test_entity_test_access(EntityInterface $entity, $operation, AccountInterface $account, $langcode) {
+function entity_test_entity_test_access(EntityInterface $entity, $operation, AccountInterface $account) {
   \Drupal::state()->set('entity_test_entity_test_access', TRUE);
 
   // No opinion.

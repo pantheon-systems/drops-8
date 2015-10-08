@@ -151,7 +151,8 @@ Mail system
 Markup
 - Daniel F. Kudwien 'sun' https://www.drupal.org/u/sun
 
-Migrate
+Migration system
+- Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
 - Ben Dougherty 'benjy' https://www.drupal.org/u/benjy
 - Michael Anello 'ultimike' https://www.drupal.org/u/ultimike
 - Mike Ryan 'mikeryan' https://www.drupal.org/u/mikeryan
@@ -255,6 +256,9 @@ Action module
 Aggregator module
 - Paris Liakos 'ParisLiakos' https://www.drupal.org/u/parisliakos
 
+Automated Cron module
+- ?
+
 Ban module
 - ?
 
@@ -312,15 +316,15 @@ Database Logging module
 DateTime module
 - Matthew Donadio 'mpdonadio' https://www.drupal.org/u/mpdonadio
 
+Dynamic Page Cache module
+- Fabian Franz 'Fabianx' https://www.drupal.org/u/fabianx
+- Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
+
 Email module
 - Nils Destoop 'zuuperman' https://www.drupal.org/u/zuuperman
 
 Editor module
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
-
-Entity Reference module
-- Amitai Burstein 'Amitaibu' https://www.drupal.org/u/amitaibu
-- Andrei Mateescu 'amateescu' https://www.drupal.org/u/amateescu
 
 Field UI module
 - Yves Chedemois 'yched' https://www.drupal.org/u/yched

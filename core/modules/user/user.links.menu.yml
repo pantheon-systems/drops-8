@@ -4,10 +4,9 @@ user.page:
   route_name: user.page
   menu_name: account
 user.logout:
-  title: 'Log out'
-  route_name: user.logout
   weight: 10
   menu_name: account
+  class: Drupal\user\Plugin\Menu\LoginLogoutMenuLink
 entity.user.collection:
   title: People
   route_name: entity.user.collection
@@ -24,6 +23,6 @@ user.admin_index:
 entity.user.admin_form:
   title: 'Account settings'
   parent: user.admin_index
-  description: 'Configure default behavior of users, including registration requirements, emails, and fields.'
+  description: 'Configure default user account settings, including fields, registration requirements, and email messages.'
   weight: -10
   route_name: entity.user.admin_form

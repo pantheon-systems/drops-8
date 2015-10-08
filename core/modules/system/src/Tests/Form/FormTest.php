@@ -144,7 +144,7 @@ class FormTest extends WebTestBase {
               // Select elements are going to have validation errors with empty
               // input, since those are illegal choices. Just make sure the
               // error is not "field is required".
-              $this->assertTrue((empty($errors[$element]) || strpos('field is required', $errors[$element]) === FALSE), "Optional '$type' field '$element' is not treated as a required element");
+              $this->assertTrue((empty($errors[$element]) || strpos('field is required', (string) $errors[$element]) === FALSE), "Optional '$type' field '$element' is not treated as a required element");
             }
             else {
               // Make sure there is *no* form error for this element.
@@ -185,12 +185,12 @@ class FormTest extends WebTestBase {
         $expected[] = $form[$key]['#form_test_required_error'];
       }
       else {
-        $expected[] = t('!name field is required.', array('!name' => $form[$key]['#title']));
+        $expected[] = t('@name field is required.', array('@name' => $form[$key]['#title']));
       }
     }
 
     // Check the page for error messages.
-    $errors = $this->xpath('//div[contains(@class, "form-item--error-message")]//strong');
+    $errors = $this->xpath('//div[contains(@class, "error")]//li');
     foreach ($errors as $error) {
       $expected_key = array_search($error[0], $expected);
       // If the error message is not one of the expected messages, fail.
@@ -295,6 +295,18 @@ class FormTest extends WebTestBase {
   }
 
   /**
+   * CSRF tokens for GET forms should not be added by default.
+   */
+  public function testGetFormsCsrfToken() {
+    // We need to be logged in to have CSRF tokens.
+    $account = $this->createUser();
+    $this->drupalLogin($account);
+
+    $this->drupalGet(Url::fromRoute('form_test.get_form'));
+    $this->assertNoRaw('form_token');
+  }
+
+  /**
    * Tests validation for required textfield element without title.
    *
    * Submits a test form containing a textfield form element without title.
@@ -335,7 +347,7 @@ class FormTest extends WebTestBase {
     // First, try to submit without the required checkbox.
     $edit = array();
     $this->drupalPostForm('form-test/checkbox', $edit, t('Submit'));
-    $this->assertRaw(t('!name field is required.', array('!name' => 'required_checkbox')), 'A required checkbox is actually mandatory');
+    $this->assertRaw(t('@name field is required.', array('@name' => 'required_checkbox')), 'A required checkbox is actually mandatory');
 
     // Now try to submit the form correctly.
     $values = Json::decode($this->drupalPostForm(NULL, array('required_checkbox' => 1), t('Submit')));
@@ -361,8 +373,11 @@ class FormTest extends WebTestBase {
    */
   function testSelect() {
     $form = \Drupal::formBuilder()->getForm('Drupal\form_test\Form\FormTestSelectForm');
-    $error = '!name field is required.';
     $this->drupalGet('form-test/select');
+
+    // Verify that the options are escaped as expected.
+    $this->assertEscaped('<strong>four</strong>');
+    $this->assertNoRaw('<strong>four</strong>');
 
     // Posting without any values should throw validation errors.
     $this->drupalPostForm(NULL, array(), 'Submit');
@@ -379,7 +394,7 @@ class FormTest extends WebTestBase {
         'multiple_no_default',
     );
     foreach ($no_errors as $key) {
-      $this->assertNoText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
+      $this->assertNoText(t('@name field is required.', array('@name' => $form[$key]['#title'])));
     }
 
     $expected_errors = array(
@@ -390,7 +405,7 @@ class FormTest extends WebTestBase {
         'multiple_no_default_required',
     );
     foreach ($expected_errors as $key) {
-      $this->assertText(t('!name field is required.', array('!name' => $form[$key]['#title'])));
+      $this->assertText(t('@name field is required.', array('@name' => $form[$key]['#title'])));
     }
 
     // Post values for required fields.

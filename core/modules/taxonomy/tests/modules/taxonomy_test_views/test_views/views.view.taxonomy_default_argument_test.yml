@@ -60,10 +60,10 @@ display:
             offset: false
             offset_label: Offset
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
-            first: '« first'
-            last: 'last »'
+            previous: '‹ Previous'
+            next: 'Next ›'
+            first: '« First'
+            last: 'Last »'
           quantity: 9
       style:
         type: default
@@ -163,3 +163,10 @@ display:
           entity_type: taxonomy_term
           entity_field: tid
       rendering_language: '***LANGUAGE_entity_translation***'
+  page_1:
+    display_plugin: page
+    id: page_1
+    display_title: Page
+    position: null
+    display_options:
+      path: taxonomy_default_argument_test

@@ -6,12 +6,10 @@
  */
 
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Form\FormElementHelper;
 use Drupal\Core\Form\OptGroup;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
@@ -223,11 +221,8 @@ function template_preprocess_fieldset(&$variables) {
     $variables['attributes']['aria-describedby'] = $description_id;
   }
 
-  // Display any error messages.
+  // Suppress error messages.
   $variables['errors'] = NULL;
-  if (!empty($element['#errors']) && empty($element['#error_no_message'])) {
-    $variables['errors'] = $element['#errors'];
-  }
 }
 
 /**
@@ -257,6 +252,9 @@ function template_preprocess_details(&$variables) {
   $variables['description'] = (!empty($element['#description'])) ? $element['#description'] : '';
   $variables['children'] = (isset($element['#children'])) ? $element['#children'] : '';
   $variables['value'] = (isset($element['#value'])) ? $element['#value'] : '';
+
+  // Suppress error messages.
+  $variables['errors'] = NULL;
 }
 
 /**
@@ -432,7 +430,7 @@ function template_preprocess_form_element(&$variables) {
   );
   $variables['attributes'] = $element['#wrapper_attributes'];
 
-  // Add element #id for #type 'item' and 'password_confirm'.
+  // Add element #id for #type 'item'.
   if (isset($element['#markup']) && !empty($element['#id'])) {
     $variables['attributes']['id'] = $element['#id'];
   }
@@ -448,11 +446,8 @@ function template_preprocess_form_element(&$variables) {
   // Pass elements disabled status to template.
   $variables['disabled'] = !empty($element['#attributes']['disabled']) ? $element['#attributes']['disabled'] : NULL;
 
-  // Display any error messages.
+  // Suppress error messages.
   $variables['errors'] = NULL;
-  if (!empty($element['#errors']) && empty($element['#error_no_message'])) {
-    $variables['errors'] = $element['#errors'];
-  }
 
   // If #title is not set, we don't display any label.
   if (!isset($element['#title'])) {
@@ -695,8 +690,6 @@ function template_preprocess_form_element_label(&$variables) {
  *   - css: Array of paths to CSS files to be used on the progress page.
  *   - url_options: options passed to url() when constructing redirect URLs for
  *     the batch.
- *   - safe_strings: Internal use only. Used to store and retrieve strings
- *     marked as safe between requests.
  *   - progressive: A Boolean that indicates whether or not the batch needs to
  *     run progressively. TRUE indicates that the batch will run in more than
  *     one run. FALSE (default) indicates that the batch will finish in a single
@@ -838,7 +831,7 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
       $query_options['op'] = 'finished';
       $error_url->setOption('query', $query_options);
 
-      $batch['error_message'] = t('Please continue to <a href="@error_url">the error page</a>', array('@error_url' => $error_url->toString(TRUE)->getGeneratedUrl()));
+      $batch['error_message'] = t('Please continue to <a href=":error_url">the error page</a>', array(':error_url' => $error_url->toString(TRUE)->getGeneratedUrl()));
 
       // Clear the way for the redirection to the batch processing page, by
       // saving and unsetting the 'destination', if there is any.
@@ -847,11 +840,6 @@ function batch_process($redirect = NULL, Url $url = NULL, $redirect_callback = N
         $batch['destination'] = $request->query->get('destination');
         $request->query->remove('destination');
       }
-
-      // Store safe strings.
-      // @todo Ensure we are not storing an excessively large string list in:
-      //   https://www.drupal.org/node/2295823
-      $batch['safe_strings'] = SafeMarkup::getAll();
 
       // Store the batch.
       \Drupal::service('batch.storage')->create($batch);

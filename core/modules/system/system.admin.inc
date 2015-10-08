@@ -14,33 +14,6 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 
 /**
- * Recursively check compatibility.
- *
- * @param $incompatible
- *   An associative array which at the end of the check contains all
- *   incompatible files as the keys, their values being TRUE.
- * @param $files
- *   The set of files that will be tested.
- * @param \Drupal\Core\Extension\Extension $file
- *   The file at which the check starts.
- * @return
- *   Returns TRUE if an incompatible file is found, NULL (no return value)
- *   otherwise.
- */
-function _system_is_incompatible(&$incompatible, $files, Extension $file) {
-  if (isset($incompatible[$file->getName()])) {
-    return TRUE;
-  }
-  // Recursively traverse required modules, looking for incompatible modules.
-  foreach ($file->requires as $requires) {
-    if (isset($files[$requires]) && _system_is_incompatible($incompatible, $files, $files[$requires])) {
-      $incompatible[$file->getName()] = TRUE;
-      return TRUE;
-    }
-  }
-}
-
-/**
  * Prepares variables for administrative content block templates.
  *
  * Default template: admin-block-content.html.twig.
@@ -197,174 +170,128 @@ function template_preprocess_status_report(&$variables) {
 }
 
 /**
- * Returns HTML for the modules form.
+ * Prepares variables for the module details templates.
+ *
+ * Default template: system-modules-details.html.twig.
  *
  * @param $variables
  *   An associative array containing:
- *   - form: A render element representing the form.
+ *   - form: A render element representing the form. The main form element
+ *     represents a package, and child elements of the form are individual
+ *     projects. Each project (or module) is an associative array containing the
+ *     following elements:
+ *     - name: The name of the module.
+ *     - enable: A checkbox for enabling the module.
+ *     - description: A description of the module.
+ *     - version: The version of the module.
+ *     - links: Administration links provided by the module.
+ *     - #requires: A list of modules that the project requires.
+ *     - #required_by: A list of modules that require the project.
+ *     - #attributes: A list of attributes for the module wrapper.
  *
- * @ingroup themeable
+ * @see \Drupal\system\Form\ModulesListForm
  */
-function theme_system_modules_details($variables) {
+function template_preprocess_system_modules_details(&$variables) {
   $form = $variables['form'];
 
-  // Individual table headers.
-  $rows = array();
+  $variables['modules'] = [];
   // Iterate through all the modules, which are children of this element.
   foreach (Element::children($form) as $key) {
     // Stick the key into $module for easier access.
     $module = $form[$key];
-    // Create the row for the table.
-    $row = array();
-    // Add the checkbox into the first cell.
     unset($module['enable']['#title']);
     $module['#requires'] = array_filter($module['#requires']);
     $module['#required_by'] = array_filter($module['#required_by']);
-
-    $requires = !empty($module['#requires']);
-    $required_by = !empty($module['#required_by']);
-    $version = !empty($module['version']['#markup']);
-
-    $row[] = array('class' => array('checkbox'), 'data' => drupal_render($module['enable']));
+    // Add the checkbox to allow installing new modules and to show the
+    // installation status of the module.
+    $module['checkbox'] = $module['enable'];
 
     // Add the module label and expand/collapse functionality.
     $id = Html::getUniqueId('module-' . $key);
-    $col2 = [
-      '#type' => 'inline_template',
-      '#template' => '<label id="{{ id }}" for="{{ enable_id }}" class="module-name table-filter-text-source">{{ module_name }}</label>',
-      '#context' => [
-        'id' => $id,
-        'enable_id' => $module['enable']['#id'],
-        'module_name' => $module['name'],
-      ],
-    ];
-    $row[] = ['class' => ['module'], 'data' => $col2];
+    $module['id'] = $id;
+    $module['enable_id'] = $module['enable']['#id'];
 
-    // Add the description, along with any modules it requires.
-    $description = '';
-    $description .= '<div class="requirements">';
-    $description .= '<div class="admin-requirements">' . t('Machine name: !machine-name', array('!machine-name' => '<span dir="ltr" class="table-filter-text-source">' . $key . '</span>')) . '</div>';
-    if ($version) {
-      $description .= '<div class="admin-requirements">' . t('Version: !module-version', array('!module-version' => drupal_render($module['version']))) . '</div>';
-    }
-    if ($requires) {
-      $description .= '<div class="admin-requirements">' . t('Requires: !module-list', array('!module-list' => implode(', ', $module['#requires']))) . '</div>';
-    }
-    if ($required_by) {
-      $description .= '<div class="admin-requirements">' . t('Required by: !module-list', array('!module-list' => implode(', ', $module['#required_by']))) . '</div>';
-    }
-    $description .= '</div>';
-    $links = '';
-    foreach (array('help', 'permissions', 'configure') as $link_type) {
-      $links .= drupal_render($module['links'][$link_type]);
-    }
-    if ($links) {
-      $description .= '  <div class="links">';
-      $description .= $links;
-      $description .= '</div>';
-    }
-    $title = [
-      '#type' => 'inline_template',
-      '#template' => '<span class="text module-description">{{ module_description }}</span>',
-      '#context' => ['module_description' => $module['description']],
+    // @todo Remove early rendering and use safe_join in the Twig template once
+    //   https://www.drupal.org/node/2579091 is fixed.
+    $renderer = \Drupal::service('renderer');
+    $machine_name_render = [
+      '#prefix' => '<span dir="ltr" class="table-filter-text-source">',
+      '#plain_text' => $key,
+      '#suffix' => '</span>',
     ];
-    $details = array(
-      '#type' => 'details',
-      '#title' => $title,
-      '#attributes' => array('id' => $module['enable']['#id'] . '-description'),
-      '#description' => $description,
-    );
-    $row[] = ['class' => ['description', 'expand'], 'data' => $details];
+    $module['machine_name'] = $renderer->render($machine_name_render);
 
-    $rows[] = $module['#attributes'] + array('data' => $row);
+    if (!empty($module['#requires'])) {
+      $requires = [
+        '#theme' => 'item_list',
+        '#items' => $module['#requires'],
+        '#context' => ['list_style' => 'comma-list'],
+      ];
+      $module['requires'] = $renderer->render($requires);
+    }
+    if (!empty($module['#required_by'])) {
+      $required_by = [
+        '#theme' => 'item_list',
+        '#items' => $module['#required_by'],
+        '#context' => ['list_style' => 'comma-list'],
+      ];
+      $module['required_by'] = $renderer->render($required_by);
+    }
+
+    if (!empty($module['version'])) {
+      $module['version'] = $renderer->render($module['version']);
+    }
+
+    $module['attributes'] = new Attribute($module['#attributes']);
+    $variables['modules'][] = $module;
   }
-
-  $table = array(
-    '#type' => 'table',
-    '#header' => $form['#header'],
-    '#rows' => $rows,
-  );
-  return drupal_render($table);
 }
 
 /**
- * Returns HTML for a table of currently disabled modules.
+ * Prepares variables for module uninstall templates.
+ *
+ * Default template: system-modules-uninstall.html.twig.
  *
  * @param $variables
  *   An associative array containing:
- *   - form: A render element representing the form.
+ *   - form: A render element representing the form. Child elements of the form
+ *     are individual modules. Each module is an associative array containing
+ *     the following elements:
+ *     - #module_name: The name of the module as a string.
+ *     - name: The name of the module in a renderable array.
+ *     - description: A description of the module.
+ *     - #required_by: (optional) A list of modules that require the module.
+ *     - #validation_reasons: (optional) Additional reasons why the module
+ *       cannot be uninstalled.
+ *     - #attributes: A list of attributes for the module wrapper.
  *
  * @ingroup themeable
  */
-function theme_system_modules_uninstall($variables) {
+function template_preprocess_system_modules_uninstall(&$variables) {
   $form = $variables['form'];
+  $variables['modules'] = [];
 
-  // No theming for the confirm form.
-  if (isset($form['confirm'])) {
-    return drupal_render($form);
-  }
+  // Iterate through all the modules, which are children of this element.
+  foreach (Element::children($form['modules']) as $key) {
+    $module = $form['modules'][$key];
+    $module['module_name'] = $module['#module_name'];
+    $module['checkbox'] = $form['uninstall'][$key];
+    $module['checkbox_id'] = $form['uninstall'][$key]['#id'];
 
-  // Table headers.
-  $header = array(t('Uninstall'),
-    t('Name'),
-    t('Description'),
-  );
-
-  // Display table.
-  $rows = array();
-  foreach (Element::children($form['modules']) as $module) {
-    $disabled_header = '';
-    $disabled_reasons = '';
-    // Add the modules requiring the module in question as a validation reason.
-    if (!empty($form['modules'][$module]['#required_by'])) {
-      $form['modules'][$module]['#validation_reasons'][] = \Drupal::translation()->translate('Required by: @modules', array('@modules' => implode(', ',$form['modules'][$module]['#required_by'])));
+    if (!empty($module['#validation_reasons'])) {
+      $module['validation_reasons'] = $module['#validation_reasons'];
+      $module['reasons_count'] = count($module['validation_reasons']);
     }
-    if (!empty($form['modules'][$module]['#validation_reasons'])) {
-      $disabled_reasons = [
-        '#theme' => 'item_list',
-        '#items' => $form['modules'][$module]['#validation_reasons'],
-      ];
-      $disabled_reasons = drupal_render($disabled_reasons);
-      $disabled_header = \Drupal::translation()->formatPlural(count($form['modules'][$module]['#validation_reasons']),
-        'The following reason prevents @module from being uninstalled:',
-        'The following reasons prevents @module from being uninstalled:',
-        array('@module' => $form['modules'][$module]['#module_name']));
+    else {
+      $module['reasons_count'] = 0;
     }
-    $rows[] = array(
-      array('data' => drupal_render($form['uninstall'][$module]), 'align' => 'center'),
-      array(
-        'data' => array(
-          '#type' => 'inline_template',
-          '#template' => '<label for="{{ module_id }}" class="module-name table-filter-text-source">{{ module_name }}</label>',
-          '#context' => array('module_id' => $form['uninstall'][$module]['#id'], 'module_name' => drupal_render($form['modules'][$module]['name'])),
-        )
-      ),
-      array(
-        'data' => array(
-          '#type' => 'inline_template',
-          '#template' => '<span class="text module-description">{{ module_description }}</span>{% if disabled_header is not empty %}<div class="admin-requirements">{{ disabled_header }}{{ disabled_reasons }}</div>{% endif %}',
-          '#context' => array(
-            'module_description' => drupal_render($form['modules'][$module]['description']),
-            'disabled_header' => $disabled_header,
-            'disabled_reasons' => $disabled_reasons,
-          ),
-        ),
-        'class' => array('description'),
-      ),
-    );
+    if (!empty($module['#required_by'])) {
+      $module['required_by'] = $module['#required_by'];
+      $module['reasons_count'] = $module['reasons_count'] + 1;
+    }
+    $module['attributes'] = new Attribute($module['#attributes']);
+    $variables['modules'][] = $module;
   }
-
-  $table = array(
-    '#type' => 'table',
-    '#header' => $header,
-    '#rows' => $rows,
-    '#empty' => t('No modules are available to uninstall.'),
-  );
-  $output = drupal_render($form['filters']);
-  $output .= drupal_render($table);
-  $output .= drupal_render_children($form);
-
-  return $output;
 }
 
 /**
@@ -439,7 +366,7 @@ function template_preprocess_system_themes_page(&$variables) {
         if (substr_count($theme->info['php'], '.') < 2) {
           $theme->info['php'] .= '.*';
         }
-        $current_theme['incompatible'] = t('This theme requires PHP version @php_required and is incompatible with PHP version !php_version.', array('@php_required' => $theme->info['php'], '!php_version' => phpversion()));
+        $current_theme['incompatible'] = t('This theme requires PHP version @php_required and is incompatible with PHP version @php_version.', array('@php_required' => $theme->info['php'], '@php_version' => phpversion()));
       }
       elseif (!empty($theme->incompatible_base)) {
         $current_theme['incompatible'] = t('This theme requires the base theme @base_theme to operate correctly.', array('@base_theme' => $theme->info['base theme']));

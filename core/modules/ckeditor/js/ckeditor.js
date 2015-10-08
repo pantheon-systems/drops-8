@@ -36,12 +36,6 @@
       var label = $('label[for=' + element.getAttribute('id') + ']').html();
       format.editorSettings.title = Drupal.t("Rich Text Editor, !label field", {'!label': label});
 
-      // CKEditor initializes itself in a read-only state if the 'disabled'
-      // attribute is set. It does not respect the 'readonly' attribute,
-      // however, so we set the 'readOnly' configuration property manually in
-      // that case, for the CKEditor instance that's about to be created.
-      format.editorSettings.readOnly = element.hasAttribute('readonly');
-
       return !!CKEDITOR.replace(element, format.editorSettings);
     },
 
@@ -221,9 +215,10 @@
 
       // Add a consistent dialog class.
       var classes = dialogSettings.dialogClass ? dialogSettings.dialogClass.split(' ') : [];
-      classes.push('editor-dialog');
+      classes.push('ui-dialog--narrow');
       dialogSettings.dialogClass = classes.join(' ');
-      dialogSettings.autoResize = Drupal.checkWidthBreakpoint(600);
+      dialogSettings.autoResize = window.matchMedia('(min-width: 600px)').matches;
+      dialogSettings.width = 'auto';
 
       // Add a "Loading…" message, hide it underneath the CKEditor toolbar,
       // create a Drupal.Ajax instance to load the dialog and trigger it.
@@ -254,7 +249,7 @@
 
   // Moves the dialog to the top of the CKEDITOR stack.
   $(window).on('dialogcreate', function (e, dialog, $element, settings) {
-    $('.editor-dialog').css("zIndex", CKEDITOR.config.baseFloatZIndex + 1);
+    $('.ui-dialog--narrow').css("zIndex", CKEDITOR.config.baseFloatZIndex + 1);
   });
 
   // Respond to new dialogs that are opened by CKEditor, closing the AJAX loader.

@@ -28,7 +28,6 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
   static $modules = array(
     'comment',
     'datetime',
-    'entity_reference',
     'file',
     'image',
     'link',
@@ -51,8 +50,7 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
     $this->createType('book');
     $this->createType('forum');
     $this->createType('test_content_type');
-    $this->executeMigration('d7_field');
-    $this->executeMigration('d7_field_instance');
+    $this->executeMigrations(['d7_field', 'd7_field_instance']);
   }
 
   /**

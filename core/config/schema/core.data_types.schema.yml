@@ -295,13 +295,6 @@ block_settings:
     label_display:
       type: string
       label: 'Display title'
-    cache:
-      type: mapping
-      label: 'Cache settings'
-      mapping:
-        max_age:
-          type: integer
-          label: 'Maximum age'
     status:
       type: boolean
       label: 'Status'
@@ -314,6 +307,11 @@ block_settings:
     provider:
       type: string
       label: 'Provider'
+    context_mapping:
+      type: sequence
+      label: 'Context assignments'
+      sequence:
+        type: string
 
 condition.plugin:
   type: mapping
@@ -357,9 +355,6 @@ base_entity_reference_field_settings:
     target_type:
       type: string
       label: 'Type of item to reference'
-    target_bundle:
-      type: string
-      label: 'Bundle of item to reference'
 
 field_config_base:
   type: config_entity
@@ -421,8 +416,18 @@ core.date_format.*:
       type: boolean
       label: 'Locked'
     pattern:
-      type: date_format
+      type: core_date_format_pattern.[%parent.locked]
       label: 'PHP date format'
+
+# Unlocked date formats should use the translatable type.
+core_date_format_pattern.0:
+  type: date_format
+  label: 'Date format'
+
+# Locked date formats are just used to transport the value.
+core_date_format_pattern.1:
+  type: string
+  label: 'Date format'
 
 # Generic field settings schemas.
 
@@ -761,6 +766,7 @@ entity_reference_selection:
     target_bundles:
       type: sequence
       label: 'types'
+      nullable: true
       sequence:
         type: string
         label: 'Type'

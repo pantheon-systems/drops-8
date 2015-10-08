@@ -512,6 +512,14 @@ td.group-title {
   margin-right: 0.2083em;
 }
 
+.views-ui-display-tab-setting > span {
+  margin-left: 0.5em; /* LTR */
+}
+[dir="rtl"] .views-ui-display-tab-setting > span {
+  margin-left: 0;
+  margin-right: 0.5em;
+}
+
 /** Applies an overridden(italics) font style to overridden buckets.
  * The better way to implement this would be to add the overridden class
  * to the bucket header when the bucket is overridden and style it as a
@@ -552,19 +560,19 @@ td.group-title {
 
 /* The contents of the popup dialog on the views edit form. */
 .views-filterable-options .form-type-checkbox {
-  border: 1px solid #ccc;
   padding: 5px 8px;
   border-top: none;
 }
 .views-filterable-options {
   border-top:  1px solid #ccc;
 }
-.views-filterable-options .filterable-option.odd .form-type-checkbox {
-  background-color: #f3f4ee;
-}
 .filterable-option .form-item {
   margin-bottom: 0;
   margin-top: 0;
+}
+.views-filterable-options .filterable-option .title {
+  font-weight: bold;
+  cursor: pointer;
 }
 .views-filterable-options .form-type-checkbox .description {
   margin-top: 0;

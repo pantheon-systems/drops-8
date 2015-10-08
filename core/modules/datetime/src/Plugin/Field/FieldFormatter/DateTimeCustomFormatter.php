@@ -36,7 +36,7 @@ class DateTimeCustomFormatter extends DateTimeFormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = array();
 
     foreach ($items as $delta => $item) {
@@ -84,7 +84,7 @@ class DateTimeCustomFormatter extends DateTimeFormatterBase {
     $form['date_format'] = array(
       '#type' => 'textfield',
       '#title' => $this->t('Date/time format'),
-      '#description' => $this->t('See <a href="@url" target="_blank">the documentation for PHP date formats</a>.', ['@url' => 'http://php.net/manual/function.date.php']),
+      '#description' => $this->t('See <a href=":url" target="_blank">the documentation for PHP date formats</a>.', [':url' => 'http://php.net/manual/function.date.php']),
       '#default_value' => $this->getSetting('date_format'),
     );
 

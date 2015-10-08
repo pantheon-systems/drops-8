@@ -319,15 +319,13 @@ function hook_node_grants_alter(&$grants, \Drupal\Core\Session\AccountInterface 
  *   - "view"
  * @param \Drupal\Core\Session\AccountInterface $account
  *   The user object to perform the access check operation on.
- * @param string $langcode
- *   The language code to perform the access check operation on.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
  *    The access result.
  *
  * @ingroup node_access
  */
-function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Session\AccountInterface $account, $langcode) {
+function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Session\AccountInterface $account) {
   $type = $node->bundle();
 
   switch ($op) {
@@ -364,8 +362,6 @@ function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Se
  *
  * @param \Drupal\node\NodeInterface $node
  *   The node being displayed in a search result.
- * @param string $langcode
- *   Language code of result being displayed.
  *
  * @return array
  *   Extra information to be displayed with search result. This information
@@ -378,7 +374,7 @@ function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Se
  *
  * @ingroup entity_crud
  */
-function hook_node_search_result(\Drupal\node\NodeInterface $node, $langcode) {
+function hook_node_search_result(\Drupal\node\NodeInterface $node) {
   $rating = db_query('SELECT SUM(points) FROM {my_rating} WHERE nid = :nid', array('nid' => $node->id()))->fetchField();
   return array('rating' => \Drupal::translation()->formatPlural($rating, '1 point', '@count points'));
 }
@@ -391,15 +387,13 @@ function hook_node_search_result(\Drupal\node\NodeInterface $node, $langcode) {
  *
  * @param \Drupal\node\NodeInterface $node
  *   The node being indexed.
- * @param string $langcode
- *   Language code of the variant of the node being indexed.
  *
  * @return string
  *   Additional node information to be indexed.
  *
  * @ingroup entity_crud
  */
-function hook_node_update_index(\Drupal\node\NodeInterface $node, $langcode) {
+function hook_node_update_index(\Drupal\node\NodeInterface $node) {
   $text = '';
   $ratings = db_query('SELECT title, description FROM {my_ratings} WHERE nid = :nid', array(':nid' => $node->id()));
   foreach ($ratings as $rating) {

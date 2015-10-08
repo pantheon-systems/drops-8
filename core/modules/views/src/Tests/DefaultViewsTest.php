@@ -13,7 +13,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
-use Drupal\entity_reference\Tests\EntityReferenceTestTrait;
+use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
 use Drupal\views\Views;
 
 /**
@@ -46,6 +46,8 @@ class DefaultViewsTest extends ViewTestBase {
 
   protected function setUp() {
     parent::setUp();
+
+    $this->drupalPlaceBlock('page_title_block');
 
     // Create Basic page node type.
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));

@@ -50,10 +50,10 @@ display:
           id: 0
           total_pages: 0
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
-            first: '« first'
-            last: 'last »'
+            previous: '‹ Previous'
+            next: 'Next ›'
+            first: '« First'
+            last: 'Last »'
           expose:
             items_per_page: false
             items_per_page_label: 'Items per page'
@@ -293,8 +293,8 @@ display:
           type: boolean
           settings:
             format: custom
-            format_custom_true: 'Active'
-            format_custom_false: 'Blocked'
+            format_custom_true: Active
+            format_custom_false: Blocked
           entity_type: user
           entity_field: status
         roles_target_id:
@@ -868,6 +868,15 @@ display:
         groups:
           1: AND
       display_extenders: {  }
+    cache_metadata:
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }
   page_1:
     display_plugin: page
     id: page_1
@@ -892,3 +901,12 @@ display:
       defaults:
         show_admin_links: false
       display_extenders: {  }
+    cache_metadata:
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }

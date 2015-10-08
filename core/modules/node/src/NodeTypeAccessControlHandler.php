@@ -22,16 +22,25 @@ class NodeTypeAccessControlHandler extends EntityAccessControlHandler {
   /**
    * {@inheritdoc}
    */
-  protected function checkAccess(EntityInterface $entity, $operation, $langcode, AccountInterface $account) {
-    if ($operation == 'delete') {
-      if ($entity->isLocked()) {
-        return AccessResult::forbidden()->cacheUntilEntityChanges($entity);
-      }
-      else {
-        return parent::checkAccess($entity, $operation, $langcode, $account)->cacheUntilEntityChanges($entity);
-      }
+  protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
+    switch ($operation) {
+      case 'view':
+        return AccessResult::allowedIfHasPermission($account, 'access content');
+        break;
+
+      case 'delete':
+        if ($entity->isLocked()) {
+          return AccessResult::forbidden()->cacheUntilEntityChanges($entity);
+        }
+        else {
+          return parent::checkAccess($entity, $operation, $account)->cacheUntilEntityChanges($entity);
+        }
+        break;
+
+      default:
+        return parent::checkAccess($entity, $operation, $account);
+        break;
     }
-    return parent::checkAccess($entity, $operation, $langcode, $account);
   }
 
 }

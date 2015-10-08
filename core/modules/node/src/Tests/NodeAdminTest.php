@@ -118,18 +118,29 @@ class NodeAdminTest extends NodeTestBase {
   function testContentAdminPages() {
     $this->drupalLogin($this->adminUser);
 
-    $nodes['published_page'] = $this->drupalCreateNode(array('type' => 'page'));
-    $nodes['published_article'] = $this->drupalCreateNode(array('type' => 'article'));
-    $nodes['unpublished_page_1'] = $this->drupalCreateNode(array('type' => 'page', 'uid' => $this->baseUser1->id(), 'status' => 0));
-    $nodes['unpublished_page_2'] = $this->drupalCreateNode(array('type' => 'page', 'uid' => $this->baseUser2->id(), 'status' => 0));
+    // Use an explicit changed time to ensure the expected order in the content
+    // admin listing. We want these to appear in the table in the same order as
+    // they appear in the following code, and the 'content' View has a table
+    // style configuration with a default sort on the 'changed' field DESC.
+    $time = time();
+    $nodes['published_page'] = $this->drupalCreateNode(array('type' => 'page', 'changed' => $time--));
+    $nodes['published_article'] = $this->drupalCreateNode(array('type' => 'article', 'changed' => $time--));
+    $nodes['unpublished_page_1'] = $this->drupalCreateNode(array('type' => 'page', 'changed' => $time--, 'uid' => $this->baseUser1->id(), 'status' => 0));
+    $nodes['unpublished_page_2'] = $this->drupalCreateNode(array('type' => 'page', 'changed' => $time, 'uid' => $this->baseUser2->id(), 'status' => 0));
 
     // Verify view, edit, and delete links for any content.
     $this->drupalGet('admin/content');
     $this->assertResponse(200);
+
+    $node_type_labels = $this->xpath('//td[contains(@class, "views-field-type")]');
+    $delta = 0;
     foreach ($nodes as $node) {
       $this->assertLinkByHref('node/' . $node->id());
       $this->assertLinkByHref('node/' . $node->id() . '/edit');
       $this->assertLinkByHref('node/' . $node->id() . '/delete');
+      // Verify that we can see the content type label.
+      $this->assertEqual(trim((string) $node_type_labels[$delta]), $node->type->entity->label());
+      $delta++;
     }
 
     // Verify filtering by publishing status.

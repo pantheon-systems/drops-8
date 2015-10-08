@@ -187,25 +187,31 @@ class ConfigExportImportUITest extends WebTestBase {
       ->save();
     $this->drupalGet('admin/config/development/configuration');
     $this->assertText(t('Warning message'));
-    $this->assertText('The following items in your active configuration have changes since the last import that may be lost on the next import. system.site');
-    // Remove everything from staging. The warning about differences between the
+    $this->assertText('The following items in your active configuration have changes since the last import that may be lost on the next import.');
+    // Ensure the item is displayed as part of a list (to avoid false matches
+    // on the rest of the page) and that the list markup is not escaped.
+    $this->assertRaw('<li>system.site</li>');
+    // Remove everything from sync. The warning about differences between the
     // active and snapshot should no longer exist.
-    \Drupal::service('config.storage.staging')->deleteAll();
+    \Drupal::service('config.storage.sync')->deleteAll();
     $this->drupalGet('admin/config/development/configuration');
     $this->assertNoText(t('Warning message'));
-    $this->assertNoText('The following items in your active configuration have changes since the last import that may be lost on the next import. system.site');
+    $this->assertNoText('The following items in your active configuration have changes since the last import that may be lost on the next import.');
     $this->assertText(t('There are no configuration changes to import.'));
-    // Write a file to staging. The warning about differences between the
-    // active and snapshot should now exist.
-    /** @var \Drupal\Core\Config\StorageInterface $staging */
-    $staging = $this->container->get('config.storage.staging');
+    // Write a file to sync. The warning about differences between the active
+    // and snapshot should now exist.
+    /** @var \Drupal\Core\Config\StorageInterface $sync */
+    $sync = $this->container->get('config.storage.sync');
     $data = $this->config('system.site')->get();
     $data['slogan'] = 'in the face';
-    $this->copyConfig($this->container->get('config.storage'), $staging);
-    $staging->write('system.site', $data);
+    $this->copyConfig($this->container->get('config.storage'), $sync);
+    $sync->write('system.site', $data);
     $this->drupalGet('admin/config/development/configuration');
     $this->assertText(t('Warning message'));
-    $this->assertText('The following items in your active configuration have changes since the last import that may be lost on the next import. system.site');
+    $this->assertText('The following items in your active configuration have changes since the last import that may be lost on the next import.');
+    // Ensure the item is displayed as part of a list (to avoid false matches
+    // on the rest of the page) and that the list markup is not escaped.
+    $this->assertRaw('<li>system.site</li>');
   }
 
   /**
@@ -273,8 +279,8 @@ class ConfigExportImportUITest extends WebTestBase {
     // Verify that there are configuration differences to import.
     $this->drupalGet('admin/config/development/configuration');
     $this->assertNoText(t('There are no configuration changes to import.'));
-    $this->assertText(t('!collection configuration collection', array('!collection' => 'collection.test1')));
-    $this->assertText(t('!collection configuration collection', array('!collection' => 'collection.test2')));
+    $this->assertText(t('@collection configuration collection', array('@collection' => 'collection.test1')));
+    $this->assertText(t('@collection configuration collection', array('@collection' => 'collection.test2')));
     $this->assertText('config_test.create');
     $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.create');
     $this->assertText('config_test.update');

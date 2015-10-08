@@ -79,7 +79,9 @@ class HtmlTest extends UnitTestCase {
       // replaced.
       array('__cssidentifier', '-1cssidentifier', array()),
       // Verify that an identifier starting with two hyphens is replaced.
-      array('__cssidentifier', '--cssidentifier', array())
+      array('__cssidentifier', '--cssidentifier', array()),
+      // Verify that passing double underscores as a filter is processed.
+      array('_cssidentifier', '__cssidentifier',  array('__' => '_')),
     );
   }
 
@@ -231,7 +233,7 @@ class HtmlTest extends UnitTestCase {
   /**
    * Data provider for testDecodeEntities().
    *
-   * @see testCheckPlain()
+   * @see testDecodeEntities()
    */
   public function providerDecodeEntities() {
     return array(
@@ -272,7 +274,7 @@ class HtmlTest extends UnitTestCase {
   /**
    * Data provider for testEscape().
    *
-   * @see testCheckPlain()
+   * @see testEscape()
    */
   public function providerEscape() {
     return array(
@@ -310,4 +312,17 @@ class HtmlTest extends UnitTestCase {
     $this->assertSame('&lt;em&gt;répété&lt;/em&gt;', $escaped);
   }
 
+  /**
+   * Tests Html::serialize().
+   *
+   * Resolves an issue by where an empty DOMDocument object sent to serialization would
+   * cause errors in getElementsByTagName() in the serialization function.
+   *
+   * @covers ::serialize
+   */
+  public function testSerialize() {
+    $document = new \DOMDocument();
+    $result = Html::serialize($document);
+    $this->assertSame('', $result);
+  }
 }

@@ -7,14 +7,14 @@
 
 namespace Drupal\views\Plugin\views\filter;
 
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Form\FormHelper;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\user\RoleInterface;
-use Drupal\views\Plugin\CacheablePluginInterface;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
 
@@ -47,7 +47,7 @@ use Drupal\views\ViewExecutable;
 /**
  * Base class for Views filters handler plugins.
  */
-abstract class FilterPluginBase extends HandlerBase implements CacheablePluginInterface {
+abstract class FilterPluginBase extends HandlerBase implements CacheableDependencyInterface {
 
   /**
    * Contains the actual value of the field,either configured in the views ui
@@ -172,7 +172,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
    * Display the filter on the administrative summary
    */
   public function adminSummary() {
-    return SafeMarkup::checkPlain((string) $this->operator) . ' ' . SafeMarkup::checkPlain((string) $this->value);
+    return $this->operator . ' ' . $this->value;
   }
 
   /**
@@ -595,7 +595,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
       '#default_value' => $this->options['expose']['remember'],
     );
 
-    $role_options = array_map('\Drupal\Component\Utility\SafeMarkup::checkPlain', user_role_names());
+    $role_options = array_map('\Drupal\Component\Utility\Html::escape', user_role_names());
     $form['expose']['remember_roles'] = array(
       '#type' => 'checkboxes',
       '#title' => $this->t('User roles'),
@@ -1180,7 +1180,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
       }
       else {
         // Cast the label to a string since it can be an object.
-        // @see \Drupal\Core\StringTranslation\TranslationWrapper
+        // @see \Drupal\Core\StringTranslation\TranslatableMarkup
         $options[$value] = strip_tags(Html::decodeEntities((string) $label));
       }
     }
@@ -1465,8 +1465,8 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
   /**
    * {@inheritdoc}
    */
-  public function isCacheable() {
-    return TRUE;
+  public function getCacheMaxAge() {
+    return Cache::PERMANENT;
   }
 
   /**
@@ -1481,6 +1481,13 @@ abstract class FilterPluginBase extends HandlerBase implements CacheablePluginIn
       $cache_contexts[] = 'url';
     }
     return $cache_contexts;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheTags() {
+    return [];
   }
 
 }

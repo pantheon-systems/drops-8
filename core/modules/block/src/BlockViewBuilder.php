@@ -8,6 +8,7 @@
 namespace Drupal\block;
 
 use Drupal\Core\Block\MainContentBlockPluginInterface;
+use Drupal\Core\Block\TitleBlockPluginInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\EntityManagerInterface;
@@ -16,6 +17,7 @@ use Drupal\Core\Entity\EntityViewBuilder;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Plugin\ContextAwarePluginInterface;
 use Drupal\Core\Render\Element;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -63,7 +65,7 @@ class BlockViewBuilder extends EntityViewBuilder {
   /**
    * {@inheritdoc}
    */
-  public function buildComponents(array &$build, array $entities, array $displays, $view_mode, $langcode = NULL) {
+  public function buildComponents(array &$build, array $entities, array $displays, $view_mode) {
   }
 
   /**
@@ -99,12 +101,13 @@ class BlockViewBuilder extends EntityViewBuilder {
           'tags' => $cache_tags,
           'max-age' => $plugin->getCacheMaxAge(),
         ],
+        '#weight' => $entity->getWeight(),
       );
 
       // Allow altering of cacheability metadata or setting #create_placeholder.
       $this->moduleHandler->alter(['block_build', "block_build_" . $plugin->getBaseId()], $build[$entity_id], $plugin);
 
-      if ($plugin instanceof MainContentBlockPluginInterface) {
+      if ($plugin instanceof MainContentBlockPluginInterface || $plugin instanceof TitleBlockPluginInterface) {
         // Immediately build a #pre_render-able block, since this block cannot
         // be built lazily.
         $build[$entity_id] += static::buildPreRenderableBlock($entity, $this->moduleHandler());
@@ -138,6 +141,12 @@ class BlockViewBuilder extends EntityViewBuilder {
     $base_id = $plugin->getBaseId();
     $derivative_id = $plugin->getDerivativeId();
     $configuration = $plugin->getConfiguration();
+
+    // Inject runtime contexts.
+    if ($plugin instanceof ContextAwarePluginInterface) {
+      $contexts = \Drupal::service('context.repository')->getRuntimeContexts($plugin->getContextMapping());
+      \Drupal::service('context.handler')->applyContextMapping($plugin, $contexts);
+    }
 
     // Create the render array for the block as a whole.
     // @see template_preprocess_block().
@@ -183,7 +192,7 @@ class BlockViewBuilder extends EntityViewBuilder {
    * @return array
    *   A render array with a #pre_render callback to render the block.
    */
-  public static function lazyBuilder($entity_id, $view_mode, $langcode) {
+  public static function lazyBuilder($entity_id, $view_mode) {
     return static::buildPreRenderableBlock(entity_load('block', $entity_id), \Drupal::service('module_handler'));
   }
 

@@ -39,11 +39,11 @@ class ConfigSync extends FormBase {
   protected $lock;
 
   /**
-   * The staging configuration object.
+   * The sync configuration object.
    *
    * @var \Drupal\Core\Config\StorageInterface
    */
-  protected $stagingStorage;
+  protected $syncStorage;
 
   /**
    * The active configuration object.
@@ -111,7 +111,7 @@ class ConfigSync extends FormBase {
   /**
    * Constructs the object.
    *
-   * @param \Drupal\Core\Config\StorageInterface $staging_storage
+   * @param \Drupal\Core\Config\StorageInterface $sync_storage
    *   The source storage.
    * @param \Drupal\Core\Config\StorageInterface $active_storage
    *   The target storage.
@@ -134,8 +134,8 @@ class ConfigSync extends FormBase {
    * @param \Drupal\Core\Render\RendererInterface
    *   The renderer.
    */
-  public function __construct(StorageInterface $staging_storage, StorageInterface $active_storage, StorageInterface $snapshot_storage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ModuleInstallerInterface $module_installer, ThemeHandlerInterface $theme_handler, RendererInterface $renderer) {
-    $this->stagingStorage = $staging_storage;
+  public function __construct(StorageInterface $sync_storage, StorageInterface $active_storage, StorageInterface $snapshot_storage, LockBackendInterface $lock, EventDispatcherInterface $event_dispatcher, ConfigManagerInterface $config_manager, TypedConfigManagerInterface $typed_config, ModuleHandlerInterface $module_handler, ModuleInstallerInterface $module_installer, ThemeHandlerInterface $theme_handler, RendererInterface $renderer) {
+    $this->syncStorage = $sync_storage;
     $this->activeStorage = $active_storage;
     $this->snapshotStorage = $snapshot_storage;
     $this->lock = $lock;
@@ -153,7 +153,7 @@ class ConfigSync extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('config.storage.staging'),
+      $container->get('config.storage.sync'),
       $container->get('config.storage'),
       $container->get('config.storage.snapshot'),
       $container->get('lock.persistent'),
@@ -183,8 +183,8 @@ class ConfigSync extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Import all'),
     );
-    $source_list = $this->stagingStorage->listAll();
-    $storage_comparer = new StorageComparer($this->stagingStorage, $this->activeStorage, $this->configManager);
+    $source_list = $this->syncStorage->listAll();
+    $storage_comparer = new StorageComparer($this->syncStorage, $this->activeStorage, $this->configManager);
     if (empty($source_list) || !$storage_comparer->createChangelist()->hasChanges()) {
       $form['no_changes'] = array(
         '#type' => 'table',
@@ -217,12 +217,16 @@ class ConfigSync extends FormBase {
           }
         }
         sort($change_list);
-        $change_list_render = array(
-          '#theme' => 'item_list',
-          '#items' => $change_list,
-        );
-        $change_list_html = $this->renderer->renderPlain($change_list_render);
-        drupal_set_message($this->t('The following items in your active configuration have changes since the last import that may be lost on the next import. !changes', array('!changes' => $change_list_html)), 'warning');
+        $message = [
+          [
+            '#markup' => $this->t('The following items in your active configuration have changes since the last import that may be lost on the next import.')
+          ],
+          [
+            '#theme' => 'item_list',
+            '#items' => $change_list,
+          ]
+        ];
+        drupal_set_message($this->renderer->renderPlain($message), 'warning');
       }
     }
 
@@ -237,7 +241,7 @@ class ConfigSync extends FormBase {
         $form[$collection]['collection_heading'] = array(
           '#type' => 'html_tag',
           '#tag' => 'h2',
-          '#value' => $this->t('!collection configuration collection', array('!collection' => $collection)),
+          '#value' => $this->t('@collection configuration collection', array('@collection' => $collection)),
         );
       }
       foreach ($storage_comparer->getChangelist(NULL, $collection) as $config_change_type => $config_names) {
@@ -277,7 +281,7 @@ class ConfigSync extends FormBase {
           if ($config_change_type == 'rename') {
             $names = $storage_comparer->extractRenameNames($config_name);
             $route_options = array('source_name' => $names['old_name'], 'target_name' => $names['new_name']);
-            $config_name = $this->t('!source_name to !target_name', array('!source_name' => $names['old_name'], '!target_name' => $names['new_name']));
+            $config_name = $this->t('@source_name to @target_name', array('@source_name' => $names['old_name'], '@target_name' => $names['new_name']));
           }
           else {
             $route_options = array('source_name' => $config_name);

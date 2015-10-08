@@ -38,10 +38,10 @@ display:
         options:
           items_per_page: 50
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
-            first: '« first'
-            last: 'last »'
+            previous: '‹ Previous'
+            next: 'Next ›'
+            first: '« First'
+            last: 'Last »'
       style:
         type: table
         options:
@@ -561,11 +561,15 @@ display:
     position: 0
     cache_metadata:
       contexts:
-        - languages
+        - 'languages:language_content'
+        - 'languages:language_interface'
         - url
+        - url.query_args
         - user
         - 'user.node_grants:view'
-      cacheable: false
+        - user.permissions
+      max-age: 0
+      tags: {  }
   page_1:
     display_options:
       path: admin/content/node
@@ -589,8 +593,12 @@ display:
     position: 1
     cache_metadata:
       contexts:
-        - languages
+        - 'languages:language_content'
+        - 'languages:language_interface'
         - url
+        - url.query_args
         - user
         - 'user.node_grants:view'
-      cacheable: false
+        - user.permissions
+      max-age: 0
+      tags: {  }

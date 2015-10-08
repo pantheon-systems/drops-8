@@ -64,7 +64,7 @@ class ConfigController implements ContainerInjectionInterface {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('config.storage'),
-      $container->get('config.storage.staging'),
+      $container->get('config.storage.sync'),
       $container->get('config.manager'),
       new FileDownloadController(),
       $container->get('diff.formatter')
@@ -143,8 +143,8 @@ class ConfigController implements ContainerInjectionInterface {
     $build['diff'] = array(
       '#type' => 'table',
       '#header' => array(
-        array('data' => t('Old'), 'colspan' => '2'),
-        array('data' => t('New'), 'colspan' => '2'),
+        array('data' => t('Active'), 'colspan' => '2'),
+        array('data' => t('Staged'), 'colspan' => '2'),
       ),
       '#rows' => $this->diffFormatter->format($diff),
     );

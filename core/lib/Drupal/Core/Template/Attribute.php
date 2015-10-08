@@ -7,7 +7,9 @@
 
 namespace Drupal\Core\Template;
 
-use Drupal\Component\Utility\SafeStringInterface;
+use Drupal\Component\Render\PlainTextOutput;
+use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\MarkupInterface;
 
 /**
  * Collects, sanitizes, and renders HTML attributes.
@@ -39,12 +41,34 @@ use Drupal\Component\Utility\SafeStringInterface;
  *  {# Produces <cat class="cat black-cat white-cat black-white-cat my-custom-class" id="socks"> #}
  * @endcode
  *
- * The attribute keys and values are automatically sanitized for output with
- * Html::escape() and the entire attribute string is marked safe for output.
+ * The attribute keys and values are automatically escaped for output with
+ * Html::escape(). No protocol filtering is applied, so when using user-entered
+ * input as a value for an attribute that expects an URI (href, src, ...),
+ * UrlHelper::stripDangerousProtocols() should be used to ensure dangerous
+ * protocols (such as 'javascript:') are removed. For example:
+ * @code
+ *  $path = 'javascript:alert("xss");';
+ *  $path = UrlHelper::stripDangerousProtocols($path);
+ *  $attributes = new Attribute(array('href' => $path));
+ *  echo '<a' . $attributes . '>';
+ *  // Produces <a href="alert(&quot;xss&quot;);">
+ * @endcode
+ *
+ * The attribute values are considered plain text and are treated as such. If a
+ * safe HTML string is detected, it is converted to plain text with
+ * PlainTextOutput::renderFromHtml() before being escaped. For example:
+ * @code
+ *   $value = t('Highlight the @tag tag', ['@tag' => '<em>']);
+ *   $attributes = new Attribute(['value' => $value]);
+ *   echo '<input' . $attributes . '>';
+ *   // Produces <input value="Highlight the &lt;em&gt; tag">
+ * @endcode
  *
  * @see \Drupal\Component\Utility\Html::escape()
+ * @see \Drupal\Component\Render\PlainTextOutput::renderFromHtml()
+ * @see \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols()
  */
-class Attribute implements \ArrayAccess, \IteratorAggregate, SafeStringInterface {
+class Attribute implements \ArrayAccess, \IteratorAggregate, MarkupInterface {
 
   /**
    * Stores the attribute data.
@@ -100,14 +124,25 @@ class Attribute implements \ArrayAccess, \IteratorAggregate, SafeStringInterface
     }
     // An array value or 'class' attribute name are forced to always be an
     // AttributeArray value for consistency.
-    if (is_array($value) || $name == 'class') {
+    if ($name == 'class' && !is_array($value)) {
+      // Cast the value to string in case it implements MarkupInterface.
+      $value = [(string) $value];
+    }
+    if (is_array($value)) {
       // Cast the value to an array if the value was passed in as a string.
       // @todo Decide to fix all the broken instances of class as a string
       // in core or cast them.
-      $value = new AttributeArray($name, (array) $value);
+      $value = new AttributeArray($name, $value);
     }
     elseif (is_bool($value)) {
       $value = new AttributeBoolean($name, $value);
+    }
+    // As a development aid, we allow the value to be a safe string object.
+    elseif (SafeMarkup::isSafe($value)) {
+      // Attributes are not supposed to display HTML markup, so we just convert
+      // the value to plain text.
+      $value = PlainTextOutput::renderFromHtml($value);
+      $value = new AttributeString($name, $value);
     }
     elseif (!is_object($value)) {
       $value = new AttributeString($name, $value);

@@ -4,7 +4,16 @@ description: 'A base theme with sensible default CSS classes added. Learn how to
 package: Core
 version: VERSION
 core: 8.x
+base theme: false
 
 libraries:
   - classy/base
   - core/normalize
+
+libraries-extend:
+  user/drupal.user:
+    - classy/user
+  core/drupal.dropbutton:
+    - classy/dropbutton
+  core/drupal.dialog:
+    - classy/dialog

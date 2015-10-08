@@ -21,6 +21,13 @@ services:
     class: Drupal\serialization\Normalizer\ComplexDataNormalizer
     tags:
       - { name: normalizer }
+  serializer.normalizer.entity_reference_field_item:
+    class: Drupal\serialization\Normalizer\EntityReferenceFieldItemNormalizer
+    tags:
+      # Set the priority lower than the hal entity reference field item
+      # normalizer, so that we do not replace that for hal_json.
+      # @todo Find a better way for this in https://www.drupal.org/node/2575761.
+      - { name: normalizer, priority: 5 }
   serializer.normalizer.list:
     class: Drupal\serialization\Normalizer\ListNormalizer
     tags:
@@ -31,7 +38,7 @@ services:
       tags:
         - { name: normalizer, priority: 20 }
   serializer.normalizer.safe_string:
-      class: Drupal\serialization\Normalizer\SafeStringNormalizer
+      class: Drupal\serialization\Normalizer\MarkupNormalizer
       tags:
         - { name: normalizer }
   serializer.normalizer.typed_data:

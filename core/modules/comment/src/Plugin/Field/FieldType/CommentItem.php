@@ -159,6 +159,13 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
   /**
    * {@inheritdoc}
    */
+  public static function mainPropertyName() {
+    return 'status';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isEmpty() {
     // There is always a value for this field, it is one of
     // CommentItemInterface::OPEN, CommentItemInterface::CLOSED or
@@ -187,7 +194,7 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       '#title' => t('Comment type'),
       '#options' => $options,
       '#required' => TRUE,
-      '#description' => $this->t('Select the Comment type to use for this comment field. Manage the comment types from the <a href="@url">administration overview page</a>.', array('@url' => $this->url('entity.comment_type.collection'))),
+      '#description' => $this->t('Select the Comment type to use for this comment field. Manage the comment types from the <a href=":url">administration overview page</a>.', array(':url' => $this->url('entity.comment_type.collection'))),
       '#default_value' => $this->getSetting('comment_type'),
       '#disabled' => $has_data,
     );

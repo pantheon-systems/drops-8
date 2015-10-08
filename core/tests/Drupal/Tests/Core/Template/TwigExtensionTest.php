@@ -7,8 +7,10 @@
 
 namespace Drupal\Tests\Core\Template;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Template\Loader\StringLoader;
 use Drupal\Core\Template\TwigEnvironment;
 use Drupal\Core\Template\TwigExtension;
 use Drupal\Tests\UnitTestCase;
@@ -32,7 +34,7 @@ class TwigExtensionTest extends UnitTestCase {
     $twig = new \Twig_Environment(NULL, array(
       'debug' => TRUE,
       'cache' => FALSE,
-      'autoescape' => TRUE,
+      'autoescape' => 'html',
       'optimizations' => 0
     ));
     $twig->addExtension((new TwigExtension($renderer))->setUrlGenerator($this->getMock('Drupal\Core\Routing\UrlGeneratorInterface')));
@@ -103,7 +105,55 @@ class TwigExtensionTest extends UnitTestCase {
   }
 
   /**
-   * Tests the escaping of objects implementing SafeStringInterface.
+   * Tests the format_date filter.
+   */
+  public function testFormatDate() {
+    $date_formatter = $this->getMockBuilder('\Drupal\Core\Datetime\DateFormatter')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $date_formatter->expects($this->exactly(2))
+      ->method('format')
+      ->willReturn('1978-11-19');
+    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
+    $extension = new TwigExtension($renderer);
+    $extension->setDateFormatter($date_formatter);
+
+    $loader = new StringLoader();
+    $twig = new \Twig_Environment($loader);
+    $twig->addExtension($extension);
+    $result = $twig->render('{{ time|format_date("html_date") }}');
+    $this->assertEquals($date_formatter->format('html_date'), $result);
+  }
+
+  /**
+   * Tests the active_theme_path function.
+   */
+  public function testActiveThemePath() {
+    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
+    $extension = new TwigExtension($renderer);
+    $theme_manager = $this->getMock('\Drupal\Core\Theme\ThemeManagerInterface');
+    $active_theme = $this->getMockBuilder('\Drupal\Core\Theme\ActiveTheme')
+      ->disableOriginalConstructor()
+      ->getMock();
+    $active_theme
+      ->expects($this->once())
+      ->method('getPath')
+      ->willReturn('foo/bar');
+    $theme_manager
+      ->expects($this->once())
+      ->method('getActiveTheme')
+      ->willReturn($active_theme);
+    $extension->setThemeManager($theme_manager);
+
+    $loader = new \Twig_Loader_String();
+    $twig = new \Twig_Environment($loader);
+    $twig->addExtension($extension);
+    $result = $twig->render('{{ active_theme_path() }}');
+    $this->assertEquals('foo/bar', $result);
+  }
+
+  /**
+   * Tests the escaping of objects implementing MarkupInterface.
    *
    * @covers ::escapeFilter
    */
@@ -112,17 +162,17 @@ class TwigExtensionTest extends UnitTestCase {
     $twig = new \Twig_Environment(NULL, array(
       'debug' => TRUE,
       'cache' => FALSE,
-      'autoescape' => TRUE,
+      'autoescape' => 'html',
       'optimizations' => 0
     ));
     $twig_extension = new TwigExtension($renderer);
 
     // By default, TwigExtension will attempt to cast objects to strings.
-    // Ensure objects that implement SafeStringInterface are unchanged.
-    $safe_string = $this->getMock('\Drupal\Component\Utility\SafeStringInterface');
+    // Ensure objects that implement MarkupInterface are unchanged.
+    $safe_string = $this->getMock('\Drupal\Component\Render\MarkupInterface');
     $this->assertSame($safe_string, $twig_extension->escapeFilter($twig, $safe_string, 'html', 'UTF-8', TRUE));
 
-    // Ensure objects that do not implement SafeStringInterface are escaped.
+    // Ensure objects that do not implement MarkupInterface are escaped.
     $string_object = new TwigExtensionTestString("<script>alert('here');</script>");
     $this->assertSame('&lt;script&gt;alert(&#039;here&#039;);&lt;/script&gt;', $twig_extension->escapeFilter($twig, $string_object, 'html', 'UTF-8', TRUE));
   }
@@ -138,18 +188,42 @@ class TwigExtensionTest extends UnitTestCase {
     $twig_extension = new TwigExtension($renderer);
     $twig_environment = $this->prophesize(TwigEnvironment::class)->reveal();
 
-
     // Simulate t().
-    $string = '<em>will be markup</em>';
-    SafeMarkup::setMultiple([$string => ['html' => TRUE]]);
+    $markup = $this->prophesize(TranslatableMarkup::class);
+    $markup->__toString()->willReturn('<em>will be markup</em>');
+    $markup = $markup->reveal();
 
     $items = [
       '<em>will be escaped</em>',
-      $string,
+      $markup,
       ['#markup' => '<strong>will be rendered</strong>']
     ];
     $result = $twig_extension->safeJoin($twig_environment, $items, '<br/>');
     $this->assertEquals('&lt;em&gt;will be escaped&lt;/em&gt;<br/><em>will be markup</em><br/><strong>will be rendered</strong>', $result);
+  }
+
+  /**
+   * @dataProvider providerTestRenderVar
+   */
+  public function testRenderVar($result, $input) {
+    $renderer = $this->prophesize(RendererInterface::class);
+    $renderer->render($result += ['#printed' => FALSE])->willReturn('Rendered output');
+
+    $renderer = $renderer->reveal();
+    $twig_extension = new TwigExtension($renderer);
+
+    $this->assertEquals('Rendered output', $twig_extension->renderVar($input));
+  }
+
+  public function providerTestRenderVar() {
+    $data = [];
+
+    $renderable = $this->prophesize(RenderableInterface::class);
+    $render_array = ['#type' => 'test', '#var' => 'giraffe'];
+    $renderable->toRenderable()->willReturn($render_array);
+    $data['renderable'] = [$render_array, $renderable->reveal()];
+
+    return $data;
   }
 
 }

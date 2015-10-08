@@ -8,6 +8,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Asset\CssOptimizer;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Environment;
+use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -21,11 +22,11 @@ function color_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.color':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Color module allows users with the <em>Administer site configuration</em> permission to change the color scheme (color of links, backgrounds, text, and other theme elements) of compatible themes. For more information, see <a href="!color_do">the online documentation for the Color module</a>.', array('!color_do' => 'https://www.drupal.org/documentation/modules/color')) . '</p>';
+      $output .= '<p>' . t('The Color module allows users with the <em>Administer site configuration</em> permission to change the color scheme (color of links, backgrounds, text, and other theme elements) of compatible themes. For more information, see the <a href=":color_do">online documentation for the Color module</a>.', array(':color_do' => 'https://www.drupal.org/documentation/modules/color')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Changing colors') . '</dt>';
-      $output .= '<dd><p>' . t('To change the color settings, select the <em>Settings</em> link for your theme on the <a href="!appearance">Appearance</a> page. If the color picker does not appear then the theme is not compatible with the Color module.', array('!appearance' => \Drupal::url('system.themes_page'))) . '</p>';
+      $output .= '<dd><p>' . t('To change the color settings, select the <em>Settings</em> link for your theme on the <a href=":appearance">Appearance</a> page. If the color picker does not appear then the theme is not compatible with the Color module.', array(':appearance' => \Drupal::url('system.themes_page'))) . '</p>';
       $output .= '<p>' . t('The Color module saves a modified copy of the theme\'s specified stylesheets in the files directory. If you make any manual changes to your theme\'s stylesheet, <em>you must save your color settings again, even if you haven\'t changed the colors</em>. This step is required because the module stylesheets in the files directory need to be recreated to reflect your changes.') . '</p></dd>';
       $output .= '</dl>';
       return $output;
@@ -106,18 +107,25 @@ function color_library_info_alter(&$libraries, $extension) {
 }
 
 /**
- * Implements hook_preprocess_page().
- *
- * Replace the logo with the colored version if available.
+ * Implements hook_block_view_BASE_BLOCK_ID_alter().
  */
-function color_preprocess_page(&$variables) {
+function color_block_view_system_branding_block_alter(array &$build, BlockPluginInterface $block) {
+  $build['#pre_render'][] = 'color_block_view_pre_render';
+}
+
+/**
+ * #pre_render callback: Sets color preset logo.
+ */
+function color_block_view_pre_render(array $build) {
   $theme_key = \Drupal::theme()->getActiveTheme()->getName();
 
   // Override logo.
   $logo = \Drupal::config('color.theme.' . $theme_key)->get('logo');
-  if ($logo && $variables['logo'] && preg_match('!' . $theme_key . '/logo.svg$!', $variables['logo'])) {
-    $variables['logo'] = file_create_url($logo);
+  if ($logo && $build['content']['site_logo'] && preg_match('!' . $theme_key . '/logo.svg$!', $build['content']['site_logo']['#uri'])) {
+    $build['content']['site_logo']['#uri'] = file_create_url($logo);
   }
+
+  return $build;
 }
 
 /**
@@ -259,6 +267,10 @@ function color_scheme_form($complete_form, FormStateInterface $form_state, $them
     }
   }
   $form['theme'] = array('#type' => 'value', '#value' => $theme);
+  if (isset($info['#attached'])) {
+    $form['#attached'] = $info['#attached'];
+    unset($info['#attached']);
+  }
   $form['info'] = array('#type' => 'value', '#value' => $info);
 
   return $form;
@@ -398,7 +410,7 @@ function color_scheme_form_submit($form, FormStateInterface $form_state) {
     $memory_limit = ini_get('memory_limit');
     $size = Bytes::toInt($memory_limit);
     if (!Environment::checkMemoryLimit($usage + $required, $memory_limit)) {
-      drupal_set_message(t('There is not enough memory available to PHP to change this theme\'s color scheme. You need at least %size more. Check the <a href="@url">PHP documentation</a> for more information.', array('%size' => format_size($usage + $required - $size), '@url' => 'http://www.php.net/manual/ini.core.php#ini.sect.resource-limits')), 'error');
+      drupal_set_message(t('There is not enough memory available to PHP to change this theme\'s color scheme. You need at least %size more. Check the <a href=":url">PHP documentation</a> for more information.', array('%size' => format_size($usage + $required - $size), ':url' => 'http://www.php.net/manual/ini.core.php#ini.sect.resource-limits')), 'error');
       return;
     }
   }

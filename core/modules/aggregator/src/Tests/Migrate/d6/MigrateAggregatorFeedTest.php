@@ -11,13 +11,16 @@ use Drupal\aggregator\Entity\Feed;
 use Drupal\migrate_drupal\Tests\d6\MigrateDrupal6TestBase;
 
 /**
- * Upgrade variables to aggregator_feed entities.
+ * Tests migration of aggregator feeds.
  *
  * @group migrate_drupal_6
  */
 class MigrateAggregatorFeedTest extends MigrateDrupal6TestBase {
 
-  static $modules = array('aggregator');
+  /**
+   * {@inheritdoc}
+   */
+  public static $modules = ['aggregator'];
 
   /**
    * {@inheritdoc}
@@ -32,9 +35,8 @@ class MigrateAggregatorFeedTest extends MigrateDrupal6TestBase {
    * Tests migration of aggregator feeds.
    */
   public function testAggregatorFeedImport() {
-    /** @var Feed $feed */
+    /** @var \Drupal\aggregator\Entity\Feed $feed */
     $feed = Feed::load(5);
-    $this->assertNotNull($feed->uuid());
     $this->assertIdentical('Know Your Meme', $feed->title->value);
     $this->assertIdentical('en', $feed->language()->getId());
     $this->assertIdentical('http://knowyourmeme.com/newsfeed.rss', $feed->url->value);

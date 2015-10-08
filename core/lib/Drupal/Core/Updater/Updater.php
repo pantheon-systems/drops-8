@@ -235,9 +235,6 @@ class Updater {
       // Make sure the installation parent directory exists and is writable.
       $this->prepareInstallDirectory($filetransfer, $args['install_dir']);
 
-      // Note: If the project is installed in the top-level, it will not be
-      // deleted. It will be installed in sites/default as that will override
-      // the top-level reference and not break other sites which are using it.
       if (is_dir($args['install_dir'] . '/' . $this->name)) {
         // Remove the existing installed file.
         $filetransfer->removeDirectory($args['install_dir'] . '/' . $this->name);
@@ -257,7 +254,7 @@ class Updater {
       return $this->postUpdateTasks();
     }
     catch (FileTransferException $e) {
-      throw new UpdaterFileTransferException(t('File Transfer failed, reason: !reason', array('!reason' => strtr($e->getMessage(), $e->arguments))));
+      throw new UpdaterFileTransferException(t('File Transfer failed, reason: @reason', array('@reason' => strtr($e->getMessage(), $e->arguments))));
     }
   }
 
@@ -295,7 +292,7 @@ class Updater {
       return $this->postInstallTasks();
     }
     catch (FileTransferException $e) {
-      throw new UpdaterFileTransferException(t('File Transfer failed, reason: !reason', array('!reason' => strtr($e->getMessage(), $e->arguments))));
+      throw new UpdaterFileTransferException(t('File Transfer failed, reason: @reason', array('@reason' => strtr($e->getMessage(), $e->arguments))));
     }
   }
 

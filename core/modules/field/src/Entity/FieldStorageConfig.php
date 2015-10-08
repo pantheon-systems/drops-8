@@ -42,6 +42,7 @@ use Drupal\field\FieldStorageConfigInterface;
  *     "translatable",
  *     "indexes",
  *     "persist_with_no_fields",
+ *     "custom_storage",
  *   }
  * )
  */
@@ -159,6 +160,13 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * @var bool
    */
   protected $persist_with_no_fields = FALSE;
+
+  /**
+   * A boolean indicating whether or not the field item uses custom storage.
+   *
+   * @var bool
+   */
+  public $custom_storage = FALSE;
 
   /**
    * The custom storage indexes for the field data storage.
@@ -335,10 +343,15 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     parent::calculateDependencies();
     // Ensure the field is dependent on the providing module.
     $this->addDependency('module', $this->getTypeProvider());
+    // Ask the field type for any additional storage dependencies.
+    // @see \Drupal\Core\Field\FieldItemInterface::calculateStorageDependencies()
+    $definition = \Drupal::service('plugin.manager.field.field_type')->getDefinition($this->getType(), FALSE);
+    $this->addDependencies($definition['class']::calculateStorageDependencies($this));
+
     // Ensure the field is dependent on the provider of the entity type.
     $entity_type = \Drupal::entityManager()->getDefinition($this->entity_type);
     $this->addDependency('module', $entity_type->getProvider());
-    return $this->dependencies;
+    return $this;
   }
 
   /**
@@ -436,6 +449,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
       $schema = $class::schema($this);
       // Fill in default values for optional entries.
       $schema += array(
+        'columns' => array(),
         'unique keys' => array(),
         'indexes' => array(),
         'foreign keys' => array(),
@@ -455,7 +469,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * {@inheritdoc}
    */
   public function hasCustomStorage() {
-    return FALSE;
+    return $this->custom_storage;
   }
 
   /**
@@ -565,7 +579,7 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    * {@inheritdoc}
    */
   public function setSettings(array $settings) {
-    $this->settings = $settings;
+    $this->settings = $settings + $this->settings;
     return $this;
   }
 

@@ -139,8 +139,8 @@ use Drupal\node\Entity\NodeType;
  * - Field configuration preSave(): hook_field_storage_config_update_forbid()
  * - Node postSave(): hook_node_access_records() and
  *   hook_node_access_records_alter()
- * - Config entities that are acting as entity bundles, in postSave():
- *   hook_entity_bundle_create() or hook_entity_bundle_rename() as appropriate
+ * - Config entities that are acting as entity bundles in postSave():
+ *   hook_entity_bundle_create()
  * - Comment: hook_comment_publish() and hook_comment_unpublish() as
  *   appropriate.
  *
@@ -350,6 +350,7 @@ use Drupal\node\Entity\NodeType;
  *   'bundle_entity_type' on the \Drupal\node\Entity\Node class. Also, the
  *   bundle config entity type annotation must have a 'bundle_of' entry,
  *   giving the machine name of the entity type it is acting as a bundle for.
+ *   These machine names are considered permanent, they may not be renamed.
  * - Additional annotations can be seen on entity class examples such as
  *   \Drupal\node\Entity\Node (content) and \Drupal\user\Entity\Role
  *   (configuration). These annotations are documented on
@@ -467,7 +468,9 @@ use Drupal\node\Entity\NodeType;
  * @endcode
  * Then, to build and render the entity:
  * @code
- * // You can omit the language ID if the default language is being used.
+ * // You can omit the language ID, by default the current content language will
+ * // be used. If no translation is available for the current language, fallback
+ * // rules will be used.
  * $build = $view_builder->view($entity, 'view_mode_name', $language->getId());
  * // $build is a render array.
  * $rendered = drupal_render($build);
@@ -501,6 +504,7 @@ use Drupal\node\Entity\NodeType;
  *
  * @see i18n
  * @see entity_crud
+ * @see \Drupal\Core\Entity\EntityManagerInterface::getTranslationFromContext()
  * @}
  */
 
@@ -517,19 +521,17 @@ use Drupal\node\Entity\NodeType;
  * @param string $operation
  *   The operation that is to be performed on $entity.
  * @param \Drupal\Core\Session\AccountInterface $account
- *    The account trying to access the entity.
- * @param string $langcode
- *    The code of the language $entity is accessed in.
+ *   The account trying to access the entity.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
- *    The access result. The final result is calculated by using
- *    \Drupal\Core\Access\AccessResultInterface::orIf() on the result of every
- *    hook_entity_access() and hook_ENTITY_TYPE_access() implementation, and the
- *    result of the entity-specific checkAccess() method in the entity access
- *    control handler. Be careful when writing generalized access checks shared
- *    between routing and entity checks: routing uses the andIf() operator. So
- *    returning an isNeutral() does not determine entity access at all but it
- *    always ends up denying access while routing.
+ *   The access result. The final result is calculated by using
+ *   \Drupal\Core\Access\AccessResultInterface::orIf() on the result of every
+ *   hook_entity_access() and hook_ENTITY_TYPE_access() implementation, and the
+ *   result of the entity-specific checkAccess() method in the entity access
+ *   control handler. Be careful when writing generalized access checks shared
+ *   between routing and entity checks: routing uses the andIf() operator. So
+ *   returning an isNeutral() does not determine entity access at all but it
+ *   always ends up denying access while routing.
  *
  * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_entity_create_access()
@@ -537,7 +539,7 @@ use Drupal\node\Entity\NodeType;
  *
  * @ingroup entity_api
  */
-function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Session\AccountInterface $account, $langcode) {
+function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Session\AccountInterface $account) {
   // No opinion.
   return AccessResult::neutral();
 }
@@ -550,12 +552,10 @@ function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operat
  * @param string $operation
  *   The operation that is to be performed on $entity.
  * @param \Drupal\Core\Session\AccountInterface $account
- *    The account trying to access the entity.
- * @param string $langcode
- *    The code of the language $entity is accessed in.
+ *   The account trying to access the entity.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
- *    The access result. hook_entity_access() has detailed documentation.
+ *   The access result. hook_entity_access() has detailed documentation.
  *
  * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_ENTITY_TYPE_create_access()
@@ -563,7 +563,7 @@ function hook_entity_access(\Drupal\Core\Entity\EntityInterface $entity, $operat
  *
  * @ingroup entity_api
  */
-function hook_ENTITY_TYPE_access(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Session\AccountInterface $account, $langcode) {
+function hook_ENTITY_TYPE_access(\Drupal\Core\Entity\EntityInterface $entity, $operation, \Drupal\Core\Session\AccountInterface $account) {
   // No opinion.
   return AccessResult::neutral();
 }
@@ -572,16 +572,16 @@ function hook_ENTITY_TYPE_access(\Drupal\Core\Entity\EntityInterface $entity, $o
  * Control entity create access.
  *
  * @param \Drupal\Core\Session\AccountInterface $account
- *    The account trying to access the entity.
+ *   The account trying to access the entity.
  * @param array $context
- *    An associative array of additional context values. By default it contains
- *    language:
- *    - langcode - the current language code.
+ *   An associative array of additional context values. By default it contains
+ *   language:
+ *   - langcode - the current language code.
  * @param string $entity_bundle
- *    The entity bundle name.
+ *   The entity bundle name.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
- *    The access result.
+ *   The access result.
  *
  * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_entity_access()
@@ -598,16 +598,16 @@ function hook_entity_create_access(\Drupal\Core\Session\AccountInterface $accoun
  * Control entity create access for a specific entity type.
  *
  * @param \Drupal\Core\Session\AccountInterface $account
- *    The account trying to access the entity.
+ *   The account trying to access the entity.
  * @param array $context
- *    An associative array of additional context values. By default it contains
- *    language:
- *    - langcode - the current language code.
+ *   An associative array of additional context values. By default it contains
+ *   language:
+ *   - langcode - the current language code.
  * @param string $entity_bundle
- *    The entity bundle name.
+ *   The entity bundle name.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
- *    The access result.
+ *   The access result.
  *
  * @see \Drupal\Core\Entity\EntityAccessControlHandler
  * @see hook_ENTITY_TYPE_access()
@@ -738,31 +738,6 @@ function hook_entity_bundle_create($entity_type_id, $bundle) {
   // When a new bundle is created, the menu needs to be rebuilt to add the
   // Field UI menu item tabs.
   \Drupal::service('router.builder')->setRebuildNeeded();
-}
-
-/**
- * Act on entity_bundle_rename().
- *
- * This hook is invoked after the operation has been performed.
- *
- * @param string $entity_type_id
- *   The entity type to which the bundle is bound.
- * @param string $bundle_old
- *   The previous name of the bundle.
- * @param string $bundle_new
- *   The new name of the bundle.
- *
- * @see entity_crud
- */
-function hook_entity_bundle_rename($entity_type_id, $bundle_old, $bundle_new) {
-  // Update the settings associated with the bundle in my_module.settings.
-  $config = \Drupal::config('my_module.settings');
-  $bundle_settings = $config->get('bundle_settings');
-  if (isset($bundle_settings[$entity_type_id][$bundle_old])) {
-    $bundle_settings[$entity_type_id][$bundle_new] = $bundle_settings[$entity_type_id][$bundle_old];
-    unset($bundle_settings[$entity_type_id][$bundle_old]);
-    $config->set('bundle_settings', $bundle_settings);
-  }
 }
 
 /**
@@ -1064,7 +1039,7 @@ function hook_ENTITY_TYPE_translation_insert(\Drupal\Core\Entity\EntityInterface
  *
  * This hook runs once the entity translation has been deleted from storage.
  *
- * @param \Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\EntityInterface $translation
  *   The original entity object.
  *
  * @ingroup entity_crud
@@ -1084,7 +1059,7 @@ function hook_entity_translation_delete(\Drupal\Core\Entity\EntityInterface $tra
  *
  * This hook runs once the entity translation has been deleted from storage.
  *
- * @param \Drupal\Core\Entity\EntityInterface $entity
+ * @param \Drupal\Core\Entity\EntityInterface $translation
  *   The original entity object.
  *
  * @ingroup entity_crud
@@ -1256,8 +1231,6 @@ function hook_entity_query_alter(\Drupal\Core\Entity\Query\QueryInterface $query
  *   entity components.
  * @param $view_mode
  *   The view mode the entity is rendered in.
- * @param $langcode
- *   The language code used for rendering.
  *
  * The module may add elements to $build prior to rendering. The
  * structure of $build is a renderable array as expected by
@@ -1268,7 +1241,7 @@ function hook_entity_query_alter(\Drupal\Core\Entity\Query\QueryInterface $query
  *
  * @ingroup entity_crud
  */
-function hook_entity_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode, $langcode) {
+function hook_entity_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
   // Only do the extra work if the component is configured to be displayed.
   // This assumes a 'mymodule_addition' extra field has been defined for the
   // entity bundle in hook_entity_extra_field_info().
@@ -1292,8 +1265,6 @@ function hook_entity_view(array &$build, \Drupal\Core\Entity\EntityInterface $en
  *   entity components.
  * @param $view_mode
  *   The view mode the entity is rendered in.
- * @param $langcode
- *   The language code used for rendering.
  *
  * The module may add elements to $build prior to rendering. The
  * structure of $build is a renderable array as expected by
@@ -1304,7 +1275,7 @@ function hook_entity_view(array &$build, \Drupal\Core\Entity\EntityInterface $en
  *
  * @ingroup entity_crud
  */
-function hook_ENTITY_TYPE_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode, $langcode) {
+function hook_ENTITY_TYPE_view(array &$build, \Drupal\Core\Entity\EntityInterface $entity, \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display, $view_mode) {
   // Only do the extra work if the component is configured to be displayed.
   // This assumes a 'mymodule_addition' extra field has been defined for the
   // entity bundle in hook_entity_extra_field_info().
@@ -1467,8 +1438,6 @@ function hook_entity_view_mode_alter(&$view_mode, Drupal\Core\Entity\EntityInter
  *   The entity that is being viewed.
  * @param string $view_mode
  *   The view_mode that is to be used to display the entity.
- * @param string $langcode
- *   The code of the language $entity is accessed in.
  *
  * @see drupal_render()
  * @see \Drupal\Core\Entity\EntityViewBuilder
@@ -1476,7 +1445,7 @@ function hook_entity_view_mode_alter(&$view_mode, Drupal\Core\Entity\EntityInter
  *
  * @ingroup entity_crud
  */
-function hook_ENTITY_TYPE_build_defaults_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, $view_mode, $langcode) {
+function hook_ENTITY_TYPE_build_defaults_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, $view_mode) {
 
 }
 
@@ -1493,8 +1462,6 @@ function hook_ENTITY_TYPE_build_defaults_alter(array &$build, \Drupal\Core\Entit
  *   The entity that is being viewed.
  * @param string $view_mode
  *   The view_mode that is to be used to display the entity.
- * @param string $langcode
- *   The code of the language $entity is accessed in.
  *
  * @see drupal_render()
  * @see \Drupal\Core\Entity\EntityViewBuilder
@@ -1502,7 +1469,7 @@ function hook_ENTITY_TYPE_build_defaults_alter(array &$build, \Drupal\Core\Entit
  *
  * @ingroup entity_crud
  */
-function hook_entity_build_defaults_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, $view_mode, $langcode) {
+function hook_entity_build_defaults_alter(array &$build, \Drupal\Core\Entity\EntityInterface $entity, $view_mode) {
 
 }
 
@@ -1679,7 +1646,7 @@ function hook_entity_base_field_info(\Drupal\Core\Entity\EntityTypeInterface $en
  * @see hook_entity_bundle_field_info_alter()
  *
  * @todo WARNING: This hook will be changed in
- *   https://www.drupal.org/node/2346329.
+ * https://www.drupal.org/node/2346329.
  */
 function hook_entity_base_field_info_alter(&$fields, \Drupal\Core\Entity\EntityTypeInterface $entity_type) {
   // Alter the mymodule_text field to use a custom class.
@@ -1714,7 +1681,7 @@ function hook_entity_base_field_info_alter(&$fields, \Drupal\Core\Entity\EntityT
  * @see \Drupal\Core\Entity\EntityManagerInterface::getFieldDefinitions()
  *
  * @todo WARNING: This hook will be changed in
- *   https://www.drupal.org/node/2346347.
+ * https://www.drupal.org/node/2346347.
  */
 function hook_entity_bundle_field_info(\Drupal\Core\Entity\EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
   // Add a property only to nodes of the 'article' bundle.
@@ -1743,7 +1710,7 @@ function hook_entity_bundle_field_info(\Drupal\Core\Entity\EntityTypeInterface $
  * @see hook_entity_bundle_field_info()
  *
  * @todo WARNING: This hook will be changed in
- *   https://www.drupal.org/node/2346347.
+ * https://www.drupal.org/node/2346347.
  */
 function hook_entity_bundle_field_info_alter(&$fields, \Drupal\Core\Entity\EntityTypeInterface $entity_type, $bundle) {
   if ($entity_type->id() == 'node' && $bundle == 'article' && !empty($fields['mymodule_text'])) {

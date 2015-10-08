@@ -35,6 +35,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
    */
   protected $defaultCacheContexts = [
     'languages:language_interface',
+    'session',
     'theme',
     'url.path',
     'url.query_args',
@@ -50,6 +51,8 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
     $this->bundle = 'basic';
     $this->testLanguageSelector = FALSE;
     parent::setUp();
+
+    $this->drupalPlaceBlock('page_title_block');
   }
 
   /**

@@ -40,8 +40,8 @@ class LanguageCustomLanguageConfigurationTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
     // Test validation on missing values.
-    $this->assertText(t('!name field is required.', array('!name' => t('Language code'))));
-    $this->assertText(t('!name field is required.', array('!name' => t('Language name'))));
+    $this->assertText(t('@name field is required.', array('@name' => t('Language code'))));
+    $this->assertText(t('@name field is required.', array('@name' => t('Language name'))));
     $empty_language = new Language();
     $this->assertFieldChecked('edit-direction-' . $empty_language->getDirection(), 'Consistent usage of language direction.');
     $this->assertUrl(\Drupal::url('language.add', array(), array('absolute' => TRUE)), [], 'Correct page redirection.');
@@ -55,9 +55,9 @@ class LanguageCustomLanguageConfigurationTest extends WebTestBase {
     );
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
 
-    $this->assertRaw(t('%field must be a valid language tag as <a href="@url">defined by the W3C</a>.', array(
+    $this->assertRaw(t('%field must be a valid language tag as <a href=":url">defined by the W3C</a>.', array(
       '%field' => t('Language code'),
-      '@url' => 'http://www.w3.org/International/articles/language-tags/',
+      ':url' => 'http://www.w3.org/International/articles/language-tags/',
     )));
 
     $this->assertRaw(t('%field cannot contain any markup.', array('%field' => t('Language name'))));

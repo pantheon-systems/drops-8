@@ -137,7 +137,7 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = array();
     $output = array();
 
@@ -189,17 +189,8 @@ class CommentDefaultFormatter extends FormatterBase implements ContainerFactoryP
               $field_name,
               $this->getFieldSetting('comment_type'),
             ]],
+            '#create_placeholder' => TRUE,
           ];
-
-          // @todo Remove this in https://www.drupal.org/node/2543334. Until
-          //   then, \Drupal\Core\Render\Renderer::hasPoorCacheability() isn't
-          //   integrated with cache context bubbling, so this duplicates the
-          //   contexts added by \Drupal\comment\CommentForm::form().
-          $output['comment_form']['#cache']['contexts'][] = 'user.permissions';
-          $output['comment_form']['#cache']['contexts'][] = 'user.roles:authenticated';
-          if ($this->currentUser->isAuthenticated()) {
-            $output['comment_form']['#cache']['contexts'][] = 'user';
-          }
         }
       }
 

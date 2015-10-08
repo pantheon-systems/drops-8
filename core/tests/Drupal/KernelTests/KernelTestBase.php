@@ -7,6 +7,9 @@
 
 namespace Drupal\KernelTests;
 
+use Drupal\Component\FileCache\ApcuFileCacheBackend;
+use Drupal\Component\FileCache\FileCache;
+use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\ConfigImporter;
@@ -20,6 +23,7 @@ use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Site\Settings;
 use Drupal\simpletest\AssertContentTrait;
+use Drupal\simpletest\AssertHelperTrait;
 use Drupal\simpletest\RandomGeneratorTrait;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
@@ -52,6 +56,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
 
   use AssertLegacyTrait;
   use AssertContentTrait;
+  use AssertHelperTrait;
   use RandomGeneratorTrait;
 
   /**
@@ -212,6 +217,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     parent::setUp();
 
     $this->root = static::getDrupalRoot();
+    $this->initFileCache();
     $this->bootEnvironment();
     $this->bootKernel();
   }
@@ -254,8 +260,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     $this->siteDirectory = vfsStream::url('root/sites/simpletest/' . $suffix);
 
     mkdir($this->siteDirectory . '/files', 0775);
-    mkdir($this->siteDirectory . '/files/config/' . CONFIG_ACTIVE_DIRECTORY, 0775, TRUE);
-    mkdir($this->siteDirectory . '/files/config/' . CONFIG_STAGING_DIRECTORY, 0775, TRUE);
+    mkdir($this->siteDirectory . '/files/config/' . CONFIG_SYNC_DIRECTORY, 0775, TRUE);
 
     // Ensure that all code that relies on drupal_valid_test_ua() can still be
     // safely executed. This primarily affects the (test) site directory
@@ -273,8 +278,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     new Settings($settings);
 
     $GLOBALS['config_directories'] = array(
-      CONFIG_ACTIVE_DIRECTORY => $this->siteDirectory . '/files/config/active',
-      CONFIG_STAGING_DIRECTORY => $this->siteDirectory . '/files/config/staging',
+      CONFIG_SYNC_DIRECTORY => $this->siteDirectory . '/files/config/sync',
     );
 
     foreach (Database::getAllConnectionInfo() as $key => $targets) {
@@ -343,6 +347,14 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     // register() is only called if a new container was built/compiled.
     $this->container = $kernel->getContainer();
 
+    // Ensure database tasks have been run.
+    require_once __DIR__ . '/../../../includes/install.inc';
+    $connection = Database::getConnection();
+    $errors = db_installer_object($connection->driver())->runTasks();
+    if (!empty($errors)) {
+      $this->fail('Failed to run installer database tasks: ' . implode(', ', $errors));
+    }
+
     if ($modules) {
       $this->container->get('module_handler')->loadAll();
     }
@@ -394,17 +406,17 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
   protected function getDatabaseConnectionInfo() {
     // If the test is run with argument dburl then use it.
     $db_url = getenv('SIMPLETEST_DB');
-    if (!empty($db_url)) {
+    if (empty($db_url)) {
+      $this->markTestSkipped('There is no database connection so no tests can be run. You must provide a SIMPLETEST_DB environment variable to run PHPUnit based functional tests outside of run-tests.sh. See https://www.drupal.org/node/2116263#skipped-tests for more information.');
+    }
+    else {
       $database = Database::convertDbUrlToConnectionInfo($db_url, $this->root);
       Database::addConnectionInfo('default', 'default', $database);
     }
 
     // Clone the current connection and replace the current prefix.
     $connection_info = Database::getConnectionInfo('default');
-    if (is_null($connection_info)) {
-      throw new \InvalidArgumentException('There is no database connection so no tests can be run. You must provide a SIMPLETEST_DB environment variable, like "sqlite://localhost//tmp/test.sqlite", to run PHPUnit based functional tests outside of run-tests.sh.');
-    }
-    else {
+    if (!empty($connection_info)) {
       Database::renameConnection('default', 'simpletest_original_default');
       foreach ($connection_info as $target => $value) {
         // Replace the full table prefix definition to ensure that no table
@@ -477,6 +489,32 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     $container = clone self::$initialContainerBuilder;
 
     return $container;
+  }
+
+  /**
+   * Initializes the FileCache component.
+   *
+   * We can not use the Settings object in a component, that's why we have to do
+   * it here instead of \Drupal\Component\FileCache\FileCacheFactory.
+   */
+  protected function initFileCache() {
+    $configuration = Settings::get('file_cache');
+
+    // Provide a default configuration, if not set.
+    if (!isset($configuration['default'])) {
+      $configuration['default'] = [
+        'class' => FileCache::class,
+        'cache_backend_class' => NULL,
+        'cache_backend_configuration' => [],
+      ];
+      // @todo Use extension_loaded('apcu') for non-testbot
+      //  https://www.drupal.org/node/2447753.
+      if (function_exists('apc_fetch')) {
+        $configuration['default']['cache_backend_class'] = ApcuFileCacheBackend::class;
+      }
+    }
+    FileCacheFactory::setConfiguration($configuration);
+    FileCacheFactory::setPrefix(Settings::getApcuPrefix('file_cache', $this->root));
   }
 
   /**
@@ -624,6 +662,9 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
         $this->{$property->name} = NULL;
       }
     }
+
+    // Clean FileCache cache.
+    FileCache::reset();
 
     // Clean up statics, container, and settings.
     if (function_exists('drupal_static_reset')) {
@@ -863,8 +904,14 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
    *   The rendered string output (typically HTML).
    */
   protected function render(array &$elements) {
-    $content = $this->container->get('renderer')->render($elements);
-    drupal_process_attached($elements);
+    // Use the bare HTML page renderer to render our links.
+    $renderer = $this->container->get('bare_html_page_renderer');
+    $response = $renderer->renderBarePage(
+      $elements, '', $this->container->get('theme.manager')->getActiveTheme()->getName()
+    );
+
+    // Glean the content from the response object.
+    $content = $response->getContent();
     $this->setRawContent($content);
     $this->verbose('<pre style="white-space: pre-wrap">' . Html::escape($content));
     return $content;
@@ -896,7 +943,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     if (!$this->configImporter) {
       // Set up the ConfigImporter object for testing.
       $storage_comparer = new StorageComparer(
-        $this->container->get('config.storage.staging'),
+        $this->container->get('config.storage.sync'),
         $this->container->get('config.storage'),
         $this->container->get('config.manager')
       );
@@ -1025,7 +1072,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
       trigger_error(sprintf("KernelTestBase::\$%s no longer exists. Use the regular API method to retrieve it instead (e.g., Settings).", $name), E_USER_DEPRECATED);
       switch ($name) {
         case 'public_files_directory':
-          return Settings::get('file_public_path', conf_path() . '/files');
+          return Settings::get('file_public_path', \Drupal::service('site.path') . '/files');
 
         case 'private_files_directory':
           return $this->container->get('config.factory')->get('system.file')->get('path.private');
@@ -1034,15 +1081,14 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
           return file_directory_temp();
 
         case 'translation_files_directory':
-          return Settings::get('file_public_path', conf_path() . '/translations');
+          return Settings::get('file_public_path', \Drupal::service('site.path') . '/translations');
       }
     }
 
     if ($name === 'configDirectories') {
       trigger_error(sprintf("KernelTestBase::\$%s no longer exists. Use config_get_config_directory() directly instead.", $name), E_USER_DEPRECATED);
       return array(
-        CONFIG_ACTIVE_DIRECTORY => config_get_config_directory(CONFIG_ACTIVE_DIRECTORY),
-        CONFIG_STAGING_DIRECTORY => config_get_config_directory(CONFIG_STAGING_DIRECTORY),
+        CONFIG_SYNC_DIRECTORY => config_get_config_directory(CONFIG_SYNC_DIRECTORY),
       );
     }
 

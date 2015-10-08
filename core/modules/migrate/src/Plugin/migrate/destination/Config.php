@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Contains \Drupal\migrate\Plugin\migrate\destination\Config.
@@ -13,10 +14,8 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\DependencyTrait;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\migrate\Entity\MigrationInterface;
-use Drupal\migrate\MigrateException;
 use Drupal\migrate\Row;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\Core\Config\Config as ConfigObject;
 
 /**
  * Persist data to the config system.
@@ -80,19 +79,7 @@ class Config extends DestinationBase implements ContainerFactoryPluginInterface,
       }
     }
     $this->config->save();
-    return TRUE;
-  }
-
-  /**
-   * Throw an exception because config can not be rolled back.
-   *
-   * @param array $destination_keys
-   *   The array of destination ids to roll back.
-   *
-   * @throws \Drupal\migrate\MigrateException
-   */
-  public function rollbackMultiple(array $destination_keys) {
-    throw new MigrateException('Configuration can not be rolled back');
+    return [$this->config->getName()];
   }
 
   /**
@@ -106,7 +93,8 @@ class Config extends DestinationBase implements ContainerFactoryPluginInterface,
    * {@inheritdoc}
    */
   public function getIds() {
-    return array();
+    $ids['config_name']['type'] = 'string';
+    return $ids;
   }
 
   /**

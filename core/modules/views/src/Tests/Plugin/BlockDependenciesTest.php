@@ -7,7 +7,6 @@
 
 namespace Drupal\views\Tests\Plugin;
 
-use Drupal\Core\Cache\Cache;
 use Drupal\views\Tests\ViewKernelTestBase;
 
 /**
@@ -38,7 +37,7 @@ class BlockDependenciesTest extends ViewKernelTestBase {
    */
   public function testExposedBlock() {
     $block = $this->createBlock('views_exposed_filter_block:test_exposed_block-page_1');
-    $dependencies = $block->calculateDependencies();
+    $dependencies = $block->calculateDependencies()->getDependencies();
     $expected = array(
       'config' => array('views.view.test_exposed_block'),
       'module' => array('views'),
@@ -54,7 +53,7 @@ class BlockDependenciesTest extends ViewKernelTestBase {
    */
   public function testViewsBlock() {
     $block = $this->createBlock('views_block:content_recent-block_1');
-    $dependencies = $block->calculateDependencies();
+    $dependencies = $block->calculateDependencies()->getDependencies();
     $expected = array(
       'config' => array('views.view.content_recent'),
       'module' => array('views'),
@@ -83,7 +82,6 @@ class BlockDependenciesTest extends ViewKernelTestBase {
    *   - region: 'sidebar_first'.
    *   - theme: The default theme.
    *   - visibility: Empty array.
-   *   - cache: array('max_age' => Cache::PERMANENT).
    *
    * @return \Drupal\block\Entity\Block
    *   The block entity.
@@ -97,9 +95,6 @@ class BlockDependenciesTest extends ViewKernelTestBase {
       'label' => $this->randomMachineName(8),
       'visibility' => array(),
       'weight' => 0,
-      'cache' => array(
-        'max_age' => Cache::PERMANENT,
-      ),
     );
     $values = [];
     foreach (array('region', 'id', 'theme', 'plugin', 'weight', 'visibility') as $key) {

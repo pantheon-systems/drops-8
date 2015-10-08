@@ -277,14 +277,14 @@ class LinkFieldTest extends WebTestBase {
             "{$field_name}[0][uri]" => 'http://www.example.com',
           );
           $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertText(t('!name field is required.', array('!name' => t('Link text'))));
+          $this->assertText(t('@name field is required.', array('@name' => t('Link text'))));
 
           // Verify that the link text is not required, if the URL is empty.
           $edit = array(
             "{$field_name}[0][uri]" => '',
           );
           $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertNoText(t('!name field is required.', array('!name' => t('Link text'))));
+          $this->assertNoText(t('@name field is required.', array('@name' => t('Link text'))));
 
           // Verify that a URL and link text meets requirements.
           $this->drupalGet('entity_test/add');
@@ -293,7 +293,7 @@ class LinkFieldTest extends WebTestBase {
             "{$field_name}[0][title]" => 'Example',
           );
           $this->drupalPostForm(NULL, $edit, t('Save'));
-          $this->assertNoText(t('!name field is required.', array('!name' => t('Link text'))));
+          $this->assertNoText(t('@name field is required.', array('@name' => t('Link text'))));
         }
       }
     }
@@ -389,8 +389,8 @@ class LinkFieldTest extends WebTestBase {
     // Verify that the link is output according to the formatter settings.
     // Not using generatePermutations(), since that leads to 32 cases, which
     // would not test actual link field formatter functionality but rather
-    // _l() and options/attributes. Only 'url_plain' has a dependency on
-    // 'url_only', so we have a total of ~10 cases.
+    // the link generator and options/attributes. Only 'url_plain' has a
+    // dependency on 'url_only', so we have a total of ~10 cases.
     $options = array(
       'trim_length' => array(NULL, 6),
       'rel' => array(NULL, 'nofollow'),

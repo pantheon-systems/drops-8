@@ -9,6 +9,7 @@ namespace Drupal\field\Tests\Migrate\d7;
 
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\FieldStorageConfigInterface;
+use Drupal\migrate\Entity\Migration;
 use Drupal\migrate_drupal\Tests\d7\MigrateDrupal7TestBase;
 
 /**
@@ -26,7 +27,6 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
   static $modules = array(
     'comment',
     'datetime',
-    'entity_reference',
     'file',
     'image',
     'link',
@@ -106,6 +106,18 @@ class MigrateFieldTest extends MigrateDrupal7TestBase {
     $this->assertEntity('node.field_phone', 'telephone', FALSE, 1);
     $this->assertEntity('node.field_date', 'datetime', FALSE, 1);
     $this->assertEntity('node.field_date_with_end_time', 'datetime', FALSE, 1);
+
+    // Assert that the taxonomy term reference fields are referencing the
+    // correct entity type.
+    $field = FieldStorageConfig::load('node.field_term_reference');
+    $this->assertIdentical('taxonomy_term', $field->getSetting('target_type'));
+    $field = FieldStorageConfig::load('node.taxonomy_forums');
+    $this->assertIdentical('taxonomy_term', $field->getSetting('target_type'));
+
+    // Validate that the source count and processed count match up.
+    /** @var \Drupal\migrate\Entity\MigrationInterface $migration */
+    $migration = Migration::load('d7_field');
+    $this->assertIdentical($migration->getSourcePlugin()->count(), $migration->getIdMap()->processedCount());
   }
 
 }

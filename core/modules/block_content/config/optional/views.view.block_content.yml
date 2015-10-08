@@ -52,8 +52,8 @@ display:
           id: 0
           total_pages: null
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
+            previous: '‹ Previous'
+            next: 'Next ›'
           expose:
             items_per_page: false
             items_per_page_label: 'Items per page'
@@ -466,7 +466,10 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }
   page_1:
     display_plugin: page
     id: page_1
@@ -488,4 +491,7 @@ display:
         - 'languages:language_content'
         - 'languages:language_interface'
         - url
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }

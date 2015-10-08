@@ -112,7 +112,7 @@ final class Settings {
    */
   public static function initialize($app_root, $site_path, &$class_loader) {
     // Export these settings.php variables to the global namespace.
-    global $base_url, $config_directories, $config;
+    global $config_directories, $config;
     $settings = array();
     $config = array();
     $databases = array();
@@ -170,9 +170,9 @@ final class Settings {
    */
   public static function getApcuPrefix($identifier, $root, $site_path = '') {
     if (static::get('apcu_ensure_unique_prefix', TRUE)) {
-      return 'drupal.' . $identifier . '.' . hash_hmac('sha256', $identifier, static::get('hash_salt') . '.' . $root . '/' . $site_path);
+      return 'drupal.' . $identifier . '.' . \Drupal::VERSION . '.' . static::get('deployment_identifier') . '.' . hash_hmac('sha256', $identifier, static::get('hash_salt') . '.' . $root . '/' . $site_path);
     }
-    return 'drupal.' . $identifier . '.' . Crypt::hashBase64($root . '/' . $site_path);
+    return 'drupal.' . $identifier . '.' . \Drupal::VERSION . '.' . static::get('deployment_identifier') . '.' . Crypt::hashBase64($root . '/' . $site_path);
   }
 
 }

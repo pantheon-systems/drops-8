@@ -10,7 +10,6 @@
 
 use Drupal\Component\Graph\Graph;
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Utility\Error;
 
 /**
@@ -183,6 +182,7 @@ function update_do_one($module, $number, $dependency_map, &$context) {
     // @TODO We may want to do different error handling for different
     // exception types, but for now we'll just log the exception and
     // return the message for printing.
+    // @see https://www.drupal.org/node/2564311
     catch (Exception $e) {
       watchdog_exception('update', $e);
 
@@ -215,7 +215,68 @@ function update_do_one($module, $number, $dependency_map, &$context) {
     drupal_set_installed_schema_version($module, $number);
   }
 
-  $context['message'] = 'Updating ' . Html::escape($module) . ' module';
+  $context['message'] = t('Updating @module', ['@module' => $module]);
+}
+
+/**
+ * Executes a single hook_post_update_NAME().
+ *
+ * @param string $function
+ *   The function name, that should be executed.
+ * @param array $context
+ *   The batch context array.
+ */
+function update_invoke_post_update($function, &$context) {
+  $ret = [];
+
+  // If this update was aborted in a previous step, or has a dependency that was
+  // aborted in a previous step, go no further.
+  if (!empty($context['results']['#abort'])) {
+    return;
+  }
+
+  list($module, $name) = explode('_post_update_', $function, 2);
+  module_load_include('php', $module, $module . '.post_update');
+  if (function_exists($function)) {
+    try {
+      $ret['results']['query'] = $function($context['sandbox']);
+      $ret['results']['success'] = TRUE;
+
+      if (!isset($context['sandbox']['#finished']) || (isset($context['sandbox']['#finished']) && $context['sandbox']['#finished'] >= 1)) {
+        \Drupal::service('update.post_update_registry')->registerInvokedUpdates([$function]);
+      }
+    }
+    // @TODO We may want to do different error handling for different exception
+    // types, but for now we'll just log the exception and return the message
+    // for printing.
+    // @see https://www.drupal.org/node/2564311
+    catch (Exception $e) {
+      watchdog_exception('update', $e);
+
+      $variables = Error::decodeException($e);
+      unset($variables['backtrace']);
+      $ret['#abort'] = [
+        'success' => FALSE,
+        'query' => t('%type: @message in %function (line %line of %file).', $variables),
+      ];
+    }
+  }
+
+  if (isset($context['sandbox']['#finished'])) {
+    $context['finished'] = $context['sandbox']['#finished'];
+    unset($context['sandbox']['#finished']);
+  }
+  if (!isset($context['results'][$module][$name])) {
+    $context['results'][$module][$name] = array();
+  }
+  $context['results'][$module][$name] = array_merge($context['results'][$module][$name], $ret);
+
+  if (!empty($ret['#abort'])) {
+    // Record this function in the list of updates that were aborted.
+    $context['results']['#abort'][] = $function;
+  }
+
+  $context['message'] = t('Post updating @module', ['@module' => $module]);
 }
 
 /**
@@ -552,7 +613,7 @@ function update_retrieve_dependencies() {
     // Ensure install file is loaded.
     module_load_install($module);
     if (function_exists($function)) {
-      $result = $function();
+      $updated_dependencies = $function();
       // Each implementation of hook_update_dependencies() returns a
       // multidimensional, associative array containing some keys that
       // represent module names (which are strings) and other keys that
@@ -561,9 +622,9 @@ function update_retrieve_dependencies() {
       // treats strings and integers differently. Therefore, we have to
       // explicitly loop through the expected array structure here and perform
       // the merge manually.
-      if (isset($result) && is_array($result)) {
-        foreach ($result as $module => $module_data) {
-          foreach ($module_data as $update => $update_data) {
+      if (isset($updated_dependencies) && is_array($updated_dependencies)) {
+        foreach ($updated_dependencies as $module_name => $module_data) {
+          foreach ($module_data as $update_version => $update_data) {
             foreach ($update_data as $module_dependency => $update_dependency) {
               // If there are redundant dependencies declared for the same
               // update function (so that it is declared to depend on more than
@@ -584,8 +645,8 @@ function update_retrieve_dependencies() {
               // guaranteed to run before system_update_8003() anyway (within
               // an individual module, updates are always run in numerical
               // order).
-              if (!isset($return[$module][$update][$module_dependency]) || $update_dependency > $return[$module][$update][$module_dependency]) {
-                $return[$module][$update][$module_dependency] = $update_dependency;
+              if (!isset($return[$module_name][$update_version][$module_dependency]) || $update_dependency > $return[$module_name][$update_version][$module_dependency]) {
+                $return[$module_name][$update_version][$module_dependency] = $update_dependency;
               }
             }
           }

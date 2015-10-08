@@ -99,7 +99,7 @@ class UserPasswordForm extends FormBase {
     else {
       $form['mail'] = array(
         '#prefix' => '<p>',
-        '#markup' => $this->t('Password reset instructions will be sent to your registered e-mail address.'),
+        '#markup' => $this->t('Password reset instructions will be sent to your registered email address.'),
         '#suffix' => '</p>',
       );
       $form['name']['#default_value'] = $this->getRequest()->query->get('name');
@@ -132,7 +132,7 @@ class UserPasswordForm extends FormBase {
       }
     }
     else {
-      $form_state->setErrorByName('name', $this->t('Sorry, %name is not recognized as a username or an email address.', array('%name' => $name)));
+      $form_state->setErrorByName('name', $this->t('%name is not recognized as a username or an email address.', array('%name' => $name)));
     }
   }
 

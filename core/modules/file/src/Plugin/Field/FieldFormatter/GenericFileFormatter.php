@@ -25,10 +25,10 @@ class GenericFileFormatter extends FileFormatterBase {
   /**
    * {@inheritdoc}
    */
-  public function viewElements(FieldItemListInterface $items) {
+  public function viewElements(FieldItemListInterface $items, $langcode) {
     $elements = array();
 
-    foreach ($this->getEntitiesToView($items) as $delta => $file) {
+    foreach ($this->getEntitiesToView($items, $langcode) as $delta => $file) {
       $item = $file->_referringItem;
       $elements[$delta] = array(
         '#theme' => 'file_link',
@@ -46,11 +46,6 @@ class GenericFileFormatter extends FileFormatterBase {
         // formatter output and should not be rendered in the field template.
         unset($item->_attributes);
       }
-    }
-    if (!empty($elements)) {
-      $elements['#attached'] = array(
-        'library' => array('file/drupal.file.formatter.generic'),
-      );
     }
 
     return $elements;

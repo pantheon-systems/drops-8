@@ -70,7 +70,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   /**
    * Local cache for the available language objects.
    *
-   * @var array
+   * @var \Drupal\Core\Language\LanguageInterface[]
    */
   protected $languages;
 
@@ -138,7 +138,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   protected $isDefaultRevision = TRUE;
 
   /**
-   * Holds translatable entity keys such as the ID, bundle and revision ID.
+   * Holds untranslatable entity keys such as the ID, bundle, and revision ID.
    *
    * @var array
    */
@@ -593,7 +593,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     }
     return $this->entityManager()
       ->getAccessControlHandler($this->entityTypeId)
-      ->access($this, $operation, $this->activeLangcode, $account, $return_as_object);
+      ->access($this, $operation, $account, $return_as_object);
   }
 
   /**
@@ -737,22 +737,11 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     if (isset($this->translations[$langcode]['entity'])) {
       $translation = $this->translations[$langcode]['entity'];
     }
-    else {
-      if (isset($this->translations[$langcode])) {
-        $translation = $this->initializeTranslation($langcode);
-        $this->translations[$langcode]['entity'] = $translation;
-      }
-      else {
-        // If we were given a valid language and there is no translation for it,
-        // we return a new one.
-        $this->getLanguages();
-        if (isset($this->languages[$langcode])) {
-          // If the entity or the requested language  is not a configured
-          // language, we fall back to the entity itself, since in this case it
-          // cannot have translations.
-          $translation = !$this->languages[$this->defaultLangcode]->isLocked() && !$this->languages[$langcode]->isLocked() ? $this->addTranslation($langcode) : $this;
-        }
-      }
+    // Otherwise if an existing translation language was specified we need to
+    // instantiate the related translation.
+    elseif (isset($this->translations[$langcode])) {
+      $translation = $this->initializeTranslation($langcode);
+      $this->translations[$langcode]['entity'] = $translation;
     }
 
     if (empty($translation)) {
@@ -823,9 +812,14 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
    * {@inheritdoc}
    */
   public function addTranslation($langcode, array $values = array()) {
+    // Make sure we do not attempt to create a translation if an invalid
+    // language is specified or the entity cannot be translated.
     $this->getLanguages();
-    if (!isset($this->languages[$langcode]) || $this->hasTranslation($langcode)) {
+    if (!isset($this->languages[$langcode]) || $this->hasTranslation($langcode) || $this->languages[$langcode]->isLocked()) {
       throw new \InvalidArgumentException("Invalid translation language ($langcode) specified.");
+    }
+    if ($this->languages[$this->defaultLangcode]->isLocked()) {
+      throw new \InvalidArgumentException("The entity cannot be translated since it is language neutral ({$this->defaultLangcode}).");
     }
 
     // Instantiate a new empty entity so default values will be populated in the

@@ -38,7 +38,6 @@ class DecimalItem extends NumericItemBase {
 
   /**
    * {@inheritdoc}
-
    */
   public static function propertyDefinitions(FieldStorageDefinitionInterface $field_definition) {
     $properties['value'] = DataDefinition::create('string')
@@ -91,6 +90,25 @@ class DecimalItem extends NumericItemBase {
 
     return $element;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConstraints() {
+    $constraint_manager = \Drupal::typedDataManager()->getValidationConstraintManager();
+    $constraints = parent::getConstraints();
+
+    $constraints[] = $constraint_manager->create('ComplexData', array(
+      'value' => array(
+        'Regex' => array(
+          'pattern' => '/^[+-]?((\d+(\.\d*)?)|(\.\d+))$/i',
+        )
+      ),
+    ));
+
+    return $constraints;
+  }
+
 
   /**
    * {@inheritdoc}

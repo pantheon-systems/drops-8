@@ -74,25 +74,22 @@ function search_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.search':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Search module provides the ability to set up search pages based on plugins provided by other modules. In Drupal core, there are two page-type plugins: the Content page type provides keyword searching for content managed by the Node module, and the Users page type provides keyword searching for registered users. Contributed modules may provide other page-type plugins. For more information, see <a href="!search-module">the online documentation for the Search module</a>.', array('!search-module' => 'https://www.drupal.org/documentation/modules/search')) . '</p>';
+      $output .= '<p>' . t('The Search module provides the ability to set up search pages based on plugins provided by other modules. In Drupal core, there are two page-type plugins: the Content page type provides keyword searching for content managed by the Node module, and the Users page type provides keyword searching for registered users. Contributed modules may provide other page-type plugins. For more information, see the <a href=":search-module">online documentation for the Search module</a>.', array(':search-module' => 'https://www.drupal.org/documentation/modules/search')) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Configuring search pages') . '</dt>';
-      $output .= '<dd>' . t('To configure search pages, visit the <a href="!search-settings">Search pages page</a>. In the Search pages section, you can add a new search page, edit the configuration of existing search pages, enable and disable search pages, and choose the default search page. Each enabled search page has a URL path starting with <em>search</em>, and each will appear as a tab or local task link on the <a href="!search-url">search page</a>; you can configure the text that is shown in the tab. In addition, some search page plugins have additional settings that you can configure for each search page.', array('!search-settings' => \Drupal::url('entity.search_page.collection'), '!search-url' => \Drupal::url('search.view'))) . '</dd>';
+      $output .= '<dd>' . t('To configure search pages, visit the <a href=":search-settings">Search pages page</a>. In the Search pages section, you can add a new search page, edit the configuration of existing search pages, enable and disable search pages, and choose the default search page. Each enabled search page has a URL path starting with <em>search</em>, and each will appear as a tab or local task link on the <a href=":search-url">search page</a>; you can configure the text that is shown in the tab. In addition, some search page plugins have additional settings that you can configure for each search page.', array(':search-settings' => \Drupal::url('entity.search_page.collection'), ':search-url' => \Drupal::url('search.view'))) . '</dd>';
       $output .= '<dt>' . t('Managing the search index') . '</dt>';
-      $output .= '<dd>' . t('Some search page plugins, such as the core Content search page, index searchable text using the Drupal core search index, and will not work unless content is indexed. Indexing is done during <em>cron</em> runs, so it requires a <a href="!cron">cron maintenance task</a> to be set up. There are also several settings affecting indexing that can be configured on the <a href="!search-settings">Search pages page</a>: the number of items to index per cron run, the minimum word length to index, and how to handle Chinese, Japanese, and Korean characters.', array('!cron' => \Drupal::url('system.cron_settings'), '!search-settings' => \Drupal::url('entity.search_page.collection'))) . '</dd>';
-      $output .= '<dd>' . t('Modules providing search page plugins generally ensure that content-related actions on your site (creating, editing, or deleting content and comments) automatically cause affected content items to be marked for indexing or reindexing at the next cron run. When content is marked for reindexing, the previous content remains in the index until cron runs, at which time it is replaced by the new content. However, there are some actions related to the structure of your site that do not cause affected content to be marked for reindexing. Examples of structure-related actions that affect content include deleting or editing taxonomy terms, enabling or disabling modules that add text to content (such as Taxonomy, Comment, and field-providing modules), and modifying the fields or display parameters of your content types. If you take one of these actions and you want to ensure that the search index is updated to reflect your changed site structure, you can mark all content for reindexing by clicking the "Re-index site" button on the <a href="!search-settings">Search pages page</a>. If you have a lot of content on your site, it may take several cron runs for the content to be reindexed.', array('!search-settings' => \Drupal::url('entity.search_page.collection'))) . '</dd>';
+      $output .= '<dd>' . t('Some search page plugins, such as the core Content search page, index searchable text using the Drupal core search index, and will not work unless content is indexed. Indexing is done during <em>cron</em> runs, so it requires a <a href=":cron">cron maintenance task</a> to be set up. There are also several settings affecting indexing that can be configured on the <a href=":search-settings">Search pages page</a>: the number of items to index per cron run, the minimum word length to index, and how to handle Chinese, Japanese, and Korean characters.', array(':cron' => \Drupal::url('system.cron_settings'), ':search-settings' => \Drupal::url('entity.search_page.collection'))) . '</dd>';
+      $output .= '<dd>' . t('Modules providing search page plugins generally ensure that content-related actions on your site (creating, editing, or deleting content and comments) automatically cause affected content items to be marked for indexing or reindexing at the next cron run. When content is marked for reindexing, the previous content remains in the index until cron runs, at which time it is replaced by the new content. However, there are some actions related to the structure of your site that do not cause affected content to be marked for reindexing. Examples of structure-related actions that affect content include deleting or editing taxonomy terms, enabling or disabling modules that add text to content (such as Taxonomy, Comment, and field-providing modules), and modifying the fields or display parameters of your content types. If you take one of these actions and you want to ensure that the search index is updated to reflect your changed site structure, you can mark all content for reindexing by clicking the "Re-index site" button on the <a href=":search-settings">Search pages page</a>. If you have a lot of content on your site, it may take several cron runs for the content to be reindexed.', array(':search-settings' => \Drupal::url('entity.search_page.collection'))) . '</dd>';
       $output .= '<dt>' . t('Displaying the Search block') . '</dt>';
-      $output .= '<dd>' . t('The Search module includes a block, which can be enabled and configured on the <a href="!blocks">Block layout page</a>, if you have the Block module enabled; the default block title is Search, and it is the Search form block in the Forms category, if you wish to add another instance. The block is available to users with the <a href="!search_permission">Use search</a> permission, and it performs a search using the configured default search page.', array('!blocks' => (\Drupal::moduleHandler()->moduleExists('block')) ? \Drupal::url('block.admin_display') : '#', '!search_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-search')))) . '</dd>';
+      $output .= '<dd>' . t('The Search module includes a block, which can be enabled and configured on the <a href=":blocks">Block layout page</a>, if you have the Block module enabled; the default block title is Search, and it is the Search form block in the Forms category, if you wish to add another instance. The block is available to users with the <a href=":search_permission">Use search</a> permission, and it performs a search using the configured default search page.', array(':blocks' => (\Drupal::moduleHandler()->moduleExists('block')) ? \Drupal::url('block.admin_display') : '#', ':search_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-search')))) . '</dd>';
       $output .= '<dt>' . t('Searching your site') . '</dt>';
-      $output .= '<dd>' . t('Users with <a href="!search_permission">Use search</a> permission can use the Search block and <a href="!search">Search page</a>. Users with the <a href="!node_permission">View published content</a> permission can use configured search pages of type <em>Content</em> to search for content containing exact keywords; in addition, users with <a href="!search_permission">Use advanced search</a> permission can use more complex search filtering. Users with the <a href="!user_permission">View user information</a> permission can use configured search pages of type <em>Users</em> to search for active users containing the keyword anywhere in the username, and users with the <a href="!user_permission">Administer users</a> permission can search for active and blocked users, by email address or username keyword.', array('!search' => \Drupal::url('search.view'), '!search_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-search')), '!node_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-node')), '!user_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-user')))) . '</dd>';
+      $output .= '<dd>' . t('Users with <a href=":search_permission">Use search</a> permission can use the Search block and <a href=":search">Search page</a>. Users with the <a href=":node_permission">View published content</a> permission can use configured search pages of type <em>Content</em> to search for content containing exact keywords; in addition, users with <a href=":search_permission">Use advanced search</a> permission can use more complex search filtering. Users with the <a href=":user_permission">View user information</a> permission can use configured search pages of type <em>Users</em> to search for active users containing the keyword anywhere in the username, and users with the <a href=":user_permission">Administer users</a> permission can search for active and blocked users, by email address or username keyword.', array(':search' => \Drupal::url('search.view'), ':search_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-search')), ':node_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-node')), ':user_permission' => \Drupal::url('user.admin_permissions', array(), array('fragment' => 'module-user')))) . '</dd>';
       $output .= '<dt>' . t('Extending the Search module') . '</dt>';
-      $output .= '<dd>' . t('By default, the Search module only supports exact keyword matching in content searches. You can modify this behavior by installing a language-specific stemming module for your language (such as <a href="!porterstemmer_url">Porter Stemmer</a> for American English), which allows words such as walk, walking, and walked to be matched in the Search module. Another approach is to use a third-party search technology with stemming or partial word matching features built in, such as <a href="!solr_url">Apache Solr</a> or <a href="!sphinx_url">Sphinx</a>. There are also contributed modules that provide additional search pages. These and other <a href="!contrib-search">search-related contributed modules</a> can be downloaded by visiting Drupal.org.', array('!contrib-search' => 'https://www.drupal.org/project/project_module?f[2]=im_vid_3%3A105', '!porterstemmer_url' => 'https://www.drupal.org/project/porterstemmer', '!solr_url' => 'https://www.drupal.org/project/apachesolr', '!sphinx_url' => 'https://www.drupal.org/project/sphinx')) . '</dd>';
+      $output .= '<dd>' . t('By default, the Search module only supports exact keyword matching in content searches. You can modify this behavior by installing a language-specific stemming module for your language (such as <a href=":porterstemmer_url">Porter Stemmer</a> for American English), which allows words such as walk, walking, and walked to be matched in the Search module. Another approach is to use a third-party search technology with stemming or partial word matching features built in, such as <a href=":solr_url">Apache Solr</a> or <a href=":sphinx_url">Sphinx</a>. There are also contributed modules that provide additional search pages. These and other <a href=":contrib-search">search-related contributed modules</a> can be downloaded by visiting Drupal.org.', array(':contrib-search' => 'https://www.drupal.org/project/project_module?f[2]=im_vid_3%3A105', ':porterstemmer_url' => 'https://www.drupal.org/project/porterstemmer', ':solr_url' => 'https://www.drupal.org/project/apachesolr', ':sphinx_url' => 'https://www.drupal.org/project/sphinx')) . '</dd>';
       $output .= '</dl>';
       return $output;
-
-    case 'entity.search_page.collection':
-      return '<p>' . t('The search engine maintains an index of words found in your site\'s content. To build and maintain this index, a correctly configured <a href="!cron">cron maintenance task</a> is required. Indexing behavior can be adjusted using the settings below.', array('!cron' => \Drupal::url('system.status'))) . '</p>';
   }
 }
 
@@ -262,7 +259,7 @@ function search_simplify($text, $langcode = NULL) {
   // Lowercase
   $text = Unicode::strtolower($text);
 
-  // Remove diacitics.
+  // Remove diacritics.
   $text = \Drupal::service('transliteration')->removeDiacritics($text);
 
   // Call an external processor for word handling.
@@ -383,10 +380,22 @@ function search_index_split($text, $langcode = NULL) {
  * Helper function for array_walk in search_index_split.
  */
 function _search_index_truncate(&$text) {
+  // Use a static array to avoid re-truncating text we've done before.
+  // The same words may often be passed in during excerpt generation.
+  static $truncated = array();
+  if (isset($truncated[$text])) {
+    $text = $truncated[$text];
+    return;
+  }
+
+  // If we didn't find it in the static array, perform the operation.
+  $original = $text;
   if (is_numeric($text)) {
     $text = ltrim($text, '0');
   }
   $text = Unicode::truncate($text, 50);
+  // Save it for the next time.
+  $truncated[$original] = $text;
 }
 
 /**
@@ -632,7 +641,9 @@ function search_mark_for_reindex($type = NULL, $sid = NULL, $langcode = NULL) {
  */
 function search_excerpt($keys, $text, $langcode = NULL) {
   // We highlight around non-indexable or CJK characters.
-  $boundary = '(?:(?<=[' . Unicode::PREG_CLASS_WORD_BOUNDARY . PREG_CLASS_CJK . '])|(?=[' . Unicode::PREG_CLASS_WORD_BOUNDARY . PREG_CLASS_CJK . ']))';
+  $boundary_character = '[' . Unicode::PREG_CLASS_WORD_BOUNDARY . PREG_CLASS_CJK . ']';
+  $preceded_by_boundary = '(?<=' . $boundary_character . ')';
+  $followed_by_boundary = '(?=' . $boundary_character . ')';
 
   // Extract positive keywords and phrases.
   preg_match_all('/ ("([^"]+)"|(?!OR)([^" ]+))/', ' ' . $keys, $matches);
@@ -648,7 +659,7 @@ function search_excerpt($keys, $text, $langcode = NULL) {
   // search_simplify().
   $temp_keys = array();
   foreach ($keys as $key) {
-    $key = _search_find_match_with_simplify($key, $text, $boundary, $langcode);
+    $key = _search_find_match_with_simplify($key, $text, $boundary_character, $langcode);
     if (isset($key)) {
       // Quote slashes so they can be used in regular expressions.
       $temp_keys[] = preg_quote($key, '/');
@@ -683,7 +694,7 @@ function search_excerpt($keys, $text, $langcode = NULL) {
       // we are requiring a match on a word boundary, make sure $text starts
       // and ends with a space.
       $matches = array();
-      if (preg_match('/' . $boundary . $key . $boundary . '/iu', ' ' . $text . ' ', $matches, PREG_OFFSET_CAPTURE, $look_start[$key])) {
+      if (preg_match('/' . $preceded_by_boundary . $key . $followed_by_boundary . '/iu', ' ' . $text . ' ', $matches, PREG_OFFSET_CAPTURE, $look_start[$key])) {
         $found_position = $matches[0][1];
         $look_start[$key] = $found_position + 1;
         // Keep track of which keys we found this time, in case we need to
@@ -762,13 +773,13 @@ function search_excerpt($keys, $text, $langcode = NULL) {
 
   // Combine the text chunks with "…" separators. The "…" needs to be
   // translated. Let translators have the … separator text as one chunk.
-  $ellipses = explode('!excerpt', t('… !excerpt … !excerpt …'));
+  $ellipses = explode('@excerpt', t('… @excerpt … @excerpt …'));
   $text = (isset($new_ranges[0]) ? '' : $ellipses[0]) . implode($ellipses[1], $out) . (($max_end < strlen($text) - 1) ? $ellipses[2] : '');
   $text = Html::escape($text);
 
   // Highlight keywords. Must be done at once to prevent conflicts ('strong'
   // and '<strong>').
-  $text = trim(preg_replace('/' . $boundary . '(?:' . implode('|', $keys) . ')' . $boundary . '/iu', '<strong>\0</strong>', ' ' . $text . ' '));
+  $text = trim(preg_replace('/' . $preceded_by_boundary . '(?:' . implode('|', $keys) . ')' . $followed_by_boundary . '/iu', '<strong>\0</strong>', ' ' . $text . ' '));
   return [
     '#markup' => $text,
     '#allowed_tags' => ['strong']
@@ -787,7 +798,8 @@ function search_excerpt($keys, $text, $langcode = NULL) {
  * @param string $text
  *   The text to search for the keyword.
  * @param string $boundary
- *   Regular expression for boundary characters between words.
+ *   Regular expression for the boundary character class (characters that
+ *   indicate spaces between words).
  * @param string|null $langcode
  *   Language code for the language of $text, if known.
  *
@@ -798,6 +810,9 @@ function search_excerpt($keys, $text, $langcode = NULL) {
  *   not located, NULL is returned.
  */
 function _search_find_match_with_simplify($key, $text, $boundary, $langcode = NULL) {
+  $preceded_by_boundary = '(?<=' . $boundary . ')';
+  $followed_by_boundary = '(?=' . $boundary . ')';
+
   // See if $key appears as-is. When testing, make sure $text starts/ends with
   // a space, because we require $key to be surrounded by word boundary
   // characters.
@@ -805,8 +820,19 @@ function _search_find_match_with_simplify($key, $text, $boundary, $langcode = NU
   if ($temp == '') {
     return NULL;
   }
-  if (preg_match('/' . $boundary . preg_quote($temp, '/') . $boundary . '/iu', ' ' . $text . ' ')) {
-    return $key;
+  if (preg_match('/' . $preceded_by_boundary . preg_quote($temp, '/') . $followed_by_boundary . '/iu', ' ' . $text . ' ')) {
+    return $temp;
+  }
+
+  // See if there is a match after lower-casing and removing diacritics in
+  // both, which should preserve the string length.
+  $new_text = Unicode::strtolower($text);
+  $new_text = \Drupal::service('transliteration')->removeDiacritics($new_text);
+  $new_key = Unicode::strtolower($temp);
+  $new_key = \Drupal::service('transliteration')->removeDiacritics($new_key);
+  if (preg_match('/' . $preceded_by_boundary . preg_quote($new_key, '/') . $followed_by_boundary . '/u', ' ' . $new_text . ' ')) {
+    $position = Unicode::strpos($new_text, $new_key);
+    return Unicode::substr($text, $position, Unicode::strlen($new_key));
   }
 
   // Run both text and key through search_simplify.
@@ -818,45 +844,69 @@ function _search_find_match_with_simplify($key, $text, $boundary, $langcode = NU
   }
 
   // Split $text into words, keeping track of where the word boundaries are.
-  $words = preg_split('/' . $boundary . '/iu', $text, NULL, PREG_SPLIT_OFFSET_CAPTURE);
+  $words = preg_split('/' . $boundary . '+/u', $text, NULL, PREG_SPLIT_OFFSET_CAPTURE);
   // Add an entry pointing to the end of the string, for the loop below.
   $words[] = array('', strlen($text));
   $num_words = count($words);
 
-  // Find the smallest segment of complete words in $text that we can simplify
-  // to match $simplified_key.
-  $start_position = 0;
-  $word_end = 0;
-  for ($word_index = 0; $word_index < $num_words; $word_index++) {
-    // See if we can move the starting position out from our previously-saved
-    // best position to here and still have a match.
-    $trial_position = $words[$word_index][1];
-    if ($trial_position < strlen($text)) {
-      $candidate = substr($text, $trial_position);
-      $test_text = trim(search_simplify($candidate, $langcode));
-      if (strpos($test_text, $simplified_key) !== FALSE) {
-        $start_position = $trial_position;
-        $word_end = $trial_position + strlen($words[$word_index][0]);
-        continue;
-      }
+  // Using a binary search, find the earliest possible ending position in
+  // $text where it will still match the keyword after applying
+  // search_simplify().
+  $start_index = 0;
+  $start_pos = $words[$start_index][1];
+  $min_end_index = 1;
+  $max_end_index = count($words) - 1;
+  while ($max_end_index > $min_end_index) {
+    // Check the index half way between min and max. See if we ended there,
+    // if we would still have a match.
+    $proposed_end_index = floor(($max_end_index + $min_end_index) / 2);
+    $proposed_end_pos = $words[$proposed_end_index][1];
+    // Since the split was done with preg_split(), the positions are byte counts
+    // not character counts, so use substr() not Unicode::substr() here.
+    $trial_text = trim(search_simplify(substr($text, $start_pos, $proposed_end_pos - $start_pos), $langcode));
+    if (strpos($trial_text, $simplified_key) !== FALSE) {
+      // The proposed endpoint is fine, text still matches.
+      $max_end_index = $proposed_end_index;
     }
-
-    // See if we can end at our currently-saved word-ending position and still
-    // match, in which case this is the minimal matching string.
-    if ($word_end > $start_position) {
-      $candidate = substr($text, $start_position, $word_end - $start_position);
-      $test_text = trim(search_simplify($candidate, $langcode));
-      if (strpos($test_text, $simplified_key) !== FALSE) {
-        return $candidate;
-      }
+    else {
+      // The proposed endpoint index is too early, so the earliest possible
+      // OK ending point would be the next index.
+      $min_end_index = $proposed_end_index + 1;
     }
-
-    // Save the end position of this word for the next time through this loop.
-    $word_end = $trial_position + strlen($words[$word_index][0]);
   }
 
-  // If we get here, we couldn't find a match.
-  return NULL;
+  // Now do the same for the starting position: using a binary search, find the
+  // latest possible starting position in $text where it will still match the
+  // keyword after applying search_simplify().
+  $end_index = $min_end_index;
+  $end_pos = $words[$end_index][1];
+  $min_start_index = 0;
+  $max_start_index = $end_index - 1;
+  while ($max_start_index > $min_start_index) {
+    // Check the index half way between min and max. See if we started there,
+    // if we would still have a match.
+    $proposed_start_index = ceil(($max_start_index + $min_start_index) / 2);
+    $proposed_start_pos = $words[$proposed_start_index][1];
+    // Since the split was done with preg_split(), the positions are byte counts
+    // not character counts, so use substr() not Unicode::substr() here.
+    $trial_text = trim(search_simplify(substr($text, $proposed_start_pos, $end_pos - $proposed_start_pos), $langcode));
+    if (strpos($trial_text, $simplified_key) !== FALSE) {
+      // The proposed start point is fine, text still matches.
+      $min_start_index = $proposed_start_index;
+    }
+    else {
+      // The proposed start point index is too late, so the latest possible
+      // OK starting point would be the previous index.
+      $max_start_index = $proposed_start_index - 1;
+    }
+  }
+  $start_index = $max_start_index;
+
+  // Return the matching text. We need to use substr() here and not the
+  // Unicode::substr() function, because the indices in $words came from
+  // preg_split(), so they are Unicode-safe byte positions, not character
+  // positions.
+  return trim(substr($text, $words[$start_index][1], $words[$end_index][1] - $words[$start_index][1]));
 }
 
 /**

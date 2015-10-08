@@ -399,11 +399,11 @@ class ViewExecutable implements \Serializable {
    *
    * @var array
    *
-   * @see drupal_process_attached
+   * @see \Drupal\Core\Render\AttachmentsResponseProcessorInterface::processAttachments()
    */
   public $element = [
     '#attached' => [
-      'library' => [],
+      'library' => ['views/views.module'],
       'drupalSettings' => [],
     ],
     '#cache' => [],
@@ -456,9 +456,6 @@ class ViewExecutable implements \Serializable {
     $this->user = $user;
     $this->viewsData = $views_data;
     $this->routeProvider = $route_provider;
-
-    // Add the default css for a view.
-    $this->element['#attached']['library'][] = 'views/views.module';
   }
 
   /**
@@ -1028,8 +1025,8 @@ class ViewExecutable implements \Serializable {
         }
 
         // Add this argument's substitution
-        $substitutions['%' . ($position + 1)] = $arg_title;
-        $substitutions['!' . ($position + 1)] = strip_tags(Html::decodeEntities($arg));
+        $substitutions["{{ arguments.$id }}"] = $arg_title;
+        $substitutions["{{ raw_arguments.$id }}"] = strip_tags(Html::decodeEntities($arg));
 
         // Test to see if we should use this argument's title
         if (!empty($argument->options['title_enable']) && !empty($argument->options['title'])) {
@@ -2318,15 +2315,16 @@ class ViewExecutable implements \Serializable {
   }
 
   /**
-   * Calculates dependencies for the view.
+   * Gets dependencies for the view.
    *
    * @see \Drupal\views\Entity\View::calculateDependencies()
+   * @see \Drupal\views\Entity\View::getDependencies()
    *
    * @return array
    *   An array of dependencies grouped by type (module, theme, entity).
    */
-  public function calculateDependencies() {
-    return $this->storage->calculateDependencies();
+  public function getDependencies() {
+    return $this->storage->calculateDependencies()->getDependencies();
   }
 
   /**

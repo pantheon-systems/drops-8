@@ -1,5 +1,5 @@
 id: d6_node_setting_promote
-label: Drupal 6 node type 'promote' setting
+label: Node type 'promote' setting
 migration_tags:
   - Drupal 6
 source:
@@ -11,6 +11,9 @@ process:
   entity_type: 'constants/entity_type'
   bundle: type
   field_name: 'constants/field_name'
+  label:
+    plugin: default_value
+    default_value: 'Promoted to front page'
   'default_value/0/value': 'options/promote'
 destination:
   plugin: entity:base_field_override

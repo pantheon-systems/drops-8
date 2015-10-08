@@ -92,8 +92,9 @@ function views_ui_add_ajax_trigger(&$wrapping_element, $trigger_key, $refresh_pa
   }
   // For easiest integration with the form API and the testing framework, we
   // always give the button a unique #value, rather than playing around with
-  // #name.
-  $button_title = !empty($triggering_element['#title']) ? $triggering_element['#title'] : $trigger_key;
+  // #name. We also cast the #title to string as we will use it as an array
+  // key and it may be a TranslatableMarkup.
+  $button_title = !empty($triggering_element['#title']) ? (string) $triggering_element['#title'] : $trigger_key;
   if (empty($seen_buttons[$button_title])) {
     $wrapping_element[$button_key]['#value'] = t('Update "@title" choice', array(
       '@title' => $button_title,
@@ -314,7 +315,7 @@ function views_ui_build_form_url(FormStateInterface $form_state) {
 function views_ui_form_button_was_clicked($element, FormStateInterface $form_state) {
   $user_input = $form_state->getUserInput();
   $process_input = empty($element['#disabled']) && ($form_state->isProgrammed() || ($form_state->isProcessingInput() && (!isset($element['#access']) || $element['#access'])));
-  if ($process_input && !$form_state->getTriggeringElement() && !empty($element['#is_button']) && isset($user_input[$element['#name']]) && isset($element['#values']) && in_array($user_input[$element['#name']], $element['#values'], TRUE)) {
+  if ($process_input && !$form_state->getTriggeringElement() && !empty($element['#is_button']) && isset($user_input[$element['#name']]) && isset($element['#values']) && in_array($user_input[$element['#name']], array_map('strval', $element['#values']), TRUE)) {
     $form_state->setTriggeringElement($element);
   }
   return $element;

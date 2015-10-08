@@ -90,7 +90,6 @@ class TranslationStatusForm extends FormBase {
         }
         $options[$langcode] = array(
           'title' => array(
-            'class' => array('label'),
             'data' => array(
               '#title' => $title,
               '#plain_text' => $title,
@@ -133,16 +132,16 @@ class TranslationStatusForm extends FormBase {
     );
 
     if (!$languages) {
-      $empty = $this->t('No translatable languages available. <a href="@add_language">Add a language</a> first.', array(
-        '@add_language' => $this->url('entity.configurable_language.collection'),
+      $empty = $this->t('No translatable languages available. <a href=":add_language">Add a language</a> first.', array(
+        ':add_language' => $this->url('entity.configurable_language.collection'),
       ));
     }
     elseif ($status) {
       $empty = $this->t('All translations up to date.');
     }
     else {
-      $empty = $this->t('No translation status available. <a href="@check">Check manually</a>.', array(
-        '@check' => $this->url('locale.check_translation'),
+      $empty = $this->t('No translation status available. <a href=":check">Check manually</a>.', array(
+        ':check' => $this->url('locale.check_translation'),
       ));
     }
 
@@ -233,9 +232,6 @@ class TranslationStatusForm extends FormBase {
    * This method will produce debug information including the respective path(s)
    * based on this setting.
    *
-   * Translations for development versions are never fetched, so the debug info
-   * for that is a fixed message.
-   *
    * @param array $project_info
    *   An array which is the project information of the source.
    *
@@ -246,9 +242,6 @@ class TranslationStatusForm extends FormBase {
     $remote_path = isset($project_info->files['remote']->uri) ? $project_info->files['remote']->uri : FALSE;
     $local_path = isset($project_info->files['local']->uri) ? $project_info->files['local']->uri : FALSE;
 
-    if (strpos($project_info->version, 'dev') !== FALSE) {
-      return $this->t('No translation files are provided for development releases.');
-    }
     if (locale_translation_use_remote_source() && $remote_path && $local_path) {
       return $this->t('File not found at %remote_path nor at %local_path', array(
         '%remote_path' => $remote_path,

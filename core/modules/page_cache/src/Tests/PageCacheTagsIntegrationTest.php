@@ -74,13 +74,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'route',
       'theme',
       'timezone',
-      'user.permissions',
-      // The user login block access depends on whether the current user is
-      // logged in or not.
-      'user.roles:anonymous',
-      // The cache contexts associated with the (in)accessible menu links are
-      // bubbled.
-      'user.roles:authenticated',
+      'user',
       // The placed block is only visible on certain URLs through a visibility
       // condition.
       'url',
@@ -91,10 +85,10 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'rendered',
       'block_view',
       'config:block_list',
+      'config:block.block.bartik_branding',
       'config:block.block.bartik_breadcrumbs',
       'config:block.block.bartik_content',
       'config:block.block.bartik_tools',
-      'config:block.block.bartik_login',
       'config:block.block.bartik_footer',
       'config:block.block.bartik_help',
       'config:block.block.bartik_search',
@@ -105,10 +99,13 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'config:block.block.bartik_messages',
       'config:block.block.bartik_local_actions',
       'config:block.block.bartik_local_tasks',
+      'config:block.block.bartik_page_title',
       'node_view',
       'node:' . $node_1->id(),
+      'user:0',
       'user:' . $author_1->id(),
       'config:filter.format.basic_html',
+      'config:search.settings',
       'config:system.menu.account',
       'config:system.menu.tools',
       'config:system.menu.footer',
@@ -127,10 +124,10 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'rendered',
       'block_view',
       'config:block_list',
+      'config:block.block.bartik_branding',
       'config:block.block.bartik_breadcrumbs',
       'config:block.block.bartik_content',
       'config:block.block.bartik_tools',
-      'config:block.block.bartik_login',
       'config:block.block.bartik_help',
       'config:block.block.bartik_search',
       'config:block.block.' . $block->id(),
@@ -141,10 +138,12 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       'config:block.block.bartik_messages',
       'config:block.block.bartik_local_actions',
       'config:block.block.bartik_local_tasks',
+      'config:block.block.bartik_page_title',
       'node_view',
       'node:' . $node_2->id(),
       'user:' . $author_2->id(),
       'config:filter.format.full_html',
+      'config:search.settings',
       'config:system.menu.account',
       'config:system.menu.tools',
       'config:system.menu.footer',
@@ -156,6 +155,7 @@ class PageCacheTagsIntegrationTest extends WebTestBase {
       // FinishResponseSubscriber adds this cache tag to responses that have the
       // 'user.permissions' cache context for anonymous users.
       'config:user.role.anonymous',
+      'user:0',
     ));
   }
 

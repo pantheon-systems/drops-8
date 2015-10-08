@@ -19,13 +19,13 @@ dependencies:
   - block_content
   - quickedit
   - editor
-  - entity_reference
   - help
   - image
   - menu_ui
   - options
   - path
   - page_cache
+  - dynamic_page_cache
   - taxonomy
   - dblog
   - search
@@ -37,6 +37,7 @@ dependencies:
   - views
   - views_ui
   - tour
+  - automated_cron
 themes:
   - bartik
   - seven

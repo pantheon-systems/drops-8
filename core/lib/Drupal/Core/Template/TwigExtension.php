@@ -14,7 +14,9 @@ namespace Drupal\Core\Template;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\SafeStringInterface;
+use Drupal\Component\Render\MarkupInterface;
+use Drupal\Core\Datetime\DateFormatter;
+use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Theme\ThemeManagerInterface;
@@ -49,6 +51,13 @@ class TwigExtension extends \Twig_Extension {
    * @var \Drupal\Core\Theme\ThemeManagerInterface
    */
   protected $themeManager;
+
+  /**
+   * The date formatter.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatter
+   */
+  protected $dateFormatter;
 
   /**
    * Constructs \Drupal\Core\Template\TwigExtension.
@@ -102,6 +111,19 @@ class TwigExtension extends \Twig_Extension {
   }
 
   /**
+   * Sets the date formatter.
+   *
+   * @param \Drupal\Core\Datetime\DateFormatter $date_formatter
+   *   The date formatter.
+   *
+   * @return $this
+   */
+  public function setDateFormatter(DateFormatter $date_formatter) {
+    $this->dateFormatter = $date_formatter;
+    return $this;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getFunctions() {
@@ -115,6 +137,7 @@ class TwigExtension extends \Twig_Extension {
       new \Twig_SimpleFunction('link', array($this, 'getLink')),
       new \Twig_SimpleFunction('file_url', 'file_create_url'),
       new \Twig_SimpleFunction('attach_library', [$this, 'attachLibrary']),
+      new \Twig_SimpleFunction('active_theme_path', [$this, 'getActiveThemePath']),
       new \Twig_SimpleFunction('active_theme', [$this, 'getActiveTheme']),
     ];
   }
@@ -132,7 +155,6 @@ class TwigExtension extends \Twig_Extension {
       // "raw" filter and give it identifiable names. These filters should only
       // be used in "trans" tags.
       // @see TwigNodeTrans::compileString()
-      new \Twig_SimpleFilter('passthrough', 'twig_raw_filter', array('is_safe' => array('html'))),
       new \Twig_SimpleFilter('placeholder', [$this, 'escapePlaceholder'], array('is_safe' => array('html'), 'needs_environment' => TRUE)),
 
       // Replace twig's escape filter with our own.
@@ -151,6 +173,7 @@ class TwigExtension extends \Twig_Extension {
       new \Twig_SimpleFilter('clean_id', '\Drupal\Component\Utility\Html::getId'),
       // This filter will render a renderable array to use the string results.
       new \Twig_SimpleFilter('render', array($this, 'renderVar')),
+      new \Twig_SimpleFilter('format_date', array($this->dateFormatter, 'format')),
     );
   }
 
@@ -273,6 +296,16 @@ class TwigExtension extends \Twig_Extension {
   }
 
   /**
+   * Gets the path of the active theme.
+   *
+   * @return string
+   *   The path to the active theme.
+   */
+  public function getActiveThemePath() {
+    return $this->themeManager->getActiveTheme()->getPath();
+  }
+
+  /**
    * Determines at compile time whether the generated URL will be safe.
    *
    * Saves the unneeded automatic escaping for performance reasons.
@@ -349,6 +382,9 @@ class TwigExtension extends \Twig_Extension {
    *
    * Replacement function for Twig's escape filter.
    *
+   * Note: This function should be kept in sync with
+   * theme_render_and_autoescape().
+   *
    * @param \Twig_Environment $env
    *   A Twig_Environment instance.
    * @param mixed $arg
@@ -363,6 +399,9 @@ class TwigExtension extends \Twig_Extension {
    *
    * @return string|null
    *   The escaped, rendered output, or NULL if there is no valid output.
+   *
+   * @todo Refactor this to keep it in sync with theme_render_and_autoescape()
+   *   in https://www.drupal.org/node/2575065
    */
   public function escapeFilter(\Twig_Environment $env, $arg, $strategy = 'html', $charset = NULL, $autoescape = FALSE) {
     // Check for a numeric zero int or float.
@@ -376,7 +415,7 @@ class TwigExtension extends \Twig_Extension {
     }
 
     // Keep Twig_Markup objects intact to support autoescaping.
-    if ($autoescape && ($arg instanceOf \Twig_Markup || $arg instanceOf SafeStringInterface)) {
+    if ($autoescape && ($arg instanceOf \Twig_Markup || $arg instanceOf MarkupInterface)) {
       return $arg;
     }
 
@@ -386,7 +425,10 @@ class TwigExtension extends \Twig_Extension {
       $return = (string) $arg;
     }
     elseif (is_object($arg)) {
-      if (method_exists($arg, '__toString')) {
+      if ($arg instanceof RenderableInterface) {
+        $arg = $arg->toRenderable();
+      }
+      elseif (method_exists($arg, '__toString')) {
         $return = (string) $arg;
       }
       // You can't throw exceptions in the magic PHP __toString methods, see
@@ -461,7 +503,10 @@ class TwigExtension extends \Twig_Extension {
     }
 
     if (is_object($arg)) {
-      if (method_exists($arg, '__toString')) {
+      if ($arg instanceof RenderableInterface) {
+        $arg = $arg->toRenderable();
+      }
+      elseif (method_exists($arg, '__toString')) {
         return (string) $arg;
       }
       // You can't throw exceptions in the magic PHP __toString methods, see

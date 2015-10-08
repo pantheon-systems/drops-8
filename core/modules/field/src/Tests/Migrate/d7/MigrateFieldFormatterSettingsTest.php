@@ -24,11 +24,11 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
   public static $modules = [
     'comment',
     'datetime',
-    'entity_reference',
     'file',
     'image',
     'link',
     'node',
+    'taxonomy',
     'telephone',
     'text',
   ];
@@ -38,7 +38,11 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
    */
   protected function setUp() {
     parent::setUp();
+
+    $this->installEntitySchema('node');
     $this->installEntitySchema('comment');
+    $this->installEntitySchema('taxonomy_term');
+
     CommentType::create([
       'id' => 'comment_node_page',
       'label' => $this->randomMachineName(),
@@ -64,7 +68,6 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
       'label' => $this->randomMachineName(),
     ])->save();
 
-    $this->installEntitySchema('node');
     NodeType::create([
       'type' => 'page',
       'label' => $this->randomMachineName(),
@@ -147,10 +150,12 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
       ->condition('field_name', 'body')
       ->execute();
 
-    $this->executeMigration('d7_field');
-    $this->executeMigration('d7_field_instance');
-    $this->executeMigration('d7_view_modes');
-    $this->executeMigration('d7_field_formatter_settings');
+    $this->executeMigrations([
+      'd7_field',
+      'd7_field_instance',
+      'd7_view_modes',
+      'd7_field_formatter_settings',
+    ]);
   }
 
   /**

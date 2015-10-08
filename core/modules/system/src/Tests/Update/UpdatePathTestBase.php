@@ -124,6 +124,13 @@ abstract class UpdatePathTestBase extends WebTestBase {
   protected $strictConfigSchema = FALSE;
 
   /**
+   * Fail the test if there are failed updates.
+   *
+   * @var bool
+   */
+  protected $checkFailedUpdates = TRUE;
+
+  /**
    * Constructs an UpdatePathTestCase object.
    *
    * @param $test_id
@@ -246,7 +253,9 @@ abstract class UpdatePathTestBase extends WebTestBase {
     $this->clickLink(t('Apply pending updates'));
 
     // Ensure there are no failed updates.
-    $this->assertNoRaw('<strong>' . t('Failed:') . '</strong>');
+    if ($this->checkFailedUpdates) {
+      $this->assertNoRaw('<strong>' . t('Failed:') . '</strong>');
+    }
 
     // The config schema can be incorrect while the update functions are being
     // executed. But once the update has been completed, it needs to be valid
@@ -254,6 +263,7 @@ abstract class UpdatePathTestBase extends WebTestBase {
     $names = $this->container->get('config.storage')->listAll();
     /** @var \Drupal\Core\Config\TypedConfigManagerInterface $typed_config */
     $typed_config = $this->container->get('config.typed');
+    $typed_config->clearCachedDefinitions();
     foreach ($names as $name) {
       $config = $this->config($name);
       $this->assertConfigSchema($typed_config, $name, $config->get());
@@ -275,11 +285,8 @@ abstract class UpdatePathTestBase extends WebTestBase {
       ->register('language.default', 'Drupal\Core\Language\LanguageDefault')
       ->addArgument('%language.default_values%');
     $container
-      ->register('language_manager', 'Drupal\Core\Language\LanguageManager')
-      ->addArgument(new Reference('language.default'));
-    $container
       ->register('string_translation', 'Drupal\Core\StringTranslation\TranslationManager')
-      ->addArgument(new Reference('language_manager'));
+      ->addArgument(new Reference('language.default'));
     \Drupal::setContainer($container);
 
     require_once __DIR__ . '/../../../../../includes/install.inc';

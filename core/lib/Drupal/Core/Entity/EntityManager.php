@@ -32,7 +32,7 @@ use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
-use Drupal\Core\TypedData\TypedDataManager;
+use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareInterface;
 use Symfony\Component\DependencyInjection\ContainerAwareTrait;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -111,7 +111,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   /**
    * The typed data manager.
    *
-   * @var \Drupal\Core\TypedData\TypedDataManager
+   * @var \Drupal\Core\TypedData\TypedDataManagerInterface
    */
   protected $typedDataManager;
 
@@ -193,14 +193,14 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
    *   The string translationManager.
    * @param \Drupal\Core\DependencyInjection\ClassResolverInterface $class_resolver
    *   The class resolver.
-   * @param \Drupal\Core\TypedData\TypedDataManager $typed_data_manager
+   * @param \Drupal\Core\TypedData\TypedDataManagerInterface $typed_data_manager
    *   The typed data manager.
    * @param \Drupal\Core\KeyValueStore\KeyValueFactoryInterface $key_value_factory
    *   The keyvalue factory.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    */
-  public function __construct(\Traversable $namespaces, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, TranslationInterface $translation_manager, ClassResolverInterface $class_resolver, TypedDataManager $typed_data_manager, KeyValueFactoryInterface $key_value_factory, EventDispatcherInterface $event_dispatcher) {
+  public function __construct(\Traversable $namespaces, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, TranslationInterface $translation_manager, ClassResolverInterface $class_resolver, TypedDataManagerInterface $typed_data_manager, KeyValueFactoryInterface $key_value_factory, EventDispatcherInterface $event_dispatcher) {
     parent::__construct('Entity', $namespaces, $module_handler, 'Drupal\Core\Entity\EntityInterface');
 
     $this->setCacheBackend($cache, 'entity_type', array('entity_types'));
@@ -945,7 +945,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
 
     foreach ($definitions as $entity_type_id => $definition) {
       if ($group) {
-        $options[$definition->getGroupLabel()][$entity_type_id] = $definition->getLabel();
+        $options[(string) $definition->getGroupLabel()][$entity_type_id] = $definition->getLabel();
       }
       else {
         $options[$entity_type_id] = $definition->getLabel();
@@ -960,7 +960,7 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
 
       // Make sure that the 'Content' group is situated at the top.
       $content = $this->t('Content', array(), array('context' => 'Entity type group'));
-      $options = array($content => $options[$content]) + $options;
+      $options = array((string) $content => $options[(string) $content]) + $options;
     }
 
     return $options;
@@ -1088,15 +1088,29 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
   /**
    * {@inheritdoc}
    */
-  public function getViewModeOptions($entity_type, $include_disabled = FALSE) {
-    return $this->getDisplayModeOptions('view_mode', $entity_type, $include_disabled);
+  public function getViewModeOptions($entity_type_id) {
+    return $this->getDisplayModeOptions('view_mode', $entity_type_id);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormModeOptions($entity_type, $include_disabled = FALSE) {
-    return $this->getDisplayModeOptions('form_mode', $entity_type, $include_disabled);
+  public function getFormModeOptions($entity_type_id) {
+    return $this->getDisplayModeOptions('form_mode', $entity_type_id);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getViewModeOptionsByBundle($entity_type_id, $bundle) {
+    return $this->getDisplayModeOptionsByBundle('view_mode', $entity_type_id, $bundle);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormModeOptionsByBundle($entity_type_id, $bundle) {
+    return $this->getDisplayModeOptionsByBundle('form_mode', $entity_type_id, $bundle);
   }
 
   /**
@@ -1106,19 +1120,55 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
    *   The display type to be retrieved. It can be "view_mode" or "form_mode".
    * @param string $entity_type_id
    *   The entity type whose display mode options should be returned.
-   * @param bool $include_disabled
-   *   Force to include disabled display modes. Defaults to FALSE.
    *
    * @return array
    *   An array of display mode labels, keyed by the display mode ID.
    */
-  protected function getDisplayModeOptions($display_type, $entity_type_id, $include_disabled = FALSE) {
+  protected function getDisplayModeOptions($display_type, $entity_type_id) {
     $options = array('default' => t('Default'));
     foreach ($this->getDisplayModesByEntityType($display_type, $entity_type_id) as $mode => $settings) {
-      if (!empty($settings['status']) || $include_disabled) {
-        $options[$mode] = $settings['label'];
+      $options[$mode] = $settings['label'];
+    }
+    return $options;
+  }
+
+  /**
+   * Returns an array of display mode options by bundle.
+   *
+   * @param $display_type
+   *   The display type to be retrieved. It can be "view_mode" or "form_mode".
+   * @param string $entity_type_id
+   *   The entity type whose display mode options should be returned.
+   * @param string $bundle
+   *   The name of the bundle.
+   *
+   * @return array
+   *   An array of display mode labels, keyed by the display mode ID.
+   */
+  protected function getDisplayModeOptionsByBundle($display_type, $entity_type_id, $bundle) {
+    // Collect all the entity's display modes.
+    $options = $this->getDisplayModeOptions($display_type, $entity_type_id);
+
+    // Filter out modes for which the entity display is disabled
+    // (or non-existent).
+    $load_ids = array();
+    // Get the list of available entity displays for the current bundle.
+    foreach (array_keys($options) as $mode) {
+      $load_ids[] = $entity_type_id . '.' . $bundle . '.' . $mode;
+    }
+
+    // Load the corresponding displays.
+    $displays = $this->getStorage($display_type == 'form_mode' ? 'entity_form_display' : 'entity_view_display')
+      ->loadMultiple($load_ids);
+
+    // Unset the display modes that are not active or do not exist.
+    foreach (array_keys($options) as $mode) {
+      $display_id = $entity_type_id . '.' . $bundle . '.' . $mode;
+      if (!isset($displays[$display_id]) || !$displays[$display_id]->status()) {
+        unset($options[$mode]);
       }
     }
+
     return $options;
   }
 
@@ -1315,31 +1365,6 @@ class EntityManager extends DefaultPluginManager implements EntityManagerInterfa
     }
     // Invoke hook_entity_bundle_create() hook.
     $this->moduleHandler->invokeAll('entity_bundle_create', array($entity_type_id, $bundle));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function onBundleRename($bundle_old, $bundle_new, $entity_type_id) {
-    $this->clearCachedBundles();
-    // Notify the entity storage.
-    $storage = $this->getStorage($entity_type_id);
-    if ($storage instanceof EntityBundleListenerInterface) {
-      $storage->onBundleRename($bundle_old, $bundle_new, $entity_type_id);
-    }
-
-    // Rename existing base field bundle overrides.
-    $overrides = $this->getStorage('base_field_override')->loadByProperties(array('entity_type' => $entity_type_id, 'bundle' => $bundle_old));
-    foreach ($overrides as $override) {
-      $override->set('id', $entity_type_id . '.' . $bundle_new . '.' . $override->getName());
-      $override->set('bundle', $bundle_new);
-      $override->allowBundleRename();
-      $override->save();
-    }
-
-    // Invoke hook_entity_bundle_rename() hook.
-    $this->moduleHandler->invokeAll('entity_bundle_rename', array($entity_type_id, $bundle_old, $bundle_new));
-    $this->clearCachedFieldDefinitions();
   }
 
   /**

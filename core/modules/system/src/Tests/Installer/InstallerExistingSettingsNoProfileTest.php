@@ -7,9 +7,11 @@
 
 namespace Drupal\system\Tests\Installer;
 
+use Drupal\Core\DrupalKernel;
 use Drupal\Core\Site\Settings;
 use Drupal\simpletest\InstallerTestBase;
 use Drupal\Core\Database\Database;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests the installer with an existing settings file but no install profile.
@@ -44,17 +46,12 @@ class InstallerExistingSettingsNoProfileTest extends InstallerTestBase {
 
     // Pre-configure config directories.
     $this->settings['config_directories'] = array(
-      CONFIG_ACTIVE_DIRECTORY => (object) array(
-        'value' => conf_path() . '/files/config_active',
-        'required' => TRUE,
-      ),
-      CONFIG_STAGING_DIRECTORY => (object) array(
-        'value' => conf_path() . '/files/config_staging',
+      CONFIG_SYNC_DIRECTORY => (object) array(
+        'value' => DrupalKernel::findSitePath(Request::createFromGlobals()) . '/files/config_sync',
         'required' => TRUE,
       ),
     );
-    mkdir($this->settings['config_directories'][CONFIG_ACTIVE_DIRECTORY]->value, 0777, TRUE);
-    mkdir($this->settings['config_directories'][CONFIG_STAGING_DIRECTORY]->value, 0777, TRUE);
+    mkdir($this->settings['config_directories'][CONFIG_SYNC_DIRECTORY]->value, 0777, TRUE);
 
     parent::setUp();
   }

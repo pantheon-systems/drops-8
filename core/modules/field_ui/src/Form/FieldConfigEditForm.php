@@ -7,10 +7,9 @@
 
 namespace Drupal\field_ui\Form;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Field\AllowedTagsXssTrait;
-use Drupal\Core\Field\FieldFilteredString;
+use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\field\FieldConfigInterface;
@@ -66,7 +65,7 @@ class FieldConfigEditForm extends EntityForm {
       '#title' => $this->t('Help text'),
       '#default_value' => $this->entity->getDescription(),
       '#rows' => 5,
-      '#description' => $this->t('Instructions to present to the user below this field on the editing form.<br />Allowed HTML tags: @tags', array('@tags' => FieldFilteredString::displayAllowedTags())) . '<br />' . $this->t('This field supports tokens.'),
+      '#description' => $this->t('Instructions to present to the user below this field on the editing form.<br />Allowed HTML tags: @tags', array('@tags' => FieldFilteredMarkup::displayAllowedTags())) . '<br />' . $this->t('This field supports tokens.'),
       '#weight' => -10,
     );
 
@@ -172,7 +171,7 @@ class FieldConfigEditForm extends EntityForm {
       $items = $form['#entity']->get($this->entity->getName());
       $default_value = $items->defaultValuesFormSubmit($form['default_value'], $form, $form_state);
     }
-    $this->entity->default_value = $default_value;
+    $this->entity->setDefaultValue($default_value);
 }
 
   /**
@@ -203,7 +202,7 @@ class FieldConfigEditForm extends EntityForm {
    *   The label of the field.
    */
   public function getTitle(FieldConfigInterface $field_config) {
-    return SafeMarkup::checkPlain($field_config->label());
+    return $field_config->label();
   }
 
 }

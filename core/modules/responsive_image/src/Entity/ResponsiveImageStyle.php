@@ -112,6 +112,7 @@ class ResponsiveImageStyle extends ConfigEntityBase implements ResponsiveImageSt
           'breakpoint_id' => $breakpoint_id,
           'multiplier' => $multiplier,
         ) + $image_style_mapping;
+        $this->keyedImageStyleMappings = NULL;
         return $this;
       }
     }
@@ -211,7 +212,7 @@ class ResponsiveImageStyle extends ConfigEntityBase implements ResponsiveImageSt
     array_walk($styles, function ($style) {
       $this->addDependency('config', $style->getConfigDependencyName());
     });
-    return $this->dependencies;
+    return $this;
   }
 
   /**

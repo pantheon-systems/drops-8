@@ -94,21 +94,29 @@ class Rotate extends GDImageToolkitOperationBase {
   protected function execute(array $arguments) {
     // PHP installations using non-bundled GD do not have imagerotate.
     if (!function_exists('imagerotate')) {
-      $this->logger->notice('The image %file could not be rotated because the imagerotate() function is not available in this PHP installation.', array('%file' => $this->getToolkit()->getImage()->getSource()));
+      $this->logger->notice('The image %file could not be rotated because the imagerotate() function is not available in this PHP installation.', array('%file' => $this->getToolkit()->getSource()));
       return FALSE;
     }
 
-    $this->getToolkit()->setResource(imagerotate($this->getToolkit()->getResource(), 360 - $arguments['degrees'], $arguments['background_idx']));
+    // Stores the original GD resource.
+    $original_res = $this->getToolkit()->getResource();
 
-    // GIFs need to reassign the transparent color after performing the rotate,
-    // but only do so, if the image already had transparency of its own, or the
-    // rotate added a transparent background.
-    if (!empty($arguments['gif_transparent_color'])) {
-      $transparent_idx = imagecolorexactalpha($this->getToolkit()->getResource(), $arguments['gif_transparent_color']['red'], $arguments['gif_transparent_color']['green'], $arguments['gif_transparent_color']['blue'], $arguments['gif_transparent_color']['alpha']);
-      imagecolortransparent($this->getToolkit()->getResource(), $transparent_idx);
+    if ($new_res = imagerotate($this->getToolkit()->getResource(), 360 - $arguments['degrees'], $arguments['background_idx'])) {
+      $this->getToolkit()->setResource($new_res);
+      imagedestroy($original_res);
+
+      // GIFs need to reassign the transparent color after performing the
+      // rotate, but only do so, if the image already had transparency of its
+      // own, or the rotate added a transparent background.
+      if (!empty($arguments['gif_transparent_color'])) {
+        $transparent_idx = imagecolorexactalpha($this->getToolkit()->getResource(), $arguments['gif_transparent_color']['red'], $arguments['gif_transparent_color']['green'], $arguments['gif_transparent_color']['blue'], $arguments['gif_transparent_color']['alpha']);
+        imagecolortransparent($this->getToolkit()->getResource(), $transparent_idx);
+      }
+
+      return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
   }
 
 }

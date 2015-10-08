@@ -23,9 +23,11 @@ class FormTest extends FieldTestBase {
   /**
    * Modules to enable.
    *
+   * Locale is installed so that TranslatableMarkup actually does something.
+   *
    * @var array
    */
-  public static $modules = array('node', 'field_test', 'options', 'entity_test');
+  public static $modules = array('node', 'field_test', 'options', 'entity_test', 'locale');
 
   /**
    * An array of values defining a field single.
@@ -208,7 +210,7 @@ class FormTest extends FieldTestBase {
     // Submit with missing required value.
     $edit = array();
     $this->drupalPostForm('entity_test/add', $edit, t('Save'));
-    $this->assertRaw(t('!name field is required.', array('!name' => $this->field['label'])), 'Required field with no value fails validation');
+    $this->assertRaw(t('@name field is required.', array('@name' => $this->field['label'])), 'Required field with no value fails validation');
 
     // Create an entity
     $value = mt_rand(1, 127);
@@ -228,7 +230,7 @@ class FormTest extends FieldTestBase {
       "{$field_name}[0][value]" => $value,
     );
     $this->drupalPostForm('entity_test/manage/' . $id, $edit, t('Save'));
-    $this->assertRaw(t('!name field is required.', array('!name' => $this->field['label'])), 'Required field with no value fails validation');
+    $this->assertRaw(t('@name field is required.', array('@name' => $this->field['label'])), 'Required field with no value fails validation');
   }
 
 //  function testFieldFormMultiple() {
@@ -253,6 +255,10 @@ class FormTest extends FieldTestBase {
     $this->drupalGet('entity_test/add');
     $this->assertFieldByName("{$field_name}[0][value]", '', 'Widget 1 is displayed');
     $this->assertNoField("{$field_name}[1][value]", 'No extraneous widget is displayed');
+
+    // Check if aria-describedby attribute is placed on multiple value widgets.
+    $elements = $this->xpath('//table[@id="field-unlimited-values" and @aria-describedby="edit-field-unlimited--description"]');
+    $this->assertTrue(isset($elements[0]), t('aria-describedby attribute is properly placed on multiple value widgets.'));
 
     // Press 'add more' button -> 2 widgets.
     $this->drupalPostForm(NULL, array(), t('Add another item'));
@@ -613,7 +619,7 @@ class FormTest extends FieldTestBase {
 
     // Update the field to remove the default value, and switch to the default
     // widget.
-    $this->field->default_value = array();
+    $this->field->setDefaultValue(array());
     $this->field->save();
     entity_get_form_display($entity_type, $this->field->getTargetBundle(), 'default')
       ->setComponent($this->field->getName(), array(

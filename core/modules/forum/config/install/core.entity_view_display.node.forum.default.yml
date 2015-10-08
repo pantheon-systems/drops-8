@@ -8,7 +8,6 @@ dependencies:
     - node.type.forum
   module:
     - comment
-    - taxonomy
     - text
     - user
 id: node.forum.default
@@ -16,13 +15,6 @@ targetEntityType: node
 bundle: forum
 mode: default
 content:
-  taxonomy_forums:
-    type: entity_reference_label
-    weight: -1
-    label: above
-    settings:
-      link: true
-    third_party_settings: {  }
   body:
     label: hidden
     type: text_default
@@ -38,6 +30,11 @@ content:
     third_party_settings: {  }
   links:
     weight: 100
-hidden:
-  langcode: true
-third_party_settings: {  }
+  taxonomy_forums:
+    type: entity_reference_label
+    weight: -1
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+hidden: {  }

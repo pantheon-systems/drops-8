@@ -7,6 +7,7 @@
 
 namespace Drupal\user\Tests\Views;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\user\Plugin\views\access\Role;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Views;
@@ -43,7 +44,7 @@ class AccessRoleTest extends AccessTestBase {
       'config' => ['user.role.' . $this->normalRole],
       'module' => ['user'],
     ];
-    $this->assertIdentical($expected, $view->calculateDependencies());
+    $this->assertIdentical($expected, $view->calculateDependencies()->getDependencies());
 
     $executable = Views::executableFactory()->get($view);
     $executable->setDisplay('page_1');
@@ -58,10 +59,12 @@ class AccessRoleTest extends AccessTestBase {
     $this->drupalLogin($this->webUser);
     $this->drupalGet('test-role');
     $this->assertResponse(403);
+    $this->assertCacheContext('user.roles');
 
     $this->drupalLogin($this->normalUser);
     $this->drupalGet('test-role');
     $this->assertResponse(200);
+    $this->assertCacheContext('user.roles');
 
     // Test allowing multiple roles.
     $view = Views::getView('test_access_role')->storage;
@@ -81,16 +84,19 @@ class AccessRoleTest extends AccessTestBase {
       'config' => $roles,
       'module' => ['user'],
     ];
-    $this->assertIdentical($expected, $view->calculateDependencies());
+    $this->assertIdentical($expected, $view->calculateDependencies()->getDependencies());
     $this->drupalLogin($this->webUser);
     $this->drupalGet('test-role');
     $this->assertResponse(403);
+    $this->assertCacheContext('user.roles');
     $this->drupalLogout();
     $this->drupalGet('test-role');
     $this->assertResponse(200);
+    $this->assertCacheContext('user.roles');
     $this->drupalLogin($this->normalUser);
     $this->drupalGet('test-role');
     $this->assertResponse(200);
+    $this->assertCacheContext('user.roles');
   }
 
   /**
@@ -112,17 +118,25 @@ class AccessRoleTest extends AccessTestBase {
     /** @var \Drupal\Core\Session\AccountSwitcherInterface $account_switcher */
     $account_switcher = \Drupal::service('account_switcher');
 
-
-    // First access as user without access.
+    // First access as user with access.
     $build = DisplayPluginBase::buildBasicRenderable('test_access_role', 'default');
     $account_switcher->switchTo($this->normalUser);
     $result = $renderer->renderPlain($build);
+    $this->assertTrue(in_array('user.roles', $build['#cache']['contexts']));
+    $this->assertEqual(['config:views.view.test_access_role'], $build['#cache']['tags']);
+    $this->assertEqual(Cache::PERMANENT, $build['#cache']['max-age']);
     $this->assertNotEqual($result, '');
 
-    // Then with access.
+    // Then without access.
     $build = DisplayPluginBase::buildBasicRenderable('test_access_role', 'default');
     $account_switcher->switchTo($this->webUser);
     $result = $renderer->renderPlain($build);
+    // @todo Fix this in https://www.drupal.org/node/2551037,
+    // DisplayPluginBase::applyDisplayCachablityMetadata() is not invoked when
+    // using buildBasicRenderable() and a Views access plugin returns FALSE.
+    //$this->assertTrue(in_array('user.roles', $build['#cache']['contexts']));
+    //$this->assertEqual([], $build['#cache']['tags']);
+    $this->assertEqual(Cache::PERMANENT, $build['#cache']['max-age']);
     $this->assertEqual($result, '');
   }
 

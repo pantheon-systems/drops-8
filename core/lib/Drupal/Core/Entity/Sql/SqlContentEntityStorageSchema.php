@@ -9,6 +9,7 @@ namespace Drupal\Core\Entity\Sql;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\DatabaseException;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityStorageException;
@@ -28,6 +29,8 @@ use Drupal\field\FieldStorageConfigInterface;
  * a single field.
  */
 class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorageSchemaInterface {
+
+  use DependencySerializationTrait;
 
   /**
    * The entity manager.
@@ -364,8 +367,13 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
     $this->originalDefinitions = $field_storage_definitions;
     $table_mapping = $this->storage->getTableMapping($field_storage_definitions);
     foreach ($field_storage_definitions as $field_storage_definition) {
+      // If we have a field having dedicated storage we need to drop it,
+      // otherwise we just remove the related schema data.
       if ($table_mapping->requiresDedicatedTableStorage($field_storage_definition)) {
         $this->deleteDedicatedTableSchema($field_storage_definition);
+      }
+      elseif ($table_mapping->allowsSharedTableStorage($field_storage_definition)) {
+        $this->deleteFieldSchemaData($field_storage_definition);
       }
     }
     $this->originalDefinitions = NULL;

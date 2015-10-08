@@ -84,6 +84,7 @@ class ResponsiveImageStyleForm extends EntityForm {
     );
 
     $image_styles = image_style_options(TRUE);
+    $image_styles[RESPONSIVE_IMAGE_ORIGINAL_IMAGE] = $this->t('- None (original image) -');
     $image_styles[RESPONSIVE_IMAGE_EMPTY_IMAGE] = $this->t('- empty image -');
 
     if ((bool) $responsive_image_style->id() && $this->operation != 'duplicate') {
@@ -100,6 +101,17 @@ class ResponsiveImageStyleForm extends EntityForm {
       '#options' => $this->breakpointManager->getGroups(),
       '#required' => TRUE,
       '#description' => $description,
+      '#ajax' => array(
+        'callback' => '::breakpointMappingFormAjax',
+        'wrapper' => 'responsive-image-style-breakpoints-wrapper',
+      ),
+    );
+
+    $form['keyed_styles'] = array(
+      '#type' => 'container',
+      '#attributes' => array(
+        'id' => 'responsive-image-style-breakpoints-wrapper',
+      ),
     );
 
     // By default, breakpoints are ordered from smallest weight to largest:
@@ -118,7 +130,7 @@ class ResponsiveImageStyleForm extends EntityForm {
         );
         $image_style_mapping = $responsive_image_style->getImageStyleMapping($breakpoint_id, $multiplier);
         if (\Drupal::moduleHandler()->moduleExists('help')) {
-          $description = $this->t('See the <a href="!responsive_image_help">Responsive Image help page</a> for information on the sizes attribute.', array('!responsive_image_help' => (\Drupal::url('help.page', array('name' => 'responsive_image')))));
+          $description = $this->t('See the <a href=":responsive_image_help">Responsive Image help page</a> for information on the sizes attribute.', array(':responsive_image_help' => \Drupal::url('help.page', array('name' => 'responsive_image'))));
         }
         else {
           $description = $this->t('Enable the Help module for more information on the sizes attribute.');
@@ -149,10 +161,13 @@ class ResponsiveImageStyleForm extends EntityForm {
         $form['keyed_styles'][$breakpoint_id][$multiplier]['sizes'] = array(
           '#type' => 'textfield',
           '#title' => $this->t('Sizes'),
-          '#default_value' => isset($image_style_mapping['image_mapping']['sizes']) ? $image_style_mapping['image_mapping']['sizes'] : '',
+          '#default_value' => isset($image_style_mapping['image_mapping']['sizes']) ? $image_style_mapping['image_mapping']['sizes'] : '100vw',
           '#description' => $this->t('Enter the value for the sizes attribute: for example "(min-width:700px) 700px, 100vw)".'),
           '#states' => array(
             'visible' => array(
+              ':input[name="keyed_styles[' . $breakpoint_id . '][' . $multiplier . '][image_mapping_type]"]' => array('value' => 'sizes'),
+            ),
+            'required' => array(
               ':input[name="keyed_styles[' . $breakpoint_id . '][' . $multiplier . '][image_mapping_type]"]' => array('value' => 'sizes'),
             ),
           ),
@@ -165,6 +180,9 @@ class ResponsiveImageStyleForm extends EntityForm {
           '#default_value' => isset($image_style_mapping['image_mapping']['sizes_image_styles']) ? $image_style_mapping['image_mapping']['sizes_image_styles'] : array(),
           '#states' => array(
             'visible' => array(
+              ':input[name="keyed_styles[' . $breakpoint_id . '][' . $multiplier . '][image_mapping_type]"]' => array('value' => 'sizes'),
+            ),
+            'required' => array(
               ':input[name="keyed_styles[' . $breakpoint_id . '][' . $multiplier . '][image_mapping_type]"]' => array('value' => 'sizes'),
             ),
           ),
@@ -192,6 +210,13 @@ class ResponsiveImageStyleForm extends EntityForm {
   }
 
   /**
+   * Get the form for mapping breakpoints to image styles.
+   */
+  public function breakpointMappingFormAjax($form, FormStateInterface $form_state) {
+    return $form['keyed_styles'];
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
@@ -202,6 +227,20 @@ class ResponsiveImageStyleForm extends EntityForm {
       if ($form_state->getValue('breakpoint_group') != $form_state->getCompleteForm()['breakpoint_group']['#default_value']) {
         // Remove the image style mappings since the breakpoint ID has changed.
         $form_state->unsetValue('keyed_styles');
+      }
+
+      // Check that at least 1 image style has been selected when using sizes.
+      foreach ($form_state->getValue('keyed_styles') as $breakpoint_id => $multipliers) {
+        foreach ($multipliers as $multiplier => $image_style_mapping) {
+          if ($image_style_mapping['image_mapping_type'] === 'sizes') {
+            if (empty($image_style_mapping['sizes'])) {
+              $form_state->setError($form['keyed_styles'][$breakpoint_id][$multiplier]['sizes'], 'Provide a value for the sizes attribute.');
+            }
+            if (empty(array_keys(array_filter($image_style_mapping['sizes_image_styles'])))) {
+              $form_state->setError($form['keyed_styles'][$breakpoint_id][$multiplier]['sizes_image_styles'], 'Select at least one image style.');
+            }
+          }
+        }
       }
     }
   }

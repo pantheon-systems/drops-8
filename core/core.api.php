@@ -24,7 +24,8 @@
  *
  * @section interface User interface
  *
- * - @link menu Routing, page controllers, and menu entries @endlink
+ * - @link menu Menu entries, local tasks, and other links @endlink
+ * - @link routing Routing API and page controllers @endlink
  * - @link form_api Forms @endlink
  * - @link block_api Blocks @endlink
  * - @link ajax Ajax @endlink
@@ -90,10 +91,12 @@
  * returned response) for its HTTP requests. REST requests are separated into
  * several types, known as methods, including:
  * - GET: Requests to obtain data.
- * - PUT: Requests to update or create data.
+ * - POST: Requests to update or create data.
+ * - PUT: Requests to update or create data (limited support, currently unused
+ *   by entity resources).
  * - PATCH: Requests to update a subset of data, such as one field.
  * - DELETE: Requests to delete data.
- * The Drupal Core REST module provides support for GET, PUT, PATCH, and DELETE
+ * The Drupal Core REST module provides support for GET, POST, PATCH, and DELETE
  * quests on entities, GET requests on the database log from the Database
  * Logging module, and a plugin framework for providing REST support for other
  * data and other methods.
@@ -112,7 +115,7 @@
  *   and HAL.
  * - Node entity support is configured by default. If you would like to support
  *   other types of entities, you can copy
- *   core/modules/rest/config/install/rest.settings.yml to your staging
+ *   core/modules/rest/config/install/rest.settings.yml to your sync
  *   configuration directory, appropriately modified for other entity types,
  *   and import it. Support for GET on the log from the Database Logging module
  *   can also be enabled in this way; in this case, the 'entity:node' line
@@ -1958,7 +1961,7 @@ function hook_mail($key, &$message, $params) {
   $context = $params['context'];
   $variables = array(
     '%site_name' => \Drupal::config('system.site')->get('name'),
-    '%username' => user_format_name($account),
+    '%username' => $account->getDisplayName(),
   );
   if ($context['hook'] == 'taxonomy') {
     $entity = $params['entity'];

@@ -76,8 +76,8 @@ class LocaleImportFunctionalTest extends WebTestBase {
     $this->assertRaw(t('One translation file imported. %number translations were added, %update translations were updated and %delete translations were removed.', array('%number' => 8, '%update' => 0, '%delete' => 0)), 'The translation file was successfully imported.');
 
     // This import should have saved plural forms to have 2 variants.
-    $locale_plurals = \Drupal::state()->get('locale.translation.plurals') ?: array();
-    $this->assert($locale_plurals['fr']['plurals'] == 2, 'Plural number initialized.');
+    $locale_plurals = \Drupal::service('locale.plural.formula')->getNumberOfPlurals('fr');
+    $this->assertEqual(2, $locale_plurals, 'Plural number initialized.');
 
     // Ensure we were redirected correctly.
     $this->assertUrl(\Drupal::url('locale.translate_page', [], ['absolute' => TRUE]), [], 'Correct page redirection.');
@@ -90,7 +90,7 @@ class LocaleImportFunctionalTest extends WebTestBase {
     // The import should have created 1 string and rejected 2.
     $this->assertRaw(t('One translation file imported. %number translations were added, %update translations were updated and %delete translations were removed.', array('%number' => 1, '%update' => 0, '%delete' => 0)), 'The translation file was successfully imported.');
 
-    $skip_message = \Drupal::translation()->formatPlural(2, 'One translation string was skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. See the log for details.', array('@url' => \Drupal::url('dblog.overview')));
+    $skip_message = \Drupal::translation()->formatPlural(2, 'One translation string was skipped because of disallowed or malformed HTML. <a href=":url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. See the log for details.', array(':url' => \Drupal::url('dblog.overview')));
     $this->assertRaw($skip_message, 'Unsafe strings were skipped.');
 
     // Repeat the process with a user that can access site reports, and this
@@ -102,7 +102,7 @@ class LocaleImportFunctionalTest extends WebTestBase {
       'langcode' => 'fr',
     ));
 
-    $skip_message = \Drupal::translation()->formatPlural(2, 'One translation string was skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. <a href="@url">See the log</a> for details.', array('@url' => \Drupal::url('dblog.overview')));
+    $skip_message = \Drupal::translation()->formatPlural(2, 'One translation string was skipped because of disallowed or malformed HTML. <a href=":url">See the log</a> for details.', '@count translation strings were skipped because of disallowed or malformed HTML. <a href=":url">See the log</a> for details.', array(':url' => \Drupal::url('dblog.overview')));
     $this->assertRaw($skip_message, 'Unsafe strings were skipped.');
 
     // Check empty files import with a user that cannot access site reports..
@@ -122,7 +122,7 @@ class LocaleImportFunctionalTest extends WebTestBase {
       'langcode' => 'fr',
     ));
     // The import should have created 0 string and rejected 0.
-    $this->assertRaw(t('One translation file could not be imported. <a href="@url">See the log</a> for details.', array('@url' => \Drupal::url('dblog.overview'))), 'The empty translation file import reported no translations imported.');
+    $this->assertRaw(t('One translation file could not be imported. <a href=":url">See the log</a> for details.', array(':url' => \Drupal::url('dblog.overview'))), 'The empty translation file import reported no translations imported.');
 
     // Try importing a .po file which doesn't exist.
     $name = $this->randomMachineName(16);
@@ -151,8 +151,8 @@ class LocaleImportFunctionalTest extends WebTestBase {
     $this->assertText(t('No strings available.'), 'String not overwritten by imported string.');
 
     // This import should not have changed number of plural forms.
-    $locale_plurals = \Drupal::state()->get('locale.translation.plurals') ?: array();
-    $this->assert($locale_plurals['fr']['plurals'] == 2, 'Plural numbers untouched.');
+    $locale_plurals = \Drupal::service('locale.plural.formula')->getNumberOfPlurals('fr');
+    $this->assertEqual(2, $locale_plurals, 'Plural numbers untouched.');
 
     // Try importing a .po file with overriding strings, and ensure existing
     // strings are overwritten.
@@ -172,8 +172,8 @@ class LocaleImportFunctionalTest extends WebTestBase {
     $this->drupalPostForm('admin/config/regional/translate', $search, t('Filter'));
     $this->assertNoText(t('No strings available.'), 'String overwritten by imported string.');
     // This import should have changed number of plural forms.
-    $locale_plurals = \Drupal::state()->get('locale.translation.plurals') ?: array();
-    $this->assert($locale_plurals['fr']['plurals'] == 3, 'Plural numbers changed.');
+    $locale_plurals = \Drupal::service('locale.plural.formula')->reset()->getNumberOfPlurals('fr');
+    $this->assertEqual(3, $locale_plurals, 'Plural numbers changed.');
 
     // Importing a .po file and mark its strings as customized strings.
     $this->importPoFile($this->getCustomPoFile(), array(
@@ -238,8 +238,10 @@ class LocaleImportFunctionalTest extends WebTestBase {
       'langcode' => 'hr',
     ));
 
-    $this->assertIdentical(t('May', array(), array('langcode' => 'hr', 'context' => 'Long month name')), 'Svibanj', 'Long month name context is working.');
-    $this->assertIdentical(t('May', array(), array('langcode' => 'hr')), 'Svi.', 'Default context is working.');
+    // We cast the return value of t() to string so as to retrieve the
+    // translated value, rendered as a string.
+    $this->assertIdentical((string) t('May', array(), array('langcode' => 'hr', 'context' => 'Long month name')), 'Svibanj', 'Long month name context is working.');
+    $this->assertIdentical((string) t('May', array(), array('langcode' => 'hr')), 'Svi.', 'Default context is working.');
   }
 
   /**
@@ -254,7 +256,7 @@ class LocaleImportFunctionalTest extends WebTestBase {
     ));
 
     $this->assertRaw(t('One translation file imported. %number translations were added, %update translations were updated and %delete translations were removed.', array('%number' => 1, '%update' => 0, '%delete' => 0)), 'The translation file was successfully imported.');
-    $this->assertIdentical(t('Operations', array(), array('langcode' => $langcode)), 'Műveletek', 'String imported and translated.');
+    $this->assertIdentical((string) t('Operations', array(), array('langcode' => $langcode)), 'Műveletek', 'String imported and translated.');
 
     // Try importing a .po file.
     $this->importPoFile($this->getPoFileWithEmptyMsgstr(), array(

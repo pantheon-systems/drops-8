@@ -29,8 +29,10 @@
    */
   Drupal.behaviors.verticalTabs = {
     attach: function (context) {
+      var width = drupalSettings.widthBreakpoint || 640;
+      var mq = '(max-width: ' + width + 'px)';
 
-      if (!Drupal.checkWidthBreakpoint()) {
+      if (window.matchMedia(mq).matches) {
         return;
       }
 
@@ -120,8 +122,8 @@
     // Keyboard events added:
     // Pressing the Enter key will open the tab pane.
     this.link.on('keydown', function (event) {
-      event.preventDefault();
       if (event.keyCode === 13) {
+        event.preventDefault();
         self.focus();
         // Set focus on the first input field of the visible details/tab pane.
         $(".vertical-tabs__pane :input:visible:enabled").eq(0).trigger('focus');

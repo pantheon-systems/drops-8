@@ -214,6 +214,11 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
         ),
       );
       $form['region-' . $region]['title'] = array(
+        '#theme_wrappers' => array(
+          'container' => array(
+            '#attributes' => array('class' => 'region-title__action'),
+          )
+        ),
         '#prefix' => $region != BlockInterface::BLOCK_REGION_NONE ? $title : $block_regions_with_disabled[$region],
         '#type' => 'link',
         '#title' => $this->t('Place block <span class="visually-hidden">in the %region region</span>', ['%region' => $block_regions_with_disabled[$region]]),
@@ -256,7 +261,7 @@ class BlockListBuilder extends ConfigEntityListBuilder implements FormInterface 
             ),
           );
           if ($placement && $placement == Html::getClass($entity_id)) {
-            $form[$entity_id]['#attributes']['class'][] = 'color-warning';
+            $form[$entity_id]['#attributes']['class'][] = 'color-success';
             $form[$entity_id]['#attributes']['class'][] = 'js-block-placed';
           }
           $form[$entity_id]['info'] = array(

@@ -52,8 +52,8 @@ display:
           id: 0
           total_pages: 0
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
+            previous: '‹ Previous'
+            next: 'Next ›'
           expose:
             items_per_page: false
             items_per_page_label: 'Items per page'
@@ -395,8 +395,8 @@ display:
           type: boolean
           settings:
             format: custom
-            format_custom_false: 'Temporary'
-            format_custom_true: 'Permanent'
+            format_custom_false: Temporary
+            format_custom_true: Permanent
           plugin_id: field
           entity_type: file
           entity_field: status
@@ -718,9 +718,13 @@ display:
       display_extenders: {  }
     cache_metadata:
       contexts:
-        - languages
+        - 'languages:language_content'
+        - 'languages:language_interface'
         - url
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }
   page_1:
     display_plugin: page
     id: page_1
@@ -751,9 +755,13 @@ display:
       display_extenders: {  }
     cache_metadata:
       contexts:
-        - languages
+        - 'languages:language_content'
+        - 'languages:language_interface'
         - url
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }
   page_2:
     display_plugin: page
     id: page_2
@@ -783,8 +791,8 @@ display:
           id: 0
           total_pages: 0
           tags:
-            previous: '‹ previous'
-            next: 'next ›'
+            previous: '‹ Previous'
+            next: 'Next ›'
           expose:
             items_per_page: false
             items_per_page_label: 'Items per page'
@@ -1019,7 +1027,7 @@ display:
             title_enable: false
             title: All
           title_enable: true
-          title: 'File usage information for %1'
+          title: 'File usage information for {{ arguments.fid }}'
           default_argument_type: fixed
           default_argument_options:
             argument: ''
@@ -1105,6 +1113,9 @@ display:
       display_extenders: {  }
     cache_metadata:
       contexts:
-        - languages
+        - 'languages:language_interface'
         - url
-      cacheable: false
+        - url.query_args
+        - user.permissions
+      max-age: 0
+      tags: {  }
