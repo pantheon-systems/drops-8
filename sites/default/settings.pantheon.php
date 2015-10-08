@@ -30,14 +30,12 @@ $is_installer_url = (strpos($_SERVER['SCRIPT_NAME'], '/core/install.php') === 0)
  */
 if ($is_installer_url) {
   $config_directories = array(
-    CONFIG_ACTIVE_DIRECTORY => 'sites/default/files',
     CONFIG_STAGING_DIRECTORY => 'sites/default/files',
   );
 }
 else {
   $config_directories = array(
-    CONFIG_ACTIVE_DIRECTORY => 'sites/default/files/config/active',
-    CONFIG_STAGING_DIRECTORY => 'sites/default/config',
+    CONFIG_STAGING_DIRECTORY => 'sites/default/config/staging',
   );
 }
 
