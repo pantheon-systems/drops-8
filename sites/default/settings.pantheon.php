@@ -4,13 +4,21 @@
  * @file
  * Pantheon configuration file.
  *
- * IMPORTANT NOTE: 
+ * IMPORTANT NOTE:
  * Do not modify this file. This file is maintained by Pantheon.
  *
  * Site-specific modifications belong in settings.php, not this file. This file
- * may change in future releases and modifications would cause conflicts when 
+ * may change in future releases and modifications would cause conflicts when
  * attempting to apply upstream updates.
  */
+
+/**
+ * Set the default location for the 'private' directory.  Note
+ * that this location is protected when running on the Pantheon
+ * environment, but may be exposed if you migrate your site to
+ * another environment.
+ */
+$settings['file_private_path'] = 'sites/default/files/private';
 
 // Check to see if we are serving an installer page.
 $is_installer_url = (strpos($_SERVER['SCRIPT_NAME'], '/core/install.php') === 0);
