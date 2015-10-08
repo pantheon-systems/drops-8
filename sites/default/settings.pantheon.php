@@ -1,5 +1,17 @@
 <?php
 
+/**
+ * @file
+ * Pantheon configuration file.
+ *
+ * IMPORTANT NOTE: 
+ * Do not modify this file. This file is maintained by Pantheon.
+ *
+ * Site-specific modifications belong in settings.php, not this file. This file
+ * may change in future releases and modifications would cause conflicts when 
+ * attempting to apply upstream updates.
+ */
+
 // Check to see if we are serving an installer page.
 $is_installer_url = (strpos($_SERVER['SCRIPT_NAME'], '/core/install.php') === 0);
 
