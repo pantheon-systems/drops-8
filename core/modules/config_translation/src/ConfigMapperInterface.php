@@ -9,7 +9,6 @@ namespace Drupal\config_translation;
 
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
@@ -174,6 +173,9 @@ interface ConfigMapperInterface {
 
   /**
    * Adds the given configuration name to the list of names.
+   *
+   * Note that it is the responsibility of the calling code to ensure that the
+   * configuration exists.
    *
    * @param string $name
    *   Configuration name.

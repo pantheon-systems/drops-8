@@ -15,7 +15,7 @@
 
 (function ($, Drupal, CKEDITOR) {
 
-  "use strict";
+  'use strict';
 
   CKEDITOR.plugins.add('drupalimage', {
     requires: 'image2',
@@ -32,6 +32,7 @@
         // Override requiredContent & allowedContent.
         widgetDefinition.requiredContent = new CKEDITOR.style({
           element: 'img',
+          styles: {},
           attributes: {
             'alt': '',
             'src': '',
@@ -43,6 +44,7 @@
         });
         var allowedContentDefinition = {
           element: 'img',
+          styles: {},
           attributes: {
             '!data-entity-type': '',
             '!data-entity-uuid': ''

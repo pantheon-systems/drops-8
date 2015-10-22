@@ -7,7 +7,6 @@
 
 namespace Drupal\field\Entity;
 
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Field\FieldConfigBase;
 use Drupal\Core\Field\FieldException;
@@ -185,7 +184,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    */
   public function calculateDependencies() {
     parent::calculateDependencies();
-    // Mark the field_storage_config as a a dependency.
+    // Mark the field_storage_config as a dependency.
     $this->addDependency('config', $this->getFieldStorageDefinition()->getConfigDependencyName());
     return $this;
   }

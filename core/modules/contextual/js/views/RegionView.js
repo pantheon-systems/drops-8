@@ -5,7 +5,7 @@
 
 (function (Drupal, Backbone, Modernizr) {
 
-  "use strict";
+  'use strict';
 
   Drupal.contextual.RegionView = Backbone.View.extend(/** @lends Drupal.contextual.RegionView# */{
 
@@ -23,7 +23,7 @@
         }
       };
       // We don't want mouse hover events on touch.
-      if (Modernizr.touch) {
+      if (Modernizr.touchevents) {
         mapping = {};
       }
       return mapping;

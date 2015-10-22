@@ -10,19 +10,15 @@ namespace Drupal\Core\EventSubscriber;
 use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Cache\Context\CacheContextsManager;
-use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\PageCache\ResponsePolicyInterface;
 use Drupal\Core\Site\Settings;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -66,6 +62,13 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
   protected $cacheContexts;
 
   /**
+   * Whether to send cacheability headers for debugging purposes.
+   *
+   * @var bool
+   */
+  protected $debugCacheabilityHeaders = FALSE;
+
+  /**
    * Constructs a FinishResponseSubscriber object.
    *
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
@@ -78,13 +81,16 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
    *   A policy rule determining the cacheability of a response.
    * @param \Drupal\Core\Cache\Context\CacheContextsManager $cache_contexts_manager
    *   The cache contexts manager service.
+   * @param bool $http_response_debug_cacheability_headers
+   *   (optional) Whether to send cacheability headers for debugging purposes.
    */
-  public function __construct(LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, RequestPolicyInterface $request_policy, ResponsePolicyInterface $response_policy, CacheContextsManager $cache_contexts_manager) {
+  public function __construct(LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, RequestPolicyInterface $request_policy, ResponsePolicyInterface $response_policy, CacheContextsManager $cache_contexts_manager, $http_response_debug_cacheability_headers = FALSE) {
     $this->languageManager = $language_manager;
     $this->config = $config_factory->get('system.performance');
     $this->requestPolicy = $request_policy;
     $this->responsePolicy = $response_policy;
     $this->cacheContextsManager = $cache_contexts_manager;
+    $this->debugCacheabilityHeaders = $http_response_debug_cacheability_headers;
   }
 
   /**
@@ -134,11 +140,13 @@ class FinishResponseSubscriber implements EventSubscriberInterface {
       return;
     }
 
-    // Expose the cache contexts and cache tags associated with this page in a
-    // X-Drupal-Cache-Contexts and X-Drupal-Cache-Tags header respectively.
-    $response_cacheability = $response->getCacheableMetadata();
-    $response->headers->set('X-Drupal-Cache-Tags', implode(' ', $response_cacheability->getCacheTags()));
-    $response->headers->set('X-Drupal-Cache-Contexts', implode(' ', $this->cacheContextsManager->optimizeTokens($response_cacheability->getCacheContexts())));
+    if ($this->debugCacheabilityHeaders) {
+      // Expose the cache contexts and cache tags associated with this page in a
+      // X-Drupal-Cache-Contexts and X-Drupal-Cache-Tags header respectively.
+      $response_cacheability = $response->getCacheableMetadata();
+      $response->headers->set('X-Drupal-Cache-Tags', implode(' ', $response_cacheability->getCacheTags()));
+      $response->headers->set('X-Drupal-Cache-Contexts', implode(' ', $this->cacheContextsManager->optimizeTokens($response_cacheability->getCacheContexts())));
+    }
 
     $is_cacheable = ($this->requestPolicy->check($request) === RequestPolicyInterface::ALLOW) && ($this->responsePolicy->check($response, $request) !== ResponsePolicyInterface::DENY);
 

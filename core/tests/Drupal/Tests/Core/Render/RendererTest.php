@@ -11,7 +11,6 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Template\Attribute;
@@ -97,7 +96,7 @@ class RendererTest extends RendererTestBase {
       '#plain_text' => '<em>foo</em>',
       '#markup' => 'bar',
     ], '&lt;em&gt;foo&lt;/em&gt;'];
-    // Safe strings in #plain_text are are still escaped.
+    // Safe strings in #plain_text are still escaped.
     $data[] = [[
       '#plain_text' => Markup::create('<em>foo</em>'),
     ], '&lt;em&gt;foo&lt;/em&gt;'];
