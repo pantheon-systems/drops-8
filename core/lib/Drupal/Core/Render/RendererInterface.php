@@ -30,10 +30,10 @@ interface RendererInterface {
    * @return \Drupal\Component\Render\MarkupInterface
    *   The rendered HTML.
    *
-   * @see ::render()
-   *
    * @throws \LogicException
    *   When called from inside another renderRoot() call.
+   *
+   * @see \Drupal\Core\Render\RendererInterface::render()
    */
   public function renderRoot(&$elements);
 
@@ -61,10 +61,28 @@ interface RendererInterface {
    * @return \Drupal\Component\Render\MarkupInterface
    *   The rendered HTML.
    *
-   * @see ::renderRoot()
-   * @see ::render()
+   * @see \Drupal\Core\Render\RendererInterface::renderRoot()
+   * @see \Drupal\Core\Render\RendererInterface::render()
    */
   public function renderPlain(&$elements);
+
+  /**
+   * Renders final HTML for a placeholder.
+   *
+   * Renders the placeholder in isolation.
+   *
+   * @param string $placeholder
+   *   An attached placeholder to render. (This must be a key of one of the
+   *   values of $elements['#attached']['placeholders'].)
+   * @param array $elements
+   *   The structured array describing the data to be rendered.
+   *
+   * @return array
+   *   The updated $elements.
+   *
+   * @see \Drupal\Core\Render\RendererInterface::render()
+   */
+  public function renderPlaceholder($placeholder, array $elements);
 
   /**
    * Renders HTML given a structured array tree.
@@ -317,7 +335,7 @@ interface RendererInterface {
    * @see \Drupal\Core\Theme\ThemeManagerInterface::render()
    * @see drupal_process_states()
    * @see \Drupal\Core\Render\AttachmentsResponseProcessorInterface::processAttachments()
-   * @see ::renderRoot()
+   * @see \Drupal\Core\Render\RendererInterface::renderRoot()
    */
   public function render(&$elements, $is_root_call = FALSE);
 
@@ -348,19 +366,19 @@ interface RendererInterface {
    * Any and all rendering must therefore happen within a render context, and it
    * is this method that provides that.
    *
-   * @see \Drupal\Core\Render\BubbleableMetadata
-   *
    * @param \Drupal\Core\Render\RenderContext $context
    *   The render context to execute the callable within.
    * @param callable $callable
    *   The callable to execute.
+   *
    * @return mixed
    *   The callable's return value.
    *
-   * @see \Drupal\Core\Render\RenderContext
-   *
    * @throws \LogicException
    *   In case bubbling has failed, can only happen in case of broken code.
+   *
+   * @see \Drupal\Core\Render\RenderContext
+   * @see \Drupal\Core\Render\BubbleableMetadata
    */
   public function executeInRenderContext(RenderContext $context, callable $callable);
 
