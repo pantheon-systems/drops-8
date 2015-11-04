@@ -31,6 +31,8 @@ class Composer {
     'fabpot/goutte' => ['Goutte/Tests'],
     'guzzlehttp/promises' => ['tests'],
     'guzzlehttp/psr7' => ['tests'],
+    'jcalderonzumba/gastonjs' => ['docs', 'examples', 'tests'],
+    'jcalderonzumba/mink-phantomjs-driver' => ['tests'],
     'masterminds/html5' => ['test'],
     'mikey179/vfsStream' => ['src/test'],
     'phpdocumentor/reflection-docblock' => ['tests'],
