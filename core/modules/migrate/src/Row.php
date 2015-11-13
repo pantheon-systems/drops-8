@@ -73,7 +73,7 @@ class Row {
    *
    * @see getRawDestination()
    */
-  protected $rawDestination;
+  protected $rawDestination = [];
 
   /**
    * TRUE when this row is a stub.
@@ -220,6 +220,17 @@ class Row {
   public function setDestinationProperty($property, $value) {
     $this->rawDestination[$property] = $value;
     NestedArray::setValue($this->destination, explode(static::PROPERTY_SEPARATOR, $property), $value, TRUE);
+  }
+
+  /**
+   * Removes destination property.
+   *
+   * @param string $property
+   *   The name of the destination property.
+   */
+  public function removeDestinationProperty($property) {
+    unset($this->rawDestination[$property]);
+    NestedArray::unsetValue($this->destination, explode(static::PROPERTY_SEPARATOR, $property));
   }
 
   /**
