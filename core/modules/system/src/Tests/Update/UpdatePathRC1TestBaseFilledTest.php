@@ -30,8 +30,7 @@ class UpdatePathRC1TestBaseFilledTest extends UpdatePathRC1TestBaseTest {
    * Tests that the content and configuration were properly updated.
    */
   public function testUpdatedSite() {
-    // @todo there are no updates to run.
-    //$this->runUpdates();
+    $this->runUpdates();
 
     $spanish = \Drupal::languageManager()->getLanguage('es');
 
