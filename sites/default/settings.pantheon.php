@@ -109,4 +109,14 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
   $settings['hash_salt'] = $_ENV['DRUPAL_HASH_SALT'];
 }
 
+/**
+ * Define appropriate location for tmp directory
+ *
+ * Issue: https://github.com/pantheon-systems/drops-8/issues/114
+ *
+ */
+if (defined("PANTHEON_BINDING")) {
+  $config['system.file']['path']['temporary'] = '/srv/bindings/'. PANTHEON_BINDING .'/tmp';
+}
+
 
