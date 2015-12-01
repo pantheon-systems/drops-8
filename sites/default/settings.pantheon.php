@@ -24,7 +24,9 @@
  * release is made that includes changes to Pantheon files, but
  * not to any Drupal files.
  */
-define("PANTHEON_VERSION", "1");
+if (!defined("PANTHEON_VERSION")) {
+  define("PANTHEON_VERSION", "2");
+}
 
 /**
  * Set the default location for the 'private' directory.  Note
