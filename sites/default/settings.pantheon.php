@@ -13,6 +13,20 @@
  */
 
 /**
+ * Version of Pantheon files.
+ *
+ * This is a monotonically-increasing sequence number that is
+ * incremented whenever a change is made to any Pantheon file.
+ * Not changed if Drupal core is updated without any change to
+ * any Pantheon file.
+ *
+ * The Pantheon version is included in the git tag only if a
+ * release is made that includes changes to Pantheon files, but
+ * not to any Drupal files.
+ */
+define("PANTHEON_VERSION", "1");
+
+/**
  * Set the default location for the 'private' directory.  Note
  * that this location is protected when running on the Pantheon
  * environment, but may be exposed if you migrate your site to
