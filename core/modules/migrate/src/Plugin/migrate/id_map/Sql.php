@@ -69,6 +69,8 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
   protected $database;
 
   /**
+   * The select query.
+   *
    * @var \Drupal\Core\Database\Query\SelectInterface
    */
   protected $query;
@@ -300,7 +302,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
       $fields = $source_id_schema;
 
       // Add destination identifiers to map table.
-      // TODO: How do we discover the destination schema?
+      // @todo How do we discover the destination schema?
       $count = 1;
       foreach ($this->migration->getDestinationPlugin()->getIds() as $id_definition) {
         // Allow dest identifier fields to be NULL (for IGNORED/FAILED
@@ -383,35 +385,40 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
       // Add any missing columns to the map table.
       if (!$this->getDatabase()->schema()->fieldExists($this->mapTableName,
                                                     'rollback_action')) {
-        $this->getDatabase()->schema()->addField($this->mapTableName,
-                                              'rollback_action', array(
-          'type' => 'int',
-          'size' => 'tiny',
-          'unsigned' => TRUE,
-          'not null' => TRUE,
-          'default' => 0,
-          'description' => 'Flag indicating what to do for this item on rollback',
-        ));
+        $this->getDatabase()->schema()->addField($this->mapTableName, 'rollback_action',
+          array(
+            'type' => 'int',
+            'size' => 'tiny',
+            'unsigned' => TRUE,
+            'not null' => TRUE,
+            'default' => 0,
+            'description' => 'Flag indicating what to do for this item on rollback',
+          )
+        );
       }
       if (!$this->getDatabase()->schema()->fieldExists($this->mapTableName, 'hash')) {
-        $this->getDatabase()->schema()->addField($this->mapTableName, 'hash', array(
-          'type' => 'varchar',
-          'length' => '64',
-          'not null' => FALSE,
-          'description' => 'Hash of source row data, for detecting changes',
-        ));
+        $this->getDatabase()->schema()->addField($this->mapTableName, 'hash',
+          array(
+            'type' => 'varchar',
+            'length' => '64',
+            'not null' => FALSE,
+            'description' => 'Hash of source row data, for detecting changes',
+          )
+        );
       }
     }
   }
 
   /**
-   * Create schema from an id definition.
+   * Creates schema from an ID definition.
    *
    * @param array $id_definition
    *   A field schema definition. Can be SQL schema or a type data
    *   based schema. In the latter case, the value of type needs to be
-   *   $typed_data_type.$column
+   *   $typed_data_type.$column.
+   *
    * @return array
+   *   The schema definition.
    */
   protected function getFieldSchema(array $id_definition) {
     $type_parts = explode('.', $id_definition['type']);
@@ -593,8 +600,8 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
    */
   public function prepareUpdate() {
     $this->getDatabase()->update($this->mapTableName())
-    ->fields(array('source_row_status' => MigrateIdMapInterface::STATUS_NEEDS_UPDATE))
-    ->execute();
+      ->fields(array('source_row_status' => MigrateIdMapInterface::STATUS_NEEDS_UPDATE))
+      ->execute();
   }
 
   /**
@@ -642,10 +649,11 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
   /**
    * Counts records in a table.
    *
-   * @param $status
+   * @param int $status
    *   An integer for the source_row_status column.
-   * @param $table
-   *   The table to work
+   * @param string $table
+   *   (optional) The table to work. Defaults to NULL.
+   *
    * @return int
    *   The number of records.
    */
@@ -779,7 +787,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
   public function currentDestination() {
     if ($this->valid()) {

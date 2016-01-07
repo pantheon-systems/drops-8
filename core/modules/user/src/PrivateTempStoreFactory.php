@@ -55,16 +55,20 @@ class PrivateTempStoreFactory {
   /**
    * Constructs a Drupal\user\PrivateTempStoreFactory object.
    *
-   * @param \Drupal\Core\Database\Connection $connection
-   *   The connection object used for this data.
-   * @param \Drupal\Core\Lock\LockBackendInterface $lockBackend
+   * @param \Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface $storage_factory
+   *   The key/value store factory.
+   * @param \Drupal\Core\Lock\LockBackendInterface $lock_backend
    *   The lock object used for this data.
+   * @param \Drupal\Core\Session\AccountProxyInterface $current_user
+   *   The current account.
+   * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
+   *   The request stack.
    * @param int $expire
    *   The time to live for items, in seconds.
    */
-  function __construct(KeyValueExpirableFactoryInterface $storage_factory, LockBackendInterface $lockBackend, AccountProxyInterface $current_user, RequestStack $request_stack, $expire = 604800) {
+  function __construct(KeyValueExpirableFactoryInterface $storage_factory, LockBackendInterface $lock_backend, AccountProxyInterface $current_user, RequestStack $request_stack, $expire = 604800) {
     $this->storageFactory = $storage_factory;
-    $this->lockBackend = $lockBackend;
+    $this->lockBackend = $lock_backend;
     $this->currentUser = $current_user;
     $this->requestStack = $request_stack;
     $this->expire = $expire;

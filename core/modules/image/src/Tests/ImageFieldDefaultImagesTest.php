@@ -7,6 +7,7 @@
 
 namespace Drupal\image\Tests;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\file\Entity\File;
 
 /**
@@ -161,6 +162,13 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
         array('@fid' => $default_images['field']->id())
       )
     );
+
+    // Also check that the field renders without warnings when the label is
+    // hidden.
+    EntityViewDisplay::load('node.article.default')
+      ->setComponent($field_name, array('label' => 'hidden', 'type' => 'image'))
+      ->save();
+    $this->drupalGet('node/' . $article->id());
 
     // Confirm that the image default is shown for a new page node.
     $page = $this->drupalCreateNode(array('type' => 'page'));
@@ -326,7 +334,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
     // The non-existent default image should not be saved.
     $this->assertNull($settings['default_image']['uuid']);
 
-    $field = entity_create('field_config',  array(
+    $field = entity_create('field_config', array(
       'field_storage' => $field_storage,
       'bundle' => 'page',
       'label' => $this->randomMachineName(),

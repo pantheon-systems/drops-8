@@ -12,6 +12,8 @@ use Drupal\migrate\Entity\MigrationInterface;
 use Drupal\migrate\Row;
 
 /**
+ * Defines an interface for Migration Destination classes.
+ *
  * Destinations are responsible for persisting source data into the destination
  * Drupal.
  *
@@ -25,7 +27,7 @@ use Drupal\migrate\Row;
 interface MigrateDestinationInterface extends PluginInspectionInterface {
 
   /**
-   * Get the destination ids.
+   * Get the destination IDs.
    *
    * To support MigrateIdMap maps, derived destination classes should return
    * schema field definition(s) corresponding to the primary key of the
@@ -33,7 +35,7 @@ interface MigrateDestinationInterface extends PluginInspectionInterface {
    * key fields of the map table for a migration using this destination.
    *
    * @return array
-   *   An array of ids.
+   *   An array of IDs.
    */
   public function getIds();
 
@@ -43,11 +45,11 @@ interface MigrateDestinationInterface extends PluginInspectionInterface {
    * Derived classes must implement fields(), returning a list of available
    * destination fields.
    *
-   * @todo Review the cases where we need the Migration parameter,
-   * can we avoid that?
+   * @todo Review the cases where we need the Migration parameter, can we avoid
+   *   that? To be resolved with https://www.drupal.org/node/2543568.
    *
    * @param \Drupal\migrate\Entity\MigrationInterface $migration
-   *   (optional) the migration containing this destination.
+   *   (optional) The migration containing this destination. Defaults to NULL.
    *
    * @return array
    *   - Keys: machine names of the fields
@@ -64,10 +66,10 @@ interface MigrateDestinationInterface extends PluginInspectionInterface {
    * @param \Drupal\migrate\Row $row
    *   The row object.
    * @param array $old_destination_id_values
-   *   The old destination ids.
+   *   (optional) The old destination IDs. Defaults to an empty array.
    *
    * @return mixed
-   *   The entity id or an indication of success.
+   *   The entity ID or an indication of success.
    */
   public function import(Row $row, array $old_destination_id_values = array());
 
@@ -95,4 +97,5 @@ interface MigrateDestinationInterface extends PluginInspectionInterface {
    *   item should be handled on rollback.
    */
   public function rollbackAction();
+
 }

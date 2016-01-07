@@ -23,11 +23,15 @@ use Drupal\Tests\UnitTestCase;
 class MigrationStorageTest extends UnitTestCase {
 
   /**
+   * The migration storage.
+   *
    * @var \Drupal\Tests\migrate\Unit\TestMigrationStorage
    */
   protected $storage;
 
   /**
+   * The storage query.
+   *
    * @var \Drupal\Core\Entity\Query\QueryInterface|\PHPUnit_Framework_MockObject_MockObject
    */
   protected $query;
@@ -35,7 +39,7 @@ class MigrationStorageTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp() {
     $this->query = $this->getMock(QueryInterface::class);
     $this->query->method('condition')
       ->willReturnSelf();
@@ -63,7 +67,7 @@ class MigrationStorageTest extends UnitTestCase {
       ->willReturn(['d6_node__page', 'd6_node__article']);
 
     $ids = $this->storage->getVariantIds(['d6_node:*', 'd6_user']);
-    $this->assertSame(['d6_node__page', 'd6_node__article', 'd6_user'],  $ids);
+    $this->assertSame(['d6_node__page', 'd6_node__article', 'd6_user'], $ids);
   }
 
   /**
@@ -76,11 +80,13 @@ class MigrationStorageTest extends UnitTestCase {
       ->willReturn([]);
 
     $ids = $this->storage->getVariantIds(['d6_node:*', 'd6_user']);
-    $this->assertSame(['d6_user'],  $ids);
+    $this->assertSame(['d6_user'], $ids);
   }
 
   /**
-   * Tests getVariantIds() when no variants exist and there are no static
+   * Tests getVariantIds().
+   *
+   * This tests getVariantIds() when no variants exist and there are no static
    * (non-variant) dependencies.
    *
    * @covers ::getVariantIds
@@ -90,7 +96,7 @@ class MigrationStorageTest extends UnitTestCase {
       ->willReturn([]);
 
     $ids = $this->storage->getVariantIds(['d6_node:*', 'd6_node_revision:*']);
-    $this->assertSame([],  $ids);
+    $this->assertSame([], $ids);
   }
 
 }
@@ -98,7 +104,7 @@ class MigrationStorageTest extends UnitTestCase {
 /**
  * Test version of \Drupal\migrate\MigrationStorage.
  *
- * Exposes protected methods for testing.
+ * This class exposes protected methods for testing.
  */
 class TestMigrationStorage extends MigrationStorage {
 

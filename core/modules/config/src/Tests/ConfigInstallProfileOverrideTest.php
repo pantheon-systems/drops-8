@@ -7,6 +7,7 @@
 
 namespace Drupal\config\Tests;
 
+use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Config\FileStorage;
@@ -48,6 +49,7 @@ class ConfigInstallProfileOverrideTest extends WebTestBase {
         'requirements_error' => 1209600,
       ),
     );
+    $expected_profile_data['_core']['default_config_hash'] = Crypt::hashBase64(serialize($expected_profile_data));
 
     // Verify that the original data matches. We have to read the module config
     // file directly, because the install profile default system.cron.yml
@@ -85,7 +87,7 @@ class ConfigInstallProfileOverrideTest extends WebTestBase {
     // type does not exist.
     $optional_dir = drupal_get_path('module', 'testing_config_overrides') . '/' . InstallStorage::CONFIG_OPTIONAL_DIRECTORY;
     $optional_storage = new FileStorage($optional_dir);
-    foreach (['config_test.dynamic.dotted.default', 'config_test.dynamic.override','config_test.dynamic.override_unmet'] as $id) {
+    foreach (['config_test.dynamic.dotted.default', 'config_test.dynamic.override', 'config_test.dynamic.override_unmet'] as $id) {
       $this->assertTrue(\Drupal::config($id)->isNew(), "The config_test entity $id contained in the profile's optional directory does not exist.");
       // Make that we don't get false positives from the assertion above.
       $this->assertTrue($optional_storage->exists($id), "The config_test entity $id does exist in the profile's optional directory.");

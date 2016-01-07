@@ -492,13 +492,13 @@ class ManageFieldsTest extends WebTestBase {
     // Try with an entity key.
     $edit['field_name'] = 'title';
     $bundle_path = 'admin/structure/types/manage/' . $this->contentType;
-    $this->drupalPostForm("$bundle_path/fields/add-field",  $edit, t('Save and continue'));
+    $this->drupalPostForm("$bundle_path/fields/add-field", $edit, t('Save and continue'));
     $this->assertText(t('The machine-readable name is already in use. It must be unique.'));
 
     // Try with a base field.
     $edit['field_name'] = 'sticky';
     $bundle_path = 'admin/structure/types/manage/' . $this->contentType;
-    $this->drupalPostForm("$bundle_path/fields/add-field",  $edit, t('Save and continue'));
+    $this->drupalPostForm("$bundle_path/fields/add-field", $edit, t('Save and continue'));
     $this->assertText(t('The machine-readable name is already in use. It must be unique.'));
   }
 
@@ -716,6 +716,19 @@ class ManageFieldsTest extends WebTestBase {
     $this->assertEqual($form_display->getComponent('field_test_custom_options')['type'], 'test_field_widget_multiple');
     $view_display = entity_get_display('node', 'article', 'default');
     $this->assertEqual($view_display->getComponent('field_test_custom_options')['type'], 'field_test_multiple');
+  }
+
+  /**
+   * Tests the access to non-existent field URLs.
+   */
+  public function testNonExistentFieldUrls() {
+    $field_id = 'node.foo.bar';
+
+    $this->drupalGet('admin/structure/types/manage/' . $this->contentType . '/fields/' . $field_id);
+    $this->assertResponse(404);
+
+    $this->drupalGet('admin/structure/types/manage/' . $this->contentType . '/fields/' . $field_id . '/storage');
+    $this->assertResponse(404);
   }
 
 }
