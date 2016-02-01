@@ -2,7 +2,6 @@
 sites/*/files
 sites/*/private
 files/*
-private/*
 
 # Pantheon commits a settings.php for environment-specific settings.
 # Place local settings in settings.local.php
