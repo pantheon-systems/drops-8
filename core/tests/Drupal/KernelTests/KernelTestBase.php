@@ -370,6 +370,12 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
       'class' => '\Drupal\Component\PhpStorage\FileStorage',
     ];
     new Settings($settings);
+
+    // Manually configure the test mail collector implementation to prevent
+    // tests from sending out emails and collect them in state instead.
+    // While this should be enforced via settings.php prior to installation,
+    // some tests expect to be able to test mail system implementations.
+    $GLOBALS['config']['system.mail']['interface']['default'] = 'test_mail_collector';
   }
 
   /**
@@ -1139,5 +1145,15 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
   public function __sleep() {
     return [];
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function assertEquals($expected, $actual, $message = '', $delta = 0.0, $maxDepth = 10, $canonicalize = false, $ignoreCase = false) {
+    $expected = static::castSafeStrings($expected);
+    $actual = static::castSafeStrings($actual);
+    parent::assertEquals($expected, $actual, $message, $delta, $maxDepth, $canonicalize, $ignoreCase);
+  }
+
 
 }

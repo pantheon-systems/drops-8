@@ -713,9 +713,7 @@ $settings['container_yamls'][] = __DIR__ . '/services.yml';
  *      a local development environment, to insure that
  *      the site settings remain consistent.
  */
-if (file_exists(__DIR__ . '/settings.pantheon.php')) {
-  include __DIR__ . "/settings.pantheon.php";
-}
+include __DIR__ . "/settings.pantheon.php";
 
 /**
  * Load local development override configuration, if available.
