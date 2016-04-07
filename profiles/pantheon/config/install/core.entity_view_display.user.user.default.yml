@@ -1,0 +1,18 @@
+id: user.user.default
+targetEntityType: user
+bundle: user
+mode: default
+content:
+  user_picture:
+    type: image
+    weight: 0
+    settings:
+      image_style: thumbnail
+      image_link: content
+    third_party_settings: {  }
+    label: hidden
+status: true
+dependencies:
+  module:
+    - image
+    - user
