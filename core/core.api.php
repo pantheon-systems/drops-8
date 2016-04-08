@@ -79,9 +79,9 @@
  * Web services make it possible for applications and web sites to read and
  * update information from other web sites. There are several standard
  * techniques for providing web services, including:
- * - SOAP: http://en.wikipedia.org/wiki/SOAP SOAP
- * - XML-RPC: http://en.wikipedia.org/wiki/XML-RPC
- * - REST: http://en.wikipedia.org/wiki/Representational_state_transfer
+ * - SOAP: http://wikipedia.org/wiki/SOAP
+ * - XML-RPC: http://wikipedia.org/wiki/XML-RPC
+ * - REST: http://wikipedia.org/wiki/Representational_state_transfer
  * Drupal sites can both provide web services and integrate third-party web
  * services.
  *
@@ -254,7 +254,7 @@
  * - Exporting and importing configuration.
  *
  * The file storage format for configuration information in Drupal is
- * @link http://en.wikipedia.org/wiki/YAML YAML files. @endlink Configuration is
+ * @link http://wikipedia.org/wiki/YAML YAML files. @endlink Configuration is
  * divided into files, each containing one configuration object. The file name
  * for a configuration object is equal to the unique name of the configuration,
  * with a '.yml' extension. The default configuration files for each module are
@@ -1143,7 +1143,7 @@
  *
  * A runtime assertion is a statement that is expected to always be true at
  * the point in the code it appears at. They are tested using PHP's internal
- * @link http://www.php.net/assert assert() @endlink statement. If an
+ * @link http://php.net/assert assert() @endlink statement. If an
  * assertion is ever FALSE it indicates an error in the code or in module or
  * theme configuration files. User-provided configuration files should be
  * verified with standard control structures at all times, not just checked in
@@ -1970,9 +1970,10 @@ function hook_queue_info_alter(&$queues) {
  *     Subject of the email to be sent. This must not contain any newline
  *     characters, or the email may not be sent properly.
  *  - 'body':
- *     An array of strings containing the message text. The message body is
- *     created by concatenating the individual array strings into a single text
- *     string using "\n\n" as a separator.
+ *     An array of strings or objects that implement
+ *     \Drupal\Component\Render\MarkupInterface containing the message text. The
+ *     message body is created by concatenating the individual array strings
+ *     into a single text string using "\n\n" as a separator.
  *  - 'headers':
  *     Associative array containing mail headers, such as From, Sender,
  *     MIME-Version, Content-Type, etc.
@@ -2021,7 +2022,9 @@ function hook_mail_alter(&$message) {
  *     string when the hook is invoked.
  *   - body: An array of lines containing the message to be sent. Drupal will
  *     format the correct line endings for you. MailManagerInterface->mail()
- *     sets this to an empty array when the hook is invoked.
+ *     sets this to an empty array when the hook is invoked. The array may
+ *     contain either strings or objects implementing
+ *     \Drupal\Component\Render\MarkupInterface.
  *   - from: The address the message will be marked as being from, which is
  *     set by MailManagerInterface->mail() to either a custom address or the
  *     site-wide default email address when the hook is invoked.
