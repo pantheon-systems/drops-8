@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\search\SearchPageAccessControlHandler.
- */
-
 namespace Drupal\search;
 
 use Drupal\Core\Access\AccessResult;
@@ -27,21 +22,21 @@ class SearchPageAccessControlHandler extends EntityAccessControlHandler {
     /** @var $entity \Drupal\search\SearchPageInterface */
     if (in_array($operation, array('delete', 'disable'))) {
       if ($entity->isDefaultSearch()) {
-        return AccessResult::forbidden()->cacheUntilEntityChanges($entity);
+        return AccessResult::forbidden()->addCacheableDependency($entity);
       }
       else {
-        return parent::checkAccess($entity, $operation, $account)->cacheUntilEntityChanges($entity);
+        return parent::checkAccess($entity, $operation, $account)->addCacheableDependency($entity);
       }
     }
     if ($operation == 'view') {
       if (!$entity->status()) {
-        return AccessResult::forbidden()->cacheUntilEntityChanges($entity);
+        return AccessResult::forbidden()->addCacheableDependency($entity);
       }
       $plugin = $entity->getPlugin();
       if ($plugin instanceof AccessibleInterface) {
-        return $plugin->access($operation, $account, TRUE)->cacheUntilEntityChanges($entity);
+        return $plugin->access($operation, $account, TRUE)->addCacheableDependency($entity);
       }
-      return AccessResult::allowed()->cacheUntilEntityChanges($entity);
+      return AccessResult::allowed()->addCacheableDependency($entity);
     }
     return parent::checkAccess($entity, $operation, $account);
   }

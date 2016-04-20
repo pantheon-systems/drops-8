@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\File\MimeType\MimeTypeGuesser.
- */
-
 namespace Drupal\Core\File\MimeType;
 
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
@@ -109,7 +104,7 @@ class MimeTypeGuesser implements MimeTypeGuesserInterface {
   }
 
   /**
-   * A helper function to register with Symfony's singleton mime type guesser.
+   * A helper function to register with Symfony's singleton MIME type guesser.
    *
    * Symfony's default mimetype guessers have dependencies on PHP's fileinfo
    * extension or being able to run the system command file. Drupal's guesser

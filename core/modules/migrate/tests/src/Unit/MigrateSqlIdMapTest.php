@@ -1,14 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\migrate\Unit\MigrateSqlIdMapTest.
- */
-
 namespace Drupal\Tests\migrate\Unit;
 
 use Drupal\Core\Database\Driver\sqlite\Connection;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\migrate\Row;

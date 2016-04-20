@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Controller\CommentController.
- */
-
 namespace Drupal\comment\Controller;
 
 use Drupal\comment\CommentInterface;
@@ -137,7 +132,6 @@ class CommentController extends ControllerBase {
       if ($session = $request->getSession()) {
         $redirect_request->setSession($session);
       }
-      // @todo: Convert the pager to use the request object.
       $request->query->set('page', $page);
       $response = $this->httpKernel->handle($redirect_request, HttpKernelInterface::SUB_REQUEST);
       if ($response instanceof CacheableResponseInterface) {
@@ -289,7 +283,7 @@ class CommentController extends ControllerBase {
 
     $status = $entity->{$field_name}->status;
     $access = $access->andIf(AccessResult::allowedIf($status == CommentItemInterface::OPEN)
-      ->cacheUntilEntityChanges($entity));
+      ->addCacheableDependency($entity));
 
     // $pid indicates that this is a reply to a comment.
     if ($pid) {
@@ -301,7 +295,7 @@ class CommentController extends ControllerBase {
       // Check if the parent comment is published and belongs to the entity.
       $access = $access->andIf(AccessResult::allowedIf($comment && $comment->isPublished() && $comment->getCommentedEntityId() == $entity->id()));
       if ($comment) {
-        $access->cacheUntilEntityChanges($comment);
+        $access->addCacheableDependency($comment);
       }
     }
     return $access;

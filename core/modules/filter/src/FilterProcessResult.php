@@ -1,16 +1,10 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\filter\FilterProcessResult.
- */
-
 namespace Drupal\filter;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Render\BubbleableMetadata;
-use Drupal\Core\Template\Attribute;
 
 /**
  * Used to return values from a text filter plugin's processing method.

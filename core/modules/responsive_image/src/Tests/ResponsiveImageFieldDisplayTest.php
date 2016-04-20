@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\responsive_image\Tests\ResponsiveImageFieldDisplayTest.
- */
-
 namespace Drupal\responsive_image\Tests;
 
 use Drupal\Component\Utility\Unicode;
@@ -13,6 +8,7 @@ use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
 use Drupal\file\Entity\File;
 use Drupal\responsive_image\Plugin\Field\FieldFormatter\ResponsiveImageFormatter;
+use Drupal\responsive_image\Entity\ResponsiveImageStyle;
 use Drupal\user\RoleInterface;
 
 /**
@@ -60,7 +56,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
     ));
     $this->drupalLogin($this->adminUser);
     // Add responsive image style.
-    $this->responsiveImgStyle = entity_create('responsive_image_style', array(
+    $this->responsiveImgStyle = ResponsiveImageStyle::create(array(
       'id' => 'style_one',
       'label' => 'Style One',
       'breakpoint_group' => 'responsive_image_test_module',
@@ -166,7 +162,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
    *   File scheme to use.
    * @param bool $empty_styles
    *   If true, use an empty string for image style names.
-   * Defaults to false.
+   *   Defaults to false.
    */
   protected function doTestResponsiveImageFieldFormatters($scheme, $empty_styles = FALSE) {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */

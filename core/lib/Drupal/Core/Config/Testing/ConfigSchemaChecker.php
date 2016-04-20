@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Config\Testing\ConfigSchemaChecker.
- */
-
 namespace Drupal\Core\Config\Testing;
 
 use Drupal\Component\Utility\SafeMarkup;
@@ -24,7 +19,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * is invalid.
  *
  * @see \Drupal\simpletest\WebTestBase::setUp()
- * @see \Drupal\simpletest\KernelTestBase::containerBuild()
+ * @see \Drupal\KernelTests\KernelTestBase::register()
  */
 class ConfigSchemaChecker implements EventSubscriberInterface {
   use SchemaCheckTrait;

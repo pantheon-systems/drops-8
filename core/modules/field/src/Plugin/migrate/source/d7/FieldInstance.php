@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field\Plugin\migrate\source\d7\FieldInstance.
- */
-
 namespace Drupal\field\Plugin\migrate\source\d7;
 
 use Drupal\migrate\Row;
@@ -15,6 +10,7 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
  *
  * @MigrateSource(
  *   id = "d7_field_instance",
+ *   source_provider = "field"
  * )
  */
 class FieldInstance extends DrupalSqlBase {

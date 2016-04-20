@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\DependencyInjection\Container.
- */
-
 namespace Drupal\Core\DependencyInjection;
 
 use Drupal\Component\DependencyInjection\Container as DrupalContainer;
@@ -34,5 +29,4 @@ class Container extends DrupalContainer {
     assert(FALSE, 'The container was serialized.');
     return array_keys(get_object_vars($this));
   }
-
 }

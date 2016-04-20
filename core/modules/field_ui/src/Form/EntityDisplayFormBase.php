@@ -1,15 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field_ui\Form\EntityDisplayFormBase.
- */
-
 namespace Drupal\field_ui\Form;
 
 use Drupal\Component\Plugin\Factory\DefaultFactory;
 use Drupal\Component\Plugin\PluginManagerBase;
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
@@ -17,7 +11,6 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\PluginSettingsInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\field_ui\Element\FieldUiTable;
 use Drupal\field_ui\FieldUI;

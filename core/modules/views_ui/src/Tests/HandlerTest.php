@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views_ui\Tests\HandlerTest.
- */
-
 namespace Drupal\views_ui\Tests;
 
 use Drupal\Component\Utility\SafeMarkup;
@@ -245,9 +240,9 @@ class HandlerTest extends UITestBase {
       $add_handler_url = 'admin/structure/views/nojs/add-handler/test_node_view/default/' . $handler_type;
       $this->drupalGet($add_handler_url);
 
-      $this->assertNoDuplicateField('Node ID', 'Content');
-      $this->assertNoDuplicateField('Node ID', 'Content revision');
-      $this->assertNoDuplicateField('Type', 'Content');
+      $this->assertNoDuplicateField('ID', 'Content');
+      $this->assertNoDuplicateField('ID', 'Content revision');
+      $this->assertNoDuplicateField('Content type', 'Content');
       $this->assertNoDuplicateField('UUID', 'Content');
       $this->assertNoDuplicateField('Revision ID', 'Content');
       $this->assertNoDuplicateField('Revision ID', 'Content revision');

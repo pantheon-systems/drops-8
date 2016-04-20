@@ -1,14 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\file\Unit\Plugin\migrate\process\d6\CckFileTest.
- */
-
 namespace Drupal\Tests\file\Unit\Plugin\migrate\process\d6;
 
 use Drupal\file\Plugin\migrate\process\d6\CckFile;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\Plugin\MigrateProcessInterface;
 use Drupal\migrate\Row;

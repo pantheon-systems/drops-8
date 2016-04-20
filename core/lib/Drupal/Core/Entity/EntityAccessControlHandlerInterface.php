@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Entity\EntityAccessControlHandlerInterface.
- */
-
 namespace Drupal\Core\Entity;
 
 use Drupal\Core\Field\FieldItemListInterface;
@@ -27,7 +22,7 @@ interface EntityAccessControlHandlerInterface {
    *   The entity for which to check access.
    * @param string $operation
    *   The operation access should be checked for.
-   *   Usually one of "view", "update" or "delete".
+   *   Usually one of "view", "view label", "update" or "delete".
    * @param \Drupal\Core\Session\AccountInterface $account
    *   (optional) The user session for which to check access, or NULL to check
    *   access for the current user. Defaults to NULL.
@@ -96,7 +91,7 @@ interface EntityAccessControlHandlerInterface {
    * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *   The field definition.
    * @param \Drupal\Core\Session\AccountInterface $account
-   *  (optional) The user session for which to check access, or NULL to check
+   *   (optional) The user session for which to check access, or NULL to check
    *   access for the current user. Defaults to NULL.
    * @param \Drupal\Core\Field\FieldItemListInterface $items
    *   (optional) The field values for which to check access, or NULL if access

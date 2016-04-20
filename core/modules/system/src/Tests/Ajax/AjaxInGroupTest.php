@@ -1,13 +1,6 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Ajax\AjaxInGroupTest.
- */
-
 namespace Drupal\system\Tests\Ajax;
-
-use Drupal\Core\Ajax\DataCommand;
 
 /**
  * Tests that form elements in groups work correctly with AJAX.

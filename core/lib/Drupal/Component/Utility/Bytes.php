@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Component\Utility\Bytes.
- */
-
 namespace Drupal\Component\Utility;
 
 /**
@@ -15,7 +10,7 @@ class Bytes {
   /**
    * The number of bytes in a kilobyte.
    *
-   * @see http://en.wikipedia.org/wiki/Kilobyte
+   * @see http://wikipedia.org/wiki/Kilobyte
    */
   const KILOBYTE = 1024;
 

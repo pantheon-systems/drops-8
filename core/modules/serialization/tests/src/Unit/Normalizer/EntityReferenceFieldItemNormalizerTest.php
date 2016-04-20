@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\serialization\Unit\Normalizer\EntityReferenceFieldItemNormalizerTest.
- */
-
 namespace Drupal\Tests\serialization\Unit\Normalizer;
 
 use Drupal\Core\Entity\EntityInterface;
@@ -78,6 +73,12 @@ class EntityReferenceFieldItemNormalizerTest extends UnitTestCase {
     $entity->url('canonical')
       ->willReturn($test_url)
       ->shouldBeCalled();
+    $entity->uuid()
+      ->willReturn('080e3add-f9d5-41ac-9821-eea55b7b42fb')
+      ->shouldBeCalled();
+    $entity->getEntityTypeId()
+      ->willReturn('test_type')
+      ->shouldBeCalled();
 
     $entity_reference = $this->prophesize(TypedDataInterface::class);
     $entity_reference->getValue()
@@ -92,6 +93,8 @@ class EntityReferenceFieldItemNormalizerTest extends UnitTestCase {
 
     $expected = [
       'target_id' => ['value' => 'test'],
+      'target_type' => 'test_type',
+      'target_uuid' => '080e3add-f9d5-41ac-9821-eea55b7b42fb',
       'url' => $test_url,
     ];
     $this->assertSame($expected, $normalized);

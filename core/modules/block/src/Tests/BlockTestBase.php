@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block\Tests\BlockTestBase.
- */
-
 namespace Drupal\block\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\filter\Entity\FilterFormat;
 
 /**
  * Provides setup and helper methods for block module tests.
@@ -42,7 +38,7 @@ abstract class BlockTestBase extends WebTestBase {
     $this->config('system.site')->set('page.front', '/test-page')->save();
 
     // Create Full HTML text format.
-    $full_html_format = entity_create('filter_format', array(
+    $full_html_format = FilterFormat::create(array(
       'format' => 'full_html',
       'name' => 'Full HTML',
     ));
@@ -65,7 +61,7 @@ abstract class BlockTestBase extends WebTestBase {
       'sidebar_second',
       'footer',
     );
-    $block_storage = $this->container->get('entity.manager')->getStorage('block');
+    $block_storage = $this->container->get('entity_type.manager')->getStorage('block');
     $blocks = $block_storage->loadByProperties(array('theme' => $this->config('system.theme')->get('default')));
     foreach ($blocks as $block) {
       $block->delete();

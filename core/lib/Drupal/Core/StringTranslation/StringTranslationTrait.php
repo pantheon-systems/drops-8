@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\StringTranslation\StringTranslationTrait.
- */
-
 namespace Drupal\Core\StringTranslation;
 
 /**
@@ -73,7 +68,7 @@ trait StringTranslationTrait {
    * @ingroup sanitization
    */
   protected function t($string, array $args = array(), array $options = array()) {
-    return $this->getStringTranslation()->translate($string, $args, $options);
+    return new TranslatableMarkup($string, $args, $options, $this->getStringTranslation());
   }
 
   /**
@@ -82,7 +77,7 @@ trait StringTranslationTrait {
    * @see \Drupal\Core\StringTranslation\TranslationInterface::formatPlural()
    */
   protected function formatPlural($count, $singular, $plural, array $args = array(), array $options = array()) {
-    return $this->getStringTranslation()->formatPlural($count, $singular, $plural, $args, $options);
+    return new PluralTranslatableMarkup($count, $singular, $plural, $args, $options, $this->getStringTranslation());
   }
 
   /**

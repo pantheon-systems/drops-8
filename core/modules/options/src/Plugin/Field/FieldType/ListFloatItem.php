@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\options\Plugin\Field\FieldType\ListFloatItem.
- */
-
 namespace Drupal\options\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -104,7 +99,7 @@ class ListFloatItem extends ListItemBase {
       // Cast the value to a float first so that .5 and 0.5 are the same value
       // and then cast to a string so that values like 0.5 can be used as array
       // keys.
-      // @see http://php.net/manual/en/language.types.array.php
+      // @see http://php.net/manual/language.types.array.php
       $values[(string) (float) $item['value']] = $item['label'];
     }
     return $values;

@@ -1,16 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\tracker\Tests\Views\TrackerTestBase.
- */
-
 namespace Drupal\tracker\Tests\Views;
 
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
+use Drupal\comment\Entity\Comment;
 
 /**
  * Base class for all tracker tests.
@@ -60,7 +56,7 @@ abstract class TrackerTestBase extends ViewTestBase {
       'status' => 1,
     ));
 
-    $this->comment = entity_create('comment', array(
+    $this->comment = Comment::create(array(
       'entity_id' => $this->node->id(),
       'entity_type' => 'node',
       'field_name' => 'comment',

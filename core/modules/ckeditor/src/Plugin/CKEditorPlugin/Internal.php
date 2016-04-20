@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\ckeditor\Plugin\CKEditorPlugin\Internal.
- */
-
 namespace Drupal\ckeditor\Plugin\CKEditorPlugin;
 
 use Drupal\ckeditor\CKEditorPluginBase;
+use Drupal\ckeditor\CKEditorPluginContextualInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -24,7 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   label = @Translation("CKEditor core")
  * )
  */
-class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInterface {
+class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInterface, CKEditorPluginContextualInterface {
 
   /**
    * The cache backend.
@@ -84,6 +80,15 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
   /**
    * {@inheritdoc}
    */
+  public function isEnabled(Editor $editor) {
+    // This plugin represents the core CKEditor plugins. They're always enabled:
+    // its configuration is always necessary.
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getFile() {
     // This plugin is already part of Drupal core's CKEditor build.
     return FALSE;
@@ -100,6 +105,7 @@ class Internal extends CKEditorPluginBase implements ContainerFactoryPluginInter
       'resize_dir' => 'vertical',
       'justifyClasses' => array('text-align-left', 'text-align-center', 'text-align-right', 'text-align-justify'),
       'entities' => FALSE,
+      'disableNativeSpellChecker' => FALSE,
     );
 
     // Add the allowedContent setting, which ensures CKEditor only allows tags

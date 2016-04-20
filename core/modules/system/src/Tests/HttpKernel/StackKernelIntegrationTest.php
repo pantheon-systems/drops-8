@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\HttpKernel\StackKernelIntegrationTest.
- */
-
 namespace Drupal\system\Tests\HttpKernel;
 
 use Drupal\simpletest\KernelTestBase;
@@ -31,8 +26,6 @@ class StackKernelIntegrationTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-
-    $this->installSchema('system', 'router');
     \Drupal::service('router.builder')->rebuild();
   }
 

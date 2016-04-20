@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\contact\Tests\ContactPersonalTest.
- */
-
 namespace Drupal\contact\Tests;
 
 use Drupal\Component\Utility\SafeMarkup;
@@ -231,11 +226,6 @@ class ContactPersonalTest extends WebTestBase {
   function testPersonalContactFlood() {
     $flood_limit = 3;
     $this->config('contact.settings')->set('flood.limit', $flood_limit)->save();
-
-    // Clear flood table in preparation for flood test and allow other checks to complete.
-    db_delete('flood')->execute();
-    $num_records_flood = db_query("SELECT COUNT(*) FROM {flood}")->fetchField();
-    $this->assertIdentical($num_records_flood, '0', 'Flood table emptied.');
 
     $this->drupalLogin($this->webUser);
 

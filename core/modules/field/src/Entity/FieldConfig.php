@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field\Entity\FieldConfig.
- */
-
 namespace Drupal\field\Entity;
 
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -72,7 +67,7 @@ class FieldConfig extends FieldConfigBase implements FieldConfigInterface {
    * Constructs a FieldConfig object.
    *
    * In most cases, Field entities are created via
-   * entity_create('field_config', $values), where $values is the same
+   * FieldConfig::create($values), where $values is the same
    * parameter as in this constructor.
    *
    * @param array $values

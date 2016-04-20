@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views_ui\Tests\RedirectTest.
- */
-
 namespace Drupal\views_ui\Tests;
 
 /**
@@ -44,7 +39,7 @@ class RedirectTest extends UITestBase {
 
     $this->drupalPostForm($path_edit_path, array('path' => $new_path), t('Apply'));
     $this->drupalPostForm($edit_path, array(), t('Save'), array('query' => array('destination' => 'test-redirect-view')));
-    $this->assertUrl($new_path, array(), 'Make sure the user got redirected to the expected page after changing the url of a page display.');
+    $this->assertUrl($new_path, array(), 'Make sure the user got redirected to the expected page after changing the URL of a page display.');
   }
 
 }

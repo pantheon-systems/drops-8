@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\ckeditor\Tests\CKEditorToolbarButtonTest.
- */
 
 namespace Drupal\ckeditor\Tests;
 
@@ -74,7 +70,7 @@ class CKEditorToolbarButtonTest extends WebTestBase {
     $json_encode = function($html) {
       return trim(Json::encode($html), '"');
     };
-    $markup = $json_encode(file_url_transform_relative(file_create_url('core/modules/ckeditor/js/plugins/drupalimage/image.png')));
+    $markup = $json_encode(file_url_transform_relative(file_create_url('core/modules/ckeditor/js/plugins/drupalimage/icons/drupalimage.png')));
     $this->assertRaw($markup);
   }
 

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\ckeditor\Plugin\CKEditorPlugin\DrupalImage.
- */
-
 namespace Drupal\ckeditor\Plugin\CKEditorPlugin;
 
 use Drupal\ckeditor\CKEditorPluginBase;
@@ -56,7 +51,7 @@ class DrupalImage extends CKEditorPluginBase implements CKEditorPluginConfigurab
     return array(
       'DrupalImage' => array(
         'label' => t('Image'),
-        'image' => drupal_get_path('module', 'ckeditor') . '/js/plugins/drupalimage/image.png',
+        'image' => drupal_get_path('module', 'ckeditor') . '/js/plugins/drupalimage/icons/drupalimage.png',
       ),
     );
   }

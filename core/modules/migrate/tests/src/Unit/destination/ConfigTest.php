@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\migrate\Unit\destination\ConfigTest.
- */
-
 namespace Drupal\Tests\migrate\Unit\destination;
 
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Plugin\migrate\destination\Config;
 use Drupal\Tests\UnitTestCase;
 
@@ -23,7 +19,7 @@ class ConfigTest extends UnitTestCase {
     $source = array(
       'test' => 'x',
     );
-    $migration = $this->getMockBuilder('Drupal\migrate\Entity\Migration')
+    $migration = $this->getMockBuilder('Drupal\migrate\Plugin\Migration')
       ->disableOriginalConstructor()
       ->getMock();
     $config = $this->getMockBuilder('Drupal\Core\Config\Config')
@@ -73,7 +69,7 @@ class ConfigTest extends UnitTestCase {
     $source = array(
       'langcode' => 'mi',
     );
-    $migration = $this->getMockBuilder('Drupal\migrate\Entity\Migration')
+    $migration = $this->getMockBuilder(MigrationInterface::class)
       ->disableOriginalConstructor()
       ->getMock();
     $config = $this->getMockBuilder('Drupal\Core\Config\Config')

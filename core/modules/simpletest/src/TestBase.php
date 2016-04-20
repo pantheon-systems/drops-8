@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\simpletest\TestBase.
- */
-
 namespace Drupal\simpletest;
 
 use Drupal\Component\Render\MarkupInterface;
@@ -314,7 +309,7 @@ abstract class TestBase {
    * HTTP authentication method (specified as a CURLAUTH_* constant).
    *
    * @var int
-   * @see http://php.net/manual/en/function.curl-setopt.php
+   * @see http://php.net/manual/function.curl-setopt.php
    */
   protected $httpAuthMethod = CURLAUTH_BASIC;
 

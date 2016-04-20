@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\KernelTests\Config\DefaultConfigTest.
- */
-
 namespace Drupal\KernelTests\Config;
 
 use Drupal\Core\Config\FileStorage;
@@ -46,8 +41,6 @@ class DefaultConfigTest extends KernelTestBase {
     // drupal_get_filename().
     // @todo Remove as part of https://www.drupal.org/node/2186491
     system_rebuild_module_data();
-
-    $this->installSchema('system', 'router');
   }
 
   /**
@@ -63,6 +56,11 @@ class DefaultConfigTest extends KernelTestBase {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
     $config_manager = $this->container->get('config.manager');
 
+    // @todo https://www.drupal.org/node/2308745 Rest has an implicit dependency
+    //   on the Node module remove once solved.
+    if (in_array($module, ['rest', 'hal'])) {
+      $module_installer->install(['node']);
+    }
     $module_installer->install([$module]);
 
     // System and user are required in order to be able to install some of the

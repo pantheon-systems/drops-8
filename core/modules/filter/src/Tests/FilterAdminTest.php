@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\filter\Tests\FilterAdminTest.
- */
-
 namespace Drupal\filter\Tests;
 
 use Drupal\Component\Utility\Html;
@@ -50,7 +45,7 @@ class FilterAdminTest extends WebTestBase {
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
 
     // Set up the filter formats used by this test.
-    $basic_html_format = entity_create('filter_format', array(
+    $basic_html_format = FilterFormat::create(array(
       'format' => 'basic_html',
       'name' => 'Basic HTML',
       'filters' => array(
@@ -63,7 +58,7 @@ class FilterAdminTest extends WebTestBase {
       ),
     ));
     $basic_html_format->save();
-    $restricted_html_format = entity_create('filter_format', array(
+    $restricted_html_format = FilterFormat::create(array(
       'format' => 'restricted_html',
       'name' => 'Restricted HTML',
       'filters' => array(
@@ -89,7 +84,7 @@ class FilterAdminTest extends WebTestBase {
       ),
     ));
     $restricted_html_format->save();
-    $full_html_format = entity_create('filter_format', array(
+    $full_html_format = FilterFormat::create(array(
       'format' => 'full_html',
       'name' => 'Full HTML',
       'weight' => 1,
@@ -267,7 +262,7 @@ class FilterAdminTest extends WebTestBase {
     $this->drupalGet('admin/config/content/formats/manage/' . $format->id());
     $this->assertFieldByName('roles[' . RoleInterface::AUTHENTICATED_ID . ']', '', 'Role found.');
     $this->assertFieldByName('filters[' . $second_filter . '][status]', '', 'Line break filter found.');
-    $this->assertFieldByName('filters[' . $first_filter . '][status]', '', 'Url filter found.');
+    $this->assertFieldByName('filters[' . $first_filter . '][status]', '', 'URL filter found.');
 
     // Disable new filter.
     $this->drupalPostForm('admin/config/content/formats/manage/' . $format->id() . '/disable', array(), t('Disable'));

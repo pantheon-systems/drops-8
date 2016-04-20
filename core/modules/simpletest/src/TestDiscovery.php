@@ -1,17 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\simpletest\TestDiscovery.
- */
-
 namespace Drupal\simpletest;
 
 use Doctrine\Common\Annotations\SimpleAnnotationReader;
 use Doctrine\Common\Reflection\StaticReflectionParser;
 use Drupal\Component\Annotation\Reflection\MockFileFinder;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -124,6 +118,7 @@ class TestDiscovery {
       $this->testNamespaces["Drupal\\Tests\\$name\\Unit\\"][] = "$base_path/tests/src/Unit";
       $this->testNamespaces["Drupal\\Tests\\$name\\Kernel\\"][] = "$base_path/tests/src/Kernel";
       $this->testNamespaces["Drupal\\Tests\\$name\\Functional\\"][] = "$base_path/tests/src/Functional";
+      $this->testNamespaces["Drupal\\Tests\\$name\\FunctionalJavascript\\"][] = "$base_path/tests/src/FunctionalJavascript";
     }
 
     foreach ($this->testNamespaces as $prefix => $paths) {

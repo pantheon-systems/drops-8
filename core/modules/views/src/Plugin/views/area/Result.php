@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Plugin\views\area\Result.
- */
-
 namespace Drupal\views\Plugin\views\area;
 
 use Drupal\Component\Utility\Html;
@@ -104,11 +99,15 @@ class Result extends AreaPluginBase {
     }
     $current_record_count = ($end - $start) + 1;
     // Get the search information.
-    $items = array('start', 'end', 'total', 'label', 'per_page', 'current_page', 'current_record_count', 'page_count');
-    $replacements = array();
-    foreach ($items as $item) {
-      $replacements["@$item"] = ${$item};
-    }
+    $replacements = [];
+    $replacements['@start'] = $start;
+    $replacements['@end'] = $end;
+    $replacements['@total'] = $total;
+    $replacements['@label'] = $label;
+    $replacements['@per_page'] = $per_page;
+    $replacements['@current_page'] = $current_page;
+    $replacements['@current_record_count'] = $current_record_count;
+    $replacements['@page_count'] = $page_count;
     // Send the output.
     if (!empty($total)) {
       $output .= Xss::filterAdmin(str_replace(array_keys($replacements), array_values($replacements), $format));

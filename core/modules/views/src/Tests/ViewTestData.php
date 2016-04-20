@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Tests\ViewTestData.
- */
-
 namespace Drupal\views\Tests;
 
 use Drupal\Core\Config\FileStorage;
@@ -14,7 +9,7 @@ use Drupal\Core\Config\FileStorage;
  *
  * The methods will be used by both views test base classes.
  *
- * @see \Drupal\views\Tests\ViewKernelTestBase.
+ * @see \Drupal\Tests\views\Kernel\ViewsKernelTestBase.
  * @see \Drupal\views\Tests\ViewTestBase.
  */
 class ViewTestData {

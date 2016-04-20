@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery.
- */
-
 namespace Drupal\Core\Plugin\Discovery;
 
 use Drupal\Component\Annotation\AnnotationInterface;
@@ -52,8 +47,10 @@ class AnnotatedClassDiscovery extends ComponentAnnotatedClassDiscovery {
    * @param string $plugin_definition_annotation_name
    *   (optional) The name of the annotation that contains the plugin definition.
    *   Defaults to 'Drupal\Component\Annotation\Plugin'.
+   * @param string[] $annotation_namespaces
+   *   (optional) Additional namespaces to scan for annotation definitions.
    */
-  function __construct($subdir, \Traversable $root_namespaces, $plugin_definition_annotation_name = 'Drupal\Component\Annotation\Plugin') {
+  function __construct($subdir, \Traversable $root_namespaces, $plugin_definition_annotation_name = 'Drupal\Component\Annotation\Plugin', array $annotation_namespaces = []) {
     if ($subdir) {
       // Prepend a directory separator to $subdir,
       // if it does not already have one.
@@ -65,7 +62,7 @@ class AnnotatedClassDiscovery extends ComponentAnnotatedClassDiscovery {
     }
     $this->rootNamespacesIterator = $root_namespaces;
     $plugin_namespaces = array();
-    parent::__construct($plugin_namespaces, $plugin_definition_annotation_name);
+    parent::__construct($plugin_namespaces, $plugin_definition_annotation_name, $annotation_namespaces);
   }
 
   /**

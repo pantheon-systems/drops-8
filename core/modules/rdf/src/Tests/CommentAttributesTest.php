@@ -1,16 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rdf\Tests\CommentAttributesTest.
- */
-
 namespace Drupal\rdf\Tests;
 
 use Drupal\comment\CommentInterface;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Tests\CommentTestBase;
 use Drupal\user\RoleInterface;
+use Drupal\comment\Entity\Comment;
 
 /**
  * Tests the RDFa markup of comments.
@@ -372,7 +368,7 @@ class CommentAttributesTest extends CommentTestBase {
       $values += $contact;
     }
 
-    $comment = entity_create('comment', $values);
+    $comment = Comment::create($values);
     $comment->save();
     return $comment;
   }

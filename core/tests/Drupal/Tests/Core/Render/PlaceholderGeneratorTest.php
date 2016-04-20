@@ -1,14 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Render\PlaceholderGeneratorTest.
- */
-
 namespace Drupal\Tests\Core\Render;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Render\Element;
 
 /**
  * @coversDefaultClass \Drupal\Core\Render\PlaceholderGenerator

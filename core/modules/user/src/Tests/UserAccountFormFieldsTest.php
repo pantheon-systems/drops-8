@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\user\Tests\UserAccountFormFieldsTest.
- */
-
 namespace Drupal\user\Tests;
 
 use Drupal\Core\Form\FormState;
@@ -79,7 +74,6 @@ class UserAccountFormFieldsTest extends KernelTestBase {
     $this->installConfig(array('user'));
 
     // Install the router table and then rebuild.
-    $this->installSchema('system', ['router']);
     \Drupal::service('router.builder')->rebuild();
 
     $form = $this->buildAccountForm('default');

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Tests\DefaultViewsTest.
- */
-
 namespace Drupal\views\Tests;
 
 use Drupal\comment\CommentInterface;
@@ -15,6 +10,9 @@ use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
 use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
 use Drupal\views\Views;
+use Drupal\comment\Entity\Comment;
+use Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\taxonomy\Entity\Term;
 
 /**
  * Tests the default views provided by views.
@@ -52,7 +50,7 @@ class DefaultViewsTest extends ViewTestBase {
     // Create Basic page node type.
     $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
 
-    $vocabulary = entity_create('taxonomy_vocabulary', array(
+    $vocabulary = Vocabulary::create([
       'name' => $this->randomMachineName(),
       'description' => $this->randomMachineName(),
       'vid' => Unicode::strtolower($this->randomMachineName()),
@@ -60,7 +58,7 @@ class DefaultViewsTest extends ViewTestBase {
       'help' => '',
       'nodes' => array('page' => 'page'),
       'weight' => mt_rand(0, 10),
-    ));
+    ]);
     $vocabulary->save();
 
     // Create a field.
@@ -101,7 +99,7 @@ class DefaultViewsTest extends ViewTestBase {
         'entity_type' => 'node',
         'field_name' => 'comment'
       );
-      entity_create('comment', $comment)->save();
+      Comment::create($comment)->save();
     }
 
     // Some views, such as the "Who's Online" view, only return results if at
@@ -148,14 +146,14 @@ class DefaultViewsTest extends ViewTestBase {
   function createTerm($vocabulary) {
     $filter_formats = filter_formats();
     $format = array_pop($filter_formats);
-    $term = entity_create('taxonomy_term', array(
+    $term = Term::create([
       'name' => $this->randomMachineName(),
       'description' => $this->randomMachineName(),
       // Use the first available text format.
       'format' => $format->id(),
       'vid' => $vocabulary->id(),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
-    ));
+    ]);
     $term->save();
     return $term;
   }

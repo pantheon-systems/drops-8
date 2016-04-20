@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\language\LanguageAccessControlHandler.
- */
-
 namespace Drupal\language;
 
 use Drupal\Core\Access\AccessResult;
@@ -26,13 +21,13 @@ class LanguageAccessControlHandler extends EntityAccessControlHandler {
     switch ($operation) {
       case 'update':
         /* @var \Drupal\Core\Language\LanguageInterface $entity */
-        return AccessResult::allowedIf(!$entity->isLocked())->cacheUntilEntityChanges($entity)
+        return AccessResult::allowedIf(!$entity->isLocked())->addCacheableDependency($entity)
           ->andIf(parent::checkAccess($entity, $operation, $account));
 
       case 'delete':
         /* @var \Drupal\Core\Language\LanguageInterface $entity */
-        return AccessResult::allowedIf(!$entity->isLocked())->cacheUntilEntityChanges($entity)
-          ->andIf(AccessResult::allowedIf(!$entity->isDefault())->cacheUntilEntityChanges($entity))
+        return AccessResult::allowedIf(!$entity->isLocked())->addCacheableDependency($entity)
+          ->andIf(AccessResult::allowedIf(!$entity->isDefault())->addCacheableDependency($entity))
           ->andIf(parent::checkAccess($entity, $operation, $account));
 
       default:

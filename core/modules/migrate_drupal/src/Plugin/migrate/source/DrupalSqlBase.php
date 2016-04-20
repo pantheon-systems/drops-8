@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase.
- */
-
 namespace Drupal\migrate_drupal\Plugin\migrate\source;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
@@ -12,7 +7,7 @@ use Drupal\Core\Entity\DependencyTrait;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\State\StateInterface;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\Plugin\migrate\source\SqlBase;
 use Drupal\migrate\Plugin\RequirementsInterface;

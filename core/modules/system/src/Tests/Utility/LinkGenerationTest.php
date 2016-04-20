@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Utility\LinkGenerationTest.
- */
-
 namespace Drupal\system\Tests\Utility;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Url;
 use Drupal\simpletest\KernelTestBase;
@@ -32,7 +27,7 @@ class LinkGenerationTest extends KernelTestBase {
       return \Drupal::l(['#markup' => '<em>link with markup</em>'], $url);
     });
     $this->setRawContent($link);
-    $this->assertTrue(SafeMarkup::isSafe($link), 'The output of link generation is marked safe as it is a link.');
+    $this->assertTrue($link instanceof MarkupInterface, 'The output of link generation is marked safe as it is a link.');
     // Ensure the content of the link is not escaped.
     $this->assertRaw('<em>link with markup</em>');
 
@@ -42,7 +37,7 @@ class LinkGenerationTest extends KernelTestBase {
       return \Drupal::l(['#markup' => '<em>link with markup</em>'], $url);
     });
     $this->setRawContent($link);
-    $this->assertTrue(SafeMarkup::isSafe($link), 'The output of link generation is marked safe as it is a link.');
+    $this->assertTrue($link instanceof MarkupInterface, 'The output of link generation is marked safe as it is a link.');
     // Ensure the content of the link is escaped.
     $this->assertEscaped('<em>link with markup</em> <strong>Test!</strong>');
 
@@ -52,7 +47,7 @@ class LinkGenerationTest extends KernelTestBase {
       return \Drupal::l(['#markup' => '<em>link with markup</em>'], $url);
     });
     $this->setRawContent($link);
-    $this->assertTrue(SafeMarkup::isSafe($link), 'The output of link generation is marked safe as it is a link.');
+    $this->assertTrue($link instanceof MarkupInterface, 'The output of link generation is marked safe as it is a link.');
     // Ensure the content of the link is escaped.
     $this->assertRaw('<em>link with markup</em> <strong>Test!</strong>');
 
@@ -61,7 +56,7 @@ class LinkGenerationTest extends KernelTestBase {
       return \Drupal::l('<em>link with markup</em>', $url);
     });
     $this->setRawContent($link);
-    $this->assertTrue(SafeMarkup::isSafe($link), 'The output of link generation is marked safe as it is a link.');
+    $this->assertTrue($link instanceof MarkupInterface, 'The output of link generation is marked safe as it is a link.');
     // Ensure the content of the link is escaped.
     $this->assertEscaped('<em>link with markup</em>');
     $this->assertRaw('<strong>Test!</strong>');

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Theme\EntityFilteringThemeTest.
- */
-
 namespace Drupal\system\Tests\Theme;
 
 use Drupal\comment\Tests\CommentTestTrait;
@@ -12,6 +7,8 @@ use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\simpletest\WebTestBase;
+use Drupal\comment\Entity\Comment;
+use Drupal\taxonomy\Entity\Term;
 
 /**
  * Tests themed output for each entity type in all available themes to ensure
@@ -93,10 +90,10 @@ class EntityFilteringThemeTest extends WebTestBase {
     $this->drupalLogin($this->user);
 
     // Create a test term.
-    $this->term = entity_create('taxonomy_term', array(
+    $this->term = Term::create([
       'name' => $this->xssLabel,
       'vid' => 1,
-    ));
+    ]);
     $this->term->save();
 
     // Add a comment field.
@@ -110,7 +107,7 @@ class EntityFilteringThemeTest extends WebTestBase {
     ));
 
     // Create a test comment on the test node.
-    $this->comment = entity_create('comment', array(
+    $this->comment = Comment::create(array(
       'entity_id' => $this->node->id(),
       'entity_type' => 'node',
       'field_name' => 'comment',

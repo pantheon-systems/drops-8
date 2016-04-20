@@ -8,6 +8,10 @@
     "irc": "irc://irc.freenode.net/drupal-contribute",
     "source": "https://www.drupal.org/project/drupal/git-instructions"
   },
+  "require": {
+    "php": ">=5.5.9",
+    "drupal/core-utility": "~8.1"
+  },
   "autoload": {
     "psr-4": {
       "Drupal\\Component\\Gettext\\": ""

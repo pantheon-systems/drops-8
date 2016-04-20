@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\RouteProcessor\RouteProcessorCurrentIntegrationTest.
- */
-
 namespace Drupal\system\Tests\RouteProcessor;
 
 use Drupal\Core\Cache\Cache;
@@ -41,7 +36,6 @@ class RouteProcessorCurrentIntegrationTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', ['router']);
     \Drupal::service('router.builder')->rebuild();
 
     $this->urlGenerator = \Drupal::urlGenerator();

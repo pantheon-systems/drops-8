@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\node\NodeAccessControlHandler.
- */
-
 namespace Drupal\node;
 
 use Drupal\Core\Access\AccessResult;
@@ -105,7 +100,7 @@ class NodeAccessControlHandler extends EntityAccessControlHandler implements Nod
 
     // Check if authors can view their own unpublished nodes.
     if ($operation === 'view' && !$status && $account->hasPermission('view own unpublished content') && $account->isAuthenticated() && $account->id() == $uid) {
-      return AccessResult::allowed()->cachePerPermissions()->cachePerUser()->cacheUntilEntityChanges($node);
+      return AccessResult::allowed()->cachePerPermissions()->cachePerUser()->addCacheableDependency($node);
     }
 
     // Evaluate node grants.

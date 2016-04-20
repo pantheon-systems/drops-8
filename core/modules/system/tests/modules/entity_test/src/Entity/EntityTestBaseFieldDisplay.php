@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\entity_test\Entity\EntityTestBaseFieldDisplay.
- */
-
 namespace Drupal\entity_test\Entity;
 
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -33,10 +28,12 @@ use Drupal\entity_test\FieldStorageDefinition;
  *     "id" = "id",
  *     "label" = "name",
  *     "uuid" = "uuid",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "langcode" = "langcode",
  *   },
  *   links = {
  *     "canonical" = "/entity_test_base_field_display/{entity_test_base_field_display}/edit",
+ *     "add-form" = "/entity_test_base_field_display/add",
  *     "edit-form" = "/entity_test_base_field_display/manage/{entity_test_base_field_display}",
  *     "delete-form" = "/entity_test/delete/entity_test_base_field_display/{entity_test_base_field_display}/edit",
  *   },

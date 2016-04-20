@@ -1,9 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\node\Tests\Views\RevisionRelationshipsTest.
- */
 namespace Drupal\node\Tests\Views;
 
 use Drupal\views\Views;

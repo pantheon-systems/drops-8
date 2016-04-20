@@ -1,12 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block_content\Tests\BlockContentCacheTagsTest.
- */
-
 namespace Drupal\block_content\Tests;
 
+use Drupal\block_content\Entity\BlockContent;
+use Drupal\block_content\Entity\BlockContentType;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Language\LanguageInterface;
@@ -29,7 +26,7 @@ class BlockContentCacheTagsTest extends EntityCacheTagsTestBase {
    * {@inheritdoc}
    */
   protected function createEntity() {
-    $block_content_type = entity_create('block_content_type', array(
+    $block_content_type = BlockContentType::create(array(
       'id' => 'basic',
       'label' => 'basic',
       'revision' => FALSE
@@ -38,7 +35,7 @@ class BlockContentCacheTagsTest extends EntityCacheTagsTestBase {
     block_content_add_body_field($block_content_type->id());
 
     // Create a "Llama" custom block.
-    $block_content = entity_create('block_content', array(
+    $block_content = BlockContent::create(array(
       'info' => 'Llama',
       'type' => 'basic',
       'body' => array(

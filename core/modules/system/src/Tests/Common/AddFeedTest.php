@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Common\AddFeedTest.
- */
-
 namespace Drupal\system\Tests\Common;
 
 use Drupal\Core\Url;
@@ -63,9 +58,7 @@ class AddFeedTest extends WebTestBase {
 
     // Use the bare HTML page renderer to render our links.
     $renderer = $this->container->get('bare_html_page_renderer');
-    $response = $renderer->renderBarePage(
-      $build, '', $this->container->get('theme.manager')->getActiveTheme()->getName()
-    );
+    $response = $renderer->renderBarePage($build, '', 'maintenance_page');
     // Glean the content from the response object.
     $this->setRawContent($response->getContent());
     // Assert that the content contains the RSS links we specified.

@@ -1,15 +1,10 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block\Plugin\migrate\process\BlockVisibility.
- */
-
 namespace Drupal\block\Plugin\migrate\process;
 
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\MigrateSkipRowException;
 use Drupal\migrate\Plugin\MigrateProcessInterface;

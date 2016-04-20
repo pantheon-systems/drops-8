@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\entity_test\Entity\EntityTestMulRev.
- */
-
 namespace Drupal\entity_test\Entity;
 
 /**
@@ -41,6 +36,7 @@ namespace Drupal\entity_test\Entity;
  *     "langcode" = "langcode",
  *   },
  *   links = {
+ *     "add-form" = "/entity_test_mulrev/add",
  *     "canonical" = "/entity_test_mulrev/manage/{entity_test_mulrev}",
  *     "delete-form" = "/entity_test/delete/entity_test_mulrev/{entity_test_mulrev}",
  *     "edit-form" = "/entity_test_mulrev/manage/{entity_test_mulrev}/edit",

@@ -1,13 +1,7 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Common\EarlyRenderingControllerTest.
- */
-
 namespace Drupal\system\Tests\Common;
 
-use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
 use Drupal\simpletest\WebTestBase;
 

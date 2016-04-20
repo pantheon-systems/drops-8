@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\simpletest\KernelTestBase.
- */
-
 namespace Drupal\simpletest;
 
 use Drupal\Component\Utility\Html;
@@ -435,10 +430,18 @@ EOD;
     if (!$this->container->get('module_handler')->moduleExists($module)) {
       throw new \RuntimeException("'$module' module is not enabled");
     }
+
     $tables = (array) $tables;
     foreach ($tables as $table) {
       $schema = drupal_get_module_schema($module, $table);
       if (empty($schema)) {
+        // BC layer to avoid some contrib tests to fail.
+        // @todo Remove the BC layer before 8.1.x release.
+        // @see https://www.drupal.org/node/2670360
+        // @see https://www.drupal.org/node/2670454
+        if ($module == 'system') {
+          continue;
+        }
         throw new \RuntimeException("Unknown '$table' table schema in '$module' module.");
       }
       $this->container->get('database')->schema()->createTable($table, $schema);
@@ -602,9 +605,7 @@ EOD;
   protected function render(array &$elements) {
     // Use the bare HTML page renderer to render our links.
     $renderer = $this->container->get('bare_html_page_renderer');
-    $response = $renderer->renderBarePage(
-      $elements, '', $this->container->get('theme.manager')->getActiveTheme()->getName()
-    );
+    $response = $renderer->renderBarePage($elements, '', 'maintenance_page');
 
     // Glean the content from the response object.
     $content = $response->getContent();

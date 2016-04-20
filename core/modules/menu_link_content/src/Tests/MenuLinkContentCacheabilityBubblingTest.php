@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\menu_link_content\Tests\MenuLinkContentCacheabilityBubblingTest.
- */
-
 namespace Drupal\menu_link_content\Tests;
 
 use Drupal\Core\Cache\Cache;
@@ -39,7 +34,6 @@ class MenuLinkContentCacheabilityBubblingTest extends KernelTestBase {
 
     $this->installEntitySchema('menu_link_content');
     $this->installEntitySchema('user');
-    $this->installSchema('system', ['url_alias', 'router']);
 
     // Ensure that the weight of module_link_content is higher than system.
     // @see menu_link_content_install()

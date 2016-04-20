@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\router_test\TestControllers.
- */
-
 namespace Drupal\router_test;
 
 use Drupal\Core\Cache\CacheableResponse;
@@ -104,6 +99,15 @@ class TestControllers {
   public function test24() {
     $this->removeExceptionLogger();
     throw new \Exception('Escaped content: <p> <br> <h3>');
+  }
+
+  public function test25() {
+    return [
+      '#cache' => [
+        'url',
+      ],
+      '#markup' => \Drupal::requestStack()->getCurrentRequest()->getUri(),
+    ];
   }
 
   /**

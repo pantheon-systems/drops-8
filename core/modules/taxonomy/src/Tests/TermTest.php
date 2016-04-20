@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\taxonomy\Tests\TermTest.
- */
-
 namespace Drupal\taxonomy\Tests;
 
 use Drupal\Component\Utility\Tags;
@@ -495,10 +490,10 @@ class TermTest extends TaxonomyTestBase {
 
     // Create a new term in a different vocabulary with the same name.
     $new_vocabulary = $this->createVocabulary();
-    $new_term = entity_create('taxonomy_term', array(
+    $new_term = Term::create([
       'name' => $term->getName(),
       'vid' => $new_vocabulary->id(),
-    ));
+    ]);
     $new_term->save();
 
     // Load multiple terms with the same name.

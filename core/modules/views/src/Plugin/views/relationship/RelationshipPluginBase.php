@@ -1,17 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Plugin\views\relationship\RelationshipPluginBase.
- */
-
 namespace Drupal\views\Plugin\views\relationship;
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Plugin\views\HandlerBase;
-use Drupal\views\Join;
 use Drupal\views\Views;
 
 /**

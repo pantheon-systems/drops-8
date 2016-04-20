@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\path\Tests\PathAliasTest.
- */
-
 namespace Drupal\path\Tests;
 
 use Drupal\Component\Utility\Unicode;
@@ -145,7 +140,9 @@ class PathAliasTest extends PathTestBase {
     ]), 'Attempt to move upper-case alias was rejected.');
 
     // Delete alias.
-    $this->drupalPostForm('admin/config/search/path/edit/' . $pid, array(), t('Delete'));
+    $this->drupalGet('admin/config/search/path/edit/' . $pid);
+    $this->clickLink(t('Delete'));
+    $this->assertRaw(t('Are you sure you want to delete path alias %name?', array('%name' => $edit['alias'])));
     $this->drupalPostForm(NULL, array(), t('Confirm'));
 
     // Confirm that the alias no longer works.

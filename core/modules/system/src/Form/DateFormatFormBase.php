@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Form\DateFormatFormBase.
- */
-
 namespace Drupal\system\Form;
 
 use Drupal\Core\Config\Entity\ConfigEntityStorageInterface;
@@ -104,7 +99,7 @@ abstract class DateFormatFormBase extends EntityForm {
       '#type' => 'textfield',
       '#title' => t('Format string'),
       '#maxlength' => 100,
-      '#description' => $this->t('A user-defined date format. See the <a href=":url">PHP manual</a> for available options.', array(':url' => 'http://php.net/manual/function.date.php')),
+      '#description' => $this->t('A user-defined date format. See the <a href="http://php.net/manual/function.date.php">PHP manual</a> for available options.'),
       '#required' => TRUE,
       '#attributes' => [
         'data-drupal-date-formatter' => 'source',

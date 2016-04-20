@@ -1,14 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate_drupal\Plugin\MigrateCckFieldInterface.
- */
-
 namespace Drupal\migrate_drupal\Plugin;
 
 use Drupal\Component\Plugin\PluginInspectionInterface;
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Row;
 
 /**
@@ -19,7 +14,7 @@ interface MigrateCckFieldInterface extends PluginInspectionInterface {
   /**
    * Apply any custom processing to the field migration.
    *
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration entity.
    */
   public function processField(MigrationInterface $migration);
@@ -27,7 +22,7 @@ interface MigrateCckFieldInterface extends PluginInspectionInterface {
   /**
    * Apply any custom processing to the field instance migration.
    *
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration entity.
    */
   public function processFieldInstance(MigrationInterface $migration);
@@ -35,7 +30,7 @@ interface MigrateCckFieldInterface extends PluginInspectionInterface {
   /**
    * Apply any custom processing to the field widget migration.
    *
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration entity.
    */
   public function processFieldWidget(MigrationInterface $migration);
@@ -43,7 +38,7 @@ interface MigrateCckFieldInterface extends PluginInspectionInterface {
   /**
    * Apply any custom processing to the field formatter migration.
    *
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration entity.
    */
   public function processFieldFormatter(MigrationInterface $migration);
@@ -69,7 +64,7 @@ interface MigrateCckFieldInterface extends PluginInspectionInterface {
   /**
    * Apply any custom processing to the cck bundle migrations.
    *
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration entity.
    * @param string $field_name
    *   The field name we're processing the value for.

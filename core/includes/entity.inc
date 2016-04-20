@@ -6,6 +6,8 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
 
 /**
  * Clears the entity render cache for all entity types.
@@ -468,7 +470,7 @@ function entity_get_display($entity_type, $bundle, $view_mode) {
   // configuration entries are only created when a display object is explicitly
   // configured and saved.
   if (!$display) {
-    $display = entity_create('entity_view_display', array(
+    $display = EntityViewDisplay::create(array(
       'targetEntityType' => $entity_type,
       'bundle' => $bundle,
       'mode' => $view_mode,
@@ -544,7 +546,7 @@ function entity_get_form_display($entity_type, $bundle, $form_mode) {
   // configuration entries are only created when an entity form display is
   // explicitly configured and saved.
   if (!$entity_form_display) {
-    $entity_form_display = entity_create('entity_form_display', array(
+    $entity_form_display = EntityFormDisplay::create(array(
       'targetEntityType' => $entity_type,
       'bundle' => $bundle,
       'mode' => $form_mode,

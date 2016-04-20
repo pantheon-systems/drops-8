@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Language\LanguageManager.
- */
-
 namespace Drupal\Core\Language;
 
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
@@ -331,6 +326,28 @@ class LanguageManager implements LanguageManagerInterface {
       'zh-hans' => array('Chinese, Simplified', '简体中文'),
       'zh-hant' => array('Chinese, Traditional', '繁體中文'),
     );
+  }
+
+  /**
+   * The 6 official languages used at the United Nations.
+   *
+   * This list is based on
+   * http://www.un.org/en/sections/about-un/official-languages/index.html and it
+   * uses the same format as getStandardLanguageList().
+   *
+   * @return array
+   *   An array with language codes as keys, and English and native language
+   *   names as values.
+   */
+  public static function getUnitedNationsLanguageList() {
+    return [
+      'ar' => ['Arabic', /* Left-to-right marker "‭" */ 'العربية', LanguageInterface::DIRECTION_RTL],
+      'zh-hans' => ['Chinese, Simplified', '简体中文'],
+      'en' => ['English', 'English'],
+      'fr' => ['French', 'Français'],
+      'ru' => ['Russian', 'Русский'],
+      'es' => ['Spanish', 'Español'],
+    ];
   }
 
   /**

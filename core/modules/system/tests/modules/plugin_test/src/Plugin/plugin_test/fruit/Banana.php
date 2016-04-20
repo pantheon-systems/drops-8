@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\plugin_test\Plugin\plugin_test\fruit\Banana.
- */
-
 namespace Drupal\plugin_test\Plugin\plugin_test\fruit;
 
 /**
@@ -13,7 +8,11 @@ namespace Drupal\plugin_test\Plugin\plugin_test\fruit;
  *   label = "Banana",
  *   color = "yellow",
  *   uses = {
- *     "bread" = @Translation("Banana bread")
+ *     "bread" = @Translation("Banana bread"),
+ *     "loaf" = @PluralTranslation(
+ *       singular = "@count loaf",
+ *       plural = "@count loaves"
+ *     )
  *   }
  * )
  */
