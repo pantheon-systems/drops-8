@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\KernelTests\KernelTestBase.
- */
-
 namespace Drupal\KernelTests;
 
 use Drupal\Component\FileCache\ApcuFileCacheBackend;
@@ -25,6 +20,7 @@ use Drupal\Core\Site\Settings;
 use Drupal\simpletest\AssertContentTrait;
 use Drupal\simpletest\AssertHelperTrait;
 use Drupal\simpletest\RandomGeneratorTrait;
+use Drupal\simpletest\TestServiceProvider;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 use org\bovigo\vfs\vfsStream;
@@ -192,6 +188,22 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
   protected $strictConfigSchema = TRUE;
 
   /**
+   * An array of config object names that are excluded from schema checking.
+   *
+   * @var string[]
+   */
+  protected static $configSchemaCheckerExclusions = array(
+    // Following are used to test lack of or partial schema. Where partial
+    // schema is provided, that is explicitly tested in specific tests.
+    'config_schema_test.noschema',
+    'config_schema_test.someschema',
+    'config_schema_test.schema_data_types',
+    'config_schema_test.no_schema_data_types',
+    // Used to test application of schema to filtering of configuration.
+    'config_test.dynamic.system',
+  );
+
+  /**
    * {@inheritdoc}
    */
   public static function setUpBeforeClass() {
@@ -287,6 +299,13 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
   }
 
   /**
+   * @return string
+   */
+  public function getDatabasePrefix() {
+    return $this->databasePrefix;
+  }
+
+  /**
    * Bootstraps a kernel for a test.
    */
   private function bootKernel() {
@@ -357,6 +376,11 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     if ($modules) {
       $this->container->get('module_handler')->loadAll();
     }
+
+    $this->container->get('request_stack')->push($request);
+
+    // Setup the destion to the be frontpage by default.
+    \Drupal::destination()->set('/');
 
     // Write the core.extension configuration.
     // Required for ConfigInstaller::installDefaultConfig() to work.
@@ -584,6 +608,7 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
       $container
         ->register('simpletest.config_schema_checker', 'Drupal\Core\Config\Testing\ConfigSchemaChecker')
         ->addArgument(new Reference('config.typed'))
+        ->addArgument($this->getConfigSchemaExclusions())
         ->addTag('event_subscriber');
     }
 
@@ -601,6 +626,26 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
       $container->getDefinition('password')
         ->setArguments(array(1));
     }
+    TestServiceProvider::addRouteProvider($container);
+  }
+
+  /**
+   * Gets the config schema exclusions for this test.
+   *
+   * @return string[]
+   *   An array of config object names that are excluded from schema checking.
+   */
+  protected function getConfigSchemaExclusions() {
+    $class = get_class($this);
+    $exceptions = [];
+    while ($class) {
+      if (property_exists($class, 'configSchemaCheckerExclusions')) {
+        $exceptions = array_merge($exceptions, $class::$configSchemaCheckerExclusions);
+      }
+      $class = get_parent_class($class);
+    }
+    // Filter out any duplicates.
+    return array_unique($exceptions);
   }
 
   /**
@@ -746,6 +791,13 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     foreach ($tables as $table) {
       $schema = drupal_get_module_schema($module, $table);
       if (empty($schema)) {
+        // BC layer to avoid some contrib tests to fail.
+        // @todo Remove the BC layer before 8.1.x release.
+        // @see https://www.drupal.org/node/2670360
+        // @see https://www.drupal.org/node/2670454
+        if ($module == 'system') {
+          continue;
+        }
         throw new \LogicException("$module module does not define a schema for table '$table'.");
       }
       $this->container->get('database')->schema()->createTable($table, $schema);
@@ -916,11 +968,15 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
    *   The rendered string output (typically HTML).
    */
   protected function render(array &$elements) {
+    // \Drupal\Core\Render\BareHtmlPageRenderer::renderBarePage calls out to
+    // system_page_attachments() directly.
+    if (!\Drupal::moduleHandler()->moduleExists('system')) {
+      throw new \Exception(__METHOD__ . ' requires system module to be installed.');
+    }
+
     // Use the bare HTML page renderer to render our links.
     $renderer = $this->container->get('bare_html_page_renderer');
-    $response = $renderer->renderBarePage(
-      $elements, '', $this->container->get('theme.manager')->getActiveTheme()->getName()
-    );
+    $response = $renderer->renderBarePage($elements, '', 'maintenance_page');
 
     // Glean the content from the response object.
     $content = $response->getContent();
@@ -1154,6 +1210,5 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
     $actual = static::castSafeStrings($actual);
     parent::assertEquals($expected, $actual, $message, $delta, $maxDepth, $canonicalize, $ignoreCase);
   }
-
 
 }

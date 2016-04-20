@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Form\RedirectTest.
- */
-
 namespace Drupal\system\Tests\Form;
 
 use Drupal\simpletest\WebTestBase;
@@ -97,7 +92,7 @@ class RedirectTest extends WebTestBase {
     $this->assertResponse(404);
     $this->drupalPostForm(NULL, array(), t('Submit'));
     $this->assertResponse(200);
-    $this->assertUrl($expected, [], 'Redirected to correct url/query.');
+    $this->assertUrl($expected, [], 'Redirected to correct URL/query.');
 
     // Visit the block admin page (403 page) and submit the form. Verify it
     // ends up at the right URL.
@@ -105,6 +100,6 @@ class RedirectTest extends WebTestBase {
     $this->assertResponse(403);
     $this->drupalPostForm(NULL, array(), t('Submit'));
     $this->assertResponse(200);
-    $this->assertUrl($expected, [], 'Redirected to correct url/query.');
+    $this->assertUrl($expected, [], 'Redirected to correct URL/query.');
   }
 }

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\entity_test\Entity\EntityTestViewBuilder.
- */
-
 namespace Drupal\entity_test\Entity;
 
 /**
@@ -21,8 +16,10 @@ namespace Drupal\entity_test\Entity;
  *   render_cache = FALSE,
  *   entity_keys = {
  *     "id" = "id",
+ *     "uuid" = "uuid",
  *     "label" = "name",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "langcode" = "langcode",
  *   }
  * )
  */

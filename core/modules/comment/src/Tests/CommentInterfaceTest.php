@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Tests\CommentInterfaceTest.
- */
-
 namespace Drupal\comment\Tests;
 
 use Drupal\comment\CommentManagerInterface;
@@ -80,6 +75,12 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->drupalGet('node/' . $this->node->id());
     $this->assertText($subject_text, 'Individual comment subject found.');
     $this->assertText($comment_text, 'Individual comment body found.');
+    $arguments = [
+      ':link' => base_path() . 'comment/' . $comment->id() . '#comment-' . $comment->id(),
+    ];
+    $pattern_permalink = '//footer[contains(@class,"comment__meta")]/a[contains(@href,:link) and text()="Permalink"]';
+    $permalink = $this->xpath($pattern_permalink, $arguments);
+    $this->assertTrue(!empty($permalink), 'Permalink link found.');
 
     // Set comments to have subject and preview to optional.
     $this->drupalLogout();

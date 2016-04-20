@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\form_test\Form\FormTestLabelForm.
- */
-
 namespace Drupal\form_test\Form;
 
 use Drupal\Core\Form\FormBase;
@@ -108,7 +103,26 @@ class FormTestLabelForm extends FormBase {
       ),
       '#required' => TRUE,
     );
-
+    $form['form_checkboxes_title_invisible'] = array(
+      '#type' => 'checkboxes',
+      '#title' => 'Checkboxes test invisible',
+      '#title_display' => 'invisible',
+      '#options' => array(
+        'first-checkbox' => 'First checkbox',
+        'second-checkbox' => 'Second checkbox',
+      ),
+      '#required' => TRUE,
+    );
+    $form['form_radios_title_invisible'] = array(
+      '#type' => 'radios',
+      '#title' => 'Radios test invisible',
+      '#title_display' => 'invisible',
+      '#options' => array(
+        'first-radio' => 'First radio',
+        'second-radio' => 'Second radio',
+      ),
+      '#required' => TRUE,
+    );
     return $form;
   }
 

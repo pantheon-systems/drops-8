@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate\Plugin\migrate\destination\ComponentEntityDisplayBase.
- */
-
 namespace Drupal\migrate\Plugin\migrate\destination;
 
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Row;
 
 /**

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Plugin\views\argument\StringArgument.
- */
-
 namespace Drupal\views\Plugin\views\argument;
 
 use Drupal\Component\Utility\Unicode;
@@ -99,7 +94,7 @@ class StringArgument extends ArgumentPluginBase {
     $form['path_case'] = array(
       '#type' => 'select',
       '#title' => $this->t('Case in path'),
-      '#description' => $this->t('When printing url paths, how to transform the case of the filter value. Do not use this unless with Postgres as it uses case sensitive comparisons.'),
+      '#description' => $this->t('When printing URL paths, how to transform the case of the filter value. Do not use this unless with Postgres as it uses case sensitive comparisons.'),
       '#options' => array(
         'none' => $this->t('No transform'),
         'upper' => $this->t('Upper case'),

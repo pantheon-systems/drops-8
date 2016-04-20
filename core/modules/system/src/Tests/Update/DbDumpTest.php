@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Update\DbDumpTest.
- */
-
 namespace Drupal\system\Tests\Update;
 
 use Drupal\Component\Utility\SafeMarkup;
@@ -90,9 +85,7 @@ class DbDumpTest extends KernelTestBase {
     // Create some schemas so our export contains tables.
     $this->installSchema('system', [
       'key_value_expire',
-      'semaphore',
       'sessions',
-      'url_alias',
     ]);
     $this->installSchema('dblog', ['watchdog']);
     $this->installEntitySchema('block_content');
@@ -113,6 +106,9 @@ class DbDumpTest extends KernelTestBase {
     $account = User::create(['mail' => 'q\'uote$dollar@example.com', 'name' => '$dollar']);
     $account->save();
 
+    // Create url_alias (this will create 'url_alias').
+    $this->container->get('path.alias_storage')->save('/user/' . $account->id(), '/user/example');
+
     // Create a cache table (this will create 'cache_discovery').
     \Drupal::cache('discovery')->set('test', $this->data);
 
@@ -125,13 +121,14 @@ class DbDumpTest extends KernelTestBase {
       'cachetags',
       'config',
       'cache_bootstrap',
+      'cache_data',
+      'cache_default',
       'cache_discovery',
       'cache_entity',
       'file_managed',
       'key_value_expire',
       'menu_link_content',
       'menu_link_content_data',
-      'semaphore',
       'sequences',
       'sessions',
       'url_alias',

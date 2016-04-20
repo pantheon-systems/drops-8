@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Installer\InstallerTest.
- */
-
 namespace Drupal\system\Tests\Installer;
 
 use Drupal\simpletest\InstallerTestBase;
@@ -42,7 +37,7 @@ class InstallerTest extends InstallerTestBase {
     $this->assertRaw('<meta charset="utf-8" />');
 
     // Assert that the expected title is present.
-    $this->assertEqual('Choose language', $this->cssSelect('main h1')[0]);
+    $this->assertEqual('Choose language', $this->cssSelect('main h2')[0]);
 
     parent::setUpLanguage();
   }
@@ -52,7 +47,9 @@ class InstallerTest extends InstallerTestBase {
    */
   protected function setUpProfile() {
     // Assert that the expected title is present.
-    $this->assertEqual('Select an installation profile', $this->cssSelect('main h1')[0]);
+    $this->assertEqual('Select an installation profile', $this->cssSelect('main h2')[0]);
+    $result = $this->xpath('//span[contains(@class, :class) and contains(text(), :text)]', array(':class' => 'visually-hidden', ':text' => 'Select an installation profile'));
+    $this->assertEqual(count($result), 1, "Title/Label not displayed when '#title_display' => 'invisible' attribute is set");
 
     parent::setUpProfile();
   }
@@ -62,7 +59,7 @@ class InstallerTest extends InstallerTestBase {
    */
   protected function setUpSettings() {
     // Assert that the expected title is present.
-    $this->assertEqual('Database configuration', $this->cssSelect('main h1')[0]);
+    $this->assertEqual('Database configuration', $this->cssSelect('main h2')[0]);
 
     parent::setUpSettings();
   }
@@ -72,7 +69,7 @@ class InstallerTest extends InstallerTestBase {
    */
   protected function setUpSite() {
     // Assert that the expected title is present.
-    $this->assertEqual('Configure site', $this->cssSelect('main h1')[0]);
+    $this->assertEqual('Configure site', $this->cssSelect('main h2')[0]);
 
     parent::setUpSite();
   }

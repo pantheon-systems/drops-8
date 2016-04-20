@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Common\RenderElementTypesTest.
- */
-
 namespace Drupal\system\Tests\Common;
 
 use Drupal\Component\Utility\Html;
@@ -28,7 +23,6 @@ class RenderElementTypesTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
     $this->installConfig(array('system'));
-    $this->installSchema('system', array('router'));
     \Drupal::service('router.builder')->rebuild();
   }
 

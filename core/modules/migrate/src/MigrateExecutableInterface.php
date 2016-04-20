@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate\MigrateExecutableInterface.
- */
-
 namespace Drupal\migrate;
 
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 
 interface MigrateExecutableInterface {
 

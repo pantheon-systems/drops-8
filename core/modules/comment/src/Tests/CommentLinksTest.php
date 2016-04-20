@@ -1,16 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Tests\CommentLinksTest.
- */
-
 namespace Drupal\comment\Tests;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
 use Drupal\user\RoleInterface;
+use Drupal\comment\Entity\Comment;
 
 /**
  * Basic comment links tests to ensure markup present.
@@ -59,7 +55,7 @@ class CommentLinksTest extends CommentTestBase {
 
     // Create a comment via CRUD API functionality, since
     // $this->postComment() relies on actual user permissions.
-    $comment = entity_create('comment', array(
+    $comment = Comment::create(array(
       'cid' => NULL,
       'entity_id' => $this->node->id(),
       'entity_type' => 'node',

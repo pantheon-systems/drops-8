@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate\Annotation\MigrateDestination.
- */
-
 namespace Drupal\migrate\Annotation;
 
 use Drupal\Component\Annotation\Plugin;
@@ -47,14 +42,5 @@ class MigrateDestination extends Plugin {
    * @var bool
    */
   public $requirements_met = TRUE;
-
-  /**
-   * A class to make the plugin derivative aware.
-   *
-   * @var string
-   *
-   * @see \Drupal\Component\Plugin\Discovery\DerivativeDiscoveryDecorator
-   */
-  public $derivative;
 
 }

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Entity\EntityTypeInterface.
- */
-
 namespace Drupal\Core\Entity;
 
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
@@ -629,6 +624,33 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *   The lowercase form of the human-readable entity type name.
    */
   public function getLowercaseLabel();
+
+  /**
+   * Gets the singular label of the entity type.
+   *
+   * @return string
+   *   The singular label.
+   */
+  public function getSingularLabel();
+
+  /**
+   * Gets the plural label of the entity type.
+   *
+   * @return string
+   *   The plural label.
+   */
+  public function getPluralLabel();
+
+  /**
+   * Gets the count label of the entity type
+   *
+   * @param int $count
+   *   The item count to display if the plural form was requested.
+   *
+   * @return string
+   *   The count label.
+   */
+  public function getCountLabel($count);
 
   /**
    * Gets a callable that can be used to provide the entity URI.

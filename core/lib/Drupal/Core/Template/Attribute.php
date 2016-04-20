@@ -1,14 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Template\Attribute.
- */
-
 namespace Drupal\Core\Template;
 
 use Drupal\Component\Render\PlainTextOutput;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Render\MarkupInterface;
 
 /**
@@ -139,7 +133,7 @@ class Attribute implements \ArrayAccess, \IteratorAggregate, MarkupInterface {
       $value = new AttributeBoolean($name, $value);
     }
     // As a development aid, we allow the value to be a safe string object.
-    elseif (SafeMarkup::isSafe($value)) {
+    elseif ($value instanceof MarkupInterface) {
       // Attributes are not supposed to display HTML markup, so we just convert
       // the value to plain text.
       $value = PlainTextOutput::renderFromHtml($value);
@@ -318,7 +312,7 @@ class Attribute implements \ArrayAccess, \IteratorAggregate, MarkupInterface {
   /**
    * Implements the magic __clone() method.
    */
-  public function  __clone() {
+  public function __clone() {
     foreach ($this->storage as $name => $value) {
       $this->storage[$name] = clone $value;
     }

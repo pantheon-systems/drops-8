@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Contains \Drupal\system\Tests\Theme\TwigWhiteListTest.php.
- */
 
 namespace Drupal\system\Tests\Theme;
 
@@ -46,7 +42,7 @@ class TwigWhiteListTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('router', 'sequences'));
+    $this->installSchema('system', array('sequences'));
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installEntitySchema('taxonomy_term');

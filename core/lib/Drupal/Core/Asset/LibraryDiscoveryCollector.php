@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Asset\LibraryDiscoveryCollector.
- */
-
 namespace Drupal\Core\Asset;
 
 use Drupal\Component\Utility\NestedArray;
@@ -19,20 +14,6 @@ use Drupal\Core\Theme\ThemeManagerInterface;
  * A CacheCollector implementation for building library extension info.
  */
 class LibraryDiscoveryCollector extends CacheCollector {
-
-  /**
-   * The cache backend.
-   *
-   * @var \Drupal\Core\Cache\CacheBackendInterface
-   */
-  protected $cache;
-
-  /**
-   * The lock backend.
-   *
-   * @var \Drupal\Core\Lock\LockBackendInterface
-   */
-  protected $lock;
 
   /**
    * The library discovery parser.

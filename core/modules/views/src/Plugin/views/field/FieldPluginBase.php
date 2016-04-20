@@ -1,20 +1,13 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Plugin\views\field\FieldPluginBase.
- */
-
 namespace Drupal\views\Plugin\views\field;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\Renderer;
 use Drupal\Core\Url as CoreUrl;
 use Drupal\views\Plugin\views\HandlerBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -86,7 +79,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
   public $original_value = NULL;
 
   /**
-   * Stores additional fields that get added to the query.
+   * Stores additional fields which get added to the query.
    *
    * The generated aliases are stored in $aliases.
    *
@@ -150,11 +143,11 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    * Add 'additional' fields to the query.
    *
    * @param $fields
-   * An array of fields. The key is an identifier used to later find the
-   * field alias used. The value is either a string in which case it's
-   * assumed to be a field on this handler's table; or it's an array in the
-   * form of
-   * @code array('table' => $tablename, 'field' => $fieldname) @endcode
+   *   An array of fields. The key is an identifier used to later find the
+   *   field alias used. The value is either a string in which case it's
+   *   assumed to be a field on this handler's table; or it's an array in the
+   *   form of
+   *   @code array('table' => $tablename, 'field' => $fieldname) @endcode
    */
   protected function addAdditionalFields($fields = NULL) {
     if (!isset($fields)) {
@@ -775,7 +768,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       $form['alter']['path_case'] = array(
         '#type' => 'select',
         '#title' => $this->t('Transform the case'),
-        '#description' => $this->t('When printing url paths, how to transform the case of the filter value.'),
+        '#description' => $this->t('When printing URL paths, how to transform the case of the filter value.'),
         '#states' => array(
           'visible' => array(
             ':input[name="options[alter][make_link]"]' => array('checked' => TRUE),
@@ -1221,7 +1214,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     // alterations made by this method. Any alterations or replacements made
     // within this method need to ensure that at the minimum the result is
     // XSS admin filtered. See self::renderAltered() as an example that does.
-    $value_is_safe = SafeMarkup::isSafe($this->last_render);
+    $value_is_safe = $this->last_render instanceof MarkupInterface;
     // Cast to a string so that empty checks and string functions work as
     // expected.
     $value = (string) $this->last_render;
@@ -1299,9 +1292,10 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     }
 
     // Preserve whether or not the string is safe. Since $more_link comes from
-    // \Drupal::l(), it is safe to append. Use SafeMarkup::isSafe() here because
-    // renderAsLink() can return both safe and unsafe values.
-    if (SafeMarkup::isSafe($value)) {
+    // \Drupal::l(), it is safe to append. Check if the value is an instance of
+    // \Drupal\Component\Render\MarkupInterface here because renderAsLink()
+    // can return both safe and unsafe values.
+    if ($value instanceof MarkupInterface) {
       return ViewsRenderPipelineMarkup::create($value . $more_link);
     }
     else {

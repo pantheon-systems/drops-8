@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\file\Tests\FileListingTest.
- */
-
 namespace Drupal\file\Tests;
 
 use Drupal\node\Entity\Node;
@@ -157,7 +152,7 @@ class FileListingTest extends FileFieldTestBase {
    */
   protected function createFile() {
     // Create a new file entity.
-    $file = entity_create('file', array(
+    $file = File::create([
       'uid' => 1,
       'filename' => 'druplicon.txt',
       'uri' => 'public://druplicon.txt',
@@ -165,7 +160,7 @@ class FileListingTest extends FileFieldTestBase {
       'created' => 1,
       'changed' => 1,
       'status' => FILE_STATUS_PERMANENT,
-    ));
+    ]);
     file_put_contents($file->getFileUri(), 'hello world');
 
     // Save it, inserting a new record.

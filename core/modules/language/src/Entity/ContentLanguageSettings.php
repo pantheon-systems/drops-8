@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\language\Entity\ContentLanguageSettings.
- */
-
 namespace Drupal\language\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
@@ -68,7 +63,7 @@ class ContentLanguageSettings extends ConfigEntityBase implements ContentLanguag
    * Constructs a ContentLanguageSettings object.
    *
    * In most cases, Field entities are created via
-   * entity_create('field_config', $values), where $values is the same
+   * FieldConfig::create($values), where $values is the same
    * parameter as in this constructor.
    *
    * @param array $values

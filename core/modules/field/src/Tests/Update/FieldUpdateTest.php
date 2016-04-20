@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\field\Tests\Update\FieldUpdateTest.
- */
-
 namespace Drupal\field\Tests\Update;
 
 use Drupal\Core\Config\Config;
@@ -109,6 +104,26 @@ class FieldUpdateTest extends UpdatePathTestBase {
     $selection = \Drupal::service('plugin.manager.entity_reference_selection')->getSelectionHandler($field);
     $referencable = $selection->getReferenceableEntities();
     $this->assertEqual(array_keys($referencable['article']), [$node_1->id()]);
+  }
+
+  /**
+   * Tests field_update_8003().
+   *
+   * @see field_update_8003()
+   */
+  public function testFieldUpdate8003() {
+    // Run updates.
+    $this->runUpdates();
+
+    // Check that the new 'auto_create_bundle' setting is populated correctly.
+    $field = $this->configFactory->get('field.field.node.article.field_ref_autocreate_2412569');
+    $handler_settings = $field->get('settings.handler_settings');
+
+    $expected_target_bundles = ['tags' => 'tags', 'test' => 'test'];
+    $this->assertEqual($handler_settings['target_bundles'], $expected_target_bundles);
+
+    $this->assertTrue($handler_settings['auto_create']);
+    $this->assertEqual($handler_settings['auto_create_bundle'], 'tags');
   }
 
   /**

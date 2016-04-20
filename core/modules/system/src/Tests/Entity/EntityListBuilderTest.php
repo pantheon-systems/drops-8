@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Entity\EntityListBuilderTest.
-*/
-
 namespace Drupal\system\Tests\Entity;
 
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\entity_test\Entity\EntityTest;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -41,7 +37,7 @@ class EntityListBuilderTest extends WebTestBase {
   public function testPager() {
     // Create 51 test entities.
     for ($i = 1; $i < 52; $i++) {
-      entity_create('entity_test', array('name' => 'Test entity ' . $i))->save();
+      EntityTest::create(array('name' => 'Test entity ' . $i))->save();
     }
 
     // Load the listing page.

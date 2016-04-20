@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\aggregator\Plugin\migrate\source\AggregatorFeed.
- */
-
 namespace Drupal\aggregator\Plugin\migrate\source;
 
 use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
@@ -37,8 +32,8 @@ class AggregatorFeed extends DrupalSqlBase {
       'url' => $this->t('URL to the feed.'),
       'refresh' => $this->t('Refresh frequency in seconds.'),
       'checked' => $this->t('Last-checked unix timestamp.'),
-      'link' => $this->t('Parent website of feed.'),
-      'description' => $this->t('Parent website\'s description fo the feed.'),
+      'link' => $this->t('Parent website of the feed.'),
+      'description' => $this->t("Parent website's description of the feed."),
       'image' => $this->t('An image representing the feed.'),
       'etag' => $this->t('Entity tag HTTP response header.'),
       'modified' => $this->t('When the feed was last modified.'),

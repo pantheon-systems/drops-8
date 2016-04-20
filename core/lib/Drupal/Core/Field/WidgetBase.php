@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Field\WidgetBase.
- */
-
 namespace Drupal\Core\Field;
 
 use Drupal\Component\Utility\Html;
@@ -565,6 +560,16 @@ abstract class WidgetBase extends PluginSettingsBase implements WidgetInterface 
    */
   protected function isDefaultValueWidget(FormStateInterface $form_state) {
     return (bool) $form_state->get('default_value_widget');
+  }
+
+  /**
+   * Returns the filtered field description.
+   *
+   * @return \Drupal\Core\Field\FieldFilteredMarkup
+   *   The filtered field description, with tokens replaced.
+   */
+  protected function getFilteredDescription() {
+    return FieldFilteredMarkup::create(\Drupal::token()->replace($this->fieldDefinition->getDescription()));
   }
 
 }

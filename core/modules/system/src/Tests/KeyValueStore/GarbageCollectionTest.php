@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\KeyValueStore\GarbageCollectionTest.
- */
-
 namespace Drupal\system\Tests\KeyValueStore;
 
 use Drupal\Component\Serialization\PhpSerialize;
@@ -30,7 +25,7 @@ class GarbageCollectionTest extends KernelTestBase {
     parent::setUp();
 
     // These additional tables are necessary due to the call to system_cron().
-    $this->installSchema('system', array('key_value_expire', 'flood', 'queue'));
+    $this->installSchema('system', array('key_value_expire'));
   }
 
   /**

@@ -1,15 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Tests\CommentCSSTest.
- */
-
 namespace Drupal\comment\Tests;
 
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
 use Drupal\user\RoleInterface;
+use Drupal\comment\Entity\Comment;
 
 /**
  * Tests CSS classes on comments.
@@ -47,7 +43,7 @@ class CommentCSSTest extends CommentTestBase {
 
       // Add a comment.
       /** @var \Drupal\comment\CommentInterface $comment */
-      $comment = entity_create('comment', array(
+      $comment = Comment::create(array(
         'entity_id' => $node->id(),
         'entity_type' => 'node',
         'field_name' => 'comment',

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Lock\LockUnitTest.
- */
-
 namespace Drupal\system\Tests\Lock;
 
 use Drupal\Core\Lock\DatabaseLockBackend;
@@ -24,17 +19,9 @@ class LockUnitTest extends KernelTestBase {
    */
   protected $lock;
 
-  /**
-   * Modules to enable.
-   *
-   * @var array
-   */
-  public static $modules = array('system');
-
   protected function setUp() {
     parent::setUp();
     $this->lock = new DatabaseLockBackend($this->container->get('database'));
-    $this->installSchema('system', 'semaphore');
   }
 
   /**

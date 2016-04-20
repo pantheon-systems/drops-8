@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Routing\UrlIntegrationTest.
- */
-
 namespace Drupal\system\Tests\Routing;
 
 use Drupal\Core\Url;
@@ -25,15 +20,6 @@ class UrlIntegrationTest extends KernelTestBase {
    * @var array
    */
   public static $modules = array('user', 'router_test', 'system');
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function setUp() {
-    parent::setUp();
-
-    $this->installSchema('system', ['router']);
-  }
 
   /**
    * Ensures that the access() method on \Drupal\Core\Url objects works.

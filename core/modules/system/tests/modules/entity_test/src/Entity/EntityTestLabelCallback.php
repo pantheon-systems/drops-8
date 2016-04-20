@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\entity_test\Entity\EntityTestLabelCallback.
- */
-
 namespace Drupal\entity_test\Entity;
 
 /**
@@ -18,7 +13,9 @@ namespace Drupal\entity_test\Entity;
  *   label_callback = "entity_test_label_callback",
  *   entity_keys = {
  *     "id" = "id",
- *     "bundle" = "type"
+ *     "bundle" = "type",
+ *     "uuid" = "uuid",
+ *     "langcode" = "langcode",
  *   }
  * )
  */

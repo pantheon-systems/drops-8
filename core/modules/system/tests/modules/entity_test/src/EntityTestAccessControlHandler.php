@@ -1,16 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\entity_test\EntityTestAccessControlHandler.
- */
-
 namespace Drupal\entity_test;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\entity_test\Entity\EntityTestLabel;
 
 /**
  * Defines the access control handler for the test entity type.
@@ -21,9 +17,17 @@ use Drupal\Core\Session\AccountInterface;
  * @see \Drupal\entity_test\Entity\EntityTestMul
  * @see \Drupal\entity_test\Entity\EntityTestMulRev
  * @see \Drupal\entity_test\Entity\EntityTestRev
+ * @see \Drupal\entity_test\Entity\EntityTestWithBundle
  * @see \Drupal\entity_test\Entity\EntityTestStringId
  */
 class EntityTestAccessControlHandler extends EntityAccessControlHandler {
+
+  /**
+   * Allows to grant access to just the labels.
+   *
+   * @var bool
+   */
+  protected $viewLabelOperation = TRUE;
 
   /**
    * {@inheritdoc}
@@ -37,7 +41,11 @@ class EntityTestAccessControlHandler extends EntityAccessControlHandler {
       return AccessResult::forbidden();
     }
 
-    if ($operation === 'view') {
+    if ($operation === 'view label' && $entity instanceof EntityTestLabel) {
+      // Viewing the label of the 'entity_test_label' entity type is allowed.
+      return AccessResult::allowed();
+    }
+    elseif (in_array($operation, array('view', 'view label'))) {
       if (!$entity->isDefaultTranslation()) {
         return AccessResult::allowedIfHasPermission($account, 'view test entity translations');
       }
@@ -56,7 +64,11 @@ class EntityTestAccessControlHandler extends EntityAccessControlHandler {
    * {@inheritdoc}
    */
   protected function checkCreateAccess(AccountInterface $account, array $context, $entity_bundle = NULL) {
-    return AccessResult::allowedIfHasPermission($account, 'administer entity_test content');
+    return AccessResult::allowedIfHasPermissions($account, [
+      'administer entity_test content',
+      'administer entity_test_with_bundle content',
+      'create ' . $entity_bundle . ' entity_test_with_bundle entities',
+    ], 'OR');
   }
 
 }

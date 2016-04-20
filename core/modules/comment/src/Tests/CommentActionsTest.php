@@ -1,13 +1,9 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Tests\CommentActionsTest.
- */
-
 namespace Drupal\comment\Tests;
 
 use Drupal\comment\Entity\Comment;
+use Drupal\system\Entity\Action;
 
 /**
  * Tests actions provided by the Comment module.
@@ -50,7 +46,7 @@ class CommentActionsTest extends CommentTestBase {
     $this->drupalLogin($this->adminUser);
     $keyword_1 = $this->randomMachineName();
     $keyword_2 = $this->randomMachineName();
-    $action = entity_create('action', array(
+    $action = Action::create(array(
       'id' => 'comment_unpublish_by_keyword_action',
       'label' => $this->randomMachineName(),
       'type' => 'comment',

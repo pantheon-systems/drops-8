@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rest\Tests\UpdateTest.
- */
-
 namespace Drupal\rest\Tests;
 
 use Drupal\Component\Serialization\Json;
@@ -50,7 +45,9 @@ class UpdateTest extends RESTTestBase {
       'value' => $this->randomString(),
       'format' => 'plain_text',
     ));
-    $patch_entity = entity_create($entity_type, $patch_values);
+    $patch_entity = $this->container->get('entity_type.manager')
+      ->getStorage($entity_type)
+      ->create($patch_values);
     // We don't want to overwrite the UUID.
     $patch_entity->set('uuid', NULL);
     $serialized = $serializer->serialize($patch_entity, $this->defaultFormat, $context);

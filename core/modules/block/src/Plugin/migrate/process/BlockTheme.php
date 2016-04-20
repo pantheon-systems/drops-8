@@ -1,13 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block\Plugin\migrate\process\BlockTheme.
- */
-
 namespace Drupal\block\Plugin\migrate\process;
 
-use Drupal\migrate\Entity\MigrationInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\MigrateExecutableInterface;
 use Drupal\migrate\ProcessPluginBase;
 use Drupal\migrate\Row;
@@ -45,7 +40,7 @@ class BlockTheme extends ProcessPluginBase implements ContainerFactoryPluginInte
    *   The plugin ID for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\migrate\Entity\MigrationInterface $migration
+   * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration entity.
    * @param \Drupal\Core\Config\Config $theme_config
    *   The system.theme configuration factory object.

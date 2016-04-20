@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\rest\Tests\RestLinkManagerTest.
- */
-
 namespace Drupal\rest\Tests;
 use Drupal\Core\Url;
 use Drupal\simpletest\KernelTestBase;
@@ -25,7 +20,6 @@ class RestLinkManagerTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', ['router']);
     \Drupal::service('router.builder')->rebuild();
   }
 

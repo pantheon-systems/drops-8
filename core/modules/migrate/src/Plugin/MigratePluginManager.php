@@ -1,17 +1,11 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\migrate\Plugin\MigratePluginManager.
- */
-
 namespace Drupal\migrate\Plugin;
 
 use Drupal\Component\Plugin\Factory\DefaultFactory;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Plugin\DefaultPluginManager;
-use Drupal\migrate\Entity\MigrationInterface;
 
 /**
  * Manages migrate plugins.

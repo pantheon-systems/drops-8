@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Component\DependencyInjection\Dumper\OptimizedPhpArrayDumper.
- */
-
 namespace Drupal\Component\DependencyInjection\Dumper;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -250,6 +245,11 @@ class OptimizedPhpArrayDumper extends Dumper {
       else {
         throw new InvalidArgumentException("The 'scope' definition is deprecated in Symfony 3.0 and not supported by Drupal 8.");
       }
+    }
+
+    // By default services are shared, so just provide the flag, when needed.
+    if ($definition->isShared() === FALSE) {
+      $service['shared'] = $definition->isShared();
     }
 
     if (($decorated = $definition->getDecoratedService()) !== NULL) {

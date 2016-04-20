@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Component\Render\MarkupInterface.
- */
-
 namespace Drupal\Component\Render;
 
 /**
@@ -26,7 +21,6 @@ namespace Drupal\Component\Render;
  * implement \Countable so it can be used in if statements.
  *
  * @see \Drupal\Component\Render\MarkupTrait
- * @see \Drupal\Component\Utility\SafeMarkup::isSafe()
  * @see \Drupal\Core\Template\TwigExtension::escapeFilter()
  * @see \Drupal\Component\Render\FormattableMarkup
  * @see \Drupal\Core\StringTranslation\TranslatableMarkup

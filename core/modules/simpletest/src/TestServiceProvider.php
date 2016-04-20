@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\simpletest\TestServiceProvider.
- */
-
 namespace Drupal\simpletest;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -33,15 +28,25 @@ class TestServiceProvider implements ServiceProviderInterface, ServiceModifierIn
    */
   public function alter(ContainerBuilder $container) {
     if (static::$currentTest instanceof KernelTestBase) {
-      // While $container->get() does a recursive resolve, getDefinition() does
-      // not, so do it ourselves.
-      foreach (['router.route_provider' => 'RouteProvider'] as $original_id => $class) {
-        for ($id = $original_id; $container->hasAlias($id); $id = (string) $container->getAlias($id));
-        $definition = $container->getDefinition($id);
-        $definition->clearTag('needs_destruction');
-        $container->setDefinition("simpletest.$original_id", $definition);
-        $container->setDefinition($id, new Definition('Drupal\simpletest\\' . $class));
-      }
+      static::addRouteProvider($container);
     }
   }
+
+  /**
+   * Add the on demand rebuild route provider service.
+   *
+   * @param \Drupal\Core\DependencyInjection\ContainerBuilder $container
+   */
+  public static function addRouteProvider(ContainerBuilder $container) {
+    foreach (['router.route_provider' => 'RouteProvider'] as $original_id => $class) {
+      // While $container->get() does a recursive resolve, getDefinition() does
+      // not, so do it ourselves.
+      for ($id = $original_id; $container->hasAlias($id); $id = (string) $container->getAlias($id));
+      $definition = $container->getDefinition($id);
+      $definition->clearTag('needs_destruction');
+      $container->setDefinition("simpletest.$original_id", $definition);
+      $container->setDefinition($id, new Definition('Drupal\simpletest\\' . $class));
+    }
+  }
+
 }

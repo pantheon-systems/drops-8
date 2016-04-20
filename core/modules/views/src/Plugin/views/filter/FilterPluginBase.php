@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Plugin\views\filter\FilterPluginBase.
- */
-
 namespace Drupal\views\Plugin\views\filter;
 
 use Drupal\Core\Cache\Cache;
@@ -610,7 +605,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
       '#default_value' => $this->options['expose']['identifier'],
       '#title' => $this->t('Filter identifier'),
       '#size' => 40,
-      '#description' => $this->t('This will appear in the URL after the ? to identify this filter. Cannot be blank.'),
+      '#description' => $this->t('This will appear in the URL after the ? to identify this filter. Cannot be blank. Only letters, digits and the dot ("."), hyphen ("-"), underscore ("_"), and tilde ("~") characters are allowed.'),
     );
   }
 
@@ -619,16 +614,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
    */
   public function validateExposeForm($form, FormStateInterface $form_state) {
     $identifier = $form_state->getValue(array('options', 'expose', 'identifier'));
-    if (empty($identifier)) {
-      $form_state->setError($form['expose']['identifier'], $this->t('The identifier is required if the filter is exposed.'));
-    }
-    elseif ($identifier == 'value') {
-      $form_state->setError($form['expose']['identifier'], $this->t('This identifier is not allowed.'));
-    }
-
-    if (!$this->view->display_handler->isIdentifierUnique($form_state->get('id'), $identifier)) {
-      $form_state->setError($form['expose']['identifier'], $this->t('This identifier is used by another handler.'));
-    }
+    $this->validateIdentifier($identifier, $form_state, $form['expose']['identifier']);
   }
 
   /**
@@ -637,17 +623,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
   protected function buildGroupValidate($form, FormStateInterface $form_state) {
     if (!$form_state->isValueEmpty(array('options', 'group_info'))) {
       $identifier = $form_state->getValue(array('options', 'group_info', 'identifier'));
-      if (empty($identifier)) {
-        $form_state->setError($form['group_info']['identifier'], $this->t('The identifier is required if the filter is exposed.'));
-      }
-
-      elseif ($identifier == 'value') {
-        $form_state->setError($form['group_info']['identifier'], $this->t('This identifier is not allowed.'));
-      }
-
-      if (!$this->view->display_handler->isIdentifierUnique($form_state->get('id'), $identifier)) {
-        $form_state->setError($form['group_info']['identifier'], $this->t('This identifier is used by another handler.'));
-      }
+      $this->validateIdentifier($identifier, $form_state, $form['group_info']['identifier']);
     }
 
     if ($group_items = $form_state->getValue(array('options', 'group_info', 'group_items'))) {
@@ -674,6 +650,42 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
         }
       }
     }
+  }
+
+  /**
+   * Validates a filter identifier.
+   *
+   * Sets the form error if $form_state is passed or a error string if
+   * $form_state is not passed.
+   *
+   * @param string $identifier
+   *   The identifier to check.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   * @param array $form_group
+   *   The form element to set any errors on.
+   *
+   * @return string
+   */
+  protected function validateIdentifier($identifier, FormStateInterface $form_state = NULL, &$form_group = array()) {
+    $error = '';
+    if (empty($identifier)) {
+      $error = $this->t('The identifier is required if the filter is exposed.');
+    }
+    elseif ($identifier == 'value') {
+      $error = $this->t('This identifier is not allowed.');
+    }
+    elseif (preg_match('/[^a-zA-z0-9_~\.\-]/', $identifier)) {
+      $error = $this->t('This identifier has illegal characters.');
+    }
+
+    if ($form_state && !$this->view->display_handler->isIdentifierUnique($form_state->get('id'), $identifier)) {
+      $error = $this->t('This identifier is used by another handler.');
+    }
+
+    if (!empty($form_state) && !empty($error)) {
+      $form_state->setError($form_group, $error);
+    }
+    return $error;
   }
 
   /**
@@ -864,7 +876,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
       '#default_value' => $identifier,
       '#title' => $this->t('Filter identifier'),
       '#size' => 40,
-      '#description' => $this->t('This will appear in the URL after the ? to identify this filter. Cannot be blank.'),
+      '#description' => $this->t('This will appear in the URL after the ? to identify this filter. Cannot be blank. Only letters, digits and the dot ("."), hyphen ("-"), underscore ("_"), and tilde ("~") characters are allowed.'),
     );
     $form['group_info']['label'] = array(
       '#type' => 'textfield',
@@ -918,7 +930,7 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
       '#default_value' => $identifier,
       '#title' => $this->t('Filter identifier'),
       '#size' => 40,
-      '#description' => $this->t('This will appear in the URL after the ? to identify this filter. Cannot be blank.'),
+      '#description' => $this->t('This will appear in the URL after the ? to identify this filter. Cannot be blank. Only letters, digits and the dot ("."), hyphen ("-"), underscore ("_"), and tilde ("~") characters are allowed.'),
     );
     $form['group_info']['label'] = array(
       '#type' => 'textfield',
@@ -1483,6 +1495,15 @@ abstract class FilterPluginBase extends HandlerBase implements CacheableDependen
    */
   public function getCacheTags() {
     return [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validate() {
+    if (!empty($this->options['exposed']) && $error = $this->validateIdentifier($this->options['expose']['identifier'])) {
+      return [$error];
+    }
   }
 
 }

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\search\Tests\SearchBlockTest.
- */
-
 namespace Drupal\search\Tests;
 
 /**
@@ -78,7 +73,7 @@ class SearchBlockTest extends SearchTestBase {
     $this->assertEqual(
       $this->getUrl(),
       \Drupal::url('search.view_' . $entity_id, array(), array('query' => array('keys' => $terms['keys']), 'absolute' => TRUE)),
-      'Submitted to correct url.'
+      'Submitted to correct URL.'
     );
 
     // Test an empty search via the block form, from the front page.
@@ -92,7 +87,7 @@ class SearchBlockTest extends SearchTestBase {
     $this->assertEqual(
       $this->getUrl(),
       \Drupal::url('search.view_' . $entity_id, array(), array('query' => array('keys' => ''), 'absolute' => TRUE)),
-      'Redirected to correct url.'
+      'Redirected to correct URL.'
     );
 
     // Test that after entering a too-short keyword in the form, you can then

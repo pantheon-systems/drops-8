@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\locale\Tests\LocaleConfigSubscriberTest.
- */
-
 namespace Drupal\locale\Tests;
 
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -62,7 +57,6 @@ class LocaleConfigSubscriberTest extends KernelTestBase {
     $this->setUpDefaultLanguage();
 
     $this->installSchema('locale', ['locales_source', 'locales_target', 'locales_location']);
-    $this->installSchema('system', ['queue']);
 
     $this->setupLanguages();
 

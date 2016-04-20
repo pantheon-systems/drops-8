@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Common\AttachedAssetsTest.
- */
-
 namespace Drupal\system\Tests\Common;
 
 use Drupal\Component\Serialization\Json;
@@ -51,7 +46,6 @@ class AttachedAssetsTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('router'));
     $this->container->get('router.builder')->rebuild();
 
     $this->assetResolver = $this->container->get('asset.resolver');

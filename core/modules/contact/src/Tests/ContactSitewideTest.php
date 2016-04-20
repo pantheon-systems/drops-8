@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\contact\Tests\ContactSitewideTest.
- */
-
 namespace Drupal\contact\Tests;
 
 use Drupal\Component\Utility\Unicode;
@@ -185,10 +180,6 @@ class ContactSitewideTest extends WebTestBase {
     $this->assertNoRaw(t('Contact form %label has been added.', array('%label' => $label)));
     $this->assertRaw(t('The machine-readable name is already in use. It must be unique.'));
 
-    // Clear flood table in preparation for flood test and allow other checks to complete.
-    db_delete('flood')->execute();
-    $num_records_after = db_query("SELECT COUNT(*) FROM {flood}")->fetchField();
-    $this->assertIdentical($num_records_after, '0', 'Flood table emptied.');
     $this->drupalLogout();
 
     // Check to see that anonymous user cannot see contact page without permission.

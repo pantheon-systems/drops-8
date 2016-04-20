@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block\Tests\Views\DisplayBlockTest.
- */
-
 namespace Drupal\block\Tests\Views;
 
 use Drupal\Component\Serialization\Json;
@@ -145,7 +140,7 @@ class DisplayBlockTest extends ViewTestBase {
     $this->assertBlockAppears($block_3);
     $this->assertBlockAppears($block_4);
 
-    $block_storage = $this->container->get('entity.manager')->getStorage('block');
+    $block_storage = $this->container->get('entity_type.manager')->getStorage('block');
 
     // Remove the block display, so both block entities from the first view
     // should both disappear.
@@ -192,7 +187,7 @@ class DisplayBlockTest extends ViewTestBase {
     $this->assertNoFieldById('edit-machine-name', 'views_block__test_view_block_1', 'The machine name is hidden on the views block form.');
     // Save the block.
     $this->drupalPostForm(NULL, array(), t('Save block'));
-    $storage = $this->container->get('entity.manager')->getStorage('block');
+    $storage = $this->container->get('entity_type.manager')->getStorage('block');
     $block = $storage->load('views_block__test_view_block_block_1');
     // This will only return a result if our new block has been created with the
     // expected machine name.

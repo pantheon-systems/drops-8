@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsWidgetBase.
- */
-
 namespace Drupal\Core\Field\Plugin\Field\FieldWidget;
 
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -150,13 +145,11 @@ abstract class OptionsWidgetBase extends WidgetBase {
    *
    * @param \Drupal\Core\Field\FieldItemListInterface $items
    *   The field values.
-   * @param int $delta
-   *   (optional) The delta of the item to get options for. Defaults to 0.
    *
    * @return array
    *   The array of corresponding selected options.
    */
-  protected function getSelectedOptions(FieldItemListInterface $items, $delta = 0) {
+  protected function getSelectedOptions(FieldItemListInterface $items) {
     // We need to check against a flat list of options.
     $flat_options = OptGroup::flattenOptions($this->getOptions($items->getEntity()));
 

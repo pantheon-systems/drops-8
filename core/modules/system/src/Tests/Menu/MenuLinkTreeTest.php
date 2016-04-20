@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Menu\MenuLinkTreeTest.
- */
-
 namespace Drupal\system\Tests\Menu;
 
 use Drupal\Core\Menu\MenuLinkTreeElement;
@@ -53,7 +48,7 @@ class MenuLinkTreeTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('router'));
+    \Drupal::service('router.builder')->rebuild();
     $this->installEntitySchema('menu_link_content');
 
     $this->linkTree = $this->container->get('menu.link_tree');

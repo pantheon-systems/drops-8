@@ -1,16 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Tests\CommentNewIndicatorTest.
- */
-
 namespace Drupal\comment\Tests;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
 use Drupal\Core\Url;
+use Drupal\comment\Entity\Comment;
 
 /**
  * Tests the 'new' indicator posted on comments.
@@ -85,7 +81,7 @@ class CommentNewIndicatorTest extends CommentTestBase {
     // Create a new comment. This helper function may be run with different
     // comment settings so use $comment->save() to avoid complex setup.
     /** @var \Drupal\comment\CommentInterface $comment */
-    $comment = entity_create('comment', array(
+    $comment = Comment::create(array(
       'cid' => NULL,
       'entity_id' => $this->node->id(),
       'entity_type' => 'node',

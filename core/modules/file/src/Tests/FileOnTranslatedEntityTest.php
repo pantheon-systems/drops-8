@@ -1,14 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\file\Tests\FileOnTranslatedEntityTest.
- */
-
 namespace Drupal\file\Tests;
 
 use Drupal\file\Entity\File;
-use Drupal\node\Entity\Node;
 
 /**
  * Uploads files to translated nodes.

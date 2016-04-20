@@ -1,12 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\block_content\Tests\Views\BlockContentTestBase.
- */
-
 namespace Drupal\block_content\Tests\Views;
 
+use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\views\Tests\ViewTestBase;
@@ -69,7 +65,7 @@ abstract class BlockContentTestBase extends ViewTestBase {
       'type' => 'basic',
       'langcode' => 'en',
     );
-    if ($block_content = entity_create('block_content', $settings)) {
+    if ($block_content = BlockContent::create($settings)) {
       $status = $block_content->save();
     }
     $this->assertEqual($status, SAVED_NEW, SafeMarkup::format('Created block content %info.', array('%info' => $block_content->label())));
@@ -100,7 +96,7 @@ abstract class BlockContentTestBase extends ViewTestBase {
       'label' => $id,
       'revision' => FALSE
     );
-    $bundle = entity_create('block_content_type', $values);
+    $bundle = BlockContentType::create($values);
     $status = $bundle->save();
     block_content_add_body_field($bundle->id());
 

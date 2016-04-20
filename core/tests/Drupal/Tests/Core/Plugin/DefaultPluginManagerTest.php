@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Plugin\DefaultPluginManagerTest.
- */
-
 namespace Drupal\Tests\Core\Plugin;
 
 use Drupal\Tests\UnitTestCase;
@@ -49,6 +44,10 @@ class DefaultPluginManagerTest extends UnitTestCase {
         'color' => 'yellow',
         'uses' => array(
           'bread' => 'Banana bread',
+          'loaf' => array(
+            'singular' => '@count loaf',
+            'plural' => '@count loaves',
+          ),
         ),
         'class' => 'Drupal\plugin_test\Plugin\plugin_test\fruit\Banana',
       ),

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\help\Tests\NoHelpTest.
- */
-
 namespace Drupal\help\Tests;
 
 use Drupal\simpletest\WebTestBase;
@@ -43,7 +38,7 @@ class NoHelpTest extends WebTestBase {
 
     $this->drupalGet('admin/help');
     $this->assertResponse(200);
-    $this->assertText('Help is available on the following items', 'Help page is found.');
+    $this->assertText('Module overviews are provided by modules');
     $this->assertFalse(\Drupal::moduleHandler()->implementsHook('menu_test', 'help'), 'The menu_test module does not implement hook_help');
     $this->assertNoText(\Drupal::moduleHandler()->getName('menu_test'), 'Making sure the test module menu_test does not display a help link on admin/help.');
 

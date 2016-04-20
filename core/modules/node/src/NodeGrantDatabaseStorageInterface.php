@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\node\NodeGrantDatabaseStorageInterface.
- */
-
 namespace Drupal\node;
 
 use Drupal\Core\Session\AccountInterface;
@@ -61,7 +56,7 @@ interface NodeGrantDatabaseStorageInterface {
    * permission changes.
    *
    * Note: Don't call this method directly from a contributed module. Call
-   * node_access_write_grants() instead.
+   * \Drupal\node\NodeAccessControlHandlerInterface::acquireGrants() instead.
    *
    * @param \Drupal\node\NodeInterface $node
    *   The node whose grants are being written.
@@ -78,9 +73,6 @@ interface NodeGrantDatabaseStorageInterface {
    *   (optional) If false, does not delete records. This is only for optimization
    *   purposes, and assumes the caller has already performed a mass delete of
    *   some form. Defaults to TRUE.
-   *
-   * @see node_access_write_grants()
-   * @see node_access_acquire_grants()
    */
   public function write(NodeInterface $node, array $grants, $realm = NULL, $delete = TRUE);
 

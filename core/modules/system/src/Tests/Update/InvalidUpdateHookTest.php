@@ -1,14 +1,8 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\system\Tests\Update\InvalidUpdateHookTest.
- */
-
 namespace Drupal\system\Tests\Update;
 
 use Drupal\simpletest\WebTestBase;
-use Drupal\Core\Extension\ExtensionSchemaVersionException;
 
 /**
  * Tests that a module implementing hook_update_8000() causes an error to be

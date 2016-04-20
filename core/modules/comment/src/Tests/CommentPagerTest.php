@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\comment\Tests\CommentPagerTest.
- */
-
 namespace Drupal\comment\Tests;
 
 use Drupal\comment\CommentManagerInterface;
@@ -173,9 +168,9 @@ class CommentPagerTest extends CommentTestBase {
   /**
    * Asserts that the comments are displayed in the correct order.
    *
-   * @param $comments
-   *   And array of comments.
-   * @param $expected_order
+   * @param \Drupal\comment\CommentInterface[] $comments
+   *   An array of comments, must be of the type CommentInterface.
+   * @param array $expected_order
    *   An array of keys from $comments describing the expected order.
    */
   function assertCommentOrder(array $comments, array $expected_order) {

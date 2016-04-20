@@ -1,15 +1,12 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\quickedit\Tests\MetadataGeneratorTest.
- */
-
 namespace Drupal\quickedit\Tests;
 
+use Drupal\entity_test\Entity\EntityTest;
 use Drupal\quickedit\EditorSelector;
 use Drupal\quickedit\MetadataGenerator;
 use Drupal\quickedit_test\MockEditEntityFieldAccessCheck;
+use Drupal\filter\Entity\FilterFormat;
 
 /**
  * Tests in-place field editing metadata.
@@ -92,7 +89,7 @@ class MetadataGeneratorTest extends QuickEditTestBase {
     );
 
     // Create an entity with values for this text field.
-    $entity = entity_create('entity_test');
+    $entity = EntityTest::create();
     $entity->{$field_1_name}->value = 'Test';
     $entity->{$field_2_name}->value = 42;
     $entity->save();
@@ -123,8 +120,6 @@ class MetadataGeneratorTest extends QuickEditTestBase {
    * Tests a field whose associated in-place editor generates custom metadata.
    */
   public function testEditorWithCustomMetadata() {
-    $this->installSchema('system', 'url_alias');
-
     $this->editorManager = $this->container->get('plugin.manager.quickedit.editor');
     $this->editorSelector = new EditorSelector($this->editorManager, $this->container->get('plugin.manager.field.formatter'));
     $this->metadataGenerator = new MetadataGenerator($this->accessChecker, $this->editorSelector, $this->editorManager);
@@ -149,7 +144,7 @@ class MetadataGeneratorTest extends QuickEditTestBase {
     );
 
     // Create a text format.
-    $full_html_format = entity_create('filter_format', array(
+    $full_html_format = FilterFormat::create(array(
       'format' => 'full_html',
       'name' => 'Full HTML',
       'weight' => 1,
@@ -160,7 +155,7 @@ class MetadataGeneratorTest extends QuickEditTestBase {
     $full_html_format->save();
 
     // Create an entity with values for this rich text field.
-    $entity = entity_create('entity_test');
+    $entity = EntityTest::create();
     $entity->{$field_name}->value = 'Test';
     $entity->{$field_name}->format = 'full_html';
     $entity->save();

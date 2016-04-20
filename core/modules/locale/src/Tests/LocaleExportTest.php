@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\locale\Tests\LocaleExportTest.
- */
-
 namespace Drupal\locale\Tests;
 
 use Drupal\simpletest\WebTestBase;
@@ -38,8 +33,8 @@ class LocaleExportTest extends WebTestBase {
     $this->drupalLogin($this->adminUser);
 
     // Copy test po files to the translations directory.
-    file_unmanaged_copy(drupal_get_path('module', 'locale') . '/tests/test.de.po', 'translations://', FILE_EXISTS_REPLACE);
-    file_unmanaged_copy(drupal_get_path('module', 'locale') . '/tests/test.xx.po', 'translations://', FILE_EXISTS_REPLACE);
+    file_unmanaged_copy(__DIR__ . '/../../tests/test.de.po', 'translations://', FILE_EXISTS_REPLACE);
+    file_unmanaged_copy(__DIR__ . '/../../tests/test.xx.po', 'translations://', FILE_EXISTS_REPLACE);
   }
 
   /**

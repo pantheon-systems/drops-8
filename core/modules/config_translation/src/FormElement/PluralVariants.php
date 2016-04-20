@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\config_translation\FormElement\PluralVariants.
- */
-
 namespace Drupal\config_translation\FormElement;
 
 use Drupal\Component\Utility\SafeMarkup;
@@ -26,6 +21,7 @@ class PluralVariants extends FormElementBase {
     $element = array(
       '#type' => 'fieldset',
       '#title' => SafeMarkup::format('@label <span class="visually-hidden">(@source_language)</span>', array(
+        // Labels originate from configuration schema and are translatable.
         '@label' => $this->t($this->definition->getLabel()),
         '@source_language' => $source_language->getName(),
       )),
@@ -54,6 +50,7 @@ class PluralVariants extends FormElementBase {
     $element = array(
       '#type' => 'fieldset',
       '#title' => SafeMarkup::format('@label <span class="visually-hidden">(@translation_language)</span>', array(
+        // Labels originate from configuration schema and are translatable.
         '@label' => $this->t($this->definition->getLabel()),
         '@translation_language' => $translation_language->getName(),
       )),

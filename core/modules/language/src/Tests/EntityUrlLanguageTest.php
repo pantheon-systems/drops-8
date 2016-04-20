@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\language\Tests\EntityUrlLanguageTest.
- */
-
 namespace Drupal\language\Tests;
 
 use Drupal\Core\Language\LanguageInterface;
@@ -41,7 +36,6 @@ class EntityUrlLanguageTest extends LanguageTestBase {
 
     $this->installEntitySchema('entity_test');
     $this->installEntitySchema('configurable_language');
-    $this->installSchema('system', 'router');
     \Drupal::service('router.builder')->rebuild();
 
     // In order to reflect the changes for a multilingual site in the container

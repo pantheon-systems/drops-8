@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\views\Tests\Wizard\BasicTest.
- */
-
 namespace Drupal\views\Tests\Wizard;
 
 use Drupal\Component\Serialization\Json;
@@ -212,7 +207,7 @@ class BasicTest extends WizardTestBase {
 
     // Make sure the plugin types that should not have empty options don't have.
     // Test against all values is unit tested.
-    // @see \Drupal\views\Tests\Plugin\DisplayKernelTest
+    // @see \Drupal\Tests\views\Kernel\Plugin\DisplayKernelTest
     $view = Views::getView($random_id);
     $displays = $view->storage->get('display');
 

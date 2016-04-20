@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\serialization\Tests\NormalizerTestBase.
- */
-
 namespace Drupal\serialization\Tests;
 
 use Drupal\KernelTests\KernelTestBase;
@@ -25,13 +20,12 @@ abstract class NormalizerTestBase extends KernelTestBase {
 
     $this->installEntitySchema('entity_test_mulrev');
     $this->installEntitySchema('user');
-    $this->installSchema('system', array('url_alias', 'router'));
     $this->installConfig(array('field'));
     \Drupal::service('router.builder')->rebuild();
     \Drupal::moduleHandler()->invoke('rest', 'install');
 
     // Auto-create a field for testing.
-    FieldstorageConfig::create(array(
+    FieldStorageConfig::create(array(
       'entity_type' => 'entity_test_mulrev',
       'field_name' => 'field_test_text',
       'type' => 'text',
