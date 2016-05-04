@@ -103,7 +103,7 @@ class EditorAdminTest extends WebTestBase {
    * Tests format disabling.
    */
   public function testDisableFormatWithEditor() {
-    $formats = ['monocerus' => 'Monocerus', 'tattoo' =>  'Tattoo'];
+    $formats = ['monocerus' => 'Monocerus', 'tattoo' => 'Tattoo'];
 
     // Install the node module.
     $this->container->get('module_installer')->install(['node']);
@@ -130,7 +130,7 @@ class EditorAdminTest extends WebTestBase {
     $node->body->format = 'monocerus';
     $node->save();
 
-    // Login as an user able to use both formats and edit nodes of created type.
+    // Log in as an user able to use both formats and edit nodes of created type.
     $account = $this->drupalCreateUser($permissions);
     $this->drupalLogin($account);
 

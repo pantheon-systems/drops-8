@@ -59,7 +59,7 @@ class DbLogTest extends WebTestBase {
    * interfaces.
    */
   function testDbLog() {
-    // Login the admin user.
+    // Log in the admin user.
     $this->drupalLogin($this->adminUser);
 
     $row_limit = 100;
@@ -78,7 +78,7 @@ class DbLogTest extends WebTestBase {
       }
     }
 
-    // Login the regular user.
+    // Log in the regular user.
     $this->drupalLogin($this->webUser);
     $this->verifyReports(403);
   }
@@ -148,7 +148,9 @@ class DbLogTest extends WebTestBase {
   private function generateLogEntries($count, $options = array()) {
     global $base_root;
 
-    // Make it just a little bit harder to pass the link part of the test.
+    // This long URL makes it just a little bit harder to pass the link part of
+    // the test with a mix of English words and a repeating series of random
+    // percent-encoded Chinese characters.
     $link = urldecode('/content/xo%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A%E9%85%B1%E5%87%89%E6%8B%8C%E7%B4%A0%E9%B8%A1%E7%85%A7%E7%83%A7%E9%B8%A1%E9%BB%84%E7%8E%AB%E7%91%B0-%E7%A7%91%E5%B7%9E%E7%9A%84%E5%B0%8F%E4%B9%9D%E5%AF%A8%E6%B2%9F%E7%BB%9D%E7%BE%8E%E9%AB%98%E5%B1%B1%E6%B9%96%E6%B3%8A-lake-isabelle');
 
     // Prepare the fields to be logged
@@ -302,9 +304,9 @@ class DbLogTest extends WebTestBase {
     $this->assertTrue($user != NULL, format_string('User @name was loaded', array('@name' => $name)));
     // pass_raw property is needed by drupalLogin.
     $user->pass_raw = $pass;
-    // Login user.
+    // Log in user.
     $this->drupalLogin($user);
-    // Logout user.
+    // Log out user.
     $this->drupalLogout();
     // Fetch the row IDs in watchdog that relate to the user.
     $result = db_query('SELECT wid FROM {watchdog} WHERE uid = :uid', array(':uid' => $user->id()));
@@ -314,7 +316,7 @@ class DbLogTest extends WebTestBase {
     $count_before = (isset($ids)) ? count($ids) : 0;
     $this->assertTrue($count_before > 0, format_string('DBLog contains @count records for @name', array('@count' => $count_before, '@name' => $user->getUsername())));
 
-    // Login the admin user.
+    // Log in the admin user.
     $this->drupalLogin($this->adminUser);
     // Delete the user created at the start of this test.
     // We need to POST here to invoke batch_process() in the internal browser.
@@ -329,9 +331,9 @@ class DbLogTest extends WebTestBase {
     // Default display includes name and email address; if too long, the email
     // address is replaced by three periods.
     $this->assertLogMessage(t('New user: %name %email.', array('%name' => $name, '%email' => '<' . $user->getEmail() . '>')), 'DBLog event was recorded: [add user]');
-    // Login user.
+    // Log in user.
     $this->assertLogMessage(t('Session opened for %name.', array('%name' => $name)), 'DBLog event was recorded: [login user]');
-    // Logout user.
+    // Log out user.
     $this->assertLogMessage(t('Session closed for %name.', array('%name' => $name)), 'DBLog event was recorded: [logout user]');
     // Delete user.
     $message = t('Deleted user: %name %email.', array('%name' => $name, '%email' => '<' . $user->getEmail() . '>'));
@@ -374,7 +376,7 @@ class DbLogTest extends WebTestBase {
     // Create user.
     $perm = array('create ' . $type . ' content', 'edit own ' . $type . ' content', 'delete own ' . $type . ' content');
     $user = $this->drupalCreateUser($perm);
-    // Login user.
+    // Log in user.
     $this->drupalLogin($user);
 
     // Create a node using the form in order to generate an add content event
@@ -400,7 +402,7 @@ class DbLogTest extends WebTestBase {
     $this->drupalGet('admin/reports/dblog');
     $this->assertResponse(403);
 
-    // Login the admin user.
+    // Log in the admin user.
     $this->drupalLogin($this->adminUser);
     // View the database log report.
     $this->drupalGet('admin/reports/dblog');
@@ -499,7 +501,7 @@ class DbLogTest extends WebTestBase {
     $this->container->get('logger.dblog')->log($log['severity'], $log['message'], $log);
     // Make sure the table count has actually been incremented.
     $this->assertEqual($count + 1, db_query('SELECT COUNT(*) FROM {watchdog}')->fetchField(), format_string('\Drupal\dblog\Logger\DbLog->log() added an entry to the dblog :count', array(':count' => $count)));
-    // Login the admin user.
+    // Log in the admin user.
     $this->drupalLogin($this->adminUser);
     // Post in order to clear the database table.
     $this->drupalPostForm('admin/reports/dblog', array(), t('Clear log messages'));

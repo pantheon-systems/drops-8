@@ -27,6 +27,7 @@ use Drupal\Core\Test\AssertMailTrait;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Yaml\Yaml as SymfonyYaml;
 use Zend\Diactoros\Uri;
 
 /**
@@ -635,7 +636,7 @@ abstract class WebTestBase extends TestBase {
     copy($settings_services_file, $directory . '/services.yml');
     if ($this->strictConfigSchema) {
       // Add a listener to validate configuration schema on save.
-      $yaml = new \Symfony\Component\Yaml\Yaml();
+      $yaml = new SymfonyYaml();
       $content = file_get_contents($directory . '/services.yml');
       $services = $yaml->parse($content);
       $services['services']['simpletest.config_schema_checker'] = [
@@ -1507,7 +1508,7 @@ abstract class WebTestBase extends TestBase {
    *   $edit = array(...);
    *   $this->drupalPostForm(NULL, $edit, t('Save'));
    *   @endcode
-   * @param  $edit
+   * @param $edit
    *   Field data in an associative array. Changes the current input fields
    *   (where possible) to the values indicated.
    *
@@ -2309,7 +2310,6 @@ abstract class WebTestBase extends TestBase {
 
   /**
    * Follows a link by partial name.
-   *
    *
    * If the link is discovered and clicked, the test passes. Fail otherwise.
    *
