@@ -7,7 +7,6 @@
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\DrupalKernel;
-use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Form\FormState;
@@ -489,8 +488,7 @@ function install_begin_request($class_loader, &$install_state) {
 
   // Ensure that the active configuration is empty before installation starts.
   if ($install_state['config_verified'] && empty($task)) {
-    $config = BootstrapConfigStorageFactory::get()->listAll();
-    if (!empty($config)) {
+    if (count($kernel->getConfigStorage()->listAll())) {
       $task = NULL;
       throw new AlreadyInstalledException($container->get('string_translation'));
     }
@@ -1799,7 +1797,7 @@ function install_check_translations($langcode, $server_pattern) {
   $writable = FALSE;
   // @todo: Make this configurable.
   $site_path = \Drupal::service('site.path');
-  $files_directory =  $site_path . '/files';
+  $files_directory = $site_path . '/files';
   $translations_directory = $site_path . '/files/translations';
   $translations_directory_exists = FALSE;
   $online = FALSE;
