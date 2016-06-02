@@ -217,7 +217,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   protected $migrationPluginManager;
 
   /**
-   *  The source plugin manager.
+   * The source plugin manager.
    *
    * @var \Drupal\migrate\Plugin\MigratePluginManager
    */
@@ -712,4 +712,5 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   public function getDestinationIds() {
     $this->destinationIds;
   }
+
 }
