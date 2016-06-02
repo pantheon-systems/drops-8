@@ -29,7 +29,7 @@ function forum_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<li>' . t('<em>Forums</em> (for example, <em>Recipes for cooking vegetables</em>)') . '</li>';
       $output .= '<li>' . t('<em>Forum topics</em> submitted by users (for example, <em>How to cook potatoes</em>), which start discussions.') . '</li>';
       $output .= '<li>' . t('Threaded <em>comments</em> submitted by users (for example, <em>You wash the potatoes first and then...</em>).') . '</li>';
-      $output .= '<li>' . t('Optional <em>containers</em>, used to group similar forums. Forums can be placed inside containers, and vice versa.').'</li>';
+      $output .= '<li>' . t('Optional <em>containers</em>, used to group similar forums. Forums can be placed inside containers, and vice versa.') . '</li>';
       $output .= '</ul>';
       $output .= '</p>';
       $output .= '<p>' . t('For more information, see the <a href=":forum">online documentation for the Forum module</a>.', array(':forum' => 'https://www.drupal.org/documentation/modules/forum')) . '</p>';
@@ -282,7 +282,7 @@ function forum_comment_delete(CommentInterface $comment) {
 }
 
 /**
- * Implements hook_form_BASE_FORM_ID_alter().
+ * Implements hook_form_BASE_FORM_ID_alter() for \Drupal\taxonomy\VocabularyForm.
  */
 function forum_form_taxonomy_vocabulary_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $vid = \Drupal::config('forum.settings')->get('vocabulary');
@@ -304,7 +304,7 @@ function forum_form_taxonomy_vocabulary_form_alter(&$form, FormStateInterface $f
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for taxonomy_term_form().
+ * Implements hook_form_FORM_ID_alter() for \Drupal\taxonomy\TermForm.
  */
 function forum_form_taxonomy_term_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $vid = \Drupal::config('forum.settings')->get('vocabulary');
@@ -315,7 +315,7 @@ function forum_form_taxonomy_term_form_alter(&$form, FormStateInterface $form_st
 }
 
 /**
- * Implements hook_form_BASE_FORM_ID_alter() for node_form().
+ * Implements hook_form_BASE_FORM_ID_alter() for \Drupal\node\NodeForm.
  */
 function forum_form_node_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   $node = $form_state->getFormObject()->getEntity();

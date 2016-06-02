@@ -134,7 +134,8 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
    * very large route sets to be filtered down to likely candidates, which
    * may then be filtered in memory more completely.
    *
-   * @param Request $request A request against which to match.
+   * @param Request $request
+   *   A request against which to match.
    *
    * @return \Symfony\Component\Routing\RouteCollection with all urls that
    *      could potentially match $request. Empty collection if nothing can
@@ -143,7 +144,7 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
   public function getRouteCollectionForRequest(Request $request) {
     // Cache both the system path as well as route parameters and matching
     // routes.
-    $cid = 'route:' . $request->getPathInfo() . ':' .  $request->getQueryString();
+    $cid = 'route:' . $request->getPathInfo() . ':' . $request->getQueryString();
     if ($cached = $this->cache->get($cid)) {
       $this->currentPath->setPath($cached->data['path'], $request);
       $request->query->replace($cached->data['query']);

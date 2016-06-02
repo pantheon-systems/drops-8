@@ -50,7 +50,7 @@ class TypedDataTest extends KernelTestBase {
   /**
    * Creates a typed data object and ensures it implements TypedDataInterface.
    *
-   * @see \Drupal\Core\TypedData\TypedDataManager::create().
+   * @see \Drupal\Core\TypedData\TypedDataManager::create()
    */
   protected function createTypedData($definition, $value = NULL, $name = NULL) {
     if (is_array($definition)) {
@@ -248,7 +248,7 @@ class TypedDataTest extends KernelTestBase {
 
     // Generate some files that will be used to test the binary data type.
     $files = array();
-    for ($i = 0; $i < 3; $i++){
+    for ($i = 0; $i < 3; $i++) {
       $path = "public://example_$i.png";
       file_unmanaged_copy(\Drupal::root() . '/core/misc/druplicon.png', $path);
       $image = File::create(['uri' => $path]);
@@ -630,4 +630,5 @@ class TypedDataTest extends KernelTestBase {
     $this->assertEqual($violations[0]->getInvalidValue(), 'string');
     $this->assertIdentical($violations[0]->getPropertyPath(), '0.value');
   }
+
 }
