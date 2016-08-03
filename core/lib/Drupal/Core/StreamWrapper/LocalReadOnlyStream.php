@@ -16,6 +16,13 @@ namespace Drupal\Core\StreamWrapper;
 abstract class LocalReadOnlyStream extends LocalStream {
 
   /**
+   * {@inheritdoc}
+   */
+  public static function getType() {
+    return StreamWrapperInterface::READ_VISIBLE | StreamWrapperInterface::LOCAL;
+  }
+
+  /**
    * Support for fopen(), file_get_contents(), etc.
    *
    * Any write modes will be rejected, as this is a read-only stream wrapper.

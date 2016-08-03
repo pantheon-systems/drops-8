@@ -114,6 +114,11 @@ function entity_test_entity_base_field_info(EntityTypeInterface $entity_type) {
       ->setRevisionable(TRUE)
       ->setTranslatable(TRUE);
   }
+  if ($entity_type->id() == 'entity_test_mulrev' && \Drupal::state()->get('entity_test.multi_column')) {
+    $fields['description'] = BaseFieldDefinition::create('shape')
+      ->setLabel(t('Some custom description'))
+      ->setTranslatable(TRUE);
+  }
 
   return $fields;
 }
@@ -662,6 +667,17 @@ function entity_test_entity_prepare_view($entity_type, array $entities, array $d
         }
       }
     }
+  }
+}
+
+/**
+ * Implements hook_entity_display_build_alter().
+ */
+function entity_test_entity_display_build_alter(&$build, $context) {
+  /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
+  $entity = $context['entity'];
+  if ($entity->getEntityTypeId() == 'entity_test' && $entity->bundle() == 'display_build_alter_bundle') {
+    $build['entity_display_build_alter']['#markup'] = 'Content added in hook_entity_display_build_alter for entity id ' . $entity->id();
   }
 }
 
