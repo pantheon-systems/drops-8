@@ -3,6 +3,7 @@
 namespace Drupal\FunctionalJavascriptTests;
 
 use Drupal\Tests\BrowserTestBase;
+use Zumba\GastonJS\Exception\DeadClient;
 use Zumba\Mink\Driver\PhantomJSDriver;
 
 /**
@@ -30,7 +31,16 @@ abstract class JavascriptTestBase extends BrowserTestBase {
     if (!file_exists($path)) {
       mkdir($path);
     }
-    return parent::initMink();
+
+    try {
+      return parent::initMink();
+    }
+    catch (DeadClient $e) {
+      $this->markTestSkipped('PhantomJS is either not installed or not running. Start it via phantomjs --ssl-protocol=any --ignore-ssl-errors=true vendor/jcalderonzumba/gastonjs/src/Client/main.js 8510 1024 768&');
+    }
+    catch (Exception $e) {
+      $this->markTestSkipped('An unexpected error occurred while starting Mink: ' . $e->getMessage());
+    }
   }
 
   /**
@@ -100,6 +110,30 @@ abstract class JavascriptTestBase extends BrowserTestBase {
     $message = $message ?: "Javascript condition met:\n" . $condition;
     $result = $this->getSession()->getDriver()->wait($timeout, $condition);
     $this->assertTrue($result, $message);
+  }
+
+  /**
+   * Creates a screenshot.
+   *
+   * @param string $filename
+   *   The file name of the resulting screenshot. If using the default phantomjs
+   *   driver then this should be a JPG filename.
+   * @param bool $set_background_color
+   *   (optional) By default this method will set the background color to white.
+   *   Set to FALSE to override this behaviour.
+   *
+   * @throws \Behat\Mink\Exception\UnsupportedDriverActionException
+   *   When operation not supported by the driver.
+   * @throws \Behat\Mink\Exception\DriverException
+   *   When the operation cannot be done.
+   */
+  protected function createScreenshot($filename, $set_background_color = TRUE) {
+    $session = $this->getSession();
+    if ($set_background_color) {
+      $session->executeScript("document.body.style.backgroundColor = 'white';");
+    }
+    $image = $session->getScreenshot();
+    file_put_contents($filename, $image);
   }
 
   /**

@@ -12,6 +12,7 @@ process:
   menu_name:
     -
       plugin: migration
+      # The menu migration is in the system module.
       migration: menu
       source: menu_name
     -
@@ -20,7 +21,7 @@ process:
         management: admin
       bypass: true
   'link/uri':
-    plugin: internal_uri
+    plugin: link_uri
     source:
       - link_path
   'link/options': options
