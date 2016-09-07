@@ -15,7 +15,7 @@ use Drupal\migrate\Plugin\MigrationInterface;
  *
  * @ingroup migration
  */
-class MigrateCckFieldPluginManager extends MigratePluginManager {
+class MigrateCckFieldPluginManager extends MigratePluginManager implements MigrateCckFieldPluginManagerInterface {
 
   /**
    * The default version of core to use for cck field plugins.
@@ -29,7 +29,7 @@ class MigrateCckFieldPluginManager extends MigratePluginManager {
   /**
    * {@inheritdoc}
    */
-  public function createInstance($field_type, array $configuration = array(), MigrationInterface $migration = NULL) {
+  public function getPluginIdFromFieldType($field_type, array $configuration = [], MigrationInterface $migration = NULL) {
     $core = static::DEFAULT_CORE_VERSION;
     if (!empty($configuration['core'])) {
       $core = $configuration['core'];
@@ -45,7 +45,7 @@ class MigrateCckFieldPluginManager extends MigratePluginManager {
     foreach ($this->getDefinitions() as $plugin_id => $definition) {
       if (in_array($core, $definition['core'])) {
         if (array_key_exists($field_type, $definition['type_map']) || $field_type === $plugin_id) {
-          return parent::createInstance($plugin_id, $configuration, $migration);
+          return $plugin_id;
         }
       }
     }

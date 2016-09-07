@@ -23,9 +23,10 @@ Drupal 8
   (Release Manager)
 - Alex Pott 'alexpott' https://www.drupal.org/u/alexpott
   (Framework Manager)
-
-Provisional membership:
 - Scott Reeves 'Cottser' https://www.drupal.org/u/cottser
+  (Framework Manager - Frontend)
+
+Provisional membership: None at this time.
 
 Drupal 7
 - Fabian Franz 'Fabianx' https://www.drupal.org/u/fabianx
@@ -472,11 +473,13 @@ Views module
 - Tim Plunkett 'tim.plunkett' https://www.drupal.org/u/tim.plunkett
 - Damian Lee 'damiankloip' https://www.drupal.org/u/damiankloip
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
+- Len Swaneveld 'Lendude' https://www.drupal.org/u/lendude
 
 Views UI module
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
 - Tim Plunkett 'tim.plunkett' https://www.drupal.org/u/tim.plunkett
 - Damian Lee 'damiankloip' https://www.drupal.org/u/damiankloip
+- Len Swaneveld 'Lendude' https://www.drupal.org/u/lendude
 
 
 Theme maintainers
@@ -522,6 +525,9 @@ Multi-lingual
 
 Web services
 - Larry Garfield 'Crell' https://www.drupal.org/u/crell
+
+Workflow Initiative
+- Dick Olsson 'dixon_' https://www.drupal.org/u/dixon_
 
 Provisional membership: None at this time.
 
