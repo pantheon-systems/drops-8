@@ -147,12 +147,23 @@ class DbLogTest extends WebTestBase {
     $count = db_query('SELECT COUNT(wid) FROM {watchdog}')->fetchField();
     $this->assertTrue($count > $row_limit, format_string('Dblog row count of @count exceeds row limit of @limit', array('@count' => $count, '@limit' => $row_limit)));
 
+    // Get last ID to compare against; log entries get deleted, so we can't
+    // reliably add the number of newly created log entries to the current count
+    // to measure number of log entries created by cron.
+    $last_id = db_query('SELECT MAX(wid) FROM {watchdog}')->fetchField();
+
     // Run a cron job.
     $this->cronRun();
-    // Verify that the database log row count equals the row limit plus one
-    // because cron adds a record after it runs.
-    $count = db_query('SELECT COUNT(wid) FROM {watchdog}')->fetchField();
-    $this->assertTrue($count == $row_limit + 1, format_string('Dblog row count of @count equals row limit of @limit plus one', array('@count' => $count, '@limit' => $row_limit)));
+
+    // Get last ID after cron was run.
+    $current_id = db_query('SELECT MAX(wid) FROM {watchdog}')->fetchField();
+
+    // Get the number of enabled modules. Cron adds a log entry for each module.
+    $list = \Drupal::moduleHandler()->getImplementations('cron');
+    $module_count = count($list);
+
+    $count = $current_id - $last_id;
+    $this->assertTrue(($current_id - $last_id) == $module_count + 2, format_string('Cron added @count of @expected new log entries', array('@count' => $count, '@expected' => $module_count + 2)));
   }
 
   /**
@@ -207,6 +218,32 @@ class DbLogTest extends WebTestBase {
       $log['message'] = $message . $i;
       $logger->log($log['severity'], $log['message'], $log);
     }
+  }
+
+  /**
+   * Clear the entry logs by clicking on 'Clear log messages' button.
+   */
+  protected function clearLogsEntries() {
+    $this->drupalGet(Url::fromRoute('dblog.confirm'));
+  }
+
+  /**
+   * Filters the logs according to the specific severity and log entry type.
+   *
+   * @param string $type
+   *   (optional) The log entry type.
+   * @param string $severity
+   *   (optional) The log entry severity.
+  */
+  protected function filterLogsEntries($type = NULL, $severity = NULL) {
+    $edit = array();
+    if (!is_null($type)) {
+      $edit['type[]'] = $type;
+    }
+    if (!is_null($severity)) {
+      $edit['severity[]'] = $severity;
+    }
+    $this->drupalPostForm(NULL, $edit, t('Filter'));
   }
 
   /**
@@ -536,7 +573,7 @@ class DbLogTest extends WebTestBase {
     // Log in the admin user.
     $this->drupalLogin($this->adminUser);
     // Post in order to clear the database table.
-    $this->drupalPostForm('admin/reports/dblog', array(), t('Clear log messages'));
+    $this->clearLogsEntries();
     // Confirm that the logs should be cleared.
     $this->drupalPostForm(NULL, array(), 'Confirm');
     // Count the rows in watchdog that previously related to the deleted user.
@@ -584,10 +621,7 @@ class DbLogTest extends WebTestBase {
     // Filter by each type and confirm that entries with various severities are
     // displayed.
     foreach ($type_names as $type_name) {
-      $edit = array(
-        'type[]' => array($type_name),
-      );
-      $this->drupalPostForm(NULL, $edit, t('Filter'));
+      $this->filterLogsEntries($type_name);
 
       // Count the number of entries of this type.
       $type_count = 0;
@@ -604,11 +638,7 @@ class DbLogTest extends WebTestBase {
     // Set the filter to match each of the two filter-type attributes and
     // confirm the correct number of entries are displayed.
     foreach ($types as $type) {
-      $edit = array(
-        'type[]' => array($type['type']),
-        'severity[]' => array($type['severity']),
-      );
-      $this->drupalPostForm(NULL, $edit, t('Filter'));
+      $this->filterLogsEntries($type['type'], $type['severity']);
 
       $count = $this->getTypeCount($types);
       $this->assertEqual(array_sum($count), $type['count'], 'Count matched');
@@ -619,7 +649,7 @@ class DbLogTest extends WebTestBase {
     $this->assertText(t('Operations'), 'Operations text found');
 
     // Clear all logs and make sure the confirmation message is found.
-    $this->drupalPostForm('admin/reports/dblog', array(), t('Clear log messages'));
+    $this->clearLogsEntries();
     // Confirm that the logs should be cleared.
     $this->drupalPostForm(NULL, array(), 'Confirm');
     $this->assertText(t('Database log cleared.'), 'Confirmation message found');
@@ -637,7 +667,7 @@ class DbLogTest extends WebTestBase {
    */
   protected function getLogEntries() {
     $entries = array();
-    if ($table = $this->xpath('.//table[@id="admin-dblog"]')) {
+    if ($table = $this->getLogsEntriesTable()) {
       $table = array_shift($table);
       foreach ($table->tbody->tr as $row) {
         $entries[] = array(
@@ -649,6 +679,16 @@ class DbLogTest extends WebTestBase {
       }
     }
     return $entries;
+  }
+
+  /**
+   * Find the Logs table in the DOM.
+   *
+   * @return \SimpleXMLElement[]
+   *   The return value of a xpath search.
+   */
+  protected function getLogsEntriesTable() {
+    return $this->xpath('.//table[@id="admin-dblog"]');
   }
 
   /**

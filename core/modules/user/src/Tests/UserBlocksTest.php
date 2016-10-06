@@ -34,9 +34,9 @@ class UserBlocksTest extends WebTestBase {
     $this->drupalLogout($this->adminUser);
   }
 
-   /**
-    * Tests that user login block is hidden from user/login.
-    */
+  /**
+   * Tests that user login block is hidden from user/login.
+   */
   function testUserLoginBlockVisibility() {
     // Array keyed list where key being the URL address and value being expected
     // visibility as boolean type.
@@ -51,7 +51,7 @@ class UserBlocksTest extends WebTestBase {
       $elements = $this->xpath('//div[contains(@class,"block-user-login-block") and @role="form"]');
       if ($expected_visibility) {
         $this->assertTrue(!empty($elements), 'User login block in path "' . $path . '" should be visible');
-     }
+      }
       else {
         $this->assertTrue(empty($elements), 'User login block in path "' . $path . '" should not be visible');
       }
@@ -87,6 +87,17 @@ class UserBlocksTest extends WebTestBase {
     $this->drupalPostForm('http://example.com/', $edit, t('Log in'), array('external' => FALSE));
     // Check that we remain on the site after login.
     $this->assertUrl($user->url('canonical', ['absolute' => TRUE]), [], 'Redirected to user profile page after login from the frontpage');
+
+    // Verify that form validation errors are displayed immediately for forms
+    // in blocks and not on subsequent page requests.
+    $this->drupalLogout();
+    $edit = array();
+    $edit['name'] = 'foo';
+    $edit['pass'] = 'invalid password';
+    $this->drupalPostForm('filter/tips', $edit, t('Log in'));
+    $this->assertText(t('Unrecognized username or password. Forgot your password?'));
+    $this->drupalGet('filter/tips');
+    $this->assertNoText(t('Unrecognized username or password. Forgot your password?'));
   }
 
   /**

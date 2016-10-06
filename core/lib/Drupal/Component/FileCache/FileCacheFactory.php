@@ -8,6 +8,11 @@ namespace Drupal\Component\FileCache;
 class FileCacheFactory {
 
   /**
+   * The configuration key to disable FileCache completely.
+   */
+  const DISABLE_CACHE = 'file_cache_disable';
+
+  /**
    * The configuration used to create FileCache objects.
    *
    * @var array $configuration
@@ -34,23 +39,35 @@ class FileCacheFactory {
    *   The initialized FileCache object.
    */
   public static function get($collection, $default_configuration = []) {
-    $default_configuration += [
+    // If there is a special key in the configuration, disable FileCache completely.
+    if (!empty(static::$configuration[static::DISABLE_CACHE])) {
+      return new NullFileCache('', '');
+    }
+
+    $configuration = [];
+
+    // Check for a collection specific setting first.
+    if (isset(static::$configuration[$collection])) {
+      $configuration += static::$configuration[$collection];
+    }
+    // Then check if a default configuration has been provided.
+    if (!empty($default_configuration)) {
+      $configuration += $default_configuration;
+    }
+    // Last check if a default setting has been provided.
+    if (isset(static::$configuration['default'])) {
+      $configuration += static::$configuration['default'];
+    }
+
+    // Ensure that all properties are set.
+    $fallback_configuration = [
       'class' => '\Drupal\Component\FileCache\FileCache',
       'collection' => $collection,
       'cache_backend_class' => NULL,
       'cache_backend_configuration' => [],
     ];
 
-    $configuration = [];
-    if (isset(static::$configuration[$collection])) {
-      $configuration = static::$configuration[$collection];
-    }
-    elseif (isset(static::$configuration['default'])) {
-      $configuration = static::$configuration['default'];
-    }
-
-    // Add defaults to the configuration.
-    $configuration = $configuration + $default_configuration;
+    $configuration = $configuration + $fallback_configuration;
 
     $class = $configuration['class'];
     return new $class(static::getPrefix(), $configuration['collection'], $configuration['cache_backend_class'], $configuration['cache_backend_configuration']);

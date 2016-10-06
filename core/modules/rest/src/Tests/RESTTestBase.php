@@ -2,13 +2,22 @@
 
 namespace Drupal\rest\Tests;
 
+use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\node\NodeInterface;
+use Drupal\rest\RestResourceConfigInterface;
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Test helper class that provides a REST client method to send HTTP requests.
  */
 abstract class RESTTestBase extends WebTestBase {
+
+  /**
+   * The REST resource config storage.
+   *
+   * @var \Drupal\Core\Entity\EntityStorageInterface
+   */
+  protected $resourceConfigStorage;
 
   /**
    * The default serialization format to use for testing REST operations.
@@ -51,15 +60,18 @@ abstract class RESTTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('rest', 'entity_test', 'node');
+  public static $modules = array('rest', 'entity_test');
 
   protected function setUp() {
     parent::setUp();
     $this->defaultFormat = 'hal_json';
     $this->defaultMimeType = 'application/hal+json';
     $this->defaultAuth = array('cookie');
+    $this->resourceConfigStorage = $this->container->get('entity_type.manager')->getStorage('rest_resource_config');
     // Create a test content type for node testing.
-    $this->drupalCreateContentType(array('name' => 'resttest', 'type' => 'resttest'));
+    if (in_array('node', static::$modules)) {
+      $this->drupalCreateContentType(array('name' => 'resttest', 'type' => 'resttest'));
+    }
   }
 
   /**
@@ -73,17 +85,19 @@ abstract class RESTTestBase extends WebTestBase {
    *   The body for POST and PUT.
    * @param string $mime_type
    *   The MIME type of the transmitted content.
+   * @param bool $forget_xcsrf_token
+   *   If TRUE, the CSRF token won't be included in request.
    *
    * @return string
    *   The content returned from the request.
    */
-  protected function httpRequest($url, $method, $body = NULL, $mime_type = NULL) {
+  protected function httpRequest($url, $method, $body = NULL, $mime_type = NULL, $forget_xcsrf_token = FALSE) {
     if (!isset($mime_type)) {
       $mime_type = $this->defaultMimeType;
     }
     if (!in_array($method, array('GET', 'HEAD', 'OPTIONS', 'TRACE'))) {
       // GET the CSRF token first for writing requests.
-      $token = $this->drupalGet('rest/session/token');
+      $token = $this->drupalGet('session/token');
     }
 
     $url = $this->buildUrl($url);
@@ -101,15 +115,15 @@ abstract class RESTTestBase extends WebTestBase {
         );
         break;
 
-        case 'HEAD':
-          $curl_options = array(
-            CURLOPT_HTTPGET => FALSE,
-            CURLOPT_CUSTOMREQUEST => 'HEAD',
-            CURLOPT_URL => $url,
-            CURLOPT_NOBODY => TRUE,
-            CURLOPT_HTTPHEADER => array('Accept: ' . $mime_type),
-          );
-          break;
+      case 'HEAD':
+        $curl_options = array(
+          CURLOPT_HTTPGET => FALSE,
+          CURLOPT_CUSTOMREQUEST => 'HEAD',
+          CURLOPT_URL => $url,
+          CURLOPT_NOBODY => TRUE,
+          CURLOPT_HTTPHEADER => array('Accept: ' . $mime_type),
+        );
+        break;
 
       case 'POST':
         $curl_options = array(
@@ -118,9 +132,11 @@ abstract class RESTTestBase extends WebTestBase {
           CURLOPT_POSTFIELDS => $body,
           CURLOPT_URL => $url,
           CURLOPT_NOBODY => FALSE,
-          CURLOPT_HTTPHEADER => array(
+          CURLOPT_HTTPHEADER => !$forget_xcsrf_token ? array(
             'Content-Type: ' . $mime_type,
             'X-CSRF-Token: ' . $token,
+          ) : array(
+            'Content-Type: ' . $mime_type,
           ),
         );
         break;
@@ -132,9 +148,11 @@ abstract class RESTTestBase extends WebTestBase {
           CURLOPT_POSTFIELDS => $body,
           CURLOPT_URL => $url,
           CURLOPT_NOBODY => FALSE,
-          CURLOPT_HTTPHEADER => array(
+          CURLOPT_HTTPHEADER => !$forget_xcsrf_token ? array(
             'Content-Type: ' . $mime_type,
             'X-CSRF-Token: ' . $token,
+          ) : array(
+            'Content-Type: ' . $mime_type,
           ),
         );
         break;
@@ -146,9 +164,11 @@ abstract class RESTTestBase extends WebTestBase {
           CURLOPT_POSTFIELDS => $body,
           CURLOPT_URL => $url,
           CURLOPT_NOBODY => FALSE,
-          CURLOPT_HTTPHEADER => array(
+          CURLOPT_HTTPHEADER => !$forget_xcsrf_token ? array(
             'Content-Type: ' . $mime_type,
             'X-CSRF-Token: ' . $token,
+          ) : array(
+            'Content-Type: ' . $mime_type,
           ),
         );
         break;
@@ -159,9 +179,13 @@ abstract class RESTTestBase extends WebTestBase {
           CURLOPT_CUSTOMREQUEST => 'DELETE',
           CURLOPT_URL => $url,
           CURLOPT_NOBODY => FALSE,
-          CURLOPT_HTTPHEADER => array('X-CSRF-Token: ' . $token),
+          CURLOPT_HTTPHEADER => !$forget_xcsrf_token ? array('X-CSRF-Token: ' . $token) : array(),
         );
         break;
+    }
+
+    if ($mime_type === 'none') {
+      unset($curl_options[CURLOPT_HTTPHEADER]['Content-Type']);
     }
 
     $this->responseBody = $this->curlExec($curl_options);
@@ -200,14 +224,14 @@ abstract class RESTTestBase extends WebTestBase {
    * Required properties differ from entity type to entity type, so we keep a
    * minimum mapping here.
    *
-   * @param string $entity_type
-   *   The type of the entity that should be created.
+   * @param string $entity_type_id
+   *   The ID of the type of entity that should be created.
    *
    * @return array
    *   An array of values keyed by property name.
    */
-  protected function entityValues($entity_type) {
-    switch ($entity_type) {
+  protected function entityValues($entity_type_id) {
+    switch ($entity_type_id) {
       case 'entity_test':
         return array(
           'name' => $this->randomMachineName(),
@@ -217,6 +241,11 @@ abstract class RESTTestBase extends WebTestBase {
             'format' => 'plain_text',
           )),
         );
+      case 'config_test':
+        return [
+          'id' => $this->randomMachineName(),
+          'label' => 'Test label',
+        ];
       case 'node':
         return array('title' => $this->randomString(), 'type' => 'resttest');
       case 'node_type':
@@ -236,8 +265,15 @@ abstract class RESTTestBase extends WebTestBase {
           'entity_id' => 'invalid',
           'field_name' => 'comment',
         ];
-
+      case 'taxonomy_vocabulary':
+        return [
+          'vid' => 'tags',
+          'name' => $this->randomMachineName(),
+        ];
       default:
+        if ($this->isConfigEntity($entity_type_id)) {
+          return $this->configEntityValues($entity_type_id);
+        }
         return array();
     }
   }
@@ -245,7 +281,7 @@ abstract class RESTTestBase extends WebTestBase {
   /**
    * Enables the REST service interface for a specific entity type.
    *
-   * @param string|FALSE $resource_type
+   * @param string|false $resource_type
    *   The resource type that should get REST API enabled or FALSE to disable all
    *   resource types.
    * @param string $method
@@ -255,29 +291,49 @@ abstract class RESTTestBase extends WebTestBase {
    * @param array $auth
    *   (Optional) The list of valid authentication methods.
    */
-  protected function enableService($resource_type, $method = 'GET', $format = NULL, $auth = NULL) {
-    // Enable REST API for this entity type.
-    $config = $this->config('rest.settings');
-    $settings = array();
-
+  protected function enableService($resource_type, $method = 'GET', $format = NULL, array $auth = []) {
     if ($resource_type) {
+      // Enable REST API for this entity type.
+      $resource_config_id = str_replace(':', '.', $resource_type);
+      // get entity by id
+      /** @var \Drupal\rest\RestResourceConfigInterface $resource_config */
+      $resource_config = $this->resourceConfigStorage->load($resource_config_id);
+      if (!$resource_config) {
+        $resource_config = $this->resourceConfigStorage->create([
+          'id' => $resource_config_id,
+          'granularity' => RestResourceConfigInterface::METHOD_GRANULARITY,
+          'configuration' => []
+        ]);
+      }
+      $configuration = $resource_config->get('configuration');
+
       if (is_array($format)) {
-        $settings[$resource_type][$method]['supported_formats'] = $format;
+        for ($i = 0; $i < count($format); $i++) {
+          $configuration[$method]['supported_formats'][] = $format[$i];
+        }
       }
       else {
         if ($format == NULL) {
           $format = $this->defaultFormat;
         }
-        $settings[$resource_type][$method]['supported_formats'][] = $format;
+        $configuration[$method]['supported_formats'][] = $format;
       }
 
-      if ($auth == NULL) {
+      if (!is_array($auth) || empty($auth)) {
         $auth = $this->defaultAuth;
       }
-      $settings[$resource_type][$method]['supported_auth'] = $auth;
+      foreach ($auth as $auth_provider) {
+        $configuration[$method]['supported_auth'][] = $auth_provider;
+      }
+
+      $resource_config->set('configuration', $configuration);
+      $resource_config->save();
     }
-    $config->set('resources', $settings);
-    $config->save();
+    else {
+      foreach ($this->resourceConfigStorage->loadMultiple() as $resource_config) {
+        $resource_config->delete();
+      }
+    }
     $this->rebuildCache();
   }
 
@@ -311,7 +367,7 @@ abstract class RESTTestBase extends WebTestBase {
   /**
    * Provides the necessary user permissions for entity operations.
    *
-   * @param string $entity_type
+   * @param string $entity_type_id
    *   The entity type.
    * @param string $operation
    *   The operation, one of 'view', 'create', 'update' or 'delete'.
@@ -319,8 +375,8 @@ abstract class RESTTestBase extends WebTestBase {
    * @return array
    *   The set of user permission strings.
    */
-  protected function entityPermissions($entity_type, $operation) {
-    switch ($entity_type) {
+  protected function entityPermissions($entity_type_id, $operation) {
+    switch ($entity_type_id) {
       case 'entity_test':
         switch ($operation) {
           case 'view':
@@ -365,9 +421,17 @@ abstract class RESTTestBase extends WebTestBase {
 
           default:
             return ['administer users'];
+        }
 
+      default:
+        if ($this->isConfigEntity($entity_type_id)) {
+          $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+          if ($admin_permission = $entity_type->getAdminPermission()) {
+            return [$admin_permission];
+          }
         }
     }
+    return [];
   }
 
   /**
@@ -376,13 +440,14 @@ abstract class RESTTestBase extends WebTestBase {
    * @param string $location_url
    *   The URL returned in the Location header.
    *
-   * @return \Drupal\Core\Entity\Entity|FALSE.
+   * @return \Drupal\Core\Entity\Entity|false
    *   The entity or FALSE if there is no matching entity.
    */
   protected function loadEntityFromLocationHeader($location_url) {
     $url_parts = explode('/', $location_url);
     $id = end($url_parts);
-    return entity_load($this->testEntityType, $id);
+    return $this->container->get('entity_type.manager')
+      ->getStorage($this->testEntityType)->load($id);
   }
 
   /**
@@ -429,6 +494,51 @@ abstract class RESTTestBase extends WebTestBase {
    */
   protected function assertResponseBody($expected, $message = '', $group = 'REST Response') {
     return $this->assertIdentical($expected, $this->responseBody, $message ? $message : strtr('Response body @expected (expected) is equal to @response (actual).', array('@expected' => var_export($expected, TRUE), '@response' => var_export($this->responseBody, TRUE))), $group);
+  }
+
+  /**
+   * Checks if an entity type id is for a Config Entity.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID to check.
+   *
+   * @return bool
+   *   TRUE if the entity is a Config Entity, FALSE otherwise.
+   */
+  protected function isConfigEntity($entity_type_id) {
+    return \Drupal::entityTypeManager()->getDefinition($entity_type_id) instanceof ConfigEntityType;
+  }
+
+  /**
+   * Provides an array of suitable property values for a config entity type.
+   *
+   * Config entities have some common keys that need to be created. Required
+   * properties differ among config entity types, so we keep a minimum mapping
+   * here.
+   *
+   * @param string $entity_type_id
+   *   The ID of the type of entity that should be created.
+   *
+   * @return array
+   *   An array of values keyed by property name.
+   */
+  protected function configEntityValues($entity_type_id) {
+    $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+    $keys = $entity_type->getKeys();
+    $values = [];
+    // Fill out known key values that are shared across entity types.
+    foreach ($keys as $key) {
+      if ($key === 'id' || $key === 'label') {
+        $values[$key] = $this->randomMachineName();
+      }
+    }
+    // Add extra values for particular entity types.
+    switch ($entity_type_id) {
+      case 'block':
+        $values['plugin'] = 'system_powered_by_block';
+        break;
+    }
+    return $values;
   }
 
 }

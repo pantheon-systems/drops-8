@@ -162,7 +162,7 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
    */
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['action_title'] = array('default' => $this->t('With selection'));
+    $options['action_title'] = array('default' => $this->t('Action'));
     $options['include_exclude'] = array(
       'default' => 'exclude',
     );
@@ -271,7 +271,7 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
       }
 
       // Replace the form submit button label.
-      $form['actions']['submit']['#value'] = $this->t('Apply');
+      $form['actions']['submit']['#value'] = $this->t('Apply to selected items');
 
       // Ensure a consistent container for filters/operations in the view header.
       $form['header'] = array(
@@ -380,7 +380,6 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
       else {
         // Don't display the message unless there are some elements affected and
         // there is no confirmation form.
-        $count = count(array_filter($form_state->getValue($this->options['id'])));
         if ($count) {
           drupal_set_message($this->formatPlural($count, '%action was applied to @count item.', '%action was applied to @count items.', array(
             '%action' => $action->label(),

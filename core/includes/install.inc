@@ -504,7 +504,7 @@ function drupal_install_config_directories() {
   // Bail out using a similar error message as in system_requirements().
   if (!file_prepare_directory($config_directories[CONFIG_SYNC_DIRECTORY], FILE_CREATE_DIRECTORY)
     && !file_exists($config_directories[CONFIG_SYNC_DIRECTORY])) {
-    throw new Exception(t('The directory %directory could not be created or could not be made writable. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see the <a href=":handbook_url">online handbook</a>.', array(
+    throw new Exception(t('The directory %directory could not be created. To proceed with the installation, either create the directory or ensure that the installer has the permissions to create it automatically. For more information, see the <a href=":handbook_url">online handbook</a>.', array(
       '%directory' => config_get_config_directory(CONFIG_SYNC_DIRECTORY),
       ':handbook_url' => 'https://www.drupal.org/server-permissions',
     )));

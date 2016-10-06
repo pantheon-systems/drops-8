@@ -239,7 +239,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithEmptyResult() {
     $view = $this->prophesize('Drupal\views\ViewExecutable')->reveal();
@@ -261,7 +261,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithNoRelationshipAndNoRevision() {
     $view = $this->prophesize('Drupal\views\ViewExecutable')->reveal();
@@ -317,7 +317,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithRelationship() {
     // We don't use prophecy, because prophecy enforces methods.
@@ -375,7 +375,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithNonEntityRelationship() {
     // We don't use prophecy, because prophecy enforces methods.
@@ -424,7 +424,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithRevision() {
     // We don't use prophecy, because prophecy enforces methods.
@@ -469,7 +469,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithRevisionOfSameEntityType() {
     // We don't use prophecy, because prophecy enforces methods.
@@ -529,7 +529,7 @@ class SqlTest extends UnitTestCase {
 
   /**
    * @covers ::loadEntities
-   * @covers ::_assignEntitiesToResult
+   * @covers ::assignEntitiesToResult
    */
   public function testLoadEntitiesWithRelationshipAndRevision() {
     // We don't use prophecy, because prophecy enforces methods.

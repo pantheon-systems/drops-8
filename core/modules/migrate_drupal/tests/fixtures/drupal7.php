@@ -3738,6 +3738,15 @@ $connection->insert('field_config_instance')
   'data' => 'a:7:{s:5:"label";s:7:"Integer";s:6:"widget";a:5:{s:6:"weight";s:1:"2";s:4:"type";s:6:"number";s:6:"module";s:6:"number";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:5:{s:3:"min";s:0:"";s:3:"max";s:0:"";s:6:"prefix";s:0:"";s:6:"suffix";s:0:"";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:14:"number_integer";s:8:"settings";a:4:{s:18:"thousand_separator";s:0:"";s:17:"decimal_separator";s:1:".";s:5:"scale";i:0;s:13:"prefix_suffix";b:1;}s:6:"module";s:6:"number";s:6:"weight";i:0;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
   'deleted' => '0',
 ))
+->values(array(
+  'id' => '36',
+  'field_id' => '14',
+  'field_name' => 'field_integer',
+  'entity_type' => 'user',
+  'bundle' => 'user',
+  'data' => 'a:7:{s:5:"label";s:7:"Integer";s:6:"widget";a:5:{s:6:"weight";s:1:"9";s:4:"type";s:6:"number";s:6:"module";s:6:"number";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:5:{s:3:"min";s:1:"1";s:3:"max";s:2:"25";s:6:"prefix";s:3:"abc";s:6:"suffix";s:3:"xyz";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:14:"number_integer";s:6:"weight";s:1:"8";s:8:"settings";a:4:{s:18:"thousand_separator";s:1:" ";s:17:"decimal_separator";s:1:".";s:5:"scale";i:0;s:13:"prefix_suffix";b:1;}s:6:"module";s:6:"number";}}s:8:"required";i:1;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
 ->execute();
 
 $connection->schema()->createTable('field_data_body', array(
@@ -4749,6 +4758,16 @@ $connection->insert('field_data_field_integer')
   'language' => 'und',
   'delta' => '0',
   'field_integer_value' => '5',
+))
+->values(array(
+  'entity_type' => 'user',
+  'bundle' => 'user',
+  'deleted' => '0',
+  'entity_id' => '2',
+  'revision_id' => '2',
+  'language' => 'und',
+  'delta' => '0',
+  'field_integer_value' => '99',
 ))
 ->execute();
 
@@ -6581,6 +6600,16 @@ $connection->insert('field_revision_field_integer')
   'language' => 'und',
   'delta' => '0',
   'field_integer_value' => '5',
+))
+->values(array(
+  'entity_type' => 'user',
+  'bundle' => 'user',
+  'deleted' => '0',
+  'entity_id' => '2',
+  'revision_id' => '2',
+  'language' => 'und',
+  'delta' => '0',
+  'field_integer_value' => '99',
 ))
 ->execute();
 
@@ -41015,7 +41044,7 @@ $connection->insert('users')
   'login' => '0',
   'status' => '1',
   'timezone' => 'America/Chicago',
-  'language' => '',
+  'language' => 'en',
   'picture' => '0',
   'init' => 'odo@local.host',
   'data' => 'a:1:{s:7:"contact";i:1;}',
@@ -41083,6 +41112,10 @@ $connection->insert('variable')
   'value',
 ))
 ->values(array(
+  'name' => 'actions_max_stack',
+  'value' => 'i:28;',
+))
+->values(array(
   'name' => 'additional_settings__active_tab_article',
   'value' => 's:15:"edit-submission";',
 ))
@@ -41105,6 +41138,10 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'additional_settings__active_tab_test_content_type',
   'value' => 's:13:"edit-workflow";',
+))
+->values(array(
+  'name' => 'admin_compact_mode',
+  'value' => 'b:1;',
 ))
 ->values(array(
   'name' => 'admin_theme',
@@ -41143,8 +41180,16 @@ $connection->insert('variable')
   'value' => 'b:1;',
 ))
 ->values(array(
+  'name' => 'allow_insecure_uploads',
+  'value' => 'i:1;',
+))
+->values(array(
   'name' => 'anonymous',
   'value' => 's:9:"Anonymous";',
+))
+->values(array(
+  'name' => 'authorize_filetransfer_default',
+  'value' => 's:3:"ftp";',
 ))
 ->values(array(
   'name' => 'block_cache',
@@ -41157,6 +41202,10 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'book_child_type',
   'value' => 's:4:"book";',
+))
+->values(array(
+  'name' => 'cache',
+  'value' => 'i:0;',
 ))
 ->values(array(
   'name' => 'cache_flush_cache',
@@ -41371,6 +41420,10 @@ $connection->insert('variable')
   'value' => 's:1:"2";',
 ))
 ->values(array(
+  'name' => 'configurable_timezones',
+  'value' => 'b:1;',
+))
+->values(array(
   'name' => 'contact_default_status',
   'value' => 'i:1;',
 ))
@@ -41389,6 +41442,14 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'cron_last',
   'value' => 'i:1444944970;',
+))
+->values(array(
+  'name' => 'cron_threshold_error',
+  'value' => 'i:1209600;',
+))
+->values(array(
+  'name' => 'cron_threshold_warning',
+  'value' => 'i:172800;',
 ))
 ->values(array(
   'name' => 'css_js_query_string',
@@ -41411,6 +41472,10 @@ $connection->insert('variable')
   'value' => 's:15:"America/Chicago";',
 ))
 ->values(array(
+  'name' => 'date_first_day',
+  'value' => 'i:1;',
+))
+->values(array(
   'name' => 'dblog_row_limit',
   'value' => 'i:10000;',
 ))
@@ -41431,8 +41496,28 @@ $connection->insert('variable')
   'value' => 's:43:"9eRJWxrMwQ5CufYJjXBZbPGz_t8vPIYRQr18PamdKmM";',
 ))
 ->values(array(
+  'name' => 'drupal_weight_select_max',
+  'value' => 'i:40;',
+))
+->values(array(
   'name' => 'email__active_tab',
   'value' => 's:27:"edit-email-pending-approval";',
+))
+->values(array(
+  'name' => 'empty_timezone_message',
+  'value' => 'b:1;',
+))
+->values(array(
+  'name' => 'error_level',
+  'value' => 'i:1;',
+))
+->values(array(
+  'name' => 'feed_default_items',
+  'value' => 'i:27;',
+))
+->values(array(
+  'name' => 'feed_item_length',
+  'value' => 's:8:"fulltext";',
 ))
 ->values(array(
   'name' => 'field_bundle_settings_comment__comment_node_test_content_type',
@@ -41449,6 +41534,22 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'file_default_scheme',
   'value' => 's:6:"public";',
+))
+->values(array(
+  'name' => 'file_description_length',
+  'value' => 'i:256;',
+))
+->values(array(
+  'name' => 'file_description_type',
+  'value' => 's:9:"textfield";',
+))
+->values(array(
+  'name' => 'file_directory_path',
+  'value' => 's:19:"sites/default/files";',
+))
+->values(array(
+  'name' => 'file_icon_directory',
+  'value' => 's:25:"sites/default/files/icons";',
 ))
 ->values(array(
   'name' => 'file_private_path',
@@ -41495,8 +41596,16 @@ $connection->insert('variable')
   'value' => 'i:25;',
 ))
 ->values(array(
+  'name' => 'image_jpeg_quality',
+  'value' => 'i:80;',
+))
+->values(array(
   'name' => 'image_style_preview_image',
   'value' => 's:33:"core/modules/image/testsample.png";',
+))
+->values(array(
+  'name' => 'image_toolkit',
+  'value' => 's:2:"gd";',
 ))
 ->values(array(
   'name' => 'install_profile',
@@ -41573,6 +41682,10 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'locale_language_negotiation_url_part',
   'value' => 's:6:"domain";',
+))
+->values(array(
+  'name' => 'mail_system',
+  'value' => 'a:1:{s:14:"default-system";s:17:"DefaultMailSystem";}',
 ))
 ->values(array(
   'name' => 'maintenance_mode',
@@ -41839,6 +41952,10 @@ $connection->insert('variable')
   'value' => 's:13:"The Site Name";',
 ))
 ->values(array(
+  'name' => 'site_offline_message',
+  'value' => 's:42:"This is a custom maintenance mode message.";',
+))
+->values(array(
   'name' => 'site_slogan',
   'value' => 's:10:"The Slogan";',
 ))
@@ -41877,6 +41994,14 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'syslog_identity',
   'value' => 's:6:"drupal";',
+))
+->values(array(
+  'name' => 'taxonomy_override_selector',
+  'value' => 'b:1;',
+))
+->values(array(
+  'name' => 'taxonomy_terms_per_page_admin',
+  'value' => 'i:84;',
 ))
 ->values(array(
   'name' => 'teaser_length',
@@ -41921,6 +42046,10 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'user_cancel_method',
   'value' => 's:17:"user_cancel_block";',
+))
+->values(array(
+  'name' => 'user_default_timezone',
+  'value' => 'i:2;',
 ))
 ->values(array(
   'name' => 'user_email_verification',

@@ -4,7 +4,9 @@ namespace Drupal\Core;
 
 use Drupal\Core\Cache\Context\CacheContextsPass;
 use Drupal\Core\Cache\ListCacheBinsPass;
+use Drupal\Core\DependencyInjection\Compiler\AuthenticationProviderPass;
 use Drupal\Core\DependencyInjection\Compiler\BackendCompilerPass;
+use Drupal\Core\DependencyInjection\Compiler\CorsCompilerPass;
 use Drupal\Core\DependencyInjection\Compiler\GuzzleMiddlewarePass;
 use Drupal\Core\DependencyInjection\Compiler\ContextProvidersPass;
 use Drupal\Core\DependencyInjection\Compiler\ProxyServicesPass;
@@ -15,6 +17,7 @@ use Drupal\Core\DependencyInjection\Compiler\StackedKernelPass;
 use Drupal\Core\DependencyInjection\Compiler\StackedSessionHandlerPass;
 use Drupal\Core\DependencyInjection\Compiler\RegisterStreamWrappersPass;
 use Drupal\Core\DependencyInjection\Compiler\TwigExtensionPass;
+use Drupal\Core\DependencyInjection\ServiceModifierInterface;
 use Drupal\Core\DependencyInjection\ServiceProviderInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\DependencyInjection\Compiler\ModifyServiceDefinitionsPass;
@@ -39,12 +42,12 @@ use Symfony\Component\DependencyInjection\Compiler\PassConfig;
  *
  * @ingroup container
  */
-class CoreServiceProvider implements ServiceProviderInterface {
+class CoreServiceProvider implements ServiceProviderInterface, ServiceModifierInterface {
+
   /**
    * {@inheritdoc}
    */
   public function register(ContainerBuilder $container) {
-    $this->registerUuid($container);
     $this->registerTest($container);
 
     // Only register the private file stream wrapper if a file path has been set.
@@ -61,6 +64,8 @@ class CoreServiceProvider implements ServiceProviderInterface {
     $container->addCompilerPass(new ProxyServicesPass());
 
     $container->addCompilerPass(new BackendCompilerPass());
+
+    $container->addCompilerPass(new CorsCompilerPass());
 
     $container->addCompilerPass(new StackedKernelPass());
 
@@ -89,6 +94,7 @@ class CoreServiceProvider implements ServiceProviderInterface {
     $container->addCompilerPass(new ListCacheBinsPass());
     $container->addCompilerPass(new CacheContextsPass());
     $container->addCompilerPass(new ContextProvidersPass());
+    $container->addCompilerPass(new AuthenticationProviderPass());
 
     // Register plugin managers.
     $container->addCompilerPass(new PluginManagerPass());
@@ -97,30 +103,23 @@ class CoreServiceProvider implements ServiceProviderInterface {
   }
 
   /**
-   * Determines and registers the UUID service.
+   * Alters the UUID service to use the most efficient method available.
    *
    * @param \Drupal\Core\DependencyInjection\ContainerBuilder $container
    *   The container builder.
-   *
-   * @return string
-   *   Class name for the UUID service.
    */
-  public static function registerUuid(ContainerBuilder $container) {
-    $uuid_class = 'Drupal\Component\Uuid\Php';
-
+  public function alter(ContainerBuilder $container) {
+    $uuid_service = $container->getDefinition('uuid');
     // Debian/Ubuntu uses the (broken) OSSP extension as their UUID
     // implementation. The OSSP implementation is not compatible with the
     // PECL functions.
     if (function_exists('uuid_create') && !function_exists('uuid_make')) {
-      $uuid_class = 'Drupal\Component\Uuid\Pecl';
+      $uuid_service->setClass('Drupal\Component\Uuid\Pecl');
     }
     // Try to use the COM implementation for Windows users.
     elseif (function_exists('com_create_guid')) {
-      $uuid_class = 'Drupal\Component\Uuid\Com';
+      $uuid_service->setClass('Drupal\Component\Uuid\Com');
     }
-
-    $container->register('uuid', $uuid_class);
-    return $uuid_class;
   }
 
   /**

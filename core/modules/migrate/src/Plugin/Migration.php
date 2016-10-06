@@ -126,38 +126,12 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   protected $destinationIds = [];
 
   /**
-   * Information on the property used as the high watermark.
-   *
-   * Array of 'name' & (optional) db 'alias' properties used for high watermark.
-   *
-   * @var array
-   */
-  protected $highWaterProperty;
-
-  /**
-   * Indicate whether the primary system of record for this migration is the
-   * source, or the destination (Drupal). In the source case, migration of
-   * an existing object will completely replace the Drupal object with data from
-   * the source side. In the destination case, the existing Drupal object will
-   * be loaded, then changes from the source applied; also, rollback will not be
-   * supported.
-   *
-   * @var string
-   */
-  protected $systemOfRecord = self::SOURCE;
-
-  /**
    * Specify value of source_row_status for current map row. Usually set by
    * MigrateFieldHandler implementations.
    *
    * @var int
    */
   protected $sourceRowStatus = MigrateIdMapInterface::STATUS_IMPORTED;
-
-  /**
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
-   */
-  protected $highWaterStorage;
 
   /**
    * Track time of last import if TRUE.
@@ -172,6 +146,13 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    * @var array
    */
   protected $requirements = [];
+
+  /**
+   * An optional list of tags, used by the plugin manager for filtering.
+   *
+   * @var array
+   */
+  protected $migration_tags = [];
 
   /**
    * These migrations, if run, must be executed before this migration.
@@ -285,7 +266,7 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
     $this->destinationPluginManager = $destination_plugin_manager;
     $this->idMapPluginManager = $idmap_plugin_manager;
 
-    foreach ($plugin_definition as $key => $value) {
+    foreach (NestedArray::mergeDeep($plugin_definition, $configuration) as $key => $value) {
       $this->$key = $value;
     }
   }
@@ -434,33 +415,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
       $this->idMapPlugin = $this->idMapPluginManager->createInstance($plugin, $configuration, $this);
     }
     return $this->idMapPlugin;
-  }
-
-  /**
-   * Get the high water storage object.
-   *
-   * @return \Drupal\Core\KeyValueStore\KeyValueStoreInterface
-   *   The storage object.
-   */
-  protected function getHighWaterStorage() {
-    if (!isset($this->highWaterStorage)) {
-      $this->highWaterStorage = \Drupal::keyValue('migrate:high_water');
-    }
-    return $this->highWaterStorage;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getHighWater() {
-    return $this->getHighWaterStorage()->get($this->id());
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function saveHighWater($high_water) {
-    $this->getHighWaterStorage()->set($this->id(), $high_water);
   }
 
   /**
@@ -631,21 +585,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   /**
    * {@inheritdoc}
    */
-  public function getSystemOfRecord() {
-    return $this->systemOfRecord;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setSystemOfRecord($system_of_record) {
-    $this->systemOfRecord = $system_of_record;
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isTrackLastImported() {
     return $this->trackLastImported;
   }
@@ -662,7 +601,30 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    * {@inheritdoc}
    */
   public function getMigrationDependencies() {
-    return ($this->migration_dependencies ?: []) + ['required' => [], 'optional' => []];
+    $this->migration_dependencies = ($this->migration_dependencies ?: []) + ['required' => [], 'optional' => []];
+    $this->migration_dependencies['optional'] = array_unique(array_merge($this->migration_dependencies['optional'], $this->findMigrationDependencies($this->process)));
+    return $this->migration_dependencies;
+  }
+
+  /**
+   * Find migration dependencies from the migration and the iterator plugins.
+   *
+   * @param $process
+   * @return array
+   */
+  protected function findMigrationDependencies($process) {
+    $return = [];
+    foreach ($this->getProcessNormalized($process) as $process_pipeline) {
+      foreach ($process_pipeline as $plugin_configuration) {
+        if ($plugin_configuration['plugin'] == 'migration') {
+          $return = array_merge($return, (array) $plugin_configuration['migration']);
+        }
+        if ($plugin_configuration['plugin'] == 'iterator') {
+          $return = array_merge($return, $this->findMigrationDependencies($plugin_configuration['process']));
+        }
+      }
+    }
+    return $return;
   }
 
   /**
@@ -695,13 +657,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   /**
    * {@inheritdoc}
    */
-  public function getHighWaterProperty() {
-    return $this->highWaterProperty;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function getTrackLastImported() {
     return $this->trackLastImported;
   }
@@ -711,6 +666,13 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    */
   public function getDestinationIds() {
     return $this->destinationIds;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMigrationTags() {
+    return $this->migration_tags;
   }
 
 }

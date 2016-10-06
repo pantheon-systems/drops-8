@@ -127,7 +127,7 @@ class FilterNumericTest extends ViewsKernelTestBase {
     $view->destroy();
     $view->setDisplay();
 
-      // Change the filtering
+    // Change the filtering
     $view->displayHandlers->get('default')->overrideOption('filters', array(
       'age' => array(
         'id' => 'age',
@@ -147,10 +147,6 @@ class FilterNumericTest extends ViewsKernelTestBase {
       array(
         'name' => 'John',
         'age' => 25,
-      ),
-      array(
-        'name' => 'Paul',
-        'age' => 26,
       ),
       array(
         'name' => 'Meredith',
@@ -207,10 +203,6 @@ class FilterNumericTest extends ViewsKernelTestBase {
       array(
         'name' => 'John',
         'age' => 25,
-      ),
-      array(
-        'name' => 'Paul',
-        'age' => 26,
       ),
       array(
         'name' => 'Meredith',

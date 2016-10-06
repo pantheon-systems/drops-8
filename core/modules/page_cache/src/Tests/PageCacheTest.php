@@ -3,11 +3,11 @@
 namespace Drupal\page_cache\Tests;
 
 use Drupal\Component\Datetime\DateTimePlus;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\simpletest\WebTestBase;
 use Drupal\Core\Cache\Cache;
-use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 
 /**
@@ -130,15 +130,11 @@ class PageCacheTest extends WebTestBase {
     $this->assertRaw('{"content":"oh hai this is json"}', 'The correct Json response was returned.');
 
     // Enable REST support for nodes and hal+json.
-    \Drupal::service('module_installer')->install(['node', 'rest', 'hal']);
+    \Drupal::service('module_installer')->install(['node', 'rest', 'hal', 'basic_auth']);
     $this->drupalCreateContentType(['type' => 'article']);
     $node = $this->drupalCreateNode(['type' => 'article']);
     $node_uri = $node->urlInfo();
     $node_url_with_hal_json_format = $node->urlInfo('canonical')->setRouteParameter('_format', 'hal_json');
-    /** @var \Drupal\user\RoleInterface $role */
-    $role = Role::load('anonymous');
-    $role->grantPermission('restful get entity:node');
-    $role->save();
 
     $this->drupalGet($node_uri);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
@@ -341,6 +337,7 @@ class PageCacheTest extends WebTestBase {
       403 => $admin_url,
       404 => $invalid_url,
     ];
+    $cache_ttl_4xx = Settings::get('cache_ttl_4xx', 3600);
     foreach ($tests as $code => $content_url) {
       // Anonymous user, without permissions.
       $this->drupalGet($content_url);
@@ -371,6 +368,35 @@ class PageCacheTest extends WebTestBase {
       $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT');
       // Rebuilding the router should invalidate the 4xx cache tag.
       $this->container->get('router.builder')->rebuild();
+      $this->drupalGet($content_url);
+      $this->assertResponse($code);
+      $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
+
+      // Ensure the 'expire' field on the cache entry uses cache_ttl_4xx.
+      $cache_item = \Drupal::service('cache.render')->get($this->getUrl() . ':html');
+      $difference = $cache_item->expire - (int) $cache_item->created;
+      // Given that a second might have passed we cannot be sure that
+      // $difference will exactly equal the default cache_ttl_4xx setting.
+      // Account for any timing difference or rounding errors by ensuring the
+      // value is within 5 seconds.
+      $this->assertTrue(
+        $difference > $cache_ttl_4xx - 5 &&
+        $difference < $cache_ttl_4xx + 5,
+        'The cache entry expiry time uses the cache_ttl_4xx setting.'
+      );
+    }
+
+    // Disable 403 and 404 caching.
+    $settings['settings']['cache_ttl_4xx'] = (object) array(
+      'value' => 0,
+      'required' => TRUE,
+    );
+    $this->writeSettings($settings);
+    \Drupal::service('cache.render')->deleteAll();
+
+    foreach ($tests as $code => $content_url) {
+      // Getting the 404 page twice should still result in a cache miss.
+      $this->drupalGet($content_url);
       $this->drupalGet($content_url);
       $this->assertResponse($code);
       $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');

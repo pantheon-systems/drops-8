@@ -181,7 +181,7 @@ function simpletest_run_tests($test_list) {
  */
 function simpletest_run_phpunit_tests($test_id, array $unescaped_test_classnames, &$status = NULL) {
   $phpunit_file = simpletest_phpunit_xml_filepath($test_id);
-  simpletest_phpunit_run_command($unescaped_test_classnames, $phpunit_file, $status);
+  simpletest_phpunit_run_command($unescaped_test_classnames, $phpunit_file, $status, $output);
 
   $rows = simpletest_phpunit_xml_to_rows($test_id, $phpunit_file);
   // A $status of 0 = passed test, 1 = failed test, > 1 indicates segfault
@@ -193,13 +193,27 @@ function simpletest_run_phpunit_tests($test_id, array $unescaped_test_classnames
       'test_id' => $test_id,
       'test_class' => implode(",", $unescaped_test_classnames),
       'status' => 'fail',
-      'message' => 'PHPunit Test failed to complete',
+      'message' => 'PHPunit Test failed to complete; Error: ' . implode("\n", $output),
       'message_group' => 'Other',
       'function' => implode(",", $unescaped_test_classnames),
       'line' => '0',
       'file' => $phpunit_file,
     ];
   }
+
+  if ($status === 1) {
+    $rows[] = [
+      'test_id' => $test_id,
+      'test_class' => implode(",", $unescaped_test_classnames),
+      'status' => 'fail',
+      'message' => 'PHPunit Test failed to complete; Error: ' . implode("\n", $output),
+      'message_group' => 'Other',
+      'function' => implode(",", $unescaped_test_classnames),
+      'line' => '0',
+      'file' => $phpunit_file,
+    ];
+  }
+
   return $rows;
 }
 
@@ -299,11 +313,13 @@ function simpletest_phpunit_configuration_filepath() {
  * @param int $status
  *   (optional) The exit status code of the PHPUnit process will be assigned to
  *   this variable.
+ * @param string $output
+ *   (optional) The output by running the phpunit command.
  *
  * @return string
  *   The results as returned by exec().
  */
-function simpletest_phpunit_run_command(array $unescaped_test_classnames, $phpunit_file, &$status = NULL) {
+function simpletest_phpunit_run_command(array $unescaped_test_classnames, $phpunit_file, &$status = NULL, &$output = NULL) {
   global $base_url;
   // Setup an environment variable containing the database connection so that
   // functional tests can connect to the database.
@@ -519,7 +535,8 @@ function simpletest_last_test_get($test_id) {
  *   Whether any fatal errors were found.
  */
 function simpletest_log_read($test_id, $database_prefix, $test_class) {
-  $log = DRUPAL_ROOT . '/sites/simpletest/' . substr($database_prefix, 10) . '/error.log';
+  $test_db = new TestDatabase($database_prefix);
+  $log = DRUPAL_ROOT . '/' . $test_db->getTestSitePath() . '/error.log';
   $found = FALSE;
   if (file_exists($log)) {
     foreach (file($log) as $line) {
@@ -649,13 +666,12 @@ function simpletest_clean_environment() {
  * Removes prefixed tables from the database from crashed tests.
  */
 function simpletest_clean_database() {
-  $tables = db_find_tables(Database::getConnection()->prefixTables('{simpletest}') . '%');
-  $schema = drupal_get_module_schema('simpletest');
+  $tables = db_find_tables('test%');
   $count = 0;
-  foreach (array_diff_key($tables, $schema) as $table) {
-    // Strip the prefix and skip tables without digits following "simpletest",
-    // e.g. {simpletest_test_id}.
-    if (preg_match('/simpletest\d+.*/', $table, $matches)) {
+  foreach ($tables as $table) {
+    // Only drop tables which begin wih 'test' followed by digits, for example,
+    // {test12345678node__body}.
+    if (preg_match('/^test\d+.*/', $table, $matches)) {
       db_drop_table($matches[0]);
       $count++;
     }

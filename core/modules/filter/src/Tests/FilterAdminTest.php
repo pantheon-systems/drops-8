@@ -130,7 +130,7 @@ class FilterAdminTest extends WebTestBase {
     $edit = array(
       "formats[$format_id][weight]" => 5,
     );
-    $this->drupalPostForm('admin/config/content/formats', $edit, t('Save changes'));
+    $this->drupalPostForm('admin/config/content/formats', $edit, t('Save'));
     $this->assertFieldByName("formats[$format_id][weight]", 5, 'Text format weight was saved.');
 
     // Edit text format.
@@ -202,7 +202,7 @@ class FilterAdminTest extends WebTestBase {
     $this->assertResponse(403, 'The fallback format cannot be disabled.');
 
     // Verify access permissions to Full HTML format.
-    $full_format = entity_load('filter_format', $full);
+    $full_format = FilterFormat::load($full);
     $this->assertTrue($full_format->access('use', $this->adminUser), 'Admin user may use Full HTML.');
     $this->assertFalse($full_format->access('use', $this->webUser), 'Web user may not use Full HTML.');
 
@@ -236,7 +236,7 @@ class FilterAdminTest extends WebTestBase {
     ));
     $this->assertTrue(!empty($elements), 'Reorder confirmed in admin interface.');
 
-    $filter_format = entity_load('filter_format', $restricted);
+    $filter_format = FilterFormat::load($restricted);
     foreach ($filter_format->filters() as $filter_name => $filter) {
       if ($filter_name == $second_filter || $filter_name == $first_filter) {
         $filters[] = $filter_name;
@@ -257,7 +257,7 @@ class FilterAdminTest extends WebTestBase {
     $this->assertRaw(t('Added text format %format.', array('%format' => $edit['name'])), 'New filter created.');
 
     filter_formats_reset();
-    $format = entity_load('filter_format', $edit['format']);
+    $format = FilterFormat::load($edit['format']);
     $this->assertNotNull($format, 'Format found in database.');
     $this->drupalGet('admin/config/content/formats/manage/' . $format->id());
     $this->assertFieldByName('roles[' . RoleInterface::AUTHENTICATED_ID . ']', '', 'Role found.');
@@ -270,7 +270,7 @@ class FilterAdminTest extends WebTestBase {
     $this->assertRaw(t('Disabled text format %format.', array('%format' => $edit['name'])), 'Format successfully disabled.');
 
     // Allow authenticated users on full HTML.
-    $format = entity_load('filter_format', $full);
+    $format = FilterFormat::load($full);
     $edit = array();
     $edit['roles[' . RoleInterface::ANONYMOUS_ID . ']'] = 0;
     $edit['roles[' . RoleInterface::AUTHENTICATED_ID . ']'] = 1;
@@ -294,7 +294,11 @@ class FilterAdminTest extends WebTestBase {
     $edit['body[0][value]'] = $text;
     $edit['body[0][format]'] = $basic;
     $this->drupalPostForm('node/add/page', $edit, t('Save'));
-    $this->assertRaw(t('Basic page %title has been created.', array('%title' => $edit['title[0][value]'])), 'Filtered node created.');
+    $this->assertText(t('Basic page @title has been created.', array('@title' => $edit['title[0][value]'])), 'Filtered node created.');
+
+    // Verify that the creation message contains a link to a node.
+    $view_link = $this->xpath('//div[@class="messages"]//a[contains(@href, :href)]', array(':href' => 'node/'));
+    $this->assert(isset($view_link), 'The message area contains a link to a node');
 
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertTrue($node, 'Node found in database.');

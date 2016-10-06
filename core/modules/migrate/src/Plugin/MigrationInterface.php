@@ -11,16 +11,6 @@ use Drupal\Component\Plugin\PluginInspectionInterface;
 interface MigrationInterface extends PluginInspectionInterface, DerivativeInspectionInterface {
 
   /**
-   * A constant used for systemOfRecord.
-   */
-  const SOURCE = 'source';
-
-  /**
-   * A constant used for systemOfRecord.
-   */
-  const DESTINATION = 'destination';
-
-  /**
    * The migration is currently not running.
    */
   const STATUS_IDLE = 0;
@@ -153,26 +143,6 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
   public function getIdMap();
 
   /**
-   * The current value of the high water mark.
-   *
-   * The high water mark defines a timestamp stating the time the import was last
-   * run. If the mark is set, only content with a higher timestamp will be
-   * imported.
-   *
-   * @return int
-   *   A Unix timestamp representing the high water mark.
-   */
-  public function getHighWater();
-
-  /**
-   * Save the new high water mark.
-   *
-   * @param int $high_water
-   *   The high water timestamp.
-   */
-  public function saveHighWater($high_water);
-
-  /**
    * Check if all source rows from this migration have been processed.
    *
    * @return bool
@@ -284,24 +254,6 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
   public function mergeProcessOfProperty($property, array $process_of_property);
 
   /**
-   * Get the current system of record of the migration.
-   *
-   * @return string
-   *   The current system of record of the migration.
-   */
-  public function getSystemOfRecord();
-
-  /**
-   * Set the system of record for the migration.
-   *
-   * @param string $system_of_record
-   *   The system of record of the migration.
-   *
-   * @return $this
-   */
-  public function setSystemOfRecord($system_of_record);
-
-  /**
    * Checks if the migration should track time of last import.
    *
    * @return bool
@@ -344,18 +296,6 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
   public function getSourceConfiguration();
 
   /**
-   * Get information on the property used as the high watermark.
-   *
-   * Array of 'name' & (optional) db 'alias' properties used for high watermark.
-   *
-   * @see Drupal\migrate\Plugin\migrate\source\SqlBase::initializeIterator()
-   *
-   * @return array
-   *   The property used as the high watermark.
-   */
-  public function getHighWaterProperty();
-
-  /**
    * If true, track time of last import.
    *
    * @return bool
@@ -373,5 +313,13 @@ interface MigrationInterface extends PluginInspectionInterface, DerivativeInspec
    *   Destination identifiers.
    */
   public function getDestinationIds();
+
+  /**
+   * The migration tags.
+   *
+   * @return array
+   *   Migration tags.
+   */
+  public function getMigrationTags();
 
 }

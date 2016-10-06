@@ -5,11 +5,13 @@
  * API for handling file uploads and server file management.
  */
 
+use Drupal\Component\FileSystem\FileSystem as ComponentFileSystem;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\PhpStorage\FileStorage;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Core\File\FileSystem;
+use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\StreamWrapper\PrivateStream;
 
@@ -978,7 +980,7 @@ function file_unmanaged_save_data($data, $destination = NULL, $replace = FILE_EX
  * @param $options
  *   An associative array of additional options, with the following elements:
  *   - 'nomask': The preg_match() regular expression for files to be excluded.
- *     There is no default.
+ *     Defaults to the 'file_scan_ignore_directories' setting.
  *   - 'callback': The callback function to call for each match. There is no
  *     default callback.
  *   - 'recurse': When TRUE, the directory scan will recurse the entire tree
@@ -1011,6 +1013,18 @@ function file_scan_directory($dir, $mask, $options = array(), $depth = 0) {
     $dir_has_slash = (substr($dir, -1) === '/');
   }
 
+  // Allow directories specified in settings.php to be ignored. You can use this
+  // to not check for files in common special-purpose directories. For example,
+  // node_modules and bower_components. Ignoring irrelevant directories is a
+  // performance boost.
+  if (!isset($options['nomask'])) {
+    $ignore_directories = Settings::get('file_scan_ignore_directories', []);
+    array_walk($ignore_directories, function(&$value) {
+      $value = preg_quote($value, '/');
+    });
+    $default_nomask = '/^' . implode('|', $ignore_directories) . '$/';
+  }
+
   $options['key'] = in_array($options['key'], array('uri', 'filename', 'name')) ? $options['key'] : 'uri';
   $files = array();
   // Avoid warnings when opendir does not have the permissions to open a
@@ -1019,7 +1033,10 @@ function file_scan_directory($dir, $mask, $options = array(), $depth = 0) {
     if ($handle = @opendir($dir)) {
       while (FALSE !== ($filename = readdir($handle))) {
         // Skip this file if it matches the nomask or starts with a dot.
-        if ($filename[0] != '.' && !(isset($options['nomask']) && preg_match($options['nomask'], $filename))) {
+        if ($filename[0] != '.'
+          && !(isset($options['nomask']) && preg_match($options['nomask'], $filename))
+          && !(!empty($default_nomask) && preg_match($default_nomask, $filename))
+          ) {
           if ($depth == 0 && $dir_has_slash) {
             $uri = "$dir$filename";
           }
@@ -1173,7 +1190,7 @@ function file_directory_temp() {
   if (empty($temporary_directory)) {
     // Needs set up.
     $config = \Drupal::configFactory()->getEditable('system.file');
-    $temporary_directory = file_directory_os_temp();
+    $temporary_directory = ComponentFileSystem::getOsTemporaryDirectory();
 
     if (empty($temporary_directory)) {
       // If no directory has been found default to 'files/tmp'.
@@ -1198,34 +1215,12 @@ function file_directory_temp() {
  *
  * @return mixed
  *   A string containing the path to the temporary directory.
+ *
+ * @deprecated in Drupal 8.3.x-dev, will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Component\FileSystem\FileSystem::getOsTemporaryDirectory().
  */
 function file_directory_os_temp() {
-  $directories = array();
-
-  // Has PHP been set with an upload_tmp_dir?
-  if (ini_get('upload_tmp_dir')) {
-    $directories[] = ini_get('upload_tmp_dir');
-  }
-
-  // Operating system specific dirs.
-  if (substr(PHP_OS, 0, 3) == 'WIN') {
-    $directories[] = 'c:\\windows\\temp';
-    $directories[] = 'c:\\winnt\\temp';
-  }
-  else {
-    $directories[] = '/tmp';
-  }
-  // PHP may be able to find an alternative tmp directory.
-  $directories[] = sys_get_temp_dir();
-
-  foreach ($directories as $directory) {
-    if (is_dir($directory) && is_writable($directory)) {
-      // Both sys_get_temp_dir() and ini_get('upload_tmp_dir') can return paths
-      // with a trailing directory separator.
-      return rtrim($directory, DIRECTORY_SEPARATOR);
-    }
-  }
-  return FALSE;
+  return ComponentFileSystem::getOsTemporaryDirectory();
 }
 
 /**

@@ -232,7 +232,8 @@ function user_load($uid, $reset = FALSE) {
  * @see \Drupal\user\Entity\User::loadMultiple()
  */
 function user_load_by_mail($mail) {
-  $users = entity_load_multiple_by_properties('user', array('mail' => $mail));
+  $users = \Drupal::entityTypeManager()->getStorage('user')
+    ->loadByProperties(['mail' => $mail]);
   return $users ? reset($users) : FALSE;
 }
 
@@ -248,7 +249,8 @@ function user_load_by_mail($mail) {
  * @see \Drupal\user\Entity\User::loadMultiple()
  */
 function user_load_by_name($name) {
-  $users = entity_load_multiple_by_properties('user', array('name' => $name));
+  $users = \Drupal::entityTypeManager()->getStorage('user')
+    ->loadByProperties(['name' => $name]);
   return $users ? reset($users) : FALSE;
 }
 
@@ -984,7 +986,7 @@ function user_user_role_insert(RoleInterface $role) {
   }
 
   $add_id = 'user_add_role_action.' . $role->id();
-  if (!entity_load('action', $add_id)) {
+  if (!Action::load($add_id)) {
     $action = Action::create(array(
       'id' => $add_id,
       'type' => 'user',
@@ -997,7 +999,7 @@ function user_user_role_insert(RoleInterface $role) {
     $action->trustData()->save();
   }
   $remove_id = 'user_remove_role_action.' . $role->id();
-  if (!entity_load('action', $remove_id)) {
+  if (!Action::load($remove_id)) {
     $action = Action::create(array(
       'id' => $remove_id,
       'type' => 'user',
@@ -1024,10 +1026,10 @@ function user_user_role_delete(RoleInterface $role) {
     return;
   }
 
-  $actions = entity_load_multiple('action', array(
+  $actions = Action::loadMultiple([
     'user_add_role_action.' . $role->id(),
     'user_remove_role_action.' . $role->id(),
-  ));
+  ]);
   foreach ($actions as $action) {
     $action->delete();
   }
@@ -1247,7 +1249,7 @@ function user_form_process_password_confirm($element) {
     $password_settings['showStrengthIndicator'] = TRUE;
     $password_settings += array(
       'strengthTitle' => t('Password strength:'),
-      'hasWeaknesses' => t('To make your password stronger:'),
+      'hasWeaknesses' => t('Recommendations to make your password stronger:'),
       'tooShort' => t('Make it at least 12 characters'),
       'addLowerCase' => t('Add lowercase letters'),
       'addUpperCase' => t('Add uppercase letters'),
@@ -1332,7 +1334,7 @@ function user_toolbar() {
     $links_cache_contexts[] = 'user';
   }
   else {
-     $links = array(
+    $links = array(
       'login' => array(
         'title' => t('Log in'),
         'url' => Url::fromRoute('user.page'),

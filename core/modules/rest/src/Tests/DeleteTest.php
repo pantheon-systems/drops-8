@@ -16,7 +16,7 @@ class DeleteTest extends RESTTestBase {
    *
    * @var array
    */
-  public static $modules = array('hal', 'rest', 'entity_test');
+  public static $modules = array('hal', 'rest', 'entity_test', 'node');
 
   /**
    * Tests several valid and invalid delete requests on all entity types.
@@ -31,18 +31,23 @@ class DeleteTest extends RESTTestBase {
       // Create a user account that has the required permissions to delete
       // resources via the REST API.
       $permissions = $this->entityPermissions($entity_type, 'delete');
-      $permissions[] = 'restful delete entity:' . $entity_type;
       $account = $this->drupalCreateUser($permissions);
       $this->drupalLogin($account);
 
       // Create an entity programmatically.
       $entity = $this->entityCreate($entity_type);
       $entity->save();
+      // Try first to delete over REST API without the CSRF token.
+      $this->httpRequest($entity->urlInfo(), 'DELETE', NULL, NULL, TRUE);
+      $this->assertResponse(403, 'X-CSRF-Token request header is missing');
       // Delete it over the REST API.
       $response = $this->httpRequest($entity->urlInfo(), 'DELETE');
       // Clear the static cache with entity_load(), otherwise we won't see the
       // update.
-      $entity = entity_load($entity_type, $entity->id(), TRUE);
+      $storage = $this->container->get('entity_type.manager')
+        ->getStorage($entity_type);
+      $storage->resetCache([$entity->id()]);
+      $entity = $storage->load($entity->id());
       $this->assertFalse($entity, $entity_type . ' entity is not in the DB anymore.');
       $this->assertResponse('204', 'HTTP response code is correct.');
       $this->assertEqual($response, '', 'Response body is empty.');
@@ -59,7 +64,9 @@ class DeleteTest extends RESTTestBase {
       $entity->save();
       $this->httpRequest($entity->urlInfo(), 'DELETE');
       $this->assertResponse(403);
-      $this->assertNotIdentical(FALSE, entity_load($entity_type, $entity->id(), TRUE), 'The ' . $entity_type . ' entity is still in the database.');
+      $storage->resetCache([$entity->id()]);
+      $this->assertNotIdentical(FALSE, $storage->load($entity->id()),
+        'The ' . $entity_type . ' entity is still in the database.');
     }
     // Try to delete a resource which is not REST API enabled.
     $this->enableService(FALSE);

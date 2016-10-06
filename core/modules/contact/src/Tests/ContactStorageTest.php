@@ -47,10 +47,10 @@ class ContactStorageTest extends ContactSitewideTest {
     $this->drupalLogin($admin_user);
     // Create first valid contact form.
     $mail = 'simpletest@example.com';
-    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($mail)), '', TRUE, [
+    $this->addContactForm($id = Unicode::strtolower($this->randomMachineName(16)), $label = $this->randomMachineName(16), implode(',', array($mail)), '', TRUE, 'Your message has been sent.', [
       'send_a_pony' => 1,
     ]);
-    $this->assertRaw(t('Contact form %label has been added.', array('%label' => $label)));
+    $this->assertText(t('Contact form @label has been added.', array('@label' => $label)));
 
     // Ensure that anonymous can submit site-wide contact form.
     user_role_grant_permissions(RoleInterface::ANONYMOUS_ID, array('access site-wide contact form'));

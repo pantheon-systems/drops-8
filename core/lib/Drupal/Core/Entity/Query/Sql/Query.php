@@ -47,13 +47,6 @@ class Query extends QueryBase implements QueryInterface {
   protected $connection;
 
   /**
-   * Stores the entity manager used by the query.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $entityManager;
-
-  /**
    * Constructs a query object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -232,7 +225,7 @@ class Query extends QueryBase implements QueryInterface {
     if ($this->range) {
       $this->sqlQuery->range($this->range['start'], $this->range['length']);
     }
-   foreach ($this->sqlGroupBy as $field) {
+    foreach ($this->sqlGroupBy as $field) {
       $this->sqlQuery->groupBy($field);
     }
     foreach ($this->sqlFields as $field) {

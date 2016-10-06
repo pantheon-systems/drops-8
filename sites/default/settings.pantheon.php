@@ -25,7 +25,25 @@
  * not to any Drupal files.
  */
 if (!defined("PANTHEON_VERSION")) {
-  define("PANTHEON_VERSION", "2");
+  define("PANTHEON_VERSION", "3");
+}
+
+/**
+ * Determine whether this is a preproduction or production environment, and
+ * then load the pantheon services.yml file.  This file should be named either
+ * 'pantheon-production-services.yml' (for 'live' or 'test' environments)
+ * 'pantheon-preproduction-services.yml' (for 'dev' or multidev environments).
+ */
+$pantheon_services_file = __DIR__ . '/services.pantheon.preproduction.yml';
+if (
+  isset($_ENV['PANTHEON_ENVIRONMENT']) &&
+  ( ($_ENV['PANTHEON_ENVIRONMENT'] == 'live') || ($_ENV['PANTHEON_ENVIRONMENT'] == 'test') )
+) {
+  $pantheon_services_file = __DIR__ . '/services.pantheon.production.yml';
+}
+
+if (file_exists($pantheon_services_file)) {
+  $settings['container_yamls'][] = $pantheon_services_file;
 }
 
 /**
@@ -135,4 +153,21 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
   $config['system.file']['path']['temporary'] = $_SERVER['HOME'] .'/tmp';
 }
 
+
+/**
+ * The default list of directories that will be ignored by Drupal's file API.
+ *
+ * By default ignore node_modules and bower_components folders to avoid issues
+ * with common frontend tools and recursive scanning of directories looking for
+ * extensions.
+ *
+ * @see file_scan_directory()
+ * @see \Drupal\Core\Extension\ExtensionDiscovery::scanDirectory()
+ */
+if (empty($settings['file_scan_ignore_directories'])) {
+  $settings['file_scan_ignore_directories'] = [
+    'node_modules',
+    'bower_components',
+  ];
+}
 

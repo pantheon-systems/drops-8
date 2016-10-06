@@ -23,7 +23,7 @@ abstract class DrupalSqlBase extends SqlBase implements ContainerFactoryPluginIn
 
   use DependencyTrait;
 
-   /**
+  /**
    * The contents of the system table.
    *
    * @var array
@@ -53,12 +53,12 @@ abstract class DrupalSqlBase extends SqlBase implements ContainerFactoryPluginIn
   }
 
   /**
-    * Retrieves all system data information from origin system.
-    *
-    * @return array
-    *   List of system table information keyed by type and name.
-    */
-   public function getSystemData() {
+   * Retrieves all system data information from origin system.
+   *
+   * @return array
+   *   List of system table information keyed by type and name.
+   */
+  public function getSystemData() {
     if (!isset($this->systemData)) {
       $this->systemData = array();
       try {
@@ -102,7 +102,7 @@ abstract class DrupalSqlBase extends SqlBase implements ContainerFactoryPluginIn
           }
         }
         else {
-          throw new RequirementsException('Missing source provider ' . $this->pluginDefinition['source_provider'], ['source_provider' => $this->pluginDefinition['source_provider']]);
+          throw new RequirementsException('The module ' . $this->pluginDefinition['source_provider'] . ' is not enabled in the source site.', ['source_provider' => $this->pluginDefinition['source_provider']]);
         }
       }
     }
