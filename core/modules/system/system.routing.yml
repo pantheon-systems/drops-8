@@ -397,6 +397,13 @@ system.theme_settings_theme:
   requirements:
     _access: 'TRUE'
 
+'<nolink>':
+  path: ''
+  options:
+    _no_path: TRUE
+  requirements:
+    _access: 'TRUE'
+
 '<current>':
   path: '<current>'
 
@@ -413,6 +420,14 @@ system.modules_uninstall_confirm:
   defaults:
     _form: 'Drupal\system\Form\ModulesUninstallConfirmForm'
     _title: 'Confirm uninstall'
+  requirements:
+    _permission: 'administer modules'
+
+system.prepare_modules_entity_uninstall:
+  path: '/admin/modules/uninstall/entity/{entity_type_id}'
+  defaults:
+    _form: '\Drupal\system\Form\PrepareModulesEntityUninstallForm'
+    _title_callback: '\Drupal\system\Form\PrepareModulesEntityUninstallForm::formTitle'
   requirements:
     _permission: 'administer modules'
 
@@ -483,5 +498,12 @@ system.entity_autocomplete:
   path: '/entity_reference_autocomplete/{target_type}/{selection_handler}/{selection_settings_key}'
   defaults:
     _controller: '\Drupal\system\Controller\EntityAutocompleteController::handleAutocomplete'
+  requirements:
+    _access: 'TRUE'
+
+system.csrftoken:
+  path: '/session/token'
+  defaults:
+    _controller: '\Drupal\system\Controller\CsrfTokenController::csrfToken'
   requirements:
     _access: 'TRUE'

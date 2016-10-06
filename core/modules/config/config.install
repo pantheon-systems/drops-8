@@ -23,7 +23,8 @@ function config_requirements($phase) {
   // web writable.
   if ($phase !== 'install' && !is_writable($directory)) {
     $requirements['config directory ' . CONFIG_SYNC_DIRECTORY] = [
-      'title' => t('The directory %directory is not writable.', ['%directory' => $directory]),
+      'title' => t('Configuration directory: %type', ['%type' => CONFIG_SYNC_DIRECTORY]),
+      'description' => t('The directory %directory is not writable.', ['%directory' => $directory]),
       'severity' => REQUIREMENT_WARNING,
     ];
   }

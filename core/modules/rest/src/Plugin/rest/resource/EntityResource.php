@@ -2,10 +2,18 @@
 
 namespace Drupal\rest\Plugin\rest\resource;
 
+use Drupal\Component\Plugin\DependentPluginInterface;
+use Drupal\Core\Config\Entity\ConfigEntityType;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\rest\Plugin\ResourceBase;
 use Drupal\rest\ResourceResponse;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\rest\ModifiedResourceResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -26,7 +34,60 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  *   }
  * )
  */
-class EntityResource extends ResourceBase {
+class EntityResource extends ResourceBase implements DependentPluginInterface {
+
+  /**
+   * The entity type targeted by this resource.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeInterface
+   */
+  protected $entityType;
+
+  /**
+   * The config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * Constructs a Drupal\rest\Plugin\rest\resource\EntityResource object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager
+   * @param array $serializer_formats
+   *   The available serialization formats.
+   * @param \Psr\Log\LoggerInterface $logger
+   *   A logger instance.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, $serializer_formats, LoggerInterface $logger, ConfigFactoryInterface $config_factory) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger);
+    $this->entityType = $entity_type_manager->getDefinition($plugin_definition['entity_type']);
+    $this->configFactory = $config_factory;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+      $container->getParameter('serializer.formats'),
+      $container->get('logger.factory')->get('rest'),
+      $container->get('config.factory')
+    );
+  }
 
   /**
    * Responds to entity GET requests.
@@ -48,13 +109,16 @@ class EntityResource extends ResourceBase {
     $response = new ResourceResponse($entity, 200);
     $response->addCacheableDependency($entity);
     $response->addCacheableDependency($entity_access);
-    foreach ($entity as $field_name => $field) {
-      /** @var \Drupal\Core\Field\FieldItemListInterface $field */
-      $field_access = $field->access('view', NULL, TRUE);
-      $response->addCacheableDependency($field_access);
 
-      if (!$field_access->isAllowed()) {
-        $entity->set($field_name, NULL);
+    if ($entity instanceof FieldableEntityInterface) {
+      foreach ($entity as $field_name => $field) {
+        /** @var \Drupal\Core\Field\FieldItemListInterface $field */
+        $field_access = $field->access('view', NULL, TRUE);
+        $response->addCacheableDependency($field_access);
+
+        if (!$field_access->isAllowed()) {
+          $entity->set($field_name, NULL);
+        }
       }
     }
 
@@ -67,7 +131,7 @@ class EntityResource extends ResourceBase {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity.
    *
-   * @return \Drupal\rest\ResourceResponse
+   * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    *
    * @throws \Symfony\Component\HttpKernel\Exception\HttpException
@@ -108,11 +172,10 @@ class EntityResource extends ResourceBase {
       $this->logger->notice('Created entity %type with ID %id.', array('%type' => $entity->getEntityTypeId(), '%id' => $entity->id()));
 
       // 201 Created responses return the newly created entity in the response
-      // body.
+      // body. These responses are not cacheable, so we add no cacheability
+      // metadata here.
       $url = $entity->urlInfo('canonical', ['absolute' => TRUE])->toString(TRUE);
-      $response = new ResourceResponse($entity, 201, ['Location' => $url->getGeneratedUrl()]);
-      // Responses after creating an entity are not cacheable, so we add no
-      // cacheability metadata here.
+      $response = new ModifiedResourceResponse($entity, 201, ['Location' => $url->getGeneratedUrl()]);
       return $response;
     }
     catch (EntityStorageException $e) {
@@ -128,7 +191,7 @@ class EntityResource extends ResourceBase {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity.
    *
-   * @return \Drupal\rest\ResourceResponse
+   * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    *
    * @throws \Symfony\Component\HttpKernel\Exception\HttpException
@@ -178,8 +241,8 @@ class EntityResource extends ResourceBase {
       $original_entity->save();
       $this->logger->notice('Updated entity %type with ID %id.', array('%type' => $original_entity->getEntityTypeId(), '%id' => $original_entity->id()));
 
-      // Update responses have an empty body.
-      return new ResourceResponse(NULL, 204);
+      // Return the updated entity in the response body.
+      return new ModifiedResourceResponse($original_entity, 200);
     }
     catch (EntityStorageException $e) {
       throw new HttpException(500, 'Internal Server Error', $e);
@@ -192,7 +255,7 @@ class EntityResource extends ResourceBase {
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity object.
    *
-   * @return \Drupal\rest\ResourceResponse
+   * @return \Drupal\rest\ModifiedResourceResponse
    *   The HTTP response object.
    *
    * @throws \Symfony\Component\HttpKernel\Exception\HttpException
@@ -206,7 +269,7 @@ class EntityResource extends ResourceBase {
       $this->logger->notice('Deleted entity %type with ID %id.', array('%type' => $entity->getEntityTypeId(), '%id' => $entity->id()));
 
       // Delete responses have an empty body.
-      return new ResourceResponse(NULL, 204);
+      return new ModifiedResourceResponse(NULL, 204);
     }
     catch (EntityStorageException $e) {
       throw new HttpException(500, 'Internal Server Error', $e);
@@ -223,6 +286,10 @@ class EntityResource extends ResourceBase {
    *   If validation errors are found.
    */
   protected function validate(EntityInterface $entity) {
+    // @todo Remove when https://www.drupal.org/node/2164373 is committed.
+    if (!$entity instanceof FieldableEntityInterface) {
+      return;
+    }
     $violations = $entity->validate();
 
     // Remove violations of inaccessible fields as they cannot stem from our
@@ -245,6 +312,21 @@ class EntityResource extends ResourceBase {
   /**
    * {@inheritdoc}
    */
+  public function permissions() {
+    // @see https://www.drupal.org/node/2664780
+    if ($this->configFactory->get('rest.settings')->get('bc_entity_resource_permissions')) {
+      // The default Drupal 8.0.x and 8.1.x behavior.
+      return parent::permissions();
+    }
+    else {
+      // The default Drupal 8.2.x behavior.
+      return [];
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function getBaseRoute($canonical_path, $method) {
     $route = parent::getBaseRoute($canonical_path, $method);
     $definition = $this->getPluginDefinition();
@@ -254,6 +336,39 @@ class EntityResource extends ResourceBase {
     $route->setOption('parameters', $parameters);
 
     return $route;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function availableMethods() {
+    $methods = parent::availableMethods();
+    if ($this->isConfigEntityResource()) {
+      // Currently only GET is supported for Config Entities.
+      // @todo Remove when supported https://www.drupal.org/node/2300677
+      $unsupported_methods = ['POST', 'PUT', 'DELETE', 'PATCH'];
+      $methods = array_diff($methods, $unsupported_methods);
+    }
+    return $methods;
+  }
+
+  /**
+   * Checks if this resource is for a Config Entity.
+   *
+   * @return bool
+   *   TRUE if the entity is a Config Entity, FALSE otherwise.
+   */
+  protected function isConfigEntityResource() {
+    return $this->entityType instanceof ConfigEntityType;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    if (isset($this->entityType)) {
+      return ['module' => [$this->entityType->getProvider()]];
+    }
   }
 
 }

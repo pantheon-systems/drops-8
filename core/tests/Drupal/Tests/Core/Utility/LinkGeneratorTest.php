@@ -1,8 +1,9 @@
 <?php
 
-namespace Drupal\Tests\Core\Utility {
+namespace Drupal\Tests\Core\Utility;
 
 use Drupal\Component\Render\MarkupInterface;
+use Drupal\Core\GeneratedNoLink;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Link;
@@ -146,6 +147,26 @@ class LinkGeneratorTest extends UnitTestCase {
       ),
       'content' => 'Test',
     ), $result);
+  }
+
+  /**
+   * Tests the generate() method with the <nolink> route.
+   *
+   * @covers ::generate
+   */
+  public function testGenerateNoLink() {
+    $this->urlGenerator->expects($this->never())
+      ->method('generateFromRoute');
+    $this->moduleHandler->expects($this->once())
+      ->method('alter')
+      ->with('link', $this->isType('array'));
+
+    $url = Url::fromRoute('<nolink>');
+    $url->setUrlGenerator($this->urlGenerator);
+
+    $result = $this->linkGenerator->generate('Test', $url);
+    $this->assertTrue($result instanceof GeneratedNoLink);
+    $this->assertSame('<span>Test</span>', (string) $result);
   }
 
   /**
@@ -573,7 +594,5 @@ class LinkGeneratorTest extends UnitTestCase {
 
     self::assertFalse((bool) $xpath->query($query)->length);
   }
-
-}
 
 }

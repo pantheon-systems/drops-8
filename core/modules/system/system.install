@@ -7,6 +7,8 @@
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Environment;
+use Drupal\Component\FileSystem\FileSystem;
+use Drupal\Component\Utility\OpCodeCache;
 use Drupal\Core\Path\AliasStorage;
 use Drupal\Core\Url;
 use Drupal\Core\Database\Database;
@@ -242,8 +244,7 @@ function system_requirements($phase) {
 
   if ($phase == 'install' || $phase == 'runtime') {
     // Check to see if OPcache is installed.
-    $opcache_enabled = (function_exists('opcache_get_status') && opcache_get_status()['opcache_enabled']);
-    if (!$opcache_enabled) {
+    if (!OpCodeCache::isEnabled()) {
       $requirements['php_opcache'] = array(
         'value' => t('Not enabled'),
         'severity' => REQUIREMENT_WARNING,
@@ -541,7 +542,7 @@ function system_requirements($phase) {
     else {
       // If the temporary directory is not overridden use an appropriate
       // temporary path for the system.
-      $directories[] = file_directory_os_temp();
+      $directories[] = FileSystem::getOsTemporaryDirectory();
     }
   }
 
@@ -827,6 +828,39 @@ function system_requirements($phase) {
         'title' => t('Xdebug settings'),
         'value' => t('xdebug.max_nesting_level is set to %value.', ['%value' => $current_nesting_level]),
         'description' => t('Set <code>xdebug.max_nesting_level=@level</code> in your PHP configuration as some pages in your Drupal site will not work when this setting is too low.', ['@level' => $minimum_nesting_level]),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+
+  // Warning for httpoxy on IIS with affected PHP versions
+  // @see https://www.drupal.org/node/2783079
+  if (strpos($software, 'Microsoft-IIS') !== FALSE
+    && (
+    version_compare(PHP_VERSION, '5.5.38', '<')
+    || (version_compare(PHP_VERSION, '5.6.0', '>=') && version_compare(PHP_VERSION, '5.6.24', '<'))
+    || (version_compare(PHP_VERSION, '7.0.0', '>=') && version_compare(PHP_VERSION, '7.0.9', '<'))
+    )) {
+    $dom = new \DOMDocument('1.0', 'UTF-8');
+    $webconfig = file_get_contents('web.config');
+    // If you are here the web.config file must - of course - be well formed.
+    // But the PHP DOM component will throw warnings on some XML compliant
+    // stuff, so silently parse the configuration file.
+    @$dom->loadHTML($webconfig);
+    $httpoxy_rewrite = FALSE;
+    foreach ($dom->getElementsByTagName('rule') as $rule) {
+      foreach ($rule->attributes as $attr) {
+        if (@$attr->name == 'name' && @$attr->nodeValue == 'Erase HTTP_PROXY') {
+          $httpoxy_rewrite = TRUE;
+          break 2;
+        }
+      }
+    }
+    if (!$httpoxy_rewrite) {
+      $requirements['iis_httpoxy_protection'] = [
+        'title' => t('IIS httpoxy protection'),
+        'value' => t('Your PHP runtime version is affected by the httpoxy vulnerability.'),
+        'description' => t('Either update your PHP runtime version or uncomment the "Erase HTTP_PROXY" rule in your web.config file and add HTTP_PROXY to the allowed headers list. See more details in the <a href=":link">security advisory</a>.', [':link' => 'https://www.drupal.org/SA-CORE-2016-003']),
         'severity' => REQUIREMENT_ERROR,
       ];
     }
@@ -1132,7 +1166,11 @@ function system_update_8004() {
   $manager = \Drupal::entityDefinitionUpdateManager();
   foreach (array_keys(\Drupal::entityManager()
     ->getDefinitions()) as $entity_type_id) {
-    $manager->updateEntityType($manager->getEntityType($entity_type_id));
+    // Only update the entity type if it already exists. This condition is
+    // needed in case new entity types are introduced after this update.
+    if ($entity_type = $manager->getEntityType($entity_type_id)) {
+      $manager->updateEntityType($entity_type);
+    }
   }
 }
 
@@ -1215,10 +1253,10 @@ function system_update_8005() {
 
       case 'seven':
         $name = 'block.block.seven_local_actions';
-          $values = [
-            'id' => 'seven_local_actions',
-            'weight' => -10,
-          ] + $local_actions_default_settings;
+        $values = [
+          'id' => 'seven_local_actions',
+          'weight' => -10,
+        ] + $local_actions_default_settings;
         _system_update_create_block($name, $theme_name, $values);
 
         $name = 'block.block.seven_primary_local_tasks';
@@ -1652,4 +1690,43 @@ function system_update_8014() {
 
 /**
  * @} End of "addtogroup updates-8.0.0-rc".
+ */
+
+/**
+ * @addtogroup updates-8.2.0
+ * @{
+ */
+
+/**
+ * Fix configuration overrides to not override non existing keys.
+ */
+function system_update_8200(&$sandbox) {
+  $config_factory = \Drupal::configFactory();
+  if (!array_key_exists('config_names', $sandbox)) {
+    $sandbox['config_names'] = $config_factory->listAll();
+    $sandbox['max'] = count($sandbox['config_names']);
+  }
+
+  // Get a list of 50 to work on at a time.
+  $config_names_to_process = array_slice($sandbox['config_names'], 0, 50);
+  // Preload in a single query.
+  $config_factory->loadMultiple($config_names_to_process);
+  foreach ($config_names_to_process as $config_name) {
+    $config_factory->getEditable($config_name)->save();
+  }
+
+  // Update the list of names to process.
+  $sandbox['config_names'] = array_diff($sandbox['config_names'], $config_names_to_process);
+  $sandbox['#finished'] = empty($sandbox['config_names']) ? 1 : ($sandbox['max'] - count($sandbox['config_names'])) / $sandbox['max'];
+}
+
+/**
+ * Clear caches due to behavior change in DefaultPluginManager.
+ */
+function system_update_8201() {
+  // Empty update to cause a cache rebuild.
+}
+
+/**
+ * @} End of "addtogroup updates-8.2.0".
  */

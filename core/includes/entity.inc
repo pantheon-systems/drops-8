@@ -464,7 +464,7 @@ function entity_view_multiple(array $entities, $view_mode, $langcode = NULL, $re
  *     'bundle' => $bundle,
  *     'mode' => $view_mode,
  *     'status' => TRUE,
- *   ));
+ *   );
  *   \Drupal::entityTypeManager()
  *     ->getStorage('entity_view_display')
  *     ->create($values);
@@ -475,7 +475,7 @@ function entity_view_multiple(array $entities, $view_mode, $langcode = NULL, $re
  */
 function entity_get_display($entity_type, $bundle, $view_mode) {
   // Try loading the display from configuration.
-  $display = entity_load('entity_view_display', $entity_type . '.' . $bundle . '.' . $view_mode);
+  $display = EntityViewDisplay::load($entity_type . '.' . $bundle . '.' . $view_mode);
 
   // If not found, create a fresh display object. We do not preemptively create
   // new entity_view_display configuration entries for each existing entity type
@@ -555,7 +555,7 @@ function entity_get_display($entity_type, $bundle, $view_mode) {
  */
 function entity_get_form_display($entity_type, $bundle, $form_mode) {
   // Try loading the entity from configuration.
-  $entity_form_display = entity_load('entity_form_display', $entity_type . '.' . $bundle . '.' . $form_mode);
+  $entity_form_display = EntityFormDisplay::load($entity_type . '.' . $bundle . '.' . $form_mode);
 
   // If not found, create a fresh entity object. We do not preemptively create
   // new entity form display configuration entries for each existing entity type

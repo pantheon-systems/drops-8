@@ -7,6 +7,7 @@ use Drupal\entity_test\Entity\EntityTest;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Tests\String\StringFieldTest;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\filter\Entity\FilterFormat;
 
 /**
  * Tests the creation of text fields.
@@ -195,7 +196,7 @@ class TextFieldTest extends StringFieldTest {
     $this->assertText(t('entity_test @id has been created.', array('@id' => $id)), 'Entity was created');
 
     // Display the entity.
-    $entity = entity_load('entity_test', $id);
+    $entity = EntityTest::load($id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $this->setRawContent($renderer->renderRoot($content));
@@ -211,7 +212,7 @@ class TextFieldTest extends StringFieldTest {
     );
     $this->drupalPostForm('admin/config/content/formats/add', $edit, t('Save configuration'));
     filter_formats_reset();
-    $format = entity_load('filter_format', $edit['format']);
+    $format = FilterFormat::load($edit['format']);
     $format_id = $format->id();
     $permission = $format->getPermissionName();
     $roles = $this->webUser->getRoles();
@@ -234,7 +235,7 @@ class TextFieldTest extends StringFieldTest {
 
     // Display the entity.
     $this->container->get('entity.manager')->getStorage('entity_test')->resetCache(array($id));
-    $entity = entity_load('entity_test', $id);
+    $entity = EntityTest::load($id);
     $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $this->setRawContent($renderer->renderRoot($content));

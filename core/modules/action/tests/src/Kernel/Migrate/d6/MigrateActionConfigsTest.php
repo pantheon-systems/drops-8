@@ -24,7 +24,7 @@ class MigrateActionConfigsTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->executeMigration('d6_action_settings');
+    $this->executeMigration('action_settings');
   }
 
   /**

@@ -8,23 +8,21 @@ services:
       - { name: cache.bin }
     factory: cache_factory:get
     arguments: [rest]
+  # @todo Remove this service in Drupal 9.0.0.
   access_check.rest.csrf:
-    class: Drupal\rest\Access\CSRFAccessCheck
-    arguments: ['@session_configuration']
-    tags:
-      - { name: access_check }
+    alias: access_check.header.csrf
   rest.link_manager:
     class: Drupal\rest\LinkManager\LinkManager
     arguments: ['@rest.link_manager.type', '@rest.link_manager.relation']
   rest.link_manager.type:
     class: Drupal\rest\LinkManager\TypeLinkManager
-    arguments: ['@cache.default', '@module_handler', '@config.factory', '@request_stack']
+    arguments: ['@cache.default', '@module_handler', '@config.factory', '@request_stack', '@entity_type.bundle.info']
   rest.link_manager.relation:
     class: Drupal\rest\LinkManager\RelationLinkManager
     arguments: ['@cache.default', '@entity.manager', '@module_handler', '@config.factory', '@request_stack']
   rest.resource_routes:
     class: Drupal\rest\Routing\ResourceRoutes
-    arguments: ['@plugin.manager.rest', '@config.factory', '@logger.channel.rest']
+    arguments: ['@plugin.manager.rest', '@entity_type.manager', '@logger.channel.rest']
     tags:
       - { name: 'event_subscriber' }
   logger.channel.rest:

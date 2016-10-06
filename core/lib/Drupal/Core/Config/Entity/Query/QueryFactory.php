@@ -66,8 +66,8 @@ class QueryFactory implements QueryFactoryInterface, EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-   public function getAggregate(EntityTypeInterface $entity_type, $conjunction) {
-      throw new QueryException('Aggregation over configuration entities is not supported');
+  public function getAggregate(EntityTypeInterface $entity_type, $conjunction) {
+    throw new QueryException('Aggregation over configuration entities is not supported');
   }
 
   /**
@@ -189,7 +189,7 @@ class QueryFactory implements QueryFactoryInterface, EventSubscriberInterface {
    * @param int $start
    *   Which position of $parts we are processing. Defaults to 0.
    *
-   * @return array|NULL
+   * @return array|null
    *   The array of configuration values the match the provided key. NULL if
    *   the configuration object does not have a value that corresponds to the
    *   key.

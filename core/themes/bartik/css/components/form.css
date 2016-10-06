@@ -15,6 +15,18 @@ form {
 }
 fieldset {
   margin: 1em 0;
+  min-width: 0;
+}
+/**
+ * We've temporarily added this Firefox specific rule here to fix fieldset
+ * widths.
+ * @todo remove once this Mozilla bug is fixed.
+ * See https://bugzilla.mozilla.org/show_bug.cgi?id=504622
+ */
+@-moz-document url-prefix() {
+  fieldset {
+    display: table-cell;
+  }
 }
 details,
 fieldset,
@@ -116,8 +128,12 @@ input.form-submit:focus {
   margin-right: 1.2em;
   margin-left: 0;
 }
-.form-item label {
+.form-item label,
+.form-wrapper .label {
   font-size: 0.929em;
+}
+.form-wrapper .field-multiple-table .label {
+  font-size: inherit;
 }
 .form-type-radio label,
 .form-type-checkbox label {
@@ -146,8 +162,12 @@ input.form-submit:focus {
   margin-bottom: 2em;
 }
 .node-form label,
-.node-form .description {
+.node-form .description,
+.node-form .form-wrapper .label {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+.node-form .form-wrapper .field-multiple-table .label {
+  font-family: inherit;
 }
 .node-form .form-wrapper {
   margin-bottom: 2em;
@@ -279,4 +299,25 @@ input.form-submit:focus {
 /* Form error message styles. */
 .form-item--error-message {
   color: #e32700;
+}
+
+/**
+ * Improve form element usability on narrow devices.
+ */
+@media all and (max-width: 600px) {
+  .form-actions .button {
+    float: none;
+    margin: 10px 0 0;
+    padding-bottom: 6px;
+    width: 100%;
+    display: block;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+  }
+
+  .js .dropbutton .dropbutton-action > input, .js .dropbutton .dropbutton-action > a, .js .dropbutton .dropbutton-action > button {
+    text-align: center;
+    padding-left: 3em;
+  }
 }

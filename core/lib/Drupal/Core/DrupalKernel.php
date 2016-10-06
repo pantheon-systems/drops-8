@@ -2,6 +2,7 @@
 
 namespace Drupal\Core;
 
+use Composer\Autoload\ClassLoader;
 use Drupal\Component\Assertion\Handle;
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Utility\Unicode;
@@ -18,6 +19,7 @@ use Drupal\Core\File\MimeType\MimeTypeGuesser;
 use Drupal\Core\Http\TrustedHostsRequestFactory;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
+use Drupal\Core\Test\TestDatabase;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\ClassLoader\ApcClassLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -248,15 +250,18 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @param bool $allow_dumping
    *   (optional) FALSE to stop the container from being written to or read
    *   from disk. Defaults to TRUE.
+   * @param string $app_root
+   *   (optional) The path to the application root as a string. If not supplied,
+   *   the application root will be computed.
    *
    * @return static
    *
    * @throws \Symfony\Component\HttpKernel\Exception\BadRequestHttpException
    *   In case the host name in the request is not trusted.
    */
-  public static function createFromRequest(Request $request, $class_loader, $environment, $allow_dumping = TRUE) {
-    $kernel = new static($environment, $class_loader, $allow_dumping);
-    static::bootEnvironment();
+  public static function createFromRequest(Request $request, $class_loader, $environment, $allow_dumping = TRUE, $app_root = NULL) {
+    $kernel = new static($environment, $class_loader, $allow_dumping, $app_root);
+    static::bootEnvironment($app_root);
     $kernel->initializeSettings($request);
     return $kernel;
   }
@@ -273,12 +278,28 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @param bool $allow_dumping
    *   (optional) FALSE to stop the container from being written to or read
    *   from disk. Defaults to TRUE.
+   * @param string $app_root
+   *   (optional) The path to the application root as a string. If not supplied,
+   *   the application root will be computed.
    */
-  public function __construct($environment, $class_loader, $allow_dumping = TRUE) {
+  public function __construct($environment, $class_loader, $allow_dumping = TRUE, $app_root = NULL) {
     $this->environment = $environment;
     $this->classLoader = $class_loader;
     $this->allowDumping = $allow_dumping;
-    $this->root = dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
+    if ($app_root === NULL) {
+      $app_root = static::guessApplicationRoot();
+    }
+    $this->root = $app_root;
+  }
+
+  /**
+   * Determine the application root directory based on assumptions.
+   *
+   * @return string
+   *   The application root.
+   */
+  protected static function guessApplicationRoot() {
+    return dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
   }
 
   /**
@@ -320,6 +341,9 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   Defaults to TRUE. During initial installation, this is set to FALSE so
    *   that Drupal can detect a matching directory, then create a new
    *   settings.php file in it.
+   * @param string $app_root
+   *   (optional) The path to the application root as a string. If not supplied,
+   *   the application root will be computed.
    *
    * @return string
    *   The path of the matching directory.
@@ -332,18 +356,23 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @see default.settings.php
    * @see example.sites.php
    */
-  public static function findSitePath(Request $request, $require_settings = TRUE) {
+  public static function findSitePath(Request $request, $require_settings = TRUE, $app_root = NULL) {
     if (static::validateHostname($request) === FALSE) {
       throw new BadRequestHttpException();
     }
 
+    if ($app_root === NULL) {
+      $app_root = static::guessApplicationRoot();
+    }
+
     // Check for a simpletest override.
     if ($test_prefix = drupal_valid_test_ua()) {
-      return 'sites/simpletest/' . substr($test_prefix, 10);
+      $test_db = new TestDatabase($test_prefix);
+      return $test_db->getTestSitePath();
     }
 
     // Determine whether multi-site functionality is enabled.
-    if (!file_exists(DRUPAL_ROOT . '/sites/sites.php')) {
+    if (!file_exists($app_root . '/sites/sites.php')) {
       return 'sites/default';
     }
 
@@ -355,17 +384,17 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $http_host = $request->getHttpHost();
 
     $sites = array();
-    include DRUPAL_ROOT . '/sites/sites.php';
+    include $app_root . '/sites/sites.php';
 
     $uri = explode('/', $script_name);
     $server = explode('.', implode('.', array_reverse(explode(':', rtrim($http_host, '.')))));
     for ($i = count($uri) - 1; $i > 0; $i--) {
       for ($j = count($server); $j > 0; $j--) {
         $dir = implode('.', array_slice($server, -$j)) . implode('.', array_slice($uri, 0, $i));
-        if (isset($sites[$dir]) && file_exists(DRUPAL_ROOT . '/sites/' . $sites[$dir])) {
+        if (isset($sites[$dir]) && file_exists($app_root . '/sites/' . $sites[$dir])) {
           $dir = $sites[$dir];
         }
-        if (file_exists(DRUPAL_ROOT . '/sites/' . $dir . '/settings.php') || (!$require_settings && file_exists(DRUPAL_ROOT . '/sites/' . $dir))) {
+        if (file_exists($app_root . '/sites/' . $dir . '/settings.php') || (!$require_settings && file_exists($app_root . '/sites/' . $dir))) {
           return "sites/$dir";
         }
       }
@@ -417,11 +446,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
     // Provide a default configuration, if not set.
     if (!isset($configuration['default'])) {
-      $configuration['default'] = [
-        'class' => '\Drupal\Component\FileCache\FileCache',
-        'cache_backend_class' => NULL,
-        'cache_backend_configuration' => [],
-      ];
       // @todo Use extension_loaded('apcu') for non-testbot
       //  https://www.drupal.org/node/2447753.
       if (function_exists('apcu_fetch')) {
@@ -733,6 +757,10 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   needed.
    */
   public function updateModules(array $module_list, array $module_filenames = array()) {
+    $pre_existing_module_namespaces = [];
+    if ($this->booted && is_array($this->moduleList)) {
+      $pre_existing_module_namespaces = $this->getModuleNamespacesPsr4($this->getModuleFileNames());
+    }
     $this->moduleList = $module_list;
     foreach ($module_filenames as $name => $extension) {
       $this->moduleData[$name] = $extension;
@@ -745,6 +773,20 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // container in order to refresh the serviceProvider list and container.
     $this->containerNeedsRebuild = TRUE;
     if ($this->booted) {
+      // We need to register any new namespaces to a new class loader because
+      // the current class loader might have stored a negative result for a
+      // class that is now available.
+      // @see \Composer\Autoload\ClassLoader::findFile()
+      $new_namespaces = array_diff_key(
+        $this->getModuleNamespacesPsr4($this->getModuleFileNames()),
+        $pre_existing_module_namespaces
+      );
+      if (!empty($new_namespaces)) {
+        $additional_class_loader = new ClassLoader();
+        $this->classLoaderAddMultiplePsr4($new_namespaces, $additional_class_loader);
+        $additional_class_loader->register();
+      }
+
       $this->initializeContainer();
     }
   }
@@ -877,15 +919,23 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *
    * This method sets PHP environment options we want to be sure are set
    * correctly for security or just saneness.
+   *
+   * @param string $app_root
+   *   (optional) The path to the application root as a string. If not supplied,
+   *   the application root will be computed.
    */
-  public static function bootEnvironment() {
+  public static function bootEnvironment($app_root = NULL) {
     if (static::$isEnvironmentInitialized) {
       return;
     }
 
+    // Determine the application root if it's not supplied.
+    if ($app_root === NULL) {
+      $app_root = static::guessApplicationRoot();
+    }
+
     // Include our bootstrap file.
-    $core_root = dirname(dirname(dirname(__DIR__)));
-    require_once $core_root . '/includes/bootstrap.inc';
+    require_once $app_root . '/core/includes/bootstrap.inc';
 
     // Enforce E_STRICT, but allow users to set levels not part of E_STRICT.
     error_reporting(E_STRICT | E_ALL);
@@ -915,6 +965,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Indicate that code is operating in a test child site.
     if (!defined('DRUPAL_TEST_IN_CHILD_SITE')) {
       if ($test_prefix = drupal_valid_test_ua()) {
+        $test_db = new TestDatabase($test_prefix);
         // Only code that interfaces directly with tests should rely on this
         // constant; e.g., the error/exception handler conditionally adds further
         // error information into HTTP response headers that are consumed by
@@ -929,7 +980,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
         // Log fatal errors to the test site directory.
         ini_set('log_errors', 1);
-        ini_set('error_log', DRUPAL_ROOT . '/sites/simpletest/' . substr($test_prefix, 10) . '/error.log');
+        ini_set('error_log', $app_root . '/' . $test_db->getTestSitePath() . '/error.log');
 
         // Ensure that a rewritten settings.php is used if opcache is on.
         ini_set('opcache.validate_timestamps', 'on');
@@ -1193,7 +1244,8 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // be automatically reinstantiated. Also include services tagged to persist.
     $persist_ids = array();
     foreach ($container->getDefinitions() as $id => $definition) {
-      if ($definition->isSynthetic() || $definition->getTag('persist')) {
+      // It does not make sense to persist the container itself, exclude it.
+      if ($id !== 'service_container' && ($definition->isSynthetic() || $definition->getTag('persist'))) {
         $persist_ids[] = $id;
       }
     }
@@ -1349,8 +1401,15 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    *   Array where each key is a namespace like 'Drupal\system', and each value
    *   is either a PSR-4 base directory, or an array of PSR-4 base directories
    *   associated with this namespace.
+   * @param object $class_loader
+   *   The class loader. Normally \Composer\Autoload\ClassLoader, as included by
+   *   the front controller, but may also be decorated; e.g.,
+   *   \Symfony\Component\ClassLoader\ApcClassLoader.
    */
-  protected function classLoaderAddMultiplePsr4(array $namespaces = array()) {
+  protected function classLoaderAddMultiplePsr4(array $namespaces = array(), $class_loader = NULL) {
+    if ($class_loader === NULL) {
+      $class_loader = $this->classLoader;
+    }
     foreach ($namespaces as $prefix => $paths) {
       if (is_array($paths)) {
         foreach ($paths as $key => $value) {
@@ -1360,7 +1419,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       elseif (is_string($paths)) {
         $paths = $this->root . '/' . $paths;
       }
-      $this->classLoader->addPsr4($prefix . '\\', $paths);
+      $class_loader->addPsr4($prefix . '\\', $paths);
     }
   }
 

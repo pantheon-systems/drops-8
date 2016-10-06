@@ -44,16 +44,13 @@
   <rule ref="Drupal.Commenting.DocCommentStar"/>
   <rule ref="Drupal.Commenting.FileComment"/>
   <rule ref="Drupal.Commenting.FunctionComment">
-    <exclude name="Drupal.Commenting.FunctionComment.IncorrectParamVarName"/>
     <exclude name="Drupal.Commenting.FunctionComment.IncorrectTypeHint"/>
     <exclude name="Drupal.Commenting.FunctionComment.InvalidNoReturn"/>
-    <exclude name="Drupal.Commenting.FunctionComment.InvalidReturn"/>
     <exclude name="Drupal.Commenting.FunctionComment.InvalidReturnNotVoid"/>
     <exclude name="Drupal.Commenting.FunctionComment.InvalidTypeHint"/>
     <exclude name="Drupal.Commenting.FunctionComment.Missing"/>
     <exclude name="Drupal.Commenting.FunctionComment.MissingFile"/>
     <exclude name="Drupal.Commenting.FunctionComment.MissingParamComment"/>
-    <exclude name="Drupal.Commenting.FunctionComment.MissingParamName"/>
     <exclude name="Drupal.Commenting.FunctionComment.MissingParamType"/>
     <exclude name="Drupal.Commenting.FunctionComment.MissingReturnComment"/>
     <exclude name="Drupal.Commenting.FunctionComment.MissingReturnType"/>
@@ -76,6 +73,11 @@
   <rule ref="Drupal.InfoFiles.DuplicateEntry"/>
   <rule ref="Drupal.InfoFiles.Required"/>
   <rule ref="Drupal.Semantics.EmptyInstall"/>
+  <rule ref="Drupal.Semantics.FunctionT">
+    <exclude name="Drupal.Semantics.FunctionT.BackslashSingleQuote"/>
+    <exclude name="Drupal.Semantics.FunctionT.NotLiteralString"/>
+    <exclude name="Drupal.Semantics.FunctionT.ConcatString"/>
+  </rule>
   <rule ref="Drupal.Semantics.FunctionWatchdog"/>
   <rule ref="Drupal.Semantics.InstallHooks"/>
   <rule ref="Drupal.Semantics.LStringTranslatable"/>
@@ -84,7 +86,10 @@
   <rule ref="Drupal.Semantics.TInHookSchema"/>
   <rule ref="Drupal.WhiteSpace.Comma"/>
   <rule ref="Drupal.WhiteSpace.ObjectOperatorIndent"/>
+  <rule ref="Drupal.WhiteSpace.ObjectOperatorSpacing"/>
+  <rule ref="Drupal.WhiteSpace.OpenTagNewline"/>
   <rule ref="Drupal.WhiteSpace.OperatorSpacing"/>
+  <rule ref="Drupal.WhiteSpace.ScopeIndent"/>
 
   <!-- Generic sniffs -->
   <rule ref="Generic.Files.LineEndings"/>

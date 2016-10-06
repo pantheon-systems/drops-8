@@ -3,7 +3,7 @@
 /*
  * This file is part of the Symfony CMF package.
  *
- * (c) 2011-2014 Symfony CMF
+ * (c) 2011-2015 Symfony CMF
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -26,7 +26,7 @@ interface ChainRouterInterface extends RouterInterface, RequestMatcherInterface
      *
      * @param RouterInterface $router   The router instance. Instead of RouterInterface, may also
      *                                  be RequestMatcherInterface and UrlGeneratorInterface.
-     * @param integer         $priority The priority
+     * @param int             $priority The priority
      */
     public function add($router, $priority = 0);
 

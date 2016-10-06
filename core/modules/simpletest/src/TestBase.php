@@ -7,13 +7,11 @@ use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Database\Database;
-use Drupal\Core\Config\ConfigImporter;
-use Drupal\Core\Config\StorageComparer;
-use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Utility\Error;
+use Drupal\Tests\ConfigTestTrait;
 use Drupal\Tests\RandomGeneratorTrait;
 use Drupal\Tests\SessionTestTrait;
 
@@ -27,6 +25,11 @@ abstract class TestBase {
   use SessionTestTrait;
   use RandomGeneratorTrait;
   use AssertHelperTrait;
+  // For backwards compatibility switch the visbility of the methods to public.
+  use ConfigTestTrait {
+    configImporter as public;
+    copyConfig as public;
+  }
 
   /**
    * The test run ID.
@@ -524,7 +527,7 @@ abstract class TestBase {
     // The first element is the call. The second element is the caller.
     // We skip calls that occurred in one of the methods of our base classes
     // or in an assertion function.
-   while (($caller = $backtrace[1]) &&
+    while (($caller = $backtrace[1]) &&
          ((isset($caller['class']) && isset($this->skipClasses[$caller['class']])) ||
            substr($caller['function'], 0, 6) == 'assert')) {
       // We remove that call.
@@ -1105,14 +1108,9 @@ abstract class TestBase {
    * @see drupal_valid_test_ua()
    */
   private function prepareDatabasePrefix() {
-    // Ensure that the generated test site directory does not exist already,
-    // which may happen with a large amount of concurrent threads and
-    // long-running tests.
-    do {
-      $suffix = mt_rand(100000, 999999);
-      $this->siteDirectory = 'sites/simpletest/' . $suffix;
-      $this->databasePrefix = 'simpletest' . $suffix;
-    } while (is_dir(DRUPAL_ROOT . '/' . $this->siteDirectory));
+    $test_db = new TestDatabase();
+    $this->siteDirectory = $test_db->getTestSitePath();
+    $this->databasePrefix = $test_db->getDatabasePrefix();
 
     // As soon as the database prefix is set, the test might start to execute.
     // All assertions as well as the SimpleTest batch operations are associated
@@ -1535,51 +1533,6 @@ abstract class TestBase {
    */
   public static function filePreDeleteCallback($path) {
     chmod($path, 0700);
-  }
-
-  /**
-   * Returns a ConfigImporter object to import test importing of configuration.
-   *
-   * @return \Drupal\Core\Config\ConfigImporter
-   *   The ConfigImporter object.
-   */
-  public function configImporter() {
-    if (!$this->configImporter) {
-      // Set up the ConfigImporter object for testing.
-      $storage_comparer = new StorageComparer(
-        $this->container->get('config.storage.sync'),
-        $this->container->get('config.storage'),
-        $this->container->get('config.manager')
-      );
-      $this->configImporter = new ConfigImporter(
-        $storage_comparer,
-        $this->container->get('event_dispatcher'),
-        $this->container->get('config.manager'),
-        $this->container->get('lock'),
-        $this->container->get('config.typed'),
-        $this->container->get('module_handler'),
-        $this->container->get('module_installer'),
-        $this->container->get('theme_handler'),
-        $this->container->get('string_translation')
-      );
-    }
-    // Always recalculate the changelist when called.
-    return $this->configImporter->reset();
-  }
-
-  /**
-   * Copies configuration objects from source storage to target storage.
-   *
-   * @param \Drupal\Core\Config\StorageInterface $source_storage
-   *   The source config storage service.
-   * @param \Drupal\Core\Config\StorageInterface $target_storage
-   *   The target config storage service.
-   */
-  public function copyConfig(StorageInterface $source_storage, StorageInterface $target_storage) {
-    $target_storage->deleteAll();
-    foreach ($source_storage->listAll() as $name) {
-      $target_storage->write($name, $source_storage->read($name));
-    }
   }
 
   /**

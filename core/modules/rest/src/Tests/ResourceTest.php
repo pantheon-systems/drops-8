@@ -2,9 +2,10 @@
 
 namespace Drupal\rest\Tests;
 
-use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\rest\RestResourceConfigInterface;
 use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
 
 /**
  * Tests the structure of a REST resource.
@@ -18,7 +19,7 @@ class ResourceTest extends RESTTestBase {
    *
    * @var array
    */
-  public static $modules = array('hal', 'rest', 'entity_test');
+  public static $modules = array('hal', 'rest', 'entity_test', 'rest_test');
 
   /**
    * The entity.
@@ -32,9 +33,7 @@ class ResourceTest extends RESTTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->config = $this->config('rest.settings');
-
-    // Create an entity programmatically.
+    // Create an entity programmatic.
     $this->entity = $this->entityCreate('entity_test');
     $this->entity->save();
 
@@ -47,20 +46,17 @@ class ResourceTest extends RESTTestBase {
    * Tests that a resource without formats cannot be enabled.
    */
   public function testFormats() {
-    $settings = array(
-      'entity:entity_test' => array(
-        'GET' => array(
-          'supported_auth' => array(
+    $this->resourceConfigStorage->create([
+      'id' => 'entity.entity_test',
+      'granularity' => RestResourceConfigInterface::METHOD_GRANULARITY,
+      'configuration' => [
+        'GET' => [
+          'supported_auth' => [
             'basic_auth',
-          ),
-        ),
-      ),
-    );
-
-    // Attempt to enable the resource.
-    $this->config->set('resources', $settings);
-    $this->config->save();
-    $this->rebuildCache();
+          ],
+        ],
+      ],
+    ])->save();
 
     // Verify that accessing the resource returns 406.
     $response = $this->httpRequest($this->entity->urlInfo()->setRouteParameter('_format', $this->defaultFormat), 'GET');
@@ -77,20 +73,17 @@ class ResourceTest extends RESTTestBase {
    * Tests that a resource without authentication cannot be enabled.
    */
   public function testAuthentication() {
-    $settings = array(
-      'entity:entity_test' => array(
-        'GET' => array(
-          'supported_formats' => array(
+    $this->resourceConfigStorage->create([
+      'id' => 'entity.entity_test',
+      'granularity' => RestResourceConfigInterface::METHOD_GRANULARITY,
+      'configuration' => [
+        'GET' => [
+          'supported_formats' => [
             'hal_json',
-          ),
-        ),
-      ),
-    );
-
-    // Attempt to enable the resource.
-    $this->config->set('resources', $settings);
-    $this->config->save();
-    $this->rebuildCache();
+          ],
+        ],
+      ],
+    ])->save();
 
     // Verify that accessing the resource returns 401.
     $response = $this->httpRequest($this->entity->urlInfo()->setRouteParameter('_format', $this->defaultFormat), 'GET');
@@ -101,6 +94,22 @@ class ResourceTest extends RESTTestBase {
     // application/hal+json, so it returns a 406.
     $this->assertResponse('406', 'HTTP response code is 406 when the resource does not define formats, because it falls back to the canonical, non-REST route.');
     $this->curlClose();
+  }
+
+  /**
+   * Tests that serialization_class is optional.
+   */
+  public function testSerializationClassIsOptional() {
+    $this->enableService('serialization_test', 'POST', 'json');
+
+    Role::load(RoleInterface::ANONYMOUS_ID)
+      ->grantPermission('restful post serialization_test')
+      ->save();
+
+    $serialized = $this->container->get('serializer')->serialize(['foo', 'bar'], 'json');
+    $this->httpRequest('serialization_test', 'POST', $serialized, 'application/json');
+    $this->assertResponse(200);
+    $this->assertResponseBody('["foo","bar"]');
   }
 
   /**
@@ -115,32 +124,6 @@ class ResourceTest extends RESTTestBase {
       foreach ($definition['uri_paths'] as $key => $uri_path) {
         $this->assertFalse(strpos($uri_path, '//'), 'The resource URI path does not have duplicate slashes.');
       }
-    }
-  }
-
-  /**
-   * Tests that a resource with a missing plugin does not cause an exception.
-   */
-  public function testMissingPlugin() {
-    $settings = array(
-      'entity:nonexisting' => array(
-        'GET' => array(
-          'supported_formats' => array(
-            'hal_json',
-          ),
-        ),
-      ),
-    );
-
-    try {
-      // Attempt to enable the resource.
-      $this->config->set('resources', $settings);
-      $this->config->save();
-      $this->rebuildCache();
-      $this->pass('rest.settings referencing a missing REST resource plugin does not cause an exception.');
-    }
-    catch (PluginNotFoundException $e) {
-      $this->fail('rest.settings referencing a missing REST resource plugin caused an exception.');
     }
   }
 

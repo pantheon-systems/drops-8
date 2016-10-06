@@ -3,7 +3,7 @@
 /*
  * This file is part of the Symfony CMF package.
  *
- * (c) 2011-2014 Symfony CMF
+ * (c) 2011-2015 Symfony CMF
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -61,7 +61,7 @@ class NestedMatcher implements RequestMatcherInterface
     protected $sortedFilters = array();
 
     /**
-     * Constructs a new NestedMatcher
+     * Constructs a new NestedMatcher.
      *
      * @param RouteProviderInterface $provider The route provider this matcher
      *                                         should use
@@ -162,7 +162,7 @@ class NestedMatcher implements RequestMatcherInterface
     public function getRouteFilters()
     {
         if (empty($this->sortedFilters)) {
-           $this->sortedFilters = $this->sortFilters();
+            $this->sortedFilters = $this->sortFilters();
         }
 
         return $this->sortedFilters;

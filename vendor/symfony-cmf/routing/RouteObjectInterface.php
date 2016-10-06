@@ -3,7 +3,7 @@
 /*
  * This file is part of the Symfony CMF package.
  *
- * (c) 2011-2014 Symfony CMF
+ * (c) 2011-2015 Symfony CMF
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -36,13 +36,13 @@ interface RouteObjectInterface
     const ROUTE_OBJECT = '_route_object';
 
     /**
-     * Field name for an explicit controller name to be used with this route
+     * Field name for an explicit controller name to be used with this route.
      */
     const CONTROLLER_NAME = '_controller';
 
     /**
      * Field name for an explicit template to be used with this route.
-     * i.e. CmfContentBundle:StaticContent:index.html.twig
+     * i.e. CmfContentBundle:StaticContent:index.html.twig.
      */
     const TEMPLATE_NAME = '_template';
 
@@ -50,6 +50,11 @@ interface RouteObjectInterface
      * Field name for the content of the current route, if any.
      */
     const CONTENT_OBJECT = '_content';
+
+    /**
+     * Field name for the content id of the current route, if any.
+     */
+    const CONTENT_ID = '_content_id';
 
     /**
      * Get the content document this route entry stands for. If non-null,
@@ -64,14 +69,17 @@ interface RouteObjectInterface
     public function getContent();
 
     /**
-     * Get the route key.
+     * Get the route name.
      *
-     * This key will be used as route name instead of the symfony core compatible
-     * route name and can contain any characters.
+     * Normal symfony routes do not know their name, the name is only known
+     * from the route collection. In the CMF, it is possible to use route
+     * documents outside of collections, and thus useful to have routes provide
+     * their name.
      *
-     * Return null if you want to use the default key.
+     * There are no limitations to allowed characters in the name.
      *
-     * @return string the route name
+     * @return string|null the route name or null to use the default name
+     *                     (e.g. from route collection if known)
      */
     public function getRouteKey();
 }
