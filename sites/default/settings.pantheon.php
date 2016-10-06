@@ -25,7 +25,25 @@
  * not to any Drupal files.
  */
 if (!defined("PANTHEON_VERSION")) {
-  define("PANTHEON_VERSION", "2");
+  define("PANTHEON_VERSION", "3");
+}
+
+/**
+ * Determine whether this is a preproduction or production environment, and
+ * then load the pantheon services.yml file.  This file should be named either
+ * 'pantheon-production-services.yml' (for 'live' or 'test' environments)
+ * 'pantheon-preproduction-services.yml' (for 'dev' or multidev environments).
+ */
+$pantheon_services_file = __DIR__ . '/services.pantheon.preproduction.yml';
+if (
+  isset($_ENV['PANTHEON_ENVIRONMENT']) &&
+  ( ($_ENV['PANTHEON_ENVIRONMENT'] == 'live') || ($_ENV['PANTHEON_ENVIRONMENT'] == 'test') )
+) {
+  $pantheon_services_file = __DIR__ . '/services.pantheon.production.yml';
+}
+
+if (file_exists($pantheon_services_file)) {
+  $settings['container_yamls'][] = $pantheon_services_file;
 }
 
 /**
@@ -134,5 +152,3 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
 if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
   $config['system.file']['path']['temporary'] = $_SERVER['HOME'] .'/tmp';
 }
-
-
