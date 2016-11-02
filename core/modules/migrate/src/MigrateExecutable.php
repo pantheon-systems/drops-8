@@ -67,13 +67,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $counts = array();
 
   /**
-   * The object currently being constructed.
-   *
-   * @var \stdClass
-   */
-  protected $destinationValues;
-
-  /**
    * The source.
    *
    * @var \Drupal\migrate\Plugin\MigrateSourceInterface
@@ -81,18 +74,20 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $source;
 
   /**
-   * The current data row retrieved from the source.
-   *
-   * @var \stdClass
-   */
-  protected $sourceValues;
-
-  /**
    * The event dispatcher.
    *
    * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
+
+  /**
+   * Migration message service.
+   *
+   * @todo https://www.drupal.org/node/2822663 Make this protected.
+   *
+   * @var \Drupal\migrate\MigrateMessageInterface
+   */
+  public $message;
 
   /**
    * Constructs a MigrateExecutable and verifies and sets the memory limit.
@@ -229,7 +224,12 @@ class MigrateExecutable implements MigrateExecutableInterface {
         $save = FALSE;
       }
       catch (MigrateSkipRowException $e) {
-        $id_map->saveIdMapping($row, array(), MigrateIdMapInterface::STATUS_IGNORED);
+        if ($e->getSaveToMap()) {
+          $id_map->saveIdMapping($row, [], MigrateIdMapInterface::STATUS_IGNORED);
+        }
+        if ($message = trim($e->getMessage())) {
+          $this->saveMessage($message, MigrationInterface::MESSAGE_INFORMATIONAL);
+        }
         $save = FALSE;
       }
 
@@ -263,8 +263,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
         }
       }
 
-      // Reset row properties.
-      unset($sourceValues, $destinationValues);
       $this->sourceRowStatus = MigrateIdMapInterface::STATUS_IMPORTED;
 
       // Check for memory exhaustion.

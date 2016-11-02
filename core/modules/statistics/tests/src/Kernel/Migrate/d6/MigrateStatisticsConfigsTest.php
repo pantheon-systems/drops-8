@@ -24,7 +24,7 @@ class MigrateStatisticsConfigsTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->executeMigration('d6_statistics_settings');
+    $this->executeMigration('statistics_settings');
   }
 
   /**
