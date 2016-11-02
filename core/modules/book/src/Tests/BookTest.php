@@ -571,34 +571,6 @@ class BookTest extends WebTestBase {
   }
 
   /**
-   * Tests re-ordering of books.
-   */
-  public function testBookOrdering() {
-    // Create new book.
-    $this->createBook();
-    $book = $this->book;
-
-    $this->drupalLogin($this->adminUser);
-    $node1 = $this->createBookNode($book->id());
-    $node2 = $this->createBookNode($book->id());
-    $pid = $node1->book['nid'];
-
-    // Head to admin screen and attempt to re-order.
-    $this->drupalGet('admin/structure/book/' . $book->id());
-    $edit = array(
-      "table[book-admin-{$node1->id()}][weight]" => 1,
-      "table[book-admin-{$node2->id()}][weight]" => 2,
-      // Put node 2 under node 1.
-      "table[book-admin-{$node2->id()}][pid]" => $pid,
-    );
-    $this->drupalPostForm(NULL, $edit, t('Save book pages'));
-    // Verify weight was updated.
-    $this->assertFieldByName("table[book-admin-{$node1->id()}][weight]", 1);
-    $this->assertFieldByName("table[book-admin-{$node2->id()}][weight]", 2);
-    $this->assertFieldByName("table[book-admin-{$node2->id()}][pid]", $pid);
-  }
-
-  /**
    * Tests outline of a book.
    */
   public function testBookOutline() {
@@ -750,6 +722,31 @@ class BookTest extends WebTestBase {
     $book_node = $node_storage->load($this->book->id());
     $this->assertTrue(!empty($book_node->book));
     $this->assertEqual($book_node->book['bid'], $this->book->id());
+  }
+
+  /**
+   * Tests the book navigation block when book is unpublished.
+   *
+   * There was a fatal error with "Show block only on book pages" block mode.
+   */
+  public function testBookNavigationBlockOnUnpublishedBook() {
+    // Create a new book.
+    $this->createBook();
+
+    // Create administrator user.
+    $administratorUser = $this->drupalCreateUser(['administer blocks', 'administer nodes', 'bypass node access']);
+    $this->drupalLogin($administratorUser);
+
+    // Enable the block with "Show block only on book pages" mode.
+    $this->drupalPlaceBlock('book_navigation', ['block_mode' => 'book pages']);
+
+    // Unpublish book node.
+    $edit = [];
+    $this->drupalPostForm('node/' . $this->book->id() . '/edit', $edit, t('Save and unpublish'));
+
+    // Test node page.
+    $this->drupalGet('node/' . $this->book->id());
+    $this->assertText($this->book->label(), 'Unpublished book with "Show block only on book pages" book navigation settings.');
   }
 
 }

@@ -206,6 +206,8 @@ Entity API
 - Wolfgang Ziegler 'fago' https://www.drupal.org/u/fago
 - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
 - Sascha Grossenbacher 'Berdir' https://www.drupal.org/u/berdir
+- Francesco Placella 'plach' https://www.drupal.org/u/plach
+- Tobias Stöckler 'tstoeckler' https://www.drupal.org/u/tstoeckler
 
 Extension API
 - ?
@@ -277,11 +279,13 @@ Migrate
 - Ben Dougherty 'benjy' https://www.drupal.org/u/benjy
 - Michael Anello 'ultimike' https://www.drupal.org/u/ultimike
 - Mike Ryan 'mikeryan' https://www.drupal.org/u/mikeryan
+- Vicki Spagnolo 'quietone' https://www.drupal.org/u/quietone
 
 Migrate (Drupal)
 - Ben Dougherty 'benjy' https://www.drupal.org/u/benjy
 - Michael Anello 'ultimike' https://www.drupal.org/u/ultimike
 - Mike Ryan 'mikeryan' https://www.drupal.org/u/mikeryan
+- Vicki Spagnolo 'quietone' https://www.drupal.org/u/quietone
 
 Menu
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
@@ -366,11 +370,6 @@ Shortcut
 - Tobias Stöckler 'tstoeckler' https://www.drupal.org/u/tstoeckler
 - Jibran Ijaz 'jibran' https://www.drupal.org/u/jibran
 
-Simpletest
-- Daniel F. Kudwien 'sun' https://www.drupal.org/u/sun
-- Sascha Grossenbacher 'Berdir' https://www.drupal.org/u/berdir
-- Alex Pott 'alexpott' https://www.drupal.org/u/alexpott
-
 Stable
 - Scott Reeves 'Cottser' https://www.drupal.org/u/cottser
 
@@ -394,12 +393,17 @@ Taxonomy
 Telephone
 - Dave Reid 'dave-reid' https://www.drupal.org/u/dave-reid
 
+Testing framework
+- Alex Pott 'alexpott' https://www.drupal.org/u/alexpott
+- Sascha Grossenbacher 'Berdir' https://www.drupal.org/u/berdir
+- Klaus Purer 'klausi' https://www.drupal.org/u/klausi
+- Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
+
 Text Field
 - ?
 
 Theme API
 - Alex Bronstein 'effulgentsia' https://www.drupal.org/u/effulgentsia
-- Scott Reeves 'Cottser' https://www.drupal.org/u/cottser
 - Fabian Franz 'Fabianx' https://www.drupal.org/u/fabianx
 - Joël Pittet 'joelpittet' https://www.drupal.org/u/joelpittet
 - Lauri Eskola 'lauriii' https://www.drupal.org/u/lauriii
@@ -523,7 +527,6 @@ participate in mentoring.
 - Lucas Hedding 'heddn' https://www.drupal.org/u/heddn
 - Valery Lourie 'valthebald' https://www.drupal.org/u/valthebald
 - Alina Mackenzie 'alimac' https://www.drupal.org/u/alimac
-- Chris McCafferty 'cilefen' https://www.drupal.org/u/cilefen
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 - Andrea Soper 'ZenDoodles' https://www.drupal.org/u/zendoodles
 - Cathy Theys 'YesCT' https://www.drupal.org/u/yesct

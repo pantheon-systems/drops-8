@@ -3726,7 +3726,7 @@ $connection->insert('field_config_instance')
   'field_name' => 'field_link',
   'entity_type' => 'node',
   'bundle' => 'article',
-  'data' => 'a:7:{s:5:"label";s:4:"Link";s:6:"widget";a:5:{s:6:"weight";s:2:"10";s:4:"type";s:10:"link_field";s:6:"module";s:4:"link";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:12:{s:12:"absolute_url";i:1;s:12:"validate_url";i:1;s:3:"url";i:0;s:5:"title";s:8:"optional";s:11:"title_value";s:19:"Unused Static Title";s:27:"title_label_use_field_label";i:0;s:15:"title_maxlength";s:3:"128";s:7:"display";a:1:{s:10:"url_cutoff";s:2:"81";}s:10:"attributes";a:6:{s:6:"target";s:6:"_blank";s:3:"rel";s:8:"nofollow";s:18:"configurable_class";i:0;s:5:"class";s:7:"classes";s:18:"configurable_title";i:1;s:5:"title";s:0:"";}s:10:"rel_remove";s:19:"rel_remove_external";s:13:"enable_tokens";i:1;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"link_default";s:6:"weight";s:1:"9";s:8:"settings";a:0:{}s:6:"module";s:4:"link";}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'data' => 'a:7:{s:5:"label";s:4:"Link";s:6:"widget";a:5:{s:6:"weight";s:2:"10";s:4:"type";s:10:"link_field";s:6:"module";s:4:"link";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:12:{s:12:"absolute_url";i:1;s:12:"validate_url";i:1;s:3:"url";i:0;s:5:"title";s:8:"disabled";s:11:"title_value";s:19:"Unused Static Title";s:27:"title_label_use_field_label";i:0;s:15:"title_maxlength";s:3:"128";s:7:"display";a:1:{s:10:"url_cutoff";s:2:"81";}s:10:"attributes";a:6:{s:6:"target";s:6:"_blank";s:3:"rel";s:8:"nofollow";s:18:"configurable_class";i:0;s:5:"class";s:7:"classes";s:18:"configurable_title";i:1;s:5:"title";s:0:"";}s:10:"rel_remove";s:19:"rel_remove_external";s:13:"enable_tokens";i:1;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"link_default";s:6:"weight";s:1:"9";s:8:"settings";a:0:{}s:6:"module";s:4:"link";}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
   'deleted' => '0',
 ))
 ->values(array(
@@ -3745,6 +3745,15 @@ $connection->insert('field_config_instance')
   'entity_type' => 'user',
   'bundle' => 'user',
   'data' => 'a:7:{s:5:"label";s:7:"Integer";s:6:"widget";a:5:{s:6:"weight";s:1:"9";s:4:"type";s:6:"number";s:6:"module";s:6:"number";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:5:{s:3:"min";s:1:"1";s:3:"max";s:2:"25";s:6:"prefix";s:3:"abc";s:6:"suffix";s:3:"xyz";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:14:"number_integer";s:6:"weight";s:1:"8";s:8:"settings";a:4:{s:18:"thousand_separator";s:1:" ";s:17:"decimal_separator";s:1:".";s:5:"scale";i:0;s:13:"prefix_suffix";b:1;}s:6:"module";s:6:"number";}}s:8:"required";i:1;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '37',
+  'field_id' => '15',
+  'field_name' => 'field_link',
+  'entity_type' => 'node',
+  'bundle' => 'blog',
+  'data' => 'a:7:{s:5:"label";s:4:"Link";s:6:"widget";a:5:{s:6:"weight";s:2:"10";s:4:"type";s:10:"link_field";s:6:"module";s:4:"link";s:6:"active";i:0;s:8:"settings";a:0:{}}s:8:"settings";a:12:{s:12:"absolute_url";i:1;s:12:"validate_url";i:1;s:3:"url";i:0;s:5:"title";s:8:"required";s:11:"title_value";s:19:"Unused Static Title";s:27:"title_label_use_field_label";i:0;s:15:"title_maxlength";s:3:"128";s:7:"display";a:1:{s:10:"url_cutoff";s:2:"81";}s:10:"attributes";a:6:{s:6:"target";s:6:"_blank";s:3:"rel";s:8:"nofollow";s:18:"configurable_class";i:0;s:5:"class";s:7:"classes";s:18:"configurable_title";i:1;s:5:"title";s:0:"";}s:10:"rel_remove";s:19:"rel_remove_external";s:13:"enable_tokens";i:1;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"link_default";s:6:"weight";s:1:"9";s:8:"settings";a:0:{}s:6:"module";s:4:"link";}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
   'deleted' => '0',
 ))
 ->execute();
@@ -19191,6 +19200,33 @@ $connection->insert('menu_links')
   'updated' => '0',
 ))
 ->values(array(
+  'menu_name' => 'menu-test-menu',
+  'mlid' => '470',
+  'plid' => '469',
+  'link_path' => 'http://ask.com',
+  'router_path' => '',
+  'link_title' => 'Ask',
+  'options' => 'a:0:{}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '1',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '2',
+  'customized' => '1',
+  'p1' => '469',
+  'p2' => '470',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
   'menu_name' => 'shortcut-set-2',
   'mlid' => '472',
   'plid' => '0',
@@ -19317,6 +19353,33 @@ $connection->insert('menu_links')
   'p1' => '1',
   'p2' => '20',
   'p3' => '478',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '479',
+  'plid' => '0',
+  'link_path' => 'node/3',
+  'router_path' => 'node/3',
+  'link_title' => 'node link test',
+  'options' => 'a:1:{s:10:"attributes";a:1:{s:5:"title";s:6:"node 3";}}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '3',
+  'depth' => '1',
+  'customized' => '1',
+  'p1' => '479',
+  'p2' => '0',
+  'p3' => '0',
   'p4' => '0',
   'p5' => '0',
   'p6' => '0',
@@ -41044,9 +41107,27 @@ $connection->insert('users')
   'login' => '0',
   'status' => '1',
   'timezone' => 'America/Chicago',
-  'language' => 'en',
+  'language' => 'is',
   'picture' => '0',
   'init' => 'odo@local.host',
+  'data' => 'a:1:{s:7:"contact";i:1;}',
+))
+->values(array(
+  'uid' => '3',
+  'name' => 'Bob',
+  'pass' => '$S$DGFZUE.FhrXbe4y52eC7p0ZVRGD/gOPtVctDlmC89qkujnBokAlJ',
+  'mail' => 'bob@local.host',
+  'theme' => '',
+  'signature' => '',
+  'signature_format' => 'filtered_html',
+  'created' => '1440532218',
+  'access' => '0',
+  'login' => '0',
+  'status' => '1',
+  'timezone' => 'America/New_York',
+  'language' => 'fr',
+  'picture' => '0',
+  'init' => 'bob@local.host',
   'data' => 'a:1:{s:7:"contact";i:1;}',
 ))
 ->execute();
@@ -41082,6 +41163,14 @@ $connection->insert('users_roles')
 ))
 ->values(array(
   'uid' => '1',
+  'rid' => '3',
+))
+->values(array(
+  'uid' => '2',
+  'rid' => '3',
+))
+->values(array(
+  'uid' => '3',
   'rid' => '3',
 ))
 ->execute();

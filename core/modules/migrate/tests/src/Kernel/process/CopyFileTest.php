@@ -18,7 +18,7 @@ class CopyFileTest extends FileTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system'];
+  public static $modules = ['migrate', 'system'];
 
   /**
    * The file system service.
@@ -172,7 +172,7 @@ class CopyFileTest extends FileTestBase {
   protected function doImport($source_path, $destination_path, $configuration = []) {
     $plugin = FileCopy::create($this->container, $configuration, 'file_copy', []);
     $executable = $this->prophesize(MigrateExecutableInterface::class)->reveal();
-    $row = new Row([], []);
+    $row = new Row();
 
     $result = $plugin->transform([$source_path, $destination_path], $executable, $row, 'foobaz');
 
