@@ -8,8 +8,25 @@ source:
     - locale_language_negotiation_session_param
     - locale_language_negotiation_url_part
 process:
-  'session/parameter': locale_language_negotiation_session_param
-  'url/source': locale_language_negotiation_url_part
+  session/parameter:
+    plugin: default_value
+    source: locale_language_negotiation_session_param
+    default_value: 'language'
+  selected_langcode:
+    plugin: default_value
+    default_value: 'site_default'
+  url/source:
+    plugin: static_map
+    source: locale_language_negotiation_url_part
+    default_value: path_prefix
+    map:
+      # LOCALE_LANGUAGE_NEGOTIATION_URL_PREFIX = 0
+      # LOCALE_LANGUAGE_NEGOTIATION_URL_DOMAIN = 1
+      0: path_prefix
+      1: domain
 destination:
   plugin: config
   config_name: language.negotiation
+migration_dependencies:
+  required:
+    - language
