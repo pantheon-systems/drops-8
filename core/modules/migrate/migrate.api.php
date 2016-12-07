@@ -23,15 +23,18 @@ use Drupal\migrate\Row;
  * means to load data into storage, while traditionally Drupal uses "load" to
  * mean load data from storage into memory.
  *
- * Source, process, and destination phases are each provided by plugins.
- * Source plugins extract data from a data source in "rows", containing
- * "properties". Each row is handed off to one or more process plugins which
- * transform the row's properties. After all the properties are processed, the
- * resulting row is handed off to a destination plugin, which saves the data.
+ * In the source phase, a set of data, called the row, is retrieved from the
+ * data source, typically a database but it can be a CSV, JSON or XML file. The
+ * row is sent to the process phase where it is transformed as needed by the
+ * destination, or marked to be skipped. Processing can also determine that a
+ * stub needs to be created, for example, if a term has a parent term that does
+ * not yet exist. After processing the transformed row is passed to the
+ * destination phase where it is loaded (saved) into the Drupal 8 site.
  *
- * A source plugin, one or more process plugins, and a destination plugin are
- * brought together to extract, transform, and load (in the ETL sense) a specific
- * type of data by a migration plugin.
+ * The ETL process is configured by the migration plugin. The different phases:
+ * source, process, and destination are also plugins, and are managed by the
+ * Migration plugin. So there are four types of plugins in the migration
+ * process: migration, source, process and destination.
  *
  * @section sec_migrations Migration plugins
  * Migration plugin definitions are stored in a module's 'migrations' directory.
@@ -50,8 +53,8 @@ use Drupal\migrate\Row;
  * with \Drupal\migrate\Annotation\MigrateSource annotation, and must be in
  * namespace subdirectory Plugin\migrate\source under the namespace of the
  * module that defines them. Migration source plugins are managed by the
- * \Drupal\migrate\Plugin\MigratePluginManager class. Source plugin providers
- * are determined by their and their parents namespaces.
+ * \Drupal\migrate\Plugin\MigrateSourcePluginManager class. Source plugin
+ * providers are determined by their and their parents namespaces.
  *
  * @section sec_process Process plugins
  * Migration process plugins implement
@@ -105,6 +108,29 @@ function hook_migrate_prepare_row(Row $row, MigrateSourceInterface $source, Migr
       $row->setSourceProperty('settings:mymodule:foo', unserialize($value));
     }
   }
+}
+
+/**
+ * Allows altering the list of discovered migration plugins.
+ *
+ * Modules are able to alter specific migrations structures or even remove or
+ * append additional migrations to the discovery. For example, this
+ * implementation filters out Drupal 6 migrations from the discovered migration
+ * list. This is done by checking the migration tags.
+ *
+ * @param array[] $migrations
+ *   An associative array of migrations keyed by migration ID. Each value is the
+ *   migration array, obtained by decoding the migration YAML file and enriched
+ *   with some meta information added during discovery phase, like migration
+ *   'class', 'provider' or '_discovered_file_path'.
+ *
+ * @ingroup migration
+ */
+function hook_migration_plugins_alter(array &$migrations) {
+  $migrations = array_filter($migrations, function (array $migration) {
+    $tags = isset($migration['migration_tags']) ? (array) $migration['migration_tags'] : [];
+    return !in_array('Drupal 6', $tags);
+  });
 }
 
 /**
