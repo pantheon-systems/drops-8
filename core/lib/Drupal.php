@@ -81,7 +81,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.2.4';
+  const VERSION = '8.2.5';
 
   /**
    * Core API compatibility.
@@ -556,8 +556,7 @@ class Drupal {
    * Renders a link with a given link text and Url object.
    *
    * This method is a convenience wrapper for the link generator service's
-   * generate() method. For detailed documentation, see
-   * \Drupal\Core\Routing\LinkGeneratorInterface::generate().
+   * generate() method.
    *
    * @param string $text
    *   The link text for the anchor tag.
