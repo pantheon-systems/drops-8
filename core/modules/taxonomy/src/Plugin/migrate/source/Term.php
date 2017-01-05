@@ -14,6 +14,10 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
  *   id = "taxonomy_term",
  *   source_provider = "taxonomy"
  * )
+ *
+ * @deprecated in Drupal 8.3.0, intended to be removed in Drupal 9.0.0.
+ *   Use \Drupal\taxonomy\Plugin\migrate\source\d6\Term or
+ *   \Drupal\taxonomy\Plugin\migrate\source\d7\Term.
  */
 class Term extends DrupalSqlBase {
 
@@ -50,7 +54,7 @@ class Term extends DrupalSqlBase {
       ->orderBy('td.tid');
 
     if (isset($this->configuration['vocabulary'])) {
-      $query->condition('td.vid', $this->configuration['vocabulary'], 'IN');
+      $query->condition('td.vid', (array) $this->configuration['vocabulary'], 'IN');
     }
 
     return $query;
