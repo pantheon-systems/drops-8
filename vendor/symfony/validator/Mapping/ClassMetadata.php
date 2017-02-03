@@ -261,7 +261,7 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
      * @param string     $property   The name of the property
      * @param Constraint $constraint The constraint
      *
-     * @return ClassMetadata This object
+     * @return $this
      */
     public function addPropertyConstraint($property, Constraint $constraint)
     {
@@ -282,7 +282,7 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
      * @param string       $property
      * @param Constraint[] $constraints
      *
-     * @return ClassMetadata
+     * @return $this
      */
     public function addPropertyConstraints($property, array $constraints)
     {
@@ -302,7 +302,7 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
      * @param string     $property   The name of the property
      * @param Constraint $constraint The constraint
      *
-     * @return ClassMetadata This object
+     * @return $this
      */
     public function addGetterConstraint($property, Constraint $constraint)
     {
@@ -323,7 +323,7 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
      * @param string       $property
      * @param Constraint[] $constraints
      *
-     * @return ClassMetadata
+     * @return $this
      */
     public function addGetterConstraints($property, array $constraints)
     {
@@ -346,10 +346,18 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
         }
 
         foreach ($source->getConstrainedProperties() as $property) {
+            if ($this->hasPropertyMetadata($property)) {
+                continue;
+            }
+
             foreach ($source->getPropertyMetadata($property) as $member) {
                 $member = clone $member;
 
                 foreach ($member->getConstraints() as $constraint) {
+                    if (in_array($constraint::DEFAULT_GROUP, $constraint->groups, true)) {
+                        $member->constraintsByGroup[$this->getDefaultGroup()][] = $constraint;
+                    }
+
                     $constraint->addImplicitGroupName($this->getDefaultGroup());
                 }
 
@@ -447,7 +455,7 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
      *
      * @param array $groupSequence An array of group names
      *
-     * @return ClassMetadata
+     * @return $this
      *
      * @throws GroupDefinitionException
      */

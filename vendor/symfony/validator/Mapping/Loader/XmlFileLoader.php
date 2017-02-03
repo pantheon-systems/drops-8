@@ -84,7 +84,7 @@ class XmlFileLoader extends FileLoader
                     $options = array();
                 }
             } elseif (strlen((string) $node) > 0) {
-                $options = trim($node);
+                $options = XmlUtils::phpize(trim($node));
             } else {
                 $options = null;
             }
@@ -182,13 +182,7 @@ class XmlFileLoader extends FileLoader
         return simplexml_import_dom($dom);
     }
 
-    /**
-     * Loads the validation metadata from the given XML class description.
-     *
-     * @param ClassMetadata $metadata         The metadata to load
-     * @param array         $classDescription The XML class description
-     */
-    private function loadClassMetadataFromXml(ClassMetadata $metadata, $classDescription)
+    private function loadClassMetadataFromXml(ClassMetadata $metadata, \SimpleXMLElement $classDescription)
     {
         if (count($classDescription->{'group-sequence-provider'}) > 0) {
             $metadata->setGroupSequenceProvider(true);

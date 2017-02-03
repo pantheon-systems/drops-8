@@ -17,8 +17,6 @@ use Symfony\Component\Validator\ConstraintViolationListInterface;
 /**
  * A validator in a specific execution context.
  *
- * @since  2.5
- *
  * @author Bernhard Schussek <bschussek@gmail.com>
  */
 interface ContextualValidatorInterface
@@ -31,7 +29,7 @@ interface ContextualValidatorInterface
      *
      * @param string $path The path to append
      *
-     * @return ContextualValidatorInterface This validator
+     * @return $this
      */
     public function atPath($path);
 
@@ -48,7 +46,7 @@ interface ContextualValidatorInterface
      *                                             validate. If none is given,
      *                                             "Default" is assumed
      *
-     * @return ContextualValidatorInterface This validator
+     * @return $this
      */
     public function validate($value, $constraints = null, $groups = null);
 
@@ -61,7 +59,7 @@ interface ContextualValidatorInterface
      * @param array|null $groups       The validation groups to validate. If
      *                                 none is given, "Default" is assumed
      *
-     * @return ContextualValidatorInterface This validator
+     * @return $this
      */
     public function validateProperty($object, $propertyName, $groups = null);
 
@@ -76,7 +74,7 @@ interface ContextualValidatorInterface
      * @param array|null    $groups        The validation groups to validate. If
      *                                     none is given, "Default" is assumed
      *
-     * @return ContextualValidatorInterface This validator
+     * @return $this
      */
     public function validatePropertyValue($objectOrClass, $propertyName, $value, $groups = null);
 

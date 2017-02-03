@@ -26,7 +26,7 @@ class DumperCollection implements \IteratorAggregate
     private $parent;
 
     /**
-     * @var (DumperCollection|DumperRoute)[]
+     * @var DumperCollection[]|DumperRoute[]
      */
     private $children = array();
 
@@ -38,7 +38,7 @@ class DumperCollection implements \IteratorAggregate
     /**
      * Returns the children routes and collections.
      *
-     * @return (DumperCollection|DumperRoute)[] Array of DumperCollection|DumperRoute
+     * @return self[]|DumperRoute[]
      */
     public function all()
     {
@@ -76,7 +76,7 @@ class DumperCollection implements \IteratorAggregate
     /**
      * Returns an iterator over the children.
      *
-     * @return \Iterator The iterator
+     * @return \Iterator|DumperCollection[]|DumperRoute[] The iterator
      */
     public function getIterator()
     {
@@ -86,7 +86,7 @@ class DumperCollection implements \IteratorAggregate
     /**
      * Returns the root of the collection.
      *
-     * @return DumperCollection The root collection
+     * @return self The root collection
      */
     public function getRoot()
     {
@@ -96,7 +96,7 @@ class DumperCollection implements \IteratorAggregate
     /**
      * Returns the parent collection.
      *
-     * @return DumperCollection|null The parent collection or null if the collection has no parent
+     * @return self|null The parent collection or null if the collection has no parent
      */
     protected function getParent()
     {
