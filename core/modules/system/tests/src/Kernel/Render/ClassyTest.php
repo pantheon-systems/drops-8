@@ -14,7 +14,7 @@ class ClassyTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('system', 'twig_theme_test');
+  public static $modules = ['system', 'twig_theme_test'];
 
   /**
    * {@inheritdoc}
@@ -36,12 +36,12 @@ class ClassyTest extends KernelTestBase {
   /**
    * Test the classy theme.
    */
-  function testClassyTheme() {
+  public function testClassyTheme() {
     drupal_set_message('An error occurred', 'error');
     drupal_set_message('But then something nice happened');
-    $messages = array(
+    $messages = [
       '#type' => 'status_messages',
-    );
+    ];
     $this->render($messages);
     $this->assertNoText('custom-test-messages-class', 'The custom class attribute value added in the status messages preprocess function is not displayed as page content.');
   }

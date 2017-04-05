@@ -45,11 +45,11 @@ class DiactorosFactory implements HttpMessageFactoryInterface
         $server = DiactorosRequestFactory::normalizeServer($symfonyRequest->server->all());
         $headers = $symfonyRequest->headers->all();
 
-        try {
-            $body = new DiactorosStream($symfonyRequest->getContent(true));
-        } catch (\LogicException $e) {
+        if (PHP_VERSION_ID < 50600) {
             $body = new DiactorosStream('php://temp', 'wb+');
             $body->write($symfonyRequest->getContent());
+        } else {
+            $body = new DiactorosStream($symfonyRequest->getContent(true));
         }
 
         $request = new ServerRequest(
@@ -86,6 +86,10 @@ class DiactorosFactory implements HttpMessageFactoryInterface
         $files = array();
 
         foreach ($uploadedFiles as $key => $value) {
+            if (null === $value) {
+                $files[$key] = new DiactorosUploadedFile(null, 0, UPLOAD_ERR_NO_FILE, null, null);
+                continue;
+            }
             if ($value instanceof UploadedFile) {
                 $files[$key] = $this->createUploadedFile($value);
             } else {
@@ -107,7 +111,7 @@ class DiactorosFactory implements HttpMessageFactoryInterface
     {
         return new DiactorosUploadedFile(
             $symfonyUploadedFile->getRealPath(),
-            $symfonyUploadedFile->getSize(),
+            $symfonyUploadedFile->getClientSize(),
             $symfonyUploadedFile->getError(),
             $symfonyUploadedFile->getClientOriginalName(),
             $symfonyUploadedFile->getClientMimeType()

@@ -158,7 +158,9 @@ class BigPipeTest extends WebTestBase {
 
     $this->drupalGet(Url::fromRoute('big_pipe_test'));
     $this->assertBigPipeResponseHeadersPresent();
+    $this->assertNoCacheTag('cache_tag_set_in_lazy_builder');
 
+    $this->setCsrfTokenSeedInTestEnvironment();
     $cases = $this->getTestCases();
     $this->assertBigPipeNoJsPlaceholders([
       $cases['edge_case__invalid_html']->bigPipeNoJsPlaceholder     => $cases['edge_case__invalid_html']->embeddedHtmlResponse,
@@ -236,7 +238,9 @@ class BigPipeTest extends WebTestBase {
 
     $this->drupalGet(Url::fromRoute('big_pipe_test'));
     $this->assertBigPipeResponseHeadersPresent();
+    $this->assertNoCacheTag('cache_tag_set_in_lazy_builder');
 
+    $this->setCsrfTokenSeedInTestEnvironment();
     $cases = $this->getTestCases();
     $this->assertBigPipeNoJsPlaceholders([
       $cases['edge_case__invalid_html']->bigPipeNoJsPlaceholder           => $cases['edge_case__invalid_html']->embeddedHtmlResponse,
@@ -289,7 +293,7 @@ class BigPipeTest extends WebTestBase {
     // @see performMetaRefresh()
 
     $this->drupalGet(Url::fromRoute('big_pipe_test_multi_occurrence'));
-    $big_pipe_placeholder_id = 'callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages&amp;args[0]&amp;token=a8c34b5e';
+    $big_pipe_placeholder_id = 'callback=Drupal%5CCore%5CRender%5CElement%5CStatusMessages%3A%3ArenderMessages&amp;args[0]&amp;token=_HAdUpwWmet0TOTe2PSiJuMntExoshbm1kh2wQzzzAA';
     $expected_placeholder_replacement = '<script type="application/vnd.drupal-ajax" data-big-pipe-replacement-for-placeholder-with-id="' . $big_pipe_placeholder_id . '">';
     $this->assertRaw('The count is 1.');
     $this->assertNoRaw('The count is 2.');
@@ -353,7 +357,7 @@ class BigPipeTest extends WebTestBase {
     foreach ($expected_big_pipe_placeholders as $big_pipe_placeholder_id => $expected_ajax_response) {
       $this->pass('BigPipe placeholder: ' . $big_pipe_placeholder_id, 'Debug');
       // Verify expected placeholder.
-      $expected_placeholder_html = '<div data-big-pipe-placeholder-id="' . $big_pipe_placeholder_id . '"></div>';
+      $expected_placeholder_html = '<span data-big-pipe-placeholder-id="' . $big_pipe_placeholder_id . '"></span>';
       $this->assertRaw($expected_placeholder_html, 'BigPipe placeholder for placeholder ID "' . $big_pipe_placeholder_id . '" found.');
       $pos = strpos($this->getRawContent(), $expected_placeholder_html);
       $placeholder_positions[$pos] = $big_pipe_placeholder_id;
@@ -402,14 +406,18 @@ class BigPipeTest extends WebTestBase {
   }
 
   /**
-   * @return \Drupal\big_pipe\Tests\BigPipePlaceholderTestCase[]
+   * Ensures CSRF tokens can be generated for the current user's session.
    */
-  protected function getTestCases() {
-    // Ensure we can generate CSRF tokens for the current user's session.
+  protected function setCsrfTokenSeedInTestEnvironment() {
     $session_data = $this->container->get('session_handler.write_safe')->read($this->cookies[$this->getSessionName()]['value']);
     $csrf_token_seed = unserialize(explode('_sf2_meta|', $session_data)[1])['s'];
     $this->container->get('session_manager.metadata_bag')->setCsrfTokenSeed($csrf_token_seed);
+  }
 
+  /**
+   * @return \Drupal\big_pipe\Tests\BigPipePlaceholderTestCase[]
+   */
+  protected function getTestCases($has_session = TRUE) {
     return BigPipePlaceholderTestCases::cases($this->container, $this->rootUser);
   }
 

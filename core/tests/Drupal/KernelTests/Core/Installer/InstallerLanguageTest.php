@@ -15,24 +15,24 @@ class InstallerLanguageTest extends KernelTestBase {
   /**
    * Tests that the installer can find translation files.
    */
-  function testInstallerTranslationFiles() {
+  public function testInstallerTranslationFiles() {
     // Different translation files would be found depending on which language
     // we are looking for.
-    $expected_translation_files = array(
-      NULL => array('drupal-8.0.0-beta2.hu.po', 'drupal-8.0.0.de.po'),
-      'de' => array('drupal-8.0.0.de.po'),
-      'hu' => array('drupal-8.0.0-beta2.hu.po'),
-      'it' => array(),
-    );
+    $expected_translation_files = [
+      NULL => ['drupal-8.0.0-beta2.hu.po', 'drupal-8.0.0.de.po'],
+      'de' => ['drupal-8.0.0.de.po'],
+      'hu' => ['drupal-8.0.0-beta2.hu.po'],
+      'it' => [],
+    ];
 
     // Hardcode the simpletest module location as we don't yet know where it is.
     // @todo Remove as part of https://www.drupal.org/node/2186491
     $file_translation = new FileTranslation('core/modules/simpletest/files/translations');
     foreach ($expected_translation_files as $langcode => $files_expected) {
       $files_found = $file_translation->findTranslationFiles($langcode);
-      $this->assertTrue(count($files_found) == count($files_expected), format_string('@count installer languages found.', array('@count' => count($files_expected))));
+      $this->assertTrue(count($files_found) == count($files_expected), format_string('@count installer languages found.', ['@count' => count($files_expected)]));
       foreach ($files_found as $file) {
-        $this->assertTrue(in_array($file->filename, $files_expected), format_string('@file found.', array('@file' => $file->filename)));
+        $this->assertTrue(in_array($file->filename, $files_expected), format_string('@file found.', ['@file' => $file->filename]));
       }
     }
   }
@@ -40,7 +40,7 @@ class InstallerLanguageTest extends KernelTestBase {
   /**
    * Tests profile info caching in non-English languages.
    */
-  function testInstallerTranslationCache() {
+  public function testInstallerTranslationCache() {
     require_once 'core/includes/install.inc';
 
     // Prime the drupal_get_filename() static cache with the location of the

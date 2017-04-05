@@ -54,7 +54,7 @@ class BooleanOperator extends FilterPluginBase {
    * {@inheritdoc}
    */
   public function operatorOptions($which = 'title') {
-    $options = array();
+    $options = [];
     foreach ($this->operators() as $id => $info) {
       $options[$id] = $info[$which];
     }
@@ -68,22 +68,22 @@ class BooleanOperator extends FilterPluginBase {
    * @return array
    */
   protected function operators() {
-    return array(
-      '=' => array(
+    return [
+      '=' => [
         'title' => $this->t('Is equal to'),
         'method' => 'queryOpBoolean',
         'short' => $this->t('='),
         'values' => 1,
-        'query_operator' => static::EQUAL,
-      ),
-      '!=' => array(
+        'query_operator' => self::EQUAL,
+      ],
+      '!=' => [
         'title' => $this->t('Is not equal to'),
         'method' => 'queryOpBoolean',
         'short' => $this->t('!='),
         'values' => 1,
-        'query_operator' => static::NOT_EQUAL,
-      ),
-    );
+        'query_operator' => self::NOT_EQUAL,
+      ],
+    ];
   }
 
   /**
@@ -125,19 +125,19 @@ class BooleanOperator extends FilterPluginBase {
   public function getValueOptions() {
     if (isset($this->definition['type'])) {
       if ($this->definition['type'] == 'yes-no') {
-        $this->valueOptions = array(1 => $this->t('Yes'), 0 => $this->t('No'));
+        $this->valueOptions = [1 => $this->t('Yes'), 0 => $this->t('No')];
       }
       if ($this->definition['type'] == 'on-off') {
-        $this->valueOptions = array(1 => $this->t('On'), 0 => $this->t('Off'));
+        $this->valueOptions = [1 => $this->t('On'), 0 => $this->t('Off')];
       }
       if ($this->definition['type'] == 'enabled-disabled') {
-        $this->valueOptions = array(1 => $this->t('Enabled'), 0 => $this->t('Disabled'));
+        $this->valueOptions = [1 => $this->t('Enabled'), 0 => $this->t('Disabled')];
       }
     }
 
     // Provide a fallback if the above didn't set anything.
     if (!isset($this->valueOptions)) {
-      $this->valueOptions = array(1 => $this->t('True'), 0 => $this->t('False'));
+      $this->valueOptions = [1 => $this->t('True'), 0 => $this->t('False')];
     }
   }
 
@@ -162,12 +162,12 @@ class BooleanOperator extends FilterPluginBase {
       // Configuring a filter: use radios for clarity.
       $filter_form_type = 'radios';
     }
-    $form['value'] = array(
+    $form['value'] = [
       '#type' => $filter_form_type,
       '#title' => $this->value_value,
       '#options' => $this->valueOptions,
       '#default_value' => $this->value,
-    );
+    ];
     if (!empty($this->options['exposed'])) {
       $identifier = $this->options['expose']['identifier'];
       $user_input = $form_state->getUserInput();
@@ -177,13 +177,13 @@ class BooleanOperator extends FilterPluginBase {
       }
       // If we're configuring an exposed filter, add an - Any - option.
       if (!$exposed || empty($this->options['expose']['required'])) {
-        $form['value']['#options'] = array('All' => $this->t('- Any -')) + $form['value']['#options'];
+        $form['value']['#options'] = ['All' => $this->t('- Any -')] + $form['value']['#options'];
       }
     }
   }
 
   protected function valueValidate($form, FormStateInterface $form_state) {
-    if ($form_state->getValue(array('options', 'value')) == 'All' && !$form_state->isValueEmpty(array('options', 'expose', 'required'))) {
+    if ($form_state->getValue(['options', 'value']) == 'All' && !$form_state->isValueEmpty(['options', 'expose', 'required'])) {
       $form_state->setErrorByName('value', $this->t('You must select a value unless this is an non-required exposed filter.'));
     }
   }
@@ -221,7 +221,7 @@ class BooleanOperator extends FilterPluginBase {
 
     $info = $this->operators();
     if (!empty($info[$this->operator]['method'])) {
-      call_user_func(array($this, $info[$this->operator]['method']), $field, $info[$this->operator]['query_operator']);
+      call_user_func([$this, $info[$this->operator]['method']], $field, $info[$this->operator]['query_operator']);
     }
   }
 
@@ -231,13 +231,13 @@ class BooleanOperator extends FilterPluginBase {
    * @param string $field
    *   The field name to add the where condition for.
    * @param string $query_operator
-   *   (optional) Either static::EQUAL or static::NOT_EQUAL. Defaults to
-   *   static::EQUAL.
+   *   (optional) Either self::EQUAL or self::NOT_EQUAL. Defaults to
+   *   self::EQUAL.
    */
-  protected function queryOpBoolean($field, $query_operator = EQUAL) {
+  protected function queryOpBoolean($field, $query_operator = self::EQUAL) {
     if (empty($this->value)) {
       if ($this->accept_null) {
-        if ($query_operator == static::EQUAL) {
+        if ($query_operator === self::EQUAL) {
           $condition = (new Condition('OR'))
             ->condition($field, 0, $query_operator)
             ->isNull($field);
@@ -255,12 +255,13 @@ class BooleanOperator extends FilterPluginBase {
     }
     else {
       if (!empty($this->definition['use_equal'])) {
-        // Forces an '=' operator instead of a '<>' for performance reasons.
-        if ($query_operator == static::EQUAL) {
-          $this->query->addWhere($this->options['group'], $field, 1, static::EQUAL);
+        // Forces a self::EQUAL operator instead of a self::NOT_EQUAL for
+        // performance reasons.
+        if ($query_operator === self::EQUAL) {
+          $this->query->addWhere($this->options['group'], $field, 1, self::EQUAL);
         }
         else {
-          $this->query->addWhere($this->options['group'], $field, 0, static::EQUAL);
+          $this->query->addWhere($this->options['group'], $field, 0, self::EQUAL);
         }
       }
       else {

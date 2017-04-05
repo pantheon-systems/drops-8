@@ -59,6 +59,16 @@ class DateTimeDefaultWidget extends DateTimeWidgetBase implements ContainerFacto
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
+    // If the field is date-only, make sure the title is displayed. Otherwise,
+    // wrap everything in a fieldset, and the title will be shown in the legend.
+    if ($this->getFieldSetting('datetime_type') === DateTimeItem::DATETIME_TYPE_DATE) {
+      $element['value']['#title'] = $this->fieldDefinition->getLabel();
+      $element['value']['#description'] = $this->fieldDefinition->getDescription();
+    }
+    else {
+      $element['#theme_wrappers'][] = 'fieldset';
+    }
+
     // Identify the type of date and time elements to use.
     switch ($this->getFieldSetting('datetime_type')) {
       case DateTimeItem::DATETIME_TYPE_DATE:
@@ -76,14 +86,14 @@ class DateTimeDefaultWidget extends DateTimeWidgetBase implements ContainerFacto
         break;
     }
 
-    $element['value'] += array(
+    $element['value'] += [
       '#date_date_format' => $date_format,
       '#date_date_element' => $date_type,
-      '#date_date_callbacks' => array(),
+      '#date_date_callbacks' => [],
       '#date_time_format' => $time_format,
       '#date_time_element' => $time_type,
-      '#date_time_callbacks' => array(),
-    );
+      '#date_time_callbacks' => [],
+    ];
 
     return $element;
   }

@@ -21,7 +21,7 @@ class ImageFormatterTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('file', 'image');
+  public static $modules = ['file', 'image'];
 
   /**
    * @var string
@@ -52,18 +52,18 @@ class ImageFormatterTest extends FieldKernelTestBase {
     $this->installConfig(['field']);
     $this->installEntitySchema('entity_test');
     $this->installEntitySchema('file');
-    $this->installSchema('file', array('file_usage'));
+    $this->installSchema('file', ['file_usage']);
 
     $this->entityType = 'entity_test';
     $this->bundle = $this->entityType;
     $this->fieldName = Unicode::strtolower($this->randomMachineName());
 
-    FieldStorageConfig::create(array(
+    FieldStorageConfig::create([
       'entity_type' => $this->entityType,
       'field_name' => $this->fieldName,
       'type' => 'image',
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-    ))->save();
+    ])->save();
     FieldConfig::create([
       'entity_type' => $this->entityType,
       'field_name' => $this->fieldName,
@@ -84,7 +84,7 @@ class ImageFormatterTest extends FieldKernelTestBase {
   /**
    * Tests the cache tags from image formatters.
    */
-  function testImageFormatterCacheTags() {
+  public function testImageFormatterCacheTags() {
     // Create a test entity with the image field set.
     $entity = EntityTest::create([
       'name' => $this->randomMachineName(),

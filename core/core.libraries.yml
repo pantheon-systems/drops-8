@@ -24,10 +24,10 @@ classList:
 
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
-  version: "4.5.11"
+  version: "4.6.2"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/ckeditor/ckeditor-dev/blob/4.5.11/LICENSE.md
+    url: https://github.com/ckeditor/ckeditor-dev/blob/4.6.2/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
@@ -46,6 +46,7 @@ drupal:
   version: VERSION
   js:
     misc/drupal.js: { weight: -18 }
+    misc/drupal.init.js: { weight: -17 }
   dependencies:
     - core/domready
     - core/drupalSettings
@@ -203,6 +204,13 @@ drupal.dropbutton:
     - core/drupalSettings
     - core/jquery.once
 
+drupal.entity-form:
+  version: VERSION
+  js:
+    misc/entity-form.js: {}
+  dependencies:
+    - core/drupal.form
+
 drupal.form:
   version: VERSION
   js:
@@ -333,10 +341,10 @@ html5shiv:
 
 jquery:
   remote: https://github.com/jquery/jquery
-  version: "2.2.3"
+  version: "2.2.4"
   license:
     name: MIT
-    url: https://github.com/jquery/jquery/blob/2.2.3/MIT-LICENSE.txt
+    url: https://github.com/jquery/jquery/blob/2.2.4/LICENSE.txt
     gpl-compatible: true
   js:
     assets/vendor/jquery/jquery.min.js: { minified: true, weight: -20 }

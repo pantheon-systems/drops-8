@@ -5,6 +5,10 @@ namespace Drupal\KernelTests\Core\Config;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\Schema\ConfigSchemaAlterException;
+use Drupal\Core\Config\Schema\Ignore;
+use Drupal\Core\Config\Schema\Mapping;
+use Drupal\Core\Config\Schema\Undefined;
+use Drupal\Core\TypedData\Plugin\DataType\StringData;
 use Drupal\Core\TypedData\Type\IntegerInterface;
 use Drupal\Core\TypedData\Type\StringInterface;
 use Drupal\KernelTests\KernelTestBase;
@@ -21,26 +25,26 @@ class ConfigSchemaTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'language', 'field', 'image', 'config_test', 'config_schema_test');
+  public static $modules = ['system', 'language', 'field', 'image', 'config_test', 'config_schema_test'];
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-    $this->installConfig(array('system', 'image', 'config_schema_test'));
+    $this->installConfig(['system', 'image', 'config_schema_test']);
   }
 
   /**
    * Tests the basic metadata retrieval layer.
    */
-  function testSchemaMapping() {
+  public function testSchemaMapping() {
     // Nonexistent configuration key will have Undefined as metadata.
     $this->assertIdentical(FALSE, \Drupal::service('config.typed')->hasConfigSchema('config_schema_test.no_such_key'));
     $definition = \Drupal::service('config.typed')->getDefinition('config_schema_test.no_such_key');
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Undefined';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Undefined';
+    $expected['class'] = Undefined::class;
     $expected['type'] = 'undefined';
     $expected['definition_class'] = '\Drupal\Core\TypedData\DataDefinition';
     $this->assertEqual($definition, $expected, 'Retrieved the right metadata for nonexistent configuration.');
@@ -53,14 +57,14 @@ class ConfigSchemaTest extends KernelTestBase {
     // Configuration file with only some schema.
     $this->assertIdentical(TRUE, \Drupal::service('config.typed')->hasConfigSchema('config_schema_test.someschema'));
     $definition = \Drupal::service('config.typed')->getDefinition('config_schema_test.someschema');
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Schema test data';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['mapping']['langcode']['type'] = 'string';
     $expected['mapping']['langcode']['label'] = 'Language code';
     $expected['mapping']['_core']['type'] = '_core_config_info';
-    $expected['mapping']['testitem'] = array('label' => 'Test item');
-    $expected['mapping']['testlist'] = array('label' => 'Test list');
+    $expected['mapping']['testitem'] = ['label' => 'Test item'];
+    $expected['mapping']['testlist'] = ['label' => 'Test list'];
     $expected['type'] = 'config_schema_test.someschema';
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
     $this->assertEqual($definition, $expected, 'Retrieved the right metadata for configuration with only some schema.');
@@ -68,40 +72,40 @@ class ConfigSchemaTest extends KernelTestBase {
     // Check type detection on elements with undefined types.
     $config = \Drupal::service('config.typed')->get('config_schema_test.someschema');
     $definition = $config->get('testitem')->getDataDefinition()->toArray();
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Test item';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Undefined';
+    $expected['class'] = Undefined::class;
     $expected['type'] = 'undefined';
     $expected['definition_class'] = '\Drupal\Core\TypedData\DataDefinition';
     $this->assertEqual($definition, $expected, 'Automatic type detected for a scalar is undefined.');
     $definition = $config->get('testlist')->getDataDefinition()->toArray();
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Test list';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Undefined';
+    $expected['class'] = Undefined::class;
     $expected['type'] = 'undefined';
     $expected['definition_class'] = '\Drupal\Core\TypedData\DataDefinition';
     $this->assertEqual($definition, $expected, 'Automatic type detected for a list is undefined.');
     $definition = $config->get('testnoschema')->getDataDefinition()->toArray();
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Undefined';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Undefined';
+    $expected['class'] = Undefined::class;
     $expected['type'] = 'undefined';
     $expected['definition_class'] = '\Drupal\Core\TypedData\DataDefinition';
     $this->assertEqual($definition, $expected, 'Automatic type detected for an undefined integer is undefined.');
 
     // Simple case, straight metadata.
     $definition = \Drupal::service('config.typed')->getDefinition('system.maintenance');
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Maintenance mode';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
-    $expected['mapping']['message'] = array(
+    $expected['class'] = Mapping::class;
+    $expected['mapping']['message'] = [
       'label' => 'Message to display when in maintenance mode',
       'type' => 'text',
-    );
-    $expected['mapping']['langcode'] = array(
+    ];
+    $expected['mapping']['langcode'] = [
       'label' => 'Language code',
       'type' => 'string',
-    );
+    ];
     $expected['mapping']['_core']['type'] = '_core_config_info';
     $expected['type'] = 'system.maintenance';
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
@@ -109,41 +113,41 @@ class ConfigSchemaTest extends KernelTestBase {
 
     // Mixed schema with ignore elements.
     $definition = \Drupal::service('config.typed')->getDefinition('config_schema_test.ignore');
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Ignore test';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
-    $expected['mapping']['langcode'] = array(
+    $expected['mapping']['langcode'] = [
       'type' => 'string',
       'label' => 'Language code',
-    );
+    ];
     $expected['mapping']['_core']['type'] = '_core_config_info';
-    $expected['mapping']['label'] = array(
+    $expected['mapping']['label'] = [
       'label' => 'Label',
       'type' => 'label',
-    );
-    $expected['mapping']['irrelevant'] = array(
+    ];
+    $expected['mapping']['irrelevant'] = [
       'label' => 'Irrelevant',
       'type' => 'ignore',
-    );
-    $expected['mapping']['indescribable'] = array(
+    ];
+    $expected['mapping']['indescribable'] = [
       'label' => 'Indescribable',
       'type' => 'ignore',
-    );
-    $expected['mapping']['weight'] = array(
+    ];
+    $expected['mapping']['weight'] = [
       'label' => 'Weight',
       'type' => 'integer',
-    );
+    ];
     $expected['type'] = 'config_schema_test.ignore';
 
     $this->assertEqual($definition, $expected);
 
     // The ignore elements themselves.
     $definition = \Drupal::service('config.typed')->get('config_schema_test.ignore')->get('irrelevant')->getDataDefinition()->toArray();
-    $expected = array();
+    $expected = [];
     $expected['type'] = 'ignore';
     $expected['label'] = 'Irrelevant';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Ignore';
+    $expected['class'] = Ignore::class;
     $expected['definition_class'] = '\Drupal\Core\TypedData\DataDefinition';
     $this->assertEqual($definition, $expected);
     $definition = \Drupal::service('config.typed')->get('config_schema_test.ignore')->get('indescribable')->getDataDefinition()->toArray();
@@ -152,9 +156,9 @@ class ConfigSchemaTest extends KernelTestBase {
 
     // More complex case, generic type. Metadata for image style.
     $definition = \Drupal::service('config.typed')->getDefinition('image.style.large');
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Image style';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
     $expected['mapping']['name']['type'] = 'string';
     $expected['mapping']['uuid']['type'] = 'string';
@@ -185,9 +189,9 @@ class ConfigSchemaTest extends KernelTestBase {
     // More complex, type based on a complex one.
     $definition = \Drupal::service('config.typed')->getDefinition('image.effect.image_scale');
     // This should be the schema for image.effect.image_scale.
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Image scale';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
     $expected['mapping']['width']['type'] = 'integer';
     $expected['mapping']['width']['label'] = 'Width';
@@ -211,10 +215,10 @@ class ConfigSchemaTest extends KernelTestBase {
     $a = \Drupal::config('config_test.dynamic.third_party');
     $test = \Drupal::service('config.typed')->get('config_test.dynamic.third_party')->get('third_party_settings.config_schema_test');
     $definition = $test->getDataDefinition()->toArray();
-    $expected = array();
+    $expected = [];
     $expected['type'] = 'config_test.dynamic.*.third_party.config_schema_test';
     $expected['label'] = 'Mapping';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
     $expected['mapping'] = [
       'integer' => ['type' => 'integer'],
@@ -225,9 +229,9 @@ class ConfigSchemaTest extends KernelTestBase {
     // More complex, several level deep test.
     $definition = \Drupal::service('config.typed')->getDefinition('config_schema_test.someschema.somemodule.section_one.subsection');
     // This should be the schema of config_schema_test.someschema.somemodule.*.*.
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Schema multiple filesystem marker test';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['mapping']['langcode']['type'] = 'string';
     $expected['mapping']['langcode']['label'] = 'Language code';
     $expected['mapping']['_core']['type'] = '_core_config_info';
@@ -248,47 +252,47 @@ class ConfigSchemaTest extends KernelTestBase {
   /**
    * Tests metadata retrieval with several levels of %parent indirection.
    */
-  function testSchemaMappingWithParents() {
+  public function testSchemaMappingWithParents() {
     $config_data = \Drupal::service('config.typed')->get('config_schema_test.someschema.with_parents');
 
     // Test fetching parent one level up.
     $entry = $config_data->get('one_level');
     $definition = $entry->get('testitem')->getDataDefinition()->toArray();
-    $expected = array(
+    $expected = [
       'type' => 'config_schema_test.someschema.with_parents.key_1',
       'label' => 'Test item nested one level',
-      'class' => '\Drupal\Core\TypedData\Plugin\DataType\StringData',
+      'class' => StringData::class,
       'definition_class' => '\Drupal\Core\TypedData\DataDefinition',
-    );
+    ];
     $this->assertEqual($definition, $expected);
 
     // Test fetching parent two levels up.
     $entry = $config_data->get('two_levels');
     $definition = $entry->get('wrapper')->get('testitem')->getDataDefinition()->toArray();
-    $expected = array(
+    $expected = [
       'type' => 'config_schema_test.someschema.with_parents.key_2',
       'label' => 'Test item nested two levels',
-      'class' => '\Drupal\Core\TypedData\Plugin\DataType\StringData',
+      'class' => StringData::class,
       'definition_class' => '\Drupal\Core\TypedData\DataDefinition',
-    );
+    ];
     $this->assertEqual($definition, $expected);
 
     // Test fetching parent three levels up.
     $entry = $config_data->get('three_levels');
     $definition = $entry->get('wrapper_1')->get('wrapper_2')->get('testitem')->getDataDefinition()->toArray();
-    $expected = array(
+    $expected = [
       'type' => 'config_schema_test.someschema.with_parents.key_3',
       'label' => 'Test item nested three levels',
-      'class' => '\Drupal\Core\TypedData\Plugin\DataType\StringData',
+      'class' => StringData::class,
       'definition_class' => '\Drupal\Core\TypedData\DataDefinition',
-    );
+    ];
     $this->assertEqual($definition, $expected);
   }
 
   /**
    * Tests metadata applied to configuration objects.
    */
-  function testSchemaData() {
+  public function testSchemaData() {
     // Try a simple property.
     $meta = \Drupal::service('config.typed')->get('system.site');
     $property = $meta->get('page')->get('front');
@@ -324,7 +328,7 @@ class ConfigSchemaTest extends KernelTestBase {
    * Test configuration value data type enforcement using schemas.
    */
   public function testConfigSaveWithSchema() {
-    $untyped_values = array(
+    $untyped_values = [
       'string' => 1,
       'empty_string' => '',
       'null_string' => NULL,
@@ -333,22 +337,22 @@ class ConfigSchemaTest extends KernelTestBase {
       'boolean' => 1,
       // If the config schema doesn't have a type it shouldn't be casted.
       'no_type' => 1,
-      'mapping' => array(
+      'mapping' => [
         'string' => 1
-      ),
+      ],
       'float' => '3.14',
       'null_float' => '',
-      'sequence' => array (1, 0, 1),
-      'sequence_bc' => array(1, 0, 1),
+      'sequence' => [1, 0, 1],
+      'sequence_bc' => [1, 0, 1],
       // Not in schema and therefore should be left untouched.
       'not_present_in_schema' => TRUE,
       // Test a custom type.
       'config_schema_test_integer' => '1',
       'config_schema_test_integer_empty_string' => '',
-    );
+    ];
     $untyped_to_typed = $untyped_values;
 
-    $typed_values = array(
+    $typed_values = [
       'string' => '1',
       'empty_string' => '',
       'null_string' => NULL,
@@ -356,17 +360,17 @@ class ConfigSchemaTest extends KernelTestBase {
       'null_integer' => NULL,
       'boolean' => TRUE,
       'no_type' => 1,
-      'mapping' => array(
+      'mapping' => [
         'string' => '1'
-      ),
+      ],
       'float' => 3.14,
       'null_float' => NULL,
-      'sequence' => array (TRUE, FALSE, TRUE),
-      'sequence_bc' => array(TRUE, FALSE, TRUE),
+      'sequence' => [TRUE, FALSE, TRUE],
+      'sequence_bc' => [TRUE, FALSE, TRUE],
       'not_present_in_schema' => TRUE,
       'config_schema_test_integer' => 1,
       'config_schema_test_integer_empty_string' => NULL,
-    );
+    ];
 
     // Save config which has a schema that enforces types.
     $this->config('config_schema_test.schema_data_types')
@@ -394,12 +398,12 @@ class ConfigSchemaTest extends KernelTestBase {
   /**
    * Tests fallback to a greedy wildcard.
    */
-  function testSchemaFallback() {
+  public function testSchemaFallback() {
     $definition = \Drupal::service('config.typed')->getDefinition('config_schema_test.wildcard_fallback.something');
     // This should be the schema of config_schema_test.wildcard_fallback.*.
-    $expected = array();
+    $expected = [];
     $expected['label'] = 'Schema wildcard fallback test';
-    $expected['class'] = '\Drupal\Core\Config\Schema\Mapping';
+    $expected['class'] = Mapping::class;
     $expected['definition_class'] = '\Drupal\Core\TypedData\MapDataDefinition';
     $expected['mapping']['langcode']['type'] = 'string';
     $expected['mapping']['langcode']['label'] = 'Language code';
@@ -423,7 +427,7 @@ class ConfigSchemaTest extends KernelTestBase {
    *
    * @see \Drupal\Core\Config\TypedConfigManager::getFallbackName()
    */
-  function testColonsInSchemaTypeDetermination() {
+  public function testColonsInSchemaTypeDetermination() {
     $tests = \Drupal::service('config.typed')->get('config_schema_test.plugin_types')->get('tests')->getElements();
     $definition = $tests[0]->getDataDefinition()->toArray();
     $this->assertEqual($definition['type'], 'test.plugin_types.boolean');
@@ -631,6 +635,27 @@ class ConfigSchemaTest extends KernelTestBase {
     $this->assertEqual($definition['type'], 'wrapping.test.double_brackets.*||test.double_brackets.cat.dog');
     $definition = $tests[1]->getDataDefinition()->toArray();
     $this->assertEqual($definition['type'], 'wrapping.test.double_brackets.*||test.double_brackets.turtle.horse');
+
+    $typed_values = [
+      'tests' => [
+        [
+          'id' => 'cat:persion.dog',
+          'foo' => 'cat',
+          'bar' => 'dog',
+          'breed' => 'persion',
+        ],
+      ],
+    ];
+
+    \Drupal::configFactory()->getEditable('wrapping.config_schema_test.other_double_brackets')
+      ->setData($typed_values)
+      ->save();
+    $tests = \Drupal::service('config.typed')->get('wrapping.config_schema_test.other_double_brackets')->get('tests')->getElements();
+    $definition = $tests[0]->getDataDefinition()->toArray();
+    // Check that definition type is a merge of the expected types.
+    $this->assertEqual($definition['type'], 'wrapping.test.other_double_brackets.*||test.double_brackets.cat:*.*');
+    // Check that breed was inherited from parent definition.
+    $this->assertEqual($definition['mapping']['breed'], ['type' => 'string']);
   }
 
 }

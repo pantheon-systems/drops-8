@@ -23,7 +23,7 @@ class EntityUUIDTest extends EntityKernelTestBase {
   /**
    * Tests UUID generation in entity CRUD operations.
    */
-  function testCRUD() {
+  public function testCRUD() {
     // All entity variations have to have the same results.
     foreach (entity_test_entity_types() as $entity_type) {
       $this->assertCRUD($entity_type);
@@ -42,10 +42,10 @@ class EntityUUIDTest extends EntityKernelTestBase {
     $uuid = $uuid_service->generate();
     $custom_entity = $this->container->get('entity_type.manager')
       ->getStorage($entity_type)
-      ->create(array(
+      ->create([
         'name' => $this->randomMachineName(),
         'uuid' => $uuid,
-      ));
+      ]);
     $this->assertIdentical($custom_entity->uuid(), $uuid);
     // Save this entity, so we have more than one later.
     $custom_entity->save();
@@ -53,7 +53,7 @@ class EntityUUIDTest extends EntityKernelTestBase {
     // Verify that a new UUID is generated upon creating an entity.
     $entity = $this->container->get('entity_type.manager')
       ->getStorage($entity_type)
-      ->create(array('name' => $this->randomMachineName()));
+      ->create(['name' => $this->randomMachineName()]);
     $uuid = $entity->uuid();
     $this->assertTrue($uuid);
 

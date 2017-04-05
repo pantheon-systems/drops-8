@@ -76,6 +76,11 @@ class LinkGenerator implements LinkGeneratorInterface {
    * @see system_page_attachments()
    */
   public function generate($text, Url $url) {
+    // The link generator should not modify the original URL object, this
+    // ensures consistent rendering.
+    // @see https://www.drupal.org/node/2842399
+    $url = clone $url;
+
     // Performance: avoid Url::toString() needing to retrieve the URL generator
     // service from the container.
     $url->setUrlGenerator($this->urlGenerator);
@@ -85,20 +90,20 @@ class LinkGenerator implements LinkGeneratorInterface {
     }
 
     // Start building a structured representation of our link to be altered later.
-    $variables = array(
+    $variables = [
       'text' => $text,
       'url' => $url,
       'options' => $url->getOptions(),
-    );
+    ];
 
     // Merge in default options.
-    $variables['options'] += array(
-      'attributes' => array(),
-      'query' => array(),
+    $variables['options'] += [
+      'attributes' => [],
+      'query' => [],
       'language' => NULL,
       'set_active_class' => FALSE,
       'absolute' => FALSE,
-    );
+    ];
 
     // Add a hreflang attribute if we know the language of this link's url and
     // hreflang has not already been set.
@@ -145,7 +150,7 @@ class LinkGenerator implements LinkGeneratorInterface {
 
     // Move attributes out of options since generateFromRoute() doesn't need
     // them. Make sure the "href" comes first for testing purposes.
-    $attributes = array('href' => '') + $variables['options']['attributes'];
+    $attributes = ['href' => ''] + $variables['options']['attributes'];
     unset($variables['options']['attributes']);
     $url->setOptions($variables['options']);
 

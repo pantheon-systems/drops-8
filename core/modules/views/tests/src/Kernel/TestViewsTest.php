@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\config_test\TestInstallStorage;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\TypedConfigManager;
@@ -22,7 +22,7 @@ class TestViewsTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('views_test_data');
+  public static $modules = ['views_test_data'];
 
   /**
    * Tests default configuration data type.

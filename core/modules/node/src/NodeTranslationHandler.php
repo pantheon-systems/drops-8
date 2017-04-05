@@ -17,17 +17,7 @@ class NodeTranslationHandler extends ContentTranslationHandler {
   public function entityFormAlter(array &$form, FormStateInterface $form_state, EntityInterface $entity) {
     parent::entityFormAlter($form, $form_state, $entity);
 
-    // Move the translation fieldset to a vertical tab.
     if (isset($form['content_translation'])) {
-      $form['content_translation'] += array(
-        '#group' => 'advanced',
-        '#attributes' => array(
-          'class' => array('node-translation-options'),
-        ),
-      );
-
-      $form['content_translation']['#weight'] = 100;
-
       // We do not need to show these values on node forms: they inherit the
       // basic node property values.
       $form['content_translation']['status']['#access'] = FALSE;
@@ -49,7 +39,7 @@ class NodeTranslationHandler extends ContentTranslationHandler {
         }
       }
       if (isset($status_translatable)) {
-        foreach (array('publish', 'unpublish', 'submit') as $button) {
+        foreach (['publish', 'unpublish', 'submit'] as $button) {
           if (isset($form['actions'][$button])) {
             $form['actions'][$button]['#value'] .= ' ' . ($status_translatable ? t('(this translation)') : t('(all translations)'));
           }
@@ -63,7 +53,7 @@ class NodeTranslationHandler extends ContentTranslationHandler {
    */
   protected function entityFormTitle(EntityInterface $entity) {
     $type_name = node_get_type_label($entity);
-    return t('<em>Edit @type</em> @title', array('@type' => $type_name, '@title' => $entity->label()));
+    return t('<em>Edit @type</em> @title', ['@type' => $type_name, '@title' => $entity->label()]);
   }
 
   /**

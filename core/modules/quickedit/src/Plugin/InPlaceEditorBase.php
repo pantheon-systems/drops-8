@@ -18,8 +18,8 @@ abstract class InPlaceEditorBase extends PluginBase implements InPlaceEditorInte
   /**
    * {@inheritdoc}
    */
-  function getMetadata(FieldItemListInterface $items) {
-    return array();
+  public function getMetadata(FieldItemListInterface $items) {
+    return [];
   }
 
 }

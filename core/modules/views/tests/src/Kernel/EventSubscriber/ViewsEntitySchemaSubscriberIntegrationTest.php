@@ -26,7 +26,7 @@ class ViewsEntitySchemaSubscriberIntegrationTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test', 'user', 'text'];
+  public static $modules = ['entity_test', 'entity_test_update', 'user', 'text'];
 
   /**
    * Views used by this test.
@@ -79,7 +79,7 @@ class ViewsEntitySchemaSubscriberIntegrationTest extends ViewsKernelTestBase {
 
     // Install every entity type's schema that wasn't installed in the parent
     // method.
-    foreach (array_diff_key($this->entityManager->getDefinitions(), array_flip(array('user', 'entity_test'))) as $entity_type_id => $entity_type) {
+    foreach (array_diff_key($this->entityManager->getDefinitions(), array_flip(['user', 'entity_test'])) as $entity_type_id => $entity_type) {
       $this->installEntitySchema($entity_type_id);
     }
   }
@@ -89,6 +89,10 @@ class ViewsEntitySchemaSubscriberIntegrationTest extends ViewsKernelTestBase {
    */
   public function testDeleteEntityType() {
     $entity_storage = $this->entityManager->getStorage('view');
+
+    // Make the test entity type revisionable.
+    $this->updateEntityTypeToRevisionable();
+    $this->entityDefinitionUpdateManager->applyUpdates();
 
     $views = $entity_storage->loadMultiple();
 

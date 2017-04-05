@@ -46,16 +46,16 @@ class TrackerTest extends WebTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->drupalCreateContentType(array('type' => 'page', 'name' => 'Basic page'));
+    $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
 
-    $permissions = array('access comments', 'create page content', 'post comments', 'skip comment approval');
+    $permissions = ['access comments', 'create page content', 'post comments', 'skip comment approval'];
     $this->user = $this->drupalCreateUser($permissions);
     $this->otherUser = $this->drupalCreateUser($permissions);
     $this->addDefaultCommentField('node', 'page');
-    user_role_grant_permissions(AccountInterface::ANONYMOUS_ROLE, array(
+    user_role_grant_permissions(AccountInterface::ANONYMOUS_ROLE, [
       'access content',
       'access user profiles',
-    ));
+    ]);
     $this->drupalPlaceBlock('local_tasks_block', ['id' => 'page_tabs_block']);
     $this->drupalPlaceBlock('local_actions_block', ['id' => 'page_actions_block']);
   }
@@ -63,17 +63,17 @@ class TrackerTest extends WebTestBase {
   /**
    * Tests for the presence of nodes on the global tracker listing.
    */
-  function testTrackerAll() {
+  public function testTrackerAll() {
     $this->drupalLogin($this->user);
 
-    $unpublished = $this->drupalCreateNode(array(
+    $unpublished = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
       'status' => 0,
-    ));
-    $published = $this->drupalCreateNode(array(
+    ]);
+    $published = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
       'status' => 1,
-    ));
+    ]);
 
     $this->drupalGet('activity');
     $this->assertNoText($unpublished->label(), 'Unpublished node does not show up in the tracker listing.');
@@ -129,33 +129,33 @@ class TrackerTest extends WebTestBase {
   /**
    * Tests for the presence of nodes on a user's tracker listing.
    */
-  function testTrackerUser() {
+  public function testTrackerUser() {
     $this->drupalLogin($this->user);
 
-    $unpublished = $this->drupalCreateNode(array(
+    $unpublished = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
       'uid' => $this->user->id(),
       'status' => 0,
-    ));
-    $my_published = $this->drupalCreateNode(array(
+    ]);
+    $my_published = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
       'uid' => $this->user->id(),
       'status' => 1,
-    ));
-    $other_published_no_comment = $this->drupalCreateNode(array(
+    ]);
+    $other_published_no_comment = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
       'uid' => $this->otherUser->id(),
       'status' => 1,
-    ));
-    $other_published_my_comment = $this->drupalCreateNode(array(
+    ]);
+    $other_published_my_comment = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
       'uid' => $this->otherUser->id(),
       'status' => 1,
-    ));
-    $comment = array(
+    ]);
+    $comment = [
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
-    );
+    ];
     $this->drupalPostForm('comment/reply/node/' . $other_published_my_comment->id() . '/comment', $comment, t('Save'));
 
     $this->drupalGet('user/' . $this->user->id() . '/activity');
@@ -197,12 +197,12 @@ class TrackerTest extends WebTestBase {
     $this->assertNoLink($unpublished->label());
     // Verify that title and tab title have been set correctly.
     $this->assertText('Activity', 'The user activity tab has the name "Activity".');
-    $this->assertTitle(t('@name | @site', array('@name' => $this->user->getUsername(), '@site' => $this->config('system.site')->get('name'))), 'The user tracker page has the correct page title.');
+    $this->assertTitle(t('@name | @site', ['@name' => $this->user->getUsername(), '@site' => $this->config('system.site')->get('name')]), 'The user tracker page has the correct page title.');
 
     // Verify that unpublished comments are removed from the tracker.
-    $admin_user = $this->drupalCreateUser(array('post comments', 'administer comments', 'access user profiles'));
+    $admin_user = $this->drupalCreateUser(['post comments', 'administer comments', 'access user profiles']);
     $this->drupalLogin($admin_user);
-    $this->drupalPostForm('comment/1/edit', array('status' => CommentInterface::NOT_PUBLISHED), t('Save'));
+    $this->drupalPostForm('comment/1/edit', ['status' => CommentInterface::NOT_PUBLISHED], t('Save'));
     $this->drupalGet('user/' . $this->user->id() . '/activity');
     $this->assertNoText($other_published_my_comment->label(), 'Unpublished comments are not counted on the tracker listing.');
 
@@ -223,13 +223,13 @@ class TrackerTest extends WebTestBase {
   /**
    * Tests the metadata for the "new"/"updated" indicators.
    */
-  function testTrackerHistoryMetadata() {
+  public function testTrackerHistoryMetadata() {
     $this->drupalLogin($this->user);
 
     // Create a page node.
-    $edit = array(
+    $edit = [
       'title' => $this->randomMachineName(8),
-    );
+    ];
     $node = $this->drupalCreateNode($edit);
 
     // Verify that the history metadata is present.
@@ -243,10 +243,10 @@ class TrackerTest extends WebTestBase {
     // Add a comment to the page, make sure it is created after the node by
     // sleeping for one second, to ensure the last comment timestamp is
     // different from before.
-    $comment = array(
+    $comment = [
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
-    );
+    ];
     sleep(1);
     $this->drupalPostForm('comment/reply/node/' . $node->id() . '/comment', $comment, t('Save'));
     // Reload the node so that comment.module's hook_node_load()
@@ -274,25 +274,25 @@ class TrackerTest extends WebTestBase {
   /**
    * Tests for ordering on a users tracker listing when comments are posted.
    */
-  function testTrackerOrderingNewComments() {
+  public function testTrackerOrderingNewComments() {
     $this->drupalLogin($this->user);
 
-    $node_one = $this->drupalCreateNode(array(
+    $node_one = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
-    ));
+    ]);
 
-    $node_two = $this->drupalCreateNode(array(
+    $node_two = $this->drupalCreateNode([
       'title' => $this->randomMachineName(8),
-    ));
+    ]);
 
     // Now get otherUser to track these pieces of content.
     $this->drupalLogin($this->otherUser);
 
     // Add a comment to the first page.
-    $comment = array(
+    $comment = [
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
-    );
+    ];
     $this->drupalPostForm('comment/reply/node/' . $node_one->id() . '/comment', $comment, t('Save'));
 
     // If the comment is posted in the same second as the last one then Drupal
@@ -300,10 +300,10 @@ class TrackerTest extends WebTestBase {
     sleep(1);
 
     // Add a comment to the second page.
-    $comment = array(
+    $comment = [
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
-    );
+    ];
     $this->drupalPostForm('comment/reply/node/' . $node_two->id() . '/comment', $comment, t('Save'));
 
     // We should at this point have in our tracker for otherUser:
@@ -320,10 +320,10 @@ class TrackerTest extends WebTestBase {
     sleep(1);
 
     // Add a comment to the second page.
-    $comment = array(
+    $comment = [
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
-    );
+    ];
     $this->drupalPostForm('comment/reply/node/' . $node_one->id() . '/comment', $comment, t('Save'));
 
     // Switch back to the otherUser and assert that the order has swapped.
@@ -340,25 +340,25 @@ class TrackerTest extends WebTestBase {
   /**
    * Tests that existing nodes are indexed by cron.
    */
-  function testTrackerCronIndexing() {
+  public function testTrackerCronIndexing() {
     $this->drupalLogin($this->user);
 
     // Create 3 nodes.
-    $edits = array();
-    $nodes = array();
+    $edits = [];
+    $nodes = [];
     for ($i = 1; $i <= 3; $i++) {
-      $edits[$i] = array(
+      $edits[$i] = [
         'title' => $this->randomMachineName(),
-      );
+      ];
       $nodes[$i] = $this->drupalCreateNode($edits[$i]);
     }
 
     // Add a comment to the last node as other user.
     $this->drupalLogin($this->otherUser);
-    $comment = array(
+    $comment = [
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(20),
-    );
+    ];
     $this->drupalPostForm('comment/reply/node/' . $nodes[3]->id() . '/comment', $comment, t('Save'));
 
     // Start indexing backwards from node 3.
@@ -378,7 +378,7 @@ class TrackerTest extends WebTestBase {
 
     // Assert that all node titles are displayed.
     foreach ($nodes as $i => $node) {
-      $this->assertText($node->label(), format_string('Node @i is displayed on the tracker listing pages.', array('@i' => $i)));
+      $this->assertText($node->label(), format_string('Node @i is displayed on the tracker listing pages.', ['@i' => $i]));
     }
 
     // Fetch the site-wide tracker.
@@ -386,32 +386,32 @@ class TrackerTest extends WebTestBase {
 
     // Assert that all node titles are displayed.
     foreach ($nodes as $i => $node) {
-      $this->assertText($node->label(), format_string('Node @i is displayed on the tracker listing pages.', array('@i' => $i)));
+      $this->assertText($node->label(), format_string('Node @i is displayed on the tracker listing pages.', ['@i' => $i]));
     }
   }
 
   /**
    * Tests that publish/unpublish works at admin/content/node.
    */
-  function testTrackerAdminUnpublish() {
-    \Drupal::service('module_installer')->install(array('views'));
+  public function testTrackerAdminUnpublish() {
+    \Drupal::service('module_installer')->install(['views']);
     \Drupal::service('router.builder')->rebuild();
-    $admin_user = $this->drupalCreateUser(array('access content overview', 'administer nodes', 'bypass node access'));
+    $admin_user = $this->drupalCreateUser(['access content overview', 'administer nodes', 'bypass node access']);
     $this->drupalLogin($admin_user);
 
-    $node = $this->drupalCreateNode(array(
+    $node = $this->drupalCreateNode([
       'title' => $this->randomMachineName(),
-    ));
+    ]);
 
     // Assert that the node is displayed.
     $this->drupalGet('activity');
     $this->assertText($node->label(), 'A node is displayed on the tracker listing pages.');
 
     // Unpublish the node and ensure that it's no longer displayed.
-    $edit = array(
+    $edit = [
       'action' => 'node_unpublish_action',
       'node_bulk_form[0]' => $node->id(),
-    );
+    ];
     $this->drupalPostForm('admin/content', $edit, t('Apply to selected items'));
 
     $this->drupalGet('activity');
@@ -438,7 +438,7 @@ class TrackerTest extends WebTestBase {
    * @param bool $library_is_present
    *   Whether the drupal.tracker-history library should be present or not.
    */
-  function assertHistoryMetadata($node_id, $node_timestamp, $node_last_comment_timestamp, $library_is_present = TRUE) {
+  public function assertHistoryMetadata($node_id, $node_timestamp, $node_last_comment_timestamp, $library_is_present = TRUE) {
     $settings = $this->getDrupalSettings();
     $this->assertIdentical($library_is_present, isset($settings['ajaxPageState']) && in_array('tracker/history', explode(',', $settings['ajaxPageState']['libraries'])), 'drupal.tracker-history library is present.');
     $this->assertIdentical(1, count($this->xpath('//table/tbody/tr/td[@data-history-node-id="' . $node_id . '" and @data-history-node-timestamp="' . $node_timestamp . '"]')), 'Tracker table cell contains the data-history-node-id and data-history-node-timestamp attributes for the node.');

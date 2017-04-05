@@ -2,6 +2,9 @@
 
 namespace Drupal\FunctionalTests;
 
+use Behat\Mink\Exception\ElementNotFoundException;
+use Behat\Mink\Exception\ExpectationException;
+use Behat\Mink\Selector\Xpath\Escaper;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Xss;
 use Drupal\KernelTests\AssertLegacyTrait as BaseAssertLegacyTrait;
@@ -227,23 +230,26 @@ trait AssertLegacyTrait {
   }
 
   /**
-   * Asserts that a field exists with the given name and value.
+   * Asserts that a field does not exist with the given name and value.
    *
    * @param string $name
    *   Name of field to assert.
    * @param string $value
-   *   (optional) Value of the field to assert. You may pass in NULL (default)
-   *   to skip checking the actual value, while still checking that the field
-   *   exists.
+   *   (optional) Value for the field, to assert that the field's value on the
+   *   page does not match it. You may pass in NULL to skip checking the
+   *   value, while still checking that the field does not exist. However, the
+   *   default value ('') asserts that the field value is not an empty string.
    *
    * @deprecated Scheduled for removal in Drupal 9.0.0.
    *   Use $this->assertSession()->fieldNotExists() or
    *   $this->assertSession()->fieldValueNotEquals() instead.
    */
-  protected function assertNoFieldByName($name, $value = NULL) {
-    $this->assertSession()->fieldNotExists($name);
-    if ($value !== NULL) {
+  protected function assertNoFieldByName($name, $value = '') {
+    if ($this->getSession()->getPage()->findField($name) && isset($value)) {
       $this->assertSession()->fieldValueNotEquals($name, (string) $value);
+    }
+    else {
+      $this->assertSession()->fieldNotExists($name);
     }
   }
 
@@ -258,12 +264,23 @@ trait AssertLegacyTrait {
    *   However, the default value ('') asserts that the field value is an empty
    *   string.
    *
+   * @throws \Behat\Mink\Exception\ElementNotFoundException
+   *
    * @deprecated Scheduled for removal in Drupal 9.0.0.
    *   Use $this->assertSession()->fieldExists() or
    *   $this->assertSession()->fieldValueEquals() instead.
    */
-  protected function assertFieldById($id, $value = NULL) {
-    $this->assertFieldByName($id, $value);
+  protected function assertFieldById($id, $value = '') {
+    $xpath = $this->assertSession()->buildXPathQuery('//textarea[@id=:value]|//input[@id=:value]|//select[@id=:value]', [':value' => $id]);
+    $field = $this->getSession()->getPage()->find('xpath', $xpath);
+
+    if (empty($field)) {
+      throw new ElementNotFoundException($this->getSession()->getDriver(), 'form field', 'id', $field);
+    }
+
+    if ($value !== NULL) {
+      $this->assertEquals($value, $field->getValue());
+    }
   }
 
   /**
@@ -376,7 +393,7 @@ trait AssertLegacyTrait {
    *   Link position counting from zero.
    *
    * @deprecated Scheduled for removal in Drupal 9.0.0.
-   *   Use $this->assertSession()->linkByHref() instead.
+   *   Use $this->assertSession()->linkByHrefExists() instead.
    */
   protected function assertLinkByHref($href, $index = 0) {
     $this->assertSession()->linkByHrefExists($href, $index);
@@ -406,16 +423,26 @@ trait AssertLegacyTrait {
    *   while still checking that the field doesn't exist. However, the default
    *   value ('') asserts that the field value is not an empty string.
    *
+   * @throws \Behat\Mink\Exception\ExpectationException
+   *
    * @deprecated Scheduled for removal in Drupal 9.0.0.
    *   Use $this->assertSession()->fieldNotExists() or
    *   $this->assertSession()->fieldValueNotEquals() instead.
    */
   protected function assertNoFieldById($id, $value = '') {
-    if ($this->getSession()->getPage()->findField($id)) {
-      $this->assertSession()->fieldValueNotEquals($id, (string) $value);
+    $xpath = $this->assertSession()->buildXPathQuery('//textarea[@id=:value]|//input[@id=:value]|//select[@id=:value]', [':value' => $id]);
+    $field = $this->getSession()->getPage()->find('xpath', $xpath);
+
+    // Return early if the field could not be found as expected.
+    if ($field === NULL) {
+      return;
     }
-    else {
-      $this->assertSession()->fieldNotExists($id);
+
+    if (!isset($value)) {
+      throw new ExpectationException(sprintf('Id "%s" appears on this page, but it should not.', $id), $this->getSession()->getDriver());
+    }
+    elseif ($value === $field->getValue()) {
+      throw new ExpectationException(sprintf('Failed asserting that %s is not equal to %s', $field->getValue(), $value), $this->getSession()->getDriver());
     }
   }
 
@@ -445,6 +472,21 @@ trait AssertLegacyTrait {
    */
   protected function assertOption($id, $option) {
     return $this->assertSession()->optionExists($id, $option);
+  }
+
+  /**
+   * Asserts that a select option with the visible text exists.
+   *
+   * @param string $id
+   *   The ID of the select field to assert.
+   * @param string $text
+   *   The text for the option tag to assert.
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Use $this->assertSession()->optionExists() instead.
+   */
+  protected function assertOptionByText($id, $text) {
+    return $this->assertSession()->optionExists($id, $text);
   }
 
   /**
@@ -510,6 +552,102 @@ trait AssertLegacyTrait {
   }
 
   /**
+   * Asserts that a field exists in the current page by the given XPath.
+   *
+   * @param string $xpath
+   *   XPath used to find the field.
+   * @param string $value
+   *   (optional) Value of the field to assert. You may pass in NULL (default)
+   *   to skip checking the actual value, while still checking that the field
+   *   exists.
+   * @param string $message
+   *   (optional) A message to display with the assertion. Do not translate
+   *   messages with t().
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Use $this->xpath() instead and check the values directly in the test.
+   */
+  protected function assertFieldByXPath($xpath, $value = NULL, $message = '') {
+    $fields = $this->xpath($xpath);
+
+    $this->assertFieldsByValue($fields, $value, $message);
+  }
+
+  /**
+   * Asserts that a field does not exist or its value does not match, by XPath.
+   *
+   * @param string $xpath
+   *   XPath used to find the field.
+   * @param string $value
+   *   (optional) Value of the field, to assert that the field's value on the
+   *   page does not match it.
+   * @param string $message
+   *   (optional) A message to display with the assertion. Do not translate
+   *   messages with t().
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Use $this->xpath() instead and assert that the result is empty.
+   */
+  protected function assertNoFieldByXPath($xpath, $value = NULL, $message = '') {
+    $fields = $this->xpath($xpath);
+
+    // If value specified then check array for match.
+    $found = TRUE;
+    if (isset($value)) {
+      $found = FALSE;
+      if ($fields) {
+        foreach ($fields as $field) {
+          if ($field->getAttribute('value') == $value) {
+            $found = TRUE;
+          }
+        }
+      }
+    }
+    return $this->assertFalse($fields && $found, $message);
+  }
+
+  /**
+   * Asserts that a field exists in the current page with a given Xpath result.
+   *
+   * @param \Behat\Mink\Element\NodeElement[] $fields
+   *   Xml elements.
+   * @param string $value
+   *   (optional) Value of the field to assert. You may pass in NULL (default) to skip
+   *   checking the actual value, while still checking that the field exists.
+   * @param string $message
+   *   (optional) A message to display with the assertion. Do not translate
+   *   messages with t().
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Iterate over the fields yourself instead and directly check the values in
+   *   the test.
+   */
+  protected function assertFieldsByValue($fields, $value = NULL, $message = '') {
+    // If value specified then check array for match.
+    $found = TRUE;
+    if (isset($value)) {
+      $found = FALSE;
+      if ($fields) {
+        foreach ($fields as $field) {
+          if ($field->getAttribute('value') == $value) {
+            // Input element with correct value.
+            $found = TRUE;
+          }
+          elseif ($field->find('xpath', '//option[@value = ' . (new Escaper())->escapeLiteral($value) . ' and @selected = "selected"]')) {
+            // Select element with an option.
+            $found = TRUE;
+          }
+          elseif ($field->getText() == $value) {
+            // Text area with correct text.
+            $found = TRUE;
+          }
+        }
+      }
+    }
+    $this->assertTrue($fields && $found, $message);
+  }
+
+  /**
    * Passes if the raw text IS found escaped on the loaded page, fail otherwise.
    *
    * Raw text refers to the raw HTML that the page generated.
@@ -553,6 +691,22 @@ trait AssertLegacyTrait {
   }
 
   /**
+   * Triggers a pass if the Perl regex pattern is not found in the raw content.
+   *
+   * @param string $pattern
+   *   Perl regex to look for including the regex delimiters.
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Use $this->assertSession()->responseNotMatches() instead.
+   *
+   * @see https://www.drupal.org/node/2864262
+   */
+  protected function assertNoPattern($pattern) {
+    @trigger_error('assertNoPattern() is deprecated and scheduled for removal in Drupal 9.0.0. Use $this->assertSession()->responseNotMatches($pattern) instead. See https://www.drupal.org/node/2864262.', E_USER_DEPRECATED);
+    $this->assertSession()->responseNotMatches($pattern);
+  }
+
+  /**
    * Asserts whether an expected cache tag was present in the last response.
    *
    * @param string $expected_cache_tag
@@ -563,6 +717,21 @@ trait AssertLegacyTrait {
    */
   protected function assertCacheTag($expected_cache_tag) {
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $expected_cache_tag);
+  }
+
+  /**
+   * Checks that current response header equals value.
+   *
+   * @param string $name
+   *   Name of header to assert.
+   * @param string $value
+   *   Value of the header to assert
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Use $this->assertSession()->responseHeaderEquals() instead.
+   */
+  protected function assertHeader($name, $value) {
+    $this->assertSession()->responseHeaderEquals($name, $value);
   }
 
   /**
@@ -599,8 +768,19 @@ trait AssertLegacyTrait {
    * @deprecated Scheduled for removal in Drupal 9.0.0.
    *   Use $this->assertSession()->buildXPathQuery() instead.
    */
-  protected function buildXPathQuery($xpath, array $args = array()) {
+  protected function buildXPathQuery($xpath, array $args = []) {
     return $this->assertSession()->buildXPathQuery($xpath, $args);
+  }
+
+  /**
+   * Gets the current raw content.
+   *
+   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   *   Use $this->getSession()->getPage()->getContent() instead.
+   */
+  protected function getRawContent() {
+    @trigger_error('AssertLegacyTrait::getRawContent() is scheduled for removal in Drupal 9.0.0. Use $this->getSession()->getPage()->getContent() instead.', E_USER_DEPRECATED);
+    return $this->getSession()->getPage()->getContent();
   }
 
 }

@@ -12,14 +12,14 @@ use Drupal\views\Views;
  */
 class TokenReplaceTest extends ViewsKernelTestBase {
 
-  public static $modules = array('system');
+  public static $modules = ['system'];
 
   /**
    * Views used by this test.
    *
    * @var array
    */
-  public static $testViews = array('test_tokens', 'test_invalid_tokens');
+  public static $testViews = ['test_tokens', 'test_invalid_tokens'];
 
   protected function setUp($import_test_views = TRUE) {
     parent::setUp();
@@ -29,25 +29,27 @@ class TokenReplaceTest extends ViewsKernelTestBase {
   /**
    * Tests core token replacements generated from a view.
    */
-  function testTokenReplacement() {
+  public function testTokenReplacement() {
     $token_handler = \Drupal::token();
     $view = Views::getView('test_tokens');
     $view->setDisplay('page_1');
+    // Force the view to span more than one page to better test page_count.
+    $view->display_handler->getPlugin('pager')->setItemsPerPage(4);
     $this->executeView($view);
 
-    $expected = array(
+    $expected = [
       '[view:label]' => 'Test tokens',
       '[view:description]' => 'Test view to token replacement tests.',
       '[view:id]' => 'test_tokens',
       '[view:title]' => 'Test token page',
       '[view:url]' => $view->getUrl(NULL, 'page_1')->setAbsolute(TRUE)->toString(),
-      '[view:total-rows]' => (string) $view->total_rows,
+      '[view:total-rows]' => '5',
       '[view:base-table]' => 'views_test_data',
       '[view:base-field]' => 'id',
-      '[view:items-per-page]' => '10',
+      '[view:items-per-page]' => '4',
       '[view:current-page]' => '1',
-      '[view:page-count]' => '1',
-    );
+      '[view:page-count]' => '2',
+    ];
 
     $base_bubbleable_metadata = BubbleableMetadata::createFromObject($view->storage);
     $metadata_tests = [];
@@ -65,47 +67,84 @@ class TokenReplaceTest extends ViewsKernelTestBase {
 
     foreach ($expected as $token => $expected_output) {
       $bubbleable_metadata = new BubbleableMetadata();
-      $output = $token_handler->replace($token, array('view' => $view), [], $bubbleable_metadata);
-      $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', array('%token' => $token)));
+      $output = $token_handler->replace($token, ['view' => $view], [], $bubbleable_metadata);
+      $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', ['%token' => $token]));
       $this->assertEqual($bubbleable_metadata, $metadata_tests[$token]);
+    }
+  }
+
+  /**
+   * Tests core token replacements generated from a view.
+   */
+  public function testTokenReplacementWithMiniPager() {
+    $token_handler = \Drupal::token();
+    $view = Views::getView('test_tokens');
+    $view->setDisplay('page_3');
+    $this->executeView($view);
+
+    $this->assertSame(TRUE, $view->get_total_rows, 'The query was set to calculate the total number of rows.');
+
+    $expected = [
+      '[view:label]' => 'Test tokens',
+      '[view:description]' => 'Test view to token replacement tests.',
+      '[view:id]' => 'test_tokens',
+      '[view:title]' => 'Test token page with minipager',
+      '[view:url]' => $view->getUrl(NULL, 'page_3')
+        ->setAbsolute(TRUE)
+        ->toString(),
+      '[view:total-rows]' => '5',
+      '[view:base-table]' => 'views_test_data',
+      '[view:base-field]' => 'id',
+      '[view:items-per-page]' => '2',
+      '[view:current-page]' => '1',
+      '[view:page-count]' => '3',
+    ];
+
+    $base_bubbleable_metadata = BubbleableMetadata::createFromObject($view->storage);
+
+    foreach ($expected as $token => $expected_output) {
+      $bubbleable_metadata = new BubbleableMetadata();
+      $output = $token_handler->replace($token, ['view' => $view], [], $bubbleable_metadata);
+      $this->assertSame($expected_output, $output, sprintf('Token %s replaced correctly.', $token));
+      $this->assertEquals($base_bubbleable_metadata, $bubbleable_metadata);
     }
   }
 
   /**
    * Tests core token replacements generated from a view without results.
    */
-  function testTokenReplacementNoResults() {
+  public function testTokenReplacementNoResults() {
     $token_handler = \Drupal::token();
     $view = Views::getView('test_tokens');
     $view->setDisplay('page_2');
     $this->executeView($view);
 
-    $expected = array(
+    $expected = [
       '[view:page-count]' => '1',
-    );
+    ];
 
     foreach ($expected as $token => $expected_output) {
-      $output = $token_handler->replace($token, array('view' => $view));
-      $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', array('%token' => $token)));
+      $output = $token_handler->replace($token, ['view' => $view]);
+      $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', ['%token' => $token]));
     }
   }
 
   /**
    * Tests path token replacements generated from a view without a path.
    */
-  function testTokenReplacementNoPath() {
+  public function testTokenReplacementNoPath() {
     $token_handler = \Drupal::token();
     $view = Views::getView('test_invalid_tokens');
     $view->setDisplay('block_1');
     $this->executeView($view);
 
-    $expected = array(
+    $expected = [
       '[view:url]' => '',
-    );
+    ];
 
     foreach ($expected as $token => $expected_output) {
-      $output = $token_handler->replace($token, array('view' => $view));
-      $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', array('%token' => $token)));
+      $output = $token_handler->replace($token, ['view' => $view]);
+      $this->assertIdentical($output, $expected_output, format_string('Token %token replaced correctly.', ['%token' => $token]));
     }
   }
 

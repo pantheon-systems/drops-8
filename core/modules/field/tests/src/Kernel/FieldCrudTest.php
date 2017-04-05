@@ -37,21 +37,21 @@ class FieldCrudTest extends FieldKernelTestBase {
    */
   protected $fieldDefinition;
 
-  function setUp() {
+  public function setUp() {
     parent::setUp();
 
-    $this->fieldStorageDefinition = array(
+    $this->fieldStorageDefinition = [
       'field_name' => Unicode::strtolower($this->randomMachineName()),
       'entity_type' => 'entity_test',
       'type' => 'test_field',
-    );
+    ];
     $this->fieldStorage = FieldStorageConfig::create($this->fieldStorageDefinition);
     $this->fieldStorage->save();
-    $this->fieldDefinition = array(
+    $this->fieldDefinition = [
       'field_name' => $this->fieldStorage->getName(),
       'entity_type' => 'entity_test',
       'bundle' => 'entity_test',
-    );
+    ];
   }
 
   // TODO : test creation with
@@ -63,7 +63,7 @@ class FieldCrudTest extends FieldKernelTestBase {
   /**
    * Test the creation of a field.
    */
-  function testCreateField() {
+  public function testCreateField() {
     // Set a state flag so that field_test.module knows to add an in-memory
     // constraint for this field.
     \Drupal::state()->set('field_test_add_constraint', $this->fieldStorage->getName());
@@ -174,7 +174,7 @@ class FieldCrudTest extends FieldKernelTestBase {
   /**
    * Test reading back a field definition.
    */
-  function testReadField() {
+  public function testReadField() {
     FieldConfig::create($this->fieldDefinition)->save();
 
     // Read the field back.
@@ -187,7 +187,7 @@ class FieldCrudTest extends FieldKernelTestBase {
   /**
    * Test the update of a field.
    */
-  function testUpdateField() {
+  public function testUpdateField() {
     FieldConfig::create($this->fieldDefinition)->save();
 
     // Check that basic changes are saved.
@@ -209,7 +209,7 @@ class FieldCrudTest extends FieldKernelTestBase {
   /**
    * Test the deletion of a field.
    */
-  function testDeleteField() {
+  public function testDeleteField() {
     // TODO: Test deletion of the data stored in the field also.
     // Need to check that data for a 'deleted' field / storage doesn't get loaded
     // Need to check data marked deleted is cleaned on cron (not implemented yet...)
@@ -223,12 +223,12 @@ class FieldCrudTest extends FieldKernelTestBase {
     FieldConfig::create($another_field_definition)->save();
 
     // Test that the first field is not deleted, and then delete it.
-    $field = current(entity_load_multiple_by_properties('field_config', array('entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE)));
+    $field = current(entity_load_multiple_by_properties('field_config', ['entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE]));
     $this->assertTrue(!empty($field) && empty($field->deleted), 'A new field is not marked for deletion.');
     $field->delete();
 
     // Make sure the field is marked as deleted when it is specifically loaded.
-    $field = current(entity_load_multiple_by_properties('field_config', array('entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE)));
+    $field = current(entity_load_multiple_by_properties('field_config', ['entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE]));
     $this->assertTrue($field->isDeleted(), 'A deleted field is marked for deletion.');
 
     // Try to load the field normally and make sure it does not show up.
@@ -243,7 +243,7 @@ class FieldCrudTest extends FieldKernelTestBase {
   /**
    * Tests the cross deletion behavior between field storages and fields.
    */
-  function testDeleteFieldCrossDeletion() {
+  public function testDeleteFieldCrossDeletion() {
     $field_definition_2 = $this->fieldDefinition;
     $field_definition_2['bundle'] .= '_another_bundle';
     entity_test_create_bundle($field_definition_2['bundle']);
@@ -276,7 +276,7 @@ class FieldCrudTest extends FieldKernelTestBase {
     $field->save();
     $field_2 = FieldConfig::create($field_definition_2);
     $field_2->save();
-    $this->container->get('entity.manager')->getStorage('field_config')->delete(array($field, $field_2));
+    $this->container->get('entity.manager')->getStorage('field_config')->delete([$field, $field_2]);
     $this->assertFalse(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
   }
 

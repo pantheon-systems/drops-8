@@ -18,11 +18,11 @@ class LanguageDependencyInjectionTest extends LanguageTestBase {
    *
    * @see \Drupal\Core\Language\LanguageInterface
    */
-  function testDependencyInjectedNewLanguage() {
+  public function testDependencyInjectedNewLanguage() {
     $expected = $this->languageManager->getDefaultLanguage();
     $result = $this->languageManager->getCurrentLanguage();
     foreach ($expected as $property => $value) {
-      $this->assertEqual($expected->$property, $result->$property, format_string('The dependency injected language object %prop property equals the new Language object %prop property.', array('%prop' => $property)));
+      $this->assertEqual($expected->$property, $result->$property, format_string('The dependency injected language object %prop property equals the new Language object %prop property.', ['%prop' => $property]));
     }
   }
 
@@ -32,7 +32,7 @@ class LanguageDependencyInjectionTest extends LanguageTestBase {
    *
    * @see \Drupal\Core\Language\Language
    */
-  function testDependencyInjectedNewDefaultLanguage() {
+  public function testDependencyInjectedNewDefaultLanguage() {
     $default_language = ConfigurableLanguage::load(\Drupal::languageManager()->getDefaultLanguage()->getId());
     // Change the language default object to different values.
     ConfigurableLanguage::createFromLangcode('fr')->save();
@@ -45,7 +45,7 @@ class LanguageDependencyInjectionTest extends LanguageTestBase {
 
     // Delete the language to check that we fallback to the default.
     try {
-      entity_delete_multiple('configurable_language', array('fr'));
+      entity_delete_multiple('configurable_language', ['fr']);
       $this->fail('Expected DeleteDefaultLanguageException thrown.');
     }
     catch (DeleteDefaultLanguageException $e) {
@@ -55,7 +55,7 @@ class LanguageDependencyInjectionTest extends LanguageTestBase {
     // Re-save the previous default language and the delete should work.
     $this->config('system.site')->set('default_langcode', $default_language->getId())->save();
 
-    entity_delete_multiple('configurable_language', array('fr'));
+    entity_delete_multiple('configurable_language', ['fr']);
     $result = \Drupal::languageManager()->getCurrentLanguage();
     $this->assertIdentical($result->getId(), $default_language->getId());
   }

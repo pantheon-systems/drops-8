@@ -14,7 +14,7 @@ class EntityNonRevisionableTranslatableFieldTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('entity_test', 'language', 'content_translation');
+  public static $modules = ['entity_test', 'language', 'content_translation'];
 
   protected function setUp() {
     parent::setUp();
@@ -28,7 +28,7 @@ class EntityNonRevisionableTranslatableFieldTest extends EntityKernelTestBase {
   /**
    * Tests translating a non-revisionable field.
    */
-  function testTranslatingNonRevisionableField() {
+  public function testTranslatingNonRevisionableField() {
     /** @var \Drupal\Core\Entity\ContentEntityBase $entity */
     $entity = EntityTestMulRev::create();
     $entity->set('non_rev_field', 'Hello');

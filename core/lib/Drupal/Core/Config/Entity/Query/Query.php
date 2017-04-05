@@ -49,7 +49,7 @@ class Query extends QueryBase implements QueryInterface {
    * @param array $namespaces
    *   List of potential namespaces of the classes belonging to this query.
    */
-  function __construct(EntityTypeInterface $entity_type, $conjunction, ConfigFactoryInterface $config_factory, KeyValueFactoryInterface $key_value_factory, array $namespaces) {
+  public function __construct(EntityTypeInterface $entity_type, $conjunction, ConfigFactoryInterface $config_factory, KeyValueFactoryInterface $key_value_factory, array $namespaces) {
     parent::__construct($entity_type, $conjunction, $namespaces);
     $this->configFactory = $config_factory;
     $this->keyValueFactory = $key_value_factory;
@@ -141,7 +141,7 @@ class Query extends QueryBase implements QueryInterface {
           elseif (in_array($condition['field'], $lookup_keys)) {
             // If we don't find anything then there are no matches. No point in
             // listing anything.
-            $names = array();
+            $names = [];
             $keys = (array) $condition['value'];
             $keys = array_map(function ($value) use ($condition) {
               return $condition['field'] . ':' . $value;
@@ -208,7 +208,7 @@ class Query extends QueryBase implements QueryInterface {
     }
 
     // Load the corresponding records.
-    $records = array();
+    $records = [];
     foreach ($this->configFactory->loadMultiple($names) as $config) {
       $records[substr($config->getName(), $prefix_length)] = $config->get();
     }

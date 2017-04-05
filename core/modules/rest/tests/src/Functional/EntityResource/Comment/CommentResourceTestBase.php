@@ -28,6 +28,7 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
    * {@inheritdoc}
    */
   protected static $patchProtectedFieldNames = [
+    'status',
     'pid',
     'entity_id',
     'uid',
@@ -35,7 +36,6 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
     'homepage',
     'created',
     'changed',
-    'status',
     'thread',
     'entity_type',
     'field_name',
@@ -87,10 +87,10 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
     $this->addDefaultCommentField('entity_test', 'bar', 'comment');
 
     // Create a "Camelids" test entity that the comment will be assigned to.
-    $commented_entity = EntityTest::create(array(
+    $commented_entity = EntityTest::create([
       'name' => 'Camelids',
       'type' => 'bar',
-    ));
+    ]);
     $commented_entity->save();
 
     // Create a "Llama" comment.
@@ -144,17 +144,17 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
       ],
       'status' => [
         [
-          'value' => 1,
+          'value' => TRUE,
         ],
       ],
       'created' => [
         [
-          'value' => '123456789',
+          'value' => 123456789,
         ],
       ],
       'changed' => [
         [
-          'value' => '123456789',
+          'value' => $this->entity->getChangedTime(),
         ],
       ],
       'default_langcode' => [
@@ -164,7 +164,7 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
       ],
       'uid' => [
         [
-          'target_id' => $author->id(),
+          'target_id' => (int) $author->id(),
           'target_type' => 'user',
           'target_uuid' => $author->uuid(),
           'url' => base_path() . 'user/' . $author->id(),
@@ -178,7 +178,7 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
       ],
       'entity_id' => [
         [
-          'target_id' => '1',
+          'target_id' => 1,
           'target_type' => 'entity_test',
           'target_uuid' => EntityTest::load(1)->uuid(),
           'url' => base_path() . 'entity_test/1',
@@ -278,8 +278,10 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
     // DX: 422 when missing 'entity_type' field.
     $request_options[RequestOptions::BODY] = $this->serializer->encode(array_diff_key($this->getNormalizedPostEntity(), ['entity_type' => TRUE]), static::$format);
     $response = $this->request('POST', $url, $request_options);
-    // @todo Uncomment, remove next line in https://www.drupal.org/node/2820364.
-    $this->assertResourceErrorResponse(500, 'A fatal error occurred: Internal Server Error', $response);
+    // @todo Uncomment, remove next 3 lines in https://www.drupal.org/node/2820364.
+    $this->assertSame(500, $response->getStatusCode());
+    $this->assertSame(['application/json'], $response->getHeader('Content-Type'));
+    $this->assertSame('{"message":"A fatal error occurred: Internal Server Error"}', (string) $response->getBody());
     //$this->assertResourceErrorResponse(422, "Unprocessable Entity: validation failed.\nentity_type: This value should not be null.\n", $response);
 
     // DX: 422 when missing 'entity_id' field.
@@ -301,9 +303,29 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
     // DX: 422 when missing 'entity_type' field.
     $request_options[RequestOptions::BODY] = $this->serializer->encode(array_diff_key($this->getNormalizedPostEntity(), ['field_name' => TRUE]), static::$format);
     $response = $this->request('POST', $url, $request_options);
-    // @todo Uncomment, remove next line in https://www.drupal.org/node/2820364.
-    $this->assertResourceErrorResponse(500, 'A fatal error occurred: Field  is unknown.', $response);
+    // @todo Uncomment, remove next 3 lines in https://www.drupal.org/node/2820364.
+    $this->assertSame(500, $response->getStatusCode());
+    $this->assertSame(['application/json'], $response->getHeader('Content-Type'));
+    $this->assertSame('{"message":"A fatal error occurred: Field  is unknown."}', (string) $response->getBody());
     //$this->assertResourceErrorResponse(422, "Unprocessable Entity: validation failed.\nfield_name: This value should not be null.\n", $response);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getExpectedUnauthorizedAccessMessage($method) {
+    if ($this->config('rest.settings')->get('bc_entity_resource_permissions')) {
+      return parent::getExpectedUnauthorizedAccessMessage($method);
+    }
+
+    switch ($method) {
+      case 'GET';
+        return "The 'access comments' permission is required and the comment must be published.";
+      case 'POST';
+        return "The 'post comments' permission is required.";
+      default:
+        return parent::getExpectedUnauthorizedAccessMessage($method);
+    }
   }
 
 }

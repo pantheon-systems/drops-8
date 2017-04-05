@@ -49,7 +49,7 @@ class RouteSubscriber extends RouteSubscriberBase {
    *
    * @var array
    */
-  protected $viewRouteNames = array();
+  protected $viewRouteNames = [];
 
   /**
    * Constructs a \Drupal\views\EventSubscriber\RouteSubscriber instance.
@@ -76,7 +76,7 @@ class RouteSubscriber extends RouteSubscriberBase {
    */
   public static function getSubscribedEvents() {
     $events = parent::getSubscribedEvents();
-    $events[RoutingEvents::FINISHED] = array('routeRebuildFinished');
+    $events[RoutingEvents::FINISHED] = ['routeRebuildFinished'];
     // Ensure to run after the entity resolver subscriber
     // @see \Drupal\Core\EventSubscriber\EntityRouteAlterSubscriber
     $events[RoutingEvents::ALTER] = ['onAlterRoutes', -175];
@@ -89,7 +89,7 @@ class RouteSubscriber extends RouteSubscriberBase {
    */
   protected function getViewsDisplayIDsWithRoute() {
     if (!isset($this->viewsDisplayPairs)) {
-      $this->viewsDisplayPairs = array();
+      $this->viewsDisplayPairs = [];
 
       // @todo Convert this method to some service.
       $views = $this->getApplicableViews();
@@ -156,7 +156,11 @@ class RouteSubscriber extends RouteSubscriberBase {
   }
 
   /**
-   * {@inheritdoc}
+   * Stores the new route names after they have been rebuilt.
+   *
+   * Callback for the RoutingEvents::FINISHED event.
+   *
+   * @see \Drupal\views\EventSubscriber::getSubscribedEvents()
    */
   public function routeRebuildFinished() {
     $this->reset();

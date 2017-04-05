@@ -18,7 +18,7 @@ class QueueFactory implements ContainerAwareInterface {
    *
    * @var array
    */
-  protected $queues = array();
+  protected $queues = [];
 
   /**
    * The settings object.
@@ -31,7 +31,7 @@ class QueueFactory implements ContainerAwareInterface {
   /**
    * Constructs a queue factory.
    */
-  function __construct(Settings $settings) {
+  public function __construct(Settings $settings) {
     $this->settings = $settings;
   }
 

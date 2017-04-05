@@ -28,17 +28,16 @@ class BigPipeResponseAttachmentsProcessorTest extends UnitTestCase {
    * @covers ::processAttachments
    *
    * @dataProvider nonHtmlResponseProvider
-   *
-   * @expectedException \AssertionError
    */
   public function testNonHtmlResponse($response_class) {
     $big_pipe_response_attachments_processor = $this->createBigPipeResponseAttachmentsProcessor($this->prophesize(AttachmentsResponseProcessorInterface::class));
 
     $non_html_response = new $response_class();
+    $this->setExpectedException(\AssertionError::class);
     $big_pipe_response_attachments_processor->processAttachments($non_html_response);
   }
 
-  function nonHtmlResponseProvider() {
+  public function nonHtmlResponseProvider() {
     return [
       'AjaxResponse, which implements AttachmentsInterface' => [AjaxResponse::class],
       'A dummy that implements AttachmentsInterface' => [get_class($this->prophesize(AttachmentsInterface::class)->reveal())],
@@ -51,7 +50,7 @@ class BigPipeResponseAttachmentsProcessorTest extends UnitTestCase {
    * @dataProvider attachmentsProvider
    */
   public function testHtmlResponse(array $attachments) {
-    $big_pipe_response = new BigPipeResponse('original');
+    $big_pipe_response = new BigPipeResponse(new HtmlResponse('original'));
     $big_pipe_response->setAttachments($attachments);
 
     // This mock is the main expectation of this test: verify that the decorated

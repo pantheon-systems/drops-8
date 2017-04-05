@@ -13,33 +13,33 @@ class LoadTest extends FileManagedUnitTestBase {
   /**
    * Try to load a non-existent file by fid.
    */
-  function testLoadMissingFid() {
+  public function testLoadMissingFid() {
     $this->assertFalse(File::load(-1), 'Try to load an invalid fid fails.');
-    $this->assertFileHooksCalled(array());
+    $this->assertFileHooksCalled([]);
   }
 
   /**
    * Try to load a non-existent file by URI.
    */
-  function testLoadMissingFilepath() {
-    $files = entity_load_multiple_by_properties('file', array('uri' => 'foobar://misc/druplicon.png'));
+  public function testLoadMissingFilepath() {
+    $files = entity_load_multiple_by_properties('file', ['uri' => 'foobar://misc/druplicon.png']);
     $this->assertFalse(reset($files), "Try to load a file that doesn't exist in the database fails.");
-    $this->assertFileHooksCalled(array());
+    $this->assertFileHooksCalled([]);
   }
 
   /**
    * Try to load a non-existent file by status.
    */
-  function testLoadInvalidStatus() {
-    $files = entity_load_multiple_by_properties('file', array('status' => -99));
+  public function testLoadInvalidStatus() {
+    $files = entity_load_multiple_by_properties('file', ['status' => -99]);
     $this->assertFalse(reset($files), 'Trying to load a file with an invalid status fails.');
-    $this->assertFileHooksCalled(array());
+    $this->assertFileHooksCalled([]);
   }
 
   /**
    * Load a single file and ensure that the correct values are returned.
    */
-  function testSingleValues() {
+  public function testSingleValues() {
     // Create a new file entity from scratch so we know the values.
     $file = $this->createFile('druplicon.txt', NULL, 'public');
     $by_fid_file = File::load($file->id());
@@ -56,13 +56,13 @@ class LoadTest extends FileManagedUnitTestBase {
   /**
    * This will test loading file data from the database.
    */
-  function testMultiple() {
+  public function testMultiple() {
     // Create a new file entity.
     $file = $this->createFile('druplicon.txt', NULL, 'public');
 
     // Load by path.
     file_test_reset();
-    $by_path_files = entity_load_multiple_by_properties('file', array('uri' => $file->getFileUri()));
+    $by_path_files = entity_load_multiple_by_properties('file', ['uri' => $file->getFileUri()]);
     $this->assertFileHookCalled('load');
     $this->assertEqual(1, count($by_path_files), 'entity_load_multiple_by_properties() returned an array of the correct size.');
     $by_path_file = reset($by_path_files);
@@ -71,8 +71,8 @@ class LoadTest extends FileManagedUnitTestBase {
 
     // Load by fid.
     file_test_reset();
-    $by_fid_files = File::loadMultiple(array($file->id()));
-    $this->assertFileHooksCalled(array());
+    $by_fid_files = File::loadMultiple([$file->id()]);
+    $this->assertFileHooksCalled([]);
     $this->assertEqual(1, count($by_fid_files), '\Drupal\file\Entity\File::loadMultiple() returned an array of the correct size.');
     $by_fid_file = reset($by_fid_files);
     $this->assertTrue($by_fid_file->file_test['loaded'], 'file_test_file_load() was able to modify the file during load.');

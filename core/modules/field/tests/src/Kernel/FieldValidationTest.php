@@ -34,20 +34,20 @@ class FieldValidationTest extends FieldKernelTestBase {
     $this->createFieldWithStorage('', $this->entityType, $this->bundle);
 
     // Create an 'entity_test' entity.
-    $this->entity = entity_create($this->entityType, array(
+    $this->entity = entity_create($this->entityType, [
       'type' => $this->bundle,
-    ));
+    ]);
   }
 
   /**
    * Tests that the number of values is validated against the field cardinality.
    */
-  function testCardinalityConstraint() {
+  public function testCardinalityConstraint() {
     $cardinality = $this->fieldTestData->field_storage->getCardinality();
     $entity = $this->entity;
 
     for ($delta = 0; $delta < $cardinality + 1; $delta++) {
-      $entity->{$this->fieldTestData->field_name}[] = array('value' => 1);
+      $entity->{$this->fieldTestData->field_name}[] = ['value' => 1];
     }
 
     // Validate the field.
@@ -56,13 +56,13 @@ class FieldValidationTest extends FieldKernelTestBase {
     // Check that the expected constraint violations are reported.
     $this->assertEqual(count($violations), 1);
     $this->assertEqual($violations[0]->getPropertyPath(), '');
-    $this->assertEqual($violations[0]->getMessage(), t('%name: this field cannot hold more than @count values.', array('%name' => $this->fieldTestData->field->getLabel(), '@count' => $cardinality)));
+    $this->assertEqual($violations[0]->getMessage(), t('%name: this field cannot hold more than @count values.', ['%name' => $this->fieldTestData->field->getLabel(), '@count' => $cardinality]));
   }
 
   /**
    * Tests that constraints defined by the field type are validated.
    */
-  function testFieldConstraints() {
+  public function testFieldConstraints() {
     $cardinality = $this->fieldTestData->field_storage->getCardinality();
     $entity = $this->entity;
 
@@ -70,7 +70,7 @@ class FieldValidationTest extends FieldKernelTestBase {
     $this->assertTrue($cardinality >= 2);
 
     // Set up values for the field.
-    $expected_violations = array();
+    $expected_violations = [];
     for ($delta = 0; $delta < $cardinality; $delta++) {
       // All deltas except '1' have incorrect values.
       if ($delta == 1) {
@@ -78,7 +78,7 @@ class FieldValidationTest extends FieldKernelTestBase {
       }
       else {
         $value = -1;
-        $expected_violations[$delta . '.value'][] = t('%name does not accept the value -1.', array('%name' => $this->fieldTestData->field->getLabel()));
+        $expected_violations[$delta . '.value'][] = t('%name does not accept the value -1.', ['%name' => $this->fieldTestData->field->getLabel()]);
       }
       $entity->{$this->fieldTestData->field_name}[] = $value;
     }
@@ -87,7 +87,7 @@ class FieldValidationTest extends FieldKernelTestBase {
     $violations = $entity->{$this->fieldTestData->field_name}->validate();
 
     // Check that the expected constraint violations are reported.
-    $violations_by_path = array();
+    $violations_by_path = [];
     foreach ($violations as $violation) {
       $violations_by_path[$violation->getPropertyPath()][] = $violation->getMessage();
     }

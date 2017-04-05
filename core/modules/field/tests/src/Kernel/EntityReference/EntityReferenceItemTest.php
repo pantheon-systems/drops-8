@@ -15,6 +15,7 @@ use Drupal\entity_test\Entity\EntityTestStringId;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\field\Kernel\FieldKernelTestBase;
 use Drupal\file\Entity\File;
 use Drupal\node\Entity\Node;
@@ -174,7 +175,7 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     // Delete terms so we have nothing to reference and try again
     $term->delete();
     $term2->delete();
-    $entity = EntityTest::create(array('name' => $this->randomMachineName()));
+    $entity = EntityTest::create(['name' => $this->randomMachineName()]);
     $entity->save();
 
     // Test the generateSampleValue() method.
@@ -182,6 +183,15 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     $entity->field_test_taxonomy_term->generateSampleItems();
     $entity->field_test_taxonomy_vocabulary->generateSampleItems();
     $this->entityValidateAndSave($entity);
+
+    // Tests that setting an integer target ID together with an entity object
+    // succeeds and does not cause any exceptions. There is no assertion here,
+    // as the assignment should not throw any exceptions and if it does the
+    // test will fail.
+    // @see \Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem::setValue().
+    $user = User::create(['name' => $this->randomString()]);
+    $user->save();
+    $entity = EntityTest::create(['user_id' => ['target_id' => (int) $user->id(), 'entity' => $user]]);
   }
 
   /**
@@ -243,7 +253,7 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     // Delete terms so we have nothing to reference and try again
     $this->vocabulary->delete();
     $vocabulary2->delete();
-    $entity = EntityTest::create(array('name' => $this->randomMachineName()));
+    $entity = EntityTest::create(['name' => $this->randomMachineName()]);
     $entity->save();
   }
 
@@ -252,11 +262,11 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
    */
   public function testEntityAutoCreate() {
     // The term entity is unsaved here.
-    $term = Term::create(array(
+    $term = Term::create([
       'name' => $this->randomMachineName(),
       'vid' => $this->term->bundle(),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
-    ));
+    ]);
     $entity = EntityTest::create();
     // Now assign the unsaved term to the field.
     $entity->field_test_taxonomy_term->entity = $term;
@@ -303,22 +313,22 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
    */
   public function testSelectionHandlerSettings() {
     $field_name = Unicode::strtolower($this->randomMachineName());
-    $field_storage = FieldStorageConfig::create(array(
+    $field_storage = FieldStorageConfig::create([
       'field_name' => $field_name,
       'entity_type' => 'entity_test',
       'type' => 'entity_reference',
-      'settings' => array(
+      'settings' => [
         'target_type' => 'entity_test'
-      ),
-    ));
+      ],
+    ]);
     $field_storage->save();
 
     // Do not specify any value for the 'handler' setting in order to verify
     // that the default handler with the correct derivative is used.
-    $field = FieldConfig::create(array(
+    $field = FieldConfig::create([
       'field_storage' => $field_storage,
       'bundle' => 'entity_test',
-    ));
+    ]);
     $field->save();
     $field = FieldConfig::load($field->id());
     $this->assertEqual($field->getSetting('handler'), 'default:entity_test');
@@ -349,11 +359,11 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
    */
   public function testAutocreateValidation() {
     // The term entity is unsaved here.
-    $term = Term::create(array(
+    $term = Term::create([
       'name' => $this->randomMachineName(),
       'vid' => $this->term->bundle(),
       'langcode' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
-    ));
+    ]);
     $entity = EntityTest::create([
       'field_test_taxonomy_term' => [
         'entity' => $term,
@@ -385,7 +395,7 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     $node = Node::create([
       'title' => $title,
       'type' => 'node',
-      'status' => NODE_NOT_PUBLISHED,
+      'status' => NodeInterface::NOT_PUBLISHED,
     ]);
 
     $entity = EntityTest::create([
@@ -409,14 +419,14 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     $unsaved_unpublished_node = Node::create([
       'title' => $unsaved_unpublished_node_title,
       'type' => 'node',
-      'status' => NODE_NOT_PUBLISHED,
+      'status' => NodeInterface::NOT_PUBLISHED,
     ]);
 
     $saved_unpublished_node_title = $this->randomString();
     $saved_unpublished_node = Node::create([
       'title' => $saved_unpublished_node_title,
       'type' => 'node',
-      'status' => NODE_NOT_PUBLISHED,
+      'status' => NodeInterface::NOT_PUBLISHED,
     ]);
     $saved_unpublished_node->save();
 
@@ -424,7 +434,7 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     $saved_published_node = Node::create([
       'title' => $saved_published_node_title,
       'type' => 'node',
-      'status' => NODE_PUBLISHED,
+      'status' => NodeInterface::PUBLISHED,
     ]);
     $saved_published_node->save();
 

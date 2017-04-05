@@ -168,7 +168,7 @@ class PageCache implements HttpKernelInterface {
         // In the case of a 304 response, certain headers must be sent, and the
         // remaining may not (see RFC 2616, section 10.3.5).
         foreach (array_keys($response->headers->all()) as $name) {
-          if (!in_array($name, array('content-location', 'expires', 'cache-control', 'vary'))) {
+          if (!in_array($name, ['content-location', 'expires', 'cache-control', 'vary'])) {
             $response->headers->remove($name);
           }
         }
@@ -206,6 +206,26 @@ class PageCache implements HttpKernelInterface {
     /** @var \Symfony\Component\HttpFoundation\Response $response */
     $response = $this->httpKernel->handle($request, $type, $catch);
 
+    // Only set the 'X-Drupal-Cache' header if caching is allowed for this
+    // response.
+    if ($this->storeResponse($request, $response)) {
+      $response->headers->set('X-Drupal-Cache', 'MISS');
+    }
+
+    return $response;
+  }
+
+  /**
+   * Stores a response in the page cache.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   A request object.
+   * @param \Symfony\Component\HttpFoundation\Response $response
+   *   A response object that should be stored in the page cache.
+   *
+   * @returns bool
+   */
+  protected function storeResponse(Request $request, Response $response) {
     // Drupal's primary cache invalidation architecture is cache tags: any
     // response that varies by a configuration value or data in a content
     // entity should have cache tags, to allow for instant cache invalidation
@@ -228,7 +248,7 @@ class PageCache implements HttpKernelInterface {
     //   so by replacing/extending this middleware service or adding another
     //   one.
     if (!$response instanceof CacheableResponseInterface) {
-      return $response;
+      return FALSE;
     }
 
     // Currently it is not possible to cache binary file or streamed responses:
@@ -236,12 +256,12 @@ class PageCache implements HttpKernelInterface {
     // Therefore exclude them, even for subclasses that implement
     // CacheableResponseInterface.
     if ($response instanceof BinaryFileResponse || $response instanceof StreamedResponse) {
-      return $response;
+      return FALSE;
     }
 
     // Allow policy rules to further restrict which responses to cache.
     if ($this->responsePolicy->check($response, $request) === ResponsePolicyInterface::DENY) {
-      return $response;
+      return FALSE;
     }
 
     $request_time = $request->server->get('REQUEST_TIME');
@@ -273,10 +293,7 @@ class PageCache implements HttpKernelInterface {
       $this->set($request, $response, $expire, $tags);
     }
 
-    // Mark response as a cache miss.
-    $response->headers->set('X-Drupal-Cache', 'MISS');
-
-    return $response;
+    return TRUE;
   }
 
   /**
@@ -340,10 +357,10 @@ class PageCache implements HttpKernelInterface {
    *   The cache ID for this request.
    */
   protected function getCacheId(Request $request) {
-    $cid_parts = array(
+    $cid_parts = [
       $request->getUri(),
       $request->getRequestFormat(),
-    );
+    ];
     return implode(':', $cid_parts);
   }
 

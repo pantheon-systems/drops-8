@@ -18,12 +18,12 @@ class FieldCustomTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_view');
+  public static $testViews = ['test_view'];
 
   /**
    * {@inheritdoc}
    */
-  function viewsData() {
+  public function viewsData() {
     $data = parent::viewsData();
     $data['views_test_data']['name']['field']['id'] = 'custom';
     return $data;
@@ -38,17 +38,17 @@ class FieldCustomTest extends ViewsKernelTestBase {
 
     // Alter the text of the field to a random string.
     $random = '<div>' . $this->randomMachineName() . '</div>';
-    $view->displayHandlers->get('default')->overrideOption('fields', array(
-      'name' => array(
+    $view->displayHandlers->get('default')->overrideOption('fields', [
+      'name' => [
         'id' => 'name',
         'table' => 'views_test_data',
         'field' => 'name',
         'relationship' => 'none',
-        'alter' => array(
+        'alter' => [
           'text' => $random,
-        ),
-      ),
-    ));
+        ],
+      ],
+    ]);
 
     $this->executeView($view);
 
@@ -98,17 +98,17 @@ class FieldCustomTest extends ViewsKernelTestBase {
 
     // Alter the text of the field to include XSS.
     $text = '<script>alert("kittens")</script>';
-    $view->displayHandlers->get('default')->overrideOption('fields', array(
-      'name' => array(
+    $view->displayHandlers->get('default')->overrideOption('fields', [
+      'name' => [
         'id' => 'name',
         'table' => 'views_test_data',
         'field' => 'name',
         'relationship' => 'none',
-        'alter' => array(
+        'alter' => [
           'text' => $text,
-        ),
-      ),
-    ));
+        ],
+      ],
+    ]);
     $this->executeView($view);
     $this->assertEqual(Xss::filter($text), $view->style_plugin->getField(0, 'name'));
   }

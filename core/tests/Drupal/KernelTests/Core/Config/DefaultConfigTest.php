@@ -2,7 +2,7 @@
 
 namespace Drupal\KernelTests\Core\Config;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\config_test\TestInstallStorage;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -23,7 +23,7 @@ class DefaultConfigTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'config_test');
+  public static $modules = ['system', 'config_test'];
 
   /**
    * Themes which provide default configuration and need enabling.

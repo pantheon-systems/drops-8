@@ -2,6 +2,11 @@
 
 namespace Drupal\Tests\Core;
 
+use Drupal\Core\DependencyInjection\ContainerNotInitializedException;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\Query\QueryAggregateInterface;
+use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -27,7 +32,7 @@ class DrupalTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
     $this->container = $this->getMockBuilder('Symfony\Component\DependencyInjection\ContainerBuilder')
-      ->setMethods(array('get'))
+      ->setMethods(['get'])
       ->getMock();
   }
 
@@ -43,11 +48,9 @@ class DrupalTest extends UnitTestCase {
 
   /**
    * @covers ::getContainer
-   *
-   * @expectedException \Drupal\Core\DependencyInjection\ContainerNotInitializedException
-   * @expectedExceptionMessage \Drupal::$container is not initialized yet. \Drupal::setContainer() must be called with a real container.
    */
   public function testGetContainerException() {
+    $this->setExpectedException(ContainerNotInitializedException::class, '\Drupal::$container is not initialized yet. \Drupal::setContainer() must be called with a real container.');
     \Drupal::getContainer();
   }
 
@@ -102,13 +105,23 @@ class DrupalTest extends UnitTestCase {
   }
 
   /**
-   * Tests the service() method.
+   * Tests the cache() method.
    *
    * @covers ::cache
    */
   public function testCache() {
     $this->setMockContainerService('cache.test');
     $this->assertNotNull(\Drupal::cache('test'));
+  }
+
+  /**
+   * Tests the classResolver method.
+   *
+   * @covers ::classResolver
+   */
+  public function testClassResolver() {
+    $this->setMockContainerService('class_resolver');
+    $this->assertNotNull(\Drupal::classResolver());
   }
 
   /**
@@ -230,16 +243,24 @@ class DrupalTest extends UnitTestCase {
    * @covers ::entityQuery
    */
   public function testEntityQuery() {
-    $query = $this->getMockBuilder('Drupal\Core\Entity\Query\QueryFactory')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $query->expects($this->once())
-      ->method('get')
-      ->with('test_entity', 'OR')
-      ->will($this->returnValue(TRUE));
-    $this->setMockContainerService('entity.query', $query);
+    $query = $this->getMock(QueryInterface::class);
+    $storage = $this->getMock(EntityStorageInterface::class);
+    $storage
+      ->expects($this->once())
+      ->method('getQuery')
+      ->with('OR')
+      ->willReturn($query);
 
-    $this->assertNotNull(\Drupal::entityQuery('test_entity', 'OR'));
+    $entity_type_manager = $this->getMock(EntityTypeManagerInterface::class);
+    $entity_type_manager
+      ->expects($this->once())
+      ->method('getStorage')
+      ->with('test_entity')
+      ->willReturn($storage);
+
+    $this->setMockContainerService('entity_type.manager', $entity_type_manager);
+
+    $this->assertInstanceOf(QueryInterface::class, \Drupal::entityQuery('test_entity', 'OR'));
   }
 
   /**
@@ -248,16 +269,24 @@ class DrupalTest extends UnitTestCase {
    * @covers ::entityQueryAggregate
    */
   public function testEntityQueryAggregate() {
-    $query = $this->getMockBuilder('Drupal\Core\Entity\Query\QueryFactory')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $query->expects($this->once())
-      ->method('getAggregate')
-      ->with('test_entity', 'OR')
-      ->will($this->returnValue(TRUE));
-    $this->setMockContainerService('entity.query', $query);
+    $query = $this->getMock(QueryAggregateInterface::class);
+    $storage = $this->getMock(EntityStorageInterface::class);
+    $storage
+      ->expects($this->once())
+      ->method('getAggregateQuery')
+      ->with('OR')
+      ->willReturn($query);
 
-    $this->assertNotNull(\Drupal::entityQueryAggregate('test_entity', 'OR'));
+    $entity_type_manager = $this->getMock(EntityTypeManagerInterface::class);
+    $entity_type_manager
+      ->expects($this->once())
+      ->method('getStorage')
+      ->with('test_entity')
+      ->willReturn($storage);
+
+    $this->setMockContainerService('entity_type.manager', $entity_type_manager);
+
+    $this->assertInstanceOf(QueryAggregateInterface::class, \Drupal::entityQueryAggregate('test_entity', 'OR'));
   }
 
   /**
@@ -317,8 +346,8 @@ class DrupalTest extends UnitTestCase {
    * @see \Drupal\Core\Routing\UrlGeneratorInterface::generateFromRoute()
    */
   public function testUrl() {
-    $route_parameters = array('test_parameter' => 'test');
-    $options = array('test_option' => 'test');
+    $route_parameters = ['test_parameter' => 'test'];
+    $options = ['test_option' => 'test'];
     $generator = $this->getMock('Drupal\Core\Routing\UrlGeneratorInterface');
     $generator->expects($this->once())
       ->method('generateFromRoute')
@@ -346,8 +375,8 @@ class DrupalTest extends UnitTestCase {
    * @see \Drupal\Core\Utility\LinkGeneratorInterface::generate()
    */
   public function testL() {
-    $route_parameters = array('test_parameter' => 'test');
-    $options = array('test_option' => 'test');
+    $route_parameters = ['test_parameter' => 'test'];
+    $options = ['test_option' => 'test'];
     $generator = $this->getMock('Drupal\Core\Utility\LinkGeneratorInterface');
     $url = new Url('test_route', $route_parameters, $options);
     $generator->expects($this->once())

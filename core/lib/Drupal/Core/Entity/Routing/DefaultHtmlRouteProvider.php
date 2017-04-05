@@ -26,8 +26,6 @@ use Symfony\Component\Routing\RouteCollection;
  * - collection
  *
  * @see \Drupal\Core\Entity\Routing\AdminHtmlRouteProvider.
- *
- * @internal
  */
 class DefaultHtmlRouteProvider implements EntityRouteProviderInterface, EntityHandlerInterface {
 
@@ -316,13 +314,16 @@ class DefaultHtmlRouteProvider implements EntityRouteProviderInterface, EntityHa
     // If the entity type does not provide an admin permission, there is no way
     // to control access, so we cannot provide a route in a sensible way.
     if ($entity_type->hasLinkTemplate('collection') && $entity_type->hasListBuilderClass() && ($admin_permission = $entity_type->getAdminPermission())) {
+      /** @var \Drupal\Core\StringTranslation\TranslatableMarkup $label */
+      $label = $entity_type->getCollectionLabel();
+
       $route = new Route($entity_type->getLinkTemplate('collection'));
       $route
         ->addDefaults([
           '_entity_list' => $entity_type->id(),
-          // @todo Improve this in https://www.drupal.org/node/2767025
-          '_title' => '@label entities',
-          '_title_arguments' => ['@label' => $entity_type->getLabel()],
+          '_title' => $label->getUntranslatedString(),
+          '_title_arguments' => $label->getArguments(),
+          '_title_context' => $label->getOption('context'),
         ])
         ->setRequirement('_permission', $admin_permission);
 
@@ -341,7 +342,7 @@ class DefaultHtmlRouteProvider implements EntityRouteProviderInterface, EntityHa
    *   type does not support fields.
    */
   protected function getEntityTypeIdKeyType(EntityTypeInterface $entity_type) {
-    if (!$entity_type->isSubclassOf(FieldableEntityInterface::class)) {
+    if (!$entity_type->entityClassImplements(FieldableEntityInterface::class)) {
       return NULL;
     }
 

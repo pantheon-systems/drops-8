@@ -28,6 +28,10 @@ class MigrateBlockTest extends MigrateDrupal6TestBase {
    */
   protected function setUp() {
     parent::setUp();
+
+    // Install the themes used for this test.
+    $this->container->get('theme_installer')->install(['bartik', 'seven', 'test_theme']);
+
     $this->installConfig(['block_content']);
     $this->installEntitySchema('block_content');
 
@@ -36,9 +40,6 @@ class MigrateBlockTest extends MigrateDrupal6TestBase {
     $config->set('default', 'bartik');
     $config->set('admin', 'seven');
     $config->save();
-
-    // Install one of D8's test themes.
-    \Drupal::service('theme_handler')->install(['test_theme']);
 
     $this->executeMigrations([
       'd6_filter_format',
@@ -70,7 +71,7 @@ class MigrateBlockTest extends MigrateDrupal6TestBase {
    * @param string $label_display
    *   The block label display setting.
    * @param bool $status
-   *   (optional) Whether the block is expected to be enabled.
+   *   Whether the block is expected to be enabled or disabled.
    */
   public function assertEntity($id, $visibility, $region, $theme, $weight, $label, $label_display, $status = TRUE) {
     $block = Block::load($id);
@@ -141,10 +142,9 @@ class MigrateBlockTest extends MigrateDrupal6TestBase {
     $visibility['request_path']['id'] = 'request_path';
     $visibility['request_path']['negate'] = FALSE;
     $visibility['request_path']['pages'] = '/node';
-    // bluemarine does not exist in Drupal 8 and the d6_block migration defines
-    // no mapping for its regions, so this block should have been defaulted
-    // to the 'content' region.
-    $this->assertEntity('block_1', $visibility, 'content', 'bluemarine', -4, 'Another Static Block', 'visible');
+    // We expect this block to be disabled because '' is not a valid region,
+    // and block_rebuild() will disable any block in an invalid region.
+    $this->assertEntity('block_1', $visibility, '', 'bluemarine', -4, 'Another Static Block', 'visible', FALSE);
 
     $visibility = [];
     $this->assertEntity('block_2', $visibility, 'right', 'test_theme', -7, '', '0');

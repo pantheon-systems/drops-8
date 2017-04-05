@@ -6,6 +6,7 @@ use Drupal\Component\PhpStorage\FileStorage;
 use Composer\Script\Event;
 use Composer\Installer\PackageEvent;
 use Composer\Semver\Constraint\Constraint;
+use PHP_CodeSniffer;
 
 /**
  * Provides static functions for composer script events.
@@ -18,6 +19,7 @@ class Composer {
     'behat/mink' => ['tests', 'driver-testsuite'],
     'behat/mink-browserkit-driver' => ['tests'],
     'behat/mink-goutte-driver' => ['tests'],
+    'drupal/coder' => ['coder_sniffer/Drupal/Test', 'coder_sniffer/DrupalPractice/Test'],
     'doctrine/cache' => ['tests'],
     'doctrine/collections' => ['tests'],
     'doctrine/common' => ['tests'],
@@ -82,22 +84,22 @@ class Composer {
     // Check for our packages, and then optimize them if they're present.
     if ($repository->findPackage('symfony/http-foundation', $constraint)) {
       $autoload = $package->getAutoload();
-      $autoload['classmap'] = array_merge($autoload['classmap'], array(
+      $autoload['classmap'] = array_merge($autoload['classmap'], [
         'vendor/symfony/http-foundation/Request.php',
         'vendor/symfony/http-foundation/ParameterBag.php',
         'vendor/symfony/http-foundation/FileBag.php',
         'vendor/symfony/http-foundation/ServerBag.php',
         'vendor/symfony/http-foundation/HeaderBag.php',
-      ));
+      ]);
       $package->setAutoload($autoload);
     }
     if ($repository->findPackage('symfony/http-kernel', $constraint)) {
       $autoload = $package->getAutoload();
-      $autoload['classmap'] = array_merge($autoload['classmap'], array(
+      $autoload['classmap'] = array_merge($autoload['classmap'], [
         'vendor/symfony/http-kernel/HttpKernel.php',
         'vendor/symfony/http-kernel/HttpKernelInterface.php',
         'vendor/symfony/http-kernel/TerminableInterface.php',
-      ));
+      ]);
       $package->setAutoload($autoload);
     }
   }
@@ -132,6 +134,28 @@ class Composer {
 </configuration>
 EOT;
       file_put_contents($webconfig_file, $lines . "\n");
+    }
+  }
+
+  /**
+   * Configures phpcs if present.
+   *
+   * @param \Composer\Script\Event $event
+   */
+  public static function configurePhpcs(Event $event) {
+    // Grab the local repo which tells us what's been installed.
+    $local_repository = $event->getComposer()
+      ->getRepositoryManager()
+      ->getLocalRepository();
+    // Make sure both phpcs and coder are installed.
+    $phpcs_package = $local_repository->findPackage('squizlabs/php_codesniffer', '*');
+    $coder_package = $local_repository->findPackage('drupal/coder', '*');
+    if (!empty($phpcs_package) && !empty($coder_package)) {
+      $config = $event->getComposer()->getConfig();
+      $vendor_dir = $config->get('vendor-dir');
+      // Set phpcs' installed_paths config to point to our coder_sniffer
+      // directory.
+      PHP_CodeSniffer::setConfigData('installed_paths', $vendor_dir . '/drupal/coder/coder_sniffer');
     }
   }
 

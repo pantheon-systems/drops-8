@@ -16,12 +16,12 @@ class RenderTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'common_test');
+  public static $modules = ['system', 'common_test'];
 
   /**
    * Tests theme preprocess functions being able to attach assets.
    */
-  function testDrupalRenderThemePreprocessAttached() {
+  public function testDrupalRenderThemePreprocessAttached() {
     \Drupal::state()->set('theme_preprocess_attached_test', TRUE);
 
     $test_element = [

@@ -49,14 +49,14 @@ class Theme extends Updater implements UpdaterInterface {
   public function isInstalled() {
     // Check if the theme exists in the file system, regardless of whether it
     // is enabled or not.
-    $themes = \Drupal::state()->get('system.theme.files', array());
+    $themes = \Drupal::state()->get('system.theme.files', []);
     return isset($themes[$this->name]);
   }
 
   /**
    * {@inheritdoc}
    */
-  static function canUpdateDirectory($directory) {
+  public static function canUpdateDirectory($directory) {
     $info = static::getExtensionInfo($directory);
 
     return (isset($info['type']) && $info['type'] == 'theme');

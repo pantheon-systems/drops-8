@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\Component\Plugin\Discovery;
 
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -19,10 +20,10 @@ class DiscoveryTraitTest extends UnitTestCase {
    *   - Plugin ID to get, passed to doGetDefinition().
    */
   public function providerDoGetDefinition() {
-    return array(
+    return [
       ['definition', ['plugin_name' => 'definition'], 'plugin_name'],
       [NULL, ['plugin_name' => 'definition'], 'bad_plugin_name'],
-    );
+    ];
   }
 
   /**
@@ -51,14 +52,13 @@ class DiscoveryTraitTest extends UnitTestCase {
    *   - Plugin ID to get, passed to doGetDefinition().
    */
   public function providerDoGetDefinitionException() {
-    return array(
+    return [
       [FALSE, ['plugin_name' => 'definition'], 'bad_plugin_name'],
-    );
+    ];
   }
 
   /**
    * @covers ::doGetDefinition
-   * @expectedException \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @dataProvider providerDoGetDefinitionException
    * @uses \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -69,10 +69,8 @@ class DiscoveryTraitTest extends UnitTestCase {
     $method_ref = new \ReflectionMethod($trait, 'doGetDefinition');
     $method_ref->setAccessible(TRUE);
     // Call doGetDefinition, with $exception_on_invalid always TRUE.
-    $this->assertSame(
-      $expected,
-      $method_ref->invoke($trait, $definitions, $plugin_id, TRUE)
-    );
+    $this->setExpectedException(PluginNotFoundException::class);
+    $method_ref->invoke($trait, $definitions, $plugin_id, TRUE);
   }
 
   /**
@@ -96,7 +94,6 @@ class DiscoveryTraitTest extends UnitTestCase {
 
   /**
    * @covers ::getDefinition
-   * @expectedException \Drupal\Component\Plugin\Exception\PluginNotFoundException
    * @dataProvider providerDoGetDefinitionException
    * @uses \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
@@ -109,10 +106,8 @@ class DiscoveryTraitTest extends UnitTestCase {
       ->method('getDefinitions')
       ->willReturn($definitions);
     // Call getDefinition(), with $exception_on_invalid always TRUE.
-    $this->assertSame(
-      $expected,
-      $trait->getDefinition($plugin_id, TRUE)
-    );
+    $this->setExpectedException(PluginNotFoundException::class);
+    $trait->getDefinition($plugin_id, TRUE);
   }
 
   /**
@@ -123,10 +118,10 @@ class DiscoveryTraitTest extends UnitTestCase {
    *   - Plugin ID to look for.
    */
   public function providerHasDefinition() {
-    return array(
+    return [
       [TRUE, 'valid'],
       [FALSE, 'not_valid'],
-    );
+    ];
   }
 
   /**
@@ -135,16 +130,16 @@ class DiscoveryTraitTest extends UnitTestCase {
    */
   public function testHasDefinition($expected, $plugin_id) {
     $trait = $this->getMockBuilder('Drupal\Component\Plugin\Discovery\DiscoveryTrait')
-      ->setMethods(array('getDefinition'))
+      ->setMethods(['getDefinition'])
       ->getMockForTrait();
     // Set up our mocked getDefinition() to return TRUE for 'valid' and FALSE
     // for 'not_valid'.
     $trait->expects($this->once())
       ->method('getDefinition')
-      ->will($this->returnValueMap(array(
+      ->will($this->returnValueMap([
         ['valid', FALSE, TRUE],
         ['not_valid', FALSE, FALSE],
-      )));
+      ]));
     // Call hasDefinition().
     $this->assertSame(
       $expected,

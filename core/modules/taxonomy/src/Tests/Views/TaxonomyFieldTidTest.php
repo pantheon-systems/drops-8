@@ -17,9 +17,9 @@ class TaxonomyFieldTidTest extends TaxonomyTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_taxonomy_tid_field');
+  public static $testViews = ['test_taxonomy_tid_field'];
 
-  function testViewsHandlerTidField() {
+  public function testViewsHandlerTidField() {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = \Drupal::service('renderer');
 

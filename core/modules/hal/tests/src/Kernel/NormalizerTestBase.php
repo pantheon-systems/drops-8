@@ -2,22 +2,9 @@
 
 namespace Drupal\Tests\hal\Kernel;
 
-use Drupal\Core\Cache\MemoryBackend;
 use Drupal\field\Entity\FieldConfig;
-use Drupal\hal\Encoder\JsonEncoder;
-use Drupal\hal\Normalizer\ContentEntityNormalizer;
-use Drupal\hal\Normalizer\EntityReferenceItemNormalizer;
-use Drupal\hal\Normalizer\FieldItemNormalizer;
-use Drupal\hal\Normalizer\FieldNormalizer;
 use Drupal\language\Entity\ConfigurableLanguage;
-use Drupal\rest\LinkManager\LinkManager;
-use Drupal\rest\LinkManager\RelationLinkManager;
-use Drupal\rest\LinkManager\TypeLinkManager;
-use Drupal\serialization\EntityResolver\ChainEntityResolver;
-use Drupal\serialization\EntityResolver\TargetIdResolver;
-use Drupal\serialization\EntityResolver\UuidResolver;
 use Drupal\KernelTests\KernelTestBase;
-use Symfony\Component\Serializer\Serializer;
 use Drupal\field\Entity\FieldStorageConfig;
 
 /**
@@ -30,7 +17,7 @@ abstract class NormalizerTestBase extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_test', 'field', 'hal', 'language', 'rest', 'serialization', 'system', 'text', 'user', 'filter'];
+  public static $modules = ['entity_test', 'field', 'hal', 'language', 'serialization', 'system', 'text', 'user', 'filter'];
 
   /**
    * The mock serializer.
@@ -71,29 +58,29 @@ abstract class NormalizerTestBase extends KernelTestBase {
         // Only check the modules, if the $modules property was not inherited.
         $rp = new \ReflectionProperty($class, 'modules');
         if ($rp->class == $class) {
-          foreach (array_intersect(array('node', 'comment'), $class::$modules) as $module) {
+          foreach (array_intersect(['node', 'comment'], $class::$modules) as $module) {
             $this->installEntitySchema($module);
           }
         }
       }
       $class = get_parent_class($class);
     }
-    $this->installConfig(array('field', 'language'));
+    $this->installConfig(['field', 'language']);
     \Drupal::service('router.builder')->rebuild();
 
     // Add German as a language.
-    ConfigurableLanguage::create(array(
+    ConfigurableLanguage::create([
       'id' => 'de',
       'label' => 'Deutsch',
       'weight' => -1,
-    ))->save();
+    ])->save();
 
     // Create the test text field.
-    FieldStorageConfig::create(array(
+    FieldStorageConfig::create([
       'field_name' => 'field_test_text',
       'entity_type' => 'entity_test',
       'type' => 'text',
-    ))->save();
+    ])->save();
     FieldConfig::create([
       'entity_type' => 'entity_test',
       'field_name' => 'field_test_text',
@@ -102,11 +89,11 @@ abstract class NormalizerTestBase extends KernelTestBase {
     ])->save();
 
     // Create the test translatable field.
-    FieldStorageConfig::create(array(
+    FieldStorageConfig::create([
       'field_name' => 'field_test_translatable_text',
       'entity_type' => 'entity_test',
       'type' => 'text',
-    ))->save();
+    ])->save();
     FieldConfig::create([
       'entity_type' => 'entity_test',
       'field_name' => 'field_test_translatable_text',
@@ -115,14 +102,14 @@ abstract class NormalizerTestBase extends KernelTestBase {
     ])->save();
 
     // Create the test entity reference field.
-    FieldStorageConfig::create(array(
+    FieldStorageConfig::create([
       'field_name' => 'field_test_entity_reference',
       'entity_type' => 'entity_test',
       'type' => 'entity_reference',
-      'settings' => array(
+      'settings' => [
         'target_type' => 'entity_test',
-      ),
-    ))->save();
+      ],
+    ])->save();
     FieldConfig::create([
       'entity_type' => 'entity_test',
       'field_name' => 'field_test_entity_reference',
@@ -130,23 +117,7 @@ abstract class NormalizerTestBase extends KernelTestBase {
       'translatable' => TRUE,
     ])->save();
 
-    $entity_manager = \Drupal::entityManager();
-    $link_manager = new LinkManager(new TypeLinkManager(new MemoryBackend('default'), \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack'), \Drupal::service('entity_type.bundle.info')), new RelationLinkManager(new MemoryBackend('default'), $entity_manager, \Drupal::moduleHandler(), \Drupal::service('config.factory'), \Drupal::service('request_stack')));
-
-    $chain_resolver = new ChainEntityResolver(array(new UuidResolver($entity_manager), new TargetIdResolver()));
-
-    // Set up the mock serializer.
-    $normalizers = array(
-      new ContentEntityNormalizer($link_manager, $entity_manager, \Drupal::moduleHandler()),
-      new EntityReferenceItemNormalizer($link_manager, $chain_resolver),
-      new FieldItemNormalizer(),
-      new FieldNormalizer(),
-    );
-
-    $encoders = array(
-      new JsonEncoder(),
-    );
-    $this->serializer = new Serializer($normalizers, $encoders);
+    $this->serializer = $this->container->get('serializer');
   }
 
 }

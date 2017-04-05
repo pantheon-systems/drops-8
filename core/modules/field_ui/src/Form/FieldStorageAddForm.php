@@ -3,7 +3,6 @@
 namespace Drupal\field_ui\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Form\FormBase;
@@ -47,13 +46,6 @@ class FieldStorageAddForm extends FormBase {
   protected $fieldTypePluginManager;
 
   /**
-   * The query factory to create entity queries.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  public $queryFactory;
-
-  /**
    * The configuration factory.
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
@@ -67,15 +59,12 @@ class FieldStorageAddForm extends FormBase {
    *   The entity manager.
    * @param \Drupal\Core\Field\FieldTypePluginManagerInterface $field_type_plugin_manager
    *   The field type plugin manager.
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   The entity query factory.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration factory.
    */
-  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_plugin_manager, QueryFactory $query_factory, ConfigFactoryInterface $config_factory) {
+  public function __construct(EntityManagerInterface $entity_manager, FieldTypePluginManagerInterface $field_type_plugin_manager, ConfigFactoryInterface $config_factory) {
     $this->entityManager = $entity_manager;
     $this->fieldTypePluginManager = $field_type_plugin_manager;
-    $this->queryFactory = $query_factory;
     $this->configFactory = $config_factory;
   }
 
@@ -93,7 +82,6 @@ class FieldStorageAddForm extends FormBase {
     return new static(
       $container->get('entity.manager'),
       $container->get('plugin.manager.field.field_type'),
-      $container->get('entity.query'),
       $container->get('config.factory')
     );
   }
@@ -113,65 +101,65 @@ class FieldStorageAddForm extends FormBase {
     $this->bundle = $form_state->get('bundle');
 
     // Gather valid field types.
-    $field_type_options = array();
+    $field_type_options = [];
     foreach ($this->fieldTypePluginManager->getGroupedDefinitions($this->fieldTypePluginManager->getUiDefinitions()) as $category => $field_types) {
       foreach ($field_types as $name => $field_type) {
         $field_type_options[$category][$name] = $field_type['label'];
       }
     }
 
-    $form['add'] = array(
+    $form['add'] = [
       '#type' => 'container',
-      '#attributes' => array('class' => array('form--inline', 'clearfix')),
-    );
+      '#attributes' => ['class' => ['form--inline', 'clearfix']],
+    ];
 
-    $form['add']['new_storage_type'] = array(
+    $form['add']['new_storage_type'] = [
       '#type' => 'select',
       '#title' => $this->t('Add a new field'),
       '#options' => $field_type_options,
       '#empty_option' => $this->t('- Select a field type -'),
-    );
+    ];
 
     // Re-use existing field.
     if ($existing_field_storage_options = $this->getExistingFieldStorageOptions()) {
-      $form['add']['separator'] = array(
+      $form['add']['separator'] = [
         '#type' => 'item',
         '#markup' => $this->t('or'),
-      );
-      $form['add']['existing_storage_name'] = array(
+      ];
+      $form['add']['existing_storage_name'] = [
         '#type' => 'select',
         '#title' => $this->t('Re-use an existing field'),
         '#options' => $existing_field_storage_options,
         '#empty_option' => $this->t('- Select an existing field -'),
-      );
+      ];
 
       $form['#attached']['drupalSettings']['existingFieldLabels'] = $this->getExistingFieldLabels(array_keys($existing_field_storage_options));
     }
     else {
       // Provide a placeholder form element to simplify the validation code.
-      $form['add']['existing_storage_name'] = array(
+      $form['add']['existing_storage_name'] = [
         '#type' => 'value',
         '#value' => FALSE,
-      );
+      ];
     }
 
     // Field label and field_name.
-    $form['new_storage_wrapper'] = array(
+    $form['new_storage_wrapper'] = [
       '#type' => 'container',
-      '#states' => array(
-        '!visible' => array(
-          ':input[name="new_storage_type"]' => array('value' => ''),
-        ),
-      ),
-    );
-    $form['new_storage_wrapper']['label'] = array(
+      '#states' => [
+        '!visible' => [
+          ':input[name="new_storage_type"]' => ['value' => ''],
+        ],
+      ],
+    ];
+    $form['new_storage_wrapper']['label'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Label'),
       '#size' => 15,
-    );
+    ];
 
     $field_prefix = $this->config('field_ui.settings')->get('field_prefix');
-    $form['new_storage_wrapper']['field_name'] = array(
+    $form['new_storage_wrapper']['field_name'] = [
       '#type' => 'machine_name',
       // This field should stay LTR even for RTL languages.
       '#field_prefix' => '<span dir="ltr">' . $field_prefix,
@@ -181,44 +169,44 @@ class FieldStorageAddForm extends FormBase {
       // Calculate characters depending on the length of the field prefix
       // setting. Maximum length is 32.
       '#maxlength' => FieldStorageConfig::NAME_MAX_LENGTH - strlen($field_prefix),
-      '#machine_name' => array(
-        'source' => array('new_storage_wrapper', 'label'),
-        'exists' => array($this, 'fieldNameExists'),
-      ),
+      '#machine_name' => [
+        'source' => ['new_storage_wrapper', 'label'],
+        'exists' => [$this, 'fieldNameExists'],
+      ],
       '#required' => FALSE,
-    );
+    ];
 
     // Provide a separate label element for the "Re-use existing field" case
     // and place it outside the $form['add'] wrapper because those elements
     // are displayed inline.
     if ($existing_field_storage_options) {
-      $form['existing_storage_label'] = array(
+      $form['existing_storage_label'] = [
         '#type' => 'textfield',
         '#title' => $this->t('Label'),
         '#size' => 15,
-        '#states' => array(
-          '!visible' => array(
-            ':input[name="existing_storage_name"]' => array('value' => ''),
-          ),
-        ),
-      );
+        '#states' => [
+          '!visible' => [
+            ':input[name="existing_storage_name"]' => ['value' => ''],
+          ],
+        ],
+      ];
     }
 
     // Place the 'translatable' property as an explicit value so that contrib
     // modules can form_alter() the value for newly created fields. By default
     // we create field storage as translatable so it will be possible to enable
     // translation at field level.
-    $form['translatable'] = array(
+    $form['translatable'] = [
       '#type' => 'value',
       '#value' => TRUE,
-    );
+    ];
 
-    $form['actions'] = array('#type' => 'actions');
-    $form['actions']['submit'] = array(
+    $form['actions'] = ['#type' => 'actions'];
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Save and continue'),
       '#button_type' => 'primary',
-    );
+    ];
 
     $form['#attached']['library'][] = 'field_ui/drupal.field_ui';
 
@@ -302,7 +290,7 @@ class FieldStorageAddForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $error = FALSE;
     $values = $form_state->getValues();
-    $destinations = array();
+    $destinations = [];
     $entity_type = $this->entityManager->getDefinition($this->entityTypeId);
 
     // Create new field.
@@ -333,7 +321,7 @@ class FieldStorageAddForm extends FormBase {
 
         // Merge in preconfigured field storage options.
         if (isset($field_options['field_storage_config'])) {
-          foreach (array('cardinality', 'settings') as $key) {
+          foreach (['cardinality', 'settings'] as $key) {
             if (isset($field_options['field_storage_config'][$key])) {
               $field_storage_values[$key] = $field_options['field_storage_config'][$key];
             }
@@ -342,7 +330,7 @@ class FieldStorageAddForm extends FormBase {
 
         // Merge in preconfigured field options.
         if (isset($field_options['field_config'])) {
-          foreach (array('required', 'settings') as $key) {
+          foreach (['required', 'settings'] as $key) {
             if (isset($field_options['field_config'][$key])) {
               $field_values[$key] = $field_options['field_config'][$key];
             }
@@ -364,19 +352,19 @@ class FieldStorageAddForm extends FormBase {
 
         // Always show the field settings step, as the cardinality needs to be
         // configured for new fields.
-        $route_parameters = array(
+        $route_parameters = [
           'field_config' => $field->id(),
-        ) + FieldUI::getRouteBundleParameter($entity_type, $this->bundle);
-        $destinations[] = array('route_name' => "entity.field_config.{$this->entityTypeId}_storage_edit_form", 'route_parameters' => $route_parameters);
-        $destinations[] = array('route_name' => "entity.field_config.{$this->entityTypeId}_field_edit_form", 'route_parameters' => $route_parameters);
-        $destinations[] = array('route_name' => "entity.{$this->entityTypeId}.field_ui_fields", 'route_parameters' => $route_parameters);
+        ] + FieldUI::getRouteBundleParameter($entity_type, $this->bundle);
+        $destinations[] = ['route_name' => "entity.field_config.{$this->entityTypeId}_storage_edit_form", 'route_parameters' => $route_parameters];
+        $destinations[] = ['route_name' => "entity.field_config.{$this->entityTypeId}_field_edit_form", 'route_parameters' => $route_parameters];
+        $destinations[] = ['route_name' => "entity.{$this->entityTypeId}.field_ui_fields", 'route_parameters' => $route_parameters];
 
         // Store new field information for any additional submit handlers.
         $form_state->set(['fields_added', '_add_new_field'], $values['field_name']);
       }
       catch (\Exception $e) {
         $error = TRUE;
-        drupal_set_message($this->t('There was a problem creating field %label: @message', array('%label' => $values['label'], '@message' => $e->getMessage())), 'error');
+        drupal_set_message($this->t('There was a problem creating field %label: @message', ['%label' => $values['label'], '@message' => $e->getMessage()]), 'error');
       }
     }
 
@@ -385,29 +373,29 @@ class FieldStorageAddForm extends FormBase {
       $field_name = $values['existing_storage_name'];
 
       try {
-        $field = $this->entityManager->getStorage('field_config')->create(array(
+        $field = $this->entityManager->getStorage('field_config')->create([
           'field_name' => $field_name,
           'entity_type' => $this->entityTypeId,
           'bundle' => $this->bundle,
           'label' => $values['existing_storage_label'],
-        ));
+        ]);
         $field->save();
 
         $this->configureEntityFormDisplay($field_name);
         $this->configureEntityViewDisplay($field_name);
 
-        $route_parameters = array(
+        $route_parameters = [
           'field_config' => $field->id(),
-        ) + FieldUI::getRouteBundleParameter($entity_type, $this->bundle);
-        $destinations[] = array('route_name' => "entity.field_config.{$this->entityTypeId}_field_edit_form", 'route_parameters' => $route_parameters);
-        $destinations[] = array('route_name' => "entity.{$this->entityTypeId}.field_ui_fields", 'route_parameters' => $route_parameters);
+        ] + FieldUI::getRouteBundleParameter($entity_type, $this->bundle);
+        $destinations[] = ['route_name' => "entity.field_config.{$this->entityTypeId}_field_edit_form", 'route_parameters' => $route_parameters];
+        $destinations[] = ['route_name' => "entity.{$this->entityTypeId}.field_ui_fields", 'route_parameters' => $route_parameters];
 
         // Store new field information for any additional submit handlers.
         $form_state->set(['fields_added', '_add_existing_field'], $field_name);
       }
       catch (\Exception $e) {
         $error = TRUE;
-        drupal_set_message($this->t('There was a problem creating field %label: @message', array('%label' => $values['label'], '@message' => $e->getMessage())), 'error');
+        drupal_set_message($this->t('There was a problem creating field %label: @message', ['%label' => $values['label'], '@message' => $e->getMessage()]), 'error');
       }
     }
 
@@ -464,7 +452,7 @@ class FieldStorageAddForm extends FormBase {
    *   An array of existing field storages keyed by name.
    */
   protected function getExistingFieldStorageOptions() {
-    $options = array();
+    $options = [];
     // Load the field_storages and build the list of options.
     $field_types = $this->fieldTypePluginManager->getDefinitions();
     foreach ($this->entityManager->getFieldStorageDefinitions($this->entityTypeId) as $field_name => $field_storage) {
@@ -478,10 +466,10 @@ class FieldStorageAddForm extends FormBase {
         && !$field_storage->isLocked()
         && empty($field_types[$field_type]['no_ui'])
         && !in_array($this->bundle, $field_storage->getBundles(), TRUE)) {
-        $options[$field_name] = $this->t('@type: @field', array(
+        $options[$field_name] = $this->t('@type: @field', [
           '@type' => $field_types[$field_type]['label'],
           '@field' => $field_name,
-        ));
+        ]);
       }
     }
     asort($options);
@@ -505,14 +493,14 @@ class FieldStorageAddForm extends FormBase {
   protected function getExistingFieldLabels(array $field_names) {
     // Get all the fields corresponding to the given field storage names and
     // this entity type.
-    $field_ids = $this->queryFactory->get('field_config')
+    $field_ids = $this->entityManager->getStorage('field_config')->getQuery()
       ->condition('entity_type', $this->entityTypeId)
       ->condition('field_name', $field_names)
       ->execute();
     $fields = $this->entityManager->getStorage('field_config')->loadMultiple($field_ids);
 
     // Go through all the fields and use the label of the first encounter.
-    $labels = array();
+    $labels = [];
     foreach ($fields as $field) {
       if (!isset($labels[$field->getName()])) {
         $labels[$field->getName()] = $field->label();

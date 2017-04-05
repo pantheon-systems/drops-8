@@ -374,6 +374,10 @@ class MigrateUpgradeForm extends ConfirmFormBase {
       'source_module' => 'node',
       'destination_module' => 'node',
     ],
+    'd7_node_translation' => [
+      'source_module' => 'node',
+      'destination_module' => 'node',
+    ],
     'd7_node_title_label' => [
       'source_module' => 'node',
       'destination_module' => 'node',
@@ -648,6 +652,10 @@ class MigrateUpgradeForm extends ConfirmFormBase {
     ],
     'user_profile_field_instance' => [
       'source_module' => 'profile',
+      'destination_module' => 'user',
+    ],
+    'd6_i18n_user_profile_field_instance' => [
+      'source_module' => 'i18n',
       'destination_module' => 'user',
     ],
   ];
@@ -1050,7 +1058,7 @@ class MigrateUpgradeForm extends ConfirmFormBase {
     $form['missing_module_list_title'] = [
       '#type' => 'item',
       '#title' => $this->t('Missing upgrade paths'),
-      '#description' => $this->t('The following items will not be upgraded. For more information see <a href=":migrate">Upgrading from Drupal 6 or 7 to Drupal 8</a>.', array(':migrate' => 'https://www.drupal.org/upgrade/migrate')),
+      '#description' => $this->t('The following items will not be upgraded. For more information see <a href=":migrate">Upgrading from Drupal 6 or 7 to Drupal 8</a>.', [':migrate' => 'https://www.drupal.org/upgrade/migrate']),
     ];
     $form['missing_module_list'] = [
       '#type' => 'table',

@@ -21,14 +21,14 @@ class FilterController {
    *
    * @see template_preprocess_filter_tips()
    */
-  function filterTips(FilterFormatInterface $filter_format = NULL) {
+  public function filterTips(FilterFormatInterface $filter_format = NULL) {
     $tips = $filter_format ? $filter_format->id() : -1;
 
-    $build = array(
+    $build = [
       '#theme' => 'filter_tips',
       '#long' => TRUE,
       '#tips' => _filter_tips($tips, TRUE),
-    );
+    ];
 
     return $build;
   }

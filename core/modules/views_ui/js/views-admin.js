@@ -483,18 +483,18 @@
      *   An array of all the filterable options.
      */
     getOptions: function ($allOptions) {
-      var $label;
+      var $title;
       var $description;
       var $option;
       var options = [];
       var length = $allOptions.length;
       for (var i = 0; i < length; i++) {
         $option = $($allOptions[i]);
-        $label = $option.find('label');
+        $title = $option.find('.title');
         $description = $option.find('.description');
         options[i] = {
-          // Search on the lowercase version of the label text + description.
-          searchText: $label.text().toLowerCase() + ' ' + $description.text().toLowerCase(),
+          // Search on the lowercase version of the title text + description.
+          searchText: $title.text().toLowerCase() + ' ' + $description.text().toLowerCase(),
           // Maintain a reference to the jQuery object for each row, so we don't
           // have to create a new object inside the performance-sensitive keyup
           // handler.
@@ -708,6 +708,7 @@
         // When the link is clicked, dynamically click the hidden form button
         // for adding a new filter group.
         .once('views-rearrange-filter-handler')
+        .find('#views-add-group-link')
         .on('click.views-rearrange-filter-handler', $.proxy(this, 'clickAddGroupButton'));
 
       // Find each (visually hidden) button for removing a filter group and

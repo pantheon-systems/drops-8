@@ -3,6 +3,7 @@
 namespace Drupal\user;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultNeutral;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityAccessControlHandler;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -56,6 +57,9 @@ class UserAccessControlHandler extends EntityAccessControlHandler {
         elseif ($account->id() == $entity->id()) {
           return AccessResult::allowed()->cachePerUser();
         }
+        else {
+          return AccessResultNeutral::neutral("The 'access user profiles' permission is required and the user must be active.");
+        }
         break;
 
       case 'update':
@@ -76,9 +80,9 @@ class UserAccessControlHandler extends EntityAccessControlHandler {
    */
   protected function checkFieldAccess($operation, FieldDefinitionInterface $field_definition, AccountInterface $account, FieldItemListInterface $items = NULL) {
     // Fields that are not implicitly allowed to administrative users.
-    $explicit_check_fields = array(
+    $explicit_check_fields = [
       'pass',
-    );
+    ];
 
     // Administrative users are allowed to edit and view all fields.
     if (!in_array($field_definition->getName(), $explicit_check_fields) && $account->hasPermission('administer users')) {

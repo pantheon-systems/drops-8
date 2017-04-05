@@ -71,7 +71,7 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
             $first = false;
         }
 
-        if ($this->hasNode('arguments') && null !== $this->getNode('arguments')) {
+        if ($this->hasNode('arguments')) {
             $callable = $this->hasAttribute('callable') ? $this->getAttribute('callable') : null;
 
             $arguments = $this->getArguments($callable, $this->getNode('arguments'));
@@ -240,7 +240,7 @@ abstract class Twig_Node_Expression_Call extends Twig_Node_Expression
                 array_pop($parameters);
             } else {
                 $callableName = $r->name;
-                if ($r->getDeclaringClass()) {
+                if ($r instanceof ReflectionMethod) {
                     $callableName = $r->getDeclaringClass()->name.'::'.$callableName;
                 }
 

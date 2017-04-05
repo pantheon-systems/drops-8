@@ -299,8 +299,9 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
      * The name of the getter is assumed to be the name of the property with an
      * uppercased first letter and either the prefix "get" or "is".
      *
-     * @param string     $property   The name of the property
-     * @param Constraint $constraint The constraint
+     * @param string      $property   The name of the property
+     * @param Constraint  $constraint The constraint
+     * @param string|null $method     The method that is called to retrieve the value being validated (null for auto-detection)
      *
      * @return $this
      */
@@ -308,6 +309,30 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
     {
         if (!isset($this->getters[$property])) {
             $this->getters[$property] = new GetterMetadata($this->getClassName(), $property);
+
+            $this->addPropertyMetadata($this->getters[$property]);
+        }
+
+        $constraint->addImplicitGroupName($this->getDefaultGroup());
+
+        $this->getters[$property]->addConstraint($constraint);
+
+        return $this;
+    }
+
+    /**
+     * Adds a constraint to the getter of the given property.
+     *
+     * @param string     $property   The name of the property
+     * @param string     $method     The name of the getter method
+     * @param Constraint $constraint The constraint
+     *
+     * @return $this
+     */
+    public function addGetterMethodConstraint($property, $method, Constraint $constraint)
+    {
+        if (!isset($this->getters[$property])) {
+            $this->getters[$property] = new GetterMetadata($this->getClassName(), $property, $method);
 
             $this->addPropertyMetadata($this->getters[$property]);
         }
@@ -335,6 +360,22 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
     }
 
     /**
+     * @param string       $property
+     * @param string       $method
+     * @param Constraint[] $constraints
+     *
+     * @return $this
+     */
+    public function addGetterMethodConstraints($property, $method, array $constraints)
+    {
+        foreach ($constraints as $constraint) {
+            $this->addGetterMethodConstraint($property, $method, $constraint);
+        }
+
+        return $this;
+    }
+
+    /**
      * Merges the constraints of the given metadata into this object.
      *
      * @param ClassMetadata $source The source metadata
@@ -346,10 +387,6 @@ class ClassMetadata extends ElementMetadata implements ClassMetadataInterface
         }
 
         foreach ($source->getConstrainedProperties() as $property) {
-            if ($this->hasPropertyMetadata($property)) {
-                continue;
-            }
-
             foreach ($source->getPropertyMetadata($property) as $member) {
                 $member = clone $member;
 

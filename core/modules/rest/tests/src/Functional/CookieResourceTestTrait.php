@@ -53,10 +53,8 @@ trait CookieResourceTestTrait {
    * {@inheritdoc}
    */
   protected function initAuthentication() {
-    // @todo Remove hardcoded use of the 'json' format, and use static::$format
-    // + static::$mimeType instead in https://www.drupal.org/node/2820888.
     $user_login_url = Url::fromRoute('user.login.http')
-      ->setRouteParameter('_format', 'json');
+      ->setRouteParameter('_format', static::$format);
 
     $request_body = [
       'name' => $this->account->name->value,
@@ -64,7 +62,9 @@ trait CookieResourceTestTrait {
     ];
 
     $request_options[RequestOptions::BODY] = $this->serializer->encode($request_body, 'json');
-    $request_options[RequestOptions::HEADERS]['Accept'] = 'application/json';
+    $request_options[RequestOptions::HEADERS] = [
+      'Content-Type' => static::$mimeType,
+    ];
     $response = $this->request('POST', $user_login_url, $request_options);
 
     // Parse and store the session cookie.
@@ -92,7 +92,10 @@ trait CookieResourceTestTrait {
    * {@inheritdoc}
    */
   protected function assertResponseWhenMissingAuthentication(ResponseInterface $response) {
-    $this->assertResourceErrorResponse(403, '', $response);
+    // Requests needing cookie authentication but missing it results in a 403
+    // response. The cookie authentication mechanism sets no response message.
+    // @todo https://www.drupal.org/node/2847623
+    $this->assertResourceErrorResponse(403, FALSE, $response);
   }
 
   /**

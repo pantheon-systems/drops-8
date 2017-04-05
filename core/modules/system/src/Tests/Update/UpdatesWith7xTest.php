@@ -17,7 +17,7 @@ class UpdatesWith7xTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('update_test_with_7x');
+  public static $modules = ['update_test_with_7x'];
 
   /**
    * The URL for the update page.
@@ -33,10 +33,10 @@ class UpdatesWith7xTest extends WebTestBase {
     parent::setUp();
     require_once \Drupal::root() . '/core/includes/update.inc';
     $this->updateUrl = $GLOBALS['base_url'] . '/update.php';
-    $this->updateUser = $this->drupalCreateUser(array('administer software updates'));
+    $this->updateUser = $this->drupalCreateUser(['administer software updates']);
   }
 
-  function testWith7x() {
+  public function testWith7x() {
     // Ensure that the minimum schema version is 8000, despite 7200 update
     // hooks and a 7XXX hook_update_last_removed().
     $this->assertEqual(drupal_get_installed_schema_version('update_test_with_7x'), 8000);
@@ -47,7 +47,7 @@ class UpdatesWith7xTest extends WebTestBase {
 
     // Click through update.php with 'administer software updates' permission.
     $this->drupalLogin($this->updateUser);
-    $this->drupalGet($this->updateUrl, array('external' => TRUE));
+    $this->drupalGet($this->updateUrl, ['external' => TRUE]);
     $this->clickLink(t('Continue'));
     $this->assertText(t('Some of the pending updates cannot be applied because their dependencies were not met.'));
   }

@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\aggregator\Kernel\Migrate\d6;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 
 /**
@@ -34,7 +34,7 @@ class MigrateAggregatorConfigsTest extends MigrateDrupal6TestBase {
     $config = $this->config('aggregator.settings');
     $this->assertIdentical('aggregator', $config->get('fetcher'));
     $this->assertIdentical('aggregator', $config->get('parser'));
-    $this->assertIdentical(array('aggregator'), $config->get('processors'));
+    $this->assertIdentical(['aggregator'], $config->get('processors'));
     $this->assertIdentical(600, $config->get('items.teaser_length'));
     $this->assertIdentical('<a> <b> <br /> <dd> <dl> <dt> <em> <i> <li> <ol> <p> <strong> <u> <ul>', $config->get('items.allowed_html'));
     $this->assertIdentical(9676800, $config->get('items.expire'));

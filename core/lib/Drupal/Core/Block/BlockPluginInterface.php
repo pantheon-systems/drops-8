@@ -23,6 +23,11 @@ use Drupal\Core\Session\AccountInterface;
 interface BlockPluginInterface extends ConfigurablePluginInterface, PluginFormInterface, PluginInspectionInterface, CacheableDependencyInterface, DerivativeInspectionInterface {
 
   /**
+   * Indicates the block label (title) should be displayed to end users.
+   */
+  const BLOCK_LABEL_VISIBLE = 'visible';
+
+  /**
    * Returns the user-facing block label.
    *
    * @todo Provide other specific label-related methods in
@@ -97,7 +102,7 @@ interface BlockPluginInterface extends ConfigurablePluginInterface, PluginFormIn
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    *
-   * @return array $form
+   * @return array
    *   The renderable form array representing the entire configuration form.
    */
   public function blockForm($form, FormStateInterface $form_state);

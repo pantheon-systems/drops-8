@@ -16,13 +16,13 @@ class ElementsLabelsTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('form_test');
+  public static $modules = ['form_test'];
 
   /**
    * Test form elements, labels, title attributes and required marks output
    * correctly and have the correct label option class if needed.
    */
-  function testFormLabels() {
+  public function testFormLabels() {
     $this->drupalGet('form_test/form-labels');
 
     // Check that the checkbox/radio processing is not interfering with
@@ -99,7 +99,7 @@ class ElementsLabelsTest extends WebTestBase {
   /**
    * Tests different display options for form element descriptions.
    */
-  function testFormDescriptions() {
+  public function testFormDescriptions() {
     $this->drupalGet('form_test/form-descriptions');
 
     // Check #description placement with #description_display='after'.
@@ -126,7 +126,7 @@ class ElementsLabelsTest extends WebTestBase {
   /**
    * Test forms in theme-less environments.
    */
-  function testFormsInThemeLessEnvironments() {
+  public function testFormsInThemeLessEnvironments() {
     $form = $this->getFormWithLimitedProperties();
     $render_service = $this->container->get('renderer');
     // This should not throw any notices.
@@ -137,12 +137,12 @@ class ElementsLabelsTest extends WebTestBase {
    * Return a form with element with not all properties defined.
    */
   protected function getFormWithLimitedProperties() {
-    $form = array();
+    $form = [];
 
-    $form['fieldset'] = array(
+    $form['fieldset'] = [
       '#type' => 'fieldset',
       '#title' => 'Fieldset',
-    );
+    ];
 
     return $form;
   }

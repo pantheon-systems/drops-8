@@ -2,6 +2,8 @@
 
 namespace Drupal\KernelTests\Core\Theme;
 
+use Drupal\Core\Path\CurrentPathStack;
+use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Theme\Registry;
 use Drupal\Core\Utility\ThemeRegistry;
 use Drupal\KernelTests\KernelTestBase;
@@ -18,14 +20,14 @@ class RegistryTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('theme_test', 'system');
+  public static $modules = ['theme_test', 'system'];
 
   protected $profile = 'testing';
 
   /**
    * Tests the behavior of the theme registry class.
    */
-  function testRaceCondition() {
+  public function testRaceCondition() {
     // The theme registry is not marked as persistable in case we don't have a
     // proper request.
     \Drupal::request()->setMethod('GET');
@@ -35,7 +37,7 @@ class RegistryTest extends KernelTestBase {
     // entry to be written in __construct().
     $cache = \Drupal::cache();
     $lock_backend = \Drupal::lock();
-    $registry = new ThemeRegistry($cid, $cache, $lock_backend, array('theme_registry'), $this->container->get('module_handler')->isLoaded());
+    $registry = new ThemeRegistry($cid, $cache, $lock_backend, ['theme_registry'], $this->container->get('module_handler')->isLoaded());
 
     $this->assertTrue(\Drupal::cache()->get($cid), 'Cache entry was created.');
 
@@ -55,7 +57,7 @@ class RegistryTest extends KernelTestBase {
     // Create a new instance of the class. Confirm that both the offset
     // requested previously, and one that has not yet been requested are both
     // available.
-    $registry = new ThemeRegistry($cid, $cache, $lock_backend, array('theme_registry'), $this->container->get('module_handler')->isLoaded());
+    $registry = new ThemeRegistry($cid, $cache, $lock_backend, ['theme_registry'], $this->container->get('module_handler')->isLoaded());
     $this->assertTrue($registry->get('theme_test_template_test'), 'Offset was returned correctly from the theme registry');
     $this->assertTrue($registry->get('theme_test_template_test_2'), 'Offset was returned correctly from the theme registry');
   }
@@ -150,11 +152,44 @@ class RegistryTest extends KernelTestBase {
     /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
     $theme_handler = \Drupal::service('theme_handler');
     $theme_handler->install(['test_theme']);
-    $theme_handler->setDefault('test_theme');
+    $this->config('system.theme')->set('default', 'test_theme')->save();
 
     $registry = new Registry(\Drupal::root(), \Drupal::cache(), \Drupal::lock(), \Drupal::moduleHandler(), $theme_handler, \Drupal::service('theme.initialization'), 'test_theme');
     $registry->setThemeManager(\Drupal::theme());
     $this->assertEqual('value', $registry->get()['theme_test_template_test']['variables']['additional']);
+  }
+
+  /**
+   * Tests front node theme suggestion generation.
+   */
+  public function testThemeSuggestions() {
+    // Mock the current page as the front page.
+    /** @var PathMatcherInterface $path_matcher */
+    $path_matcher = $this->prophesize(PathMatcherInterface::class);
+    $path_matcher->isFrontPage()->willReturn(TRUE);
+    $this->container->set('path.matcher', $path_matcher->reveal());
+    /** @var CurrentPathStack $path_matcher */
+    $path_current = $this->prophesize(CurrentPathStack::class);
+    $path_current->getPath()->willReturn('/node/1');
+    $this->container->set('path.current', $path_current->reveal());
+
+    // Check suggestions provided through hook_theme_suggestions_html().
+    $suggestions = \Drupal::moduleHandler()->invokeAll('theme_suggestions_html', [[]]);
+    $this->assertSame([
+      'html__node',
+      'html__node__%',
+      'html__node__1',
+      'html__front',
+    ], $suggestions, 'Found expected html node suggestions.');
+
+    // Check suggestions provided through hook_theme_suggestions_page().
+    $suggestions = \Drupal::moduleHandler()->invokeAll('theme_suggestions_page', [[]]);
+    $this->assertSame([
+      'page__node',
+      'page__node__%',
+      'page__node__1',
+      'page__front',
+    ], $suggestions, 'Found expected page node suggestions.');
   }
 
 }

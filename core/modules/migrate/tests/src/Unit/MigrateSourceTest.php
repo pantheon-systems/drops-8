@@ -12,6 +12,7 @@ use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\KeyValueStore\KeyValueStoreInterface;
+use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\MigrateSkipRowException;
 use Drupal\migrate\Plugin\migrate\source\SourcePluginBase;
@@ -149,10 +150,10 @@ class MigrateSourceTest extends MigrateTestCase {
 
   /**
    * @covers ::__construct
-   * @expectedException \Drupal\migrate\MigrateException
    */
   public function testHighwaterTrackChangesIncompatible() {
     $source_config = ['track_changes' => TRUE, 'high_water_property' => ['name' => 'something']];
+    $this->setExpectedException(MigrateException::class);
     $this->getSource($source_config);
   }
 
@@ -166,7 +167,7 @@ class MigrateSourceTest extends MigrateTestCase {
     $container = new ContainerBuilder();
     $cache = $this->getMock(CacheBackendInterface::class);
     $cache->expects($this->any())->method('set')
-        ->with($this->isType('string'), $this->isType('int'), $this->isType('int'));
+      ->with($this->isType('string'), $this->isType('int'), $this->isType('int'));
     $container->set('cache.migrate', $cache);
     \Drupal::setContainer($container);
 
@@ -204,7 +205,7 @@ class MigrateSourceTest extends MigrateTestCase {
     $container = new ContainerBuilder();
     $cache = $this->getMock(CacheBackendInterface::class);
     $cache->expects($this->any())->method('set')
-        ->with('test_key', $this->isType('int'), $this->isType('int'));
+      ->with('test_key', $this->isType('int'), $this->isType('int'));
     $container->set('cache.migrate', $cache);
     \Drupal::setContainer($container);
 

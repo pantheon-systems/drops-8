@@ -28,6 +28,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
  *   base_table = "entity_test_rev",
  *   revision_table = "entity_test_rev_revision",
  *   admin_permission = "administer entity_test content",
+ *   show_revision_ui = TRUE,
  *   entity_keys = {
  *     "id" = "id",
  *     "uuid" = "uuid",
@@ -53,13 +54,6 @@ class EntityTestRev extends EntityTest {
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     $fields = parent::baseFieldDefinitions($entity_type);
 
-    $fields['revision_id'] = BaseFieldDefinition::create('integer')
-      ->setLabel(t('Revision ID'))
-      ->setDescription(t('The version id of the test entity.'))
-      ->setReadOnly(TRUE)
-      ->setSetting('unsigned', TRUE);
-
-    $fields['langcode']->setRevisionable(TRUE);
     $fields['name']->setRevisionable(TRUE);
     $fields['user_id']->setRevisionable(TRUE);
 

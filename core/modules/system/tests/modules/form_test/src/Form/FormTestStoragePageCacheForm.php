@@ -18,30 +18,30 @@ class FormTestStoragePageCacheForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $form['title'] = array(
+    $form['title'] = [
       '#type' => 'textfield',
       '#title' => 'Title',
       '#required' => TRUE,
-    );
+    ];
 
-    $form['test_build_id_old'] = array(
+    $form['test_build_id_old'] = [
       '#type' => 'item',
       '#title' => 'Old build id',
       '#markup' => 'No old build id',
-    );
+    ];
 
-    $form['submit'] = array(
+    $form['submit'] = [
       '#type' => 'submit',
       '#value' => 'Save',
-    );
+    ];
 
-    $form['rebuild'] = array(
+    $form['rebuild'] = [
       '#type' => 'submit',
       '#value' => 'Rebuild',
-      '#submit' => array(array($this, 'form_test_storage_page_cache_rebuild')),
-    );
+      '#submit' => [[$this, 'form_test_storage_page_cache_rebuild']],
+    ];
 
-    $form['#after_build'] = array(array($this, 'form_test_storage_page_cache_old_build_id'));
+    $form['#after_build'] = [[$this, 'form_test_storage_page_cache_old_build_id']];
 
     return $form;
   }
@@ -49,7 +49,7 @@ class FormTestStoragePageCacheForm extends FormBase {
   /**
    * Form element #after_build callback: output the old form build-id.
    */
-  function form_test_storage_page_cache_old_build_id($form) {
+  public function form_test_storage_page_cache_old_build_id($form) {
     if (isset($form['#build_id_old'])) {
       $form['test_build_id_old']['#plain_text'] = $form['#build_id_old'];
     }
@@ -59,7 +59,7 @@ class FormTestStoragePageCacheForm extends FormBase {
   /**
    * Form submit callback: Rebuild the form and continue.
    */
-  function form_test_storage_page_cache_rebuild($form, FormStateInterface $form_state) {
+  public function form_test_storage_page_cache_rebuild($form, FormStateInterface $form_state) {
     $form_state->setRebuild();
   }
 
