@@ -43,7 +43,7 @@ class Editor extends PluginBase implements InPlaceEditorInterface {
   /**
    * {@inheritdoc}
    */
-  function getMetadata(FieldItemListInterface $items) {
+  public function getMetadata(FieldItemListInterface $items) {
     $format_id = $items[0]->format;
     $metadata['format'] = $format_id;
     $metadata['formatHasTransformations'] = $this->textFormatHasTransformationFilters($format_id);
@@ -60,7 +60,7 @@ class Editor extends PluginBase implements InPlaceEditorInterface {
    */
   protected function textFormatHasTransformationFilters($format_id) {
     $format = FilterFormat::load($format_id);
-    return (bool) count(array_intersect(array(FilterInterface::TYPE_TRANSFORM_REVERSIBLE, FilterInterface::TYPE_TRANSFORM_IRREVERSIBLE), $format->getFiltertypes()));
+    return (bool) count(array_intersect([FilterInterface::TYPE_TRANSFORM_REVERSIBLE, FilterInterface::TYPE_TRANSFORM_IRREVERSIBLE], $format->getFiltertypes()));
   }
 
   /**
@@ -74,7 +74,7 @@ class Editor extends PluginBase implements InPlaceEditorInterface {
     $definitions = $manager->getDefinitions();
 
     // Filter the current user's formats to those that support inline editing.
-    $formats = array();
+    $formats = [];
     foreach ($user_format_ids as $format_id) {
       if ($editor = editor_load($format_id)) {
         $editor_id = $editor->getEditor();

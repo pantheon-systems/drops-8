@@ -14,7 +14,7 @@ class UpdateDeleteFileIfStaleTest extends UpdateTestBase {
    *
    * @var array
    */
-  public static $modules = array('update');
+  public static $modules = ['update'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class UpdateDeleteFileIfStaleTest extends UpdateTestBase {
   /**
    * Tests the deletion of stale files.
    */
-  function testUpdateDeleteFileIfStale() {
+  public function testUpdateDeleteFileIfStale() {
     $file_name = file_unmanaged_save_data($this->randomMachineName());
     $this->assertNotNull($file_name);
 

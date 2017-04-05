@@ -9,6 +9,7 @@ namespace Drupal\Tests\Core\Render;
 
 use Drupal\Core\Cache\MemoryBackend;
 use Drupal\Core\KeyValueStore\KeyValueMemoryFactory;
+use Drupal\Core\Lock\NullLockBackend;
 use Drupal\Core\State\State;
 use Drupal\Core\Cache\Cache;
 
@@ -79,8 +80,8 @@ class RendererBubblingTest extends RendererTestBase {
     $bin = $this->randomMachineName();
 
     $this->setUpRequest();
-    $this->memoryCache = new MemoryBackend('render');
-    $custom_cache = new MemoryBackend($bin);
+    $this->memoryCache = new MemoryBackend();
+    $custom_cache = new MemoryBackend();
 
     $this->cacheFactory->expects($this->atLeastOnce())
       ->method('get')
@@ -502,7 +503,7 @@ class RendererBubblingTest extends RendererTestBase {
     $this->setupMemoryCache();
 
     // Mock the State service.
-    $memory_state = new State(new KeyValueMemoryFactory());;
+    $memory_state = new State(new KeyValueMemoryFactory(), new MemoryBackend('test'), new NullLockBackend());
     \Drupal::getContainer()->set('state', $memory_state);
     $this->controllerResolver->expects($this->any())
       ->method('getControllerFromDefinition')
@@ -570,9 +571,6 @@ class RendererBubblingTest extends RendererTestBase {
 
   /**
    * Tests that an element's cache keys cannot be changed during its rendering.
-   *
-   * @expectedException \LogicException
-   * @expectedExceptionMessage Cache keys may not be changed after initial setup. Use the contexts property instead to bubble additional metadata.
    */
   public function testOverWriteCacheKeys() {
     $this->setUpRequest();
@@ -585,6 +583,7 @@ class RendererBubblingTest extends RendererTestBase {
        ],
       '#pre_render' => [__NAMESPACE__ . '\\BubblingTest::bubblingCacheOverwritePrerender'],
     ];
+    $this->setExpectedException(\LogicException::class, 'Cache keys may not be changed after initial setup. Use the contexts property instead to bubble additional metadata.');
     $this->renderer->renderRoot($data);
   }
 

@@ -2,8 +2,10 @@
 
 namespace Drupal\menu_link_content\Form;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Menu\MenuParentFormSelectorInterface;
@@ -47,9 +49,13 @@ class MenuLinkContentForm extends ContentEntityForm {
    *   The language manager.
    * @param \Drupal\Core\Path\PathValidatorInterface $path_validator
    *   The path validator.
+   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
+   *   The entity type bundle service.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The time service.
    */
-  public function __construct(EntityManagerInterface $entity_manager, MenuParentFormSelectorInterface $menu_parent_selector, LanguageManagerInterface $language_manager, PathValidatorInterface $path_validator) {
-    parent::__construct($entity_manager, $language_manager);
+  public function __construct(EntityManagerInterface $entity_manager, MenuParentFormSelectorInterface $menu_parent_selector, LanguageManagerInterface $language_manager, PathValidatorInterface $path_validator, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, TimeInterface $time = NULL) {
+    parent::__construct($entity_manager, $entity_type_bundle_info, $time);
     $this->menuParentSelector = $menu_parent_selector;
     $this->pathValidator = $path_validator;
   }
@@ -62,7 +68,9 @@ class MenuLinkContentForm extends ContentEntityForm {
       $container->get('entity.manager'),
       $container->get('menu.parent_form_selector'),
       $container->get('language_manager'),
-      $container->get('path.validator')
+      $container->get('path.validator'),
+      $container->get('entity_type.bundle.info'),
+      $container->get('datetime.time')
     );
   }
 
@@ -105,8 +113,8 @@ class MenuLinkContentForm extends ContentEntityForm {
 
     $entity->parent->value = $parent;
     $entity->menu_name->value = $menu_name;
-    $entity->enabled->value = (!$form_state->isValueEmpty(array('enabled', 'value')));
-    $entity->expanded->value = (!$form_state->isValueEmpty(array('expanded', 'value')));
+    $entity->enabled->value = (!$form_state->isValueEmpty(['enabled', 'value']));
+    $entity->expanded->value = (!$form_state->isValueEmpty(['expanded', 'value']));
 
     return $entity;
   }
@@ -123,7 +131,7 @@ class MenuLinkContentForm extends ContentEntityForm {
       drupal_set_message($this->t('The menu link has been saved.'));
       $form_state->setRedirect(
         'entity.menu_link_content.canonical',
-        array('menu_link_content' => $menu_link->id())
+        ['menu_link_content' => $menu_link->id()]
       );
     }
     else {

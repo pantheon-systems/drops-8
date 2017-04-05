@@ -21,7 +21,7 @@ class UpdateCoreTest extends UpdateTestBase {
 
   protected function setUp() {
     parent::setUp();
-    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer modules', 'administer themes'));
+    $admin_user = $this->drupalCreateUser(['administer site configuration', 'administer modules', 'administer themes']);
     $this->drupalLogin($admin_user);
     $this->drupalPlaceBlock('local_actions_block');
   }
@@ -33,23 +33,23 @@ class UpdateCoreTest extends UpdateTestBase {
    *   The version.
    */
   protected function setSystemInfo($version) {
-    $setting = array(
-      '#all' => array(
+    $setting = [
+      '#all' => [
         'version' => $version,
-      ),
-    );
+      ],
+    ];
     $this->config('update_test.settings')->set('system_info', $setting)->save();
   }
 
   /**
    * Tests the Update Manager module when no updates are available.
    */
-  function testNoUpdatesAvailable() {
-    foreach (array(0, 1) as $minor_version) {
-      foreach (array(0, 1) as $patch_version) {
-        foreach (array('-alpha1', '-beta1', '') as $extra_version) {
+  public function testNoUpdatesAvailable() {
+    foreach ([0, 1] as $minor_version) {
+      foreach ([0, 1] as $patch_version) {
+        foreach (['-alpha1', '-beta1', ''] as $extra_version) {
           $this->setSystemInfo("8.$minor_version.$patch_version" . $extra_version);
-          $this->refreshUpdateStatus(array('drupal' => "$minor_version.$patch_version" . $extra_version));
+          $this->refreshUpdateStatus(['drupal' => "$minor_version.$patch_version" . $extra_version]);
           $this->standardTests();
           $this->assertText(t('Up to date'));
           $this->assertNoText(t('Update available'));
@@ -63,16 +63,16 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Tests the Update Manager module when one normal update is available.
    */
-  function testNormalUpdateAvailable() {
+  public function testNormalUpdateAvailable() {
     $this->setSystemInfo('8.0.0');
 
     // Ensure that the update check requires a token.
     $this->drupalGet('admin/reports/updates/check');
     $this->assertResponse(403, 'Accessing admin/reports/updates/check without a CSRF token results in access denied.');
 
-    foreach (array(0, 1) as $minor_version) {
-      foreach (array('-alpha1', '-beta1', '') as $extra_version) {
-        $this->refreshUpdateStatus(array('drupal' => "$minor_version.1" . $extra_version));
+    foreach ([0, 1] as $minor_version) {
+      foreach (['-alpha1', '-beta1', ''] as $extra_version) {
+        $this->refreshUpdateStatus(['drupal' => "$minor_version.1" . $extra_version]);
         $this->standardTests();
         $this->drupalGet('admin/reports/updates');
         $this->clickLink(t('Check manually'));
@@ -130,12 +130,12 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Tests the Update Manager module when a major update is available.
    */
-  function testMajorUpdateAvailable() {
-    foreach (array(0, 1) as $minor_version) {
-      foreach (array(0, 1) as $patch_version) {
-        foreach (array('-alpha1', '-beta1', '') as $extra_version) {
+  public function testMajorUpdateAvailable() {
+    foreach ([0, 1] as $minor_version) {
+      foreach ([0, 1] as $patch_version) {
+        foreach (['-alpha1', '-beta1', ''] as $extra_version) {
           $this->setSystemInfo("8.$minor_version.$patch_version" . $extra_version);
-          $this->refreshUpdateStatus(array('drupal' => '9'));
+          $this->refreshUpdateStatus(['drupal' => '9']);
           $this->standardTests();
           $this->drupalGet('admin/reports/updates');
           $this->clickLink(t('Check manually'));
@@ -156,10 +156,10 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Tests the Update Manager module when a security update is available.
    */
-  function testSecurityUpdateAvailable() {
-    foreach (array(0, 1) as $minor_version) {
+  public function testSecurityUpdateAvailable() {
+    foreach ([0, 1] as $minor_version) {
       $this->setSystemInfo("8.$minor_version.0");
-      $this->refreshUpdateStatus(array('drupal' => "$minor_version.2-sec"));
+      $this->refreshUpdateStatus(['drupal' => "$minor_version.2-sec"]);
       $this->standardTests();
       $this->assertNoText(t('Up to date'));
       $this->assertNoText(t('Update available'));
@@ -174,20 +174,20 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Ensures proper results where there are date mismatches among modules.
    */
-  function testDatestampMismatch() {
-    $system_info = array(
-      '#all' => array(
+  public function testDatestampMismatch() {
+    $system_info = [
+      '#all' => [
         // We need to think we're running a -dev snapshot to see dates.
         'version' => '8.1.0-dev',
         'datestamp' => time(),
-      ),
-      'block' => array(
+      ],
+      'block' => [
         // This is 2001-09-09 01:46:40 GMT, so test for "2001-Sep-".
         'datestamp' => '1000000000',
-      ),
-    );
+      ],
+    ];
     $this->config('update_test.settings')->set('system_info', $system_info)->save();
-    $this->refreshUpdateStatus(array('drupal' => 'dev'));
+    $this->refreshUpdateStatus(['drupal' => 'dev']);
     $this->assertNoText(t('2001-Sep-'));
     $this->assertText(t('Up to date'));
     $this->assertNoText(t('Update available'));
@@ -197,13 +197,13 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Checks that running cron updates the list of available updates.
    */
-  function testModulePageRunCron() {
+  public function testModulePageRunCron() {
     $this->setSystemInfo('8.0.0');
     $this->config('update.settings')
       ->set('fetch.url', Url::fromRoute('update_test.update_test')->setAbsolute()->toString())
       ->save();
     $this->config('update_test.settings')
-      ->set('xml_map', array('drupal' => '0.0'))
+      ->set('xml_map', ['drupal' => '0.0'])
       ->save();
 
     $this->cronRun();
@@ -214,14 +214,14 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Checks the messages at admin/modules when the site is up to date.
    */
-  function testModulePageUpToDate() {
+  public function testModulePageUpToDate() {
     $this->setSystemInfo('8.0.0');
     // Instead of using refreshUpdateStatus(), set these manually.
     $this->config('update.settings')
       ->set('fetch.url', Url::fromRoute('update_test.update_test')->setAbsolute()->toString())
       ->save();
     $this->config('update_test.settings')
-      ->set('xml_map', array('drupal' => '0.0'))
+      ->set('xml_map', ['drupal' => '0.0'])
       ->save();
 
     $this->drupalGet('admin/reports/updates');
@@ -235,14 +235,14 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Checks the messages at admin/modules when an update is missing.
    */
-  function testModulePageRegularUpdate() {
+  public function testModulePageRegularUpdate() {
     $this->setSystemInfo('8.0.0');
     // Instead of using refreshUpdateStatus(), set these manually.
     $this->config('update.settings')
       ->set('fetch.url', Url::fromRoute('update_test.update_test')->setAbsolute()->toString())
       ->save();
     $this->config('update_test.settings')
-      ->set('xml_map', array('drupal' => '0.1'))
+      ->set('xml_map', ['drupal' => '0.1'])
       ->save();
 
     $this->drupalGet('admin/reports/updates');
@@ -256,14 +256,14 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Checks the messages at admin/modules when a security update is missing.
    */
-  function testModulePageSecurityUpdate() {
+  public function testModulePageSecurityUpdate() {
     $this->setSystemInfo('8.0.0');
     // Instead of using refreshUpdateStatus(), set these manually.
     $this->config('update.settings')
       ->set('fetch.url', Url::fromRoute('update_test.update_test')->setAbsolute()->toString())
       ->save();
     $this->config('update_test.settings')
-      ->set('xml_map', array('drupal' => '0.2-sec'))
+      ->set('xml_map', ['drupal' => '0.2-sec'])
       ->save();
 
     $this->drupalGet('admin/reports/updates');
@@ -295,8 +295,8 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Tests the Update Manager module when the update server returns 503 errors.
    */
-  function testServiceUnavailable() {
-    $this->refreshUpdateStatus(array(), '503-error');
+  public function testServiceUnavailable() {
+    $this->refreshUpdateStatus([], '503-error');
     // Ensure that no "Warning: SimpleXMLElement..." parse errors are found.
     $this->assertNoText('SimpleXMLElement');
     $this->assertUniqueText(t('Failed to get available update data for one project.'));
@@ -305,13 +305,13 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Tests that exactly one fetch task per project is created and not more.
    */
-  function testFetchTasks() {
-    $projecta = array(
+  public function testFetchTasks() {
+    $projecta = [
       'name' => 'aaa_update_test',
-    );
-    $projectb = array(
+    ];
+    $projectb = [
       'name' => 'bbb_update_test',
-    );
+    ];
     $queue = \Drupal::queue('update_fetch_tasks');
     $this->assertEqual($queue->numberOfItems(), 0, 'Queue is empty');
     update_create_fetch_task($projecta);
@@ -331,14 +331,14 @@ class UpdateCoreTest extends UpdateTestBase {
   /**
    * Checks language module in core package at admin/reports/updates.
    */
-  function testLanguageModuleUpdate() {
+  public function testLanguageModuleUpdate() {
     $this->setSystemInfo('8.0.0');
     // Instead of using refreshUpdateStatus(), set these manually.
     $this->config('update.settings')
       ->set('fetch.url', Url::fromRoute('update_test.update_test')->setAbsolute()->toString())
       ->save();
     $this->config('update_test.settings')
-      ->set('xml_map', array('drupal' => '0.1'))
+      ->set('xml_map', ['drupal' => '0.1'])
       ->save();
 
     $this->drupalGet('admin/reports/updates');
@@ -349,7 +349,7 @@ class UpdateCoreTest extends UpdateTestBase {
    * Ensures that the local actions appear.
    */
   public function testLocalActions() {
-    $admin_user = $this->drupalCreateUser(array('administer site configuration', 'administer modules', 'administer software updates', 'administer themes'));
+    $admin_user = $this->drupalCreateUser(['administer site configuration', 'administer modules', 'administer software updates', 'administer themes']);
     $this->drupalLogin($admin_user);
 
     $this->drupalGet('admin/modules');

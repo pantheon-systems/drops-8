@@ -16,7 +16,7 @@ class ColorConfigSchemaTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = array('color');
+  public static $modules = ['color'];
 
   /**
    * A user with administrative permissions.
@@ -30,17 +30,17 @@ class ColorConfigSchemaTest extends BrowserTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(array('bartik'));
+    \Drupal::service('theme_handler')->install(['bartik']);
 
     // Create user.
-    $this->adminUser = $this->drupalCreateUser(array('administer themes'));
+    $this->adminUser = $this->drupalCreateUser(['administer themes']);
     $this->drupalLogin($this->adminUser);
   }
 
   /**
    * Tests whether the color config schema is valid.
    */
-  function testValidColorConfigSchema() {
+  public function testValidColorConfigSchema() {
     $settings_path = 'admin/appearance/settings/bartik';
     $edit['scheme'] = '';
     $edit['palette[bg]'] = '#123456';

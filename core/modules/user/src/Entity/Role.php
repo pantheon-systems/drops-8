@@ -72,7 +72,7 @@ class Role extends ConfigEntityBase implements RoleInterface {
    *
    * @var array
    */
-  protected $permissions = array();
+  protected $permissions = [];
 
   /**
    * An indicator whether the role has all permissions.
@@ -136,7 +136,7 @@ class Role extends ConfigEntityBase implements RoleInterface {
     if ($this->isAdmin()) {
       return $this;
     }
-    $this->permissions = array_diff($this->permissions, array($permission));
+    $this->permissions = array_diff($this->permissions, [$permission]);
     return $this;
   }
 
@@ -177,6 +177,12 @@ class Role extends ConfigEntityBase implements RoleInterface {
         return $max > $role->weight ? $max : $role->weight;
       });
       $this->weight = $max + 1;
+    }
+
+    if (!$this->isSyncing()) {
+      // Permissions are always ordered alphabetically to avoid conflicts in the
+      // exported configuration.
+      sort($this->permissions);
     }
   }
 

@@ -11,7 +11,7 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
   /**
    * Test min/max resolution settings.
    */
-  function testResolution() {
+  public function testResolution() {
     $field_names = [
       0 => strtolower($this->randomMachineName()),
       1 => strtolower($this->randomMachineName()),
@@ -85,16 +85,16 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
   /**
    * Test that required alt/title fields gets validated right.
    */
-  function testRequiredAttributes() {
+  public function testRequiredAttributes() {
     $field_name = strtolower($this->randomMachineName());
-    $field_settings = array(
+    $field_settings = [
       'alt_field' => 1,
       'alt_field_required' => 1,
       'title_field' => 1,
       'title_field_required' => 1,
       'required' => 1,
-    );
-    $instance = $this->createImageField($field_name, 'article', array(), $field_settings);
+    ];
+    $instance = $this->createImageField($field_name, 'article', [], $field_settings);
     $images = $this->drupalGetTestFiles('image');
     // Let's just use the first image.
     $image = $images[0];
@@ -116,9 +116,9 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
     $instance->setSetting('title_field_required', 0);
     $instance->save();
 
-    $edit = array(
+    $edit = [
       'title[0][value]' => $this->randomMachineName(),
-    );
+    ];
     $this->drupalPostForm('node/add/article', $edit, t('Save and publish'));
 
     $this->assertNoText(t('Alternative text field is required.'));
@@ -129,9 +129,9 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
     $instance->setSetting('title_field_required', 1);
     $instance->save();
 
-    $edit = array(
+    $edit = [
       'title[0][value]' => $this->randomMachineName(),
-    );
+    ];
     $this->drupalPostForm('node/add/article', $edit, t('Save and publish'));
 
     $this->assertNoText(t('Alternative text field is required.'));

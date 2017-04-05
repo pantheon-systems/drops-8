@@ -3,41 +3,13 @@
 namespace Drupal\config_test;
 
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Form controller for the test config edit forms.
  */
 class ConfigTestForm extends EntityForm {
-
-  /**
-   * The entity query.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $entityQuery;
-
-  /**
-   * Constructs a new ConfigTestForm.
-   *
-   * @param \Drupal\Core\Entity\Query\QueryFactory $entity_query
-   *   The entity query.
-   */
-  public function __construct(QueryFactory $entity_query) {
-    $this->entityQuery = $entity_query;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('entity.query')
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -46,33 +18,33 @@ class ConfigTestForm extends EntityForm {
     $form = parent::form($form, $form_state);
 
     $entity = $this->entity;
-    $form['label'] = array(
+    $form['label'] = [
       '#type' => 'textfield',
       '#title' => 'Label',
       '#default_value' => $entity->label(),
       '#required' => TRUE,
-    );
-    $form['id'] = array(
+    ];
+    $form['id'] = [
       '#type' => 'machine_name',
       '#default_value' => $entity->id(),
       '#required' => TRUE,
-      '#machine_name' => array(
+      '#machine_name' => [
         'exists' => [$this, 'exists'],
         'replace_pattern' => '[^a-z0-9_.]+',
-      ),
-    );
-    $form['weight'] = array(
+      ],
+    ];
+    $form['weight'] = [
       '#type' => 'weight',
       '#title' => 'Weight',
       '#default_value' => $entity->get('weight'),
-    );
-    $form['style'] = array(
+    ];
+    $form['style'] = [
       '#type' => 'select',
       '#title' => 'Image style',
-      '#options' => array(),
+      '#options' => [],
       '#default_value' => $entity->get('style'),
       '#access' => FALSE,
-    );
+    ];
     if ($this->moduleHandler->moduleExists('image')) {
       $form['style']['#access'] = TRUE;
       $form['style']['#options'] = image_style_options();
@@ -83,61 +55,61 @@ class ConfigTestForm extends EntityForm {
     // state.
     $size = $entity->get('size');
 
-    $form['size_wrapper'] = array(
+    $form['size_wrapper'] = [
       '#type' => 'container',
-      '#attributes' => array(
+      '#attributes' => [
         'id' => 'size-wrapper',
-      ),
-    );
-    $form['size_wrapper']['size'] = array(
+      ],
+    ];
+    $form['size_wrapper']['size'] = [
       '#type' => 'select',
       '#title' => 'Size',
-      '#options' => array(
+      '#options' => [
         'custom' => 'Custom',
-      ),
+      ],
       '#empty_option' => '- None -',
       '#default_value' => $size,
-      '#ajax' => array(
+      '#ajax' => [
         'callback' => '::updateSize',
         'wrapper' => 'size-wrapper',
-      ),
-    );
-    $form['size_wrapper']['size_submit'] = array(
+      ],
+    ];
+    $form['size_wrapper']['size_submit'] = [
       '#type' => 'submit',
       '#value' => t('Change size'),
-      '#attributes' => array(
-        'class' => array('js-hide'),
-      ),
-      '#submit' => array(array(get_class($this), 'changeSize')),
-    );
-    $form['size_wrapper']['size_value'] = array(
+      '#attributes' => [
+        'class' => ['js-hide'],
+      ],
+      '#submit' => [[get_class($this), 'changeSize']],
+    ];
+    $form['size_wrapper']['size_value'] = [
       '#type' => 'select',
       '#title' => 'Custom size value',
-      '#options' => array(
+      '#options' => [
         'small' => 'Small',
         'medium' => 'Medium',
         'large' => 'Large',
-      ),
+      ],
       '#default_value' => $entity->get('size_value'),
       '#access' => !empty($size),
-    );
+    ];
 
-    $form['langcode'] = array(
+    $form['langcode'] = [
       '#type' => 'language_select',
       '#title' => t('Language'),
       '#languages' => LanguageInterface::STATE_ALL,
       '#default_value' => $entity->language()->getId(),
-    );
+    ];
 
-    $form['actions'] = array('#type' => 'actions');
-    $form['actions']['submit'] = array(
+    $form['actions'] = ['#type' => 'actions'];
+    $form['actions']['submit'] = [
       '#type' => 'submit',
       '#value' => 'Save',
-    );
-    $form['actions']['delete'] = array(
+    ];
+    $form['actions']['delete'] = [
       '#type' => 'submit',
       '#value' => 'Delete',
-    );
+    ];
 
     return $form;
   }
@@ -164,10 +136,10 @@ class ConfigTestForm extends EntityForm {
     $status = $entity->save();
 
     if ($status === SAVED_UPDATED) {
-      drupal_set_message(format_string('%label configuration has been updated.', array('%label' => $entity->label())));
+      drupal_set_message(format_string('%label configuration has been updated.', ['%label' => $entity->label()]));
     }
     else {
-      drupal_set_message(format_string('%label configuration has been created.', array('%label' => $entity->label())));
+      drupal_set_message(format_string('%label configuration has been created.', ['%label' => $entity->label()]));
     }
 
     $form_state->setRedirectUrl($this->entity->urlInfo('collection'));
@@ -189,7 +161,8 @@ class ConfigTestForm extends EntityForm {
   public function exists($entity_id, array $element, FormStateInterface $form_state) {
     /** @var \Drupal\Core\Config\Entity\ConfigEntityInterface $entity */
     $entity = $form_state->getFormObject()->getEntity();
-    return (bool) $this->entityQuery->get($entity->getEntityTypeId())
+    return (bool) $this->entityTypeManager->getStorage($entity->getEntityTypeId())
+      ->getQuery()
       ->condition($entity->getEntityType()->getKey('id'), $entity_id)
       ->execute();
   }

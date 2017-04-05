@@ -11,7 +11,7 @@ use Drupal\KernelTests\KernelTestBase;
  */
 class InfoAlterTest extends KernelTestBase {
 
-  public static $modules = array('system');
+  public static $modules = ['system'];
 
   /**
    * Tests that theme .info.yml data is rebuild after enabling a module.
@@ -20,13 +20,13 @@ class InfoAlterTest extends KernelTestBase {
    * hook_system_info_alter() is enabled. Also tests if core *_list() functions
    * return freshly altered info.
    */
-  function testSystemInfoAlter() {
+  public function testSystemInfoAlter() {
     \Drupal::state()->set('module_required_test.hook_system_info_alter', TRUE);
     $info = system_rebuild_module_data();
     $this->assertFalse(isset($info['node']->info['required']), 'Before the module_required_test is installed the node module is not required.');
 
     // Enable the test module.
-    \Drupal::service('module_installer')->install(array('module_required_test'), FALSE);
+    \Drupal::service('module_installer')->install(['module_required_test'], FALSE);
     $this->assertTrue(\Drupal::moduleHandler()->moduleExists('module_required_test'), 'Test required module is enabled.');
 
     $info = system_rebuild_module_data();

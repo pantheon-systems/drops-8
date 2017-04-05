@@ -16,7 +16,7 @@
  */
 class Twig_Environment
 {
-    const VERSION = '1.24.0';
+    const VERSION = '1.25.0';
 
     protected $charset;
     protected $loader;
@@ -312,6 +312,7 @@ class Twig_Environment
         $key = $this->getLoader()->getCacheKey($name);
         $key .= json_encode(array_keys($this->extensions));
         $key .= function_exists('twig_template_get_attributes');
+        $key .= ':'.PHP_MAJOR_VERSION.':'.PHP_MINOR_VERSION;
 
         return $this->templateClassPrefix.hash('sha256', $key).(null === $index ? '' : '_'.$index);
     }
@@ -439,6 +440,10 @@ class Twig_Environment
             $this->setLoader($current);
 
             throw $e;
+        } catch (Throwable $e) {
+            $this->setLoader($current);
+
+            throw $e;
         }
         $this->setLoader($current);
 
@@ -542,9 +547,13 @@ class Twig_Environment
      * Gets the Lexer instance.
      *
      * @return Twig_LexerInterface A Twig_LexerInterface instance
+     *
+     * @deprecated since 1.25 (to be removed in 2.0)
      */
     public function getLexer()
     {
+        @trigger_error(sprintf('The %s() method is deprecated since version 1.25 and will be removed in 2.0.', __FUNCTION__), E_USER_DEPRECATED);
+
         if (null === $this->lexer) {
             $this->lexer = new Twig_Lexer($this);
         }
@@ -574,16 +583,24 @@ class Twig_Environment
      */
     public function tokenize($source, $name = null)
     {
-        return $this->getLexer()->tokenize($source, $name);
+        if (null === $this->lexer) {
+            $this->lexer = new Twig_Lexer($this);
+        }
+
+        return $this->lexer->tokenize($source, $name);
     }
 
     /**
      * Gets the Parser instance.
      *
      * @return Twig_ParserInterface A Twig_ParserInterface instance
+     *
+     * @deprecated since 1.25 (to be removed in 2.0)
      */
     public function getParser()
     {
+        @trigger_error(sprintf('The %s() method is deprecated since version 1.25 and will be removed in 2.0.', __FUNCTION__), E_USER_DEPRECATED);
+
         if (null === $this->parser) {
             $this->parser = new Twig_Parser($this);
         }
@@ -612,16 +629,24 @@ class Twig_Environment
      */
     public function parse(Twig_TokenStream $stream)
     {
-        return $this->getParser()->parse($stream);
+        if (null === $this->parser) {
+            $this->parser = new Twig_Parser($this);
+        }
+
+        return $this->parser->parse($stream);
     }
 
     /**
      * Gets the Compiler instance.
      *
      * @return Twig_CompilerInterface A Twig_CompilerInterface instance
+     *
+     * @deprecated since 1.25 (to be removed in 2.0)
      */
     public function getCompiler()
     {
+        @trigger_error(sprintf('The %s() method is deprecated since version 1.25 and will be removed in 2.0.', __FUNCTION__), E_USER_DEPRECATED);
+
         if (null === $this->compiler) {
             $this->compiler = new Twig_Compiler($this);
         }
@@ -648,7 +673,11 @@ class Twig_Environment
      */
     public function compile(Twig_NodeInterface $node)
     {
-        return $this->getCompiler()->compile($node)->getSource();
+        if (null === $this->compiler) {
+            $this->compiler = new Twig_Compiler($this);
+        }
+
+        return $this->compiler->compile($node)->getSource();
     }
 
     /**
@@ -664,13 +693,7 @@ class Twig_Environment
     public function compileSource($source, $name = null)
     {
         try {
-            $compiled = $this->compile($this->parse($this->tokenize($source, $name)), $source);
-
-            if (isset($source[0])) {
-                $compiled .= '/* '.str_replace(array('*/', "\r\n", "\r", "\n"), array('*//* ', "\n", "\n", "*/\n/* "), $source)."*/\n";
-            }
-
-            return $compiled;
+            return $this->compile($this->parse($this->tokenize($source, $name)));
         } catch (Twig_Error $e) {
             $e->setTemplateFile($name);
             throw $e;
@@ -855,6 +878,8 @@ class Twig_Environment
      * Gets the registered Token Parsers.
      *
      * @return Twig_TokenParserBrokerInterface A broker containing token parsers
+     *
+     * @internal
      */
     public function getTokenParsers()
     {
@@ -871,6 +896,8 @@ class Twig_Environment
      * Be warned that this method cannot return tags defined by Twig_TokenParserBrokerInterface classes.
      *
      * @return Twig_TokenParserInterface[] An array of Twig_TokenParserInterface instances
+     *
+     * @internal
      */
     public function getTags()
     {
@@ -902,6 +929,8 @@ class Twig_Environment
      * Gets the registered Node Visitors.
      *
      * @return Twig_NodeVisitorInterface[] An array of Twig_NodeVisitorInterface instances
+     *
+     * @internal
      */
     public function getNodeVisitors()
     {
@@ -947,6 +976,8 @@ class Twig_Environment
      * @param string $name The filter name
      *
      * @return Twig_Filter|false A Twig_Filter instance or false if the filter does not exist
+     *
+     * @internal
      */
     public function getFilter($name)
     {
@@ -993,6 +1024,8 @@ class Twig_Environment
      * @return Twig_FilterInterface[] An array of Twig_FilterInterface instances
      *
      * @see registerUndefinedFilterCallback
+     *
+     * @internal
      */
     public function getFilters()
     {
@@ -1033,6 +1066,8 @@ class Twig_Environment
      * Gets the registered Tests.
      *
      * @return Twig_TestInterface[] An array of Twig_TestInterface instances
+     *
+     * @internal
      */
     public function getTests()
     {
@@ -1049,6 +1084,8 @@ class Twig_Environment
      * @param string $name The test name
      *
      * @return Twig_Test|false A Twig_Test instance or false if the test does not exist
+     *
+     * @internal
      */
     public function getTest($name)
     {
@@ -1098,6 +1135,8 @@ class Twig_Environment
      * @param string $name function name
      *
      * @return Twig_Function|false A Twig_Function instance or false if the function does not exist
+     *
+     * @internal
      */
     public function getFunction($name)
     {
@@ -1144,6 +1183,8 @@ class Twig_Environment
      * @return Twig_FunctionInterface[] An array of Twig_FunctionInterface instances
      *
      * @see registerUndefinedFunctionCallback
+     *
+     * @internal
      */
     public function getFunctions()
     {
@@ -1189,6 +1230,8 @@ class Twig_Environment
      * Gets the registered Globals.
      *
      * @return array An array of globals
+     *
+     * @internal
      */
     public function getGlobals()
     {
@@ -1227,6 +1270,8 @@ class Twig_Environment
      * Gets the registered unary Operators.
      *
      * @return array An array of unary operators
+     *
+     * @internal
      */
     public function getUnaryOperators()
     {
@@ -1241,6 +1286,8 @@ class Twig_Environment
      * Gets the registered binary Operators.
      *
      * @return array An array of binary operators
+     *
+     * @internal
      */
     public function getBinaryOperators()
     {
@@ -1261,6 +1308,9 @@ class Twig_Environment
         return Twig_Error_Syntax::computeAlternatives($name, $items);
     }
 
+    /**
+     * @internal
+     */
     protected function initGlobals()
     {
         $globals = array();
@@ -1286,6 +1336,9 @@ class Twig_Environment
         return call_user_func_array('array_merge', $globals);
     }
 
+    /**
+     * @internal
+     */
     protected function initExtensions()
     {
         if ($this->extensionInitialized) {
@@ -1307,6 +1360,9 @@ class Twig_Environment
         $this->initExtension($this->staging);
     }
 
+    /**
+     * @internal
+     */
     protected function initExtension(Twig_ExtensionInterface $extension)
     {
         // filters

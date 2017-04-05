@@ -22,7 +22,7 @@ class LlamaContextualAndButton extends Llama implements CKEditorPluginContextual
   /**
    * {@inheritdoc}
    */
-  function isEnabled(Editor $editor) {
+  public function isEnabled(Editor $editor) {
     // Automatically enable this plugin if the Strike button is enabled.
     $settings = $editor->getSettings();
     foreach ($settings['toolbar']['rows'] as $row) {
@@ -38,37 +38,37 @@ class LlamaContextualAndButton extends Llama implements CKEditorPluginContextual
   /**
    * {@inheritdoc}
    */
-  function getButtons() {
-    return array(
-      'Llama' => array(
+  public function getButtons() {
+    return [
+      'Llama' => [
         'label' => t('Insert Llama'),
-      ),
-    );
+      ],
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
-  function getFile() {
+  public function getFile() {
     return drupal_get_path('module', 'ckeditor_test') . '/js/llama_contextual_and_button.js';
   }
 
   /**
    * {@inheritdoc}
    */
-  function settingsForm(array $form, FormStateInterface $form_state, Editor $editor) {
+  public function settingsForm(array $form, FormStateInterface $form_state, Editor $editor) {
     // Defaults.
-    $config = array('ultra_llama_mode' => FALSE);
+    $config = ['ultra_llama_mode' => FALSE];
     $settings = $editor->getSettings();
     if (isset($settings['plugins']['llama_contextual_and_button'])) {
       $config = $settings['plugins']['llama_contextual_and_button'];
     }
 
-    $form['ultra_llama_mode'] = array(
+    $form['ultra_llama_mode'] = [
       '#title' => t('Ultra llama mode'),
       '#type' => 'checkbox',
       '#default_value' => $config['ultra_llama_mode'],
-    );
+    ];
 
     return $form;
   }

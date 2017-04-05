@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\forum\Kernel\Migrate\d6;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 
 /**
@@ -17,7 +17,7 @@ class MigrateForumConfigsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('comment', 'forum', 'taxonomy');
+  public static $modules = ['comment', 'forum', 'taxonomy'];
 
   /**
    * {@inheritdoc}

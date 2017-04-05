@@ -81,7 +81,7 @@ class LanguageNegotiationSession extends LanguageNegotiationMethodBase implement
   /**
    * {@inheritdoc}
    */
-  public function processOutbound($path, &$options = array(), Request $request = NULL, BubbleableMetadata $bubbleable_metadata = NULL) {
+  public function processOutbound($path, &$options = [], Request $request = NULL, BubbleableMetadata $bubbleable_metadata = NULL) {
     if ($request) {
       // The following values are not supposed to change during a single page
       // request processing.
@@ -102,11 +102,6 @@ class LanguageNegotiationSession extends LanguageNegotiationMethodBase implement
       // enabled, and the corresponding option has been set, we must preserve
       // any explicit user language preference even with cookies disabled.
       if ($this->queryRewrite) {
-        if (isset($options['query']) && is_string($options['query'])) {
-          $query = array();
-          parse_str($options['query'], $query);
-          $options['query'] = $query;
-        }
         if (!isset($options['query'][$this->queryParam])) {
           $options['query'][$this->queryParam] = $this->queryValue;
         }
@@ -129,24 +124,24 @@ class LanguageNegotiationSession extends LanguageNegotiationMethodBase implement
    * {@inheritdoc}
    */
   public function getLanguageSwitchLinks(Request $request, $type, Url $url) {
-    $links = array();
+    $links = [];
     $config = $this->config->get('language.negotiation')->get('session');
     $param = $config['parameter'];
     $language_query = isset($_SESSION[$param]) ? $_SESSION[$param] : $this->languageManager->getCurrentLanguage($type)->getId();
-    $query = array();
+    $query = [];
     parse_str($request->getQueryString(), $query);
 
     foreach ($this->languageManager->getNativeLanguages() as $language) {
       $langcode = $language->getId();
-      $links[$langcode] = array(
+      $links[$langcode] = [
         // We need to clone the $url object to avoid using the same one for all
         // links. When the links are rendered, options are set on the $url
         // object, so if we use the same one, they would be set for all links.
         'url' => clone $url,
         'title' => $language->getName(),
-        'attributes' => array('class' => array('language-link')),
+        'attributes' => ['class' => ['language-link']],
         'query' => $query,
-      );
+      ];
       if ($language_query != $langcode) {
         $links[$langcode]['query'][$param] = $langcode;
       }

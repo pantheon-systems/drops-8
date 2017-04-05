@@ -109,8 +109,8 @@ class SystemManager {
     drupal_load_updates();
 
     // Check run-time requirements and status information.
-    $requirements = $this->moduleHandler->invokeAll('requirements', array('runtime'));
-    usort($requirements, function($a, $b) {
+    $requirements = $this->moduleHandler->invokeAll('requirements', ['runtime']);
+    uasort($requirements, function($a, $b) {
       if (!isset($a['weight'])) {
         if (!isset($b['weight'])) {
           return strcasecmp($a['title'], $b['title']);
@@ -159,15 +159,15 @@ class SystemManager {
     // or elsewhere could give us a blank block.
     $link = $this->menuActiveTrail->getActiveLink('admin');
     if ($link && $content = $this->getAdminBlock($link)) {
-      $output = array(
+      $output = [
         '#theme' => 'admin_block_content',
         '#content' => $content,
-      );
+      ];
     }
     else {
-      $output = array(
+      $output = [
         '#markup' => t('You do not have any administrative items.'),
-      );
+      ];
     }
     return $output;
   }
@@ -182,16 +182,16 @@ class SystemManager {
    *   An array of menu items, as expected by admin-block-content.html.twig.
    */
   public function getAdminBlock(MenuLinkInterface $instance) {
-    $content = array();
+    $content = [];
     // Only find the children of this link.
     $link_id = $instance->getPluginId();
     $parameters = new MenuTreeParameters();
     $parameters->setRoot($link_id)->excludeRoot()->setTopLevelOnly()->onlyEnabledLinks();
     $tree = $this->menuTree->load(NULL, $parameters);
-    $manipulators = array(
-      array('callable' => 'menu.default_tree_manipulators:checkAccess'),
-      array('callable' => 'menu.default_tree_manipulators:generateIndexAndSort'),
-    );
+    $manipulators = [
+      ['callable' => 'menu.default_tree_manipulators:checkAccess'],
+      ['callable' => 'menu.default_tree_manipulators:generateIndexAndSort'],
+    ];
     $tree = $this->menuTree->transform($tree, $manipulators);
     foreach ($tree as $key => $element) {
       // Only render accessible links.

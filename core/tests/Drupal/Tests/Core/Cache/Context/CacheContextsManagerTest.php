@@ -105,20 +105,17 @@ class CacheContextsManagerTest extends UnitTestCase {
 
   /**
    * @covers ::convertTokensToKeys
-   *
-   * @expectedException \AssertionError
    */
   public function testInvalidContext() {
     $container = $this->getMockContainer();
     $cache_contexts_manager = new CacheContextsManager($container, $this->getContextsFixture());
 
+    $this->setExpectedException(\AssertionError::class);
     $cache_contexts_manager->convertTokensToKeys(["non-cache-context"]);
   }
 
   /**
    * @covers ::convertTokensToKeys
-   *
-   * @expectedException \Exception
    *
    * @dataProvider providerTestInvalidCalculatedContext
    */
@@ -126,6 +123,7 @@ class CacheContextsManagerTest extends UnitTestCase {
     $container = $this->getMockContainer();
     $cache_contexts_manager = new CacheContextsManager($container, $this->getContextsFixture());
 
+    $this->setExpectedException(\Exception::class);
     $cache_contexts_manager->convertTokensToKeys([$context_token]);
   }
 
@@ -142,19 +140,19 @@ class CacheContextsManagerTest extends UnitTestCase {
   public function testAvailableContextStrings() {
     $cache_contexts_manager = new CacheContextsManager($this->getMockContainer(), $this->getContextsFixture());
     $contexts = $cache_contexts_manager->getAll();
-    $this->assertEquals(array("foo", "baz"), $contexts);
+    $this->assertEquals(["foo", "baz"], $contexts);
   }
 
   public function testAvailableContextLabels() {
     $container = $this->getMockContainer();
     $cache_contexts_manager = new CacheContextsManager($container, $this->getContextsFixture());
     $labels = $cache_contexts_manager->getLabels();
-    $expected = array("foo" => "Foo");
+    $expected = ["foo" => "Foo"];
     $this->assertEquals($expected, $labels);
   }
 
   protected function getContextsFixture() {
-    return array('foo', 'baz');
+    return ['foo', 'baz'];
   }
 
   protected function getMockContainer() {

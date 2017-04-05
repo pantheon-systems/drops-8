@@ -17,9 +17,9 @@ class FieldBooleanTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_view');
+  public static $testViews = ['test_view'];
 
-  function dataSet() {
+  public function dataSet() {
     // Use default dataset but remove the age from john and paul
     $data = parent::dataSet();
     $data[0]['age'] = 0;
@@ -27,7 +27,7 @@ class FieldBooleanTest extends ViewsKernelTestBase {
     return $data;
   }
 
-  function viewsData() {
+  public function viewsData() {
     $data = parent::viewsData();
     $data['views_test_data']['age']['field']['id'] = 'boolean';
     return $data;
@@ -37,14 +37,14 @@ class FieldBooleanTest extends ViewsKernelTestBase {
     $view = Views::getView('test_view');
     $view->setDisplay();
 
-    $view->displayHandlers->get('default')->overrideOption('fields', array(
-      'age' => array(
+    $view->displayHandlers->get('default')->overrideOption('fields', [
+      'age' => [
         'id' => 'age',
         'table' => 'views_test_data',
         'field' => 'age',
         'relationship' => 'none',
-      ),
-    ));
+      ],
+    ]);
 
     $this->executeView($view);
 
@@ -70,7 +70,7 @@ class FieldBooleanTest extends ViewsKernelTestBase {
     $this->assertEqual('✔', $view->field['age']->advancedRender($view->result[1]));
 
     // Set a custom output format.
-    $view->field['age']->formats['test'] = array(t('Test-True'), t('Test-False'));
+    $view->field['age']->formats['test'] = [t('Test-True'), t('Test-False')];
     $view->field['age']->options['type'] = 'test';
     $this->assertEqual(t('Test-False'), $view->field['age']->advancedRender($view->result[0]));
     $this->assertEqual(t('Test-True'), $view->field['age']->advancedRender($view->result[1]));

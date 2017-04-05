@@ -3,6 +3,7 @@
 namespace Drupal\Tests\Core\ParamConverter;
 
 use Drupal\Core\ParamConverter\ParamConverterManager;
+use Drupal\Core\ParamConverter\ParamNotConvertedException;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\Routing\Route;
@@ -51,10 +52,9 @@ class ParamConverterManagerTest extends UnitTestCase {
    * Tests \Drupal\Core\ParamConverter\ParamConverterManager::getConverter().
    *
    * @covers ::getConverter
-   *
-   * @expectedException \InvalidArgumentException
    */
   public function testGetConverterException() {
+    $this->setExpectedException(\InvalidArgumentException::class);
     $this->manager->getConverter('undefined.converter');
   }
 
@@ -68,35 +68,35 @@ class ParamConverterManagerTest extends UnitTestCase {
    * @see ParamConverterManagerTest::testAddConverter()
    */
   public function providerTestAddConverter() {
-    $converters[0]['unsorted'] = array(
-      array('name' => 'strawberry'),
-      array('name' => 'raspberry'),
-      array('name' => 'pear'),
-      array('name' => 'peach'),
-      array('name' => 'pineapple'),
-      array('name' => 'banana'),
-      array('name' => 'apple'),
-    );
+    $converters[0]['unsorted'] = [
+      ['name' => 'strawberry'],
+      ['name' => 'raspberry'],
+      ['name' => 'pear'],
+      ['name' => 'peach'],
+      ['name' => 'pineapple'],
+      ['name' => 'banana'],
+      ['name' => 'apple'],
+    ];
 
-    $converters[0]['sorted'] = array(
+    $converters[0]['sorted'] = [
       'strawberry', 'raspberry', 'pear', 'peach',
       'pineapple', 'banana', 'apple'
-    );
+    ];
 
-    $converters[1]['unsorted'] = array(
-      array('name' => 'giraffe'),
-      array('name' => 'zebra'),
-      array('name' => 'eagle'),
-      array('name' => 'ape'),
-      array('name' => 'cat'),
-      array('name' => 'puppy'),
-      array('name' => 'llama'),
-    );
+    $converters[1]['unsorted'] = [
+      ['name' => 'giraffe'],
+      ['name' => 'zebra'],
+      ['name' => 'eagle'],
+      ['name' => 'ape'],
+      ['name' => 'cat'],
+      ['name' => 'puppy'],
+      ['name' => 'llama'],
+    ];
 
-    $converters[1]['sorted'] = array(
+    $converters[1]['sorted'] = [
       'giraffe', 'zebra', 'eagle', 'ape',
       'cat', 'puppy', 'llama'
-    );
+    ];
 
     return $converters;
   }
@@ -111,15 +111,15 @@ class ParamConverterManagerTest extends UnitTestCase {
    * @see ParamConverterManagerTest::testGetConverter()
    */
   public function providerTestGetConverter() {
-    return array(
-      array('ape', 'ApeConverterClass'),
-      array('cat', 'CatConverterClass'),
-      array('puppy', 'PuppyConverterClass'),
-      array('llama', 'LlamaConverterClass'),
-      array('giraffe', 'GiraffeConverterClass'),
-      array('zebra', 'ZebraConverterClass'),
-      array('eagle', 'EagleConverterClass'),
-    );
+    return [
+      ['ape', 'ApeConverterClass'],
+      ['cat', 'CatConverterClass'],
+      ['puppy', 'PuppyConverterClass'],
+      ['llama', 'LlamaConverterClass'],
+      ['giraffe', 'GiraffeConverterClass'],
+      ['zebra', 'ZebraConverterClass'],
+      ['eagle', 'EagleConverterClass'],
+    ];
   }
 
   /**
@@ -158,11 +158,11 @@ class ParamConverterManagerTest extends UnitTestCase {
    * Provides data for testSetRouteParameterConverters().
    */
   public function providerTestSetRouteParameterConverters() {
-    return array(
-      array('/test'),
-      array('/test/{id}', array('id' => array()), 'applied'),
-      array('/test/{id}', array('id' => array('converter' => 'predefined')), 'predefined'),
-    );
+    return [
+      ['/test'],
+      ['/test/{id}', ['id' => []], 'applied'],
+      ['/test/{id}', ['id' => ['converter' => 'predefined']], 'predefined'],
+    ];
   }
 
   /**
@@ -170,22 +170,22 @@ class ParamConverterManagerTest extends UnitTestCase {
    */
   public function testConvert() {
     $route = new Route('/test/{id}/{literal}/{null}');
-    $parameters = array(
-      'id' => array(
+    $parameters = [
+      'id' => [
         'converter' => 'test_convert',
-      ),
-      'literal' => array(),
-      'null' => array(),
-    );
+      ],
+      'literal' => [],
+      'null' => [],
+    ];
     $route->setOption('parameters', $parameters);
 
-    $defaults = array(
+    $defaults = [
       RouteObjectInterface::ROUTE_OBJECT => $route,
       RouteObjectInterface::ROUTE_NAME => 'test_route',
       'id' => 1,
       'literal' => 'this is a literal',
       'null' => NULL,
-    );
+    ];
 
     $expected = $defaults;
     $expected['id'] = 'something_better!';
@@ -207,10 +207,10 @@ class ParamConverterManagerTest extends UnitTestCase {
    */
   public function testConvertNoConverting() {
     $route = new Route('/test');
-    $defaults = array(
+    $defaults = [
       RouteObjectInterface::ROUTE_OBJECT => $route,
       RouteObjectInterface::ROUTE_NAME => 'test_route',
-    );
+    ];
 
     $expected = $defaults;
 
@@ -220,24 +220,21 @@ class ParamConverterManagerTest extends UnitTestCase {
 
   /**
    * @covers ::convert
-   *
-   * @expectedException \Drupal\Core\ParamConverter\ParamNotConvertedException
-   * @expectedExceptionMessage The "id" parameter was not converted for the path "/test/{id}" (route name: "test_route")
    */
   public function testConvertMissingParam() {
     $route = new Route('/test/{id}');
-    $parameters = array(
-      'id' => array(
+    $parameters = [
+      'id' => [
         'converter' => 'test_convert',
-      ),
-    );
+      ],
+    ];
     $route->setOption('parameters', $parameters);
 
-    $defaults = array(
+    $defaults = [
       RouteObjectInterface::ROUTE_OBJECT => $route,
       RouteObjectInterface::ROUTE_NAME => 'test_route',
       'id' => 1,
-    );
+    ];
 
     $converter = $this->getMock('Drupal\Core\ParamConverter\ParamConverterInterface');
     $converter->expects($this->any())
@@ -246,6 +243,7 @@ class ParamConverterManagerTest extends UnitTestCase {
       ->will($this->returnValue(NULL));
     $this->manager->addConverter($converter, 'test_convert');
 
+    $this->setExpectedException(ParamNotConvertedException::class, 'The "id" parameter was not converted for the path "/test/{id}" (route name: "test_route")');
     $this->manager->convert($defaults);
   }
 

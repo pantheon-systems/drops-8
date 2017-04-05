@@ -113,7 +113,7 @@ class ConfigEntityMapper extends ConfigNamesMapper {
   /**
    * Gets the entity instance for this mapper.
    *
-   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface $entity
+   * @return \Drupal\Core\Config\Entity\ConfigEntityInterface
    *   The configuration entity.
    */
   public function getEntity() {
@@ -165,7 +165,7 @@ class ConfigEntityMapper extends ConfigNamesMapper {
    * {@inheritdoc}
    */
   public function getBaseRouteParameters() {
-    return array($this->entityType => $this->entity->id());
+    return [$this->entityType => $this->entity->id()];
   }
 
   /**
@@ -220,14 +220,14 @@ class ConfigEntityMapper extends ConfigNamesMapper {
    * {@inheritdoc}
    */
   public function getOperations() {
-    return array(
-      'list' => array(
+    return [
+      'list' => [
         'title' => $this->t('List'),
         'url' => Url::fromRoute('config_translation.entity_list', [
           'mapper_id' => $this->getPluginId(),
         ]),
-      ),
-    );
+      ],
+    ];
   }
 
   /**
@@ -259,12 +259,12 @@ class ConfigEntityMapper extends ConfigNamesMapper {
    */
   protected function processRoute(Route $route) {
     // Add entity upcasting information.
-    $parameters = $route->getOption('parameters') ?: array();
-    $parameters += array(
-      $this->entityType => array(
+    $parameters = $route->getOption('parameters') ?: [];
+    $parameters += [
+      $this->entityType => [
         'type' => 'entity:' . $this->entityType,
-      )
-    );
+      ]
+    ];
     $route->setOption('parameters', $parameters);
   }
 

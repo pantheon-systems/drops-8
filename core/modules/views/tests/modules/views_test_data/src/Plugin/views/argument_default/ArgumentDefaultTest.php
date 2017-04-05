@@ -19,7 +19,7 @@ class ArgumentDefaultTest extends ArgumentDefaultPluginBase {
    */
   protected function defineOptions() {
     $options = parent::defineOptions();
-    $options['value'] = array('default' => '');
+    $options['value'] = ['default' => ''];
 
     return $options;
   }
@@ -28,6 +28,7 @@ class ArgumentDefaultTest extends ArgumentDefaultPluginBase {
    * {@inheritdoc}
    */
   public function getArgument() {
+    $this->view->element['#cache']['tags'][] = 'example_tag';
     return $this->options['value'];
   }
 

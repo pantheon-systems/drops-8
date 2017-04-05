@@ -33,6 +33,10 @@ class MigrateBlockTest extends MigrateDrupal7TestBase {
    */
   protected function setUp() {
     parent::setUp();
+
+    // Install the themes used for this test.
+    $this->container->get('theme_installer')->install(['bartik', 'seven']);
+
     $this->installConfig(static::$modules);
     $this->installEntitySchema('block_content');
 
@@ -41,9 +45,6 @@ class MigrateBlockTest extends MigrateDrupal7TestBase {
     $config->set('default', 'bartik');
     $config->set('admin', 'seven');
     $config->save();
-
-    // Install one of D8's test themes.
-    \Drupal::service('theme_handler')->install(['bartik']);
 
     $this->executeMigrations([
       'd7_filter_format',
@@ -78,7 +79,7 @@ class MigrateBlockTest extends MigrateDrupal7TestBase {
    * @param string $label_display
    *   The block label display setting.
    * @param bool $status
-   *   (optional) Whether the block is expected to be enabled.
+   *   Whether the block is expected to be enabled or disabled.
    */
   public function assertEntity($id, $plugin_id, array $roles, $pages, $region, $theme, $weight, $label, $label_display, $status = TRUE) {
     $block = Block::load($id);

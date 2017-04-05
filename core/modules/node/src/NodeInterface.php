@@ -2,6 +2,7 @@
 
 namespace Drupal\node;
 
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\RevisionLogInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
@@ -10,7 +11,37 @@ use Drupal\Core\Entity\ContentEntityInterface;
 /**
  * Provides an interface defining a node entity.
  */
-interface NodeInterface extends ContentEntityInterface, EntityChangedInterface, EntityOwnerInterface, RevisionLogInterface {
+interface NodeInterface extends ContentEntityInterface, EntityChangedInterface, EntityOwnerInterface, RevisionLogInterface, EntityPublishedInterface {
+
+  /**
+   * Denotes that the node is not published.
+   */
+  const NOT_PUBLISHED = 0;
+
+  /**
+   * Denotes that the node is published.
+   */
+  const PUBLISHED = 1;
+
+  /**
+   * Denotes that the node is not promoted to the front page.
+   */
+  const NOT_PROMOTED = 0;
+
+  /**
+   * Denotes that the node is promoted to the front page.
+   */
+  const PROMOTED = 1;
+
+  /**
+   * Denotes that the node is not sticky at the top of the page.
+   */
+  const NOT_STICKY = 0;
+
+  /**
+   * Denotes that the node is sticky at the top of the page.
+   */
+  const STICKY = 1;
 
   /**
    * Gets the node type.
@@ -95,27 +126,6 @@ interface NodeInterface extends ContentEntityInterface, EntityChangedInterface, 
    *   The called node entity.
    */
   public function setSticky($sticky);
-
-  /**
-   * Returns the node published status indicator.
-   *
-   * Unpublished nodes are only visible to their authors and to administrators.
-   *
-   * @return bool
-   *   TRUE if the node is published.
-   */
-  public function isPublished();
-
-  /**
-   * Sets the published status of a node..
-   *
-   * @param bool $published
-   *   TRUE to set this node to published, FALSE to set it to unpublished.
-   *
-   * @return \Drupal\node\NodeInterface
-   *   The called node entity.
-   */
-  public function setPublished($published);
 
   /**
    * Gets the node revision creation timestamp.

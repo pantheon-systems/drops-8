@@ -113,7 +113,7 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
    */
   protected function getExpectedCacheContexts() {
     // @see ::createEntity()
-    return [];
+    return ['url.site'];
   }
 
   /**
@@ -122,9 +122,25 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
   protected function getExpectedCacheTags() {
     // Because the 'user.permissions' cache context is missing, the cache tag
     // for the anonymous user role is never added automatically.
-    return array_filter(parent::getExpectedCacheTags(), function ($tag) {
+    return array_values(array_filter(parent::getExpectedCacheTags(), function ($tag) {
       return $tag !== 'config:user.role.anonymous';
-    });
+    }));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getExpectedUnauthorizedAccessMessage($method) {
+    if ($this->config('rest.settings')->get('bc_entity_resource_permissions')) {
+      return parent::getExpectedUnauthorizedAccessMessage($method);
+    }
+
+    switch ($method) {
+      case 'GET':
+        return "You are not authorized to view this block entity.";
+      default:
+        return parent::getExpectedUnauthorizedAccessMessage($method);
+    }
   }
 
 }

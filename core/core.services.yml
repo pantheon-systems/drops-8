@@ -93,6 +93,11 @@ services:
     arguments: ['@request_stack']
     tags:
       - { name: cache.context }
+  cache_context.url.path.is_front:
+    class: Drupal\Core\Cache\Context\IsFrontPathCacheContext
+    arguments: ['@path.matcher']
+    tags:
+      - { name: cache.context }
   cache_context.url.query_args:
     class: Drupal\Core\Cache\Context\QueryArgsCacheContext
     arguments: ['@request_stack']
@@ -298,7 +303,7 @@ services:
       - { name: event_subscriber }
   config.installer:
     class: Drupal\Core\Config\ConfigInstaller
-    arguments: ['@config.factory', '@config.storage', '@config.typed', '@config.manager', '@event_dispatcher']
+    arguments: ['@config.factory', '@config.storage', '@config.typed', '@config.manager', '@event_dispatcher', '%install_profile%']
     lazy: true
   config.storage:
     class: Drupal\Core\Config\CachedStorage
@@ -323,7 +328,7 @@ services:
       - { name: backend_overridable }
   config.storage.schema:
     class: Drupal\Core\Config\ExtensionInstallStorage
-    arguments: ['@config.storage', 'config/schema']
+    arguments: ['@config.storage', 'config/schema', '', true, '%install_profile%']
   config.typed:
     class: Drupal\Core\Config\TypedConfigManager
     arguments: ['@config.storage', '@config.storage.schema', '@cache.discovery', '@module_handler']
@@ -346,6 +351,9 @@ services:
     class: Drupal\Core\Database\Connection
     factory: Drupal\Core\Database\Database::getConnection
     arguments: [default]
+  datetime.time:
+    class: Drupal\Component\Datetime\Time
+    arguments: ['@request_stack']
   file_system:
     class: Drupal\Core\File\FileSystem
     arguments: ['@stream_wrapper_manager', '@settings', '@logger.channel.file']
@@ -419,7 +427,9 @@ services:
     factory: Drupal\Core\Site\Settings::getInstance
   state:
     class: Drupal\Core\State\State
-    arguments: ['@keyvalue']
+    arguments: ['@keyvalue', '@cache.bootstrap', '@lock']
+    tags:
+      - { name: needs_destruction }
   queue:
     class: Drupal\Core\Queue\QueueFactory
     arguments: ['@settings']
@@ -454,6 +464,9 @@ services:
   http_client_factory:
     class: Drupal\Core\Http\ClientFactory
     arguments: ['@http_handler_stack']
+  plugin.manager.link_relation_type:
+    class: \Drupal\Core\Http\LinkRelationTypeManager
+    arguments: ['@app.root', '@module_handler', '@cache.discovery']
   theme.negotiator:
     class: Drupal\Core\Theme\ThemeNegotiator
     arguments: ['@access_check.theme']
@@ -609,7 +622,7 @@ services:
     arguments: ['@menu.tree_storage', '@plugin.manager.menu.link', '@router.route_provider', '@menu.active_trail', '@controller_resolver']
   menu.default_tree_manipulators:
     class: Drupal\Core\Menu\DefaultMenuLinkTreeManipulators
-    arguments: ['@access_manager', '@current_user', '@entity.query']
+    arguments: ['@access_manager', '@current_user', '@entity_type.manager']
   menu.active_trail:
     class: Drupal\Core\Menu\MenuActiveTrail
     arguments: ['@plugin.manager.menu.link', '@current_route_match', '@cache.menu', '@lock']
@@ -798,6 +811,7 @@ services:
   router.matcher.final_matcher:
     class: Drupal\Core\Routing\UrlMatcher
     arguments: ['@path.current']
+    deprecated: The "%service_id%" service is deprecated. You should use the 'router.no_access_checks' service instead.
   router.matcher:
     class: Symfony\Cmf\Component\Routing\NestedMatcher\NestedMatcher
     arguments: ['@router.route_provider']
@@ -805,6 +819,7 @@ services:
       - [setFinalMatcher, ['@router.matcher.final_matcher']]
     tags:
       - { name: service_collector, tag: non_lazy_route_filter, call: addRouteFilter }
+    deprecated: The "%service_id%" service is deprecated. You should use the 'router.no_access_checks' service instead.
   route_filter.lazy_collector:
     class: Drupal\Core\Routing\LazyRouteFilter
     tags:
@@ -843,11 +858,15 @@ services:
     arguments: ['@router.request_context', '@router.matcher', '@url_generator']
     tags:
       - { name: service_collector, tag: non_lazy_route_enhancer, call: addRouteEnhancer }
+    deprecated: The "%service_id%" service is deprecated. You should use the 'router.no_access_checks' service instead.
   router.no_access_checks:
-    class: Symfony\Cmf\Component\Routing\ChainRouter
+    class: \Drupal\Core\Routing\Router
+    arguments: ['@router.route_provider', '@path.current', '@url_generator']
+    tags:
+      - { name: service_collector, tag: non_lazy_route_enhancer, call: addRouteEnhancer }
+      - { name: service_collector, tag: non_lazy_route_filter, call: addRouteFilter }
     calls:
       - [setContext, ['@router.request_context']]
-      - [add, ['@router.dynamic']]
   router.path_roots_subscriber:
     class: Drupal\Core\EventSubscriber\PathRootsSubscriber
     arguments: ['@state']
@@ -1197,6 +1216,11 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@config.manager', '@config.storage', '@config.storage.snapshot']
+  exception.needs_installer:
+    class: Drupal\Core\EventSubscriber\ExceptionDetectNeedsInstallSubscriber
+    arguments: ['@database']
+    tags:
+      - { name: event_subscriber }
   exception.default_json:
     class: Drupal\Core\EventSubscriber\ExceptionJsonSubscriber
     tags:
@@ -1216,11 +1240,6 @@ services:
     tags:
       - { name: event_subscriber }
     arguments: ['@logger.factory']
-  exception.custom_page_json:
-    class: Drupal\Core\EventSubscriber\ExceptionJsonSubscriber
-    tags:
-      - { name: event_subscriber }
-    arguments: ['@config.factory', '@path.alias_manager', '@http_kernel']
   exception.custom_page_html:
     class: Drupal\Core\EventSubscriber\CustomPageExceptionHtmlSubscriber
     tags:
@@ -1331,7 +1350,7 @@ services:
       - { name: service_collector, tag: breadcrumb_builder, call: addBuilder }
   token:
     class: Drupal\Core\Utility\Token
-    arguments: ['@module_handler', '@cache.discovery', '@language_manager', '@cache_tags.invalidator', '@renderer']
+    arguments: ['@module_handler', '@cache.default', '@language_manager', '@cache_tags.invalidator', '@renderer']
   batch.storage:
     class: Drupal\Core\Batch\BatchStorage
     arguments: ['@database', '@session', '@csrf_token']
@@ -1433,7 +1452,7 @@ services:
     arguments: ['@app.root', '@theme_handler', '@cache.bootstrap', '@module_handler']
   theme.registry:
     class: Drupal\Core\Theme\Registry
-    arguments: ['@app.root', '@cache.default', '@lock', '@module_handler', '@theme_handler', '@theme.initialization']
+    arguments: ['@app.root', '@cache.default', '@lock', '@module_handler', '@theme_handler', '@theme.initialization', null, '@cache.bootstrap']
     tags:
       - { name: needs_destruction }
     calls:
@@ -1540,18 +1559,14 @@ services:
     class: Drupal\Core\Extension\InfoParser
   twig:
     class: Drupal\Core\Template\TwigEnvironment
-    arguments: ['@app.root', '@cache.default', '%twig_extension_hash%', '@twig.loader', '%twig.config%']
+    arguments: ['@app.root', '@cache.default', '%twig_extension_hash%', '@state', '@twig.loader', '%twig.config%']
     tags:
       - { name: service_collector, tag: 'twig.extension', call: addExtension }
   twig.extension:
     class: Drupal\Core\Template\TwigExtension
-    arguments: ['@renderer']
+    arguments: ['@renderer', '@url_generator', '@theme.manager', '@date.formatter']
     tags:
       - { name: twig.extension, priority: 100 }
-    calls:
-      - [setUrlGenerator, ['@url_generator']]
-      - [setThemeManager, ['@theme.manager']]
-      - [setDateFormatter, ['@date.formatter']]
   # @todo Figure out what to do about debugging functions.
   # @see https://www.drupal.org/node/1804998
   twig.extension.debug:

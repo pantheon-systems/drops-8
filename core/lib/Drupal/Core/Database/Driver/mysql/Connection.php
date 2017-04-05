@@ -2,6 +2,7 @@
 
 namespace Drupal\Core\Database\Driver\mysql;
 
+use Drupal\Core\Database\DatabaseAccessDeniedException;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 
 use Drupal\Core\Database\Database;
@@ -25,6 +26,11 @@ class Connection extends DatabaseConnection {
    * Error code for "Unknown database" error.
    */
   const DATABASE_NOT_FOUND = 1049;
+
+  /**
+   * Error code for "Access denied" error.
+   */
+  const ACCESS_DENIED = 1045;
 
   /**
    * Error code for "Can't initialize character set" error.
@@ -61,7 +67,7 @@ class Connection extends DatabaseConnection {
   /**
    * Constructs a Connection object.
    */
-  public function __construct(\PDO $connection, array $connection_options = array()) {
+  public function __construct(\PDO $connection, array $connection_options = []) {
     parent::__construct($connection, $connection_options);
 
     // This driver defaults to transaction support, except if explicitly passed FALSE.
@@ -76,7 +82,7 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  public function query($query, array $args = array(), $options = array()) {
+  public function query($query, array $args = [], $options = []) {
     try {
       return parent::query($query, $args, $options);
     }
@@ -95,7 +101,7 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  public static function open(array &$connection_options = array()) {
+  public static function open(array &$connection_options = []) {
     if (isset($connection_options['_dsn_utf8_fallback']) && $connection_options['_dsn_utf8_fallback'] === TRUE) {
       // Only used during the installer version check, as a fallback from utf8mb4.
       $charset = 'utf8';
@@ -119,10 +125,10 @@ class Connection extends DatabaseConnection {
       $dsn .= ';dbname=' . $connection_options['database'];
     }
     // Allow PDO options to be overridden.
-    $connection_options += array(
-      'pdo' => array(),
-    );
-    $connection_options['pdo'] += array(
+    $connection_options += [
+      'pdo' => [],
+    ];
+    $connection_options['pdo'] += [
       \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
       // So we don't have to mess around with cursors and unbuffered queries by default.
       \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => TRUE,
@@ -132,14 +138,25 @@ class Connection extends DatabaseConnection {
       \PDO::MYSQL_ATTR_FOUND_ROWS => TRUE,
       // Because MySQL's prepared statements skip the query cache, because it's dumb.
       \PDO::ATTR_EMULATE_PREPARES => TRUE,
-    );
+    ];
     if (defined('\PDO::MYSQL_ATTR_MULTI_STATEMENTS')) {
       // An added connection option in PHP 5.5.21 to optionally limit SQL to a
       // single statement like mysqli.
       $connection_options['pdo'] += [\PDO::MYSQL_ATTR_MULTI_STATEMENTS => FALSE];
     }
 
-    $pdo = new \PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
+    try {
+      $pdo = new \PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
+    }
+    catch (\PDOException $e) {
+      if ($e->getCode() == static::DATABASE_NOT_FOUND) {
+        throw new DatabaseNotFoundException($e->getMessage(), $e->getCode(), $e);
+      }
+      if ($e->getCode() == static::ACCESS_DENIED) {
+        throw new DatabaseAccessDeniedException($e->getMessage(), $e->getCode(), $e);
+      }
+      throw $e;
+    }
 
     // Force MySQL to use the UTF-8 character set. Also set the collation, if a
     // certain one has been set; otherwise, MySQL defaults to
@@ -159,12 +176,12 @@ class Connection extends DatabaseConnection {
     // https://www.drupal.org/node/344575 for further discussion. Also, as MySQL
     // 5.5 changed the meaning of TRADITIONAL we need to spell out the modes one
     // by one.
-    $connection_options += array(
-      'init_commands' => array(),
-    );
-    $connection_options['init_commands'] += array(
+    $connection_options += [
+      'init_commands' => [],
+    ];
+    $connection_options['init_commands'] += [
       'sql_mode' => "SET sql_mode = 'ANSI,STRICT_TRANS_TABLES,STRICT_ALL_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,ONLY_FULL_GROUP_BY'",
-    );
+    ];
     // Execute initial commands.
     foreach ($connection_options['init_commands'] as $sql) {
       $pdo->exec($sql);
@@ -195,11 +212,11 @@ class Connection extends DatabaseConnection {
     }
   }
 
-  public function queryRange($query, $from, $count, array $args = array(), array $options = array()) {
+  public function queryRange($query, $from, $count, array $args = [], array $options = []) {
     return $this->query($query . ' LIMIT ' . (int) $from . ', ' . (int) $count, $args, $options);
   }
 
-  public function queryTemporary($query, array $args = array(), array $options = array()) {
+  public function queryTemporary($query, array $args = [], array $options = []) {
     $tablename = $this->generateTemporaryTableName();
     $this->query('CREATE TEMPORARY TABLE {' . $tablename . '} Engine=MEMORY ' . $query, $args, $options);
     return $tablename;
@@ -241,7 +258,7 @@ class Connection extends DatabaseConnection {
   }
 
   public function nextId($existing_id = 0) {
-    $new_id = $this->query('INSERT INTO {sequences} () VALUES ()', array(), array('return' => Database::RETURN_INSERT_ID));
+    $new_id = $this->query('INSERT INTO {sequences} () VALUES ()', [], ['return' => Database::RETURN_INSERT_ID]);
     // This should only happen after an import or similar event.
     if ($existing_id >= $new_id) {
       // If we INSERT a value manually into the sequences table, on the next
@@ -251,8 +268,8 @@ class Connection extends DatabaseConnection {
       // other than duplicate keys. Instead, we use INSERT ... ON DUPLICATE KEY
       // UPDATE in such a way that the UPDATE does not do anything. This way,
       // duplicate keys do not generate errors but everything else does.
-      $this->query('INSERT INTO {sequences} (value) VALUES (:value) ON DUPLICATE KEY UPDATE value = value', array(':value' => $existing_id));
-      $new_id = $this->query('INSERT INTO {sequences} () VALUES ()', array(), array('return' => Database::RETURN_INSERT_ID));
+      $this->query('INSERT INTO {sequences} (value) VALUES (:value) ON DUPLICATE KEY UPDATE value = value', [':value' => $existing_id]);
+      $new_id = $this->query('INSERT INTO {sequences} () VALUES ()', [], ['return' => Database::RETURN_INSERT_ID]);
     }
     $this->needsCleanup = TRUE;
     return $new_id;
@@ -270,7 +287,7 @@ class Connection extends DatabaseConnection {
     try {
       $max_id = $this->query('SELECT MAX(value) FROM {sequences}')->fetchField();
       // We know we are using MySQL here, no need for the slower db_delete().
-      $this->query('DELETE FROM {sequences} WHERE value < :value', array(':value' => $max_id));
+      $this->query('DELETE FROM {sequences} WHERE value < :value', [':value' => $max_id]);
     }
     // During testing, this function is called from shutdown with the
     // simpletest prefix stored in $this->connection, and those tables are gone
@@ -316,7 +333,7 @@ class Connection extends DatabaseConnection {
           if ($e->getPrevious()->errorInfo[1] == '1305') {
             // If one SAVEPOINT was released automatically, then all were.
             // Therefore, clean the transaction stack.
-            $this->transactionLayers = array();
+            $this->transactionLayers = [];
             // We also have to explain to PDO that the transaction stack has
             // been cleaned-up.
             $this->connection->commit();

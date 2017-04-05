@@ -18,9 +18,9 @@ class FieldFileSizeTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_view');
+  public static $testViews = ['test_view'];
 
-  function dataSet() {
+  public function dataSet() {
     $data = parent::dataSet();
     $data[0]['age'] = 0;
     $data[1]['age'] = 10;
@@ -30,7 +30,7 @@ class FieldFileSizeTest extends ViewsKernelTestBase {
     return $data;
   }
 
-  function viewsData() {
+  public function viewsData() {
     $data = parent::viewsData();
     $data['views_test_data']['age']['field']['id'] = 'file_size';
 
@@ -41,13 +41,13 @@ class FieldFileSizeTest extends ViewsKernelTestBase {
     $view = Views::getView('test_view');
     $view->setDisplay();
 
-    $view->displayHandlers->get('default')->overrideOption('fields', array(
-      'age' => array(
+    $view->displayHandlers->get('default')->overrideOption('fields', [
+      'age' => [
         'id' => 'age',
         'table' => 'views_test_data',
         'field' => 'age',
-      ),
-    ));
+      ],
+    ]);
 
     $this->executeView($view);
 

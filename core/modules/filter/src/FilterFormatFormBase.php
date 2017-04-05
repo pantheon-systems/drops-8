@@ -3,41 +3,13 @@
 namespace Drupal\filter;
 
 use Drupal\Core\Entity\EntityForm;
-use Drupal\Core\Entity\Query\QueryFactory;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\filter\Plugin\Filter\FilterNull;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a base form for a filter format.
  */
 abstract class FilterFormatFormBase extends EntityForm {
-
-  /**
-   * The entity query factory.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $queryFactory;
-
-  /**
-   * Constructs a new FilterFormatFormBase.
-   *
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   The entity query factory.
-   */
-  public function __construct(QueryFactory $query_factory) {
-    $this->queryFactory = $query_factory;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('entity.query')
-    );
-  }
 
   /**
    * {@inheritdoc}
@@ -49,34 +21,34 @@ abstract class FilterFormatFormBase extends EntityForm {
     $form['#tree'] = TRUE;
     $form['#attached']['library'][] = 'filter/drupal.filter.admin';
 
-    $form['name'] = array(
+    $form['name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Name'),
       '#default_value' => $format->label(),
       '#required' => TRUE,
       '#weight' => -30,
-    );
-    $form['format'] = array(
+    ];
+    $form['format'] = [
       '#type' => 'machine_name',
       '#required' => TRUE,
       '#default_value' => $format->id(),
       '#maxlength' => 255,
-      '#machine_name' => array(
-        'exists' => array($this, 'exists'),
-        'source' => array('name'),
-      ),
+      '#machine_name' => [
+        'exists' => [$this, 'exists'],
+        'source' => ['name'],
+      ],
       '#disabled' => !$format->isNew(),
       '#weight' => -20,
-    );
+    ];
 
     // Add user role access selection.
-    $form['roles'] = array(
+    $form['roles'] = [
       '#type' => 'checkboxes',
       '#title' => $this->t('Roles'),
       '#options' => array_map('\Drupal\Component\Utility\Html::escape', user_role_names()),
       '#disabled' => $is_fallback,
       '#weight' => -10,
-    );
+    ];
     if ($is_fallback) {
       $form['roles']['#description'] = $this->t('All roles for this text format must be enabled and cannot be changed.');
     }
@@ -92,13 +64,13 @@ abstract class FilterFormatFormBase extends EntityForm {
       // When a filter is missing, it is replaced by the null filter. Remove it
       // here, so that saving the form will remove the missing filter.
       if ($filter instanceof FilterNull) {
-        drupal_set_message($this->t('The %filter filter is missing, and will be removed once this format is saved.', array('%filter' => $filter_id)), 'warning');
+        drupal_set_message($this->t('The %filter filter is missing, and will be removed once this format is saved.', ['%filter' => $filter_id]), 'warning');
         $filters->removeInstanceID($filter_id);
       }
     }
 
     // Filter status.
-    $form['filters']['status'] = array(
+    $form['filters']['status'] = [
       '#type' => 'item',
       '#title' => $this->t('Enabled filters'),
       '#prefix' => '<div id="filters-status-wrapper">',
@@ -107,72 +79,72 @@ abstract class FilterFormatFormBase extends EntityForm {
       // value, since 'filters' should only contain filter definitions.
       // See https://www.drupal.org/node/1829202.
       '#input' => FALSE,
-    );
+    ];
     // Filter order (tabledrag).
-    $form['filters']['order'] = array(
+    $form['filters']['order'] = [
       '#type' => 'table',
       // For filter.admin.js
-      '#attributes' => array('id' => 'filter-order'),
+      '#attributes' => ['id' => 'filter-order'],
       '#title' => $this->t('Filter processing order'),
-      '#tabledrag' => array(
-        array(
+      '#tabledrag' => [
+        [
          'action' => 'order',
          'relationship' => 'sibling',
          'group' => 'filter-order-weight',
-        ),
-      ),
+        ],
+      ],
       '#tree' => FALSE,
       '#input' => FALSE,
-      '#theme_wrappers' => array('form_element'),
-    );
+      '#theme_wrappers' => ['form_element'],
+    ];
     // Filter settings.
-    $form['filter_settings'] = array(
+    $form['filter_settings'] = [
       '#type' => 'vertical_tabs',
       '#title' => $this->t('Filter settings'),
-    );
+    ];
 
     foreach ($filters as $name => $filter) {
-      $form['filters']['status'][$name] = array(
+      $form['filters']['status'][$name] = [
         '#type' => 'checkbox',
         '#title' => $filter->getLabel(),
         '#default_value' => $filter->status,
-        '#parents' => array('filters', $name, 'status'),
+        '#parents' => ['filters', $name, 'status'],
         '#description' => $filter->getDescription(),
         '#weight' => $filter->weight,
-      );
+      ];
 
       $form['filters']['order'][$name]['#attributes']['class'][] = 'draggable';
       $form['filters']['order'][$name]['#weight'] = $filter->weight;
-      $form['filters']['order'][$name]['filter'] = array(
+      $form['filters']['order'][$name]['filter'] = [
         '#markup' => $filter->getLabel(),
-      );
-      $form['filters']['order'][$name]['weight'] = array(
+      ];
+      $form['filters']['order'][$name]['weight'] = [
         '#type' => 'weight',
-        '#title' => $this->t('Weight for @title', array('@title' => $filter->getLabel())),
+        '#title' => $this->t('Weight for @title', ['@title' => $filter->getLabel()]),
         '#title_display' => 'invisible',
         '#delta' => 50,
         '#default_value' => $filter->weight,
-        '#parents' => array('filters', $name, 'weight'),
-        '#attributes' => array('class' => array('filter-order-weight')),
-      );
+        '#parents' => ['filters', $name, 'weight'],
+        '#attributes' => ['class' => ['filter-order-weight']],
+      ];
 
       // Retrieve the settings form of the filter plugin. The plugin should not be
       // aware of the text format. Therefore, it only receives a set of minimal
       // base properties to allow advanced implementations to work.
-      $settings_form = array(
-        '#parents' => array('filters', $name, 'settings'),
+      $settings_form = [
+        '#parents' => ['filters', $name, 'settings'],
         '#tree' => TRUE,
-      );
+      ];
       $settings_form = $filter->settingsForm($settings_form, $form_state);
       if (!empty($settings_form)) {
-        $form['filters']['settings'][$name] = array(
+        $form['filters']['settings'][$name] = [
           '#type' => 'details',
           '#title' => $filter->getLabel(),
           '#open' => TRUE,
           '#weight' => $filter->weight,
-          '#parents' => array('filters', $name, 'settings'),
+          '#parents' => ['filters', $name, 'settings'],
           '#group' => 'filter_settings',
-        );
+        ];
         $form['filters']['settings'][$name] += $settings_form;
       }
     }
@@ -189,8 +161,9 @@ abstract class FilterFormatFormBase extends EntityForm {
    *   TRUE if the format exists, FALSE otherwise.
    */
   public function exists($format_id) {
-    return (bool) $this->queryFactory
-      ->get('filter_format')
+    return (bool) $this->entityTypeManager
+      ->getStorage('filter_format')
+      ->getQuery()
       ->condition('format', $format_id)
       ->execute();
   }
@@ -209,13 +182,14 @@ abstract class FilterFormatFormBase extends EntityForm {
     $form_state->setValueForElement($form['format'], $format_format);
     $form_state->setValueForElement($form['name'], $format_name);
 
-    $format_exists = $this->queryFactory
-      ->get('filter_format')
+    $format_exists = $this->entityTypeManager
+      ->getStorage('filter_format')
+      ->getQuery()
       ->condition('format', $format_format, '<>')
       ->condition('name', $format_name)
       ->execute();
     if ($format_exists) {
-      $form_state->setErrorByName('name', $this->t('Text format names must be unique. A format named %name already exists.', array('%name' => $format_name)));
+      $form_state->setErrorByName('name', $this->t('Text format names must be unique. A format named %name already exists.', ['%name' => $format_name]));
     }
   }
 
@@ -242,7 +216,7 @@ abstract class FilterFormatFormBase extends EntityForm {
     // Save user permissions.
     if ($permission = $format->getPermissionName()) {
       foreach ($form_state->getValue('roles') as $rid => $enabled) {
-        user_role_change_permissions($rid, array($permission => $enabled));
+        user_role_change_permissions($rid, [$permission => $enabled]);
       }
     }
 

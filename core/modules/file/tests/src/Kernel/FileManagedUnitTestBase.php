@@ -18,17 +18,17 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('file_test', 'file', 'system', 'field', 'user');
+  public static $modules = ['file_test', 'file', 'system', 'field', 'user'];
 
   protected function setUp() {
     parent::setUp();
     // Clear out any hook calls.
     file_test_reset();
 
-    $this->installConfig(array('system'));
+    $this->installConfig(['system']);
     $this->installEntitySchema('file');
     $this->installEntitySchema('user');
-    $this->installSchema('file', array('file_usage'));
+    $this->installSchema('file', ['file_usage']);
 
     // Make sure that a user with uid 1 exists, self::createFile() relies on
     // it.
@@ -46,7 +46,7 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    *   Array with string containing with the hook name, e.g. 'load', 'save',
    *   'insert', etc.
    */
-  function assertFileHooksCalled($expected) {
+  public function assertFileHooksCalled($expected) {
     \Drupal::state()->resetCache();
 
     // Determine which hooks were called.
@@ -55,16 +55,16 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
     // Determine if there were any expected that were not called.
     $uncalled = array_diff($expected, $actual);
     if (count($uncalled)) {
-      $this->assertTrue(FALSE, format_string('Expected hooks %expected to be called but %uncalled was not called.', array('%expected' => implode(', ', $expected), '%uncalled' => implode(', ', $uncalled))));
+      $this->assertTrue(FALSE, format_string('Expected hooks %expected to be called but %uncalled was not called.', ['%expected' => implode(', ', $expected), '%uncalled' => implode(', ', $uncalled)]));
     }
     else {
-      $this->assertTrue(TRUE, format_string('All the expected hooks were called: %expected', array('%expected' => empty($expected) ? '(none)' : implode(', ', $expected))));
+      $this->assertTrue(TRUE, format_string('All the expected hooks were called: %expected', ['%expected' => empty($expected) ? '(none)' : implode(', ', $expected)]));
     }
 
     // Determine if there were any unexpected calls.
     $unexpected = array_diff($actual, $expected);
     if (count($unexpected)) {
-      $this->assertTrue(FALSE, format_string('Unexpected hooks were called: %unexpected.', array('%unexpected' => empty($unexpected) ? '(none)' : implode(', ', $unexpected))));
+      $this->assertTrue(FALSE, format_string('Unexpected hooks were called: %unexpected.', ['%unexpected' => empty($unexpected) ? '(none)' : implode(', ', $unexpected)]));
     }
     else {
       $this->assertTrue(TRUE, 'No unexpected hooks were called.');
@@ -81,18 +81,18 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    * @param string $message
    *   Optional translated string message.
    */
-  function assertFileHookCalled($hook, $expected_count = 1, $message = NULL) {
+  public function assertFileHookCalled($hook, $expected_count = 1, $message = NULL) {
     $actual_count = count(file_test_get_calls($hook));
 
     if (!isset($message)) {
       if ($actual_count == $expected_count) {
-        $message = format_string('hook_file_@name was called correctly.', array('@name' => $hook));
+        $message = format_string('hook_file_@name was called correctly.', ['@name' => $hook]);
       }
       elseif ($expected_count == 0) {
-        $message = \Drupal::translation()->formatPlural($actual_count, 'hook_file_@name was not expected to be called but was actually called once.', 'hook_file_@name was not expected to be called but was actually called @count times.', array('@name' => $hook, '@count' => $actual_count));
+        $message = \Drupal::translation()->formatPlural($actual_count, 'hook_file_@name was not expected to be called but was actually called once.', 'hook_file_@name was not expected to be called but was actually called @count times.', ['@name' => $hook, '@count' => $actual_count]);
       }
       else {
-        $message = format_string('hook_file_@name was expected to be called %expected times but was called %actual times.', array('@name' => $hook, '%expected' => $expected_count, '%actual' => $actual_count));
+        $message = format_string('hook_file_@name was expected to be called %expected times but was called %actual times.', ['@name' => $hook, '%expected' => $expected_count, '%actual' => $actual_count]);
       }
     }
     $this->assertEqual($actual_count, $expected_count, $message);
@@ -106,14 +106,14 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    * @param \Drupal\file\FileInterface $after
    *   File object to compare.
    */
-  function assertFileUnchanged(FileInterface $before, FileInterface $after) {
-    $this->assertEqual($before->id(), $after->id(), t('File id is the same: %file1 == %file2.', array('%file1' => $before->id(), '%file2' => $after->id())), 'File unchanged');
-    $this->assertEqual($before->getOwner()->id(), $after->getOwner()->id(), t('File owner is the same: %file1 == %file2.', array('%file1' => $before->getOwner()->id(), '%file2' => $after->getOwner()->id())), 'File unchanged');
-    $this->assertEqual($before->getFilename(), $after->getFilename(), t('File name is the same: %file1 == %file2.', array('%file1' => $before->getFilename(), '%file2' => $after->getFilename())), 'File unchanged');
-    $this->assertEqual($before->getFileUri(), $after->getFileUri(), t('File path is the same: %file1 == %file2.', array('%file1' => $before->getFileUri(), '%file2' => $after->getFileUri())), 'File unchanged');
-    $this->assertEqual($before->getMimeType(), $after->getMimeType(), t('File MIME type is the same: %file1 == %file2.', array('%file1' => $before->getMimeType(), '%file2' => $after->getMimeType())), 'File unchanged');
-    $this->assertEqual($before->getSize(), $after->getSize(), t('File size is the same: %file1 == %file2.', array('%file1' => $before->getSize(), '%file2' => $after->getSize())), 'File unchanged');
-    $this->assertEqual($before->isPermanent(), $after->isPermanent(), t('File status is the same: %file1 == %file2.', array('%file1' => $before->isPermanent(), '%file2' => $after->isPermanent())), 'File unchanged');
+  public function assertFileUnchanged(FileInterface $before, FileInterface $after) {
+    $this->assertEqual($before->id(), $after->id(), t('File id is the same: %file1 == %file2.', ['%file1' => $before->id(), '%file2' => $after->id()]), 'File unchanged');
+    $this->assertEqual($before->getOwner()->id(), $after->getOwner()->id(), t('File owner is the same: %file1 == %file2.', ['%file1' => $before->getOwner()->id(), '%file2' => $after->getOwner()->id()]), 'File unchanged');
+    $this->assertEqual($before->getFilename(), $after->getFilename(), t('File name is the same: %file1 == %file2.', ['%file1' => $before->getFilename(), '%file2' => $after->getFilename()]), 'File unchanged');
+    $this->assertEqual($before->getFileUri(), $after->getFileUri(), t('File path is the same: %file1 == %file2.', ['%file1' => $before->getFileUri(), '%file2' => $after->getFileUri()]), 'File unchanged');
+    $this->assertEqual($before->getMimeType(), $after->getMimeType(), t('File MIME type is the same: %file1 == %file2.', ['%file1' => $before->getMimeType(), '%file2' => $after->getMimeType()]), 'File unchanged');
+    $this->assertEqual($before->getSize(), $after->getSize(), t('File size is the same: %file1 == %file2.', ['%file1' => $before->getSize(), '%file2' => $after->getSize()]), 'File unchanged');
+    $this->assertEqual($before->isPermanent(), $after->isPermanent(), t('File status is the same: %file1 == %file2.', ['%file1' => $before->isPermanent(), '%file2' => $after->isPermanent()]), 'File unchanged');
   }
 
   /**
@@ -124,9 +124,9 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    * @param \Drupal\file\FileInterface $file2
    *   File object to compare.
    */
-  function assertDifferentFile(FileInterface $file1, FileInterface $file2) {
-    $this->assertNotEqual($file1->id(), $file2->id(), t('Files have different ids: %file1 != %file2.', array('%file1' => $file1->id(), '%file2' => $file2->id())), 'Different file');
-    $this->assertNotEqual($file1->getFileUri(), $file2->getFileUri(), t('Files have different paths: %file1 != %file2.', array('%file1' => $file1->getFileUri(), '%file2' => $file2->getFileUri())), 'Different file');
+  public function assertDifferentFile(FileInterface $file1, FileInterface $file2) {
+    $this->assertNotEqual($file1->id(), $file2->id(), t('Files have different ids: %file1 != %file2.', ['%file1' => $file1->id(), '%file2' => $file2->id()]), 'Different file');
+    $this->assertNotEqual($file1->getFileUri(), $file2->getFileUri(), t('Files have different paths: %file1 != %file2.', ['%file1' => $file1->getFileUri(), '%file2' => $file2->getFileUri()]), 'Different file');
   }
 
   /**
@@ -137,9 +137,9 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    * @param \Drupal\file\FileInterface $file2
    *   File object to compare.
    */
-  function assertSameFile(FileInterface $file1, FileInterface $file2) {
-    $this->assertEqual($file1->id(), $file2->id(), t('Files have the same ids: %file1 == %file2.', array('%file1' => $file1->id(), '%file2-fid' => $file2->id())), 'Same file');
-    $this->assertEqual($file1->getFileUri(), $file2->getFileUri(), t('Files have the same path: %file1 == %file2.', array('%file1' => $file1->getFileUri(), '%file2' => $file2->getFileUri())), 'Same file');
+  public function assertSameFile(FileInterface $file1, FileInterface $file2) {
+    $this->assertEqual($file1->id(), $file2->id(), t('Files have the same ids: %file1 == %file2.', ['%file1' => $file1->id(), '%file2-fid' => $file2->id()]), 'Same file');
+    $this->assertEqual($file1->getFileUri(), $file2->getFileUri(), t('Files have the same path: %file1 == %file2.', ['%file1' => $file1->getFileUri(), '%file2' => $file2->getFileUri()]), 'Same file');
   }
 
   /**
@@ -158,7 +158,7 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    * @return \Drupal\file\FileInterface
    *   File entity.
    */
-  function createFile($filepath = NULL, $contents = NULL, $scheme = NULL) {
+  public function createFile($filepath = NULL, $contents = NULL, $scheme = NULL) {
     // Don't count hook invocations caused by creating the file.
     \Drupal::state()->set('file_test.count_hook_invocations', FALSE);
     $file = File::create([
@@ -190,7 +190,7 @@ abstract class FileManagedUnitTestBase extends KernelTestBase {
    * @return string
    *   File URI.
    */
-  function createUri($filepath = NULL, $contents = NULL, $scheme = NULL) {
+  public function createUri($filepath = NULL, $contents = NULL, $scheme = NULL) {
     if (!isset($filepath)) {
       // Prefix with non-latin characters to ensure that all file-related
       // tests work with international filenames.

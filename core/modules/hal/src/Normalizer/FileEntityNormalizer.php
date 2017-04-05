@@ -4,7 +4,7 @@ namespace Drupal\hal\Normalizer;
 
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\rest\LinkManager\LinkManagerInterface;
+use Drupal\hal\LinkManager\LinkManagerInterface;
 use GuzzleHttp\ClientInterface;
 
 /**
@@ -33,7 +33,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
    *   The entity manager.
    * @param \GuzzleHttp\ClientInterface $http_client
    *   The HTTP Client.
-   * @param \Drupal\rest\LinkManager\LinkManagerInterface $link_manager
+   * @param \Drupal\hal\LinkManager\LinkManagerInterface $link_manager
    *   The hypermedia link manager.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
@@ -47,7 +47,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($entity, $format = NULL, array $context = array()) {
+  public function normalize($entity, $format = NULL, array $context = []) {
     $data = parent::normalize($entity, $format, $context);
     // Replace the file url with a full url for the file.
     $data['uri'][0]['value'] = $this->getEntityUri($entity);
@@ -58,7 +58,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function denormalize($data, $class, $format = NULL, array $context = array()) {
+  public function denormalize($data, $class, $format = NULL, array $context = []) {
     $file_data = (string) $this->httpClient->get($data['uri'][0]['value'])->getBody();
 
     $path = 'temporary://' . drupal_basename($data['uri'][0]['value']);

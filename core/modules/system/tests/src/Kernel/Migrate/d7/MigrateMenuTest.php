@@ -51,14 +51,14 @@ class MigrateMenuTest extends MigrateDrupal7TestBase {
     // Test that we can re-import using the ConfigEntityBase destination.
     Database::getConnection('default', 'migrate')
       ->update('menu_custom')
-      ->fields(array('title' => 'Home Navigation'))
+      ->fields(['title' => 'Home Navigation'])
       ->condition('menu_name', 'navigation')
       ->execute();
 
     $migration = $this->getMigration('d7_menu');
     \Drupal::database()
-        ->truncate($migration->getIdMap()->mapTableName())
-        ->execute();
+      ->truncate($migration->getIdMap()->mapTableName())
+      ->execute();
     $this->executeMigration($migration);
 
     $navigation_menu = Menu::load('tools');

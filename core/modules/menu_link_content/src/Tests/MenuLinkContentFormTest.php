@@ -2,6 +2,7 @@
 
 namespace Drupal\menu_link_content\Tests;
 
+use Drupal\menu_link_content\Entity\MenuLinkContent;
 use Drupal\simpletest\WebTestBase;
 
 /**
@@ -16,17 +17,57 @@ class MenuLinkContentFormTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array(
+  public static $modules = [
     'menu_link_content',
-  );
+  ];
+
+  /**
+   * User with 'administer menu' and 'link to any page' permission.
+   *
+   * @var \Drupal\user\Entity\User
+   */
+
+  protected $adminUser;
+
+  /**
+   * User with only 'administer menu' permission.
+   *
+   * @var \Drupal\user\Entity\User
+   */
+
+  protected $basicUser;
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-    $web_user = $this->drupalCreateUser(array('administer menu'));
-    $this->drupalLogin($web_user);
+    $this->adminUser = $this->drupalCreateUser(['administer menu', 'link to any page']);
+    $this->basicUser = $this->drupalCreateUser(['administer menu']);
+    $this->drupalLogin($this->adminUser);
+  }
+
+  /**
+   * Tests the 'link to any page' permission for a restricted page.
+   */
+  public function testMenuLinkContentFormLinkToAnyPage() {
+    $menu_link = MenuLinkContent::create([
+      'title' => 'Menu link test',
+      'provider' => 'menu_link_content',
+      'menu_name' => 'admin',
+      'link' => ['uri' => 'internal:/user/login'],
+    ]);
+    $menu_link->save();
+
+    // The user should be able to edit a menu link to the page, even though
+    // the user cannot access the page itself.
+    $this->drupalGet('/admin/structure/menu/item/' . $menu_link->id() . '/edit');
+    $this->assertResponse(200);
+
+    $this->drupalLogin($this->basicUser);
+
+    $this->drupalGet('/admin/structure/menu/item/' . $menu_link->id() . '/edit');
+    $this->assertResponse(403);
   }
 
   /**
@@ -34,16 +75,16 @@ class MenuLinkContentFormTest extends WebTestBase {
    */
   public function testMenuLinkContentForm() {
     $this->drupalGet('admin/structure/menu/manage/admin/add');
-    $element = $this->xpath('//select[@id = :id]/option[@selected]', array(':id' => 'edit-menu-parent'));
+    $element = $this->xpath('//select[@id = :id]/option[@selected]', [':id' => 'edit-menu-parent']);
     $this->assertTrue($element, 'A default menu parent was found.');
     $this->assertEqual('admin:', $element[0]['value'], '<Administration> menu is the parent.');
 
     $this->drupalPostForm(
       NULL,
-      array(
+      [
         'title[0][value]' => t('Front page'),
         'link[0][uri]' => '<front>',
-      ),
+      ],
       t('Save')
     );
     $this->assertText(t('The menu link has been saved.'));
@@ -56,10 +97,10 @@ class MenuLinkContentFormTest extends WebTestBase {
     $this->drupalGet('admin/structure/menu/manage/admin/add');
     $this->drupalPostForm(
       NULL,
-      array(
+      [
         'title[0][value]' => t('Test page'),
         'link[0][uri]' => '<test>',
-      ),
+      ],
       t('Save')
     );
     $this->assertText(t('Manually entered paths should start with /, ? or #.'));

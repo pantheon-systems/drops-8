@@ -6,7 +6,7 @@ use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\Routing\UrlGeneratorTrait;
@@ -30,13 +30,6 @@ class CommentManager implements CommentManagerInterface {
    * @var \Drupal\Core\Entity\EntityManagerInterface
    */
   protected $entityManager;
-
-  /**
-   * The entity query factory.
-   *
-   * @var \Drupal\Core\Entity\Query\QueryFactory
-   */
-  protected $queryFactory;
 
   /**
    * Whether the \Drupal\user\RoleInterface::AUTHENTICATED_ID can post comments.
@@ -71,8 +64,6 @@ class CommentManager implements CommentManagerInterface {
    *
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   The entity manager service.
-   * @param \Drupal\Core\Entity\Query\QueryFactory $query_factory
-   *   The entity query factory.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $string_translation
@@ -84,9 +75,8 @@ class CommentManager implements CommentManagerInterface {
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    */
-  public function __construct(EntityManagerInterface $entity_manager, QueryFactory $query_factory, ConfigFactoryInterface $config_factory, TranslationInterface $string_translation, UrlGeneratorInterface $url_generator, ModuleHandlerInterface $module_handler, AccountInterface $current_user) {
+  public function __construct(EntityManagerInterface $entity_manager, ConfigFactoryInterface $config_factory, TranslationInterface $string_translation, UrlGeneratorInterface $url_generator, ModuleHandlerInterface $module_handler, AccountInterface $current_user) {
     $this->entityManager = $entity_manager;
-    $this->queryFactory = $query_factory;
     $this->userConfig = $config_factory->get('user.settings');
     $this->stringTranslation = $string_translation;
     $this->urlGenerator = $url_generator;
@@ -99,12 +89,12 @@ class CommentManager implements CommentManagerInterface {
    */
   public function getFields($entity_type_id) {
     $entity_type = $this->entityManager->getDefinition($entity_type_id);
-    if (!$entity_type->isSubclassOf('\Drupal\Core\Entity\FieldableEntityInterface')) {
-      return array();
+    if (!$entity_type->entityClassImplements(FieldableEntityInterface::class)) {
+      return [];
     }
 
     $map = $this->entityManager->getFieldMapByFieldType('comment');
-    return isset($map[$entity_type_id]) ? $map[$entity_type_id] : array();
+    return isset($map[$entity_type_id]) ? $map[$entity_type_id] : [];
   }
 
   /**
@@ -113,28 +103,28 @@ class CommentManager implements CommentManagerInterface {
   public function addBodyField($comment_type_id) {
     if (!FieldConfig::loadByName('comment', $comment_type_id, 'comment_body')) {
       // Attaches the body field by default.
-      $field = $this->entityManager->getStorage('field_config')->create(array(
+      $field = $this->entityManager->getStorage('field_config')->create([
         'label' => 'Comment',
         'bundle' => $comment_type_id,
         'required' => TRUE,
         'field_storage' => FieldStorageConfig::loadByName('comment', 'comment_body'),
-      ));
+      ]);
       $field->save();
 
       // Assign widget settings for the 'default' form mode.
       entity_get_form_display('comment', $comment_type_id, 'default')
-        ->setComponent('comment_body', array(
+        ->setComponent('comment_body', [
           'type' => 'text_textarea',
-        ))
+        ])
         ->save();
 
       // Assign display settings for the 'default' view mode.
       entity_get_display('comment', $comment_type_id, 'default')
-        ->setComponent('comment_body', array(
+        ->setComponent('comment_body', [
           'label' => 'hidden',
           'type' => 'text_default',
           'weight' => 0,
-        ))
+        ])
         ->save();
     }
   }
@@ -161,24 +151,24 @@ class CommentManager implements CommentManagerInterface {
           'entity' => $entity->id(),
           'field_name' => $field_name,
         ];
-        $destination = array('destination' => $this->url('comment.reply', $comment_reply_parameters, array('fragment' => 'comment-form')));
+        $destination = ['destination' => $this->url('comment.reply', $comment_reply_parameters, ['fragment' => 'comment-form'])];
       }
       else {
-        $destination = array('destination' => $entity->url('canonical', array('fragment' => 'comment-form')));
+        $destination = ['destination' => $entity->url('canonical', ['fragment' => 'comment-form'])];
       }
 
       if ($this->userConfig->get('register') != USER_REGISTER_ADMINISTRATORS_ONLY) {
         // Users can register themselves.
-        return $this->t('<a href=":login">Log in</a> or <a href=":register">register</a> to post comments', array(
-          ':login' => $this->urlGenerator->generateFromRoute('user.login', array(), array('query' => $destination)),
-          ':register' => $this->urlGenerator->generateFromRoute('user.register', array(), array('query' => $destination)),
-        ));
+        return $this->t('<a href=":login">Log in</a> or <a href=":register">register</a> to post comments', [
+          ':login' => $this->urlGenerator->generateFromRoute('user.login', [], ['query' => $destination]),
+          ':register' => $this->urlGenerator->generateFromRoute('user.register', [], ['query' => $destination]),
+        ]);
       }
       else {
         // Only admins can add new users, no public registration.
-        return $this->t('<a href=":login">Log in</a> to post comments', array(
-          ':login' => $this->urlGenerator->generateFromRoute('user.login', array(), array('query' => $destination)),
-        ));
+        return $this->t('<a href=":login">Log in</a> to post comments', [
+          ':login' => $this->urlGenerator->generateFromRoute('user.login', [], ['query' => $destination]),
+        ]);
       }
     }
     return '';
@@ -211,7 +201,7 @@ class CommentManager implements CommentManagerInterface {
       $timestamp = ($timestamp > HISTORY_READ_LIMIT ? $timestamp : HISTORY_READ_LIMIT);
 
       // Use the timestamp to retrieve the number of new comments.
-      $query = $this->queryFactory->get('comment')
+      $query = $this->entityManager->getStorage('comment')->getQuery()
         ->condition('entity_type', $entity->getEntityTypeId())
         ->condition('entity_id', $entity->id())
         ->condition('created', $timestamp, '>')

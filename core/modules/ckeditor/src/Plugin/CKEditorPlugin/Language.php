@@ -104,7 +104,7 @@ class Language extends CKEditorPluginBase implements CKEditorPluginConfigurableI
     }
 
     $predefined_languages = LanguageManager::getStandardLanguageList();
-    $form['language_list'] = array(
+    $form['language_list'] = [
       '#title' => $this->t('Language list'),
       '#title_display' => 'invisible',
       '#type' => 'select',
@@ -118,7 +118,7 @@ class Language extends CKEditorPluginBase implements CKEditorPluginConfigurableI
         '@count' => count($predefined_languages),
       ]),
       '#attached' => ['library' => ['ckeditor/drupal.ckeditor.language.admin']],
-    );
+    ];
 
     return $form;
   }
@@ -126,10 +126,10 @@ class Language extends CKEditorPluginBase implements CKEditorPluginConfigurableI
   /**
    * {@inheritdoc}
    */
-  function getCssFiles(Editor $editor) {
-    return array(
+  public function getCssFiles(Editor $editor) {
+    return [
         drupal_get_path('module', 'ckeditor') . '/css/plugins/language/ckeditor.language.css'
-    );
+    ];
   }
 
 }

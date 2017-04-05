@@ -2,6 +2,8 @@
 
 namespace Drupal\node\Tests\Views;
 
+use Drupal\node\NodeInterface;
+
 /**
  * Tests the node.status_extra field handler.
  *
@@ -15,27 +17,27 @@ class StatusExtraTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_status_extra');
+  public static $testViews = ['test_status_extra'];
 
   /**
    * Tests the status extra filter.
    */
   public function testStatusExtra() {
-    $node_author = $this->drupalCreateUser(array('view own unpublished content'));
+    $node_author = $this->drupalCreateUser(['view own unpublished content']);
     $node_author_not_unpublished = $this->drupalCreateUser();
     $normal_user = $this->drupalCreateUser();
-    $admin_user = $this->drupalCreateUser(array('bypass node access'));
+    $admin_user = $this->drupalCreateUser(['bypass node access']);
 
     // Create one published and one unpublished node by the admin.
-    $node_published = $this->drupalCreateNode(array('uid' => $admin_user->id()));
-    $node_unpublished = $this->drupalCreateNode(array('uid' => $admin_user->id(), 'status' => NODE_NOT_PUBLISHED));
+    $node_published = $this->drupalCreateNode(['uid' => $admin_user->id()]);
+    $node_unpublished = $this->drupalCreateNode(['uid' => $admin_user->id(), 'status' => NodeInterface::NOT_PUBLISHED]);
 
     // Create one unpublished node by a certain author user.
-    $node_unpublished2 = $this->drupalCreateNode(array('uid' => $node_author->id(), 'status' => NODE_NOT_PUBLISHED));
+    $node_unpublished2 = $this->drupalCreateNode(['uid' => $node_author->id(), 'status' => NodeInterface::NOT_PUBLISHED]);
 
     // Create one unpublished node by a user who does not have the `view own
     // unpublished content` permission.
-    $node_unpublished3 = $this->drupalCreateNode(array('uid' => $node_author_not_unpublished->id(), 'status' => NODE_NOT_PUBLISHED));
+    $node_unpublished3 = $this->drupalCreateNode(['uid' => $node_author_not_unpublished->id(), 'status' => NodeInterface::NOT_PUBLISHED]);
 
     // The administrator should simply see all nodes.
     $this->drupalLogin($admin_user);

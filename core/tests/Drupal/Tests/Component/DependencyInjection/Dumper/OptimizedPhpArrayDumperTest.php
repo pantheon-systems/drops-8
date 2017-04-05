@@ -7,12 +7,15 @@
 
 namespace Drupal\Tests\Component\DependencyInjection\Dumper {
 
+  use Drupal\Component\Utility\Crypt;
   use Symfony\Component\DependencyInjection\Definition;
   use Symfony\Component\DependencyInjection\Reference;
   use Symfony\Component\DependencyInjection\Parameter;
   use Symfony\Component\ExpressionLanguage\Expression;
   use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
   use Symfony\Component\DependencyInjection\ContainerInterface;
+  use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
+  use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 
   /**
    * @coversDefaultClass \Drupal\Component\DependencyInjection\Dumper\OptimizedPhpArrayDumper
@@ -61,15 +64,15 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
     protected function setUp() {
       // Setup a mock container builder.
       $this->containerBuilder = $this->prophesize('\Symfony\Component\DependencyInjection\ContainerBuilder');
-      $this->containerBuilder->getAliases()->willReturn(array());
+      $this->containerBuilder->getAliases()->willReturn([]);
       $this->containerBuilder->getParameterBag()->willReturn(new ParameterBag());
       $this->containerBuilder->getDefinitions()->willReturn(NULL);
       $this->containerBuilder->isFrozen()->willReturn(TRUE);
 
-      $definition = array();
-      $definition['aliases'] = array();
-      $definition['parameters'] = array();
-      $definition['services'] = array();
+      $definition = [];
+      $definition['aliases'] = [];
+      $definition['parameters'] = [];
+      $definition['services'] = [];
       $definition['frozen'] = TRUE;
       $definition['machine_format'] = $this->machineFormat;
 
@@ -113,17 +116,17 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      *     - aliases as expected in the container definition.
      */
     public function getAliasesDataProvider() {
-      return array(
-        array(array(), array()),
-        array(
-          array('foo' => 'foo.alias'),
-          array('foo' => 'foo.alias'),
-        ),
-        array(
-          array('foo' => 'foo.alias', 'foo.alias' => 'foo.alias.alias'),
-          array('foo' => 'foo.alias.alias', 'foo.alias' => 'foo.alias.alias'),
-        ),
-      );
+      return [
+        [[], []],
+        [
+          ['foo' => 'foo.alias'],
+          ['foo' => 'foo.alias'],
+        ],
+        [
+          ['foo' => 'foo.alias', 'foo.alias' => 'foo.alias.alias'],
+          ['foo' => 'foo.alias.alias', 'foo.alias' => 'foo.alias.alias'],
+        ],
+      ];
     }
 
     /**
@@ -163,34 +166,34 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      *     - frozen value
      */
     public function getParametersDataProvider() {
-      return array(
-        array(array(), array(), TRUE),
-        array(
-          array('foo' => 'value_foo'),
-          array('foo' => 'value_foo'),
+      return [
+        [[], [], TRUE],
+        [
+          ['foo' => 'value_foo'],
+          ['foo' => 'value_foo'],
           TRUE,
-        ),
-        array(
-          array('foo' => array('llama' => 'yes')),
-          array('foo' => array('llama' => 'yes')),
+        ],
+        [
+          ['foo' => ['llama' => 'yes']],
+          ['foo' => ['llama' => 'yes']],
           TRUE,
-        ),
-        array(
-          array('foo' => '%llama%', 'llama' => 'yes'),
-          array('foo' => '%%llama%%', 'llama' => 'yes'),
+        ],
+        [
+          ['foo' => '%llama%', 'llama' => 'yes'],
+          ['foo' => '%%llama%%', 'llama' => 'yes'],
           TRUE,
-        ),
-        array(
-          array('foo' => '%llama%', 'llama' => 'yes'),
-          array('foo' => '%llama%', 'llama' => 'yes'),
+        ],
+        [
+          ['foo' => '%llama%', 'llama' => 'yes'],
+          ['foo' => '%llama%', 'llama' => 'yes'],
           FALSE,
-        ),
-        array(
-          array('reference' => new Reference('referenced_service')),
-          array('reference' => $this->getServiceCall('referenced_service')),
+        ],
+        [
+          ['reference' => new Reference('referenced_service')],
+          ['reference' => $this->getServiceCall('referenced_service')],
           TRUE,
-        ),
-      );
+        ],
+      ];
     }
 
     /**
@@ -235,164 +238,164 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      *     - frozen value
      */
     public function getDefinitionsDataProvider() {
-      $base_service_definition = array(
+      $base_service_definition = [
         'class' => '\stdClass',
         'public' => TRUE,
         'file' => FALSE,
         'synthetic' => FALSE,
         'lazy' => FALSE,
-        'arguments' => array(),
+        'arguments' => [],
         'arguments_count' => 0,
-        'properties' => array(),
-        'calls' => array(),
+        'properties' => [],
+        'calls' => [],
         'scope' => ContainerInterface::SCOPE_CONTAINER,
         'shared' => TRUE,
         'factory' => FALSE,
         'configurator' => FALSE,
-      );
+      ];
 
       // Test basic flags.
-      $service_definitions[] = array() + $base_service_definition;
+      $service_definitions[] = [] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
         'public' => FALSE,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
         'file' => 'test_include.php',
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
         'synthetic' => TRUE,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
         'shared' => FALSE,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
         'lazy' => TRUE,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
       // Test a basic public Reference.
-      $service_definitions[] = array(
-        'arguments' => array('foo', new Reference('bar')),
+      $service_definitions[] = [
+        'arguments' => ['foo', new Reference('bar')],
         'arguments_count' => 2,
-        'arguments_expected' => $this->getCollection(array('foo', $this->getServiceCall('bar'))),
-      ) + $base_service_definition;
+        'arguments_expected' => $this->getCollection(['foo', $this->getServiceCall('bar')]),
+      ] + $base_service_definition;
 
       // Test a public reference that should not throw an Exception.
       $reference = new Reference('bar', ContainerInterface::NULL_ON_INVALID_REFERENCE);
-      $service_definitions[] = array(
-        'arguments' => array($reference),
+      $service_definitions[] = [
+        'arguments' => [$reference],
         'arguments_count' => 1,
-        'arguments_expected' => $this->getCollection(array($this->getServiceCall('bar', ContainerInterface::NULL_ON_INVALID_REFERENCE))),
-      ) + $base_service_definition;
+        'arguments_expected' => $this->getCollection([$this->getServiceCall('bar', ContainerInterface::NULL_ON_INVALID_REFERENCE)]),
+      ] + $base_service_definition;
 
       // Test a private shared service, denoted by having a Reference.
-      $private_definition = array(
+      $private_definition = [
         'class' => '\stdClass',
         'public' => FALSE,
         'arguments_count' => 0,
-      );
+      ];
 
-      $service_definitions[] = array(
-        'arguments' => array('foo', new Reference('private_definition')),
+      $service_definitions[] = [
+        'arguments' => ['foo', new Reference('private_definition')],
         'arguments_count' => 2,
-        'arguments_expected' => $this->getCollection(array(
+        'arguments_expected' => $this->getCollection([
           'foo',
           $this->getPrivateServiceCall('private_definition', $private_definition, TRUE),
-        )),
-      ) + $base_service_definition;
+        ]),
+      ] + $base_service_definition;
 
       // Test a private non-shared service, denoted by having a Definition.
       $private_definition_object = new Definition('\stdClass');
       $private_definition_object->setPublic(FALSE);
 
-      $service_definitions[] = array(
-        'arguments' => array('foo', $private_definition_object),
+      $service_definitions[] = [
+        'arguments' => ['foo', $private_definition_object],
         'arguments_count' => 2,
-        'arguments_expected' => $this->getCollection(array(
+        'arguments_expected' => $this->getCollection([
           'foo',
           $this->getPrivateServiceCall(NULL, $private_definition),
-        )),
-      ) + $base_service_definition;
+        ]),
+      ] + $base_service_definition;
 
       // Test a deep collection without a reference.
-      $service_definitions[] = array(
-        'arguments' => array(array(array('foo'))),
+      $service_definitions[] = [
+        'arguments' => [[['foo']]],
         'arguments_count' => 1,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
       // Test a deep collection with a reference to resolve.
-      $service_definitions[] = array(
-        'arguments' => array(array(new Reference('bar'))),
+      $service_definitions[] = [
+        'arguments' => [[new Reference('bar')]],
         'arguments_count' => 1,
-        'arguments_expected' => $this->getCollection(array($this->getCollection(array($this->getServiceCall('bar'))))),
-      ) + $base_service_definition;
+        'arguments_expected' => $this->getCollection([$this->getCollection([$this->getServiceCall('bar')])]),
+      ] + $base_service_definition;
 
       // Test a collection with a variable to resolve.
-      $service_definitions[] = array(
-        'arguments' => array(new Parameter('llama_parameter')),
+      $service_definitions[] = [
+        'arguments' => [new Parameter('llama_parameter')],
         'arguments_count' => 1,
-        'arguments_expected' => $this->getCollection(array($this->getParameterCall('llama_parameter'))),
-      ) + $base_service_definition;
+        'arguments_expected' => $this->getCollection([$this->getParameterCall('llama_parameter')]),
+      ] + $base_service_definition;
 
       // Test objects that have _serviceId property.
       $drupal_service = new \stdClass();
       $drupal_service->_serviceId = 'bar';
 
-      $service_definitions[] = array(
-        'arguments' => array($drupal_service),
+      $service_definitions[] = [
+        'arguments' => [$drupal_service],
         'arguments_count' => 1,
-        'arguments_expected' => $this->getCollection(array($this->getServiceCall('bar'))),
-      ) + $base_service_definition;
+        'arguments_expected' => $this->getCollection([$this->getServiceCall('bar')]),
+      ] + $base_service_definition;
 
       // Test getMethodCalls.
-      $calls = array(
-        array('method', $this->getCollection(array())),
-        array('method2', $this->getCollection(array())),
-      );
-      $service_definitions[] = array(
+      $calls = [
+        ['method', $this->getCollection([])],
+        ['method2', $this->getCollection([])],
+      ];
+      $service_definitions[] = [
         'calls' => $calls,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
         'scope' => ContainerInterface::SCOPE_PROTOTYPE,
         'shared' => FALSE,
-      ) + $base_service_definition;
+      ] + $base_service_definition;
 
-      $service_definitions[] = array(
+      $service_definitions[] = [
           'shared' => FALSE,
-        ) + $base_service_definition;
+        ] + $base_service_definition;
 
       // Test factory.
-      $service_definitions[] = array(
-        'factory' => array(new Reference('bar'), 'factoryMethod'),
-        'factory_expected' => array($this->getServiceCall('bar'), 'factoryMethod'),
-      ) + $base_service_definition;
+      $service_definitions[] = [
+        'factory' => [new Reference('bar'), 'factoryMethod'],
+        'factory_expected' => [$this->getServiceCall('bar'), 'factoryMethod'],
+      ] + $base_service_definition;
 
       // Test invalid factory - needed to test deep dumpValue().
-      $service_definitions[] = array(
-        'factory' => array(array('foo', 'llama'), 'factoryMethod'),
-      ) + $base_service_definition;
+      $service_definitions[] = [
+        'factory' => [['foo', 'llama'], 'factoryMethod'],
+      ] + $base_service_definition;
 
       // Test properties.
-      $service_definitions[] = array(
-        'properties' => array('_value' => 'llama'),
-      ) + $base_service_definition;
+      $service_definitions[] = [
+        'properties' => ['_value' => 'llama'],
+      ] + $base_service_definition;
 
       // Test configurator.
-      $service_definitions[] = array(
-        'configurator' => array(new Reference('bar'), 'configureService'),
-        'configurator_expected' => array($this->getServiceCall('bar'), 'configureService'),
-      ) + $base_service_definition;
+      $service_definitions[] = [
+        'configurator' => [new Reference('bar'), 'configureService'],
+        'configurator_expected' => [$this->getServiceCall('bar'), 'configureService'],
+      ] + $base_service_definition;
 
-      $services_provided = array();
-      $services_provided[] = array(
-        array(),
-        array(),
-      );
+      $services_provided = [];
+      $services_provided[] = [
+        [],
+        [],
+      ];
 
       foreach ($service_definitions as $service_definition) {
         $definition = $this->prophesize('\Symfony\Component\DependencyInjection\Definition');
@@ -411,7 +414,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
         $definition->getConfigurator()->willReturn($service_definition['configurator']);
 
         // Preserve order.
-        $filtered_service_definition = array();
+        $filtered_service_definition = [];
         foreach ($base_service_definition as $key => $value) {
           $filtered_service_definition[$key] = $service_definition[$key];
           unset($service_definition[$key]);
@@ -429,7 +432,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
         $filtered_service_definition += $service_definition;
 
         // Allow to set _expected values.
-        foreach (array('arguments', 'factory', 'configurator') as $key) {
+        foreach (['arguments', 'factory', 'configurator'] as $key) {
           $expected = $key . '_expected';
           if (isset($filtered_service_definition[$expected])) {
             $filtered_service_definition[$key] = $filtered_service_definition[$expected];
@@ -441,17 +444,17 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
         unset($filtered_service_definition['scope']);
 
         if (isset($filtered_service_definition['public']) && $filtered_service_definition['public'] === FALSE) {
-          $services_provided[] = array(
-            array('foo_service' => $definition->reveal()),
-            array(),
-          );
+          $services_provided[] = [
+            ['foo_service' => $definition->reveal()],
+            [],
+          ];
           continue;
         }
 
-        $services_provided[] = array(
-          array('foo_service' => $definition->reveal()),
-          array('foo_service' => $this->serializeDefinition($filtered_service_definition)),
-        );
+        $services_provided[] = [
+          ['foo_service' => $definition->reveal()],
+          ['foo_service' => $this->serializeDefinition($filtered_service_definition)],
+        ];
       }
 
       return $services_provided;
@@ -470,19 +473,17 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      * Helper function to return a service definition.
      */
     protected function getServiceCall($id, $invalid_behavior = ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE) {
-      return (object) array(
+      return (object) [
         'type' => 'service',
         'id' => $id,
         'invalidBehavior' => $invalid_behavior,
-      );
+      ];
     }
 
     /**
      * Tests that the correct InvalidArgumentException is thrown for getScope().
      *
      * @covers ::getServiceDefinition
-     *
-     * @expectedException \Symfony\Component\DependencyInjection\Exception\InvalidArgumentException
      */
     public function testGetServiceDefinitionWithInvalidScope() {
       $bar_definition = new Definition('\stdClass');
@@ -490,6 +491,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
       $services['bar'] = $bar_definition;
 
       $this->containerBuilder->getDefinitions()->willReturn($services);
+      $this->setExpectedException(InvalidArgumentException::class);
       $this->dumper->getArray();
     }
 
@@ -502,9 +504,9 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      */
     public function testGetServiceDefinitionWithReferenceToAlias($public) {
       $bar_definition = new Definition('\stdClass');
-      $bar_definition_php_array = array(
+      $bar_definition_php_array = [
         'class' => '\stdClass',
-      );
+      ];
       if (!$public) {
         $bar_definition->setPublic(FALSE);
         $bar_definition_php_array['public'] = FALSE;
@@ -530,21 +532,21 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
       else {
         $service_definition = $this->getPrivateServiceCall('bar', $bar_definition_php_array, TRUE);
       }
-      $data = array(
+      $data = [
          'class' => '\stdClass',
-         'arguments' => $this->getCollection(array(
+         'arguments' => $this->getCollection([
            $service_definition,
-         )),
+         ]),
          'arguments_count' => 1,
-      );
+      ];
       $this->assertEquals($this->serializeDefinition($data), $dump['services']['foo'], 'Expected definition matches dump.');
     }
 
     public function publicPrivateDataProvider() {
-      return array(
-        array(TRUE),
-        array(FALSE),
-      );
+      return [
+        [TRUE],
+        [FALSE],
+      ];
     }
 
     /**
@@ -554,8 +556,6 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      * getDecoratedService().
      *
      * @covers ::getServiceDefinition
-     *
-     * @expectedException \Symfony\Component\DependencyInjection\Exception\InvalidArgumentException
      */
     public function testGetServiceDefinitionForDecoratedService() {
       $bar_definition = new Definition('\stdClass');
@@ -563,6 +563,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
       $services['bar'] = $bar_definition;
 
       $this->containerBuilder->getDefinitions()->willReturn($services);
+      $this->setExpectedException(InvalidArgumentException::class);
       $this->dumper->getArray();
     }
 
@@ -570,8 +571,6 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      * Tests that the correct RuntimeException is thrown for expressions.
      *
      * @covers ::dumpValue
-     *
-     * @expectedException \Symfony\Component\DependencyInjection\Exception\RuntimeException
      */
     public function testGetServiceDefinitionForExpression() {
       $expression = new Expression();
@@ -581,6 +580,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
       $services['bar'] = $bar_definition;
 
       $this->containerBuilder->getDefinitions()->willReturn($services);
+      $this->setExpectedException(RuntimeException::class);
       $this->dumper->getArray();
     }
 
@@ -588,8 +588,6 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      * Tests that the correct RuntimeException is thrown for dumping an object.
      *
      * @covers ::dumpValue
-     *
-     * @expectedException \Symfony\Component\DependencyInjection\Exception\RuntimeException
      */
     public function testGetServiceDefinitionForObject() {
       $service = new \stdClass();
@@ -599,6 +597,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
       $services['bar'] = $bar_definition;
 
       $this->containerBuilder->getDefinitions()->willReturn($services);
+      $this->setExpectedException(RuntimeException::class);
       $this->dumper->getArray();
     }
 
@@ -606,8 +605,6 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      * Tests that the correct RuntimeException is thrown for dumping a resource.
      *
      * @covers ::dumpValue
-     *
-     * @expectedException \Symfony\Component\DependencyInjection\Exception\RuntimeException
      */
     public function testGetServiceDefinitionForResource() {
       $resource = fopen('php://memory', 'r');
@@ -617,6 +614,7 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
       $services['bar'] = $bar_definition;
 
       $this->containerBuilder->getDefinitions()->willReturn($services);
+      $this->setExpectedException(RuntimeException::class);
       $this->dumper->getArray();
     }
 
@@ -625,36 +623,36 @@ namespace Drupal\Tests\Component\DependencyInjection\Dumper {
      */
     protected function getPrivateServiceCall($id, $service_definition, $shared = FALSE) {
       if (!$id) {
-        $hash = sha1(serialize($service_definition));
+        $hash = Crypt::hashBase64(serialize($service_definition));
         $id = 'private__' . $hash;
       }
-      return (object) array(
+      return (object) [
         'type' => 'private_service',
         'id' => $id,
         'value' => $service_definition,
         'shared' => $shared,
-      );
+      ];
     }
 
     /**
      * Helper function to return a machine-optimized collection.
      */
     protected function getCollection($collection, $resolve = TRUE) {
-      return (object) array(
+      return (object) [
         'type' => 'collection',
         'value' => $collection,
         'resolve' => $resolve,
-      );
+      ];
     }
 
     /**
      * Helper function to return a parameter definition.
      */
     protected function getParameterCall($name) {
-      return (object) array(
+      return (object) [
         'type' => 'parameter',
         'name' => $name,
-      );
+      ];
     }
 
   }

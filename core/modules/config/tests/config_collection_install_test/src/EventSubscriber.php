@@ -33,7 +33,7 @@ class EventSubscriber implements EventSubscriberInterface {
    *   The configuration collection info event.
    */
   public function addCollections(ConfigCollectionInfo $collection_info) {
-    $collections = $this->state->get('config_collection_install_test.collection_names', array());
+    $collections = $this->state->get('config_collection_install_test.collection_names', []);
     foreach ($collections as $collection) {
       $collection_info->addCollection($collection);
     }
@@ -42,8 +42,8 @@ class EventSubscriber implements EventSubscriberInterface {
   /**
    * {@inheritdoc}
    */
-  static function getSubscribedEvents() {
-    $events[ConfigEvents::COLLECTION_INFO][] = array('addCollections');
+  public static function getSubscribedEvents() {
+    $events[ConfigEvents::COLLECTION_INFO][] = ['addCollections'];
     return $events;
   }
 

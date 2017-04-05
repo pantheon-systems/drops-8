@@ -16,7 +16,7 @@ class LargeQueryTest extends DatabaseTestBase {
   /**
    * Tests truncation of messages when max_allowed_packet exception occurs.
    */
-  function testMaxAllowedPacketQueryTruncating() {
+  public function testMaxAllowedPacketQueryTruncating() {
     // This test only makes sense if we are running on a MySQL database.
     // Test if we are.
     $database = Database::getConnectionInfo('default');
@@ -29,7 +29,7 @@ class LargeQueryTest extends DatabaseTestBase {
       if (Environment::checkMemoryLimit($max_allowed_packet + (16 * 1024 * 1024))) {
         $long_name = str_repeat('a', $max_allowed_packet + 1);
         try {
-          db_query('SELECT name FROM {test} WHERE name = :name', array(':name' => $long_name));
+          db_query('SELECT name FROM {test} WHERE name = :name', [':name' => $long_name]);
           $this->fail("An exception should be thrown for queries larger than 'max_allowed_packet'");
         }
         catch (DatabaseException $e) {

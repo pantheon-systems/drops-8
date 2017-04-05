@@ -1,0 +1,21 @@
+{
+    "name": "drupal/coder",
+    "type": "phpcodesniffer-standard",
+    "description": "Coder is a library to review Drupal code.",
+    "homepage": "https://www.drupal.org/project/coder",
+    "support": {
+        "issues": "https://www.drupal.org/project/issues/coder",
+        "source": "https://www.drupal.org/project/coder"
+    },
+    "keywords": ["phpcs", "standards", "code review"],
+    "license": "GPL-2.0+",
+    "require": {
+        "php": ">=5.4.0",
+        "ext-mbstring": "*",
+        "squizlabs/php_codesniffer": ">=2.8.1 <3.0",
+        "symfony/yaml": ">=2.0.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": ">=3.7 <6"
+    }
+}

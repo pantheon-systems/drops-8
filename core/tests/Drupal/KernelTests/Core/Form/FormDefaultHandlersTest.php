@@ -19,7 +19,7 @@ class FormDefaultHandlersTest extends KernelTestBase implements FormInterface {
    *
    * @var array
    */
-  public static $modules = array('system');
+  public static $modules = ['system'];
 
   /**
    * {@inheritdoc}
@@ -42,7 +42,7 @@ class FormDefaultHandlersTest extends KernelTestBase implements FormInterface {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form['#validate'][] = '::customValidateForm';
     $form['#submit'][] = '::customSubmitForm';
-    $form['submit'] = array('#type' => 'submit', '#value' => 'Save');
+    $form['submit'] = ['#type' => 'submit', '#value' => 'Save'];
     return $form;
   }
 
@@ -85,7 +85,7 @@ class FormDefaultHandlersTest extends KernelTestBase implements FormInterface {
   /**
    * Tests that default handlers are added even if custom are specified.
    */
-  function testDefaultAndCustomHandlers() {
+  public function testDefaultAndCustomHandlers() {
     $form_state = new FormState();
     $form_builder = $this->container->get('form_builder');
     $form_builder->submitForm($this, $form_state);

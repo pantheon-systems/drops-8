@@ -16,7 +16,7 @@ class FieldImportCreateTest extends FieldKernelTestBase {
   /**
    * Tests creating field storages and fields during default config import.
    */
-  function testImportCreateDefault() {
+  public function testImportCreateDefault() {
     $field_name = 'field_test_import';
     $field_storage_id = "entity_test.$field_name";
     $field_id = "entity_test.entity_test.$field_name";
@@ -37,7 +37,7 @@ class FieldImportCreateTest extends FieldKernelTestBase {
 
     // Enable field_test_config module and check that the field and storage
     // shipped in the module's default config were created.
-    \Drupal::service('module_installer')->install(array('field_test_config'));
+    \Drupal::service('module_installer')->install(['field_test_config']);
 
     // A field storage with one single field.
     $field_storage = FieldStorageConfig::load($field_storage_id);
@@ -70,7 +70,7 @@ class FieldImportCreateTest extends FieldKernelTestBase {
   /**
    * Tests creating field storages and fields during config import.
    */
-  function testImportCreate() {
+  public function testImportCreate() {
     // A field storage with one single field.
     $field_name = 'field_test_import_sync';
     $field_storage_id = "entity_test.$field_name";

@@ -19,7 +19,7 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'filter', 'editor', 'field', 'file', 'user');
+  public static $modules = ['system', 'filter', 'editor', 'field', 'file', 'user'];
 
   /**
    * @var \Drupal\filter\Plugin\FilterInterface[]
@@ -31,19 +31,19 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installConfig(array('system'));
+    $this->installConfig(['system']);
     $this->installEntitySchema('file');
-    $this->installSchema('file', array('file_usage'));
+    $this->installSchema('file', ['file_usage']);
 
     $manager = $this->container->get('plugin.manager.filter');
-    $bag = new FilterPluginCollection($manager, array());
+    $bag = new FilterPluginCollection($manager, []);
     $this->filters = $bag->getAll();
   }
 
   /**
    * Tests the editor file reference filter.
    */
-  function testEditorFileReferenceFilter() {
+  public function testEditorFileReferenceFilter() {
     $filter = $this->filters['editor_file_reference'];
 
     $test = function($input) use ($filter) {
@@ -99,7 +99,7 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
     $input = '<img src="llama.jpg" data-entity-type="file" data-entity-uuid="invalid-' . $uuid . '" />';
     $output = $test($input);
     $this->assertIdentical($input, $output->getProcessedText());
-    $this->assertEqual(array(), $output->getCacheTags());
+    $this->assertEqual([], $output->getCacheTags());
 
     $this->pass('Two different data-entity-uuid attributes.');
     $input = '<img src="llama.jpg" data-entity-type="file" data-entity-uuid="' . $uuid . '" />';

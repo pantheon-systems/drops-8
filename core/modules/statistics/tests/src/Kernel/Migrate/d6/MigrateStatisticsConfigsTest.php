@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\statistics\Kernel\Migrate\d6;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 
 /**
@@ -17,7 +17,7 @@ class MigrateStatisticsConfigsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('statistics');
+  public static $modules = ['statistics'];
 
   /**
    * {@inheritdoc}
@@ -32,8 +32,6 @@ class MigrateStatisticsConfigsTest extends MigrateDrupal6TestBase {
    */
   public function testStatisticsSettings() {
     $config = $this->config('statistics.settings');
-    $this->assertIdentical(FALSE, $config->get('access_log.enabled'));
-    $this->assertIdentical(259200, $config->get('access_log.max_lifetime'));
     $this->assertIdentical(0, $config->get('count_content_views'));
     $this->assertConfigSchema(\Drupal::service('config.typed'), 'statistics.settings', $config->get());
   }

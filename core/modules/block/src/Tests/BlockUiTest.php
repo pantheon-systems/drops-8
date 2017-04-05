@@ -17,7 +17,7 @@ class BlockUiTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('block', 'block_test', 'help', 'condition_test');
+  public static $modules = ['block', 'block_test', 'help', 'condition_test'];
 
   protected $regions;
 
@@ -43,30 +43,30 @@ class BlockUiTest extends WebTestBase {
   protected function setUp() {
     parent::setUp();
     // Create and log in an administrative user.
-    $this->adminUser = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser([
       'administer blocks',
       'access administration pages',
-    ));
+    ]);
     $this->drupalLogin($this->adminUser);
 
     // Enable some test blocks.
-    $this->blockValues = array(
-      array(
+    $this->blockValues = [
+      [
         'label' => 'Tools',
         'tr' => '5',
         'plugin_id' => 'system_menu_block:tools',
-        'settings' => array('region' => 'sidebar_second', 'id' => 'tools'),
+        'settings' => ['region' => 'sidebar_second', 'id' => 'tools'],
         'test_weight' => '-1',
-      ),
-      array(
+      ],
+      [
         'label' => 'Powered by Drupal',
         'tr' => '16',
         'plugin_id' => 'system_powered_by_block',
-        'settings' => array('region' => 'footer', 'id' => 'powered'),
+        'settings' => ['region' => 'footer', 'id' => 'powered'],
         'test_weight' => '0',
-      ),
-    );
-    $this->blocks = array();
+      ],
+    ];
+    $this->blocks = [];
     foreach ($this->blockValues as $values) {
       $this->blocks[] = $this->drupalPlaceBlock($values['plugin_id'], $values['settings']);
     }
@@ -76,13 +76,13 @@ class BlockUiTest extends WebTestBase {
    * Test block demo page exists and functions correctly.
    */
   public function testBlockDemoUiPage() {
-    $this->drupalPlaceBlock('help_block', array('region' => 'help'));
+    $this->drupalPlaceBlock('help_block', ['region' => 'help']);
     $this->drupalGet('admin/structure/block');
-    $this->clickLink(t('Demonstrate block regions (@theme)', array('@theme' => 'Classy')));
-    $elements = $this->xpath('//div[contains(@class, "region-highlighted")]/div[contains(@class, "block-region") and contains(text(), :title)]', array(':title' => 'Highlighted'));
+    $this->clickLink(t('Demonstrate block regions (@theme)', ['@theme' => 'Classy']));
+    $elements = $this->xpath('//div[contains(@class, "region-highlighted")]/div[contains(@class, "block-region") and contains(text(), :title)]', [':title' => 'Highlighted']);
     $this->assertTrue(!empty($elements), 'Block demo regions are shown.');
 
-    \Drupal::service('theme_handler')->install(array('test_theme'));
+    \Drupal::service('theme_handler')->install(['test_theme']);
     $this->drupalGet('admin/structure/block/demo/test_theme');
     $this->assertEscaped('<strong>Test theme</strong>');
 
@@ -94,7 +94,7 @@ class BlockUiTest extends WebTestBase {
   /**
    * Test block admin page exists and functions correctly.
    */
-  function testBlockAdminUiPage() {
+  public function testBlockAdminUiPage() {
     // Visit the blocks admin ui.
     $this->drupalGet('admin/structure/block');
     // Look for the blocks table.
@@ -163,11 +163,11 @@ class BlockUiTest extends WebTestBase {
    * Tests the block categories on the listing page.
    */
   public function testCandidateBlockList() {
-    $arguments = array(
+    $arguments = [
       ':title' => 'Display message',
       ':category' => 'Block test',
       ':href' => 'admin/structure/block/add/test_block_instantiation/classy',
-    );
+    ];
     $pattern = '//tr[.//td/div[text()=:title] and .//td[text()=:category] and .//td//a[contains(@href, :href)]]';
 
     $this->drupalGet('admin/structure/block');
@@ -190,11 +190,11 @@ class BlockUiTest extends WebTestBase {
    * Tests the behavior of unsatisfied context-aware blocks.
    */
   public function testContextAwareUnsatisfiedBlocks() {
-    $arguments = array(
+    $arguments = [
       ':category' => 'Block test',
       ':href' => 'admin/structure/block/add/test_context_aware_unsatisfied/classy',
       ':text' => 'Test context-aware unsatisfied block',
-    );
+    ];
 
     $this->drupalGet('admin/structure/block');
     $this->clickLinkPartialName('Place block');
@@ -215,11 +215,11 @@ class BlockUiTest extends WebTestBase {
     $this->assertNoRaw($expected_text);
 
     $block_url = 'admin/structure/block/add/test_context_aware/classy';
-    $arguments = array(
+    $arguments = [
       ':title' => 'Test context-aware block',
       ':category' => 'Block test',
       ':href' => $block_url,
-    );
+    ];
     $pattern = '//tr[.//td/div[text()=:title] and .//td[text()=:category] and .//td//a[contains(@href, :href)]]';
 
     $this->drupalGet('admin/structure/block');
@@ -230,7 +230,7 @@ class BlockUiTest extends WebTestBase {
     $this->assertTrue(!empty($definition), 'The context-aware test block exists.');
     $edit = [
       'region' => 'content',
-      'settings[context_mapping][user]' => '@block_test.multiple_static_context:user2',
+      'settings[context_mapping][user]' => '@block_test.multiple_static_context:userB',
     ];
     $this->drupalPostForm($block_url, $edit, 'Save block');
 
@@ -262,12 +262,15 @@ class BlockUiTest extends WebTestBase {
     $url = 'admin/structure/block/add/test_block_instantiation/classy';
     $this->drupalGet($url);
     $this->assertFieldByName('id', 'displaymessage', 'Block form uses raw machine name suggestion when no instance already exists.');
-    $this->drupalPostForm($url, array(), 'Save block');
+    $edit = ['region' => 'content'];
+    $this->drupalPostForm($url, $edit, 'Save block');
+    $this->assertText('The block configuration has been saved.');
 
     // Now, check to make sure the form starts by autoincrementing correctly.
     $this->drupalGet($url);
     $this->assertFieldByName('id', 'displaymessage_2', 'Block form appends _2 to plugin-suggested machine name when an instance already exists.');
-    $this->drupalPostForm($url, array(), 'Save block');
+    $this->drupalPostForm($url, $edit, 'Save block');
+    $this->assertText('The block configuration has been saved.');
 
     // And verify that it continues working beyond just the first two.
     $this->drupalGet($url);
@@ -279,7 +282,7 @@ class BlockUiTest extends WebTestBase {
    */
   public function testBlockPlacementIndicator() {
     // Select the 'Powered by Drupal' block to be placed.
-    $block = array();
+    $block = [];
     $block['id'] = strtolower($this->randomMachineName());
     $block['theme'] = 'classy';
     $block['region'] = 'content';
@@ -289,7 +292,7 @@ class BlockUiTest extends WebTestBase {
     $this->assertUrl('admin/structure/block/list/classy?block-placement=' . Html::getClass($block['id']));
 
     // Resaving the block page will remove the block indicator.
-    $this->drupalPostForm(NULL, array(), t('Save blocks'));
+    $this->drupalPostForm(NULL, [], t('Save blocks'));
     $this->assertUrl('admin/structure/block/list/classy');
   }
 
@@ -297,7 +300,7 @@ class BlockUiTest extends WebTestBase {
    * Tests if validation errors are passed plugin form to the parent form.
    */
   public function testBlockValidateErrors() {
-    $this->drupalPostForm('admin/structure/block/add/test_settings_validation/classy', ['settings[digits]' => 'abc'], t('Save block'));
+    $this->drupalPostForm('admin/structure/block/add/test_settings_validation/classy', ['region' => 'content', 'settings[digits]' => 'abc'], t('Save block'));
 
     $arguments = [':message' => 'Only digits are allowed'];
     $pattern = '//div[contains(@class,"messages messages--error")]/div[contains(text()[2],:message)]';
@@ -307,6 +310,20 @@ class BlockUiTest extends WebTestBase {
     $error_class_pattern = '//div[contains(@class,"form-item-settings-digits")]/input[contains(@class,"error")]';
     $error_class = $this->xpath($error_class_pattern);
     $this->assertTrue($error_class, 'Plugin error class found in parent form.');
+  }
+
+  /**
+   * Tests that the enable/disable routes are protected from CSRF.
+   */
+  public function testRouteProtection() {
+    // Get the first block generated in our setUp method.
+    /** @var \Drupal\block\BlockInterface $block */
+    $block = reset($this->blocks);
+    // Ensure that the enable and disable routes are protected.
+    $this->drupalGet('admin/structure/block/manage/' . $block->id() . '/disable');
+    $this->assertResponse(403);
+    $this->drupalGet('admin/structure/block/manage/' . $block->id() . '/enable');
+    $this->assertResponse(403);
   }
 
 }

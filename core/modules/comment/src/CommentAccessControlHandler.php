@@ -36,8 +36,13 @@ class CommentAccessControlHandler extends EntityAccessControlHandler {
 
     switch ($operation) {
       case 'view':
-        return AccessResult::allowedIf($account->hasPermission('access comments') && $entity->isPublished())->cachePerPermissions()->addCacheableDependency($entity)
+        $access_result = AccessResult::allowedIf($account->hasPermission('access comments') && $entity->isPublished())->cachePerPermissions()->addCacheableDependency($entity)
           ->andIf($entity->getCommentedEntity()->access($operation, $account, TRUE));
+        if (!$access_result->isAllowed()) {
+          $access_result->setReason("The 'access comments' permission is required and the comment must be published.");
+        }
+
+        return $access_result;
 
       case 'update':
         return AccessResult::allowedIf($account->id() && $account->id() == $entity->getOwnerId() && $entity->isPublished() && $account->hasPermission('edit own comments'))->cachePerPermissions()->cachePerUser()->addCacheableDependency($entity);
@@ -62,23 +67,23 @@ class CommentAccessControlHandler extends EntityAccessControlHandler {
     if ($operation == 'edit') {
       // Only users with the "administer comments" permission can edit
       // administrative fields.
-      $administrative_fields = array(
+      $administrative_fields = [
         'uid',
         'status',
         'created',
         'date',
-      );
+      ];
       if (in_array($field_definition->getName(), $administrative_fields, TRUE)) {
         return AccessResult::allowedIfHasPermission($account, 'administer comments');
       }
 
       // No user can change read-only fields.
-      $read_only_fields = array(
+      $read_only_fields = [
         'hostname',
         'changed',
         'cid',
         'thread',
-      );
+      ];
       // These fields can be edited during comment creation.
       $create_only_fields = [
         'comment_type',

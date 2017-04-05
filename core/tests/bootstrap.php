@@ -19,7 +19,7 @@ use Drupal\Component\Assertion\Handle;
  *   directory, keyed by extension name.
  */
 function drupal_phpunit_find_extension_directories($scan_directory) {
-  $extensions = array();
+  $extensions = [];
   $dirs = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($scan_directory, \RecursiveDirectoryIterator::FOLLOW_SYMLINKS));
   foreach ($dirs as $dir) {
     if (strpos($dir->getPathname(), '.info.yml') !== FALSE) {
@@ -46,13 +46,13 @@ function drupal_phpunit_contrib_extension_directory_roots($root = NULL) {
   if ($root === NULL) {
     $root = dirname(dirname(__DIR__));
   }
-  $paths = array(
+  $paths = [
     $root . '/core/modules',
     $root . '/core/profiles',
     $root . '/modules',
     $root . '/profiles',
     $root . '/themes',
-  );
+  ];
   $sites_path = $root . '/sites';
   // Note this also checks sites/../modules and sites/../profiles.
   foreach (scandir($sites_path) as $site) {
@@ -77,15 +77,28 @@ function drupal_phpunit_contrib_extension_directory_roots($root = NULL) {
  *   An associative array of extension directories, keyed by their namespace.
  */
 function drupal_phpunit_get_extension_namespaces($dirs) {
-  $namespaces = array();
+  $suite_names = ['Unit', 'Kernel', 'Functional', 'FunctionalJavascript'];
+  $namespaces = [];
   foreach ($dirs as $extension => $dir) {
     if (is_dir($dir . '/src')) {
       // Register the PSR-4 directory for module-provided classes.
       $namespaces['Drupal\\' . $extension . '\\'][] = $dir . '/src';
     }
-    if (is_dir($dir . '/tests/src')) {
-      // Register the PSR-4 directory for PHPUnit test classes.
-      $namespaces['Drupal\\Tests\\' . $extension . '\\'][] = $dir . '/tests/src';
+    $test_dir = $dir . '/tests/src';
+    if (is_dir($test_dir)) {
+      foreach ($suite_names as $suite_name) {
+        $suite_dir = $test_dir . '/' . $suite_name;
+        if (is_dir($suite_dir)) {
+          // Register the PSR-4 directory for PHPUnit-based suites.
+          $namespaces['Drupal\\Tests\\' . $extension . '\\' . $suite_name . '\\'][] = $suite_dir;
+        }
+      }
+      // Extensions can have a \Drupal\extension\Traits namespace for
+      // cross-suite trait code.
+      $trait_dir = $test_dir . '/Traits';
+      if (is_dir($trait_dir)) {
+        $namespaces['Drupal\\Tests\\' . $extension . '\\Traits\\'][] = $trait_dir;
+      }
     }
   }
   return $namespaces;
@@ -123,7 +136,7 @@ function drupal_phpunit_populate_class_loader() {
     $extension_roots = drupal_phpunit_contrib_extension_directory_roots();
 
     $dirs = array_map('drupal_phpunit_find_extension_directories', $extension_roots);
-    $dirs = array_reduce($dirs, 'array_merge', array());
+    $dirs = array_reduce($dirs, 'array_merge', []);
     $GLOBALS['namespaces'] = drupal_phpunit_get_extension_namespaces($dirs);
   }
   foreach ($GLOBALS['namespaces'] as $prefix => $paths) {

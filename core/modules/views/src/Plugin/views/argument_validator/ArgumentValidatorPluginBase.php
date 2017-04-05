@@ -53,7 +53,7 @@ abstract class ArgumentValidatorPluginBase extends PluginBase {
   /**
    * Retrieves the options when this is a new access control plugin.
    */
-  protected function defineOptions() { return array(); }
+  protected function defineOptions() { return []; }
 
   /**
    * Provides the default form for setting options.
@@ -68,7 +68,7 @@ abstract class ArgumentValidatorPluginBase extends PluginBase {
   /**
    * Provides the default form for submitting options.
    */
-  public function submitOptionsForm(&$form, FormStateInterface $form_state, &$options = array()) { }
+  public function submitOptionsForm(&$form, FormStateInterface $form_state, &$options = []) { }
 
   /**
    * Determines if the administrator has the privileges to use this plugin.
@@ -103,6 +103,15 @@ abstract class ArgumentValidatorPluginBase extends PluginBase {
    * the old value again, for example the summary.
    */
   public function processSummaryArguments(&$args) { }
+
+  /**
+   * Returns a context definition for this argument.
+   *
+   * @return \Drupal\Core\Plugin\Context\ContextDefinitionInterface|null
+   *   A context definition that represents the argument or NULL if that is
+   *   not possible.
+   */
+  public function getContextDefinition() { }
 
 }
 

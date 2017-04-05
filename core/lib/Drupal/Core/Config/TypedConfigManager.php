@@ -6,6 +6,7 @@ use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\Schema\ConfigSchemaAlterException;
 use Drupal\Core\Config\Schema\ConfigSchemaDiscovery;
+use Drupal\Core\Config\Schema\Undefined;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\TypedData\TypedDataManager;
 
@@ -63,7 +64,6 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
     return $this->discovery;
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -79,13 +79,13 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
    */
   public function buildDataDefinition(array $definition, $value, $name = NULL, $parent = NULL) {
     // Add default values for data type and replace variables.
-    $definition += array('type' => 'undefined');
+    $definition += ['type' => 'undefined'];
 
     $replace = [];
     $type = $definition['type'];
     if (strpos($type, ']')) {
       // Replace variable names in definition.
-      $replace = is_array($value) ? $value : array();
+      $replace = is_array($value) ? $value : [];
       if (isset($parent)) {
         $replace['%parent'] = $parent;
       }
@@ -161,14 +161,19 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
       $merge = $this->getDefinition($definition['type'], $exception_on_invalid);
       // Preserve integer keys on merge, so sequence item types can override
       // parent settings as opposed to adding unused second, third, etc. items.
-      $definition = NestedArray::mergeDeepArray(array($merge, $definition), TRUE);
+      $definition = NestedArray::mergeDeepArray([$merge, $definition], TRUE);
 
       // Replace dynamic portions of the definition type.
       if (!empty($replacements) && strpos($definition['type'], ']')) {
         $sub_type = $this->determineType($this->replaceName($definition['type'], $replacements), $definitions);
+        $sub_definition = $definitions[$sub_type];
+        if (isset($definitions[$sub_type]['type'])) {
+          $sub_merge = $this->getDefinition($definitions[$sub_type]['type'], $exception_on_invalid);
+          $sub_definition = NestedArray::mergeDeepArray([$sub_merge, $definitions[$sub_type]], TRUE);
+        }
         // Merge the newly determined subtype definition with the original
         // definition.
-        $definition = NestedArray::mergeDeepArray([$definitions[$sub_type], $definition], TRUE);
+        $definition = NestedArray::mergeDeepArray([$sub_definition, $definition], TRUE);
         $type = "$type||$sub_type";
       }
       // Unset type so we try the merge only once per type.
@@ -176,10 +181,10 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
       $this->definitions[$type] = $definition;
     }
     // Add type and default definition class.
-    $definition += array(
+    $definition += [
       'definition_class' => '\Drupal\Core\TypedData\DataDefinition',
       'type' => $type,
-    );
+    ];
     return $definition;
   }
 
@@ -265,7 +270,7 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
   protected function replaceName($name, $data) {
     if (preg_match_all("/\[(.*)\]/U", $name, $matches)) {
       // Build our list of '[value]' => replacement.
-      $replace = array();
+      $replace = [];
       foreach (array_combine($matches[0], $matches[1]) as $key => $value) {
         $replace[$key] = $this->replaceVariable($value, $data);
       }
@@ -349,7 +354,7 @@ class TypedConfigManager extends TypedDataManager implements TypedConfigManagerI
   public function hasConfigSchema($name) {
     // The schema system falls back on the Undefined class for unknown types.
     $definition = $this->getDefinition($name);
-    return is_array($definition) && ($definition['class'] != '\Drupal\Core\Config\Schema\Undefined');
+    return is_array($definition) && ($definition['class'] != Undefined::class);
   }
 
   /**

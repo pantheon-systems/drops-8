@@ -6,6 +6,9 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Provides helper methods for cache tests.
+ *
+ * @deprecated Scheduled for removal in Drupal 9.0.0.
+ *   Use \Drupal\Tests\system\Functional\Cache\CacheTestBase instead.
  */
 abstract class CacheTestBase extends WebTestBase {
 
@@ -71,7 +74,7 @@ abstract class CacheTestBase extends WebTestBase {
    * @param $bin
    *   The bin the cache item was stored in.
    */
-  function assertCacheRemoved($message, $cid = NULL, $bin = NULL) {
+  public function assertCacheRemoved($message, $cid = NULL, $bin = NULL) {
     if ($bin == NULL) {
       $bin = $this->defaultBin;
     }

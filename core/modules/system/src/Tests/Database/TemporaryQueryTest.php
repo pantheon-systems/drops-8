@@ -14,19 +14,19 @@ class TemporaryQueryTest extends DatabaseWebTestBase {
    *
    * @var array
    */
-  public static $modules = array('database_test');
+  public static $modules = ['database_test'];
 
   /**
    * Returns the number of rows of a table.
    */
-  function countTableRows($table_name) {
+  public function countTableRows($table_name) {
     return db_select($table_name)->countQuery()->execute()->fetchField();
   }
 
   /**
    * Confirms that temporary tables work and are limited to one request.
    */
-  function testTemporaryQuery() {
+  public function testTemporaryQuery() {
     $this->drupalGet('database_test/db_query_temporary');
     $data = json_decode($this->getRawContent());
     if ($data) {
@@ -38,8 +38,8 @@ class TemporaryQueryTest extends DatabaseWebTestBase {
     }
 
     // Now try to run two db_query_temporary() in the same request.
-    $table_name_test = db_query_temporary('SELECT name FROM {test}', array());
-    $table_name_task = db_query_temporary('SELECT pid FROM {test_task}', array());
+    $table_name_test = db_query_temporary('SELECT name FROM {test}', []);
+    $table_name_task = db_query_temporary('SELECT pid FROM {test_task}', []);
 
     $this->assertEqual($this->countTableRows($table_name_test), $this->countTableRows('test'), 'A temporary table was created successfully in this request.');
     $this->assertEqual($this->countTableRows($table_name_task), $this->countTableRows('test_task'), 'A second temporary table was created successfully in this request.');
@@ -50,7 +50,7 @@ class TemporaryQueryTest extends DatabaseWebTestBase {
       -- Let's select some rows into a temporary table
       SELECT name FROM {test}
     ";
-    $table_name_test = db_query_temporary($sql, array());
+    $table_name_test = db_query_temporary($sql, []);
     $this->assertEqual($this->countTableRows($table_name_test), $this->countTableRows('test'), 'Leading white space and comments do not interfere with temporary table creation.');
   }
 

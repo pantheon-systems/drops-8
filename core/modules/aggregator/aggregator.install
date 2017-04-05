@@ -10,22 +10,17 @@
  */
 function aggregator_requirements($phase) {
   $has_curl = function_exists('curl_init');
-  $requirements = array();
-  $requirements['curl'] = array(
+  $requirements = [];
+  $requirements['curl'] = [
     'title' => t('cURL'),
     'value' => $has_curl ? t('Enabled') : t('Not found'),
-  );
+  ];
   if (!$has_curl) {
     $requirements['curl']['severity'] = REQUIREMENT_ERROR;
-    $requirements['curl']['description'] = t('The Aggregator module could not be installed because the PHP <a href="http://php.net/manual/curl.setup.php">cURL</a> library is not available.');
+    $requirements['curl']['description'] = t('The Aggregator module requires the <a href="https://secure.php.net/manual/en/curl.setup.php">PHP cURL library</a>. For more information, see the <a href="https://www.drupal.org/requirements/php/curl">online information on installing the PHP cURL extension</a>.');
   }
   return $requirements;
 }
-
-/**
- * @addtogroup updates-8.0.0-rc
- * @{
- */
 
 /**
  * The simple presence of this update function clears cached field definitions.
@@ -33,15 +28,6 @@ function aggregator_requirements($phase) {
 function aggregator_update_8001() {
   // Feed ID base field is now required.
 }
-
-/**
- * @} End of "addtogroup updates-8.0.0-rc".
- */
-
-/**
- * @addtogroup updates-8.2.x
- * @{
- */
 
 /**
  * Make the 'Source feed' field for aggregator items required.
@@ -54,7 +40,3 @@ function aggregator_update_8200() {
   $field_definition->setRequired(TRUE);
   $definition_update_manager->updateFieldStorageDefinition($field_definition);
 }
-
-/**
- * @} End of "addtogroup updates-8.2.x".
- */

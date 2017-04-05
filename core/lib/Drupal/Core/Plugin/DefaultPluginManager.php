@@ -2,6 +2,7 @@
 
 namespace Drupal\Core\Plugin;
 
+use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Component\Plugin\Discovery\CachedDiscoveryInterface;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
@@ -131,14 +132,12 @@ class DefaultPluginManager extends PluginManagerBase implements PluginManagerInt
   /**
    * Initialize the cache backend.
    *
-   * Plugin definitions are cached using the provided cache backend. The
-   * interface language is added as a suffix to the cache key.
+   * Plugin definitions are cached using the provided cache backend.
    *
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    *   Cache backend instance to use.
    * @param string $cache_key
-   *   Cache key prefix to use, the language code will be appended
-   *   automatically.
+   *   Cache key prefix to use.
    * @param array $cache_tags
    *   (optional) When providing a list of cache tags, the cached plugin
    *   definitions are tagged with the provided cache tags. These cache tags can
@@ -148,7 +147,7 @@ class DefaultPluginManager extends PluginManagerBase implements PluginManagerInt
    *   clearCachedDefinitions() method. Only use cache tags when cached plugin
    *   definitions should be cleared along with other, related cache entries.
    */
-  public function setCacheBackend(CacheBackendInterface $cache_backend, $cache_key, array $cache_tags = array()) {
+  public function setCacheBackend(CacheBackendInterface $cache_backend, $cache_key, array $cache_tags = []) {
     assert('\Drupal\Component\Assertion\Inspector::assertAllStrings($cache_tags)', 'Cache Tags must be strings.');
     $this->cacheBackend = $cache_backend;
     $this->cacheKey = $cache_key;
@@ -239,13 +238,17 @@ class DefaultPluginManager extends PluginManagerBase implements PluginManagerInt
    * method.
    */
   public function processDefinition(&$definition, $plugin_id) {
-    // Only arrays can be operated on.
-    if (!is_array($definition)) {
-      return;
+    // Only array-based definitions can have defaults merged in.
+    if (is_array($definition) && !empty($this->defaults) && is_array($this->defaults)) {
+      $definition = NestedArray::mergeDeep($this->defaults, $definition);
     }
 
-    if (!empty($this->defaults) && is_array($this->defaults)) {
-      $definition = NestedArray::mergeDeep($this->defaults, $definition);
+    // Keep class definitions standard with no leading slash.
+    if ($definition instanceof PluginDefinitionInterface) {
+      $definition->setClass(ltrim($definition->getClass(), '\\'));
+    }
+    elseif (is_array($definition) && isset($definition['class'])) {
+      $definition['class'] = ltrim($definition['class'], '\\');
     }
   }
 
@@ -285,16 +288,37 @@ class DefaultPluginManager extends PluginManagerBase implements PluginManagerInt
     // If this plugin was provided by a module that does not exist, remove the
     // plugin definition.
     foreach ($definitions as $plugin_id => $plugin_definition) {
-      // If the plugin definition is an object, attempt to convert it to an
-      // array, if that is not possible, skip further processing.
-      if (is_object($plugin_definition) && !($plugin_definition = (array) $plugin_definition)) {
-        continue;
-      }
-      if (isset($plugin_definition['provider']) && !in_array($plugin_definition['provider'], array('core', 'component')) && !$this->providerExists($plugin_definition['provider'])) {
+      $provider = $this->extractProviderFromDefinition($plugin_definition);
+      if ($provider && !in_array($provider, ['core', 'component']) && !$this->providerExists($provider)) {
         unset($definitions[$plugin_id]);
       }
     }
     return $definitions;
+  }
+
+  /**
+   * Extracts the provider from a plugin definition.
+   *
+   * @param mixed $plugin_definition
+   *   The plugin definition. Usually either an array or an instance of
+   *   \Drupal\Component\Plugin\Definition\PluginDefinitionInterface
+   *
+   * @return string|null
+   *   The provider string, if it exists. NULL otherwise.
+   */
+  protected function extractProviderFromDefinition($plugin_definition) {
+    if ($plugin_definition instanceof PluginDefinitionInterface) {
+      return $plugin_definition->getProvider();
+    }
+
+    // Attempt to convert the plugin definition to an array.
+    if (is_object($plugin_definition)) {
+      $plugin_definition = (array) $plugin_definition;
+    }
+
+    if (isset($plugin_definition['provider'])) {
+      return $plugin_definition['provider'];
+    }
   }
 
   /**

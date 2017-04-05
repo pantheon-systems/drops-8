@@ -61,7 +61,7 @@ class CssOptimizer implements AssetOptimizerInterface {
     $this->rewriteFileURIBasePath = $css_base_path . '/';
 
     // Anchor all paths in the CSS with its base URL, ignoring external and absolute paths.
-    return preg_replace_callback('/url\(\s*[\'"]?(?![a-z]+:|\/+)([^\'")]+)[\'"]?\s*\)/i', array($this, 'rewriteFileURI'), $contents);
+    return preg_replace_callback('/url\(\s*[\'"]?(?![a-z]+:|\/+)([^\'")]+)[\'"]?\s*\)/i', [$this, 'rewriteFileURI'], $contents);
   }
 
   /**
@@ -205,8 +205,10 @@ class CssOptimizer implements AssetOptimizerInterface {
       // whitespace.
       // @see http://php.net/manual/regexp.reference.subpatterns.php
       $contents = preg_replace('<
+        # Do not strip any space from within single or double quotes
+          (' . $double_quot . '|' . $single_quot . ')
         # Strip leading and trailing whitespace.
-          \s*([@{};,])\s*
+        | \s*([@{};,])\s*
         # Strip only leading whitespace from:
         # - Closing parenthesis: Retain "@media (bar) and foo".
         | \s+([\)])
@@ -214,11 +216,11 @@ class CssOptimizer implements AssetOptimizerInterface {
         # - Opening parenthesis: Retain "@media (bar) and foo".
         # - Colon: Retain :pseudo-selectors.
         | ([\(:])\s+
-      >xS',
-        // Only one of the three capturing groups will match, so its reference
+      >xSs',
+        // Only one of the four capturing groups will match, so its reference
         // will contain the wanted value and the references for the
         // two non-matching groups will be replaced with empty strings.
-        '$1$2$3',
+        '$1$2$3$4',
         $contents
       );
       // End the file with a new line.
@@ -228,7 +230,7 @@ class CssOptimizer implements AssetOptimizerInterface {
 
     // Replaces @import commands with the actual stylesheet content.
     // This happens recursively but omits external files.
-    $contents = preg_replace_callback('/@import\s*(?:url\(\s*)?[\'"]?(?![a-z]+:)(?!\/\/)([^\'"\()]+)[\'"]?\s*\)?\s*;/', array($this, 'loadNestedFile'), $contents);
+    $contents = preg_replace_callback('/@import\s*(?:url\(\s*)?[\'"]?(?![a-z]+:)(?!\/\/)([^\'"\()]+)[\'"]?\s*\)?\s*;/', [$this, 'loadNestedFile'], $contents);
 
     return $contents;
   }

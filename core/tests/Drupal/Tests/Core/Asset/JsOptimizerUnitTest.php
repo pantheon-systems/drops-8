@@ -36,34 +36,34 @@ class JsOptimizerUnitTest extends UnitTestCase {
    * @returns array
    *   An array of test data.
    */
-  function providerTestClean() {
+  public function providerTestClean() {
     $path = dirname(__FILE__) . '/js_test_files/';
-    return array(
+    return [
       // File. Tests:
       // - Stripped sourceMappingURL with comment # syntax.
-      0 => array(
+      0 => [
         file_get_contents($path . 'source_mapping_url.min.js'),
         file_get_contents($path . 'source_mapping_url.min.js.optimized.js'),
-      ),
+      ],
       // File. Tests:
       // - Stripped sourceMappingURL with comment @ syntax.
-      1 => array(
+      1 => [
         file_get_contents($path . 'source_mapping_url_old.min.js'),
         file_get_contents($path . 'source_mapping_url_old.min.js.optimized.js'),
-      ),
+      ],
       // File. Tests:
       // - Stripped sourceURL with comment # syntax.
-      2 => array(
+      2 => [
         file_get_contents($path . 'source_url.min.js'),
         file_get_contents($path . 'source_url.min.js.optimized.js'),
-      ),
+      ],
       // File. Tests:
       // - Stripped sourceURL with comment @ syntax.
-      3 => array(
+      3 => [
         file_get_contents($path . 'source_url_old.min.js'),
         file_get_contents($path . 'source_url_old.min.js.optimized.js'),
-      ),
-    );
+      ],
+    ];
   }
 
   /**
@@ -71,7 +71,7 @@ class JsOptimizerUnitTest extends UnitTestCase {
    *
    * @dataProvider providerTestClean
    */
-  function testClean($js_asset, $expected) {
+  public function testClean($js_asset, $expected) {
     $this->assertEquals($expected, $this->optimizer->clean($js_asset));
   }
 
@@ -83,35 +83,35 @@ class JsOptimizerUnitTest extends UnitTestCase {
    * @returns array
    *   An array of test data.
    */
-  function providerTestOptimize() {
+  public function providerTestOptimize() {
     $path = dirname(__FILE__) . '/js_test_files/';
-    return array(
-      0 => array(
-        array(
+    return [
+      0 => [
+        [
           'type' => 'file',
           'preprocess' => TRUE,
           'data' => $path . 'utf8_bom.js',
-        ),
+        ],
         file_get_contents($path . 'utf8_bom.js.optimized.js'),
-      ),
-      1 => array(
-        array(
+      ],
+      1 => [
+        [
           'type' => 'file',
           'preprocess' => TRUE,
           'data' => $path . 'utf16_bom.js',
-        ),
+        ],
         file_get_contents($path . 'utf16_bom.js.optimized.js'),
-      ),
-      2 => array(
-        array(
+      ],
+      2 => [
+        [
           'type' => 'file',
           'preprocess' => TRUE,
           'data' => $path . 'latin_9.js',
-          'attributes' => array('charset' => 'ISO-8859-15'),
-        ),
+          'attributes' => ['charset' => 'ISO-8859-15'],
+        ],
         file_get_contents($path . 'latin_9.js.optimized.js'),
-      ),
-    );
+      ],
+    ];
   }
 
   /**
@@ -119,7 +119,7 @@ class JsOptimizerUnitTest extends UnitTestCase {
    *
    * @dataProvider providerTestOptimize
    */
-  function testOptimize($js_asset, $expected) {
+  public function testOptimize($js_asset, $expected) {
     $this->assertEquals($expected, $this->optimizer->optimize($js_asset));
   }
 

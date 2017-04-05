@@ -3,7 +3,7 @@
  * CKEditor implementation of {@link Drupal.editors} API.
  */
 
-(function (Drupal, debounce, CKEDITOR, $) {
+(function (Drupal, debounce, CKEDITOR, $, displace, AjaxCommands) {
 
   'use strict';
 
@@ -85,6 +85,26 @@
         editor.on('change', debounce(function () {
           callback(editor.getData());
         }, 400));
+
+        // A temporary workaround to control scrollbar appearance when using
+        // autoGrow event to control editor's height.
+        // @todo Remove when http://dev.ckeditor.com/ticket/12120 is fixed.
+        editor.on('mode', function () {
+          var editable = editor.editable();
+          if (!editable.isInline()) {
+            editor.on('autoGrow', function (evt) {
+              var doc = evt.editor.document;
+              var scrollable = CKEDITOR.env.quirks ? doc.getBody() : doc.getDocumentElement();
+
+              if (scrollable.$.scrollHeight < scrollable.$.clientHeight) {
+                scrollable.setStyle('overflow-y', 'hidden');
+              }
+              else {
+                scrollable.removeStyle('overflow-y');
+              }
+            }, null, null, 10000);
+          }
+        });
       }
       return !!editor;
     },
@@ -273,6 +293,11 @@
     }
   });
 
+  // Formulate a default formula for the maximum autoGrow height.
+  $(document).on('drupalViewportOffsetChange', function () {
+    CKEDITOR.config.autoGrow_maxHeight = 0.7 * (window.innerHeight - displace.offsets.top - displace.offsets.bottom);
+  });
+
   // Redirect on hash change when the original hash has an associated CKEditor.
   function redirectTextareaFragmentToCKEditorInstance() {
     var hash = location.hash.substr(1);
@@ -287,7 +312,39 @@
   }
   $(window).on('hashchange.ckeditor', redirectTextareaFragmentToCKEditorInstance);
 
+  // Set autoGrow to make the editor grow the moment it is created.
+  CKEDITOR.config.autoGrow_onStartup = true;
+
   // Set the CKEditor cache-busting string to the same value as Drupal.
   CKEDITOR.timestamp = drupalSettings.ckeditor.timestamp;
 
-})(Drupal, Drupal.debounce, CKEDITOR, jQuery);
+  if (AjaxCommands) {
+
+    /**
+     * Command to add style sheets to a CKEditor instance.
+     *
+     * Works for both iframe and inline CKEditor instances.
+     *
+     * @param {Drupal.Ajax} [ajax]
+     *   {@link Drupal.Ajax} object created by {@link Drupal.ajax}.
+     * @param {object} response
+     *   The response from the Ajax request.
+     * @param {string} response.editor_id
+     *   The CKEditor instance ID.
+     * @param {number} [status]
+     *   The XMLHttpRequest status.
+     *
+     * @see http://docs.ckeditor.com/#!/api/CKEDITOR.dom.document
+     */
+    AjaxCommands.prototype.ckeditor_add_stylesheet = function (ajax, response, status) {
+      var editor = CKEDITOR.instances[response.editor_id];
+
+      if (editor) {
+        response.stylesheets.forEach(function (url) {
+          editor.document.appendStyleSheet(url);
+        });
+      }
+    };
+  }
+
+})(Drupal, Drupal.debounce, CKEDITOR, jQuery, Drupal.displace, Drupal.AjaxCommands);

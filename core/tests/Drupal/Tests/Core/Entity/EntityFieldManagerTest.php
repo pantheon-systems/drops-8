@@ -310,9 +310,6 @@ class EntityFieldManagerTest extends UnitTestCase {
    * @covers ::getBaseFieldDefinitions
    * @covers ::buildBaseFieldDefinitions
    *
-   * @expectedException \LogicException
-   * @expectedExceptionMessage The Test entity type cannot be translatable as it does not define a translatable "langcode" field.
-   *
    * @dataProvider providerTestGetBaseFieldDefinitionsTranslatableEntityTypeLangcode
    */
   public function testGetBaseFieldDefinitionsTranslatableEntityTypeLangcode($provide_key, $provide_field, $translatable) {
@@ -333,6 +330,7 @@ class EntityFieldManagerTest extends UnitTestCase {
     $this->entityType->isTranslatable()->willReturn(TRUE);
     $this->entityType->getLabel()->willReturn('Test');
 
+    $this->setExpectedException(\LogicException::class, 'The Test entity type cannot be translatable as it does not define a translatable "langcode" field.');
     $this->entityFieldManager->getBaseFieldDefinitions('test_entity_type');
   }
 
@@ -452,8 +450,6 @@ class EntityFieldManagerTest extends UnitTestCase {
    *
    * @covers ::getBaseFieldDefinitions
    * @covers ::buildBaseFieldDefinitions
-   *
-   * @expectedException \LogicException
    */
   public function testGetBaseFieldDefinitionsInvalidDefinition() {
     $this->setUpEntityWithFieldDefinition(FALSE, 'langcode', ['langcode' => 'langcode']);
@@ -461,6 +457,7 @@ class EntityFieldManagerTest extends UnitTestCase {
     $this->entityType->isTranslatable()->willReturn(TRUE);
     $this->entityType->getLabel()->willReturn('the_label');
 
+    $this->setExpectedException(\LogicException::class);
     $this->entityFieldManager->getBaseFieldDefinitions('test_entity_type');
   }
 
@@ -543,7 +540,7 @@ class EntityFieldManagerTest extends UnitTestCase {
 
     $this->entityType->getClass()->willReturn($entity_class);
     $this->entityType->getKeys()->willReturn($entity_keys + ['default_langcode' => 'default_langcode']);
-    $this->entityType->isSubclassOf(FieldableEntityInterface::class)->willReturn(TRUE);
+    $this->entityType->entityClassImplements(FieldableEntityInterface::class)->willReturn(TRUE);
     $this->entityType->isTranslatable()->willReturn(FALSE);
     $this->entityType->getProvider()->willReturn('the_provider');
     $this->entityType->id()->willReturn('the_entity_id');
@@ -570,7 +567,7 @@ class EntityFieldManagerTest extends UnitTestCase {
   /**
    * @covers ::getExtraFields
    */
-  function testGetExtraFields() {
+  public function testGetExtraFields() {
     $this->setUpEntityTypeDefinitions();
 
     $entity_type_id = $this->randomMachineName();
@@ -652,13 +649,13 @@ class EntityFieldManagerTest extends UnitTestCase {
 
     $entity_type->getClass()->willReturn($entity_class);
     $entity_type->getKeys()->willReturn(['default_langcode' => 'default_langcode']);
-    $entity_type->isSubclassOf(FieldableEntityInterface::class)->willReturn(TRUE);
+    $entity_type->entityClassImplements(FieldableEntityInterface::class)->willReturn(TRUE);
     $entity_type->isTranslatable()->shouldBeCalled();
     $entity_type->getProvider()->shouldBeCalled();
 
-    $non_content_entity_type->isSubclassOf(FieldableEntityInterface::class)->willReturn(FALSE);
+    $non_content_entity_type->entityClassImplements(FieldableEntityInterface::class)->willReturn(FALSE);
 
-    $override_entity_type->isSubclassOf(FieldableEntityInterface::class)->willReturn(FALSE);
+    $override_entity_type->entityClassImplements(FieldableEntityInterface::class)->willReturn(FALSE);
 
     // Set up the entity type bundle info to return two bundles for the
     // fieldable entity type.
@@ -753,11 +750,11 @@ class EntityFieldManagerTest extends UnitTestCase {
 
     $entity_type->getClass()->willReturn($entity_class)->shouldBeCalled();
     $entity_type->getKeys()->willReturn(['default_langcode' => 'default_langcode'])->shouldBeCalled();
-    $entity_type->isSubclassOf(FieldableEntityInterface::class)->willReturn(TRUE)->shouldBeCalled();
+    $entity_type->entityClassImplements(FieldableEntityInterface::class)->willReturn(TRUE)->shouldBeCalled();
     $entity_type->isTranslatable()->shouldBeCalled();
     $entity_type->getProvider()->shouldBeCalled();
 
-    $override_entity_type->isSubclassOf(FieldableEntityInterface::class)->willReturn(FALSE)->shouldBeCalled();
+    $override_entity_type->entityClassImplements(FieldableEntityInterface::class)->willReturn(FALSE)->shouldBeCalled();
 
     $integerFields = $this->entityFieldManager->getFieldMapByFieldType('integer');
     $this->assertCount(1, $integerFields['test_entity_type']);

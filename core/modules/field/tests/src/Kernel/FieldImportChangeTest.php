@@ -20,12 +20,12 @@ class FieldImportChangeTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('field_test_config');
+  public static $modules = ['field_test_config'];
 
   /**
    * Tests importing an updated field.
    */
-  function testImportChange() {
+  public function testImportChange() {
     $this->installConfig(['field_test_config']);
     $field_storage_id = 'field_test_import';
     $field_id = "entity_test.entity_test.$field_storage_id";

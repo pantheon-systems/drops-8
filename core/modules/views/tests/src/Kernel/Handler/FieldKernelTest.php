@@ -15,23 +15,23 @@ use Drupal\views\Views;
  */
 class FieldKernelTest extends ViewsKernelTestBase {
 
-  public static $modules = array('user');
+  public static $modules = ['user'];
 
   /**
    * Views used by this test.
    *
    * @var array
    */
-  public static $testViews = array('test_view', 'test_field_tokens', 'test_field_argument_tokens', 'test_field_output');
+  public static $testViews = ['test_view', 'test_field_tokens', 'test_field_argument_tokens', 'test_field_output'];
 
   /**
    * Map column names.
    *
    * @var array
    */
-  protected $columnMap = array(
+  protected $columnMap = [
     'views_test_data_name' => 'name',
-  );
+  ];
 
   /**
    * {@inheritdoc}
@@ -73,7 +73,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
     $id_field = $view->field['id'];
     $id_field->additional_fields['job'] = 'job';
     // Choose also a field alias key which doesn't match to the table field.
-    $id_field->additional_fields['created_test'] = array('table' => 'views_test_data', 'field' => 'created');
+    $id_field->additional_fields['created_test'] = ['table' => 'views_test_data', 'field' => 'created'];
     $view->build();
 
     // Make sure the field aliases have the expected value.
@@ -412,7 +412,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
   /**
    * Tests everything related to empty output of a field.
    */
-  function testEmpty() {
+  public function testEmpty() {
     $this->_testHideIfEmpty();
     $this->_testEmptyText();
   }
@@ -423,7 +423,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
    * This tests alters the result to get easier and less coupled results. It is
    * important that assertIdentical() is used in this test since in PHP 0 == ''.
    */
-  function _testHideIfEmpty() {
+  public function _testHideIfEmpty() {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = \Drupal::service('renderer');
 
@@ -704,7 +704,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
   /**
    * Tests the usage of the empty text.
    */
-  function _testEmptyText() {
+  public function _testEmptyText() {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = \Drupal::service('renderer');
 
@@ -754,7 +754,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
   /**
    * Tests views_handler_field::isValueEmpty().
    */
-  function testIsValueEmpty() {
+  public function testIsValueEmpty() {
     $view = Views::getView('test_view');
     $view->initHandlers();
     $field = $view->field['name'];
@@ -778,10 +778,10 @@ class FieldKernelTest extends ViewsKernelTestBase {
    */
   public function testClickSortable() {
     // Test that clickSortable is TRUE by default.
-    $item = array(
+    $item = [
       'table' => 'views_test_data',
       'field' => 'name',
-    );
+    ];
     $plugin = $this->container->get('plugin.manager.views.field')->getHandler($item);
     $this->assertTrue($plugin->clickSortable(), 'TRUE as a default value is correct.');
 
@@ -801,7 +801,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
    */
   public function testTrimText() {
     // Test unicode. See https://www.drupal.org/node/513396#comment-2839416.
-    $text = array(
+    $text = [
       'Tuy nhiên, những hi vọng',
       'Giả sử chúng tôi có 3 Apple',
       'siêu nhỏ này là bộ xử lý',
@@ -810,12 +810,12 @@ class FieldKernelTest extends ViewsKernelTestBase {
       'của hãng bao gồm ba dòng',
       'сд асд асд ас',
       'асд асд асд ас'
-    );
+    ];
     // Just test maxlength without word boundary.
-    $alter = array(
+    $alter = [
       'max_length' => 10,
-    );
-    $expect = array(
+    ];
+    $expect = [
       'Tuy nhiên,',
       'Giả sử chú',
       'siêu nhỏ n',
@@ -824,7 +824,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       'của hãng b',
       'сд асд асд',
       'асд асд ас',
-    );
+    ];
 
     foreach ($text as $key => $line) {
       $result_text = FieldPluginBase::trimText($alter, $line);
@@ -833,7 +833,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
 
     // Test also word_boundary
     $alter['word_boundary'] = TRUE;
-    $expect = array(
+    $expect = [
       'Tuy nhiên',
       'Giả sử',
       'siêu nhỏ',
@@ -842,7 +842,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       'của hãng',
       'сд асд',
       'асд асд',
-    );
+    ];
 
     foreach ($text as $key => $line) {
       $result_text = FieldPluginBase::trimText($alter, $line);

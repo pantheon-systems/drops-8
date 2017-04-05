@@ -2,6 +2,9 @@
 
 namespace Drupal\statistics\Tests;
 
+use Drupal\Core\Cache\Cache;
+use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
+
 /**
  * Tests display of statistics report blocks.
  *
@@ -9,32 +12,34 @@ namespace Drupal\statistics\Tests;
  */
 class StatisticsReportsTest extends StatisticsTestBase {
 
+  use AssertPageCacheContextsAndTagsTrait;
+
   /**
    * Tests the "popular content" block.
    */
-  function testPopularContentBlock() {
+  public function testPopularContentBlock() {
     // Clear the block cache to load the Statistics module's block definitions.
     $this->container->get('plugin.manager.block')->clearCachedDefinitions();
 
     // Visit a node to have something show up in the block.
-    $node = $this->drupalCreateNode(array('type' => 'page', 'uid' => $this->blockingUser->id()));
+    $node = $this->drupalCreateNode(['type' => 'page', 'uid' => $this->blockingUser->id()]);
     $this->drupalGet('node/' . $node->id());
     // Manually calling statistics.php, simulating ajax behavior.
     $nid = $node->id();
-    $post = http_build_query(array('nid' => $nid));
-    $headers = array('Content-Type' => 'application/x-www-form-urlencoded');
+    $post = http_build_query(['nid' => $nid]);
+    $headers = ['Content-Type' => 'application/x-www-form-urlencoded'];
     global $base_url;
     $stats_path = $base_url . '/' . drupal_get_path('module', 'statistics') . '/statistics.php';
     $client = \Drupal::httpClient();
-    $client->post($stats_path, array('headers' => $headers, 'body' => $post));
+    $client->post($stats_path, ['headers' => $headers, 'body' => $post]);
 
     // Configure and save the block.
-    $this->drupalPlaceBlock('statistics_popular_block', array(
+    $block = $this->drupalPlaceBlock('statistics_popular_block', [
       'label' => 'Popular content',
       'top_day_num' => 3,
       'top_all_num' => 3,
       'top_last_num' => 3,
-    ));
+    ]);
 
     // Get some page and check if the block is displayed.
     $this->drupalGet('user');
@@ -43,9 +48,16 @@ class StatisticsReportsTest extends StatisticsTestBase {
     $this->assertText('All time', 'Found the all time popular content.');
     $this->assertText('Last viewed', 'Found the last viewed popular content.');
 
-    // statistics.module doesn't use node entities, prevent the node language
-    // from being added to the options.
-    $this->assertRaw(\Drupal::l($node->label(), $node->urlInfo('canonical', ['language' => NULL])), 'Found link to visited node.');
+    $tags = Cache::mergeTags($node->getCacheTags(), $block->getCacheTags());
+    $tags = Cache::mergeTags($tags, $this->blockingUser->getCacheTags());
+    $tags = Cache::mergeTags($tags, ['block_view', 'config:block_list', 'node_list', 'rendered', 'user_view']);
+    $this->assertCacheTags($tags);
+    $contexts = Cache::mergeContexts($node->getCacheContexts(), $block->getCacheContexts());
+    $contexts = Cache::mergeContexts($contexts, ['url.query_args:_wrapper_format']);
+    $this->assertCacheContexts($contexts);
+
+    // Check if the node link is displayed.
+    $this->assertRaw(\Drupal::l($node->label(), $node->urlInfo('canonical')), 'Found link to visited node.');
   }
 
 }

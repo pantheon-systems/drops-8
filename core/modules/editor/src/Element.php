@@ -32,7 +32,7 @@ class Element {
   /**
    * Additional #pre_render callback for 'text_format' elements.
    */
-  function preRenderTextFormat(array $element) {
+  public function preRenderTextFormat(array $element) {
     // Allow modules to programmatically enforce no client-side editor by
     // setting the #editor property to FALSE.
     if (isset($element['#editor']) && !$element['#editor']) {
@@ -64,14 +64,14 @@ class Element {
     if (!$element['format']['format']['#access']) {
       // Use the first (and only) available text format.
       $format_id = $format_ids[0];
-      $element['format']['editor'] = array(
+      $element['format']['editor'] = [
         '#type' => 'hidden',
         '#name' => $element['format']['format']['#name'],
         '#value' => $format_id,
-        '#attributes' => array(
+        '#attributes' => [
           'data-editor-for' => $field_id,
-        ),
-      );
+        ],
+      ];
     }
     // Otherwise, attach to text format selector.
     else {
