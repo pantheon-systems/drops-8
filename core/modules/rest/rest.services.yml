@@ -11,15 +11,6 @@ services:
   # @todo Remove this service in Drupal 9.0.0.
   access_check.rest.csrf:
     alias: access_check.header.csrf
-  rest.link_manager:
-    class: Drupal\rest\LinkManager\LinkManager
-    arguments: ['@rest.link_manager.type', '@rest.link_manager.relation']
-  rest.link_manager.type:
-    class: Drupal\rest\LinkManager\TypeLinkManager
-    arguments: ['@cache.default', '@module_handler', '@config.factory', '@request_stack', '@entity_type.bundle.info']
-  rest.link_manager.relation:
-    class: Drupal\rest\LinkManager\RelationLinkManager
-    arguments: ['@cache.default', '@entity.manager', '@module_handler', '@config.factory', '@request_stack']
   rest.resource_routes:
     class: Drupal\rest\Routing\ResourceRoutes
     arguments: ['@plugin.manager.rest', '@entity_type.manager', '@logger.channel.rest']
@@ -28,3 +19,15 @@ services:
   logger.channel.rest:
     parent: logger.channel_base
     arguments: ['rest']
+
+  # Event subscribers.
+  rest.resource_response.subscriber:
+    class: Drupal\rest\EventSubscriber\ResourceResponseSubscriber
+    tags:
+      - { name: event_subscriber }
+    arguments: ['@serializer', '@renderer', '@current_route_match']
+  rest.config_subscriber:
+    class: Drupal\rest\EventSubscriber\RestConfigSubscriber
+    arguments: ['@router.builder']
+    tags:
+      - { name: event_subscriber }

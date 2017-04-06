@@ -23,10 +23,9 @@ class DefaultExceptionSubscriberTest extends UnitTestCase {
   public function testOnExceptionWithUnknownFormat() {
     $config_factory = $this->getConfigFactoryStub();
 
-    // Format 'bananas' requested, yet only 'json' allowed.
     $kernel = $this->prophesize(HttpKernelInterface::class);
     $request = Request::create('/test?_format=bananas');
-    $e = new MethodNotAllowedHttpException(['json'], 'test message');
+    $e = new MethodNotAllowedHttpException(['POST', 'PUT'], 'test message');
     $event = new GetResponseForExceptionEvent($kernel->reveal(), $request, 'GET', $e);
     $subscriber = new DefaultExceptionSubscriber($config_factory);
     $subscriber->onException($event);
@@ -35,6 +34,9 @@ class DefaultExceptionSubscriberTest extends UnitTestCase {
     $this->assertInstanceOf(Response::class, $response);
     $this->assertEquals('test message', $response->getContent());
     $this->assertEquals(405, $response->getStatusCode());
+    $this->assertEquals('POST, PUT', $response->headers->get('Allow'));
+    // Also check that that text/plain content type was added.
+    $this->assertEquals('text/plain', $response->headers->get('Content-Type'));
   }
 
 }

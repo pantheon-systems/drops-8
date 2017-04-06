@@ -22,8 +22,8 @@ abstract class ConfigImportValidateEventSubscriberBase implements EventSubscribe
   /**
    * {@inheritdoc}
    */
-  static function getSubscribedEvents() {
-    $events[ConfigEvents::IMPORT_VALIDATE][] = array('onConfigImporterValidate', 20);
+  public static function getSubscribedEvents() {
+    $events[ConfigEvents::IMPORT_VALIDATE][] = ['onConfigImporterValidate', 20];
     return $events;
   }
 

@@ -3,6 +3,7 @@
 namespace Drupal\Tests\hal\Kernel;
 
 use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
 use Drupal\user\Entity\User;
 use Drupal\node\Entity\NodeType;
 
@@ -18,14 +19,14 @@ class EntityTranslationNormalizeTest extends NormalizerTestBase {
    *
    * @var array
    */
-  public static $modules = array('node', 'content_translation');
+  public static $modules = ['node', 'content_translation'];
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('sequences'));
+    $this->installSchema('system', ['sequences']);
     $this->installConfig(['node', 'content_translation']);
   }
 
@@ -44,7 +45,7 @@ class EntityTranslationNormalizeTest extends NormalizerTestBase {
       'title' => $this->randomMachineName(),
       'uid' => $user->id(),
       'type' => $node_type->id(),
-      'status' => NODE_PUBLISHED,
+      'status' => NodeInterface::PUBLISHED,
       'langcode' => 'en',
       'promote' => 1,
       'sticky' => 0,

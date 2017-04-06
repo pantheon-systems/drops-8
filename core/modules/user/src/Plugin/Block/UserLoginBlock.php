@@ -72,7 +72,7 @@ class UserLoginBlock extends BlockBase implements ContainerFactoryPluginInterfac
    */
   protected function blockAccess(AccountInterface $account) {
     $route_name = $this->routeMatch->getRouteName();
-    if ($account->isAnonymous() && !in_array($route_name, array('user.login', 'user.logout'))) {
+    if ($account->isAnonymous() && !in_array($route_name, ['user.login', 'user.logout'])) {
       return AccessResult::allowed()
         ->addCacheContexts(['route.name', 'user.roles:anonymous']);
     }
@@ -96,28 +96,36 @@ class UserLoginBlock extends BlockBase implements ContainerFactoryPluginInterfac
     $form['pass']['#size'] = 15;
     $form['#action'] = $this->url('<current>', [], ['query' => $this->getDestinationArray(), 'external' => FALSE]);
     // Build action links.
-    $items = array();
+    $items = [];
     if (\Drupal::config('user.settings')->get('register') != USER_REGISTER_ADMINISTRATORS_ONLY) {
-      $items['create_account'] = \Drupal::l($this->t('Create new account'), new Url('user.register', array(), array(
-        'attributes' => array(
-          'title' => $this->t('Create a new user account.'),
-          'class' => array('create-account-link'),
-        ),
-      )));
+      $items['create_account'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Create new account'),
+        '#url' => Url::fromRoute('user.register', [], [
+          'attributes' => [
+            'title' => $this->t('Create a new user account.'),
+            'class' => ['create-account-link'],
+          ],
+        ]),
+      ];
     }
-    $items['request_password'] = \Drupal::l($this->t('Reset your password'), new Url('user.pass', array(), array(
-      'attributes' => array(
-        'title' => $this->t('Send password reset instructions via email.'),
-        'class' => array('request-password-link'),
-      ),
-    )));
-    return array(
+    $items['request_password'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Reset your password'),
+      '#url' => Url::fromRoute('user.pass', [], [
+        'attributes' => [
+          'title' => $this->t('Send password reset instructions via email.'),
+          'class' => ['request-password-link'],
+        ],
+      ]),
+    ];
+    return [
       'user_login_form' => $form,
-      'user_links' => array(
+      'user_links' => [
         '#theme' => 'item_list',
         '#items' => $items,
-      ),
-    );
+      ],
+    ];
   }
 
 }

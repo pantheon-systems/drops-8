@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<ruleset name="drupal_coder">
+  <description>The coding standard for coder_sniffer.</description>
+
+  <file>coder_sniffer</file>
+
+  <exclude-pattern>*/Test/*</exclude-pattern>
+
+  <rule ref="PHPCS" />
+
+  <!-- The following sniffs are disabled because we don't want them -->
+  <rule ref="PEAR.Commenting.FileComment">
+    <exclude name="PEAR.Commenting.FileComment.MissingAuthorTag"/>
+    <exclude name="PEAR.Commenting.FileComment.MissingLicenseTag"/>
+    <exclude name="PEAR.Commenting.FileComment.MissingVersion"/>
+  </rule>
+  <rule ref="PEAR.Commenting.ClassComment">
+    <exclude name="PEAR.Commenting.ClassComment.CategoryTagOrder"/>
+    <exclude name="PEAR.Commenting.ClassComment.MissingAuthorTag"/>
+    <exclude name="PEAR.Commenting.ClassComment.MissingLicenseTag"/>
+  </rule>
+  <rule ref="PEAR.NamingConventions.ValidFunctionName">
+    <exclude name="PEAR.NamingConventions.ValidFunctionName.PrivateNoUnderscore"/>
+  </rule>
+  <rule ref="Generic.Files.LineLength">
+    <exclude name="Generic.Files.LineLength.TooLong"/>
+  </rule>
+  <rule ref="Generic.Commenting.Todo">
+    <exclude name="Generic.Commenting.Todo.TaskFound"/>
+    <exclude name="Generic.Commenting.Todo.CommentFound"/>
+  </rule>
+
+  <!-- The following sniffs are disabled because Coder is not compliant yet, see
+    https://www.drupal.org/node/2734539 -->
+  <rule ref="PEAR.Commenting.FunctionComment.MissingParamComment">
+    <exclude-pattern>*/DrupalPractice/Sniffs/CodeAnalysis/VariableAnalysisSniff.php</exclude-pattern>
+  </rule>
+
+</ruleset>

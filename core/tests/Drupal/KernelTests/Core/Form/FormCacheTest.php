@@ -20,7 +20,7 @@ class FormCacheTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('system', 'user');
+  public static $modules = ['system', 'user'];
 
   /**
    * @var string
@@ -39,12 +39,12 @@ class FormCacheTest extends KernelTestBase {
 
   protected function setUp() {
     parent::setUp();
-    $this->installSchema('system', array('key_value_expire'));
+    $this->installSchema('system', ['key_value_expire']);
 
     $this->formBuildId = $this->randomMachineName();
-    $this->form = array(
+    $this->form = [
       '#property' => $this->randomMachineName(),
-    );
+    ];
     $this->formState = new FormState();
     $this->formState->set('example', $this->randomMachineName());
   }
@@ -52,8 +52,8 @@ class FormCacheTest extends KernelTestBase {
   /**
    * Tests the form cache with a logged-in user.
    */
-  function testCacheToken() {
-    \Drupal::currentUser()->setAccount(new UserSession(array('uid' => 1)));
+  public function testCacheToken() {
+    \Drupal::currentUser()->setAccount(new UserSession(['uid' => 1]));
     \Drupal::formBuilder()->setCache($this->formBuildId, $this->form, $this->formState);
 
     $cached_form_state = new FormState();
@@ -83,7 +83,7 @@ class FormCacheTest extends KernelTestBase {
   /**
    * Tests the form cache without a logged-in user.
    */
-  function testNoCacheToken() {
+  public function testNoCacheToken() {
     // Switch to a anonymous user account.
     $account_switcher = \Drupal::service('account_switcher');
     $account_switcher->switchTo(new AnonymousUserSession());

@@ -2,9 +2,9 @@
 
 namespace Drupal\Tests\views\Kernel\Handler;
 
-use Drupal\block\Entity\Block;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormState;
+use Drupal\simpletest\BlockCreationTrait;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
@@ -16,6 +16,8 @@ use Drupal\views\Views;
  * @see \Drupal\views\Plugin\views\area\Entity
  */
 class AreaEntityTest extends ViewsKernelTestBase {
+
+  use BlockCreationTrait;
 
   /**
    * Modules to enable.
@@ -29,7 +31,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $testViews = array('test_entity_area');
+  public static $testViews = ['test_entity_area'];
 
   /**
    * {@inheritdoc}
@@ -42,14 +44,15 @@ class AreaEntityTest extends ViewsKernelTestBase {
    * {@inheritdoc}
    */
   protected function setUpFixtures() {
+    // Install the themes used for this test.
+    $this->container->get('theme_installer')->install(['bartik']);
+    $this->container->get('config.factory')->getEditable('system.theme')->set('default', 'bartik')->save();
+
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test');
     $this->installConfig(['entity_test']);
 
-    Block::create([
-      'id' => 'test_block',
-      'plugin' => 'system_main_block',
-    ])->save();
+    $this->placeBlock('system_main_block', ['id' => 'test_block']);
 
     parent::setUpFixtures();
   }
@@ -67,9 +70,9 @@ class AreaEntityTest extends ViewsKernelTestBase {
 
     // Test that all expected entity types have data.
     foreach (array_keys($expected_entities) as $entity) {
-      $this->assertTrue(!empty($data['entity_' . $entity]), format_string('Views entity area data found for @entity', array('@entity' => $entity)));
+      $this->assertTrue(!empty($data['entity_' . $entity]), format_string('Views entity area data found for @entity', ['@entity' => $entity]));
       // Test that entity_type is set correctly in the area data.
-      $this->assertEqual($entity, $data['entity_' . $entity]['area']['entity_type'], format_string('Correct entity_type set for @entity', array('@entity' => $entity)));
+      $this->assertEqual($entity, $data['entity_' . $entity]['area']['entity_type'], format_string('Correct entity_type set for @entity', ['@entity' => $entity]));
     }
 
     $expected_entities = array_filter($entity_types, function (EntityTypeInterface $type) {
@@ -78,7 +81,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
 
     // Test that no configuration entity types have data.
     foreach (array_keys($expected_entities) as $entity) {
-      $this->assertTrue(empty($data['entity_' . $entity]), format_string('Views config entity area data not found for @entity', array('@entity' => $entity)));
+      $this->assertTrue(empty($data['entity_' . $entity]), format_string('Views config entity area data not found for @entity', ['@entity' => $entity]));
     }
   }
 
@@ -87,10 +90,10 @@ class AreaEntityTest extends ViewsKernelTestBase {
    */
   public function testEntityArea() {
     /** @var \Drupal\Core\Entity\EntityInterface[] $entities */
-    $entities = array();
+    $entities = [];
     for ($i = 0; $i < 3; $i++) {
       $random_label = $this->randomMachineName();
-      $data = array('bundle' => 'entity_test', 'name' => $random_label);
+      $data = ['bundle' => 'entity_test', 'name' => $random_label];
       $entity_test = $this->container->get('entity.manager')
         ->getStorage('entity_test')
         ->create($data);
@@ -134,7 +137,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
     $this->assertTrue(strpos(trim((string) $result[0]), $entities[1]->label()) !== FALSE, 'The rendered entity appears in the footer of the view.');
     $this->assertTrue(strpos(trim((string) $result[0]), 'full') !== FALSE, 'The rendered entity appeared in the right view mode.');
 
-    $preview = $view->preview('default', array($entities[1]->id()));
+    $preview = $view->preview('default', [$entities[1]->id()]);
     $this->setRawContent($renderer->renderRoot($preview));
 
     $result = $this->xpath($header_xpath);
@@ -156,7 +159,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
     $item['view_mode'] = 'test';
     $view->setHandler('default', 'header', 'entity_entity_test', $item);
 
-    $preview = $view->preview('default', array($entities[1]->id()));
+    $preview = $view->preview('default', [$entities[1]->id()]);
     $this->setRawContent($renderer->renderRoot($preview));
     $view_class = 'js-view-dom-id-' . $view->dom_id;
     $result = $this->xpath('//div[@class = "' . $view_class . '"]/header[1]');
@@ -165,14 +168,14 @@ class AreaEntityTest extends ViewsKernelTestBase {
 
     // Test entity access.
     $view = Views::getView('test_entity_area');
-    $preview = $view->preview('default', array($entities[2]->id()));
+    $preview = $view->preview('default', [$entities[2]->id()]);
     $this->setRawContent($renderer->renderRoot($preview));
     $view_class = 'js-view-dom-id-' . $view->dom_id;
     $result = $this->xpath('//div[@class = "' . $view_class . '"]/footer[1]');
     $this->assertTrue(strpos($result[0], $entities[2]->label()) === FALSE, 'The rendered entity does not appear in the footer of the view.');
 
     // Test the available view mode options.
-    $form = array();
+    $form = [];
     $form_state = (new FormState())
       ->set('type', 'header');
     $view->display_handler->getHandler('header', 'entity_entity_test')->buildOptionsForm($form, $form_state);

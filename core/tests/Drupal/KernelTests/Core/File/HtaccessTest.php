@@ -16,7 +16,7 @@ class HtaccessTest extends KernelTestBase {
   /**
    * Tests file_save_htaccess().
    */
-  function testHtaccessSave() {
+  public function testHtaccessSave() {
     // Prepare test directories.
     $public = Settings::get('file_public_path') . '/test/public';
     $private = Settings::get('file_public_path') . '/test/private';
@@ -82,11 +82,11 @@ class HtaccessTest extends KernelTestBase {
    */
   protected function assertFilePermissions($uri, $expected) {
     $actual = fileperms($uri) & 0777;
-    return $this->assertIdentical($actual, $expected, SafeMarkup::format('@uri file permissions @actual are identical to @expected.', array(
+    return $this->assertIdentical($actual, $expected, SafeMarkup::format('@uri file permissions @actual are identical to @expected.', [
       '@uri' => $uri,
       '@actual' => 0 . decoct($actual),
       '@expected' => 0 . decoct($expected),
-    )));
+    ]));
   }
 
 }

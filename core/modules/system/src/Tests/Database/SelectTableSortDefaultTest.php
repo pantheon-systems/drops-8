@@ -15,18 +15,18 @@ class SelectTableSortDefaultTest extends DatabaseWebTestBase {
    * Note that we have to make an HTTP request to a test page handler
    * because the pager depends on GET parameters.
    */
-  function testTableSortQuery() {
-    $sorts = array(
-      array('field' => t('Task ID'), 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'),
-      array('field' => t('Task ID'), 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'),
-      array('field' => t('Task'), 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'),
-      array('field' => t('Task'), 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'),
+  public function testTableSortQuery() {
+    $sorts = [
+      ['field' => t('Task ID'), 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'],
+      ['field' => t('Task ID'), 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'],
+      ['field' => t('Task'), 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'],
+      ['field' => t('Task'), 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'],
       // more elements here
 
-    );
+    ];
 
     foreach ($sorts as $sort) {
-      $this->drupalGet('database_test/tablesort/', array('query' => array('order' => $sort['field'], 'sort' => $sort['sort'])));
+      $this->drupalGet('database_test/tablesort/', ['query' => ['order' => $sort['field'], 'sort' => $sort['sort']]]);
       $data = json_decode($this->getRawContent());
 
       $first = array_shift($data->tasks);
@@ -43,25 +43,25 @@ class SelectTableSortDefaultTest extends DatabaseWebTestBase {
    * If a tablesort's orderByHeader is called before another orderBy, then its
    * header happens first.
    */
-  function testTableSortQueryFirst() {
-    $sorts = array(
-      array('field' => t('Task ID'), 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'),
-      array('field' => t('Task ID'), 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'),
-      array('field' => t('Task'), 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'),
-      array('field' => t('Task'), 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'),
+  public function testTableSortQueryFirst() {
+    $sorts = [
+      ['field' => t('Task ID'), 'sort' => 'desc', 'first' => 'perform at superbowl', 'last' => 'eat'],
+      ['field' => t('Task ID'), 'sort' => 'asc', 'first' => 'eat', 'last' => 'perform at superbowl'],
+      ['field' => t('Task'), 'sort' => 'asc', 'first' => 'code', 'last' => 'sleep'],
+      ['field' => t('Task'), 'sort' => 'desc', 'first' => 'sleep', 'last' => 'code'],
       // more elements here
 
-    );
+    ];
 
     foreach ($sorts as $sort) {
-      $this->drupalGet('database_test/tablesort_first/', array('query' => array('order' => $sort['field'], 'sort' => $sort['sort'])));
+      $this->drupalGet('database_test/tablesort_first/', ['query' => ['order' => $sort['field'], 'sort' => $sort['sort']]]);
       $data = json_decode($this->getRawContent());
 
       $first = array_shift($data->tasks);
       $last = array_pop($data->tasks);
 
-      $this->assertEqual($first->task, $sort['first'], format_string('Items appear in the correct order sorting by @field @sort.', array('@field' => $sort['field'], '@sort' => $sort['sort'])));
-      $this->assertEqual($last->task, $sort['last'], format_string('Items appear in the correct order sorting by @field @sort.', array('@field' => $sort['field'], '@sort' => $sort['sort'])));
+      $this->assertEqual($first->task, $sort['first'], format_string('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
+      $this->assertEqual($last->task, $sort['last'], format_string('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
     }
   }
 
@@ -71,7 +71,7 @@ class SelectTableSortDefaultTest extends DatabaseWebTestBase {
    * Specifically that no sort is set in a tableselect, and that header links
    * are correct.
    */
-  function testTableSortDefaultSort() {
+  public function testTableSortDefaultSort() {
     $this->drupalGet('database_test/tablesort_default_sort');
 
     // Verify that the table was displayed. Just the header is checked for

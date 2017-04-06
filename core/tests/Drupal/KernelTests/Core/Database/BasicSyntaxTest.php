@@ -15,63 +15,63 @@ class BasicSyntaxTest extends DatabaseTestBase {
   /**
    * Tests string concatenation.
    */
-  function testConcatLiterals() {
-    $result = db_query('SELECT CONCAT(:a1, CONCAT(:a2, CONCAT(:a3, CONCAT(:a4, :a5))))', array(
+  public function testConcatLiterals() {
+    $result = db_query('SELECT CONCAT(:a1, CONCAT(:a2, CONCAT(:a3, CONCAT(:a4, :a5))))', [
       ':a1' => 'This',
       ':a2' => ' ',
       ':a3' => 'is',
       ':a4' => ' a ',
       ':a5' => 'test.',
-    ));
+    ]);
     $this->assertIdentical($result->fetchField(), 'This is a test.', 'Basic CONCAT works.');
   }
 
   /**
    * Tests string concatenation with field values.
    */
-  function testConcatFields() {
-    $result = db_query('SELECT CONCAT(:a1, CONCAT(name, CONCAT(:a2, CONCAT(age, :a3)))) FROM {test} WHERE age = :age', array(
+  public function testConcatFields() {
+    $result = db_query('SELECT CONCAT(:a1, CONCAT(name, CONCAT(:a2, CONCAT(age, :a3)))) FROM {test} WHERE age = :age', [
       ':a1' => 'The age of ',
       ':a2' => ' is ',
       ':a3' => '.',
       ':age' => 25,
-    ));
+    ]);
     $this->assertIdentical($result->fetchField(), 'The age of John is 25.', 'Field CONCAT works.');
   }
 
   /**
    * Tests string concatenation with separator.
    */
-  function testConcatWsLiterals() {
-    $result = db_query("SELECT CONCAT_WS(', ', :a1, NULL, :a2, :a3, :a4)", array(
+  public function testConcatWsLiterals() {
+    $result = db_query("SELECT CONCAT_WS(', ', :a1, NULL, :a2, :a3, :a4)", [
       ':a1' => 'Hello',
       ':a2' => NULL,
       ':a3' => '',
       ':a4' => 'world.',
-    ));
+    ]);
     $this->assertIdentical($result->fetchField(), 'Hello, , world.');
   }
 
   /**
    * Tests string concatenation with separator, with field values.
    */
-  function testConcatWsFields() {
-    $result = db_query("SELECT CONCAT_WS('-', :a1, name, :a2, age) FROM {test} WHERE age = :age", array(
+  public function testConcatWsFields() {
+    $result = db_query("SELECT CONCAT_WS('-', :a1, name, :a2, age) FROM {test} WHERE age = :age", [
       ':a1' => 'name',
       ':a2' => 'age',
       ':age' => 25,
-    ));
+    ]);
     $this->assertIdentical($result->fetchField(), 'name-John-age-25');
   }
 
   /**
    * Tests escaping of LIKE wildcards.
    */
-  function testLikeEscape() {
+  public function testLikeEscape() {
     db_insert('test')
-      ->fields(array(
+      ->fields([
         'name' => 'Ring_',
-      ))
+      ])
       ->execute();
 
     // Match both "Ringo" and "Ring_".
@@ -93,15 +93,15 @@ class BasicSyntaxTest extends DatabaseTestBase {
   /**
    * Tests a LIKE query containing a backslash.
    */
-  function testLikeBackslash() {
+  public function testLikeBackslash() {
     db_insert('test')
-      ->fields(array('name'))
-      ->values(array(
+      ->fields(['name'])
+      ->values([
         'name' => 'abcde\f',
-      ))
-      ->values(array(
+      ])
+      ->values([
         'name' => 'abc%\_',
-      ))
+      ])
       ->execute();
 
     // Match both rows using a LIKE expression with two wildcards and a verbatim

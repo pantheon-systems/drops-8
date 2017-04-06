@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<ruleset name="DrupalPractice">
+ <description>Drupal best practice checks</description>
+
+ <!-- All Drupal code files must be UTF-8 encoded and we treat them as such. -->
+ <arg name="encoding" value="utf-8"/>
+
+ <arg name="extensions" value="php,module,inc,install,test,profile,theme,yml"/>
+
+ <rule ref="Internal.NoCodeFound">
+  <!-- Empty files are fine, might be used for testing. -->
+  <exclude-pattern>*</exclude-pattern>
+ </rule>
+
+ <rule ref="DrupalPractice.CodeAnalysis.VariableAnalysis.UndefinedVariable">
+  <!-- Do not run this sniff on template files. -->
+  <exclude-pattern>*.tpl.php</exclude-pattern>
+ </rule>
+
+ <!-- Ignore various version control directories. -->
+ <exclude-pattern>*/\.git/*</exclude-pattern>
+ <exclude-pattern>*/\.svn/*</exclude-pattern>
+ <exclude-pattern>*/\.hg/*</exclude-pattern>
+ <exclude-pattern>*/\.bzr/*</exclude-pattern>
+</ruleset>

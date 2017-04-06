@@ -84,7 +84,7 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
       }
       $bundle = $values[$this->bundleKey];
     }
-    $entity = new $this->entityClass(array(), $this->entityTypeId, $bundle);
+    $entity = new $this->entityClass([], $this->entityTypeId, $bundle);
     $this->initFieldValues($entity, $values);
     return $entity;
   }
@@ -288,7 +288,29 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
     // Sync the changes made in the fields array to the internal values array.
     $entity->updateOriginalValues();
 
-    return parent::doPreSave($entity);
+    if ($entity->getEntityType()->isRevisionable() && !$entity->isNew() && empty($entity->getLoadedRevisionId())) {
+      // Update the loaded revision id for rare special cases when no loaded
+      // revision is given when updating an existing entity. This for example
+      // happens when calling save() in hook_entity_insert().
+      $entity->updateLoadedRevisionId();
+    }
+
+    $id = parent::doPreSave($entity);
+
+    if (!$entity->isNew()) {
+      // If the ID changed then original can't be loaded, throw an exception
+      // in that case.
+      if (empty($entity->original) || $entity->id() != $entity->original->id()) {
+        throw new EntityStorageException("Update existing '{$this->entityTypeId}' entity while changing the ID is not supported.");
+      }
+      // Do not allow changing the revision ID when resaving the current
+      // revision.
+      if (!$entity->isNewRevision() && $entity->getRevisionId() != $entity->getLoadedRevisionId()) {
+        throw new EntityStorageException("Update existing '{$this->entityTypeId}' entity revision while changing the revision ID is not supported.");
+      }
+    }
+
+    return $id;
   }
 
   /**
@@ -305,6 +327,7 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
 
     // The revision is stored, it should no longer be marked as new now.
     if ($this->entityType->isRevisionable()) {
+      $entity->updateLoadedRevisionId();
       $entity->setNewRevision(FALSE);
     }
   }
@@ -582,11 +605,11 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
    */
   protected function getFromPersistentCache(array &$ids = NULL) {
     if (!$this->entityType->isPersistentlyCacheable() || empty($ids)) {
-      return array();
+      return [];
     }
-    $entities = array();
+    $entities = [];
     // Build the list of cache entries to retrieve.
-    $cid_map = array();
+    $cid_map = [];
     foreach ($ids as $id) {
       $cid_map[$id] = $this->buildCacheId($id);
     }
@@ -615,10 +638,10 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
       return;
     }
 
-    $cache_tags = array(
+    $cache_tags = [
       $this->entityTypeId . '_values',
       'entity_field_info',
-    );
+    ];
     foreach ($entities as $id => $entity) {
       $this->cacheBackend->set($this->buildCacheId($id), $entity, CacheBackendInterface::CACHE_PERMANENT, $cache_tags);
     }
@@ -627,9 +650,49 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   /**
    * {@inheritdoc}
    */
+  public function loadUnchanged($id) {
+    $ids = [$id];
+
+    // The cache invalidation in the parent has the side effect that loading the
+    // same entity again during the save process (for example in
+    // hook_entity_presave()) will load the unchanged entity. Simulate this
+    // by explicitly removing the entity from the static cache.
+    parent::resetCache($ids);
+
+    // The default implementation in the parent class unsets the current cache
+    // and then reloads the entity. That is slow, especially if this is done
+    // repeatedly in the same request, e.g. when validating and then saving
+    // an entity. Optimize this for content entities by trying to load them
+    // directly from the persistent cache again, as in contrast to the static
+    // cache the persistent one will never be changed until the entity is saved.
+    $entities = $this->getFromPersistentCache($ids);
+
+    if (!$entities) {
+      $entities[$id] = $this->load($id);
+    }
+    else {
+      // As the entities are put into the persistent cache before the post load
+      // has been executed we have to execute it if we have retrieved the
+      // entity directly from the persistent cache.
+      $this->postLoad($entities);
+
+      if ($this->entityType->isStaticallyCacheable()) {
+        // As we've removed the entity from the static cache already we have to
+        // put the loaded unchanged entity there to simulate the behavior of the
+        // parent.
+        $this->setStaticCache($entities);
+      }
+    }
+
+    return $entities[$id];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function resetCache(array $ids = NULL) {
     if ($ids) {
-      $cids = array();
+      $cids = [];
       foreach ($ids as $id) {
         unset($this->entities[$id]);
         $cids[] = $this->buildCacheId($id);
@@ -639,9 +702,9 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
       }
     }
     else {
-      $this->entities = array();
+      $this->entities = [];
       if ($this->entityType->isPersistentlyCacheable()) {
-        Cache::invalidateTags(array($this->entityTypeId . '_values'));
+        Cache::invalidateTags([$this->entityTypeId . '_values']);
       }
     }
   }

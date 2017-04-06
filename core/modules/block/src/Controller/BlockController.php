@@ -3,6 +3,7 @@
 namespace Drupal\block\Controller;
 
 use Drupal\Component\Utility\Html;
+use Drupal\block\BlockInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Extension\ThemeHandlerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -40,6 +41,23 @@ class BlockController extends ControllerBase {
   }
 
   /**
+   * Calls a method on a block and reloads the listing page.
+   *
+   * @param \Drupal\block\BlockInterface $block
+   *   The block being acted upon.
+   * @param string $op
+   *   The operation to perform, e.g., 'enable' or 'disable'.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   A redirect back to the listing page.
+   */
+  public function performOperation(BlockInterface $block, $op) {
+    $block->$op()->save();
+    drupal_set_message($this->t('The block settings have been updated.'));
+    return $this->redirect('block.admin_display');
+  }
+
+  /**
    * Returns a block theme demo page.
    *
    * @param string $theme
@@ -56,7 +74,7 @@ class BlockController extends ControllerBase {
     $page = [
       '#title' => Html::escape($this->themeHandler->getName($theme)),
       '#type' => 'page',
-      '#attached' => array(
+      '#attached' => [
         'drupalSettings' => [
           // The block demonstration page is not marked as an administrative
           // page by \Drupal::service('router.admin_context')->isAdminRoute()
@@ -65,20 +83,20 @@ class BlockController extends ControllerBase {
           // is an actual administrative page.
           'path' => ['currentPathIsAdmin' => TRUE],
         ],
-        'library' => array(
+        'library' => [
           'block/drupal.block.admin',
-        ),
-      ),
+        ],
+      ],
     ];
 
     // Show descriptions in each visible page region, nothing else.
     $visible_regions = $this->getVisibleRegionNames($theme);
     foreach (array_keys($visible_regions) as $region) {
-      $page[$region]['block_description'] = array(
+      $page[$region]['block_description'] = [
         '#type' => 'inline_template',
         '#template' => '<div class="block-region demo-block">{{ region_name }}</div>',
-        '#context' => array('region_name' => $visible_regions[$region]),
-      );
+        '#context' => ['region_name' => $visible_regions[$region]],
+      ];
     }
 
     return $page;

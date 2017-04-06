@@ -87,8 +87,14 @@ class EntityViewsDataTest extends UnitTestCase {
 
     $typed_data_manager = $this->getMock(TypedDataManagerInterface::class);
     $typed_data_manager->expects($this->any())
-        ->method('createDataDefinition')
-        ->willReturn($this->getMock('Drupal\Core\TypedData\DataDefinitionInterface'));
+      ->method('createDataDefinition')
+      ->willReturn($this->getMock('Drupal\Core\TypedData\DataDefinitionInterface'));
+
+    $typed_data_manager->expects($this->any())
+      ->method('getDefinition')
+      ->with($this->equalTo('field_item:string_long'))
+      ->willReturn(['class' => '\Drupal\Core\Field\Plugin\Field\FieldType\StringLongItem']);
+
     $this->baseEntityType = new TestEntityType([
       'base_table' => 'entity_test',
       'id' => 'entity_test',
@@ -142,16 +148,16 @@ class EntityViewsDataTest extends UnitTestCase {
       ->setLabel('Description')
       ->setDescription('A description of the term.')
       ->setTranslatable(TRUE)
-      ->setDisplayOptions('view', array(
+      ->setDisplayOptions('view', [
           'label' => 'hidden',
           'type' => 'text_default',
           'weight' => 0,
-        ))
+        ])
       ->setDisplayConfigurable('view', TRUE)
-      ->setDisplayOptions('form', array(
+      ->setDisplayOptions('form', [
           'type' => 'text_textfield',
           'weight' => 0,
-        ))
+        ])
       ->setDisplayConfigurable('form', TRUE);
 
     // Add a URL field; this example is from the Comment entity.
@@ -1101,6 +1107,15 @@ class TestEntityType extends EntityType {
 }
 
 namespace Drupal\entity_test\Entity;
+
+if (!function_exists('t')) {
+  function t($string, array $args = []) {
+    return strtr($string, $args);
+  }
+}
+
+
+namespace Drupal\Core\Entity;
 
 if (!function_exists('t')) {
   function t($string, array $args = []) {

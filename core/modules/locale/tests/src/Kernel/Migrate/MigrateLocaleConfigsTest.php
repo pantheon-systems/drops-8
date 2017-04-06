@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\locale\Kernel\Migrate;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 
 /**
@@ -17,7 +17,7 @@ class MigrateLocaleConfigsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = array('locale', 'language');
+  public static $modules = ['locale', 'language'];
 
   /**
    * {@inheritdoc}

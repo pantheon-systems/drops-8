@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\user\Kernel\Migrate\d6;
 
-use Drupal\config\Tests\SchemaCheckTestTrait;
+use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 use Drupal\user\AccountSettingsForm;
 use Drupal\Core\Database\Database;
@@ -71,10 +71,10 @@ class MigrateUserConfigsTest extends MigrateDrupal6TestBase {
     foreach ($user_register_map as $map) {
       // Tests migration of user_register = 1
       Database::getConnection('default', 'migrate')
-          ->update('variable')
-          ->fields(['value' => serialize($map[0])])
-          ->condition('name', 'user_register')
-          ->execute();
+        ->update('variable')
+        ->fields(['value' => serialize($map[0])])
+        ->condition('name', 'user_register')
+        ->execute();
 
       /** @var \Drupal\migrate\Plugin\MigrationInterface $migration */
       $migration = $this->getMigration('d6_user_settings');

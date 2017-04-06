@@ -14,7 +14,36 @@ use Drupal\migrate\Row;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Copy a file from one place into another.
+ * Copies or moves a local file from one place into another.
+ *
+ * The file can be moved, reused, or set to be automatically renamed if a
+ * duplicate exists.
+ *
+ * The source value is an array of two values:
+ * - source: The source path or URI, e.g. '/path/to/foo.txt' or
+ *   'public://bar.txt'.
+ * - destination: The destination path or URI, e.g. '/path/to/bar.txt' or
+ *   'public://foo.txt'.
+ *
+ * Available configuration keys:
+ * - move: (optional) Boolean, if TRUE, move the file, otherwise copy the file.
+ *   Defaults to FALSE.
+ * - rename: (optional) Boolean, if TRUE, rename the file by appending a number
+ *   until the name is unique. Defaults to FALSE.
+ * - reuse: (optional) Boolean, if TRUE, reuse the current file in its existing
+ *   location rather than move/copy/rename the file. Defaults to FALSE.
+ *
+ * Examples:
+ *
+ * @code
+ * process:
+ *   path_to_file:
+ *     plugin: file_copy
+ *     source: /path/to/file.png
+ *     destination: /new/path/to/file.png
+ * @endcode
+ *
+ * @see \Drupal\migrate\Plugin\MigrateProcessInterface
  *
  * @MigrateProcessPlugin(
  *   id = "file_copy"
@@ -60,11 +89,11 @@ class FileCopy extends ProcessPluginBase implements ContainerFactoryPluginInterf
    *   An instance of the download plugin for handling remote URIs.
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, StreamWrapperManagerInterface $stream_wrappers, FileSystemInterface $file_system, MigrateProcessInterface $download_plugin) {
-    $configuration += array(
+    $configuration += [
       'move' => FALSE,
       'rename' => FALSE,
       'reuse' => FALSE,
-    );
+    ];
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->streamWrapperManager = $stream_wrappers;
     $this->fileSystem = $file_system;

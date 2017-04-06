@@ -16,7 +16,7 @@ class PagerTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('dblog', 'pager_test');
+  public static $modules = ['dblog', 'pager_test'];
 
   /**
    * A user with permission to access site reports.
@@ -36,16 +36,16 @@ class PagerTest extends WebTestBase {
       $logger->debug($this->randomString());
     }
 
-    $this->adminUser = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser([
       'access site reports',
-    ));
+    ]);
     $this->drupalLogin($this->adminUser);
   }
 
   /**
    * Tests markup and CSS classes of pager links.
    */
-  function testActiveClass() {
+  public function testActiveClass() {
     // Verify first page.
     $this->drupalGet('admin/reports/dblog');
     $current_page = 0;
@@ -53,21 +53,21 @@ class PagerTest extends WebTestBase {
 
     // Verify any page but first/last.
     $current_page++;
-    $this->drupalGet('admin/reports/dblog', array('query' => array('page' => $current_page)));
+    $this->drupalGet('admin/reports/dblog', ['query' => ['page' => $current_page]]);
     $this->assertPagerItems($current_page);
 
     // Verify last page.
-    $elements = $this->xpath('//li[contains(@class, :class)]/a', array(':class' => 'pager__item--last'));
+    $elements = $this->xpath('//li[contains(@class, :class)]/a', [':class' => 'pager__item--last']);
     preg_match('@page=(\d+)@', $elements[0]['href'], $matches);
     $current_page = (int) $matches[1];
-    $this->drupalGet($GLOBALS['base_root'] . parse_url($this->getUrl())['path'] . $elements[0]['href'], array('external' => TRUE));
+    $this->drupalGet($GLOBALS['base_root'] . parse_url($this->getUrl())['path'] . $elements[0]['href'], ['external' => TRUE]);
     $this->assertPagerItems($current_page);
   }
 
   /**
    * Test proper functioning of the query parameters and the pager cache context.
    */
-  protected function testPagerQueryParametersAndCacheContext() {
+  public function testPagerQueryParametersAndCacheContext() {
     // First page.
     $this->drupalGet('pager-test/query-parameters');
     $this->assertText(t('Pager calls: 0'), 'Initial call to pager shows 0 calls.');
@@ -75,16 +75,16 @@ class PagerTest extends WebTestBase {
     $this->assertCacheContext('url.query_args');
 
     // Go to last page, the count of pager calls need to go to 1.
-    $elements = $this->xpath('//li[contains(@class, :class)]/a', array(':class' => 'pager__item--last'));
+    $elements = $this->xpath('//li[contains(@class, :class)]/a', [':class' => 'pager__item--last']);
     $this->drupalGet($this->getAbsoluteUrl($elements[0]['href']));
     $this->assertText(t('Pager calls: 1'), 'First link call to pager shows 1 calls.');
     $this->assertText('[url.query_args.pagers:0]=0.60');
     $this->assertCacheContext('url.query_args');
 
     // Go back to first page, the count of pager calls need to go to 2.
-    $elements = $this->xpath('//li[contains(@class, :class)]/a', array(':class' => 'pager__item--first'));
+    $elements = $this->xpath('//li[contains(@class, :class)]/a', [':class' => 'pager__item--first']);
     $this->drupalGet($this->getAbsoluteUrl($elements[0]['href']));
-    $this->drupalGet($GLOBALS['base_root'] . parse_url($this->getUrl())['path'] . $elements[0]['href'], array('external' => TRUE));
+    $this->drupalGet($GLOBALS['base_root'] . parse_url($this->getUrl())['path'] . $elements[0]['href'], ['external' => TRUE]);
     $this->assertText(t('Pager calls: 2'), 'Second link call to pager shows 2 calls.');
     $this->assertText('[url.query_args.pagers:0]=0.0');
     $this->assertCacheContext('url.query_args');
@@ -93,7 +93,7 @@ class PagerTest extends WebTestBase {
   /**
    * Test proper functioning of multiple pagers.
    */
-  protected function testMultiplePagers() {
+  public function testMultiplePagers() {
     // First page.
     $this->drupalGet('pager-test/multiple-pagers');
 
@@ -203,7 +203,7 @@ class PagerTest extends WebTestBase {
    *   The current pager page the internal browser is on.
    */
   protected function assertPagerItems($current_page) {
-    $elements = $this->xpath('//ul[contains(@class, :class)]/li', array(':class' => 'pager__items'));
+    $elements = $this->xpath('//ul[contains(@class, :class)]/li', [':class' => 'pager__items']);
     $this->assertTrue(!empty($elements), 'Pager found.');
 
     // Make current page 1-based.

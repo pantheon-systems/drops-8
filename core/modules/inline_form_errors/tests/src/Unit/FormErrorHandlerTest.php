@@ -50,25 +50,31 @@ class FormErrorHandlerTest extends UnitTestCase {
 
     $form = [
       '#parents' => [],
+      '#form_id' => 'test_form',
+      '#array_parents' => [],
     ];
     $form['test1'] = [
       '#type' => 'textfield',
       '#title' => 'Test 1',
       '#parents' => ['test1'],
+      '#array_parents' => ['test1'],
       '#id' => 'edit-test1',
     ];
     $form['test2'] = [
       '#type' => 'textfield',
       '#title' => 'Test 2 & a half',
       '#parents' => ['test2'],
+      '#array_parents' => ['test2'],
       '#id' => 'edit-test2',
     ];
     $form['fieldset'] = [
       '#parents' => ['fieldset'],
+      '#array_parents' => ['fieldset'],
       'test3' => [
         '#type' => 'textfield',
         '#title' => 'Test 3',
         '#parents' => ['fieldset', 'test3'],
+        '#array_parents' => ['fieldset', 'test3'],
         '#id' => 'edit-test3',
       ],
     ];
@@ -76,18 +82,21 @@ class FormErrorHandlerTest extends UnitTestCase {
       '#type' => 'textfield',
       '#title' => 'Test 4',
       '#parents' => ['test4'],
+      '#array_parents' => ['test4'],
       '#id' => 'edit-test4',
       '#error_no_message' => TRUE,
     ];
     $form['test5'] = [
       '#type' => 'textfield',
       '#parents' => ['test5'],
+      '#array_parents' => ['test5'],
       '#id' => 'edit-test5',
     ];
     $form['test6'] = [
       '#type' => 'value',
       '#title' => 'Test 6',
       '#parents' => ['test6'],
+      '#array_parents' => ['test6'],
       '#id' => 'edit-test6',
     ];
     $form_state = new FormState();
@@ -114,17 +123,53 @@ class FormErrorHandlerTest extends UnitTestCase {
 
     $form = [
       '#parents' => [],
+      '#form_id' => 'test_form',
+      '#array_parents' => [],
     ];
     $form['test'] = [
       '#type' => 'textfield',
       '#title' => 'Test',
       '#parents' => ['test'],
+      '#array_parents' => ['test'],
       '#id' => 'edit-test',
     ];
     $form_state = new FormState();
     $form_state->setErrorByName('test', 'invalid');
     $form_error_handler->handleFormErrors($form, $form_state);
     $this->assertSame('invalid', $form['test']['#errors']);
+  }
+
+  /**
+   * Test that Quick Edit forms show non-inline errors.
+   *
+   * @covers ::handleFormErrors
+   * @covers ::displayErrorMessages
+   */
+  public function testDisplayErrorMessagesNotInlineQuickEdit() {
+    $form_error_handler = $this->getMockBuilder(FormErrorHandler::class)
+      ->setConstructorArgs([$this->getStringTranslationStub(), $this->getMock(LinkGeneratorInterface::class), $this->getMock(RendererInterface::class)])
+      ->setMethods(['drupalSetMessage'])
+      ->getMock();
+
+    $form_error_handler->expects($this->at(0))
+      ->method('drupalSetMessage')
+      ->with('invalid', 'error');
+
+    $form = [
+      '#parents' => [],
+      '#form_id' => 'quickedit_field_form',
+      '#array_parents' => [],
+    ];
+    $form['test'] = [
+      '#type' => 'textfield',
+      '#title' => 'Test',
+      '#parents' => ['test'],
+      '#id' => 'edit-test',
+      '#array_parents' => ['test']
+    ];
+    $form_state = new FormState();
+    $form_state->setErrorByName('test', 'invalid');
+    $form_error_handler->handleFormErrors($form, $form_state);
   }
 
 }

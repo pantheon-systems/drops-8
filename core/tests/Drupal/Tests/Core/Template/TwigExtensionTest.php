@@ -1,20 +1,14 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Template\TwigExtensionTest.
- */
-
 namespace Drupal\Tests\Core\Template;
 
 use Drupal\Core\GeneratedLink;
 use Drupal\Core\Render\RenderableInterface;
-use Drupal\Core\Render\RendererInterface;
-use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Loader\StringLoader;
 use Drupal\Core\Template\TwigEnvironment;
 use Drupal\Core\Template\TwigExtension;
+use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -27,25 +21,73 @@ use Drupal\Tests\UnitTestCase;
 class TwigExtensionTest extends UnitTestCase {
 
   /**
+   * The renderer.
+   *
+   * @var \Drupal\Core\Render\RendererInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $renderer;
+
+  /**
+   * The url generator.
+   *
+   * @var \Drupal\Core\Routing\UrlGeneratorInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $urlGenerator;
+
+  /**
+   * The theme manager.
+   *
+   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $themeManager;
+
+  /**
+   * The date formatter.
+   *
+   * @var \Drupal\Core\Datetime\DateFormatterInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $dateFormatter;
+
+  /**
+   * The system under test.
+   *
+   * @var \Drupal\Core\Template\TwigExtension
+   */
+  protected $systemUnderTest;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setUp() {
+    parent::setUp();
+
+    $this->renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
+    $this->urlGenerator = $this->getMock('\Drupal\Core\Routing\UrlGeneratorInterface');
+    $this->themeManager = $this->getMock('\Drupal\Core\Theme\ThemeManagerInterface');
+    $this->dateFormatter = $this->getMock('\Drupal\Core\Datetime\DateFormatterInterface');
+
+    $this->systemUnderTest = new TwigExtension($this->renderer, $this->urlGenerator, $this->themeManager, $this->dateFormatter);
+  }
+
+  /**
    * Tests the escaping
    *
    * @dataProvider providerTestEscaping
    */
   public function testEscaping($template, $expected) {
-    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
-    $twig = new \Twig_Environment(NULL, array(
+    $twig = new \Twig_Environment(NULL, [
       'debug' => TRUE,
       'cache' => FALSE,
       'autoescape' => 'html',
-      'optimizations' => 0
-    ));
-    $twig->addExtension((new TwigExtension($renderer))->setUrlGenerator($this->getMock('Drupal\Core\Routing\UrlGeneratorInterface')));
+      'optimizations' => 0,
+    ]);
+    $twig->addExtension($this->systemUnderTest);
 
     $nodes = $twig->parse($twig->tokenize($template));
 
     $this->assertSame($expected, $nodes->getNode('body')
-        ->getNode(0)
-        ->getNode('expr') instanceof \Twig_Node_Expression_Filter);
+      ->getNode(0)
+      ->getNode('expr') instanceof \Twig_Node_Expression_Filter);
   }
 
   /**
@@ -56,52 +98,46 @@ class TwigExtensionTest extends UnitTestCase {
    *   a boolean expecting whether the path will be safe.
    */
   public function providerTestEscaping() {
-    return array(
-      array('{{ path("foo") }}', FALSE),
-      array('{{ path("foo", {}) }}', FALSE),
-      array('{{ path("foo", { foo: "foo" }) }}', FALSE),
-      array('{{ path("foo", foo) }}', TRUE),
-      array('{{ path("foo", { foo: foo }) }}', TRUE),
-      array('{{ path("foo", { foo: ["foo", "bar"] }) }}', TRUE),
-      array('{{ path("foo", { foo: "foo", bar: "bar" }) }}', TRUE),
-      array('{{ path(name = "foo", parameters = {}) }}', FALSE),
-      array('{{ path(name = "foo", parameters = { foo: "foo" }) }}', FALSE),
-      array('{{ path(name = "foo", parameters = foo) }}', TRUE),
-      array(
+    return [
+      ['{{ path("foo") }}', FALSE],
+      ['{{ path("foo", {}) }}', FALSE],
+      ['{{ path("foo", { foo: "foo" }) }}', FALSE],
+      ['{{ path("foo", foo) }}', TRUE],
+      ['{{ path("foo", { foo: foo }) }}', TRUE],
+      ['{{ path("foo", { foo: ["foo", "bar"] }) }}', TRUE],
+      ['{{ path("foo", { foo: "foo", bar: "bar" }) }}', TRUE],
+      ['{{ path(name = "foo", parameters = {}) }}', FALSE],
+      ['{{ path(name = "foo", parameters = { foo: "foo" }) }}', FALSE],
+      ['{{ path(name = "foo", parameters = foo) }}', TRUE],
+      [
         '{{ path(name = "foo", parameters = { foo: ["foo", "bar"] }) }}',
         TRUE
-      ),
-      array('{{ path(name = "foo", parameters = { foo: foo }) }}', TRUE),
-      array(
+      ],
+      ['{{ path(name = "foo", parameters = { foo: foo }) }}', TRUE],
+      [
         '{{ path(name = "foo", parameters = { foo: "foo", bar: "bar" }) }}',
         TRUE
-      ),
-    );
+      ],
+    ];
   }
 
   /**
    * Tests the active_theme function.
    */
   public function testActiveTheme() {
-    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
-    $extension = new TwigExtension($renderer);
-    $theme_manager = $this->getMock('\Drupal\Core\Theme\ThemeManagerInterface');
     $active_theme = $this->getMockBuilder('\Drupal\Core\Theme\ActiveTheme')
       ->disableOriginalConstructor()
       ->getMock();
-    $active_theme
-      ->expects($this->once())
+    $active_theme->expects($this->once())
       ->method('getName')
       ->willReturn('test_theme');
-    $theme_manager
-      ->expects($this->once())
+    $this->themeManager->expects($this->once())
       ->method('getActiveTheme')
       ->willReturn($active_theme);
-    $extension->setThemeManager($theme_manager);
 
     $loader = new \Twig_Loader_String();
     $twig = new \Twig_Environment($loader);
-    $twig->addExtension($extension);
+    $twig->addExtension($this->systemUnderTest);
     $result = $twig->render('{{ active_theme() }}');
     $this->assertEquals('test_theme', $result);
   }
@@ -110,30 +146,21 @@ class TwigExtensionTest extends UnitTestCase {
    * Tests the format_date filter.
    */
   public function testFormatDate() {
-    $date_formatter = $this->getMockBuilder('\Drupal\Core\Datetime\DateFormatter')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $date_formatter->expects($this->exactly(2))
+    $this->dateFormatter->expects($this->exactly(2))
       ->method('format')
       ->willReturn('1978-11-19');
-    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
-    $extension = new TwigExtension($renderer);
-    $extension->setDateFormatter($date_formatter);
 
     $loader = new StringLoader();
     $twig = new \Twig_Environment($loader);
-    $twig->addExtension($extension);
+    $twig->addExtension($this->systemUnderTest);
     $result = $twig->render('{{ time|format_date("html_date") }}');
-    $this->assertEquals($date_formatter->format('html_date'), $result);
+    $this->assertEquals($this->dateFormatter->format('html_date'), $result);
   }
 
   /**
    * Tests the active_theme_path function.
    */
   public function testActiveThemePath() {
-    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
-    $extension = new TwigExtension($renderer);
-    $theme_manager = $this->getMock('\Drupal\Core\Theme\ThemeManagerInterface');
     $active_theme = $this->getMockBuilder('\Drupal\Core\Theme\ActiveTheme')
       ->disableOriginalConstructor()
       ->getMock();
@@ -141,15 +168,13 @@ class TwigExtensionTest extends UnitTestCase {
       ->expects($this->once())
       ->method('getPath')
       ->willReturn('foo/bar');
-    $theme_manager
-      ->expects($this->once())
+    $this->themeManager->expects($this->once())
       ->method('getActiveTheme')
       ->willReturn($active_theme);
-    $extension->setThemeManager($theme_manager);
 
     $loader = new \Twig_Loader_String();
     $twig = new \Twig_Environment($loader);
-    $twig->addExtension($extension);
+    $twig->addExtension($this->systemUnderTest);
     $result = $twig->render('{{ active_theme_path() }}');
     $this->assertEquals('foo/bar', $result);
   }
@@ -160,34 +185,32 @@ class TwigExtensionTest extends UnitTestCase {
    * @covers ::escapeFilter
    */
   public function testSafeStringEscaping() {
-    $renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
-    $twig = new \Twig_Environment(NULL, array(
+    $twig = new \Twig_Environment(NULL, [
       'debug' => TRUE,
       'cache' => FALSE,
       'autoescape' => 'html',
-      'optimizations' => 0
-    ));
-    $twig_extension = new TwigExtension($renderer);
+      'optimizations' => 0,
+    ]);
 
     // By default, TwigExtension will attempt to cast objects to strings.
     // Ensure objects that implement MarkupInterface are unchanged.
     $safe_string = $this->getMock('\Drupal\Component\Render\MarkupInterface');
-    $this->assertSame($safe_string, $twig_extension->escapeFilter($twig, $safe_string, 'html', 'UTF-8', TRUE));
+    $this->assertSame($safe_string, $this->systemUnderTest->escapeFilter($twig, $safe_string, 'html', 'UTF-8', TRUE));
 
     // Ensure objects that do not implement MarkupInterface are escaped.
     $string_object = new TwigExtensionTestString("<script>alert('here');</script>");
-    $this->assertSame('&lt;script&gt;alert(&#039;here&#039;);&lt;/script&gt;', $twig_extension->escapeFilter($twig, $string_object, 'html', 'UTF-8', TRUE));
+    $this->assertSame('&lt;script&gt;alert(&#039;here&#039;);&lt;/script&gt;', $this->systemUnderTest->escapeFilter($twig, $string_object, 'html', 'UTF-8', TRUE));
   }
 
   /**
    * @covers ::safeJoin
    */
   public function testSafeJoin() {
-    $renderer = $this->prophesize(RendererInterface::class);
-    $renderer->render(['#markup' => '<strong>will be rendered</strong>', '#printed' => FALSE])->willReturn('<strong>will be rendered</strong>');
-    $renderer = $renderer->reveal();
+    $this->renderer->expects($this->any())
+      ->method('render')
+      ->with(['#markup' => '<strong>will be rendered</strong>', '#printed' => FALSE])
+      ->willReturn('<strong>will be rendered</strong>');
 
-    $twig_extension = new TwigExtension($renderer);
     $twig_environment = $this->prophesize(TwigEnvironment::class)->reveal();
 
     // Simulate t().
@@ -198,9 +221,9 @@ class TwigExtensionTest extends UnitTestCase {
     $items = [
       '<em>will be escaped</em>',
       $markup,
-      ['#markup' => '<strong>will be rendered</strong>']
+      ['#markup' => '<strong>will be rendered</strong>'],
     ];
-    $result = $twig_extension->safeJoin($twig_environment, $items, '<br/>');
+    $result = $this->systemUnderTest->safeJoin($twig_environment, $items, '<br/>');
     $this->assertEquals('&lt;em&gt;will be escaped&lt;/em&gt;<br/><em>will be markup</em><br/><strong>will be rendered</strong>', $result);
 
     // Ensure safe_join Twig filter supports Traversable variables.
@@ -209,12 +232,12 @@ class TwigExtensionTest extends UnitTestCase {
       $markup,
       ['#markup' => '<strong>will be rendered</strong>'],
     ]);
-    $result = $twig_extension->safeJoin($twig_environment, $items, ', ');
+    $result = $this->systemUnderTest->safeJoin($twig_environment, $items, ', ');
     $this->assertEquals('&lt;em&gt;will be escaped&lt;/em&gt;, <em>will be markup</em>, <strong>will be rendered</strong>', $result);
 
     // Ensure safe_join Twig filter supports empty variables.
     $items = NULL;
-    $result = $twig_extension->safeJoin($twig_environment, $items, '<br>');
+    $result = $this->systemUnderTest->safeJoin($twig_environment, $items, '<br>');
     $this->assertEmpty($result);
   }
 
@@ -222,13 +245,12 @@ class TwigExtensionTest extends UnitTestCase {
    * @dataProvider providerTestRenderVar
    */
   public function testRenderVar($result, $input) {
-    $renderer = $this->prophesize(RendererInterface::class);
-    $renderer->render($result += ['#printed' => FALSE])->willReturn('Rendered output');
+    $this->renderer->expects($this->any())
+      ->method('render')
+      ->with($result += ['#printed' => FALSE])
+      ->willReturn('Rendered output');
 
-    $renderer = $renderer->reveal();
-    $twig_extension = new TwigExtension($renderer);
-
-    $this->assertEquals('Rendered output', $twig_extension->renderVar($input));
+    $this->assertEquals('Rendered output', $this->systemUnderTest->renderVar($input));
   }
 
   public function providerTestRenderVar() {
@@ -247,7 +269,6 @@ class TwigExtensionTest extends UnitTestCase {
    * @covers ::bubbleArgMetadata
    */
   public function testEscapeWithGeneratedLink() {
-    $renderer = $this->prophesize(RendererInterface::class);
     $twig = new \Twig_Environment(NULL, [
         'debug' => TRUE,
         'cache' => FALSE,
@@ -256,22 +277,23 @@ class TwigExtensionTest extends UnitTestCase {
       ]
     );
 
-    $twig_extension = new TwigExtension($renderer->reveal());
-    $twig->addExtension($twig_extension->setUrlGenerator($this->prophesize(UrlGeneratorInterface::class)->reveal()));
+    $twig->addExtension($this->systemUnderTest);
     $link = new GeneratedLink();
     $link->setGeneratedLink('<a href="http://example.com"></a>');
     $link->addCacheTags(['foo']);
     $link->addAttachments(['library' => ['system/base']]);
 
-    $result = $twig_extension->escapeFilter($twig, $link, 'html', NULL, TRUE);
-    $renderer->render([
-      "#cache" => [
-        "contexts" => [],
-        "tags" => ["foo"],
-        "max-age" => -1
-      ],
-      "#attached" => ['library' => ['system/base']],
-    ])->shouldHaveBeenCalled();
+    $this->renderer->expects($this->atLeastOnce())
+      ->method('render')
+      ->with([
+        "#cache" => [
+          "contexts" => [],
+          "tags" => ["foo"],
+          "max-age" => -1,
+        ],
+        "#attached" => ['library' => ['system/base']],
+      ]);
+    $result = $this->systemUnderTest->escapeFilter($twig, $link, 'html', NULL, TRUE);
     $this->assertEquals('<a href="http://example.com"></a>', $result);
   }
 
@@ -280,23 +302,59 @@ class TwigExtensionTest extends UnitTestCase {
    * @covers ::bubbleArgMetadata
    */
   public function testRenderVarWithGeneratedLink() {
-    $renderer = $this->prophesize(RendererInterface::class);
-    $twig_extension = new TwigExtension($renderer->reveal());
     $link = new GeneratedLink();
     $link->setGeneratedLink('<a href="http://example.com"></a>');
     $link->addCacheTags(['foo']);
     $link->addAttachments(['library' => ['system/base']]);
 
-    $result = $twig_extension->renderVar($link);
-    $renderer->render([
-      "#cache" => [
-        "contexts" => [],
-        "tags" => ["foo"],
-        "max-age" => -1
-      ],
-      "#attached" => ['library' => ['system/base']],
-    ])->shouldHaveBeenCalled();
+    $this->renderer->expects($this->atLeastOnce())
+      ->method('render')
+      ->with([
+        "#cache" => [
+          "contexts" => [],
+          "tags" => ["foo"],
+          "max-age" => -1,
+        ],
+        "#attached" => ['library' => ['system/base']],
+      ]);
+    $result = $this->systemUnderTest->renderVar($link);
     $this->assertEquals('<a href="http://example.com"></a>', $result);
+  }
+
+  /**
+   * Tests creating attributes within a Twig template.
+   *
+   * @covers ::createAttribute
+   */
+  public function testCreateAttribute() {
+    $loader = new StringLoader();
+    $twig = new \Twig_Environment($loader);
+    $twig->addExtension($this->systemUnderTest);
+
+    $iterations = [
+      ['class' => ['kittens'], 'data-toggle' => 'modal', 'data-lang' => 'es'],
+      ['id' => 'puppies', 'data-value' => 'foo', 'data-lang' => 'en'],
+      [],
+    ];
+    $result = $twig->render("{% for iteration in iterations %}<div{{ create_attribute(iteration) }}></div>{% endfor %}", ['iterations' => $iterations]);
+    $expected = '<div class="kittens" data-toggle="modal" data-lang="es"></div><div id="puppies" data-value="foo" data-lang="en"></div><div></div>';
+    $this->assertEquals($expected, $result);
+
+    // Test default creation of empty attribute object and using its method.
+    $result = $twig->render("<div{{ create_attribute().addClass('meow') }}></div>");
+    $expected = '<div class="meow"></div>';
+    $this->assertEquals($expected, $result);
+  }
+
+  /**
+   * @covers ::getLink
+   */
+  public function testLinkWithOverriddenAttributes() {
+    $url = Url::fromRoute('<front>', [], ['attributes' => ['class' => ['foo']]]);
+
+    $build = $this->systemUnderTest->getLink('test', $url, ['class' => ['bar']]);
+
+    $this->assertEquals(['foo', 'bar'], $build['#url']->getOption('attributes')['class']);
   }
 
 }

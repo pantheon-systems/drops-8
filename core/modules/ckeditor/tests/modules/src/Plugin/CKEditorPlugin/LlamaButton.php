@@ -17,18 +17,18 @@ class LlamaButton extends Llama implements CKEditorPluginButtonsInterface {
   /**
    * {@inheritdoc}
    */
-  function getButtons() {
-    return array(
-      'Llama' => array(
+  public function getButtons() {
+    return [
+      'Llama' => [
         'label' => t('Insert Llama'),
-      ),
-    );
+      ],
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
-  function getFile() {
+  public function getFile() {
     return drupal_get_path('module', 'ckeditor_test') . '/js/llama_button.js';
   }
 

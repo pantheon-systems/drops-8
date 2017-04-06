@@ -43,6 +43,25 @@ abstract class Twig_Template implements Twig_TemplateInterface
     abstract public function getTemplateName();
 
     /**
+     * Returns debug information about the template.
+     *
+     * @return array Debug information
+     *
+     * @internal
+     */
+    abstract public function getDebugInfo();
+
+    /**
+     * Returns the template source code.
+     *
+     * @return string The template source code
+     */
+    public function getSource()
+    {
+        return '';
+    }
+
+    /**
      * @deprecated since 1.20 (to be removed in 2.0)
      */
     public function getEnvironment()
@@ -321,33 +340,6 @@ abstract class Twig_Template implements Twig_TemplateInterface
     }
 
     /**
-     * Returns the template source code.
-     *
-     * @return string|null The template source code or null if it is not available
-     */
-    public function getSource()
-    {
-        $reflector = new ReflectionClass($this);
-        $file = $reflector->getFileName();
-
-        if (!file_exists($file)) {
-            return;
-        }
-
-        $source = file($file, FILE_IGNORE_NEW_LINES);
-        array_splice($source, 0, $reflector->getEndLine());
-
-        $i = 0;
-        while (isset($source[$i]) && '/* */' === substr_replace($source[$i], '', 3, -2)) {
-            $source[$i] = str_replace('*//* ', '*/', substr($source[$i], 3, -2));
-            ++$i;
-        }
-        array_splice($source, $i);
-
-        return implode("\n", $source);
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function display(array $context, array $blocks = array())
@@ -365,6 +357,12 @@ abstract class Twig_Template implements Twig_TemplateInterface
         try {
             $this->display($context);
         } catch (Exception $e) {
+            while (ob_get_level() > $level) {
+                ob_end_clean();
+            }
+
+            throw $e;
+        } catch (Throwable $e) {
             while (ob_get_level() > $level) {
                 ob_end_clean();
             }
@@ -581,7 +579,7 @@ abstract class Twig_Template implements Twig_TemplateInterface
                 return;
             }
 
-            throw new Twig_Error_Runtime(sprintf('Method "%s" for object "%s" does not exist', $item, get_class($object)), -1, $this->getTemplateName());
+            throw new Twig_Error_Runtime(sprintf('Neither the property "%1$s" nor one of the methods "%1$s()", "get%1$s()"/"is%1$s()" or "__call()" exist and have public access in class "%2$s"', $item, get_class($object)), -1, $this->getTemplateName());
         }
 
         if ($isDefinedTest) {

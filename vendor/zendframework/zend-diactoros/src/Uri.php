@@ -3,7 +3,7 @@
  * Zend Framework (http://framework.zend.com/)
  *
  * @see       http://github.com/zendframework/zend-diactoros for the canonical source repository
- * @copyright Copyright (c) 2015 Zend Technologies USA Inc. (http://www.zend.com)
+ * @copyright Copyright (c) 2015-2016 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
  */
 
@@ -36,7 +36,7 @@ class Uri implements UriInterface
      *
      * @const string
      */
-    const CHAR_UNRESERVED = 'a-zA-Z0-9_\-\.~';
+    const CHAR_UNRESERVED = 'a-zA-Z0-9_\-\.~\pL';
 
     /**
      * @var int[] Array indexed by valid scheme names to their corresponding ports.
@@ -306,21 +306,23 @@ class Uri implements UriInterface
      */
     public function withPort($port)
     {
-        if (! is_numeric($port)) {
+        if (! is_numeric($port) && $port !== null) {
             throw new InvalidArgumentException(sprintf(
-                'Invalid port "%s" specified; must be an integer or integer string',
+                'Invalid port "%s" specified; must be an integer, an integer string, or null',
                 (is_object($port) ? get_class($port) : gettype($port))
             ));
         }
 
-        $port = (int) $port;
+        if ($port !== null) {
+            $port = (int) $port;
+        }
 
         if ($port === $this->port) {
             // Do nothing if no change was made.
             return clone $this;
         }
 
-        if ($port < 1 || $port > 65535) {
+        if ($port !== null && $port < 1 || $port > 65535) {
             throw new InvalidArgumentException(sprintf(
                 'Invalid port "%d" specified; must be a valid TCP/UDP port',
                 $port
@@ -440,12 +442,12 @@ class Uri implements UriInterface
             );
         }
 
-        $this->scheme    = isset($parts['scheme'])   ? $this->filterScheme($parts['scheme']) : '';
-        $this->userInfo  = isset($parts['user'])     ? $parts['user']     : '';
-        $this->host      = isset($parts['host'])     ? $parts['host']     : '';
-        $this->port      = isset($parts['port'])     ? $parts['port']     : null;
-        $this->path      = isset($parts['path'])     ? $this->filterPath($parts['path']) : '';
-        $this->query     = isset($parts['query'])    ? $this->filterQuery($parts['query']) : '';
+        $this->scheme    = isset($parts['scheme']) ? $this->filterScheme($parts['scheme']) : '';
+        $this->userInfo  = isset($parts['user']) ? $parts['user'] : '';
+        $this->host      = isset($parts['host']) ? $parts['host'] : '';
+        $this->port      = isset($parts['port']) ? $parts['port'] : null;
+        $this->path      = isset($parts['path']) ? $this->filterPath($parts['path']) : '';
+        $this->query     = isset($parts['query']) ? $this->filterQuery($parts['query']) : '';
         $this->fragment  = isset($parts['fragment']) ? $this->filterFragment($parts['fragment']) : '';
 
         if (isset($parts['pass'])) {
@@ -505,6 +507,9 @@ class Uri implements UriInterface
     private function isNonStandardPort($scheme, $host, $port)
     {
         if (! $scheme) {
+            if ($host && ! $port) {
+                return false;
+            }
             return true;
         }
 
@@ -551,7 +556,7 @@ class Uri implements UriInterface
     private function filterPath($path)
     {
         $path = preg_replace_callback(
-            '/(?:[^' . self::CHAR_UNRESERVED . ':@&=\+\$,\/;%]+|%(?![A-Fa-f0-9]{2}))/',
+            '/(?:[^' . self::CHAR_UNRESERVED . ':@&=\+\$,\/;%]+|%(?![A-Fa-f0-9]{2}))/u',
             [$this, 'urlEncodeChar'],
             $path
         );
@@ -625,7 +630,7 @@ class Uri implements UriInterface
     private function filterFragment($fragment)
     {
         if (! empty($fragment) && strpos($fragment, '#') === 0) {
-            $fragment = substr($fragment, 1);
+            $fragment = '%23' . substr($fragment, 1);
         }
 
         return $this->filterQueryOrFragment($fragment);
@@ -640,7 +645,7 @@ class Uri implements UriInterface
     private function filterQueryOrFragment($value)
     {
         return preg_replace_callback(
-            '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS . '%:@\/\?]+|%(?![A-Fa-f0-9]{2}))/',
+            '/(?:[^' . self::CHAR_UNRESERVED . self::CHAR_SUB_DELIMS . '%:@\/\?]+|%(?![A-Fa-f0-9]{2}))/u',
             [$this, 'urlEncodeChar'],
             $value
         );

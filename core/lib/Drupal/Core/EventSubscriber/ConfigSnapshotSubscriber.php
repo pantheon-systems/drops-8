@@ -64,8 +64,8 @@ class ConfigSnapshotSubscriber implements EventSubscriberInterface {
    * @return array
    *   An array of event listener definitions.
    */
-  static function getSubscribedEvents() {
-    $events[ConfigEvents::IMPORT][] = array('onConfigImporterImport', 40);
+  public static function getSubscribedEvents() {
+    $events[ConfigEvents::IMPORT][] = ['onConfigImporterImport', 40];
     return $events;
   }
 

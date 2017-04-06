@@ -14,7 +14,7 @@ abstract class MenuWebTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('menu_ui', 'menu_link_content');
+  public static $modules = ['menu_ui', 'menu_link_content'];
 
   /**
    * Fetches the menu item from the database and compares it to expected item.
@@ -24,7 +24,7 @@ abstract class MenuWebTestBase extends WebTestBase {
    * @param array $expected_item
    *   Array containing properties to verify.
    */
-  function assertMenuLink($menu_plugin_id, array $expected_item) {
+  public function assertMenuLink($menu_plugin_id, array $expected_item) {
     // Retrieve menu link.
     /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
     $menu_link_manager = \Drupal::service('plugin.manager.menu.link');

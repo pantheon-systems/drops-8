@@ -34,7 +34,7 @@ class SimpleTestTest extends WebTestBase {
    *
    * Used to ensure they are incrementing.
    */
-  protected $testIds = array();
+  protected $testIds = [];
 
   /**
    * Translated fail message.
@@ -97,12 +97,12 @@ EOD;
       parent::setUp();
       $this->assertNotIdentical(\Drupal::getContainer(), $original_container, 'WebTestBase test creates a new container.');
       // Create and log in an admin user.
-      $this->drupalLogin($this->drupalCreateUser(array('administer unit tests')));
+      $this->drupalLogin($this->drupalCreateUser(['administer unit tests']));
     }
     else {
       // This causes three of the five fails that are asserted in
       // confirmStubResults().
-      self::$modules = array('non_existent_module');
+      self::$modules = ['non_existent_module'];
       parent::setUp();
     }
   }
@@ -110,7 +110,7 @@ EOD;
   /**
    * Ensures the tests selected through the web interface are run and displayed.
    */
-  function testWebTestRunner() {
+  public function testWebTestRunner() {
     $this->passMessage = t('SimpleTest pass.');
     $this->failMessage = t('SimpleTest fail.');
     $this->validPermission = 'access administration pages';
@@ -127,7 +127,7 @@ EOD;
         // Run this test from web interface.
         $this->drupalGet('admin/config/development/testing');
 
-        $edit = array();
+        $edit = [];
         $edit['tests[Drupal\simpletest\Tests\SimpleTestTest]'] = TRUE;
         $this->drupalPostForm(NULL, $edit, t('Run tests'));
 
@@ -148,7 +148,7 @@ EOD;
    * Here we force test results which must match the expected results from
    * confirmStubResults().
    */
-  function stubTest() {
+  public function stubTest() {
     // Ensure the .htkey file exists since this is only created just before a
     // request. This allows the stub test to make requests. The event does not
     // fire here and drupal_generate_test_ua() can not generate a key for a
@@ -192,10 +192,10 @@ EOD;
 
     // This causes the third to fifth of the sixteen passes asserted in
     // confirmStubResults().
-    $user = $this->drupalCreateUser(array($this->validPermission), 'SimpleTestTest');
+    $user = $this->drupalCreateUser([$this->validPermission], 'SimpleTestTest');
 
     // This causes the fifth of the five fails asserted in confirmStubResults().
-    $this->drupalCreateUser(array($this->invalidPermission));
+    $this->drupalCreateUser([$this->invalidPermission]);
 
     // Test logging in as a user.
     // This causes the sixth to tenth of the sixteen passes asserted in
@@ -204,7 +204,7 @@ EOD;
 
     // This causes the eleventh of the sixteen passes asserted in
     // confirmStubResults().
-    $this->pass(t('Test ID is @id.', array('@id' => $this->testId)));
+    $this->pass(t('Test ID is @id.', ['@id' => $this->testId]));
 
     // These cause the twelfth to fifteenth of the sixteen passes asserted in
     // confirmStubResults().
@@ -232,21 +232,21 @@ EOD;
   /**
    * Assert nothing.
    */
-  function assertNothing() {
+  public function assertNothing() {
     $this->pass("This is nothing.");
   }
 
   /**
    * Confirm that the stub test produced the desired results.
    */
-  function confirmStubTestResults() {
-    $this->assertAssertion(t('Unable to install modules %modules due to missing modules %missing.', array('%modules' => 'non_existent_module', '%missing' => 'non_existent_module')), 'Other', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->setUp()');
+  public function confirmStubTestResults() {
+    $this->assertAssertion(t('Unable to install modules %modules due to missing modules %missing.', ['%modules' => 'non_existent_module', '%missing' => 'non_existent_module']), 'Other', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->setUp()');
 
     $this->assertAssertion($this->passMessage, 'Other', 'Pass', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
     $this->assertAssertion($this->failMessage, 'Other', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
 
-    $this->assertAssertion(t('Created permissions: @perms', array('@perms' => $this->validPermission)), 'Role', 'Pass', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
-    $this->assertAssertion(t('Invalid permission %permission.', array('%permission' => $this->invalidPermission)), 'Role', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
+    $this->assertAssertion(t('Created permissions: @perms', ['@perms' => $this->validPermission]), 'Role', 'Pass', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
+    $this->assertAssertion(t('Invalid permission %permission.', ['%permission' => $this->invalidPermission]), 'Role', 'Fail', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
 
     // Check that the user was logged in successfully.
     $this->assertAssertion('User SimpleTestTest successfully logged in.', 'User login', 'Pass', 'SimpleTestTest.php', 'Drupal\simpletest\Tests\SimpleTestTest->stubTest()');
@@ -274,7 +274,7 @@ EOD;
   /**
    * Fetch the test id from the test results.
    */
-  function getTestIdFromResults() {
+  public function getTestIdFromResults() {
     foreach ($this->childTestResults['assertions'] as $assertion) {
       if (preg_match('@^Test ID is ([0-9]*)\.$@', $assertion['message'], $matches)) {
         return $matches[1];
@@ -299,7 +299,7 @@ EOD;
    *
    * @return Assertion result.
    */
-  function assertAssertion($message, $type, $status, $file, $function) {
+  public function assertAssertion($message, $type, $status, $file, $function) {
     $message = trim(strip_tags($message));
     $found = FALSE;
     foreach ($this->childTestResults['assertions'] as $assertion) {
@@ -312,24 +312,24 @@ EOD;
         break;
       }
     }
-    return $this->assertTrue($found, format_string('Found assertion {"@message", "@type", "@status", "@file", "@function"}.', array('@message' => $message, '@type' => $type, '@status' => $status, "@file" => $file, "@function" => $function)));
+    return $this->assertTrue($found, format_string('Found assertion {"@message", "@type", "@status", "@file", "@function"}.', ['@message' => $message, '@type' => $type, '@status' => $status, "@file" => $file, "@function" => $function]));
   }
 
   /**
    * Get the results from a test and store them in the class array $results.
    */
-  function getTestResults() {
-    $results = array();
+  public function getTestResults() {
+    $results = [];
     if ($this->parse()) {
       if ($details = $this->getResultFieldSet()) {
         // Code assumes this is the only test in group.
         $results['summary'] = $this->asText($details->div->div[1]);
         $results['name'] = $this->asText($details->summary);
 
-        $results['assertions'] = array();
+        $results['assertions'] = [];
         $tbody = $details->div->table->tbody;
         foreach ($tbody->tr as $row) {
-          $assertion = array();
+          $assertion = [];
           $assertion['message'] = $this->asText($row->td[0]);
           $assertion['type'] = $this->asText($row->td[1]);
           $assertion['file'] = $this->asText($row->td[2]);
@@ -347,7 +347,7 @@ EOD;
   /**
    * Get the details containing the results for group this test is in.
    */
-  function getResultFieldSet() {
+  public function getResultFieldSet() {
     $all_details = $this->xpath('//details');
     foreach ($all_details as $details) {
       if ($this->asText($details->summary) == __CLASS__) {
@@ -366,7 +366,7 @@ EOD;
    * @return
    *   Extracted text.
    */
-  function asText(\SimpleXMLElement $element) {
+  public function asText(\SimpleXMLElement $element) {
     if (!is_object($element)) {
       return $this->fail('The element is not an element.');
     }

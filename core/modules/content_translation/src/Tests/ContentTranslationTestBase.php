@@ -10,6 +10,9 @@ use Drupal\field\Entity\FieldStorageConfig;
 
 /**
  * Base class for content translation tests.
+ *
+ * @deprecated Scheduled for removal in Drupal 9.0.0.
+ *   Use \Drupal\Tests\content_translation\Functional\ContentTranslationTestBase instead.
  */
 abstract class ContentTranslationTestBase extends WebTestBase {
 
@@ -18,7 +21,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = array('text');
+  public static $modules = ['text'];
 
   /**
    * The entity type being tested.
@@ -102,7 +105,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
    * Adds additional languages.
    */
   protected function setupLanguages() {
-    $this->langcodes = array('it', 'fr');
+    $this->langcodes = ['it', 'fr'];
     foreach ($this->langcodes as $langcode) {
       ConfigurableLanguage::createFromLangcode($langcode)->save();
     }
@@ -113,7 +116,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
    * Returns an array of permissions needed for the translator.
    */
   protected function getTranslatorPermissions() {
-    return array_filter(array($this->getTranslatePermission(), 'create content translations', 'update content translations', 'delete content translations'));
+    return array_filter([$this->getTranslatePermission(), 'create content translations', 'update content translations', 'delete content translations']);
   }
 
   /**
@@ -131,14 +134,14 @@ abstract class ContentTranslationTestBase extends WebTestBase {
    */
   protected function getEditorPermissions() {
     // Every entity-type-specific test needs to define these.
-    return array();
+    return [];
   }
 
   /**
    * Returns an array of permissions needed for the administrator.
    */
   protected function getAdministratorPermissions() {
-    return array_merge($this->getEditorPermissions(), $this->getTranslatorPermissions(), array('administer content translation'));
+    return array_merge($this->getEditorPermissions(), $this->getTranslatorPermissions(), ['administer content translation']);
   }
 
   /**
@@ -180,12 +183,12 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     if (empty($this->fieldName)) {
       $this->fieldName = 'field_test_et_ui_test';
     }
-    FieldStorageConfig::create(array(
+    FieldStorageConfig::create([
       'field_name' => $this->fieldName,
       'type' => 'string',
       'entity_type' => $this->entityTypeId,
       'cardinality' => 1,
-    ))->save();
+    ])->save();
     FieldConfig::create([
       'entity_type' => $this->entityTypeId,
       'field_name' => $this->fieldName,
@@ -193,10 +196,10 @@ abstract class ContentTranslationTestBase extends WebTestBase {
       'label' => 'Test translatable text-field',
     ])->save();
     entity_get_form_display($this->entityTypeId, $this->bundle, 'default')
-      ->setComponent($this->fieldName, array(
+      ->setComponent($this->fieldName, [
         'type' => 'string_textfield',
         'weight' => 0,
-      ))
+      ])
       ->save();
   }
 
@@ -225,7 +228,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     if (!($controller instanceof SqlContentEntityStorage)) {
       foreach ($values as $property => $value) {
         if (is_array($value)) {
-          $entity_values[$property] = array($langcode => $value);
+          $entity_values[$property] = [$langcode => $value];
         }
       }
     }

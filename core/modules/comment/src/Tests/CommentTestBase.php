@@ -52,11 +52,11 @@ abstract class CommentTestBase extends WebTestBase {
     // child classes may specify the standard profile.
     $types = NodeType::loadMultiple();
     if (empty($types['article'])) {
-      $this->drupalCreateContentType(array('type' => 'article', 'name' => t('Article')));
+      $this->drupalCreateContentType(['type' => 'article', 'name' => t('Article')]);
     }
 
     // Create two test users.
-    $this->adminUser = $this->drupalCreateUser(array(
+    $this->adminUser = $this->drupalCreateUser([
       'administer content types',
       'administer comments',
       'administer comment types',
@@ -69,21 +69,21 @@ abstract class CommentTestBase extends WebTestBase {
       // permission is granted.
       'access user profiles',
       'access content',
-     ));
-    $this->webUser = $this->drupalCreateUser(array(
+     ]);
+    $this->webUser = $this->drupalCreateUser([
       'access comments',
       'post comments',
       'create article content',
       'edit own comments',
       'skip comment approval',
       'access content',
-    ));
+    ]);
 
     // Create comment field on article.
     $this->addDefaultCommentField('node', 'article');
 
     // Create a test node authored by the web user.
-    $this->node = $this->drupalCreateNode(array('type' => 'article', 'promote' => 1, 'uid' => $this->webUser->id()));
+    $this->node = $this->drupalCreateNode(['type' => 'article', 'promote' => 1, 'uid' => $this->webUser->id()]);
     $this->drupalPlaceBlock('local_tasks_block');
   }
 
@@ -107,7 +107,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   The posted comment or NULL when posted comment was not found.
    */
   public function postComment($entity, $comment, $subject = '', $contact = NULL, $field_name = 'comment') {
-    $edit = array();
+    $edit = [];
     $edit['comment_body[0][value]'] = $comment;
 
     if ($entity !== NULL) {
@@ -154,7 +154,7 @@ abstract class CommentTestBase extends WebTestBase {
         $this->drupalPostForm(NULL, $edit, t('Save'));
         break;
     }
-    $match = array();
+    $match = [];
     // Get comment ID
     preg_match('/#comment-([0-9]+)/', $this->getURL(), $match);
 
@@ -168,7 +168,7 @@ abstract class CommentTestBase extends WebTestBase {
     }
 
     if (isset($match[1])) {
-      \Drupal::entityManager()->getStorage('comment')->resetCache(array($match[1]));
+      \Drupal::entityManager()->getStorage('comment')->resetCache([$match[1]]);
       return Comment::load($match[1]);
     }
   }
@@ -184,7 +184,7 @@ abstract class CommentTestBase extends WebTestBase {
    * @return bool
    *   Boolean indicating whether the comment was found.
    */
-  function commentExists(CommentInterface $comment = NULL, $reply = FALSE) {
+  public function commentExists(CommentInterface $comment = NULL, $reply = FALSE) {
     if ($comment) {
       $comment_element = $this->cssSelect('.comment-wrapper ' . ($reply ? '.indented ' : '') . '#comment-' . $comment->id() . ' ~ article');
       if (empty($comment_element)) {
@@ -214,8 +214,8 @@ abstract class CommentTestBase extends WebTestBase {
    * @param \Drupal\comment\CommentInterface $comment
    *   Comment to delete.
    */
-  function deleteComment(CommentInterface $comment) {
-    $this->drupalPostForm('comment/' . $comment->id() . '/delete', array(), t('Delete'));
+  public function deleteComment(CommentInterface $comment) {
+    $this->drupalPostForm('comment/' . $comment->id() . '/delete', [], t('Delete'));
     $this->assertText(t('The comment and all its replies have been deleted.'), 'Comment deleted.');
   }
 
@@ -228,9 +228,9 @@ abstract class CommentTestBase extends WebTestBase {
   public function setCommentSubject($enabled) {
     $form_display = entity_get_form_display('comment', 'comment', 'default');
     if ($enabled) {
-      $form_display->setComponent('subject', array(
+      $form_display->setComponent('subject', [
         'type' => 'string_textfield',
-      ));
+      ]);
     }
     else {
       $form_display->removeComponent('subject');
@@ -263,7 +263,7 @@ abstract class CommentTestBase extends WebTestBase {
         $mode_text = 'required';
         break;
     }
-    $this->setCommentSettings('preview', $mode, format_string('Comment preview @mode_text.', array('@mode_text' => $mode_text)), $field_name);
+    $this->setCommentSettings('preview', $mode, format_string('Comment preview @mode_text.', ['@mode_text' => $mode_text]), $field_name);
   }
 
   /**
@@ -289,8 +289,8 @@ abstract class CommentTestBase extends WebTestBase {
    *   - 1: Contact information allowed but not required.
    *   - 2: Contact information required.
    */
-  function setCommentAnonymous($level) {
-    $this->setCommentSettings('anonymous', $level, format_string('Anonymous commenting set to level @level.', array('@level' => $level)));
+  public function setCommentAnonymous($level) {
+    $this->setCommentSettings('anonymous', $level, format_string('Anonymous commenting set to level @level.', ['@level' => $level]));
   }
 
   /**
@@ -303,7 +303,7 @@ abstract class CommentTestBase extends WebTestBase {
    *   Defaults to 'comment'.
    */
   public function setCommentsPerPage($number, $field_name = 'comment') {
-    $this->setCommentSettings('per_page', $number, format_string('Number of comments per page set to @number.', array('@number' => $number)), $field_name);
+    $this->setCommentSettings('per_page', $number, format_string('Number of comments per page set to @number.', ['@number' => $number]), $field_name);
   }
 
   /**
@@ -333,7 +333,7 @@ abstract class CommentTestBase extends WebTestBase {
    * @return bool
    *   Contact info is available.
    */
-  function commentContactInfoAvailable() {
+  public function commentContactInfoAvailable() {
     return preg_match('/(input).*?(name="name").*?(input).*?(name="mail").*?(input).*?(name="homepage")/s', $this->getRawContent());
   }
 
@@ -347,18 +347,18 @@ abstract class CommentTestBase extends WebTestBase {
    * @param bool $approval
    *   Operation is found on approval page.
    */
-  function performCommentOperation(CommentInterface $comment, $operation, $approval = FALSE) {
-    $edit = array();
+  public function performCommentOperation(CommentInterface $comment, $operation, $approval = FALSE) {
+    $edit = [];
     $edit['operation'] = $operation;
     $edit['comments[' . $comment->id() . ']'] = TRUE;
     $this->drupalPostForm('admin/content/comment' . ($approval ? '/approval' : ''), $edit, t('Update'));
 
     if ($operation == 'delete') {
-      $this->drupalPostForm(NULL, array(), t('Delete comments'));
-      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', array('@operation' => $operation)));
+      $this->drupalPostForm(NULL, [], t('Delete comments'));
+      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
     }
     else {
-      $this->assertText(t('The update has been performed.'), format_string('Operation "@operation" was performed on comment.', array('@operation' => $operation)));
+      $this->assertText(t('The update has been performed.'), format_string('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
     }
   }
 
@@ -371,7 +371,7 @@ abstract class CommentTestBase extends WebTestBase {
    * @return int
    *   Comment id.
    */
-  function getUnapprovedComment($subject) {
+  public function getUnapprovedComment($subject) {
     $this->drupalGet('admin/content/comment/approval');
     preg_match('/href="(.*?)#comment-([^"]+)"(.*?)>(' . $subject . ')/', $this->getRawContent(), $match);
 
@@ -388,12 +388,12 @@ abstract class CommentTestBase extends WebTestBase {
    *   Created comment type.
    */
   protected function createCommentType($label) {
-    $bundle = CommentType::create(array(
+    $bundle = CommentType::create([
       'id' => $label,
       'label' => $label,
       'description' => '',
       'target_entity_type_id' => 'node',
-    ));
+    ]);
     $bundle->save();
     return $bundle;
   }

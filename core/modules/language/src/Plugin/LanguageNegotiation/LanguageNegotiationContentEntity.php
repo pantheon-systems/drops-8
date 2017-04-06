@@ -2,7 +2,6 @@
 
 namespace Drupal\language\Plugin\LanguageNegotiation;
 
-use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\PathProcessor\OutboundPathProcessorInterface;
@@ -118,20 +117,8 @@ class LanguageNegotiationContentEntity extends LanguageNegotiationMethodBase imp
         unset($options['language']);
       }
 
-      if (isset($options['query']) && is_string($options['query'])) {
-        $query = [];
-        parse_str($options['query'], $query);
-        $options['query'] = $query;
-      }
-      else {
-        $options['query'] = [];
-      }
-
       if (!isset($options['query'][static::QUERY_PARAMETER])) {
-        $query_addon = [static::QUERY_PARAMETER => $langcode];
-        $options['query'] += $query_addon;
-        // @todo Remove this once https://www.drupal.org/node/2507005 lands.
-        $path .= (strpos($path, '?') !== FALSE ? '&' : '?') . UrlHelper::buildQuery($query_addon);
+        $options['query'][static::QUERY_PARAMETER] = $langcode;
       }
 
       if ($bubbleable_metadata) {
@@ -276,7 +263,7 @@ class LanguageNegotiationContentEntity extends LanguageNegotiationMethodBase imp
       $this->contentEntityPaths = [];
       $entity_types = $this->entityManager->getDefinitions();
       foreach ($entity_types as $entity_type_id => $entity_type) {
-        if ($entity_type->isSubclassOf(ContentEntityInterface::class)) {
+        if ($entity_type->entityClassImplements(ContentEntityInterface::class)) {
           $entity_paths = array_fill_keys($entity_type->getLinkTemplates(), $entity_type_id);
           $this->contentEntityPaths = array_merge($this->contentEntityPaths, $entity_paths);
         }

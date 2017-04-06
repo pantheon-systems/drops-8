@@ -4,6 +4,7 @@ namespace Drupal\Core\Database\Driver\pgsql;
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Connection as DatabaseConnection;
+use Drupal\Core\Database\DatabaseAccessDeniedException;
 use Drupal\Core\Database\DatabaseNotFoundException;
 
 /**
@@ -25,6 +26,27 @@ class Connection extends DatabaseConnection {
    * Error code for "Unknown database" error.
    */
   const DATABASE_NOT_FOUND = 7;
+
+  /**
+   * Error code for "Connection failure" errors.
+   *
+   * Technically this is an internal error code that will only be shown in the
+   * PDOException message. It will need to get extracted.
+   */
+  const CONNECTION_FAILURE = '08006';
+
+  /**
+   * A map of condition operators to PostgreSQL operators.
+   *
+   * In PostgreSQL, 'LIKE' is case-sensitive. ILKE should be used for
+   * case-insensitive statements.
+   */
+  protected static $postgresqlConditionOperatorMap = [
+    'LIKE' => ['operator' => 'ILIKE'],
+    'LIKE BINARY' => ['operator' => 'LIKE'],
+    'NOT LIKE' => ['operator' => 'NOT ILIKE'],
+    'REGEXP' => ['operator' => '~*'],
+  ];
 
   /**
    * The list of PostgreSQL reserved key words.
@@ -74,7 +96,7 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  public static function open(array &$connection_options = array()) {
+  public static function open(array &$connection_options = []) {
     // Default to TCP connection on port 5432.
     if (empty($connection_options['port'])) {
       $connection_options['port'] = 5432;
@@ -98,10 +120,10 @@ class Connection extends DatabaseConnection {
     $dsn = 'pgsql:host=' . $connection_options['host'] . ' dbname=' . $connection_options['database'] . ' port=' . $connection_options['port'];
 
     // Allow PDO options to be overridden.
-    $connection_options += array(
-      'pdo' => array(),
-    );
-    $connection_options['pdo'] += array(
+    $connection_options += [
+      'pdo' => [],
+    ];
+    $connection_options['pdo'] += [
       \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
       // Prepared statements are most effective for performance when queries
       // are recycled (used several times). However, if they are not re-used,
@@ -112,8 +134,22 @@ class Connection extends DatabaseConnection {
       \PDO::ATTR_EMULATE_PREPARES => TRUE,
       // Convert numeric values to strings when fetching.
       \PDO::ATTR_STRINGIFY_FETCHES => TRUE,
-    );
-    $pdo = new \PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
+    ];
+
+    try {
+      $pdo = new \PDO($dsn, $connection_options['username'], $connection_options['password'], $connection_options['pdo']);
+    }
+    catch (\PDOException $e) {
+      if (static::getSQLState($e) == static::CONNECTION_FAILURE) {
+        if (strpos($e->getMessage(), 'password authentication failed for user') !== FALSE) {
+          throw new DatabaseAccessDeniedException($e->getMessage(), $e->getCode(), $e);
+        }
+        elseif (strpos($e->getMessage(), 'database') !== FALSE && strpos($e->getMessage(), 'does not exist') !== FALSE) {
+          throw new DatabaseNotFoundException($e->getMessage(), $e->getCode(), $e);
+        }
+      }
+      throw $e;
+    }
 
     return $pdo;
   }
@@ -121,7 +157,7 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  public function query($query, array $args = array(), $options = array()) {
+  public function query($query, array $args = [], $options = []) {
     $options += $this->defaultOptions();
 
     // The PDO PostgreSQL driver has a bug which doesn't type cast booleans
@@ -168,21 +204,18 @@ class Connection extends DatabaseConnection {
   }
 
   public function prepareQuery($query) {
-    // mapConditionOperator converts LIKE operations to ILIKE for consistency
-    // with MySQL. However, Postgres does not support ILIKE on bytea (blobs)
-    // fields.
-    // To make the ILIKE operator work, we type-cast bytea fields into text.
-    // @todo This workaround only affects bytea fields, but the involved field
-    //   types involved in the query are unknown, so there is no way to
-    //   conditionally execute this for affected queries only.
-    return parent::prepareQuery(preg_replace('/ ([^ ]+) +(I*LIKE|NOT +I*LIKE) /i', ' ${1}::text ${2} ', $query));
+    // mapConditionOperator converts some operations (LIKE, REGEXP, etc.) to
+    // PostgreSQL equivalents (ILIKE, ~*, etc.). However PostgreSQL doesn't
+    // automatically cast the fields to the right type for these operators,
+    // so we need to alter the query and add the type-cast.
+    return parent::prepareQuery(preg_replace('/ ([^ ]+) +(I*LIKE|NOT +I*LIKE|~\*) /i', ' ${1}::text ${2} ', $query));
   }
 
-  public function queryRange($query, $from, $count, array $args = array(), array $options = array()) {
+  public function queryRange($query, $from, $count, array $args = [], array $options = []) {
     return $this->query($query . ' LIMIT ' . (int) $count . ' OFFSET ' . (int) $from, $args, $options);
   }
 
-  public function queryTemporary($query, array $args = array(), array $options = array()) {
+  public function queryTemporary($query, array $args = [], array $options = []) {
     $tablename = $this->generateTemporaryTableName();
     $this->query('CREATE TEMPORARY TABLE {' . $tablename . '} AS ' . $query, $args, $options);
     return $tablename;
@@ -300,15 +333,7 @@ class Connection extends DatabaseConnection {
   }
 
   public function mapConditionOperator($operator) {
-    static $specials = array(
-      // In PostgreSQL, 'LIKE' is case-sensitive. For case-insensitive LIKE
-      // statements, we need to use ILIKE instead.
-      'LIKE' => array('operator' => 'ILIKE'),
-      'LIKE BINARY' => array('operator' => 'LIKE'),
-      'NOT LIKE' => array('operator' => 'NOT ILIKE'),
-      'REGEXP' => array('operator' => '~*'),
-    );
-    return isset($specials[$operator]) ? $specials[$operator] : NULL;
+    return isset(static::$postgresqlConditionOperatorMap[$operator]) ? static::$postgresqlConditionOperatorMap[$operator] : NULL;
   }
 
   /**
@@ -409,14 +434,14 @@ class Connection extends DatabaseConnection {
    */
   public function rollbackSavepoint($savepoint_name = 'mimic_implicit_commit') {
     if (isset($this->transactionLayers[$savepoint_name])) {
-      $this->rollback($savepoint_name);
+      $this->rollBack($savepoint_name);
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function upsert($table, array $options = array()) {
+  public function upsert($table, array $options = []) {
     // Use the (faster) native Upsert implementation for PostgreSQL >= 9.5.
     if (version_compare($this->version(), '9.5', '>=')) {
       $class = $this->getDriverClass('NativeUpsert');

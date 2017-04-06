@@ -19,7 +19,7 @@
         "symfony/polyfill-iconv": "~1.0",
         "symfony/yaml": "~2.8",
         "twig/twig": "^1.23.1",
-        "doctrine/common": "2.5.*",
+        "doctrine/common": "^2.5",
         "doctrine/annotations": "1.2.*",
         "guzzlehttp/guzzle": "^6.2.1",
         "symfony-cmf/routing": "~1.4",
@@ -28,19 +28,21 @@
         "stack/builder": "1.0.*",
         "egulias/email-validator": "1.2.*",
         "masterminds/html5": "~2.1",
-        "symfony/psr-http-message-bridge": "v0.2",
+        "symfony/psr-http-message-bridge": "^1.0",
         "zendframework/zend-diactoros": "~1.1",
         "composer/semver": "~1.0",
-        "paragonie/random_compat": "^1|^2",
+        "paragonie/random_compat": "^1.0|^2.0",
         "asm89/stack-cors": "~1.0"
     },
     "require-dev": {
-        "behat/mink": "~1.7",
+        "behat/mink": "1.7.x-dev",
         "behat/mink-goutte-driver": "~1.2",
+        "drupal/coder": "8.2.12",
         "jcalderonzumba/gastonjs": "~1.0.2",
         "jcalderonzumba/mink-phantomjs-driver": "~0.3.1",
         "mikey179/vfsStream": "~1.2",
         "phpunit/phpunit": ">=4.8.28 <5",
+        "symfony/browser-kit": ">=2.8.13 <3.0",
         "symfony/css-selector": "~2.8"
     },
     "replace": {
@@ -94,6 +96,7 @@
         "drupal/editor": "self.version",
         "drupal/entity_reference": "self.version",
         "drupal/field": "self.version",
+        "drupal/field_layout": "self.version",
         "drupal/field_ui": "self.version",
         "drupal/file": "self.version",
         "drupal/filter": "self.version",
@@ -104,6 +107,7 @@
         "drupal/image": "self.version",
         "drupal/inline_form_errors": "self.version",
         "drupal/language": "self.version",
+        "drupal/layout_discovery": "self.version",
         "drupal/link": "self.version",
         "drupal/locale": "self.version",
         "drupal/minimal": "self.version",
@@ -140,7 +144,8 @@
         "drupal/update": "self.version",
         "drupal/user": "self.version",
         "drupal/views": "self.version",
-        "drupal/views_ui": "self.version"
+        "drupal/views_ui": "self.version",
+        "drupal/workflows": "self.version"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -166,6 +171,9 @@
     },
     "scripts": {
         "pre-autoload-dump": "Drupal\\Core\\Composer\\Composer::preAutoloadDump",
-        "post-autoload-dump": "Drupal\\Core\\Composer\\Composer::ensureHtaccess"
+        "post-autoload-dump": [
+          "Drupal\\Core\\Composer\\Composer::ensureHtaccess",
+          "Drupal\\Core\\Composer\\Composer::configurePhpcs"
+        ]
     }
 }

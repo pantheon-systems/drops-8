@@ -6,20 +6,12 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\ConstraintValidatorInterface;
-use Symfony\Component\Validator\ExecutionContextInterface;
+use Symfony\Component\Validator\ConstraintValidator;
 
 /**
  * Validates the LinkAccess constraint.
  */
-class LinkAccessConstraintValidator implements ConstraintValidatorInterface, ContainerInjectionInterface {
-
-  /**
-   * Stores the validator's state during validation.
-   *
-   * @var \Symfony\Component\Validator\ExecutionContextInterface
-   */
-  protected $context;
+class LinkAccessConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   /**
    * Proxy for the current user account.
@@ -50,13 +42,6 @@ class LinkAccessConstraintValidator implements ConstraintValidatorInterface, Con
   /**
    * {@inheritdoc}
    */
-  public function initialize(ExecutionContextInterface $context) {
-    $this->context = $context;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function validate($value, Constraint $constraint) {
     if (isset($value)) {
       try {
@@ -70,7 +55,7 @@ class LinkAccessConstraintValidator implements ConstraintValidatorInterface, Con
       // permission nor can access this URI.
       $allowed = $this->current_user->hasPermission('link to any page') || $url->access();
       if (!$allowed) {
-        $this->context->addViolation($constraint->message, array('@uri' => $value->uri));
+        $this->context->addViolation($constraint->message, ['@uri' => $value->uri]);
       }
     }
   }

@@ -55,12 +55,10 @@ class FileCacheFactoryTest extends UnitTestCase {
 
   /**
    * @covers ::get
-   *
-   * @expectedException \InvalidArgumentException
-   * @expectedExceptionMessage Required prefix configuration is missing
    */
   public function testGetNoPrefix() {
     FileCacheFactory::setPrefix(NULL);
+    $this->setExpectedException(\InvalidArgumentException::class, 'Required prefix configuration is missing');
     FileCacheFactory::get('test_foo_settings', []);
   }
 
@@ -101,8 +99,8 @@ class FileCacheFactoryTest extends UnitTestCase {
 
     // Get a unique FileCache class.
     $file_cache = $this->getMockBuilder(FileCache::class)
-       ->disableOriginalConstructor()
-       ->getMock();
+      ->disableOriginalConstructor()
+      ->getMock();
     $class = get_class($file_cache);
 
     // Test fallback configuration.

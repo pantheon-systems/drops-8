@@ -30,7 +30,7 @@ class Insert extends Query implements \Countable {
    * @param array $options
    *   Array of database options.
    */
-  public function __construct($connection, $table, array $options = array()) {
+  public function __construct($connection, $table, array $options = []) {
     if (!isset($options['return'])) {
       $options['return'] = Database::RETURN_INSERT_ID;
     }
@@ -91,13 +91,13 @@ class Insert extends Query implements \Countable {
     }
     catch (\Exception $e) {
       // One of the INSERTs failed, rollback the whole batch.
-      $transaction->rollback();
+      $transaction->rollBack();
       // Rethrow the exception for the calling code.
       throw $e;
     }
 
     // Re-initialize the values array so that we can re-use this query.
-    $this->insertValues = array();
+    $this->insertValues = [];
 
     // Transaction commits here where $transaction looses scope.
 
@@ -124,7 +124,7 @@ class Insert extends Query implements \Countable {
     // For simplicity, we will use the $placeholders array to inject
     // default keywords even though they are not, strictly speaking,
     // placeholders for prepared statements.
-    $placeholders = array();
+    $placeholders = [];
     $placeholders = array_pad($placeholders, count($this->defaultFields), 'default');
     $placeholders = array_pad($placeholders, count($this->insertFields), '?');
 

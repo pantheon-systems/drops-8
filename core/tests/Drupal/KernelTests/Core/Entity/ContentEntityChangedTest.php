@@ -59,11 +59,12 @@ class ContentEntityChangedTest extends EntityKernelTestBase {
     $user2 = $this->createUser();
 
     // Create a test entity.
-    $entity = EntityTestMulChanged::create(array(
+    $entity = EntityTestMulChanged::create([
       'name' => $this->randomString(),
+      'not_translatable' => $this->randomString(),
       'user_id' => $user1->id(),
       'language' => 'en',
-    ));
+    ]);
     $entity->save();
 
     $this->assertTrue(
@@ -121,6 +122,25 @@ class ContentEntityChangedTest extends EntityKernelTestBase {
       $german->getChangedTime(), $changed_de,
       'Changed time of the German translation did not change.'
     );
+
+    // Update a non-translatable field to make sure that the changed timestamp
+    // is updated for all translations.
+    $entity->set('not_translatable', $this->randomString())->save();
+
+    $this->assertTrue(
+      $entity->getChangedTime() > $changed_en,
+      'Changed time of original language did change.'
+    );
+
+    $this->assertTrue(
+      $german->getChangedTime() > $changed_de,
+      'Changed time of the German translation did change.'
+    );
+
+    $this->assertEquals($entity->getChangedTime(), $german->getChangedTime(), 'When editing a non-translatable field the updated changed time is equal across all translations.');
+
+    $changed_en = $entity->getChangedTime();
+    $changed_de = $german->getChangedTime();
 
     $entity->setOwner($user2);
 
@@ -269,11 +289,11 @@ class ContentEntityChangedTest extends EntityKernelTestBase {
     $user2 = $this->createUser();
 
     // Create a test entity.
-    $entity = EntityTestMulRevChanged::create(array(
+    $entity = EntityTestMulRevChanged::create([
       'name' => $this->randomString(),
       'user_id' => $user1->id(),
       'language' => 'en',
-    ));
+    ]);
     $entity->save();
 
     $this->assertTrue(
@@ -491,6 +511,10 @@ class ContentEntityChangedTest extends EntityKernelTestBase {
       'Changed flag of French translation is set when adding the translation and a new revision.'
     );
 
+    // Since above a clone of the entity was saved and then this entity is saved
+    // again, we have to update the revision ID to the current one.
+    $german->set('revision_id', $form_entity_builder_clone->getRevisionId());
+    $german->updateLoadedRevisionId();
     $german->setOwner($user1);
     $german->setRevisionTranslationAffected(FALSE);
     $entity->save();

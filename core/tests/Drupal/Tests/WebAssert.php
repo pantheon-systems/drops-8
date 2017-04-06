@@ -113,10 +113,10 @@ class WebAssert extends MinkWebAssert {
    */
   public function selectExists($select, TraversableElement $container = NULL) {
     $container = $container ?: $this->session->getPage();
-    $node = $container->find('named', array(
+    $node = $container->find('named', [
       'select',
       $this->session->getSelectorsHandler()->xpathLiteral($select),
-    ));
+    ]);
 
     if ($node === NULL) {
       throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
@@ -143,16 +143,16 @@ class WebAssert extends MinkWebAssert {
    */
   public function optionExists($select, $option, TraversableElement $container = NULL) {
     $container = $container ?: $this->session->getPage();
-    $select_field = $container->find('named', array(
+    $select_field = $container->find('named', [
       'select',
       $this->session->getSelectorsHandler()->xpathLiteral($select),
-    ));
+    ]);
 
     if ($select_field === NULL) {
       throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
     }
 
-    $option_field = $select_field->find('named', array('option', $option));
+    $option_field = $select_field->find('named', ['option', $option]);
 
     if ($option_field === NULL) {
       throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $option);
@@ -176,16 +176,16 @@ class WebAssert extends MinkWebAssert {
    */
   public function optionNotExists($select, $option, TraversableElement $container = NULL) {
     $container = $container ?: $this->session->getPage();
-    $select_field = $container->find('named', array(
+    $select_field = $container->find('named', [
       'select',
       $this->session->getSelectorsHandler()->xpathLiteral($select),
-    ));
+    ]);
 
     if ($select_field === NULL) {
       throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
     }
 
-    $option_field = $select_field->find('named', array('option', $option));
+    $option_field = $select_field->find('named', ['option', $option]);
 
     $this->assert($option_field === NULL, sprintf('An option "%s" exists in select "%s", but it should not.', $option, $select));
   }
@@ -247,7 +247,7 @@ class WebAssert extends MinkWebAssert {
    *   Thrown when element doesn't exist, or the link label is a different one.
    */
   public function linkNotExists($label, $message = '') {
-    $message = ($message ? $message : strtr('Link with label %label found.', ['%label' => $label]));
+    $message = ($message ? $message : strtr('Link with label %label not found.', ['%label' => $label]));
     $links = $this->session->getPage()->findAll('named', ['link', $label]);
     $this->assert(empty($links), $message);
   }
@@ -291,7 +291,7 @@ class WebAssert extends MinkWebAssert {
    */
   public function linkByHrefNotExists($href, $message = '') {
     $xpath = $this->buildXPathQuery('//a[contains(@href, :href)]', [':href' => $href]);
-    $message = ($message ? $message : strtr('Link containing href %href found.', ['%href' => $href]));
+    $message = ($message ? $message : strtr('No link containing href %href found.', ['%href' => $href]));
     $links = $this->session->getPage()->findAll('xpath', $xpath);
     $this->assert(empty($links), $message);
   }
@@ -316,11 +316,11 @@ class WebAssert extends MinkWebAssert {
    * @return string
    *   An XPath query with arguments replaced.
    */
-  public function buildXPathQuery($xpath, array $args = array()) {
+  public function buildXPathQuery($xpath, array $args = []) {
     // Replace placeholders.
     foreach ($args as $placeholder => $value) {
       if (is_object($value)) {
-        throw new \InvalidArgumentException('Just pass in scalar values.');
+        throw new \InvalidArgumentException('Just pass in scalar values for $args and remove all t() calls from your test.');
       }
       // XPath 1.0 doesn't support a way to escape single or double quotes in a
       // string literal. We split double quotes out of the string, and encode
@@ -420,6 +420,85 @@ class WebAssert extends MinkWebAssert {
     }
 
     return $node;
+  }
+
+  /**
+   * Checks that specific hidden field exists.
+   *
+   * @param string $field
+   *   One of id|name|value for the hidden field.
+   * @param \Behat\Mink\Element\TraversableElement $container
+   *   (optional) The document to check against. Defaults to the current page.
+   *
+   * @return \Behat\Mink\Element\NodeElement
+   *   The matching element.
+   *
+   * @throws \Behat\Mink\Exception\ElementNotFoundException
+   */
+  public function hiddenFieldExists($field, TraversableElement $container = NULL) {
+    $container = $container ?: $this->session->getPage();
+    if ($node = $container->find('hidden_field_selector', ['hidden_field', $field])) {
+      return $node;
+    }
+    throw new ElementNotFoundException($this->session->getDriver(), 'form hidden field', 'id|name|value', $field);
+  }
+
+  /**
+   * Checks that specific hidden field does not exists.
+   *
+   * @param string $field
+   *   One of id|name|value for the hidden field.
+   * @param \Behat\Mink\Element\TraversableElement $container
+   *   (optional) The document to check against. Defaults to the current page.
+   *
+   * @throws \Behat\Mink\Exception\ExpectationException
+   */
+  public function hiddenFieldNotExists($field, TraversableElement $container = NULL) {
+    $container = $container ?: $this->session->getPage();
+    $node = $container->find('hidden_field_selector', ['hidden_field', $field]);
+    $this->assert($node === NULL, "A hidden field '$field' exists on this page, but it should not.");
+  }
+
+  /**
+   * Checks that specific hidden field have provided value.
+   *
+   * @param string $field
+   *   One of id|name|value for the hidden field.
+   * @param string $value
+   *   The hidden field value that needs to be checked.
+   * @param \Behat\Mink\Element\TraversableElement $container
+   *   (optional) The document to check against. Defaults to the current page.
+   *
+   * @throws \Behat\Mink\Exception\ElementNotFoundException
+   * @throws \Behat\Mink\Exception\ExpectationException
+   */
+  public function hiddenFieldValueEquals($field, $value, TraversableElement $container = NULL) {
+    $node = $this->hiddenFieldExists($field, $container);
+    $actual = $node->getValue();
+    $regex = '/^' . preg_quote($value, '/') . '$/ui';
+    $message = "The hidden field '$field' value is '$actual', but '$value' expected.";
+    $this->assert((bool) preg_match($regex, $actual), $message);
+  }
+
+  /**
+   * Checks that specific hidden field doesn't have the provided value.
+   *
+   * @param string $field
+   *   One of id|name|value for the hidden field.
+   * @param string $value
+   *   The hidden field value that needs to be checked.
+   * @param \Behat\Mink\Element\TraversableElement $container
+   *   (optional) The document to check against. Defaults to the current page.
+   *
+   * @throws \Behat\Mink\Exception\ElementNotFoundException
+   * @throws \Behat\Mink\Exception\ExpectationException
+   */
+  public function hiddenFieldValueNotEquals($field, $value, TraversableElement $container = NULL) {
+    $node = $this->hiddenFieldExists($field, $container);
+    $actual = $node->getValue();
+    $regex = '/^' . preg_quote($value, '/') . '$/ui';
+    $message = "The hidden field '$field' value is '$actual', but it should not be.";
+    $this->assert(!preg_match($regex, $actual), $message);
   }
 
 }

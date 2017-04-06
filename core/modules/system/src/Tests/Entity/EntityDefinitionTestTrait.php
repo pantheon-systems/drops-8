@@ -37,6 +37,7 @@ trait EntityDefinitionTestTrait {
     $keys = $entity_type->getKeys();
     $keys['revision'] = 'revision_id';
     $entity_type->set('entity_keys', $keys);
+    $entity_type->set('revision_table', 'entity_test_update_revision');
 
     $this->state->set('entity_test_update.entity_type', $entity_type);
   }
@@ -50,6 +51,7 @@ trait EntityDefinitionTestTrait {
     $keys = $entity_type->getKeys();
     unset($keys['revision']);
     $entity_type->set('entity_keys', $keys);
+    $entity_type->set('revision_table', NULL);
 
     $this->state->set('entity_test_update.entity_type', $entity_type);
   }
@@ -82,6 +84,24 @@ trait EntityDefinitionTestTrait {
     if ($entity_type->isRevisionable()) {
       $entity_type->set('revision_data_table', NULL);
     }
+
+    $this->state->set('entity_test_update.entity_type', $entity_type);
+  }
+
+  /**
+   * Updates the 'entity_test_update' entity type to revisionable and
+   * translatable.
+   */
+  protected function updateEntityTypeToRevisionableAndTranslatable() {
+    $entity_type = clone $this->entityManager->getDefinition('entity_test_update');
+
+    $keys = $entity_type->getKeys();
+    $keys['revision'] = 'revision_id';
+    $entity_type->set('entity_keys', $keys);
+    $entity_type->set('translatable', TRUE);
+    $entity_type->set('data_table', 'entity_test_update_data');
+    $entity_type->set('revision_table', 'entity_test_update_revision');
+    $entity_type->set('revision_data_table', 'entity_test_update_revision_data');
 
     $this->state->set('entity_test_update.entity_type', $entity_type);
   }
@@ -202,9 +222,9 @@ trait EntityDefinitionTestTrait {
    * @see \Drupal\entity_test\EntityTestStorageSchema::getEntitySchema()
    */
   protected function addEntityIndex() {
-    $indexes = array(
-      'entity_test_update__new_index' => array('name', 'user_id'),
-    );
+    $indexes = [
+      'entity_test_update__new_index' => ['name', 'test_single_property'],
+    ];
     $this->state->set('entity_test_update.additional_entity_indexes', $indexes);
   }
 

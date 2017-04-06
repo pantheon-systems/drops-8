@@ -1272,7 +1272,7 @@
  *   site; CSS files, which alter the styling applied to the HTML; and
  *   JavaScript, Flash, images, and other files. For more information, see the
  *   @link theme_render Theme system and render API topic @endlink and
- *   https://www.drupal.org/theme-guide/8
+ *   https://www.drupal.org/docs/8/theming
  * - Modules: Modules add to or alter the behavior and functionality of Drupal,
  *   by using one or more of the methods listed below. For more information
  *   about creating modules, see https://www.drupal.org/developing/modules/8
@@ -1768,8 +1768,8 @@
  * processing state.
  *
  * The argument to \Drupal::formBuilder()->getForm() is the name of a class that
- * implements FormBuilderInterface. Any additional arguments passed to the
- * getForm() method will be passed along as additional arguments to the
+ * implements FormInterface. Any additional arguments passed to the getForm()
+ * method will be passed along as additional arguments to the
  * ExampleForm::buildForm() method.
  *
  * For example:
@@ -2103,39 +2103,39 @@ function hook_mail_alter(&$message) {
 function hook_mail($key, &$message, $params) {
   $account = $params['account'];
   $context = $params['context'];
-  $variables = array(
+  $variables = [
     '%site_name' => \Drupal::config('system.site')->get('name'),
     '%username' => $account->getDisplayName(),
-  );
+  ];
   if ($context['hook'] == 'taxonomy') {
     $entity = $params['entity'];
     $vocabulary = Vocabulary::load($entity->id());
-    $variables += array(
+    $variables += [
       '%term_name' => $entity->name,
       '%term_description' => $entity->description,
       '%term_id' => $entity->id(),
       '%vocabulary_name' => $vocabulary->label(),
       '%vocabulary_description' => $vocabulary->getDescription(),
       '%vocabulary_id' => $vocabulary->id(),
-    );
+    ];
   }
 
   // Node-based variable translation is only available if we have a node.
   if (isset($params['node'])) {
     /** @var \Drupal\node\NodeInterface $node */
     $node = $params['node'];
-    $variables += array(
+    $variables += [
       '%uid' => $node->getOwnerId(),
-      '%url' => $node->url('canonical', array('absolute' => TRUE)),
+      '%url' => $node->url('canonical', ['absolute' => TRUE]),
       '%node_type' => node_get_type_label($node),
       '%title' => $node->getTitle(),
       '%teaser' => $node->teaser,
       '%body' => $node->body,
-    );
+    ];
   }
   $subject = strtr($context['subject'], $variables);
   $body = strtr($context['message'], $variables);
-  $message['subject'] .= str_replace(array("\r", "\n"), '', $subject);
+  $message['subject'] .= str_replace(["\r", "\n"], '', $subject);
   $message['body'][] = MailFormatHelper::htmlToText($body);
 }
 
@@ -2176,6 +2176,17 @@ function hook_countries_alter(&$countries) {
  */
 function hook_display_variant_plugin_alter(array &$definitions) {
   $definitions['full_page']['admin_label'] = t('Block layout');
+}
+
+/**
+ * Allow modules to alter layout plugin definitions.
+ *
+ * @param \Drupal\Core\Layout\LayoutDefinition[] $definitions
+ *   The array of layout definitions, keyed by plugin ID.
+ */
+function hook_layout_alter(&$definitions) {
+  // Remove a layout.
+  unset($definitions['twocol']);
 }
 
 /**
