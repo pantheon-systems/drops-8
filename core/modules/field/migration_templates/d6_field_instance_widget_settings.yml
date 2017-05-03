@@ -16,7 +16,7 @@ process:
   # field migration.
   field_type_exists:
     -
-      plugin: migration
+      plugin: migration_lookup
       migration: d6_field
       source:
         - field_name
@@ -29,7 +29,7 @@ process:
       method: row
   bundle:
     -
-      plugin: migration
+      plugin: migration_lookup
       migration: d6_node_type
       source: type_name
     -
@@ -49,6 +49,7 @@ process:
         email_textfield: email_default
         date_select: datetime_default
         date_text: datetime_default
+        date_popup: datetime_default
         imagefield_widget: image_image
         phone_textfield: telephone_default
         optionwidgets_onoff: boolean_checkbox

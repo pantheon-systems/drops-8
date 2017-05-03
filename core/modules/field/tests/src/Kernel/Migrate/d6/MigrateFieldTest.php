@@ -62,6 +62,14 @@ class MigrateFieldTest extends MigrateDrupal6TestBase {
     $field_storage = FieldStorageConfig::load('node.field_test_datetime');
     $this->assertIdentical("datetime", $field_storage->getType(), t('Field type is @fieldtype. It should be datetime.', ['@fieldtype' => $field_storage->getType()]));
 
+    // Date fields.
+    $field_storage = FieldStorageConfig::load('node.field_test_datetime');
+    $this->assertSame("datetime", $field_storage->getType(), t('Field type is @fieldtype. It should be datetime.', ['@fieldtype' => $field_storage->getType()]));
+    $field_storage = FieldStorageConfig::load('node.field_test_datestamp');
+    $this->assertSame("timestamp", $field_storage->getType(), t('Field type is @fieldtype. It should be timestamp.', ['@fieldtype' => $field_storage->getType()]));
+    $field_storage = FieldStorageConfig::load('node.field_test_date');
+    $this->assertSame("datetime", $field_storage->getType(), t('Field type is @fieldtype. It should be datetime.', ['@fieldtype' => $field_storage->getType()]));
+
     // Decimal field with radio buttons.
     $field_storage = FieldStorageConfig::load('node.field_test_decimal_radio_buttons');
     $this->assertIdentical("list_float", $field_storage->getType(), t('Field type is @fieldtype. It should be list_float.', ['@fieldtype' => $field_storage->getType()]));
@@ -69,6 +77,10 @@ class MigrateFieldTest extends MigrateDrupal6TestBase {
     $this->assertNotNull($field_storage->getSetting('allowed_values')['2.1'], t('Second allowed value key is set to 2.1'));
     $this->assertIdentical('1.2', $field_storage->getSetting('allowed_values')['1.2'], t('First allowed value is set to 1.2'));
     $this->assertIdentical('2.1', $field_storage->getSetting('allowed_values')['2.1'], t('Second allowed value is set to 1.2'));
+
+    // Email field.
+    $field_storage = FieldStorageConfig::load('node.field_test_email');
+    $this->assertSame("email", $field_storage->getType(), t('Field type is @fieldtype. It should be email.', ['@fieldtype' => $field_storage->getType()]));
 
     // Float field with a single checkbox.
     $field_storage = FieldStorageConfig::load('node.field_test_float_single_checkbox');

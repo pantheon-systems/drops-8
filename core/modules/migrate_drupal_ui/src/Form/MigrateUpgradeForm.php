@@ -70,6 +70,14 @@ class MigrateUpgradeForm extends ConfirmFormBase {
       'source_module' => 'block',
       'destination_module' => 'block',
     ],
+    'block_content_entity_form_display' => [
+      'source_module' => 'block',
+      'destination_module' => 'block_content',
+    ],
+    'block_content_entity_display' => [
+      'source_module' => 'block',
+      'destination_module' => 'block_content',
+    ],
     'block_content_body_field' => [
       'source_module' => 'block',
       'destination_module' => 'block_content',
@@ -426,7 +434,7 @@ class MigrateUpgradeForm extends ConfirmFormBase {
       'source_module' => 'simpletest',
       'destination_module' => 'simpletest',
     ],
-    'd6_statistics_settings' => [
+    'statistics_settings' => [
       'source_module' => 'statistics',
       'destination_module' => 'statistics',
     ],
@@ -581,6 +589,10 @@ class MigrateUpgradeForm extends ConfirmFormBase {
     'd6_profile_values' => [
       'source_module' => 'profile',
       'destination_module' => 'user',
+    ],
+    'd7_theme_settings' => [
+      'source_module' => 'system',
+      'destination_module' => 'system',
     ],
     'd6_user' => [
       'source_module' => 'user',

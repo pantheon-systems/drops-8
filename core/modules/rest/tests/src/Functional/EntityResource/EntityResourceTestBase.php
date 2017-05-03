@@ -724,10 +724,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
 
     // DX: 415 when request body in existing but not allowed format.
     $response = $this->request('POST', $url, $request_options);
-    // @todo Update this in https://www.drupal.org/node/2826407. Also move it
-    // higher, before the "no request body" test. That's impossible right now,
-    // because the format validation happens too late.
-    $this->assertResourceErrorResponse(415, '', $response);
+    $this->assertResourceErrorResponse(415, 'No route found that matches "Content-Type: text/xml"', $response);
 
 
     $request_options[RequestOptions::HEADERS]['Content-Type'] = static::$mimeType;
@@ -760,6 +757,8 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
 
 
     // 201 for well-formed request.
+    // Delete the first created entity in case there is a uniqueness constraint.
+    $this->entityStorage->load(static::$firstCreatedEntityId)->delete();
     $response = $this->request('POST', $url, $request_options);
     $this->assertResourceResponse(201, FALSE, $response);
     if ($has_canonical_url) {
@@ -936,10 +935,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
 
     // DX: 415 when request body in existing but not allowed format.
     $response = $this->request('PATCH', $url, $request_options);
-    // @todo Update this in https://www.drupal.org/node/2826407. Also move it
-    // higher, before the "no request body" test. That's impossible right now,
-    // because the format validation happens too late.
-    $this->assertResourceErrorResponse(415, '', $response);
+    $this->assertResourceErrorResponse(415, 'No route found that matches "Content-Type: text/xml"', $response);
 
 
     $request_options[RequestOptions::HEADERS]['Content-Type'] = static::$mimeType;
