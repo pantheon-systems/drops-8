@@ -153,6 +153,23 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
   $config['system.file']['path']['temporary'] = $_SERVER['HOME'] .'/tmp';
 }
 
+/**
+ * Place Twig cache files in the Pantheon rolling temporary directory.
+ * A new rolling temporary directory is provided on every code deploy,
+ * guaranteeing that fresh twig cache files will be generated every time.
+ * Note that the rendered output generated from the twig cache files
+ * are also cached in the database, so a cache clear is still necessary
+ * to see updated results after a code deploy.
+ */
+if (isset($_ENV['PANTHEON_ROLLING_TMP']) && isset($_ENV['PANTHEON_DEPLOYMENT_IDENTIFIER'])) {
+  // Relocate the compiled twig files to <binding-dir>/tmp/ROLLING/twig.
+  // The location of ROLLING will change with every deploy.
+  $settings['php_storage']['twig']['directory'] = $_ENV['PANTHEON_ROLLING_TMP'];
+  // Ensure that the compiled twig templates will be rebuilt whenever the
+  // deployment identifier changes.  Note that a cache rebuild is also necessary.
+  $settings['deployment_identifier'] = $_ENV['PANTHEON_DEPLOYMENT_IDENTIFIER'];
+  $settings['php_storage']['twig']['secret'] = $_ENV['DRUPAL_HASH_SALT'] . $settings['deployment_identifier'];
+}
 
 /**
  * The default list of directories that will be ignored by Drupal's file API.
