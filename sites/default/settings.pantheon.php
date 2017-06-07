@@ -172,6 +172,15 @@ if (isset($_ENV['PANTHEON_ROLLING_TMP']) && isset($_ENV['PANTHEON_DEPLOYMENT_IDE
 }
 
 /**
+ * Install the Pantheon Service Provider to hook Pantheon services into
+ * Drupal 8. This service provider handles operations such as clearing the
+ * Pantheon edge cache whenever the Drupal cache is rebuilt.
+ */
+if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
+  $GLOBALS['conf']['container_service_providers']['PantheonServiceProvider'] = '\Pantheon\Internal\PantheonServiceProvider';
+}
+
+/**
  * The default list of directories that will be ignored by Drupal's file API.
  *
  * By default ignore node_modules and bower_components folders to avoid issues
