@@ -1038,6 +1038,7 @@ return array(
     'Drupal\\Core\\Field\\Annotation\\FieldType' => $baseDir . '/core/lib/Drupal/Core/Field/Annotation/FieldType.php',
     'Drupal\\Core\\Field\\Annotation\\FieldWidget' => $baseDir . '/core/lib/Drupal/Core/Field/Annotation/FieldWidget.php',
     'Drupal\\Core\\Field\\BaseFieldDefinition' => $baseDir . '/core/lib/Drupal/Core/Field/BaseFieldDefinition.php',
+    'Drupal\\Core\\Field\\BaseFieldOverrideAccessControlHandler' => $baseDir . '/core/lib/Drupal/Core/Field/BaseFieldOverrideAccessControlHandler.php',
     'Drupal\\Core\\Field\\BaseFieldOverrideStorage' => $baseDir . '/core/lib/Drupal/Core/Field/BaseFieldOverrideStorage.php',
     'Drupal\\Core\\Field\\ChangedFieldItemList' => $baseDir . '/core/lib/Drupal/Core/Field/ChangedFieldItemList.php',
     'Drupal\\Core\\Field\\EntityReferenceFieldItemList' => $baseDir . '/core/lib/Drupal/Core/Field/EntityReferenceFieldItemList.php',

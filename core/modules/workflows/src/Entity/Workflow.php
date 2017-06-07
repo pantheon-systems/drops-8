@@ -20,15 +20,36 @@ use Drupal\workflows\WorkflowInterface;
  *   label_collection = @Translation("Workflows"),
  *   handlers = {
  *     "access" = "Drupal\workflows\WorkflowAccessControlHandler",
+ *     "list_builder" = "Drupal\workflows\WorkflowListBuilder",
+ *     "form" = {
+ *       "add" = "Drupal\workflows\Form\WorkflowAddForm",
+ *       "edit" = "Drupal\workflows\Form\WorkflowEditForm",
+ *       "delete" = "Drupal\workflows\Form\WorkflowDeleteForm",
+ *       "add-state" = "Drupal\workflows\Form\WorkflowStateAddForm",
+ *       "edit-state" = "Drupal\workflows\Form\WorkflowStateEditForm",
+ *       "delete-state" = "Drupal\workflows\Form\WorkflowStateDeleteForm",
+ *       "add-transition" = "Drupal\workflows\Form\WorkflowTransitionAddForm",
+ *       "edit-transition" = "Drupal\workflows\Form\WorkflowTransitionEditForm",
+ *       "delete-transition" = "Drupal\workflows\Form\WorkflowTransitionDeleteForm",
+ *     },
  *     "route_provider" = {
  *       "html" = "Drupal\Core\Entity\Routing\AdminHtmlRouteProvider",
- *     },
+ *     }
  *   },
  *   config_prefix = "workflow",
+ *   admin_permission = "administer workflows",
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
  *     "uuid" = "uuid",
+ *   },
+ *   links = {
+ *     "add-form" = "/admin/config/workflow/workflows/add",
+ *     "edit-form" = "/admin/config/workflow/workflows/manage/{workflow}",
+ *     "delete-form" = "/admin/config/workflow/workflows/manage/{workflow}/delete",
+ *     "add-state-form" = "/admin/config/workflow/workflows/manage/{workflow}/add_state",
+ *     "add-transition-form" = "/admin/config/workflow/workflows/manage/{workflow}/add_transition",
+ *     "collection" = "/admin/config/workflow/workflows"
  *   },
  *   config_export = {
  *     "id",
@@ -241,14 +262,6 @@ class Workflow extends ConfigEntityBase implements WorkflowInterface, EntityWith
     unset($this->states[$state_id]);
     $this->getTypePlugin()->deleteState($state_id);
     return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getInitialState() {
-    $ordered_states = $this->getStates();
-    return reset($ordered_states);
   }
 
   /**

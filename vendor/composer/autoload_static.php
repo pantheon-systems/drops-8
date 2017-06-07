@@ -1326,6 +1326,7 @@ class ComposerStaticInitDrupal8
         'Drupal\\Core\\Field\\Annotation\\FieldType' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/Annotation/FieldType.php',
         'Drupal\\Core\\Field\\Annotation\\FieldWidget' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/Annotation/FieldWidget.php',
         'Drupal\\Core\\Field\\BaseFieldDefinition' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/BaseFieldDefinition.php',
+        'Drupal\\Core\\Field\\BaseFieldOverrideAccessControlHandler' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/BaseFieldOverrideAccessControlHandler.php',
         'Drupal\\Core\\Field\\BaseFieldOverrideStorage' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/BaseFieldOverrideStorage.php',
         'Drupal\\Core\\Field\\ChangedFieldItemList' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/ChangedFieldItemList.php',
         'Drupal\\Core\\Field\\EntityReferenceFieldItemList' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Field/EntityReferenceFieldItemList.php',
