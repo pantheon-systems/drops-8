@@ -1916,6 +1916,7 @@ class ComposerStaticInitDrupal8
         'Drupal\\Core\\Test\\AssertMailTrait' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/AssertMailTrait.php',
         'Drupal\\Core\\Test\\FunctionalTestSetupTrait' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/FunctionalTestSetupTrait.php',
         'Drupal\\Core\\Test\\HttpClientMiddleware\\TestHttpClientMiddleware' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/HttpClientMiddleware/TestHttpClientMiddleware.php',
+        'Drupal\\Core\\Test\\ObjectSerialization' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/ObjectSerialization.php',
         'Drupal\\Core\\Test\\TestDatabase' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/TestDatabase.php',
         'Drupal\\Core\\Test\\TestKernel' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/TestKernel.php',
         'Drupal\\Core\\Test\\TestRunnerKernel' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/TestRunnerKernel.php',

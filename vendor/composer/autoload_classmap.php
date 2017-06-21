@@ -1628,6 +1628,7 @@ return array(
     'Drupal\\Core\\Test\\AssertMailTrait' => $baseDir . '/core/lib/Drupal/Core/Test/AssertMailTrait.php',
     'Drupal\\Core\\Test\\FunctionalTestSetupTrait' => $baseDir . '/core/lib/Drupal/Core/Test/FunctionalTestSetupTrait.php',
     'Drupal\\Core\\Test\\HttpClientMiddleware\\TestHttpClientMiddleware' => $baseDir . '/core/lib/Drupal/Core/Test/HttpClientMiddleware/TestHttpClientMiddleware.php',
+    'Drupal\\Core\\Test\\ObjectSerialization' => $baseDir . '/core/lib/Drupal/Core/Test/ObjectSerialization.php',
     'Drupal\\Core\\Test\\TestDatabase' => $baseDir . '/core/lib/Drupal/Core/Test/TestDatabase.php',
     'Drupal\\Core\\Test\\TestKernel' => $baseDir . '/core/lib/Drupal/Core/Test/TestKernel.php',
     'Drupal\\Core\\Test\\TestRunnerKernel' => $baseDir . '/core/lib/Drupal/Core/Test/TestRunnerKernel.php',
