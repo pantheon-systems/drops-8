@@ -2,6 +2,8 @@
 
 namespace Drupal\migrate_drupal_ui\Tests;
 
+@trigger_error('\Drupal\migrate_drupal_ui\Tests\MigrateUpgradeTestBase is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use \Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeTestBase instead.', E_USER_DEPRECATED);
+
 use Drupal\Core\Database\Database;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
 use Drupal\migrate_drupal\MigrationConfigurationTrait;
@@ -9,6 +11,9 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Provides a base class for testing migration upgrades in the UI.
+ *
+ * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use
+ *   \Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeTestBase instead.
  */
 abstract class MigrateUpgradeTestBase extends WebTestBase {
   use MigrationConfigurationTrait;
