@@ -159,27 +159,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
      */
     public function getSurrogate()
     {
-        if (!$this->surrogate instanceof Esi) {
-            throw new \LogicException('This instance of HttpCache was not set up to use ESI as surrogate handler. You must overwrite and use createSurrogate');
-        }
-
         return $this->surrogate;
-    }
-
-    /**
-     * Gets the Esi instance.
-     *
-     * @return Esi An Esi instance
-     *
-     * @throws \LogicException
-     *
-     * @deprecated since version 2.6, to be removed in 3.0. Use getSurrogate() instead
-     */
-    public function getEsi()
-    {
-        @trigger_error('The '.__METHOD__.' method is deprecated since version 2.6 and will be removed in 3.0. Use the getSurrogate() method instead.', E_USER_DEPRECATED);
-
-        return $this->getSurrogate();
     }
 
     /**
@@ -484,7 +464,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
         // make sure HttpCache is a trusted proxy
         if (!in_array('127.0.0.1', $trustedProxies = Request::getTrustedProxies())) {
             $trustedProxies[] = '127.0.0.1';
-            Request::setTrustedProxies($trustedProxies);
+            Request::setTrustedProxies($trustedProxies, method_exists('Request', 'getTrustedHeaderSet') ? Request::getTrustedHeaderSet() : -1);
         }
 
         // always a "master" request (as the real master request can be in cache)

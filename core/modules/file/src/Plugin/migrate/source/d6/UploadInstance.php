@@ -10,7 +10,7 @@ use Drupal\migrate\Plugin\migrate\source\DummyQueryTrait;
  *
  * @MigrateSource(
  *   id = "d6_upload_instance",
- *   source_provider = "upload"
+ *   source_module = "upload"
  * )
  */
 class UploadInstance extends DrupalSqlBase {
@@ -25,7 +25,9 @@ class UploadInstance extends DrupalSqlBase {
       ->fields('nt', ['type'])
       ->execute()
       ->fetchCol();
-    $variables = array_map(function($type) { return 'upload_' . $type; }, $node_types);
+    $variables = array_map(function($type) {
+      return 'upload_' . $type;
+    }, $node_types);
 
     $max_filesize = $this->variableGet('upload_uploadsize_default', 1);
     $max_filesize = $max_filesize ? $max_filesize . 'MB' : '';

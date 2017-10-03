@@ -213,6 +213,8 @@ interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
    *
    * @deprecated in Drupal 8.1.x, will be removed before Drupal 9.0.x. Use
    *   lookupDestinationIds() instead.
+   *
+   * @see https://www.drupal.org/node/2725809
    */
   public function lookupDestinationId(array $source_id_values);
 
@@ -227,7 +229,7 @@ interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
    *   If unkeyed, the first count($source_id_values) keys will be assumed.
    *
    * @return array
-   *    An array of arrays of destination identifier values.
+   *   An array of arrays of destination identifier values.
    *
    * @throws \Drupal\migrate\MigrateException
    *   Thrown when $source_id_values contains unknown keys, or is the wrong
@@ -266,10 +268,10 @@ interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
   public function getQualifiedMapTableName();
 
   /**
-   * Sets the migrate message.
+   * Sets the migrate message service.
    *
    * @param \Drupal\migrate\MigrateMessageInterface $message
-   *   The message to display.
+   *   The migrate message service.
    */
   public function setMessage(MigrateMessageInterface $message);
 

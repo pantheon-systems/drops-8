@@ -96,7 +96,7 @@ class MigrateExecutable implements MigrateExecutableInterface {
    * @param \Drupal\migrate\Plugin\MigrationInterface $migration
    *   The migration to run.
    * @param \Drupal\migrate\MigrateMessageInterface $message
-   *   The message to record.
+   *   The migrate message service.
    * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $event_dispatcher
    *   The event dispatcher.
    *
@@ -533,6 +533,9 @@ class MigrateExecutable implements MigrateExecutableInterface {
     }
 
     // @TODO: explore resetting the container.
+
+    // Run garbage collector to further reduce memory.
+    gc_collect_cycles();
 
     return memory_get_usage();
   }

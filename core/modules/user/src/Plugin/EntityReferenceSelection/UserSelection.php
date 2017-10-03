@@ -3,6 +3,7 @@
 namespace Drupal\user\Plugin\EntityReferenceSelection;
 
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection;
@@ -82,21 +83,26 @@ class UserSelection extends DefaultSelection {
   /**
    * {@inheritdoc}
    */
-  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $selection_handler_settings = $this->configuration['handler_settings'];
-
-    // Merge in default values.
-    $selection_handler_settings += [
+  public function defaultConfiguration() {
+    return [
       'filter' => [
         'type' => '_none',
+        'role' => NULL,
       ],
       'include_anonymous' => TRUE,
-    ];
+    ] + parent::defaultConfiguration();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    $configuration = $this->getConfiguration();
 
     $form['include_anonymous'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Include the anonymous user.'),
-      '#default_value' => $selection_handler_settings['include_anonymous'],
+      '#default_value' => $configuration['include_anonymous'],
     ];
 
     // Add user specific filter options.
@@ -109,7 +115,7 @@ class UserSelection extends DefaultSelection {
       ],
       '#ajax' => TRUE,
       '#limit_validation_errors' => [],
-      '#default_value' => $selection_handler_settings['filter']['type'],
+      '#default_value' => $configuration['filter']['type'],
     ];
 
     $form['filter']['settings'] = [
@@ -118,18 +124,13 @@ class UserSelection extends DefaultSelection {
       '#process' => [['\Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem', 'formProcessMergeParent']],
     ];
 
-    if ($selection_handler_settings['filter']['type'] == 'role') {
-      // Merge in default values.
-      $selection_handler_settings['filter'] += [
-        'role' => NULL,
-      ];
-
+    if ($configuration['filter']['type'] == 'role') {
       $form['filter']['settings']['role'] = [
         '#type' => 'checkboxes',
         '#title' => $this->t('Restrict to the selected roles'),
         '#required' => TRUE,
         '#options' => array_diff_key(user_role_names(TRUE), [RoleInterface::AUTHENTICATED_ID => RoleInterface::AUTHENTICATED_ID]),
-        '#default_value' => $selection_handler_settings['filter']['role'],
+        '#default_value' => $configuration['filter']['role'],
       ];
     }
 
@@ -143,11 +144,12 @@ class UserSelection extends DefaultSelection {
    */
   protected function buildEntityQuery($match = NULL, $match_operator = 'CONTAINS') {
     $query = parent::buildEntityQuery($match, $match_operator);
-    $handler_settings = $this->configuration['handler_settings'];
+
+    $configuration = $this->getConfiguration();
 
     // Filter out the Anonymous user if the selection handler is configured to
     // exclude it.
-    if (isset($handler_settings['include_anonymous']) && !$handler_settings['include_anonymous']) {
+    if (!$configuration['include_anonymous']) {
       $query->condition('uid', 0, '<>');
     }
 
@@ -157,8 +159,8 @@ class UserSelection extends DefaultSelection {
     }
 
     // Filter by role.
-    if (!empty($handler_settings['filter']['role'])) {
-      $query->condition('roles', $handler_settings['filter']['role'], 'IN');
+    if (!empty($configuration['filter']['role'])) {
+      $query->condition('roles', $configuration['filter']['role'], 'IN');
     }
 
     // Adding the permission check is sadly insufficient for users: core
@@ -190,10 +192,10 @@ class UserSelection extends DefaultSelection {
   public function validateReferenceableNewEntities(array $entities) {
     $entities = parent::validateReferenceableNewEntities($entities);
     // Mirror the conditions checked in buildEntityQuery().
-    if (!empty($this->configuration['handler_settings']['filter']['role'])) {
-      $entities = array_filter($entities, function ($user) {
+    if ($role = $this->getConfiguration()['filter']['role']) {
+      $entities = array_filter($entities, function ($user) use ($role) {
         /** @var \Drupal\user\UserInterface $user */
-        return !empty(array_intersect($user->getRoles(), $this->configuration['handler_settings']['filter']['role']));
+        return !empty(array_intersect($user->getRoles(), $role));
       });
     }
     if (!$this->currentUser->hasPermission('administer users')) {
@@ -209,9 +211,10 @@ class UserSelection extends DefaultSelection {
    * {@inheritdoc}
    */
   public function entityQueryAlter(SelectInterface $query) {
+    parent::entityQueryAlter($query);
+
     // Bail out early if we do not need to match the Anonymous user.
-    $handler_settings = $this->configuration['handler_settings'];
-    if (isset($handler_settings['include_anonymous']) && !$handler_settings['include_anonymous']) {
+    if (!$this->getConfiguration()['include_anonymous']) {
       return;
     }
 
@@ -228,17 +231,17 @@ class UserSelection extends DefaultSelection {
           // Re-add the condition and a condition on uid = 0 so that we end up
           // with a query in the form:
           // WHERE (name LIKE :name) OR (:anonymous_name LIKE :name AND uid = 0)
-          $or = db_or();
+          $or = new Condition('OR');
           $or->condition($condition['field'], $condition['value'], $condition['operator']);
           // Sadly, the Database layer doesn't allow us to build a condition
           // in the form ':placeholder = :placeholder2', because the 'field'
           // part of a condition is always escaped.
           // As a (cheap) workaround, we separately build a condition with no
           // field, and concatenate the field and the condition separately.
-          $value_part = db_and();
+          $value_part = new Condition('AND');
           $value_part->condition('anonymous_name', $condition['value'], $condition['operator']);
           $value_part->compile($this->connection, $query);
-          $or->condition(db_and()
+          $or->condition((new Condition('AND'))
             ->where(str_replace('anonymous_name', ':anonymous_name', (string) $value_part), $value_part->arguments() + [':anonymous_name' => \Drupal::config('user.settings')->get('anonymous')])
             ->condition('base_table.uid', 0)
           );

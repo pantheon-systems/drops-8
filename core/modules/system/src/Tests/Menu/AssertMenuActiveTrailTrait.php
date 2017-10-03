@@ -2,10 +2,15 @@
 
 namespace Drupal\system\Tests\Menu;
 
+@trigger_error(__NAMESPACE__ . '\AssertMenuActiveTrailTrait is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Instead, use \Drupal\Tests\system\Functional\Menu\AssertMenuActiveTrailTrait', E_USER_DEPRECATED);
+
 use Drupal\Core\Url;
 
 /**
  * Provides test assertions for verifying the active menu trail.
+ *
+ * @deprecated Scheduled for removal in Drupal 9.0.0.
+ *   Use \Drupal\Tests\system\Functional\Menu\AssertMenuActiveTrailTrait instead.
  */
 trait AssertMenuActiveTrailTrait {
 

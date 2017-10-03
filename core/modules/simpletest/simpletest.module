@@ -13,6 +13,7 @@ use Drupal\simpletest\TestBase;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\simpletest\TestDiscovery;
 use Drupal\Tests\Listeners\SimpletestUiPrinter;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Drupal\Core\Test\TestStatus;
 
@@ -284,8 +285,15 @@ function simpletest_phpunit_xml_filepath($test_id) {
  *
  * @return string
  *   The path to core's phpunit.xml.dist configuration file.
+ *
+ * @deprecated in Drupal 8.4.x for removal before Drupal 9.0.0. PHPUnit test
+ *   runners should change directory into core/ and then run the phpunit tool.
+ *   See simpletest_phpunit_run_command() for an example.
+ *
+ * @see simpletest_phpunit_run_command()
  */
 function simpletest_phpunit_configuration_filepath() {
+  @trigger_error('The ' . __FUNCTION__ . ' function is deprecated since version 8.4.x and will be removed in 9.0.0.', E_USER_DEPRECATED);
   return \Drupal::root() . '/core/phpunit.xml.dist';
 }
 
@@ -355,7 +363,7 @@ function simpletest_phpunit_run_command(array $unescaped_test_classnames, $phpun
 
   // exec in a subshell so that the environment is isolated when running tests
   // via the simpletest UI.
-  $ret = exec(join($command, " "), $output, $status);
+  $ret = exec(implode(" ", $command), $output, $status);
 
   chdir($old_cwd);
   putenv('SIMPLETEST_DB=');
@@ -412,7 +420,7 @@ function _simpletest_batch_operation($test_list_init, $test_id, &$context) {
 
   // Perform the next test.
   $test_class = array_shift($test_list);
-  if (is_subclass_of($test_class, \PHPUnit_Framework_TestCase::class)) {
+  if (is_subclass_of($test_class, TestCase::class)) {
     $phpunit_results = simpletest_run_phpunit_tests($test_id, [$test_class]);
     simpletest_process_phpunit_results($phpunit_results);
     $test_results[$test_class] = simpletest_summarize_phpunit_result($phpunit_results)[$test_class];
@@ -437,20 +445,20 @@ function _simpletest_batch_operation($test_list_init, $test_id, &$context) {
       '#theme' => 'simpletest_result_summary',
       '#label' => t($test_results[$class]['#name'] . ':'),
     ];
-    array_unshift($items, drupal_render($class_test_result));
+    array_unshift($items, \Drupal::service('renderer')->render($class_test_result));
   }
   $context['message'] = t('Processed test @num of @max - %test.', ['%test' => $info['name'], '@num' => $max - $size, '@max' => $max]);
   $overall_results = $test_results + [
     '#theme' => 'simpletest_result_summary',
     '#label' => t('Overall results:'),
   ];
-  $context['message'] .= drupal_render($overall_results);
+  $context['message'] .= \Drupal::service('renderer')->render($overall_results);
 
   $item_list = [
     '#theme' => 'item_list',
     '#items' => $items,
   ];
-  $context['message'] .= drupal_render($item_list);
+  $context['message'] .= \Drupal::service('renderer')->render($item_list);
 
   // Save working values for the next iteration.
   $context['sandbox']['tests'] = $test_list;
@@ -764,9 +772,10 @@ function simpletest_mail_alter(&$message) {
  * @param $phpunit_xml_file
  *   Path to the PHPUnit XML file.
  *
- * @return array[]
+ * @return array[]|null
  *   The results as array of rows in a format that can be inserted into
- *   {simpletest}.
+ *   {simpletest}. If the phpunit_xml_file does not have any contents then the
+ *   function will return NULL.
  */
 function simpletest_phpunit_xml_to_rows($test_id, $phpunit_xml_file) {
   $contents = @file_get_contents($phpunit_xml_file);
@@ -786,7 +795,7 @@ function simpletest_phpunit_xml_to_rows($test_id, $phpunit_xml_file) {
  *
  * @param \SimpleXMLElement $element
  *   The PHPUnit xml to search for test cases.
- * @param \SimpleXMLElement $suite
+ * @param \SimpleXMLElement $parent
  *   (Optional) The parent of the current element. Defaults to NULL.
  *
  * @return array

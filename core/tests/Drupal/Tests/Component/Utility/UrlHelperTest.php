@@ -3,14 +3,14 @@
 namespace Drupal\Tests\Component\Utility;
 
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @group Utility
  *
  * @coversDefaultClass \Drupal\Component\Utility\UrlHelper
  */
-class UrlHelperTest extends UnitTestCase {
+class UrlHelperTest extends TestCase {
 
   /**
    * Provides test data for testBuildQuery().
@@ -269,6 +269,14 @@ class UrlHelperTest extends UnitTestCase {
           'fragment' => 'footer',
         ],
       ],
+      'absolute fragment, no query' => [
+        'http://www.example.com/my/path#footer',
+        [
+          'path' => 'http://www.example.com/my/path',
+          'query' => [],
+          'fragment' => 'footer',
+        ],
+      ],
       [
         'http://',
         [
@@ -292,6 +300,14 @@ class UrlHelperTest extends UnitTestCase {
           'query' => [
             'destination' => 'home',
           ],
+          'fragment' => 'footer',
+        ],
+      ],
+      'relative fragment, no query' => [
+        '/my/path#footer',
+        [
+          'path' => '/my/path',
+          'query' => [],
           'fragment' => 'footer',
         ],
       ],
@@ -391,11 +407,11 @@ class UrlHelperTest extends UnitTestCase {
    * @covers ::filterBadProtocol
    *
    * @param string $uri
-   *    Protocol URI.
+   *   Protocol URI.
    * @param string $expected
-   *    Expected escaped value.
+   *   Expected escaped value.
    * @param array $protocols
-   *    Protocols to allow.
+   *   Protocols to allow.
    */
   public function testFilterBadProtocol($uri, $expected, $protocols) {
     UrlHelper::setAllowedProtocols($protocols);
@@ -430,11 +446,11 @@ class UrlHelperTest extends UnitTestCase {
    * @covers ::stripDangerousProtocols
    *
    * @param string $uri
-   *    Protocol URI.
+   *   Protocol URI.
    * @param string $expected
-   *    Expected escaped value.
+   *   Expected escaped value.
    * @param array $protocols
-   *    Protocols to allow.
+   *   Protocols to allow.
    */
   public function testStripDangerousProtocols($uri, $expected, $protocols) {
     UrlHelper::setAllowedProtocols($protocols);

@@ -14,6 +14,7 @@ use PHPUnit_Framework_ExpectationFailedException;
 /**
  * @coversDefaultClass \Drupal\FunctionalTests\AssertLegacyTrait
  * @group Assert
+ * @group legacy
  */
 class AssertLegacyTraitTest extends UnitTestCase {
 
@@ -162,6 +163,17 @@ class AssertLegacyTraitTest extends UnitTestCase {
       ->shouldBeCalled();
 
     $this->assertNoPattern('/.*foo$/');
+  }
+
+  /**
+   * @covers ::assertNoCacheTag
+   */
+  public function testAssertNoCacheTag() {
+    $this->webAssert
+      ->responseHeaderNotContains('X-Drupal-Cache-Tags', 'some-cache-tag')
+      ->shouldBeCalled();
+
+    $this->assertNoCacheTag('some-cache-tag');
   }
 
   /**

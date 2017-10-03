@@ -9,6 +9,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Customizations for node entities.
+ *
+ * @internal
  */
 class NodeModerationHandler extends ModerationHandler {
 
@@ -51,14 +53,9 @@ class NodeModerationHandler extends ModerationHandler {
    * {@inheritdoc}
    */
   public function enforceRevisionsBundleFormAlter(array &$form, FormStateInterface $form_state, $form_id) {
-    /* @var \Drupal\node\Entity\NodeType $entity */
-    $entity = $form_state->getFormObject()->getEntity();
-
-    if ($this->moderationInfo->getWorkflowForEntity($entity)) {
-      // Force the revision checkbox on.
-      $form['workflow']['options']['#default_value']['revision'] = 'revision';
-      $form['workflow']['options']['revision']['#disabled'] = TRUE;
-    }
+    // Force the revision checkbox on.
+    $form['workflow']['options']['#default_value']['revision'] = 'revision';
+    $form['workflow']['options']['revision']['#disabled'] = TRUE;
   }
 
 }

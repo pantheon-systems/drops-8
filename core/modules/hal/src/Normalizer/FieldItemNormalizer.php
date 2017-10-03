@@ -21,25 +21,13 @@ class FieldItemNormalizer extends NormalizerBase {
    * {@inheritdoc}
    */
   public function normalize($field_item, $format = NULL, array $context = []) {
-    $values = [];
-    // We normalize each individual property, so each can do their own casting,
-    // if needed.
-    /** @var \Drupal\Core\TypedData\TypedDataInterface $property */
-    foreach ($field_item as $property_name => $property) {
-      $values[$property_name] = $this->serializer->normalize($property, $format, $context);
-    }
-
-    if (isset($context['langcode'])) {
-      $values['lang'] = $context['langcode'];
-    }
-
     // The values are wrapped in an array, and then wrapped in another array
     // keyed by field name so that field items can be merged by the
     // FieldNormalizer. This is necessary for the EntityReferenceItemNormalizer
     // to be able to place values in the '_links' array.
     $field = $field_item->getParent();
     return [
-      $field->getName() => [$values],
+      $field->getName() => [$this->normalizedFieldValues($field_item, $format, $context)],
     ];
   }
 
@@ -86,6 +74,35 @@ class FieldItemNormalizer extends NormalizerBase {
   }
 
   /**
+   * Normalizes field values for an item.
+   *
+   * @param \Drupal\Core\Field\FieldItemInterface $field_item
+   *   The field item instance.
+   * @param string|null $format
+   *   The normalization format.
+   * @param array $context
+   *   The context passed into the normalizer.
+   *
+   * @return array
+   *   An array of field item values, keyed by property name.
+   */
+  protected function normalizedFieldValues(FieldItemInterface $field_item, $format, array $context) {
+    $denormalized = [];
+    // We normalize each individual property, so each can do their own casting,
+    // if needed.
+    /** @var \Drupal\Core\TypedData\TypedDataInterface $property */
+    foreach ($field_item as $property_name => $property) {
+      $denormalized[$property_name] = $this->serializer->normalize($property, $format, $context);
+    }
+
+    if (isset($context['langcode'])) {
+      $denormalized['lang'] = $context['langcode'];
+    }
+
+    return $denormalized;
+  }
+
+  /**
    * Get a translated version of the field item instance.
    *
    * To indicate that a field item applies to one translation of an entity and
@@ -93,7 +110,7 @@ class FieldItemNormalizer extends NormalizerBase {
    * entity. This is the reason for using target_instances, from which the
    * property path can be traversed up to the root.
    *
-   * @param \Drupal\Core\Field\FieldItemInterface $field_item
+   * @param \Drupal\Core\Field\FieldItemInterface $item
    *   The untranslated field item instance.
    * @param $langcode
    *   The langcode.

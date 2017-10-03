@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of asm89/stack-cors.
+ *
+ * (c) Alexander <iam.asm89@gmail.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
 namespace Asm89\Stack;
 
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -31,12 +40,11 @@ class Cors implements HttpKernelInterface
     {
         $this->app  = $app;
         $this->cors = new CorsService(array_merge($this->defaultOptions, $options));
-
     }
 
     public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
     {
-        if ( ! $this->cors->isCorsRequest($request)) {
+        if (!$this->cors->isCorsRequest($request)) {
             return $this->app->handle($request, $type, $catch);
         }
 
@@ -44,7 +52,7 @@ class Cors implements HttpKernelInterface
             return $this->cors->handlePreflightRequest($request);
         }
 
-        if ( ! $this->cors->isActualRequestAllowed($request)) {
+        if (!$this->cors->isActualRequestAllowed($request)) {
             return new Response('Not allowed.', 403);
         }
 

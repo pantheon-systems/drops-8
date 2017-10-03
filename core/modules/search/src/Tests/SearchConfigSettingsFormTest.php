@@ -47,7 +47,7 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
     // also needs the word "pizza" so we can use it as the search keyword.
     $body_key = 'body[0][value]';
     $edit[$body_key] = \Drupal::l($node->label(), $node->urlInfo()) . ' pizza sandwich';
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
 
     $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
     search_update_totals();
@@ -177,7 +177,7 @@ class SearchConfigSettingsFormTest extends SearchTestBase {
       $this->submitGetForm('node', $terms, t('Search'));
       $current = $this->getURL();
       $expected = \Drupal::url('search.view_' . $entity->id(), [], ['query' => ['keys' => $info['keys']], 'absolute' => TRUE]);
-      $this->assertEqual( $current, $expected, 'Block redirected to right search page');
+      $this->assertEqual($current, $expected, 'Block redirected to right search page');
 
       // Try an invalid search path, which should 404.
       $this->drupalGet('search/not_a_plugin_path');

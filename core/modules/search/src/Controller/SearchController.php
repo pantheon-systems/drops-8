@@ -5,6 +5,7 @@ namespace Drupal\search\Controller;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\search\Form\SearchPageForm;
 use Drupal\search\SearchPageInterface;
 use Drupal\search\SearchPageRepositoryInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -84,7 +85,7 @@ class SearchController extends ControllerBase {
     }
 
     $build['#title'] = $plugin->suggestedTitle();
-    $build['search_form'] = $this->entityFormBuilder()->getForm($entity, 'search');
+    $build['search_form'] = $this->formBuilder()->getForm(SearchPageForm::class, $entity);
 
     // Build search results, if keywords or other search parameters are in the
     // GET parameters. Note that we need to try the search if 'keys' is in
@@ -148,8 +149,6 @@ class SearchController extends ControllerBase {
   /**
    * Creates a render array for the search help page.
    *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
    * @param \Drupal\search\SearchPageInterface $entity
    *   The search page entity.
    *

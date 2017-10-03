@@ -3441,6 +3441,141 @@ $connection->insert('field_config')
   'translatable' => '0',
   'deleted' => '0',
 ))
+->values(array(
+  'id' => '26',
+  'field_name' => 'field_text_plain',
+  'type' => 'text',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:1:{s:10:"max_length";s:3:"255";}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:27:"field_data_field_text_plain";a:2:{s:5:"value";s:22:"field_text_plain_value";s:6:"format";s:23:"field_text_plain_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:31:"field_revision_field_text_plain";a:2:{s:5:"value";s:22:"field_text_plain_value";s:6:"format";s:23:"field_text_plain_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"26";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '27',
+  'field_name' => 'field_text_filtered',
+  'type' => 'text',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:1:{s:10:"max_length";s:3:"255";}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:30:"field_data_field_text_filtered";a:2:{s:5:"value";s:25:"field_text_filtered_value";s:6:"format";s:26:"field_text_filtered_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:34:"field_revision_field_text_filtered";a:2:{s:5:"value";s:25:"field_text_filtered_value";s:6:"format";s:26:"field_text_filtered_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"27";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '28',
+  'field_name' => 'field_text_plain_filtered',
+  'type' => 'text',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:1:{s:10:"max_length";s:3:"255";}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:36:"field_data_field_text_plain_filtered";a:2:{s:5:"value";s:31:"field_text_plain_filtered_value";s:6:"format";s:32:"field_text_plain_filtered_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:40:"field_revision_field_text_plain_filtered";a:2:{s:5:"value";s:31:"field_text_plain_filtered_value";s:6:"format";s:32:"field_text_plain_filtered_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"28";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '29',
+  'field_name' => 'field_text_long_plain',
+  'type' => 'text_long',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:0:{}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:32:"field_data_field_text_long_plain";a:2:{s:5:"value";s:27:"field_text_long_plain_value";s:6:"format";s:28:"field_text_long_plain_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:36:"field_revision_field_text_long_plain";a:2:{s:5:"value";s:27:"field_text_long_plain_value";s:6:"format";s:28:"field_text_long_plain_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"29";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '30',
+  'field_name' => 'field_text_long_filtered',
+  'type' => 'text_long',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:0:{}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:35:"field_data_field_text_long_filtered";a:2:{s:5:"value";s:30:"field_text_long_filtered_value";s:6:"format";s:31:"field_text_long_filtered_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:39:"field_revision_field_text_long_filtered";a:2:{s:5:"value";s:30:"field_text_long_filtered_value";s:6:"format";s:31:"field_text_long_filtered_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"30";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '31',
+  'field_name' => 'field_text_long_plain_filtered',
+  'type' => 'text_long',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:0:{}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:41:"field_data_field_text_long_plain_filtered";a:2:{s:5:"value";s:36:"field_text_long_plain_filtered_value";s:6:"format";s:37:"field_text_long_plain_filtered_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:45:"field_revision_field_text_long_plain_filtered";a:2:{s:5:"value";s:36:"field_text_long_plain_filtered_value";s:6:"format";s:37:"field_text_long_plain_filtered_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"31";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '32',
+  'field_name' => 'field_text_sum_plain',
+  'type' => 'text_with_summary',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:0:{}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:31:"field_data_field_text_sum_plain";a:3:{s:5:"value";s:26:"field_text_sum_plain_value";s:7:"summary";s:28:"field_text_sum_plain_summary";s:6:"format";s:27:"field_text_sum_plain_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:35:"field_revision_field_text_sum_plain";a:3:{s:5:"value";s:26:"field_text_sum_plain_value";s:7:"summary";s:28:"field_text_sum_plain_summary";s:6:"format";s:27:"field_text_sum_plain_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"32";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '33',
+  'field_name' => 'field_text_sum_filtered',
+  'type' => 'text_with_summary',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:0:{}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:34:"field_data_field_text_sum_filtered";a:3:{s:5:"value";s:29:"field_text_sum_filtered_value";s:7:"summary";s:31:"field_text_sum_filtered_summary";s:6:"format";s:30:"field_text_sum_filtered_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:38:"field_revision_field_text_sum_filtered";a:3:{s:5:"value";s:29:"field_text_sum_filtered_value";s:7:"summary";s:31:"field_text_sum_filtered_summary";s:6:"format";s:30:"field_text_sum_filtered_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"33";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '34',
+  'field_name' => 'field_text_sum_plain_filtered',
+  'type' => 'text_with_summary',
+  'module' => 'text',
+  'active' => '1',
+  'storage_type' => 'field_sql_storage',
+  'storage_module' => 'field_sql_storage',
+  'storage_active' => '1',
+  'locked' => '0',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:0:{}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:39:"field_data_field_text_sum_plain_filtere";a:3:{s:5:"value";s:34:"field_text_sum_plain_filtere_value";s:7:"summary";s:36:"field_text_sum_plain_filtere_summary";s:6:"format";s:35:"field_text_sum_plain_filtere_format";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:43:"field_revision_field_text_sum_plain_filtere";a:3:{s:5:"value";s:34:"field_text_sum_plain_filtere_value";s:7:"summary";s:36:"field_text_sum_plain_filtere_summary";s:6:"format";s:35:"field_text_sum_plain_filtere_format";}}}}}s:12:"foreign keys";a:1:{s:6:"format";a:2:{s:5:"table";s:13:"filter_format";s:7:"columns";a:1:{s:6:"format";s:6:"format";}}}s:7:"indexes";a:1:{s:6:"format";a:1:{i:0;s:6:"format";}}s:2:"id";s:2:"34";}',
+  'cardinality' => '1',
+  'translatable' => '0',
+  'deleted' => '0',
+))
 ->execute();
 
 $connection->schema()->createTable('field_config_instance', array(
@@ -3859,6 +3994,168 @@ $connection->insert('field_config_instance')
   'entity_type' => 'node',
   'bundle' => 'test_content_type',
   'data' => 'a:6:{s:5:"label";s:12:"Private file";s:6:"widget";a:5:{s:6:"weight";s:2:"19";s:4:"type";s:12:"file_generic";s:6:"module";s:4:"file";s:6:"active";i:1;s:8:"settings";a:1:{s:18:"progress_indicator";s:8:"throbber";}}s:8:"settings";a:5:{s:14:"file_directory";s:0:"";s:15:"file_extensions";s:3:"txt";s:12:"max_filesize";s:0:"";s:17:"description_field";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"file_default";s:8:"settings";a:0:{}s:6:"module";s:4:"file";s:6:"weight";i:18;}}s:8:"required";i:0;s:11:"description";s:0:"";}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '43',
+  'field_id' => '26',
+  'field_name' => 'field_text_plain',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:10:"Text plain";s:6:"widget";a:5:{s:6:"weight";s:2:"11";s:4:"type";s:14:"text_textfield";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"size";s:2:"60";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"0";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:11;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '44',
+  'field_id' => '27',
+  'field_name' => 'field_text_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:13:"Text filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"12";s:4:"type";s:14:"text_textfield";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"size";s:2:"60";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"1";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:12;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '45',
+  'field_id' => '28',
+  'field_name' => 'field_text_plain_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:23:"Text plain and filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"13";s:4:"type";s:14:"text_textfield";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"size";s:2:"60";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"0";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:13;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '46',
+  'field_id' => '29',
+  'field_name' => 'field_text_long_plain',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:15:"Text long plain";s:6:"widget";a:5:{s:6:"weight";s:2:"14";s:4:"type";s:13:"text_textarea";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"rows";s:1:"5";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"0";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:14;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '47',
+  'field_id' => '30',
+  'field_name' => 'field_text_long_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:18:"Text long filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"15";s:4:"type";s:13:"text_textarea";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"rows";s:1:"5";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"1";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:15;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '48',
+  'field_id' => '31',
+  'field_name' => 'field_text_long_plain_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:28:"Text long plain and filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"16";s:4:"type";s:13:"text_textarea";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"rows";s:1:"5";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"0";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:16;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '49',
+  'field_id' => '32',
+  'field_name' => 'field_text_sum_plain',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:18:"Text summary plain";s:6:"widget";a:5:{s:6:"weight";s:2:"17";s:4:"type";s:26:"text_textarea_with_summary";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:2:{s:4:"rows";s:2:"20";s:12:"summary_rows";i:5;}}s:8:"settings";a:3:{s:15:"text_processing";s:1:"0";s:15:"display_summary";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:17;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '50',
+  'field_id' => '33',
+  'field_name' => 'field_text_sum_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:21:"Text summary filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"18";s:4:"type";s:26:"text_textarea_with_summary";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:2:{s:4:"rows";s:2:"20";s:12:"summary_rows";i:5;}}s:8:"settings";a:3:{s:15:"text_processing";s:1:"1";s:15:"display_summary";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:18;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '51',
+  'field_id' => '34',
+  'field_name' => 'field_text_sum_plain_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'data' => 'a:7:{s:5:"label";s:31:"Text summary plain and filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"19";s:4:"type";s:26:"text_textarea_with_summary";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:2:{s:4:"rows";s:2:"20";s:12:"summary_rows";i:5;}}s:8:"settings";a:3:{s:15:"text_processing";s:1:"0";s:15:"display_summary";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:19;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '52',
+  'field_id' => '26',
+  'field_name' => 'field_text_plain',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:10:"Text plain";s:6:"widget";a:5:{s:6:"weight";s:2:"-2";s:4:"type";s:14:"text_textfield";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"size";s:2:"60";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"0";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:1;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '53',
+  'field_id' => '27',
+  'field_name' => 'field_text_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:13:"Text filtered";s:6:"widget";a:5:{s:6:"weight";s:1:"0";s:4:"type";s:14:"text_textfield";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"size";s:2:"60";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"1";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:2;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '54',
+  'field_id' => '28',
+  'field_name' => 'field_text_plain_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:23:"Text plain and filtered";s:6:"widget";a:5:{s:6:"weight";s:1:"2";s:4:"type";s:14:"text_textfield";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"size";s:2:"60";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"1";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:3;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '55',
+  'field_id' => '29',
+  'field_name' => 'field_text_long_plain',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:15:"Text long plain";s:6:"widget";a:5:{s:6:"weight";s:1:"4";s:4:"type";s:13:"text_textarea";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"rows";s:1:"5";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"0";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:4;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '56',
+  'field_id' => '30',
+  'field_name' => 'field_text_long_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:18:"Text long filtered";s:6:"widget";a:5:{s:6:"weight";s:1:"6";s:4:"type";s:13:"text_textarea";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"rows";s:1:"5";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"1";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:5;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '57',
+  'field_id' => '31',
+  'field_name' => 'field_text_long_plain_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:28:"Text long plain and filtered";s:6:"widget";a:5:{s:6:"weight";s:1:"8";s:4:"type";s:13:"text_textarea";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:1:{s:4:"rows";s:1:"5";}}s:8:"settings";a:2:{s:15:"text_processing";s:1:"1";s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:6;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '58',
+  'field_id' => '32',
+  'field_name' => 'field_text_sum_plain',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:18:"Text summary plain";s:6:"widget";a:5:{s:6:"weight";s:2:"10";s:4:"type";s:26:"text_textarea_with_summary";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:2:{s:4:"rows";s:2:"20";s:12:"summary_rows";i:5;}}s:8:"settings";a:3:{s:15:"text_processing";s:1:"0";s:15:"display_summary";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:7;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '59',
+  'field_id' => '33',
+  'field_name' => 'field_text_sum_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:21:"Text summary filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"12";s:4:"type";s:26:"text_textarea_with_summary";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:2:{s:4:"rows";s:2:"20";s:12:"summary_rows";i:5;}}s:8:"settings";a:3:{s:15:"text_processing";s:1:"1";s:15:"display_summary";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:8;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
+  'deleted' => '0',
+))
+->values(array(
+  'id' => '60',
+  'field_id' => '34',
+  'field_name' => 'field_text_sum_plain_filtered',
+  'entity_type' => 'node',
+  'bundle' => 'page',
+  'data' => 'a:7:{s:5:"label";s:31:"Text summary plain and filtered";s:6:"widget";a:5:{s:6:"weight";s:2:"14";s:4:"type";s:26:"text_textarea_with_summary";s:6:"module";s:4:"text";s:6:"active";i:1;s:8:"settings";a:2:{s:4:"rows";s:2:"20";s:12:"summary_rows";i:5;}}s:8:"settings";a:3:{s:15:"text_processing";s:1:"1";s:15:"display_summary";i:0;s:18:"user_register_form";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"text_default";s:8:"settings";a:0:{}s:6:"module";s:4:"text";s:6:"weight";i:9;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
   'deleted' => '0',
 ))
 ->execute();
@@ -5929,6 +6226,94 @@ $connection->insert('field_data_field_text')
 ))
 ->execute();
 
+$connection->schema()->createTable('field_data_field_text_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_filtered_value' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+    'field_text_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_filtered_format' => array(
+      'field_text_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
 $connection->schema()->createTable('field_data_field_text_list', array(
   'fields' => array(
     'entity_type' => array(
@@ -6011,6 +6396,725 @@ $connection->insert('field_data_field_text_list')
   'field_text_list_value' => 'Some more text',
 ))
 ->execute();
+
+$connection->schema()->createTable('field_data_field_text_long_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_long_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_long_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_long_filtered_format' => array(
+      'field_text_long_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_long_plain', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_long_plain_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_long_plain_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_long_plain_format' => array(
+      'field_text_long_plain_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_long_plain_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_long_plain_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_long_plain_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_long_plain_filtered_format' => array(
+      'field_text_long_plain_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_plain', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_plain_value' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+    'field_text_plain_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_plain_format' => array(
+      'field_text_plain_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_plain_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_plain_filtered_value' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+    'field_text_plain_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_plain_filtered_format' => array(
+      'field_text_plain_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_sum_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_sum_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_filtered_summary' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_sum_filtered_format' => array(
+      'field_text_sum_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_sum_plain', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_sum_plain_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_summary' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_sum_plain_format' => array(
+      'field_text_sum_plain_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_data_field_text_sum_plain_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_sum_plain_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_filtered_summary' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_sum_plain_filtered_format' => array(
+      'field_text_sum_plain_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
 
 $connection->schema()->createTable('field_data_field_user_entityreference', array(
   'fields' => array(
@@ -6179,6 +7283,39 @@ $connection->schema()->createTable('field_data_taxonomy_forums', array(
   ),
   'mysql_character_set' => 'utf8',
 ));
+
+$connection->insert('field_data_taxonomy_forums')
+->fields(array(
+  'entity_type',
+  'bundle',
+  'deleted',
+  'entity_id',
+  'revision_id',
+  'language',
+  'delta',
+  'taxonomy_forums_tid',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'forum',
+  'deleted' => '0',
+  'entity_id' => '6',
+  'revision_id' => '6',
+  'language' => 'und',
+  'delta' => '0',
+  'taxonomy_forums_tid' => '1',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'forum',
+  'deleted' => '0',
+  'entity_id' => '7',
+  'revision_id' => '7',
+  'language' => 'und',
+  'delta' => '0',
+  'taxonomy_forums_tid' => '1',
+))
+->execute();
 
 $connection->schema()->createTable('field_revision_body', array(
   'fields' => array(
@@ -7949,8 +9086,28 @@ $connection->insert('field_revision_field_tags')
   'entity_type' => 'node',
   'bundle' => 'article',
   'deleted' => '0',
+  'entity_id' => '3',
+  'revision_id' => '3',
+  'language' => 'und',
+  'delta' => '0',
+  'field_tags_tid' => '9',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'deleted' => '0',
   'entity_id' => '2',
   'revision_id' => '2',
+  'language' => 'und',
+  'delta' => '1',
+  'field_tags_tid' => '14',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'article',
+  'deleted' => '0',
+  'entity_id' => '3',
+  'revision_id' => '3',
   'language' => 'und',
   'delta' => '1',
   'field_tags_tid' => '14',
@@ -7964,26 +9121,6 @@ $connection->insert('field_revision_field_tags')
   'language' => 'und',
   'delta' => '2',
   'field_tags_tid' => '17',
-))
-->values(array(
-  'entity_type' => 'node',
-  'bundle' => 'article',
-  'deleted' => '0',
-  'entity_id' => '3',
-  'revision_id' => '3',
-  'language' => 'und',
-  'delta' => '0',
-  'field_tags_tid' => '9',
-))
-->values(array(
-  'entity_type' => 'node',
-  'bundle' => 'article',
-  'deleted' => '0',
-  'entity_id' => '3',
-  'revision_id' => '3',
-  'language' => 'und',
-  'delta' => '1',
-  'field_tags_tid' => '14',
 ))
 ->values(array(
   'entity_type' => 'node',
@@ -8301,6 +9438,95 @@ $connection->insert('field_revision_field_text')
 ))
 ->execute();
 
+$connection->schema()->createTable('field_revision_field_text_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_filtered_value' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+    'field_text_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_filtered_format' => array(
+      'field_text_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
 $connection->schema()->createTable('field_revision_field_text_list', array(
   'fields' => array(
     'entity_type' => array(
@@ -8384,6 +9610,733 @@ $connection->insert('field_revision_field_text_list')
   'field_text_list_value' => 'Some more text',
 ))
 ->execute();
+
+$connection->schema()->createTable('field_revision_field_text_long_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_long_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_long_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_long_filtered_format' => array(
+      'field_text_long_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_long_plain', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_long_plain_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_long_plain_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_long_plain_format' => array(
+      'field_text_long_plain_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_long_plain_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_long_plain_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_long_plain_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_long_plain_filtered_format' => array(
+      'field_text_long_plain_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_plain', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_plain_value' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+    'field_text_plain_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_plain_format' => array(
+      'field_text_plain_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_plain_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_plain_filtered_value' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+    'field_text_plain_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_plain_filtered_format' => array(
+      'field_text_plain_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_sum_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_sum_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_filtered_summary' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_sum_filtered_format' => array(
+      'field_text_sum_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_sum_plain', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_sum_plain_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_summary' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_sum_plain_format' => array(
+      'field_text_sum_plain_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
+
+$connection->schema()->createTable('field_revision_field_text_sum_plain_filtered', array(
+  'fields' => array(
+    'entity_type' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'bundle' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '128',
+      'default' => '',
+    ),
+    'deleted' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'tiny',
+      'default' => '0',
+    ),
+    'entity_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'revision_id' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'language' => array(
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => '32',
+      'default' => '',
+    ),
+    'delta' => array(
+      'type' => 'int',
+      'not null' => TRUE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_text_sum_plain_filtered_value' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_filtered_summary' => array(
+      'type' => 'text',
+      'not null' => FALSE,
+      'size' => 'big',
+    ),
+    'field_text_sum_plain_filtered_format' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
+  ),
+  'primary key' => array(
+    'entity_type',
+    'entity_id',
+    'revision_id',
+    'deleted',
+    'delta',
+    'language',
+  ),
+  'indexes' => array(
+    'entity_type' => array(
+      'entity_type',
+    ),
+    'bundle' => array(
+      'bundle',
+    ),
+    'deleted' => array(
+      'deleted',
+    ),
+    'entity_id' => array(
+      'entity_id',
+    ),
+    'revision_id' => array(
+      'revision_id',
+    ),
+    'language' => array(
+      'language',
+    ),
+    'field_text_sum_plain_filtered_format' => array(
+      'field_text_sum_plain_filtered_format',
+    ),
+  ),
+  'mysql_character_set' => 'utf8',
+));
 
 $connection->schema()->createTable('field_revision_field_user_entityreference', array(
   'fields' => array(
@@ -8554,6 +10507,39 @@ $connection->schema()->createTable('field_revision_taxonomy_forums', array(
   ),
   'mysql_character_set' => 'utf8',
 ));
+
+$connection->insert('field_revision_taxonomy_forums')
+->fields(array(
+  'entity_type',
+  'bundle',
+  'deleted',
+  'entity_id',
+  'revision_id',
+  'language',
+  'delta',
+  'taxonomy_forums_tid',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'forum',
+  'deleted' => '0',
+  'entity_id' => '6',
+  'revision_id' => '6',
+  'language' => 'und',
+  'delta' => '0',
+  'taxonomy_forums_tid' => '1',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'forum',
+  'deleted' => '0',
+  'entity_id' => '7',
+  'revision_id' => '7',
+  'language' => 'und',
+  'delta' => '0',
+  'taxonomy_forums_tid' => '1',
+))
+->execute();
 
 $connection->schema()->createTable('file_managed', array(
   'fields' => array(
@@ -9155,6 +11141,24 @@ $connection->schema()->createTable('forum', array(
   'mysql_character_set' => 'utf8',
 ));
 
+$connection->insert('forum')
+->fields(array(
+  'nid',
+  'vid',
+  'tid',
+))
+->values(array(
+  'nid' => '6',
+  'vid' => '6',
+  'tid' => '1',
+))
+->values(array(
+  'nid' => '7',
+  'vid' => '7',
+  'tid' => '1',
+))
+->execute();
+
 $connection->schema()->createTable('forum_index', array(
   'fields' => array(
     'nid' => array(
@@ -9206,6 +11210,36 @@ $connection->schema()->createTable('forum_index', array(
   ),
   'mysql_character_set' => 'utf8',
 ));
+
+$connection->insert('forum_index')
+->fields(array(
+  'nid',
+  'title',
+  'tid',
+  'sticky',
+  'created',
+  'last_comment_timestamp',
+  'comment_count',
+))
+->values(array(
+  'nid' => '6',
+  'title' => 'Comments are closed :-(',
+  'tid' => '1',
+  'sticky' => '0',
+  'created' => '1504715414',
+  'last_comment_timestamp' => '1504715414',
+  'comment_count' => '0',
+))
+->values(array(
+  'nid' => '7',
+  'title' => 'Comments are open :-)',
+  'tid' => '1',
+  'sticky' => '0',
+  'created' => '1504715432',
+  'last_comment_timestamp' => '1504715432',
+  'comment_count' => '0',
+))
+->execute();
 
 $connection->schema()->createTable('history', array(
   'fields' => array(
@@ -20487,8 +22521,8 @@ $connection->insert('menu_links')
   'menu_name' => 'management',
   'mlid' => '478',
   'plid' => '20',
-  'link_path' => 'admin/content/book',
-  'router_path' => 'admin/content/book',
+  'link_path' => 'admin/content',
+  'router_path' => 'admin/content',
   'link_title' => 'custom link test',
   'options' => 'a:1:{s:10:"attributes";a:1:{s:5:"title";s:0:"";}}',
   'module' => 'menu',
@@ -20514,10 +22548,10 @@ $connection->insert('menu_links')
   'menu_name' => 'navigation',
   'mlid' => '479',
   'plid' => '0',
-  'link_path' => 'node/3',
-  'router_path' => 'node/3',
+  'link_path' => 'node/2',
+  'router_path' => 'node/2',
   'link_title' => 'node link test',
-  'options' => 'a:1:{s:10:"attributes";a:1:{s:5:"title";s:6:"node 3";}}',
+  'options' => 'a:1:{s:10:"attributes";a:1:{s:5:"title";s:6:"node 2";}}',
   'module' => 'menu',
   'hidden' => '0',
   'external' => '0',
@@ -31277,7 +33311,7 @@ $connection->insert('node')
   'status' => '1',
   'created' => '1478755274',
   'changed' => '1478755274',
-  'comment' => '2',
+  'comment' => '1',
   'promote' => '1',
   'sticky' => '0',
   'tnid' => '4',
@@ -31293,10 +33327,42 @@ $connection->insert('node')
   'status' => '1',
   'created' => '1478755314',
   'changed' => '1478755314',
-  'comment' => '2',
+  'comment' => '1',
   'promote' => '1',
   'sticky' => '0',
   'tnid' => '4',
+  'translate' => '0',
+))
+->values(array(
+  'nid' => '6',
+  'vid' => '6',
+  'type' => 'forum',
+  'language' => 'en',
+  'title' => 'Comments are closed :-(',
+  'uid' => '1',
+  'status' => '1',
+  'created' => '1504715414',
+  'changed' => '1504715414',
+  'comment' => '1',
+  'promote' => '0',
+  'sticky' => '0',
+  'tnid' => '0',
+  'translate' => '0',
+))
+->values(array(
+  'nid' => '7',
+  'vid' => '7',
+  'type' => 'forum',
+  'language' => 'en',
+  'title' => 'Comments are open :-)',
+  'uid' => '1',
+  'status' => '1',
+  'created' => '1504715432',
+  'changed' => '1504715432',
+  'comment' => '2',
+  'promote' => '0',
+  'sticky' => '0',
+  'tnid' => '0',
   'translate' => '0',
 ))
 ->execute();
@@ -31459,6 +33525,22 @@ $connection->insert('node_comment_statistics')
   'last_comment_uid' => '1',
   'comment_count' => '0',
 ))
+->values(array(
+  'nid' => '6',
+  'cid' => '0',
+  'last_comment_timestamp' => '1504715414',
+  'last_comment_name' => NULL,
+  'last_comment_uid' => '1',
+  'comment_count' => '0',
+))
+->values(array(
+  'nid' => '7',
+  'cid' => '0',
+  'last_comment_timestamp' => '1504715432',
+  'last_comment_name' => NULL,
+  'last_comment_uid' => '1',
+  'comment_count' => '0',
+))
 ->execute();
 
 $connection->schema()->createTable('node_counter', array(
@@ -31533,6 +33615,18 @@ $connection->insert('node_counter')
   'totalcount' => '1',
   'daycount' => '1',
   'timestamp' => '1478755314',
+))
+->values(array(
+  'nid' => '6',
+  'totalcount' => '2',
+  'daycount' => '2',
+  'timestamp' => '1504715439',
+))
+->values(array(
+  'nid' => '7',
+  'totalcount' => '2',
+  'daycount' => '2',
+  'timestamp' => '1504715438',
 ))
 ->execute();
 
@@ -31662,7 +33756,7 @@ $connection->insert('node_revision')
   'log' => '',
   'timestamp' => '1478755274',
   'status' => '1',
-  'comment' => '2',
+  'comment' => '1',
   'promote' => '1',
   'sticky' => '0',
 ))
@@ -31674,8 +33768,32 @@ $connection->insert('node_revision')
   'log' => '',
   'timestamp' => '1478755314',
   'status' => '1',
-  'comment' => '2',
+  'comment' => '1',
   'promote' => '1',
+  'sticky' => '0',
+))
+->values(array(
+  'nid' => '6',
+  'vid' => '6',
+  'uid' => '1',
+  'title' => 'Comments are closed :-(',
+  'log' => '',
+  'timestamp' => '1504715414',
+  'status' => '1',
+  'comment' => '1',
+  'promote' => '0',
+  'sticky' => '0',
+))
+->values(array(
+  'nid' => '7',
+  'vid' => '7',
+  'uid' => '1',
+  'title' => 'Comments are open :-)',
+  'log' => '',
+  'timestamp' => '1504715432',
+  'status' => '1',
+  'comment' => '2',
+  'promote' => '0',
   'sticky' => '0',
 ))
 ->execute();
@@ -42858,6 +44976,18 @@ $connection->insert('taxonomy_index')
   'tid' => '15',
   'sticky' => '0',
   'created' => '1421727515',
+))
+->values(array(
+  'nid' => '6',
+  'tid' => '1',
+  'sticky' => '0',
+  'created' => '1504715414',
+))
+->values(array(
+  'nid' => '7',
+  'tid' => '1',
+  'sticky' => '0',
+  'created' => '1504715432',
 ))
 ->execute();
 
