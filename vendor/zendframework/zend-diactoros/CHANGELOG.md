@@ -2,11 +2,73 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
-## 1.3.11 - TBD
+## 1.4.1 - 2017-08-17
 
 ### Added
 
 - Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- [#260](https://github.com/zendframework/zend-diactoros/pull/260) removes
+  support for HHVM, as tests have failed against it for some time.
+
+### Fixed
+
+- [#247](https://github.com/zendframework/zend-diactoros/pull/247) fixes the
+  `Stream` and `RelativeStream` `__toString()` method implementations to check
+  if the stream `isSeekable()` before attempting to `rewind()` it, ensuring that
+  the method does not raise exceptions (PHP does not allow exceptions in that
+  method). In particular, this fixes an issue when using AWS S3 streams.
+
+- [#252](https://github.com/zendframework/zend-diactoros/pull/252) provides a
+  fix to the `SapiEmitterTrait` to ensure that any `Set-Cookie` headers in the
+  response instance do not override those set by PHP when a session is created
+  and/or regenerated.
+
+- [#257](https://github.com/zendframework/zend-diactoros/pull/257) provides a
+  fix for the `PhpInputStream::read()` method to ensure string content that
+  evaluates as empty (including `0`) is still cached.
+
+- [#258](https://github.com/zendframework/zend-diactoros/pull/258) updates the
+  `Uri::filterPath()` method to allow parens within a URI path, per [RFC 3986
+  section 3.3](https://tools.ietf.org/html/rfc3986#section-3.3) (parens are
+  within the character set "sub-delims").
+
+## 1.4.0 - 2017-04-06
+
+### Added
+
+- [#219](https://github.com/zendframework/zend-diactoros/pull/219) adds two new
+  classes, `Zend\Diactoros\Request\ArraySerializer` and
+  `Zend\Diactoros\Response\ArraySerializer`. Each exposes the static methods
+  `toArray()` and `fromArray()`, allowing de/serialization of messages from and
+  to arrays.
+
+- [#236](https://github.com/zendframework/zend-diactoros/pull/236) adds two new
+  constants to the `Response` class: `MIN_STATUS_CODE_VALUE` and
+  `MAX_STATUS_CODE_VALUE`.
+
+### Changes
+
+- [#240](https://github.com/zendframework/zend-diactoros/pull/240) changes the
+  behavior of `ServerRequestFactory::fromGlobals()` when no `$cookies` argument
+  is present. Previously, it would use `$_COOKIES`; now, if a `Cookie` header is
+  present, it will parse and use that to populate the instance instead.
+
+  This change allows utilizing cookies that contain period characters (`.`) in
+  their names (PHP's built-in cookie handling renames these to replace `.` with
+  `_`, which can lead to synchronization issues with clients).
+
+- [#235](https://github.com/zendframework/zend-diactoros/pull/235) changes the
+  behavior of `Uri::__toString()` to better follow proscribed behavior in PSR-7.
+  In particular, prior to this release, if a scheme was missing but an authority
+  was present, the class was incorrectly returning a value that did not include
+  a `//` prefix. As of this release, it now does this correctly.
 
 ### Deprecated
 
@@ -19,6 +81,37 @@ All notable changes to this project will be documented in this file, in reverse 
 ### Fixed
 
 - Nothing.
+
+## 1.3.11 - 2017-04-06
+
+### Added
+
+- Nothing.
+
+### Changes
+
+- [#241](https://github.com/zendframework/zend-diactoros/pull/241) changes the
+  constraint by which the package provides `psr/http-message-implementation` to
+  simply `1.0` instead of `~1.0.0`, to follow how other implementations provide
+  PSR-7.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [#161](https://github.com/zendframework/zend-diactoros/pull/161) adds
+  additional validations to header names and values to ensure no malformed values
+  are provided.
+
+- [#234](https://github.com/zendframework/zend-diactoros/pull/234) fixes a
+  number of reason phrases in the `Response` instance, and adds automation from
+  the canonical IANA sources to ensure any new phrases added are correct.
 
 ## 1.3.10 - 2017-01-23
 

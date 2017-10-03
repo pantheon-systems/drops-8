@@ -19,11 +19,10 @@ class D6FileField extends CckFieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function getFieldFormatterMap() {}
-
-  /**
-   * {@inheritdoc}
-   */
-  public function processCckFieldValues(MigrationInterface $migration, $field_name, $data) {}
+  public function processCckFieldValues(MigrationInterface $migration, $field_name, $data) {
+    $migration->setProcessOfProperty($field_name, [
+      'class' => static::class,
+    ]);
+  }
 
 }

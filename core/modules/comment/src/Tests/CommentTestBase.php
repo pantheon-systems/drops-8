@@ -2,6 +2,8 @@
 
 namespace Drupal\comment\Tests;
 
+@trigger_error(__NAMESPACE__ . '\CommentTestBase is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use \Drupal\Tests\comment\Functional\CommentTestBase instead. See http://www.drupal.org/node/2908490', E_USER_DEPRECATED);
+
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Entity\Comment;
 use Drupal\comment\CommentInterface;
@@ -12,6 +14,11 @@ use Drupal\simpletest\WebTestBase;
 
 /**
  * Provides setup and helper methods for comment tests.
+ *
+ * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Tests\comment\Functional\CommentTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2908490
  */
 abstract class CommentTestBase extends WebTestBase {
 
@@ -159,7 +166,7 @@ abstract class CommentTestBase extends WebTestBase {
     preg_match('/#comment-([0-9]+)/', $this->getURL(), $match);
 
     // Get comment.
-    if ($contact !== TRUE) { // If true then attempting to find error message.
+    if ($contact !== TRUE) {// If true then attempting to find error message.
       if ($subject) {
         $this->assertText($subject, 'Comment subject posted.');
       }
@@ -192,12 +199,12 @@ abstract class CommentTestBase extends WebTestBase {
       }
 
       $comment_title = $comment_element[0]->xpath('div/h3/a');
-      if (empty($comment_title) || ((string)$comment_title[0]) !== $comment->getSubject()) {
+      if (empty($comment_title) || ((string) $comment_title[0]) !== $comment->getSubject()) {
         return FALSE;
       }
 
       $comment_body = $comment_element[0]->xpath('div/div/p');
-      if (empty($comment_body) || ((string)$comment_body[0]) !== $comment->comment_body->value) {
+      if (empty($comment_body) || ((string) $comment_body[0]) !== $comment->comment_body->value) {
         return FALSE;
       }
 
@@ -354,7 +361,7 @@ abstract class CommentTestBase extends WebTestBase {
     $this->drupalPostForm('admin/content/comment' . ($approval ? '/approval' : ''), $edit, t('Update'));
 
     if ($operation == 'delete') {
-      $this->drupalPostForm(NULL, [], t('Delete comments'));
+      $this->drupalPostForm(NULL, [], t('Delete'));
       $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
     }
     else {

@@ -2,13 +2,20 @@
 
 namespace Drupal\comment\Tests\Views;
 
+@trigger_error(__NAMESPACE__ . '\CommentTestBase is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use \Drupal\Tests\comment\Functional\Views\CommentTestBase instead. See http://www.drupal.org/node/2908490', E_USER_DEPRECATED);
+
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\views\Tests\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\comment\Entity\Comment;
 
 /**
- * Tests the argument_comment_user_uid handler.
+ * Provides setup and helper methods for comment views tests.
+ *
+ * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Tests\comment\Functional\Views\CommentTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2908490
  */
 abstract class CommentTestBase extends ViewTestBase {
 

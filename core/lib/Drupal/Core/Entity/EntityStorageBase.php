@@ -499,9 +499,20 @@ abstract class EntityStorageBase extends EntityHandlerBase implements EntityStor
   public function loadByProperties(array $values = []) {
     // Build a query to fetch the entity IDs.
     $entity_query = $this->getQuery();
+    $entity_query->accessCheck(FALSE);
     $this->buildPropertyQuery($entity_query, $values);
     $result = $entity_query->execute();
     return $result ? $this->loadMultiple($result) : [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasData() {
+    return (bool) $this->getQuery()
+      ->accessCheck(FALSE)
+      ->range(0, 1)
+      ->execute();
   }
 
   /**

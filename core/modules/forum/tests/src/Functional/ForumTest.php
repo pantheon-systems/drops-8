@@ -118,7 +118,7 @@ class ForumTest extends BrowserTestBase {
    * Tests forum functionality through the admin and user interfaces.
    */
   public function testForum() {
-    //Check that the basic forum install creates a default forum topic
+    // Check that the basic forum install creates a default forum topic
     $this->drupalGet('/forum');
     // Look for the "General discussion" default forum
     $this->assertRaw(Link::createFromRoute(t('General discussion'), 'forum.page', ['taxonomy_term' => 1])->toString(), "Found the default forum at the /forum listing");
@@ -525,8 +525,8 @@ class ForumTest extends BrowserTestBase {
    * @param bool $container
    *   TRUE if $forum is a container; FALSE otherwise.
    *
-   * @return object
-   *   The created topic node.
+   * @return object|null
+   *   The created topic node or NULL if the forum is a container.
    */
   public function createForumTopic($forum, $container = FALSE) {
     // Generate a random subject/body.

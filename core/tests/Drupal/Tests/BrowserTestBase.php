@@ -14,23 +14,19 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
-use Drupal\Core\Site\Settings;
-use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\Test\FunctionalTestSetupTrait;
-use Drupal\Core\Test\TestRunnerKernel;
 use Drupal\Core\Test\TestSetupTrait;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\Error;
 use Drupal\FunctionalTests\AssertLegacyTrait;
-use Drupal\simpletest\AssertHelperTrait;
-use Drupal\simpletest\ContentTypeCreationTrait;
-use Drupal\simpletest\BlockCreationTrait;
-use Drupal\simpletest\NodeCreationTrait;
-use Drupal\simpletest\UserCreationTrait;
-use Symfony\Component\CssSelector\CssSelectorConverter;
-use Symfony\Component\HttpFoundation\Request;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\node\Traits\NodeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
+use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\CssSelector\CssSelectorConverter;
 
 /**
  * Provides a test case for functional Drupal tests.
@@ -41,7 +37,7 @@ use Psr\Http\Message\ResponseInterface;
  *
  * @ingroup testing
  */
-abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
+abstract class BrowserTestBase extends TestCase {
 
   use FunctionalTestSetupTrait;
   use TestSetupTrait;
@@ -60,6 +56,7 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     createContentType as drupalCreateContentType;
   }
   use ConfigTestTrait;
+  use TestRequirementsTrait;
   use UserCreationTrait {
     createRole as drupalCreateRole;
     createUser as drupalCreateUser;
@@ -261,6 +258,32 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
   protected $metaRefreshCount = 0;
 
   /**
+   * The app root.
+   *
+   * @var string
+   */
+  protected $root;
+
+  /**
+   * The original container.
+   *
+   * Move this to \Drupal\Core\Test\FunctionalTestSetupTrait once TestBase no
+   * longer provides the same value.
+   *
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface
+   */
+  protected $originalContainer;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct($name = NULL, array $data = [], $dataName = '') {
+    parent::__construct($name, $data, $dataName);
+
+    $this->root = dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
+  }
+
+  /**
    * Initializes Mink sessions.
    */
   protected function initMink() {
@@ -344,6 +367,30 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
   }
 
   /**
+   * Creates the directory to store browser output.
+   *
+   * Creates the directory to store browser output in if a file to write
+   * URLs to has been created by \Drupal\Tests\Listeners\HtmlOutputPrinter.
+   */
+  protected function initBrowserOutputFile() {
+    $browser_output_file = getenv('BROWSERTEST_OUTPUT_FILE');
+    $this->htmlOutputEnabled = is_file($browser_output_file);
+    if ($this->htmlOutputEnabled) {
+      $this->htmlOutputFile = $browser_output_file;
+      $this->htmlOutputClassName = str_replace("\\", "_", get_called_class());
+      $this->htmlOutputDirectory = DRUPAL_ROOT . '/sites/simpletest/browser_output';
+      if (file_prepare_directory($this->htmlOutputDirectory, FILE_CREATE_DIRECTORY) && !file_exists($this->htmlOutputDirectory . '/.htaccess')) {
+        file_put_contents($this->htmlOutputDirectory . '/.htaccess', "<IfModule mod_expires.c>\nExpiresActive Off\n</IfModule>\n");
+      }
+      $this->htmlOutputCounterStorage = $this->htmlOutputDirectory . '/' . $this->htmlOutputClassName . '.counter';
+      $this->htmlOutputTestId = str_replace('sites/simpletest/', '', $this->siteDirectory);
+      if (is_file($this->htmlOutputCounterStorage)) {
+        $this->htmlOutputCounter = max(1, (int) file_get_contents($this->htmlOutputCounterStorage)) + 1;
+      }
+    }
+  }
+
+  /**
    * Provides a Guzzle middleware handler to log every response received.
    *
    * @return callable
@@ -399,43 +446,9 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    global $base_url;
     parent::setUp();
 
-    // Get and set the domain of the environment we are running our test
-    // coverage against.
-    $base_url = getenv('SIMPLETEST_BASE_URL');
-    if (!$base_url) {
-      throw new \Exception(
-        'You must provide a SIMPLETEST_BASE_URL environment variable to run some PHPUnit based functional tests.'
-      );
-    }
-
-    // Setup $_SERVER variable.
-    $parsed_url = parse_url($base_url);
-    $host = $parsed_url['host'] . (isset($parsed_url['port']) ? ':' . $parsed_url['port'] : '');
-    $path = isset($parsed_url['path']) ? rtrim(rtrim($parsed_url['path']), '/') : '';
-    $port = isset($parsed_url['port']) ? $parsed_url['port'] : 80;
-
-    $this->baseUrl = $base_url;
-
-    // If the passed URL schema is 'https' then setup the $_SERVER variables
-    // properly so that testing will run under HTTPS.
-    if ($parsed_url['scheme'] === 'https') {
-      $_SERVER['HTTPS'] = 'on';
-    }
-    $_SERVER['HTTP_HOST'] = $host;
-    $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
-    $_SERVER['SERVER_ADDR'] = '127.0.0.1';
-    $_SERVER['SERVER_PORT'] = $port;
-    $_SERVER['SERVER_SOFTWARE'] = NULL;
-    $_SERVER['SERVER_NAME'] = 'localhost';
-    $_SERVER['REQUEST_URI'] = $path . '/';
-    $_SERVER['REQUEST_METHOD'] = 'GET';
-    $_SERVER['SCRIPT_NAME'] = $path . '/index.php';
-    $_SERVER['SCRIPT_FILENAME'] = $path . '/index.php';
-    $_SERVER['PHP_SELF'] = $path . '/index.php';
-    $_SERVER['HTTP_USER_AGENT'] = 'Drupal command line';
+    $this->setupBaseUrl();
 
     // Install Drupal test site.
     $this->prepareEnvironment();
@@ -451,23 +464,8 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
       }
     }
 
-    // Creates the directory to store browser output in if a file to write
-    // URLs to has been created by \Drupal\Tests\Listeners\HtmlOutputPrinter.
-    $browser_output_file = getenv('BROWSERTEST_OUTPUT_FILE');
-    $this->htmlOutputEnabled = is_file($browser_output_file);
-    if ($this->htmlOutputEnabled) {
-      $this->htmlOutputFile = $browser_output_file;
-      $this->htmlOutputClassName = str_replace("\\", "_", get_called_class());
-      $this->htmlOutputDirectory = DRUPAL_ROOT . '/sites/simpletest/browser_output';
-      if (file_prepare_directory($this->htmlOutputDirectory, FILE_CREATE_DIRECTORY) && !file_exists($this->htmlOutputDirectory . '/.htaccess')) {
-        file_put_contents($this->htmlOutputDirectory . '/.htaccess', "<IfModule mod_expires.c>\nExpiresActive Off\n</IfModule>\n");
-      }
-      $this->htmlOutputCounterStorage = $this->htmlOutputDirectory . '/' . $this->htmlOutputClassName . '.counter';
-      $this->htmlOutputTestId = str_replace('sites/simpletest/', '', $this->siteDirectory);
-      if (is_file($this->htmlOutputCounterStorage)) {
-        $this->htmlOutputCounter = max(1, (int) file_get_contents($this->htmlOutputCounterStorage)) + 1;
-      }
-    }
+    // Set up the browser test output file.
+    $this->initBrowserOutputFile();
   }
 
   /**
@@ -735,7 +733,6 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     }
 
     $this->drupalGet('user/login');
-    $this->assertSession()->statusCodeEquals(200);
     $this->submitForm([
       'name' => $account->getUsername(),
       'pass' => $account->passRaw,
@@ -760,7 +757,6 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     // screen.
     $assert_session = $this->assertSession();
     $this->drupalGet('user/logout', ['query' => ['destination' => 'user']]);
-    $assert_session->statusCodeEquals(200);
     $assert_session->fieldExists('name');
     $assert_session->fieldExists('pass');
 
@@ -919,6 +915,11 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
    *   POST data.
    * @param array $options
    *   Options to be forwarded to the url generator.
+   *
+   * @return string
+   *   (deprecated) The response content after submit form. It is necessary for
+   *   backwards compatibility and will be removed before Drupal 9.0. You should
+   *   just use the webAssert object for your assertions.
    */
   protected function drupalPostForm($path, $edit, $submit, array $options = []) {
     if (is_object($submit)) {
@@ -937,6 +938,8 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     }
 
     $this->submitForm($edit, $submit);
+
+    return $this->getSession()->getPage()->getContent();
   }
 
   /**
@@ -976,134 +979,6 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
     $this->initConfig($container);
     $this->installModulesFromClassProperty($container);
     $this->rebuildAll();
-  }
-
-  /**
-   * Returns the parameters that will be used when Simpletest installs Drupal.
-   *
-   * @see install_drupal()
-   * @see install_state_defaults()
-   */
-  protected function installParameters() {
-    $connection_info = Database::getConnectionInfo();
-    $driver = $connection_info['default']['driver'];
-    $connection_info['default']['prefix'] = $connection_info['default']['prefix']['default'];
-    unset($connection_info['default']['driver']);
-    unset($connection_info['default']['namespace']);
-    unset($connection_info['default']['pdo']);
-    unset($connection_info['default']['init_commands']);
-    $parameters = [
-      'interactive' => FALSE,
-      'parameters' => [
-        'profile' => $this->profile,
-        'langcode' => 'en',
-      ],
-      'forms' => [
-        'install_settings_form' => [
-          'driver' => $driver,
-          $driver => $connection_info['default'],
-        ],
-        'install_configure_form' => [
-          'site_name' => 'Drupal',
-          'site_mail' => 'simpletest@example.com',
-          'account' => [
-            'name' => $this->rootUser->name,
-            'mail' => $this->rootUser->getEmail(),
-            'pass' => [
-              'pass1' => $this->rootUser->pass_raw,
-              'pass2' => $this->rootUser->pass_raw,
-            ],
-          ],
-          // form_type_checkboxes_value() requires NULL instead of FALSE values
-          // for programmatic form submissions to disable a checkbox.
-          'enable_update_status_module' => NULL,
-          'enable_update_status_emails' => NULL,
-        ],
-      ],
-    ];
-    return $parameters;
-  }
-
-  /**
-   * Prepares the current environment for running the test.
-   *
-   * Also sets up new resources for the testing environment, such as the public
-   * filesystem and configuration directories.
-   *
-   * This method is private as it must only be called once by
-   * BrowserTestBase::setUp() (multiple invocations for the same test would have
-   * unpredictable consequences) and it must not be callable or overridable by
-   * test classes.
-   */
-  protected function prepareEnvironment() {
-    // Bootstrap Drupal so we can use Drupal's built in functions.
-    $this->classLoader = require __DIR__ . '/../../../../autoload.php';
-    $request = Request::createFromGlobals();
-    $kernel = TestRunnerKernel::createFromRequest($request, $this->classLoader);
-    // TestRunnerKernel expects the working directory to be DRUPAL_ROOT.
-    chdir(DRUPAL_ROOT);
-    $kernel->prepareLegacyRequest($request);
-    $this->prepareDatabasePrefix();
-
-    $this->originalSite = $kernel->findSitePath($request);
-
-    // Create test directory ahead of installation so fatal errors and debug
-    // information can be logged during installation process.
-    file_prepare_directory($this->siteDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
-
-    // Prepare filesystem directory paths.
-    $this->publicFilesDirectory = $this->siteDirectory . '/files';
-    $this->privateFilesDirectory = $this->siteDirectory . '/private';
-    $this->tempFilesDirectory = $this->siteDirectory . '/temp';
-    $this->translationFilesDirectory = $this->siteDirectory . '/translations';
-
-    // Ensure the configImporter is refreshed for each test.
-    $this->configImporter = NULL;
-
-    // Unregister all custom stream wrappers of the parent site.
-    $wrappers = \Drupal::service('stream_wrapper_manager')->getWrappers(StreamWrapperInterface::ALL);
-    foreach ($wrappers as $scheme => $info) {
-      stream_wrapper_unregister($scheme);
-    }
-
-    // Reset statics.
-    drupal_static_reset();
-
-    // Ensure there is no service container.
-    $this->container = NULL;
-    \Drupal::unsetContainer();
-
-    // Unset globals.
-    unset($GLOBALS['config_directories']);
-    unset($GLOBALS['config']);
-    unset($GLOBALS['conf']);
-
-    // Log fatal errors.
-    ini_set('log_errors', 1);
-    ini_set('error_log', DRUPAL_ROOT . '/' . $this->siteDirectory . '/error.log');
-
-    // Change the database prefix.
-    $this->changeDatabasePrefix();
-
-    // After preparing the environment and changing the database prefix, we are
-    // in a valid test environment.
-    drupal_valid_test_ua($this->databasePrefix);
-
-    // Reset settings.
-    new Settings([
-      // For performance, simply use the database prefix as hash salt.
-      'hash_salt' => $this->databasePrefix,
-    ]);
-
-    drupal_set_time_limit($this->timeLimit);
-
-    // Save and clean the shutdown callbacks array because it is static cached
-    // and will be changed by the test run. Otherwise it will contain callbacks
-    // from both environments and the testing environment will try to call the
-    // handlers defined by the original one.
-    $callbacks = &drupal_register_shutdown_function();
-    $this->originalShutdownCallbacks = $callbacks;
-    $callbacks = [];
   }
 
   /**
@@ -1400,13 +1275,13 @@ abstract class BrowserTestBase extends \PHPUnit_Framework_TestCase {
    * Checks for meta refresh tag and if found call drupalGet() recursively.
    *
    * This function looks for the http-equiv attribute to be set to "Refresh" and
-   * is case-sensitive.
+   * is case-insensitive.
    *
    * @return string|false
    *   Either the new page content or FALSE.
    */
   protected function checkForMetaRefresh() {
-    $refresh = $this->cssSelect('meta[http-equiv="Refresh"]');
+    $refresh = $this->cssSelect('meta[http-equiv="Refresh"], meta[http-equiv="refresh"]');
     if (!empty($refresh) && (!isset($this->maximumMetaRefreshCount) || $this->metaRefreshCount < $this->maximumMetaRefreshCount)) {
       // Parse the content attribute of the meta tag for the format:
       // "[delay]: URL=[page_to_redirect_to]".

@@ -54,20 +54,21 @@ class Connection extends DatabaseConnection {
    * @see http://www.postgresql.org/docs/9.4/static/sql-keywords-appendix.html
    */
   protected $postgresqlReservedKeyWords = ['all', 'analyse', 'analyze', 'and',
-  'any', 'array', 'as', 'asc', 'asymmetric', 'authorization', 'binary', 'both',
-  'case', 'cast', 'check', 'collate', 'collation', 'column', 'concurrently',
-  'constraint', 'create', 'cross', 'current_catalog', 'current_date',
-  'current_role', 'current_schema', 'current_time', 'current_timestamp',
-  'current_user', 'default', 'deferrable', 'desc', 'distinct', 'do', 'else',
-  'end', 'except', 'false', 'fetch', 'for', 'foreign', 'freeze', 'from', 'full',
-  'grant', 'group', 'having', 'ilike', 'in', 'initially', 'inner', 'intersect',
-  'into', 'is', 'isnull', 'join', 'lateral', 'leading', 'left', 'like', 'limit',
-  'localtime', 'localtimestamp', 'natural', 'not', 'notnull', 'null', 'offset',
-  'on', 'only', 'or', 'order', 'outer', 'over', 'overlaps', 'placing',
-  'primary', 'references', 'returning', 'right', 'select', 'session_user',
-  'similar', 'some', 'symmetric', 'table', 'then', 'to', 'trailing', 'true',
-  'union', 'unique', 'user', 'using', 'variadic', 'verbose', 'when', 'where',
-  'window', 'with'];
+    'any', 'array', 'as', 'asc', 'asymmetric', 'authorization', 'binary', 'both',
+    'case', 'cast', 'check', 'collate', 'collation', 'column', 'concurrently',
+    'constraint', 'create', 'cross', 'current_catalog', 'current_date',
+    'current_role', 'current_schema', 'current_time', 'current_timestamp',
+    'current_user', 'default', 'deferrable', 'desc', 'distinct', 'do', 'else',
+    'end', 'except', 'false', 'fetch', 'for', 'foreign', 'freeze', 'from', 'full',
+    'grant', 'group', 'having', 'ilike', 'in', 'initially', 'inner', 'intersect',
+    'into', 'is', 'isnull', 'join', 'lateral', 'leading', 'left', 'like', 'limit',
+    'localtime', 'localtimestamp', 'natural', 'not', 'notnull', 'null', 'offset',
+    'on', 'only', 'or', 'order', 'outer', 'over', 'overlaps', 'placing',
+    'primary', 'references', 'returning', 'right', 'select', 'session_user',
+    'similar', 'some', 'symmetric', 'table', 'then', 'to', 'trailing', 'true',
+    'union', 'unique', 'user', 'using', 'variadic', 'verbose', 'when', 'where',
+    'window', 'with',
+  ];
 
   /**
    * Constructs a connection object.
@@ -111,7 +112,7 @@ class Connection extends DatabaseConnection {
     // so backslashes in the password need to be doubled up.
     // The bug was reported against pdo_pgsql 1.0.2, backslashes in passwords
     // will break on this doubling up when the bug is fixed, so check the version
-    //elseif (phpversion('pdo_pgsql') < 'version_this_was_fixed_in') {
+    // elseif (phpversion('pdo_pgsql') < 'version_this_was_fixed_in') {
     else {
       $connection_options['password'] = str_replace('\\', '\\\\', $connection_options['password']);
     }

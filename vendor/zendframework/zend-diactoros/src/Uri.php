@@ -470,11 +470,11 @@ class Uri implements UriInterface
         $uri = '';
 
         if (! empty($scheme)) {
-            $uri .= sprintf('%s://', $scheme);
+            $uri .= sprintf('%s:', $scheme);
         }
 
         if (! empty($authority)) {
-            $uri .= $authority;
+            $uri .= '//' . $authority;
         }
 
         if ($path) {
@@ -556,7 +556,7 @@ class Uri implements UriInterface
     private function filterPath($path)
     {
         $path = preg_replace_callback(
-            '/(?:[^' . self::CHAR_UNRESERVED . ':@&=\+\$,\/;%]+|%(?![A-Fa-f0-9]{2}))/u',
+            '/(?:[^' . self::CHAR_UNRESERVED . ')(:@&=\+\$,\/;%]+|%(?![A-Fa-f0-9]{2}))/u',
             [$this, 'urlEncodeChar'],
             $path
         );

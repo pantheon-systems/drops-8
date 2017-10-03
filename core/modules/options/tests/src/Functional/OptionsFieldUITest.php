@@ -94,7 +94,7 @@ class OptionsFieldUITest extends FieldTestBase {
     $node = $this->drupalCreateNode($settings);
 
     // Check that a flat list of values is rejected once the field has data.
-    $this->assertAllowedValuesInput( "Zero\nOne", 'invalid input', 'Unkeyed lists are rejected once the field has data.');
+    $this->assertAllowedValuesInput("Zero\nOne", 'invalid input', 'Unkeyed lists are rejected once the field has data.');
 
     // Check that values can be added but values in use cannot be removed.
     $string = "0|Zero\n1|One\n2|Two";
@@ -259,7 +259,7 @@ class OptionsFieldUITest extends FieldTestBase {
    * Helper function to create list field of a given type.
    *
    * @param string $type
-   *   'list_integer', 'list_float' or 'list_string'
+   *   One of 'list_integer', 'list_float' or 'list_string'.
    */
   protected function createOptionsField($type) {
     // Create a field.
@@ -328,7 +328,7 @@ class OptionsFieldUITest extends FieldTestBase {
     $edit = [
       $this->fieldName => '1',
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save and keep published'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
 
     // Check the node page and see if the values are correct.
     $file_formatters = ['list_default', 'list_key'];

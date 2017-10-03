@@ -179,12 +179,12 @@ class EntityAutocompleteElementFormTest extends EntityKernelTestBase implements 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) { }
+  public function submitForm(array &$form, FormStateInterface $form_state) {}
 
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state) { }
+  public function validateForm(array &$form, FormStateInterface $form_state) {}
 
   /**
    * Tests valid entries in the EntityAutocomplete Form API element.
@@ -353,7 +353,7 @@ class EntityAutocompleteElementFormTest extends EntityKernelTestBase implements 
   public function testEntityAutocompleteIdInput() {
     /** @var \Drupal\Core\Form\FormBuilderInterface $form_builder */
     $form_builder = $this->container->get('form_builder');
-    //$form = $form_builder->getForm($this);
+    // $form = $form_builder->getForm($this);
     $form_state = (new FormState())
       ->setMethod('GET')
       ->setValues([

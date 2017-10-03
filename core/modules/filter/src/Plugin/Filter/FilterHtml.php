@@ -285,7 +285,9 @@ class FilterHtml extends FilterBase {
           // allowed attribute values with a wildcard. A wildcard by itself
           // would mean whitelisting all possible attribute values. But in that
           // case, one would not specify an attribute value at all.
-          $allowed_attribute_values = array_filter($allowed_attribute_values, function ($value) use ($star_protector) { return $value !== '*'; });
+          $allowed_attribute_values = array_filter($allowed_attribute_values, function ($value) use ($star_protector) {
+            return $value !== '*';
+          });
 
           if (empty($allowed_attribute_values)) {
             // If the value is the empty string all values are allowed.
@@ -371,7 +373,9 @@ class FilterHtml extends FilterBase {
       'q' => [$this->t('Quoted inline'), '<q>' . $this->t('Quoted inline') . '</q>'],
       // Assumes and describes tr, td, th.
       'table' => [$this->t('Table'), '<table> <tr><th>' . $this->t('Table header') . '</th></tr> <tr><td>' . $this->t('Table cell') . '</td></tr> </table>'],
-      'tr' => NULL, 'td' => NULL, 'th' => NULL,
+      'tr' => NULL,
+      'td' => NULL,
+      'th' => NULL,
       'del' => [$this->t('Deleted'), '<del>' . $this->t('Deleted') . '</del>'],
       'ins' => [$this->t('Inserted'), '<ins>' . $this->t('Inserted') . '</ins>'],
        // Assumes and describes li.
@@ -380,7 +384,8 @@ class FilterHtml extends FilterBase {
       'li' => NULL,
       // Assumes and describes dt and dd.
       'dl' => [$this->t('Definition lists are similar to other HTML lists. &lt;dl&gt; begins the definition list, &lt;dt&gt; begins the definition term and &lt;dd&gt; begins the definition description.'), '<dl> <dt>' . $this->t('First term') . '</dt> <dd>' . $this->t('First definition') . '</dd> <dt>' . $this->t('Second term') . '</dt> <dd>' . $this->t('Second definition') . '</dd> </dl>'],
-      'dt' => NULL, 'dd' => NULL,
+      'dt' => NULL,
+      'dd' => NULL,
       'h1' => [$this->t('Heading'), '<h1>' . $this->t('Title') . '</h1>'],
       'h2' => [$this->t('Heading'), '<h2>' . $this->t('Subtitle') . '</h2>'],
       'h3' => [$this->t('Heading'), '<h3>' . $this->t('Subtitle three') . '</h3>'],
@@ -396,19 +401,17 @@ class FilterHtml extends FilterBase {
           ['data' => $tips[$tag][0], 'class' => ['description']],
           // The markup must be escaped because this is the example code for the
           // user.
-          ['data' =>
-            [
+          [
+            'data' => [
               '#prefix' => '<code>',
               '#plain_text' => $tips[$tag][1],
-              '#suffix' => '</code>'
+              '#suffix' => '</code>',
             ],
-            'class' => ['type']],
+            'class' => ['type'],
+          ],
           // The markup must not be escaped because this is the example output
           // for the user.
-          ['data' =>
-            ['#markup' => $tips[$tag][1]],
-            'class' => ['get'],
-          ],
+          ['data' => ['#markup' => $tips[$tag][1]], 'class' => ['get']],
         ];
       }
       else {
@@ -422,7 +425,7 @@ class FilterHtml extends FilterBase {
       '#header' => $header,
       '#rows' => $rows,
     ];
-    $output .= drupal_render($table);
+    $output .= \Drupal::service('renderer')->render($table);
 
     $output .= '<p>' . $this->t('Most unusual characters can be directly entered without any problems.') . '</p>';
     $output .= '<p>' . $this->t('If you do encounter problems, try using HTML character entities. A common example looks like &amp;amp; for an ampersand &amp; character. For a full list of entities see HTML\'s <a href=":html-entities">entities</a> page. Some of the available characters include:', [':html-entities' => 'http://www.w3.org/TR/html4/sgml/entities.html']) . '</p>';
@@ -461,7 +464,7 @@ class FilterHtml extends FilterBase {
       '#header' => $header,
       '#rows' => $rows,
     ];
-    $output .= drupal_render($table);
+    $output .= \Drupal::service('renderer')->render($table);
     return $output;
   }
 

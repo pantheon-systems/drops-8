@@ -161,11 +161,13 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     $missing_dependencies = $config_manager->findMissingContentDependencies();
     $this->assertEqual([], $missing_dependencies);
 
-    $expected = [$entity_test->uuid() => [
-      'entity_type' => 'entity_test',
-      'bundle' => $entity_test->bundle(),
-      'uuid' => $entity_test->uuid(),
-    ]];
+    $expected = [
+      $entity_test->uuid() => [
+        'entity_type' => 'entity_test',
+        'bundle' => $entity_test->bundle(),
+        'uuid' => $entity_test->uuid(),
+      ],
+    ];
     // Delete the content entity so that is it now missing.
     $entity_test->delete();
     $missing_dependencies = $config_manager->findMissingContentDependencies();
@@ -328,7 +330,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
 
     $called = \Drupal::state()->get('config_test.on_dependency_removal_called', []);
     $this->assertFalse(in_array($entity_3->id(), $called), 'ConfigEntityInterface::onDependencyRemoval() is not called for entity 3.');
-    $this->assertIdentical([$entity_1->id(), $entity_4->id(), $entity_2->id()], $called, 'The most dependent entites have ConfigEntityInterface::onDependencyRemoval() called first.');
+    $this->assertSame([$entity_1->id(), $entity_4->id(), $entity_2->id()], $called, 'The most dependent entites have ConfigEntityInterface::onDependencyRemoval() called first.');
 
     // Perform a module rebuild so we can know where the node module is located
     // and uninstall it.

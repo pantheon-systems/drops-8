@@ -5,13 +5,14 @@ namespace Drupal\Tests\Component\FileCache;
 use Drupal\Component\FileCache\FileCache;
 use Drupal\Component\FileCache\NullFileCache;
 use Drupal\Component\FileCache\FileCacheFactory;
-use Drupal\Tests\UnitTestCase;
+use Drupal\Component\Utility\Random;
+use PHPUnit\Framework\TestCase;
 
 /**
  * @coversDefaultClass \Drupal\Component\FileCache\FileCacheFactory
  * @group FileCache
  */
-class FileCacheFactoryTest extends UnitTestCase {
+class FileCacheFactoryTest extends TestCase {
 
   /**
    * {@inheritdoc}
@@ -104,51 +105,54 @@ class FileCacheFactoryTest extends UnitTestCase {
     $class = get_class($file_cache);
 
     // Test fallback configuration.
-    $data['fallback-configuration'] = [[
-    ], [], FileCache::class];
+    $data['fallback-configuration'] = [
+      [],
+      [],
+      FileCache::class,
+    ];
 
     // Test default configuration.
-    $data['default-configuration'] = [[
-      'default' => [
-        'class' => $class,
-      ],
-    ], [], $class];
+    $data['default-configuration'] = [
+      ['default' => ['class' => $class]],
+      [],
+      $class,
+    ];
 
     // Test specific per collection setting.
-    $data['collection-setting'] = [[
-      'test_foo_settings' => [
-        'class' => $class,
-      ],
-    ], [], $class];
+    $data['collection-setting'] = [
+      ['test_foo_settings' => ['class' => $class]],
+      [],
+      $class,
+    ];
 
 
     // Test default configuration plus specific per collection setting.
-    $data['default-plus-collection-setting'] = [[
-      'default' => [
-        'class' => '\stdClass',
+    $data['default-plus-collection-setting'] = [
+      [
+        'default' => ['class' => '\stdClass'],
+        'test_foo_settings' => ['class' => $class],
       ],
-      'test_foo_settings' => [
-        'class' => $class,
-      ],
-    ], [], $class];
+      [],
+      $class,
+    ];
 
     // Test default configuration plus class specific override.
-    $data['default-plus-class-override'] = [[
-      'default' => [
-        'class' => '\stdClass',
-      ],
-    ], [ 'class' => $class ], $class];
+    $data['default-plus-class-override'] = [
+      ['default' => ['class' => '\stdClass']],
+      ['class' => $class],
+      $class,
+    ];
 
     // Test default configuration plus class specific override plus specific
     // per collection setting.
-    $data['default-plus-class-plus-collection-setting'] = [[
-      'default' => [
-        'class' => '\stdClass',
+    $data['default-plus-class-plus-collection-setting'] = [
+      [
+        'default' => ['class' => '\stdClass'],
+        'test_foo_settings' => ['class' => $class],
       ],
-      'test_foo_settings' => [
-        'class' => $class,
-      ],
-    ], [ 'class' => '\stdClass'], $class];
+      ['class' => '\stdClass'],
+      $class,
+  ];
 
     return $data;
   }
@@ -170,7 +174,10 @@ class FileCacheFactoryTest extends UnitTestCase {
    * @covers ::setPrefix
    */
   public function testGetSetPrefix() {
-    $prefix = $this->randomMachineName();
+    // Random generator.
+    $random = new Random();
+
+    $prefix = $random->name(8, TRUE);
     FileCacheFactory::setPrefix($prefix);
     $this->assertEquals($prefix, FileCacheFactory::getPrefix());
   }

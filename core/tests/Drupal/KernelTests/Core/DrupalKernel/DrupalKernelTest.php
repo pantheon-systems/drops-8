@@ -137,7 +137,7 @@ class DrupalKernelTest extends KernelTestBase {
     // Check that the container itself is not among the persist IDs because it
     // does not make sense to persist the container itself.
     $persist_ids = $container->getParameter('persist_ids');
-    $this->assertIdentical(FALSE, array_search('service_container', $persist_ids));
+    $this->assertSame(FALSE, array_search('service_container', $persist_ids));
   }
 
   /**
@@ -184,6 +184,11 @@ class DrupalKernelTest extends KernelTestBase {
       $pass = TRUE;
     }
     $this->assertTrue($pass, 'Throws LogicException if DrupalKernel::setSitePath() is called after boot');
+
+    // Ensure no LogicException if DrupalKernel::setSitePath() is called with
+    // identical path after boot.
+    $path = $kernel->getSitePath();
+    $kernel->setSitePath($path);
   }
 
 }

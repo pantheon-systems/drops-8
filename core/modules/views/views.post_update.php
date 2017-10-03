@@ -201,3 +201,15 @@ function views_post_update_boolean_filter_values() {
 function views_post_update_grouped_filters() {
   // Empty update to cause a cache rebuild so that the schema changes are read.
 }
+
+/**
+ * Fix table names for revision metadata fields.
+ */
+function views_post_update_revision_metadata_fields() {
+  // The table names are fixed automatically in
+  // \Drupal\views\Entity\View::preSave(), so we just need to re-save all views.
+  $views = View::loadMultiple();
+  array_walk($views, function(View $view) {
+    $view->save();
+  });
+}

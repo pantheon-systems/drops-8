@@ -12,13 +12,9 @@ use Drupal\Core\Access\AccessResult;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Access controller for the Moderation State entity.
+ * Access controller for the Workflow entity.
  *
  * @see \Drupal\workflows\Entity\Workflow.
- *
- * @internal
- *   The workflow system is currently experimental and should only be leveraged
- *   by experimental modules and development releases of contributed modules.
  */
 class WorkflowAccessControlHandler extends EntityAccessControlHandler implements EntityHandlerInterface {
 
@@ -62,15 +58,13 @@ class WorkflowAccessControlHandler extends EntityAccessControlHandler implements
       list(, $state_id) = explode(':', $operation, 2);
       // Deleting a state is editing a workflow, but also we should forbid
       // access if there is only one state.
-      $admin_access = AccessResult::allowedIf(count($entity->getStates()) > 1)
+      return AccessResult::allowedIf(count($entity->getTypePlugin()->getStates()) > 1)
         ->andIf(parent::checkAccess($entity, 'edit', $account))
         ->andIf(AccessResult::allowedIf(!in_array($state_id, $workflow_type->getRequiredStates(), TRUE)))
         ->addCacheableDependency($entity);
     }
-    else {
-      $admin_access = parent::checkAccess($entity, $operation, $account);
-    }
-    return $workflow_type->checkWorkflowAccess($entity, $operation, $account)->orIf($admin_access);
+
+    return parent::checkAccess($entity, $operation, $account);
   }
 
   /**
@@ -81,7 +75,9 @@ class WorkflowAccessControlHandler extends EntityAccessControlHandler implements
     $admin_access = parent::checkCreateAccess($account, $context, $entity_bundle);
     // Allow access if there is at least one workflow type. Since workflow types
     // are provided by modules this is cacheable until extensions change.
-    return $admin_access->andIf(AccessResult::allowedIf($workflow_types_count > 0))->addCacheTags(['config:core.extension']);
+    return $admin_access
+      ->andIf(AccessResult::allowedIf($workflow_types_count > 0))
+      ->addCacheTags(['workflow_type_plugins']);
   }
 
 }

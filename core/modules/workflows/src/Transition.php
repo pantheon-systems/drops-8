@@ -4,10 +4,6 @@ namespace Drupal\workflows;
 
 /**
  * A transition value object that describes the transition between states.
- *
- * @internal
- *   The workflow system is currently experimental and should only be leveraged
- *   by experimental modules and development releases of contributed modules.
  */
 class Transition implements TransitionInterface {
 
@@ -69,7 +65,7 @@ class Transition implements TransitionInterface {
    * @param int $weight
    *   (optional) The transition's weight. Defaults to 0.
    */
-  public function __construct(WorkflowInterface $workflow, $id, $label, array $from_state_ids, $to_state_id, $weight = 0) {
+  public function __construct(WorkflowTypeInterface $workflow, $id, $label, array $from_state_ids, $to_state_id, $weight = 0) {
     $this->workflow = $workflow;
     $this->id = $id;
     $this->label = $label;

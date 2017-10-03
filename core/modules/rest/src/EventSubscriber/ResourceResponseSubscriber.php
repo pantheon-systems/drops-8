@@ -96,7 +96,7 @@ class ResourceResponseSubscriber implements EventSubscriberInterface {
     $route = $route_match->getRouteObject();
     $acceptable_request_formats = $route->hasRequirement('_format') ? explode('|', $route->getRequirement('_format')) : [];
     $acceptable_content_type_formats = $route->hasRequirement('_content_type_format') ? explode('|', $route->getRequirement('_content_type_format')) : [];
-    $acceptable_formats = $request->isMethodSafe() ? $acceptable_request_formats : $acceptable_content_type_formats;
+    $acceptable_formats = $request->isMethodCacheable() ? $acceptable_request_formats : $acceptable_content_type_formats;
 
     $requested_format = $request->getRequestFormat();
     $content_type_format = $request->getContentType();
@@ -196,8 +196,9 @@ class ResourceResponseSubscriber implements EventSubscriberInterface {
    * {@inheritdoc}
    */
   public static function getSubscribedEvents() {
-    // Run shortly before \Drupal\Core\EventSubscriber\FinishResponseSubscriber.
-    $events[KernelEvents::RESPONSE][] = ['onResponse', 5];
+    // Run before \Drupal\dynamic_page_cache\EventSubscriber\DynamicPageCacheSubscriber
+    // (priority 100), so that Dynamic Page Cache can cache flattened responses.
+    $events[KernelEvents::RESPONSE][] = ['onResponse', 128];
     return $events;
   }
 

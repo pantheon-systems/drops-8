@@ -7,6 +7,7 @@ use Drupal\Component\Assertion\Handle;
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Cache\DatabaseBackend;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\Config\NullStorage;
 use Drupal\Core\Database\Database;
@@ -77,7 +78,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       ],
       'cache.container' => [
         'class' => 'Drupal\Core\Cache\DatabaseBackend',
-        'arguments' => ['@database', '@cache_tags_provider.container', 'container'],
+        'arguments' => ['@database', '@cache_tags_provider.container', 'container', DatabaseBackend::MAXIMUM_NONE],
       ],
       'cache_tags_provider.container' => [
         'class' => 'Drupal\Core\Cache\DatabaseCacheTagsChecksum',
@@ -410,7 +411,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * {@inheritdoc}
    */
   public function setSitePath($path) {
-    if ($this->booted) {
+    if ($this->booted && $path !== $this->sitePath) {
       throw new \LogicException('Site path cannot be changed after calling boot()');
     }
     $this->sitePath = $path;
@@ -916,6 +917,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // new session into the master request if one was present before.
     if (($request_stack = $this->container->get('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE))) {
       if ($request = $request_stack->getMasterRequest()) {
+        $subrequest = TRUE;
         if ($request->hasSession()) {
           $request->setSession($this->container->get('session'));
         }
@@ -927,6 +929,12 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     }
 
     \Drupal::setContainer($this->container);
+
+    // Allow other parts of the codebase to react on container initialization in
+    // subrequest.
+    if (!empty($subrequest)) {
+      $this->container->get('event_dispatcher')->dispatch(self::CONTAINER_INITIALIZE_SUBREQUEST_FINISHED);
+    }
 
     // If needs dumping flag was set, dump the container.
     if ($this->containerNeedsDumping && !$this->cacheDrupalContainer($container_definition)) {

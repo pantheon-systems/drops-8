@@ -15,8 +15,8 @@ services:
     arguments: ['@content_moderation.moderation_information']
     tags:
       - { name: access_check, applies_to: _content_moderation_latest_version }
-  content_moderation.revision_tracker:
-    class: Drupal\content_moderation\RevisionTracker
-    arguments: ['@database']
+  content_moderation.config_import_subscriber:
+    class: Drupal\content_moderation\EventSubscriber\ConfigImportSubscriber
+    arguments: ['@config.manager', '@entity_type.manager']
     tags:
-     - { name: backend_overridable }
+      - { name: event_subscriber }
