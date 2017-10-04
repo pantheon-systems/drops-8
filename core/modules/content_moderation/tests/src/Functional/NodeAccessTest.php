@@ -28,7 +28,7 @@ class NodeAccessTest extends ModerationStateTestBase {
    * @var array
    */
   protected $permissions = [
-    'administer content moderation',
+    'administer workflows',
     'access administration pages',
     'administer content types',
     'administer nodes',
@@ -46,7 +46,7 @@ class NodeAccessTest extends ModerationStateTestBase {
   protected function setUp() {
     parent::setUp();
     $this->drupalLogin($this->adminUser);
-    $this->createContentTypeFromUi('Moderated content', 'moderated_content', TRUE);
+    $this->createContentTypeFromUi('Moderated content', 'moderated_content', FALSE);
     $this->grantUserPermissionToCreateContentOfType($this->adminUser, 'moderated_content');
 
     // Rebuild permissions because hook_node_grants() is implemented by the
@@ -60,10 +60,23 @@ class NodeAccessTest extends ModerationStateTestBase {
   public function testPageAccess() {
     $this->drupalLogin($this->adminUser);
 
+    // Access the node form before moderation is enabled, the publication state
+    // should now be visible.
+    $this->drupalGet('node/add/moderated_content');
+    $this->assertSession()->fieldExists('Published');
+
+    // Now enable the workflow.
+    $this->enableModerationThroughUi('moderated_content', 'editorial');
+
+    // Access that the status field is no longer visible.
+    $this->drupalGet('node/add/moderated_content');
+    $this->assertSession()->fieldNotExists('Published');
+
     // Create a node to test with.
-    $this->drupalPostForm('node/add/moderated_content', [
+    $this->drupalPostForm(NULL, [
       'title[0][value]' => 'moderated content',
-    ], t('Save and Create New Draft'));
+      'moderation_state[0][state]' => 'draft',
+    ], t('Save'));
     $node = $this->getNodeByTitle('moderated content');
     if (!$node) {
       $this->fail('Test node was not saved correctly.');
@@ -91,7 +104,9 @@ class NodeAccessTest extends ModerationStateTestBase {
 
     // Publish the node.
     $this->drupalLogin($this->adminUser);
-    $this->drupalPostForm($edit_path, [], t('Save and Publish'));
+    $this->drupalPostForm($edit_path, [
+      'moderation_state[0][state]' => 'published',
+    ], t('Save'));
 
     // Ensure access works correctly for anonymous users.
     $this->drupalLogout();
@@ -104,11 +119,12 @@ class NodeAccessTest extends ModerationStateTestBase {
     $this->drupalGet($view_path);
     $this->assertResponse(200);
 
-    // Create a forward revision for the 'Latest revision' tab.
+    // Create a pending revision for the 'Latest revision' tab.
     $this->drupalLogin($this->adminUser);
     $this->drupalPostForm($edit_path, [
       'title[0][value]' => 'moderated content revised',
-    ], t('Save and Create New Draft'));
+      'moderation_state[0][state]' => 'draft',
+    ], t('Save'));
 
     $this->drupalLogin($user);
 
@@ -120,7 +136,7 @@ class NodeAccessTest extends ModerationStateTestBase {
     $this->drupalGet($view_path);
     $this->assertResponse(200);
 
-    // Now make another user, who should not be able to see forward revisions.
+    // Now make another user, who should not be able to see pending revisions.
     $user = $this->createUser([
       'use editorial transition create_new_draft',
     ]);

@@ -135,20 +135,24 @@ class DbLogController extends ControllerBase {
       [
         'data' => $this->t('Type'),
         'field' => 'w.type',
-        'class' => [RESPONSIVE_PRIORITY_MEDIUM]],
+        'class' => [RESPONSIVE_PRIORITY_MEDIUM],
+      ],
       [
         'data' => $this->t('Date'),
         'field' => 'w.wid',
         'sort' => 'desc',
-        'class' => [RESPONSIVE_PRIORITY_LOW]],
+        'class' => [RESPONSIVE_PRIORITY_LOW],
+      ],
       $this->t('Message'),
       [
         'data' => $this->t('User'),
         'field' => 'ufd.name',
-        'class' => [RESPONSIVE_PRIORITY_MEDIUM]],
+        'class' => [RESPONSIVE_PRIORITY_MEDIUM],
+      ],
       [
         'data' => $this->t('Operations'),
-        'class' => [RESPONSIVE_PRIORITY_LOW]],
+        'class' => [RESPONSIVE_PRIORITY_LOW],
+      ],
     ];
 
     $query = $this->database->select('watchdog', 'w')
@@ -298,8 +302,9 @@ class DbLogController extends ControllerBase {
   /**
    * Builds a query for database log administration filters based on session.
    *
-   * @return array
-   *   An associative array with keys 'where' and 'args'.
+   * @return array|null
+   *   An associative array with keys 'where' and 'args' or NULL if there were
+   *   no filters set.
    */
   protected function buildFilterQuery() {
     if (empty($_SESSION['dblog_overview_filter'])) {

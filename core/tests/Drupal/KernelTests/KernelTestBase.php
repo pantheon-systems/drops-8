@@ -18,10 +18,12 @@ use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\simpletest\AssertContentTrait;
-use Drupal\simpletest\AssertHelperTrait;
+use Drupal\Tests\AssertHelperTrait;
 use Drupal\Tests\ConfigTestTrait;
 use Drupal\Tests\RandomGeneratorTrait;
+use Drupal\Tests\TestRequirementsTrait;
 use Drupal\simpletest\TestServiceProvider;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 use org\bovigo\vfs\vfsStream;
@@ -45,17 +47,15 @@ use org\bovigo\vfs\visitor\vfsStreamPrintVisitor;
  *
  * @see \Drupal\Tests\KernelTestBase::$modules
  * @see \Drupal\Tests\KernelTestBase::enableModules()
- *
- * @todo Extend ::setRequirementsFromAnnotation() and ::checkRequirements() to
- *   account for '@requires module'.
  */
-abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements ServiceProviderInterface {
+abstract class KernelTestBase extends TestCase implements ServiceProviderInterface {
 
   use AssertLegacyTrait;
   use AssertContentTrait;
   use AssertHelperTrait;
   use RandomGeneratorTrait;
   use ConfigTestTrait;
+  use TestRequirementsTrait;
 
   /**
    * {@inheritdoc}
@@ -209,15 +209,6 @@ abstract class KernelTestBase extends \PHPUnit_Framework_TestCase implements Ser
 
     // Change the current dir to DRUPAL_ROOT.
     chdir(static::getDrupalRoot());
-  }
-
-  /**
-   * Returns the drupal root directory.
-   *
-   * @return string
-   */
-  protected static function getDrupalRoot() {
-    return dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
   }
 
   /**

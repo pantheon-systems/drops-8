@@ -385,7 +385,7 @@ abstract class StylePluginBase extends PluginBase {
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The current state of the form.
    * @param string $type
-   *    The display type, either block or page.
+   *   The display type, either block or page.
    */
   public function wizardForm(&$form, FormStateInterface $form_state, $type) {
   }
@@ -413,13 +413,15 @@ abstract class StylePluginBase extends PluginBase {
    * interfere with the sorts. If so it should build; if it returns
    * any non-TRUE value, normal sorting will NOT be added to the query.
    */
-  public function buildSort() { return TRUE; }
+  public function buildSort() {
+    return TRUE;
+  }
 
   /**
    * Called by the view builder to let the style build a second set of
    * sorts that will come after any other sorts in the view.
    */
-  public function buildSortPost() { }
+  public function buildSortPost() {}
 
   /**
    * Allow the style to do stuff before each row is rendered.
@@ -788,7 +790,7 @@ abstract class StylePluginBase extends PluginBase {
    * @param $index
    *   The index count of the row.
    * @param $field
-   *    The id of the field.
+   *   The id of the field.
    */
   public function getFieldValue($index, $field) {
     $this->view->row_index = $index;

@@ -4,7 +4,7 @@ namespace Drupal\Tests\taxonomy\Functional;
 
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use \Drupal\taxonomy\Entity\Vocabulary;
+use Drupal\taxonomy\Entity\Vocabulary;
 
 /**
  * Posts an article with a taxonomy term and a date prior to 1970.
@@ -60,7 +60,7 @@ class LegacyTest extends TaxonomyTestBase {
     $edit['created[0][value][time]'] = $date->format('H:i:s');
     $edit['body[0][value]'] = $this->randomMachineName();
     $edit['field_tags[target_id]'] = $this->randomMachineName();
-    $this->drupalPostForm('node/add/article', $edit, t('Save and publish'));
+    $this->drupalPostForm('node/add/article', $edit, t('Save'));
     // Checks that the node has been saved.
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertEqual($node->getCreatedTime(), $date->getTimestamp(), 'Legacy node was saved with the right date.');

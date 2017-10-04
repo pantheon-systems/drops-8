@@ -272,6 +272,10 @@ Mail
 Markup
 - ?
 
+Media
+- Sean Blommaert 'seanB' https://www.drupal.org/u/seanb
+- Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
+
 Menu
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
 - Peter Wolanin 'pwolanin' https://www.drupal.org/u/pwolanin
@@ -306,9 +310,6 @@ Node Access
 
 Options
 - ?
-
-Outside In
-- Ted Bowman 'tedbow' https://www.drupal.org/u/tedbow
 
 Page Cache
 - Lorenz Schori 'znerol' https://www.drupal.org/u/znerol
@@ -355,6 +356,9 @@ Search
 
 Serialization
 - Damian Lee 'damiankloip' https://www.drupal.org/u/damiankloip
+
+Settings Tray
+- Ted Bowman 'tedbow' https://www.drupal.org/u/tedbow
 
 Seven
 - ?
@@ -512,11 +516,11 @@ tools, documentation, and processes to make it easier for new contributors to
 get involved. They organize communications and logistics, and actively
 participate in mentoring.
 
+- Mauricio Dinarte 'dinarcon' https://www.drupal.org/u/dinarcon
 - Lucas Hedding 'heddn' https://www.drupal.org/u/heddn
+- Rachel Lawson 'rachel_norfolk' https://www.drupal.org/u/rachel_norfolk
 - Valery Lourie 'valthebald' https://www.drupal.org/u/valthebald
-- Alina Mackenzie 'alimac' https://www.drupal.org/u/alimac
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
-- Andrea Soper 'ZenDoodles' https://www.drupal.org/u/zendoodles
-- Cathy Theys 'YesCT' https://www.drupal.org/u/yesct
+- Matthew Radcliffe 'mradcliffe' https://www.drupal.org/u/mradcliffe
 
 Provisional membership: None at this time.

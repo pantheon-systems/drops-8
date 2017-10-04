@@ -2,6 +2,7 @@
 
 namespace Drupal\search\Plugin\views\argument;
 
+use Drupal\Core\Database\Query\Condition;
 use Drupal\views\Plugin\views\argument\ArgumentPluginBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\ViewExecutable;
@@ -76,7 +77,7 @@ class Search extends ArgumentPluginBase {
     else {
       $search_index = $this->ensureMyTable();
 
-      $search_condition = db_and();
+      $search_condition = new Condition('AND');
 
       // Create a new join to relate the 'search_total' table to our current 'search_index' table.
       $definition = [
@@ -96,7 +97,7 @@ class Search extends ArgumentPluginBase {
       $search_dataset = $this->query->addTable('node_search_dataset');
       $conditions = $this->searchQuery->conditions();
       $condition_conditions =& $conditions->conditions();
-      foreach ($condition_conditions  as $key => &$condition) {
+      foreach ($condition_conditions as $key => &$condition) {
         // Make sure we just look at real conditions.
         if (is_numeric($key)) {
           // Replace the conditions with the table alias of views.
@@ -109,7 +110,7 @@ class Search extends ArgumentPluginBase {
       // Add the keyword conditions, as is done in
       // SearchQuery::prepareAndNormalize(), but simplified because we are
       // only concerned with relevance ranking so we do not need to normalize.
-      $or = db_or();
+      $or = new Condition('OR');
       foreach ($words as $word) {
         $or->condition("$search_index.word", $word);
       }

@@ -9,7 +9,6 @@ namespace Drupal\Tests\views\Unit;
 
 use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Entity\ContentEntityType;
-use Drupal\Core\Entity\EntityType;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Sql\DefaultTableMapping;
 use Drupal\Core\Field\BaseFieldDefinition;
@@ -299,7 +298,9 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertCount(1, $revision_field_data['table']['join']);
     $this->assertEquals([
       'entity_test_mul_property_data' => [
-        'left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
       ],
     ], $revision_field_data['table']['join']);
 
@@ -307,7 +308,9 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertCount(1, $revision_base_data['table']['join']);
     $this->assertEquals([
       'entity_test_mulrev_property_revision' => [
-        'left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
       ],
     ], $revision_base_data['table']['join']);
 
@@ -343,7 +346,9 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertCount(1, $revision_field_data['table']['join']);
     $this->assertEquals([
       'entity_test_mulrev_field_data' => [
-        'left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
       ],
     ], $revision_field_data['table']['join']);
 
@@ -351,7 +356,9 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertCount(1, $revision_base_data['table']['join']);
     $this->assertEquals([
       'entity_test_mulrev_property_revision' => [
-        'left_field' => 'revision_id', 'field' => 'revision_id', 'type' => 'INNER'
+        'left_field' => 'revision_id',
+        'field' => 'revision_id',
+        'type' => 'INNER',
       ],
     ], $revision_base_data['table']['join']);
     $this->assertFalse(isset($data['data_table']));
@@ -533,10 +540,11 @@ class EntityViewsDataTest extends UnitTestCase {
       'left_field' => 'id',
       'field' => 'entity_id',
       'extra' => [[
-        'field' => 'deleted',
-        'value' => 0,
-        'numeric' => TRUE,
-      ]],
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
     ], $data['entity_test__string']['table']['join']['entity_test']);
   }
 
@@ -688,10 +696,11 @@ class EntityViewsDataTest extends UnitTestCase {
       'left_field' => 'id',
       'field' => 'entity_id',
       'extra' => [[
-        'field' => 'deleted',
-        'value' => 0,
-        'numeric' => TRUE,
-      ]],
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
     ], $data['entity_test_mul__string']['table']['join']['entity_test_mul']);
   }
 
@@ -873,10 +882,11 @@ class EntityViewsDataTest extends UnitTestCase {
       'left_field' => 'id',
       'field' => 'entity_id',
       'extra' => [[
-        'field' => 'deleted',
-        'value' => 0,
-        'numeric' => TRUE,
-      ]],
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
     ], $data['entity_test_mulrev__string']['table']['join']['entity_test_mulrev_property_data']);
 
     $this->assertStringField($data['entity_test_mulrev_revision__string']['string']);
@@ -885,10 +895,11 @@ class EntityViewsDataTest extends UnitTestCase {
       'left_field' => 'revision_id',
       'field' => 'entity_id',
       'extra' => [[
-        'field' => 'deleted',
-        'value' => 0,
-        'numeric' => TRUE,
-      ]],
+          'field' => 'deleted',
+          'value' => 0,
+          'numeric' => TRUE,
+        ],
+      ],
     ], $data['entity_test_mulrev_revision__string']['table']['join']['entity_test_mulrev_property_revision']);
   }
 
@@ -1087,7 +1098,7 @@ class TestEntityViewsData extends EntityViewsData {
 
 }
 
-class TestEntityType extends EntityType {
+class TestEntityType extends ContentEntityType {
 
   /**
    * Sets a specific entity key.

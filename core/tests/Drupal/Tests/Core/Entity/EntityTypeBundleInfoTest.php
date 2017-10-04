@@ -100,7 +100,7 @@ class EntityTypeBundleInfoTest extends UnitTestCase {
 
     $container = $this->prophesize(ContainerInterface::class);
     $container->get('cache_tags.invalidator')->willReturn($this->cacheTagsInvalidator->reveal());
-    //$container->get('typed_data_manager')->willReturn($this->typedDataManager->reveal());
+    // $container->get('typed_data_manager')->willReturn($this->typedDataManager->reveal());
     \Drupal::setContainer($container->reveal());
 
     $this->entityTypeBundleInfo = new EntityTypeBundleInfo($this->entityTypeManager->reveal(), $this->languageManager->reveal(), $this->moduleHandler->reveal(), $this->typedDataManager->reveal(), $this->cacheBackend->reveal());
@@ -194,15 +194,13 @@ class EntityTypeBundleInfoTest extends UnitTestCase {
   public function providerTestGetBundleInfo() {
     return [
       ['apple', [
-        'apple' => [
-          'label' => 'Apple',
+          'apple' => ['label' => 'Apple'],
         ],
-      ]],
+      ],
       ['banana', [
-        'banana' => [
-          'label' => 'Banana',
+          'banana' => ['label' => 'Banana'],
         ],
-      ]],
+      ],
       ['pear', []],
     ];
   }

@@ -10,7 +10,7 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
  *
  * @MigrateSource(
  *   id = "block",
- *   source_provider = "block"
+ *   source_module = "block"
  * )
  */
 class Block extends DrupalSqlBase {
@@ -84,7 +84,7 @@ class Block extends DrupalSqlBase {
     return [
       'bid' => $this->t('The block numeric identifier.'),
       'module' => $this->t('The module providing the block.'),
-      'delta' => $this->t('The block\'s delta.'),
+      'delta' => $this->t("The block's delta."),
       'theme' => $this->t('Which theme the block is placed in.'),
       'status' => $this->t('Whether or not the block is enabled.'),
       'weight' => $this->t('Weight of the block for ordering within regions.'),

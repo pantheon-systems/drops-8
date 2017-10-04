@@ -14,6 +14,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Common customizations for most/all entities.
  *
  * This class is intended primarily as a base class.
+ *
+ * @internal
  */
 class ModerationHandler implements ModerationHandlerInterface, EntityHandlerInterface {
 
@@ -33,6 +35,11 @@ class ModerationHandler implements ModerationHandlerInterface, EntityHandlerInte
     // This is probably not necessary if configuration is setup correctly.
     $entity->setNewRevision(TRUE);
     $entity->isDefaultRevision($default_revision);
+    if ($entity->hasField('revision_translation_affected')) {
+      // @todo remove this when revision and translation issues have been
+      // resolved. https://www.drupal.org/node/2860097
+      $entity->set('revision_translation_affected', TRUE);
+    }
 
     // Update publishing status if it can be updated and if it needs updating.
     if (($entity instanceof EntityPublishedInterface) && $entity->isPublished() !== $published_state) {

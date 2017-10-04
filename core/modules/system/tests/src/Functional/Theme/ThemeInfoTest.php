@@ -66,11 +66,11 @@ class ThemeInfoTest extends BrowserTestBase {
     // should work nevertheless.
     $this->drupalGet('theme-test/info/stylesheets');
 
-    $this->assertIdentical(1, count($this->xpath('//link[contains(@href, :href)]', [':href'  => "$base/base-add.css"])), "$base/base-add.css found");
-    $this->assertIdentical(0, count($this->xpath('//link[contains(@href, :href)]', [':href'  => "base-remove.css"])), "base-remove.css not found");
+    $this->assertIdentical(1, count($this->xpath('//link[contains(@href, :href)]', [':href' => "$base/base-add.css"])), "$base/base-add.css found");
+    $this->assertIdentical(0, count($this->xpath('//link[contains(@href, :href)]', [':href' => "base-remove.css"])), "base-remove.css not found");
 
-    $this->assertIdentical(1, count($this->xpath('//link[contains(@href, :href)]', [':href'  => "$sub/sub-add.css"])), "$sub/sub-add.css found");
-    $this->assertIdentical(0, count($this->xpath('//link[contains(@href, :href)]', [':href'  => "sub-remove.css"])), "sub-remove.css not found");
+    $this->assertIdentical(1, count($this->xpath('//link[contains(@href, :href)]', [':href' => "$sub/sub-add.css"])), "$sub/sub-add.css found");
+    $this->assertIdentical(0, count($this->xpath('//link[contains(@href, :href)]', [':href' => "sub-remove.css"])), "sub-remove.css not found");
     $this->assertIdentical(0, count($this->xpath('//link[contains(@href, :href)]', [':href' => "base-add.sub-remove.css"])), "base-add.sub-remove.css not found");
 
     // Verify that CSS files with the same name are loaded from both the base theme and subtheme.
@@ -90,13 +90,13 @@ class ThemeInfoTest extends BrowserTestBase {
     $active_theme = $this->themeManager->getActiveTheme();
     // Make sure we are not testing the wrong theme.
     $this->assertEqual('test_theme', $active_theme->getName());
-    $this->assertEqual(['classy/base', 'core/normalize', 'test_theme/global-styling'], $active_theme->getLibraries());
+    $this->assertEqual(['classy/base', 'classy/messages', 'core/normalize', 'test_theme/global-styling'], $active_theme->getLibraries());
 
     // @see theme_test_system_info_alter()
     $this->state->set('theme_test.modify_info_files', TRUE);
     drupal_flush_all_caches();
     $active_theme = $this->themeManager->getActiveTheme();
-    $this->assertEqual(['classy/base', 'core/normalize', 'test_theme/global-styling', 'core/backbone'], $active_theme->getLibraries());
+    $this->assertEqual(['classy/base', 'classy/messages', 'core/normalize', 'test_theme/global-styling', 'core/backbone'], $active_theme->getLibraries());
   }
 
 }

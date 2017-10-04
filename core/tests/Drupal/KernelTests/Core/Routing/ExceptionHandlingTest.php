@@ -155,7 +155,7 @@ class ExceptionHandlingTest extends KernelTestBase {
     $kernel = \Drupal::getContainer()->get('http_kernel');
     $response = $kernel->handle($request)->prepare($request);
     $this->assertEqual($response->getStatusCode(), Response::HTTP_INTERNAL_SERVER_ERROR);
-    $this->assertEqual($response->headers->get('Content-type'), 'text/html; charset=UTF-8');
+    $this->assertEqual($response->headers->get('Content-type'), 'text/plain; charset=UTF-8');
 
     // Test both that the backtrace is properly escaped, and that the unescaped
     // string is not output at all.
@@ -178,7 +178,7 @@ class ExceptionHandlingTest extends KernelTestBase {
     $kernel = \Drupal::getContainer()->get('http_kernel');
     $response = $kernel->handle($request)->prepare($request);
     $this->assertEqual($response->getStatusCode(), Response::HTTP_INTERNAL_SERVER_ERROR);
-    $this->assertEqual($response->headers->get('Content-type'), 'text/html; charset=UTF-8');
+    $this->assertEqual($response->headers->get('Content-type'), 'text/plain; charset=UTF-8');
 
     // Test message is properly escaped, and that the unescaped string is not
     // output at all.
@@ -192,10 +192,11 @@ class ExceptionHandlingTest extends KernelTestBase {
     $kernel = \Drupal::getContainer()->get('http_kernel');
     $response = $kernel->handle($request)->prepare($request);
     // As the Content-type is text/plain the fact that the raw string is
-    // contained in the output does not matter.
+    // contained in the output would not matter, but because it is output by the
+    // final exception subscriber, it is printed as partial HTML, and hence
+    // escaped.
     $this->assertEqual($response->headers->get('Content-type'), 'text/plain; charset=UTF-8');
-    $this->setRawContent($response->getContent());
-    $this->assertRaw($string);
+    $this->assertStringStartsWith('The website encountered an unexpected error. Please try again later.</br></br><em class="placeholder">Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException</em>: Not acceptable format: json&lt;script&gt;alert(123);&lt;/script&gt; in <em class="placeholder">', $response->getContent());
   }
 
 }

@@ -65,16 +65,6 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   /**
    * {@inheritdoc}
    */
-  public function hasData() {
-    return (bool) $this->getQuery()
-      ->accessCheck(FALSE)
-      ->range(0, 1)
-      ->execute();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function doCreate(array $values) {
     // We have to determine the bundle first.
     $bundle = FALSE;
@@ -129,8 +119,12 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
    */
   public function createTranslation(ContentEntityInterface $entity, $langcode, array $values = []) {
     $translation = $entity->getTranslation($langcode);
-    $definitions = array_filter($translation->getFieldDefinitions(), function(FieldDefinitionInterface $definition) { return $definition->isTranslatable(); });
-    $field_names = array_map(function(FieldDefinitionInterface $definition) { return $definition->getName(); }, $definitions);
+    $definitions = array_filter($translation->getFieldDefinitions(), function(FieldDefinitionInterface $definition) {
+      return $definition->isTranslatable();
+    });
+    $field_names = array_map(function(FieldDefinitionInterface $definition) {
+      return $definition->getName();
+    }, $definitions);
     $values[$this->langcodeKey] = $langcode;
     $values[$this->getEntityType()->getKey('default_langcode')] = FALSE;
     $this->initFieldValues($translation, $values, $field_names);
@@ -141,32 +135,32 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   /**
    * {@inheritdoc}
    */
-  public function onFieldStorageDefinitionCreate(FieldStorageDefinitionInterface $storage_definition) { }
+  public function onFieldStorageDefinitionCreate(FieldStorageDefinitionInterface $storage_definition) {}
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldStorageDefinitionUpdate(FieldStorageDefinitionInterface $storage_definition, FieldStorageDefinitionInterface $original) { }
+  public function onFieldStorageDefinitionUpdate(FieldStorageDefinitionInterface $storage_definition, FieldStorageDefinitionInterface $original) {}
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldStorageDefinitionDelete(FieldStorageDefinitionInterface $storage_definition) { }
+  public function onFieldStorageDefinitionDelete(FieldStorageDefinitionInterface $storage_definition) {}
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldDefinitionCreate(FieldDefinitionInterface $field_definition) { }
+  public function onFieldDefinitionCreate(FieldDefinitionInterface $field_definition) {}
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldDefinitionUpdate(FieldDefinitionInterface $field_definition, FieldDefinitionInterface $original) { }
+  public function onFieldDefinitionUpdate(FieldDefinitionInterface $field_definition, FieldDefinitionInterface $original) {}
 
   /**
    * {@inheritdoc}
    */
-  public function onFieldDefinitionDelete(FieldDefinitionInterface $field_definition) { }
+  public function onFieldDefinitionDelete(FieldDefinitionInterface $field_definition) {}
 
   /**
    * {@inheritdoc}
@@ -210,7 +204,7 @@ abstract class ContentEntityStorageBase extends EntityStorageBase implements Con
   /**
    * {@inheritdoc}
    */
-  public function finalizePurge(FieldStorageDefinitionInterface $storage_definition) { }
+  public function finalizePurge(FieldStorageDefinitionInterface $storage_definition) {}
 
   /**
    * {@inheritdoc}

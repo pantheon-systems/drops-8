@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\views\Functional\Plugin;
 
-use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\views\Functional\ViewTestBase;
 use Drupal\views\Views;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -93,7 +93,7 @@ class PagerTest extends ViewTestBase {
     $this->assertText('20 items');
 
     // add new display and test the settings again, by override it.
-    $edit = [ ];
+    $edit = [];
     // Add a display and override the pager settings.
     $this->drupalPostForm('admin/structure/views/view/test_store_pager_settings/edit', $edit, t('Add Page'));
     $edit = [

@@ -5,8 +5,11 @@ namespace Drupal\views\Entity;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\views\Plugin\DependentWithRemovalPluginInterface;
 use Drupal\views\Views;
 use Drupal\views\ViewEntityInterface;
 
@@ -16,9 +19,6 @@ use Drupal\views\ViewEntityInterface;
  * @ConfigEntityType(
  *   id = "view",
  *   label = @Translation("View", context = "View entity type"),
- *   handlers = {
- *     "access" = "Drupal\views\ViewAccessControlHandler"
- *   },
  *   admin_permission = "administer views",
  *   entity_keys = {
  *     "id" = "id",
@@ -290,14 +290,56 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
   public function preSave(EntityStorageInterface $storage) {
     parent::preSave($storage);
 
+    $displays = $this->get('display');
+
+    $this->fixTableNames($displays);
+
     // Sort the displays.
-    $display = $this->get('display');
-    ksort($display);
-    $this->set('display', ['default' => $display['default']] + $display);
+    ksort($displays);
+    $this->set('display', ['default' => $displays['default']] + $displays);
 
     // @todo Check whether isSyncing is needed.
     if (!$this->isSyncing()) {
       $this->addCacheMetadata();
+    }
+  }
+
+  /**
+   * Fixes table names for revision metadata fields of revisionable entities.
+   *
+   * Views for revisionable entity types using revision metadata fields might
+   * be using the wrong table to retrieve the fields after system_update_8300
+   * has moved them correctly to the revision table. This method updates the
+   * views to use the correct tables.
+   *
+   * @param array &$displays
+   *   An array containing display handlers of a view.
+   *
+   * @deprecated in Drupal 8.3.0, will be removed in Drupal 9.0.0.
+   */
+  private function fixTableNames(array &$displays) {
+    // Fix wrong table names for entity revision metadata fields.
+    foreach ($displays as $display => $display_data) {
+      if (isset($display_data['display_options']['fields'])) {
+        foreach ($display_data['display_options']['fields'] as $property_name => $property_data) {
+          if (isset($property_data['entity_type']) && isset($property_data['field']) && isset($property_data['table'])) {
+            $entity_type = $this->entityTypeManager()->getDefinition($property_data['entity_type']);
+            // We need to update the table name only for revisionable entity
+            // types, otherwise the view is already using the correct table.
+            if (($entity_type instanceof ContentEntityTypeInterface) && is_subclass_of($entity_type->getClass(), FieldableEntityInterface::class) && $entity_type->isRevisionable()) {
+              $revision_metadata_fields = $entity_type->getRevisionMetadataKeys();
+              // @see \Drupal\Core\Entity\Sql\SqlContentEntityStorage::initTableLayout()
+              $revision_table = $entity_type->getRevisionTable() ?: $entity_type->id() . '_revision';
+
+              // Check if this is a revision metadata field and if it uses the
+              // wrong table.
+              if (in_array($property_data['field'], $revision_metadata_fields) && $property_data['table'] != $revision_table) {
+                $displays[$display]['display_options']['fields'][$property_name]['table'] = $revision_table;
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -466,6 +508,63 @@ class View extends ConfigEntityBase implements ViewEntityInterface {
     // Invalidate cache tags for cached rows.
     $tags = $this->getCacheTags();
     \Drupal::service('cache_tags.invalidator')->invalidateTags($tags);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onDependencyRemoval(array $dependencies) {
+    $changed = FALSE;
+
+    // Don't intervene if the views module is removed.
+    if (isset($dependencies['module']) && in_array('views', $dependencies['module'])) {
+      return FALSE;
+    }
+
+    // If the base table for the View is provided by a module being removed, we
+    // delete the View because this is not something that can be fixed manually.
+    $views_data = Views::viewsData();
+    $base_table = $this->get('base_table');
+    $base_table_data = $views_data->get($base_table);
+    if (!empty($base_table_data['table']['provider']) && in_array($base_table_data['table']['provider'], $dependencies['module'])) {
+      return FALSE;
+    }
+
+    $current_display = $this->getExecutable()->current_display;
+    $handler_types = Views::getHandlerTypes();
+
+    // Find all the handlers and check whether they want to do something on
+    // dependency removal.
+    foreach ($this->display as $display_id => $display_plugin_base) {
+      $this->getExecutable()->setDisplay($display_id);
+      $display = $this->getExecutable()->getDisplay();
+
+      foreach (array_keys($handler_types) as $handler_type) {
+        $handlers = $display->getHandlers($handler_type);
+        foreach ($handlers as $handler_id => $handler) {
+          if ($handler instanceof DependentWithRemovalPluginInterface) {
+            if ($handler->onDependencyRemoval($dependencies)) {
+              // Remove the handler and indicate we made changes.
+              unset($this->display[$display_id]['display_options'][$handler_types[$handler_type]['plural']][$handler_id]);
+              $changed = TRUE;
+            }
+          }
+        }
+      }
+    }
+
+    // Disable the View if we made changes.
+    // @todo https://www.drupal.org/node/2832558 Give better feedback for
+    // disabled config.
+    if ($changed) {
+      // Force a recalculation of the dependencies if we made changes.
+      $this->getExecutable()->current_display = NULL;
+      $this->calculateDependencies();
+      $this->disable();
+    }
+
+    $this->getExecutable()->setDisplay($current_display);
+    return $changed;
   }
 
 }

@@ -15,7 +15,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\RouteCollection;
-use \Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Connection;
 
 /**
  * A Route Provider front-end for all Drupal-stored routes.
@@ -138,11 +138,11 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
    * @param Request $request
    *   A request against which to match.
    *
-   * @return \Symfony\Component\Routing\RouteCollection with all urls that
-   *      could potentially match $request. Empty collection if nothing can
-   *      match. The collection will be sorted from highest to lowest fit (match
-   *      of path parts) and then in ascending order by route name for routes
-   *      with the same fit.
+   * @return \Symfony\Component\Routing\RouteCollection
+   *   RouteCollection with all urls that could potentially match $request.
+   *   Empty collection if nothing can match. The collection will be sorted from
+   *   highest to lowest fit (match of path parts) and then in ascending order
+   *   by route name for routes with the same fit.
    */
   public function getRouteCollectionForRequest(Request $request) {
     // Cache both the system path as well as route parameters and matching
@@ -347,7 +347,8 @@ class RouteProvider implements PreloadableRouteProviderInterface, PagedRouteProv
     // dump the route pattern without those optional parts.
     try {
       $routes = $this->connection->query("SELECT name, route, fit FROM {" . $this->connection->escapeTable($this->tableName) . "} WHERE pattern_outline IN ( :patterns[] ) AND number_parts >= :count_parts", [
-        ':patterns[]' => $ancestors, ':count_parts' => count($parts),
+        ':patterns[]' => $ancestors,
+        ':count_parts' => count($parts),
       ])
         ->fetchAll(\PDO::FETCH_ASSOC);
     }

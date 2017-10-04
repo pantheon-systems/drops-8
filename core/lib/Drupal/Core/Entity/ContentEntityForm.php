@@ -235,7 +235,7 @@ class ContentEntityForm extends EntityForm implements ContentEntityFormInterface
     // Flag entity level violations.
     foreach ($violations->getEntityViolations() as $violation) {
       /** @var \Symfony\Component\Validator\ConstraintViolationInterface $violation */
-      $form_state->setErrorByName('', $violation->getMessage());
+      $form_state->setErrorByName(str_replace('.', '][', $violation->getPropertyPath()), $violation->getMessage());
     }
     // Let the form display flag violations of its fields.
     $this->getFormDisplay($form_state)->flagWidgetsErrorsFromViolations($violations, $form, $form_state);
@@ -381,6 +381,7 @@ class ContentEntityForm extends EntityForm implements ContentEntityFormInterface
    *   An associative array containing the structure of the form.
    */
   protected function addRevisionableFormFields(array &$form) {
+    /** @var ContentEntityTypeInterface $entity_type */
     $entity_type = $this->entity->getEntityType();
 
     $new_revision_default = $this->getNewRevisionDefault();
@@ -411,9 +412,10 @@ class ContentEntityForm extends EntityForm implements ContentEntityFormInterface
       '#access' => !$this->entity->isNew() && $this->entity->get($entity_type->getKey('revision'))->access('update'),
       '#group' => 'revision_information',
     ];
-
-    if (isset($form['revision_log'])) {
-      $form['revision_log'] += [
+    // Get log message field's key from definition.
+    $log_message_field = $entity_type->getRevisionMetadataKey('revision_log_message');
+    if ($log_message_field && isset($form[$log_message_field])) {
+      $form[$log_message_field] += [
         '#group' => 'revision_information',
         '#states' => [
           'visible' => [
