@@ -35,7 +35,7 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
  *   deriver = "Drupal\rest\Plugin\Deriver\EntityDeriver",
  *   uri_paths = {
  *     "canonical" = "/entity/{entity_type}/{entity}",
- *     "https://www.drupal.org/link-relations/create" = "/entity/{entity_type}"
+ *     "create" = "/entity/{entity_type}"
  *   }
  * )
  */
@@ -431,8 +431,11 @@ class EntityResource extends ResourceBase implements DependentPluginInterface {
    * @see https://tools.ietf.org/html/rfc5988#section-5
    */
   protected function addLinkHeaders(EntityInterface $entity, Response $response) {
-    foreach ($entity->getEntityType()->getLinkTemplates() as $relation_name => $link_template) {
-      if ($definition = $this->linkRelationTypeManager->getDefinition($relation_name, FALSE)) {
+    foreach ($entity->uriRelationships() as $relation_name) {
+      if ($this->linkRelationTypeManager->hasDefinition($relation_name)) {
+        /** @var \Drupal\Core\Http\LinkRelationTypeInterface $link_relation_type */
+        $link_relation_type = $this->linkRelationTypeManager->createInstance($relation_name);
+
         $generator_url = $entity->toUrl($relation_name)
           ->setAbsolute(TRUE)
           ->toString(TRUE);
@@ -440,10 +443,10 @@ class EntityResource extends ResourceBase implements DependentPluginInterface {
           $response->addCacheableDependency($generator_url);
         }
         $uri = $generator_url->getGeneratedUrl();
-        $relationship = $relation_name;
-        if (!empty($definition['uri'])) {
-          $relationship = $definition['uri'];
-        }
+
+        $relationship = $link_relation_type->isRegistered()
+          ? $link_relation_type->getRegisteredName()
+          : $link_relation_type->getExtensionUri();
 
         $link_header = '<' . $uri . '>; rel="' . $relationship . '"';
         $response->headers->set('Link', $link_header, FALSE);

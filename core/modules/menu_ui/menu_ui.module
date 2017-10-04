@@ -10,7 +10,6 @@
 
 use Drupal\Core\Breadcrumb\Breadcrumb;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Menu\MenuLinkInterface;
@@ -71,6 +70,10 @@ function menu_ui_entity_type_build(array &$entity_types) {
     ->setLinkTemplate('edit-form', '/admin/structure/menu/manage/{menu}')
     ->setLinkTemplate('add-link-form', '/admin/structure/menu/manage/{menu}/add')
     ->setLinkTemplate('collection', '/admin/structure/menu');
+
+  if (isset($entity_types['node'])) {
+    $entity_types['node']->addConstraint('MenuSettings', []);
+  }
 }
 
 /**
@@ -164,24 +167,6 @@ function _menu_ui_node_save(NodeInterface $node, array $values) {
   $entity->parent->value = $values['parent'];
   $entity->weight->value = isset($values['weight']) ? $values['weight'] : 0;
   $entity->save();
-}
-
-/**
- * Implements hook_ENTITY_TYPE_predelete() for node entities.
- */
-function menu_ui_node_predelete(EntityInterface $node) {
-  // Delete all MenuLinkContent links that point to this node.
-  /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
-  $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
-  $result = $menu_link_manager->loadLinksByRoute('entity.node.canonical', ['node' => $node->id()]);
-
-  if (!empty($result)) {
-    foreach ($result as $id => $instance) {
-      if ($instance->isDeletable() && strpos($id, 'menu_link_content:') === 0) {
-        $instance->deleteLink();
-      }
-    }
-  }
 }
 
 /**
@@ -357,6 +342,15 @@ function menu_ui_form_node_form_alter(&$form, FormStateInterface $form_state) {
       $form['actions'][$action]['#submit'][] = 'menu_ui_form_node_form_submit';
     }
   }
+
+  $form['#entity_builders'][] = 'menu_ui_node_builder';
+}
+
+/**
+ * Entity form builder to add the menu information to the node.
+ */
+function menu_ui_node_builder($entity_type, NodeInterface $entity, &$form, FormStateInterface $form_state) {
+  $entity->menu = $form_state->getValue('menu');
 }
 
 /**

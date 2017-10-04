@@ -9,10 +9,16 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Environment;
 use Drupal\Component\FileSystem\FileSystem;
 use Drupal\Component\Utility\OpCodeCache;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Path\AliasStorage;
 use Drupal\Core\Url;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PrivateStream;
 use Drupal\Core\StreamWrapper\PublicStream;
@@ -805,9 +811,46 @@ function system_requirements($phase) {
     }
   }
 
-  // Test Unicode library
-  include_once DRUPAL_ROOT . '/core/includes/unicode.inc';
-  $requirements = array_merge($requirements, unicode_requirements());
+  // Returns Unicode library status and errors.
+  $libraries = [
+    Unicode::STATUS_SINGLEBYTE => t('Standard PHP'),
+    Unicode::STATUS_MULTIBYTE => t('PHP Mbstring Extension'),
+    Unicode::STATUS_ERROR => t('Error'),
+  ];
+  $severities = [
+    Unicode::STATUS_SINGLEBYTE => REQUIREMENT_WARNING,
+    Unicode::STATUS_MULTIBYTE => NULL,
+    Unicode::STATUS_ERROR => REQUIREMENT_ERROR,
+  ];
+  $failed_check = Unicode::check();
+  $library = Unicode::getStatus();
+
+  $requirements['unicode'] = [
+    'title' => t('Unicode library'),
+    'value' => $libraries[$library],
+    'severity' => $severities[$library],
+  ];
+  switch ($failed_check) {
+    case 'mb_strlen':
+      $requirements['unicode']['description'] = t('Operations on Unicode strings are emulated on a best-effort basis. Install the <a href="http://php.net/mbstring">PHP mbstring extension</a> for improved Unicode support.');
+      break;
+
+    case 'mbstring.func_overload':
+      $requirements['unicode']['description'] = t('Multibyte string function overloading in PHP is active and must be disabled. Check the php.ini <em>mbstring.func_overload</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
+      break;
+
+    case 'mbstring.encoding_translation':
+      $requirements['unicode']['description'] = t('Multibyte string input conversion in PHP is active and must be disabled. Check the php.ini <em>mbstring.encoding_translation</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
+      break;
+
+    case 'mbstring.http_input':
+      $requirements['unicode']['description'] = t('Multibyte string input conversion in PHP is active and must be disabled. Check the php.ini <em>mbstring.http_input</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
+      break;
+
+    case 'mbstring.http_output':
+      $requirements['unicode']['description'] = t('Multibyte string output conversion in PHP is active and must be disabled. Check the php.ini <em>mbstring.http_output</em> setting. Please refer to the <a href="http://php.net/mbstring">PHP mbstring documentation</a> for more information.');
+      break;
+  }
 
   if ($phase == 'runtime') {
     // Check for update status module.
@@ -854,7 +897,7 @@ function system_requirements($phase) {
       $requirements['trusted_host_patterns'] = [
         'title' => t('Trusted Host Settings'),
         'value' => t('Enabled'),
-        'description' => t('The trusted_host_patterns setting is set to allow %trusted_host_patterns', ['%trusted_host_patterns' => join(', ', $trusted_host_patterns)]),
+        'description' => t('The trusted_host_patterns setting is set to allow %trusted_host_patterns', ['%trusted_host_patterns' => implode(', ', $trusted_host_patterns)]),
       ];
     }
   }
@@ -925,6 +968,15 @@ function system_requirements($phase) {
         'severity' => REQUIREMENT_ERROR,
       ];
     }
+  }
+  // Check to see if dates will be limited to 1901-2038.
+  if (PHP_INT_SIZE <= 4) {
+    $requirements['limited_date_range'] = [
+      'title' => t('Limited date range'),
+      'value' => t('Your PHP installation has a limited date range.'),
+      'description' => t('You are running on a system where PHP is compiled or limited to using 32-bit integers. This will limit the range of dates and timestamps to the years 1901-2038. Read about the <a href=":url">limitations of 32-bit PHP</a>.', [':url' => 'https://www.drupal.org/docs/8/system-requirements/limitations-of-32-bit-php']),
+      'severity' => REQUIREMENT_WARNING,
+    ];
   }
 
   return $requirements;
@@ -1788,4 +1840,205 @@ function system_update_8301() {
   \Drupal::configFactory()->getEditable('core.extension')
     ->set('profile', \Drupal::installProfile())
     ->save();
+}
+
+/**
+ * Move revision metadata fields to the revision table.
+ */
+function system_update_8400(&$sandbox) {
+  // Due to the fields from RevisionLogEntityTrait not being explicitly
+  // mentioned in the storage they might have been installed wrongly in the base
+  // table for revisionable untranslatable entities and in the data and revision
+  // data tables for revisionable and translatable entities.
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $database = \Drupal::database();
+  $database_schema = $database->schema();
+
+  if (!isset($sandbox['current'])) {
+    // This must be the first run. Initialize the sandbox.
+    $sandbox['current'] = 0;
+
+    $definitions = array_filter(\Drupal::entityTypeManager()->getDefinitions(), function (EntityTypeInterface $entity_type) use ($entity_definition_update_manager) {
+      if ($entity_type = $entity_definition_update_manager->getEntityType($entity_type->id())) {
+        return is_subclass_of($entity_type->getClass(), FieldableEntityInterface::class) && ($entity_type instanceof ContentEntityTypeInterface) && $entity_type->isRevisionable();
+      }
+      return FALSE;
+    });
+    $sandbox['entity_type_ids'] = array_keys($definitions);
+    $sandbox['max'] = count($sandbox['entity_type_ids']);
+  }
+
+  $current_entity_type_key = $sandbox['current'];
+  for ($i = $current_entity_type_key; ($i < $current_entity_type_key + 1) && ($i < $sandbox['max']); $i++) {
+    $entity_type_id = $sandbox['entity_type_ids'][$i];
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type */
+    $entity_type = $entity_definition_update_manager->getEntityType($entity_type_id);
+
+    $base_fields = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions($entity_type_id);
+    $revision_metadata_fields = $entity_type->getRevisionMetadataKeys();
+    $fields_to_update = array_intersect_key($base_fields, array_flip($revision_metadata_fields));
+
+    if (!empty($fields_to_update)) {
+      // Initialize the entity table names.
+      // @see \Drupal\Core\Entity\Sql\SqlContentEntityStorage::initTableLayout()
+      $base_table = $entity_type->getBaseTable() ?: $entity_type_id;
+      $data_table = $entity_type->getDataTable() ?: $entity_type_id . '_field_data';
+      $revision_table = $entity_type->getRevisionTable() ?: $entity_type_id . '_revision';
+      $revision_data_table = $entity_type->getRevisionDataTable() ?: $entity_type_id . '_field_revision';
+      $revision_field = $entity_type->getKey('revision');
+
+      // No data needs to be migrated if the entity type is not translatable.
+      if ($entity_type->isTranslatable()) {
+        if (!isset($sandbox[$entity_type_id])) {
+          // This must be the first run for this entity type. Initialize the
+          // sub-sandbox for it.
+
+          // Calculate the number of revisions to process.
+          $count = \Drupal::entityQuery($entity_type_id)
+            ->allRevisions()
+            ->count()
+            ->accessCheck(FALSE)
+            ->execute();
+
+          $sandbox[$entity_type_id]['current'] = 0;
+          $sandbox[$entity_type_id]['max'] = $count;
+        }
+        // Define the step size.
+        $steps = Settings::get('entity_update_batch_size', 50);
+
+        // Collect the revision IDs to process.
+        $revisions = \Drupal::entityQuery($entity_type_id)
+          ->allRevisions()
+          ->range($sandbox[$entity_type_id]['current'], $sandbox[$entity_type_id]['current'] + $steps)
+          ->sort($revision_field, 'ASC')
+          ->accessCheck(FALSE)
+          ->execute();
+        $revisions = array_keys($revisions);
+
+        foreach ($fields_to_update as $revision_metadata_field_name => $definition) {
+          // If the revision metadata field is present in the data and the
+          // revision data table, install its definition again with the updated
+          // storage code in order for the field to be installed in the
+          // revision table. Afterwards, copy over the field values and remove
+          // the field from the data and the revision data tables.
+          if ($database_schema->fieldExists($data_table, $revision_metadata_field_name) && $database_schema->fieldExists($revision_data_table, $revision_metadata_field_name)) {
+            // Install the field in the revision table.
+            if (!isset($sandbox[$entity_type_id]['storage_definition_installed'][$revision_metadata_field_name])) {
+              $entity_definition_update_manager->installFieldStorageDefinition($revision_metadata_field_name, $entity_type_id, $entity_type->getProvider(), $definition);
+              $sandbox[$entity_type_id]['storage_definition_installed'][$revision_metadata_field_name] = TRUE;
+            }
+
+            // Apply the field value from the revision data table to the
+            // revision table.
+            foreach ($revisions as $rev_id) {
+              $field_value = $database->select($revision_data_table, 't')
+                ->fields('t', [$revision_metadata_field_name])
+                ->condition($revision_field, $rev_id)
+                ->execute()
+                ->fetchField();
+              $database->update($revision_table)
+                ->condition($revision_field, $rev_id)
+                ->fields([$revision_metadata_field_name => $field_value])
+                ->execute();
+            }
+          }
+        }
+
+        $sandbox[$entity_type_id]['current'] += count($revisions);
+        $sandbox[$entity_type_id]['finished'] = ($sandbox[$entity_type_id]['current'] == $sandbox[$entity_type_id]['max']) || empty($revisions);
+
+        if ($sandbox[$entity_type_id]['finished']) {
+          foreach ($fields_to_update as $revision_metadata_field_name => $definition) {
+            // Drop the field from the data and revision data tables.
+            $database_schema->dropField($data_table, $revision_metadata_field_name);
+            $database_schema->dropField($revision_data_table, $revision_metadata_field_name);
+          }
+          $sandbox['current']++;
+        }
+      }
+      else {
+        foreach ($fields_to_update as $revision_metadata_field_name => $definition) {
+          if ($database_schema->fieldExists($base_table, $revision_metadata_field_name)) {
+            // Install the field in the revision table.
+            $entity_definition_update_manager->installFieldStorageDefinition($revision_metadata_field_name, $entity_type_id, $entity_type->getProvider(), $definition);
+            // Drop the field from the base table.
+            $database_schema->dropField($base_table, $revision_metadata_field_name);
+          }
+        }
+        $sandbox['current']++;
+      }
+    }
+    else {
+      $sandbox['current']++;
+    }
+
+  }
+
+  $sandbox['#finished'] = $sandbox['current'] == $sandbox['max'];
+}
+
+/**
+ * Remove response.gzip (and response) from system module configuration.
+ */
+function system_update_8401() {
+  \Drupal::configFactory()->getEditable('system.performance')
+    ->clear('response.gzip')
+    ->clear('response')
+    ->save();
+}
+
+/**
+ * Add the 'revision_translation_affected' field to all entity types.
+ */
+function system_update_8402() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Clear the cached entity type definitions so we get the new
+  // 'revision_translation_affected' entity key.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  // Get a list of revisionable and translatable entity types.
+  /** @var \Drupal\Core\Entity\ContentEntityTypeInterface[] $definitions */
+  $definitions = array_filter(\Drupal::entityTypeManager()->getDefinitions(), function (EntityTypeInterface $entity_type) use ($definition_update_manager) {
+    if ($entity_type = $definition_update_manager->getEntityType($entity_type->id())) {
+      return $entity_type->isRevisionable() && $entity_type->isTranslatable();
+    }
+    return FALSE;
+  });
+
+  foreach ($definitions as $entity_type_id => $entity_type) {
+    $field_name = $entity_type->getKey('revision_translation_affected');
+    // Install the 'revision_translation_affected' field if needed.
+    if (!$definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id)) {
+      $storage_definition = BaseFieldDefinition::create('boolean')
+        ->setLabel(t('Revision translation affected'))
+        ->setDescription(t('Indicates if the last edit of a translation belongs to current revision.'))
+        ->setReadOnly(TRUE)
+        ->setRevisionable(TRUE)
+        ->setTranslatable(TRUE)
+        // Mark all pre-existing revisions as affected in order to be consistent
+        // with the previous API return value: if the field was not defined the
+        // value returned was always TRUE.
+        ->setInitialValue(TRUE);
+
+      $definition_update_manager
+        ->installFieldStorageDefinition($field_name, $entity_type_id, $entity_type_id, $storage_definition);
+    }
+  }
+}
+
+/**
+ * Delete all cache_* tables. They are recreated on demand with the new schema.
+ */
+function system_update_8403() {
+  foreach (Cache::getBins() as $bin => $cache_backend) {
+    // Try to delete the table regardless of which cache backend is handling it.
+    // This is to ensure the new schema is used if the configuration for the
+    // backend class is changed after the update hook runs.
+    $table_name = "cache_$bin";
+    $schema = Database::getConnection()->schema();
+    if ($schema->tableExists($table_name)) {
+      $schema->dropTable($table_name);
+    }
+  }
 }

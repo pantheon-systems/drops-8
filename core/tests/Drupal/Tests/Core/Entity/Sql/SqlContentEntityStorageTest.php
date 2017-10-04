@@ -444,26 +444,10 @@ class SqlContentEntityStorageTest extends UnitTestCase {
    */
   public function providerTestGetTableMappingSimple() {
     return [
-      [[
-        'id' => 'test_id',
-        'bundle' => NULL,
-        'uuid' => NULL,
-      ]],
-      [[
-        'id' => 'test_id',
-        'bundle' => 'test_bundle',
-        'uuid' => NULL,
-      ]],
-      [[
-        'id' => 'test_id',
-        'bundle' => NULL,
-        'uuid' => 'test_uuid',
-      ]],
-      [[
-        'id' => 'test_id',
-        'bundle' => 'test_bundle',
-        'uuid' => 'test_uuid',
-      ]],
+      [['id' => 'test_id', 'bundle' => NULL, 'uuid' => NULL]],
+      [['id' => 'test_id', 'bundle' => 'test_bundle', 'uuid' => NULL]],
+      [['id' => 'test_id', 'bundle' => NULL, 'uuid' => 'test_uuid']],
+      [['id' => 'test_id', 'bundle' => 'test_bundle', 'uuid' => 'test_uuid']],
     ];
   }
 
@@ -534,6 +518,9 @@ class SqlContentEntityStorageTest extends UnitTestCase {
         ['bundle', $entity_keys['bundle']],
         ['revision', $entity_keys['revision']],
       ]));
+    $this->entityType->expects($this->any())
+      ->method('getRevisionMetadataKeys')
+      ->will($this->returnValue([]));
 
     $this->setUpEntityStorage();
 
@@ -574,13 +561,13 @@ class SqlContentEntityStorageTest extends UnitTestCase {
     // PHPUnit does not allow for multiple data providers.
     $test_cases = [
       [],
-      ['revision_timestamp'],
-      ['revision_uid'],
-      ['revision_log'],
-      ['revision_timestamp', 'revision_uid'],
-      ['revision_timestamp', 'revision_log'],
-      ['revision_uid', 'revision_log'],
-      ['revision_timestamp', 'revision_uid', 'revision_log'],
+      ['revision_created' => 'revision_timestamp'],
+      ['revision_user' => 'revision_uid'],
+      ['revision_log_message' => 'revision_log'],
+      ['revision_created' => 'revision_timestamp', 'revision_user' => 'revision_uid'],
+      ['revision_created' => 'revision_timestamp', 'revision_log_message' => 'revision_log'],
+      ['revision_user' => 'revision_uid', 'revision_log_message' => 'revision_log'],
+      ['revision_created' => 'revision_timestamp', 'revision_user' => 'revision_uid', 'revision_log_message' => 'revision_log'],
     ];
     foreach ($test_cases as $revision_metadata_field_names) {
       $this->setUp();
@@ -591,7 +578,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
 
       $revisionable_field_names = ['description', 'owner'];
       $field_names = array_merge($field_names, $revisionable_field_names);
-      $this->fieldDefinitions += $this->mockFieldDefinitions(array_merge($revisionable_field_names, $revision_metadata_field_names), ['isRevisionable' => TRUE]);
+      $this->fieldDefinitions += $this->mockFieldDefinitions(array_merge($revisionable_field_names, array_values($revision_metadata_field_names)), ['isRevisionable' => TRUE]);
 
       $this->entityType->expects($this->exactly(2))
         ->method('isRevisionable')
@@ -605,6 +592,10 @@ class SqlContentEntityStorageTest extends UnitTestCase {
           ['revision', $entity_keys['revision']],
         ]));
 
+      $this->entityType->expects($this->any())
+        ->method('getRevisionMetadataKeys')
+        ->will($this->returnValue($revision_metadata_field_names));
+
       $this->setUpEntityStorage();
 
       $mapping = $this->entityStorage->getTableMapping();
@@ -616,7 +607,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       $expected = array_merge(
         [$entity_keys['id'], $entity_keys['revision']],
         $revisionable_field_names,
-        $revision_metadata_field_names
+        array_values($revision_metadata_field_names)
       );
       $this->assertEquals($expected, $mapping->getFieldNames('entity_test_revision'));
 
@@ -761,6 +752,11 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       'uuid' => $entity_keys['uuid'],
       'langcode' => 'langcode',
     ];
+    $revision_metadata_keys = [
+      'revision_created' => 'revision_timestamp',
+      'revision_user' => 'revision_uid',
+      'revision_log_message' => 'revision_log'
+    ];
 
     $this->entityType->expects($this->atLeastOnce())
       ->method('isRevisionable')
@@ -780,6 +776,9 @@ class SqlContentEntityStorageTest extends UnitTestCase {
         ['revision', $entity_keys['revision']],
         ['langcode', $entity_keys['langcode']],
       ]));
+    $this->entityType->expects($this->any())
+      ->method('getRevisionMetadataKeys')
+      ->will($this->returnValue($revision_metadata_keys));
 
     $this->setUpEntityStorage();
 
@@ -810,6 +809,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       $entity_keys['revision'],
       $entity_keys['langcode'],
     ]));
+    $expected = array_merge($expected, array_values($revision_metadata_keys));
     $actual = $mapping->getFieldNames('entity_test_revision');
     $this->assertEquals($expected, $actual);
     // The UUID is not stored on the data table.
@@ -865,13 +865,13 @@ class SqlContentEntityStorageTest extends UnitTestCase {
     // PHPUnit does not allow for multiple data providers.
     $test_cases = [
       [],
-      ['revision_timestamp'],
-      ['revision_uid'],
-      ['revision_log'],
-      ['revision_timestamp', 'revision_uid'],
-      ['revision_timestamp', 'revision_log'],
-      ['revision_uid', 'revision_log'],
-      ['revision_timestamp', 'revision_uid', 'revision_log'],
+      ['revision_created' => 'revision_timestamp'],
+      ['revision_user' => 'revision_uid'],
+      ['revision_log_message' => 'revision_log'],
+      ['revision_created' => 'revision_timestamp', 'revision_user' => 'revision_uid'],
+      ['revision_created' => 'revision_timestamp', 'revision_log_message' => 'revision_log'],
+      ['revision_user' => 'revision_uid', 'revision_log_message' => 'revision_log'],
+      ['revision_created' => 'revision_timestamp', 'revision_user' => 'revision_uid', 'revision_log_message' => 'revision_log'],
     ];
     foreach ($test_cases as $revision_metadata_field_names) {
       $this->setUp();
@@ -881,7 +881,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       $this->fieldDefinitions = $this->mockFieldDefinitions($field_names);
 
       $revisionable_field_names = ['description', 'owner'];
-      $this->fieldDefinitions += $this->mockFieldDefinitions(array_merge($revisionable_field_names, $revision_metadata_field_names), ['isRevisionable' => TRUE]);
+      $this->fieldDefinitions += $this->mockFieldDefinitions(array_merge($revisionable_field_names, array_values($revision_metadata_field_names)), ['isRevisionable' => TRUE]);
 
       $this->entityType->expects($this->atLeastOnce())
         ->method('isRevisionable')
@@ -901,6 +901,9 @@ class SqlContentEntityStorageTest extends UnitTestCase {
           ['revision', $entity_keys['revision']],
           ['langcode', $entity_keys['langcode']],
         ]));
+      $this->entityType->expects($this->any())
+        ->method('getRevisionMetadataKeys')
+        ->will($this->returnValue($revision_metadata_field_names));
 
       $this->setUpEntityStorage();
 
@@ -938,7 +941,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
         $entity_keys['id'],
         $entity_keys['revision'],
         $entity_keys['langcode'],
-      ]), $revision_metadata_field_names);
+      ]), array_values($revision_metadata_field_names));
       $actual = $mapping->getFieldNames('entity_test_revision');
       $this->assertEquals($expected, $actual);
       // The UUID is not stored on the data table.
@@ -1118,9 +1121,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
     $this->cache->expects($this->once())
       ->method('getMultiple')
       ->with([$key])
-      ->will($this->returnValue([$key => (object) [
-          'data' => $entity,
-        ]]));
+      ->will($this->returnValue([$key => (object) ['data' => $entity]]));
     $this->cache->expects($this->never())
       ->method('set');
 

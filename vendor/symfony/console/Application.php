@@ -11,20 +11,19 @@
 
 namespace Symfony\Component\Console;
 
-use Symfony\Component\Console\Descriptor\TextDescriptor;
-use Symfony\Component\Console\Descriptor\XmlDescriptor;
 use Symfony\Component\Console\Exception\ExceptionInterface;
+use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\DebugFormatterHelper;
 use Symfony\Component\Console\Helper\ProcessHelper;
 use Symfony\Component\Console\Helper\QuestionHelper;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\StreamableInputInterface;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputAwareInterface;
-use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
@@ -33,9 +32,6 @@ use Symfony\Component\Console\Command\HelpCommand;
 use Symfony\Component\Console\Command\ListCommand;
 use Symfony\Component\Console\Helper\HelperSet;
 use Symfony\Component\Console\Helper\FormatterHelper;
-use Symfony\Component\Console\Helper\DialogHelper;
-use Symfony\Component\Console\Helper\ProgressHelper;
-use Symfony\Component\Console\Helper\TableHelper;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleExceptionEvent;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
@@ -71,12 +67,11 @@ class Application
     private $definition;
     private $helperSet;
     private $dispatcher;
-    private $terminalDimensions;
+    private $terminal;
     private $defaultCommand;
+    private $singleCommand;
 
     /**
-     * Constructor.
-     *
      * @param string $name    The name of the application
      * @param string $version The version of the application
      */
@@ -84,6 +79,7 @@ class Application
     {
         $this->name = $name;
         $this->version = $version;
+        $this->terminal = new Terminal();
         $this->defaultCommand = 'list';
         $this->helperSet = $this->getDefaultHelperSet();
         $this->definition = $this->getDefaultInputDefinition();
@@ -105,9 +101,14 @@ class Application
      * @param OutputInterface $output An Output instance
      *
      * @return int 0 if everything went fine, or an error code
+     *
+     * @throws \Exception When running fails. Bypass this when {@link setCatchExceptions()}.
      */
     public function run(InputInterface $input = null, OutputInterface $output = null)
     {
+        putenv('LINES='.$this->terminal->getHeight());
+        putenv('COLUMNS='.$this->terminal->getWidth());
+
         if (null === $input) {
             $input = new ArgvInput();
         }
@@ -119,10 +120,17 @@ class Application
         $this->configureIO($input, $output);
 
         try {
+            $e = null;
             $exitCode = $this->doRun($input, $output);
-        } catch (\Exception $e) {
+        } catch (\Exception $x) {
+            $e = $x;
+        } catch (\Throwable $x) {
+            $e = new FatalThrowableError($x);
+        }
+
+        if (null !== $e) {
             if (!$this->catchExceptions) {
-                throw $e;
+                throw $x;
             }
 
             if ($output instanceof ConsoleOutputInterface) {
@@ -163,17 +171,17 @@ class Application
      */
     public function doRun(InputInterface $input, OutputInterface $output)
     {
-        if (true === $input->hasParameterOption(array('--version', '-V'))) {
+        if (true === $input->hasParameterOption(array('--version', '-V'), true)) {
             $output->writeln($this->getLongVersion());
 
             return 0;
         }
 
         $name = $this->getCommandName($input);
-        if (true === $input->hasParameterOption(array('--help', '-h'))) {
+        if (true === $input->hasParameterOption(array('--help', '-h'), true)) {
             if (!$name) {
                 $name = 'help';
-                $input = new ArrayInput(array('command' => 'help'));
+                $input = new ArrayInput(array('command_name' => $this->defaultCommand));
             } else {
                 $this->wantHelps = true;
             }
@@ -184,6 +192,7 @@ class Application
             $input = new ArrayInput(array('command' => $this->defaultCommand));
         }
 
+        $this->runningCommand = null;
         // the command name MUST be the first element of the input
         $command = $this->find($name);
 
@@ -231,6 +240,13 @@ class Application
      */
     public function getDefinition()
     {
+        if ($this->singleCommand) {
+            $inputDefinition = $this->definition;
+            $inputDefinition->setArguments();
+
+            return $inputDefinition;
+        }
+
         return $this->definition;
     }
 
@@ -245,6 +261,16 @@ class Application
     }
 
     /**
+     * Gets whether to catch exceptions or not during commands execution.
+     *
+     * @return bool Whether to catch exceptions or not during commands execution
+     */
+    public function areExceptionsCaught()
+    {
+        return $this->catchExceptions;
+    }
+
+    /**
      * Sets whether to catch exceptions or not during commands execution.
      *
      * @param bool $boolean Whether to catch exceptions or not during commands execution
@@ -252,6 +278,16 @@ class Application
     public function setCatchExceptions($boolean)
     {
         $this->catchExceptions = (bool) $boolean;
+    }
+
+    /**
+     * Gets whether to automatically exit after a command execution or not.
+     *
+     * @return bool Whether to automatically exit after a command execution or not
+     */
+    public function isAutoExitEnabled()
+    {
+        return $this->autoExit;
     }
 
     /**
@@ -313,13 +349,13 @@ class Application
     {
         if ('UNKNOWN' !== $this->getName()) {
             if ('UNKNOWN' !== $this->getVersion()) {
-                return sprintf('<info>%s</info> version <comment>%s</comment>', $this->getName(), $this->getVersion());
+                return sprintf('%s <info>%s</info>', $this->getName(), $this->getVersion());
             }
 
-            return sprintf('<info>%s</info>', $this->getName());
+            return $this->getName();
         }
 
-        return '<info>Console Tool</info>';
+        return 'Console Tool';
     }
 
     /**
@@ -586,78 +622,34 @@ class Application
     }
 
     /**
-     * Returns a text representation of the Application.
-     *
-     * @param string $namespace An optional namespace name
-     * @param bool   $raw       Whether to return raw command list
-     *
-     * @return string A string representing the Application
-     *
-     * @deprecated since version 2.3, to be removed in 3.0.
-     */
-    public function asText($namespace = null, $raw = false)
-    {
-        @trigger_error('The '.__METHOD__.' method is deprecated since version 2.3 and will be removed in 3.0.', E_USER_DEPRECATED);
-
-        $descriptor = new TextDescriptor();
-        $output = new BufferedOutput(BufferedOutput::VERBOSITY_NORMAL, !$raw);
-        $descriptor->describe($output, $this, array('namespace' => $namespace, 'raw_output' => true));
-
-        return $output->fetch();
-    }
-
-    /**
-     * Returns an XML representation of the Application.
-     *
-     * @param string $namespace An optional namespace name
-     * @param bool   $asDom     Whether to return a DOM or an XML string
-     *
-     * @return string|\DOMDocument An XML string representing the Application
-     *
-     * @deprecated since version 2.3, to be removed in 3.0.
-     */
-    public function asXml($namespace = null, $asDom = false)
-    {
-        @trigger_error('The '.__METHOD__.' method is deprecated since version 2.3 and will be removed in 3.0.', E_USER_DEPRECATED);
-
-        $descriptor = new XmlDescriptor();
-
-        if ($asDom) {
-            return $descriptor->getApplicationDocument($this, $namespace);
-        }
-
-        $output = new BufferedOutput();
-        $descriptor->describe($output, $this, array('namespace' => $namespace));
-
-        return $output->fetch();
-    }
-
-    /**
      * Renders a caught exception.
      *
      * @param \Exception      $e      An exception instance
      * @param OutputInterface $output An OutputInterface instance
      */
-    public function renderException($e, $output)
+    public function renderException(\Exception $e, OutputInterface $output)
     {
         $output->writeln('', OutputInterface::VERBOSITY_QUIET);
 
         do {
-            $title = sprintf('  [%s]  ', get_class($e));
+            $title = sprintf(
+                '  [%s%s]  ',
+                get_class($e),
+                $output->isVerbose() && 0 !== ($code = $e->getCode()) ? ' ('.$code.')' : ''
+            );
 
             $len = $this->stringWidth($title);
 
-            $width = $this->getTerminalWidth() ? $this->getTerminalWidth() - 1 : PHP_INT_MAX;
+            $width = $this->terminal->getWidth() ? $this->terminal->getWidth() - 1 : PHP_INT_MAX;
             // HHVM only accepts 32 bits integer in str_split, even when PHP_INT_MAX is a 64 bit integer: https://github.com/facebook/hhvm/issues/1327
             if (defined('HHVM_VERSION') && $width > 1 << 31) {
                 $width = 1 << 31;
             }
-            $formatter = $output->getFormatter();
             $lines = array();
             foreach (preg_split('/\r?\n/', $e->getMessage()) as $line) {
                 foreach ($this->splitStringByWidth($line, $width - 4) as $line) {
                     // pre-format lines to get the right string length
-                    $lineLength = $this->stringWidth(preg_replace('/\[[^m]*m/', '', $formatter->format($line))) + 4;
+                    $lineLength = $this->stringWidth($line) + 4;
                     $lines[] = array($line, $lineLength);
 
                     $len = max($lineLength, $len);
@@ -665,15 +657,15 @@ class Application
             }
 
             $messages = array();
-            $messages[] = $emptyLine = $formatter->format(sprintf('<error>%s</error>', str_repeat(' ', $len)));
-            $messages[] = $formatter->format(sprintf('<error>%s%s</error>', $title, str_repeat(' ', max(0, $len - $this->stringWidth($title)))));
+            $messages[] = $emptyLine = sprintf('<error>%s</error>', str_repeat(' ', $len));
+            $messages[] = sprintf('<error>%s%s</error>', $title, str_repeat(' ', max(0, $len - $this->stringWidth($title))));
             foreach ($lines as $line) {
-                $messages[] = $formatter->format(sprintf('<error>  %s  %s</error>', $line[0], str_repeat(' ', $len - $line[1])));
+                $messages[] = sprintf('<error>  %s  %s</error>', OutputFormatter::escape($line[0]), str_repeat(' ', $len - $line[1]));
             }
             $messages[] = $emptyLine;
             $messages[] = '';
 
-            $output->writeln($messages, OutputInterface::OUTPUT_RAW | OutputInterface::VERBOSITY_QUIET);
+            $output->writeln($messages, OutputInterface::VERBOSITY_QUIET);
 
             if (OutputInterface::VERBOSITY_VERBOSE <= $output->getVerbosity()) {
                 $output->writeln('<comment>Exception trace:</comment>', OutputInterface::VERBOSITY_QUIET);
@@ -711,60 +703,42 @@ class Application
      * Tries to figure out the terminal width in which this application runs.
      *
      * @return int|null
+     *
+     * @deprecated since version 3.2, to be removed in 4.0. Create a Terminal instance instead.
      */
     protected function getTerminalWidth()
     {
-        $dimensions = $this->getTerminalDimensions();
+        @trigger_error(sprintf('%s is deprecated as of 3.2 and will be removed in 4.0. Create a Terminal instance instead.', __METHOD__), E_USER_DEPRECATED);
 
-        return $dimensions[0];
+        return $this->terminal->getWidth();
     }
 
     /**
      * Tries to figure out the terminal height in which this application runs.
      *
      * @return int|null
+     *
+     * @deprecated since version 3.2, to be removed in 4.0. Create a Terminal instance instead.
      */
     protected function getTerminalHeight()
     {
-        $dimensions = $this->getTerminalDimensions();
+        @trigger_error(sprintf('%s is deprecated as of 3.2 and will be removed in 4.0. Create a Terminal instance instead.', __METHOD__), E_USER_DEPRECATED);
 
-        return $dimensions[1];
+        return $this->terminal->getHeight();
     }
 
     /**
      * Tries to figure out the terminal dimensions based on the current environment.
      *
      * @return array Array containing width and height
+     *
+     * @deprecated since version 3.2, to be removed in 4.0. Create a Terminal instance instead.
      */
     public function getTerminalDimensions()
     {
-        if ($this->terminalDimensions) {
-            return $this->terminalDimensions;
-        }
+        @trigger_error(sprintf('%s is deprecated as of 3.2 and will be removed in 4.0. Create a Terminal instance instead.', __METHOD__), E_USER_DEPRECATED);
 
-        if ('\\' === DIRECTORY_SEPARATOR) {
-            // extract [w, H] from "wxh (WxH)"
-            if (preg_match('/^(\d+)x\d+ \(\d+x(\d+)\)$/', trim(getenv('ANSICON')), $matches)) {
-                return array((int) $matches[1], (int) $matches[2]);
-            }
-            // extract [w, h] from "wxh"
-            if (preg_match('/^(\d+)x(\d+)$/', $this->getConsoleMode(), $matches)) {
-                return array((int) $matches[1], (int) $matches[2]);
-            }
-        }
-
-        if ($sttyString = $this->getSttyColumns()) {
-            // extract [w, h] from "rows h; columns w;"
-            if (preg_match('/rows.(\d+);.columns.(\d+);/i', $sttyString, $matches)) {
-                return array((int) $matches[2], (int) $matches[1]);
-            }
-            // extract [w, h] from "; h rows; w columns"
-            if (preg_match('/;.(\d+).rows;.(\d+).columns/i', $sttyString, $matches)) {
-                return array((int) $matches[2], (int) $matches[1]);
-            }
-        }
-
-        return array(null, null);
+        return array($this->terminal->getWidth(), $this->terminal->getHeight());
     }
 
     /**
@@ -776,10 +750,15 @@ class Application
      * @param int $height The height
      *
      * @return $this
+     *
+     * @deprecated since version 3.2, to be removed in 4.0. Set the COLUMNS and LINES env vars instead.
      */
     public function setTerminalDimensions($width, $height)
     {
-        $this->terminalDimensions = array($width, $height);
+        @trigger_error(sprintf('%s is deprecated as of 3.2 and will be removed in 4.0. Set the COLUMNS and LINES env vars instead.', __METHOD__), E_USER_DEPRECATED);
+
+        putenv('COLUMNS='.$width);
+        putenv('LINES='.$height);
 
         return $this;
     }
@@ -792,30 +771,41 @@ class Application
      */
     protected function configureIO(InputInterface $input, OutputInterface $output)
     {
-        if (true === $input->hasParameterOption(array('--ansi'))) {
+        if (true === $input->hasParameterOption(array('--ansi'), true)) {
             $output->setDecorated(true);
-        } elseif (true === $input->hasParameterOption(array('--no-ansi'))) {
+        } elseif (true === $input->hasParameterOption(array('--no-ansi'), true)) {
             $output->setDecorated(false);
         }
 
-        if (true === $input->hasParameterOption(array('--no-interaction', '-n'))) {
+        if (true === $input->hasParameterOption(array('--no-interaction', '-n'), true)) {
             $input->setInteractive(false);
-        } elseif (function_exists('posix_isatty') && $this->getHelperSet()->has('question')) {
-            $inputStream = $this->getHelperSet()->get('question')->getInputStream();
+        } elseif (function_exists('posix_isatty')) {
+            $inputStream = null;
+
+            if ($input instanceof StreamableInputInterface) {
+                $inputStream = $input->getStream();
+            }
+
+            // This check ensures that calling QuestionHelper::setInputStream() works
+            // To be removed in 4.0 (in the same time as QuestionHelper::setInputStream)
+            if (!$inputStream && $this->getHelperSet()->has('question')) {
+                $inputStream = $this->getHelperSet()->get('question')->getInputStream(false);
+            }
+
             if (!@posix_isatty($inputStream) && false === getenv('SHELL_INTERACTIVE')) {
                 $input->setInteractive(false);
             }
         }
 
-        if (true === $input->hasParameterOption(array('--quiet', '-q'))) {
+        if (true === $input->hasParameterOption(array('--quiet', '-q'), true)) {
             $output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
             $input->setInteractive(false);
         } else {
-            if ($input->hasParameterOption('-vvv') || $input->hasParameterOption('--verbose=3') || $input->getParameterOption('--verbose') === 3) {
+            if ($input->hasParameterOption('-vvv', true) || $input->hasParameterOption('--verbose=3', true) || $input->getParameterOption('--verbose', false, true) === 3) {
                 $output->setVerbosity(OutputInterface::VERBOSITY_DEBUG);
-            } elseif ($input->hasParameterOption('-vv') || $input->hasParameterOption('--verbose=2') || $input->getParameterOption('--verbose') === 2) {
+            } elseif ($input->hasParameterOption('-vv', true) || $input->hasParameterOption('--verbose=2', true) || $input->getParameterOption('--verbose', false, true) === 2) {
                 $output->setVerbosity(OutputInterface::VERBOSITY_VERY_VERBOSE);
-            } elseif ($input->hasParameterOption('-v') || $input->hasParameterOption('--verbose=1') || $input->hasParameterOption('--verbose') || $input->getParameterOption('--verbose')) {
+            } elseif ($input->hasParameterOption('-v', true) || $input->hasParameterOption('--verbose=1', true) || $input->hasParameterOption('--verbose', true) || $input->getParameterOption('--verbose', false, true)) {
                 $output->setVerbosity(OutputInterface::VERBOSITY_VERBOSE);
             }
         }
@@ -842,13 +832,7 @@ class Application
         }
 
         if (null === $this->dispatcher) {
-            try {
-                return $command->run($input, $output);
-            } catch (\Exception $e) {
-                throw $e;
-            } catch (\Throwable $e) {
-                throw new FatalThrowableError($e);
-            }
+            return $command->run($input, $output);
         }
 
         // bind before the console.command event, so the listeners have access to input options/arguments
@@ -859,41 +843,37 @@ class Application
             // ignore invalid options/arguments for now, to allow the event listeners to customize the InputDefinition
         }
 
-        // don't bind the input again as it would override any input argument/option set from the command event in
-        // addition to being useless
-        $command->setInputBound(true);
-
         $event = new ConsoleCommandEvent($command, $input, $output);
-        $this->dispatcher->dispatch(ConsoleEvents::COMMAND, $event);
+        $e = null;
 
-        if ($event->commandShouldRun()) {
-            try {
-                $e = null;
+        try {
+            $this->dispatcher->dispatch(ConsoleEvents::COMMAND, $event);
+
+            if ($event->commandShouldRun()) {
                 $exitCode = $command->run($input, $output);
-            } catch (\Exception $x) {
-                $e = $x;
-            } catch (\Throwable $x) {
-                $e = new FatalThrowableError($x);
+            } else {
+                $exitCode = ConsoleCommandEvent::RETURN_CODE_DISABLED;
             }
-            if (null !== $e) {
-                $event = new ConsoleExceptionEvent($command, $input, $output, $e, $e->getCode());
-                $this->dispatcher->dispatch(ConsoleEvents::EXCEPTION, $event);
+        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+        }
+        if (null !== $e) {
+            $x = $e instanceof \Exception ? $e : new FatalThrowableError($e);
+            $event = new ConsoleExceptionEvent($command, $input, $output, $x, $x->getCode());
+            $this->dispatcher->dispatch(ConsoleEvents::EXCEPTION, $event);
 
-                if ($e !== $event->getException()) {
-                    $x = $e = $event->getException();
-                }
-
-                $event = new ConsoleTerminateEvent($command, $input, $output, $e->getCode());
-                $this->dispatcher->dispatch(ConsoleEvents::TERMINATE, $event);
-
-                throw $x;
+            if ($x !== $event->getException()) {
+                $e = $event->getException();
             }
-        } else {
-            $exitCode = ConsoleCommandEvent::RETURN_CODE_DISABLED;
+            $exitCode = $e->getCode();
         }
 
         $event = new ConsoleTerminateEvent($command, $input, $output, $exitCode);
         $this->dispatcher->dispatch(ConsoleEvents::TERMINATE, $event);
+
+        if (null !== $e) {
+            throw $e;
+        }
 
         return $event->getExitCode();
     }
@@ -907,7 +887,7 @@ class Application
      */
     protected function getCommandName(InputInterface $input)
     {
-        return $input->getFirstArgument();
+        return $this->singleCommand ? $this->defaultCommand : $input->getFirstArgument();
     }
 
     /**
@@ -949,61 +929,10 @@ class Application
     {
         return new HelperSet(array(
             new FormatterHelper(),
-            new DialogHelper(false),
-            new ProgressHelper(false),
-            new TableHelper(false),
             new DebugFormatterHelper(),
             new ProcessHelper(),
             new QuestionHelper(),
         ));
-    }
-
-    /**
-     * Runs and parses stty -a if it's available, suppressing any error output.
-     *
-     * @return string
-     */
-    private function getSttyColumns()
-    {
-        if (!function_exists('proc_open')) {
-            return;
-        }
-
-        $descriptorspec = array(1 => array('pipe', 'w'), 2 => array('pipe', 'w'));
-        $process = proc_open('stty -a | grep columns', $descriptorspec, $pipes, null, null, array('suppress_errors' => true));
-        if (is_resource($process)) {
-            $info = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            proc_close($process);
-
-            return $info;
-        }
-    }
-
-    /**
-     * Runs and parses mode CON if it's available, suppressing any error output.
-     *
-     * @return string|null <width>x<height> or null if it could not be parsed
-     */
-    private function getConsoleMode()
-    {
-        if (!function_exists('proc_open')) {
-            return;
-        }
-
-        $descriptorspec = array(1 => array('pipe', 'w'), 2 => array('pipe', 'w'));
-        $process = proc_open('mode CON', $descriptorspec, $pipes, null, null, array('suppress_errors' => true));
-        if (is_resource($process)) {
-            $info = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            fclose($pipes[2]);
-            proc_close($process);
-
-            if (preg_match('/--------+\r?\n.+?(\d+)\r?\n.+?(\d+)\r?\n/', $info, $matches)) {
-                return $matches[2].'x'.$matches[1];
-            }
-        }
     }
 
     /**
@@ -1090,11 +1019,23 @@ class Application
     /**
      * Sets the default Command name.
      *
-     * @param string $commandName The Command name
+     * @param string $commandName     The Command name
+     * @param bool   $isSingleCommand Set to true if there is only one command in this application
+     *
+     * @return self
      */
-    public function setDefaultCommand($commandName)
+    public function setDefaultCommand($commandName, $isSingleCommand = false)
     {
         $this->defaultCommand = $commandName;
+
+        if ($isSingleCommand) {
+            // Ensure the command exist
+            $this->find($commandName);
+
+            $this->singleCommand = true;
+        }
+
+        return $this;
     }
 
     private function stringWidth($string)

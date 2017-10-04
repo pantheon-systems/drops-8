@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\node\Entity\Node;
 use Drupal\content_moderation\Access\LatestRevisionCheck;
 use Drupal\content_moderation\ModerationInformation;
+use Drupal\Tests\UnitTestCase;
 use Drupal\user\EntityOwnerInterface;
 use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -21,7 +22,7 @@ use Symfony\Component\Routing\Route;
  * @coversDefaultClass \Drupal\content_moderation\Access\LatestRevisionCheck
  * @group content_moderation
  */
-class LatestRevisionCheckTest extends \PHPUnit_Framework_TestCase {
+class LatestRevisionCheckTest extends UnitTestCase {
 
   /**
    * {@inheritdoc}
@@ -44,8 +45,8 @@ class LatestRevisionCheckTest extends \PHPUnit_Framework_TestCase {
    *   The class of the entity to mock.
    * @param string $entity_type
    *   The machine name of the entity to mock.
-   * @param bool $has_forward
-   *   Whether this entity should have a forward revision in the system.
+   * @param bool $has_pending_revision
+   *   Whether this entity should have a pending revision in the system.
    * @param array $account_permissions
    *   An array of permissions the account has.
    * @param bool $is_owner
@@ -56,7 +57,7 @@ class LatestRevisionCheckTest extends \PHPUnit_Framework_TestCase {
    *
    * @dataProvider accessSituationProvider
    */
-  public function testLatestAccessPermissions($entity_class, $entity_type, $has_forward, array $account_permissions, $is_owner, $result_class) {
+  public function testLatestAccessPermissions($entity_class, $entity_type, $has_pending_revision, array $account_permissions, $is_owner, $result_class) {
 
     /** @var \Drupal\Core\Session\AccountInterface $account */
     $account = $this->prophesize(AccountInterface::class);
@@ -81,7 +82,7 @@ class LatestRevisionCheckTest extends \PHPUnit_Framework_TestCase {
 
     /** @var \Drupal\content_moderation\ModerationInformation $mod_info */
     $mod_info = $this->prophesize(ModerationInformation::class);
-    $mod_info->hasForwardRevision($entity->reveal())->willReturn($has_forward);
+    $mod_info->hasPendingRevision($entity->reveal())->willReturn($has_pending_revision);
 
     $route = $this->prophesize(Route::class);
 
@@ -118,13 +119,13 @@ class LatestRevisionCheckTest extends \PHPUnit_Framework_TestCase {
       // Node with own content permissions and no latest version, but no perms
       // to view latest version.
       [Node::class, 'node', TRUE, ['view own unpublished content'], FALSE, AccessResultNeutral::class],
-      // Block with forward revision, and permissions to view any.
+      // Block with pending revision, and permissions to view any.
       [BlockContent::class, 'block_content', TRUE, ['view latest version', 'view any unpublished content'], FALSE, AccessResultAllowed::class],
-      // Block with no forward revision.
+      // Block with no pending revision.
       [BlockContent::class, 'block_content', FALSE, ['view latest version', 'view any unpublished content'], FALSE, AccessResultForbidden::class],
-      // Block with forward revision, but no permission to view any.
+      // Block with pending revision, but no permission to view any.
       [BlockContent::class, 'block_content', TRUE, ['view latest version', 'view own unpublished content'], FALSE, AccessResultNeutral::class],
-      // Block with no forward revision.
+      // Block with no pending revision.
       [BlockContent::class, 'block_content', FALSE, ['view latest version', 'view own unpublished content'], FALSE, AccessResultForbidden::class],
     ];
   }

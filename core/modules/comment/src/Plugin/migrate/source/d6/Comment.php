@@ -10,7 +10,7 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
  *
  * @MigrateSource(
  *   id = "d6_comment",
- *   source_provider = "comment"
+ *   source_module = "comment"
  * )
  */
 class Comment extends DrupalSqlBase {
@@ -21,8 +21,9 @@ class Comment extends DrupalSqlBase {
   public function query() {
     $query = $this->select('comments', 'c')
       ->fields('c', ['cid', 'pid', 'nid', 'uid', 'subject',
-        'comment', 'hostname', 'timestamp', 'status', 'thread', 'name',
-        'mail', 'homepage', 'format']);
+      'comment', 'hostname', 'timestamp', 'status', 'thread', 'name',
+      'mail', 'homepage', 'format',
+    ]);
     $query->innerJoin('node', 'n', 'c.nid = n.nid');
     $query->fields('n', ['type']);
     $query->orderBy('c.timestamp');

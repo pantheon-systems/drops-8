@@ -234,7 +234,9 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function isDefaultDisplay() { return FALSE; }
+  public function isDefaultDisplay() {
+    return FALSE;
+  }
 
   /**
    * {@inheritdoc}
@@ -394,7 +396,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function attachTo(ViewExecutable $view, $display_id, array &$build) { }
+  public function attachTo(ViewExecutable $view, $display_id, array &$build) {}
 
   /**
    * {@inheritdoc}
@@ -665,17 +667,23 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function hasPath() { return FALSE; }
+  public function hasPath() {
+    return FALSE;
+  }
 
   /**
    * {@inheritdoc}
    */
-  public function usesLinkDisplay() { return !$this->hasPath(); }
+  public function usesLinkDisplay() {
+    return !$this->hasPath();
+  }
 
   /**
    * {@inheritdoc}
    */
-  public function usesExposedFormInBlock() { return $this->hasPath(); }
+  public function usesExposedFormInBlock() {
+    return $this->hasPath();
+  }
 
   /**
    * {@inheritdoc}
@@ -772,7 +780,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       return $this->default_display->getOption($option);
     }
 
-    if (array_key_exists($option, $this->options)) {
+    if (isset($this->options[$option]) || array_key_exists($option, $this->options)) {
       return $this->options[$option];
     }
   }
@@ -2051,7 +2059,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function renderFilters() { }
+  public function renderFilters() {}
 
   /**
    * {@inheritdoc}
@@ -2115,7 +2123,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       '#cache' => &$this->view->element['#cache'],
     ];
 
-    $this->applyDisplayCachablityMetadata($this->view->element);
+    $this->applyDisplayCacheabilityMetadata($this->view->element);
 
     return $element;
   }
@@ -2126,7 +2134,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
    * @param array $element
    *   The render array with updated cacheability metadata.
    */
-  protected function applyDisplayCachablityMetadata(array &$element) {
+  protected function applyDisplayCacheabilityMetadata(array &$element) {
     /** @var \Drupal\views\Plugin\views\cache\CachePluginBase $cache */
     $cache = $this->getPlugin('cache');
 
@@ -2136,6 +2144,22 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
       ->setCacheMaxAge(Cache::mergeMaxAges($cache->getCacheMaxAge(), isset($this->display['cache_metadata']['max-age']) ? $this->display['cache_metadata']['max-age'] : Cache::PERMANENT))
       ->merge(CacheableMetadata::createFromRenderArray($element))
       ->applyTo($element);
+  }
+
+  /**
+   * Applies the cacheability of the current display to the given render array.
+   *
+   * @param array $element
+   *   The render array with updated cacheability metadata.
+   *
+   * @deprecated in Drupal 8.4.0, will be removed before Drupal 9.0. Use
+   *   DisplayPluginBase::applyDisplayCacheabilityMetadata instead.
+   *
+   * @see \Drupal\views\Plugin\views\display\DisplayPluginBase::applyDisplayCacheabilityMetadata()
+   */
+  protected function applyDisplayCachablityMetadata(array &$element) {
+    @trigger_error('The DisplayPluginBase::applyDisplayCachablityMetadata method is deprecated since version 8.4 and will be removed in 9.0. Use DisplayPluginBase::applyDisplayCacheabilityMetadata instead.', E_USER_DEPRECATED);
+    $this->applyDisplayCacheabilityMetadata($element);
   }
 
   /**
@@ -2309,7 +2333,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   /**
    * {@inheritdoc}
    */
-  public function execute() { }
+  public function execute() {}
 
   /**
    * {@inheritdoc}
@@ -2330,7 +2354,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     // of cacheability metadata (e.g.: cache contexts), so they can bubble up.
     // Thus, we add the cacheability metadata first, then modify / remove the
     // cache keys depending on the $cache argument.
-    $this->applyDisplayCachablityMetadata($this->view->element);
+    $this->applyDisplayCacheabilityMetadata($this->view->element);
     if ($cache) {
       $this->view->element['#cache'] += ['keys' => []];
       // Places like \Drupal\views\ViewExecutable::setCurrentPage() set up an

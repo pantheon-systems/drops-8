@@ -94,23 +94,27 @@ class EntityQueryTest extends EntityKernelTestBase {
     }
     // Each unit is a list of field name, langcode and a column-value array.
     $units[] = [$figures, 'en', [
-      'color' => 'red',
-      'shape' => 'triangle',
-    ]];
+        'color' => 'red',
+        'shape' => 'triangle',
+      ],
+    ];
     $units[] = [$figures, 'en', [
-      'color' => 'blue',
-      'shape' => 'circle',
-    ]];
+        'color' => 'blue',
+        'shape' => 'circle',
+      ],
+    ];
     // To make it easier to test sorting, the greetings get formats according
     // to their langcode.
     $units[] = [$greetings, 'tr', [
-      'value' => 'merhaba',
-      'format' => 'format-tr'
-    ]];
+        'value' => 'merhaba',
+        'format' => 'format-tr',
+      ],
+    ];
     $units[] = [$greetings, 'pl', [
-      'value' => 'siema',
-      'format' => 'format-pl'
-    ]];
+        'value' => 'siema',
+        'format' => 'format-pl',
+      ],
+    ];
     // Make these languages available to the greetings field.
     ConfigurableLanguage::createFromLangcode('tr')->save();
     ConfigurableLanguage::createFromLangcode('pl')->save();
@@ -866,7 +870,8 @@ class EntityQueryTest extends EntityKernelTestBase {
       'description' => [
         'value' => $this->randomString(),
         'format' => 'format1',
-      ]]);
+      ],
+    ]);
     $term1->save();
 
     $term2 = Term::create([
@@ -875,7 +880,8 @@ class EntityQueryTest extends EntityKernelTestBase {
       'description' => [
         'value' => $this->randomString(),
         'format' => 'format2',
-      ]]);
+      ],
+    ]);
     $term2->save();
 
     $ids = \Drupal::entityQuery('taxonomy_term')
@@ -887,9 +893,9 @@ class EntityQueryTest extends EntityKernelTestBase {
   }
 
   /**
-   * Test forward-revisions.
+   * Test pending revisions.
    */
-  public function testForwardRevisions() {
+  public function testPendingRevisions() {
     // Ensure entity 14 is returned.
     $result = \Drupal::entityQuery('entity_test_mulrev')
       ->condition('id', [14], 'IN')
@@ -914,7 +920,7 @@ class EntityQueryTest extends EntityKernelTestBase {
       ->execute();
     $this->assertEqual(count($result), 1);
 
-    // Verify that field conditions on the default and forward revision are
+    // Verify that field conditions on the default and pending revision are
     // work as expected.
     $result = \Drupal::entityQuery('entity_test_mulrev')
       ->condition('id', [14], 'IN')

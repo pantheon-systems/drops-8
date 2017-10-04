@@ -13,10 +13,6 @@ use Drupal\workflows\Annotation\WorkflowType;
  * @see \Drupal\workflows\Annotation\WorkflowType
  * @see \Drupal\workflows\WorkflowTypeInterface
  * @see plugin_api
- *
- * @internal
- *   The workflow system is currently experimental and should only be leveraged
- *   by experimental modules and development releases of contributed modules.
  */
 class WorkflowTypeManager extends DefaultPluginManager {
 
@@ -34,7 +30,7 @@ class WorkflowTypeManager extends DefaultPluginManager {
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
     parent::__construct('Plugin/WorkflowType', $namespaces, $module_handler, WorkflowTypeInterface::class, WorkflowType::class);
     $this->alterInfo('workflow_type_info');
-    $this->setCacheBackend($cache_backend, 'workflow_type_info');
+    $this->setCacheBackend($cache_backend, 'workflow_type_info', ['workflow_type_plugins']);
   }
 
 }

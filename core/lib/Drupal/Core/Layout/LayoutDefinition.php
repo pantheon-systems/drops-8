@@ -10,11 +10,6 @@ use Drupal\Core\Plugin\Definition\DependentPluginDefinitionTrait;
 
 /**
  * Provides an implementation of a layout definition and its metadata.
- *
- * @internal
- *   The layout system is currently experimental and should only be leveraged by
- *   experimental modules and development releases of contributed modules.
- *   See https://www.drupal.org/core/experimental for more information.
  */
 class LayoutDefinition extends PluginDefinition implements PluginDefinitionInterface, DerivablePluginDefinitionInterface, DependentPluginDefinitionInterface {
 
@@ -380,12 +375,11 @@ class LayoutDefinition extends PluginDefinition implements PluginDefinitionInter
    * Gets the regions for this layout definition.
    *
    * @return array[]
-   *    The layout regions. The keys of the array are the machine names of the
-   *    regions, and the values are an associative array with the following
-   *    keys:
-   *     - label: (string) The human-readable name of the region.
-   *    Any remaining keys may have special meaning for the given layout plugin,
-   *    but are undefined here.
+   *   The layout regions. The keys of the array are the machine names of the
+   *   regions, and the values are an associative array with the following keys:
+   *   - label: (string) The human-readable name of the region.
+   *   Any remaining keys may have special meaning for the given layout plugin,
+   *   but are undefined here.
    */
   public function getRegions() {
     return $this->regions;

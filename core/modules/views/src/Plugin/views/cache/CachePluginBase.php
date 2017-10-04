@@ -171,7 +171,7 @@ abstract class CachePluginBase extends PluginBase {
    * All of the cached result data will be available in $view->result, as well,
    * so all ids used in the query should be discoverable.
    */
-  public function postRender(&$output) { }
+  public function postRender(&$output) {}
 
   /**
    * Calculates and sets a cache ID used for the result cache.
@@ -190,7 +190,7 @@ abstract class CachePluginBase extends PluginBase {
           $query = clone $build_info[$index];
           $query->preExecute();
           $build_info[$index] = [
-            'query' => (string)$query,
+            'query' => (string) $query,
             'arguments' => $query->getArguments(),
           ];
         }

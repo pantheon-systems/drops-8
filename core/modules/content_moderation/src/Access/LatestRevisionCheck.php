@@ -2,6 +2,7 @@
 
 namespace Drupal\content_moderation\Access;
 
+use Drupal\Core\Access\AccessException;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
@@ -34,7 +35,7 @@ class LatestRevisionCheck implements AccessInterface {
   }
 
   /**
-   * Checks that there is a forward revision available.
+   * Checks that there is a pending revision available.
    *
    * This checker assumes the presence of an '_entity_access' requirement key
    * in the same form as used by EntityAccessCheck.
@@ -54,7 +55,7 @@ class LatestRevisionCheck implements AccessInterface {
   public function access(Route $route, RouteMatchInterface $route_match, AccountInterface $account) {
     // This tab should not show up unless there's a reason to show it.
     $entity = $this->loadEntity($route, $route_match);
-    if ($this->moderationInfo->hasForwardRevision($entity)) {
+    if ($this->moderationInfo->hasPendingRevision($entity)) {
       // Check the global permissions first.
       $access_result = AccessResult::allowedIfHasPermissions($account, ['view latest version', 'view any unpublished content']);
       if (!$access_result->isAllowed()) {
@@ -81,10 +82,8 @@ class LatestRevisionCheck implements AccessInterface {
    * @return \Drupal\Core\Entity\ContentEntityInterface
    *   returns the Entity in question.
    *
-   * @throws \Exception
-   *   A generic exception is thrown if the entity couldn't be loaded. This
-   *   almost always implies a developer error, so it should get turned into
-   *   an HTTP 500.
+   * @throws \Drupal\Core\Access\AccessException
+   *   An AccessException is thrown if the entity couldn't be loaded.
    */
   protected function loadEntity(Route $route, RouteMatchInterface $route_match) {
     $entity_type = $route->getOption('_content_moderation_entity_type');
@@ -94,7 +93,7 @@ class LatestRevisionCheck implements AccessInterface {
         return $entity;
       }
     }
-    throw new \Exception(sprintf('%s is not a valid entity route. The LatestRevisionCheck access checker may only be used with a route that has a single entity parameter.', $route_match->getRouteName()));
+    throw new AccessException(sprintf('%s is not a valid entity route. The LatestRevisionCheck access checker may only be used with a route that has a single entity parameter.', $route_match->getRouteName()));
   }
 
 }
