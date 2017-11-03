@@ -716,8 +716,10 @@ function file_munge_filename($filename, $extensions, $alerts = TRUE) {
     // Split the filename up by periods. The first part becomes the basename
     // the last part the final extension.
     $filename_parts = explode('.', $filename);
-    $new_filename = array_shift($filename_parts); // Remove file basename.
-    $final_extension = array_pop($filename_parts); // Remove final extension.
+    // Remove file basename.
+    $new_filename = array_shift($filename_parts);
+    // Remove final extension.
+    $final_extension = array_pop($filename_parts);
 
     // Loop through the middle parts of the name and add an underscore to the
     // end of each section that could be a file extension but isn't in the list
@@ -1030,7 +1032,7 @@ function file_scan_directory($dir, $mask, $options = [], $depth = 0) {
   // performance boost.
   if (!isset($options['nomask'])) {
     $ignore_directories = Settings::get('file_scan_ignore_directories', []);
-    array_walk($ignore_directories, function(&$value) {
+    array_walk($ignore_directories, function (&$value) {
       $value = preg_quote($value, '/');
     });
     $default_nomask = '/^' . implode('|', $ignore_directories) . '$/';

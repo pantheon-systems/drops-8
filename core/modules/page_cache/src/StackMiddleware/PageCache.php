@@ -143,8 +143,10 @@ class PageCache implements HttpKernelInterface {
       $if_none_match = $request->server->has('HTTP_IF_NONE_MATCH') ? stripslashes($request->server->get('HTTP_IF_NONE_MATCH')) : FALSE;
 
       if ($if_modified_since && $if_none_match
-        && $if_none_match == $response->getEtag() // etag must match
-        && $if_modified_since == $last_modified->getTimestamp()) {// if-modified-since must match
+        // etag must match.
+        && $if_none_match == $response->getEtag()
+        // if-modified-since must match.
+        && $if_modified_since == $last_modified->getTimestamp()) {
         $response->setStatusCode(304);
         $response->setContent(NULL);
 
@@ -258,9 +260,14 @@ class PageCache implements HttpKernelInterface {
         $expire = $request_time + $cache_ttl_4xx;
       }
     }
-    else {
-      $date = $response->getExpires()->getTimestamp();
+    // The getExpires method could return NULL if Expires header is not set, so
+    // the returned value needs to be checked before calling getTimestamp.
+    elseif ($expires = $response->getExpires()) {
+      $date = $expires->getTimestamp();
       $expire = ($date > $request_time) ? $date : Cache::PERMANENT;
+    }
+    else {
+      $expire = Cache::PERMANENT;
     }
 
     if ($expire === Cache::PERMANENT || $expire > $request_time) {

@@ -2,6 +2,8 @@
 
 namespace Drupal\config\Tests;
 
+@trigger_error('The ' . __NAMESPACE__ . '\AssertConfigEntityImportTrait is deprecated in Drupal 8.4.1 and will be removed before Drupal 9.0.0. Instead, use \Drupal\Tests\config\Traits\AssertConfigEntityImportTrait. See https://www.drupal.org/node/2916197.', E_USER_DEPRECATED);
+
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
 
 /**
@@ -9,6 +11,11 @@ use Drupal\Core\Config\Entity\ConfigEntityInterface;
  *
  * Can be used by test classes that extend \Drupal\simpletest\WebTestBase or
  * \Drupal\KernelTests\KernelTestBase.
+ *
+ * @deprecated in Drupal 8.4.1 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Tests\config\Traits\AssertConfigEntityImportTrait.
+ *
+ * @see https://www.drupal.org/node/2916197
  */
 trait AssertConfigEntityImportTrait {
 
