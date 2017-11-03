@@ -26,7 +26,7 @@ class MenuLinkTreeTest extends KernelTestBase {
   /**
    * The menu link plugin manager.
    *
-   * @var \Drupal\Core\Menu\MenuLinkManagerInterface $menuLinkManager
+   * @var \Drupal\Core\Menu\MenuLinkManagerInterface
    */
   protected $menuLinkManager;
 
@@ -111,7 +111,7 @@ class MenuLinkTreeTest extends KernelTestBase {
     $parameters = new MenuTreeParameters();
     $tree = $this->linkTree->load('mock', $parameters);
 
-    $count = function(array $tree) {
+    $count = function (array $tree) {
       $sum = function ($carry, MenuLinkTreeElement $item) {
         return $carry + $item->count();
       };

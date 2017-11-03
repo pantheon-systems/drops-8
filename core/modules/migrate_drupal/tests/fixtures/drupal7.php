@@ -45365,8 +45365,8 @@ $connection->insert('taxonomy_vocabulary')
 ))
 ->values(array(
   'vid' => '2',
-  'name' => 'Forums',
-  'machine_name' => 'forums',
+  'name' => 'Sujet de discussion',
+  'machine_name' => 'sujet_de_discussion',
   'description' => 'Forum navigation vocabulary',
   'hierarchy' => '1',
   'module' => 'forum',
@@ -45383,7 +45383,7 @@ $connection->insert('taxonomy_vocabulary')
 ))
 ->values(array(
   'vid' => '4',
-  'name' => 'vocabulary name much longer than thirty two characters',
+  'name' => 'vocabulary name clearly different than machine name and much longer than thirty two characters',
   'machine_name' => 'vocabulary_name_much_longer_than_thirty_two_characters',
   'description' => 'description of vocabulary name much longer than thirty two characters',
   'hierarchy' => '1',
@@ -46146,7 +46146,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_subject_field_test_content_type',
-  'value' => 'i:1;',
+  'value' => 'i:0;',
 ))
 ->values(array(
   'name' => 'comment_test_content_type',

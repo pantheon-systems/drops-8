@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\ckeditor\Functional;
 
-
 use Drupal\filter\Entity\FilterFormat;
 use Drupal\editor\Entity\Editor;
 use Drupal\Tests\BrowserTestBase;
@@ -67,7 +66,7 @@ class CKEditorToolbarButtonTest extends BrowserTestBase {
     $this->drupalGet('admin/config/content/formats/manage/full_html');
 
     // Check if any image button is loaded in CKEditor json.
-    $json_encode = function($html) {
+    $json_encode = function ($html) {
       return trim(Json::encode($html), '"');
     };
     $markup = $json_encode(file_url_transform_relative(file_create_url('core/modules/ckeditor/js/plugins/drupalimage/icons/drupalimage.png')));

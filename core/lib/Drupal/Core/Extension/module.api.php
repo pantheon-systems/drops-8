@@ -9,7 +9,6 @@ use Drupal\Core\Database\Database;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\UpdateException;
 
-
 /**
  * @defgroup update_api Update API
  * @{
@@ -230,8 +229,7 @@ function hook_modules_installed($modules) {
 function hook_install() {
   // Create the styles directory and ensure it's writable.
   $directory = file_default_scheme() . '://styles';
-  $mode = isset($GLOBALS['install_state']['mode']) ? $GLOBALS['install_state']['mode'] : NULL;
-  file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS, $mode);
+  file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
 }
 
 /**
