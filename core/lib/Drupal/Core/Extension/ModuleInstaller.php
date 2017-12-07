@@ -194,6 +194,17 @@ class ModuleInstaller implements ModuleInstallerInterface {
         // Update the kernel to include it.
         $this->updateKernel($module_filenames);
 
+        // Replace the route provider service with a version that will rebuild
+        // if routes used during installation. This ensures that a module's
+        // routes are available during installation. This has to occur before
+        // any services that depend on it are instantiated otherwise those
+        // services will have the old route provider injected. Note that, since
+        // the container is rebuilt by updating the kernel, the route provider
+        // service is the regular one even though we are in a loop and might
+        // have replaced it before.
+        \Drupal::getContainer()->set('router.route_provider.old', \Drupal::service('router.route_provider'));
+        \Drupal::getContainer()->set('router.route_provider', \Drupal::service('router.route_provider.lazy_builder'));
+
         // Allow modules to react prior to the installation of a module.
         $this->moduleHandler->invokeAll('module_preinstall', [$module]);
 
@@ -282,10 +293,6 @@ class ModuleInstaller implements ModuleInstallerInterface {
         //   causes a circular service dependency.
         // @see https://www.drupal.org/node/2208429
         \Drupal::service('theme_handler')->refreshInfo();
-
-        // In order to make uninstalling transactional if anything uses routes.
-        \Drupal::getContainer()->set('router.route_provider.old', \Drupal::service('router.route_provider'));
-        \Drupal::getContainer()->set('router.route_provider', \Drupal::service('router.route_provider.lazy_builder'));
 
         // Allow the module to perform install tasks.
         $this->moduleHandler->invoke($module, 'install');
@@ -498,34 +505,30 @@ class ModuleInstaller implements ModuleInstallerInterface {
    *   The name of the module for which to remove all registered cache bins.
    */
   protected function removeCacheBins($module) {
-    // Remove any cache bins defined by a module.
     $service_yaml_file = drupal_get_path('module', $module) . "/$module.services.yml";
-    if (file_exists($service_yaml_file)) {
-      $definitions = Yaml::decode(file_get_contents($service_yaml_file));
-      if (isset($definitions['services'])) {
-        foreach ($definitions['services'] as $id => $definition) {
-          if (isset($definition['tags'])) {
-            foreach ($definition['tags'] as $tag) {
-              // This works for the default cache registration and even in some
-              // cases when a non-default "super" factory is used. That should
-              // be extremely rare.
-              if ($tag['name'] == 'cache.bin' && isset($definition['factory_service']) && isset($definition['factory_method']) && !empty($definition['arguments'])) {
-                try {
-                  $factory = \Drupal::service($definition['factory_service']);
-                  if (method_exists($factory, $definition['factory_method'])) {
-                    $backend = call_user_func_array([$factory, $definition['factory_method']], $definition['arguments']);
-                    if ($backend instanceof CacheBackendInterface) {
-                      $backend->removeBin();
-                    }
-                  }
-                }
-                catch (\Exception $e) {
-                  watchdog_exception('system', $e, 'Failed to remove cache bin defined by the service %id.', ['%id' => $id]);
-                }
-              }
-            }
+    if (!file_exists($service_yaml_file)) {
+      return;
+    }
+
+    $definitions = Yaml::decode(file_get_contents($service_yaml_file));
+
+    $cache_bin_services = array_filter(
+      isset($definitions['services']) ? $definitions['services'] : [],
+      function ($definition) {
+        $tags = isset($definition['tags']) ? $definition['tags'] : [];
+        foreach ($tags as $tag) {
+          if (isset($tag['name']) && ($tag['name'] == 'cache.bin')) {
+            return TRUE;
           }
         }
+        return FALSE;
+      }
+    );
+
+    foreach (array_keys($cache_bin_services) as $service_id) {
+      $backend = $this->kernel->getContainer()->get($service_id);
+      if ($backend instanceof CacheBackendInterface) {
+        $backend->removeBin();
       }
     }
   }

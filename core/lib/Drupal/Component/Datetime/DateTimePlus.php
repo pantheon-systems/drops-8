@@ -23,6 +23,19 @@ use Drupal\Component\Utility\ToStringTrait;
  * errors are. This is less disruptive than allowing datetime exceptions
  * to abort processing. The calling script can decide what to do about
  * errors using hasErrors() and getErrors().
+ *
+ * @method $this add(\DateInterval $interval)
+ * @method static array getLastErrors()
+ * @method $this modify(string $modify)
+ * @method $this setDate(int $year, int $month, int $day)
+ * @method $this setISODate(int $year, int $week, int $day = 1)
+ * @method $this setTime(int $hour, int $minute, int $second = 0, int $microseconds = 0)
+ * @method $this setTimestamp(int $unixtimestamp)
+ * @method $this setTimezone(\DateTimeZone $timezone)
+ * @method $this sub(\DateInterval $interval)
+ * @method int getOffset()
+ * @method int getTimestamp()
+ * @method \DateTimeZone getTimezone()
  */
 class DateTimePlus {
 
@@ -53,31 +66,43 @@ class DateTimePlus {
 
   /**
    * The value of the time value passed to the constructor.
+   *
+   * @var string
    */
   protected $inputTimeRaw = '';
 
   /**
    * The prepared time, without timezone, for this date.
+   *
+   * @var string
    */
   protected $inputTimeAdjusted = '';
 
   /**
    * The value of the timezone passed to the constructor.
+   *
+   * @var string
    */
   protected $inputTimeZoneRaw = '';
 
   /**
    * The prepared timezone object used to construct this date.
+   *
+   * @var string
    */
   protected $inputTimeZoneAdjusted = '';
 
   /**
    * The value of the format passed to the constructor.
+   *
+   * @var string
    */
   protected $inputFormatRaw = '';
 
   /**
    * The prepared format, if provided.
+   *
+   * @var string
    */
   protected $inputFormatAdjusted = '';
 

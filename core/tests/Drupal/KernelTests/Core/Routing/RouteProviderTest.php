@@ -41,7 +41,7 @@ class RouteProviderTest extends KernelTestBase {
   /**
    * A collection of shared fixture data for tests.
    *
-   * @var RoutingFixtures
+   * @var \Drupal\Tests\Core\Routing\RoutingFixtures
    */
   protected $fixtures;
 
@@ -531,7 +531,6 @@ class RouteProviderTest extends KernelTestBase {
     $path = '/no/such/path';
 
     $request = Request::create($path, 'GET');
-
 
     $routes = $provider->getRoutesByPattern($path);
     $this->assertFalse(count($routes), 'No path found with this pattern.');

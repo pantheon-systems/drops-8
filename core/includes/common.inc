@@ -148,12 +148,13 @@ const LOCALE_PLURAL_DELIMITER = PluralTranslatableMarkup::DELIMITER;
  *     If the query parameter isn't present, then the URL of the current
  *     request is returned.
  *
- * @see \Drupal\Core\EventSubscriber\RedirectResponseSubscriber::checkRedirectUrl()
- *
  * @ingroup form_api
  *
  * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
  *   Use the redirect.destination service.
+ *
+ * @see \Drupal\Core\EventSubscriber\RedirectResponseSubscriber::checkRedirectUrl()
+ * @see https://www.drupal.org/node/2448603
  */
 function drupal_get_destination() {
   return \Drupal::destination()->getAsArray();
@@ -176,6 +177,8 @@ function drupal_get_destination() {
  *
  * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
  *   Use \Drupal::service('email.validator')->isValid().
+ *
+ * @see https://www.drupal.org/node/2912661
  */
 function valid_email_address($mail) {
   return \Drupal::service('email.validator')->isValid($mail);
@@ -209,9 +212,6 @@ function valid_email_address($mail) {
  *   Drupal\Core\Template\Attribute, call
  *   \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols() instead.
  *
- * @see \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols()
- * @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
- *
  * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
  *   Use UrlHelper::stripDangerousProtocols() or UrlHelper::filterBadProtocol()
  *   instead. UrlHelper::stripDangerousProtocols() can be used in conjunction
@@ -220,6 +220,10 @@ function valid_email_address($mail) {
  *   UrlHelper::filterBadProtocol() is functionality equivalent to check_url()
  *   apart from the fact it is protected from double escaping bugs. Note that
  *   this method no longer marks its output as safe.
+ *
+ * @see \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols()
+ * @see \Drupal\Component\Utility\UrlHelper::filterBadProtocol()
+ * @see https://www.drupal.org/node/2560027
  */
 function check_url($uri) {
   return Html::escape(UrlHelper::stripDangerousProtocols($uri));
@@ -315,10 +319,11 @@ function format_size($size, $langcode = NULL) {
  * @return
  *   A translated date string in the requested format.
  *
- * @see \Drupal\Core\Datetime\DateFormatter::format()
- *
  * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
  *   Use \Drupal::service('date.formatter')->format().
+ *
+ * @see \Drupal\Core\Datetime\DateFormatter::format()
+ * @see https://www.drupal.org/node/1876852
  */
 function format_date($timestamp, $type = 'medium', $format = '', $timezone = NULL, $langcode = NULL) {
   return \Drupal::service('date.formatter')->format($timestamp, $type, $format, $timezone, $langcode);
@@ -420,6 +425,8 @@ function base_path() {
  *
  * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
  *   Use \Drupal\Core\Asset\AssetCollectionOptimizerInterface::deleteAll().
+ *
+ * @see https://www.drupal.org/node/2317841
  */
 function drupal_clear_css_cache() {
   \Drupal::service('asset.css.collection_optimizer')->deleteAll();
@@ -737,6 +744,8 @@ function drupal_attach_tabledrag(&$element, array $options) {
  *
  * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
  *   Use \Drupal\Core\Asset\AssetCollectionOptimizerInterface::deleteAll().
+ *
+ * @see https://www.drupal.org/node/2317841
  */
 function drupal_clear_js_cache() {
   \Drupal::service('asset.js.collection_optimizer')->deleteAll();
@@ -854,6 +863,7 @@ function drupal_pre_render_links($element) {
  *   'renderer' service instead.
  *
  * @see \Drupal\Core\Render\RendererInterface::renderRoot()
+ * @see https://www.drupal.org/node/2912696
  */
 function drupal_render_root(&$elements) {
   return \Drupal::service('renderer')->renderRoot($elements);
@@ -866,6 +876,7 @@ function drupal_render_root(&$elements) {
  *   'renderer' service instead.
  *
  * @see \Drupal\Core\Render\RendererInterface::render()
+ * @see https://www.drupal.org/node/2912696
  */
 function drupal_render(&$elements, $is_recursive_call = FALSE) {
   return \Drupal::service('renderer')->render($elements, $is_recursive_call);
@@ -889,6 +900,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
  *   they are available.
  *
  * @see drupal_render()
+ * @see https://www.drupal.org/node/2912757
  */
 function drupal_render_children(&$element, $children_keys = NULL) {
   if ($children_keys === NULL) {
@@ -1002,6 +1014,8 @@ function show(&$element) {
  *
  * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
  *   Use \Drupal::service('element_info')->getInfo() instead.
+ *
+ * @see https://www.drupal.org/node/2235461
  */
 function element_info($type) {
   return \Drupal::service('element_info')->getInfo($type);
@@ -1020,6 +1034,8 @@ function element_info($type) {
  *
  * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
  *   Use \Drupal::service('element_info')->getInfoProperty() instead.
+ *
+ * @see https://www.drupal.org/node/2235461
  */
 function element_info_property($type, $property_name, $default = NULL) {
   return \Drupal::service('element_info')->getInfoProperty($type, $property_name, $default);
@@ -1111,7 +1127,6 @@ function drupal_flush_all_caches() {
   // In case the active theme gets requested later in the same request we need
   // to reset the theme manager.
   \Drupal::theme()->resetActiveTheme();
-
 
   // Rebuild and reboot a new kernel. A simple DrupalKernel reboot is not
   // sufficient, since the list of enabled modules might have been adjusted
