@@ -68,6 +68,9 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    */
   const RENDER_TEXT_PHASE_EMPTY = 2;
 
+  /**
+   * @var string
+   */
   public $field_alias = 'unknown';
   public $aliases = [];
 
@@ -856,7 +859,6 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
           ],
         ],
       ];
-
 
       // Get a list of the available fields and arguments for token replacement.
 

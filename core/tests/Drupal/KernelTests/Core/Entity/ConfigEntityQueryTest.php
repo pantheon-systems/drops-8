@@ -626,7 +626,8 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $key_value = $this->container->get('keyvalue')->get(QueryFactory::CONFIG_LOOKUP_PREFIX . 'config_test');
 
     $test_entities = [];
-    $entity = entity_create('config_test', [
+    $storage = \Drupal::entityTypeManager()->getStorage('config_test');
+    $entity = $storage->create([
       'label' => $this->randomMachineName(),
       'id' => '1',
       'style' => 'test',
@@ -635,11 +636,10 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $entity->enforceIsNew();
     $entity->save();
 
-
     $expected[] = $entity->getConfigDependencyName();
     $this->assertEqual($expected, $key_value->get('style:test'));
 
-    $entity = entity_create('config_test', [
+    $entity = $storage->create([
       'label' => $this->randomMachineName(),
       'id' => '2',
       'style' => 'test',
@@ -650,7 +650,7 @@ class ConfigEntityQueryTest extends KernelTestBase {
     $expected[] = $entity->getConfigDependencyName();
     $this->assertEqual($expected, $key_value->get('style:test'));
 
-    $entity = entity_create('config_test', [
+    $entity = $storage->create([
       'label' => $this->randomMachineName(),
       'id' => '3',
       'style' => 'blah',

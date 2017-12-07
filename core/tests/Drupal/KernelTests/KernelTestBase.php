@@ -324,10 +324,10 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
   private function bootKernel() {
     $this->setSetting('container_yamls', []);
     // Allow for test-specific overrides.
-    $settings_services_file = $this->root . '/sites/default' . '/testing.services.yml';
+    $settings_services_file = $this->root . '/sites/default/testing.services.yml';
     if (file_exists($settings_services_file)) {
       // Copy the testing-specific service overrides in place.
-      $testing_services_file = $this->root . '/' . $this->siteDirectory . '/services.yml';
+      $testing_services_file = $this->siteDirectory . '/services.yml';
       copy($settings_services_file, $testing_services_file);
       $this->setSetting('container_yamls', [$testing_services_file]);
     }
@@ -827,7 +827,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
 
     foreach ($modules as $module) {
       if ($module_handler->moduleExists($module)) {
-        throw new \LogicException("$module module is already enabled.");
+        continue;
       }
       $module_handler->addModule($module, $module_list[$module]->getPath());
       // Maintain the list of enabled modules in configuration.

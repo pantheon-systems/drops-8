@@ -35,6 +35,10 @@ use Symfony\Component\CssSelector\CssSelectorConverter;
  * Drupal\Tests\yourmodule\Functional namespace and live in the
  * modules/yourmodule/tests/src/Functional directory.
  *
+ * Tests extending this base class should only translate text when testing
+ * translation functionality. For example, avoid wrapping test text with t()
+ * or TranslatableMarkup().
+ *
  * @ingroup testing
  */
 abstract class BrowserTestBase extends TestCase {
@@ -342,7 +346,7 @@ abstract class BrowserTestBase extends TestCase {
   protected function getDefaultDriverInstance() {
     // Get default driver params from environment if availables.
     if ($arg_json = getenv('MINK_DRIVER_ARGS')) {
-      $this->minkDefaultDriverArgs = json_decode($arg_json);
+      $this->minkDefaultDriverArgs = json_decode($arg_json, TRUE);
     }
 
     // Get and check default driver class from environment if availables.
@@ -446,6 +450,15 @@ abstract class BrowserTestBase extends TestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
+    // Installing Drupal creates 1000s of objects. Garbage collection of these
+    // objects is expensive. This appears to be causing random segmentation
+    // faults in PHP 5.x due to https://bugs.php.net/bug.php?id=72286. Once
+    // Drupal is installed is rebuilt, garbage collection is re-enabled.
+    $disable_gc = version_compare(PHP_VERSION, '7', '<') && gc_enabled();
+    if ($disable_gc) {
+      gc_collect_cycles();
+      gc_disable();
+    }
     parent::setUp();
 
     $this->setupBaseUrl();
@@ -466,6 +479,11 @@ abstract class BrowserTestBase extends TestCase {
 
     // Set up the browser test output file.
     $this->initBrowserOutputFile();
+    // If garbage collection was disabled prior to rebuilding container,
+    // re-enable it.
+    if ($disable_gc) {
+      gc_enable();
+    }
   }
 
   /**
@@ -777,10 +795,10 @@ abstract class BrowserTestBase extends TestCase {
    *   be unchecked.
    * @param string $submit
    *   Value of the submit button whose click is to be emulated. For example,
-   *   t('Save'). The processing of the request depends on this value. For
-   *   example, a form may have one button with the value t('Save') and another
-   *   button with the value t('Delete'), and execute different code depending
-   *   on which one is clicked.
+   *   'Save'. The processing of the request depends on this value. For example,
+   *   a form may have one button with the value 'Save' and another button with
+   *   the value 'Delete', and execute different code depending on which one is
+   *   clicked.
    * @param string $form_html_id
    *   (optional) HTML ID of the form to be submitted. On some pages
    *   there are many identical forms, so just using the value of the submit
@@ -859,11 +877,11 @@ abstract class BrowserTestBase extends TestCase {
    *   @code
    *   // First step in form.
    *   $edit = array(...);
-   *   $this->drupalPostForm('some_url', $edit, t('Save'));
+   *   $this->drupalPostForm('some_url', $edit, 'Save');
    *
    *   // Second step in form.
    *   $edit = array(...);
-   *   $this->drupalPostForm(NULL, $edit, t('Save'));
+   *   $this->drupalPostForm(NULL, $edit, 'Save');
    *   @endcode
    * @param array $edit
    *   Field data in an associative array. Changes the current input fields
@@ -893,10 +911,10 @@ abstract class BrowserTestBase extends TestCase {
    *     https://www.drupal.org/node/2802401
    * @param string $submit
    *   Value of the submit button whose click is to be emulated. For example,
-   *   t('Save'). The processing of the request depends on this value. For
-   *   example, a form may have one button with the value t('Save') and another
-   *   button with the value t('Delete'), and execute different code depending
-   *   on which one is clicked.
+   *   'Save'. The processing of the request depends on this value. For example,
+   *   a form may have one button with the value 'Save' and another button with
+   *   the value 'Delete', and execute different code depending on which one is
+   *   clicked.
    *
    *   This function can also be called to emulate an Ajax submission. In this
    *   case, this value needs to be an array with the following keys:

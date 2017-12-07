@@ -113,6 +113,8 @@ class Select extends Query implements SelectInterface {
 
   /**
    * The FOR UPDATE status
+   *
+   * @var bool
    */
   protected $forUpdate = FALSE;
 
@@ -824,7 +826,6 @@ class Select extends Query implements SelectInterface {
       $fields[] = $expression['expression'] . ' AS ' . $this->connection->escapeAlias($expression['alias']);
     }
     $query .= implode(', ', $fields);
-
 
     // FROM - We presume all queries have a FROM, as any query that doesn't won't need the query builder anyway.
     $query .= "\nFROM ";

@@ -96,7 +96,7 @@ abstract class WebTestBase extends TestBase {
   /**
    * The headers of the page currently loaded in the internal browser.
    *
-   * @var Array
+   * @var array
    */
   protected $headers;
 
@@ -168,6 +168,8 @@ abstract class WebTestBase extends TestBase {
 
   /**
    * The maximum number of redirects to follow when handling responses.
+   *
+   * @var int
    */
   protected $maximumRedirects = 5;
 
