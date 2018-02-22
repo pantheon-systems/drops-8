@@ -5,22 +5,22 @@ namespace Drupal\Core\Entity;
 /**
  * A storage that supports content entity types.
  */
-interface ContentEntityStorageInterface extends EntityStorageInterface {
+interface ContentEntityStorageInterface extends EntityStorageInterface, TranslatableRevisionableStorageInterface {
 
   /**
-   * Constructs a new entity translation object, without permanently saving it.
+   * Creates an entity with sample field values.
    *
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   *   The entity object being translated.
-   * @param string $langcode
-   *   The translation language code.
+   * @param string|bool $bundle
+   *   (optional) The entity bundle.
    * @param array $values
-   *   (optional) An associative array of initial field values keyed by field
-   *   name. If none is provided default values will be applied.
+   *   (optional) Any default values to use during generation.
    *
-   * @return \Drupal\Core\Entity\ContentEntityInterface
-   *   A new entity translation object.
+   * @return \Drupal\Core\Entity\FieldableEntityInterface
+   *   A fieldable content entity.
+   *
+   * @throws \Drupal\Core\Entity\EntityStorageException
+   *   Thrown if the bundle does not exist or was needed but not specified.
    */
-  public function createTranslation(ContentEntityInterface $entity, $langcode, array $values = []);
+  public function createWithSampleValues($bundle = FALSE, array $values = []);
 
 }

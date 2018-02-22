@@ -109,6 +109,28 @@ function entity_test_entity_type_alter(array &$entity_types) {
 function entity_test_entity_base_field_info(EntityTypeInterface $entity_type) {
   $fields = [];
 
+  if ($entity_type->id() === 'entity_test' && \Drupal::state()->get('entity_test.internal_field')) {
+    $fields['internal_string_field'] = BaseFieldDefinition::create('string')
+      ->setLabel('Internal field')
+      ->setInternal(TRUE);
+  }
+  if ($entity_type->id() === 'entity_test_mul' && \Drupal::state()->get('entity_test.required_default_field')) {
+    $fields['required_default_field'] = BaseFieldDefinition::create('string')
+      ->setLabel('Required field with default value')
+      ->setRequired(TRUE)
+      ->setDefaultValue('this is a default value');
+  }
+  if ($entity_type->id() === 'entity_test_mul' && \Drupal::state()->get('entity_test.required_multi_default_field')) {
+    $fields['required_multi_default_field'] = BaseFieldDefinition::create('string')
+      ->setLabel('Required field with default value')
+      ->setRequired(TRUE)
+      ->setCardinality(FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED)
+      ->setDefaultValue([
+        ['value' => 'this is the first default field item'],
+        ['value' => 'this is the second default value'],
+        ['value' => 'you get the idea...'],
+      ]);
+  }
   if ($entity_type->id() == 'entity_test_mulrev' && \Drupal::state()->get('entity_test.field_test_item')) {
     $fields['field_test_item'] = BaseFieldDefinition::create('field_test')
       ->setLabel(t('Field test'))
@@ -199,6 +221,26 @@ function entity_test_entity_bundle_info() {
     }
   }
   return $bundles;
+}
+
+/**
+ * Implements hook_entity_bundle_info_alter().
+ */
+function entity_test_entity_bundle_info_alter(&$bundles) {
+  $entity_info = \Drupal::entityTypeManager()->getDefinitions();
+  $state = \Drupal::state();
+  foreach ($bundles as $entity_type_id => &$all_bundle_info) {
+    if ($entity_info[$entity_type_id]->getProvider() == 'entity_test') {
+      if ($state->get('entity_test.translation')) {
+        foreach ($all_bundle_info as $bundle_name => &$bundle_info) {
+          $bundle_info['translatable'] = TRUE;
+          if ($state->get('entity_test.untranslatable_fields.default_translation_affected')) {
+            $bundle_info['untranslatable_fields.default_translation_affected'] = TRUE;
+          }
+        }
+      }
+    }
+  }
 }
 
 /**

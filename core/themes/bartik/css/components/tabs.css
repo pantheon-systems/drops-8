@@ -21,9 +21,10 @@ div.tabs {
   text-shadow: 0 1px 0 #fff;
 }
 .tabs ul.primary li.is-active a {
-  background-color: #ffffff;
+  background-color: #fff;
   border: 1px solid #bbb;
 }
+
 @media screen and (max-width: 37.5em) { /* 600px */
   .tabs ul.primary {
     border-bottom: 1px solid #bbb;
@@ -39,6 +40,7 @@ div.tabs {
     border-bottom: none;
   }
 }
+
 @media screen and (min-width: 37.5em) { /* 600px */
   .tabs ul.primary {
     border-collapse: collapse;

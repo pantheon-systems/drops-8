@@ -8,8 +8,8 @@ use Drupal\block_content\Entity\BlockContentType;
 use Drupal\menu_link_content\Entity\MenuLinkContent;
 use Drupal\settings_tray_test\Plugin\Block\SettingsTrayFormAnnotationIsClassBlock;
 use Drupal\settings_tray_test\Plugin\Block\SettingsTrayFormAnnotationNoneBlock;
-use Drupal\system\Entity\Menu;
 use Drupal\Tests\contextual\FunctionalJavascript\ContextualLinkClickTrait;
+use Drupal\Tests\system\FunctionalJavascript\OffCanvasTestBase;
 use Drupal\user\Entity\Role;
 use Drupal\user\RoleInterface;
 
@@ -18,7 +18,7 @@ use Drupal\user\RoleInterface;
  *
  * @group settings_tray
  */
-class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
+class SettingsTrayBlockFormTest extends OffCanvasTestBase {
 
   use ContextualLinkClickTrait;
 
@@ -44,8 +44,9 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     // cause test failures.
     'settings_tray_test_css',
     'settings_tray_test',
-    'menu_link_content',
+    'settings_tray_override_test',
     'menu_ui',
+    'menu_link_content',
   ];
 
   /**
@@ -81,13 +82,13 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $page = $this->getSession()->getPage();
     $this->enableTheme($theme);
     $block = $this->placeBlock($block_plugin);
-    $block_selector = str_replace('_', '-', $this->getBlockSelector($block));
+    $block_selector = $this->getBlockSelector($block);
     $block_id = $block->id();
     $this->drupalGet('user');
 
     $link = $page->find('css', "$block_selector .contextual-links li a");
     $this->assertEquals('Quick edit', $link->getText(), "'Quick edit' is the first contextual link for the block.");
-    $this->assertContains("/admin/structure/block/manage/$block_id/off-canvas?destination=user/2", $link->getAttribute('href'));
+    $this->assertContains("/admin/structure/block/manage/$block_id/settings-tray?destination=user/2", $link->getAttribute('href'));
 
     if (isset($toolbar_item)) {
       // Check that you can open a toolbar tray and it will be closed after
@@ -151,7 +152,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     // suppressed.
     $this->openBlockForm("$block_selector {$element_selector}", $block_selector);
     $web_assert->elementTextContains('css', '.contextual-toolbar-tab button', 'Editing');
-    $web_assert->elementAttributeContains('css', '.dialog-off-canvas__main-canvas', 'class', 'js-settings-tray-edit-mode');
+    $web_assert->elementAttributeContains('css', '.dialog-off-canvas-main-canvas', 'class', 'js-settings-tray-edit-mode');
     // Simulate press the Escape key.
     $this->getSession()->executeScript('jQuery("body").trigger(jQuery.Event("keyup", { keyCode: 27 }));');
     $this->waitForOffCanvasToClose();
@@ -159,7 +160,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $this->assertEditModeDisabled();
     $web_assert->elementTextContains('css', '#drupal-live-announce', 'Exited edit mode.');
     $web_assert->elementTextNotContains('css', '.contextual-toolbar-tab button', 'Editing');
-    $web_assert->elementAttributeNotContains('css', '.dialog-off-canvas__main-canvas', 'class', 'js-settings-tray-edit-mode');
+    $web_assert->elementAttributeNotContains('css', '.dialog-off-canvas-main-canvas', 'class', 'js-settings-tray-edit-mode');
   }
 
   /**
@@ -289,7 +290,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $this->assertNotEmpty($contextual_link);
     // When page first loads Edit Mode is not triggered until first contextual
     // link is added.
-    $this->assertElementVisibleAfterWait('css', '.dialog-off-canvas__main-canvas.js-settings-tray-edit-mode');
+    $this->assertElementVisibleAfterWait('css', '.dialog-off-canvas-main-canvas.js-settings-tray-edit-mode');
     // Ensure that all other Ajax activity is completed.
     $this->assertSession()->assertWaitOnAjaxRequest();
     $this->click($block_selector);
@@ -334,7 +335,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
       $this->enableTheme($theme);
 
       $block = $this->placeBlock($block_plugin);
-      $block_selector = str_replace('_', '-', $this->getBlockSelector($block));
+      $block_selector = $this->getBlockSelector($block);
       // Load the same page twice.
       foreach ([1, 2] as $page_load_times) {
         $this->drupalGet('node/' . $node->id());
@@ -428,7 +429,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     // The toolbar edit button should read "Editing".
     $web_assert->elementContains('css', static::TOOLBAR_EDIT_LINK_SELECTOR, 'Editing');
     // The main canvas element should have the "js-settings-tray-edit-mode" class.
-    $web_assert->elementExists('css', '.dialog-off-canvas__main-canvas.js-settings-tray-edit-mode');
+    $web_assert->elementExists('css', '.dialog-off-canvas-main-canvas.js-settings-tray-edit-mode');
   }
 
   /**
@@ -444,7 +445,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $web_assert->elementContains('css', static::TOOLBAR_EDIT_LINK_SELECTOR, 'Edit');
     // The main canvas element should NOT have the "js-settings-tray-edit-mode"
     // class.
-    $web_assert->elementNotExists('css', '.dialog-off-canvas__main-canvas.js-settings-tray-edit-mode');
+    $web_assert->elementNotExists('css', '.dialog-off-canvas-main-canvas.js-settings-tray-edit-mode');
   }
 
   /**
@@ -533,7 +534,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $href = array_search('Quick edit', $link_labels);
     $this->assertEquals('', $href);
     $href = array_search('Quick edit settings', $link_labels);
-    $this->assertTrue(strstr($href, '/admin/structure/block/manage/custom/off-canvas?destination=user/2') !== FALSE);
+    $this->assertTrue(strstr($href, '/admin/structure/block/manage/custom/settings-tray?destination=user/2') !== FALSE);
   }
 
   /**
@@ -546,7 +547,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
    *   The CSS selector.
    */
   public function getBlockSelector(Block $block) {
-    return '#block-' . $block->id();
+    return '#block-' . str_replace('_', '-', $block->id());
   }
 
   /**
@@ -616,7 +617,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $this->drupalGet('user');
     $web_assert->pageTextContains('This is on the menu');
 
-
     $this->grantPermissions(Role::load(Role::AUTHENTICATED_ID), ['administer menu']);
     $this->drupalGet('user');
     $web_assert->pageTextContains('This is on the menu');
@@ -645,6 +645,151 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
       $this->disableEditMode();
       $block->delete();
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getTestThemes() {
+    // Remove 'seven' theme. Setting Tray "Edit Mode" will not work with 'seven'
+    // because it removes all contextual links the off-canvas dialog should.
+    return array_filter(parent::getTestThemes(), function ($theme) {
+      return $theme !== 'seven';
+    });
+  }
+
+  /**
+   * Tests that blocks with configuration overrides are disabled.
+   */
+  public function testOverriddenBlock() {
+    $web_assert = $this->assertSession();
+    $page = $this->getSession()->getPage();
+    $overridden_block = $this->placeBlock('system_powered_by_block', [
+      'id' => 'overridden_block',
+      'label_display' => 1,
+      'label' => 'This will be overridden.',
+    ]);
+    $this->drupalGet('user');
+    $block_selector = $this->getBlockSelector($overridden_block);
+    // Confirm the block is marked as Settings Tray editable.
+    $this->assertEquals('editable', $page->find('css', $block_selector)->getAttribute('data-drupal-settingstray'));
+    // Confirm the label is not overridden.
+    $web_assert->elementContains('css', $block_selector, 'This will be overridden.');
+    $this->enableEditMode();
+    $this->openBlockForm($block_selector);
+
+    // Confirm the block Settings Tray functionality is disabled when block is
+    // overridden.
+    $this->container->get('state')->set('settings_tray_override_test.block', TRUE);
+    $overridden_block->save();
+    $block_config = \Drupal::configFactory()->getEditable('block.block.overridden_block');
+    $block_config->set('settings', $block_config->get('settings'))->save();
+
+    $this->drupalGet('user');
+    $this->assertOverriddenBlockDisabled($overridden_block, 'Now this will be the label.');
+
+    // Test a non-overridden block does show the form in the off-canvas dialog.
+    $block = $this->placeBlock('system_powered_by_block', [
+      'label_display' => 1,
+      'label' => 'Labely label',
+    ]);
+    $this->drupalGet('user');
+    $block_selector = $this->getBlockSelector($block);
+    // Confirm the block is marked as Settings Tray editable.
+    $this->assertEquals('editable', $page->find('css', $block_selector)->getAttribute('data-drupal-settingstray'));
+    // Confirm the label is not overridden.
+    $web_assert->elementContains('css', $block_selector, 'Labely label');
+    $this->openBlockForm($block_selector);
+  }
+
+  /**
+   * Test  blocks with overridden related configuration removed when overridden.
+   */
+  public function testOverriddenConfigurationRemoved() {
+    $web_assert = $this->assertSession();
+    $page = $this->getSession()->getPage();
+    $this->grantPermissions(Role::load(Role::AUTHENTICATED_ID), ['administer site configuration', 'administer menu']);
+
+    // Confirm the branding block does include 'site_information' section when
+    // the site name is not overridden.
+    $branding_block = $this->placeBlock('system_branding_block');
+    $this->drupalGet('user');
+    $this->enableEditMode();
+    $this->openBlockForm($this->getBlockSelector($branding_block));
+    $web_assert->fieldExists('settings[site_information][site_name]');
+    // Confirm the branding block does not include 'site_information' section
+    // when the site name is overridden.
+    $this->container->get('state')->set('settings_tray_override_test.site_name', TRUE);
+    $this->drupalGet('user');
+    $this->openBlockForm($this->getBlockSelector($branding_block));
+    $web_assert->fieldNotExists('settings[site_information][site_name]');
+    $page->pressButton('Save Site branding');
+    $this->assertElementVisibleAfterWait('css', 'div:contains(The block configuration has been saved)');
+    $web_assert->assertWaitOnAjaxRequest();
+    // Confirm we did not save changes to the configuration.
+    $this->assertEquals('Llama Fan Club', \Drupal::configFactory()->get('system.site')->get('name'));
+    $this->assertEquals('Drupal', \Drupal::configFactory()->getEditable('system.site')->get('name'));
+
+    // Add a link or the menu will not render.
+    $menu_link_content = MenuLinkContent::create([
+      'title' => 'This is on the menu',
+      'menu_name' => 'main',
+      'link' => ['uri' => 'route:<front>'],
+    ]);
+    $menu_link_content->save();
+    // Confirm the menu block does include menu section when the menu is not
+    // overridden.
+    $menu_block = $this->placeBlock('system_menu_block:main');
+    $web_assert->assertWaitOnAjaxRequest();
+    $this->drupalGet('user');
+    $web_assert->pageTextContains('This is on the menu');
+    $this->openBlockForm($this->getBlockSelector($menu_block));
+    $web_assert->elementExists('css', '#menu-overview');
+
+    // Confirm the menu block does not include menu section when the menu is
+    // overridden.
+    $this->container->get('state')->set('settings_tray_override_test.menu', TRUE);
+    $this->drupalGet('user');
+    $web_assert->pageTextContains('This is on the menu');
+    $menu_with_overrides = \Drupal::configFactory()->get('system.menu.main')->get();
+    $menu_without_overrides = \Drupal::configFactory()->getEditable('system.menu.main')->get();
+    $this->openBlockForm($this->getBlockSelector($menu_block));
+    $web_assert->elementNotExists('css', '#menu-overview');
+    $page->pressButton('Save Main navigation');
+    $this->assertElementVisibleAfterWait('css', 'div:contains(The block configuration has been saved)');
+    $web_assert->assertWaitOnAjaxRequest();
+    // Confirm we did not save changes to the configuration.
+    $this->assertEquals('Labely label', \Drupal::configFactory()->get('system.menu.main')->get('label'));
+    $this->assertEquals('Main navigation', \Drupal::configFactory()->getEditable('system.menu.main')->get('label'));
+    $this->assertEquals($menu_with_overrides, \Drupal::configFactory()->get('system.menu.main')->get());
+    $this->assertEquals($menu_without_overrides, \Drupal::configFactory()->getEditable('system.menu.main')->get());
+    $web_assert->pageTextContains('This is on the menu');
+  }
+  /**
+   * Asserts that an overridden block has Settings Tray disabled.
+   *
+   * @param \Drupal\block\Entity\Block $overridden_block
+   *   The overridden block.
+   * @param string $override_text
+   *   The override text that should appear in the block.
+   */
+  protected function assertOverriddenBlockDisabled(Block $overridden_block, $override_text) {
+    $web_assert = $this->assertSession();
+    $page = $this->getSession()->getPage();
+    $block_selector = $this->getBlockSelector($overridden_block);
+    $block_id = $overridden_block->id();
+    // Confirm the block does not have a quick edit link.
+    $contextual_links = $page->findAll('css', "$block_selector .contextual-links li a");
+    $this->assertNotEmpty($contextual_links);
+    foreach ($contextual_links as $link) {
+      $this->assertNotContains("/admin/structure/block/manage/$block_id/off-canvas", $link->getAttribute('href'));
+    }
+    // Confirm the block is not marked as Settings Tray editable.
+    $this->assertFalse($page->find('css', $block_selector)
+      ->hasAttribute('data-drupal-settingstray'));
+
+    // Confirm the text is actually overridden.
+    $web_assert->elementContains('css', $this->getBlockSelector($overridden_block), $override_text);
   }
 
 }

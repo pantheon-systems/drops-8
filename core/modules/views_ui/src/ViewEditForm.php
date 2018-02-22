@@ -11,20 +11,23 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\Url;
-use Drupal\user\SharedTempStoreFactory;
+use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\views\Views;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
 
 /**
  * Form controller for the Views edit form.
+ *
+ * @internal
  */
 class ViewEditForm extends ViewFormBase {
 
   /**
    * The views temp store.
    *
-   * @var \Drupal\user\SharedTempStore
+   * @var \Drupal\Core\TempStore\SharedTempStore
    */
   protected $tempStore;
 
@@ -52,7 +55,7 @@ class ViewEditForm extends ViewFormBase {
   /**
    * Constructs a new ViewEditForm object.
    *
-   * @param \Drupal\user\SharedTempStoreFactory $temp_store_factory
+   * @param \Drupal\Core\TempStore\SharedTempStoreFactory $temp_store_factory
    *   The factory for the temp store object.
    * @param \Symfony\Component\HttpFoundation\RequestStack $requestStack
    *   The request stack object.
@@ -73,7 +76,7 @@ class ViewEditForm extends ViewFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('user.shared_tempstore'),
+      $container->get('tempstore.shared'),
       $container->get('request_stack'),
       $container->get('date.formatter'),
       $container->get('element_info')
@@ -416,15 +419,25 @@ class ViewEditForm extends ViewFormBase {
         // path.
         elseif ($view->status() && $view->getExecutable()->displayHandlers->get($display['id'])->hasPath()) {
           $path = $view->getExecutable()->displayHandlers->get($display['id'])->getPath();
+
           if ($path && (strpos($path, '%') === FALSE)) {
-            if (!parse_url($path, PHP_URL_SCHEME)) {
-              // @todo Views should expect and store a leading /. See:
-              //   https://www.drupal.org/node/2423913
-              $url = Url::fromUserInput('/' . ltrim($path, '/'));
+            // Wrap this in a try/catch as trying to generate links to some
+            // routes may throw a NotAcceptableHttpException if they do not
+            // respond to HTML, such as RESTExports.
+            try {
+              if (!parse_url($path, PHP_URL_SCHEME)) {
+                // @todo Views should expect and store a leading /. See:
+                //   https://www.drupal.org/node/2423913
+                $url = Url::fromUserInput('/' . ltrim($path, '/'));
+              }
+              else {
+                $url = Url::fromUri("base:$path");
+              }
             }
-            else {
-              $url = Url::fromUri("base:$path");
+            catch (NotAcceptableHttpException $e) {
+              $url = '/' . $path;
             }
+
             $build['top']['actions']['path'] = [
               '#type' => 'link',
               '#title' => $this->t('View @display_title', ['@display_title' => $display_title]),

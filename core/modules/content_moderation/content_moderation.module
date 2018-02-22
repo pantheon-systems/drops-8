@@ -8,8 +8,8 @@
 use Drupal\content_moderation\EntityOperations;
 use Drupal\content_moderation\EntityTypeInfo;
 use Drupal\content_moderation\ContentPreprocess;
-use Drupal\content_moderation\Plugin\Action\ModerationOptOutPublishNode;
-use Drupal\content_moderation\Plugin\Action\ModerationOptOutUnpublishNode;
+use Drupal\content_moderation\Plugin\Action\ModerationOptOutPublish;
+use Drupal\content_moderation\Plugin\Action\ModerationOptOutUnpublish;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -20,10 +20,12 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\workflows\WorkflowInterface;
-use Drupal\node\Plugin\Action\PublishNode;
-use Drupal\node\Plugin\Action\UnpublishNode;
+use Drupal\Core\Action\Plugin\Action\PublishAction;
+use Drupal\Core\Action\Plugin\Action\UnpublishAction;
 use Drupal\workflows\Entity\Workflow;
+use Drupal\views\Entity\View;
 
 /**
  * Implements hook_help().
@@ -34,13 +36,20 @@ function content_moderation_help($route_name, RouteMatchInterface $route_match) 
     case 'help.page.content_moderation':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Content Moderation module provides moderation for content by applying workflows to content. For more information, see the <a href=":content_moderation">online documentation for the Content Moderation module</a>.', [':content_moderation' => 'https://www.drupal.org/documentation/modules/content_moderation']) . '</p>';
+      $output .= '<p>' . t('The Content Moderation module allows you to expand on Drupal\'s "unpublished" and "published" states for content. It allows you to have a published version that is live, but have a separate working copy that is undergoing review before it is published. This is achieved by using <a href=":workflows">Workflows</a> to apply different states and transitions to entities as needed. For more information, see the <a href=":content_moderation">online documentation for the Content Moderation module</a>.', [':content_moderation' => 'https://www.drupal.org/documentation/modules/content_moderation', ':workflows' => Url::fromRoute('help.page', ['name' => 'workflows'])->toString()]) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
-      $output .= '<dt>' . t('Configuring workflows') . '</dt>';
-      $output .= '<dd>' . t('Enable the Workflow UI module to create, edit and delete content moderation workflows.') . '</p>';
+      $output .= '<dt>' . t('Applying workflows') . '</dt>';
+      $output .= '<dd>' . t('Content Moderation allows you to apply <a href=":workflows">Workflows</a> to content, custom blocks, and other <a href=":field_help" title="Field module help, with background on content entities">content entities</a>, to provide more fine-grained publishing options. For example, a Basic page might have states such as Draft and Published, with allowed transitions such as Draft to Published (making the current revision "live"), and Published to Draft (making a new draft revision of published content).', [':workflows' => Url::fromRoute('help.page', ['name' => 'workflows'])->toString(), ':field_help' => Url::fromRoute('help.page', ['name' => 'field'])->toString()]) . '</dd>';
+      if (\Drupal::moduleHandler()->moduleExists('views')) {
+        $moderated_content_view = View::load('moderated_content');
+        if (isset($moderated_content_view) && $moderated_content_view->status() === TRUE) {
+          $output .= '<dt>' . t('Moderating content') . '</dt>';
+          $output .= '<dd>' . t('You can view a list of content awaiting moderation on the <a href=":moderated">moderated content page</a>. This will show any content in an unpublished state, such as Draft or Archived, to help surface content that requires more work from content editors.', [':moderated' => Url::fromRoute('view.moderated_content.moderated_content')->toString()]) . '</dd>';
+        }
+      }
       $output .= '<dt>' . t('Configure Content Moderation permissions') . '</dt>';
-      $output .= '<dd>' . t('Each transition is exposed as a permission. If a user has the permission for a transition, then they can move that node from the start state to the end state') . '</p>';
+      $output .= '<dd>' . t('Each transition is exposed as a permission. If a user has the permission for a transition, they can use the transition to change the state of the content item, from Draft to Published.') . '</dd>';
       $output .= '</dl>';
       return $output;
   }
@@ -116,6 +125,15 @@ function content_moderation_entity_translation_delete(EntityInterface $translati
   return \Drupal::service('class_resolver')
     ->getInstanceFromDefinition(EntityOperations::class)
     ->entityTranslationDelete($translation);
+}
+
+/**
+ * Implements hook_entity_prepare_form().
+ */
+function content_moderation_entity_prepare_form(EntityInterface $entity, $operation, FormStateInterface $form_state) {
+  \Drupal::service('class_resolver')
+    ->getInstanceFromDefinition(EntityTypeInfo::class)
+    ->entityPrepareForm($entity, $operation, $form_state);
 }
 
 /**
@@ -227,13 +245,15 @@ function content_moderation_action_info_alter(&$definitions) {
 
   // The publish/unpublish actions are not valid on moderated entities. So swap
   // their implementations out for alternates that will become a no-op on a
-  // moderated node. If another module has already swapped out those classes,
+  // moderated entity. If another module has already swapped out those classes,
   // though, we'll be polite and do nothing.
-  if (isset($definitions['node_publish_action']['class']) && $definitions['node_publish_action']['class'] == PublishNode::class) {
-    $definitions['node_publish_action']['class'] = ModerationOptOutPublishNode::class;
-  }
-  if (isset($definitions['node_unpublish_action']['class']) && $definitions['node_unpublish_action']['class'] == UnpublishNode::class) {
-    $definitions['node_unpublish_action']['class'] = ModerationOptOutUnpublishNode::class;
+  foreach ($definitions as &$definition) {
+    if ($definition['id'] === 'entity:publish_action' && $definition['class'] == PublishAction::class) {
+      $definition['class'] = ModerationOptOutPublish::class;
+    }
+    if ($definition['id'] === 'entity:unpublish_action' && $definition['class'] == UnpublishAction::class) {
+      $definition['class'] = ModerationOptOutUnpublish::class;
+    }
   }
 }
 
@@ -241,6 +261,7 @@ function content_moderation_action_info_alter(&$definitions) {
  * Implements hook_entity_bundle_info_alter().
  */
 function content_moderation_entity_bundle_info_alter(&$bundles) {
+  $translatable = FALSE;
   /** @var \Drupal\workflows\WorkflowInterface $workflow */
   foreach (Workflow::loadMultipleByType('content_moderation') as $workflow) {
     /** @var \Drupal\content_moderation\Plugin\WorkflowType\ContentModeration $plugin */
@@ -249,10 +270,18 @@ function content_moderation_entity_bundle_info_alter(&$bundles) {
       foreach ($plugin->getBundlesForEntityType($entity_type_id) as $bundle_id) {
         if (isset($bundles[$entity_type_id][$bundle_id])) {
           $bundles[$entity_type_id][$bundle_id]['workflow'] = $workflow->id();
+          // If we have even one moderation-enabled translatable bundle, we need
+          // to make the moderation state bundle translatable as well, to enable
+          // the revision translation merge logic also for content moderation
+          // state revisions.
+          if (!empty($bundles[$entity_type_id][$bundle_id]['translatable'])) {
+            $translatable = TRUE;
+          }
         }
       }
     }
   }
+  $bundles['content_moderation_state']['content_moderation_state']['translatable'] = $translatable;
 }
 
 /**
@@ -289,14 +318,4 @@ function content_moderation_workflow_update(WorkflowInterface $entity) {
   \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
   // Clear field cache so extra field is added or removed.
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
-}
-
-/**
- * Implements hook_rest_resource_alter().
- */
-function content_moderation_rest_resource_alter(&$definitions) {
-  // ContentModerationState is an internal entity type. Therefore it should not
-  // be exposed via REST.
-  // @see \Drupal\content_moderation\ContentModerationStateAccessControlHandler
-  unset($definitions['entity:content_moderation_state']);
 }

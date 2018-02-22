@@ -11,10 +11,6 @@ namespace Drupal\Core\TypedData;
  * @see \Drupal\Core\Field\FieldItemList
  *
  * @ingroup typed_data
- *
- * @internal
- *   This trait has been added in Drupal 8.4.3 as an internal helper and should
- *   not be used outside of core.
  */
 trait ComputedItemListTrait {
 

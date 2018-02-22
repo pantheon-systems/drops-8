@@ -113,6 +113,7 @@ class EntityDefinitionUpdateTest extends EntityKernelTestBase {
         // The revision key is now defined, so the revision field needs to be
         // created.
         t('The %field_name field needs to be installed.', ['%field_name' => 'Revision ID']),
+        t('The %field_name field needs to be installed.', ['%field_name' => 'Default revision']),
       ],
     ];
     $this->assertEqual($this->entityDefinitionUpdateManager->getChangeSummary(), $expected, 'EntityDefinitionUpdateManager reports the expected change summary.');
@@ -389,53 +390,247 @@ class EntityDefinitionUpdateTest extends EntityKernelTestBase {
 
   /**
    * Tests deleting a base field when it has existing data.
+   *
+   * @dataProvider baseFieldDeleteWithExistingDataTestCases
    */
-  public function testBaseFieldDeleteWithExistingData() {
+  public function testBaseFieldDeleteWithExistingData($entity_type_id, $create_entity_revision, $base_field_revisionable) {
+    /** @var \Drupal\Core\Entity\Sql\SqlEntityStorageInterface $storage */
+    $storage = $this->entityManager->getStorage($entity_type_id);
+    $schema_handler = $this->database->schema();
+
+    // Create an entity without the base field, to ensure NULL values are not
+    // added to the dedicated table storage to be purged.
+    $entity = $storage->create();
+    $entity->save();
+
     // Add the base field and run the update.
-    $this->addBaseField();
+    $this->addBaseField('string', $entity_type_id, $base_field_revisionable);
     $this->entityDefinitionUpdateManager->applyUpdates();
 
-    // Save an entity with the base field populated.
-    $this->entityManager->getStorage('entity_test_update')->create(['new_base_field' => 'foo'])->save();
+    /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
+    $table_mapping = $storage->getTableMapping();
+    $storage_definition = $this->entityManager->getLastInstalledFieldStorageDefinitions($entity_type_id)['new_base_field'];
 
-    // Remove the base field and apply updates. It's expected to throw an
-    // exception.
-    // @todo Revisit that expectation once purging is implemented for
-    //   all fields: https://www.drupal.org/node/2282119.
-    $this->removeBaseField();
-    try {
-      $this->entityDefinitionUpdateManager->applyUpdates();
-      $this->fail('FieldStorageDefinitionUpdateForbiddenException thrown when trying to apply an update that deletes a non-purgeable field with data.');
+    // Save an entity with the base field populated.
+    $entity = $storage->create(['new_base_field' => 'foo']);
+    $entity->save();
+
+    if ($create_entity_revision) {
+      $entity->setNewRevision(TRUE);
+      $entity->new_base_field = 'bar';
+      $entity->save();
     }
-    catch (FieldStorageDefinitionUpdateForbiddenException $e) {
-      $this->pass('FieldStorageDefinitionUpdateForbiddenException thrown when trying to apply an update that deletes a non-purgeable field with data.');
+
+    // Remove the base field and apply updates.
+    $this->removeBaseField($entity_type_id);
+    $this->entityDefinitionUpdateManager->applyUpdates();
+
+    // Check that the base field's column is deleted.
+    $this->assertFalse($schema_handler->fieldExists($entity_type_id, 'new_base_field'), 'Column deleted from shared table for new_base_field.');
+
+    // Check that a dedicated 'deleted' table was created for the deleted base
+    // field.
+    $dedicated_deleted_table_name = $table_mapping->getDedicatedDataTableName($storage_definition, TRUE);
+    $this->assertTrue($schema_handler->tableExists($dedicated_deleted_table_name), 'A dedicated table was created for the deleted new_base_field.');
+
+    // Check that the deleted field's data is preserved in the dedicated
+    // 'deleted' table.
+    $result = $this->database->select($dedicated_deleted_table_name, 't')
+      ->fields('t')
+      ->execute()
+      ->fetchAll();
+    $this->assertCount(1, $result);
+
+    $expected = [
+      'bundle' => $entity->bundle(),
+      'deleted' => '1',
+      'entity_id' => $entity->id(),
+      'revision_id' => $create_entity_revision ? $entity->getRevisionId() : $entity->id(),
+      'langcode' => $entity->language()->getId(),
+      'delta' => '0',
+      'new_base_field_value' => $entity->new_base_field->value,
+    ];
+    // Use assertEquals and not assertSame here to prevent that a different
+    // sequence of the columns in the table will affect the check.
+    $this->assertEquals($expected, (array) $result[0]);
+
+    if ($create_entity_revision) {
+      $dedicated_deleted_revision_table_name = $table_mapping->getDedicatedRevisionTableName($storage_definition, TRUE);
+      $this->assertTrue($schema_handler->tableExists($dedicated_deleted_revision_table_name), 'A dedicated revision table was created for the deleted new_base_field.');
+
+      $result = $this->database->select($dedicated_deleted_revision_table_name, 't')
+        ->fields('t')
+        ->orderBy('revision_id', 'DESC')
+        ->execute()
+        ->fetchAll();
+      // Only one row will be created for non-revisionable base fields.
+      $this->assertCount($base_field_revisionable ? 2 : 1, $result);
+
+      // Use assertEquals and not assertSame here to prevent that a different
+      // sequence of the columns in the table will affect the check.
+      $this->assertEquals([
+        'bundle' => $entity->bundle(),
+        'deleted' => '1',
+        'entity_id' => $entity->id(),
+        'revision_id' => '3',
+        'langcode' => $entity->language()->getId(),
+        'delta' => '0',
+        'new_base_field_value' => 'bar',
+      ], (array) $result[0]);
+
+      // Two rows only exist if the base field is revisionable.
+      if ($base_field_revisionable) {
+        // Use assertEquals and not assertSame here to prevent that a different
+        // sequence of the columns in the table will affect the check.
+        $this->assertEquals([
+          'bundle' => $entity->bundle(),
+          'deleted' => '1',
+          'entity_id' => $entity->id(),
+          'revision_id' => '2',
+          'langcode' => $entity->language()->getId(),
+          'delta' => '0',
+          'new_base_field_value' => 'foo',
+        ], (array) $result[1]);
+      }
     }
+
+    // Check that the field storage definition is marked for purging.
+    $deleted_storage_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldStorageDefinitions();
+    $this->assertArrayHasKey($storage_definition->getUniqueStorageIdentifier(), $deleted_storage_definitions, 'The base field is marked for purging.');
+
+    // Purge field data, and check that the storage definition has been
+    // completely removed once the data is purged.
+    field_purge_batch(10);
+    $deleted_storage_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldStorageDefinitions();
+    $this->assertEmpty($deleted_storage_definitions, 'The base field has been deleted.');
+    $this->assertFalse($schema_handler->tableExists($dedicated_deleted_table_name), 'A dedicated field table was deleted after new_base_field was purged.');
+
+    if (isset($dedicated_deleted_revision_table_name)) {
+      $this->assertFalse($schema_handler->tableExists($dedicated_deleted_revision_table_name), 'A dedicated field revision table was deleted after new_base_field was purged.');
+    }
+  }
+
+  /**
+   * Test cases for ::testBaseFieldDeleteWithExistingData.
+   */
+  public function baseFieldDeleteWithExistingDataTestCases() {
+    return [
+      'Non-revisionable entity type' => [
+        'entity_test_update',
+        FALSE,
+        FALSE,
+      ],
+      'Non-revisionable custom data table' => [
+        'entity_test_mul',
+        FALSE,
+        FALSE,
+      ],
+      'Non-revisionable entity type, revisionable base field' => [
+        'entity_test_update',
+        FALSE,
+        TRUE,
+      ],
+      'Non-revisionable custom data table, revisionable base field' => [
+        'entity_test_mul',
+        FALSE,
+        TRUE,
+      ],
+      'Revisionable entity type, non revisionable base field' => [
+        'entity_test_mulrev',
+        TRUE,
+        FALSE,
+      ],
+      'Revisionable entity type, revisionable base field' => [
+        'entity_test_mulrev',
+        TRUE,
+        TRUE,
+      ],
+      'Non-translatable revisionable entity type, revisionable base field' => [
+        'entity_test_rev',
+        TRUE,
+        TRUE,
+      ],
+      'Non-translatable revisionable entity type, non-revisionable base field' => [
+        'entity_test_rev',
+        TRUE,
+        FALSE,
+      ],
+    ];
   }
 
   /**
    * Tests deleting a bundle field when it has existing data.
    */
   public function testBundleFieldDeleteWithExistingData() {
+    /** @var \Drupal\Core\Entity\Sql\SqlEntityStorageInterface $storage */
+    $storage = $this->entityManager->getStorage('entity_test_update');
+    $schema_handler = $this->database->schema();
+
     // Add the bundle field and run the update.
     $this->addBundleField();
     $this->entityDefinitionUpdateManager->applyUpdates();
 
+    /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
+    $table_mapping = $storage->getTableMapping();
+    $storage_definition = $this->entityManager->getLastInstalledFieldStorageDefinitions('entity_test_update')['new_bundle_field'];
+
+    // Check that the bundle field has a dedicated table.
+    $dedicated_table_name = $table_mapping->getDedicatedDataTableName($storage_definition);
+    $this->assertTrue($schema_handler->tableExists($dedicated_table_name), 'The bundle field uses a dedicated table.');
+
     // Save an entity with the bundle field populated.
     entity_test_create_bundle('custom');
-    $this->entityManager->getStorage('entity_test_update')->create(['type' => 'test_bundle', 'new_bundle_field' => 'foo'])->save();
+    $entity = $storage->create(['type' => 'test_bundle', 'new_bundle_field' => 'foo']);
+    $entity->save();
 
-    // Remove the bundle field and apply updates. It's expected to throw an
-    // exception.
-    // @todo Revisit that expectation once purging is implemented for
-    //   all fields: https://www.drupal.org/node/2282119.
+    // Remove the bundle field and apply updates.
     $this->removeBundleField();
-    try {
-      $this->entityDefinitionUpdateManager->applyUpdates();
-      $this->fail('FieldStorageDefinitionUpdateForbiddenException thrown when trying to apply an update that deletes a non-purgeable field with data.');
-    }
-    catch (FieldStorageDefinitionUpdateForbiddenException $e) {
-      $this->pass('FieldStorageDefinitionUpdateForbiddenException thrown when trying to apply an update that deletes a non-purgeable field with data.');
-    }
+    $this->entityDefinitionUpdateManager->applyUpdates();
+
+    // Check that the table of the bundle field has been renamed to use a
+    // 'deleted' table name.
+    $this->assertFalse($schema_handler->tableExists($dedicated_table_name), 'The dedicated table of the bundle field no longer exists.');
+
+    $dedicated_deleted_table_name = $table_mapping->getDedicatedDataTableName($storage_definition, TRUE);
+    $this->assertTrue($schema_handler->tableExists($dedicated_deleted_table_name), 'The dedicated table of the bundle fields has been renamed to use the "deleted" name.');
+
+    // Check that the deleted field's data is preserved in the dedicated
+    // 'deleted' table.
+    $result = $this->database->select($dedicated_deleted_table_name, 't')
+      ->fields('t')
+      ->execute()
+      ->fetchAll();
+    $this->assertCount(1, $result);
+
+    $expected = [
+      'bundle' => $entity->bundle(),
+      'deleted' => '1',
+      'entity_id' => $entity->id(),
+      'revision_id' => $entity->id(),
+      'langcode' => $entity->language()->getId(),
+      'delta' => '0',
+      'new_bundle_field_value' => $entity->new_bundle_field->value,
+    ];
+    // Use assertEquals and not assertSame here to prevent that a different
+    // sequence of the columns in the table will affect the check.
+    $this->assertEquals($expected, (array) $result[0]);
+
+    // Check that the field definition is marked for purging.
+    $deleted_field_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldDefinitions();
+    $this->assertArrayHasKey($storage_definition->getUniqueIdentifier(), $deleted_field_definitions, 'The bundle field is marked for purging.');
+
+    // Check that the field storage definition is marked for purging.
+    $deleted_storage_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldStorageDefinitions();
+    $this->assertArrayHasKey($storage_definition->getUniqueStorageIdentifier(), $deleted_storage_definitions, 'The bundle field storage is marked for purging.');
+
+    // Purge field data, and check that the storage definition has been
+    // completely removed once the data is purged.
+    field_purge_batch(10);
+    $deleted_field_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldDefinitions();
+    $this->assertEmpty($deleted_field_definitions, 'The bundle field has been deleted.');
+    $deleted_storage_definitions = \Drupal::service('entity_field.deleted_fields_repository')->getFieldStorageDefinitions();
+    $this->assertEmpty($deleted_storage_definitions, 'The bundle field storage has been deleted.');
+    $this->assertFalse($schema_handler->tableExists($dedicated_deleted_table_name), 'The dedicated table of the bundle field has been removed.');
   }
 
   /**

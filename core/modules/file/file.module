@@ -49,6 +49,16 @@ function file_help($route_name, RouteMatchInterface $route_match) {
 }
 
 /**
+ * Implements hook_field_widget_info_alter().
+ */
+function file_field_widget_info_alter(array &$info) {
+  // Allows using the 'uri' widget for the 'file_uri' field type, which uses it
+  // as the default widget.
+  // @see \Drupal\file\Plugin\Field\FieldType\FileUriItem
+  $info['uri']['field_types'][] = 'file_uri';
+}
+
+/**
  * Loads file entities from the database.
  *
  * @param array|null $fids
@@ -140,7 +150,7 @@ function file_load($fid, $reset = FALSE) {
  */
 function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
   if (!file_valid_uri($destination)) {
-    if (($realpath = drupal_realpath($source->getFileUri())) !== FALSE) {
+    if (($realpath = \Drupal::service('file_system')->realpath($source->getFileUri())) !== FALSE) {
       \Drupal::logger('file')->notice('File %file (%realpath) could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', ['%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination]);
     }
     else {
@@ -215,7 +225,7 @@ function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_E
  */
 function file_move(FileInterface $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
   if (!file_valid_uri($destination)) {
-    if (($realpath = drupal_realpath($source->getFileUri())) !== FALSE) {
+    if (($realpath = \Drupal::service('file_system')->realpath($source->getFileUri())) !== FALSE) {
       \Drupal::logger('file')->notice('File %file (%realpath) could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', ['%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination]);
     }
     else {
@@ -396,7 +406,7 @@ function file_validate_is_image(FileInterface $file) {
   $image = $image_factory->get($file->getFileUri());
   if (!$image->isValid()) {
     $supported_extensions = $image_factory->getSupportedExtensions();
-    $errors[] = t('Image type not supported. Allowed types: %types', ['%types' => implode(' ', $supported_extensions)]);
+    $errors[] = t('The image file is invalid or the image type is not allowed. Allowed types: %types', ['%types' => implode(', ', $supported_extensions)]);
   }
 
   return $errors;
@@ -434,22 +444,40 @@ function file_validate_image_resolution(FileInterface $file, $maximum_dimensions
   // Check first that the file is an image.
   $image_factory = \Drupal::service('image.factory');
   $image = $image_factory->get($file->getFileUri());
+
   if ($image->isValid()) {
+    $scaling = FALSE;
     if ($maximum_dimensions) {
       // Check that it is smaller than the given dimensions.
       list($width, $height) = explode('x', $maximum_dimensions);
       if ($image->getWidth() > $width || $image->getHeight() > $height) {
         // Try to resize the image to fit the dimensions.
         if ($image->scale($width, $height)) {
+          $scaling = TRUE;
           $image->save();
           if (!empty($width) && !empty($height)) {
-            $message = t('The image was resized to fit within the maximum allowed dimensions of %dimensions pixels.', ['%dimensions' => $maximum_dimensions]);
+            $message = t('The image was resized to fit within the maximum allowed dimensions of %dimensions pixels. The new dimensions of the resized image are %new_widthx%new_height pixels.',
+              [
+                '%dimensions' => $maximum_dimensions,
+                '%new_width' => $image->getWidth(),
+                '%new_height' => $image->getHeight(),
+              ]);
           }
           elseif (empty($width)) {
-            $message = t('The image was resized to fit within the maximum allowed height of %height pixels.', ['%height' => $height]);
+            $message = t('The image was resized to fit within the maximum allowed height of %height pixels. The new dimensions of the resized image are %new_widthx%new_height pixels.',
+              [
+                '%height' => $height,
+                '%new_width' => $image->getWidth(),
+                '%new_height' => $image->getHeight(),
+              ]);
           }
           elseif (empty($height)) {
-            $message = t('The image was resized to fit within the maximum allowed width of %width pixels.', ['%width' => $width]);
+            $message = t('The image was resized to fit within the maximum allowed width of %width pixels. The new dimensions of the resized image are %new_widthx%new_height pixels.',
+              [
+                '%width' => $width,
+                '%new_width' => $image->getWidth(),
+                '%new_height' => $image->getHeight(),
+              ]);
           }
           drupal_set_message($message);
         }
@@ -463,7 +491,22 @@ function file_validate_image_resolution(FileInterface $file, $maximum_dimensions
       // Check that it is larger than the given dimensions.
       list($width, $height) = explode('x', $minimum_dimensions);
       if ($image->getWidth() < $width || $image->getHeight() < $height) {
-        $errors[] = t('The image is too small; the minimum dimensions are %dimensions pixels.', ['%dimensions' => $minimum_dimensions]);
+        if ($scaling) {
+          $errors[] = t('The resized image is too small. The minimum dimensions are %dimensions pixels and after resizing, the image size will be %widthx%height pixels.',
+            [
+              '%dimensions' => $minimum_dimensions,
+              '%width' => $image->getWidth(),
+              '%height' => $image->getHeight(),
+            ]);
+        }
+        else {
+          $errors[] = t('The image is too small. The minimum dimensions are %dimensions pixels and the image size is %widthx%height pixels.',
+            [
+              '%dimensions' => $minimum_dimensions,
+              '%width' => $image->getWidth(),
+              '%height' => $image->getHeight(),
+            ]);
+        }
       }
     }
   }
@@ -571,6 +614,12 @@ function file_theme() {
     'file_managed_file' => [
       'render element' => 'element',
     ],
+    'file_audio' => [
+      'variables' => ['files' => [], 'attributes' => NULL],
+    ],
+    'file_video' => [
+      'variables' => ['files' => [], 'attributes' => NULL],
+    ],
 
     // From file.field.inc.
     'file_widget_multiple' => [
@@ -674,11 +723,100 @@ function file_cron() {
 }
 
 /**
+ * Saves form file uploads.
+ *
+ * The files will be added to the {file_managed} table as temporary files.
+ * Temporary files are periodically cleaned. Use the 'file.usage' service to
+ * register the usage of the file which will automatically mark it as permanent.
+ *
+ * @param array $element
+ *   The FAPI element whose values are being saved.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The current state of the form.
+ * @param null|int $delta
+ *   (optional) The delta of the file to return the file entity.
+ *   Defaults to NULL.
+ * @param int $replace
+ *   (optional) The replace behavior when the destination file already exists.
+ *   Possible values include:
+ *   - FILE_EXISTS_REPLACE: Replace the existing file.
+ *   - FILE_EXISTS_RENAME: (default) Append _{incrementing number} until the
+ *     filename is unique.
+ *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *
+ * @return array|\Drupal\file\FileInterface|null|false
+ *   An array of file entities or a single file entity if $delta != NULL. Each
+ *   array element contains the file entity if the upload succeeded or FALSE if
+ *   there was an error. Function returns NULL if no file was uploaded.
+ *
+ * @deprecated in Drupal 8.4.x, will be removed before Drupal 9.0.0.
+ *   For backwards compatibility use core file upload widgets in forms.
+ *
+ * @internal
+ *   This function wraps file_save_upload() to allow correct error handling in
+ *   forms.
+ *
+ * @todo Revisit after https://www.drupal.org/node/2244513.
+ */
+function _file_save_upload_from_form(array $element, FormStateInterface $form_state, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
+  // Get all errors set before calling this method. This will also clear them
+  // from $_SESSION.
+  $errors_before = drupal_get_messages('error');
+
+  $upload_location = isset($element['#upload_location']) ? $element['#upload_location'] : FALSE;
+  $upload_name = implode('_', $element['#parents']);
+  $upload_validators = isset($element['#upload_validators']) ? $element['#upload_validators'] : [];
+
+  $result = file_save_upload($upload_name, $upload_validators, $upload_location, $delta, $replace);
+
+  // Get new errors that are generated while trying to save the upload. This
+  // will also clear them from $_SESSION.
+  $errors_new = drupal_get_messages('error');
+  if (!empty($errors_new['error'])) {
+    $errors_new = $errors_new['error'];
+
+    if (count($errors_new) > 1) {
+      // Render multiple errors into a single message.
+      // This is needed because only one error per element is supported.
+      $render_array = [
+        'error' => [
+          '#markup' => t('One or more files could not be uploaded.'),
+        ],
+        'item_list' => [
+          '#theme' => 'item_list',
+          '#items' => $errors_new,
+        ],
+      ];
+      $error_message = \Drupal::service('renderer')->renderPlain($render_array);
+    }
+    else {
+      $error_message = reset($errors_new);
+    }
+
+    $form_state->setError($element, $error_message);
+  }
+
+  // Ensure that errors set prior to calling this method are still shown to the
+  // user.
+  if (!empty($errors_before['error'])) {
+    foreach ($errors_before['error'] as $error) {
+      drupal_set_message($error, 'error');
+    }
+  }
+
+  return $result;
+}
+
+/**
  * Saves file uploads to a new location.
  *
  * The files will be added to the {file_managed} table as temporary files.
  * Temporary files are periodically cleaned. Use the 'file.usage' service to
  * register the usage of the file which will automatically mark it as permanent.
+ *
+ * Note that this function does not support correct form error handling. The
+ * file upload widgets in core do support this. It is advised to use these in
+ * any custom form, instead of calling this function.
  *
  * @param string $form_field_name
  *   A string that is the associative array key of the upload form element in
@@ -710,6 +848,10 @@ function file_cron() {
  *   An array of file entities or a single file entity if $delta != NULL. Each
  *   array element contains the file entity if the upload succeeded or FALSE if
  *   there was an error. Function returns NULL if no file was uploaded.
+ *
+ * @see _file_save_upload_from_form()
+ *
+ * @todo: move this logic to a service in https://www.drupal.org/node/2244513.
  */
 function file_save_upload($form_field_name, $validators = [], $destination = FALSE, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
   $user = \Drupal::currentUser();
@@ -1200,9 +1342,8 @@ function file_managed_file_save_upload($element, FormStateInterface $form_state)
   $files_uploaded = $element['#multiple'] && count(array_filter($file_upload)) > 0;
   $files_uploaded |= !$element['#multiple'] && !empty($file_upload);
   if ($files_uploaded) {
-    if (!$files = file_save_upload($upload_name, $element['#upload_validators'], $destination)) {
+    if (!$files = _file_save_upload_from_form($element, $form_state)) {
       \Drupal::logger('file')->notice('The file upload failed. %upload', ['%upload' => $upload_name]);
-      $form_state->setError($element, t('Files in the @name field were unable to be uploaded.', ['@name' => $element['#title']]));
       return [];
     }
 

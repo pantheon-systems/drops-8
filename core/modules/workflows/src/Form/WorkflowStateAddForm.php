@@ -12,6 +12,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class WorkflowStateAddForm.
+ *
+ * @internal
  */
 class WorkflowStateAddForm extends EntityForm {
 
@@ -60,10 +62,9 @@ class WorkflowStateAddForm extends EntityForm {
 
     $form['label'] = [
       '#type' => 'textfield',
-      '#title' => $this->t('Label'),
+      '#title' => $this->t('State label'),
       '#maxlength' => 255,
       '#default_value' => '',
-      '#description' => $this->t('Label for the state.'),
       '#required' => TRUE,
     ];
 

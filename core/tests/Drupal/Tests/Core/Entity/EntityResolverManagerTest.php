@@ -445,16 +445,30 @@ class EntityResolverManagerTest extends UnitTestCase {
     $definition->expects($this->any())
       ->method('getClass')
       ->will($this->returnValue('Drupal\Tests\Core\Entity\SimpleTestEntity'));
+    $definition->expects($this->any())
+      ->method('isRevisionable')
+      ->willReturn(FALSE);
+    $revisionable_definition = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $revisionable_definition->expects($this->any())
+      ->method('getClass')
+      ->will($this->returnValue('Drupal\Tests\Core\Entity\SimpleTestEntity'));
+    $revisionable_definition->expects($this->any())
+      ->method('isRevisionable')
+      ->willReturn(TRUE);
     $this->entityManager->expects($this->any())
       ->method('getDefinitions')
       ->will($this->returnValue([
         'entity_test' => $definition,
+        'entity_test_rev' => $revisionable_definition,
       ]));
     $this->entityManager->expects($this->any())
       ->method('getDefinition')
-      ->will($this->returnCallback(function ($entity_type) use ($definition) {
+      ->will($this->returnCallback(function ($entity_type) use ($definition, $revisionable_definition) {
         if ($entity_type == 'entity_test') {
           return $definition;
+        }
+        elseif ($entity_type === 'entity_test_rev') {
+          return $revisionable_definition;
         }
         else {
           return NULL;
@@ -492,6 +506,8 @@ class SimpleTestEntity extends Entity {
 
 /**
  * A basic form with a passed entity with an interface.
+ *
+ * @internal
  */
 class BasicForm extends FormBase {
 

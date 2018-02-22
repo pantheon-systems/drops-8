@@ -11,6 +11,8 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\content_moderation\Form\EntityModerationForm;
+use Drupal\Core\Routing\RouteBuilderInterface;
+use Drupal\workflows\Entity\Workflow;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -49,6 +51,13 @@ class EntityOperations implements ContainerInjectionInterface {
   protected $bundleInfo;
 
   /**
+   * The router builder service.
+   *
+   * @var \Drupal\Core\Routing\RouteBuilderInterface
+   */
+  protected $routerBuilder;
+
+  /**
    * Constructs a new EntityOperations object.
    *
    * @param \Drupal\content_moderation\ModerationInformationInterface $moderation_info
@@ -59,12 +68,15 @@ class EntityOperations implements ContainerInjectionInterface {
    *   The form builder.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $bundle_info
    *   The entity bundle information service.
+   * @param \Drupal\Core\Routing\RouteBuilderInterface $router_builder
+   *   The router builder service.
    */
-  public function __construct(ModerationInformationInterface $moderation_info, EntityTypeManagerInterface $entity_type_manager, FormBuilderInterface $form_builder, EntityTypeBundleInfoInterface $bundle_info) {
+  public function __construct(ModerationInformationInterface $moderation_info, EntityTypeManagerInterface $entity_type_manager, FormBuilderInterface $form_builder, EntityTypeBundleInfoInterface $bundle_info, RouteBuilderInterface $router_builder) {
     $this->moderationInfo = $moderation_info;
     $this->entityTypeManager = $entity_type_manager;
     $this->formBuilder = $form_builder;
     $this->bundleInfo = $bundle_info;
+    $this->routerBuilder = $router_builder;
   }
 
   /**
@@ -75,7 +87,8 @@ class EntityOperations implements ContainerInjectionInterface {
       $container->get('content_moderation.moderation_information'),
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
-      $container->get('entity_type.bundle.info')
+      $container->get('entity_type.bundle.info'),
+      $container->get('router.builder')
     );
   }
 
@@ -98,10 +111,9 @@ class EntityOperations implements ContainerInjectionInterface {
       $current_state = $workflow->getTypePlugin()
         ->getState($entity->moderation_state->value);
 
-      // This entity is default if it is new, a new translation, the default
-      // revision, or the default revision is not published.
+      // This entity is default if it is new, the default revision, or the
+      // default revision is not published.
       $update_default_revision = $entity->isNew()
-        || $entity->isNewTranslation()
         || $current_state->isDefaultRevisionState()
         || !$this->moderationInfo->isDefaultRevisionPublished($entity);
 
@@ -134,6 +146,12 @@ class EntityOperations implements ContainerInjectionInterface {
     if ($this->moderationInfo->isModeratedEntity($entity)) {
       $this->updateOrCreateFromEntity($entity);
     }
+    // When updating workflow settings for Content Moderation, we need to
+    // rebuild routes as we may be enabling new entity types and the related
+    // entity forms.
+    elseif ($entity instanceof Workflow && $entity->getTypePlugin()->getPluginId() == 'content_moderation') {
+      $this->routerBuilder->setRebuildNeeded();
+    }
   }
 
   /**
@@ -147,9 +165,10 @@ class EntityOperations implements ContainerInjectionInterface {
     $entity_revision_id = $entity->getRevisionId();
     $workflow = $this->moderationInfo->getWorkflowForEntity($entity);
     $content_moderation_state = ContentModerationStateEntity::loadFromModeratedEntity($entity);
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager->getStorage('content_moderation_state');
 
     if (!($content_moderation_state instanceof ContentModerationStateInterface)) {
-      $storage = $this->entityTypeManager->getStorage('content_moderation_state');
       $content_moderation_state = $storage->create([
         'content_entity_type_id' => $entity->getEntityTypeId(),
         'content_entity_id' => $entity->id(),
@@ -158,11 +177,6 @@ class EntityOperations implements ContainerInjectionInterface {
         'langcode' => $entity->language()->getId(),
       ]);
       $content_moderation_state->workflow->target_id = $workflow->id();
-    }
-    elseif ($content_moderation_state->content_entity_revision_id->value != $entity_revision_id) {
-      // If a new revision of the content has been created, add a new content
-      // moderation state revision.
-      $content_moderation_state->setNewRevision(TRUE);
     }
 
     // Sync translations.
@@ -174,6 +188,12 @@ class EntityOperations implements ContainerInjectionInterface {
       if ($content_moderation_state->language()->getId() !== $entity_langcode) {
         $content_moderation_state = $content_moderation_state->getTranslation($entity_langcode);
       }
+    }
+
+    // If a new revision of the content has been created, add a new content
+    // moderation state revision.
+    if (!$content_moderation_state->isNew() && $content_moderation_state->content_entity_revision_id->value != $entity_revision_id) {
+      $content_moderation_state = $storage->createRevision($content_moderation_state, $entity->isDefaultRevision());
     }
 
     // Create the ContentModerationState entity for the inserted entity.
@@ -245,27 +265,31 @@ class EntityOperations implements ContainerInjectionInterface {
    * @see EntityFieldManagerInterface::getExtraFields()
    */
   public function entityView(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
     if (!$this->moderationInfo->isModeratedEntity($entity)) {
       return;
     }
-    if (!$this->moderationInfo->isLatestRevision($entity)) {
+    if (isset($entity->in_preview) && $entity->in_preview) {
       return;
     }
-    if ($this->moderationInfo->isLiveRevision($entity)) {
+    // If the component is not defined for this display, we have nothing to do.
+    if (!$display->getComponent('content_moderation_control')) {
       return;
     }
-    // Don't display the moderation form when when:
-    // - The revision is not translation affected.
-    // - There are more than one translation languages.
-    // - The entity has pending revisions.
-    if (!$this->moderationInfo->isPendingRevisionAllowed($entity)) {
+    // The moderation form should be displayed only when viewing the latest
+    // (translation-affecting) revision, unless it was created as published
+    // default revision.
+    if (!$entity->isLatestRevision() && !$entity->isLatestTranslationAffectedRevision()) {
       return;
+    }
+    if (($entity->isDefaultRevision() || $entity->wasDefaultRevision()) && ($moderation_state = $entity->get('moderation_state')->value)) {
+      $workflow = $this->moderationInfo->getWorkflowForEntity($entity);
+      if ($workflow->getTypePlugin()->getState($moderation_state)->isPublishedState()) {
+        return;
+      }
     }
 
-    $component = $display->getComponent('content_moderation_control');
-    if ($component) {
-      $build['content_moderation_control'] = $this->formBuilder->getForm(EntityModerationForm::class, $entity);
-    }
+    $build['content_moderation_control'] = $this->formBuilder->getForm(EntityModerationForm::class, $entity);
   }
 
 }

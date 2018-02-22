@@ -73,9 +73,30 @@ views.filter.string:
         required:
           type: boolean
           label: 'Required'
+        placeholder:
+          type: string
+          label: 'Placeholder'
     value:
       type: string
       label: 'Value'
+
+views.filter.numeric:
+  type: views_filter
+  label: 'Numeric'
+  mapping:
+    expose:
+      type: mapping
+      label: 'Exposed'
+      mapping:
+        min_placeholder:
+          type: string
+          label: 'Min placeholder'
+        max_placeholder:
+          type: string
+          label: 'Max placeholder'
+        placeholder:
+          type: string
+          label: 'Placeholder'
 
 views.filter_value.numeric:
   type: mapping
@@ -154,8 +175,8 @@ views.filter_value.date:
       type: string
       label: 'Type'
 
-views.filter_value.datetime:
-  type: views.filter_value.numeric
+views.filter.date:
+  type: views.filter.numeric
   label: 'Date'
   mapping:
     type:

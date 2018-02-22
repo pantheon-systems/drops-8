@@ -97,18 +97,6 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
 
   /**
    * {@inheritdoc}
-   * @todo Revisit the need when all entity types are converted to NG entities.
-   */
-  public function getValue($include_computed = FALSE) {
-    $values = [];
-    foreach ($this->list as $delta => $item) {
-      $values[$delta] = $item->getValue($include_computed);
-    }
-    return $values;
-  }
-
-  /**
-   * {@inheritdoc}
    */
   public function setValue($values, $notify = TRUE) {
     // Support passing in only the value of the first item, either as a literal
@@ -260,7 +248,7 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
    */
   public function generateSampleItems($count = 1) {
     $field_definition = $this->getFieldDefinition();
-    $field_type_class = \Drupal::service('plugin.manager.field.field_type')->getPluginClass($field_definition->getType());
+    $field_type_class = $field_definition->getItemDefinition()->getClass();
     for ($delta = 0; $delta < $count; $delta++) {
       $values[$delta] = $field_type_class::generateSampleValue($field_definition);
     }

@@ -78,7 +78,7 @@ body:not(:target) .region-primary-menu .menu-toggle {
   z-index: 1000;
 }
 body:not(:target) .region-primary-menu .menu-toggle:after {
-  content:"";
+  content: "";
   background: url(../../../../misc/icons/ffffff/hamburger.svg) no-repeat;
   background-size: contain;
   width: 22px;
@@ -194,7 +194,7 @@ body:not(:target) .region-primary-menu .menu-toggle-target-show:target ~ .menu .
   .featured .region-primary-menu .menu-item a:active,
   .featured .region-primary-menu .menu-item a.is-active {
     background: #f0f0f0;
-    background: rgba(240, 240, 240, 1.0);
+    background: rgba(240, 240, 240, 1);
   }
   body:not(:target) .region-primary-menu .menu-toggle {
     display: none;

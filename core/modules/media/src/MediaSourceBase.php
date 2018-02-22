@@ -3,6 +3,8 @@
 namespace Drupal\media;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
@@ -315,6 +317,39 @@ abstract class MediaSourceBase extends PluginBase implements MediaSourceInterfac
     } while ($field);
 
     return $id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSourceFieldValue(MediaInterface $media) {
+    $source_field = $this->configuration['source_field'];
+    if (empty($source_field)) {
+      throw new \RuntimeException('Source field for media source is not defined.');
+    }
+
+    /** @var \Drupal\Core\Field\FieldItemInterface $field_item */
+    $field_item = $media->get($source_field)->first();
+    return $field_item->{$field_item->mainPropertyName()};
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function prepareViewDisplay(MediaTypeInterface $type, EntityViewDisplayInterface $display) {
+    $display->setComponent($this->getSourceFieldDefinition($type)->getName());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function prepareFormDisplay(MediaTypeInterface $type, EntityFormDisplayInterface $display) {
+    // Make sure the source field is placed just after the "name" basefield.
+    $name_component = $display->getComponent('name');
+    $source_field_weight = ($name_component && isset($name_component['weight'])) ? $name_component['weight'] + 5 : -50;
+    $display->setComponent($this->getSourceFieldDefinition($type)->getName(), [
+      'weight' => $source_field_weight,
+    ]);
   }
 
 }

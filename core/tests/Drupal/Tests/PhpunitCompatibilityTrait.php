@@ -48,7 +48,7 @@ trait PhpunitCompatibilityTrait {
    *
    * @see https://www.drupal.org/node/2907725
    */
-  public function getMock($originalClassName, $methods = array(), array $arguments = array(), $mockClassName = '', $callOriginalConstructor = TRUE, $callOriginalClone = TRUE, $callAutoload = TRUE, $cloneArguments = FALSE, $callOriginalMethods = FALSE, $proxyTarget = NULL) {
+  public function getMock($originalClassName, $methods = [], array $arguments = [], $mockClassName = '', $callOriginalConstructor = TRUE, $callOriginalClone = TRUE, $callAutoload = TRUE, $cloneArguments = FALSE, $callOriginalMethods = FALSE, $proxyTarget = NULL) {
     if (!$this->supports('getMock')) {
       $mock = $this->getMockBuilder($originalClassName)
         ->setMethods($methods)
@@ -113,6 +113,31 @@ trait PhpunitCompatibilityTrait {
     }
     else {
       return $this->getMock($originalClassName, [], [], '', FALSE, FALSE);
+    }
+  }
+
+  /**
+   * Compatibility layer for PHPUnit 6 to support PHPUnit 4 code.
+   *
+   * @param mixed $class
+   *   The expected exception class.
+   * @param string $message
+   *   The expected exception message.
+   * @param int $exception_code
+   *   The expected exception code.
+   */
+  public function setExpectedException($class, $message = '', $exception_code = NULL) {
+    if (method_exists($this, 'expectException')) {
+      $this->expectException($class);
+      if (!empty($message)) {
+        $this->expectExceptionMessage($message);
+      }
+      if ($exception_code !== NULL) {
+        $this->expectExceptionCode($exception_code);
+      }
+    }
+    else {
+      parent::setExpectedException($class, $message, $exception_code);
     }
   }
 
