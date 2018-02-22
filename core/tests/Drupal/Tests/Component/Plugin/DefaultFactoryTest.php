@@ -5,9 +5,9 @@ namespace Drupal\Tests\Component\Plugin;
 use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
 use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Component\Plugin\Factory\DefaultFactory;
-use Drupal\plugin_test\Plugin\plugin_test\fruit\Cherry;
-use Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface;
-use Drupal\plugin_test\Plugin\plugin_test\fruit\Kale;
+use Drupal\Tests\Component\Plugin\Fixtures\vegetable\Broccoli;
+use Drupal\Tests\Component\Plugin\Fixtures\vegetable\Corn;
+use Drupal\Tests\Component\Plugin\Fixtures\vegetable\VegetableInterface;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -22,8 +22,8 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithValidArrayPluginDefinition() {
-    $plugin_class = Cherry::class;
-    $class = DefaultFactory::getPluginClass('cherry', ['class' => $plugin_class]);
+    $plugin_class = Corn::class;
+    $class = DefaultFactory::getPluginClass('corn', ['class' => $plugin_class]);
 
     $this->assertEquals($plugin_class, $class);
   }
@@ -34,12 +34,12 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithValidObjectPluginDefinition() {
-    $plugin_class = Cherry::class;
-    $plugin_definition = $this->getMock(PluginDefinitionInterface::class);
+    $plugin_class = Corn::class;
+    $plugin_definition = $this->getMockBuilder(PluginDefinitionInterface::class)->getMock();
     $plugin_definition->expects($this->atLeastOnce())
       ->method('getClass')
       ->willReturn($plugin_class);
-    $class = DefaultFactory::getPluginClass('cherry', $plugin_definition);
+    $class = DefaultFactory::getPluginClass('corn', $plugin_definition);
 
     $this->assertEquals($plugin_class, $class);
   }
@@ -50,8 +50,14 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithMissingClassWithArrayPluginDefinition() {
-    $this->setExpectedException(PluginException::class, 'The plugin (cherry) did not specify an instance class.');
-    DefaultFactory::getPluginClass('cherry', []);
+    if (method_exists($this, 'expectException')) {
+      $this->expectException(PluginException::class);
+      $this->expectExceptionMessage('The plugin (corn) did not specify an instance class.');
+    }
+    else {
+      $this->setExpectedException(PluginException::class, 'The plugin (corn) did not specify an instance class.');
+    }
+    DefaultFactory::getPluginClass('corn', []);
   }
 
   /**
@@ -60,9 +66,15 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithMissingClassWithObjectPluginDefinition() {
-    $plugin_definition = $this->getMock(PluginDefinitionInterface::class);
-    $this->setExpectedException(PluginException::class, 'The plugin (cherry) did not specify an instance class.');
-    DefaultFactory::getPluginClass('cherry', $plugin_definition);
+    $plugin_definition = $this->getMockBuilder(PluginDefinitionInterface::class)->getMock();
+    if (method_exists($this, 'expectException')) {
+      $this->expectException(PluginException::class);
+      $this->expectExceptionMessage('The plugin (corn) did not specify an instance class.');
+    }
+    else {
+      $this->setExpectedException(PluginException::class, 'The plugin (corn) did not specify an instance class.');
+    }
+    DefaultFactory::getPluginClass('corn', $plugin_definition);
   }
 
   /**
@@ -71,8 +83,14 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithNotExistingClassWithArrayPluginDefinition() {
-    $this->setExpectedException(PluginException::class, 'Plugin (kiwifruit) instance class "\Drupal\plugin_test\Plugin\plugin_test\fruit\Kiwifruit" does not exist.');
-    DefaultFactory::getPluginClass('kiwifruit', ['class' => '\Drupal\plugin_test\Plugin\plugin_test\fruit\Kiwifruit']);
+    if (method_exists($this, 'expectException')) {
+      $this->expectException(PluginException::class);
+      $this->expectExceptionMessage('Plugin (carrot) instance class "Drupal\Tests\Component\Plugin\Fixtures\vegetable\Carrot" does not exist.');
+    }
+    else {
+      $this->setExpectedException(PluginException::class, 'Plugin (carrot) instance class "Drupal\Tests\Component\Plugin\Fixtures\vegetable\Carrot" does not exist.');
+    }
+    DefaultFactory::getPluginClass('carrot', ['class' => 'Drupal\Tests\Component\Plugin\Fixtures\vegetable\Carrot']);
   }
 
   /**
@@ -81,13 +99,18 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithNotExistingClassWithObjectPluginDefinition() {
-    $plugin_class = '\Drupal\plugin_test\Plugin\plugin_test\fruit\Kiwifruit';
-    $plugin_definition = $this->getMock(PluginDefinitionInterface::class);
+    $plugin_class = 'Drupal\Tests\Component\Plugin\Fixtures\vegetable\Carrot';
+    $plugin_definition = $this->getMockBuilder(PluginDefinitionInterface::class)->getMock();
     $plugin_definition->expects($this->atLeastOnce())
       ->method('getClass')
       ->willReturn($plugin_class);
-    $this->setExpectedException(PluginException::class);
-    DefaultFactory::getPluginClass('kiwifruit', $plugin_definition);
+    if (method_exists($this, 'expectException')) {
+      $this->expectException(PluginException::class);
+    }
+    else {
+      $this->setExpectedException(PluginException::class);
+    }
+    DefaultFactory::getPluginClass('carrot', $plugin_definition);
   }
 
   /**
@@ -96,8 +119,8 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithInterfaceWithArrayPluginDefinition() {
-    $plugin_class = Cherry::class;
-    $class = DefaultFactory::getPluginClass('cherry', ['class' => $plugin_class], FruitInterface::class);
+    $plugin_class = Corn::class;
+    $class = DefaultFactory::getPluginClass('corn', ['class' => $plugin_class], VegetableInterface::class);
 
     $this->assertEquals($plugin_class, $class);
   }
@@ -108,12 +131,12 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithInterfaceWithObjectPluginDefinition() {
-    $plugin_class = Cherry::class;
-    $plugin_definition = $this->getMock(PluginDefinitionInterface::class);
+    $plugin_class = Corn::class;
+    $plugin_definition = $this->getMockBuilder(PluginDefinitionInterface::class)->getMock();
     $plugin_definition->expects($this->atLeastOnce())
       ->method('getClass')
       ->willReturn($plugin_class);
-    $class = DefaultFactory::getPluginClass('cherry', $plugin_definition, FruitInterface::class);
+    $class = DefaultFactory::getPluginClass('corn', $plugin_definition, VegetableInterface::class);
 
     $this->assertEquals($plugin_class, $class);
   }
@@ -124,9 +147,14 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithInterfaceAndInvalidClassWithArrayPluginDefinition() {
-    $plugin_class = Kale::class;
-    $this->setExpectedException(PluginException::class, 'Plugin "cherry" (Drupal\plugin_test\Plugin\plugin_test\fruit\Kale) must implement interface Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface.');
-    DefaultFactory::getPluginClass('cherry', ['class' => $plugin_class, 'provider' => 'core'], FruitInterface::class);
+    if (method_exists($this, 'expectException')) {
+      $this->expectException(PluginException::class);
+      $this->expectExceptionMessage('Plugin "corn" (Drupal\Tests\Component\Plugin\Fixtures\vegetable\Broccoli) must implement interface Drupal\Tests\Component\Plugin\Fixtures\vegetable\VegetableInterface.');
+    }
+    else {
+      $this->setExpectedException(PluginException::class, 'Plugin "corn" (Drupal\Tests\Component\Plugin\Fixtures\vegetable\Broccoli) must implement interface Drupal\Tests\Component\Plugin\Fixtures\vegetable\VegetableInterface.');
+    }
+    DefaultFactory::getPluginClass('corn', ['class' => Broccoli::class], VegetableInterface::class);
   }
 
   /**
@@ -135,13 +163,18 @@ class DefaultFactoryTest extends TestCase {
    * @covers ::getPluginClass
    */
   public function testGetPluginClassWithInterfaceAndInvalidClassWithObjectPluginDefinition() {
-    $plugin_class = Kale::class;
-    $plugin_definition = $this->getMock(PluginDefinitionInterface::class);
+    $plugin_class = Broccoli::class;
+    $plugin_definition = $this->getMockBuilder(PluginDefinitionInterface::class)->getMock();
     $plugin_definition->expects($this->atLeastOnce())
       ->method('getClass')
       ->willReturn($plugin_class);
-    $this->setExpectedException(PluginException::class);
-    DefaultFactory::getPluginClass('cherry', $plugin_definition, FruitInterface::class);
+    if (method_exists($this, 'expectException')) {
+      $this->expectException(PluginException::class);
+    }
+    else {
+      $this->setExpectedException(PluginException::class);
+    }
+    DefaultFactory::getPluginClass('corn', $plugin_definition, VegetableInterface::class);
   }
 
 }

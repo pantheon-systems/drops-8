@@ -1,11 +1,18 @@
 services:
-  main_content_renderer.off_canvas:
-    class: Drupal\settings_tray\Render\MainContent\OffCanvasRenderer
-    arguments: ['@title_resolver', '@renderer']
+  access_check.settings_tray.block.has_overrides:
+    class: Drupal\settings_tray\Access\BlockHasOverridesAccessCheck
     tags:
-      - { name: render.main_content_renderer, format: drupal_dialog.off_canvas }
-
+      - { name: access_check, applies_to: _access_block_has_overrides_settings_tray_form }
   access_check.settings_tray.block.settings_tray_form:
     class: Drupal\settings_tray\Access\BlockPluginHasSettingsTrayFormAccessCheck
     tags:
       - { name: access_check, applies_to: _access_block_plugin_has_settings_tray_form }
+
+  # BC layers.
+  # @todo Remove in Drupal 9.0.0.
+  settings_tray.route_processor_off_canvas_form_bc:
+    class: \Drupal\settings_tray\RouteProcessor\BlockEntityOffCanvasFormRouteProcessorBC
+    arguments: ['@router.route_provider']
+    public: false
+    tags:
+      - { name: route_processor_outbound }

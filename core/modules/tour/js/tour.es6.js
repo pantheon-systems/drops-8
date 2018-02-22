@@ -146,6 +146,7 @@
         const $tour = this._getTour();
         this._removeIrrelevantTourItems($tour, this._getDocument());
         const that = this;
+        const close = Drupal.t('Close');
         if ($tour.find('li').length) {
           $tour.joyride({
             autoStart: true,
@@ -154,8 +155,8 @@
             },
             // HTML segments for tip layout.
             template: {
-              link: '<a href=\"#close\" class=\"joyride-close-tip\">&times;</a>',
-              button: '<a href=\"#\" class=\"button button--primary joyride-next-tip\"></a>',
+              link: `<a href="#close" class="joyride-close-tip" aria-label="${close}">&times;</a>`,
+              button: '<a href="#" class="button button--primary joyride-next-tip"></a>',
             },
           });
           this.model.set({ isActive: true, activeTour: $tour });

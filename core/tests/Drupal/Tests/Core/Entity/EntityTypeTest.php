@@ -128,6 +128,18 @@ class EntityTypeTest extends UnitTestCase {
   }
 
   /**
+   * Tests the isInternal() method.
+   */
+  public function testIsInternal() {
+    $entity_type = $this->setUpEntityType(['internal' => TRUE]);
+    $this->assertTrue($entity_type->isInternal());
+    $entity_type = $this->setUpEntityType(['internal' => FALSE]);
+    $this->assertFalse($entity_type->isInternal());
+    $entity_type = $this->setUpEntityType([]);
+    $this->assertFalse($entity_type->isInternal());
+  }
+
+  /**
    * Tests the isRevisionable() method.
    */
   public function testIsRevisionable() {
@@ -390,6 +402,28 @@ class EntityTypeTest extends UnitTestCase {
     $this->assertEquals('1 entity test plural', $entity_type->getCountLabel(1));
     $this->assertEquals('2 entity test plural entities', $entity_type->getCountLabel(2));
     $this->assertEquals('200 entity test plural entities', $entity_type->getCountLabel(200));
+  }
+
+  /**
+   * Tests the ::getBundleLabel() method.
+   *
+   * @covers ::getBundleLabel
+   * @dataProvider providerTestGetBundleLabel
+   */
+  public function testGetBundleLabel($definition, $expected) {
+    $entity_type = $this->setUpEntityType($definition);
+    $entity_type->setStringTranslation($this->getStringTranslationStub());
+    $this->assertEquals($expected, $entity_type->getBundleLabel());
+  }
+
+  /**
+   * Provides test data for ::testGetBundleLabel().
+   */
+  public function providerTestGetBundleLabel() {
+    return [
+      [['label' => 'Entity Label Foo'], 'Entity Label Foo bundle'],
+      [['bundle_label' => 'Bundle Label Bar'], 'Bundle Label Bar'],
+    ];
   }
 
   /**

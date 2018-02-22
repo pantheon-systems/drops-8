@@ -264,13 +264,7 @@ abstract class QueryBase implements QueryInterface {
   }
 
   /**
-   * Queries the latest revision.
-   *
-   * The latest revision is the most recent revision of an entity. This will be
-   * either the default revision, or a pending revision if one exists and it is
-   * newer than the default.
-   *
-   * @return $this
+   * {@inheritdoc}
    */
   public function latestRevision() {
     $this->allRevisions = TRUE;
@@ -455,7 +449,7 @@ abstract class QueryBase implements QueryInterface {
   }
 
   /**
-   * Generates an alias for a field and it's aggregated function.
+   * Generates an alias for a field and its aggregated function.
    *
    * @param string $field
    *   The field name used in the alias.

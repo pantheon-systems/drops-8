@@ -54,8 +54,6 @@ abstract class Bundle implements BundleInterface
      *
      * This method can be overridden to register compilation passes,
      * other extensions, ...
-     *
-     * @param ContainerBuilder $container A ContainerBuilder instance
      */
     public function build(ContainerBuilder $container)
     {
@@ -159,8 +157,6 @@ abstract class Bundle implements BundleInterface
      *
      * * Commands are in the 'Command' sub-directory
      * * Commands extend Symfony\Component\Console\Command\Command
-     *
-     * @param Application $application An Application instance
      */
     public function registerCommands(Application $application)
     {
@@ -183,13 +179,16 @@ abstract class Bundle implements BundleInterface
             }
             $class = $ns.'\\'.$file->getBasename('.php');
             if ($this->container) {
+                $commandIds = $this->container->hasParameter('console.command.ids') ? $this->container->getParameter('console.command.ids') : array();
                 $alias = 'console.command.'.strtolower(str_replace('\\', '_', $class));
-                if ($this->container->has($alias)) {
+                if (isset($commandIds[$alias]) || $this->container->has($alias)) {
                     continue;
                 }
             }
             $r = new \ReflectionClass($class);
             if ($r->isSubclassOf('Symfony\\Component\\Console\\Command\\Command') && !$r->isAbstract() && !$r->getConstructor()->getNumberOfRequiredParameters()) {
+                @trigger_error(sprintf('Auto-registration of the command "%s" is deprecated since Symfony 3.4 and won\'t be supported in 4.0. Use PSR-4 based service discovery instead.', $class), E_USER_DEPRECATED);
+
                 $application->add($r->newInstance());
             }
         }

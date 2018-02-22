@@ -20,6 +20,7 @@ use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\CliDumper;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 use Symfony\Component\VarDumper\Dumper\DataDumperInterface;
+use Twig\Template;
 
 /**
  * @author Nicolas Grekas <p@tchwork.com>
@@ -91,7 +92,7 @@ class DumpDataCollector extends DataCollector implements DataDumperInterface
                         $line = $trace[$i]['line'];
 
                         break;
-                    } elseif (isset($trace[$i]['object']) && $trace[$i]['object'] instanceof \Twig_Template) {
+                    } elseif (isset($trace[$i]['object']) && $trace[$i]['object'] instanceof Template) {
                         $template = $trace[$i]['object'];
                         $name = $template->getTemplateName();
                         $src = method_exists($template, 'getSourceContext') ? $template->getSourceContext()->getCode() : (method_exists($template, 'getSource') ? $template->getSource() : false);
@@ -161,6 +162,18 @@ class DumpDataCollector extends DataCollector implements DataDumperInterface
                 $this->doDump($dump['data'], $dump['name'], $dump['file'], $dump['line']);
             }
         }
+    }
+
+    public function reset()
+    {
+        if ($this->stopwatch) {
+            $this->stopwatch->reset();
+        }
+        $this->data = array();
+        $this->dataCount = 0;
+        $this->isCollected = false;
+        $this->clonesCount = 0;
+        $this->clonesIndex = 0;
     }
 
     public function serialize()

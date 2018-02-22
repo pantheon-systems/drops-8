@@ -31,6 +31,7 @@ use Drupal\user\UserInterface;
  *   data_table = "content_moderation_state_field_data",
  *   revision_data_table = "content_moderation_state_field_revision",
  *   translatable = TRUE,
+ *   internal = TRUE,
  *   entity_keys = {
  *     "id" = "id",
  *     "revision" = "revision_id",
@@ -219,6 +220,18 @@ class ContentModerationState extends ContentEntityBase implements ContentModerat
    */
   protected function realSave() {
     return parent::save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getFieldsToSkipFromTranslationChangesCheck() {
+    $field_names = parent::getFieldsToSkipFromTranslationChangesCheck();
+    // We need to skip the parent entity revision ID, since that will always
+    // change on every save, otherwise every translation would be marked as
+    // affected regardless of actual changes.
+    $field_names[] = 'content_entity_revision_id';
+    return $field_names;
   }
 
 }

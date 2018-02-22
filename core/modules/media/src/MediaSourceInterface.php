@@ -4,6 +4,8 @@ namespace Drupal\media;
 
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
 
 /**
@@ -23,7 +25,7 @@ use Drupal\Core\Plugin\PluginFormInterface;
  * - Image: handles local images,
  * - oEmbed: handles resources that are exposed through the oEmbed standard,
  * - YouTube: handles YouTube videos,
- * - SoundCould: handles SoundCloud audio,
+ * - SoundCloud: handles SoundCloud audio,
  * - Instagram: handles Instagram posts,
  * - Twitter: handles tweets,
  * - ...
@@ -138,5 +140,55 @@ interface MediaSourceInterface extends PluginInspectionInterface, ConfigurablePl
    *   should also be unsaved.
    */
   public function createSourceField(MediaTypeInterface $type);
+
+  /**
+   * Prepares the media type fields for this source in the view display.
+   *
+   * This method should normally call
+   * \Drupal\Core\Entity\Display\EntityDisplayInterface::setComponent() or
+   * \Drupal\Core\Entity\Display\EntityDisplayInterface::removeComponent() to
+   * configure the media type fields in the view display.
+   *
+   * @param \Drupal\media\MediaTypeInterface $type
+   *   The media type which is using this source.
+   * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+   *   The display which should be prepared.
+   *
+   * @see \Drupal\Core\Entity\Display\EntityDisplayInterface::setComponent()
+   * @see \Drupal\Core\Entity\Display\EntityDisplayInterface::removeComponent()
+   */
+  public function prepareViewDisplay(MediaTypeInterface $type, EntityViewDisplayInterface $display);
+
+  /**
+   * Prepares the media type fields for this source in the form display.
+   *
+   * This method should normally call
+   * \Drupal\Core\Entity\Display\EntityDisplayInterface::setComponent() or
+   * \Drupal\Core\Entity\Display\EntityDisplayInterface::removeComponent() to
+   * configure the media type fields in the form display.
+   *
+   * @param \Drupal\media\MediaTypeInterface $type
+   *   The media type which is using this source.
+   * @param \Drupal\Core\Entity\Display\EntityFormDisplayInterface $display
+   *   The display which should be prepared.
+   *
+   * @see \Drupal\Core\Entity\Display\EntityDisplayInterface::setComponent()
+   * @see \Drupal\Core\Entity\Display\EntityDisplayInterface::removeComponent()
+   */
+  public function prepareFormDisplay(MediaTypeInterface $type, EntityFormDisplayInterface $display);
+
+  /**
+   * Get the primary value stored in the source field.
+   *
+   * @param MediaInterface $media
+   *   A media item.
+   *
+   * @return mixed
+   *   The source value.
+   *
+   * @throws \RuntimeException
+   *   If the source field for the media source is not defined.
+   */
+  public function getSourceFieldValue(MediaInterface $media);
 
 }

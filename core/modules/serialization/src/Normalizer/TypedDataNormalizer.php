@@ -18,7 +18,13 @@ class TypedDataNormalizer extends NormalizerBase {
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) {
-    return $object->getValue();
+    $this->addCacheableDependency($context, $object);
+    $value = $object->getValue();
+    // Support for stringable value objects: avoid numerous custom normalizers.
+    if (is_object($value) && method_exists($value, '__toString')) {
+      $value = (string) $value;
+    }
+    return $value;
   }
 
 }

@@ -346,7 +346,9 @@ abstract class SqlBase extends SourcePluginBase implements ContainerFactoryPlugi
     if (($this->batchSize > 0)) {
       $this->query->range($this->batch * $this->batchSize, $this->batchSize);
     }
-    return new \IteratorIterator($this->query->execute());
+    $statement = $this->query->execute();
+    $statement->setFetchMode(\PDO::FETCH_ASSOC);
+    return new \IteratorIterator($statement);
   }
 
   /**
@@ -379,7 +381,7 @@ abstract class SqlBase extends SourcePluginBase implements ContainerFactoryPlugi
    * {@inheritdoc}
    */
   public function count($refresh = FALSE) {
-    return $this->query()->countQuery()->execute()->fetchField();
+    return (int) $this->query()->countQuery()->execute()->fetchField();
   }
 
   /**

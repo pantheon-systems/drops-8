@@ -190,11 +190,11 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
           }
 
           if (!empty($options['region']) && $options['region'] === 'hidden') {
-            $this->hidden[$name] = TRUE;
+            $this->removeComponent($name);
           }
           elseif ($options) {
             $options += ['region' => $default_region];
-            $this->content[$name] = $this->pluginManager->prepareConfiguration($definition->getType(), $options);
+            $this->setComponent($name, $options);
           }
           // Note: (base) fields that do not specify display options are not
           // tracked in the display at all, in order to avoid cluttering the
@@ -250,7 +250,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   /**
    * {@inheritdoc}
    */
-  public function preSave(EntityStorageInterface $storage, $update = TRUE) {
+  public function preSave(EntityStorageInterface $storage) {
     // Ensure that a region is set on each component.
     foreach ($this->getComponents() as $name => $component) {
       $this->handleHiddenType($name, $component);
@@ -263,7 +263,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
 
     ksort($this->content);
     ksort($this->hidden);
-    parent::preSave($storage, $update);
+    parent::preSave($storage);
   }
 
   /**
