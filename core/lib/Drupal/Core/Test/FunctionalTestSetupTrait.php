@@ -42,6 +42,18 @@ trait FunctionalTestSetupTrait {
   protected $configDirectories = [];
 
   /**
+   * The flag to set 'apcu_ensure_unique_prefix' setting.
+   *
+   * Wide use of a unique prefix can lead to problems with memory, if tests are
+   * run with a concurrency higher than 1. Therefore, FALSE by default.
+   *
+   * @var bool
+   *
+   * @see \Drupal\Core\Site\Settings::getApcuPrefix().
+   */
+  protected $apcuEnsureUniquePrefix = FALSE;
+
+  /**
    * Prepares site settings and services before installation.
    */
   protected function prepareSettings() {
@@ -83,6 +95,10 @@ trait FunctionalTestSetupTrait {
       'value' => $this->originalProfile,
       'required' => TRUE,
     ];
+    $settings['settings']['apcu_ensure_unique_prefix'] = (object) [
+      'value' => $this->apcuEnsureUniquePrefix,
+      'required' => TRUE,
+    ];
     $this->writeSettings($settings);
     // Allow for test-specific overrides.
     $settings_testing_file = DRUPAL_ROOT . '/' . $this->originalSite . '/settings.testing.php';
@@ -104,6 +120,9 @@ trait FunctionalTestSetupTrait {
       // Add a listener to validate configuration schema on save.
       $yaml = new SymfonyYaml();
       $content = file_get_contents($directory . '/services.yml');
+      // @todo Remove preg_replace() once
+      //   https://github.com/symfony/symfony/pull/25787 is in Symfony 3.4.
+      $content = preg_replace('/:$\n^\s+{\s*}$/m', ': {}', $content);
       $services = $yaml->parse($content);
       $services['services']['simpletest.config_schema_checker'] = [
         'class' => ConfigSchemaChecker::class,
@@ -149,7 +168,11 @@ trait FunctionalTestSetupTrait {
     $filename = $this->siteDirectory . '/services.yml';
     chmod($filename, 0666);
 
-    $services = Yaml::decode(file_get_contents($filename));
+    // @todo Remove preg_replace() once
+    //   https://github.com/symfony/symfony/pull/25787 is in Symfony 3.4.
+    $content = file_get_contents($filename);
+    $content = preg_replace('/:$\n^\s+{\s*}$/m', ': {}', $content);
+    $services = Yaml::decode($content);
     $services['parameters'][$name] = $value;
     file_put_contents($filename, Yaml::encode($services));
 

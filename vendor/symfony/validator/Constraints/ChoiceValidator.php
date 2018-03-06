@@ -58,8 +58,8 @@ class ChoiceValidator extends ConstraintValidator
             $choices = $constraint->choices;
         }
 
-        if (false === $constraint->strict) {
-            @trigger_error('Setting the strict option of the Choice constraint to false is deprecated since version 3.2 and will be removed in 4.0.', E_USER_DEPRECATED);
+        if (true !== $constraint->strict) {
+            @trigger_error('Not setting the strict option of the Choice constraint to true is deprecated since Symfony 3.4 and will throw an exception in 4.0.', E_USER_DEPRECATED);
         }
 
         if ($constraint->multiple) {
@@ -77,7 +77,7 @@ class ChoiceValidator extends ConstraintValidator
 
             $count = count($value);
 
-            if ($constraint->min !== null && $count < $constraint->min) {
+            if (null !== $constraint->min && $count < $constraint->min) {
                 $this->context->buildViolation($constraint->minMessage)
                     ->setParameter('{{ limit }}', $constraint->min)
                     ->setPlural((int) $constraint->min)
@@ -87,7 +87,7 @@ class ChoiceValidator extends ConstraintValidator
                 return;
             }
 
-            if ($constraint->max !== null && $count > $constraint->max) {
+            if (null !== $constraint->max && $count > $constraint->max) {
                 $this->context->buildViolation($constraint->maxMessage)
                     ->setParameter('{{ limit }}', $constraint->max)
                     ->setPlural((int) $constraint->max)

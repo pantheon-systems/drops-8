@@ -7,6 +7,7 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\TypedData\DataDefinitionInterface;
 use Drupal\Core\TypedData\TypedDataInterface;
 use Drupal\Core\TypedData\TypedData;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 
 /**
  * A computed property for dates of date time field items.
@@ -36,7 +37,7 @@ class DateTimeComputed extends TypedData {
   /**
    * {@inheritdoc}
    */
-  public function getValue($langcode = NULL) {
+  public function getValue() {
     if ($this->date !== NULL) {
       return $this->date;
     }
@@ -46,9 +47,9 @@ class DateTimeComputed extends TypedData {
     $value = $item->{($this->definition->getSetting('date source'))};
 
     $datetime_type = $item->getFieldDefinition()->getSetting('datetime_type');
-    $storage_format = $datetime_type === DateTimeItem::DATETIME_TYPE_DATE ? DATETIME_DATE_STORAGE_FORMAT : DATETIME_DATETIME_STORAGE_FORMAT;
+    $storage_format = $datetime_type === DateTimeItem::DATETIME_TYPE_DATE ? DateTimeItemInterface::DATE_STORAGE_FORMAT : DateTimeItemInterface::DATETIME_STORAGE_FORMAT;
     try {
-      $date = DrupalDateTime::createFromFormat($storage_format, $value, DATETIME_STORAGE_TIMEZONE);
+      $date = DrupalDateTime::createFromFormat($storage_format, $value, DateTimeItemInterface::STORAGE_TIMEZONE);
       if ($date instanceof DrupalDateTime && !$date->hasErrors()) {
         $this->date = $date;
         // If the format did not include an explicit time portion, then the
@@ -56,12 +57,10 @@ class DateTimeComputed extends TypedData {
         // set the time to 12:00:00 UTC for date-only fields. This is used so
         // that the local date portion is the same, across nearly all time
         // zones.
-        // @see datetime_date_default_time()
-        // @see http://php.net/manual/en/datetime.createfromformat.php
-        // @todo Update comment and/or code per the chosen solution in
-        //   https://www.drupal.org/node/2830094
+        // @see \Drupal\Component\Datetime\DateTimePlus::setDefaultDateTime()
+        // @see http://php.net/manual/datetime.createfromformat.php
         if ($datetime_type === DateTimeItem::DATETIME_TYPE_DATE) {
-          $this->date->setTime(12, 0, 0);
+          $this->date->setDefaultDateTime();
         }
       }
     }

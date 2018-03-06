@@ -152,7 +152,7 @@ class ThemeTest extends WebTestBase {
       // Semi-absolute path to arbitrary non-existing file.
       '/core/misc/whatever.png',
       // Absolute paths to any local file (even if it exists).
-      drupal_realpath($file->uri),
+      \Drupal::service('file_system')->realpath($file->uri),
     ];
     $this->drupalGet('admin/appearance/settings');
     foreach ($unsupported_paths as $path) {
@@ -168,7 +168,7 @@ class ThemeTest extends WebTestBase {
     $edit = [
       'default_logo' => FALSE,
       'logo_path' => '',
-      'files[logo_upload]' => drupal_realpath($file->uri),
+      'files[logo_upload]' => \Drupal::service('file_system')->realpath($file->uri),
     ];
     $this->drupalPostForm('admin/appearance/settings', $edit, t('Save configuration'));
 
@@ -390,7 +390,7 @@ class ThemeTest extends WebTestBase {
     // Check that bartik can be uninstalled now.
     $this->assertRaw('Uninstall Bartik theme', 'A link to uninstall the Bartik theme does appear on the theme settings page.');
 
-    // Check that the classy theme still can't be uninstalled as neither of it's
+    // Check that the classy theme still can't be uninstalled as neither of its
     // base themes have been.
     $this->assertNoRaw('Uninstall Classy theme', 'A link to uninstall the Classy theme does not appear on the theme settings page.');
 

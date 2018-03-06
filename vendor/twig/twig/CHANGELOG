@@ -1,3 +1,54 @@
+* 1.35.0 (2017-09-27)
+
+ * added Twig_Profiler_Profile::reset()
+ * fixed use TokenParser to return an empty Node
+ * added RuntimeExtensionInterface
+ * added circular reference detection when loading templates
+
+* 1.34.4 (2017-07-04)
+
+ * added support for runtime loaders in IntegrationTestCase
+ * fixed deprecation when using Twig_Profiler_Dumper_Html
+
+* 1.34.3 (2017-06-07)
+
+ * fixed namespaces introduction
+
+* 1.34.2 (2017-06-05)
+
+ * fixed namespaces introduction
+
+* 1.34.1 (2017-06-05)
+
+ * fixed namespaces introduction
+
+* 1.34.0 (2017-06-05)
+
+ * added support for PHPUnit 6 when testing extensions
+ * fixed PHP 7.2 compatibility
+ * fixed template name generation in Twig_Environment::createTemplate()
+ * removed final tag on Twig_TokenParser_Include
+ * added namespaced aliases for all (non-deprecated) classes and interfaces
+ * dropped HHVM support
+ * dropped PHP 5.2 support
+
+* 1.33.2 (2017-04-20)
+
+ * fixed edge case in the method cache for Twig attributes
+
+* 1.33.1 (2017-04-18)
+
+ * fixed the empty() test
+
+* 1.33.0 (2017-03-22)
+
+ * fixed a race condition handling when writing cache files
+ * "length" filter now returns string length when applied to an object that does
+   not implement \Countable but provides __toString()
+ * "empty" test will now consider the return value of the __toString() method for
+   objects implement __toString() but not \Countable
+ * fixed JS escaping for unicode characters with higher code points
+
 * 1.32.0 (2017-02-26)
 
  * fixed deprecation notice in Twig_Util_DeprecationCollector
@@ -98,7 +149,7 @@
 
  * fixed reserved keywords (forbids true, false, null and none keywords for variables names)
  * fixed support for PHP7 (Throwable support)
- * marked the following methods as being internals on Twig_Environment: 
+ * marked the following methods as being internals on Twig_Environment:
    getFunctions(), getFilters(), getTests(), getFunction(), getFilter(), getTest(),
    getTokenParsers(), getTags(), getNodeVisitors(), getUnaryOperators(), getBinaryOperators(),
    getFunctions(), getFilters(), getGlobals(), initGlobals(), initExtensions(), and initExtension()
@@ -182,7 +233,7 @@
  * fixed limited RCEs when in sandbox mode
  * deprecated Twig_Template::getEnvironment()
  * deprecated the _self variable for usage outside of the from and import tags
- * added Twig_BaseNodeVisitor to ease the compatibility of node visitors 
+ * added Twig_BaseNodeVisitor to ease the compatibility of node visitors
    between 1.x and 2.x
 
 * 1.19.0 (2015-07-31)

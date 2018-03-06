@@ -11,6 +11,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Edit form for the EntityViewDisplay entity type.
+ *
+ * @internal
  */
 class EntityViewDisplayEditForm extends EntityDisplayFormBase {
 
@@ -112,7 +114,6 @@ class EntityViewDisplayEditForm extends EntityDisplayFormBase {
    * {@inheritdoc}
    */
   protected function getDisplayModesLink() {
-    ;
     return [
       '#type' => 'link',
       '#title' => t('Manage view modes'),

@@ -41,6 +41,7 @@ parameters:
     exposedHeaders: false
     maxAge: false
     supportsCredentials: false
+  tempstore.expire: 604800
 services:
   # Simple cache contexts, directly derived from the request context.
   cache_context.ip:
@@ -345,7 +346,7 @@ services:
     arguments: ['@service_container']
   cron:
     class: Drupal\Core\Cron
-    arguments: ['@module_handler', '@lock', '@queue', '@state', '@account_switcher', '@logger.channel.cron', '@plugin.manager.queue_worker']
+    arguments: ['@module_handler', '@lock', '@queue', '@state', '@account_switcher', '@logger.channel.cron', '@plugin.manager.queue_worker', '@datetime.time']
     lazy: true
   diff.formatter:
     class: Drupal\Core\Diff\DiffFormatter
@@ -510,12 +511,6 @@ services:
       - { name: module_install.uninstall_validator }
     arguments: ['@entity.manager', '@string_translation']
     lazy: true
-  field_uninstall_validator:
-    class: Drupal\Core\Field\FieldModuleUninstallValidator
-    tags:
-      - { name: module_install.uninstall_validator }
-    arguments: ['@entity.manager', '@string_translation']
-    lazy: true
   required_module_uninstall_validator:
     class: Drupal\Core\Extension\RequiredModuleUninstallValidator
     tags:
@@ -576,9 +571,12 @@ services:
   entity.last_installed_schema.repository:
     class: Drupal\Core\Entity\EntityLastInstalledSchemaRepository
     arguments: ['@keyvalue']
+  entity_field.deleted_fields_repository:
+    class: Drupal\Core\Field\DeletedFieldsRepository
+    arguments: ['@state']
   field_storage_definition.listener:
     class: Drupal\Core\Field\FieldStorageDefinitionListener
-    arguments: ['@entity_type.manager', '@event_dispatcher', '@entity.last_installed_schema.repository', '@entity_field.manager']
+    arguments: ['@entity_type.manager', '@event_dispatcher', '@entity.last_installed_schema.repository', '@entity_field.manager', '@entity_field.deleted_fields_repository']
   field_definition.listener:
     class: Drupal\Core\Field\FieldDefinitionListener
     arguments: ['@entity_type.manager', '@entity_field.manager', '@keyvalue', '@cache.discovery']
@@ -799,7 +797,7 @@ services:
     arguments: ['@current_route_match']
   router.route_provider:
     class: Drupal\Core\Routing\RouteProvider
-    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator']
+    arguments: ['@database', '@state', '@path.current', '@cache.data', '@path_processor_manager', '@cache_tags.invalidator', 'router', '@language_manager']
     tags:
       - { name: event_subscriber }
       - { name: backend_overridable }
@@ -825,16 +823,6 @@ services:
     tags:
       - { name: service_collector, tag: non_lazy_route_filter, call: addRouteFilter }
     deprecated: The "%service_id%" service is deprecated. You should use the 'router.no_access_checks' service instead.
-  route_filter.lazy_collector:
-    class: Drupal\Core\Routing\LazyRouteFilter
-    tags:
-      - { name: non_lazy_route_filter }
-    parent: container.trait
-  route_filter_subscriber:
-    class: Drupal\Core\EventSubscriber\RouteFilterSubscriber
-    arguments: ['@route_filter.lazy_collector']
-    tags:
-      - { name: event_subscriber }
   url_generator.non_bubbling:
     class: Drupal\Core\Routing\UrlGenerator
     arguments: ['@router.route_provider', '@path_processor_manager', '@route_processor_manager', '@request_stack', '%filter_protocols%']
@@ -868,8 +856,11 @@ services:
     class: \Drupal\Core\Routing\Router
     arguments: ['@router.route_provider', '@path.current', '@url_generator']
     tags:
+      # @todo Try to combine those tags together, see https://www.drupal.org/node/2915772.
       - { name: service_collector, tag: non_lazy_route_enhancer, call: addRouteEnhancer }
+      - { name: service_collector, tag: route_enhancer, call: addRouteEnhancer  }
       - { name: service_collector, tag: non_lazy_route_filter, call: addRouteFilter }
+      - { name: service_collector, tag: route_filter, call: addRouteFilter }
     calls:
       - [setContext, ['@router.request_context']]
   router.path_roots_subscriber:
@@ -945,11 +936,22 @@ services:
   method_filter:
     class: Drupal\Core\Routing\MethodFilter
     tags:
-      - { name: route_filter, priority: 1 }
+      # The HTTP method route filter must run very early: it removes any routes
+      # whose requirements do not allow the HTTP method of the current request.
+      # Throws a 405 if no routes match the current request's HTTP method.
+      # (If it runs before content_type_header_matcher, it can ensure that only
+      # receives routes which can have a Content-Type request header.)
+      - { name: route_filter, priority: 10 }
   content_type_header_matcher:
     class: Drupal\Core\Routing\ContentTypeHeaderMatcher
     tags:
-      - { name: route_filter }
+      # The Content-Type request header route filter must run early: it removes
+      # any routes whose requirements do not allow the Content-Type request
+      # header of the current request.
+      # Throws a 415 if no routes match the Content-Type request header of the
+      # current request, or if it has no Content-Type request header.
+      # Note it does nothing for GET requests.
+      - { name: route_filter, priority: 5 }
   paramconverter_manager:
     class: Drupal\Core\ParamConverter\ParamConverterManager
     tags:
@@ -963,7 +965,7 @@ services:
     class: Drupal\Core\ParamConverter\EntityConverter
     tags:
       - { name: paramconverter }
-    arguments: ['@entity.manager']
+    arguments: ['@entity.manager', '@language_manager']
   paramconverter.entity_revision:
     class: Drupal\Core\ParamConverter\EntityRevisionParamConverter
     tags:
@@ -999,21 +1001,11 @@ services:
     arguments: ['@form_ajax_response_builder', '@string_translation']
     tags:
       - { name: event_subscriber }
-  route_enhancer.lazy_collector:
-    class: Drupal\Core\Routing\LazyRouteEnhancer
-    tags:
-      - { name: non_lazy_route_enhancer, priority: 5000 }
-    parent: container.trait
-  route_enhancer_subscriber:
-    class: Drupal\Core\EventSubscriber\RouteEnhancerSubscriber
-    arguments: ['@route_enhancer.lazy_collector']
-    tags:
-      - { name: event_subscriber }
   route_enhancer.param_conversion:
     class: Drupal\Core\Routing\Enhancer\ParamConversionEnhancer
     arguments: ['@paramconverter_manager']
     tags:
-      - { name: route_enhancer }
+      - { name: route_enhancer, priority: 5000 }
       - { name: event_subscriber }
   route_enhancer.form:
     class: Drupal\Core\Routing\Enhancer\FormRouteEnhancer
@@ -1067,6 +1059,11 @@ services:
     arguments: ['@title_resolver']
     tags:
       - { name: render.main_content_renderer, format: drupal_dialog }
+  main_content_renderer.off_canvas:
+    class: Drupal\Core\Render\MainContent\OffCanvasRenderer
+    arguments: ['@title_resolver', '@renderer']
+    tags:
+      - { name: render.main_content_renderer, format: drupal_dialog.off_canvas }
   main_content_renderer.modal:
     class: Drupal\Core\Render\MainContent\ModalRenderer
     arguments: ['@title_resolver']
@@ -1154,7 +1151,7 @@ services:
     arguments: ['@state', '@current_user']
   maintenance_mode_subscriber:
     class: Drupal\Core\EventSubscriber\MaintenanceModeSubscriber
-    arguments: ['@maintenance_mode', '@config.factory', '@string_translation', '@url_generator', '@current_user', '@bare_html_page_renderer']
+    arguments: ['@maintenance_mode', '@config.factory', '@string_translation', '@url_generator', '@current_user', '@bare_html_page_renderer', '@messenger']
     tags:
       - { name: event_subscriber }
   path_subscriber:
@@ -1662,3 +1659,16 @@ services:
     class: Drupal\Core\EventSubscriber\RssResponseRelativeUrlFilter
     tags:
       - { name: event_subscriber }
+  messenger:
+    class: Drupal\Core\Messenger\Messenger
+    arguments: ['@session.flash_bag', '@page_cache_kill_switch']
+  tempstore.private:
+    class: Drupal\Core\TempStore\PrivateTempStoreFactory
+    arguments: ['@keyvalue.expirable', '@lock', '@current_user', '@request_stack', '%tempstore.expire%']
+    tags:
+      - { name: backend_overridable }
+  tempstore.shared:
+    class: Drupal\Core\TempStore\SharedTempStoreFactory
+    arguments: ['@keyvalue.expirable', '@lock', '@request_stack', '%tempstore.expire%']
+    tags:
+      - { name: backend_overridable }

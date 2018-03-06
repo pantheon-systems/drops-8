@@ -8,7 +8,7 @@ use Drupal\Core\Entity\EntityManagerInterface;
 /**
  * Provides common functionality for content translation.
  */
-class ContentTranslationManager implements ContentTranslationManagerInterface {
+class ContentTranslationManager implements ContentTranslationManagerInterface, BundleTranslationSettingsInterface {
 
   /**
    * The entity type manager.
@@ -106,6 +106,23 @@ class ContentTranslationManager implements ContentTranslationManagerInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function setBundleTranslationSettings($entity_type_id, $bundle, array $settings) {
+    $config = $this->loadContentLanguageSettings($entity_type_id, $bundle);
+    $config->setThirdPartySetting('content_translation', 'bundle_settings', $settings)
+      ->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getBundleTranslationSettings($entity_type_id, $bundle) {
+    $config = $this->loadContentLanguageSettings($entity_type_id, $bundle);
+    return $config->getThirdPartySetting('content_translation', 'bundle_settings', []);
+  }
+
+  /**
    * Loads a content language config entity based on the entity type and bundle.
    *
    * @param string $entity_type_id
@@ -126,6 +143,23 @@ class ContentTranslationManager implements ContentTranslationManagerInterface {
       $config = $this->entityManager->getStorage('language_content_settings')->create(['target_entity_type_id' => $entity_type_id, 'target_bundle' => $bundle]);
     }
     return $config;
+  }
+
+  /**
+   * Checks whether support for pending revisions should be enabled.
+   *
+   * @return bool
+   *   TRUE if pending revisions should be enabled, FALSE otherwise.
+   *
+   * @internal
+   *   There is ongoing discussion about how pending revisions should behave.
+   *   The logic enabling pending revision support is likely to change once a
+   *   decision is made.
+   *
+   * @see https://www.drupal.org/node/2940575
+   */
+  public static function isPendingRevisionSupportEnabled() {
+    return \Drupal::moduleHandler()->moduleExists('content_moderation');
   }
 
 }

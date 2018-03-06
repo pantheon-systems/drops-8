@@ -11,6 +11,7 @@ use Drupal\Core\Field\FormatterBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -167,7 +168,7 @@ abstract class DateTimeFormatterBase extends FormatterBase implements ContainerF
   protected function setTimeZone(DrupalDateTime $date) {
     if ($this->getFieldSetting('datetime_type') === DateTimeItem::DATETIME_TYPE_DATE) {
       // A date without time has no timezone conversion.
-      $timezone = DATETIME_STORAGE_TIMEZONE;
+      $timezone = DateTimeItemInterface::STORAGE_TIMEZONE;
     }
     else {
       $timezone = drupal_get_user_timezone();
@@ -201,10 +202,6 @@ abstract class DateTimeFormatterBase extends FormatterBase implements ContainerF
    *   A render array.
    */
   protected function buildDate(DrupalDateTime $date) {
-    if ($this->getFieldSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE) {
-      // A date without time will pick up the current time, use the default.
-      datetime_date_default_time($date);
-    }
     $this->setTimeZone($date);
 
     $build = [
@@ -229,11 +226,6 @@ abstract class DateTimeFormatterBase extends FormatterBase implements ContainerF
    *   A render array.
    */
   protected function buildDateWithIsoAttribute(DrupalDateTime $date) {
-    if ($this->getFieldSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE) {
-      // A date without time will pick up the current time, use the default.
-      datetime_date_default_time($date);
-    }
-
     // Create the ISO date in Universal Time.
     $iso_date = $date->format("Y-m-d\TH:i:s") . 'Z';
 
