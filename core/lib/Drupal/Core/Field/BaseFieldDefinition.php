@@ -59,7 +59,6 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
     $field_definition->itemDefinition = FieldItemDataDefinition::create($field_definition);
     // Create a definition for the items, and initialize it with the default
     // settings for the field type.
-    // @todo Cleanup in https://www.drupal.org/node/2116341.
     $field_type_manager = \Drupal::service('plugin.manager.field.field_type');
     $default_settings = $field_type_manager->getDefaultStorageSettings($type) + $field_type_manager->getDefaultFieldSettings($type);
     $field_definition->itemDefinition->setSettings($default_settings);
@@ -599,7 +598,7 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
     // If the field item class implements the interface, create an orphaned
     // runtime item object, so that it can be used as the options provider
     // without modifying the entity being worked on.
-    if (is_subclass_of($this->getFieldItemClass(), OptionsProviderInterface::class)) {
+    if (is_subclass_of($this->getItemDefinition()->getClass(), OptionsProviderInterface::class)) {
       $items = $entity->get($this->getName());
       return \Drupal::service('plugin.manager.field.field_type')->createFieldItem($items, 0);
     }
@@ -624,7 +623,7 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
    */
   public function getPropertyDefinitions() {
     if (!isset($this->propertyDefinitions)) {
-      $class = $this->getFieldItemClass();
+      $class = $this->getItemDefinition()->getClass();
       $this->propertyDefinitions = $class::propertyDefinitions($this);
     }
     return $this->propertyDefinitions;
@@ -641,17 +640,18 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
    * {@inheritdoc}
    */
   public function getMainPropertyName() {
-    $class = $this->getFieldItemClass();
+    $class = $this->getItemDefinition()->getClass();
     return $class::mainPropertyName();
   }
 
   /**
    * Helper to retrieve the field item class.
    *
-   * @todo: Remove once getClass() adds in defaults. See
-   * https://www.drupal.org/node/2116341.
+   * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use
+   *   \Drupal\Core\TypedData\ListDataDefinition::getClass() instead.
    */
   protected function getFieldItemClass() {
+    @trigger_error('BaseFieldDefinition::getFieldItemClass() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Instead, you should use \Drupal\Core\TypedData\ListDataDefinition::getClass(). See https://www.drupal.org/node/2933964.', E_USER_DEPRECATED);
     if ($class = $this->getItemDefinition()->getClass()) {
       return $class;
     }
@@ -804,6 +804,39 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
   /**
    * {@inheritdoc}
    */
+  public function getUniqueIdentifier() {
+    // If we have a specified target bundle, we're dealing with a bundle base
+    // field definition, so we need to include it in the unique identifier.
+    if ($this->getTargetBundle()) {
+      return $this->getTargetEntityTypeId() . '-' . $this->getTargetBundle() . '-' . $this->getName();
+    }
+
+    return $this->getUniqueStorageIdentifier();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isDeleted() {
+    return !empty($this->definition['deleted']);
+  }
+
+  /**
+   * Sets whether the field storage is deleted.
+   *
+   * @param bool $deleted
+   *   Whether the field storage is deleted.
+   *
+   * @return $this
+   */
+  public function setDeleted($deleted) {
+    $this->definition['deleted'] = $deleted;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getConfig($bundle) {
     $override = BaseFieldOverride::loadByName($this->getTargetEntityTypeId(), $bundle, $this->getName());
     if ($override) {
@@ -836,6 +869,31 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
   public function setStorageRequired($required) {
     $this->definition['storage_required'] = $required;
     return $this;
+  }
+
+  /**
+   * Magic method: Implements a deep clone.
+   */
+  public function __clone() {
+    parent::__clone();
+
+    // The itemDefinition (\Drupal\Core\Field\TypedData\FieldItemDataDefinition)
+    // has a property fieldDefinition, which is a recursive reference to the
+    // parent BaseFieldDefinition, therefore the reference to the old object has
+    // to be overwritten with a reference to the cloned one.
+    $this->itemDefinition->setFieldDefinition($this);
+    // Reset the static cache of the field property definitions in order to
+    // ensure that the clone will reference different field property definitions
+    // objects.
+    $this->propertyDefinitions = NULL;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isInternal() {
+    // All fields are not internal unless explicitly set.
+    return !empty($this->definition['internal']);
   }
 
 }

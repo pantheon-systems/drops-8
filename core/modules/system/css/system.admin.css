@@ -117,8 +117,8 @@ small .admin-link:after {
   text-transform: none;
 }
 .system-modules td details a {
-  color: #5C5C5B;
-  border: 0px;
+  color: #5c5c5b;
+  border: 0;
 }
 .system-modules td details {
   border: 0;
@@ -234,7 +234,7 @@ small .admin-link:after {
   background-image: url(../../../misc/icons/e29700/warning.svg);
 }
 .system-status-report__entry__value {
-  padding: 1em .5em;
+  padding: 1em 0.5em;
 }
 
 /**

@@ -13,6 +13,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a form for reverting a node revision.
+ *
+ * @internal
  */
 class NodeRevisionRevertForm extends ConfirmFormBase {
 
@@ -26,7 +28,7 @@ class NodeRevisionRevertForm extends ConfirmFormBase {
   /**
    * The node storage.
    *
-   * @var \Drupal\Core\Entity\EntityStorageInterface
+   * @var \Drupal\node\NodeStorageInterface
    */
   protected $nodeStorage;
 

@@ -7,6 +7,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\WidgetBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 
 /**
  * Base class for the 'datetime_*' widgets.
@@ -28,20 +29,15 @@ class DateTimeWidgetBase extends WidgetBase {
     if ($this->getFieldSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE) {
       // A date-only field should have no timezone conversion performed, so
       // use the same timezone as for storage.
-      $element['value']['#date_timezone'] = DATETIME_STORAGE_TIMEZONE;
+      $element['value']['#date_timezone'] = DateTimeItemInterface::STORAGE_TIMEZONE;
     }
 
     if ($items[$delta]->date) {
       $date = $items[$delta]->date;
       // The date was created and verified during field_load(), so it is safe to
       // use without further inspection.
-      if ($this->getFieldSetting('datetime_type') == DateTimeItem::DATETIME_TYPE_DATE) {
-        // A date without time will pick up the current time, use the default
-        // time.
-        datetime_date_default_time($date);
-      }
       $date->setTimezone(new \DateTimeZone($element['value']['#date_timezone']));
-      $element['value']['#default_value'] = $date;
+      $element['value']['#default_value'] = $this->createDefaultValue($date, $element['value']['#date_timezone']);
     }
 
     return $element;
@@ -59,22 +55,43 @@ class DateTimeWidgetBase extends WidgetBase {
         $date = $item['value'];
         switch ($this->getFieldSetting('datetime_type')) {
           case DateTimeItem::DATETIME_TYPE_DATE:
-            // If this is a date-only field, set it to the default time so the
-            // timezone conversion can be reversed.
-            datetime_date_default_time($date);
-            $format = DATETIME_DATE_STORAGE_FORMAT;
+            $format = DateTimeItemInterface::DATE_STORAGE_FORMAT;
             break;
 
           default:
-            $format = DATETIME_DATETIME_STORAGE_FORMAT;
+            $format = DateTimeItemInterface::DATETIME_STORAGE_FORMAT;
             break;
         }
         // Adjust the date for storage.
-        $date->setTimezone(new \DateTimezone(DATETIME_STORAGE_TIMEZONE));
+        $date->setTimezone(new \DateTimezone(DateTimeItemInterface::STORAGE_TIMEZONE));
         $item['value'] = $date->format($format);
       }
     }
     return $values;
+  }
+
+  /**
+   * Creates a date object for use as a default value.
+   *
+   * This will take a default value, apply the proper timezone for display in
+   * a widget, and set the default time for date-only fields.
+   *
+   * @param \Drupal\Core\Datetime\DrupalDateTime $date
+   *   The UTC default date.
+   * @param string $timezone
+   *   The timezone to apply.
+   *
+   * @return \Drupal\Core\Datetime\DrupalDateTime
+   *   A date object for use as a default value in a field widget.
+   */
+  protected function createDefaultValue($date, $timezone) {
+    // The date was created and verified during field_load(), so it is safe to
+    // use without further inspection.
+    if ($this->getFieldSetting('datetime_type') === DateTimeItem::DATETIME_TYPE_DATE) {
+      $date->setDefaultDateTime();
+    }
+    $date->setTimezone(new \DateTimeZone($timezone));
+    return $date;
   }
 
 }

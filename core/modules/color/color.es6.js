@@ -33,34 +33,30 @@
 
       // Decode reference colors to HSL.
       const reference = settings.color.reference;
-      for (i in reference) {
-        if (reference.hasOwnProperty(i)) {
-          reference[i] = farb.RGBToHSL(farb.unpack(reference[i]));
-        }
-      }
+      Object.keys(reference || {}).forEach((color) => {
+        reference[color] = farb.RGBToHSL(farb.unpack(reference[color]));
+      });
 
       // Build a preview.
       const height = [];
       const width = [];
       // Loop through all defined gradients.
-      for (i in settings.gradients) {
-        if (settings.gradients.hasOwnProperty(i)) {
-          // Add element to display the gradient.
-          $('.color-preview').once('color').append(`<div id="gradient-${i}"></div>`);
-          const gradient = $(`.color-preview #gradient-${i}`);
-          // Add height of current gradient to the list (divided by 10).
-          height.push(parseInt(gradient.css('height'), 10) / 10);
-          // Add width of current gradient to the list (divided by 10).
-          width.push(parseInt(gradient.css('width'), 10) / 10);
-          // Add rows (or columns for horizontal gradients).
-          // Each gradient line should have a height (or width for horizontal
-          // gradients) of 10px (because we divided the height/width by 10
-          // above).
-          for (j = 0; j < (settings.gradients[i].direction === 'vertical' ? height[i] : width[i]); ++j) {
-            gradient.append('<div class="gradient-line"></div>');
-          }
+      Object.keys(settings.gradients || {}).forEach((i) => {
+        // Add element to display the gradient.
+        $('.color-preview').once('color').append(`<div id="gradient-${i}"></div>`);
+        const gradient = $(`.color-preview #gradient-${i}`);
+        // Add height of current gradient to the list (divided by 10).
+        height.push(parseInt(gradient.css('height'), 10) / 10);
+        // Add width of current gradient to the list (divided by 10).
+        width.push(parseInt(gradient.css('width'), 10) / 10);
+        // Add rows (or columns for horizontal gradients).
+        // Each gradient line should have a height (or width for horizontal
+        // gradients) of 10px (because we divided the height/width by 10
+        // above).
+        for (j = 0; j < (settings.gradients[i].direction === 'vertical' ? height[i] : width[i]); ++j) {
+          gradient.append('<div class="gradient-line"></div>');
         }
-      }
+      });
 
       // Set up colorScheme selector.
       form.find('#edit-scheme').on('change', function () {
@@ -69,11 +65,9 @@
         if (colorScheme !== '' && schemes[colorScheme]) {
           // Get colors of active scheme.
           colors = schemes[colorScheme];
-          for (const fieldName in colors) {
-            if (colors.hasOwnProperty(fieldName)) {
-              callback($(`#edit-palette-${fieldName}`), colors[fieldName], false, true);
-            }
-          }
+          Object.keys(colors || {}).forEach((fieldName) => {
+            callback($(`#edit-palette-${fieldName}`), colors[fieldName], false, true);
+          });
           preview();
         }
       });
@@ -91,10 +85,10 @@
        * This algorithm ensures relative ordering on the saturation and
        * luminance axes is preserved, and performs a simple hue shift.
        *
-       * It is also symmetrical. If: shift_color(c, a, b) === d, then
-       * shift_color(d, b, a) === c.
+       * It is also symmetrical. If: shiftColor(c, a, b) === d, then
+       * shiftColor(d, b, a) === c.
        *
-       * @function Drupal.color~shift_color
+       * @function Drupal.color~shiftColor
        *
        * @param {string} given
        *   A hex color code to shift.
@@ -106,7 +100,7 @@
        * @return {string}
        *   A hex color, shifted.
        */
-      function shift_color(given, ref1, ref2) {
+      function shiftColor(given, ref1, ref2) {
         let d;
         // Convert to HSL.
         given = farb.RGBToHSL(farb.unpack(given));
@@ -124,7 +118,7 @@
             given[1] /= d;
           }
           else {
-            given[1] = 1 - (1 - given[1]) * d;
+            given[1] = 1 - ((1 - given[1]) * d);
           }
         }
 
@@ -138,7 +132,7 @@
             given[2] /= d;
           }
           else {
-            given[2] = 1 - (1 - given[2]) * d;
+            given[2] = 1 - ((1 - given[2]) * d);
           }
         }
 
@@ -177,14 +171,14 @@
               if (!locks[j - 1] || $(locks[j - 1]).is('.is-unlocked')) {
                 break;
               }
-              matched = shift_color(color, reference[input.key], reference[inputs[j].key]);
+              matched = shiftColor(color, reference[input.key], reference[inputs[j].key]);
               callback(inputs[j], matched, false);
             }
             for (j = i - 1; ; --j) {
               if (!locks[j] || $(locks[j]).is('.is-unlocked')) {
                 break;
               }
-              matched = shift_color(color, reference[input.key], reference[inputs[j].key]);
+              matched = shiftColor(color, reference[input.key], reference[inputs[j].key]);
               callback(inputs[j], matched, false);
             }
 
@@ -218,9 +212,12 @@
         const input = e.target;
         // Remove old bindings.
         if (focused) {
-          $(focused).off('keyup', farb.updateValue)
-            .off('keyup', preview).off('keyup', resetScheme)
-            .parent().removeClass('item-selected');
+          $(focused)
+            .off('keyup', farb.updateValue)
+            .off('keyup', preview)
+            .off('keyup', resetScheme)
+            .parent()
+            .removeClass('item-selected');
         }
 
         // Add new bindings.
@@ -229,8 +226,12 @@
           callback(input, color, true, false);
         });
         farb.setColor(input.value);
-        $(focused).on('keyup', farb.updateValue).on('keyup', preview).on('keyup', resetScheme)
-          .parent().addClass('item-selected');
+        $(focused)
+          .on('keyup', farb.updateValue)
+          .on('keyup', preview)
+          .on('keyup', resetScheme)
+          .parent()
+          .addClass('item-selected');
       }
 
       // Initialize color fields.

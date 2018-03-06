@@ -92,13 +92,14 @@
       const fieldModel = this.fieldModel;
 
       // Generate a DOM-compatible ID for the form container DOM element.
-      const id = `quickedit-form-for-${fieldModel.id.replace(/[\/\[\]]/g, '_')}`;
+      const id = `quickedit-form-for-${fieldModel.id.replace(/[/[\]]/g, '_')}`;
 
       // Render form container.
-      const $formContainer = this.$formContainer = $(Drupal.theme('quickeditFormContainer', {
+      const $formContainer = $(Drupal.theme('quickeditFormContainer', {
         id,
         loadingMsg: Drupal.t('Loading…'),
       }));
+      this.$formContainer = $formContainer;
       $formContainer
         .find('.quickedit-form')
         .addClass('quickedit-editable quickedit-highlighted quickedit-editing')
@@ -194,7 +195,7 @@
       }
 
       // Create an AJAX object for the form associated with the field.
-      var formSaveAjax = Drupal.quickedit.util.form.ajaxifySaving({
+      let formSaveAjax = Drupal.quickedit.util.form.ajaxifySaving({
         nocssjs: false,
         other_view_modes: fieldModel.findOtherViewModes(),
       }, $submit);

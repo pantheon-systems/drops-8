@@ -8,6 +8,8 @@
  */
 
 use Drupal\Component\Assertion\Handle;
+use Drupal\Core\Composer\Composer;
+use PHPUnit\Runner\Version;
 
 /**
  * Finds all valid extension directories recursively within a given directory.
@@ -149,6 +151,19 @@ function drupal_phpunit_populate_class_loader() {
 // Do class loader population.
 drupal_phpunit_populate_class_loader();
 
+// Ensure we have the correct PHPUnit version for the version of PHP.
+if (class_exists('\PHPUnit_Runner_Version')) {
+  $phpunit_version = \PHPUnit_Runner_Version::id();
+}
+else {
+  $phpunit_version = Version::id();
+}
+if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
+  $message = "PHPUnit testing framework version 6 or greater is required when running on PHP 7.2 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.";
+  echo "\033[31m" . $message . "\n\033[0m";
+  exit(1);
+}
+
 // Set sane locale settings, to ensure consistent string, dates, times and
 // numbers handling.
 // @see \Drupal\Core\DrupalKernel::bootEnvironment()
@@ -166,3 +181,19 @@ date_default_timezone_set('Australia/Sydney');
 // make PHP 5 and 7 handle assertion failures the same way, but this call does
 // not turn runtime assertions on if they weren't on already.
 Handle::register();
+
+// PHPUnit 4 to PHPUnit 6 bridge. Tests written for PHPUnit 4 need to work on
+// PHPUnit 6 with a minimum of fuss.
+if (version_compare($phpunit_version, '6.1', '>=')) {
+  class_alias('\PHPUnit\Framework\AssertionFailedError', '\PHPUnit_Framework_AssertionFailedError');
+  class_alias('\PHPUnit\Framework\Constraint\Count', '\PHPUnit_Framework_Constraint_Count');
+  class_alias('\PHPUnit\Framework\Error\Error', '\PHPUnit_Framework_Error');
+  class_alias('\PHPUnit\Framework\Error\Warning', '\PHPUnit_Framework_Error_Warning');
+  class_alias('\PHPUnit\Framework\ExpectationFailedException', '\PHPUnit_Framework_ExpectationFailedException');
+  class_alias('\PHPUnit\Framework\Exception', '\PHPUnit_Framework_Exception');
+  class_alias('\PHPUnit\Framework\MockObject\Matcher\InvokedRecorder', '\PHPUnit_Framework_MockObject_Matcher_InvokedRecorder');
+  class_alias('\PHPUnit\Framework\SkippedTestError', '\PHPUnit_Framework_SkippedTestError');
+  class_alias('\PHPUnit\Framework\TestCase', '\PHPUnit_Framework_TestCase');
+  class_alias('\PHPUnit\Util\Test', '\PHPUnit_Util_Test');
+  class_alias('\PHPUnit\Util\XML', '\PHPUnit_Util_XML');
+}

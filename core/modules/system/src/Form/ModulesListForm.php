@@ -25,6 +25,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * each module's name, description, and information about which modules it
  * requires. See \Drupal\Core\Extension\InfoParser for info on module.info.yml
  * descriptors.
+ *
+ * @internal
  */
 class ModulesListForm extends FormBase {
 
@@ -176,6 +178,7 @@ class ModulesListForm extends FormBase {
     // Lastly, sort all packages by title.
     uasort($form['modules'], ['\Drupal\Component\Utility\SortArray', 'sortByTitleProperty']);
 
+    $form['#attached']['library'][] = 'core/drupal.tableresponsive';
     $form['#attached']['library'][] = 'system/drupal.system.modules';
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
@@ -386,7 +389,7 @@ class ModulesListForm extends FormBase {
     }
 
     // Add all dependencies to a list.
-    while (list($module) = each($modules['install'])) {
+    foreach ($modules['install'] as $module => $value) {
       foreach (array_keys($data[$module]->requires) as $dependency) {
         if (!isset($modules['install'][$dependency]) && !$this->moduleHandler->moduleExists($dependency)) {
           $modules['dependencies'][$module][$dependency] = $data[$dependency]->info['name'];

@@ -24,10 +24,10 @@ classList:
 
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
-  version: "4.7.2"
+  version: "4.8.0"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/ckeditor/ckeditor-dev/blob/4.7.2/LICENSE.md
+    url: https://github.com/ckeditor/ckeditor-dev/blob/4.8.0/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
@@ -496,6 +496,7 @@ jquery.ui.checkboxradio:
   css:
     component:
       assets/vendor/jquery.ui/themes/base/checkboxradio.css: {}
+      assets/vendor/jquery.ui/themes/base/button.css: {}
   dependencies:
     - core/jquery.ui
     - core/jquery.ui.widget
@@ -712,6 +713,8 @@ jquery.ui.position:
   license: *jquery_ui_license
   js:
     assets/vendor/jquery.ui/ui/position-min.js: { minified: true }
+  dependencies:
+    - core/jquery.ui
 
 jquery.ui.progressbar:
   version: *jquery_ui_version
@@ -759,6 +762,7 @@ jquery.ui.selectmenu:
   css:
     component:
       assets/vendor/jquery.ui/themes/base/selectmenu.css: {}
+      assets/vendor/jquery.ui/themes/base/button.css: {}
   dependencies:
     - core/jquery.ui
     - core/jquery.ui.menu
@@ -908,3 +912,32 @@ underscore:
     gpl-compatible: true
   js:
     assets/vendor/underscore/underscore-min.js: { weight: -20, minified: true }
+
+drupal.dialog.off_canvas:
+  version: VERSION
+  js:
+    misc/dialog/off-canvas.js: {}
+  css:
+    base:
+      misc/dialog/off-canvas.reset.css: {}
+      misc/dialog/off-canvas.base.css: {}
+      misc/dialog/off-canvas.css: {}
+      # Add group setting to make sure this CSS load before any jQuery UI Dialog
+      # CSS.
+      misc/dialog/off-canvas.theme.css: { group: 200 }
+    component:
+      misc/dialog/off-canvas.motion.css: {}
+      misc/dialog/off-canvas.button.css: {}
+      misc/dialog/off-canvas.form.css: {}
+      misc/dialog/off-canvas.table.css: {}
+      misc/dialog/off-canvas.details.css: {}
+      misc/dialog/off-canvas.tabledrag.css: {}
+      misc/dialog/off-canvas.dropbutton.css: {}
+      misc/dialog/off-canvas.layout.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupal.ajax
+    - core/drupal.announce
+    - core/drupal.dialog
+    - core/drupal.dialog.ajax
