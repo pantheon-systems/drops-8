@@ -66,9 +66,11 @@
       // Find the parent <li>.
       .closest('.comment-new-comments')
       // Find the preceding <li>, if any, and give it the 'last' class.
-      .prev().addClass('last')
+      .prev()
+      .addClass('last')
       // Go back to the parent <li> and hide it.
-      .end().hide();
+      .end()
+      .hide();
   }
 
   /**
@@ -95,9 +97,11 @@
       // Find the parent <li>.
       .closest('.comment-new-comments')
       // Find the preceding <li>, if any, and remove its 'last' class, if any.
-      .prev().removeClass('last')
+      .prev()
+      .removeClass('last')
       // Go back to the parent <li> and show it.
-      .end().show();
+      .end()
+      .show();
   }
 
   /**
@@ -145,15 +149,15 @@
      *   Data about new comment links indexed by nodeID.
      */
     function render(results) {
-      for (const nodeID in results) {
-        if (results.hasOwnProperty(nodeID) && $placeholdersToUpdate.hasOwnProperty(nodeID)) {
+      Object.keys(results || {}).forEach((nodeID) => {
+        if ($placeholdersToUpdate.hasOwnProperty(nodeID)) {
           $placeholdersToUpdate[nodeID]
             .attr('href', results[nodeID].first_new_comment_link)
             .text(Drupal.formatPlural(results[nodeID].new_comment_count, '1 new comment', '@count new comments'))
             .removeClass('hidden');
           show($placeholdersToUpdate[nodeID]);
         }
-      }
+      });
     }
 
     if (drupalSettings.comment && drupalSettings.comment.newCommentsLinks) {

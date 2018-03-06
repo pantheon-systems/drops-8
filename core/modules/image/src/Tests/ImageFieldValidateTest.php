@@ -8,6 +8,61 @@ namespace Drupal\image\Tests;
  * @group image
  */
 class ImageFieldValidateTest extends ImageFieldTestBase {
+
+  /**
+   * Test image validity.
+   */
+  public function testValid() {
+    $file_system = $this->container->get('file_system');
+    $image_files = $this->drupalGetTestFiles('image');
+
+    $field_name = strtolower($this->randomMachineName());
+    $this->createImageField($field_name, 'article', [], ['file_directory' => 'test-upload']);
+    $expected_path = 'public://test-upload';
+
+    // Create alt text for the image.
+    $alt = $this->randomMachineName();
+
+    // Create a node with a valid image.
+    $node = $this->uploadNodeImage($image_files[0], $field_name, 'article', $alt);
+    $this->assertTrue(file_exists($expected_path . '/' . $image_files[0]->filename));
+
+    // Remove the image.
+    $this->drupalPostForm('node/' . $node . '/edit', [], t('Remove'));
+    $this->drupalPostForm(NULL, [], t('Save'));
+
+    // Get invalid image test files from simpletest.
+    $files = file_scan_directory(drupal_get_path('module', 'simpletest') . '/files', '/invalid-img-.*/');
+    $invalid_image_files = [];
+    foreach ($files as $file) {
+      $invalid_image_files[$file->filename] = $file;
+    }
+
+    // Try uploading a zero-byte image.
+    $zero_size_image = $invalid_image_files['invalid-img-zero-size.png'];
+    $edit = [
+      'files[' . $field_name . '_0]' => $file_system->realpath($zero_size_image->uri),
+    ];
+    $this->drupalPostForm('node/' . $node . '/edit', $edit, t('Upload'));
+    $this->assertFalse(file_exists($expected_path . '/' . $zero_size_image->filename));
+
+    // Try uploading an invalid image.
+    $invalid_image = $invalid_image_files['invalid-img-test.png'];
+    $edit = [
+      'files[' . $field_name . '_0]' => $file_system->realpath($invalid_image->uri),
+    ];
+    $this->drupalPostForm('node/' . $node . '/edit', $edit, t('Upload'));
+    $this->assertFalse(file_exists($expected_path . '/' . $invalid_image->filename));
+
+    // Upload a valid image again.
+    $valid_image = $image_files[0];
+    $edit = [
+      'files[' . $field_name . '_0]' => $file_system->realpath($valid_image->uri),
+    ];
+    $this->drupalPostForm('node/' . $node . '/edit', $edit, t('Upload'));
+    $this->assertTrue(file_exists($expected_path . '/' . $valid_image->filename));
+  }
+
   /**
    * Test min/max resolution settings.
    */
@@ -62,6 +117,7 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
       }
       if ($image_file->getWidth() < $min_resolution['width']) {
         $image_that_is_too_small = $image;
+        $image_that_is_too_small_file = $image_file;
       }
       if ($image_that_is_too_small && $image_that_is_too_big) {
         break;
@@ -69,7 +125,11 @@ class ImageFieldValidateTest extends ImageFieldTestBase {
     }
     $this->uploadNodeImage($image_that_is_too_small, $field_names[0], 'article');
     $this->assertRaw(t('The specified file %name could not be uploaded.', ['%name' => $image_that_is_too_small->filename]));
-    $this->assertRaw(t('The image is too small; the minimum dimensions are %dimensions pixels.', ['%dimensions' => '50x50']));
+    $this->assertRaw(t('The image is too small. The minimum dimensions are %dimensions pixels and the image size is %widthx%height pixels.', [
+      '%dimensions' => '50x50',
+      '%width' => $image_that_is_too_small_file->getWidth(),
+      '%height' => $image_that_is_too_small_file->getHeight(),
+      ]));
     $this->uploadNodeImage($image_that_is_too_big, $field_names[0], 'article');
     $this->assertText(t('The image was resized to fit within the maximum allowed dimensions of 100x100 pixels.'));
     $this->uploadNodeImage($image_that_is_too_small, $field_names[1], 'article');

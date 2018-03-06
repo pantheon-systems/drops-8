@@ -11,6 +11,8 @@ use Drupal\migrate\Plugin\MigrationInterface;
  *   type_map = {
  *     "userreference" = "entity_reference",
  *   },
+ *   source_module = "userreference",
+ *   destination_module = "core",
  * )
  */
 class UserReference extends FieldPluginBase {

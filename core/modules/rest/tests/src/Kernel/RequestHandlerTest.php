@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\rest\Kernel;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\KernelTests\KernelTestBase;
@@ -11,6 +13,7 @@ use Drupal\rest\ResourceResponse;
 use Drupal\rest\RestResourceConfigInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
  * Test REST RequestHandler controller logic.
@@ -40,8 +43,11 @@ class RequestHandlerTest extends KernelTestBase {
   public function setUp() {
     parent::setUp();
     $this->entityStorage = $this->prophesize(EntityStorageInterface::class);
-    $this->requestHandler = new RequestHandler($this->entityStorage->reveal());
-    $this->requestHandler->setContainer($this->container);
+    $config_factory = $this->prophesize(ConfigFactoryInterface::class);
+    $config_factory->get('rest.settings')
+      ->willReturn($this->prophesize(ImmutableConfig::class)->reveal());
+    $serializer = $this->prophesize(SerializerInterface::class);
+    $this->requestHandler = new RequestHandler($this->entityStorage->reveal(), $config_factory->reveal(), $serializer->reveal());
   }
 
   /**
@@ -93,9 +99,9 @@ class RequestHandlerTest extends KernelTestBase {
  */
 class StubRequestHandlerResourcePlugin extends ResourceBase {
 
-  public function get() {}
+  public function get($example, Request $request) {}
   public function post() {}
-  public function patch() {}
+  public function patch($example_original, Request $request) {}
   public function delete() {}
 
 }

@@ -793,7 +793,11 @@ function simpletest_script_run_one_test($test_id, $test_class) {
       putenv('SYMFONY_DEPRECATIONS_HELPER=disabled');
     }
     else {
-      putenv('SYMFONY_DEPRECATIONS_HELPER=strict');
+      // Prevent deprecations caused by vendor code calling deprecated code.
+      // This also prevents mock objects in PHPUnit 6 triggering silenced
+      // deprecations from breaking the test suite. We should consider changing
+      // this to 'strict' once PHPUnit 4 is no longer used.
+      putenv('SYMFONY_DEPRECATIONS_HELPER=weak_vendors');
     }
     if (is_subclass_of($test_class, TestCase::class)) {
       $status = simpletest_script_run_phpunit($test_id, $test_class);
@@ -1420,7 +1424,7 @@ function simpletest_script_color_code($status) {
  *   string in $array would be identical to $string by changing 1/4 or fewer of
  *   its characters.
  *
- * @see http://php.net/manual/en/function.levenshtein.php
+ * @see http://php.net/manual/function.levenshtein.php
  */
 function simpletest_script_print_alternatives($string, $array, $degree = 4) {
   $alternatives = array();

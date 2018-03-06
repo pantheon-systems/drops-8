@@ -346,8 +346,15 @@
 
       const $addDisplayDropdown = $(`<li class="add"><a href="#"><span class="icon add"></span>${Drupal.t('Add')}</a><ul class="action-list" style="display:none;"></ul></li>`);
       const $displayButtons = $menu.nextAll('input.add-display').detach();
-      $displayButtons.appendTo($addDisplayDropdown.find('.action-list')).wrap('<li>')
-        .parent().eq(0).addClass('first').end().eq(-1).addClass('last');
+      $displayButtons
+        .appendTo($addDisplayDropdown.find('.action-list'))
+        .wrap('<li>')
+        .parent()
+        .eq(0)
+        .addClass('first')
+        .end()
+        .eq(-1)
+        .addClass('last');
       // Remove the 'Add ' prefix from the button labels since they're being
       // placed in an 'Add' dropdown. @todo This assumes English, but so does
       // $addDisplayDropdown above. Add support for translation.
@@ -753,7 +760,6 @@
      *   An operator element.
      */
     duplicateGroupsOperator() {
-      let dropdowns;
       let newRow;
       let titleRow;
 
@@ -770,7 +776,7 @@
 
       // Keep a list of the operator dropdowns, so we can sync their behavior
       // later.
-      dropdowns = this.operator;
+      const dropdowns = this.operator;
 
       // Move the operator to a new row just above the second group.
       titleRow = $('tr#views-group-title-2');
@@ -1021,7 +1027,11 @@
    */
   Drupal.behaviors.viewsRemoveIconClass = {
     attach(context) {
-      $(context).find('.dropbutton').once('dropbutton-icon').find('.icon').removeClass('icon');
+      $(context)
+        .find('.dropbutton')
+        .once('dropbutton-icon')
+        .find('.icon')
+        .removeClass('icon');
     },
   };
 
@@ -1124,11 +1134,11 @@
         // Closures! :(
         const $context = $(context);
         const $submit = $context.find('[id^=edit-submit]');
-        const old_value = $submit.val();
+        const oldValue = $submit.val();
 
         $submit.once('views-ui-override-button-text')
           .on('mouseup', function () {
-            $(this).val(old_value);
+            $(this).val(oldValue);
             return true;
           });
 
