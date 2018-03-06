@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\migrate_drupal_ui\Functional\d6;
 
-use Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeTestBase;
+use Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeExecuteTestBase;
 use Drupal\user\Entity\User;
 
 /**
@@ -12,7 +12,24 @@ use Drupal\user\Entity\User;
  *
  * @group migrate_drupal_ui
  */
-class MigrateUpgrade6Test extends MigrateUpgradeTestBase {
+class MigrateUpgrade6Test extends MigrateUpgradeExecuteTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = [
+    'language',
+    'content_translation',
+    'migrate_drupal_ui',
+    'telephone',
+    'aggregator',
+    'book',
+    'forum',
+    'statistics',
+    'migration_provider_test',
+  ];
 
   /**
    * {@inheritdoc}
@@ -35,7 +52,7 @@ class MigrateUpgrade6Test extends MigrateUpgradeTestBase {
   protected function getEntityCounts() {
     return [
       'aggregator_item' => 1,
-      'aggregator_feed' => 1,
+      'aggregator_feed' => 2,
       'block' => 35,
       'block_content' => 2,
       'block_content_type' => 1,
@@ -48,7 +65,7 @@ class MigrateUpgrade6Test extends MigrateUpgradeTestBase {
       'editor' => 2,
       'field_config' => 84,
       'field_storage_config' => 58,
-      'file' => 7,
+      'file' => 8,
       'filter_format' => 7,
       'image_style' => 5,
       'language_content_settings' => 2,
@@ -68,7 +85,7 @@ class MigrateUpgrade6Test extends MigrateUpgradeTestBase {
       'tour' => 4,
       'user' => 7,
       'user_role' => 6,
-      'menu_link_content' => 4,
+      'menu_link_content' => 5,
       'view' => 16,
       'date_format' => 11,
       'entity_form_display' => 29,
@@ -80,10 +97,78 @@ class MigrateUpgrade6Test extends MigrateUpgradeTestBase {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function getAvailablePaths() {
+    return [
+      'aggregator',
+      'block',
+      'book',
+      'comment',
+      'contact',
+      'content',
+      'date',
+      'dblog',
+      'email',
+      'filefield',
+      'filter',
+      'forum',
+      'i18ntaxonomy',
+      'imagecache',
+      'imagefield',
+      'language',
+      'link',
+      'locale',
+      'menu',
+      'node',
+      'nodereference',
+      'optionwidgets',
+      'path',
+      'profile',
+      'search',
+      'statistics',
+      'system',
+      'taxonomy',
+      'text',
+      'upload',
+      'user',
+      'userreference',
+      // Include modules that do not have an upgrade path and are enabled in the
+      // source database, defined in the $noUpgradePath property
+      // in MigrateUpgradeForm.
+      'date_api',
+      'date_timezone',
+      'event',
+      'i18n',
+      'i18nstrings',
+      'imageapi',
+      'number',
+      'php',
+      'profile',
+      'variable_admin',
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getMissingPaths() {
+    return [
+      'i18nblocks',
+      'i18ncck',
+      'i18ncontent',
+      'i18nmenu',
+      // This module is in the missing path list because it is installed on the
+      // source site but it is not installed on the destination site.
+      'i18nprofile',
+    ];
+  }
+
+  /**
    * Executes all steps of migrations upgrade.
    */
-  public function testMigrateUpgrade() {
-    parent::testMigrateUpgrade();
+  public function testMigrateUpgradeExecute() {
+    parent::testMigrateUpgradeExecute();
 
     // Ensure migrated users can log in.
     $user = User::load(2);

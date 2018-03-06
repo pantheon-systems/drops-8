@@ -2,6 +2,7 @@
 
 namespace Drupal\Core\ParamConverter;
 
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\TypedData\TranslatableInterface;
@@ -60,15 +61,30 @@ class EntityConverter implements ParamConverterInterface {
    */
   public function convert($value, $definition, $name, array $defaults) {
     $entity_type_id = $this->getEntityTypeFromDefaults($definition, $name, $defaults);
-    if ($storage = $this->entityManager->getStorage($entity_type_id)) {
-      $entity = $storage->load($value);
-      // If the entity type is translatable, ensure we return the proper
-      // translation object for the current context.
-      if ($entity instanceof EntityInterface && $entity instanceof TranslatableInterface) {
-        $entity = $this->entityManager->getTranslationFromContext($entity, NULL, ['operation' => 'entity_upcast']);
+    $storage = $this->entityManager->getStorage($entity_type_id);
+    $entity_definition = $this->entityManager->getDefinition($entity_type_id);
+
+    $entity = $storage->load($value);
+
+    // If the entity type is revisionable and the parameter has the
+    // "load_latest_revision" flag, load the latest revision.
+    if ($entity instanceof ContentEntityInterface && !empty($definition['load_latest_revision']) && $entity_definition->isRevisionable()) {
+      /** @var \Drupal\Core\Entity\ContentEntityStorageInterface  $storage */
+      $latest_revision_id = $storage->getLatestRevisionId($value);
+      // We explicitly perform a loose equality check, since a revision ID may
+      // be returned as an integer or a string.
+      if ($entity->getLoadedRevisionId() != $latest_revision_id) {
+        $entity = $storage->loadRevision($latest_revision_id);
       }
-      return $entity;
     }
+
+    // If the entity type is translatable, ensure we return the proper
+    // translation object for the current context.
+    if ($entity instanceof EntityInterface && $entity instanceof TranslatableInterface) {
+      $entity = $this->entityManager->getTranslationFromContext($entity, NULL, ['operation' => 'entity_upcast']);
+    }
+
+    return $entity;
   }
 
   /**

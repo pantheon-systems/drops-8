@@ -11,10 +11,16 @@
 
 namespace Symfony\Component\ClassLoader;
 
+if (\PHP_VERSION_ID >= 70000) {
+    @trigger_error('The '.__NAMESPACE__.'\ClassCollectionLoader class is deprecated since Symfony 3.3 and will be removed in 4.0.', E_USER_DEPRECATED);
+}
+
 /**
  * ClassCollectionLoader.
  *
  * @author Fabien Potencier <fabien@symfony.com>
+ *
+ * @deprecated since version 3.3, to be removed in 4.0.
  */
 class ClassCollectionLoader
 {
@@ -239,7 +245,7 @@ REGEX;
                 do {
                     $token = $tokens[++$i];
                     $output .= isset($token[1]) && 'b"' !== $token ? $token[1] : $token;
-                } while ($token[0] !== T_END_HEREDOC);
+                } while (T_END_HEREDOC !== $token[0]);
                 $output .= "\n";
                 $rawChunk = '';
             } elseif (T_CONSTANT_ENCAPSED_STRING === $token[0]) {
@@ -256,7 +262,7 @@ REGEX;
 
         $output .= self::compressCode($rawChunk);
 
-        if (PHP_VERSION_ID >= 70000) {
+        if (\PHP_VERSION_ID >= 70000) {
             // PHP 7 memory manager will not release after token_get_all(), see https://bugs.php.net/70098
             unset($tokens, $rawChunk);
             gc_mem_caches();
@@ -317,8 +323,6 @@ REGEX;
 
     /**
      * Gets an ordered array of passed classes including all their dependencies.
-     *
-     * @param array $classes
      *
      * @return \ReflectionClass[] An array of sorted \ReflectionClass instances (dependencies added if needed)
      *

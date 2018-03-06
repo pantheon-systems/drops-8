@@ -157,6 +157,22 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   protected $loadedRevisionId;
 
   /**
+   * The revision translation affected entity key.
+   *
+   * @var string
+   */
+  protected $revisionTranslationAffectedKey;
+
+  /**
+   * Whether the revision translation affected flag has been enforced.
+   *
+   * An array, keyed by the translation language code.
+   *
+   * @var bool[]
+   */
+  protected $enforceRevisionTranslationAffected = [];
+
+  /**
    * {@inheritdoc}
    */
   public function __construct(array $values, $entity_type, $bundle = FALSE, $translations = []) {
@@ -164,6 +180,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     $this->entityKeys['bundle'] = $bundle ? $bundle : $this->entityTypeId;
     $this->langcodeKey = $this->getEntityType()->getKey('langcode');
     $this->defaultLangcodeKey = $this->getEntityType()->getKey('default_langcode');
+    $this->revisionTranslationAffectedKey = $this->getEntityType()->getKey('revision_translation_affected');
 
     foreach ($values as $key => $value) {
       // If the key matches an existing property set the value to the property
@@ -269,15 +286,11 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
       // When saving a new revision, set any existing revision ID to NULL so as
       // to ensure that a new revision will actually be created.
       $this->set($this->getEntityType()->getKey('revision'), NULL);
-
-      // Make sure that the flag tracking which translations are affected by the
-      // current revision is reset.
-      foreach ($this->translations as $langcode => $data) {
-        // But skip removed translations.
-        if ($this->hasTranslation($langcode)) {
-          $this->getTranslation($langcode)->setRevisionTranslationAffected(NULL);
-        }
-      }
+    }
+    elseif (!$value && $this->newRevision) {
+      // If ::setNewRevision(FALSE) is called after ::setNewRevision(TRUE) we
+      // have to restore the loaded revision ID.
+      $this->set($this->getEntityType()->getKey('revision'), $this->getLoadedRevisionId());
     }
 
     $this->newRevision = $value;
@@ -321,19 +334,52 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
   /**
    * {@inheritdoc}
    */
+  public function isLatestRevision() {
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager()->getStorage($this->getEntityTypeId());
+
+    return $this->getLoadedRevisionId() == $storage->getLatestRevisionId($this->id());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isLatestTranslationAffectedRevision() {
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager()->getStorage($this->getEntityTypeId());
+
+    return $this->getLoadedRevisionId() == $storage->getLatestTranslationAffectedRevisionId($this->id(), $this->language()->getId());
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isRevisionTranslationAffected() {
-    $field_name = $this->getEntityType()->getKey('revision_translation_affected');
-    return $this->hasField($field_name) ? $this->get($field_name)->value : TRUE;
+    return $this->hasField($this->revisionTranslationAffectedKey) ? $this->get($this->revisionTranslationAffectedKey)->value : TRUE;
   }
 
   /**
    * {@inheritdoc}
    */
   public function setRevisionTranslationAffected($affected) {
-    $field_name = $this->getEntityType()->getKey('revision_translation_affected');
-    if ($this->hasField($field_name)) {
-      $this->set($field_name, $affected);
+    if ($this->hasField($this->revisionTranslationAffectedKey)) {
+      $this->set($this->revisionTranslationAffectedKey, $affected);
     }
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isRevisionTranslationAffectedEnforced() {
+    return !empty($this->enforceRevisionTranslationAffected[$this->activeLangcode]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setRevisionTranslationAffectedEnforced($enforced) {
+    $this->enforceRevisionTranslationAffected[$this->activeLangcode] = $enforced;
     return $this;
   }
 
@@ -401,6 +447,12 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
       }
     }
     $this->translations = array_diff_key($this->translations, $removed);
+
+    // Reset the new revision flag.
+    $this->newRevision = FALSE;
+
+    // Reset the enforcement of the revision translation affected flag.
+    $this->enforceRevisionTranslationAffected = [];
   }
 
   /**
@@ -716,7 +768,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
         // If the revision identifier field is being populated with the original
         // value, we need to make sure the "new revision" flag is reset
         // accordingly.
-        if ($key === 'revision' && $this->getRevisionId() == $this->getLoadedRevisionId()) {
+        if ($key === 'revision' && $this->getRevisionId() == $this->getLoadedRevisionId() && !$this->isNew()) {
           $this->newRevision = FALSE;
         }
       }
@@ -753,6 +805,12 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
           $message = SafeMarkup::format('The default translation flag cannot be changed (@langcode).', ['@langcode' => $this->activeLangcode]);
           throw new \LogicException($message);
         }
+        break;
+
+      case $this->revisionTranslationAffectedKey:
+        // If the revision translation affected flag is being set then enforce
+        // its value.
+        $this->setRevisionTranslationAffectedEnforced(TRUE);
         break;
     }
   }
@@ -837,6 +895,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     $translation->typedData = NULL;
     $translation->loadedRevisionId = &$this->loadedRevisionId;
     $translation->isDefaultRevision = &$this->isDefaultRevision;
+    $translation->enforceRevisionTranslationAffected = &$this->enforceRevisionTranslationAffected;
 
     return $translation;
   }
@@ -1049,7 +1108,9 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
 
     $duplicate = clone $this;
     $entity_type = $this->getEntityType();
-    $duplicate->{$entity_type->getKey('id')}->value = NULL;
+    if ($entity_type->hasKey('id')) {
+      $duplicate->{$entity_type->getKey('id')}->value = NULL;
+    }
     $duplicate->enforceIsNew();
 
     // Check if the entity type supports UUIDs and generate a new one if so.
@@ -1104,7 +1165,8 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     // Ensure that the following properties are actually cloned by
     // overwriting the original references with ones pointing to copies of
     // them: enforceIsNew, newRevision, loadedRevisionId, fields, entityKeys,
-    // translatableEntityKeys, values and isDefaultRevision.
+    // translatableEntityKeys, values, isDefaultRevision and
+    // enforceRevisionTranslationAffected.
     $enforce_is_new = $this->enforceIsNew;
     $this->enforceIsNew = &$enforce_is_new;
 
@@ -1128,6 +1190,9 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
 
     $default_revision = $this->isDefaultRevision;
     $this->isDefaultRevision = &$default_revision;
+
+    $is_revision_translation_affected_enforced = $this->enforceRevisionTranslationAffected;
+    $this->enforceRevisionTranslationAffected = &$is_revision_translation_affected_enforced;
 
     foreach ($this->fields as $name => $fields_by_langcode) {
       $this->fields[$name] = [];

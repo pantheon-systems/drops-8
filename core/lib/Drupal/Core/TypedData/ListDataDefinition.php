@@ -72,20 +72,18 @@ class ListDataDefinition extends DataDefinition implements ListDataDefinitionInt
    * {@inheritdoc}
    */
   public function getClass() {
-    $class = isset($this->definition['class']) ? $this->definition['class'] : NULL;
-    if (!empty($class)) {
-      return $class;
+    if (!empty($this->definition['class'])) {
+      return $this->definition['class'];
     }
-    else {
-      // If a list definition is used but no class has been specified, derive
-      // the default list class from the item type.
-      $item_type_definition = \Drupal::typedDataManager()
-        ->getDefinition($this->getItemDefinition()->getDataType());
-      if (!$item_type_definition) {
-        throw new \LogicException("An invalid data type '{$this->getItemDefinition()->getDataType()}' has been specified for list items");
-      }
-      return $item_type_definition['list_class'];
+
+    // If a list definition is used but no class has been specified, derive the
+    // default list class from the item type.
+    $item_type_definition = \Drupal::typedDataManager()
+      ->getDefinition($this->getItemDefinition()->getDataType());
+    if (!$item_type_definition) {
+      throw new \LogicException("An invalid data type '{$this->getItemDefinition()->getDataType()}' has been specified for list items");
     }
+    return $item_type_definition['list_class'];
   }
 
   /**
@@ -106,6 +104,15 @@ class ListDataDefinition extends DataDefinition implements ListDataDefinitionInt
   public function setItemDefinition(DataDefinitionInterface $definition) {
     $this->itemDefinition = $definition;
     return $this;
+  }
+
+  /**
+   * Magic method: Implements a deep clone.
+   */
+  public function __clone() {
+    // Ensure the itemDefinition property is actually cloned by overwriting the
+    // original reference.
+    $this->itemDefinition = clone $this->itemDefinition;
   }
 
 }

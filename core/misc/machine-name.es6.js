@@ -86,12 +86,11 @@
         }
       }
 
-      Object.keys(settings.machineName).forEach((source_id) => {
+      Object.keys(settings.machineName).forEach((sourceId) => {
         let machine = '';
-        let eventData;
-        const options = settings.machineName[source_id];
+        const options = settings.machineName[sourceId];
 
-        const $source = $context.find(source_id).addClass('machine-name-source').once('machine-name');
+        const $source = $context.find(sourceId).addClass('machine-name-source').once('machine-name');
         const $target = $context.find(options.target).addClass('machine-name-target');
         const $suffix = $context.find(options.suffix);
         const $wrapper = $target.closest('.js-form-item');
@@ -129,7 +128,7 @@
           return;
         }
 
-        eventData = {
+        const eventData = {
           $source,
           $target,
           $suffix,

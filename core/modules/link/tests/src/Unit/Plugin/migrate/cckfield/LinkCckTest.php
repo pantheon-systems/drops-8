@@ -46,6 +46,7 @@ class LinkCckTest extends UnitTestCase {
 
   /**
    * @covers ::processCckFieldValues
+   * @expectedDeprecation LinkField is deprecated in Drupal 8.3.x and will be be removed before Drupal 9.0.x. Use \Drupal\link\Plugin\migrate\field\d6\LinkField instead.
    */
   public function testProcessCckFieldValues() {
     $this->plugin->processCckFieldValues($this->migration, 'somefieldname', []);

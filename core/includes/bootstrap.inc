@@ -11,8 +11,6 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\Logger\RfcLogLevel;
-use Drupal\Core\Render\Markup;
-use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
@@ -21,8 +19,19 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Minimum supported version of PHP.
+ *
+ * Drupal cannot be installed on versions of PHP older than this version.
  */
 const DRUPAL_MINIMUM_PHP = '5.5.9';
+
+/**
+ * Minimum recommended version of PHP.
+ *
+ * Sites installing Drupal on PHP versions lower than this will see a warning
+ * message, but Drupal can still be installed. Used for (e.g.) PHP versions
+ * that have reached their EOL or will in the near future.
+ */
+const DRUPAL_RECOMMENDED_PHP = '7.1';
 
 /**
  * Minimum recommended value of PHP memory_limit.
@@ -457,30 +466,18 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
  *
  * @see drupal_get_messages()
  * @see status-messages.html.twig
+ * @see https://www.drupal.org/node/2774931
+ *
+ * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Core\Messenger\MessengerInterface::addMessage() instead.
  */
 function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) {
+  @trigger_error('drupal_set_message() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Messenger\MessengerInterface::addMessage() instead. See https://www.drupal.org/node/2774931', E_USER_DEPRECATED);
+  $messenger = \Drupal::messenger();
   if (isset($message)) {
-    if (!isset($_SESSION['messages'][$type])) {
-      $_SESSION['messages'][$type] = [];
-    }
-
-    // Convert strings which are safe to the simplest Markup objects.
-    if (!($message instanceof Markup) && $message instanceof MarkupInterface) {
-      $message = Markup::create((string) $message);
-    }
-
-    // Do not use strict type checking so that equivalent string and
-    // MarkupInterface objects are detected.
-    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
-      $_SESSION['messages'][$type][] = $message;
-    }
-
-    // Mark this page as being uncacheable.
-    \Drupal::service('page_cache_kill_switch')->trigger();
+    $messenger->addMessage($message, $type, $repeat);
   }
-
-  // Messages not set when DB connection fails.
-  return isset($_SESSION['messages']) ? $_SESSION['messages'] : NULL;
+  return $messenger->all();
 }
 
 /**
@@ -507,12 +504,19 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) 
  *
  * @see drupal_set_message()
  * @see status-messages.html.twig
+ * @see https://www.drupal.org/node/2774931
+ *
+ * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Core\Messenger\MessengerInterface::all() or
+ *   \Drupal\Core\Messenger\MessengerInterface::messagesByType() instead.
  */
 function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
-  if ($messages = drupal_set_message()) {
+  @trigger_error('drupal_get_message() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Messenger\MessengerInterface::all() or \Drupal\Core\Messenger\MessengerInterface::messagesByType() instead. See https://www.drupal.org/node/2774931', E_USER_DEPRECATED);
+  $messenger = \Drupal::messenger();
+  if ($messages = $messenger->all()) {
     if ($type) {
       if ($clear_queue) {
-        unset($_SESSION['messages'][$type]);
+        $messenger->deleteByType($type);
       }
       if (isset($messages[$type])) {
         return [$type => $messages[$type]];
@@ -520,7 +524,7 @@ function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
     }
     else {
       if ($clear_queue) {
-        unset($_SESSION['messages']);
+        $messenger->deleteAll();
       }
       return $messages;
     }
@@ -1021,7 +1025,7 @@ function _drupal_shutdown_function() {
   chdir(DRUPAL_ROOT);
 
   try {
-    while (list($key, $callback) = each($callbacks)) {
+    foreach ($callbacks as &$callback) {
       call_user_func_array($callback['callback'], $callback['arguments']);
     }
   }

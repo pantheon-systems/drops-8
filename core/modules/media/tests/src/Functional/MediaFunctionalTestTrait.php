@@ -20,11 +20,6 @@ trait MediaFunctionalTestTrait {
     'administer media display',
     'administer media types',
     'view media',
-    'create media',
-    'update media',
-    'update any media',
-    'delete media',
-    'delete any media',
     // Other permissions.
     'administer views',
     'access content overview',
@@ -32,6 +27,7 @@ trait MediaFunctionalTestTrait {
     'administer content types',
     'administer node fields',
     'administer node form display',
+    'administer node display',
     'bypass node access',
   ];
 

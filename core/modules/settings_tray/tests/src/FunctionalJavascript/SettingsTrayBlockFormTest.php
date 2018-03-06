@@ -5,20 +5,18 @@ namespace Drupal\Tests\settings_tray\FunctionalJavascript;
 use Drupal\block\Entity\Block;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
-use Drupal\menu_link_content\Entity\MenuLinkContent;
 use Drupal\settings_tray_test\Plugin\Block\SettingsTrayFormAnnotationIsClassBlock;
 use Drupal\settings_tray_test\Plugin\Block\SettingsTrayFormAnnotationNoneBlock;
-use Drupal\system\Entity\Menu;
 use Drupal\Tests\contextual\FunctionalJavascript\ContextualLinkClickTrait;
+use Drupal\Tests\system\FunctionalJavascript\OffCanvasTestBase;
 use Drupal\user\Entity\Role;
-use Drupal\user\RoleInterface;
 
 /**
  * Testing opening and saving block forms in the off-canvas dialog.
  *
  * @group settings_tray
  */
-class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
+class SettingsTrayBlockFormTest extends OffCanvasTestBase {
 
   use ContextualLinkClickTrait;
 
@@ -37,6 +35,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     'toolbar',
     'contextual',
     'settings_tray',
+    'quickedit',
     'search',
     'block_content',
     'settings_tray_test',
@@ -44,8 +43,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     // cause test failures.
     'settings_tray_test_css',
     'settings_tray_test',
-    'menu_link_content',
-    'menu_ui',
   ];
 
   /**
@@ -61,6 +58,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
       'access contextual links',
       'access toolbar',
       'administer nodes',
+      'access in-place editing',
       'search content',
     ]);
     $this->drupalLogin($user);
@@ -72,11 +70,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
    *
    * @dataProvider providerTestBlocks
    */
-  public function testBlocks($theme, $block_plugin, $new_page_text, $element_selector, $label_selector, $button_text, $toolbar_item, $permissions) {
-    if ($permissions) {
-      $this->grantPermissions(Role::load(Role::AUTHENTICATED_ID), $permissions);
-    }
-
+  public function testBlocks($theme, $block_plugin, $new_page_text, $element_selector, $label_selector, $button_text, $toolbar_item) {
     $web_assert = $this->assertSession();
     $page = $this->getSession()->getPage();
     $this->enableTheme($theme);
@@ -151,7 +145,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     // suppressed.
     $this->openBlockForm("$block_selector {$element_selector}", $block_selector);
     $web_assert->elementTextContains('css', '.contextual-toolbar-tab button', 'Editing');
-    $web_assert->elementAttributeContains('css', '.dialog-off-canvas__main-canvas', 'class', 'js-settings-tray-edit-mode');
+    $web_assert->elementAttributeContains('css', '.dialog-off-canvas-main-canvas', 'class', 'js-settings-tray-edit-mode');
     // Simulate press the Escape key.
     $this->getSession()->executeScript('jQuery("body").trigger(jQuery.Event("keyup", { keyCode: 27 }));');
     $this->waitForOffCanvasToClose();
@@ -159,7 +153,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $this->assertEditModeDisabled();
     $web_assert->elementTextContains('css', '#drupal-live-announce', 'Exited edit mode.');
     $web_assert->elementTextNotContains('css', '.contextual-toolbar-tab button', 'Editing');
-    $web_assert->elementAttributeNotContains('css', '.dialog-off-canvas__main-canvas', 'class', 'js-settings-tray-edit-mode');
+    $web_assert->elementAttributeNotContains('css', '.dialog-off-canvas-main-canvas', 'class', 'js-settings-tray-edit-mode');
   }
 
   /**
@@ -177,7 +171,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
           'label_selector' => 'h2',
           'button_text' => 'Save Powered by Drupal',
           'toolbar_item' => '#toolbar-item-user',
-          NULL,
         ],
         "$theme: block-branding" => [
           'theme' => $theme,
@@ -187,7 +180,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
           'label_selector' => "a[rel='home']:last-child",
           'button_text' => 'Save Site branding',
           'toolbar_item' => '#toolbar-item-administration',
-          ['administer site configuration'],
         ],
         "$theme: block-search" => [
           'theme' => $theme,
@@ -197,7 +189,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
           'label_selector' => 'h2',
           'button_text' => 'Save Search form',
           'toolbar_item' => NULL,
-          NULL,
         ],
         // This is the functional JS test coverage accompanying
         // \Drupal\Tests\settings_tray\Functional\SettingsTrayTest::testPossibleAnnotations().
@@ -209,7 +200,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
           'label_selector' => NULL,
           'button_text' => NULL,
           'toolbar_item' => NULL,
-          NULL,
         ],
         // This is the functional JS test coverage accompanying
         // \Drupal\Tests\settings_tray\Functional\SettingsTrayTest::testPossibleAnnotations().
@@ -221,7 +211,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
           'label_selector' => NULL,
           'button_text' => NULL,
           'toolbar_item' => NULL,
-          NULL,
         ],
       ];
     }
@@ -289,7 +278,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $this->assertNotEmpty($contextual_link);
     // When page first loads Edit Mode is not triggered until first contextual
     // link is added.
-    $this->assertElementVisibleAfterWait('css', '.dialog-off-canvas__main-canvas.js-settings-tray-edit-mode');
+    $this->assertElementVisibleAfterWait('css', '.dialog-off-canvas-main-canvas.js-settings-tray-edit-mode');
     // Ensure that all other Ajax activity is completed.
     $this->assertSession()->assertWaitOnAjaxRequest();
     $this->click($block_selector);
@@ -301,8 +290,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
    * Tests QuickEdit links behavior.
    */
   public function testQuickEditLinks() {
-    $this->container->get('module_installer')->install(['quickedit']);
-    $this->grantPermissions(Role::load(RoleInterface::AUTHENTICATED_ID), ['access in-place editing']);
     $quick_edit_selector = '#quickedit-entity-toolbar';
     $node_selector = '[data-quickedit-entity-id="node/1"]';
     $body_selector = '[data-quickedit-field-id="node/1/body/en/full"]';
@@ -428,7 +415,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     // The toolbar edit button should read "Editing".
     $web_assert->elementContains('css', static::TOOLBAR_EDIT_LINK_SELECTOR, 'Editing');
     // The main canvas element should have the "js-settings-tray-edit-mode" class.
-    $web_assert->elementExists('css', '.dialog-off-canvas__main-canvas.js-settings-tray-edit-mode');
+    $web_assert->elementExists('css', '.dialog-off-canvas-main-canvas.js-settings-tray-edit-mode');
   }
 
   /**
@@ -444,7 +431,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
     $web_assert->elementContains('css', static::TOOLBAR_EDIT_LINK_SELECTOR, 'Edit');
     // The main canvas element should NOT have the "js-settings-tray-edit-mode"
     // class.
-    $web_assert->elementNotExists('css', '.dialog-off-canvas__main-canvas.js-settings-tray-edit-mode');
+    $web_assert->elementNotExists('css', '.dialog-off-canvas-main-canvas.js-settings-tray-edit-mode');
   }
 
   /**
@@ -520,8 +507,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
    * "Quick edit settings" is settings_tray.module link.
    */
   public function testCustomBlockLinks() {
-    $this->container->get('module_installer')->install(['quickedit']);
-    $this->grantPermissions(Role::load(RoleInterface::AUTHENTICATED_ID), ['access in-place editing']);
     $this->drupalGet('user');
     $page = $this->getSession()->getPage();
     $links = $page->findAll('css', "#block-custom .contextual-links li a");
@@ -560,72 +545,6 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
   }
 
   /**
-   * Tests access to block forms with related configuration is correct.
-   */
-  public function testBlockConfigAccess() {
-    $page = $this->getSession()->getPage();
-    $web_assert = $this->assertSession();
-
-    // Confirm that System Branding block does not expose Site Name field
-    // without permission.
-    $block = $this->placeBlock('system_branding_block');
-    $this->drupalGet('user');
-    $this->enableEditMode();
-    $this->openBlockForm($this->getBlockSelector($block));
-    // The site name field should not appear because the user doesn't have
-    // permission.
-    $web_assert->fieldNotExists('settings[site_information][site_name]');
-    $page->pressButton('Save Site branding');
-    $this->assertElementVisibleAfterWait('css', 'div:contains(The block configuration has been saved)');
-    $web_assert->assertWaitOnAjaxRequest();
-    // Confirm we did not save changes to the configuration.
-    $this->assertEquals('Drupal', \Drupal::configFactory()->getEditable('system.site')->get('name'));
-
-    $this->grantPermissions(Role::load(Role::AUTHENTICATED_ID), ['administer site configuration']);
-    $this->drupalGet('user');
-    $this->openBlockForm($this->getBlockSelector($block));
-    // The site name field should appear because the user does have permission.
-    $web_assert->fieldExists('settings[site_information][site_name]');
-
-    // Confirm that the Menu block does not expose menu configuration without
-    // permission.
-    // Add a link or the menu will not render.
-    $menu_link_content = MenuLinkContent::create([
-      'title' => 'This is on the menu',
-      'menu_name' => 'main',
-      'link' => ['uri' => 'route:<front>'],
-    ]);
-    $menu_link_content->save();
-    $this->assertNotEmpty($menu_link_content->isEnabled());
-    $menu_without_overrides = \Drupal::configFactory()->getEditable('system.menu.main')->get();
-    $block = $this->placeBlock('system_menu_block:main');
-    $this->drupalGet('user');
-    $web_assert->pageTextContains('This is on the menu');
-    $this->openBlockForm($this->getBlockSelector($block));
-    // Edit menu form should not appear because the user doesn't have
-    // permission.
-    $web_assert->pageTextNotContains('Edit menu');
-    $page->pressButton('Save Main navigation');
-    $this->assertElementVisibleAfterWait('css', 'div:contains(The block configuration has been saved)');
-    $web_assert->assertWaitOnAjaxRequest();
-    // Confirm we did not save changes to the menu or the menu link.
-    $this->assertEquals($menu_without_overrides, \Drupal::configFactory()->getEditable('system.menu.main')->get());
-    $menu_link_content = MenuLinkContent::load($menu_link_content->id());
-    $this->assertNotEmpty($menu_link_content->isEnabled());
-    // Confirm menu is still on the page.
-    $this->drupalGet('user');
-    $web_assert->pageTextContains('This is on the menu');
-
-
-    $this->grantPermissions(Role::load(Role::AUTHENTICATED_ID), ['administer menu']);
-    $this->drupalGet('user');
-    $web_assert->pageTextContains('This is on the menu');
-    $this->openBlockForm($this->getBlockSelector($block));
-    // Edit menu form should appear because the user does have permission.
-    $web_assert->pageTextContains('Edit menu');
-  }
-
-  /**
    * Test that validation errors appear in the off-canvas dialog.
    */
   public function testValidationMessages() {
@@ -645,6 +564,17 @@ class SettingsTrayBlockFormTest extends SettingsTrayJavascriptTestBase {
       $this->disableEditMode();
       $block->delete();
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getTestThemes() {
+    // Remove 'seven' theme. Setting Tray "Edit Mode" will not work with 'seven'
+    // because it removes all contextual links the off-canvas dialog should.
+    return array_filter(parent::getTestThemes(), function ($theme) {
+      return $theme !== 'seven';
+    });
   }
 
 }
