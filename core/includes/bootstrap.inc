@@ -11,8 +11,6 @@ use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
 use Drupal\Core\Logger\RfcLogLevel;
-use Drupal\Core\Render\Markup;
-use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Site\Settings;
@@ -21,8 +19,25 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Minimum supported version of PHP.
+ *
+ * Drupal cannot be installed on versions of PHP older than this version.
+ *
+ * @todo Move this to an appropriate autoloadable class. See
+ *   https://www.drupal.org/project/drupal/issues/2908079
  */
 const DRUPAL_MINIMUM_PHP = '5.5.9';
+
+/**
+ * Minimum recommended version of PHP.
+ *
+ * Sites installing Drupal on PHP versions lower than this will see a warning
+ * message, but Drupal can still be installed. Used for (e.g.) PHP versions
+ * that have reached their EOL or will in the near future.
+ *
+ * @todo Move this to an appropriate autoloadable class. See
+ *   https://www.drupal.org/project/drupal/issues/2908079
+ */
+const DRUPAL_RECOMMENDED_PHP = '7.1';
 
 /**
  * Minimum recommended value of PHP memory_limit.
@@ -30,6 +45,9 @@ const DRUPAL_MINIMUM_PHP = '5.5.9';
  * 64M was chosen as a minimum requirement in order to allow for additional
  * contributed modules to be installed prior to hitting the limit. However,
  * 40M is the target for the Standard installation profile.
+ *
+ * @todo Move this to an appropriate autoloadable class. See
+ *   https://www.drupal.org/project/drupal/issues/2908079
  */
 const DRUPAL_MINIMUM_PHP_MEMORY_LIMIT = '64M';
 
@@ -201,7 +219,7 @@ function config_get_config_directory($type) {
  *   The filename of the item if it is to be set explicitly rather
  *   than by consulting the database.
  *
- * @return
+ * @return string
  *   The filename of the requested item or NULL if the item is not found.
  */
 function drupal_get_filename($type, $name, $filename = NULL) {
@@ -266,7 +284,7 @@ function drupal_get_filename($type, $name, $filename = NULL) {
  *   The name of the item for which the path is requested. Ignored for
  *   $type 'core'.
  *
- * @return
+ * @return string
  *   The path to the requested item or an empty string if the item is not found.
  */
 function drupal_get_path($type, $name) {
@@ -457,30 +475,18 @@ function watchdog_exception($type, Exception $exception, $message = NULL, $varia
  *
  * @see drupal_get_messages()
  * @see status-messages.html.twig
+ * @see https://www.drupal.org/node/2774931
+ *
+ * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Core\Messenger\MessengerInterface::addMessage() instead.
  */
 function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) {
+  @trigger_error('drupal_set_message() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Messenger\MessengerInterface::addMessage() instead. See https://www.drupal.org/node/2774931', E_USER_DEPRECATED);
+  $messenger = \Drupal::messenger();
   if (isset($message)) {
-    if (!isset($_SESSION['messages'][$type])) {
-      $_SESSION['messages'][$type] = [];
-    }
-
-    // Convert strings which are safe to the simplest Markup objects.
-    if (!($message instanceof Markup) && $message instanceof MarkupInterface) {
-      $message = Markup::create((string) $message);
-    }
-
-    // Do not use strict type checking so that equivalent string and
-    // MarkupInterface objects are detected.
-    if ($repeat || !in_array($message, $_SESSION['messages'][$type])) {
-      $_SESSION['messages'][$type][] = $message;
-    }
-
-    // Mark this page as being uncacheable.
-    \Drupal::service('page_cache_kill_switch')->trigger();
+    $messenger->addMessage($message, $type, $repeat);
   }
-
-  // Messages not set when DB connection fails.
-  return isset($_SESSION['messages']) ? $_SESSION['messages'] : NULL;
+  return $messenger->all();
 }
 
 /**
@@ -507,12 +513,19 @@ function drupal_set_message($message = NULL, $type = 'status', $repeat = FALSE) 
  *
  * @see drupal_set_message()
  * @see status-messages.html.twig
+ * @see https://www.drupal.org/node/2774931
+ *
+ * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\Core\Messenger\MessengerInterface::all() or
+ *   \Drupal\Core\Messenger\MessengerInterface::messagesByType() instead.
  */
 function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
-  if ($messages = drupal_set_message()) {
+  @trigger_error('drupal_get_message() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Messenger\MessengerInterface::all() or \Drupal\Core\Messenger\MessengerInterface::messagesByType() instead. See https://www.drupal.org/node/2774931', E_USER_DEPRECATED);
+  $messenger = \Drupal::messenger();
+  if ($messages = $messenger->all()) {
     if ($type) {
       if ($clear_queue) {
-        unset($_SESSION['messages'][$type]);
+        $messenger->deleteByType($type);
       }
       if (isset($messages[$type])) {
         return [$type => $messages[$type]];
@@ -520,7 +533,7 @@ function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
     }
     else {
       if ($clear_queue) {
-        unset($_SESSION['messages']);
+        $messenger->deleteAll();
       }
       return $messages;
     }
@@ -530,6 +543,9 @@ function drupal_get_messages($type = NULL, $clear_queue = TRUE) {
 
 /**
  * Returns the time zone of the current user.
+ *
+ * @return string
+ *   The name of the current user's timezone or the name of the default timezone.
  */
 function drupal_get_user_timezone() {
   $user = \Drupal::currentUser();
@@ -909,7 +925,7 @@ function drupal_classloader_register($name, $path) {
  *   internally and should not be passed in; use drupal_static_reset() instead.
  *   (This function's return value should not be used when TRUE is passed in.)
  *
- * @return
+ * @return array
  *   Returns a variable by reference.
  *
  * @see drupal_static_reset()
@@ -980,12 +996,12 @@ function drupal_placeholder($text) {
  * Wrapper for register_shutdown_function() that catches thrown exceptions to
  * avoid "Exception thrown without a stack frame in Unknown".
  *
- * @param $callback
+ * @param callable $callback
  *   The shutdown function to register.
  * @param ...
  *   Additional arguments to pass to the shutdown function.
  *
- * @return
+ * @return array
  *   Array of shutdown functions to be executed.
  *
  * @see register_shutdown_function()
@@ -1021,7 +1037,7 @@ function _drupal_shutdown_function() {
   chdir(DRUPAL_ROOT);
 
   try {
-    while (list($key, $callback) = each($callbacks)) {
+    foreach ($callbacks as &$callback) {
       call_user_func_array($callback['callback'], $callback['arguments']);
     }
   }

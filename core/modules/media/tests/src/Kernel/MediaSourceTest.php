@@ -141,13 +141,27 @@ class MediaSourceTest extends MediaKernelTestBase {
   }
 
   /**
+   * Tests the getSourceFieldValue() method.
+   */
+  public function testGetSourceFieldValue() {
+    /** @var \Drupal\media\MediaInterface $media */
+    $media = Media::create([
+      'bundle' => $this->testMediaType->id(),
+      'field_media_test' => 'some_value',
+    ]);
+    $media->save();
+    $media_source = $media->getSource();
+    $this->assertSame('some_value', $media_source->getSourceFieldValue($media));
+  }
+
+  /**
    * Tests the thumbnail functionality.
    */
   public function testThumbnail() {
     file_put_contents('public://thumbnail1.jpg', '');
     file_put_contents('public://thumbnail2.jpg', '');
 
-    // Save a media entity and make sure thumbnail was added.
+    // Save a media item and make sure thumbnail was added.
     \Drupal::state()->set('media_source_test_attributes', [
       'thumbnail_uri' => ['title' => 'Thumbnail', 'value' => 'public://thumbnail1.jpg'],
     ]);
@@ -160,7 +174,7 @@ class MediaSourceTest extends MediaKernelTestBase {
     $media_source = $media->getSource();
     $this->assertEquals('public://thumbnail1.jpg', $media_source->getMetadata($media, 'thumbnail_uri'), 'Value of the thumbnail metadata attribute is not correct.');
     $media->save();
-    $this->assertEquals('public://thumbnail1.jpg', $media->thumbnail->entity->getFileUri(), 'Thumbnail was not added to the media entity.');
+    $this->assertEquals('public://thumbnail1.jpg', $media->thumbnail->entity->getFileUri(), 'Thumbnail was not added to the media item.');
     $this->assertEquals('Mr. Jones', $media->thumbnail->title, 'Title text was not set on the thumbnail.');
     $this->assertEquals('Thumbnail', $media->thumbnail->alt, 'Alt text was not set on the thumbnail.');
 
@@ -179,7 +193,7 @@ class MediaSourceTest extends MediaKernelTestBase {
     $media->thumbnail->target_id = NULL;
     $this->assertEquals('public://thumbnail2.jpg', $media_source->getMetadata($media, 'thumbnail_uri'), 'Value of the thumbnail metadata attribute is not correct.');
     $media->save();
-    $this->assertEquals('public://thumbnail2.jpg', $media->thumbnail->entity->getFileUri(), 'New thumbnail was not added to the media entity.');
+    $this->assertEquals('public://thumbnail2.jpg', $media->thumbnail->entity->getFileUri(), 'New thumbnail was not added to the media item.');
     $this->assertEquals('Mr. Jones', $media->thumbnail->title, 'Title text was not set on the thumbnail.');
     $this->assertEquals('Thumbnail', $media->thumbnail->alt, 'Alt text was not set on the thumbnail.');
 
@@ -191,7 +205,7 @@ class MediaSourceTest extends MediaKernelTestBase {
     $media->field_media_test->value = 'some_new_value';
     $this->assertEquals('public://thumbnail1.jpg', $media_source->getMetadata($media, 'thumbnail_uri'), 'Value of the thumbnail metadata attribute is not correct.');
     $media->save();
-    $this->assertEquals('public://thumbnail1.jpg', $media->thumbnail->entity->getFileUri(), 'New thumbnail was not added to the media entity.');
+    $this->assertEquals('public://thumbnail1.jpg', $media->thumbnail->entity->getFileUri(), 'New thumbnail was not added to the media item.');
     $this->assertEquals('Mr. Jones', $media->thumbnail->title, 'Title text was not set on the thumbnail.');
     $this->assertEquals('Thumbnail', $media->thumbnail->alt, 'Alt text was not set on the thumbnail.');
 
@@ -268,13 +282,13 @@ class MediaSourceTest extends MediaKernelTestBase {
       'field_media_test' => 'some_value',
     ]);
     $media->save();
-    $this->assertEquals('Boxer', $media->getName(), 'Correct name was not set on the media entity.');
+    $this->assertEquals('Boxer', $media->getName(), 'Correct name was not set on the media item.');
     $this->assertEquals('This will be title.', $media->thumbnail->title, 'Title text was not set on the thumbnail.');
     $this->assertEquals('This will be alt.', $media->thumbnail->alt, 'Alt text was not set on the thumbnail.');
   }
 
   /**
-   * Tests the media entity constraints functionality.
+   * Tests the media item constraints functionality.
    */
   public function testConstraints() {
     // Test entity constraints.
@@ -440,6 +454,81 @@ class MediaSourceTest extends MediaKernelTestBase {
     $form_state->setValue('not_relevant', 'Should not be saved in the plugin.');
     $source->submitConfigurationForm($form, $form_state);
     $this->assertEquals($expected, $source->getConfiguration(), 'Submitted values were saved correctly.');
+  }
+
+  /**
+   * Tests different display options for the source field.
+   */
+  public function testDifferentSourceFieldDisplays() {
+    $id = 'test_different_displays';
+    $field_name = 'field_media_different_display';
+
+    $this->createMediaTypeViaForm($id, $field_name);
+
+    // Source field not in displays.
+    $display = entity_get_display('media', $id, 'default');
+    $components = $display->getComponents();
+    $this->assertArrayHasKey($field_name, $components);
+    $this->assertSame('entity_reference_entity_id', $components[$field_name]['type']);
+
+    $display = entity_get_form_display('media', $id, 'default');
+    $components = $display->getComponents();
+    $this->assertArrayHasKey($field_name, $components);
+    $this->assertSame('entity_reference_autocomplete_tags', $components[$field_name]['type']);
+  }
+
+  /**
+   * Tests hidden source field in media type.
+   */
+  public function testHiddenSourceField() {
+    $id = 'test_hidden_source_field';
+    $field_name = 'field_media_hidden';
+
+    $this->createMediaTypeViaForm($id, $field_name);
+
+    // Source field not in displays.
+    $display = entity_get_display('media', $id, 'default');
+    $this->assertArrayNotHasKey($field_name, $display->getComponents());
+
+    $display = entity_get_form_display('media', $id, 'default');
+    $this->assertArrayNotHasKey($field_name, $display->getComponents());
+  }
+
+  /**
+   * Creates a media type via form submit.
+   *
+   * @param string $source_plugin_id
+   *   Source plugin ID.
+   * @param string $field_name
+   *   Source field name.
+   */
+  protected function createMediaTypeViaForm($source_plugin_id, $field_name) {
+    /** @var \Drupal\media\MediaTypeInterface $type */
+    $type = MediaType::create(['source' => $source_plugin_id]);
+
+    $form = $this->container->get('entity_type.manager')
+      ->getFormObject('media_type', 'add')
+      ->setEntity($type);
+
+    $form_state = new FormState();
+    $form_state->setValues([
+      'label' => 'Test type',
+      'id' => $source_plugin_id,
+      'op' => t('Save'),
+    ]);
+
+    /** @var \Drupal\Core\Entity\EntityFieldManagerInterface $field_manager */
+    $field_manager = \Drupal::service('entity_field.manager');
+
+    // Source field not created yet.
+    $fields = $field_manager->getFieldDefinitions('media', $source_plugin_id);
+    $this->assertArrayNotHasKey($field_name, $fields);
+
+    \Drupal::formBuilder()->submitForm($form, $form_state);
+
+    // Source field exists now.
+    $fields = $field_manager->getFieldDefinitions('media', $source_plugin_id);
+    $this->assertArrayHasKey($field_name, $fields);
   }
 
 }

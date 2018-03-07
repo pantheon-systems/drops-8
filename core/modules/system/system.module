@@ -258,7 +258,7 @@ function system_theme() {
       'file' => 'system.admin.inc',
     ],
     'admin_block' => [
-      'variables' => ['block' => NULL],
+      'variables' => ['block' => NULL, 'attributes' => []],
       'file' => 'system.admin.inc',
     ],
     'admin_block_content' => [
@@ -275,6 +275,9 @@ function system_theme() {
         'add_bundle_message' => NULL,
       ],
       'template' => 'entity-add-list',
+    ],
+    'off_canvas_page_wrapper' => [
+      'variables' => ['children' => NULL],
     ],
   ]);
 }
@@ -447,7 +450,7 @@ function template_preprocess_entity_add_list(&$variables) {
  *  $form_state->setRedirectUrl(system_authorized_get_url());
  * @endcode
  *
- * @param $callback
+ * @param callable $callback
  *   The name of the function to invoke once the user authorizes the operation.
  * @param $file
  *   The full path to the file where the callback function is implemented.
@@ -1443,7 +1446,7 @@ function system_retrieve_file($url, $destination = NULL, $managed = FALSE, $repl
     $path = file_build_uri(drupal_basename($parsed_url['path']));
   }
   else {
-    if (is_dir(drupal_realpath($destination))) {
+    if (is_dir(\Drupal::service('file_system')->realpath($destination))) {
       // Prevent URIs with triple slashes when glueing parts together.
       $path = str_replace('///', '//', "$destination/") . drupal_basename($parsed_url['path']);
     }
@@ -1521,4 +1524,13 @@ function system_path_delete($path) {
 function system_query_entity_reference_alter(AlterableInterface $query) {
   $handler = $query->getMetadata('entity_reference_selection_handler');
   $handler->entityQueryAlter($query);
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function system_element_info_alter(&$type) {
+  if (isset($type['page'])) {
+    $type['page']['#theme_wrappers']['off_canvas_page_wrapper'] = ['#weight' => -1000];
+  }
 }

@@ -5,6 +5,8 @@
  * Allows entities to be translated into different languages.
  */
 
+use Drupal\content_translation\BundleTranslationSettingsInterface;
+use Drupal\content_translation\ContentTranslationManager;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\ContentEntityFormInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -58,6 +60,14 @@ function content_translation_module_implements_alter(&$implementations, $hook) {
       $group = $implementations['content_translation'];
       unset($implementations['content_translation']);
       $implementations['content_translation'] = $group;
+      break;
+
+    // Move our hook_entity_bundle_info_alter() implementation to the top of the
+    // list, so that any other hook implementation can rely on bundles being
+    // correctly marked as translatable.
+    case 'entity_bundle_info_alter':
+      $group = $implementations['content_translation'];
+      $implementations = ['content_translation' => $group] + $implementations;
       break;
   }
 }
@@ -154,6 +164,8 @@ function content_translation_entity_type_alter(array &$entity_types) {
       }
       $entity_type->set('translation', $translation);
     }
+
+    $entity_type->addConstraint('ContentTranslationSynchronizedFields');
   }
 }
 
@@ -161,9 +173,19 @@ function content_translation_entity_type_alter(array &$entity_types) {
  * Implements hook_entity_bundle_info_alter().
  */
 function content_translation_entity_bundle_info_alter(&$bundles) {
-  foreach ($bundles as $entity_type => &$info) {
+  /** @var \Drupal\content_translation\ContentTranslationManagerInterface $content_translation_manager */
+  $content_translation_manager = \Drupal::service('content_translation.manager');
+  foreach ($bundles as $entity_type_id => &$info) {
     foreach ($info as $bundle => &$bundle_info) {
-      $bundle_info['translatable'] = \Drupal::service('content_translation.manager')->isEnabled($entity_type, $bundle);
+      $bundle_info['translatable'] = $content_translation_manager->isEnabled($entity_type_id, $bundle);
+      if ($bundle_info['translatable'] && $content_translation_manager instanceof BundleTranslationSettingsInterface) {
+        $settings = $content_translation_manager->getBundleTranslationSettings($entity_type_id, $bundle);
+        // If pending revision support is enabled for this bundle, we need to
+        // hide untranslatable field widgets, otherwise changes in pending
+        // revisions might be overridden by changes in later default revisions.
+        $bundle_info['untranslatable_fields.default_translation_affected'] =
+          !empty($settings['untranslatable_fields_hide']) || ContentTranslationManager::isPendingRevisionSupportEnabled($entity_type_id, $bundle);
+      }
     }
   }
 }
@@ -183,8 +205,8 @@ function content_translation_entity_base_field_info(EntityTypeInterface $entity_
     // when translation is disabled.
     // @todo Re-evaluate this approach and consider removing field storage
     //   definitions and the related field data if the entity type has no bundle
-    //   enabled for translation, once base field purging is supported.
-    //   See https://www.drupal.org/node/2282119.
+    //   enabled for translation.
+    // @see https://www.drupal.org/node/2907777
     if ($manager->isEnabled($entity_type_id) || array_intersect_key($definitions, $installed_storage_definitions)) {
       return $definitions;
     }
@@ -319,6 +341,11 @@ function content_translation_form_alter(array &$form, FormStateInterface $form_s
       }
     }
 
+    // The footer region, if defined, may contain multilingual widgets so we
+    // need to always display it.
+    if (isset($form['footer'])) {
+      $form['footer']['#multilingual'] = TRUE;
+    }
   }
 }
 
@@ -410,6 +437,11 @@ function content_translation_form_field_config_edit_form_alter(array &$form, For
  */
 function content_translation_entity_presave(EntityInterface $entity) {
   if ($entity instanceof ContentEntityInterface && $entity->isTranslatable() && !$entity->isNew()) {
+    /** @var \Drupal\content_translation\ContentTranslationManagerInterface $manager */
+    $manager = \Drupal::service('content_translation.manager');
+    if (!$manager->isEnabled($entity->getEntityTypeId(), $entity->bundle())) {
+      return;
+    }
     // If we are creating a new translation we need to use the source language
     // as original language, since source values are the only ones available to
     // compare against.
@@ -418,8 +450,6 @@ function content_translation_entity_presave(EntityInterface $entity) {
         ->getStorage($entity->entityType())->loadUnchanged($entity->id());
     }
     $langcode = $entity->language()->getId();
-    /** @var \Drupal\content_translation\ContentTranslationManagerInterface $manager */
-    $manager = \Drupal::service('content_translation.manager');
     $source_langcode = !$entity->original->hasTranslation($langcode) ? $manager->getTranslationMetadata($entity)->getSource() : NULL;
     \Drupal::service('content_translation.synchronizer')->synchronizeFields($entity, $langcode, $source_langcode);
   }

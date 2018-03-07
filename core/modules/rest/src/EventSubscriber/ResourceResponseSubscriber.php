@@ -2,12 +2,14 @@
 
 namespace Drupal\rest\EventSubscriber;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Cache\CacheableResponseInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\rest\ResourceResponseInterface;
+use Drupal\serialization\Normalizer\CacheableNormalizerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
@@ -79,7 +81,7 @@ class ResourceResponseSubscriber implements EventSubscriberInterface {
    * Determines the format to respond in.
    *
    * Respects the requested format if one is specified. However, it is common to
-   * forget to specify a request format in case of a POST or PATCH. Rather than
+   * forget to specify a response format in case of a POST or PATCH. Rather than
    * simply throwing an error, we apply the robustness principle: when POSTing
    * or PATCHing using a certain format, you probably expect a response in that
    * same format.
@@ -94,43 +96,53 @@ class ResourceResponseSubscriber implements EventSubscriberInterface {
    */
   public function getResponseFormat(RouteMatchInterface $route_match, Request $request) {
     $route = $route_match->getRouteObject();
-    $acceptable_request_formats = $route->hasRequirement('_format') ? explode('|', $route->getRequirement('_format')) : [];
-    $acceptable_content_type_formats = $route->hasRequirement('_content_type_format') ? explode('|', $route->getRequirement('_content_type_format')) : [];
-    $acceptable_formats = $request->isMethodCacheable() ? $acceptable_request_formats : $acceptable_content_type_formats;
+    $acceptable_response_formats = $route->hasRequirement('_format') ? explode('|', $route->getRequirement('_format')) : [];
+    $acceptable_request_formats = $route->hasRequirement('_content_type_format') ? explode('|', $route->getRequirement('_content_type_format')) : [];
+    $acceptable_formats = $request->isMethodCacheable() ? $acceptable_response_formats : $acceptable_request_formats;
 
     $requested_format = $request->getRequestFormat();
     $content_type_format = $request->getContentType();
 
-    // If an acceptable format is requested, then use that. Otherwise, including
-    // and particularly when the client forgot to specify a format, then use
-    // heuristics to select the format that is most likely expected.
-    if (in_array($requested_format, $acceptable_formats)) {
+    // If an acceptable response format is requested, then use that. Otherwise,
+    // including and particularly when the client forgot to specify a response
+    // format, then use heuristics to select the format that is most likely
+    // expected.
+    if (in_array($requested_format, $acceptable_response_formats, TRUE)) {
       return $requested_format;
     }
+
     // If a request body is present, then use the format corresponding to the
     // request body's Content-Type for the response, if it's an acceptable
     // format for the request.
-    elseif (!empty($request->getContent()) && in_array($content_type_format, $acceptable_content_type_formats)) {
+    if (!empty($request->getContent()) && in_array($content_type_format, $acceptable_request_formats, TRUE)) {
       return $content_type_format;
     }
+
     // Otherwise, use the first acceptable format.
-    elseif (!empty($acceptable_formats)) {
+    if (!empty($acceptable_formats)) {
       return $acceptable_formats[0];
     }
+
     // Sometimes, there are no acceptable formats, e.g. DELETE routes.
-    else {
-      return NULL;
-    }
+    return NULL;
   }
 
   /**
    * Renders a resource response body.
    *
-   * Serialization can invoke rendering (e.g., generating URLs), but the
-   * serialization API does not provide a mechanism to collect the
-   * bubbleable metadata associated with that (e.g., language and other
-   * contexts), so instead, allow those to "leak" and collect them here in
-   * a render context.
+   * During serialization, encoders and normalizers are able to explicitly
+   * bubble cacheability metadata via the 'cacheability' key-value pair in the
+   * received context. This bubbled cacheability metadata will be applied to the
+   * the response.
+   *
+   * In versions of Drupal prior to 8.5, implicit bubbling of cacheability
+   * metadata was allowed because there was no explicit cacheability metadata
+   * bubbling API. To maintain backwards compatibility, we continue to support
+   * this, but support for this will be dropped in Drupal 9.0.0. This is
+   * especially useful when interacting with APIs that implicitly invoke
+   * rendering (for example: generating URLs): this allows those to "leak", and
+   * we collect their bubbled cacheability metadata automatically in a render
+   * context.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
@@ -150,14 +162,25 @@ class ResourceResponseSubscriber implements EventSubscriberInterface {
 
     // If there is data to send, serialize and set it as the response body.
     if ($data !== NULL) {
+      $serialization_context = [
+        'request' => $request,
+        CacheableNormalizerInterface::SERIALIZATION_CONTEXT_CACHEABILITY => new CacheableMetadata(),
+      ];
+
+      // @deprecated In Drupal 8.5.0, will be removed before Drupal 9.0.0. Use
+      // explicit cacheability metadata bubbling instead. (The wrapping call to
+      // executeInRenderContext() will be removed before Drupal 9.0.0.)
       $context = new RenderContext();
       $output = $this->renderer
-        ->executeInRenderContext($context, function () use ($serializer, $data, $format) {
-          return $serializer->serialize($data, $format);
+        ->executeInRenderContext($context, function () use ($serializer, $data, $format, $serialization_context) {
+          return $serializer->serialize($data, $format, $serialization_context);
         });
-
-      if ($response instanceof CacheableResponseInterface && !$context->isEmpty()) {
-        $response->addCacheableDependency($context->pop());
+      if ($response instanceof CacheableResponseInterface) {
+        if (!$context->isEmpty()) {
+          @trigger_error('Implicit cacheability metadata bubbling (onto the global render context) in normalizers is deprecated since Drupal 8.5.0 and will be removed in Drupal 9.0.0. Use the "cacheability" serialization context instead, for explicit cacheability metadata bubbling. See https://www.drupal.org/node/2918937', E_USER_DEPRECATED);
+          $response->addCacheableDependency($context->pop());
+        }
+        $response->addCacheableDependency($serialization_context[CacheableNormalizerInterface::SERIALIZATION_CONTEXT_CACHEABILITY]);
       }
 
       $response->setContent($output);

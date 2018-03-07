@@ -9,8 +9,9 @@ use Drupal\Component\FileSystem\FileSystem;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Timer;
 use Drupal\Component\Uuid\Php;
+use Drupal\Core\Composer\Composer;
+use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Database\Database;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Test\TestRunnerKernel;
@@ -18,9 +19,8 @@ use Drupal\simpletest\Form\SimpletestResultsForm;
 use Drupal\simpletest\TestBase;
 use Drupal\simpletest\TestDiscovery;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Runner\Version;
 use Symfony\Component\HttpFoundation\Request;
-
-$autoloader = require_once __DIR__ . '/../../autoload.php';
 
 // Define some colors for display.
 // A nice calming green.
@@ -37,11 +37,6 @@ const SIMPLETEST_SCRIPT_EXIT_SUCCESS = 0;
 const SIMPLETEST_SCRIPT_EXIT_FAILURE = 1;
 const SIMPLETEST_SCRIPT_EXIT_EXCEPTION = 2;
 
-if (!class_exists(TestCase::class)) {
-  echo "\nrun-tests.sh requires the PHPUnit testing framework. Please use 'composer install --dev' to ensure that it is present.\n\n";
-  exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
-}
-
 // Set defaults and get overrides.
 list($args, $count) = simpletest_script_parse_args();
 
@@ -52,14 +47,9 @@ if ($args['help'] || $count == 0) {
 
 simpletest_script_init();
 
-try {
-  $request = Request::createFromGlobals();
-  $kernel = TestRunnerKernel::createFromRequest($request, $autoloader);
-  $kernel->prepareLegacyRequest($request);
-}
-catch (Exception $e) {
-  echo (string) $e;
-  exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
+if (!class_exists(TestCase::class)) {
+  echo "\nrun-tests.sh requires the PHPUnit testing framework. Please use 'composer install --dev' to ensure that it is present.\n\n";
+  exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
 }
 
 if ($args['execute-test']) {
@@ -98,9 +88,10 @@ if ($args['list-files'] || $args['list-files-json']) {
   $test_discovery = NULL;
   try {
     $test_discovery = \Drupal::service('test_discovery');
-  } catch (Exception $e) {
+  }
+  catch (Exception $e) {
     error_log((string) $e);
-    echo (string)$e;
+    echo (string) $e;
     exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
   }
   // TestDiscovery::findAllClassFiles() gives us a classmap similar to a
@@ -113,7 +104,7 @@ if ($args['list-files'] || $args['list-files-json']) {
   }
   // Output the list of files.
   else {
-    foreach(array_values($test_classes) as $test_class) {
+    foreach (array_values($test_classes) as $test_class) {
       echo $test_class . "\n";
     }
   }
@@ -141,13 +132,25 @@ if ($args['clean']) {
   exit(SIMPLETEST_SCRIPT_EXIT_SUCCESS);
 }
 
+// Ensure we have the correct PHPUnit version for the version of PHP.
+if (class_exists('\PHPUnit_Runner_Version')) {
+  $phpunit_version = \PHPUnit_Runner_Version::id();
+}
+else {
+  $phpunit_version = Version::id();
+}
+if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
+  simpletest_script_print_error("PHPUnit testing framework version 6 or greater is required when running on PHP 7.2 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
+  exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
+}
+
 $test_list = simpletest_script_get_test_list();
 
 // Try to allocate unlimited time to run the tests.
 drupal_set_time_limit(0);
 simpletest_script_reporter_init();
 
-$tests_to_run = array();
+$tests_to_run = [];
 for ($i = 0; $i < $args['repeat']; $i++) {
   $tests_to_run = array_merge($tests_to_run, $test_list);
 }
@@ -348,7 +351,7 @@ EOF;
  */
 function simpletest_script_parse_args() {
   // Set default values.
-  $args = array(
+  $args = [
     'script' => '',
     'help' => FALSE,
     'list' => FALSE,
@@ -370,7 +373,7 @@ function simpletest_script_parse_args() {
     'verbose' => FALSE,
     'keep-results' => FALSE,
     'keep-results-table' => FALSE,
-    'test_names' => array(),
+    'test_names' => [],
     'repeat' => 1,
     'die-on-fail' => FALSE,
     'suppress-deprecations' => FALSE,
@@ -380,7 +383,7 @@ function simpletest_script_parse_args() {
     'execute-test' => '',
     'xml' => '',
     'non-html' => FALSE,
-  );
+  ];
 
   // Override with set values.
   $args['script'] = basename(array_shift($_SERVER['argv']));
@@ -403,7 +406,7 @@ function simpletest_script_parse_args() {
           $args[$matches[1]] = array_shift($_SERVER['argv']);
         }
         // Clear extraneous values.
-        $args['test_names'] = array();
+        $args['test_names'] = [];
         $count++;
       }
       else {
@@ -428,7 +431,7 @@ function simpletest_script_parse_args() {
   if ($args['browser']) {
     $args['keep-results'] = TRUE;
   }
-  return array($args, $count);
+  return [$args, $count];
 }
 
 /**
@@ -461,6 +464,25 @@ function simpletest_script_init() {
     simpletest_script_help();
     exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
   }
+
+  // Detect if we're in the top-level process using the private 'execute-test'
+  // argument. Determine if being run on drupal.org's testing infrastructure
+  // using the presence of 'drupaltestbot' in the database url.
+  // @todo https://www.drupal.org/project/drupalci_testbot/issues/2860941 Use
+  //   better environment variable to detect DrupalCI.
+  // @todo https://www.drupal.org/project/drupal/issues/2942473 Remove when
+  //   dropping PHPUnit 4 and PHP 5 support.
+  if (!$args['execute-test'] && preg_match('/drupalci/', $args['sqlite'])) {
+    // Update PHPUnit if needed and possible. There is a later check once the
+    // autoloader is in place to ensure we're on the correct version. We need to
+    // do this before the autoloader is in place to ensure that it is correct.
+    $composer = ($composer = rtrim('\\' === DIRECTORY_SEPARATOR ? preg_replace('/[\r\n].*/', '', `where.exe composer.phar`) : `which composer.phar`))
+      ? $php . ' ' . escapeshellarg($composer)
+      : 'composer';
+    passthru("$composer run-script drupal-phpunit-upgrade-check");
+  }
+
+  $autoloader = require_once __DIR__ . '/../../autoload.php';
 
   // Get URL from arguments.
   if (!empty($args['url'])) {
@@ -520,6 +542,17 @@ function simpletest_script_init() {
   }
 
   chdir(realpath(__DIR__ . '/../..'));
+
+  // Prepare the kernel.
+  try {
+    $request = Request::createFromGlobals();
+    $kernel = TestRunnerKernel::createFromRequest($request, $autoloader);
+    $kernel->prepareLegacyRequest($request);
+  }
+  catch (Exception $e) {
+    echo (string) $e;
+    exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
+  }
 }
 
 /**
@@ -596,13 +629,13 @@ function simpletest_script_setup_database($new = FALSE) {
     else {
       $sqlite = DRUPAL_ROOT . '/' . $args['sqlite'];
     }
-    $databases['test-runner']['default'] = array(
+    $databases['test-runner']['default'] = [
       'driver' => 'sqlite',
       'database' => $sqlite,
-      'prefix' => array(
+      'prefix' => [
         'default' => '',
-      ),
-    );
+      ],
+    ];
     // Create the test runner SQLite database, unless it exists already.
     if ($new && !file_exists($sqlite)) {
       if (!is_dir(dirname($sqlite))) {
@@ -664,7 +697,7 @@ function simpletest_script_execute_batch($test_classes) {
   $total_status = SIMPLETEST_SCRIPT_EXIT_SUCCESS;
 
   // Multi-process execution.
-  $children = array();
+  $children = [];
   while (!empty($test_classes) || !empty($children)) {
     while (count($children) < $args['concurrency']) {
       if (empty($test_classes)) {
@@ -674,7 +707,7 @@ function simpletest_script_execute_batch($test_classes) {
       try {
         $test_id = Database::getConnection('default', 'test-runner')
           ->insert('simpletest_test_id')
-          ->useDefaults(array('test_id'))
+          ->useDefaults(['test_id'])
           ->execute();
       }
       catch (Exception $e) {
@@ -686,7 +719,7 @@ function simpletest_script_execute_batch($test_classes) {
       $test_class = array_shift($test_classes);
       // Fork a child process.
       $command = simpletest_script_command($test_id, $test_class);
-      $process = proc_open($command, array(), $pipes, NULL, NULL, array('bypass_shell' => TRUE));
+      $process = proc_open($command, [], $pipes, NULL, NULL, ['bypass_shell' => TRUE]);
 
       if (!is_resource($process)) {
         echo "Unable to fork test process. Aborting.\n";
@@ -694,12 +727,12 @@ function simpletest_script_execute_batch($test_classes) {
       }
 
       // Register our new child.
-      $children[] = array(
+      $children[] = [
         'process' => $process,
         'test_id' => $test_id,
         'class' => $test_class,
         'pipes' => $pipes,
-      );
+      ];
     }
 
     // Wait for children every 200ms.
@@ -760,7 +793,7 @@ function simpletest_script_run_phpunit($test_id, $class) {
     set_time_limit($reflection->getStaticPropertyValue('runLimit'));
   }
 
-  $results = simpletest_run_phpunit_tests($test_id, array($class), $status);
+  $results = simpletest_run_phpunit_tests($test_id, [$class], $status);
   simpletest_process_phpunit_results($results);
 
   // Map phpunit results to a data structure we can pass to
@@ -786,14 +819,18 @@ function simpletest_script_run_one_test($test_id, $test_class) {
     else {
       $class_name = $test_class;
       // Use empty array to run all the test methods.
-      $methods = array();
+      $methods = [];
     }
     $test = new $class_name($test_id);
     if ($args['suppress-deprecations']) {
       putenv('SYMFONY_DEPRECATIONS_HELPER=disabled');
     }
     else {
-      putenv('SYMFONY_DEPRECATIONS_HELPER=strict');
+      // Prevent deprecations caused by vendor code calling deprecated code.
+      // This also prevents mock objects in PHPUnit 6 triggering silenced
+      // deprecations from breaking the test suite. We should consider changing
+      // this to 'strict' once PHPUnit 4 is no longer used.
+      putenv('SYMFONY_DEPRECATIONS_HELPER=weak_vendors');
     }
     if (is_subclass_of($test_class, TestCase::class)) {
       $status = simpletest_script_run_phpunit($test_id, $test_class);
@@ -845,7 +882,7 @@ function simpletest_script_command($test_id, $test_class) {
   }
   $command .= ' --php ' . escapeshellarg($php);
   $command .= " --test-id $test_id";
-  foreach (array('verbose', 'keep-results', 'color', 'die-on-fail', 'suppress-deprecations') as $arg) {
+  foreach (['verbose', 'keep-results', 'color', 'die-on-fail', 'suppress-deprecations'] as $arg) {
     if ($args[$arg]) {
       $command .= ' --' . $arg;
     }
@@ -898,7 +935,7 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
 
   // Do not output verbose cleanup messages in case of a positive exitcode.
   $output = !empty($exitcode);
-  $messages = array();
+  $messages = [];
 
   $messages[] = "- Found database prefix '$db_prefix' for test ID $test_id.";
 
@@ -927,7 +964,7 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
     // simpletest_clean_temporary_directories() cannot be used here, since it
     // would also delete file directories of other tests that are potentially
     // running concurrently.
-    file_unmanaged_delete_recursive($test_directory, array('Drupal\simpletest\TestBase', 'filePreDeleteCallback'));
+    file_unmanaged_delete_recursive($test_directory, ['Drupal\simpletest\TestBase', 'filePreDeleteCallback']);
     $messages[] = "- Removed test site directory.";
   }
 
@@ -968,7 +1005,7 @@ function simpletest_script_get_test_list() {
   global $args;
 
   $types_processed = empty($args['types']);
-  $test_list = array();
+  $test_list = [];
   if ($args['all'] || $args['module']) {
     try {
       $groups = simpletest_test_get_all($args['module'], $args['types']);
@@ -978,7 +1015,7 @@ function simpletest_script_get_test_list() {
       echo (string) $e;
       exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
     }
-    $all_tests = array();
+    $all_tests = [];
     foreach ($groups as $group => $tests) {
       $all_tests = array_merge($all_tests, array_keys($tests));
     }
@@ -986,7 +1023,7 @@ function simpletest_script_get_test_list() {
   }
   else {
     if ($args['class']) {
-      $test_list = array();
+      $test_list = [];
       foreach ($args['test_names'] as $test_class) {
         list($class_name) = explode('::', $test_class, 2);
         if (class_exists($class_name)) {
@@ -1000,7 +1037,7 @@ function simpletest_script_get_test_list() {
             echo (string) $e;
             exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
           }
-          $all_classes = array();
+          $all_classes = [];
           foreach ($groups as $group) {
             $all_classes = array_merge($all_classes, array_keys($group));
           }
@@ -1047,7 +1084,7 @@ function simpletest_script_get_test_list() {
       // minimal conditions only; i.e., a '*.php' file that has '/Tests/' in
       // its path.
       // Ignore anything from third party vendors.
-      $ignore = array('.', '..', 'vendor');
+      $ignore = ['.', '..', 'vendor'];
       $files = [];
       if ($args['directory'][0] === '/') {
         $directory = $args['directory'];
@@ -1137,11 +1174,11 @@ function simpletest_script_get_test_list() {
 function simpletest_script_reporter_init() {
   global $args, $test_list, $results_map;
 
-  $results_map = array(
+  $results_map = [
     'pass' => 'Pass',
     'fail' => 'Fail',
     'exception' => 'Exception',
-  );
+  ];
 
   echo "\n";
   echo "Drupal test run\n";
@@ -1182,13 +1219,13 @@ function simpletest_script_reporter_display_summary($class, $results) {
   // Output all test results vertically aligned.
   // Cut off the class name after 60 chars, and pad each group with 3 digits
   // by default (more than 999 assertions are rare).
-  $output = vsprintf('%-60.60s %10s %9s %14s %12s', array(
+  $output = vsprintf('%-60.60s %10s %9s %14s %12s', [
     $class,
     $results['#pass'] . ' passes',
     !$results['#fail'] ? '' : $results['#fail'] . ' fails',
     !$results['#exception'] ? '' : $results['#exception'] . ' exceptions',
     !$results['#debug'] ? '' : $results['#debug'] . ' messages',
-  ));
+  ]);
 
   $status = ($results['#fail'] || $results['#exception'] ? 'fail' : 'pass');
   simpletest_script_print($output . "\n", simpletest_script_color_code($status));
@@ -1209,7 +1246,7 @@ function simpletest_script_reporter_write_xml_results() {
   }
 
   $test_class = '';
-  $xml_files = array();
+  $xml_files = [];
 
   foreach ($results as $result) {
     if (isset($results_map[$result->status])) {
@@ -1225,7 +1262,7 @@ function simpletest_script_reporter_write_xml_results() {
           $doc = new DomDocument('1.0');
           $root = $doc->createElement('testsuite');
           $root = $doc->appendChild($root);
-          $xml_files[$test_class] = array('doc' => $doc, 'suite' => $root);
+          $xml_files[$test_class] = ['doc' => $doc, 'suite' => $root];
         }
       }
 
@@ -1420,10 +1457,10 @@ function simpletest_script_color_code($status) {
  *   string in $array would be identical to $string by changing 1/4 or fewer of
  *   its characters.
  *
- * @see http://php.net/manual/en/function.levenshtein.php
+ * @see http://php.net/manual/function.levenshtein.php
  */
 function simpletest_script_print_alternatives($string, $array, $degree = 4) {
-  $alternatives = array();
+  $alternatives = [];
   foreach ($array as $item) {
     $lev = levenshtein($string, $item);
     if ($lev <= strlen($item) / $degree || FALSE !== strpos($string, $item)) {
@@ -1451,7 +1488,7 @@ function simpletest_script_print_alternatives($string, $array, $degree = 4) {
  */
 function simpletest_script_load_messages_by_test_id($test_ids) {
   global $args;
-  $results = array();
+  $results = [];
 
   // Sqlite has a maximum number of variables per query. If required, the
   // database query is split into chunks.
@@ -1459,15 +1496,15 @@ function simpletest_script_load_messages_by_test_id($test_ids) {
     $test_id_chunks = array_chunk($test_ids, SIMPLETEST_SCRIPT_SQLITE_VARIABLE_LIMIT);
   }
   else {
-    $test_id_chunks = array($test_ids);
+    $test_id_chunks = [$test_ids];
   }
 
   foreach ($test_id_chunks as $test_id_chunk) {
     try {
       $result_chunk = Database::getConnection('default', 'test-runner')
-        ->query("SELECT * FROM {simpletest} WHERE test_id IN ( :test_ids[] ) ORDER BY test_class, message_id", array(
+        ->query("SELECT * FROM {simpletest} WHERE test_id IN ( :test_ids[] ) ORDER BY test_class, message_id", [
           ':test_ids[]' => $test_id_chunk,
-        ))->fetchAll();
+        ])->fetchAll();
     }
     catch (Exception $e) {
       echo (string) $e;
@@ -1503,12 +1540,12 @@ function simpletest_script_open_browser() {
   }
 
   // Get the results form.
-  $form = array();
+  $form = [];
   SimpletestResultsForm::addResultForm($form, $results);
 
   // Get the assets to make the details element collapsible and theme the result
   // form.
-  $assets = new \Drupal\Core\Asset\AttachedAssets();
+  $assets = new AttachedAssets();
   $assets->setLibraries([
     'core/drupal.collapse',
     'system/admin',

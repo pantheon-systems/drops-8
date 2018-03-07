@@ -34,7 +34,7 @@
         $configurationForm.append(drupalSettings.ckeditor.toolbarAdmin);
 
         // Create a configuration model.
-        const model = Drupal.ckeditor.models.Model = new Drupal.ckeditor.Model({
+        Drupal.ckeditor.models.Model = new Drupal.ckeditor.Model({
           $textarea,
           activeEditorConfig: JSON.parse($textarea.val()),
           hiddenEditorConfig: drupalSettings.ckeditor.hiddenCKEditorConfig,
@@ -42,7 +42,7 @@
 
         // Create the configuration Views.
         const viewDefaults = {
-          model,
+          model: Drupal.ckeditor.models.Model,
           el: $('.ckeditor-toolbar-configuration'),
         };
         Drupal.ckeditor.views = {
@@ -194,7 +194,7 @@
               .find('input')
               .addClass('error')
               .attr('aria-invalid', 'true');
-            $(`<div class=\"description\" >${Drupal.t('Please provide a name for the button group.')}</div>`).insertAfter(form.elements[0]);
+            $(`<div class="description" >${Drupal.t('Please provide a name for the button group.')}</div>`).insertAfter(form.elements[0]);
           }
           return true;
         }
@@ -290,7 +290,7 @@
 
       // Create a Drupal dialog that will get a button group name from the user.
       const $ckeditorButtonGroupNameForm = $(Drupal.theme('ckeditorButtonGroupNameForm'));
-      var dialog = Drupal.dialog($ckeditorButtonGroupNameForm.get(0), {
+      const dialog = Drupal.dialog($ckeditorButtonGroupNameForm.get(0), {
         title: Drupal.t('Button group name'),
         dialogClass: 'ckeditor-name-toolbar-group',
         resizable: false,

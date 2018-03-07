@@ -7,6 +7,8 @@
 
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\views\Entity\View;
+use Drupal\views\Plugin\views\filter\NumericFilter;
+use Drupal\views\Plugin\views\filter\StringFilter;
 use Drupal\views\Views;
 
 /**
@@ -212,4 +214,161 @@ function views_post_update_revision_metadata_fields() {
   array_walk($views, function (View $view) {
     $view->save();
   });
+}
+
+/**
+ * Add additional settings to the entity link field and convert node_path usage
+ * to entity_link.
+ */
+function views_post_update_entity_link_url() {
+  // Load all views.
+  $views = \Drupal::entityTypeManager()->getStorage('view')->loadMultiple();
+
+  /* @var \Drupal\views\Entity\View[] $views */
+  foreach ($views as $view) {
+    $displays = $view->get('display');
+    $changed = FALSE;
+    foreach ($displays as $display_name => &$display) {
+      if (isset($display['display_options']['fields'])) {
+        foreach ($display['display_options']['fields'] as $field_name => &$field) {
+          if (isset($field['plugin_id']) && $field['plugin_id'] === 'entity_link') {
+            // Add any missing settings for entity_link.
+            if (!isset($field['output_url_as_text'])) {
+              $field['output_url_as_text'] = FALSE;
+              $changed = TRUE;
+            }
+            if (!isset($field['absolute'])) {
+              $field['absolute'] = FALSE;
+              $changed = TRUE;
+            }
+          }
+          elseif (isset($field['plugin_id']) && $field['plugin_id'] === 'node_path') {
+            // Convert the use of node_path to entity_link.
+            $field['plugin_id'] = 'entity_link';
+            $field['field'] = 'view_node';
+            $field['output_url_as_text'] = TRUE;
+            $changed = TRUE;
+          }
+        }
+      }
+    }
+    if ($changed) {
+      $view->set('display', $displays);
+      $view->save();
+    }
+  }
+}
+
+/**
+ * Update dependencies for moved bulk field plugin.
+ */
+function views_post_update_bulk_field_moved() {
+  $views = View::loadMultiple();
+  array_walk($views, function (View $view) {
+    $old_dependencies = $view->getDependencies();
+    $new_dependencies = $view->calculateDependencies()->getDependencies();
+    if ($old_dependencies !== $new_dependencies) {
+      $view->save();
+    }
+  });
+}
+
+/**
+ * Add placeholder settings to string or numeric filters.
+ */
+function views_post_update_filter_placeholder_text() {
+  // Load all views.
+  $views = \Drupal::entityTypeManager()->getStorage('view')->loadMultiple();
+  /** @var \Drupal\views\Plugin\ViewsHandlerManager $filter_manager */
+  $filter_manager = \Drupal::service('plugin.manager.views.filter');
+
+  /* @var \Drupal\views\Entity\View[] $views */
+  foreach ($views as $view) {
+    $displays = $view->get('display');
+    $save = FALSE;
+    foreach ($displays as $display_name => &$display) {
+      if (isset($display['display_options']['filters'])) {
+        foreach ($display['display_options']['filters'] as $filter_name => &$filter) {
+          // Any of the children of the modified classes will also be inheriting
+          // the new settings.
+          $filter_instance = $filter_manager->getHandler($filter);
+          if ($filter_instance instanceof StringFilter) {
+            if (!isset($filter['expose']['placeholder'])) {
+              $filter['expose']['placeholder'] = '';
+              $save = TRUE;
+            }
+          }
+          elseif ($filter_instance instanceof NumericFilter) {
+            if (!isset($filter['expose']['placeholder'])) {
+              $filter['expose']['placeholder'] = '';
+              $save = TRUE;
+            }
+            if (!isset($filter['expose']['min_placeholder'])) {
+              $filter['expose']['min_placeholder'] = '';
+              $save = TRUE;
+            }
+            if (!isset($filter['expose']['max_placeholder'])) {
+              $filter['expose']['max_placeholder'] = '';
+              $save = TRUE;
+            }
+          }
+        }
+      }
+    }
+    if ($save) {
+      $view->set('display', $displays);
+      $view->save();
+    }
+  }
+}
+
+/**
+ * Include views data table provider in views dependencies.
+ */
+function views_post_update_views_data_table_dependencies(&$sandbox = NULL) {
+  $storage = \Drupal::entityTypeManager()->getStorage('view');
+  if (!isset($sandbox['views'])) {
+    $sandbox['views'] = $storage->getQuery()->accessCheck(FALSE)->execute();
+    $sandbox['count'] = count($sandbox['views']);
+  }
+
+  // Process 10 views at a time.
+  $views = $storage->loadMultiple(array_splice($sandbox['views'], 0, 10));
+  foreach ($views as $view) {
+    $original_dependencies = $view->getDependencies();
+    // Only re-save if dependencies have changed.
+    if ($view->calculateDependencies()->getDependencies() !== $original_dependencies) {
+      // We can trust the data because we've already recalculated the
+      // dependencies.
+      $view->trustData();
+      $view->save();
+    }
+  }
+
+  $sandbox['#finished'] = empty($sandbox['views']) ? 1 : ($sandbox['count'] - count($sandbox['views'])) / $sandbox['count'];
+}
+
+/**
+ * Fix cache max age for table displays.
+ */
+function views_post_update_table_display_cache_max_age(&$sandbox = NULL) {
+  $storage = \Drupal::entityTypeManager()->getStorage('view');
+  if (!isset($sandbox['views'])) {
+    $sandbox['views'] = $storage->getQuery()->accessCheck(FALSE)->execute();
+    $sandbox['count'] = count($sandbox['views']);
+  }
+
+  for ($i = 0; $i < 10 && count($sandbox['views']); $i++) {
+    $view_id = array_shift($sandbox['views']);
+    if ($view = $storage->load($view_id)) {
+      $displays = $view->get('display');
+      foreach ($displays as $display_name => &$display) {
+        if (isset($display['display_options']['style']['type']) && $display['display_options']['style']['type'] === 'table') {
+          $view->save();
+        }
+      }
+    }
+  }
+
+  $sandbox['#finished'] = empty($sandbox['views']) ? 1 : ($sandbox['count'] - count($sandbox['views'])) / $sandbox['count'];
 }

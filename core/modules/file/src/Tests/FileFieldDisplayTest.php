@@ -4,6 +4,7 @@ namespace Drupal\file\Tests;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\file\Entity\File;
+use Drupal\node\Entity\Node;
 
 /**
  * Tests the display of file fields in node and views.
@@ -96,7 +97,7 @@ class FileFieldDisplayTest extends FileFieldTestBase {
     // Test that fields appear as expected after during the preview.
     // Add a second file.
     $name = 'files[' . $field_name . '_1][]';
-    $edit[$name] = drupal_realpath($test_file->getFileUri());
+    $edit[$name] = \Drupal::service('file_system')->realpath($test_file->getFileUri());
 
     // Uncheck the display checkboxes and go to the preview.
     $edit[$field_name . '[0][display]'] = FALSE;
@@ -165,12 +166,57 @@ class FileFieldDisplayTest extends FileFieldTestBase {
     $title = $this->randomString();
     $edit = [
       'title[0][value]' => $title,
-      'files[field_' . $field_name . '_0]' => drupal_realpath($file->uri),
+      'files[field_' . $field_name . '_0]' => \Drupal::service('file_system')->realpath($file->uri),
     ];
     $this->drupalPostForm('node/add/' . $type_name, $edit, t('Save'));
     $node = $this->drupalGetNodeByTitle($title);
     $this->drupalGet('node/' . $node->id() . '/edit');
     $this->assertText(t('The description may be used as the label of the link to the file.'));
+  }
+
+  /**
+   * Tests description display of File Field.
+   */
+  public function testDescriptionDefaultFileFieldDisplay() {
+    $field_name = strtolower($this->randomMachineName());
+    $type_name = 'article';
+    $field_storage_settings = [
+      'display_field' => '1',
+      'display_default' => '1',
+      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
+    ];
+    $field_settings = [
+      'description_field' => '1',
+    ];
+    $widget_settings = [];
+    $this->createFileField($field_name, 'node', $type_name, $field_storage_settings, $field_settings, $widget_settings);
+
+    $test_file = $this->getTestFile('text');
+
+    // Create a new node with the uploaded file.
+    $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
+
+    // Add file description.
+    $description = 'This is the test file description';
+    $this->drupalPostForm("node/$nid/edit", [$field_name . '[0][description]' => $description], t('Save'));
+
+    // Load uncached node.
+    \Drupal::entityTypeManager()->getStorage('node')->resetCache([$nid]);
+    $node = Node::load($nid);
+
+    // Test default formatter.
+    $this->drupalGet('node/' . $nid);
+    $this->assertFieldByXPath('//a[@href="' . $node->{$field_name}->entity->url() . '"]', $description);
+
+    // Change formatter to "Table of files".
+    $display = \Drupal::entityTypeManager()->getStorage('entity_view_display')->load('node.' . $type_name . '.default');
+    $display->setComponent($field_name, [
+      'label' => 'hidden',
+      'type' => 'file_table',
+    ])->save();
+
+    $this->drupalGet('node/' . $nid);
+    $this->assertFieldByXPath('//a[@href="' . $node->{$field_name}->entity->url() . '"]', $description);
   }
 
 }

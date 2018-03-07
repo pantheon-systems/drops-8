@@ -16,10 +16,10 @@
  */
 class Twig_Environment
 {
-    const VERSION = '1.32.0';
-    const VERSION_ID = 13200;
+    const VERSION = '1.35.0';
+    const VERSION_ID = 13500;
     const MAJOR_VERSION = 1;
-    const MINOR_VERSION = 32;
+    const MINOR_VERSION = 35;
     const RELEASE_VERSION = 0;
     const EXTRA_VERSION = '';
 
@@ -58,6 +58,7 @@ class Twig_Environment
     private $runtimeLoaders = array();
     private $runtimes = array();
     private $optionsHash;
+    private $loading = array();
 
     /**
      * Constructor.
@@ -382,6 +383,10 @@ class Twig_Environment
      *
      * @param string|Twig_TemplateWrapper|Twig_Template $name The template name
      *
+     * @throws Twig_Error_Loader  When the template cannot be found
+     * @throws Twig_Error_Runtime When a previously generated cache is corrupted
+     * @throws Twig_Error_Syntax  When an error occurred during compilation
+     *
      * @return Twig_TemplateWrapper
      */
     public function load($name)
@@ -472,7 +477,22 @@ class Twig_Environment
             $this->initRuntime();
         }
 
-        return $this->loadedTemplates[$cls] = new $cls($this);
+        if (isset($this->loading[$cls])) {
+            throw new Twig_Error_Runtime(sprintf('Circular reference detected for Twig template "%s", path: %s.', $name, implode(' -> ', array_merge($this->loading, array($name)))));
+        }
+
+        $this->loading[$cls] = $name;
+
+        try {
+            $this->loadedTemplates[$cls] = new $cls($this);
+            unset($this->loading[$cls]);
+        } catch (\Exception $e) {
+            unset($this->loading[$cls]);
+
+            throw $e;
+        }
+
+        return $this->loadedTemplates[$cls];
     }
 
     /**
@@ -489,7 +509,7 @@ class Twig_Environment
      */
     public function createTemplate($template)
     {
-        $name = sprintf('__string_template__%s', hash('sha256', uniqid(mt_rand(), true), false));
+        $name = sprintf('__string_template__%s', hash('sha256', $template, false));
 
         $loader = new Twig_Loader_Chain(array(
             new Twig_Loader_Array(array($name => $template)),
@@ -758,7 +778,7 @@ class Twig_Environment
 
     public function setLoader(Twig_LoaderInterface $loader)
     {
-        if (!$loader instanceof Twig_SourceContextLoaderInterface && 0 !== strpos(get_class($loader), 'Mock_Twig_LoaderInterface')) {
+        if (!$loader instanceof Twig_SourceContextLoaderInterface && 0 !== strpos(get_class($loader), 'Mock_')) {
             @trigger_error(sprintf('Twig loader "%s" should implement Twig_SourceContextLoaderInterface since version 1.27.', get_class($loader)), E_USER_DEPRECATED);
         }
 
@@ -831,6 +851,12 @@ class Twig_Environment
     public function hasExtension($class)
     {
         $class = ltrim($class, '\\');
+        if (!isset($this->extensionsByClass[$class]) && class_exists($class, false)) {
+            // For BC/FC with namespaced aliases
+            $class = new ReflectionClass($class);
+            $class = $class->name;
+        }
+
         if (isset($this->extensions[$class])) {
             if ($class !== get_class($this->extensions[$class])) {
                 @trigger_error(sprintf('Referencing the "%s" extension by its name (defined by getName()) is deprecated since 1.26 and will be removed in Twig 2.0. Use the Fully Qualified Extension Class Name instead.', $class), E_USER_DEPRECATED);
@@ -860,6 +886,11 @@ class Twig_Environment
     public function getExtension($class)
     {
         $class = ltrim($class, '\\');
+        if (!isset($this->extensionsByClass[$class]) && class_exists($class, false)) {
+            // For BC/FC with namespaced aliases
+            $class = new ReflectionClass($class);
+            $class = $class->name;
+        }
 
         if (isset($this->extensions[$class])) {
             if ($class !== get_class($this->extensions[$class])) {
@@ -938,6 +969,12 @@ class Twig_Environment
         }
 
         $class = ltrim($name, '\\');
+        if (!isset($this->extensionsByClass[$class]) && class_exists($class, false)) {
+            // For BC/FC with namespaced aliases
+            $class = new ReflectionClass($class);
+            $class = $class->name;
+        }
+
         if (isset($this->extensions[$class])) {
             if ($class !== get_class($this->extensions[$class])) {
                 @trigger_error(sprintf('Referencing the "%s" extension by its name (defined by getName()) is deprecated since 1.26 and will be removed in Twig 2.0. Use the Fully Qualified Extension Class Name instead.', $class), E_USER_DEPRECATED);
@@ -1559,3 +1596,5 @@ class Twig_Environment
         $this->optionsHash = implode(':', $hashParts);
     }
 }
+
+class_alias('Twig_Environment', 'Twig\Environment', false);

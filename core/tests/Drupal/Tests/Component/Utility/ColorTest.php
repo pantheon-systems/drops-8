@@ -26,7 +26,12 @@ class ColorTest extends TestCase {
    */
   public function testHexToRgb($value, $expected, $invalid = FALSE) {
     if ($invalid) {
-      $this->setExpectedException('InvalidArgumentException');
+      if (method_exists($this, 'expectException')) {
+        $this->expectException('InvalidArgumentException');
+      }
+      else {
+        $this->setExpectedException('InvalidArgumentException');
+      }
     }
     $this->assertSame($expected, Color::hexToRgb($value));
   }
@@ -116,6 +121,44 @@ class ColorTest extends TestCase {
       $tests[] = [implode(', ', $test[0]), $test[1]];
     }
     return $tests;
+  }
+
+  /**
+   * Data provider for testNormalizeHexLength().
+   *
+   * @see testNormalizeHexLength()
+   *
+   * @return array
+   *   An array of arrays containing:
+   *     - The hex color value.
+   *     - The 6 character length hex color value.
+   */
+  public function providerTestNormalizeHexLength() {
+    $data = [
+      ['#000', '#000000'],
+      ['#FFF', '#FFFFFF'],
+      ['#abc', '#aabbcc'],
+      ['cba', '#ccbbaa'],
+      ['#000000', '#000000'],
+      ['ffffff', '#ffffff'],
+      ['#010203', '#010203'],
+    ];
+
+    return $data;
+  }
+
+  /**
+   * Tests Color::normalizeHexLength().
+   *
+   * @param string $value
+   *   The input hex color value.
+   * @param string $expected
+   *   The expected normalized hex color value.
+   *
+   * @dataProvider providerTestNormalizeHexLength
+   */
+  public function testNormalizeHexLength($value, $expected) {
+    $this->assertSame($expected, Color::normalizeHexLength($value));
   }
 
 }

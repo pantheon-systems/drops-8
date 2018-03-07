@@ -3,11 +3,11 @@
   "description": "EventDispatcher.",
   "keywords": ["drupal"],
   "homepage": "https://www.drupal.org/project/drupal",
-  "license": "GPL-2.0+",
+  "license": "GPL-2.0-or-later",
   "require": {
     "php": ">=5.5.9",
-    "symfony/dependency-injection": "^2.8",
-    "symfony/event-dispatcher": "^2.7"
+    "symfony/dependency-injection": ">=2.8 <4.0.0",
+    "symfony/event-dispatcher": ">=2.7 <4.0.0"
   },
   "autoload": {
     "psr-4": {

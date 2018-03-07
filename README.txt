@@ -72,7 +72,7 @@ More about installation profiles and distributions:
  * Download contributed installation profiles and distributions:
    https://www.drupal.org/project/distributions
  * Develop your own installation profile or distribution:
-   https://www.drupal.org/developing/distributions
+   https://www.drupal.org/docs/8/creating-distributions
 
 
 APPEARANCE
@@ -87,7 +87,7 @@ More about themes:
  * Download contributed themes to /themes to modify Drupal's appearance:
    https://www.drupal.org/project/themes
  * Develop your own theme:
-   https://www.drupal.org/documentation/theme
+   https://www.drupal.org/docs/8/theming
 
 DEVELOPING FOR DRUPAL
 ---------------------

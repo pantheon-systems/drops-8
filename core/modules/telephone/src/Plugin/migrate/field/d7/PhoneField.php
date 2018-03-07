@@ -10,7 +10,20 @@ use Drupal\migrate_drupal\Plugin\migrate\field\FieldPluginBase;
  *   type_map = {
  *     "phone" = "telephone",
  *   },
- *   core = {7}
+ *   core = {7},
+ *   source_module = "phone",
+ *   destination_module = "telephone"
  * )
  */
-class PhoneField extends FieldPluginBase {}
+class PhoneField extends FieldPluginBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFieldFormatterMap() {
+    return [
+      'phone' => 'basic_string',
+    ];
+  }
+
+}
