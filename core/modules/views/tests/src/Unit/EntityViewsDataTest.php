@@ -18,6 +18,7 @@ use Drupal\Core\Field\Plugin\Field\FieldType\LanguageItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\StringItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\UriItem;
 use Drupal\Core\Field\Plugin\Field\FieldType\UuidItem;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\TypedData\TypedDataManagerInterface;
 use Drupal\text\Plugin\Field\FieldType\TextLongItem;
 use Drupal\entity_test\Entity\EntityTest;
@@ -25,6 +26,7 @@ use Drupal\entity_test\Entity\EntityTestMul;
 use Drupal\entity_test\Entity\EntityTestMulRev;
 use Drupal\Tests\UnitTestCase;
 use Drupal\views\EntityViewsData;
+use Prophecy\Argument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
@@ -91,8 +93,10 @@ class EntityViewsDataTest extends UnitTestCase {
 
     $typed_data_manager->expects($this->any())
       ->method('getDefinition')
-      ->with($this->equalTo('field_item:string_long'))
-      ->willReturn(['class' => '\Drupal\Core\Field\Plugin\Field\FieldType\StringLongItem']);
+      ->will($this->returnValueMap([
+        'entity:user' => ['class' => '\Drupal\Core\TypedData\DataDefinitionInterface'],
+        'field_item:string_long' => ['class' => '\Drupal\Core\Field\Plugin\Field\FieldType\StringLongItem'],
+      ]));
 
     $this->baseEntityType = new TestEntityType([
       'base_table' => 'entity_test',
@@ -110,6 +114,7 @@ class EntityViewsDataTest extends UnitTestCase {
     ]);
 
     $this->translationManager = $this->getStringTranslationStub();
+    $this->baseEntityType->setStringTranslation($this->translationManager);
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $this->viewsData = new TestEntityViewsData($this->baseEntityType, $this->entityStorage, $this->entityManager, $this->moduleHandler, $this->translationManager);
@@ -124,10 +129,14 @@ class EntityViewsDataTest extends UnitTestCase {
       ->method('getDefaultFieldSettings')
       ->willReturn([]);
 
+    $state = $this->prophesize(StateInterface::class);
+    $state->get(Argument::any(), [])->willReturn([]);
+
     $container = new ContainerBuilder();
     $container->set('plugin.manager.field.field_type', $field_type_manager);
     $container->set('entity.manager', $this->entityManager);
     $container->set('typed_data_manager', $typed_data_manager);
+    $container->set('state', $state->reveal());
     \Drupal::setContainer($container);
   }
 
@@ -474,7 +483,7 @@ class EntityViewsDataTest extends UnitTestCase {
         ['description', ['value' => 'description__value', 'format' => 'description__format']],
         ['homepage', ['value' => 'homepage']],
         ['user_id', ['target_id' => 'user_id']],
-        ['string', ['value' => 'value']],
+        ['string', ['value' => 'string_value']],
       ]);
     $table_mapping->expects($this->any())
       ->method('getFieldNames')
@@ -531,8 +540,12 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertEquals('users_field_data', $relationship['base']);
     $this->assertEquals('uid', $relationship['base field']);
 
-    $this->assertStringField($data['entity_test__string']['string']);
-    $this->assertField($data['entity_test__string']['string'], 'string');
+    // The string field name should be used as the 'entity field' but the actual
+    // field should reflect what the column mapping is using for multi-value
+    // base fields NOT just the field name. The actual column name returned from
+    // mappings in the test mocks is 'value'.
+    $this->assertStringField($data['entity_test__string']['string_value']);
+    $this->assertField($data['entity_test__string']['string_value'], 'string');
     $this->assertEquals([
       'left_field' => 'id',
       'field' => 'entity_id',
@@ -596,7 +609,7 @@ class EntityViewsDataTest extends UnitTestCase {
         ['description', ['value' => 'description__value', 'format' => 'description__format']],
         ['homepage', ['value' => 'homepage']],
         ['user_id', ['target_id' => 'user_id']],
-        ['string', ['value' => 'value']],
+        ['string', ['value' => 'string_value']],
       ]);
     $table_mapping->expects($this->any())
       ->method('getFieldNames')
@@ -686,8 +699,8 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertEquals('users_field_data', $relationship['base']);
     $this->assertEquals('uid', $relationship['base field']);
 
-    $this->assertStringField($data['entity_test_mul__string']['string']);
-    $this->assertField($data['entity_test_mul__string']['string'], 'string');
+    $this->assertStringField($data['entity_test_mul__string']['string_value']);
+    $this->assertField($data['entity_test_mul__string']['string_value'], 'string');
     $this->assertEquals([
       'left_field' => 'id',
       'field' => 'entity_id',
@@ -746,8 +759,8 @@ class EntityViewsDataTest extends UnitTestCase {
         ['description', ['value' => 'description__value', 'format' => 'description__format']],
         ['homepage', ['value' => 'homepage']],
         ['user_id', ['target_id' => 'user_id']],
-        ['revision_id', ['value' => 'id']],
-        ['string', ['value' => 'value']],
+        ['revision_id', ['value' => 'revision_id']],
+        ['string', ['value' => 'string_value']],
       ]);
     $table_mapping->expects($this->any())
       ->method('getFieldNames')
@@ -872,8 +885,8 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->assertEquals('users_field_data', $relationship['base']);
     $this->assertEquals('uid', $relationship['base field']);
 
-    $this->assertStringField($data['entity_test_mulrev__string']['string']);
-    $this->assertField($data['entity_test_mulrev__string']['string'], 'string');
+    $this->assertStringField($data['entity_test_mulrev__string']['string_value']);
+    $this->assertField($data['entity_test_mulrev__string']['string_value'], 'string');
     $this->assertEquals([
       'left_field' => 'id',
       'field' => 'entity_id',
@@ -885,8 +898,8 @@ class EntityViewsDataTest extends UnitTestCase {
       ],
     ], $data['entity_test_mulrev__string']['table']['join']['entity_test_mulrev_property_data']);
 
-    $this->assertStringField($data['entity_test_mulrev_revision__string']['string']);
-    $this->assertField($data['entity_test_mulrev_revision__string']['string'], 'string');
+    $this->assertStringField($data['entity_test_mulrev_revision__string']['string_value']);
+    $this->assertField($data['entity_test_mulrev_revision__string']['string_value'], 'string');
     $this->assertEquals([
       'left_field' => 'revision_id',
       'field' => 'entity_id',

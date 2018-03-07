@@ -38,13 +38,15 @@
           break;
 
         case 'activating':
-          var loadDependencies = function loadDependencies(callback) {
-            callback();
-          };
-          loadDependencies(function () {
-            fieldModel.set('state', 'active');
-          });
-          break;
+          {
+            var loadDependencies = function loadDependencies(callback) {
+              callback();
+            };
+            loadDependencies(function () {
+              fieldModel.set('state', 'active');
+            });
+            break;
+          }
 
         case 'active':
           break;
@@ -71,7 +73,7 @@
     save: function save() {
       var fieldModel = this.fieldModel;
       var editorModel = this.model;
-      var backstageId = 'quickedit_backstage-' + this.fieldModel.id.replace(/[\/\[\]\_\s]/g, '-');
+      var backstageId = 'quickedit_backstage-' + this.fieldModel.id.replace(/[/[\]_\s]/g, '-');
 
       function fillAndSubmitForm(value) {
         var $form = $('#' + backstageId).find('form');

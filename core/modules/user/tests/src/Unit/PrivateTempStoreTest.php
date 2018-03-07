@@ -11,6 +11,9 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * @coversDefaultClass \Drupal\user\PrivateTempStore
  * @group user
+ * @group legacy
+ * @runTestsInSeparateProcesses
+ * @preserveGlobalState disabled
  */
 class PrivateTempStoreTest extends UnitTestCase {
 
@@ -98,6 +101,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests the get() method.
    *
    * @covers ::get
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testGet() {
     $this->keyValue->expects($this->at(0))
@@ -122,6 +126,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests the set() method with no lock available.
    *
    * @covers ::set
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testSetWithNoLockAvailable() {
     $this->lock->expects($this->at(0))
@@ -147,6 +152,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests a successful set() call.
    *
    * @covers ::set
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testSet() {
     $this->lock->expects($this->once())
@@ -170,6 +176,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests the getMetadata() method.
    *
    * @covers ::getMetadata
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testGetMetadata() {
     $this->keyValue->expects($this->at(0))
@@ -194,6 +201,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests the locking in the delete() method.
    *
    * @covers ::delete
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testDeleteLocking() {
     $this->keyValue->expects($this->once())
@@ -221,6 +229,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests the delete() method with no lock available.
    *
    * @covers ::delete
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testDeleteWithNoLockAvailable() {
     $this->keyValue->expects($this->once())
@@ -250,6 +259,7 @@ class PrivateTempStoreTest extends UnitTestCase {
    * Tests the delete() method.
    *
    * @covers ::delete
+   * @expectedDeprecation \Drupal\user\PrivateTempStore is scheduled for removal in Drupal 9.0.0. Use \Drupal\Core\TempStore\PrivateTempStore instead. See https://www.drupal.org/node/2935639.
    */
   public function testDelete() {
     $this->lock->expects($this->once())

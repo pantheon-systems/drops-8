@@ -11,7 +11,7 @@ use Drupal\migrate\Row;
  * Gives us a chance to set per field defaults.
  *
  * @MigrateProcessPlugin(
- *   id = "field_type_defaults"
+ *   id = "d6_field_type_defaults"
  * )
  */
 class FieldTypeDefaults extends ProcessPluginBase {

@@ -4,8 +4,8 @@
  */
 
 .block-place-region {
-  outline: 1px dashed rgba(0,0,0,0.5);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.7);
+  outline: 1px dashed rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
   margin: 1em 0;
   padding: 5px;
   text-align: center;
@@ -14,8 +14,8 @@
 
 .block-place-region a.button {
   position: relative;
-  background: url(../../../misc/icons/bebebe/plus.svg) #ffffff center center / 16px 16px no-repeat;
-  border: 1px solid #cccccc;
+  background: url(../../../misc/icons/bebebe/plus.svg) #fff center center / 16px 16px no-repeat;
+  border: 1px solid #ccc;
   box-sizing: border-box;
   font-size: 1rem;
   padding: 0;

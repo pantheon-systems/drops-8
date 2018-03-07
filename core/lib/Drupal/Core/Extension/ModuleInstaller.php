@@ -93,8 +93,8 @@ class ModuleInstaller implements ModuleInstallerInterface {
       }
 
       // Add dependencies to the list. The new modules will be processed as
-      // the while loop continues.
-      while (list($module) = each($module_list)) {
+      // the foreach loop continues.
+      foreach ($module_list as $module => $value) {
         foreach (array_keys($module_data[$module]->requires) as $dependency) {
           if (!isset($module_data[$dependency])) {
             // The dependency does not exist.
@@ -304,7 +304,11 @@ class ModuleInstaller implements ModuleInstallerInterface {
 
     // If any modules were newly installed, invoke hook_modules_installed().
     if (!empty($modules_installed)) {
-      \Drupal::getContainer()->set('router.route_provider', \Drupal::service('router.route_provider.old'));
+      // If the container was rebuilt during hook_install() it might not have
+      // the 'router.route_provider.old' service.
+      if (\Drupal::hasService('router.route_provider.old')) {
+        \Drupal::getContainer()->set('router.route_provider', \Drupal::service('router.route_provider.old'));
+      }
       if (!\Drupal::service('router.route_provider.lazy_builder')->hasRebuilt()) {
         // Rebuild routes after installing module. This is done here on top of
         // \Drupal\Core\Routing\RouteBuilder::destruct to not run into errors on
@@ -340,9 +344,9 @@ class ModuleInstaller implements ModuleInstallerInterface {
 
     if ($uninstall_dependents) {
       // Add dependent modules to the list. The new modules will be processed as
-      // the while loop continues.
+      // the foreach loop continues.
       $profile = drupal_get_profile();
-      while (list($module) = each($module_list)) {
+      foreach ($module_list as $module => $value) {
         foreach (array_keys($module_data[$module]->required_by) as $dependent) {
           if (!isset($module_data[$dependent])) {
             // The dependent module does not exist.
@@ -415,16 +419,11 @@ class ModuleInstaller implements ModuleInstallerInterface {
           $update_manager->uninstallEntityType($entity_type);
         }
         elseif ($entity_type->entityClassImplements(FieldableEntityInterface::CLASS)) {
-          // The module being installed may be adding new fields to existing
-          // entity types. Field definitions for any entity type defined by
-          // the module are handled in the if branch.
-          $entity_type_id = $entity_type->id();
-          /** @var \Drupal\Core\Entity\FieldableEntityStorageInterface $storage */
-          $storage = $entity_manager->getStorage($entity_type_id);
-          foreach ($entity_manager->getFieldStorageDefinitions($entity_type_id) as $storage_definition) {
-            // @todo We need to trigger field purging here.
-            //   See https://www.drupal.org/node/2282119.
-            if ($storage_definition->getProvider() == $module && !$storage->countFieldData($storage_definition, TRUE)) {
+          // The module being uninstalled might have added new fields to
+          // existing entity types. This will add them to the deleted fields
+          // repository so their data will be purged on cron.
+          foreach ($entity_manager->getFieldStorageDefinitions($entity_type->id()) as $storage_definition) {
+            if ($storage_definition->getProvider() == $module) {
               $update_manager->uninstallFieldStorageDefinition($storage_definition);
             }
           }

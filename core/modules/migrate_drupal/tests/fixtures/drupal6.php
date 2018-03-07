@@ -3780,9 +3780,9 @@ $connection->insert('content_type_story')
   'field_test_phone_value' => NULL,
   'field_test_exclude_unset_value' => 'text for default value',
   'field_test_exclude_unset_format' => '1',
-  'field_test_imagefield_fid' => NULL,
-  'field_test_imagefield_list' => NULL,
-  'field_test_imagefield_data' => NULL,
+  'field_test_imagefield_fid' => '2',
+  'field_test_imagefield_list' => '1',
+  'field_test_imagefield_data' => 'a:2:{s:3:"alt";s:8:"Test alt";s:5:"title";s:10:"Test title";}',
   'field_test_text_single_checkbox2_value' => 'Off',
   'field_test_datestamp_value2' => '1391357160',
   'field_test_datetime_value2' => '2015-03-04 06:07:00',
@@ -43535,6 +43535,36 @@ $connection->insert('node_counter')
   'timestamp',
 ))
 ->values(array(
+  'nid' => '1',
+  'totalcount' => '2',
+  'daycount' => '0',
+  'timestamp' => '1421727536',
+))
+->values(array(
+  'nid' => '2',
+  'totalcount' => '1',
+  'daycount' => '0',
+  'timestamp' => '1471428059',
+))
+->values(array(
+  'nid' => '3',
+  'totalcount' => '1',
+  'daycount' => '0',
+  'timestamp' => '1471428153',
+))
+->values(array(
+  'nid' => '4',
+  'totalcount' => '1',
+  'daycount' => '1',
+  'timestamp' => '1478755275',
+))
+->values(array(
+  'nid' => '5',
+  'totalcount' => '1',
+  'daycount' => '1',
+  'timestamp' => '1478755314',
+))
+->values(array(
   'nid' => '14',
   'totalcount' => '1',
   'daycount' => '1',
@@ -46469,6 +46499,14 @@ $connection->insert('upload')
   'list' => '0',
   'weight' => '1',
 ))
+->values(array(
+  'fid' => '3',
+  'nid' => '12',
+  'vid' => '15',
+  'description' => 'file 12-15-3',
+  'list' => '0',
+  'weight' => '0',
+))
 ->execute();
 
 $connection->schema()->createTable('url_alias', array(
@@ -46552,6 +46590,12 @@ $connection->insert('url_alias')
   'src' => 'node/13',
   'dst' => 'the-zulu-people',
   'language' => 'en',
+))
+->values(array(
+  'pid' => '8',
+  'src' => 'admin',
+  'dst' => 'source-noslash',
+  'language' => '',
 ))
 ->execute();
 

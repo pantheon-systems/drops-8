@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\datetime\Kernel\Views;
 
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Drupal\node\Entity\Node;
 use Drupal\views\Views;
 
@@ -39,6 +40,9 @@ class FilterDateTimeTest extends DateTimeHandlerTestBase {
 
     // Set the timezone.
     date_default_timezone_set(static::$timezone);
+    $this->config('system.date')
+      ->set('timezone.default', static::$timezone)
+      ->save();
 
     // Add some basic test nodes.
     $dates = [
@@ -47,7 +51,7 @@ class FilterDateTimeTest extends DateTimeHandlerTestBase {
       '2002-10-10T14:14:14',
       // The date storage timezone is used (this mimics the steps taken in the
       // widget: \Drupal\datetime\Plugin\Field\FieldWidget::messageFormValues().
-      \Drupal::service('date.formatter')->format(static::$date, 'custom', DATETIME_DATETIME_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
+      \Drupal::service('date.formatter')->format(static::$date, 'custom', DateTimeItemInterface::DATETIME_STORAGE_FORMAT, DateTimeItemInterface::STORAGE_TIMEZONE),
     ];
     foreach ($dates as $date) {
       $node = Node::create([
@@ -183,7 +187,7 @@ class FilterDateTimeTest extends DateTimeHandlerTestBase {
     $view->filter[$field]->value['max'] = '';
     // Use the date from node 3. Use the site timezone (mimics a value entered
     // through the UI).
-    $view->filter[$field]->value['value'] = \Drupal::service('date.formatter')->format(static::$date, 'custom', DATETIME_DATETIME_STORAGE_FORMAT, static::$timezone);
+    $view->filter[$field]->value['value'] = \Drupal::service('date.formatter')->format(static::$date, 'custom', DateTimeItemInterface::DATETIME_STORAGE_FORMAT, static::$timezone);
     $view->setDisplay('default');
     $this->executeView($view);
     $expected_result = [

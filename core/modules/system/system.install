@@ -157,7 +157,11 @@ function system_requirements($phase) {
     }
   }
 
-  // Test PHP version and show link to phpinfo() if it's available
+  // Verify the user is running a supported PHP version.
+  // If the site is running a recommended version of PHP, just display it
+  // as an informational message on the status report. This will be overridden
+  // with an error or warning if the site is running older PHP versions for
+  // which Drupal has already or will soon drop support.
   $phpversion = $phpversion_label = phpversion();
   if (function_exists('phpinfo')) {
     if ($phase === 'runtime') {
@@ -169,6 +173,8 @@ function system_requirements($phase) {
     ];
   }
   else {
+    // @todo Revisit whether this description makes sense in
+    //   https://www.drupal.org/project/drupal/issues/2927318.
     $requirements['php'] = [
       'title' => t('PHP'),
       'value' => $phpversion_label,
@@ -183,11 +189,25 @@ function system_requirements($phase) {
     // If PHP is old, it's not safe to continue with the requirements check.
     return $requirements;
   }
+  if ((version_compare($phpversion, DRUPAL_RECOMMENDED_PHP) < 0) && ($phase === 'install' || $phase === 'runtime')) {
+    // Warn if still on PHP 5. If at least PHP 7.0, relax from "warning" to
+    // "info", and show it at runtime only, to not scare users while installing.
+    if (version_compare($phpversion, '7.0') < 0) {
+      $requirements['php']['description'] = t('Drupal will drop support for this version on March 6, 2019. Upgrade to PHP version %recommended or higher to ensure your site can receive updates and remain secure. See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal 8 PHP requirements handbook page</a> for more information.', ['%recommended' => DRUPAL_RECOMMENDED_PHP, ':php_requirements' => 'https://www.drupal.org/docs/8/system-requirements/php']);
+      $requirements['php']['severity'] = REQUIREMENT_WARNING;
+    }
+    else {
+      if ($phase === 'runtime') {
+        $requirements['php']['description'] = t('It is recommended to upgrade to PHP version %recommended or higher for the best ongoing support.  See <a href="http://php.net/supported-versions.php">PHP\'s version support documentation</a> and the <a href=":php_requirements">Drupal 8 PHP requirements handbook page</a> for more information.', ['%recommended' => DRUPAL_RECOMMENDED_PHP, ':php_requirements' => 'https://www.drupal.org/docs/8/system-requirements/php']);
+        $requirements['php']['severity'] = REQUIREMENT_INFO;
+      }
+    }
+  }
 
   // Suggest to update to at least 5.5.21 or 5.6.5 for disabling multiple
   // statements.
   if (($phase === 'install' || \Drupal::database()->driver() === 'mysql') && !SystemRequirements::phpVersionWithPdoDisallowMultipleStatements($phpversion)) {
-    $requirements['php'] = [
+    $requirements['php_multiple_statement'] = [
       'title' => t('PHP (multiple statement disabling)'),
       'value' => $phpversion_label,
       'description' => t('PHP versions higher than 5.6.5 or 5.5.21 provide built-in SQL injection protection for mysql databases. It is recommended to update.'),
@@ -469,19 +489,20 @@ function system_requirements($phase) {
     // Try to write the .htaccess files first, to prevent false alarms in case
     // (for example) the /tmp directory was wiped.
     file_ensure_htaccess();
+    $file_system = \Drupal::service('file_system');
     $htaccess_files['public://.htaccess'] = [
       'title' => t('Public files directory'),
-      'directory' => drupal_realpath('public://'),
+      'directory' => $file_system->realpath('public://'),
     ];
     if (PrivateStream::basePath()) {
       $htaccess_files['private://.htaccess'] = [
         'title' => t('Private files directory'),
-        'directory' => drupal_realpath('private://'),
+        'directory' => $file_system->realpath('private://'),
       ];
     }
     $htaccess_files['temporary://.htaccess'] = [
       'title' => t('Temporary files directory'),
-      'directory' => drupal_realpath('temporary://'),
+      'directory' => $file_system->realpath('temporary://'),
     ];
     foreach ($htaccess_files as $htaccess_file => $info) {
       // Check for the string which was added to the recommended .htaccess file
@@ -2039,6 +2060,78 @@ function system_update_8403() {
     $schema = Database::getConnection()->schema();
     if ($schema->tableExists($table_name)) {
       $schema->dropTable($table_name);
+    }
+  }
+}
+
+/**
+ * Add the 'revision_default' field to all relevant entity types.
+ */
+function system_update_8501() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  // Clear the cached entity type definitions so we get the new
+  // 'revision_default' revision metadata key.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  // Get a list of revisionable entity types.
+  /** @var \Drupal\Core\Entity\ContentEntityTypeInterface[] $definitions */
+  $definitions = array_filter(\Drupal::entityTypeManager()->getDefinitions(), function (EntityTypeInterface $entity_type) use ($definition_update_manager) {
+    if ($entity_type = $definition_update_manager->getEntityType($entity_type->id())) {
+      return $entity_type->isRevisionable();
+    }
+    return FALSE;
+  });
+
+  // Install the 'revision_default' field.
+  foreach ($definitions as $entity_type_id => $entity_type) {
+    $field_name = $entity_type->getRevisionMetadataKey('revision_default');
+    // Install the 'revision_default' field if needed.
+    if (!$definition_update_manager->getFieldStorageDefinition($field_name, $entity_type_id)) {
+      // Make sure the new "revision_default" revision metadata key is available
+      // also to code using the latest installed definition.
+      $installed_entity_type = $definition_update_manager->getEntityType($entity_type_id);
+      $revision_metadata_keys = $installed_entity_type->get('revision_metadata_keys');
+
+      if (!isset($revision_metadata_keys['revision_default'])) {
+        // Update the property holding the required revision metadata keys,
+        // which is used by the BC layer for retrieving the revision metadata
+        // keys.
+        // @see \Drupal\Core\Entity\ContentEntityType::getRevisionMetadataKeys().
+        $required_revision_metadata_keys = $installed_entity_type->get('requiredRevisionMetadataKeys');
+        $required_revision_metadata_keys['revision_default'] = $field_name;
+        $installed_entity_type->set('requiredRevisionMetadataKeys', $required_revision_metadata_keys);
+
+        // Update the revision metadata keys to add the new required revision
+        // metadata key "revision_default".
+        $revision_metadata_keys['revision_default'] = $required_revision_metadata_keys['revision_default'];
+        $installed_entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+
+        $definition_update_manager->updateEntityType($installed_entity_type);
+      }
+
+      $storage_definition = BaseFieldDefinition::create('boolean')
+        ->setLabel(t('Default revision'))
+        ->setDescription(t('A flag indicating whether this was a default revision when it was saved.'))
+        ->setStorageRequired(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE)
+        // We cannot tell whether existing revisions were default or not when
+        // they were created, but since we did not support creating non-default
+        // revisions in any core stable UI so far, we default to TRUE.
+        ->setInitialValue(TRUE);
+
+      $definition_update_manager
+        ->installFieldStorageDefinition($field_name, $entity_type_id, $entity_type_id, $storage_definition);
+    }
+    else {
+      $variables = ['@entity_type_label' => $entity_type->getLabel()];
+      if ($field_name === 'revision_default') {
+        \Drupal::logger('system')->error('An existing "Default revision" field was found for the @entity_type_label entity type, but no "revision_default" revision metadata key was found in its definition.', $variables);
+      }
+      else {
+        \Drupal::logger('system')->error('An existing "Default revision" field was found for the @entity_type_label entity type.', $variables);
+      }
     }
   }
 }

@@ -5,6 +5,7 @@ namespace Drupal\content_moderation\Plugin\Field;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Field\FieldItemList;
+use Drupal\Core\TypedData\ComputedItemListTrait;
 
 /**
  * A computed field that provides a content entity's moderation state.
@@ -13,6 +14,38 @@ use Drupal\Core\Field\FieldItemList;
  * moderation state content entity.
  */
 class ModerationStateFieldItemList extends FieldItemList {
+
+  use ComputedItemListTrait {
+    ensureComputedValue as traitEnsureComputedValue;
+    get as traitGet;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function computeValue() {
+    $moderation_state = $this->getModerationStateId();
+    // Do not store NULL values, in the case where an entity does not have a
+    // moderation workflow associated with it, we do not create list items for
+    // the computed field.
+    if ($moderation_state) {
+      // An entity can only have a single moderation state.
+      $this->list[0] = $this->createItem(0, $moderation_state);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function ensureComputedValue() {
+    // If the moderation state field is set to an empty value, always recompute
+    // the state. Empty is not a valid moderation state value, when none is
+    // present the default state is used.
+    if (!isset($this->list[0]) || $this->list[0]->isEmpty()) {
+      $this->valueComputed = FALSE;
+    }
+    $this->traitEnsureComputedValue();
+  }
 
   /**
    * Gets the moderation state ID linked to a content entity revision.
@@ -90,32 +123,7 @@ class ModerationStateFieldItemList extends FieldItemList {
     if ($index !== 0) {
       throw new \InvalidArgumentException('An entity can not have multiple moderation states at the same time.');
     }
-    $this->computeModerationFieldItemList();
-    return isset($this->list[$index]) ? $this->list[$index] : NULL;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getIterator() {
-    $this->computeModerationFieldItemList();
-    return parent::getIterator();
-  }
-
-  /**
-   * Recalculate the moderation field item list.
-   */
-  protected function computeModerationFieldItemList() {
-    // Compute the value of the moderation state.
-    $index = 0;
-    if (!isset($this->list[$index]) || $this->list[$index]->isEmpty()) {
-
-      $moderation_state = $this->getModerationStateId();
-      // Do not store NULL values in the static cache.
-      if ($moderation_state) {
-        $this->list[$index] = $this->createItem($index, $moderation_state);
-      }
-    }
+    return $this->traitGet($index);
   }
 
   /**
@@ -133,7 +141,11 @@ class ModerationStateFieldItemList extends FieldItemList {
   public function setValue($values, $notify = TRUE) {
     parent::setValue($values, $notify);
 
-    if (isset($this->list[0])) {
+    // If the parent created a field item and if the parent should be notified
+    // about the change (e.g. this is not initialized with the current value),
+    // update the moderated entity.
+    if (isset($this->list[0]) && $notify) {
+      $this->valueComputed = TRUE;
       $this->updateModeratedEntity($this->list[0]->value);
     }
   }
@@ -157,10 +169,9 @@ class ModerationStateFieldItemList extends FieldItemList {
       /** @var \Drupal\content_moderation\ContentModerationState $current_state */
       $current_state = $workflow->getTypePlugin()->getState($moderation_state_id);
 
-      // This entity is default if it is new, a new translation, the default
-      // revision state, or the default revision is not published.
+      // This entity is default if it is new, the default revision state, or the
+      // default revision is not published.
       $update_default_revision = $entity->isNew()
-        || $entity->isNewTranslation()
         || $current_state->isDefaultRevisionState()
         || !$content_moderation_info->isDefaultRevisionPublished($entity);
 

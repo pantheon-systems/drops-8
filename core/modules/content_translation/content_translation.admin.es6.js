@@ -17,11 +17,10 @@
       const $context = $(context);
       const options = drupalSettings.contentTranslationDependentOptions;
       let $fields;
-      let dependent_columns;
 
-      function fieldsChangeHandler($fields, dependent_columns) {
+      function fieldsChangeHandler($fields, dependentColumns) {
         return function (e) {
-          Drupal.behaviors.contentTranslationDependentOptions.check($fields, dependent_columns, $(e.target));
+          Drupal.behaviors.contentTranslationDependentOptions.check($fields, dependentColumns, $(e.target));
         };
       }
 
@@ -29,18 +28,16 @@
       // that name and copy over the input values that require all columns to be
       // translatable.
       if (options && options.dependent_selectors) {
-        for (const field in options.dependent_selectors) {
-          if (options.dependent_selectors.hasOwnProperty(field)) {
-            $fields = $context.find(`input[name^="${field}"]`);
-            dependent_columns = options.dependent_selectors[field];
+        Object.keys(options.dependent_selectors).forEach((field) => {
+          $fields = $context.find(`input[name^="${field}"]`);
+          const dependentColumns = options.dependent_selectors[field];
 
-            $fields.on('change', fieldsChangeHandler($fields, dependent_columns));
-            Drupal.behaviors.contentTranslationDependentOptions.check($fields, dependent_columns);
-          }
-        }
+          $fields.on('change', fieldsChangeHandler($fields, dependentColumns));
+          Drupal.behaviors.contentTranslationDependentOptions.check($fields, dependentColumns);
+        });
       }
     },
-    check($fields, dependent_columns, $changed) {
+    check($fields, dependentColumns, $changed) {
       let $element = $changed;
       let column;
 
@@ -50,23 +47,21 @@
 
       // A field that has many different translatable parts can also define one
       // or more columns that require all columns to be translatable.
-      for (const index in dependent_columns) {
-        if (dependent_columns.hasOwnProperty(index)) {
-          column = dependent_columns[index];
+      Object.keys(dependentColumns || {}).forEach((index) => {
+        column = dependentColumns[index];
 
-          if (!$changed) {
-            $element = $fields.filter(filterFieldsList);
-          }
-
-          if ($element.is(`input[value="${column}"]:checked`)) {
-            $fields.prop('checked', true)
-              .not($element).prop('disabled', true);
-          }
-          else {
-            $fields.prop('disabled', false);
-          }
+        if (!$changed) {
+          $element = $fields.filter(filterFieldsList);
         }
-      }
+
+        if ($element.is(`input[value="${column}"]:checked`)) {
+          $fields.prop('checked', true)
+            .not($element).prop('disabled', true);
+        }
+        else {
+          $fields.prop('disabled', false);
+        }
+      });
     },
   };
 
@@ -89,7 +84,12 @@
           $bundleSettings.nextUntil('.bundle-settings').hide();
         }
         else {
-          $bundleSettings.nextUntil('.bundle-settings', '.field-settings').find('.translatable :input:not(:checked)').closest('.field-settings').nextUntil(':not(.column-settings)').hide();
+          $bundleSettings
+            .nextUntil('.bundle-settings', '.field-settings')
+            .find('.translatable :input:not(:checked)')
+            .closest('.field-settings')
+            .nextUntil(':not(.column-settings)')
+            .hide();
         }
       });
 

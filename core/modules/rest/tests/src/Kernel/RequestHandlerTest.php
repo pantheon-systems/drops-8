@@ -2,7 +2,8 @@
 
 namespace Drupal\Tests\rest\Kernel;
 
-use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Routing\RouteMatch;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\rest\Plugin\ResourceBase;
@@ -11,6 +12,7 @@ use Drupal\rest\ResourceResponse;
 use Drupal\rest\RestResourceConfigInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Route;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
  * Test REST RequestHandler controller logic.
@@ -39,9 +41,11 @@ class RequestHandlerTest extends KernelTestBase {
    */
   public function setUp() {
     parent::setUp();
-    $this->entityStorage = $this->prophesize(EntityStorageInterface::class);
-    $this->requestHandler = new RequestHandler($this->entityStorage->reveal());
-    $this->requestHandler->setContainer($this->container);
+    $config_factory = $this->prophesize(ConfigFactoryInterface::class);
+    $config_factory->get('rest.settings')
+      ->willReturn($this->prophesize(ImmutableConfig::class)->reveal());
+    $serializer = $this->prophesize(SerializerInterface::class);
+    $this->requestHandler = new RequestHandler($config_factory->reveal(), $serializer->reveal());
   }
 
   /**
@@ -61,18 +65,17 @@ class RequestHandlerTest extends KernelTestBase {
     $config->getCacheContexts()->willReturn([]);
     $config->getCacheTags()->willReturn([]);
     $config->getCacheMaxAge()->willReturn(12);
-    $this->entityStorage->load('restplugin')->willReturn($config->reveal());
 
     // Response returns NULL this time because response from plugin is not
     // a ResourceResponse so it is passed through directly.
-    $response = $this->requestHandler->handle($route_match, $request);
+    $response = $this->requestHandler->handle($route_match, $request, $config->reveal());
     $this->assertEquals(NULL, $response);
 
     // Response will return a ResourceResponse this time.
     $response = new ResourceResponse([]);
     $resource->get(NULL, $request)
       ->willReturn($response);
-    $handler_response = $this->requestHandler->handle($route_match, $request);
+    $handler_response = $this->requestHandler->handle($route_match, $request, $config->reveal());
     $this->assertEquals($response, $handler_response);
 
     // We will call the patch method this time.
@@ -82,7 +85,7 @@ class RequestHandlerTest extends KernelTestBase {
     $resource->patch(NULL, $request)
       ->shouldBeCalledTimes(1)
       ->willReturn($response);
-    $handler_response = $this->requestHandler->handle($route_match, $request);
+    $handler_response = $this->requestHandler->handle($route_match, $request, $config->reveal());
     $this->assertEquals($response, $handler_response);
   }
 
@@ -93,9 +96,9 @@ class RequestHandlerTest extends KernelTestBase {
  */
 class StubRequestHandlerResourcePlugin extends ResourceBase {
 
-  public function get() {}
+  public function get($example, Request $request) {}
   public function post() {}
-  public function patch() {}
+  public function patch($example_original, Request $request) {}
   public function delete() {}
 
 }

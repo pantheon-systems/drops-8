@@ -4,25 +4,14 @@
     "stylelint-no-browser-hacks/lib"
   ],
   "rules": {
-    "at-rule-empty-line-before": null,
-    "block-no-empty": null,
-    "color-hex-case": null,
-    "color-hex-length": null,
     "comment-empty-line-before": null,
     "declaration-block-no-duplicate-properties": null,
-    "declaration-block-no-redundant-longhand-properties": null,
-    "declaration-block-no-shorthand-property-overrides": null,
-    "declaration-block-trailing-semicolon": null,
-    "declaration-colon-space-after": null,
-    "function-comma-space-after": null,
     "function-linear-gradient-no-nonstandard-direction": null,
-    "function-name-case": null,
     "function-whitespace-after": null,
-    "length-zero-no-unit": null,
-    "no-empty-source": null,
+    "no-descending-specificity": null,
+    "no-duplicate-selectors": null,
     "no-unknown-animations": true,
-    "number-leading-zero": null,
-    "number-no-trailing-zeros": null,
+    "number-leading-zero": "always",
     "plugin/no-browser-hacks": [true, {
       "browsers": [
         "ie >= 9",
@@ -36,9 +25,8 @@
     "property-no-unknown": null,
     "rule-empty-line-before": null,
     "selector-pseudo-element-colon-notation": null,
-    "selector-type-no-unknown": null,
     "shorthand-property-no-redundant-values": null,
-    "unit-whitelist": ["deg", "em", "ex", "ms", "rem", "%", "s", "px"]
+    "unit-whitelist": ["deg", "em", "ex", "ms", "rem", "%", "s", "px", "vw", "vh"]
   },
   "ignoreFiles": [
     "assets/vendor/**/*.css",

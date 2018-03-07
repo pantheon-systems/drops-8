@@ -82,7 +82,7 @@ Basic Auth
 - Juampy Novillo Requena 'juampy' https://www.drupal.org/u/juampy
 
 Batch API
-- ?
+- John Cook 'John Cook' https://www.drupal.org/u/john-cook
 
 BigPipe
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
@@ -245,7 +245,6 @@ Interface Translation (locale)
 
 JavaScript
 - Théodore Biadala 'nod_' https://www.drupal.org/u/nod_
-- Kay Leung 'droplet' https://www.drupal.org/u/droplet
 - Matthew Grill 'drpal' https://www.drupal.org/u/drpal
 - Sally Young 'justafish' https://www.drupal.org/u/justafish
 
@@ -470,6 +469,11 @@ their responsibilities. The initiative coordinators for Drupal 8 are:
 API-first Initiative
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
 - Mateu Aguiló Bosch 'e0ipso' https://www.drupal.org/u/e0ipso
+
+JavaScript Modernization Initiative
+- Angela Byron 'webchick' https://www.drupal.org/u/webchick
+- Matthew Grill 'drpal' https://www.drupal.org/u/drpal
+- Sally Young 'justafish' https://www.drupal.org/u/justafish
 
 Layout Initiative
 - Tim Plunkett 'tim.plunkett' https://www.drupal.org/u/tim.plunkett

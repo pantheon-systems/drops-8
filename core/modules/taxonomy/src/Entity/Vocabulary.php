@@ -12,13 +12,25 @@ use Drupal\taxonomy\VocabularyInterface;
  * @ConfigEntityType(
  *   id = "taxonomy_vocabulary",
  *   label = @Translation("Taxonomy vocabulary"),
+ *   label_singular = @Translation("vocabulary"),
+ *   label_plural = @Translation("vocabularies"),
+ *   label_collection = @Translation("Taxonomy"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count vocabulary",
+ *     plural = "@count vocabularies"
+ *   ),
  *   handlers = {
  *     "storage" = "Drupal\taxonomy\VocabularyStorage",
  *     "list_builder" = "Drupal\taxonomy\VocabularyListBuilder",
+ *     "access" = "Drupal\taxonomy\VocabularyAccessControlHandler",
  *     "form" = {
  *       "default" = "Drupal\taxonomy\VocabularyForm",
  *       "reset" = "Drupal\taxonomy\Form\VocabularyResetForm",
- *       "delete" = "Drupal\taxonomy\Form\VocabularyDeleteForm"
+ *       "delete" = "Drupal\taxonomy\Form\VocabularyDeleteForm",
+ *       "overview" = "Drupal\taxonomy\Form\OverviewTerms"
+ *     },
+ *     "route_provider" = {
+ *       "html" = "Drupal\taxonomy\Entity\Routing\VocabularyRouteProvider",
  *     }
  *   },
  *   admin_permission = "administer taxonomy",
@@ -30,7 +42,7 @@ use Drupal\taxonomy\VocabularyInterface;
  *     "weight" = "weight"
  *   },
  *   links = {
- *     "add-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/add",
+ *     "add-form" = "/admin/structure/taxonomy/add",
  *     "delete-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/delete",
  *     "reset-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/reset",
  *     "overview-form" = "/admin/structure/taxonomy/manage/{taxonomy_vocabulary}/overview",

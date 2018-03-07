@@ -14,7 +14,7 @@
   width: 100%;
   height: 100%;
   background: #000;
-  opacity: 0.70;
+  opacity: 0.7;
 }
 [dir="rtl"] .cke_reset_all * {
   text-align: right;
@@ -192,11 +192,11 @@
   background-image: linear-gradient(to bottom, #fcfcfa, #e9e9dd);
   color: #1a1a1a;
   text-decoration: none;
-  box-shadow: 0 1px 2px hsla(0, 0%, 0%, 0.125)
+  box-shadow: 0 1px 2px hsla(0, 0%, 0%, 0.125);
 }
 .cke_reset_all .cke_dialog_footer_buttons a.cke_dialog_ui_button:focus {
   z-index: 10;
-  border: 1px solid #3AB2FF;
+  border: 1px solid #3ab2ff;
   box-shadow: 0 0 0.5em 0.1em hsla(203, 100%, 60%, 0.7);
 }
 .cke_reset_all .cke_dialog_footer_buttons a.cke_dialog_ui_button:active {

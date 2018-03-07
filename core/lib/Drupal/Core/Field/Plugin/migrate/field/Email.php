@@ -11,7 +11,9 @@ use Drupal\migrate_drupal\Plugin\migrate\field\FieldPluginBase;
  *   core = {6,7},
  *   type_map = {
  *     "email" = "email"
- *   }
+ *   },
+ *   source_module = "email",
+ *   destination_module = "core"
  * )
  */
 class Email extends FieldPluginBase {
@@ -30,10 +32,14 @@ class Email extends FieldPluginBase {
    */
   public function getFieldFormatterMap() {
     return [
-      'email_formatter_default' => 'basic_string',
+      'email_formatter_default' => 'email_mailto',
       'email_formatter_contact' => 'basic_string',
       'email_formatter_plain' => 'basic_string',
       'email_formatter_spamspan' => 'basic_string',
+      'email_default' => 'email_mailto',
+      'email_contact' => 'basic_string',
+      'email_plain' => 'basic_string',
+      'email_spamspan' => 'basic_string',
     ];
   }
 

@@ -41,11 +41,9 @@
         }
       }
 
-      for (const base in settings.tableDrag) {
-        if (settings.tableDrag.hasOwnProperty(base)) {
-          initTableDrag($(context).find(`#${base}`).once('tabledrag'), base);
-        }
-      }
+      Object.keys(settings.tableDrag || {}).forEach((base) => {
+        initTableDrag($(context).find(`#${base}`).once('tabledrag'), base);
+      });
     },
   };
 
@@ -172,20 +170,16 @@
      * @type {bool}
      */
     this.indentEnabled = false;
-    for (const group in tableSettings) {
-      if (tableSettings.hasOwnProperty(group)) {
-        for (const n in tableSettings[group]) {
-          if (tableSettings[group].hasOwnProperty(n)) {
-            if (tableSettings[group][n].relationship === 'parent') {
-              this.indentEnabled = true;
-            }
-            if (tableSettings[group][n].limit > 0) {
-              this.maxDepth = tableSettings[group][n].limit;
-            }
-          }
+    Object.keys(tableSettings || {}).forEach((group) => {
+      Object.keys(tableSettings[group] || {}).forEach((n) => {
+        if (tableSettings[group][n].relationship === 'parent') {
+          this.indentEnabled = true;
         }
-      }
-    }
+        if (tableSettings[group][n].limit > 0) {
+          this.maxDepth = tableSettings[group][n].limit;
+        }
+      });
+    });
     if (this.indentEnabled) {
       /**
        * Total width of indents, set in makeDraggable.
@@ -264,30 +258,29 @@
     let hidden;
     let cell;
     let columnIndex;
-    for (const group in this.tableSettings) {
-      if (this.tableSettings.hasOwnProperty(group)) {
-        // Find the first field in this group.
-        for (const d in this.tableSettings[group]) {
-          if (this.tableSettings[group].hasOwnProperty(d)) {
-            const field = $table.find(`.${this.tableSettings[group][d].target}`).eq(0);
-            if (field.length && this.tableSettings[group][d].hidden) {
-              hidden = this.tableSettings[group][d].hidden;
-              cell = field.closest('td');
-              break;
-            }
+    Object.keys(this.tableSettings || {}).forEach((group) => {
+      // Find the first field in this group.
+      // eslint-disable-next-line no-restricted-syntax
+      for (const d in this.tableSettings[group]) {
+        if (this.tableSettings[group].hasOwnProperty(d)) {
+          const field = $table.find(`.${this.tableSettings[group][d].target}`).eq(0);
+          if (field.length && this.tableSettings[group][d].hidden) {
+            hidden = this.tableSettings[group][d].hidden;
+            cell = field.closest('td');
+            break;
           }
         }
-
-        // Mark the column containing this field so it can be hidden.
-        if (hidden && cell[0]) {
-          // Add 1 to our indexes. The nth-child selector is 1 based, not 0
-          // based. Match immediate children of the parent element to allow
-          // nesting.
-          columnIndex = cell.parent().find('> td').index(cell.get(0)) + 1;
-          $table.find('> thead > tr, > tbody > tr, > tr').each(this.addColspanClass(columnIndex));
-        }
       }
-    }
+
+      // Mark the column containing this field so it can be hidden.
+      if (hidden && cell[0]) {
+        // Add 1 to our indexes. The nth-child selector is 1 based, not 0
+        // based. Match immediate children of the parent element to allow
+        // nesting.
+        columnIndex = cell.parent().find('> td').index(cell.get(0)) + 1;
+        $table.find('> thead > tr, > tbody > tr, > tr').each(this.addColspanClass(columnIndex));
+      }
+    });
     this.displayColumns(showWeight);
   };
 
@@ -419,12 +412,14 @@
   Drupal.tableDrag.prototype.rowSettings = function (group, row) {
     const field = $(row).find(`.${group}`);
     const tableSettingsGroup = this.tableSettings[group];
+    // eslint-disable-next-line no-restricted-syntax
     for (const delta in tableSettingsGroup) {
       if (tableSettingsGroup.hasOwnProperty(delta)) {
         const targetClass = tableSettingsGroup[delta].target;
         if (field.is(`.${targetClass}`)) {
           // Return a copy of the row settings.
           const rowSettings = {};
+          // eslint-disable-next-line no-restricted-syntax
           for (const n in tableSettingsGroup[delta]) {
             if (tableSettingsGroup[delta].hasOwnProperty(n)) {
               rowSettings[n] = tableSettingsGroup[delta][n];
@@ -510,9 +505,9 @@
         // Up arrow.
         case 38:
         // Safari up arrow.
-        case 63232:
-          var $previousRow = $(self.rowObject.element).prev('tr:first-of-type');
-          var previousRow = $previousRow.get(0);
+        case 63232: {
+          let $previousRow = $(self.rowObject.element).prev('tr:first-of-type');
+          let previousRow = $previousRow.get(0);
           while (previousRow && $previousRow.is(':hidden')) {
             $previousRow = $(previousRow).prev('tr:first-of-type');
             previousRow = $previousRow.get(0);
@@ -549,7 +544,7 @@
             handle.trigger('focus');
           }
           break;
-
+        }
         // Right arrow.
         case 39:
         // Safari right arrow.
@@ -561,9 +556,9 @@
         // Down arrow.
         case 40:
         // Safari down arrow.
-        case 63233:
-          var $nextRow = $(self.rowObject.group).eq(-1).next('tr:first-of-type');
-          var nextRow = $nextRow.get(0);
+        case 63233: {
+          let $nextRow = $(self.rowObject.group).eq(-1).next('tr:first-of-type');
+          let nextRow = $nextRow.get(0);
           while (nextRow && $nextRow.is(':hidden')) {
             $nextRow = $(nextRow).next('tr:first-of-type');
             nextRow = $nextRow.get(0);
@@ -599,6 +594,7 @@
             handle.trigger('focus');
           }
           break;
+        }
       }
 
       /* eslint-enable no-fallthrough */
@@ -712,7 +708,8 @@
         // Stop any current scrolling.
         clearInterval(self.scrollInterval);
         // Continue scrolling if the mouse has moved in the scroll direction.
-        if (scrollAmount > 0 && self.rowObject.direction === 'down' || scrollAmount < 0 && self.rowObject.direction === 'up') {
+        if ((scrollAmount > 0 && self.rowObject.direction === 'down')
+          || (scrollAmount < 0 && self.rowObject.direction === 'up')) {
           self.setScroll(scrollAmount);
         }
 
@@ -772,18 +769,14 @@
 
         // If a setting exists for affecting the entire group, update all the
         // fields in the entire dragged group.
-        for (const group in self.tableSettings) {
-          if (self.tableSettings.hasOwnProperty(group)) {
-            const rowSettings = self.rowSettings(group, droppedRow);
-            if (rowSettings.relationship === 'group') {
-              for (const n in self.rowObject.children) {
-                if (self.rowObject.children.hasOwnProperty(n)) {
-                  self.updateField(self.rowObject.children[n], group);
-                }
-              }
-            }
+        Object.keys(self.tableSettings || {}).forEach((group) => {
+          const rowSettings = self.rowSettings(group, droppedRow);
+          if (rowSettings.relationship === 'group') {
+            Object.keys(self.rowObject.children || {}).forEach((n) => {
+              self.updateField(self.rowObject.children[n], group);
+            });
           }
-        }
+        });
 
         self.rowObject.markChanged();
         if (self.changed === false) {
@@ -826,8 +819,8 @@
       return { x: event.pageX, y: event.pageY };
     }
     return {
-      x: event.clientX + document.body.scrollLeft - document.body.clientLeft,
-      y: event.clientY + document.body.scrollTop - document.body.clientTop,
+      x: (event.clientX + document.body.scrollLeft) - document.body.clientLeft,
+      y: (event.clientY + document.body.scrollTop) - document.body.clientTop,
     };
   };
 
@@ -870,7 +863,7 @@
       let row = rows[n];
       let $row = $(row);
       const rowY = $row.offset().top;
-      var rowHeight;
+      let rowHeight;
       // Because Safari does not report offsetHeight on table rows, but does on
       // table cells, grab the firstChild of the row and use that instead.
       // http://jacob.peargrove.com/blog/2006/technical/table-row-offsettop-bug-in-safari.
@@ -886,17 +879,16 @@
       if ((y > (rowY - rowHeight)) && (y < (rowY + rowHeight))) {
         if (this.indentEnabled) {
           // Check that this row is not a child of the row being dragged.
+          // eslint-disable-next-line no-restricted-syntax
           for (n in this.rowObject.group) {
             if (this.rowObject.group[n] === row) {
               return null;
             }
           }
         }
-        else {
-          // Do not allow a row to be swapped with itself.
-          if (row === this.rowObject.element) {
-            return null;
-          }
+        // Do not allow a row to be swapped with itself.
+        else if (row === this.rowObject.element) {
+          return null;
         }
 
         // Check that swapping with this row is allowed.
@@ -924,13 +916,11 @@
    *   DOM object for the row that was just dropped.
    */
   Drupal.tableDrag.prototype.updateFields = function (changedRow) {
-    for (const group in this.tableSettings) {
-      if (this.tableSettings.hasOwnProperty(group)) {
-        // Each group may have a different setting for relationship, so we find
-        // the source rows for each separately.
-        this.updateField(changedRow, group);
-      }
-    }
+    Object.keys(this.tableSettings || {}).forEach((group) => {
+      // Each group may have a different setting for relationship, so we find
+      // the source rows for each separately.
+      this.updateField(changedRow, group);
+    });
   };
 
   /**
@@ -1037,8 +1027,8 @@
           targetElement.value = sourceElement.value;
           break;
 
-        case 'order':
-          var siblings = this.rowObject.findSiblings(rowSettings);
+        case 'order': {
+          const siblings = this.rowObject.findSiblings(rowSettings);
           if ($(targetElement).is('select')) {
             // Get a list of acceptable values.
             const values = [];
@@ -1067,6 +1057,7 @@
             });
           }
           break;
+        }
       }
     }
   };
@@ -1106,20 +1097,22 @@
     const de = document.documentElement;
     const b = document.body;
 
-    const windowHeight = this.windowHeight = window.innerHeight || (de.clientHeight && de.clientWidth !== 0 ? de.clientHeight : b.offsetHeight);
+    const windowHeight = window.innerHeight || (de.clientHeight && de.clientWidth !== 0 ? de.clientHeight : b.offsetHeight);
+    this.windowHeight = windowHeight;
     let scrollY;
     if (document.all) {
-      scrollY = this.scrollY = !de.scrollTop ? b.scrollTop : de.scrollTop;
+      scrollY = !de.scrollTop ? b.scrollTop : de.scrollTop;
     }
     else {
-      scrollY = this.scrollY = window.pageYOffset ? window.pageYOffset : window.scrollY;
+      scrollY = window.pageYOffset ? window.pageYOffset : window.scrollY;
     }
+    this.scrollY = scrollY;
     const trigger = this.scrollSettings.trigger;
     let delta = 0;
 
     // Return a scroll speed relative to the edge of the screen.
     if (cursorY - scrollY > windowHeight - trigger) {
-      delta = trigger / (windowHeight + scrollY - cursorY);
+      delta = trigger / ((windowHeight + scrollY) - cursorY);
       delta = (delta > 0 && delta < trigger) ? delta : trigger;
       return delta * this.scrollSettings.amount;
     }
@@ -1144,7 +1137,8 @@
       self.checkScroll(self.currentPointerCoords.y);
       const aboveTable = self.scrollY > self.table.topY;
       const belowTable = self.scrollY + self.windowHeight < self.table.bottomY;
-      if (scrollAmount > 0 && belowTable || scrollAmount < 0 && aboveTable) {
+      if ((scrollAmount > 0 && belowTable)
+        || (scrollAmount < 0 && aboveTable)) {
         window.scrollBy(0, scrollAmount);
       }
     }, this.scrollSettings.interval);
@@ -1157,10 +1151,16 @@
     // :even and :odd are reversed because jQuery counts from 0 and
     // we count from 1, so we're out of sync.
     // Match immediate children of the parent element to allow nesting.
-    $(this.table).find('> tbody > tr.draggable, > tr.draggable')
+    $(this.table)
+      .find('> tbody > tr.draggable, > tr.draggable')
       .filter(':visible')
-      .filter(':odd').removeClass('odd').addClass('even').end()
-      .filter(':even').removeClass('even').addClass('odd');
+      .filter(':odd')
+      .removeClass('odd')
+      .addClass('even')
+      .end()
+      .filter(':even')
+      .removeClass('even')
+      .addClass('odd');
   };
 
   /**
@@ -1348,12 +1348,11 @@
    */
   Drupal.tableDrag.prototype.row.prototype.validIndentInterval = function (prevRow, nextRow) {
     const $prevRow = $(prevRow);
-    let minIndent;
     let maxIndent;
 
     // Minimum indentation:
     // Do not orphan the next row.
-    minIndent = nextRow ? $(nextRow).find('.js-indentation').length : 0;
+    const minIndent = nextRow ? $(nextRow).find('.js-indentation').length : 0;
 
     // Maximum indentation:
     if (!prevRow || $prevRow.is(':not(.draggable)') || $(this.element).is('.tabledrag-root')) {
@@ -1477,15 +1476,13 @@
    * Remove indentation helper classes from the current row group.
    */
   Drupal.tableDrag.prototype.row.prototype.removeIndentClasses = function () {
-    for (const n in this.children) {
-      if (this.children.hasOwnProperty(n)) {
-        $(this.children[n]).find('.js-indentation')
-          .removeClass('tree-child')
-          .removeClass('tree-child-first')
-          .removeClass('tree-child-last')
-          .removeClass('tree-child-horizontal');
-      }
-    }
+    Object.keys(this.children || {}).forEach((n) => {
+      $(this.children[n]).find('.js-indentation')
+        .removeClass('tree-child')
+        .removeClass('tree-child-first')
+        .removeClass('tree-child-last')
+        .removeClass('tree-child-horizontal');
+    });
   };
 
   /**
