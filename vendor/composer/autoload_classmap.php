@@ -1632,6 +1632,7 @@ return array(
     'Drupal\\Core\\Routing\\UrlGeneratorInterface' => $baseDir . '/core/lib/Drupal/Core/Routing/UrlGeneratorInterface.php',
     'Drupal\\Core\\Routing\\UrlGeneratorTrait' => $baseDir . '/core/lib/Drupal/Core/Routing/UrlGeneratorTrait.php',
     'Drupal\\Core\\Routing\\UrlMatcher' => $baseDir . '/core/lib/Drupal/Core/Routing/UrlMatcher.php',
+    'Drupal\\Core\\Security\\RequestSanitizer' => $baseDir . '/core/lib/Drupal/Core/Security/RequestSanitizer.php',
     'Drupal\\Core\\Serialization\\Yaml' => $baseDir . '/core/lib/Drupal/Core/Serialization/Yaml.php',
     'Drupal\\Core\\Session\\AccountInterface' => $baseDir . '/core/lib/Drupal/Core/Session/AccountInterface.php',
     'Drupal\\Core\\Session\\AccountProxy' => $baseDir . '/core/lib/Drupal/Core/Session/AccountProxy.php',
