@@ -608,7 +608,7 @@ function drupal_process_states(&$elements) {
  *     'id' => 'my-module-table',
  *   ),
  * );
- * return drupal_render($table);
+ * return \Drupal::service('renderer')->render($table);
  * @endcode
  *
  * In the theme function for the form, a special class must be added to each
@@ -899,7 +899,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
  *   rendering when possible or loop through the elements and render them as
  *   they are available.
  *
- * @see drupal_render()
+ * @see \Drupal\Core\Render\RendererInterface::render()
  * @see https://www.drupal.org/node/2912757
  */
 function drupal_render_children(&$element, $children_keys = NULL) {

@@ -2717,6 +2717,30 @@ $connection->insert('content_node_field')
   'locked' => '0',
 ))
 ->values(array(
+  'field_name' => 'field_company_2',
+  'type' => 'nodereference',
+  'global_settings' => 'a:1:{s:19:"referenceable_types";a:10:{s:7:"company";s:7:"company";s:7:"article";i:0;s:8:"employee";i:0;s:5:"forum";i:0;s:10:"test_event";i:0;s:9:"test_page";i:0;s:11:"test_planet";i:0;s:10:"test_story";i:0;s:7:"sponsor";i:0;s:5:"story";i:0;}}',
+  'required' => '0',
+  'multiple' => '0',
+  'db_storage' => '1',
+  'module' => 'nodereference',
+  'db_columns' => 'a:1:{s:3:"nid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
+  'active' => '1',
+  'locked' => '0',
+))
+->values(array(
+  'field_name' => 'field_company_3',
+  'type' => 'nodereference',
+  'global_settings' => 'a:1:{s:19:"referenceable_types";a:10:{s:7:"company";s:7:"company";s:7:"article";i:0;s:8:"employee";i:0;s:5:"forum";i:0;s:10:"test_event";i:0;s:9:"test_page";i:0;s:11:"test_planet";i:0;s:10:"test_story";i:0;s:7:"sponsor";i:0;s:5:"story";i:0;}}',
+  'required' => '0',
+  'multiple' => '0',
+  'db_storage' => '1',
+  'module' => 'nodereference',
+  'db_columns' => 'a:1:{s:3:"nid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
+  'active' => '1',
+  'locked' => '0',
+))
+->values(array(
   'field_name' => 'field_multivalue',
   'type' => 'number_decimal',
   'global_settings' => 'a:9:{s:6:"prefix";s:0:"";s:6:"suffix";s:0:"";s:3:"min";s:0:"";s:3:"max";s:0:"";s:14:"allowed_values";s:0:"";s:18:"allowed_values_php";s:0:"";s:9:"precision";s:2:"10";s:5:"scale";s:1:"2";s:7:"decimal";s:1:".";}',
@@ -2725,6 +2749,30 @@ $connection->insert('content_node_field')
   'db_storage' => '0',
   'module' => 'number',
   'db_columns' => 'a:1:{s:5:"value";a:5:{s:4:"type";s:7:"numeric";s:9:"precision";s:2:"10";s:5:"scale";s:1:"2";s:8:"not null";b:0;s:8:"sortable";b:1;}}',
+  'active' => '1',
+  'locked' => '0',
+))
+->values(array(
+  'field_name' => 'field_reference',
+  'type' => 'nodereference',
+  'global_settings' => 'a:1:{s:19:"referenceable_types";a:11:{s:4:"page";s:4:"page";s:7:"article";i:0;s:7:"company";i:0;s:8:"employee";i:0;s:5:"forum";i:0;s:10:"test_event";i:0;s:9:"test_page";i:0;s:11:"test_planet";i:0;s:10:"test_story";i:0;s:7:"sponsor";i:0;s:5:"story";i:0;}}',
+  'required' => '0',
+  'multiple' => '0',
+  'db_storage' => '1',
+  'module' => 'nodereference',
+  'db_columns' => 'a:1:{s:3:"nid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
+  'active' => '1',
+  'locked' => '0',
+))
+->values(array(
+  'field_name' => 'field_reference_2',
+  'type' => 'nodereference',
+  'global_settings' => 'a:1:{s:19:"referenceable_types";a:11:{s:4:"page";s:4:"page";s:7:"article";i:0;s:7:"company";i:0;s:8:"employee";i:0;s:5:"forum";i:0;s:10:"test_event";i:0;s:9:"test_page";i:0;s:11:"test_planet";i:0;s:10:"test_story";i:0;s:7:"sponsor";i:0;s:5:"story";i:0;}}',
+  'required' => '0',
+  'multiple' => '0',
+  'db_storage' => '1',
+  'module' => 'nodereference',
+  'db_columns' => 'a:1:{s:3:"nid";a:4:{s:4:"type";s:3:"int";s:8:"unsigned";b:1;s:8:"not null";b:0;s:5:"index";b:1;}}',
   'active' => '1',
   'locked' => '0',
 ))
@@ -3075,6 +3123,30 @@ $connection->insert('content_node_field_instance')
   'widget_active' => '1',
 ))
 ->values(array(
+  'field_name' => 'field_company_2',
+  'type_name' => 'employee',
+  'weight' => '33',
+  'label' => 'Company 2',
+  'widget_type' => 'nodereference_buttons',
+  'widget_settings' => 'a:4:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";i:60;s:13:"default_value";a:1:{i:0;a:1:{s:3:"nid";s:0:"";}}s:17:"default_value_php";N;}',
+  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
+  'description' => '',
+  'widget_module' => 'nodereference',
+  'widget_active' => '1',
+))
+->values(array(
+  'field_name' => 'field_company_3',
+  'type_name' => 'employee',
+  'weight' => '34',
+  'label' => 'Company 3',
+  'widget_type' => 'nodereference_autocomplete',
+  'widget_settings' => 'a:4:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";s:2:"60";s:13:"default_value";a:1:{i:0;a:2:{s:3:"nid";N;s:14:"_error_element";s:50:"default_value_widget][field_company_3][0][nid][nid";}}s:17:"default_value_php";N;}',
+  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
+  'description' => '',
+  'widget_module' => 'nodereference',
+  'widget_active' => '1',
+))
+->values(array(
   'field_name' => 'field_multivalue',
   'type_name' => 'test_planet',
   'weight' => '2',
@@ -3084,6 +3156,30 @@ $connection->insert('content_node_field_instance')
   'display_settings' => 'a:6:{s:6:"weight";i:2;s:6:"parent";s:0:"";s:5:"label";a:1:{s:6:"format";s:5:"above";}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
   'description' => 'An example multi-valued decimal field.',
   'widget_module' => 'number',
+  'widget_active' => '1',
+))
+->values(array(
+  'field_name' => 'field_reference',
+  'type_name' => 'page',
+  'weight' => '31',
+  'label' => 'Reference',
+  'widget_type' => 'nodereference_select',
+  'widget_settings' => 'a:4:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";i:60;s:13:"default_value";a:1:{i:0;a:1:{s:3:"nid";s:0:"";}}s:17:"default_value_php";N;}',
+  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
+  'description' => '',
+  'widget_module' => 'nodereference',
+  'widget_active' => '1',
+))
+->values(array(
+  'field_name' => 'field_reference_2',
+  'type_name' => 'page',
+  'weight' => '32',
+  'label' => 'Reference',
+  'widget_type' => 'nodereference_select',
+  'widget_settings' => 'a:4:{s:18:"autocomplete_match";s:8:"contains";s:4:"size";i:60;s:13:"default_value";a:1:{i:0;a:1:{s:3:"nid";s:0:"";}}s:17:"default_value_php";N;}',
+  'display_settings' => 'a:5:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
+  'description' => '',
+  'widget_module' => 'nodereference',
   'widget_active' => '1',
 ))
 ->values(array(
@@ -3374,6 +3470,18 @@ $connection->schema()->createTable('content_type_employee', array(
       'size' => 'normal',
       'unsigned' => TRUE,
     ),
+    'field_company_2_nid' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_company_3_nid' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
   ),
   'primary key' => array(
     'vid',
@@ -3385,6 +3493,12 @@ $connection->schema()->createTable('content_type_employee', array(
     'field_commander_uid' => array(
       'field_commander_uid',
     ),
+    'field_company_2_nid' => array(
+      'field_company_2_nid',
+    ),
+    'field_company_3_nid' => array(
+      'field_company_3_nid',
+    ),
   ),
   'mysql_character_set' => 'utf8',
 ));
@@ -3394,11 +3508,15 @@ $connection->insert('content_type_employee')
   'vid',
   'nid',
   'field_commander_uid',
+  'field_company_2_nid',
+  'field_company_3_nid',
 ))
 ->values(array(
   'vid' => '21',
   'nid' => '18',
   'field_commander_uid' => '8',
+  'field_company_2_nid' => '15',
+  'field_company_3_nid' => '16',
 ))
 ->execute();
 
@@ -3423,12 +3541,70 @@ $connection->schema()->createTable('content_type_page', array(
       'not null' => FALSE,
       'size' => 'normal',
     ),
+    'field_reference_nid' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
+    'field_reference_2_nid' => array(
+      'type' => 'int',
+      'not null' => FALSE,
+      'size' => 'normal',
+      'unsigned' => TRUE,
+    ),
   ),
   'primary key' => array(
     'vid',
   ),
+  'indexes' => array(
+    'field_reference_nid' => array(
+      'field_reference_nid',
+    ),
+    'field_reference_2_nid' => array(
+      'field_reference_2_nid',
+    ),
+  ),
   'mysql_character_set' => 'utf8',
 ));
+
+$connection->insert('content_type_page')
+->fields(array(
+  'vid',
+  'nid',
+  'field_text_field_value',
+  'field_reference_nid',
+  'field_reference_2_nid',
+))
+->values(array(
+  'vid' => '13',
+  'nid' => '10',
+  'field_text_field_value' => NULL,
+  'field_reference_nid' => '13',
+  'field_reference_2_nid' => '13',
+))
+->values(array(
+  'vid' => '14',
+  'nid' => '11',
+  'field_text_field_value' => NULL,
+  'field_reference_nid' => '20',
+  'field_reference_2_nid' => '20',
+))
+->values(array(
+  'vid' => '16',
+  'nid' => '13',
+  'field_text_field_value' => NULL,
+  'field_reference_nid' => '10',
+  'field_reference_2_nid' => '10',
+))
+->values(array(
+  'vid' => '23',
+  'nid' => '20',
+  'field_text_field_value' => NULL,
+  'field_reference_nid' => '11',
+  'field_reference_2_nid' => '11',
+))
+->execute();
 
 $connection->schema()->createTable('content_type_story', array(
   'fields' => array(
@@ -8626,7 +8802,7 @@ $connection->insert('i18n_strings')
 ))
 ->values(array(
   'lid' => '509',
-  'objectid' => 'profile_sell_address',
+  'objectid' => 'profile_sell_Address',
   'type' => 'field',
   'property' => 'title',
   'objectindex' => '0',
@@ -8634,7 +8810,7 @@ $connection->insert('i18n_strings')
 ))
 ->values(array(
   'lid' => '510',
-  'objectid' => 'profile_sell_address',
+  'objectid' => 'profile_sell_Address',
   'type' => 'field',
   'property' => 'explanation',
   'objectindex' => '0',
@@ -8714,7 +8890,7 @@ $connection->insert('i18n_strings')
 ))
 ->values(array(
   'lid' => '520',
-  'objectid' => 'profile_love_migrations',
+  'objectid' => 'profile_really_really_love_migrations',
   'type' => 'field',
   'property' => 'title',
   'objectindex' => '0',
@@ -8722,7 +8898,7 @@ $connection->insert('i18n_strings')
 ))
 ->values(array(
   'lid' => '521',
-  'objectid' => 'profile_love_migrations',
+  'objectid' => 'profile_really_really_love_migrations',
   'type' => 'field',
   'property' => 'explanation',
   'objectindex' => '0',
@@ -9638,6 +9814,46 @@ $connection->insert('i18n_strings')
   'type' => 'vocabulary',
   'property' => 'name',
   'objectindex' => '7',
+  'format' => '0',
+))
+->values(array(
+  'lid' => '1674',
+  'objectid' => '463',
+  'type' => 'item',
+  'property' => 'title',
+  'objectindex' => '463',
+  'format' => '0',
+))
+->values(array(
+  'lid' => '1675',
+  'objectid' => '463',
+  'type' => 'item',
+  'property' => 'description',
+  'objectindex' => '463',
+  'format' => '0',
+))
+->values(array(
+  'lid' => '1676',
+  'objectid' => '138',
+  'type' => 'item',
+  'property' => 'title',
+  'objectindex' => '138',
+  'format' => '0',
+))
+->values(array(
+  'lid' => '1677',
+  'objectid' => '138',
+  'type' => 'item',
+  'property' => 'description',
+  'objectindex' => '138',
+  'format' => '0',
+))
+->values(array(
+  'lid' => '1678',
+  'objectid' => 'profile_really_really_love_migrating',
+  'type' => 'field',
+  'property' => 'title',
+  'objectindex' => '0',
   'format' => '0',
 ))
 ->execute();
@@ -13960,14 +14176,14 @@ $connection->insert('locales_source')
 ))
 ->values(array(
   'lid' => '509',
-  'location' => 'field:profile_sell_address:title',
+  'location' => 'field:profile_sell_Address:title',
   'textgroup' => 'profile',
   'source' => 'Sell your email address?',
   'version' => '1',
 ))
 ->values(array(
   'lid' => '510',
-  'location' => 'field:profile_sell_address:explanation',
+  'location' => 'field:profile_sell_Address:explanation',
   'textgroup' => 'profile',
   'source' => "If you check this box, we'll sell your address to spammers to help line the pockets of our shareholders. Thanks!",
   'version' => '1',
@@ -14037,14 +14253,14 @@ $connection->insert('locales_source')
 ))
 ->values(array(
   'lid' => '520',
-  'location' => 'field:profile_love_migrations:title',
+  'location' => 'field:profile_really_really_love_migrations:title',
   'textgroup' => 'profile',
-  'source' => 'I love migrations',
+  'source' => 'I really, really, really love migrations',
   'version' => '1',
 ))
 ->values(array(
   'lid' => '521',
-  'location' => 'field:profile_love_migrations:explanation',
+  'location' => 'field:profile_really_really_love_migrations:explanation',
   'textgroup' => 'profile',
   'source' => 'If you check this box, you love migrations.',
   'version' => '1',
@@ -22106,6 +22322,41 @@ $connection->insert('locales_source')
   'source' => 'Forums',
   'version' => '1',
 ))
+->values(array(
+  'lid' => '1674',
+  'location' => 'item:463:title',
+  'textgroup' => 'menu',
+  'source' => 'fr - Test 1',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '1675',
+  'location' => 'item:463:description',
+  'textgroup' => 'menu',
+  'source' => 'fr - Test menu link 1',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '1676',
+  'location' => 'item:138:title',
+  'textgroup' => 'menu',
+  'source' => 'Test 1',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '1677',
+  'location' => 'item:138:description',
+  'textgroup' => 'menu',
+  'source' => 'Test menu link 1',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '1678',
+  'location' => 'field:profile_really_really_love_migrating:title',
+  'textgroup' => 'profile',
+  'source' => 'I really, really, really love migrating',
+  'version' => '1',
+))
 ->execute();
 
 $connection->schema()->createTable('locales_target', array(
@@ -26284,7 +26535,7 @@ $connection->insert('locales_target')
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
-  'i18n_status' => '0',
+  'i18n_status' => '1',
 ))
 ->values(array(
   'lid' => '521',
@@ -27151,6 +27402,14 @@ $connection->insert('locales_target')
   'i18n_status' => '0',
 ))
 ->values(array(
+  'lid' => '1678',
+  'translation' => 'fr - I really, really, really love migrating ',
+  'language' => 'fr',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
   'lid' => '66',
   'translation' => 'zu - CCK - Aucune Intégration aux Vues',
   'language' => 'zu',
@@ -27635,7 +27894,7 @@ $connection->insert('menu_links')
   'link_path' => 'user/login',
   'router_path' => 'user/login',
   'link_title' => 'Test 1',
-  'options' => 'a:1:{s:10:"attributes";a:1:{s:5:"title";s:16:"Test menu link 1";}}',
+  'options' => 'a:2:{s:10:"attributes";a:1:{s:5:"title";s:16:"Test menu link 1";}s:8:"langcode";s:2:"en";}',
   'module' => 'menu',
   'hidden' => '0',
   'external' => '0',
@@ -33640,6 +33899,141 @@ $connection->insert('menu_links')
   'customized' => '0',
   'p1' => '458',
   'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'primary-links',
+  'mlid' => '459',
+  'plid' => '0',
+  'link_path' => 'node/10',
+  'router_path' => 'node/%',
+  'link_title' => 'The Real McCoy',
+  'options' => 'a:2:{s:10:"attributes";a:1:{s:5:"title";s:0:"";}s:5:"alter";b:1;}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '1',
+  'p1' => '459',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'primary-links',
+  'mlid' => '460',
+  'plid' => '0',
+  'link_path' => 'node/11',
+  'router_path' => 'node/%',
+  'link_title' => 'Le Vrai McCoy',
+  'options' => 'a:2:{s:10:"attributes";a:1:{s:5:"title";s:0:"";}s:5:"alter";b:1;}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '1',
+  'p1' => '460',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'primary-links',
+  'mlid' => '461',
+  'plid' => '0',
+  'link_path' => 'node/12',
+  'router_path' => 'node/%',
+  'link_title' => 'Abantu zulu',
+  'options' => 'a:2:{s:10:"attributes";a:1:{s:5:"title";s:0:"";}s:5:"alter";b:1;}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '1',
+  'p1' => '461',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'primary-links',
+  'mlid' => '462',
+  'plid' => '0',
+  'link_path' => 'node/13',
+  'router_path' => 'node/%',
+  'link_title' => 'The Zulu People',
+  'options' => 'a:2:{s:10:"attributes";a:1:{s:5:"title";s:0:"";}s:5:"alter";b:1;}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '1',
+  'p1' => '462',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'secondary-links',
+  'mlid' => '463',
+  'plid' => '139',
+  'link_path' => 'user/login',
+  'router_path' => 'user/login',
+  'link_title' => 'fr - Test 1',
+  'options' => 'a:3:{s:10:"attributes";a:1:{s:5:"title";s:21:"fr - Test menu link 1";}s:8:"langcode";s:2:"fr";s:5:"alter";b:1;}',
+  'module' => 'menu',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '-49',
+  'depth' => '2',
+  'customized' => '1',
+  'p1' => '139',
+  'p2' => '459',
   'p3' => '0',
   'p4' => '0',
   'p5' => '0',
@@ -43283,6 +43677,23 @@ $connection->insert('node')
   'tnid' => '0',
   'translate' => '0',
 ))
+->values(array(
+  'nid' => '20',
+  'vid' => '23',
+  'type' => 'page',
+  'language' => 'fr',
+  'title' => 'Le peuple zoulou',
+  'uid' => '1',
+  'status' => '1',
+  'created' => '1520613038',
+  'changed' => '1520613305',
+  'comment' => '0',
+  'promote' => '1',
+  'moderate' => '0',
+  'sticky' => '0',
+  'tnid' => '12',
+  'translate' => '0',
+))
 ->execute();
 
 $connection->schema()->createTable('node_access', array(
@@ -43563,6 +43974,30 @@ $connection->insert('node_counter')
   'totalcount' => '1',
   'daycount' => '1',
   'timestamp' => '1478755314',
+))
+->values(array(
+  'nid' => '10',
+  'totalcount' => '5',
+  'daycount' => '1',
+  'timestamp' => '1521137459',
+))
+->values(array(
+  'nid' => '11',
+  'totalcount' => '3',
+  'daycount' => '1',
+  'timestamp' => '1521137463',
+))
+->values(array(
+  'nid' => '12',
+  'totalcount' => '3',
+  'daycount' => '0',
+  'timestamp' => '1521137469',
+))
+->values(array(
+  'nid' => '13',
+  'totalcount' => '2',
+  'daycount' => '1',
+  'timestamp' => '1521137470',
 ))
 ->values(array(
   'nid' => '14',
@@ -43917,6 +44352,17 @@ $connection->insert('node_revisions')
   'timestamp' => '1501955771',
   'format' => '1',
 ))
+->values(array(
+  'nid' => '20',
+  'vid' => '23',
+  'uid' => '1',
+  'title' => 'Le peuple zoulou',
+  'body' => 'Le peuple zoulou.',
+  'teaser' => 'Le peuple zoulou.',
+  'log' => '',
+  'timestamp' => '1520613305',
+  'format' => '1',
+))
 ->execute();
 
 $connection->schema()->createTable('node_type', array(
@@ -44183,7 +44629,7 @@ $connection->insert('node_type')
   'custom' => '1',
   'modified' => '1',
   'locked' => '0',
-  'orig_type' => 'page',
+  'orig_type' => 'test_page',
 ))
 ->values(array(
   'type' => 'test_planet',
@@ -44414,7 +44860,7 @@ $connection->insert('profile_fields')
 ->values(array(
   'fid' => '10',
   'title' => 'Sell your email address?',
-  'name' => 'profile_sell_address',
+  'name' => 'profile_sell_Address',
   'explanation' => "If you check this box, we'll sell your address to spammers to help line the pockets of our shareholders. Thanks!",
   'category' => 'Communication preferences',
   'page' => 'People who want us to sell their address',
@@ -44488,13 +44934,28 @@ $connection->insert('profile_fields')
 ))
 ->values(array(
   'fid' => '15',
-  'title' => 'I love migrations',
-  'name' => 'profile_love_migrations',
+  'title' => 'I really, really, really love migrations',
+  'name' => 'profile_really_really_love_migrations',
   'explanation' => 'If you check this box, you love migrations.',
   'category' => 'Personal information',
   'page' => 'People who love migrations',
   'type' => 'checkbox',
   'weight' => '-15',
+  'required' => '0',
+  'register' => '0',
+  'visibility' => '2',
+  'autocomplete' => '0',
+  'options' => '',
+))
+->values(array(
+  'fid' => '16',
+  'title' => 'I really, really, really love migrating',
+  'name' => 'profile_really_really_love_migrating',
+  'explanation' => '',
+  'category' => 'Personal information',
+  'page' => '',
+  'type' => 'checkbox',
+  'weight' => '0',
   'required' => '0',
   'register' => '0',
   'visibility' => '2',
@@ -44712,6 +45173,11 @@ $connection->insert('profile_values')
   'fid' => '14',
   'uid' => '17',
   'value' => 'a:3:{s:5:"month";s:2:"12";s:3:"day";s:2:"18";s:4:"year";s:4:"1942";}',
+))
+->values(array(
+  'fid' => '15',
+  'uid' => '2',
+  'value' => '1',
 ))
 ->execute();
 
