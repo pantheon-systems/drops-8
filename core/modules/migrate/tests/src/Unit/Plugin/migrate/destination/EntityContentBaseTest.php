@@ -60,6 +60,7 @@ class EntityContentBaseTest extends UnitTestCase {
     $this->entityType = $this->prophesize(EntityTypeInterface::class);
     $this->entityType->getPluralLabel()->willReturn('wonkiness');
     $this->storage->getEntityType()->willReturn($this->entityType->reveal());
+    $this->storage->getEntityTypeId()->willReturn('foo');
 
     $this->entityManager = $this->prophesize(EntityManagerInterface::class);
   }
@@ -129,7 +130,7 @@ class EntityContentBaseTest extends UnitTestCase {
       $this->entityManager->reveal(),
       $this->prophesize(FieldTypePluginManagerInterface::class)->reveal()
     );
-    $this->setExpectedException(MigrateException::class, 'This entity type does not support translation');
+    $this->setExpectedException(MigrateException::class, 'The "foo" entity type does not support translations.');
     $destination->getIds();
   }
 

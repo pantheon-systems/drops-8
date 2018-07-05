@@ -35,7 +35,6 @@
   font-family: 'Scope One', Georgia, serif;
   font-size: 1.2rem;
   font-weight: 400;
-  font-weight: normal;
   transition: background-color 0.5s ease;
 }
 
@@ -62,6 +61,7 @@
     margin: 0 auto;
     display: flex;
     padding: 0 1em;
+    height: 0; /* Required for flexbox vertical centering in IE11. Min-height will take precedence. */
     min-height: 43vw;
     align-items: center;
   }
