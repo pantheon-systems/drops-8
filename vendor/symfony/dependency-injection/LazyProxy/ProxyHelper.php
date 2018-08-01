@@ -39,7 +39,7 @@ class ProxyHelper
         if (!$type) {
             return;
         }
-        if (!is_string($type)) {
+        if (!\is_string($type)) {
             $name = $type instanceof \ReflectionNamedType ? $type->getName() : $type->__toString();
 
             if ($type->isBuiltin()) {
@@ -61,18 +61,5 @@ class ProxyHelper
         if ($parent = $r->getDeclaringClass()->getParentClass()) {
             return $prefix.$parent->name;
         }
-    }
-
-    private static function export($value)
-    {
-        if (!is_array($value)) {
-            return var_export($value, true);
-        }
-        $code = array();
-        foreach ($value as $k => $v) {
-            $code[] = sprintf('%s => %s', var_export($k, true), self::export($v));
-        }
-
-        return sprintf('array(%s)', implode(', ', $code));
     }
 }

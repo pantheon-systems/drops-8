@@ -17,8 +17,8 @@ use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
 use Symfony\Component\DependencyInjection\LazyProxy\ProxyHelper;
-use Symfony\Component\DependencyInjection\TypedReference;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\TypedReference;
 
 /**
  * @author Guilhem Niot <guilhem.niot@gmail.com>
@@ -88,7 +88,7 @@ class ResolveBindingsPass extends AbstractRecursivePass
             }
 
             if (null !== $bindingValue && !$bindingValue instanceof Reference && !$bindingValue instanceof Definition) {
-                throw new InvalidArgumentException(sprintf('Invalid value for binding key "%s" for service "%s": expected null, an instance of %s or an instance of %s, %s given.', $key, $this->currentId, Reference::class, Definition::class, gettype($bindingValue)));
+                throw new InvalidArgumentException(sprintf('Invalid value for binding key "%s" for service "%s": expected null, an instance of %s or an instance of %s, %s given.', $key, $this->currentId, Reference::class, Definition::class, \gettype($bindingValue)));
             }
         }
 

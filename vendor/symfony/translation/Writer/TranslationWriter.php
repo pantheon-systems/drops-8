@@ -11,10 +11,10 @@
 
 namespace Symfony\Component\Translation\Writer;
 
-use Symfony\Component\Translation\MessageCatalogue;
 use Symfony\Component\Translation\Dumper\DumperInterface;
 use Symfony\Component\Translation\Exception\InvalidArgumentException;
 use Symfony\Component\Translation\Exception\RuntimeException;
+use Symfony\Component\Translation\MessageCatalogue;
 
 /**
  * TranslationWriter writes translation messages.
@@ -97,7 +97,7 @@ class TranslationWriter implements TranslationWriterInterface
      */
     public function writeTranslations(MessageCatalogue $catalogue, $format, $options = array())
     {
-        @trigger_error(sprintf('Method %s() is deprecated since Symfony 3.4 and will be removed in 4.0. Use write() instead.', __METHOD__), E_USER_DEPRECATED);
+        @trigger_error(sprintf('The "%s()" method is deprecated since Symfony 3.4 and will be removed in 4.0. Use write() instead.', __METHOD__), E_USER_DEPRECATED);
         $this->write($catalogue, $format, $options);
     }
 }

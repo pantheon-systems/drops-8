@@ -17,8 +17,8 @@ use Symfony\Component\DependencyInjection\EnvVarProcessor;
 use Symfony\Component\DependencyInjection\EnvVarProcessorInterface;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\ParameterBag\EnvPlaceholderParameterBag;
-use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\ServiceLocator;
 
 /**
  * Creates the container.env_var_processors_locator service.
@@ -68,7 +68,7 @@ class RegisterEnvVarProcessorsPass implements CompilerPassInterface
         $types = explode('|', $types);
 
         foreach ($types as $type) {
-            if (!in_array($type, self::$allowedTypes)) {
+            if (!\in_array($type, self::$allowedTypes)) {
                 throw new InvalidArgumentException(sprintf('Invalid type "%s" returned by "%s::getProvidedTypes()", expected one of "%s".', $type, $class, implode('", "', self::$allowedTypes)));
             }
         }

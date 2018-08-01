@@ -2490,6 +2490,7 @@ return array(
     'Symfony\\Component\\HttpKernel\\HttpCache\\Ssi' => $vendorDir . '/symfony/http-kernel/HttpCache/Ssi.php',
     'Symfony\\Component\\HttpKernel\\HttpCache\\Store' => $vendorDir . '/symfony/http-kernel/HttpCache/Store.php',
     'Symfony\\Component\\HttpKernel\\HttpCache\\StoreInterface' => $vendorDir . '/symfony/http-kernel/HttpCache/StoreInterface.php',
+    'Symfony\\Component\\HttpKernel\\HttpCache\\SubRequestHandler' => $vendorDir . '/symfony/http-kernel/HttpCache/SubRequestHandler.php',
     'Symfony\\Component\\HttpKernel\\HttpCache\\SurrogateInterface' => $vendorDir . '/symfony/http-kernel/HttpCache/SurrogateInterface.php',
     'Symfony\\Component\\HttpKernel\\HttpKernel' => $vendorDir . '/symfony/http-kernel/HttpKernel.php',
     'Symfony\\Component\\HttpKernel\\HttpKernelInterface' => $vendorDir . '/symfony/http-kernel/HttpKernelInterface.php',
