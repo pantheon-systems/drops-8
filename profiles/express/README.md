@@ -3,6 +3,8 @@ Add the remote repo via the following command:
 
 `git remote add upstream https://github.com/pantheon-systems/drops-8.git`
 
+You can check to see if the remote repo was added using `git remote -v`
+
 Then retrieve the branches from drops-8 in order to rebase:
 
 `git fetch --all`

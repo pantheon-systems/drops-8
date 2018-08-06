@@ -452,6 +452,12 @@ function install_begin_request($class_loader, &$install_state) {
     if (isset($install_state['profile_info']['distribution']['install']['theme'])) {
       $install_state['theme'] = $install_state['profile_info']['distribution']['install']['theme'];
     }
+    // Ensure all profile directories are registered.
+    $profiles = \Drupal::service('profile_handler')->getProfileInheritance($profile);
+    $profile_directories = array_map(function($extension) {
+      return $extension->getPath();
+    }, $profiles);
+    $listing->setProfileDirectories($profile_directories);
   }
 
   // Use the language from the profile configuration, if available, to override
@@ -1215,6 +1221,8 @@ function install_select_profile(&$install_state) {
  *   - For non-interactive installations via install_drupal() settings.
  * - A discovered profile that is a distribution. If multiple profiles are
  *   distributions, then the first discovered profile will be selected.
+ *   If an inherited profile is detected that is a distribution, it will be
+ *   chosen over its base profile.
  * - Only one visible profile is available.
  *
  * @param array $install_state
@@ -1237,11 +1245,8 @@ function _install_select_profile(&$install_state) {
     }
   }
   // Check for a distribution profile.
-  foreach ($install_state['profiles'] as $profile) {
-    $profile_info = install_profile_info($profile->getName());
-    if (!empty($profile_info['distribution'])) {
-      return $profile->getName();
-    }
+  if ($distribution = \Drupal::service('profile_handler')->selectDistribution(array_keys($install_state['profiles']))) {
+    return $distribution;
   }
 
   // Get all visible (not hidden) profiles.
@@ -1574,7 +1579,10 @@ function install_profile_themes(&$install_state) {
  *   An array of information about the current installation state.
  */
 function install_install_profile(&$install_state) {
-  \Drupal::service('module_installer')->install([drupal_get_profile()], FALSE);
+  // Install all the profiles.
+  $profiles = \Drupal::service('profile_handler')->getProfileInheritance();
+  \Drupal::service('module_installer')->install(array_keys($profiles), FALSE);
+
   // Install all available optional config. During installation the module order
   // is determined by dependencies. If there are no dependencies between modules
   // then the order in which they are installed is dependent on random factors

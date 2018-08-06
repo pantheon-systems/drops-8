@@ -345,7 +345,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
     if ($uninstall_dependents) {
       // Add dependent modules to the list. The new modules will be processed as
       // the foreach loop continues.
-      $profiles = \Drupal::service('profile_handler')->getProfileInheritance();
+      $profile = drupal_get_profile();
       foreach ($module_list as $module => $value) {
         foreach (array_keys($module_data[$module]->required_by) as $dependent) {
           if (!isset($module_data[$dependent])) {
@@ -353,8 +353,8 @@ class ModuleInstaller implements ModuleInstallerInterface {
             return FALSE;
           }
 
-          // Skip already uninstalled modules and dependencies of profiles.
-          if (isset($installed_modules[$dependent]) && !isset($module_list[$dependent]) && (!array_key_exists($dependent, $profiles))) {
+          // Skip already uninstalled modules.
+          if (isset($installed_modules[$dependent]) && !isset($module_list[$dependent]) && $dependent != $profile) {
             $module_list[$dependent] = $dependent;
           }
         }
