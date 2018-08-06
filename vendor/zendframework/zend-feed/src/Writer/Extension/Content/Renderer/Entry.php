@@ -47,14 +47,10 @@ class Entry extends Extension\AbstractRenderer
      *
      * @return void
      */
-    // @codingStandardsIgnoreStart
     protected function _appendNamespaces()
     {
-        // @codingStandardsIgnoreEnd
-        $this->getRootElement()->setAttribute(
-            'xmlns:content',
-            'http://purl.org/rss/1.0/modules/content/'
-        );
+        $this->getRootElement()->setAttribute('xmlns:content',
+            'http://purl.org/rss/1.0/modules/content/');
     }
 
     /**
@@ -64,12 +60,10 @@ class Entry extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
-    // @codingStandardsIgnoreStart
     protected function _setContent(DOMDocument $dom, DOMElement $root)
     {
-        // @codingStandardsIgnoreEnd
         $content = $this->getDataContainer()->getContent();
-        if (! $content) {
+        if (!$content) {
             return;
         }
         $element = $dom->createElement('content:encoded');

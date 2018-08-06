@@ -34,11 +34,14 @@ class MigrateUpgrade7ReviewPageTest extends MigrateUpgradeReviewPageTestBase {
     return [
       'aggregator',
       'block',
+      'book',
+      'color',
       'comment',
       'contact',
       'date',
       'dblog',
       'email',
+      'entity_translation',
       'field',
       'field_sql_storage',
       'file',
@@ -115,8 +118,6 @@ class MigrateUpgrade7ReviewPageTest extends MigrateUpgradeReviewPageTestBase {
    */
   protected function getMissingPaths() {
     return [
-      'book',
-      'color',
       'rdf',
       'views',
     ];

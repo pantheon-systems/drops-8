@@ -1,5 +1,0 @@
-google_analytics.admin_settings_form:
-  title: 'Google Analytics'
-  parent: system.admin_config_system
-  description: 'Configure tracking behavior to get insights into your website traffic and marketing effectiveness.'
-  route_name: google_analytics.admin_settings_form

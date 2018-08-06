@@ -181,6 +181,15 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
 }
 
 /**
+ * "Trusted host settings" are not necessary on Pantheon; traffic will only
+ * be routed to your site if the host settings match a domain configured for
+ * your site in the dashboard.
+ */
+if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
+  $settings['trusted_host_patterns'][] = '.*';
+}
+
+/**
  * The default list of directories that will be ignored by Drupal's file API.
  *
  * By default ignore node_modules and bower_components folders to avoid issues

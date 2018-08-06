@@ -121,6 +121,10 @@ class LinkFieldTest extends BrowserTestBase {
       '/?example=llama' => '&lt;front&gt;?example=llama',
       '/#example' => '&lt;front&gt;#example',
 
+      // Trailing spaces should be ignored.
+      '/ ' => '&lt;front&gt;',
+      '/path with spaces ' => '/path with spaces',
+
       // @todo '<front>' is valid input for BC reasons, may be removed by
       //   https://www.drupal.org/node/2421941
       '<front>' => '&lt;front&gt;',
@@ -200,7 +204,7 @@ class LinkFieldTest extends BrowserTestBase {
       preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
       $id = $match[1];
       $this->assertText(t('entity_test @id has been created.', ['@id' => $id]));
-      $this->assertRaw($string);
+      $this->assertRaw('"' . $string . '"');
     }
   }
 
@@ -281,6 +285,14 @@ class LinkFieldTest extends BrowserTestBase {
         $this->assertRaw('placeholder="Enter the text for this link"');
 
         $this->assertFieldByName("{$field_name}[0][title]", '', 'Link text field found.');
+        if ($title_setting === DRUPAL_OPTIONAL) {
+          // Verify that the URL is required, if the link text is non-empty.
+          $edit = [
+            "{$field_name}[0][title]" => 'Example',
+          ];
+          $this->drupalPostForm(NULL, $edit, t('Save'));
+          $this->assertText(t('The URL field is required when the @title field is specified.', ['@title' => t('Link text')]));
+        }
         if ($title_setting === DRUPAL_REQUIRED) {
           // Verify that the link text is required, if the URL is non-empty.
           $edit = [

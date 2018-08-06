@@ -413,7 +413,7 @@
  * \Drupal\Core\Cache\CacheBackendInterface.
  *
  * The Cache API is used to store data that takes a long time to compute.
- * Caching can either be permanent or valid only for a certain timespan, and
+ * Caching can either be permanent or valid only for a certain time span, and
  * the cache can contain any type of data.
  *
  * To use the Cache API:
@@ -558,7 +558,7 @@
  * This also is the case when you define your own entity types: you'll get the
  * exact same cache tag invalidation as any of the built-in entity types, with
  * the ability to override any of the default behavior if needed.
- * See \Drupal\Core\Cache\CacheableDepenencyInterface::getCacheTags(),
+ * See \Drupal\Core\Cache\CacheableDependencyInterface::getCacheTags(),
  * \Drupal\Core\Entity\EntityTypeInterface::getListCacheTags(),
  * \Drupal\Core\Entity\Entity::invalidateTagsOnSave() and
  * \Drupal\Core\Entity\Entity::invalidateTagsOnDelete().
@@ -569,7 +569,7 @@
  * logged-in user who is viewing a page, the language the page is being rendered
  * in, the theme being used, etc. When caching the output of such a calculation,
  * you must cache each variation separately, along with information about which
- * variation of the contextual data was used in the calculatation. The next time
+ * variation of the contextual data was used in the calculation. The next time
  * the computed data is needed, if the context matches that for an existing
  * cached data set, the cached data can be reused; if no context matches, a new
  * data set can be calculated and cached for later use.
@@ -1226,7 +1226,7 @@
  * under development. While PHP type hinting does this for objects and arrays,
  * runtime assertions do this for scalars (strings, integers, floats, etc.) and
  * complex data structures such as cache and render arrays. They ensure that
- * methods' return values are the documented datatypes. They also verify that
+ * methods' return values are the documented data types. They also verify that
  * objects have been properly configured and set up by the service container.
  * They supplement unit tests by checking scenarios that do not have unit tests
  * written for them.
@@ -1252,9 +1252,11 @@
  *   using @link entity_api Entities @endlink.
  * - Session: Information about individual users' interactions with the site,
  *   such as whether they are logged in. This is really "state" information, but
- *   it is not stored the same way so it's a separate type here. Session
- *   information is available from the Request object. The session implements
+ *   it is not stored the same way so it's a separate type here. Session data is
+ *   accessed via \Symfony\Component\HttpFoundation\Request::getSession(), which
+ *   returns an instance of
  *   \Symfony\Component\HttpFoundation\Session\SessionInterface.
+ *   See the @link session Sessions topic @endlink for more information.
  * - State: Information of a temporary nature, generally machine-generated and
  *   not human-edited, about the current state of your site. Examples: the time
  *   when Cron was last run, whether node access permissions need rebuilding,
@@ -2001,12 +2003,12 @@ function hook_data_type_info_alter(&$data_types) {
  * Alter cron queue information before cron runs.
  *
  * Called by \Drupal\Core\Cron to allow modules to alter cron queue settings
- * before any jobs are processesed.
+ * before any jobs are processed.
  *
  * @param array $queues
  *   An array of cron queue information.
  *
- * @see \Drupal\Core\QueueWorker\QueueWorkerInterface
+ * @see \Drupal\Core\Queue\QueueWorkerInterface
  * @see \Drupal\Core\Annotation\QueueWorker
  * @see \Drupal\Core\Cron
  */
@@ -2257,12 +2259,12 @@ function hook_rebuild() {
  *   they will be processed. Each callable item defined in $sync_steps should
  *   either be a global function or a public static method. The callable should
  *   accept a $context array by reference. For example:
- *   <code>
+ *   @code
  *     function _additional_configuration_step(&$context) {
  *       // Do stuff.
  *       // If finished set $context['finished'] = 1.
  *     }
- *   </code>
+ *   @endcode
  *   For more information on creating batches, see the
  *   @link batch Batch operations @endlink documentation.
  *
@@ -2583,5 +2585,66 @@ function hook_validation_constraint_alter(array &$definitions) {
  * definition order. If order matters defining a priority is strongly advised
  * instead of relying on these two tie breaker rules as they might change in a
  * minor release.
+ * @}
+ */
+
+/**
+ * @defgroup session Sessions
+ * @{
+ * Store and retrieve data associated with a user's browsing session.
+ *
+ * @section sec_intro Overview
+ * The Drupal session management subsystem is built on top of the Symfony
+ * session component. It is optimized in order to minimize the impact of
+ * anonymous sessions on caching proxies. A session is only started if necessary
+ * and the session cookie is removed from the browser as soon as the session
+ * has no data. For this reason it is important for contributed and custom
+ * code to remove session data if it is not used anymore.
+ *
+ * @section sec_usage Usage
+ * Session data is accessed via the
+ * \Symfony\Component\HttpFoundation\Request::getSession()
+ * method, which returns an instance of
+ * \Symfony\Component\HttpFoundation\Session\SessionInterface. The most
+ * important methods on SessionInterface are set(), get(), and remove().
+ *
+ * The following code fragment shows the implementation of a counter controller
+ * relying on the session:
+ * @code
+ * public function counter(Request $request) {
+ *   $session = $request->getSession();
+ *   $count = $session->get('mymodule.counter', 0) + 1;
+ *   $session->set('mymodule.counter', $count);
+ *
+ *   return [
+ *     '#markup' => $this->t('Page Views: @count', ['@count' => $count]),
+ *     '#cache' => [
+ *       'max-age' => 0,
+ *     ],
+ *   ];
+ * }
+ *
+ * public function reset(Request $request) {
+ *   $session = $request->getSession();
+ *   $session->remove('mymodule.counter');
+ * }
+ * @endcode
+ *
+ * It is important to keep the amount of data stored inside the session to a
+ * minimum, as the complete session is loaded on every request. Also third
+ * party session storage backends do not necessarily allow objects of unlimited
+ * size. If it is necessary to collect a non-trivial amount of data specific to
+ * a user's session, use the Key/Value store to save the serialized data and
+ * only store the key to the entry in the session.
+ *
+ * @section sec_reserved Reserved attributes and namespacing
+ * Contributed modules relying on the session are encouraged to namespace
+ * session attributes by prefixing them with their project name or an
+ * abbreviation thereof.
+ *
+ * Some attributes are reserved for Drupal core and must not be accessed from
+ * within contributed and custom code. Reserved attributes include:
+ * - uid: The user ID for an authenticated user. The value of this attribute
+ *   cannot be modified.
  * @}
  */

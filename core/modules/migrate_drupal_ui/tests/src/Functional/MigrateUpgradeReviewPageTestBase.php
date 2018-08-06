@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\migrate_drupal_ui\Functional;
 
-use Drupal\migrate_drupal\MigrationConfigurationTrait;
 use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
 
 /**
@@ -10,7 +9,6 @@ use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
  */
 abstract class MigrateUpgradeReviewPageTestBase extends MigrateUpgradeTestBase {
 
-  use MigrationConfigurationTrait;
   use CreateTestContentEntitiesTrait;
 
   /**
@@ -110,6 +108,28 @@ abstract class MigrateUpgradeReviewPageTestBase extends MigrateUpgradeTestBase {
 
     // Test the upgrade paths.
     $available_paths = $this->getAvailablePaths();
+    $missing_paths = $this->getMissingPaths();
+    $this->assertUpgradePaths($session, $available_paths, $missing_paths);
+
+    // Check there are no errors when a module in noUpgradePaths is not in the
+    // source system tables. Test with a module that is listed in noUpgradePaths
+    // for both Drupal 6 and Drupal 7.
+    // @see \Drupal\migrate_drupal_ui\Form\ReviewForm::$noUpgradePaths
+    $module = 'help';
+    $query = $this->sourceDatabase->delete('system');
+    $query->condition('type', 'module');
+    $query->condition('name', $module);
+    $query->execute();
+
+    // Start the upgrade process.
+    $this->drupalGet('/upgrade');
+    $this->drupalPostForm(NULL, [], t('Continue'));
+    $this->drupalPostForm(NULL, $edits, t('Review upgrade'));
+    $this->drupalPostForm(NULL, [], t('I acknowledge I may lose data. Continue anyway.'));
+
+    // Test the upgrade paths.
+    $available_paths = $this->getAvailablePaths();
+    $available_paths = array_diff($available_paths, [$module]);
     $missing_paths = $this->getMissingPaths();
     $this->assertUpgradePaths($session, $available_paths, $missing_paths);
   }

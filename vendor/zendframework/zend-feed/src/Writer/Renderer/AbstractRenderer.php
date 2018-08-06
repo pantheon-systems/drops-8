@@ -82,7 +82,7 @@ class AbstractRenderer
      */
     public function saveXml()
     {
-        return $this->getDomDocument()->saveXML();
+        return $this->getDomDocument()->saveXml();
     }
 
     /**
@@ -146,10 +146,8 @@ class AbstractRenderer
      */
     public function ignoreExceptions($bool = true)
     {
-        if (! is_bool($bool)) {
-            throw new Writer\Exception\InvalidArgumentException(
-                'Invalid parameter: $bool. Should be TRUE or FALSE (defaults to TRUE if null)'
-            );
+        if (!is_bool($bool)) {
+            throw new Writer\Exception\InvalidArgumentException('Invalid parameter: $bool. Should be TRUE or FALSE (defaults to TRUE if null)');
         }
         $this->ignoreExceptions = $bool;
         return $this;
@@ -215,10 +213,8 @@ class AbstractRenderer
      *
      * @return void
      */
-    // @codingStandardsIgnoreStart
     protected function _loadExtensions()
     {
-        // @codingStandardsIgnoreEnd
         Writer\Writer::registerCoreExtensions();
         $manager = Writer\Writer::getExtensionManager();
         $all = Writer\Writer::getExtensions();

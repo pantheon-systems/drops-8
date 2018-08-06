@@ -26,11 +26,6 @@ use Doctrine\Common\Collections\Expr\ClosureExpressionVisitor;
 /**
  * An ArrayCollection is a Collection implementation that wraps a regular PHP array.
  *
- * Warning: Using (un-)serialize() on a collection is not a supported use-case
- * and may break when we change the internals in the future. If you need to
- * serialize a collection use {@link toArray()} and reconstruct the collection
- * manually.
- *
  * @since  2.0
  * @author Guilherme Blanco <guilhermeblanco@hotmail.com>
  * @author Jonathan Wage <jonwage@gmail.com>
@@ -50,24 +45,9 @@ class ArrayCollection implements Collection, Selectable
      *
      * @param array $elements
      */
-    public function __construct(array $elements = [])
+    public function __construct(array $elements = array())
     {
         $this->elements = $elements;
-    }
-
-    /**
-     * Creates a new instance from the specified elements.
-     *
-     * This method is provided for derived classes to specify how a new
-     * instance should be created when constructor semantics have changed.
-     *
-     * @param array $elements Elements.
-     *
-     * @return static
-     */
-    protected function createFrom(array $elements)
-    {
-        return new static($elements);
     }
 
     /**
@@ -177,8 +157,7 @@ class ArrayCollection implements Collection, Selectable
     public function offsetSet($offset, $value)
     {
         if ( ! isset($offset)) {
-            $this->add($value);
-            return;
+            return $this->add($value);
         }
 
         $this->set($offset, $value);
@@ -191,7 +170,7 @@ class ArrayCollection implements Collection, Selectable
      */
     public function offsetUnset($offset)
     {
-        $this->remove($offset);
+        return $this->remove($offset);
     }
 
     /**
@@ -237,7 +216,7 @@ class ArrayCollection implements Collection, Selectable
      */
     public function get($key)
     {
-        return $this->elements[$key] ?? null;
+        return isset($this->elements[$key]) ? $this->elements[$key] : null;
     }
 
     /**
@@ -275,9 +254,9 @@ class ArrayCollection implements Collection, Selectable
     /**
      * {@inheritDoc}
      */
-    public function add($element)
+    public function add($value)
     {
-        $this->elements[] = $element;
+        $this->elements[] = $value;
 
         return true;
     }
@@ -302,22 +281,18 @@ class ArrayCollection implements Collection, Selectable
 
     /**
      * {@inheritDoc}
-     *
-     * @return static
      */
     public function map(Closure $func)
     {
-        return $this->createFrom(array_map($func, $this->elements));
+        return new static(array_map($func, $this->elements));
     }
 
     /**
      * {@inheritDoc}
-     *
-     * @return static
      */
     public function filter(Closure $p)
     {
-        return $this->createFrom(array_filter($this->elements, $p));
+        return new static(array_filter($this->elements, $p));
     }
 
     /**
@@ -339,7 +314,7 @@ class ArrayCollection implements Collection, Selectable
      */
     public function partition(Closure $p)
     {
-        $matches = $noMatches = [];
+        $matches = $noMatches = array();
 
         foreach ($this->elements as $key => $element) {
             if ($p($key, $element)) {
@@ -349,7 +324,7 @@ class ArrayCollection implements Collection, Selectable
             }
         }
 
-        return [$this->createFrom($matches), $this->createFrom($noMatches)];
+        return array(new static($matches), new static($noMatches));
     }
 
     /**
@@ -367,7 +342,7 @@ class ArrayCollection implements Collection, Selectable
      */
     public function clear()
     {
-        $this->elements = [];
+        $this->elements = array();
     }
 
     /**
@@ -393,9 +368,8 @@ class ArrayCollection implements Collection, Selectable
         }
 
         if ($orderings = $criteria->getOrderings()) {
-            $next = null;
             foreach (array_reverse($orderings) as $field => $ordering) {
-                $next = ClosureExpressionVisitor::sortByField($field, $ordering == Criteria::DESC ? -1 : 1, $next);
+                $next = ClosureExpressionVisitor::sortByField($field, $ordering == Criteria::DESC ? -1 : 1);
             }
 
             uasort($filtered, $next);
@@ -408,6 +382,6 @@ class ArrayCollection implements Collection, Selectable
             $filtered = array_slice($filtered, (int)$offset, $length);
         }
 
-        return $this->createFrom($filtered);
+        return new static($filtered);
     }
 }

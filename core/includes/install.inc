@@ -1047,14 +1047,6 @@ function drupal_check_module($module) {
  *   - install: Optional parameters to override the installer:
  *     - theme: The machine name of a theme to use in the installer instead of
  *       Drupal's default installer theme.
- * - base profile: Existence of this key denotes that the installation profile
- *   depends on a parent installation profile.
- *   - name: The shortname of the base installation profile.
- *   - excluded_dependencies: An array of shortnames of other modules that have
- *     to be excluded from the base profile requirements. This allows e.g. to
- *     disable a demo module that would be installed by the base profile.
- *   If there are no excluded_dependencies, a shortcut of "base profile: name"
- *   can be used.
  *
  * Note that this function does an expensive file system scan to get info file
  * information for dependencies. If you only need information from the info
@@ -1081,7 +1073,18 @@ function install_profile_info($profile, $langcode = 'en') {
   $cache = &drupal_static(__FUNCTION__, []);
 
   if (!isset($cache[$profile][$langcode])) {
-    $info = \Drupal::service('profile_handler')->getProfileInfo($profile);
+    // Set defaults for module info.
+    $defaults = [
+      'dependencies' => [],
+      'themes' => ['stark'],
+      'description' => '',
+      'version' => NULL,
+      'hidden' => FALSE,
+      'php' => DRUPAL_MINIMUM_PHP,
+    ];
+    $profile_file = drupal_get_path('profile', $profile) . "/$profile.info.yml";
+    $info = \Drupal::service('info_parser')->parse($profile_file);
+    $info += $defaults;
 
     // drupal_required_modules() includes the current profile as a dependency.
     // Remove that dependency, since a module cannot depend on itself.

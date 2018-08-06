@@ -116,14 +116,11 @@ class ModulesUninstallForm extends FormBase {
       return $form;
     }
 
-    $profiles = \Drupal::service('profile_handler')->getProfileInheritance();
+    $profile = drupal_get_profile();
 
     // Sort all modules by their name.
     uasort($uninstallable, 'system_sort_modules_by_info_name');
     $validation_reasons = $this->moduleInstaller->validateUninstall(array_keys($uninstallable));
-
-    // Remove any profiles from the list.
-    $uninstallable = array_diff_key($uninstallable, $profiles);
 
     $form['uninstall'] = ['#tree' => TRUE];
     foreach ($uninstallable as $module_key => $module) {
@@ -145,10 +142,10 @@ class ModulesUninstallForm extends FormBase {
         $form['uninstall'][$module->getName()]['#disabled'] = TRUE;
       }
       // All modules which depend on this one must be uninstalled first, before
-      // we can allow this module to be uninstalled. (Installation profiles are
-      // excluded from this list.)
+      // we can allow this module to be uninstalled. (The installation profile
+      // is excluded from this list.)
       foreach (array_keys($module->required_by) as $dependent) {
-        if (!in_array($dependent, array_keys($profiles)) && drupal_get_installed_schema_version($dependent) != SCHEMA_UNINSTALLED) {
+        if ($dependent != $profile && drupal_get_installed_schema_version($dependent) != SCHEMA_UNINSTALLED) {
           $name = isset($modules[$dependent]->info['name']) ? $modules[$dependent]->info['name'] : $dependent;
           $form['modules'][$module->getName()]['#required_by'][] = $name;
           $form['uninstall'][$module->getName()]['#disabled'] = TRUE;

@@ -1005,13 +1005,27 @@ function system_get_info($type, $name = NULL) {
 function _system_rebuild_module_data() {
   $listing = new ExtensionDiscovery(\Drupal::root());
 
+  // Find installation profiles. This needs to happen before performing a
+  // module scan as the module scan requires knowing what the active profile is.
+  // @todo Remove as part of https://www.drupal.org/node/2186491.
+  $profiles = $listing->scan('profile');
+  $profile = drupal_get_profile();
+  if ($profile && isset($profiles[$profile])) {
+    // Prime the drupal_get_filename() static cache with the profile info file
+    // location so we can use drupal_get_path() on the active profile during
+    // the module scan.
+    // @todo Remove as part of https://www.drupal.org/node/2186491.
+    drupal_get_filename('profile', $profile, $profiles[$profile]->getPathname());
+  }
+
   // Find modules.
   $modules = $listing->scan('module');
-
-  // Find profiles.
-  /** @var \Drupal\Core\Extension\ProfileHandlerInterface $profile_handler */
-  $profile_handler = \Drupal::service('profile_handler');
-  $modules = array_merge($modules, $profile_handler->getProfileInheritance());
+  // Include the installation profile in modules that are loaded.
+  if ($profile) {
+    $modules[$profile] = $profiles[$profile];
+    // Installation profile hooks are always executed last.
+    $modules[$profile]->weight = 1000;
+  }
 
   // Set defaults for module info.
   $defaults = [
@@ -1025,14 +1039,7 @@ function _system_rebuild_module_data() {
   // Read info files for each module.
   foreach ($modules as $key => $module) {
     // Look for the info file.
-    // @todo On the longrun we should leverage the extension lists services,
-    //    see https://www.drupal.org/node/2208429.
-    if ($module->getType() === 'profile') {
-      $module->info = $profile_handler->getProfileInfo($module->getName());
-    }
-    else {
-      $module->info = \Drupal::service('info_parser')->parse($module->getPathname());
-    }
+    $module->info = \Drupal::service('info_parser')->parse($module->getPathname());
 
     // Add the info file modification time, so it becomes available for
     // contributed modules to use for ordering module lists.
@@ -1040,6 +1047,12 @@ function _system_rebuild_module_data() {
 
     // Merge in defaults and save.
     $modules[$key]->info = $module->info + $defaults;
+
+    // Installation profiles are hidden by default, unless explicitly specified
+    // otherwise in the .info.yml file.
+    if ($key == $profile && !isset($modules[$key]->info['hidden'])) {
+      $modules[$key]->info['hidden'] = TRUE;
+    }
 
     // Invoke hook_system_info_alter() to give installed modules a chance to
     // modify the data in the .info.yml files if necessary.
@@ -1054,18 +1067,14 @@ function _system_rebuild_module_data() {
     _system_rebuild_module_data_ensure_required($module, $modules);
   }
 
-  // This must be done after _system_rebuild_module_data_ensure_required().
-  $profiles = \Drupal::service('profile_handler')->getProfileInheritance();
-  foreach ($profiles as $profile_name => $profile) {
-    if (isset($modules[$profile_name])) {
-      // Installation profiles are required, if it's a valid module.
-      $modules[$profile_name]->info['required'] = TRUE;
-      // Add a default distribution name if the profile did not provide one.
-      // @see install_profile_info()
-      // @see drupal_install_profile_distribution_name()
-      if (!isset($modules[$profile_name]->info['distribution']['name'])) {
-        $modules[$profile_name]->info['distribution']['name'] = 'Drupal';
-      }
+  if ($profile && isset($modules[$profile])) {
+    // The installation profile is required, if it's a valid module.
+    $modules[$profile]->info['required'] = TRUE;
+    // Add a default distribution name if the profile did not provide one.
+    // @see install_profile_info()
+    // @see drupal_install_profile_distribution_name()
+    if (!isset($modules[$profile]->info['distribution']['name'])) {
+      $modules[$profile]->info['distribution']['name'] = 'Drupal';
     }
   }
 

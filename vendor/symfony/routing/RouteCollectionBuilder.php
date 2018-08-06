@@ -118,7 +118,7 @@ class RouteCollectionBuilder
      * @param string                 $prefix
      * @param RouteCollectionBuilder $builder
      */
-    public function mount($prefix, RouteCollectionBuilder $builder)
+    public function mount($prefix, self $builder)
     {
         $builder->prefix = trim(trim($prefix), '/');
         $this->routes[] = $builder;
@@ -251,8 +251,6 @@ class RouteCollectionBuilder
     /**
      * Adds a resource for this collection.
      *
-     * @param ResourceInterface $resource
-     *
      * @return $this
      */
     private function addResource(ResourceInterface $resource)
@@ -362,7 +360,7 @@ class RouteCollectionBuilder
         if ($this->loader->supports($resource, $type)) {
             $collections = $this->loader->load($resource, $type);
 
-            return is_array($collections) ? $collections : array($collections);
+            return \is_array($collections) ? $collections : array($collections);
         }
 
         if (null === $resolver = $this->loader->getResolver()) {
@@ -375,6 +373,6 @@ class RouteCollectionBuilder
 
         $collections = $loader->load($resource, $type);
 
-        return is_array($collections) ? $collections : array($collections);
+        return \is_array($collections) ? $collections : array($collections);
     }
 }

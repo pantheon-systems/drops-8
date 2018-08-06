@@ -126,7 +126,7 @@ abstract class AbstractEntry
         $deep  = version_compare(PHP_VERSION, '7', 'ge') ? 1 : true;
         $entry = $dom->importNode($this->getElement(), $deep);
         $dom->appendChild($entry);
-        return $dom->saveXML();
+        return $dom->saveXml();
     }
 
     /**
@@ -146,7 +146,7 @@ abstract class AbstractEntry
      */
     public function getXpath()
     {
-        if (! $this->xpath) {
+        if (!$this->xpath) {
             $this->setXpath(new DOMXPath($this->getDomDocument()));
         }
         return $this->xpath;

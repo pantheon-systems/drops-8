@@ -452,12 +452,6 @@ function install_begin_request($class_loader, &$install_state) {
     if (isset($install_state['profile_info']['distribution']['install']['theme'])) {
       $install_state['theme'] = $install_state['profile_info']['distribution']['install']['theme'];
     }
-    // Ensure all profile directories are registered.
-    $profiles = \Drupal::service('profile_handler')->getProfileInheritance($profile);
-    $profile_directories = array_map(function($extension) {
-      return $extension->getPath();
-    }, $profiles);
-    $listing->setProfileDirectories($profile_directories);
   }
 
   // Use the language from the profile configuration, if available, to override
@@ -1221,8 +1215,6 @@ function install_select_profile(&$install_state) {
  *   - For non-interactive installations via install_drupal() settings.
  * - A discovered profile that is a distribution. If multiple profiles are
  *   distributions, then the first discovered profile will be selected.
- *   If an inherited profile is detected that is a distribution, it will be
- *   chosen over its base profile.
  * - Only one visible profile is available.
  *
  * @param array $install_state
@@ -1245,8 +1237,11 @@ function _install_select_profile(&$install_state) {
     }
   }
   // Check for a distribution profile.
-  if ($distribution = \Drupal::service('profile_handler')->selectDistribution(array_keys($install_state['profiles']))) {
-    return $distribution;
+  foreach ($install_state['profiles'] as $profile) {
+    $profile_info = install_profile_info($profile->getName());
+    if (!empty($profile_info['distribution'])) {
+      return $profile->getName();
+    }
   }
 
   // Get all visible (not hidden) profiles.
@@ -1430,7 +1425,7 @@ function install_check_localization_server($uri) {
  *
  * @param string $version
  *   Version info string (e.g., 8.0.0, 8.1.0, 8.0.0-dev, 8.0.0-unstable1,
- *   8.0.0-alpha2, 8.0.0-beta3, and 8.0.0-rc4).
+ *   8.0.0-alpha2, 8.0.0-beta3, 8.6.x, and 8.0.0-rc4).
  *
  * @return array
  *   Associative array of version info:
@@ -1448,7 +1443,7 @@ function _install_get_version_info($version) {
       \.          # .
       (?P<minor>[0-9]+)    # Minor release number.
       \.          # .
-      (?P<patch>[0-9]+)    # Patch release number.
+      (?P<patch>[0-9]+|x)  # Patch release number.
     )             #
     (             #
       -           # - separator for "extra" version information.
@@ -1579,10 +1574,7 @@ function install_profile_themes(&$install_state) {
  *   An array of information about the current installation state.
  */
 function install_install_profile(&$install_state) {
-  // Install all the profiles.
-  $profiles = \Drupal::service('profile_handler')->getProfileInheritance();
-  \Drupal::service('module_installer')->install(array_keys($profiles), FALSE);
-
+  \Drupal::service('module_installer')->install([drupal_get_profile()], FALSE);
   // Install all available optional config. During installation the module order
   // is determined by dependencies. If there are no dependencies between modules
   // then the order in which they are installed is dependent on random factors
@@ -1723,6 +1715,9 @@ function _install_prepare_import($langcodes, $server_pattern) {
           ];
           \Drupal::service('locale.project')->set($data['name'], $data);
           module_load_include('compare.inc', 'locale');
+          // Reset project information static cache so that it uses the data
+          // set above.
+          locale_translation_clear_cache_projects();
           locale_translation_check_projects_local(['drupal'], [$langcode]);
         }
       }
@@ -1858,10 +1853,19 @@ function install_check_translations($langcode, $server_pattern) {
     return;
   }
 
+  $version = \Drupal::VERSION;
+  // For dev releases, remove the '-dev' part and trust the translation server
+  // to fall back to the latest stable release for that branch.
+  // @see locale_translation_build_projects()
+  if (preg_match("/^(\d+\.\d+\.).*-dev$/", $version, $matches)) {
+    // Example match: 8.0.0-dev => 8.0.x (Drupal core)
+    $version = $matches[1] . 'x';
+  }
+
   // Build URL for the translation file and the translation server.
   $variables = [
     '%project' => 'drupal',
-    '%version' => \Drupal::VERSION,
+    '%version' => $version,
     '%core' => \Drupal::CORE_COMPATIBILITY,
     '%language' => $langcode,
   ];

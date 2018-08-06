@@ -1,7 +1,0 @@
-google_analytics_test.drupal_set_message:
-  path: '/google-analytics-test/drupal-set-message'
-  defaults:
-    _title: 'Set messages with drupal_set_message()'
-    _controller: '\Drupal\google_analytics_test\Controller\GoogleAnalyticsTestController::drupalSetMessageTest'
-  requirements:
-    _access: 'TRUE'

@@ -99,23 +99,6 @@ class UserCancelTest extends BrowserTestBase {
 
     \Drupal::service('module_installer')->install(['views']);
     \Drupal::service('router.builder')->rebuild();
-    // Update uid 1's name and password to we know it.
-    $password = user_password();
-    $account = [
-      'name' => 'user1',
-      'pass' => $this->container->get('password')->hash(trim($password)),
-    ];
-    // We cannot use $account->save() here, because this would result in the
-    // password being hashed again.
-    db_update('users_field_data')
-      ->fields($account)
-      ->condition('uid', 1)
-      ->execute();
-
-    // Reload and log in uid 1.
-    $user_storage->resetCache([1]);
-    $user1 = $user_storage->load(1);
-    $user1->pass_raw = $password;
 
     // Try to cancel uid 1's account with a different user.
     $admin_user = $this->drupalCreateUser(['administer users']);
@@ -268,6 +251,12 @@ class UserCancelTest extends BrowserTestBase {
 
     // Confirm account cancellation request.
     $this->drupalGet("user/" . $account->id() . "/cancel/confirm/$timestamp/" . user_pass_rehash($account, $timestamp));
+    // Confirm that the user was redirected to the front page.
+    $this->assertSession()->addressEquals('');
+    $this->assertSession()->statusCodeEquals(200);
+    // Confirm that the confirmation message made it through to the end user.
+    $this->assertRaw(t('%name has been disabled.', ['%name' => $account->getUsername()]), "Confirmation message displayed to user.");
+
     $user_storage->resetCache([$account->id()]);
     $account = $user_storage->load($account->id());
     $this->assertTrue($account->isBlocked(), 'User has been blocked.');
@@ -283,9 +272,6 @@ class UserCancelTest extends BrowserTestBase {
     $storage->resetCache([$comment->id()]);
     $comment = $storage->load($comment->id());
     $this->assertFalse($comment->isPublished(), 'Comment of the user has been unpublished.');
-
-    // Confirm that the confirmation message made it through to the end user.
-    $this->assertRaw(t('%name has been disabled.', ['%name' => $account->getUsername()]), "Confirmation message displayed to user.");
   }
 
   /**

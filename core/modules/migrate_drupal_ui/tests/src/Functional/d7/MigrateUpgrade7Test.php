@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\migrate_drupal_ui\Functional\d7;
 
+use Drupal\node\Entity\Node;
 use Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeExecuteTestBase;
 use Drupal\user\Entity\User;
 
@@ -65,12 +66,12 @@ class MigrateUpgrade7Test extends MigrateUpgradeExecuteTestBase {
       'configurable_language' => 4,
       'contact_form' => 3,
       'editor' => 2,
-      'field_config' => 63,
-      'field_storage_config' => 46,
+      'field_config' => 66,
+      'field_storage_config' => 49,
       'file' => 3,
       'filter_format' => 7,
       'image_style' => 6,
-      'language_content_settings' => 2,
+      'language_content_settings' => 6,
       'migration' => 73,
       'node' => 5,
       'node_type' => 6,
@@ -85,7 +86,7 @@ class MigrateUpgrade7Test extends MigrateUpgradeExecuteTestBase {
       'tour' => 4,
       'user' => 4,
       'user_role' => 3,
-      'menu_link_content' => 8,
+      'menu_link_content' => 12,
       'view' => 16,
       'date_format' => 11,
       'entity_form_display' => 17,
@@ -104,7 +105,7 @@ class MigrateUpgrade7Test extends MigrateUpgradeExecuteTestBase {
     $counts['block_content'] = 2;
     $counts['comment'] = 2;
     $counts['file'] = 4;
-    $counts['menu_link_content'] = 9;
+    $counts['menu_link_content'] = 13;
     $counts['node'] = 6;
     $counts['taxonomy_term'] = 19;
     $counts['user'] = 5;
@@ -118,12 +119,15 @@ class MigrateUpgrade7Test extends MigrateUpgradeExecuteTestBase {
     return [
       'aggregator',
       'block',
+      'book',
+      'color',
       'comment',
       'contact',
       'date',
       'dblog',
       'email',
       'entityreference',
+      'entity_translation',
       'field',
       'field_sql_storage',
       'file',
@@ -169,8 +173,6 @@ class MigrateUpgrade7Test extends MigrateUpgradeExecuteTestBase {
    */
   protected function getMissingPaths() {
     return [
-      'book',
-      'color',
       'rdf',
       // These modules are in the missing path list because they are installed
       // on the source site but they are not installed on the destination site.
@@ -190,6 +192,27 @@ class MigrateUpgrade7Test extends MigrateUpgradeExecuteTestBase {
     $user = User::load(2);
     $user->passRaw = 'a password';
     $this->drupalLogin($user);
+    $this->assertFollowUpMigrationResults();
+  }
+
+  /**
+   * Tests that follow-up migrations have been run successfully.
+   */
+  protected function assertFollowUpMigrationResults() {
+    $node = Node::load(2);
+    $this->assertSame('4', $node->get('field_reference')->target_id);
+    $this->assertSame('4', $node->get('field_reference_2')->target_id);
+    $translation = $node->getTranslation('is');
+    $this->assertSame('4', $translation->get('field_reference')->target_id);
+    $this->assertSame('4', $translation->get('field_reference_2')->target_id);
+
+    $node = Node::load(4);
+    $this->assertSame('2', $node->get('field_reference')->target_id);
+    $this->assertSame('2', $node->get('field_reference_2')->target_id);
+    $translation = $node->getTranslation('en');
+    $this->assertSame('2', $translation->get('field_reference')->target_id);
+    $this->assertSame('2', $translation->get('field_reference_2')->target_id);
+
   }
 
 }

@@ -41,92 +41,51 @@ class FeedSet extends ArrayObject
     {
         foreach ($links as $link) {
             if (strtolower($link->getAttribute('rel')) !== 'alternate'
-                || ! $link->getAttribute('type') || ! $link->getAttribute('href')) {
+                || !$link->getAttribute('type') || !$link->getAttribute('href')) {
                 continue;
             }
-            if (! isset($this->rss) && $link->getAttribute('type') == 'application/rss+xml') {
+            if (!isset($this->rss) && $link->getAttribute('type') == 'application/rss+xml') {
                 $this->rss = $this->absolutiseUri(trim($link->getAttribute('href')), $uri);
-            } elseif (! isset($this->atom) && $link->getAttribute('type') == 'application/atom+xml') {
+            } elseif (!isset($this->atom) && $link->getAttribute('type') == 'application/atom+xml') {
                 $this->atom = $this->absolutiseUri(trim($link->getAttribute('href')), $uri);
-            } elseif (! isset($this->rdf) && $link->getAttribute('type') == 'application/rdf+xml') {
+            } elseif (!isset($this->rdf) && $link->getAttribute('type') == 'application/rdf+xml') {
                 $this->rdf = $this->absolutiseUri(trim($link->getAttribute('href')), $uri);
             }
             $this[] = new static([
                 'rel' => 'alternate',
                 'type' => $link->getAttribute('type'),
                 'href' => $this->absolutiseUri(trim($link->getAttribute('href')), $uri),
-                'title' => $link->getAttribute('title'),
             ]);
         }
     }
 
     /**
      *  Attempt to turn a relative URI into an absolute URI
-     *
-     *  @param string $link
-     *  @param string $uri OPTIONAL
-     *  @return string|null absolutised link or null if invalid
      */
     protected function absolutiseUri($link, $uri = null)
     {
         $linkUri = Uri::factory($link);
-        if ($linkUri->isAbsolute()) {
-            // invalid absolute link can not be recovered
-            return $linkUri->isValid() ? $link : null;
-        }
+        if (!$linkUri->isAbsolute() or !$linkUri->isValid()) {
+            if ($uri !== null) {
+                $uri = Uri::factory($uri);
 
-        $scheme = 'http';
-        if ($uri !== null) {
-            $uri = Uri::factory($uri);
-            $scheme = $uri->getScheme() ?: $scheme;
-        }
+                if ($link[0] !== '/') {
+                    $link = $uri->getPath() . '/' . $link;
+                }
 
-        if ($linkUri->getHost()) {
-            $link = $this->resolveSchemeRelativeUri($link, $scheme);
-        } elseif ($uri !== null) {
-            $link = $this->resolveRelativeUri($link, $scheme, $uri->getHost(), $uri->getPath());
-        }
+                $link   = sprintf(
+                    '%s://%s/%s',
+                    ($uri->getScheme() ?: 'http'),
+                    $uri->getHost(),
+                    $this->canonicalizePath($link)
+                );
 
-        if (! Uri::factory($link)->isValid()) {
-            return null;
+                if (!Uri::factory($link)->isValid()) {
+                    $link = null;
+                }
+            }
         }
-
         return $link;
-    }
-
-    /**
-     * Resolves scheme relative link to absolute
-     *
-     * @param string $link
-     * @param string $scheme
-     * @return string
-     */
-    private function resolveSchemeRelativeUri($link, $scheme)
-    {
-        $link = ltrim($link, '/');
-        return sprintf('%s://%s', $scheme, $link);
-    }
-
-    /**
-     *  Resolves relative link to absolute
-     *
-     *  @param string $link
-     *  @param string $scheme
-     *  @param string $host
-     *  @param string $uriPath
-     *  @return string
-     */
-    private function resolveRelativeUri($link, $scheme, $host, $uriPath)
-    {
-        if ($link[0] !== '/') {
-            $link = $uriPath . '/' . $link;
-        }
-        return sprintf(
-            '%s://%s/%s',
-            $scheme,
-            $host,
-            $this->canonicalizePath($link)
-        );
     }
 
     /**
@@ -158,8 +117,8 @@ class FeedSet extends ArrayObject
      */
     public function offsetGet($offset)
     {
-        if ($offset == 'feed' && ! $this->offsetExists('feed')) {
-            if (! $this->offsetExists('href')) {
+        if ($offset == 'feed' && !$this->offsetExists('feed')) {
+            if (!$this->offsetExists('href')) {
                 return;
             }
             $feed = Reader::import($this->offsetGet('href'));

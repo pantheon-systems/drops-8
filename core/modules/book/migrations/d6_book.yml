@@ -4,7 +4,7 @@ migration_tags:
   - Drupal 6
   - Content
 source:
-  plugin: d6_book
+  plugin: book
 process:
   nid: nid
   'book/bid': bid

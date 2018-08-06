@@ -1,4 +1,0 @@
-google_analytics.admin_settings_form_tab:
-  route_name: google_analytics.admin_settings_form
-  title: Settings
-  base_route: google_analytics.admin_settings_form

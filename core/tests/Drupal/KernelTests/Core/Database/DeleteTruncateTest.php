@@ -67,6 +67,84 @@ class DeleteTruncateTest extends DatabaseTestBase {
   }
 
   /**
+   * Confirms that we can truncate a whole table while in transaction.
+   */
+  public function testTruncateInTransaction() {
+    // This test won't work right if transactions are not supported.
+    if (!$this->connection->supportsTransactions()) {
+      $this->markTestSkipped('The database driver does not support transactions.');
+    }
+
+    $num_records_before = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertGreaterThan(0, $num_records_before, 'The table is not empty.');
+
+    $transaction = $this->connection->startTransaction('test_truncate_in_transaction');
+    $this->connection->insert('test')
+      ->fields([
+        'name' => 'Freddie',
+        'age' => 45,
+        'job' => 'Great singer',
+      ])
+      ->execute();
+    $num_records_after_insert = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertEquals($num_records_before + 1, $num_records_after_insert);
+
+    $this->connection->truncate('test')->execute();
+
+    // Checks that there are no records left in the table, and transaction is
+    // still active.
+    $this->assertTrue($this->connection->inTransaction());
+    $num_records_after = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertEquals(0, $num_records_after);
+
+    // Close the transaction, and check that there are still no records in the
+    // table.
+    $transaction = NULL;
+    $this->assertFalse($this->connection->inTransaction());
+    $num_records_after = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertEquals(0, $num_records_after);
+  }
+
+  /**
+   * Confirms that transaction rollback voids a truncate operation.
+   */
+  public function testTruncateTransactionRollback() {
+    // This test won't work right if transactions are not supported.
+    if (!$this->connection->supportsTransactions()) {
+      $this->markTestSkipped('The database driver does not support transactions.');
+    }
+
+    $num_records_before = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertGreaterThan(0, $num_records_before, 'The table is not empty.');
+
+    $transaction = $this->connection->startTransaction('test_truncate_in_transaction');
+    $this->connection->insert('test')
+      ->fields([
+        'name' => 'Freddie',
+        'age' => 45,
+        'job' => 'Great singer',
+      ])
+      ->execute();
+    $num_records_after_insert = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertEquals($num_records_before + 1, $num_records_after_insert);
+
+    $this->connection->truncate('test')->execute();
+
+    // Checks that there are no records left in the table, and transaction is
+    // still active.
+    $this->assertTrue($this->connection->inTransaction());
+    $num_records_after = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertEquals(0, $num_records_after);
+
+    // Roll back the transaction, and check that we are back to status before
+    // insert and truncate.
+    $this->connection->rollBack();
+    $this->assertFalse($this->connection->inTransaction());
+    $num_records_after = $this->connection->select('test')->countQuery()->execute()->fetchField();
+    $this->assertEquals($num_records_before, $num_records_after);
+  }
+
+  /**
    * Confirms that we can delete a single special column name record successfully.
    */
   public function testSpecialColumnDelete() {

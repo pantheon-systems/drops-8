@@ -1,7 +1,0 @@
-google_analytics.admin_settings_form:
-  path: '/admin/config/system/google-analytics'
-  defaults:
-    _form: '\Drupal\google_analytics\Form\GoogleAnalyticsAdminSettingsForm'
-    _title: 'Google Analytics'
-  requirements:
-    _permission: 'administer google analytics'

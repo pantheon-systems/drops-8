@@ -1,7 +1,0 @@
-token_module_test.browse:
-  path: '/token_module_test/browse'
-  defaults:
-    _controller: '\Drupal\token_module_test\Controller\TokenTreeBrowseController::outputLink'
-    _title_callback: '\Drupal\token_module_test\Controller\TokenTreeBrowseController::getTitle'
-  requirements:
-    _access: 'TRUE'

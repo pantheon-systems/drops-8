@@ -304,7 +304,7 @@ services:
       - { name: event_subscriber }
   config.installer:
     class: Drupal\Core\Config\ConfigInstaller
-    arguments: ['@config.factory', '@config.storage', '@config.typed', '@config.manager', '@event_dispatcher', '%install_profile%', '@profile_handler']
+    arguments: ['@config.factory', '@config.storage', '@config.typed', '@config.manager', '@event_dispatcher', '%install_profile%']
     lazy: true
   config.storage:
     class: Drupal\Core\Config\CachedStorage
@@ -517,9 +517,6 @@ services:
       - { name: module_install.uninstall_validator }
     arguments: ['@string_translation']
     lazy: true
-  profile_handler:
-    class: Drupal\Core\Extension\ProfileHandler
-    arguments: ['@app.root', '@info_parser']
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
     arguments: ['@app.root', '@config.factory', '@module_handler', '@state', '@info_parser']

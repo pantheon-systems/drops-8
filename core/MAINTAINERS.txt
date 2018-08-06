@@ -33,7 +33,6 @@ Framework managers
 
   Frontend
   - Lauri Eskola 'lauriii' https://www.drupal.org/u/lauriii
-  - Scott Reeves 'Cottser' https://www.drupal.org/u/cottser
 
 Release managers
 - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
@@ -48,7 +47,6 @@ The Drupal Core subsystem maintainers oversee the development of Drupal
 subsystems. See https://www.drupal.org/contribute/core-maintainers for more
 information on their responsibilities, and to find out how to become a subsystem
 maintainer. Current subsystem maintainers for Drupal 8:
-
 
 Actions
 - ?
@@ -109,6 +107,7 @@ Cache
 - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
 
 CKEditor
+- Henrik Danielsson 'TwoD' https://www.drupal.org/u/TwoD
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
 - Marek 'mlewand' Lewandowski https://www.drupal.org/u/mlewand
 
@@ -190,6 +189,7 @@ Dynamic Page Cache
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
 
 Editor
+- Henrik Danielsson 'TwoD' https://www.drupal.org/u/TwoD
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
 
 Entity API
@@ -354,7 +354,7 @@ Shortcut
 - Jibran Ijaz 'jibran' https://www.drupal.org/u/jibran
 
 Stable
-- Scott Reeves 'Cottser' https://www.drupal.org/u/cottser
+- ?
 
 Stark
 - John Albin Wilkins 'JohnAlbin' https://www.drupal.org/u/johnalbin
@@ -423,6 +423,7 @@ Views
 Workflows
 - Sam Becker 'Sam152' https://www.drupal.org/u/sam152
 
+
 Topic maintainers
 -----------------
 
@@ -445,8 +446,9 @@ Usability
 
 Provisional membership: None at this time.
 
+
 Security team
------------------
+-------------
 
 To report a security issue, see:
 https://www.drupal.org/security-team/report-issue
@@ -457,6 +459,7 @@ documentation. See https://www.drupal.org/security-team for more information.
 The security team lead is:
 
 - Michael Hess 'mlhess' https://www.drupal.org/u/mlhess
+
 
 Initiative coordinators
 -----------------------
@@ -482,20 +485,25 @@ Layout Initiative
 Media Initiative
 - Janez Urevc 'slashrsm' https://www.drupal.org/u/slashrsm
 
+Out-of-the-Box Initiative
+- Mark Conroy 'markconroy' https://www.drupal.org/u/markconroy
+- Gareth Goodwin 'smaz' https://www.drupal.org/u/smaz
+- Keith Jay 'kjay' https://www.drupal.org/u/kjay
+- Elliot Ward 'eli-t' https://www.drupal.org/u/eli-t
+
 PHPUnit Initiative
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
-  - (provisional) Michiel Nugter 'michielnugter' https://www.drupal.org/u/michielnugter
-  - (provisional) Len Swaneveld 'Lendude' https://www.drupal.org/u/lendude
+- (provisional) Michiel Nugter 'michielnugter' https://www.drupal.org/u/michielnugter
+- (provisional) Len Swaneveld 'Lendude' https://www.drupal.org/u/lendude
 
 Workflow Initiative
 - Dick Olsson 'dixon_' https://www.drupal.org/u/dixon_
-
 
 Provisional membership: None at this time.
 
 
 Core mentoring coordinators
----------------------
+---------------------------
 
 The Drupal Core mentors inspire, enable, and encourage new core contributors.
 See https://www.drupal.org/core-mentoring for more information about mentoring.

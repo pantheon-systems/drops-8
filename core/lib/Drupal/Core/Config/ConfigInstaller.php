@@ -6,7 +6,6 @@ use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
 use Drupal\Core\Config\Entity\ConfigEntityDependency;
-use Drupal\Core\Extension\ProfileHandlerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class ConfigInstaller implements ConfigInstallerInterface {
@@ -54,13 +53,6 @@ class ConfigInstaller implements ConfigInstallerInterface {
   protected $sourceStorage;
 
   /**
-   * The profile handler.
-   *
-   * @var \Drupal\Core\Extension\ProfileHandlerInterface
-   */
-  protected $profileHandler;
-
-  /**
    * Is configuration being created as part of a configuration sync.
    *
    * @var bool
@@ -89,17 +81,14 @@ class ConfigInstaller implements ConfigInstallerInterface {
    *   The event dispatcher.
    * @param string $install_profile
    *   The name of the currently active installation profile.
-   * @param \Drupal\Core\Extension\ProfileHandlerInterface $profile_handler
-   *   (optional) The profile handler.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, StorageInterface $active_storage, TypedConfigManagerInterface $typed_config, ConfigManagerInterface $config_manager, EventDispatcherInterface $event_dispatcher, $install_profile, ProfileHandlerInterface $profile_handler = NULL) {
+  public function __construct(ConfigFactoryInterface $config_factory, StorageInterface $active_storage, TypedConfigManagerInterface $typed_config, ConfigManagerInterface $config_manager, EventDispatcherInterface $event_dispatcher, $install_profile) {
     $this->configFactory = $config_factory;
     $this->activeStorages[$active_storage->getCollectionName()] = $active_storage;
     $this->typedConfig = $typed_config;
     $this->configManager = $config_manager;
     $this->eventDispatcher = $event_dispatcher;
     $this->installProfile = $install_profile;
-    $this->profileHandler = $profile_handler ?: \Drupal::service('profile_handler');
   }
 
   /**
@@ -482,8 +471,7 @@ class ConfigInstaller implements ConfigInstallerInterface {
 
     // Install profiles can not have config clashes. Configuration that
     // has the same name as a module's configuration will be used instead.
-    $profiles = $this->profileHandler->getProfileInheritance();
-    if (!isset($profiles[$name])) {
+    if ($name != $this->drupalGetProfile()) {
       // Throw an exception if the module being installed contains configuration
       // that already exists. Additionally, can not continue installing more
       // modules because those may depend on the current module being installed.
