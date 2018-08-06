@@ -1,0 +1,23 @@
+entity.webform.templates:
+  path: '/admin/structure/webform/templates'
+  defaults:
+    _controller: '\Drupal\webform_templates\Controller\WebformTemplatesController::index'
+    _title: 'Webforms: Templates'
+  requirements:
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkOverviewAccess'
+
+entity.webform.preview:
+  path: '/webform/{webform}/preview'
+  defaults:
+    _controller: '\Drupal\webform_templates\Controller\WebformTemplatesController::previewForm'
+    _title_callback: '\Drupal\webform_templates\Controller\WebformTemplatesController::previewtitle'
+  requirements:
+    _entity_access: 'webform.submission_page'
+
+entity.webform.templates.autocomplete:
+  path: '/admin/structure/webform/templates/autocomplete'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformEntityController::autocomplete'
+    templates: TRUE
+  requirements:
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkOverviewAccess'

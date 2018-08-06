@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * @file
+ * Remove config on uninstall.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function content_lock_timeout_uninstall() {
+  \Drupal::service('config.factory')->getEditable('content_lock_timeout.settings')->delete();
+}

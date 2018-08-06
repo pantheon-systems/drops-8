@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * @file
+ * Create content_lock table.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function content_lock_schema() {
+  $schema['content_lock'] = [
+    'description' => 'content lock module table.',
+    'fields' => [
+      'entity_id' => [
+        'description' => 'The primary identifier for an entity.',
+        'type' => 'int',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'entity_type' => [
+        'description' => 'The type of an entity.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => 'node',
+      ],
+      'uid' => [
+        'description' => 'User that holds the lock.',
+        'type' => 'int',
+        'size' => 'normal',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'timestamp' => [
+        'description' => 'Time the lock occurred.',
+        'size' => 'normal',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'indexes' => [
+      'user' => ['uid'],
+    ],
+    'foreign keys' => [
+      'uid' => [
+        'table' => 'users_field_data',
+        'columns' => ['uid' => 'uid'],
+      ],
+    ],
+  ];
+
+  return $schema;
+}

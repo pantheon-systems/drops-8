@@ -1,0 +1,298 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_token_submission_value
+title: 'Test: Token submission value'
+description: 'Test Webform submission values tokens'
+category: 'Test: Token'
+elements: |
+  email:
+    '#type': email
+    '#title': email
+    '#default_value': 'example@example.com'
+  emails:
+    '#type': email
+    '#title': emails
+    '#multiple': true
+    '#default_value':
+      - 'one@example.com'
+      - 'two@example.com'
+      - 'three@example.com'
+  user:
+    '#type': webform_entity_select
+    '#title': 'user'
+    '#target_type': user
+    '#selection_handler': 'default:user'
+    '#selection_settings':
+      include_anonymous: true
+    '#default_value': 1
+  users:
+    '#type': webform_entity_select
+    '#title': 'user'
+    '#multiple': true
+    '#target_type': user
+    '#selection_handler': 'default:user'
+    '#selection_settings':
+      include_anonymous: true
+    '#default_value':
+      - 0
+      - 1
+  term:
+    '#type': webform_term_select
+    '#title': term
+    '#vocabulary': tags
+    '#default_value': 1
+  terms:
+    '#type': webform_term_select
+    '#title': term
+    '#multiple': true
+    '#vocabulary': tags
+    '#default_value':
+      - 1
+      - 2
+  name:
+    '#type': webform_name
+    '#title': name
+    '#default_value':
+      first: John
+      last: Smith
+  names:
+    '#type': webform_name
+    '#title': names
+    '#multiple': true
+    '#default_value':
+      - first: John
+        last: Smith
+      - first: Jane
+        last: Doe
+  contact:
+    '#type': webform_contact
+    '#title': contact
+    '#default_value':
+      name: John Smith
+      email: 'john@example.com'
+      address: '10 Main Street'
+      city: Springfield
+      state_province: Alabama
+      postal_code: 12345
+      country: 'United States'
+  contacts:
+    '#type': webform_contact
+    '#title': contact
+    '#multiple': true
+    '#default_value':
+      - name: 'John Smith'
+        email: 'john@example.com'
+        address: '10 Main Street'
+        city: Springfield
+        state_province: Alabama
+        postal_code: 12345
+        country: 'United States'
+      - name: 'Jane Doe'
+        email: 'jane@example.com'
+        address: '10 Main Street'
+        city: Springfield
+        state_province: Alabama
+        postal_code: 12345
+        country: 'United States'
+  fieldset:
+    '#type': fieldset
+    '#title': fieldset
+    first_name:
+      '#type': textfield
+      '#title': first_name
+      '#default_value': John
+    last_name:
+      '#type': textfield
+      '#title': last_name
+      '#default_value': Smith
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: |
+    <h3>emails</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:values:email</th><td width="50%">[webform_submission:values:email]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails</th><td width="50%">[webform_submission:values:emails]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:0</th><td width="50%">[webform_submission:values:emails:0]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:1</th><td width="50%">[webform_submission:values:emails:1]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:2</th><td width="50%">[webform_submission:values:emails:2]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:value:comma</th><td width="50%">[webform_submission:values:emails:value:comma]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:html</th><td width="50%">[webform_submission:values:emails:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:0:html</th><td width="50%">[webform_submission:values:emails:0:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:1:html</th><td width="50%">[webform_submission:values:emails:1:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:2:html</th><td width="50%">[webform_submission:values:emails:2:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:emails:99:html</th><td width="50%">[webform_submission:values:emails:99]</td></tr>
+    </table>
+    
+    <h3>users</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:values:user</th><td width="50%">[webform_submission:values:user]</td></tr>
+    <tr><th width="50%">webform_submission:values:users</th><td width="50%">[webform_submission:values:users]</td></tr>
+    <tr><th width="50%">webform_submission:values:user:entity:mail</th><td width="50%">[webform_submission:values:user:entity:mail]</td></tr>
+    <tr><th width="50%">webform_submission:values:users:0:entity:account-name</th><td width="50%">[webform_submission:values:users:0:entity:account-name]</td></tr>
+    <tr><th width="50%">webform_submission:values:users:99:entity:account-name</th><td width="50%">[webform_submission:values:users:99:entity:account-name]</td></tr>
+    </table>
+    
+    <h3>terms</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:values:term</th><td width="50%">[webform_submission:values:term]</td></tr>
+    <tr><th width="50%">webform_submission:values:terms</th><td width="50%">[webform_submission:values:terms]</td></tr>
+    <tr><th width="50%">webform_submission:values:term:entity:name</th><td width="50%">[webform_submission:values:term:entity:name]</td></tr>
+    <tr><th width="50%">webform_submission:values:terms:entity:name</th><td width="50%">[webform_submission:values:terms:entity:name]</td></tr>
+    <tr><th width="50%">webform_submission:values:terms:1:entity:name</th><td width="50%">[webform_submission:values:terms:1:entity:name]</td></tr>
+    </table>
+    
+    <h3>names</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:values:name</th><td width="50%">[webform_submission:values:name]</td></tr>
+    <tr><th width="50%">webform_submission:values:names</th><td width="50%">[webform_submission:values:names]</td></tr>
+    <tr><th width="50%">webform_submission:values:names:0</th><td width="50%">[webform_submission:values:names:0]</td></tr>
+    <tr><th width="50%">webform_submission:values:names:1</th><td width="50%">[webform_submission:values:names:1]</td></tr>
+    <tr><th width="50%">webform_submission:values:names:99</th><td width="50%">[webform_submission:values:names:99]</td></tr>
+    </table>
+    
+    <h3>contacts</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:values:contact</th><td width="50%">[webform_submission:values:contact]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts</th><td width="50%">[webform_submission:values:contacts]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts:html</th><td width="50%">[webform_submission:values:contacts:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts:0:html</th><td width="50%">[webform_submission:values:contacts:0:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts:0:name</th><td width="50%">[webform_submission:values:contacts:0:name]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts:1:name</th><td width="50%">[webform_submission:values:contacts:1:name]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts:0:email:html</th><td width="50%">[webform_submission:values:contacts:0:email:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:contacts:1:email:raw:html</th><td width="50%">[webform_submission:values:contacts:1:email:raw:html]</td></tr>
+    </table>
+    
+    <h3>container</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:values:fieldset</th><td width="50%"><pre>[webform_submission:values:fieldset]</pre></td></tr>
+    <tr><th width="50%">webform_submission:values:fieldset:html</th><td width="50%">[webform_submission:values:fieldset:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:fieldset:header:html</th><td width="50%">[webform_submission:values:fieldset:header:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:fieldset:details:html</th><td width="50%">[webform_submission:values:fieldset:details:html]</td></tr>
+    <tr><th width="50%">webform_submission:values:fieldset:fieldset:html</th><td width="50%">[webform_submission:values:fieldset:fieldset:html]</td></tr>
+    </table>
+    
+    <h3>submission limits</h3>
+    <table class="table">
+    <tr><th width="50%">webform_submission:limit:webform</th><td width="50%">[webform_submission:limit:webform]</td></tr>
+    <tr><th width="50%">webform_submission:total:webform</th><td width="50%">[webform_submission:total:webform]</td></tr>
+    <tr><th width="50%">webform_submission:limit:user</th><td width="50%">[webform_submission:limit:user]</td></tr>
+    <tr><th width="50%">webform_submission:total:user</th><td width="50%">[webform_submission:total:user]</td></tr>
+    <tr><th width="50%">webform_submission:limit:webform:source_entity</th><td width="50%">[webform_submission:limit:webform:source_entity]</td></tr>
+    <tr><th width="50%">webform_submission:total:webform:source_entity</th><td width="50%">[webform_submission:total:webform:source_entity]</td></tr>
+    <tr><th width="50%">webform_submission:limit:user:source_entity</th><td width="50%">[webform_submission:limit:user:source_entity]</td></tr>
+    <tr><th width="50%">webform_submission:total:user:source_entity</th><td width="50%">[webform_submission:total:user:source_entity]</td></tr>
+    </table>
+
+    <h3>removed and ignored</h3>
+    <table class="table">
+    <tr><th width="50%">webform:removed:token</th><td width="50%">[webform:removed:token]</td></tr>
+    <tr><th width="50%">ignored:token</th><td width="50%">[ignored:token]</td></tr>
+    </table>
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: 100
+  limit_total_message: ''
+  limit_user: 10
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: 50
+  entity_limit_user: 5
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: true
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

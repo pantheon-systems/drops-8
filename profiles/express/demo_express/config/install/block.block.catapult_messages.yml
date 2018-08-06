@@ -1,0 +1,22 @@
+uuid: 7a3aeb3a-0b73-4d60-8d18-19b1781190d0
+langcode: en
+status: false
+dependencies:
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: ieU6_EPFGJfI-2zKSDQ9U60N4YeqvfEXQflFYxarvm0
+id: catapult_messages
+theme: catapult
+region: header
+weight: -3
+provider: null
+plugin: system_messages_block
+settings:
+  id: system_messages_block
+  label: 'Status messages'
+  provider: system
+  label_display: '0'
+visibility: {  }

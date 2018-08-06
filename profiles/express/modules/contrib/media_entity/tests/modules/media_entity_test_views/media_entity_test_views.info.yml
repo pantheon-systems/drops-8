@@ -1,0 +1,15 @@
+name: 'Media Entity test views'
+type: module
+description: 'Provides default views for views media entity tests.'
+package: Testing
+# version: VERSION
+# core: 8.x
+dependencies:
+  - media_entity
+  - views
+
+# Information added by Drupal.org packaging script on 2016-11-28
+version: '8.x-1.6'
+core: '8.x'
+project: 'media_entity'
+datestamp: 1480363985

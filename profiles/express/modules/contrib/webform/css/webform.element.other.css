@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Other element styles.
+ *
+ * @see /webform/test_element_other
+ */
+
+html.js .webform-select-other .webform-select-other-input,
+html.js .webform-checkboxes-other .webform-checkboxes-other-input,
+html.js .webform-radios-other .webform-radios-other-input,
+html.js .webform-buttons-other .webform-buttons-other-input {
+  display: none;
+}

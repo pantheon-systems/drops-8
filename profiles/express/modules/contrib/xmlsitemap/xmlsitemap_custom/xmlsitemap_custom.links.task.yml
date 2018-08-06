@@ -1,0 +1,4 @@
+xmlsitemap_custom.list:
+  route_name: xmlsitemap_custom.list
+  base_route: xmlsitemap.admin_search
+  title: 'Custom links'

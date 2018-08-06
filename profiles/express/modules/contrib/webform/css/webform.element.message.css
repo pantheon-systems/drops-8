@@ -1,0 +1,72 @@
+/**
+ * @file
+ * Messages element styles.
+ *
+ * @see /webform/test_element_message
+ */
+
+/**
+ * Add styles to default (info) message,
+ */
+.messages.messages--info {
+  color: #31708f;
+  background-color: #d9edf7;
+  background-image: url(../images/icons/info.svg);
+  border-color: #0074bd #0074bd #0074bd transparent;  /* LTR */
+  box-shadow: -8px 0 0 #0074bd; /* LTR */
+}
+[dir="rtl"] .messages.messages--info {
+  border-color: #0074bd transparent #0074bd #0074bd;
+  box-shadow: 8px 0 0 #0074bd;
+  margin-left: 0;
+}
+
+/**
+ * Webform message close container.
+ */
+.webform-message--close .messages {
+  position: relative;
+}
+
+/**
+ * Webform message close link.
+ */
+.webform-message--close .messages {
+  padding-right: 35px;
+}
+
+.webform-message--close .webform-message__link {
+  display: none;
+}
+
+html.js .webform-message--close .webform-message__link {
+  display: block;
+  position: absolute;
+  top: 11px;
+  right: 10px;
+  line-height: 24px;
+  font-size: 24px;
+}
+
+.webform-message__link {
+  color: inherit;
+  opacity: 0.33;
+}
+
+.webform-message__link:link {
+  border-bottom: none;
+  text-decoration: none;
+}
+
+.webform-message__link:hover,
+.webform-message__link:focus,
+.webform-message__link:active {
+  border-bottom: none;
+  text-decoration: none;
+  color: inherit;
+  opacity: 1;
+}
+
+html.js .js-webform-message--close-storage {
+  display: none;
+}

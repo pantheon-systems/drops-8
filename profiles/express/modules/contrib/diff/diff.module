@@ -1,0 +1,76 @@
+<?php
+
+/**
+ * @file
+ * This is the diff module to compare revisions.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function diff_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.diff':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Diff module replaces the normal <em>Revisions </em> node tab and enhances the listing of revisions with an option to view the differences between any two content revisions.') . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Compare content entity revisions') . '</dt>';
+      $output .= '<dd>' . t('Diff provides the possibility of comparing two node revisions but it also provides support for comparing any two content entities. With minimum effort it can be extended to display differences between any two content entities.') . '</dd>';
+      $output .= '<dt>' . t('Control field visibility settings') . '</dt>';
+      $output .= '<dd>' . t('Fields visibility can be controlled from view modes for configurable fields and from Diff settings page for entity base fields. Diff field types specific settings can also be configured from Diff settings page') . '</dd>';
+      $output .= '<dt>' . t('Configure diff field type settings') . '</dt>';
+      $output .= '<dd>' . t('Every field type has specific diff settings (display or not the field title, markdown format or other settings). These settings can be configured from Diff settings page') . '</dd>';
+      $output .= '</dl>';
+      return $output;
+
+    case 'diff.general_settings':
+      return '<p>' . t('Configurations for the revision comparison functionality and diff layout plugins.') . '</p>';
+
+    case 'diff.revision_overview':
+      return '<p>' . t('Revisions allow you to track differences between multiple versions of your content, and revert to older versions.') . '</p>';
+
+    case 'diff.fields_list':
+      return '<p>' . t('This table provides a summary of the field support found on the system. For every field, a diff plugin can be selected and configured. These settings are applied to Unified and Split fields layouts.') . '</p>';
+  }
+}
+
+/**
+ * Returns the label of a certain field.
+ *
+ * Therefore it looks up in all bundles to find the most used field.
+ *
+ * @param string $entity_type
+ *   The entity type id.
+ * @param string $field_name
+ *   The field name.
+ *
+ * @return array
+ *   Array of labels used for the field sorted by the most used.
+ */
+function _diff_field_label($entity_type, $field_name) {
+  $labels = [];
+  // Count the amount of instances of each label per field storage.
+  $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo($entity_type);
+  $field_manager = \Drupal::service('entity_field.manager');
+  foreach (array_keys($bundles) as $bundle) {
+    $bundle_instances = $field_manager->getFieldDefinitions($entity_type, $bundle);
+    if (isset($bundle_instances[$field_name])) {
+      $instance = $bundle_instances[$field_name];
+      $label = (string) $instance->getLabel();
+      $labels[$label] = isset($labels[$label]) ? ++$labels[$label] : 1;
+    }
+  }
+
+  if (empty($labels)) {
+    // Return the original field name if there is no other label found.
+    return [$field_name];
+  }
+
+  // Return the labels sorted by the most used.
+  arsort($labels);
+  return array_keys($labels);
+}

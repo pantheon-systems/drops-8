@@ -1,0 +1,35 @@
+entity.webform.export_form:
+  title: 'Export'
+  route_name: entity.webform.export_form
+  parent_id: devel.entities:webform.devel_tab
+  weight: 100
+
+entity.webform.schema_form:
+  title: 'Webform'
+  route_name: entity.webform.schema_form
+  parent_id: devel.entities:webform.devel_tab
+  weight: 100
+
+entity.webform.test_form.form:
+  title: 'Form'
+  route_name: entity.webform.test_form
+  parent_id: entity.webform.test_form
+  weight: 0
+
+entity.webform.test_form.api:
+  title: 'API'
+  route_name: entity.webform.api_form
+  parent_id: entity.webform.test_form
+  weight: 10
+
+entity.node.webform.test_form.form:
+  title: 'Form'
+  route_name: entity.node.webform.test_form
+  parent_id: entity.node.webform.test_form
+  weight: 0
+
+entity.node.webform.test_form.api:
+  title: 'API'
+  route_name: entity.node.webform.api_form
+  parent_id: entity.node.webform.test_form
+  weight: 10

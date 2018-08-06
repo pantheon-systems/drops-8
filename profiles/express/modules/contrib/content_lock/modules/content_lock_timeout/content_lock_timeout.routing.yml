@@ -1,0 +1,9 @@
+content_lock_timeout.settings_form:
+  path: '/admin/config/content_lock_timeout/settings'
+  defaults:
+    _form: '\Drupal\content_lock_timeout\Form\SettingsForm'
+    _title: 'SettingsForm'
+  requirements:
+    _permission: 'administer content lock'
+  options:
+    _admin_route: TRUE

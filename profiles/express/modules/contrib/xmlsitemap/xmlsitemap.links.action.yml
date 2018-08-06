@@ -1,0 +1,6 @@
+xmlsitemap.add:
+  route_name: entity.xmlsitemap.add_form
+  title: 'Add XML Sitemap'
+  appears_on:
+    - xmlsitemap.admin_search
+    - xmlsitemap.admin_search_list

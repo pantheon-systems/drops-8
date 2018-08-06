@@ -1,0 +1,38 @@
+.js-form-type-entity-browser-pager {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.js-form-type-entity-browser-pager input,
+.js-form-type-entity-browser-pager input:hover,
+.js-form-type-entity-browser-pager input:focus {
+    background: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    color: #2a678c;
+    font-size: 1.08em;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+}
+
+.js-form-type-entity-browser-pager span {
+    color: #8c8c8c;
+    font-size: 1.08em;
+    font-weight: bold;
+    margin: 0.8em;
+}
+
+.js-form-type-entity-browser-pager input[name="prev_page"]:disabled,
+.js-form-type-entity-browser-pager input[name="next_page"]:disabled {
+    visibility: hidden;
+}
+
+.js-form-type-entity-browser-pager input:focus:not(:disabled),
+.js-form-type-entity-browser-pager input:hover:not(:disabled) {
+    border-radius: 0;
+    color: #0074bd;
+    font-size: 1.08em;
+    font-weight: bold;
+}

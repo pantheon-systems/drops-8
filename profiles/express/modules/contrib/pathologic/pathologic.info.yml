@@ -1,0 +1,8 @@
+name: Pathologic
+description: 'Helps avoid broken links and incorrect paths in content.'
+core: 8.x
+package: 'Input filters'
+dependencies:
+- filter
+type: module
+configure: pathologic.config_form

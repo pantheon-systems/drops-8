@@ -1,0 +1,4 @@
+entity.webform.quickedit:
+  title: 'Quick Edit'
+  route_name: entity.webform.edit_form
+  group: webform

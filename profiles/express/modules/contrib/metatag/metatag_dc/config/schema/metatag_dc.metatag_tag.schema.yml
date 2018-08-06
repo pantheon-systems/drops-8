@@ -1,0 +1,45 @@
+metatag.metatag_tag.dcterms_contributor:
+  type: label
+  label: 'Dublin Core: Contributor'
+metatag.metatag_tag.dcterms_coverage:
+  type: label
+  label: 'Dublin Core: Coverage'
+metatag.metatag_tag.dcterms_creator:
+  type: label
+  label: 'Dublin Core: Creator'
+metatag.metatag_tag.dcterms_date:
+  type: label
+  label: 'Dublin Core: Date'
+metatag.metatag_tag.dcterms_description:
+  type: label
+  label: 'Dublin Core: Description'
+metatag.metatag_tag.dcterms_format:
+  type: label
+  label: 'Dublin Core: Format'
+metatag.metatag_tag.dcterms_identifier:
+  type: label
+  label: 'Dublin Core: Identifier'
+metatag.metatag_tag.dcterms_language:
+  type: label
+  label: 'Dublin Core: Language'
+metatag.metatag_tag.dcterms_publisher:
+  type: label
+  label: 'Dublin Core: Publisher'
+metatag.metatag_tag.dcterms_relation:
+  type: label
+  label: 'Dublin Core: Relation'
+metatag.metatag_tag.dcterms_rights:
+  type: label
+  label: 'Dublin Core: Rights'
+metatag.metatag_tag.dcterms_source:
+  type: label
+  label: 'Dublin Core: Source'
+metatag.metatag_tag.dcterms_subject:
+  type: label
+  label: 'Dublin Core: Subject'
+metatag.metatag_tag.dcterms_title:
+  type: label
+  label: 'Dublin Core: Title'
+metatag.metatag_tag.dcterms_type:
+  type: label
+  label: 'Dublin Core: Type'

@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * @file
+ * Provides an example that shows how to create a Webform composite.
+ */
+
+module_load_include('inc', 'webform', 'includes/webform.theme.template');
+
+/**
+ * Implements hook_theme().
+ */
+function webform_example_composite_theme() {
+  return [
+    'webform_example_composite' => [
+      'render element' => 'element',
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for webform example composite templates.
+ *
+ * Default template: webform-example-composite.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ */
+function template_preprocess_webform_example_composite(array &$variables) {
+  // Here you can get the composite element and alter it.
+  _template_preprocess_webform_composite($variables);
+}

@@ -97,9 +97,6 @@ abstract class CachePluginBase extends PluginBase {
    * Save data to the cache.
    *
    * A plugin should override this to provide specialized caching behavior.
-   *
-   * @param $type
-   *   The cache type, either 'query', 'result'.
    */
   public function cacheSet($type) {
     switch ($type) {
@@ -122,12 +119,6 @@ abstract class CachePluginBase extends PluginBase {
    * Retrieve data from the cache.
    *
    * A plugin should override this to provide specialized caching behavior.
-   *
-   * @param $type
-   *   The cache type, either 'query', 'result'.
-   *
-   * @return bool
-   *   TRUE if data has been taken from the cache, otherwise FALSE.
    */
   public function cacheGet($type) {
     $cutoff = $this->cacheExpire($type);

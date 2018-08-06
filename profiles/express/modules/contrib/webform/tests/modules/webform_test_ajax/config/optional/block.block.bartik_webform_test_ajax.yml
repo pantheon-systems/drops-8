@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+    - webform_test_ajax
+  theme:
+    - bartik
+id: bartik_webform_test_ajax
+theme: bartik
+region: sidebar_second
+weight: 0
+provider: null
+plugin: webform_test_ajax_block
+settings:
+  id: webform_test_ajax_block
+  label: 'Test Webform Ajax Modal Dialogs'
+  provider: webform_test_ajax
+  label_display: visible
+visibility:
+  request_path:
+    id: request_path
+    pages: '<front>'
+    negate: false
+    context_mapping: {  }

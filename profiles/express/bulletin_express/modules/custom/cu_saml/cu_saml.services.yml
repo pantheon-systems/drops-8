@@ -1,0 +1,5 @@
+services:
+  cu_saml.logout_subscriber:
+    class: Drupal\cu_saml\Routing\LogoutSubscriber
+    tags:
+      - { name: event_subscriber }

@@ -1,0 +1,6 @@
+langcode: en
+status: false
+dependencies: {  }
+formId: contact_message_personal_form
+captchaType: default
+label: null

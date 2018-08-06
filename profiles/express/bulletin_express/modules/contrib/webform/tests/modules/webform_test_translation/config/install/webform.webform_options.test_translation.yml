@@ -1,0 +1,13 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - webform
+      - webform_test_translation
+id: test_translation
+label: 'Test: Translation'
+options: |
+  1: One
+  2: Two
+  3: Three

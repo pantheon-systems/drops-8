@@ -1,0 +1,19 @@
+# Schema for the views plugins of the Redirect module.
+
+views.field.redirect_type:
+  type: views.field.redirect
+  label: 'Redirect type'
+  mapping:
+    machine_name:
+      type: string
+      label: 'Output machine name'
+
+# Schema for the formatter of Redirect Source
+field.formatter.settings.redirect_source:
+  type: mapping
+  label: 'Redirect Source formatter'
+  mapping: { }
+
+views.field.redirect_bulk_form:
+  type: views_field_bulk_form
+  label: 'Redirect bulk form'

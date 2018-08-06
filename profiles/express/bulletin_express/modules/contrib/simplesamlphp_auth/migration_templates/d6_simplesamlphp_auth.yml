@@ -1,0 +1,32 @@
+id: d6_simplesamlphp_auth
+label: SimpleSAMLphp Auth settings
+migration_tags:
+  - Drupal 6
+source:
+  plugin: variable
+  constants:
+    activate: false
+  variables:
+    - simplesamlphp_auth_mailattr
+    - simplesamlphp_auth_unique_id
+    - simplesamlphp_auth_user_name
+    - simplesamlphp_auth_authsource
+    - simplesamlphp_auth_rolepopulation
+    - simplesamlphp_auth_roleevaleverytime
+    - simplesamlphp_auth_registerusers
+    - simplesamlphp_auth_allowdefaultlogin
+    - simplesamlphp_auth_allowdefaultloginusers
+process:
+  activate: 'constants/activate' # Always migrate "activate" setting to false, to avoid lockouts
+  mail_attr: simplesamlphp_auth_mailattr
+  unique_id: simplesamlphp_auth_unique_id
+  user_name: simplesamlphp_auth_user_name
+  auth_source: simplesamlphp_auth_authsource
+  role/population: simplesamlphp_auth_rolepopulation
+  role/eval_every_time: simplesamlphp_auth_roleevaleverytime
+  register_users: simplesamlphp_auth_registerusers
+  allow/default_login: simplesamlphp_auth_allowdefaultlogin
+  allow/default_login_users: simplesamlphp_auth_allowdefaultloginusers
+destination:
+  plugin: config
+  config_name: simplesamlphp_auth.settings

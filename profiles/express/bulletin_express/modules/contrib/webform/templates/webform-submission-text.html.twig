@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Default theme implementation from form submission as plain text.
+ *
+ * @ingroup themeable
+ */
+#}
+--------------------------------------------------------------------------------
+{{ 'Submission ID'|t }}: {{ sid }}
+{{ 'Submission UUID'|t }}: {{ uuid }}
+{{ 'Submission URI'|t }}: {{ uri }}
+{{ 'Created'|t }}: {{ created }}
+{{ 'Completed'|t }}: {{ completed }}
+{{ 'Changed'|t }}: {{ changed }}
+{{ 'Is draft'|t }}: {{ is_draft }}
+{{ 'Current page'|t }}: {{ current_page }}
+{{ 'Remote IP address'|t }}: {{ remote_addr }}
+{{ 'Submitted by'|t }}: {{ submitted_by }}
+{{ 'Language'|t }}: {{ language }}
+{{ 'Form'|t }}: {{ form }}
+{{ 'Submitted to'|t }}: {{ submitted_to }}
+--------------------------------------------------------------------------------
+
+{{ 'Submitted values are'|t }}:
+
+{{ data }}

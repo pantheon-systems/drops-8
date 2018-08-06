@@ -1,0 +1,21 @@
+name: 'Entity browser test paragraphs'
+type: module
+description: 'Test Paragraphs Integration.'
+# core: 8.x
+package: Testing
+# version: VERSION
+dependencies:
+  - entity_reference_revisions
+  - entity_browser
+  - menu_ui
+  - node
+  - paragraphs
+  - path
+  - views
+  - user
+
+# Information added by Drupal.org packaging script on 2017-09-19
+version: '8.x-1.3'
+core: '8.x'
+project: 'entity_browser'
+datestamp: 1505838852

@@ -31,10 +31,6 @@
 
 /* Large */
 @media screen and (min-width: 60rem) { /* 960px */
-  .view-promoted-items--single .node--view-mode-highlighted-top .node__content {
-    flex: 0 0 auto;
-  }
-
   .view-promoted-items--single .node--view-mode-highlighted-top .node__meta {
     order: -1;
   }
@@ -45,7 +41,7 @@
 }
 
 .node--view-mode-highlighted-top .node__title {
-  font-weight: 400;
+  font-weight: normal;
   margin-bottom: 1rem;
 }
 

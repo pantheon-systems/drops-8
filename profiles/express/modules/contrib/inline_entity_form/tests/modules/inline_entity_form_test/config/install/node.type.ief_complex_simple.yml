@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'IEF complex -simple'
+type: ief_complex_simple
+description: 'Content type for IEF testing Complex widget containing simple widget'
+help: ''
+new_revision: false
+preview_mode: 0
+display_submitted: true

@@ -1,0 +1,4 @@
+services:
+  video_embed_media.upgrade_manager:
+    class: Drupal\video_embed_media\UpgradeManager
+    arguments: ['@entity.query']

@@ -1,0 +1,257 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: '2000-01-01T00:00:00-05:00'
+close: '2020-01-01T00:00:00-05:00'
+uid: null
+template: false
+id: test_token
+title: 'Test: Token'
+description: 'Test Webform and Webform Submission tokens'
+category: 'Test: Token'
+elements: |
+  webform_tokens:
+    '#type': webform_codemirror
+    '#mode': text
+    '#title': 'Webform Tokens'
+    '#default_value': |
+      Description: [webform:description]
+      Webform ID: [webform:id]
+      title: [webform:title]
+      URL: [webform:url]
+      Author: [webform:author]
+      Author name: [webform:author:account-name]
+      Author roles: [webform:author:roles]
+      Open: [webform:open]
+      Open long: [webform:open:long]
+      Close: [webform:close]
+      Close long: [webform:close:long]
+  webform_submission_tokens:
+    '#type': webform_codemirror
+    '#mode': text
+    '#title': 'Webform Submission Tokens'
+    '#default_value': |
+      Date changed: [webform_submission:changed]
+      Date changed long: [webform_submission:changed:long]
+      Date completed: [webform_submission:completed]
+      Date completed long: [webform_submission:completed:long]
+      Date created: [webform_submission:created]
+      Date created long: [webform_submission:created:long]
+      Webform: [webform_submission:webform]
+      IP address: [webform_submission:ip-address]
+      Langcode: [webform_submission:langcode]
+      Language: [webform_submission:language]
+      In draft: [webform_submission:in-draft]
+      Completed page: [webform_submission:completed-page]
+      Source URL: [webform_submission:source-url]
+      Submitted to: [webform_submission:submitted-to]
+      Submitted to ID: [webform_submission:submitted-to:id]
+      Submission ID: [webform_submission:sid]
+      Submission serial number: [webform_submission:serial]
+      Submitter: [webform_submission:user]
+      Submitter name: [webform_submission:user:account-name]
+      Submitter mail: [webform_submission:user:mail]
+      Token: [webform_submission:token]
+      Update URL: [webform_submission:update-url]
+      URL: [webform_submission:url]
+      URL Edit Webform: [webform_submission:url:edit-form]
+      UUID: [webform_submission:uuid]
+  webform_submission_data_tokens:
+    '#type': webform_codemirror
+    '#mode': text
+    '#title': 'Webform Submission Data Tokens'
+    '#default_value': |
+      Submission values: [webform_submission:values]
+  webform_submission_source_entity_tokens:
+    '#type': webform_codemirror
+    '#mode': text
+    '#title': 'Webform Submission Source Entity Tokens'
+    '#default_value': |
+      Author: [webform_submission:source-entity:author]
+      Account cancellation URL: [webform_submission:source-entity:author:cancel-url]
+      Account Name: [webform_submission:source-entity:author:account-name]
+      Created: [webform_submission:source-entity:author:created]
+      Display Name: [webform_submission:source-entity:author:display-name]
+      Edit URL: [webform_submission:source-entity:author:edit-url]
+      Email: [webform_submission:source-entity:author:mail]
+      Last login: [webform_submission:source-entity:author:last-login]
+      Picture: [webform_submission:source-entity:author:user_picture]
+      Roles: [webform_submission:source-entity:author:roles]
+      URL: [webform_submission:source-entity:author:url]
+      User ID: [webform_submission:source-entity:author:uid]
+      Body: [webform_submission:source-entity:body]
+      Content ID: [webform_submission:source-entity:nid]
+      Content type: [webform_submission:source-entity:content-type]
+      Date changed: [webform_submission:source-entity:changed]
+      Date created: [webform_submission:source-entity:created]
+      Image: [webform_submission:source-entity:field_image]
+      Language code: [webform_submission:source-entity:langcode]
+      Revision ID: [webform_submission:source-entity:vid]
+      Summary: [webform_submission:source-entity:summary]
+      Title: [webform_submission:source-entity:title]
+      URL: [webform_submission:source-entity:url]
+  webform_submission_node_tokens:
+    '#type': webform_codemirror
+    '#mode': text
+    '#title': 'Webform Submission Node Tokens'
+    '#default_value': |
+      Author: [webform_submission:node:author]
+      Account cancellation URL: [webform_submission:node:author:cancel-url]
+      Account Name: [webform_submission:node:author:account-name]
+      Created: [webform_submission:node:author:created]
+      Display Name: [webform_submission:node:author:display-name]
+      Edit URL: [webform_submission:node:author:edit-url]
+      Email: [webform_submission:node:author:mail]
+      Last login: [webform_submission:node:author:last-login]
+      Picture: [webform_submission:node:author:user_picture]
+      Roles: [webform_submission:node:author:roles]
+      URL: [webform_submission:node:author:url]
+      User ID: [webform_submission:node:author:uid]
+      Body: [webform_submission:node:body]
+      Content ID: [webform_submission:node:nid]
+      Content type: [webform_submission:node:content-type]
+      Date changed: [webform_submission:node:changed]
+      Date created: [webform_submission:node:created]
+      Image: [webform_submission:node:field_image]
+      Language code: [webform_submission:node:langcode]
+      Revision ID: [webform_submission:node:vid]
+      Summary: [webform_submission:node:summary]
+      Title: [webform_submission:node:title]
+      URL: [webform_submission:node:url]
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: true
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  email:
+    id: email
+    label: Email
+    handler_id: email
+    status: true
+    conditions: {  }
+    weight: 0
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: '<a href="[webform_submission:update-url]">[webform_submission:update-url]</a>'
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: true
+      attachments: false
+      debug: false
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''

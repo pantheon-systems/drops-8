@@ -1,0 +1,218 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_format_token
+title: 'Test: Element: Format: Token'
+description: 'Test element formatting using tokens.'
+category: 'Test: Element'
+elements: |
+  checkboxes:
+    '#type': checkboxes
+    '#title': checkboxes
+    '#options':
+      1: one
+      2: two
+      3: three
+    '#default_value':
+      - 1
+      - 2
+      - 3
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  email_html:
+    id: email
+    label: 'Email (HTML)'
+    handler_id: email_html
+    status: false
+    conditions: {  }
+    weight: -9
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: |
+        <h3>default:</h3>[webform_submission:values:checkboxes]<hr />
+        <h3>comma:</h3>[webform_submission:values:checkboxes:value:comma]<hr />
+        <h3>semicolon:</h3>[webform_submission:values:checkboxes:value:semicolon]<hr />
+        <h3>and:</h3>[webform_submission:values:checkboxes:value:and]<hr />
+        <h3>ul:</h3>[webform_submission:values:checkboxes:value:ul]<hr />
+        <h3>ol:</h3>[webform_submission:values:checkboxes:value:ol]<hr />
+        <h3>raw:</h3>[webform_submission:values:checkboxes:raw]<hr />
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: true
+      attachments: false
+      debug: true
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''
+  email_text:
+    id: email
+    label: 'Email (Text)'
+    handler_id: email_text
+    status: false
+    conditions: {  }
+    weight: -10
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: |
+        default:
+        [webform_submission:values:checkboxes]
+        
+        comma:
+        [webform_submission:values:checkboxes:value:comma]
+        
+        semicolon:
+        [webform_submission:values:checkboxes:value:semicolon]
+        
+        and:
+        [webform_submission:values:checkboxes:value:and]
+        
+        ul:
+        [webform_submission:values:checkboxes:value:ul]
+        
+        ol:
+        [webform_submission:values:checkboxes:value:ol]
+        
+        raw:
+        [webform_submission:values:checkboxes:raw]
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: false
+      attachments: false
+      debug: true
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''

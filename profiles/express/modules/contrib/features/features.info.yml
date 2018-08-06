@@ -1,0 +1,14 @@
+name: 'Features'
+type: module
+description: 'Enables administrators to package configuration into modules.'
+package: Development
+# core: 8.x
+dependencies:
+  - config
+  - config_update
+
+# Information added by Drupal.org packaging script on 2017-03-07
+version: '8.x-3.5'
+core: '8.x'
+project: 'features'
+datestamp: 1488908587

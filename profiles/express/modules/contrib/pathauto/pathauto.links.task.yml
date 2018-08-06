@@ -1,0 +1,23 @@
+pathauto.patterns.form:
+  route_name: entity.pathauto_pattern.collection
+  base_route: path.admin_overview
+  title: 'Patterns'
+  weight: 10
+
+pathauto.settings.form:
+  route_name: pathauto.settings.form
+  base_route: path.admin_overview
+  title: 'Settings'
+  weight: 20
+
+pathauto.bulk.update.form:
+  route_name: pathauto.bulk.update.form
+  base_route: path.admin_overview
+  title: 'Bulk generate'
+  weight: 30
+
+pathauto.admin.delete:
+  route_name: pathauto.admin.delete
+  base_route: path.admin_overview
+  title: 'Delete aliases'
+  weight: 40

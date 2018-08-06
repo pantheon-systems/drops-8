@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - webform
+  theme:
+    - bartik
+  enforced:
+    module:
+      - webform_test_block_submission_limit
+id: bartik_webform_test_limit_user_source_entity
+theme: bartik
+region: sidebar_second
+weight: 7
+provider: null
+plugin: webform_submission_limit_block
+settings:
+  id: webform_submission_limit_block
+  label: 'Current User + Source Entity Limits'
+  provider: webform
+  label_display: visible
+  type: user
+  source_entity: true
+  content: ''
+  progress_bar: true
+  progress_bar_label: '[total] user + source entity submission(s)'
+  progress_bar_message: '[limit] user + source entity limit'
+  webform_id: ''
+  entity_type: ''
+  entity_id: ''
+visibility: {  }

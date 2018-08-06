@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\rdf\Functional;
 
-use Drupal\Tests\file\Functional\FileFieldTestBase;
+use Drupal\file\Tests\FileFieldTestBase;
 use Drupal\file\Entity\File;
 
 /**

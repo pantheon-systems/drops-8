@@ -1,0 +1,326 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test_options
+open: null
+close: null
+uid: null
+template: false
+id: test_options
+title: 'Test: Options'
+description: 'Test webform options.'
+category: 'Test: Options'
+elements: |
+  general_options:
+    '#type': details
+    '#title': 'General options'
+    '#open': true
+    creditcard_codes:
+      '#type': select
+      '#title': 'Credit card codes (creditcard_codes)'
+      '#options': creditcard_codes
+    size:
+      '#type': select
+      '#title': 'Size (size)'
+      '#options': size
+    time_zones:
+      '#type': select
+      '#title': 'Time zones (time_zones)'
+      '#options': time_zones
+    yes_no:
+      '#type': select
+      '#title': 'Yes/No (yes_no)'
+      '#options': yes_no
+  bio_options:
+    '#type': details
+    '#title': 'Biographical options'
+    '#open': true
+    education:
+      '#type': select
+      '#title': 'Education (education)'
+      '#options': education
+    employment_status:
+      '#type': select
+      '#title': 'Employment status (employment_status)'
+      '#options': employment_status
+    ethnicity:
+      '#type': select
+      '#title': 'Ethnicity (ethnicity)'
+      '#options': ethnicity
+    gender:
+      '#type': select
+      '#title': 'Gender (gender)'
+      '#options': gender
+    industry:
+      '#type': select
+      '#title': 'Industry (industry)'
+      '#options': industry
+    languages:
+      '#type': select
+      '#title': 'Languages (languages)'
+      '#options': languages
+    marital_status:
+      '#type': select
+      '#title': 'Marital status (marital_status)'
+      '#options': marital_status
+    phone_types:
+      '#type': select
+      '#title': 'Phone type (phone_types)'
+      '#options': phone_types
+    relationship:
+      '#type': select
+      '#title': 'Relationship (relationship)'
+      '#options': relationship
+    titles:
+      '#type': select
+      '#title': 'Titles (titles)'
+      '#options': titles
+  location_options:
+    '#type': details
+    '#title': 'Location options'
+    '#open': true
+    country_codes:
+      '#type': select
+      '#title': 'Country codes (country_codes)'
+      '#options': country_codes
+    country_names:
+      '#type': select
+      '#title': 'Country names (country_names)'
+      '#options': country_names
+    state_codes:
+      '#type': select
+      '#title': 'State codes (state_codes)'
+      '#options': state_codes
+    state_names:
+      '#type': select
+      '#title': 'State names (state_names)'
+      '#options': state_names
+    state_province_codes:
+      '#type': select
+      '#title': 'State/Province codes (state_province_codes)'
+      '#options': state_province_codes
+    state_province_names:
+      '#type': select
+      '#title': 'State/Province names (state_province_names)'
+      '#options': state_province_names
+  date_options:
+    '#type': details
+    '#title': 'Date options'
+    '#open': true
+    days:
+      '#type': select
+      '#title': 'Days (days)'
+      '#options': days
+    months:
+      '#type': select
+      '#title': 'Months (months)'
+      '#options': months
+  likert_options:
+    '#type': details
+    '#title': 'Likert options'
+    '#open': true
+    likert_agreement:
+      '#type': webform_likert
+      '#title': 'Likert: Agreement (likert_agreement)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_agreement
+    likert_comparison:
+      '#type': webform_likert
+      '#title': 'Likert: Comparison (likert_comparison)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_comparison
+    likert_importance:
+      '#type': webform_likert
+      '#title': 'Likert: Importance (likert_importance)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_importance
+    likert_quality:
+      '#type': webform_likert
+      '#title': 'Likert: Quality (likert_quality)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_quality
+    likert_satisfaction:
+      '#type': webform_likert
+      '#title': 'Likert: Satisfaction (likert_satisfaction)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_satisfaction
+    likert_ten_scale:
+      '#type': webform_likert
+      '#title': 'Likert: Ten Scale (likert_ten_scale)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_ten_scale
+    likert_would_you:
+      '#type': webform_likert
+      '#title': 'Likert: Would You (likert_would_you)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers': likert_would_you
+  test_options:
+    '#type': details
+    '#title': 'Test options'
+    '#open': true
+    test:
+      '#type': select
+      '#title': 'Test (test)'
+      '#options': test
+    custom:
+      '#type': select
+      '#title': 'Custom (custom)'
+      '#options': custom
+  range_options:
+    '#title': 'Range Options'
+    '#type': details
+    '#open': true
+    number_range:
+      '#type': select
+      '#title': 'Range (1-10)'
+      '#options': range
+      '#min': 1
+      '#max': 10
+      '#step': 1
+    number_padded_range:
+      '#type': select
+      '#title': 'Range (001-010)'
+      '#options': range
+      '#min': 1
+      '#max': 10
+      '#step': 1
+      '#pad_length': 3
+      '#pad_string': '0'
+    letter_uppercase_range:
+      '#type': select
+      '#title': 'Range (A-Z)'
+      '#options': range
+      '#min': A
+      '#max': Z
+    letter_lowercase_range:
+      '#type': select
+      '#title': 'Range (a-z)'
+      '#options': range
+      '#min': a
+      '#max': z
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

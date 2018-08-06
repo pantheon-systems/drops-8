@@ -1,0 +1,7 @@
+pathologic.config_form:
+  path: 'admin/config/content/pathologic'
+  defaults:
+    _form: '\Drupal\pathologic\PathologicSettingsForm'
+    _title: 'Pathologic configuration'
+  requirements:
+    _permission: 'administer filters'

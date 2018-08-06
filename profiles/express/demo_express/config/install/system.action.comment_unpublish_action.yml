@@ -1,0 +1,13 @@
+uuid: 0f424cbd-ce21-411c-9f24-30368199e55d
+langcode: en
+status: true
+dependencies:
+  module:
+    - comment
+_core:
+  default_config_hash: l_778XLCkoPebfLlrtV2oJkIpCmFJTis_lBJm05dc04
+id: comment_unpublish_action
+label: 'Unpublish comment'
+type: comment
+plugin: comment_unpublish_action
+configuration: {  }

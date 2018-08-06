@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * @file
+ * Allows hiding of entity label fields and automatic label creation.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Config\Entity\ConfigEntityType;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_entity_type_alter().
+ *
+ * Adds the Auto Label tab to the entity configuration page.
+ */
+function auto_entitylabel_entity_type_alter(array &$entity_types) {
+  $module_handler = \Drupal::moduleHandler();
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+  foreach ($entity_types as $entity_type_id => $entity_type) {
+    // Support core entity types only. Contrib and custom entity types should
+    // use a hook or service (@todo https://www.drupal.org/node/2829571).
+    $core_entity = FALSE;
+    $module_name = $entity_type->getProvider();
+    if ($module_name != 'core') {
+      // Identify core entity types that are provided by modules.
+      $module = $module_handler->getModule($module_name);
+      if (preg_match('/^core/', $module->getPath())){
+        $core_entity = TRUE;
+      }
+    }
+    else {
+      // Some core entity types are not provided by a module.
+      $core_entity = TRUE;
+    }
+    if ($core_entity && $entity_type instanceof ConfigEntityType && $entity_type->hasLinkTemplate('edit-form')) {
+      $entity_type->setLinkTemplate('auto-label', $entity_type->getLinkTemplate('edit-form') . "/auto-label");
+    }
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function auto_entitylabel_form_alter(&$form, FormStateInterface $form_state) {
+  if (isset($form['#entity_builders']) && empty($form['#auto_entitylabel_processed'])) {
+    $decorator = \Drupal::service('auto_entitylabel.entity_decorator');
+    /** @var \Drupal\auto_entitylabel\AutoEntityLabelManager $entity */
+    $entity = $decorator->decorate($form_state->getFormObject()->getEntity());
+
+    if ($entity instanceof \Drupal\auto_entitylabel\AutoEntityLabelManagerInterface) {
+      if ($entity->hasAutoLabel()) {
+        $label = $entity->getLabelName();
+        $widget = &$form[$label]['widget'][0];
+        // Hide the label field. It will be automatically generated in
+        // hook_entity_presave().
+        $widget['value']['#type'] = 'hidden';
+        $widget['value']['#required'] = FALSE;
+        if (empty($widget['value']['#default_value'])) {
+          $widget['value']['#default_value'] = '%AutoEntityLabel%';
+        }
+      }
+      else {
+        if ($entity->hasOptionalAutoLabel()) {
+          $label = $entity->getLabelName();
+          $widget = &$form[$label]['widget'][0];
+          // Allow label field to be empty. It will be automatically generated
+          // in hook_entity_presave().
+          $widget['value']['#required'] = FALSE;
+        }
+      }
+
+      $form['#auto_entitylabel_processed'] = TRUE;
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_prepare_view().
+ */
+function auto_entitylabel_entity_prepare_view($entity_type_id, array $entities, array $displays, $view_mode) {
+  foreach ($entities as $entity) {
+    if ($entity->in_preview === TRUE && $entity instanceof ContentEntityInterface) {
+      $decorator = \Drupal::service('auto_entitylabel.entity_decorator');
+      /** @var \Drupal\auto_entitylabel\AutoEntityLabelManager $decorated_entity */
+      $decorated_entity = $decorator->decorate($entity);
+
+      if ($decorated_entity->hasLabel() && $decorated_entity->autoLabelNeeded()) {
+        $decorated_entity->setLabel();
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_presave().
+  */
+function auto_entitylabel_entity_presave(EntityInterface $entity) {
+  if ($entity instanceof ContentEntityInterface) {
+    $decorator = \Drupal::service('auto_entitylabel.entity_decorator');
+    /** @var \Drupal\auto_entitylabel\AutoEntityLabelManager $decorated_entity */
+    $decorated_entity = $decorator->decorate($entity);
+    if ($decorated_entity->hasLabel() && $decorated_entity->autoLabelNeeded()) {
+      $decorated_entity->setLabel();
+    }
+  }
+}
+
+/**
+ * Implements hook_validation_constraint_alter().
+ *
+ * Override core NotNull constraint to allow entities that use Auto Entity
+ * Labels to validate when their label is empty before being set automatically.
+ */
+function auto_entitylabel_validation_constraint_alter(array &$definitions) {
+  $definitions['NotNull']['class'] = 'Drupal\auto_entitylabel\Plugin\Validation\EntityLabelNotNullConstraint';
+}
+
+/**
+ * Implements hook_entity_operation().
+ */
+function auto_entitylabel_entity_operation(EntityInterface $entity) {
+  $operations = array();
+  $entity_type = $entity->getEntityType();
+  $entity_type_id = $entity_type->id();
+  $entity_id = $entity->id();
+  if ($entity->hasLinkTemplate('auto-label') &&
+    \Drupal::currentUser()->hasPermission('administer ' . $entity_type_id . ' labels')) {
+
+    $operations['auto-label'] = array(
+      'title' => t('Manage automatic entity labels'),
+      'weight' => 100,
+      'url' => Url::fromRoute("entity.{$entity_type_id}.auto_label", array($entity_type_id => $entity_id)),
+    );
+  }
+
+  return $operations;
+}

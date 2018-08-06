@@ -61,7 +61,6 @@ class ContentTypeHeaderMatcherTest extends UnitTestCase {
       ['HEAD'],
       ['OPTIONS'],
       ['TRACE'],
-      ['DELETE'],
     ];
   }
 

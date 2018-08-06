@@ -1,0 +1,170 @@
+<?php
+
+/**
+ * @file
+ * Allows to flexibly create, browse and select entities.
+ */
+
+use \Drupal\Core\Form\FormStateInterface;
+use \Drupal\Core\Render\Element;
+use Drupal\Core\Url;
+use \Drupal\file\FileInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function entity_browser_help($route_name, RouteMatchInterface $arg) {
+  switch ($route_name) {
+    case 'help.page.entity_browser':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Entity Browser module provides a generic entity browser/picker/selector. It can be used in any context where one needs to select a few entities and do something with them. For more information, see the online documentation for <a href=":entity_browser-documentation">Entity Browser</a>.', array(':entity_browser-documentation' => 'https://drupal-media.gitbooks.io/drupal8-guide/content/modules/entity_browser/intro.html')) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('General') . '</dt>';
+      $output .= '<dd>' . t('Entity browser comes with an example module that can be used as a starting point.') . '</dd>';
+      $output .= '<dt>' . t('Example use cases') . '</dt>';
+      $output .= '<dd>' . t('Powerfull entity reference widget') . '</dd>';
+      $output .= '<dd>' . t('Embedding entities into wysiwyg') . '</dd>';
+      $output .= '</dl>';
+
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ *
+ * Overrides the core html theme to use a custom template for iframes.
+ */
+function entity_browser_theme() {
+  return [
+    'html__entity_browser__iframe' => [
+      'template' => 'html--entity-browser--iframe',
+      'render element' => 'html',
+      'preprocess functions' => ['template_preprocess_html'],
+    ],
+    'html__entity_browser__modal' => [
+      'template' => 'html--entity-browser--iframe',
+      'render element' => 'html',
+      'preprocess functions' => ['template_preprocess_html'],
+    ],
+    'page__entity_browser__iframe' => [
+      'template' => 'page--entity-browser--iframe',
+      'render element' => 'html',
+      'preprocess functions' => ['template_preprocess_page'],
+    ],
+    'page__entity_browser__modal' => [
+      'template' => 'page--entity-browser--iframe',
+      'render element' => 'html',
+      'preprocess functions' => ['template_preprocess_page'],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function entity_browser_form_alter(&$form, FormStateInterface &$form_state) {
+  $entity_browser_dialog_edit = \Drupal::service('request_stack')->getCurrentRequest()->get('_route');
+  if ($entity_browser_dialog_edit == 'entity_browser.edit_form') {
+    // Let's allow the save button only.
+    foreach (Element::children($form['actions']) as $key) {
+      $form['actions'][$key]['#access'] = $key == 'submit';
+    }
+    // Use Ajax.
+    $form['actions']['submit']['#ajax'] = [
+      'url' => Url::fromRoute('entity_browser.edit_form', ['entity_type' => $form_state->getFormObject()->getEntity()->getEntityTypeId(), 'entity' => $form_state->getFormObject()->getEntity()->id()]),
+      'options' => [
+        'query' => [
+          'details_id' => \Drupal::request()->query->get('details_id'),
+        ],
+      ],
+    ];
+  }
+}
+
+/**
+ * Implements hook_preprocess_page__entity_browser__iframe().
+ *
+ * Tries to figure out where messages block lives and display it separately.
+ */
+function entity_browser_preprocess_page__entity_browser__iframe(&$variables) {
+  if (!\Drupal::moduleHandler()->moduleExists('block')) {
+    return;
+  }
+  $variables['messages'] = '';
+  $blocks = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties([
+    'theme' => \Drupal::theme()->getActiveTheme()->getName(),
+    'plugin' => 'system_messages_block',
+  ]);
+
+  if (($messages = current($blocks)) && !empty($variables['page'][$messages->getRegion()][$messages->id()])) {
+    $variables['messages'] = $variables['page'][$messages->getRegion()][$messages->id()];
+  }
+}
+
+/**
+ * Implements hook_preprocess_page__entity_browser__modal().
+ *
+ * Tries to figure out where messages block lives and display it separately.
+ */
+function entity_browser_preprocess_page__entity_browser__modal(&$variables) {
+  entity_browser_preprocess_page__entity_browser__iframe($variables);
+}
+
+/**
+ * Validates image resolution for the given File.
+ *
+ * Drupal core does not allow users to use existing images. As a result,
+ * calling the normal file_validate_image_resolution() function on a file that
+ * may be used elsewhere would resize it for all of its uses. We copy the
+ * normal validation here so that we can stop this from occurring.
+ *
+ * @param \Drupal\file\FileInterface $file
+ *   The file being evaluated.
+ * @param int $maximum_dimensions
+ *   The maximum dimensions.
+ * @param int $minimum_dimensions
+ *   The minimum dimensions.
+ *
+ * @return array
+ *   See file_validate_image_resolution()
+ */
+function entity_browser_file_validate_image_resolution(FileInterface $file, $maximum_dimensions = 0, $minimum_dimensions = 0) {
+  $errors = array();
+
+  // Check first that the file is an image.
+  $image_factory = \Drupal::service('image.factory');
+  $image = $image_factory->get($file->getFileUri());
+  if ($image->isValid()) {
+    if ($maximum_dimensions) {
+      // Check that it is smaller than the given dimensions.
+      list($width, $height) = explode('x', $maximum_dimensions);
+      if ($image->getWidth() > $width || $image->getHeight() > $height) {
+        // Try to resize the image to fit the dimensions.
+        // This $file->isPermanent() check is the only part of the function
+        // body that is significantly different.
+        if (!$file->isPermanent() && $image->scale($width, $height)) {
+          $image->save();
+          $file->filesize = $image->getFileSize();
+          drupal_set_message(t('The image was resized to fit within the maximum allowed dimensions of %dimensions pixels.', array('%dimensions' => $maximum_dimensions)));
+        }
+        else {
+          $errors[] = t('The image exceeds the maximum allowed dimensions.');
+        }
+      }
+    }
+
+    if ($minimum_dimensions) {
+      // Check that it is larger than the given dimensions.
+      list($width, $height) = explode('x', $minimum_dimensions);
+      if ($image->getWidth() < $width || $image->getHeight() < $height) {
+        $errors[] = t('The image is too small; the minimum dimensions are %dimensions pixels.', array('%dimensions' => $minimum_dimensions));
+      }
+    }
+  }
+
+  return $errors;
+}

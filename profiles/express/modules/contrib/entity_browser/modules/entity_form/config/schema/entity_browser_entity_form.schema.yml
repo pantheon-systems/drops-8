@@ -1,0 +1,24 @@
+field.widget.third_party.entity_browser_entity_form:
+  type: mapping
+  label: 'IEF entity browser existing functionality'
+  mapping:
+    entity_browser_id:
+      type: string
+      label: ID of entity browser to be used as replacement for autocomplete field
+
+entity_browser.browser.widget.entity_form:
+  type: mapping
+  label: 'Entity form widget configuration'
+  mapping:
+    submit_text:
+      type: string
+      label: 'Submit button text'
+    entity_type:
+      type: string
+      label: 'Entity type ID'
+    bundle:
+      type: string
+      label: 'Bundle ID'
+    form_mode:
+      type: string
+      label: 'Form display mode ID'

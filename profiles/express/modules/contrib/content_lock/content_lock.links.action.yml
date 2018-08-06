@@ -1,0 +1,3 @@
+content_lock.break_lock.node:
+  route_name: content_lock.break_lock.node
+  title: 'Break Lock'

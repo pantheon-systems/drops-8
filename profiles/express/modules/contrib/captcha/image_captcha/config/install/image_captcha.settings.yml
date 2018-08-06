@@ -1,0 +1,16 @@
+image_captcha_fonts_preview_map_cache: []
+image_captcha_fonts: ['BUILTIN']
+image_captcha_font_size: 30
+image_captcha_character_spacing: '1.2'
+image_captcha_image_allowed_chars: 'aAbBCdEeFfGHhijKLMmNPQRrSTtWXYZ23456789'
+image_captcha_code_length: 5
+image_captcha_rtl_support: 0
+image_captcha_background_color: '#ffffff'
+image_captcha_foreground_color: '#000000'
+image_captcha_foreground_color_randomness: 100
+image_captcha_file_format: 1
+image_captcha_distortion_amplitude: 0
+image_captcha_bilinear_interpolation: 0
+image_captcha_dot_noise: 0
+image_captcha_line_noise: 0
+image_captcha_noise_level: 5

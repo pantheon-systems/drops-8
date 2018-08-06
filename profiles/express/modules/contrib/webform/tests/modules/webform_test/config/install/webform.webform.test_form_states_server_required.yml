@@ -1,0 +1,461 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_form_states_server_required
+title: 'Test: Form API #states server-side required validation'
+description: 'Test Drupal''s #states API via server-side required validation.'
+category: 'Test: Form API #states'
+elements: |
+  multiple_triggers:
+    '#type': details
+    '#title': multiple_triggers
+    '#open': true
+    trigger_checkbox:
+      '#type': checkbox
+      '#title': trigger_checkbox
+    trigger_textfield:
+      '#type': textfield
+      '#title': trigger_textfield
+    trigger_select:
+      '#type': select
+      '#title': trigger_select
+      '#options':
+        option: Option
+  multiple_dependents:
+    '#type': details
+    '#title': multiple_dependents
+    '#open': true
+    dependent_textfield_required_and:
+      '#type': textfield
+      '#title': dependent_textfield_required_and
+      '#description': '<b>Required:</b> checkbox:checked=true AND textfield:filled=true AND select:value=options'
+      '#states':
+        required:
+          ':input[name="trigger_checkbox"]':
+            checked: true
+          ':input[name="trigger_textfield"]':
+            filled: true
+          ':input[name="trigger_select"]':
+            value: option
+    dependent_textfield_required_or:
+      '#type': textfield
+      '#title': dependent_textfield_required_or
+      '#description': '<b>Required:</b> checkbox:checked=true OR textfield:filled=true OR select:value=options'
+      '#states':
+        required:
+          - ':input[name="trigger_checkbox"]':
+              checked: true
+          - or
+          - ':input[name="trigger_textfield"]':
+              filled: true
+          - or
+          - ':input[name="trigger_select"]':
+              value: option
+    dependent_textfield_required_xor:
+      '#type': textfield
+      '#title': dependent_textfield_required_xor
+      '#description': '<b>Required:</b> checkbox:checked=true XOR textfield:filled=true XOR select:value=options'
+      '#states':
+        required:
+          - ':input[name="trigger_checkbox"]':
+              checked: true
+          - xor
+          - ':input[name="trigger_textfield"]':
+              filled: true
+          - xor
+          - ':input[name="trigger_select"]':
+              value: option
+  checkboxes_trigger_details:
+    '#type': details
+    '#title': checkboxes_trigger
+    '#open': true
+    checkboxes_trigger:
+      '#type': checkboxes
+      '#title': checkboxes_trigger
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    checkboxes_dependent_required:
+      '#type': textfield
+      '#title': checkboxes_dependent_required
+      '#description': '<b>Required:</b> checkboxes[one]:checked=true'
+      '#states':
+        required:
+          ':input[name="checkboxes_trigger[one]"]':
+            checked: true
+  text_format_trigger_details:
+    '#type': details
+    '#title': text_format_trigger
+    '#open': true
+    text_format_trigger:
+      '#type': text_format
+      '#title': text_format_trigger
+      '#format': basic_html
+    text_format_dependent_required:
+      '#type': textfield
+      '#title': text_format_dependent_required
+      '#description': '<b>Required:</b> text_format_trigger[value]:filled=true OR text_format_trigger[format]:value=full_html'
+      '#states':
+        required:
+          - ':input[name="text_format_trigger[value]"]':
+              filled: true
+          - or
+          - ':input[name="text_format_trigger[format]"]':
+              value: full_html
+  select_other_trigger_details:
+    '#type': details
+    '#title': select_other_trigger
+    '#open': true
+    select_other_trigger:
+      '#type': webform_select_other
+      '#title': select_other_trigger
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    select_other_dependent_required:
+      '#type': textfield
+      '#title': select_other_dependent_required
+      '#description': '<b>Required:</b> select_other_trigger[select]:value=one OR select_other_trigger[other]:filled=true'
+      '#states':
+        required:
+          - ':input[name="select_other_trigger[select]"]':
+              value: one
+          - or
+          - ':input[name="select_other_trigger[other]"]':
+              filled: true
+  select_other_multiple_trigger_details:
+    '#type': details
+    '#title': select_other_multiple_trigger
+    '#open': true
+    select_other_multiple_trigger:
+      '#type': webform_select_other
+      '#title': select_other_multiple_trigger
+      '#multiple': true
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    select_other_multiple_dependent_required:
+      '#type': textfield
+      '#title': select_other_multiple_dependent_required
+      '#description': '<b>Required:</b> select_other_multiple_trigger[select]:value=one OR select_other_multiple_trigger[other]:filled=true'
+      '#states':
+        required:
+          - ':input[name="select_other_multiple_trigger[select]"]':
+              value: one
+          - or
+          - ':input[name="select_other_multiple_trigger[other]"]':
+              filled: true
+  email_confirm_trigger_details:
+    '#type': details
+    '#title': email_confirm_trigger
+    '#open': true
+    email_confirm_trigger:
+      '#type': webform_email_confirm
+      '#title': email_confirm_trigger
+    email_confirm_dependent_required:
+      '#type': textfield
+      '#title': email_confirm_dependent_required
+      '#description': '<b>Required:</b> email_confirm_trigger[mail_1]:filled=true'
+      '#states':
+        required:
+          ':input[name="email_confirm_trigger[mail_1]"]':
+            filled: true
+  likert_trigger_details:
+    '#type': details
+    '#title': likert_trigger
+    '#open': true
+    likert_trigger:
+      '#type': webform_likert
+      '#title': likert_trigger
+      '#questions':
+        q1: q1
+        q2: q2
+      '#answers':
+        a1: a1
+        a2: a2
+    likert_dependent_required:
+      '#type': textfield
+      '#title': likert_dependent_required
+      '#description': '<b>Required:</b> likert_trigger[q1]:value=a1'
+      '#states':
+        required:
+          ':input[name="likert_trigger[q1]"]':
+            value: a1
+  datelist_trigger_details:
+    '#type': details
+    '#title': datelist_trigger
+    '#open': true
+    datelist_trigger:
+      '#type': datelist
+      '#title': datelist_trigger
+      '#date_part_order':
+        - year
+        - month
+        - day
+        - hour
+        - minute
+        - second
+        - ampm
+    datelist_dependent_required:
+      '#type': textfield
+      '#title': datelist_dependent_required
+      '#description': '<b>Required:</b> datelist_trigger[*]:!value='''''
+      '#states':
+        required:
+          ':input[name="datelist_trigger[year]"]':
+            '!value': ''
+          ':input[name="datelist_trigger[month]"]':
+            '!value': ''
+          ':input[name="datelist_trigger[day]"]':
+            '!value': ''
+          ':input[name="datelist_trigger[hour]"]':
+            '!value': ''
+          ':input[name="datelist_trigger[minute]"]':
+            '!value': ''
+          ':input[name="datelist_trigger[second]"]':
+            '!value': ''
+          ':input[name="datelist_trigger[ampm]"]':
+            '!value': ''
+  datetime_trigger_details:
+    '#type': details
+    '#title': datetime_trigger
+    '#open': true
+    datetime_trigger:
+      '#type': datetime
+      '#title': datetime_trigger
+    datetime_dependent_required:
+      '#type': textfield
+      '#title': datetime_dependent_required
+      '#description': '<b>Required:</b> datetime_trigger[date]:!value='''' AND datetime_trigger[time]:!value='''''
+      '#states':
+        required:
+          ':input[name="datetime_trigger[date]"]':
+            '!value': ''
+          ':input[name="datetime_trigger[time]"]':
+            '!value': ''
+  address_trigger_details:
+    '#type': details
+    '#title': address_trigger
+    '#open': true
+    address_trigger:
+      '#type': webform_address
+      '#title': address_trigger
+    address_dependent_required:
+      '#type': textfield
+      '#title': address_dependent_required
+      '#description': '<b>Required:</b> address_trigger[*]:!value='''''
+      '#states':
+        required:
+          ':input[name="address_trigger[address]"]':
+            '!value': ''
+          ':input[name="address_trigger[address_2]"]':
+            '!value': ''
+          ':input[name="address_trigger[city]"]':
+            '!value': ''
+          ':input[name="address_trigger[state_province]"]':
+            '!value': ''
+          ':input[name="address_trigger[postal_code]"]':
+            '!value': ''
+          ':input[name="address_trigger[country]"]':
+            '!value': ''
+  composite_required_details:
+    '#type': details
+    '#title': composite_required
+    '#open': true
+    composite_required_trigger:
+      '#type': checkbox
+      '#title': composite_required_trigger
+    composite_required_dependent:
+      '#type': webform_address
+      '#title': composite_required_dependent
+      '#title_display': before
+      '#states':
+        required:
+          ':input[name="composite_required_trigger"]':
+            'checked': true
+  composite_sub_elements_required_details:
+    '#type': details
+    '#title': composite_sub_elements_required
+    '#open': true
+    composite_sub_elements_required_trigger:
+      '#type': radios
+      '#title': composite_sub_elements_required_trigger
+      '#options':
+        a: A
+        b: B
+      '#options_display': side_by_side
+    composite_subelements_dependent_a:
+      '#type': webform_address
+      '#title': composite_subelements_dependent_a
+      '#multiple': true
+      '#multiple__header': true
+      '#address__title': address_a
+      '#address__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: a
+      '#address_2__title': address2_a
+      '#city__title': city_a
+      '#city__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: a
+      '#state_province__title': state_province_a
+      '#state_province__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: a
+      '#postal_code__title': postal_code_a
+      '#postal_code__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: a
+      '#country__title': country_a
+      '#country__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: a
+    composite_subelements_dependent_b:
+      '#type': webform_address
+      '#title': composite_subelements_dependent_b
+      '#multiple': true
+      '#multiple__header': true
+      '#address__title': address_b
+      '#address__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: b
+      '#address_2__title': address2_b
+      '#city__title': city_b
+      '#city__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: b
+      '#state_province__title': state_province_b
+      '#state_province__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: b
+      '#postal_code__title': postal_code_b
+      '#postal_code__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: b
+      '#country__title': country_b
+      '#country__states':
+        required:
+          ':input[name="composite_sub_elements_required_trigger"]':
+            value: b
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: true
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: true
+  results_disabled_ignore: true
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

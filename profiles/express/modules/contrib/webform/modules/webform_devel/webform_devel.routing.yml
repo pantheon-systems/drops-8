@@ -1,0 +1,52 @@
+entity.webform.export_form:
+  path: '/admin/structure/webform/manage/{webform}/export'
+  defaults:
+    _entity_form: 'webform.export'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  requirements:
+    _permission: 'access devel information'
+
+entity.webform.schema_form:
+  path: '/admin/structure/webform/manage/{webform}/schema'
+  defaults:
+    _entity_form: 'webform.schema'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  requirements:
+    _permission: 'access devel information'
+
+webform_devel.schema.export:
+  path: '/admin/structure/webform/manage/{webform}/schema/export'
+  defaults:
+    _controller: '\Drupal\webform_devel\Controller\WebformDevelSchemaController::index'
+  requirements:
+    _permission: 'access devel information'
+
+entity.webform.api_form:
+  path: '/webform/{webform}/api'
+  defaults:
+    _form: '\Drupal\webform_devel\Form\WebformDevelSubmissionApiForm'
+    _title_callback: '\Drupal\webform\Controller\WebformTestController::title'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+    _admin_route: TRUE
+  requirements:
+    _entity_access: 'webform.update'
+    _permission: 'access devel information'
+
+entity.node.webform.api_form:
+  path: '/node/{node}/webform/api'
+  defaults:
+    _form: '\Drupal\webform_devel\Form\WebformDevelSubmissionApiForm'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.update'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+    _admin_route: TRUE
+  requirements:
+    _permission: 'access devel information'
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformAccess'

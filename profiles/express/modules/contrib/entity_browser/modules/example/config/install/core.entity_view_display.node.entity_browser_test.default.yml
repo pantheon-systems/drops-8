@@ -1,0 +1,68 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.entity_browser_test.body
+    - field.field.node.entity_browser_test.field_files
+    - field.field.node.entity_browser_test.field_files1
+    - field.field.node.entity_browser_test.field_files_over_ajax
+    - field.field.node.entity_browser_test.field_image_browser
+    - field.field.node.entity_browser_test.field_nodes
+    - node.type.entity_browser_test
+  enforced:
+    module:
+      - entity_browser_example
+  module:
+    - image
+    - text
+    - user
+id: node.entity_browser_test.default
+targetEntityType: node
+bundle: entity_browser_test
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 101
+    settings: {  }
+    third_party_settings: {  }
+  field_files:
+    weight: 102
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_files1:
+    weight: 103
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_files_over_ajax:
+    weight: 106
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_image_browser:
+    weight: 105
+    label: above
+    settings:
+      image_style: ''
+      image_link: ''
+    third_party_settings: {  }
+    type: image
+  field_nodes:
+    weight: 104
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  links:
+    weight: 100
+hidden: {  }

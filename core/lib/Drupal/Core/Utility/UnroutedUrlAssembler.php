@@ -2,7 +2,6 @@
 
 namespace Drupal\Core\Utility;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\GeneratedUrl;
 use Drupal\Core\PathProcessor\OutboundPathProcessorInterface;
@@ -70,18 +69,13 @@ class UnroutedUrlAssembler implements UnroutedUrlAssemblerInterface {
    */
   protected function buildExternalUrl($uri, array $options = [], $collect_bubbleable_metadata = FALSE) {
     $this->addOptionDefaults($options);
-    // Split off the query & fragment.
-    $parsed = UrlHelper::parse($uri);
-    $uri = $parsed['path'];
-
-    $parsed += ['query' => []];
-    $options += ['query' => []];
-
-    $options['query'] = NestedArray::mergeDeep($parsed['query'], $options['query']);
-    ksort($options['query']);
-
-    if ($parsed['fragment'] && !$options['fragment']) {
-      $options['fragment'] = '#' . $parsed['fragment'];
+    // Split off the fragment.
+    if (strpos($uri, '#') !== FALSE) {
+      list($uri, $old_fragment) = explode('#', $uri, 2);
+      // If $options contains no fragment, take it over from the path.
+      if (isset($old_fragment) && !$options['fragment']) {
+        $options['fragment'] = '#' . $old_fragment;
+      }
     }
 
     if (isset($options['https'])) {
@@ -94,7 +88,7 @@ class UnroutedUrlAssembler implements UnroutedUrlAssemblerInterface {
     }
     // Append the query.
     if ($options['query']) {
-      $uri .= '?' . UrlHelper::buildQuery($options['query']);
+      $uri .= (strpos($uri, '?') !== FALSE ? '&' : '?') . UrlHelper::buildQuery($options['query']);
     }
     // Reassemble.
     $url = $uri . $options['fragment'];

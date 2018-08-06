@@ -1,0 +1,13 @@
+{
+  "name": "drupal/user_external_invite",
+  "description": "'Allows users with permissions to assign a role and email invitations to other users. Requires external authentication.",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/user_external_invite",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/user_external_invite"
+  },
+  "license": "GPL-2.0+",
+  "require": {
+    "phpunit/phpunit": "~5.7"
+  }
+}

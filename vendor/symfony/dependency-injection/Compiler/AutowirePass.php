@@ -233,10 +233,7 @@ class AutowirePass extends AbstractRecursivePass
                     if ($parameter->isOptional()) {
                         continue;
                     }
-                    $type = ProxyHelper::getTypeHint($reflectionMethod, $parameter, false);
-                    $type = $type ? sprintf('is type-hinted "%s"', $type) : 'has no type-hint';
-
-                    throw new AutowiringFailedException($this->currentId, sprintf('Cannot autowire service "%s": argument "$%s" of method "%s()" %s, you should configure its value explicitly.', $this->currentId, $parameter->name, $class !== $this->currentId ? $class.'::'.$method : $method, $type));
+                    throw new AutowiringFailedException($this->currentId, sprintf('Cannot autowire service "%s": argument "$%s" of method "%s()" must have a type-hint or be given a value explicitly.', $this->currentId, $parameter->name, $class !== $this->currentId ? $class.'::'.$method : $method));
                 }
 
                 // specifically pass the default value
@@ -542,7 +539,7 @@ class AutowirePass extends AbstractRecursivePass
         }
 
         $extraContext = $extraContext ? ' '.$extraContext : '';
-        if (1 < $len = \count($aliases)) {
+        if (1 < $len = count($aliases)) {
             $message = sprintf('Try changing the type-hint%s to one of its parents: ', $extraContext);
             for ($i = 0, --$len; $i < $len; ++$i) {
                 $message .= sprintf('%s "%s", ', class_exists($aliases[$i], false) ? 'class' : 'interface', $aliases[$i]);

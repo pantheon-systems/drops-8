@@ -1,0 +1,177 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_container
+title: 'Test: Element: Container'
+description: 'Test container elements.'
+category: 'Test: Element'
+elements: |
+  container:
+    '#type': container
+    '#title': container
+    container_value:
+      '#markup': 'This is a container value.'
+    container_textfield:
+      '#type': textfield
+      '#title': container_textfield
+  details:
+    '#type': details
+    '#title': details
+    '#description': 'This is a details description.'
+    '#open': true
+    details_value:
+      '#markup': 'This is a details value.'
+    details_textfield:
+      '#type': textfield
+      '#title': details_textfield
+  details_closed:
+    '#type': details
+    '#title': details_closed
+    '#description': 'This is a details_closed description.'
+    '#open': false
+    '#format': 'details-closed'
+    details_value:
+      '#markup': 'This is a details_closed value.'
+    details_textfield:
+      '#type': textfield
+      '#title': details_textfield
+  details_title_display_invisible:
+    '#type': details
+    '#title': details_title_display_invisible
+    '#title_display': invisible
+    '#description': 'This is a details with no title.'
+    '#open': true
+    details_title_display_invisible_value:
+      '#markup': 'This is a details value.'
+    details_title_display_invisible_textfield:
+      '#type': textfield
+      '#title': details_title_display_invisible_textfield
+  fieldset:
+    '#type': fieldset
+    '#title': fieldset
+    '#description': 'This is a fieldset description.'
+    fieldset_value:
+      '#markup': 'This is a fieldset value.'
+    fieldset_textfield:
+      '#type': textfield
+      '#title': fieldset_textfield
+  fieldset_title_display_invisible:
+    '#type': fieldset
+    '#title': fieldset_title_display_invisible
+    '#title_display': invisible
+    '#description': 'This is a fieldset element with no title.'
+    fieldset_title_display_invisible_value:
+      '#markup': 'This is a fieldset value.'
+    fieldset_title_display_invisible_textfield:
+      '#type': textfield
+      '#title': fieldset_title_display_invisible_textfield
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

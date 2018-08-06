@@ -1,0 +1,36 @@
+{
+  "name": "drupal/entity_browser",
+  "description": "Entity browsing and selecting component.",
+  "type": "drupal-module",
+  "homepage": "http://drupal.org/project/entity_browser",
+  "authors": [
+    {
+      "name": "Janez Urevc",
+      "homepage": "https://github.com/slashrsm",
+      "role": "Maintainer"
+    },
+    {
+      "name": "Primoz Hmeljak",
+      "homepage": "https://github.com/primsi",
+      "role": "Maintainer"
+    },
+    {
+      "name": "See other contributors",
+      "homepage": "https://www.drupal.org/node/1943336/committers",
+      "role": "contributor"
+    }
+  ],
+  "support": {
+    "issues": "http://drupal.org/project/issues/entity_browser",
+    "irc": "irc://irc.freenode.org/drupal-contribute",
+    "source": "http://cgit.drupalcode.org/entity_browser"
+  },
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": { },
+  "extra": {
+    "branch-alias": {
+      "dev-8.x-1.x": "8.1.x-dev"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.media.ief_media_bundle.ief_media_bundle_file_field
+    - media_entity.bundle.ief_media_bundle
+  module:
+    - entity_browser
+id: media.ief_media_bundle.default
+targetEntityType: media
+bundle: ief_media_bundle
+mode: default
+content:
+  ief_media_bundle_file_field:
+    weight: 11
+    settings:
+      entity_browser: ief_entity_browser_file
+      field_widget_display: label
+      field_widget_edit: true
+      field_widget_remove: true
+      open: true
+      selection_mode: selection_edit
+      field_widget_display_settings: {  }
+    third_party_settings: {  }
+    type: entity_browser_entity_reference
+  name:
+    type: string_textfield
+    weight: -5
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  uid: true

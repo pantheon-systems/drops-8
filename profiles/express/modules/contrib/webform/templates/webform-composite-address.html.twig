@@ -1,0 +1,51 @@
+{#
+/**
+ * @file
+ * Default theme implementation of an address composite webform element.
+ *
+ * Available variables:
+ * - content: The address webform element to be output.
+ * - flexbox: Determines if Flexbox layout should be applied to the composite
+ *   element.
+ *
+ * @see template_preprocess_webform_composite_address()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.element.composite') }}
+{% if flexbox %}
+
+  {% if content.address %}
+    <div class="webform-flexbox">
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.address }}</div></div>
+    </div>
+  {% endif %}
+
+  {% if content.address_2 %}
+    <div class="webform-flexbox">
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.address_2 }}</div></div>
+    </div>
+  {% endif %}
+
+  <div class="webform-flexbox">
+    {% if content.city %}
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.city }}</div></div>
+    {% endif %}
+    {% if content.state_province %}
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.state_province }}</div></div>
+    {% endif %}
+    {% if content.postal_code %}
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.postal_code }}</div></div>
+    {% endif %}
+  </div>
+
+  {% if content.country %}
+    <div class="webform-flexbox">
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.country }}</div></div>
+    </div>
+  {% endif %}
+
+{% else %}
+  {{ content }}
+{% endif %}

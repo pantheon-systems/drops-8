@@ -25,6 +25,11 @@ class LocaleConfigTranslationImportTest extends BrowserTestBase {
    */
   protected function setUp() {
     parent::setUp();
+
+    // @todo Re-enable the test and only skip it when the translation cannot be
+    //   downloaded, or provide a translation as a fixture instead. See
+    //   https://www.drupal.org/project/drupal/issues/2828143.
+    $this->markTestSkipped();
   }
 
   /**
@@ -46,7 +51,6 @@ class LocaleConfigTranslationImportTest extends BrowserTestBase {
     // tests.
     $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
-      ->set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
       ->save();
 
     // Add translation permissions now that the locale module has been enabled.
@@ -92,7 +96,6 @@ class LocaleConfigTranslationImportTest extends BrowserTestBase {
     // tests.
     $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
-      ->set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
       ->save();
 
     // Add predefined language.
@@ -151,7 +154,6 @@ class LocaleConfigTranslationImportTest extends BrowserTestBase {
     // tests.
     $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
-      ->set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
       ->save();
 
     // Add predefined language.
@@ -189,7 +191,6 @@ class LocaleConfigTranslationImportTest extends BrowserTestBase {
     // tests.
     $this->config('locale.settings')
       ->set('translation.import_enabled', TRUE)
-      ->set('translation.use_source', LOCALE_TRANSLATION_USE_SOURCE_LOCAL)
       ->save();
 
     // Add predefined language.

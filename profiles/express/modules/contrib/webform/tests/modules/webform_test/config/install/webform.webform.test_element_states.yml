@@ -1,0 +1,216 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_states
+title: 'Test: Element: #States API'
+description: 'Test Drupal''s #states API states (visible, required, disabled, checked, and expanded).'
+category: 'Test: Element'
+elements: |
+  states_basic:
+    '#type': webform_element_states
+    '#title': 'States basic'
+    '#selector_options':
+      selector_01: 'Selector 01 (selector_01)'
+      selector_02: 'Selector 02 (selector_02)'
+      selector_03: 'Selector 03 (selector_03)'
+    '#default_value':
+      enabled:
+        selector_01:
+          checked: true
+      required:
+        'selector_01''':
+          checked: true
+        selector_02:
+          checked: true
+      disabled:
+        - selector_01:
+            checked: true
+        - or
+        - selector_02:
+            checked: true
+  states_values:
+    '#type': webform_element_states
+    '#title': 'States basic'
+    '#selector_options':
+      selector_01: 'Selector 01 (selector_01)'
+      selector_02: 'Selector 02 (selector_02)'
+      selector_03: 'Selector 03 (selector_03)'
+      selector_04: 'Selector 04 (selector_04)'
+    '#default_value':
+      enabled:
+        selector_01:
+          value: '0'
+        selector_02:
+          value: 'false'
+        selector_03:
+          value: ''
+        selector_04:
+          checked: true
+  states_custom_selector:
+    '#type': webform_element_states
+    '#title': 'States custom selector'
+    '#selector_options':
+      selector_01: 'Selector 01 (selector_01)'
+      selector_02: 'Selector 02 (selector_02)'
+      selector_03: 'Selector 03 (selector_03)'
+    '#default_value':
+      required:
+        custom_selector:
+          value: 'Yes'
+  states_empty:
+    '#type': webform_element_states
+    '#title': 'States empty'
+    '#selector_options':
+      selector_01: 'Selector 01 (selector_01)'
+      selector_02: 'Selector 02 (selector_02)'
+      selector_03: 'Selector 03 (selector_03)'
+  states_single:
+    '#type': webform_element_states
+    '#title': 'States single'
+    '#selector_options':
+      selector_01: 'Selector 01 (selector_01)'
+      selector_02: 'Selector 02 (selector_02)'
+      selector_03: 'Selector 03 (selector_03)'
+    '#multiple': false
+  states_unsupported_operator:
+    '#type': webform_element_states
+    '#title': 'States unsupport operator'
+    '#default_value':
+      required:
+        - custom_selector:
+            value: 'Yes'
+        - xxx
+        - custom_selector:
+            value: 'Yes'
+  states_unsupported_nesting:
+    '#type': webform_element_states
+    '#title': 'States unsupport nested multiple selectors'
+    '#default_value':
+      required:
+        - selector_01:
+            value: 'Yes'
+          selector_02:
+            value: 'Yes'
+        - or
+        - selector_03:
+            value: 'Yes'
+          selector_04:
+            value: 'Yes'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: true
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  debug:
+    id: debug
+    label: Debug
+    handler_id: debug
+    status: true
+    conditions: {  }
+    weight: 0
+    settings: {  }

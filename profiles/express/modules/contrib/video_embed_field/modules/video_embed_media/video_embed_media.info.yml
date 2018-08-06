@@ -1,0 +1,14 @@
+name: Video Embed Media
+type: module
+description: 'Integrates video_embed_field with the media_entity module, creating a new media type tailored to display embedded videos. Useful for websites which are using the media suite of modules.'
+package: Video Embed Field
+# core: 8.x
+dependencies:
+  - media_entity:media_entity
+  - video_embed_field:video_embed_field
+
+# Information added by Drupal.org packaging script on 2017-04-26
+version: '8.x-1.5'
+core: '8.x'
+project: 'video_embed_field'
+datestamp: 1493246351

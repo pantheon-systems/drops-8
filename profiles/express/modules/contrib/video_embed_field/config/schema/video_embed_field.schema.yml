@@ -1,0 +1,70 @@
+field.formatter.settings.video_embed_field_thumbnail:
+  type: mapping
+  label: 'Thumbnail formatter settings.'
+  mapping:
+    image_style:
+      type: string
+      label: 'Image Style'
+    link_image_to:
+      type: string
+      label: 'Link image to'
+
+field.formatter.settings.video_embed_field_video:
+  type: mapping
+  label: 'Video formatter settings.'
+  mapping:
+    autoplay:
+      type: boolean
+      label: 'Autoplay'
+    responsive:
+      type: boolean
+      label: 'Responsive'
+    width:
+      type: integer
+      label: 'Width'
+    height:
+      type: integer
+      label: 'Height'
+
+field.formatter.settings.video_embed_field_colorbox:
+  type: mapping
+  label: 'Colorbox formatter settings.'
+  mapping:
+    autoplay:
+      type: boolean
+      label: 'Autoplay'
+    responsive:
+      type: boolean
+      label: 'Responsive'
+    width:
+      type: integer
+      label: 'Width'
+    height:
+      type: integer
+      label: 'Height'
+    image_style:
+      type: string
+      label: 'Image Style'
+    link_image_to:
+      type: string
+      label: 'Link image to'
+    modal_max_width:
+      type: integer
+      label: 'Modal max width'
+
+field.field_settings.video_embed_field:
+  type: mapping
+  label: 'Video field settings.'
+  mapping:
+    allowed_providers:
+      type: sequence
+      label: 'Allowed Providers'
+      sequence:
+        type: string
+
+field.value.video_embed_field:
+  type: mapping
+  mapping:
+    value:
+      type: string
+      label: 'Video URL'

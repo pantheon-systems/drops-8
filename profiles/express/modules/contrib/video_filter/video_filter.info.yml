@@ -1,0 +1,11 @@
+name: Video Filter
+type: module
+description: Filter to include videos from Youtube, Vimeo, YouKu, Google Video etc
+package: Text filters
+# core: 8.x
+
+# Information added by Drupal.org packaging script on 2017-10-14
+version: '8.x-1.0-alpha2+8-dev'
+core: '8.x'
+project: 'video_filter'
+datestamp: 1507947547

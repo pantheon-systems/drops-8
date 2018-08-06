@@ -1,0 +1,61 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.abstract:
+  type: text
+  label: 'Abstract'
+metatag.metatag_tag.canonical_url:
+  type: label
+  label: 'Canonical URL'
+metatag.metatag_tag.content_language:
+  type: label
+  label: 'Content Language'
+metatag.metatag_tag.description:
+  type: text
+  label: 'Description'
+metatag.metatag_tag.generator:
+  type: label
+  label: 'Generator'
+metatag.metatag_tag.image_src:
+  type: label
+  label: 'Image SRC'
+metatag.metatag_tag.keywords:
+  type: label
+  label: 'Keywords'
+metatag.metatag_tag.news_keywords:
+  type: label
+  label: 'Google News Keywords'
+metatag.metatag_tag.original_source:
+  type: label
+  label: 'Original source'
+metatag.metatag_tag.rights:
+  type: label
+  label: 'Rights'
+metatag.metatag_tag.referrer:
+  type: label
+  label: 'Referrer policy'
+metatag.metatag_tag.robots:
+  type: label
+  label: 'Robots'
+metatag.metatag_tag.shortlink:
+  type: label
+  label: 'Shortlink'
+metatag.metatag_tag.standout:
+  type: label
+  label: 'Standout'
+metatag.metatag_tag.title:
+  type: label
+  label: 'Page title'
+metatag.metatag_tag.icbm:
+  type: label
+  label: 'ICBM'
+metatag.metatag_tag.geo_region:
+  type: label
+  label: 'Geographical region'
+metatag.metatag_tag.geo_placename:
+  type: label
+  label: 'Geographical place name'
+metatag.metatag_tag.geo_position:
+  type: label
+  label: 'Geographical position'

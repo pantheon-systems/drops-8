@@ -1,0 +1,5 @@
+name: Express Site Information Block
+type: module
+description: Fill in with contact information
+package: Express-Core
+core: 8.x

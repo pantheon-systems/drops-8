@@ -98,8 +98,7 @@ class BlockContentController extends ControllerBase {
    *   The current request object.
    *
    * @return array
-   *   A form array as expected by
-   *   \Drupal\Core\Render\RendererInterface::render().
+   *   A form array as expected by drupal_render().
    */
   public function addForm(BlockContentTypeInterface $block_content_type, Request $request) {
     $block = $this->blockContentStorage->create([

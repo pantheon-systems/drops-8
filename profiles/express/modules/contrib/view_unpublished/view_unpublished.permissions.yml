@@ -1,0 +1,5 @@
+view any unpublished content:
+  title: 'View any unpublished content'
+
+permission_callbacks:
+  - Drupal\view_unpublished\ViewUnpublishedPermissions::permissions

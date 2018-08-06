@@ -5,6 +5,7 @@ namespace Drupal\layout_builder\Entity;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\layout_builder\Section;
+use Drupal\layout_builder\SectionComponent;
 
 /**
  * Provides storage for entity view display entities that have layouts.
@@ -37,7 +38,20 @@ class LayoutBuilderEntityViewDisplayStorage extends ConfigEntityStorage {
     foreach ($records as $id => &$record) {
       if (!empty($record['third_party_settings']['layout_builder']['sections'])) {
         $sections = &$record['third_party_settings']['layout_builder']['sections'];
-        $sections = array_map([Section::class, 'fromArray'], $sections);
+        foreach ($sections as $section_delta => $section) {
+          $sections[$section_delta] = new Section(
+            $section['layout_id'],
+            $section['layout_settings'],
+            array_map(function (array $component) {
+              return (new SectionComponent(
+                $component['uuid'],
+                $component['region'],
+                $component['configuration'],
+                $component['additional']
+              ))->setWeight($component['weight']);
+            }, $section['components'])
+          );
+        }
       }
     }
     return parent::mapFromStorageRecords($records);

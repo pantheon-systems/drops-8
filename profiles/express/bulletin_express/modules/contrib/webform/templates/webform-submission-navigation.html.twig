@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Default theme implementation to navigate webform submission.
+ *
+ * Available variables:
+ * - prev_url: URL to the previous webform submission.
+ * - next_url: URL to the next webform submission.
+ * - webform_id: The webform  ID. Provided for context.
+ *
+ * @see template_preprocess_webform_submission_navigation()
+ *
+ * @ingroup themeable
+ */
+#}
+{% if prev_url or next_url %}
+  <nav id="webform-submission-navigation-{{ webform_id }}" class="webform-submission-navigation" role="navigation" aria-labelledby="webform-submission-label-{{ webform_id }}">
+    <ul class="webform-submission-pager">
+      {% if prev_url %}
+        <li class="webform-submission-pager__item webform-submission-pager__item--previous">
+          <a href="{{ prev_url }}" rel="prev" title="{{ 'Go to previous page'|t }}"><b>{{ '‹'|t }}</b> {{ 'Previous submission'|t }}</a>
+        </li>
+      {% endif %}
+      {% if next_url %}
+        <li class="webform-submission-pager__item webform-submission-pager__item--next">
+          <a href="{{ next_url }}" rel="next" title="{{ 'Go to next page'|t }}">{{ 'Next submission'|t }} <b>{{ '›'|t }}</b></a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}

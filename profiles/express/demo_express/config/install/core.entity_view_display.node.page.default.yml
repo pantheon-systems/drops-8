@@ -1,0 +1,28 @@
+uuid: 5f881734-d968-455a-957e-b645d5361fe5
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.page.body
+    - node.type.page
+  module:
+    - text
+    - user
+_core:
+  default_config_hash: FDCJLUivGYC4zuLqa142DRPXLuzd5dCpOFeHMP9kg8g
+id: node.page.default
+targetEntityType: node
+bundle: page
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 100
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  links:
+    weight: 101
+    region: content
+hidden: {  }

@@ -35,7 +35,6 @@
 *.script  text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2
 *.sh      text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2 diff=php
 *.sql     text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2
-*.svg     text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2
 *.theme   text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2 diff=php
 *.twig    text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2
 *.txt     text eol=lf whitespace=blank-at-eol,-blank-at-eof,-space-before-tab,tab-in-indent,tabwidth=2
@@ -45,17 +44,13 @@
 # Define binary file attributes.
 # - Do not treat them as text.
 # - Include binary diff in patches instead of "binary files differ."
-*.eot     -text diff
-*.exe     -text diff
 *.gif     -text diff
 *.gz      -text diff
 *.ico     -text diff
 *.jpeg    -text diff
 *.jpg     -text diff
-*.otf     -text diff
-*.phar    -text diff
 *.png     -text diff
+*.phar    -text diff
+*.exe     -text diff
 *.svgz    -text diff
 *.ttf     -text diff
-*.woff    -text diff
-*.woff2   -text diff

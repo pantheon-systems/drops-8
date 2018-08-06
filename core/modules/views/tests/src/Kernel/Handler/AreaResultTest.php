@@ -57,7 +57,6 @@ class AreaResultTest extends ViewsKernelTestBase {
     $output = \Drupal::service('renderer')->renderRoot($output);
     $this->setRawContent($output);
     $this->assertText('start: 0 | end: 0 | total: 0 | label: test_area_result | per page: 0 | current page: 1 | current record count: 0 | page count: 1');
-    $this->assertRaw('<header>');
 
     // Test that the area is not displayed if we have not checked the empty
     // checkbox.
@@ -68,8 +67,6 @@ class AreaResultTest extends ViewsKernelTestBase {
     $output = \Drupal::service('renderer')->renderRoot($output);
     $this->setRawContent($output);
     $this->assertNoText('start: 0 | end: 0 | total: 0 | label: test_area_result | per page: 0 | current page: 1 | current record count: 0 | page count: 1');
-    // Make sure the empty header region isn't rendered.
-    $this->assertNoRaw('<header>');
   }
 
 }

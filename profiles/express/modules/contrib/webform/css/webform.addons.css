@@ -1,0 +1,30 @@
+/**
+ * @file
+ * Addons styles
+ */
+
+/**
+ * Projects.
+ */
+.webform-addons-projects details {
+  background-color: #f8f8f8;
+}
+
+/**
+ * Promotion Lingotek.
+ */
+.webform-addons-promotions .messages--promotion_lingotek {
+  font-size: 1.1em;
+  background-image: none;
+  padding: 18px;
+}
+
+[dir="rtl"] .messages.messages--promotion_lingotek {
+  padding-right: 18px;
+}
+
+.messages.messages--promotion_lingotek hr {
+  margin: 18px 0;
+  height: 2px;
+  background-color: #adaba8;
+}

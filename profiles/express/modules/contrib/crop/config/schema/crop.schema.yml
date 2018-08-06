@@ -1,0 +1,57 @@
+crop.type.*:
+  type: config_entity
+  label: 'Crop type'
+  mapping:
+    label:
+      type: label
+      label: 'Name'
+    id:
+      type: string
+      label: 'Machine-readable name'
+    description:
+      type: text
+      label: 'Description'
+    aspect_ratio:
+      type: string
+      label: 'Aspect ratio'
+    soft_limit_width:
+      type: integer
+      label: 'Soft limit width'
+    soft_limit_height:
+      type: integer
+      label: 'Soft limit height'
+    hard_limit_width:
+      type: integer
+      label: 'Hard limit width'
+    hard_limit_height:
+      type: integer
+      label: 'Hard limit height'
+    third_party_settings:
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: crop_type.third_party.[%key]
+
+media_entity.bundle.third_party.crop:
+  type: mapping
+  label: 'Crop settings'
+  mapping:
+    image_field:
+      type: string
+      label: 'Field storing image to be cropped'
+
+image.effect.crop_crop:
+  type: mapping
+  label: 'Crop effect configuration'
+  mapping:
+    crop_type:
+      label: 'Crop type'
+      type: string
+
+crop.settings:
+  type: config_object
+  label: 'Crop API settings'
+  mapping:
+    flush_derivative_images:
+      type: boolean
+      label: 'Indicates whether to flush image derivatives when a crop entity is change'

@@ -1,0 +1,88 @@
+<?php
+
+/**
+ * @file
+ * Provides expanded entity APIs.
+ */
+
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\entity\BundlePlugin\BundlePluginHandler;
+
+/**
+ * Gets the entity types which use bundle plugins.
+ *
+ * @return \Drupal\Core\Entity\EntityTypeInterface[]
+ *   The entity types.
+ */
+function entity_get_bundle_plugin_entity_types() {
+  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
+  $entity_types = array_filter($entity_types, function (EntityTypeInterface $entity_type) {
+    return $entity_type->hasHandlerClass('bundle_plugin');
+  });
+
+  return $entity_types;
+}
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function entity_entity_type_build(array &$entity_types) {
+  foreach ($entity_types as $entity_type) {
+    if ($entity_type->get('bundle_plugin_type')) {
+      $entity_type->setHandlerClass('bundle_plugin', BundlePluginHandler::class);
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_info().
+ */
+function entity_entity_bundle_info() {
+  $bundles = [];
+  foreach (entity_get_bundle_plugin_entity_types() as $entity_type) {
+    /** @var \Drupal\entity\BundlePlugin\BundlePluginHandler $bundle_handler */
+    $bundle_handler = \Drupal::entityTypeManager()->getHandler($entity_type->id(), 'bundle_plugin');
+    $bundles[$entity_type->id()] = $bundle_handler->getBundleInfo();
+  }
+  return $bundles;
+}
+
+/**
+ * Implements hook_entity_field_storage_info().
+ */
+function entity_entity_field_storage_info(EntityTypeInterface $entity_type) {
+  if ($entity_type->hasHandlerClass('bundle_plugin')) {
+    /** @var \Drupal\entity\BundlePlugin\BundlePluginHandler $bundle_handler */
+    $bundle_handler = \Drupal::entityTypeManager()->getHandler($entity_type->id(), 'bundle_plugin');
+    return $bundle_handler->getFieldStorageDefinitions();
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_field_info().
+ */
+function entity_entity_bundle_field_info(EntityTypeInterface $entity_type, $bundle) {
+  if ($entity_type->hasHandlerClass('bundle_plugin')) {
+    /** @var \Drupal\entity\BundlePlugin\BundlePluginHandler $bundle_handler */
+    $bundle_handler = \Drupal::entityTypeManager()->getHandler($entity_type->id(), 'bundle_plugin');
+    return $bundle_handler->getFieldDefinitions($bundle);
+  }
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function entity_modules_installed($modules) {
+  foreach (entity_get_bundle_plugin_entity_types() as $entity_type) {
+    \Drupal::service('entity.bundle_plugin_installer')->installBundles($entity_type, $modules);
+  }
+}
+
+/**
+ * Implements hook_module_preuninstall().
+ */
+function entity_module_preuninstall($module) {
+  foreach (entity_get_bundle_plugin_entity_types() as $entity_type) {
+    \Drupal::service('entity.bundle_plugin_installer')->uninstallBundles($entity_type, [$module]);
+  }
+}

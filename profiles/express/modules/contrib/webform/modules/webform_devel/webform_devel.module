@@ -1,0 +1,102 @@
+<?php
+
+/**
+ * @file
+ * Provides development tools Webform module.
+ */
+
+use Drupal\Core\Serialization\Yaml;
+use Drupal\webform\Utility\WebformYaml;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function webform_devel_entity_type_alter(array &$entity_types) {
+  if (isset($entity_types['webform'])) {
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type */
+    $entity_type = $entity_types['webform'];
+    $handlers = $entity_type->getHandlerClasses();
+    $handlers['form']['export'] = 'Drupal\webform_devel\Form\WebformDevelEntityExportForm';
+    $handlers['form']['schema'] = 'Drupal\webform_devel\Form\WebformDevelEntitySchemaForm';
+    $entity_type->setHandlerClass('form', $handlers['form']);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_devel_form_config_single_export_form_alter(&$form, FormStateInterface $form_state) {
+  $form['export']['#type'] = 'webform_codemirror';
+  $form['export']['#mode'] = 'yaml';
+
+  $form['config_name']['#ajax']['callback'] = '_webform_form_config_single_export_form_update_export';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_devel_form_webform_admin_config_advanced_form_alter(&$form, FormStateInterface $form_state) {
+  $form['logger'] = [
+    '#type' => 'details',
+    '#title' => t('Logging and errors'),
+    '#open' => TRUE,
+    '#tree' => TRUE,
+  ];
+  $form['logger']['debug'] = [
+    '#type' => 'radios',
+    '#title' => t("Display debugging notices and errors on screen"),
+    '#default_value' => \Drupal::config('webform_devel.settings')->get('logger.debug') ? '1' : '0',
+    '#description' => t("Checking 'Yes' will display PHP and theme notices onscreen."),
+    '#options' => [
+      '1' => t('Yes'),
+      '0' => t('No'),
+    ],
+    '#options_display' => 'side_by_side',
+    '#required' => TRUE,
+  ];
+  $form['#submit'][] = '_webform_devel_form_webform_admin_config_advanced_form_submit';
+}
+
+/**
+ * Submit callback webform devel module settings.
+ */
+function _webform_devel_form_webform_admin_config_advanced_form_submit(&$form, FormStateInterface $form_state) {
+  $values = $form_state->getValues();
+  $values['logger']['debug'] = (boolean) $values['logger']['debug'];
+  \Drupal::configFactory()->getEditable('webform_devel.settings')
+    ->set('logger', $values['logger'])
+    ->save();
+}
+
+/**
+ * Handles switching the export textarea and tidies exported MSK configuration.
+ *
+ * Copied from: \Drupal\config\Form\ConfigSingleExportForm::updateExport.
+ */
+function _webform_form_config_single_export_form_update_export($form, FormStateInterface $form_state) {
+  // Determine the full config name for the selected config entity.
+  if ($form_state->getValue('config_type') !== 'system.simple') {
+    $definition = \Drupal::entityTypeManager()->getDefinition($form_state->getValue('config_type'));
+    $name = $definition->getConfigPrefix() . '.' . $form_state->getValue('config_name');
+  }
+  // The config name is used directly for simple configuration.
+  else {
+    $name = $form_state->getValue('config_name');
+  }
+
+  // Read the raw data for this config name, encode it, and display it.
+  $value = Yaml::encode(\Drupal::service('config.storage')->read($name));
+
+  // Tidy all only MSK exported configuration...for now.
+  if (strpos($name, 'webform') === 0) {
+    $value = WebformYaml::tidy($value);
+  }
+
+  $form['export']['#type'] = 'webform_codemirror';
+  $form['export']['#mode'] = 'yaml';
+  $form['export']['#description'] = t('Filename: %name', ['%name' => $name . '.yml']);
+  $form['export']['#value'] = $value;
+
+  return $form['export'];
+}

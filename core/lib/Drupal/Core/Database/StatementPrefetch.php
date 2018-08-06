@@ -214,8 +214,8 @@ class StatementPrefetch implements \Iterator, StatementInterface {
    *
    * @param $query
    *   The query.
-   * @param array|null $args
-   *   An array of arguments. This can be NULL.
+   * @param array $args
+   *   An array of arguments.
    * @return \PDOStatement
    *   A PDOStatement object.
    */

@@ -1,0 +1,25 @@
+id: d7_path_redirect
+label: Path Redirect
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_path_redirect
+process:
+  rid: rid
+  uid: uid
+  redirect_source/path: source
+  redirect_source/query:
+    plugin: d7_redirect_source_query
+    source: source_options
+  redirect_redirect/uri:
+    plugin: d7_path_redirect
+    source:
+      - redirect
+      - redirect_options
+  language:
+    plugin: default_value
+    source: language
+    default_value: und
+  status_code: status_code
+destination:
+  plugin: entity:redirect

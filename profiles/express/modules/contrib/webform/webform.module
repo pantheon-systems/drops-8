@@ -1,0 +1,704 @@
+<?php
+
+/**
+ * @file
+ * Enables the creation of webforms and questionnaires.
+ */
+
+use Drupal\Component\Utility\Unicode;
+use Drupal\Component\Serialization\Json;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Asset\AttachedAssetsInterface;
+use Drupal\Core\Breadcrumb\Breadcrumb;
+use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Markup;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\file\FileInterface;
+use Drupal\webform\Entity\Webform;
+use Drupal\webform\Entity\WebformSubmission;
+use Drupal\webform\Element\WebformMessage;
+use Drupal\webform\Plugin\WebformElement\ManagedFile;
+use Drupal\webform\Utility\WebformArrayHelper;
+use Drupal\webform\Utility\WebformThemeHelper;
+use Drupal\webform\Utility\WebformOptionsHelper;
+use Drupal\webform\WebformInterface;
+use Drupal\webform\WebformSubmissionForm;
+
+require_once __DIR__ . '/includes/webform.date.inc';
+require_once __DIR__ . '/includes/webform.libraries.inc';
+require_once __DIR__ . '/includes/webform.options.inc';
+require_once __DIR__ . '/includes/webform.theme.inc';
+require_once __DIR__ . '/includes/webform.translation.inc';
+
+/**
+ * Implements hook_help().
+ */
+function webform_help($route_name, RouteMatchInterface $route_match) {
+  // Get path from route match.
+  $path = preg_replace('/^' . preg_quote(base_path(), '/') . '/', '/', Url::fromRouteMatch($route_match)->setAbsolute(FALSE)->toString());
+  if (!in_array($route_name, ['system.modules_list', 'update.status']) && strpos($route_name, 'webform') === FALSE && strpos($path, '/webform') === FALSE) {
+    return NULL;
+  }
+
+  /** @var \Drupal\webform\WebformHelpManagerInterface $help_manager */
+  $help_manager = \Drupal::service('webform.help_manager');
+  if ($route_name == 'help.page.webform') {
+    $build = $help_manager->buildIndex();
+  }
+  else {
+    $build = $help_manager->buildHelp($route_name, $route_match);
+  }
+
+  if ($build) {
+    $renderer = \Drupal::service('renderer');
+    $config = \Drupal::config('webform.settings');
+    $renderer->addCacheableDependency($build, $config);
+    return $build;
+  }
+  else {
+    return NULL;
+  }
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function webform_modules_installed($modules) {
+  // Add webform paths when the path.module is being installed.
+  if (in_array('path', $modules)) {
+    /** @var \Drupal\webform\WebformInterface[] $webforms */
+    $webforms = Webform::loadMultiple();
+    foreach ($webforms as $webform) {
+      $webform->updatePaths();
+    }
+  }
+
+  // Check HTML email provider support as modules are installed.
+  /** @var \Drupal\webform\WebformEmailProviderInterface $email_provider */
+  $email_provider = \Drupal::service('webform.email_provider');
+  $email_provider->check();
+}
+
+/**
+ * Implements hook_modules_uninstalled().
+ */
+function webform_modules_uninstalled($modules) {
+  // Remove uninstalled module's third party settings from admin settings.
+  $config = \Drupal::configFactory()->getEditable('webform.settings');
+  $third_party_settings = $config->get('third_party_settings');
+  foreach ($modules as $module) {
+    unset($third_party_settings[$module]);
+  }
+  $config->set('third_party_settings', $third_party_settings);
+  $config->save();
+
+  // Check HTML email provider support as modules are ininstalled.
+  /** @var \Drupal\webform\WebformEmailProviderInterface $email_provider */
+  $email_provider = \Drupal::service('webform.email_provider');
+  $email_provider->check();
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function webform_user_login($account) {
+  // Notify the storage of this log in.
+  \Drupal::entityTypeManager()->getStorage('webform_submission')->userLogin($account);
+}
+
+/**
+ * Implements hook_cron().
+ */
+function webform_cron() {
+  $config = \Drupal::config('webform.settings');
+  \Drupal::entityTypeManager()->getStorage('webform_submission')->purge($config->get('purge.cron_size'));
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ */
+function webform_local_tasks_alter(&$local_tasks) {
+  // Change config translation local task hierarchy.
+  if (isset($local_tasks['config_translation.local_tasks:entity.webform.config_translation_overview'])) {
+    $local_tasks['config_translation.local_tasks:entity.webform.config_translation_overview']['base_route'] = 'entity.webform.canonical';
+  }
+  if (isset($local_tasks['config_translation.local_tasks:config_translation.item.overview.webform.config'])) {
+    $local_tasks['config_translation.local_tasks:config_translation.item.overview.webform.config']['parent_id'] = 'webform.config';
+  }
+
+  // Disable 'About' tab.
+  if (\Drupal::config('webform.settings')->get('ui.about_disabled')) {
+    unset(
+      $local_tasks['webform.about'],
+      $local_tasks['webform.about.webform'],
+      $local_tasks['webform.about.drupal']
+    );
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function webform_menu_local_tasks_alter(&$data, $route_name) {
+  // Change 'Translate *' tab to be just label 'Translate'.
+  if (isset($data['tabs'][0]['config_translation.local_tasks:entity.webform.config_translation_overview']['#link']['title'])) {
+    $data['tabs'][0]['config_translation.local_tasks:entity.webform.config_translation_overview']['#link']['title'] = t('Translate');
+  }
+  if (isset($data['tabs'][1]['config_translation.local_tasks:config_translation.item.overview.webform.config'])) {
+    $data['tabs'][1]['config_translation.local_tasks:config_translation.item.overview.webform.config']['#link']['title'] = t('Translate');
+  }
+
+  // ISSUE:
+  // Devel routes do not use 'webform' parameter which throws the below error.
+  // Some mandatory parameters are missing ("webform") to generate a URL for
+  // route "entity.webform_submission.canonical"
+  //
+  // WORKAROUND:
+  // Make sure webform parameter is set for all routes.
+  if (strpos($route_name, 'entity.webform_submission.devel_') === 0 || $route_name === 'entity.webform_submission.token_devel') {
+    foreach ($data['tabs'] as $tab_level) {
+      foreach ($tab_level as $tab) {
+        /** @var Drupal\Core\Url $url */
+        $url = $tab['#link']['url'];
+        $tab_route_name = $url->getRouteName();
+        $tab_route_parameters = $url->getRouteParameters();
+
+        if (strpos($tab_route_name, 'entity.webform_submission.devel_') !== 0) {
+          $webform_submission = WebformSubmission::load($tab_route_parameters['webform_submission']);
+          $url->setRouteParameter('webform', $webform_submission->getWebform()->id());
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function webform_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'form_alter') {
+    $implementation = $implementations['webform'];
+    unset($implementations['webform']);
+    $implementations['webform'] = $implementation;
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function webform_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (strpos($form_id, 'webform_') === FALSE || strpos($form_id, 'node_') === 0) {
+    return;
+  }
+
+  // Display editing original language warning.
+  if (\Drupal::moduleHandler()->moduleExists('config_translation') && preg_match('/^entity.webform.(?:edit|settings|assets|access|handlers|third_party_settings)_form$/', \Drupal::routeMatch()->getRouteName())) {
+    /** @var \Drupal\webform\WebformInterface $webform */
+    $webform = \Drupal::routeMatch()->getParameter('webform');
+    /** @var \Drupal\Core\Language\LanguageManagerInterface $language_manager */
+    $language_manager = \Drupal::service('language_manager');
+
+    // If current webform is translated, load the base (default) webform and apply
+    // the translation to the elements.
+    if ($webform->getLangcode() != $language_manager->getCurrentLanguage()->getId()) {
+      $original_language = $language_manager->getLanguage($webform->getLangcode());
+      $form['langcode_message'] = [
+        '#type' => 'webform_message',
+        '#message_type' => 'warning',
+        '#message_message' => t('You are editing the original %language language for this webform.', ['%language' => $original_language->getName()]),
+        '#message_close' => TRUE,
+        '#message_storage' => WebformMessage::STORAGE_LOCAL,
+        '#message_id' => $webform->id() . '.original_language',
+        '#weight' => -100,
+      ];
+    }
+  }
+
+  $form_object = $form_state->getFormObject();
+
+  // Add details 'toggle all' to all webforms (except submission forms).
+  if (!($form_object instanceof WebformSubmissionForm)) {
+    $form['#attributes']['class'][] = 'js-webform-details-toggle';
+    $form['#attributes']['class'][] = 'webform-details-toggle';
+    $form['#attached']['library'][] = 'webform/webform.element.details.toggle';
+    return;
+  }
+}
+
+/**
+ * Implements hook_form_BASE_ID_alter().
+ */
+function webform_form_webform_submission_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Make sure webform libraries are always attached to submission form.
+  _webform_page_attachments($form);
+
+  // Execute hook_form_BASE_FORM_ID_alter for the webform & source entity
+  // without the operation. (i.e. 'add', 'edit', 'notes', etc...)
+  // @see \Drupal\webform\WebformSubmissionForm::getFormId
+  $form_object = $form_state->getFormObject();
+
+  /** @var \Drupal\webform\WebformSubmissionInterface $webform_submission */
+  $webform_submission = $form_object->getEntity();
+  $webform = $webform_submission->getWebform();
+  $source_entity = $webform_submission->getSourceEntity();
+
+  $hooks = [];
+  $hooks[] = 'form_webform_submission_' . $webform->id() . '_form';
+  if ($source_entity) {
+    $hooks[] = 'form_webform_submission_' . $webform->id() . '_' . $source_entity->getEntityTypeId() . '_' . $source_entity->id() . '_form';
+  }
+
+  $form_id = $form_object->getFormId();
+  \Drupal::service('module_handler')->alter($hooks, $form, $form_state, $form_id);
+  \Drupal::service('theme.manager')->alter($hooks, $form, $form_state, $form_id);
+
+  // After build.
+  $form['#after_build'][] = '_webform_form_webform_submission_form_after_build';
+}
+
+/**
+ * Alter webform after build.
+ */
+function _webform_form_webform_submission_form_after_build($form, FormStateInterface $form_state) {
+  $form_object = $form_state->getFormObject();
+
+  /** @var \Drupal\webform\WebformSubmissionInterface $webform_submission */
+  $webform_submission = $form_object->getEntity();
+  $webform = $webform_submission->getWebform();
+
+  // Add contextual links and change theme wrapper to webform.html.twig
+  // which includes 'title_prefix' and 'title_suffix' variables needed for
+  // contextual links to appear.
+  $form['#contextual_links']['webform'] = [
+    'route_parameters' => ['webform' => $webform->id()],
+  ];
+  $form['#theme_wrappers'] = ['webform'];
+  return $form;
+}
+
+/**
+ * Implements hook_system_breadcrumb_alter().
+ */
+function webform_system_breadcrumb_alter(Breadcrumb &$breadcrumb, RouteMatchInterface $route_match, array $context) {
+  // Remove 'Webforms' prefix from breadcrumb links generated path breadcrumbs.
+  // @see \Drupal\system\PathBasedBreadcrumbBuilder
+  $path = Url::fromRouteMatch($route_match)->toString();
+  if (strpos($path, '/admin/structure/webform/config/') !== FALSE) {
+    $links = $breadcrumb->getLinks();
+    foreach ($links as $link) {
+      $text = $link->getText();
+      if (strpos($text, ((string) t('Webforms')) . ' ') == 0) {
+        $text = str_replace(((string) t('Webforms')) . ': ', '', $text);
+        $link->setText(Unicode::ucfirst($text));
+      }
+    }
+  }
+
+  // Fix 'Help' breadcrumb text.
+  if ($route_match->getRouteName() == 'webform.help.video') {
+    $links = $breadcrumb->getLinks();
+    $link = end($links);
+    $link->setText(t('Webforms'));
+  }
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function webform_entity_delete(EntityInterface $entity) {
+  /** @var \Drupal\webform\WebformEntityReferenceManagerInterface $entity_reference_manager */
+  $entity_reference_manager = \Drupal::service('webform.entity_reference_manager');
+
+  // Delete saved export settings for a webform or source entity with the
+  // webform field.
+  if (($entity instanceof WebformInterface) || $entity_reference_manager->hasField($entity)) {
+    $name = 'webform.export.' . $entity->getEntityTypeId() . '.' . $entity->id();
+    \Drupal::state()->delete($name);
+  }
+}
+
+/**
+ * Implements hook_mail().
+ */
+function webform_mail($key, &$message, $params) {
+  // Never send emails when using devel generate to create 1000's of
+  // submissions.
+  if (\Drupal::moduleHandler()->moduleExists('devel_generate')
+    && \Drupal\webform\Plugin\DevelGenerate\WebformSubmissionDevelGenerate::isGeneratingSubmissions()) {
+    $message['send'] = FALSE;
+  }
+
+  // Set default parameters.
+  $params += [
+    'from_mail' => '',
+    'reply_to' => '',
+    'return_path' => '',
+    'sender_mail' => '',
+    'sender_name' => '',
+  ];
+
+  $message['subject'] = $params['subject'];
+  $message['body'][] = $params['body'];
+
+  // Set the header's 'From' to the 'from_mail' so that the webform's email from
+  // value is used instead of site's email address.
+  // See: \Drupal\Core\Mail\MailManager::mail.
+  if (!empty($params['from_mail'])) {
+    $message['from'] = $message['headers']['From'] = (!empty($params['from_name'])) ? Unicode::mimeHeaderEncode($params['from_name']) . ' <' . $params['from_mail'] . '>' : $params['from_mail'];
+  }
+
+  // Set header 'Reply-to'.
+  $reply_to = $params['reply_to'] ?: \Drupal::config('webform.settings')->get('mail.default_reply_to') ?: '';
+  if (empty($reply_to) && !empty($params['from_mail'])) {
+    // @todo Determine if the 'reply-to' must only be the to 'from mail' if 'from mail' has the same domain as the 'site mail'.
+    $reply_to = $message['from'];
+  }
+  if ($reply_to) {
+    $message['reply-to'] = $message['headers']['Reply-to'] = $reply_to;
+  }
+
+  // Set header 'Return-Path'.
+  $return_path = $params['return_path'] ?: \Drupal::config('webform.settings')->get('mail.default_return_path') ?: $params['from_mail'] ?: '';
+  if ($return_path) {
+    $message['headers']['Sender'] = $message['headers']['Return-Path'] = $return_path;
+  }
+
+  // Set header 'Sender'.
+  $sender_mail = $params['sender_mail'] ?: \Drupal::config('webform.settings')->get('mail.default_sender_mail') ?: '';
+  $sender_name = $params['sender_name'] ?: \Drupal::config('webform.settings')->get('mail.default_sender_name') ?: $params['from_name'] ?: '';
+  if ($sender_mail) {
+    $message['headers']['Sender'] = ($sender_name) ? Unicode::mimeHeaderEncode($sender_name) . ' <' . $sender_mail . '>' : $sender_mail;
+  }
+
+  // Set header 'Cc'.
+  if (!empty($params['cc_mail'])) {
+    $message['headers']['Cc'] = $params['cc_mail'];
+  }
+
+  // Set header 'Bcc'.
+  if (!empty($params['bcc_mail'])) {
+    $message['headers']['Bcc'] = $params['bcc_mail'];
+  }
+}
+
+/**
+ * Implements hook_mail_alter().
+ */
+function webform_mail_alter(&$message) {
+  // Drupal hardcodes all mail header as 'text/plain' so we need to set the
+  // header's 'Content-type' to HTML if the EmailWebformHandler's
+  // 'html' flag has been set.
+  // @see \Drupal\Core\Mail\MailManager::mail()
+  // @see \Drupal\webform\Plugin\WebformHandler\EmailWebformHandler::getMessage().
+  if (strpos($message['id'], 'webform') === 0) {
+    if (isset($message['params']['html']) && $message['params']['html']) {
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+    }
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function webform_page_attachments(array &$attachments) {
+  $route_name = Drupal::routeMatch()->getRouteName();
+  $url = Url::fromRoute('<current>')->toString();
+
+  // Attach global libraries only to webform specific pages.
+  if (preg_match('/^(webform\.|^entity\.([^.]+\.)?webform)/', $route_name) || preg_match('#(/node/add/webform|/admin/help/webform)#', $url)) {
+    _webform_page_attachments($attachments);
+  }
+
+  // Attach codemirror and select2 library to block admin to ensure that the
+  // library is loaded by the webform block is placed using Ajax.
+  if (strpos($route_name, 'block.admin_display') === 0) {
+    $attachments['#attached']['library'][] = 'webform/webform.block';
+  }
+}
+
+/**
+ * Add webform libraries to page attachments.
+ *
+ * @param array $attachments
+ *   An array of page attachments.
+ */
+function _webform_page_attachments(array &$attachments) {
+  $active_theme_names = WebformThemeHelper::getActiveThemeNames();
+  foreach ($active_theme_names as $active_theme_name) {
+    if (file_exists(drupal_get_path('module', 'webform') . "/css/webform.theme.$active_theme_name.css")) {
+      $attachments['#attached']['library'][] = "webform/webform.theme.$active_theme_name";
+    }
+  }
+
+  // Attach webform contextual link helper.
+  if (\Drupal::currentUser()->hasPermission('access contextual links')) {
+    $attachments['#attached']['library'][] = 'webform/webform.contextual';
+  }
+
+  // Attach details element save open/close library.
+  // This ensures pages without a webform will still be able to save the
+  // details element state.
+  if (\Drupal::config('webform.settings')->get('ui.details_save')) {
+    $attachments['#attached']['library'][] = 'webform/webform.element.details.save';
+  }
+
+  // Assets: Add custom shared and webform specific CSS and JS.
+  // @see webform_library_info_build()
+  /** @var \Drupal\webform\WebformRequestInterface $request_handler */
+  $request_handler = \Drupal::service('webform.request');
+  if ($webform = $request_handler->getCurrentWebform()) {
+    $assets = $webform->getAssets();
+    foreach ($assets as $type => $value) {
+      if ($value) {
+        $attachments['#attached']['library'][] = 'webform/webform.' . $type . '.' . $webform->id() ;
+      }
+    }
+  }
+
+}
+
+/**
+ * Implements hook_library_info_build().
+ */
+function webform_library_info_build() {
+  /** @var \Drupal\webform\WebformInterface[] $webforms */
+  $webforms = Webform::loadMultiple();
+  $libraries = [];
+  foreach ($webforms as $webform_id => $webform) {
+    $assets = array_filter($webform->getAssets());
+    foreach ($assets as $type => $value) {
+      $settings = ['preprocess' => FALSE, 'minified' => FALSE];
+      if ($type === 'css') {
+        $libraries["webform.css.$webform_id"] = [
+          'css' => ['theme' => ["/webform/css/$webform_id" => $settings]],
+        ];
+      }
+      else {
+        $libraries["webform.javascript.$webform_id"] = [
+          'js' => ["/webform/javascript/$webform_id" => $settings],
+        ];
+      }
+    }
+  }
+  return $libraries;
+}
+
+/**
+ * Implements hook_css_alter().
+ */
+function webform_css_alter(&$css, AttachedAssetsInterface $assets) {
+  _webform_asset_alter($css, 'css');
+}
+
+/**
+ * Implements hook_js_alter().
+ */
+function webform_js_alter(&$javascript, AttachedAssetsInterface $assets) {
+  // Add Google API key required by webform/libraries.jquery.geocomplete
+  // which is dependency for webform/webform.element.location.
+  // @see \Drupal\webform\Element\WebformLocation::processWebformComposite
+  // @see webform.libraries.yml
+  $settings = $assets->getSettings();
+  if (!empty($settings['webform']['location']['google_maps_api_key'])) {
+    $api_key = $settings['webform']['location']['google_maps_api_key'];
+    $javascript['https://maps.googleapis.com/maps/api/js?key=API_KEY&libraries=places']['data'] = "https://maps.googleapis.com/maps/api/js?key=$api_key&libraries=places";
+  }
+
+  _webform_asset_alter($javascript, 'javascript');
+}
+
+/**
+ * Alter Webform CSS or JavaScript assets and make sure they appear last.
+ *
+ * @param array $items
+ *   An array of all CSS or JavaScript being presented on the page.
+ * @param string $type
+ *   The type of asset being attached.
+ *
+ * @see hook_library_info_build()
+ */
+function _webform_asset_alter(array &$items, $type) {
+  foreach ($items as $key => &$item) {
+    if (strpos($key, "webform/$type/") === 0) {
+      $item['weight'] = 1000;
+      $item['group'] = 1000;
+    }
+  }
+}
+
+/**
+ * Implements hook_file_access().
+ *
+ * @see file_file_download()
+ * @see webform_preprocess_file_link()
+ */
+function webform_file_access(FileInterface $file, $operation, AccountInterface $account) {
+  // Block access to temporary anonymous private file uploads.
+  if ($operation == 'download' && $file->isTemporary() && $file->getOwnerId() == 0 && strpos($file->getFileUri(), 'private://webform/') === 0) {
+    return AccessResult::forbidden();
+  }
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_file_download().
+ */
+function webform_file_download($uri) {
+  return ManagedFile::accessFileDownload($uri);
+}
+
+/**
+ * Implements hook_contextual_links_view_alter().
+ */
+function webform_contextual_links_view_alter(&$element, $items) {
+  $links = [
+    'entitywebformresults-submissions',
+    'entitywebformedit-form',
+    'entitywebformsettings',
+  ];
+  foreach ($links as $link) {
+    if (isset($element['#links'][$link])) {
+      $element['#links'][$link]['attributes']['class'][] = 'webform-contextual';
+    }
+  }
+}
+
+/**
+ * Adds JavaScript to change the state of an element based on another element.
+ *
+ * @param array $elements
+ *   A renderable array element having a #states property as described above.
+ * @param string $key
+ *   The element property to add the states attribute to.
+ *
+ * @see drupal_process_states()
+ */
+function webform_process_states(array &$elements, $key = '#attributes') {
+  if (empty($elements['#states'])) {
+    return;
+  }
+
+  $elements['#attached']['library'][] = 'core/drupal.states';
+  $elements[$key]['data-drupal-states'] = Json::encode($elements['#states']);
+  // Make sure to include target class for this container.
+  if (empty($elements[$key]['class']) || !WebformArrayHelper::inArray(['js-form-item', 'js-form-submit', 'js-form-wrapper'], $elements[$key]['class'])) {
+    $elements[$key]['class'][] = 'js-form-item';
+  }
+}
+
+/******************************************************************************/
+// Element info hooks.
+/******************************************************************************/
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function webform_element_info_alter(array &$info) {
+  $info['checkboxes']['#process'][] = 'webform_process_options';
+  $info['radios']['#process'][] = 'webform_process_options';
+}
+
+/**
+ * Process radios or checkboxes descriptions.
+ *
+ * @param array $element
+ *   An associative array containing the properties and children of the
+ *   radios or checkboxes element.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The current state of the form.
+ * @param array $complete_form
+ *   The complete webform structure.
+ *
+ * @return array
+ *   The processed element.
+ */
+function webform_process_options(&$element, FormStateInterface $form_state, &$complete_form) {
+  if (!empty($element['#options_description_display'])) {
+    $description_property_name = ($element['#options_description_display'] == 'help') ? '#help' : '#description';
+    foreach (Element::children($element) as $key) {
+      $title = (string) $element[$key]['#title'];
+      // Check for -- delimiter.
+      if (strpos($title, WebformOptionsHelper::DESCRIPTION_DELIMITER) === FALSE) {
+        continue;
+      }
+
+      list($title, $description) = explode(WebformOptionsHelper::DESCRIPTION_DELIMITER, $title);
+      $element[$key]['#title'] = Markup::create($title);
+      $element[$key][$description_property_name] = Markup::create($description);
+    }
+  }
+  return $element;
+}
+
+/******************************************************************************/
+// Private functions.
+/******************************************************************************/
+
+/**
+ * Provides custom PHP error handling when webform rendering is validated.
+ *
+ * Converts E_RECOVERABLE_ERROR to WARNING so that an exceptions can be thrown
+ * and caught by
+ * \Drupal\webform\WebformEntityElementsValidator::validateRendering().
+ *
+ * @param int $error_level
+ *   The level of the error raised.
+ * @param string $message
+ *   The error message.
+ * @param string $filename
+ *   The filename that the error was raised in.
+ * @param int $line
+ *   The line number the error was raised at.
+ * @param array $context
+ *   An array that points to the active symbol table at the point the error
+ *   occurred.
+ *
+ * @throws \ErrorException
+ *   Throw ErrorException for E_RECOVERABLE_ERROR errors.
+ *
+ * @see \Drupal\webform\WebformEntityElementsValidator::validateRendering()
+ */
+function _webform_entity_element_validate_rendering_error_handler($error_level, $message, $filename, $line, array $context) {
+  // From: http://stackoverflow.com/questions/15461611/php-try-catch-not-catching-all-exceptions
+  if (E_RECOVERABLE_ERROR === $error_level) {
+    // Allow Drupal to still log the error but convert it to a warning.
+    _drupal_error_handler(E_WARNING, $message, $filename, $line, $context);
+    throw new ErrorException($message, $error_level, 0, $filename, $line);
+  }
+  else {
+    _drupal_error_handler($message, $message, $filename, $line, $context);
+  }
+}
+
+/**
+ * Implements hook_query_alter().
+ *
+ * Append EAV sort to webform_submission entity query.
+ *
+ * @see http://stackoverflow.com/questions/12893314/sorting-eav-database
+ * @see \Drupal\webform\WebformSubmissionListBuilder::getEntityIds
+ */
+function webform_query_alter(AlterableInterface $query) {
+  /** @var \Drupal\Core\Database\Query\SelectInterface $query */
+  $name = $query->getMetaData('webform_submission_element_name');
+  if (!$name) {
+    return;
+  }
+
+  $direction = $query->getMetaData('webform_submission_element_direction');
+  $property_name = $query->getMetaData('webform_submission_element_property_name');
+
+  $query->distinct();
+  $query->addJoin('INNER', 'webform_submission_data', NULL, 'base_table.sid = webform_submission_data.sid');
+  $query->addField('webform_submission_data', 'value', 'value');
+  $query->condition('name', $name);
+  if ($property_name) {
+    $query->condition('property', $property_name);
+  }
+  $query->orderBy('value', $direction);
+}

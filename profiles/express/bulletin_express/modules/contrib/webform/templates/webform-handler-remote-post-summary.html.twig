@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of a webform remote posts handler.
+ *
+ * Available variables:
+ * - settings: The current configuration for this remote post handler:
+ * - handler: The handler information, including:
+ *   - id: The handler plugin id.
+ *   - handler_id: The handler id.
+ *   - label: The handler label.
+ *   - description: The handler description.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if settings.debug %}<b class="color-error">{{ 'Debugging is enabled'|t }}</b><br/>{% endif %}
+<b>{{ 'Insert URL:'|t }}</b> {{ settings.insert_url }}<br/>
+{% if settings.update_url %}<b>{{ 'Update URL:'|t }}</b> {{ settings.update_url }}<br/>{% endif %}
+{% if settings.delete_url %}<b>{{ 'Delete URL:'|t }}</b> {{ settings.delete_url }}<br/>{% endif %}
+<b>{{ 'Type:'|t }}</b> {{ settings.type }}<br/>

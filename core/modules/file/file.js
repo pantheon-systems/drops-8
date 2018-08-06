@@ -93,7 +93,11 @@
       $(event.target).closest('.js-form-managed-file').find('.js-form-submit').trigger('mousedown');
     },
     disableFields: function disableFields(event) {
-      var $clickedButton = $(this);
+      var $clickedButton = $(this).findOnce('ajax');
+
+      if (!$clickedButton.length) {
+        return;
+      }
 
       var $enabledFields = [];
       if ($clickedButton.closest('div.js-form-managed-file').length > 0) {

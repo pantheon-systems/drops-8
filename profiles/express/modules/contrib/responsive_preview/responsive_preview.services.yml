@@ -1,0 +1,14 @@
+services:
+  cache_context.route.is_admin:
+      class: Drupal\responsive_preview\Cache\RouteAdminCacheContext
+      arguments: ['@router.admin_context']
+      tags:
+        - { name: cache.context }
+  responsive_preview:
+      class: Drupal\responsive_preview\ResponsivePreview
+      arguments:
+        - '@router.admin_context'
+        - '@path.current'
+        - '@current_route_match'
+        - '@entity_type.manager'
+        - '@current_user'

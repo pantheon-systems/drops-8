@@ -1,0 +1,16 @@
+{
+  "name": "drupal/markdown",
+  "description": "Allows content to be submitted using Markdown, a simple plain-text syntax that is transformed into valid HTML.",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/markdown",
+  "support": {
+    "issues": "https://www.drupal.org/project/markdown",
+    "source": "https://cgit.drupalcode.org/markdown"
+  },
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": {
+    "league/commonmark": "^0.15.0",
+    "michelf/php-markdown": "^1.6"
+  }
+}

@@ -1,0 +1,11 @@
+webform_node.entity_references:
+  version: VERSION
+  css:
+    theme:
+      css/webform_node.entity_references.css: {}
+
+webform_node.references:
+  version: VERSION
+  css:
+    theme:
+      css/webform_node.references.css: {}

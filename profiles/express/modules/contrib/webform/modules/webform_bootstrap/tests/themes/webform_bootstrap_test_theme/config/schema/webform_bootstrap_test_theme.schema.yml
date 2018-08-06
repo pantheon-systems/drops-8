@@ -1,0 +1,3 @@
+webform_bootstrap_test_theme.settings:
+  type: theme_settings
+  label: 'Webform Test Bootstrap settings'

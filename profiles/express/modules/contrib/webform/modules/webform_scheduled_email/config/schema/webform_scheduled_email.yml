@@ -1,0 +1,86 @@
+# Schema for the configuration files of the Webform schedule email module.
+webform.handler.scheduled_email:
+  type: mapping
+  label: 'Scheduled email'
+  mapping:
+    states:
+      type: sequence
+      label: 'States'
+      sequence:
+        type: string
+        label: 'State'
+    to_mail:
+      label: 'Email to address'
+      type: email
+    to_options:
+      label: 'Email to address options'
+      type: ignore
+    bcc_mail:
+      label: 'Email BCC address'
+      type: email
+    bcc_options:
+      label: 'Email BCC address options'
+      type: ignore
+    cc_mail:
+      label: 'Email CC address'
+      type: email
+    cc_options:
+      label: 'Email CC address options'
+      type: ignore
+    from_mail:
+      label: 'Email from address'
+      type: email
+    from_options:
+      label: 'Email from address options'
+      type: ignore
+    from_name:
+      label: 'Email from name'
+      type: label
+    reply_to:
+      type: label
+      label: 'Reply to email'
+    return_path:
+      type: label
+      label: 'Return path email'
+    sender_mail:
+      type: email
+      label: 'Sender email'
+    sender_name:
+      type: label
+      label: 'Sender name'
+    subject:
+      label: 'Email subject'
+      type: label
+    body:
+      label: 'Email body'
+      type: text
+    excluded_elements:
+      type: sequence
+      label: 'Exclude elements'
+      sequence:
+        type: string
+        label: 'Element name'
+    ignore_access:
+      type: boolean
+      label: 'Always include private and restricted access elements.'
+    exclude_empty:
+      type: boolean
+      label: 'Preview exclude empty elements'
+    html:
+      type: boolean
+      label: 'HTML'
+    attachments:
+      type: boolean
+      label: 'Attachments'
+    debug:
+      type: boolean
+      label: 'Enable debugging'
+    send:
+      type: string
+      label: 'Send on (YYYY-MM-DD or [token])'
+    days:
+      type: integer
+      label: 'After/before days'
+    unschedule:
+      type: boolean
+      label: 'Unschedule email when draft or submission is saved'

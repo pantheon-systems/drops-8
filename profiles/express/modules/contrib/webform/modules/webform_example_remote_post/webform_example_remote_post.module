@@ -1,0 +1,40 @@
+<?php
+
+/**
+ * @file
+ * Provides an example of a webform submission posted to a remote server.
+ */
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_webform_load().
+ *
+ * Using hook_webform_load() instead of hook_install() to make sure the
+ * remote post URLs are set to the correct base URL and path.
+ */
+function webform_example_remote_post_webform_load(array $entities) {
+  if (isset($entities['example_remote_post']) && PHP_SAPI !== 'cli') {
+    // Reset remote post URL to the current base URL and base path.
+    /** @var \Drupal\webform\WebformInterface $webform */
+    $webform = $entities['example_remote_post'];
+    /** @var \Drupal\webform\Plugin\WebformHandler\RemotePostWebformHandler $handler */
+    $handler = $webform->getHandler('remote_post');
+
+    $configuration = $handler->getConfiguration();
+    $states = ['completed', 'updated', 'deleted'];
+    foreach ($states as $state) {
+      // The 'webform_example_remote_post.remote_post' will not be available
+      // during installation so wrap Url::fromRoute() in try/catch.
+      try {
+        if ($configuration['settings'][$state . '_url'] === "/webform_example_remote_post/$state") {
+          $configuration['settings'][$state . '_url'] = Url::fromRoute('webform_example_remote_post.remote_post', ['type' => $state], ['absolute' => TRUE])->toString();
+        }
+      }
+      catch (\Exception $exception) {
+        return;
+      }
+    }
+    $handler->setConfiguration($configuration);
+  }
+}

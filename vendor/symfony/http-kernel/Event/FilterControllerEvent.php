@@ -11,8 +11,8 @@
 
 namespace Symfony\Component\HttpKernel\Event;
 
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Allows filtering of a controller callable.

@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Theme implementation for webform element help
+ *
+ * Available variables
+ * - element: form element
+ * - help: Help content.
+ * - help_icon: Help icon.
+ *
+ * @see template_preprocess_webform_element_help()
+ *
+ * @ingroup themeable
+ */
+#}
+{% spaceless %}
+{{ attach_library('webform/webform.element.help') }}
+{{ help_icon }}
+{% endspaceless %}
+

@@ -1,0 +1,12 @@
+'view webform submissions any node':
+  title: 'View webform submissions for any node'
+'view webform submissions own node':
+  title: 'View webform submissions for own node'
+'edit webform submissions any node':
+  title: 'Edit webform submissions for any node'
+'edit webform submissions own node':
+  title: 'Edit webform submissions for own node'
+'delete webform submissions any node':
+  title: 'Delete webform submissions for any node'
+'delete webform submissions own node':
+  title: 'Delete webform submissions for own node'

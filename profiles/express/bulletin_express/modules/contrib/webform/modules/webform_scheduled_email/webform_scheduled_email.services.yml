@@ -1,0 +1,4 @@
+services:
+  webform_scheduled_email.manager:
+    class: Drupal\webform_scheduled_email\WebformScheduledEmailManager
+    arguments: ['@database', '@entity_type.manager', '@logger.channel.webform', '@webform.token_manager']

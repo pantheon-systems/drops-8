@@ -1,0 +1,164 @@
+/**
+ * @file
+ * Admin styles
+ */
+
+/**
+ * Local actions.
+ */
+.webform-form .action-links {
+  margin-bottom: 0;
+}
+
+/**
+ * Webform setting button displays a gear icon.
+ * @see /admin/structure/webform/manage/contact/results/submissions
+ */
+.button.button-webform-table-setting {
+  margin: 0 0 1em 0;
+}
+
+.button.button-webform-table-setting:before {
+  content: '☷';
+  font-size: 1.2em;
+}
+
+/**
+ * Filter webform and submissions.
+ * @see /admin/structure/webform
+ * @see /admin/structure/webform/templates
+ */
+.webform-filter-form .form-submit {
+  margin-left: 0;
+  margin-right: 5px;
+}
+
+.webform-filter-form .form-item {
+  margin-right: 5px;
+}
+
+@media screen and (max-width: 600px) {
+  .webform-filter-form .form-item {
+    display: block;
+    margin-right: 0;
+  }
+}
+
+/**
+ * Results table.
+ * @see /admin/structure/webform/submissions/manage
+ * @see /admin/structure/webform/manage/contact/results/submissions
+ */
+.webform-results__table th,
+.webform-results__table td {
+  max-width: 400px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Make sure 'Operations' is never cut-off */
+.webform-results__table td:last-child {
+  overflow: visible;
+  max-width: inherit;
+  white-space: normal;
+}
+
+th.webform-results__icon,
+td.webform-results__icon {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Hide throbber, which breaks icon alignment */
+.webform-results__icon .ajax-progress-throbber,
+a.webform-results__custom + .ajax-progress-throbber {
+  display: none;
+}
+
+/* Entire row is clickable. @see Drupal.behaviors.webformTableRowHref */
+.webform-results__table tbody tr {
+  cursor: pointer;
+  cursor: hand;
+}
+
+/**
+ * Results custom(ize) dialog.
+ */
+.webform-results__custom .tabledrag-changed-warning,
+.webform-results__custom .tabledrag-changed /* Hide table drag warnings. */ {
+  display: none !important; /* Must use !important because .tabledrag-changed 'display' is set via JavaScript */
+}
+
+/**
+ * Results icons (sticky & notes)
+ */
+.webform-icon {
+  display: inline-block;
+  height: 16px;
+  width: 16px;
+  text-align: center;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: 100% auto;
+  vertical-align: -2px;
+}
+
+.webform-icon-notes--on {
+  background-image: url(../images/icons/notes-on.svg);
+}
+
+.webform-icon-notes--off {
+  background-image: url(../images/icons/notes-off.svg);
+}
+
+.webform-icon-notes--link {
+  background-image: url(../images/icons/notes-link.svg);
+}
+
+a:hover .webform-icon-notes--on,
+a:focus .webform-icon-notes--on,
+a:hover .webform-icon-notes--off,
+a:focus .webform-icon-notes--off {
+  background-image: url(../images/icons/notes-link.svg);
+}
+
+.webform-icon-sticky {
+  background: transparent url(../images/icons/sticky.svg) no-repeat left top;
+  display: inline-block;
+  background-size: 64px 16px;
+}
+
+.webform-icon-sticky--off:hover,
+.webform-icon-sticky--off:focus {
+  background-position: -16px top;
+}
+.webform-icon-sticky--on {
+  background-position: -32px top;
+}
+.webform-icon-sticky--on:focus,
+.webform-icon-sticky--on:hover {
+  background-position: -48px top;
+}
+
+.webform-icon-sticky--link {
+  background: transparent url(../images/icons/sticky-link.svg) no-repeat left top;
+}
+
+/**
+ * Submission view table.
+ * @see /admin/structure/webform/manage/{webform_id}/submission/{webform_submission_id}/table
+ */
+.webform-submission__table th {
+  width: 33%;
+  min-width: 100px;
+}
+
+.webform-submission__table td {
+  width: 66%;
+}
+
+.webform-horizontal-rule {
+  margin: .5em 0;
+}

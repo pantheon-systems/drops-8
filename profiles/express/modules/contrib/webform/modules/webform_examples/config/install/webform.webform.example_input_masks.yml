@@ -1,0 +1,180 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples
+open: null
+close: null
+uid: null
+template: false
+id: example_input_masks
+title: 'Example: Input Masks'
+description: 'Examples of elements with <a href="https://github.com/RobinHerbots/jquery.inputmask">input masks</a>.'
+category: Example
+elements: |
+  masks:
+    '#type': details
+    '#title': 'Simple masks'
+    '#open': true
+    phone:
+      '#type': textfield
+      '#title': Phone
+      '#input_mask': '(999) 999-9999'
+    zip:
+      '#type': textfield
+      '#title': 'Zip code'
+      '#input_mask': '99999[-9999]'
+    ssn:
+      '#type': textfield
+      '#title': SSN
+      '#input_mask': 999-99-9999
+    license_plate:
+      '#type': textfield
+      '#title': 'License plate'
+      '#input_mask': '[9-]AAA-999'
+  aliases:
+    '#type': details
+    '#title': Aliases
+    '#open': true
+    email:
+      '#type': textfield
+      '#title': Email
+      '#input_mask': '''alias'': ''email'''
+    date:
+      '#type': textfield
+      '#title': 'Date (mm/dd/yyyy)'
+      '#input_mask': '''alias'': ''mm/dd/yyyy'''
+    currency:
+      '#type': textfield
+      '#title': Currency
+      '#input_mask': '''alias'': ''currency'''
+      '#attributes':
+        style: 'text-align: right'
+    numeric:
+      '#type': textfield
+      '#title': Numeric
+      '#input_mask': '''alias'': ''numeric'', ''groupSeparator'': '','', ''autoGroup'': true, ''digits'': 2, ''digitsOptional'': false, ''prefix'': ''$ '', ''placeholder'': ''0'''
+      '#attributes':
+        style: 'text-align: right'
+    percentage:
+      '#type': textfield
+      '#title': 'Percentage (default)'
+      '#input_mask': '''alias'': ''percentage'''
+      '#attributes':
+        style: 'text-align: right'
+    ip:
+      '#type': textfield
+      '#title': 'IP address'
+      '#input_mask': '''alias'': ''ip'''
+    mac:
+      '#type': textfield
+      '#title': 'MAC addresses'
+      '#input_mask': '''alias'': ''mac'''
+    vin:
+      '#type': textfield
+      '#title': 'VIN (Vehicle identification number)'
+      '#input_mask': '''alias'': ''vin'''
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,31 @@
+crop.overview_types:
+  path: '/admin/config/media/crop'
+  defaults:
+    _controller: '\Drupal\Core\Entity\Controller\EntityListController::listing'
+    entity_type: 'crop_type'
+    _title: 'Crop types'
+  requirements:
+    _permission: 'administer crop types'
+
+crop.type_add:
+  path: '/admin/config/media/crop/add'
+  defaults:
+    _entity_form: 'crop_type.add'
+    _title: 'Add crop type'
+  requirements:
+    _permission: 'administer crop types'
+
+entity.crop_type.edit_form:
+  path: '/admin/config/media/crop/manage/{crop_type}'
+  defaults:
+    _entity_form: 'crop_type.edit'
+  requirements:
+    _permission: 'administer crop types'
+
+entity.crop_type.delete_form:
+  path: '/admin/config/media/crop/manage/{crop_type}/delete'
+  defaults:
+    _entity_form: 'crop_type.delete'
+    _title: 'Delete'
+  requirements:
+    _entity_access: 'crop_type.delete'

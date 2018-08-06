@@ -1,0 +1,26 @@
+uuid: 2af07335-0ac5-45b6-8ac9-4f74a936667c
+langcode: en
+status: false
+dependencies:
+  config:
+    - system.menu.tools
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: yOmvNhBwD40AumYLrKNflv_OdY_JHM6FJ9uSHrOzdc4
+id: catapult_tools
+theme: catapult
+region: header
+weight: -2
+provider: null
+plugin: 'system_menu_block:tools'
+settings:
+  id: 'system_menu_block:tools'
+  label: Tools
+  provider: system
+  label_display: visible
+  level: 1
+  depth: 0
+visibility: {  }

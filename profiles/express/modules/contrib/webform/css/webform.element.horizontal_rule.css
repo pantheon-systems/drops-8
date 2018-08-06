@@ -1,0 +1,116 @@
+/**
+ * @file
+ * Element horizontal rule styles.
+ *
+ * @see https://css-tricks.com/examples/hrs/
+ */
+
+hr.webform-horizontal-rule {
+  margin: 1em 0;
+}
+
+/* Dashed */
+
+hr.webform-horizontal-rule--dashed {
+  border: 0;
+  border-bottom: 1px dashed #666;
+  background-color: transparent;
+}
+
+hr.webform-horizontal-rule--dashed.webform-horizontal-rule--medium {
+  border-width: 3px;
+}
+
+hr.webform-horizontal-rule--dashed.webform-horizontal-rule--thick {
+  border-width: 6px;
+}
+
+/* Dotted */
+
+hr.webform-horizontal-rule--dotted {
+  border: 0;
+  border-bottom: 1px dotted #666;
+  background-color: transparent;
+}
+
+hr.webform-horizontal-rule--dotted.webform-horizontal-rule--medium {
+  border-width: 5px;
+}
+
+hr.webform-horizontal-rule--dotted.webform-horizontal-rule--thick {
+  border-width: 10px;
+}
+
+/* Flaired (by Tomas Theunissen) */
+
+hr.webform-horizontal-rule--flaired {
+  overflow: visible; /* For IE */
+  height: 30px;
+  border-style: solid;
+  border-color: #666;
+  border-width: 1px 0 0 0;
+  border-radius: 20px;
+}
+
+hr.webform-horizontal-rule--flaired:before { /* Not really supposed to work, but does */
+  display: block;
+  content: "";
+  height: 30px;
+  margin-top: -31px;
+  border-style: solid;
+  border-color: #666;
+  border-width: 0 0 1px 0;
+  border-radius: 20px;
+}
+
+/* Glyph (by Harry Roberts) */
+
+hr.webform-horizontal-rule--glyph {
+  overflow: visible; /* For IE */
+  padding: 0;
+  border: none;
+  border-top: medium double #666;
+  color: #666;
+  text-align: center;
+}
+
+hr.webform-horizontal-rule--glyph:after {
+  content: "§";
+  display: inline-block;
+  position: relative;
+  top: -0.7em;
+  font-size: 1.5em;
+  padding: 0 0.25em;
+  background: white;
+}
+
+/* Gradient */
+
+hr.webform-horizontal-rule--gradient {
+  border: 0;
+  height: 1px;
+  background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0));
+}
+
+hr.webform-horizontal-rule--gradient.webform-horizontal-rule--medium {
+  height: 3px;
+}
+
+hr.webform-horizontal-rule--gradient.webform-horizontal-rule--thick {
+  height: 6px;
+}
+
+/* Dashed */
+
+hr.webform-horizontal-rule--solid {
+  border: 0;
+  border-bottom: 1px solid #666;
+}
+
+hr.webform-horizontal-rule--solid.webform-horizontal-rule--medium {
+  border-width: 5px;
+}
+
+hr.webform-horizontal-rule--solid.webform-horizontal-rule--thick {
+  border-width: 10px;
+}

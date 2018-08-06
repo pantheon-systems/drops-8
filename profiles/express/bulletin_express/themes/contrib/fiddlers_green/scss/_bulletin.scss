@@ -1,0 +1,64 @@
+.bulletin-title {
+  margin-bottom: -20px;
+}
+.bulletin-image, .field--name-field-photo img {
+  float: left;
+  margin: 0 2% 2% 0;
+  max-width: 33.34%;
+  height: auto;
+}
+.bulletin-body {
+
+}
+.field--name-field-bulletin-contact-name, .field--name-field-bulletin-desired-publicati {
+  float: left;
+  padding-right: 0.5em;
+
+  &:after {
+    content: ' | '
+  }
+}
+.bulletin-footer {
+  clear: both;
+  background: #f7f7f7;
+  margin-top: 1%;
+  margin-bottom: 5%;
+  padding: 1%;
+  border-bottom: 1px solid #e2e2e2;
+  overflow: hidden;
+}
+.form-inline .form-control {
+  width: 100% !important;
+}
+#edit-webform-submission-value-1--2.form-control {
+  font-size: 20px;
+}
+
+div.webform-options-display-one-column .form-item, div#edit-webform-submission-value-1--2--wrapper .form-item {
+  margin-right: 26%;
+}
+
+/* Portrait and Landscape */
+@media only screen and (min-device-width: 768px) {
+  div.view-filters {
+    float: right;
+    width: 24%;
+    overflow: hidden;
+  }
+  div.view-content {
+    float: left;
+    width: 74%;
+  }
+  nav.pager-nav {
+    clear: both;
+  }
+  #block-logintocreatebulletins, #block-viewmysubmissions {
+    margin: 0 0 0 900px;
+    padding-top: 10px;
+  }
+  #block-logintocreatebulletins a, #block-viewmysubmissions a {
+    margin-top: 1%;
+    float: right;
+    color: black;
+  }
+}

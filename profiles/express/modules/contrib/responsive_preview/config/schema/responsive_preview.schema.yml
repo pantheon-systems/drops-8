@@ -1,0 +1,40 @@
+# Schema for the configuration files of the Responsive preview module.
+
+responsive_preview.device.*:
+  type: mapping
+  label: 'Responsive preview device'
+  mapping:
+    id:
+      type: string
+      label: 'Device ID'
+    uuid:
+      type: string
+      label: 'UUID'
+    label:
+      type: label
+      label: 'Device name'
+    weight:
+      type: integer
+      label: 'Device weight'
+    status:
+      type: integer
+      label: 'Show in preview list'
+    orientation:
+      type: string
+      label: 'Default orientation'
+    dimensions:
+      type: mapping
+      label: 'Dimensions'
+      mapping:
+        width:
+          type: integer
+          label: 'Width'
+        height:
+          type: integer
+          label: 'Height'
+        dppx:
+          type: float
+          label: 'Dots per pixel (dppx)'
+    langcode:
+      type: string
+      label: 'Default language'

@@ -42,7 +42,7 @@ class StreamOutput extends Output
      */
     public function __construct($stream, $verbosity = self::VERBOSITY_NORMAL, $decorated = null, OutputFormatterInterface $formatter = null)
     {
-        if (!\is_resource($stream) || 'stream' !== get_resource_type($stream)) {
+        if (!is_resource($stream) || 'stream' !== get_resource_type($stream)) {
             throw new InvalidArgumentException('The StreamOutput class needs a stream as its first argument.');
         }
 
@@ -83,38 +83,31 @@ class StreamOutput extends Output
      *
      * Colorization is disabled if not supported by the stream:
      *
-     * This is tricky on Windows, because Cygwin, Msys2 etc emulate pseudo
-     * terminals via named pipes, so we can only check the environment.
-     *
-     * Reference: Composer\XdebugHandler\Process::supportsColor
-     * https://github.com/composer/xdebug-handler
+     *  -  the stream is redirected (eg php file.php >log)
+     *  -  Windows without VT100 support, Ansicon, ConEmu, Mintty
+     *  -  non tty consoles
      *
      * @return bool true if the stream supports colorization, false otherwise
      */
     protected function hasColorSupport()
     {
-        if ('Hyper' === getenv('TERM_PROGRAM')) {
-            return true;
+        if (function_exists('stream_isatty') && !@stream_isatty($this->stream)) {
+            return false;
         }
+        if (DIRECTORY_SEPARATOR === '\\') {
+            if (function_exists('sapi_windows_vt100_support')) {
+                $vt100Enabled = @sapi_windows_vt100_support($this->stream);
+            } else {
+                $vt100Enabled = '10.0.10586' === PHP_WINDOWS_VERSION_MAJOR.'.'.PHP_WINDOWS_VERSION_MINOR.'.'.PHP_WINDOWS_VERSION_BUILD;
+            }
 
-        if (\DIRECTORY_SEPARATOR === '\\') {
-            return (\function_exists('sapi_windows_vt100_support')
-                && @sapi_windows_vt100_support($this->stream))
+            return
+                $vt100Enabled
                 || false !== getenv('ANSICON')
                 || 'ON' === getenv('ConEmuANSI')
                 || 'xterm' === getenv('TERM');
         }
 
-        if (\function_exists('stream_isatty')) {
-            return @stream_isatty($this->stream);
-        }
-
-        if (\function_exists('posix_isatty')) {
-            return @posix_isatty($this->stream);
-        }
-
-        $stat = @fstat($this->stream);
-        // Check if formatted mode is S_IFCHR
-        return $stat ? 0020000 === ($stat['mode'] & 0170000) : false;
+        return function_exists('posix_isatty') && @posix_isatty($this->stream);
     }
 }

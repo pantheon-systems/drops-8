@@ -1,0 +1,4 @@
+xmlsitemap_engines.settings:
+  route_name: xmlsitemap_engines.settings
+  base_route: xmlsitemap.admin_search
+  title: 'Search Engines'

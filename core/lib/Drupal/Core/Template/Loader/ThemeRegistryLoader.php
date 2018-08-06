@@ -36,8 +36,8 @@ class ThemeRegistryLoader extends \Twig_Loader_Filesystem {
    * @param bool $throw
    *   Whether to throw an exception when an error occurs.
    *
-   * @return string|false
-   *   The path to the template, or false if the template is not found.
+   * @return string
+   *   The path to the template.
    *
    * @throws \Twig_Error_Loader
    *   Thrown if a template matching $name cannot be found.
@@ -63,8 +63,6 @@ class ThemeRegistryLoader extends \Twig_Loader_Filesystem {
     if ($throw) {
       throw new \Twig_Error_Loader(sprintf('Unable to find template "%s" in the Drupal theme registry.', $name));
     }
-
-    return FALSE;
   }
 
 }

@@ -1,0 +1,26 @@
+.video-embed-widget {
+  text-align: center;
+  display: block;
+  padding-top: 15px;
+}
+
+.video-embed-widget:before {
+  content: '\25b6';
+  font-size: 120px;
+  color: #fff;
+  opacity: 0.9;
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 0;
+  top: 50%;
+  margin-top: -71px;
+  text-shadow: 0px 0px 40px #000;
+}
+
+.video-embed-widget__summary {
+  font-style: italic;
+  display: block;
+  padding: 15px;
+  font-size: 13px;
+}

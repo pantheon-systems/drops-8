@@ -1,0 +1,7 @@
+markdown.settings:
+  type: mapping
+  label: 'Markdown settings'
+  mapping:
+    markdown_library:
+      type: string
+      label: 'Markdown library'

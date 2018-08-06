@@ -1,0 +1,23 @@
+/**
+ * @file
+ * Webform node entity references styling.
+ */
+
+.js .webform-node-entity-references .dropbutton-wrapper {
+  display: block;
+  position: relative;
+}
+
+.js .webform-node-entity-references .dropbutton-widget {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/**
+ * If dropbutton is in a contextual  region we need to move it to the left to
+ * prevent it from overlapping with the pencil icon.
+ */
+.js .contextual-region .webform-node-entity-references .dropbutton-widget {
+  right: 40px;
+}

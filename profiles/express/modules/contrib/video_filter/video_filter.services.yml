@@ -1,0 +1,4 @@
+services:
+  plugin.manager.video_filter:
+    class: Drupal\video_filter\VideoFilterManager
+    parent: default_plugin_manager

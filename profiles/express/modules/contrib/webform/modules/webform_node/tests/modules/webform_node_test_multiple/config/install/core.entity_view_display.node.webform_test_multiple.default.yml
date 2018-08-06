@@ -1,0 +1,38 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.webform_test_multiple.field_webform_test_multiple_a
+    - field.field.node.webform_test_multiple.field_webform_test_multiple_b
+    - node.type.webform_test_multiple
+  module:
+    - user
+    - webform
+id: node.webform_test_multiple.default
+targetEntityType: node
+bundle: webform_test_multiple
+mode: default
+content:
+  field_webform_test_multiple_a:
+    weight: 102
+    label: above
+    settings:
+      source_entity: true
+    third_party_settings: {  }
+    type: webform_entity_reference_entity_view
+    region: content
+  field_webform_test_multiple_b:
+    weight: 103
+    label: above
+    settings:
+      source_entity: true
+    third_party_settings: {  }
+    type: webform_entity_reference_entity_view
+    region: content
+  links:
+    weight: 100
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  langcode: true

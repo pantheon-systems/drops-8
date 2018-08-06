@@ -1,0 +1,23 @@
+/**
+ * @file
+ * Stylesheet for the diff table.
+ */
+td.diff-section-title,
+div.diff-section-title {
+  background-color: #f0f0ff;
+}
+td.diff-deletedline {
+  background-color: #fdd;
+}
+td.diff-addedline {
+  background-color: #dfd;
+}
+td.field-name {
+  background-color: #f7fcff;
+}
+td.diff-addedline span.diffchange {
+  background-color: #77f177;
+}
+td.diff-deletedline span.diffchange {
+  background-color: #faa;
+}

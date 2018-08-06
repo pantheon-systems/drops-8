@@ -187,9 +187,7 @@ class OverridesSectionStorage extends SectionStorageBase implements ContainerFac
    * {@inheritdoc}
    */
   public function getDefaultSectionStorage() {
-    // @todo Expand to work for all view modes in
-    //   https://www.drupal.org/node/2907413.
-    return LayoutBuilderEntityViewDisplay::collectRenderDisplay($this->getEntity(), 'full');
+    return LayoutBuilderEntityViewDisplay::collectRenderDisplay($this->getEntity(), 'default');
   }
 
   /**

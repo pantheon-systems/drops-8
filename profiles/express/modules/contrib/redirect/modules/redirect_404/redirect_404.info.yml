@@ -1,0 +1,14 @@
+name: 'Redirect 404'
+type: module
+description: 'Logs 404 errors and allows users to create redirects for often requested but missing pages.'
+# core: 8.x
+
+dependencies:
+ - redirect
+ - views
+
+# Information added by Drupal.org packaging script on 2017-07-30
+version: '8.x-1.0-beta1'
+core: '8.x'
+project: 'redirect'
+datestamp: 1501443548

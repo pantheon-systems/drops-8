@@ -743,7 +743,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
    * Takes care of entity deletion.
    */
   public function entityFormDelete($form, FormStateInterface $form_state) {
-    $form_object = $form_state->getFormObject();
+    $form_object = $form_state->getFormObject()->getEntity();
     $entity = $form_object->getEntity();
     if (count($entity->getTranslationLanguages()) > 1) {
       drupal_set_message(t('This will delete all the translations of %label.', ['%label' => $entity->label()]), 'warning');

@@ -1,0 +1,6 @@
+
+user_external_invite 8.x-1.x-dev
+==================
+Issue #2839704 by afinnarn: Add info file
+
+

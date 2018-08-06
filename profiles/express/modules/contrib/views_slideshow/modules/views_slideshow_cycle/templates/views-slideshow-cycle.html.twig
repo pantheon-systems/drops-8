@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow with cycle main plugin.
+ *
+ * Available variables:
+ * - bottom_widget_rendered: Widget under the slideshow with controls/data.
+ * - skin: The skin being applied to the slideshow.
+ * - slideshow: The slideshow.
+ * - top_widget_rendered: Widget above the slideshow with controls/data.
+ *
+ * @see _views_slideshow_preprocess_views_view_slideshow()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div class="skin-{{ skin }}">
+  {% if top_widget_rendered %}
+    <div class="views-slideshow-controls-top clearfix">
+      {{ top_widget_rendered }}
+    </div>
+  {% endif %}
+
+  {{ slideshow }}
+
+  {% if bottom_widget_rendered %}
+    <div class="views-slideshow-controls-bottom clearfix">
+      {{ bottom_widget_rendered }}
+    </div>
+  {% endif %}
+</div>

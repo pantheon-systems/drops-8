@@ -24,7 +24,7 @@ class EntityReferenceFieldItemList extends FieldItemList implements EntityRefere
    * {@inheritdoc}
    */
   public function referencedEntities() {
-    if ($this->isEmpty()) {
+    if (empty($this->list)) {
       return [];
     }
 

@@ -1,0 +1,84 @@
+# Schema for the configuration files of the SimpleSAMLphp_auth module.
+
+simplesamlphp_auth.settings:
+  type: mapping
+  label: 'SimpleSAMLphp Auth Settings'
+  mapping:
+    langcode:
+      type: string
+      label: 'Language code'
+    default_langcode:
+      type: string
+      label: 'Site default language code'
+    activate:
+      type: boolean
+      label: 'Activate authentication via SimpleSAMLphp'
+    auth_source:
+      type: string
+      label: 'Authentication source for this SP'
+    login_link_display_name:
+      type: label
+      label: 'Federated Log In Link Display Name'
+    user_name:
+      type: string
+      label: 'SimpleSAMLphp attribute to be used as username for the user'
+    unique_id:
+      type: string
+      label: 'SimpleSAMLphp attribute to be used as unique identifier for the user'
+    mail_attr:
+      type: string
+      label: 'SimpleSAMLphp attribute to be used as email address for the user'
+    role:
+      type: mapping
+      label: 'Role population'
+      mapping:
+        population:
+          type: string
+          label: 'Automatic role population from simpleSAMLphp attributes'
+        eval_every_time:
+          type: boolean
+          label: 'Reevaluate roles every time the user logs in'
+    register_users:
+      type: boolean
+      label: 'Register users'
+    allow:
+      type: mapping
+      label: 'Drupal authentication'
+      mapping:
+        set_drupal_pwd:
+          type: boolean
+          label: 'Allow SAML users to set Drupal passwords'
+        default_login:
+          type: boolean
+          label: 'Allow authentication with local Drupal accounts'
+        default_login_roles:
+          type: sequence
+          label: 'Roles to be allowed to log in locally'
+          sequence:
+              type: string
+              label: 'role'
+        default_login_users:
+          type: string
+          label: 'Users to be allowed to log in locally'
+    logout_goto_url:
+      type: string
+      label: 'Redirect users after logging out'
+    user_register_original:
+      type: string
+      label: 'Original user register status'
+    sync:
+      type: mapping
+      label: 'Synchronize options'
+      mapping:
+        mail:
+          type: boolean
+          label: 'Synchronize mail on every login'
+        user_name:
+          type: boolean
+          label: 'Synchronize user_name on every login'
+    autoenablesaml:
+      type: boolean
+      label: 'Automatically enable SAML authentication for existing users upon successful login'
+    debug:
+      type: boolean
+      label: 'Expand the level of Drupal logging to include debugging information'

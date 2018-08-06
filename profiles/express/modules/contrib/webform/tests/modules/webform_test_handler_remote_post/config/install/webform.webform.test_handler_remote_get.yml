@@ -1,0 +1,192 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test_handler_remote_post
+open: null
+close: null
+uid: null
+template: false
+id: test_handler_remote_get
+title: 'Test: Handler: Remote HTTP GET'
+description: 'Test remote post handler using HTTP GET method.'
+category: 'Test: Handler'
+elements: |
+  response_type:
+    '#title': 'Response type'
+    '#type': select
+    '#options':
+      200: '200 OK'
+      500: '500 Internal Server Error'
+      404: '404 Not Found'
+    '#default_value': 200
+  first_name:
+    '#title': 'First name'
+    '#type': textfield
+    '#required': true
+    '#default_value': John
+  last_name:
+    '#title': 'Last name'
+    '#type': textfield
+    '#required': true
+    '#default_value': Smith
+  confirmation_number:
+    '#title': 'Confirmation number'
+    '#type': value
+    '#value': '[webform:handler:remote_post:completed:confirmation_number]'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: true
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: all
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: inline
+  confirmation_title: ''
+  confirmation_message: |
+    <p>Your confirmation number is [webform_submission:values:confirmation_number].</p>
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  remote_post:
+    id: remote_post
+    label: 'Remote HTTP GET'
+    handler_id: remote_post
+    status: true
+    conditions: {  }
+    weight: 1
+    settings:
+      method: GET
+      type: ''
+      excluded_data:
+        serial: serial
+        sid: sid
+        uuid: uuid
+        token: token
+        uri: uri
+        created: created
+        completed: completed
+        changed: changed
+        in_draft: in_draft
+        current_page: current_page
+        remote_addr: remote_addr
+        uid: uid
+        langcode: langcode
+        webform_id: webform_id
+        entity_type: entity_type
+        entity_id: entity_id
+        sticky: sticky
+        notes: notes
+        confirmation_number: confirmation_number
+      custom_data: |
+        custom_data: true
+      custom_options: |
+        headers:
+          custom_header: 'true'
+      debug: true
+      completed_url: 'http://webform-test-handler-remote-post/completed'
+      completed_custom_data: |
+        custom_completed: true
+      updated_url: 'http://webform-test-handler-remote-post/updated'
+      updated_custom_data: |
+        custom_updated: true
+      deleted_url: 'http://webform-test-handler-remote-post/deleted'
+      deleted_custom_data: |
+        custom_deleted: true
+      draft_url: 'http://webform-test-handler-remote-post/draft'
+      draft_custom_data: |
+        custom_draft: true
+      converted_url: 'http://webform-test-handler-remote-post/converted'
+      converted_custom_data: |
+        custom_converted: true

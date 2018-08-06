@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.webform_test_multiple.field_webform_test_multiple_a
+    - field.field.node.webform_test_multiple.field_webform_test_multiple_b
+    - node.type.webform_test_multiple
+  module:
+    - user
+id: node.webform_test_multiple.teaser
+targetEntityType: node
+bundle: webform_test_multiple
+mode: teaser
+content:
+  links:
+    weight: 100
+    region: content
+hidden:
+  field_webform_test_multiple_a: true
+  field_webform_test_multiple_b: true
+  langcode: true

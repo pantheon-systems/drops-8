@@ -1,0 +1,33 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform Test module.
+ */
+
+use Drupal\webform\Entity\Webform;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_install().
+ */
+function webform_test_handler_install() {
+
+  // Update 'Test: Handler: Remote post' URLs.
+  /** @var \Drupal\webform\WebformInterface $remote_post_webform */
+  $remote_post_webform = Webform::load('test_handler_remote_post');
+
+  /** @var \Drupal\webform\Plugin\WebformHandler\RemotePostWebformHandler $remote_post_handler */
+  $remote_post_handler = $remote_post_webform->getHandler('remote_post');
+  $remote_post_configuration = $remote_post_handler->getConfiguration();
+
+  // ISSUE: $base_url and $base_path are not working correctly so we are just
+  // going to use the front page.
+  $base_url = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
+  $remote_post_configuration['settings']['insert_url'] = $base_url . 'webform_test/remote_post/insert';
+  $remote_post_configuration['settings']['update_url'] = $base_url . 'webform_test/remote_post/update';
+  $remote_post_configuration['settings']['delete_url'] = $base_url . 'webform_test/remote_post/delete';
+  $remote_post_handler->setConfiguration($remote_post_configuration);
+
+  $remote_post_webform->save();
+}

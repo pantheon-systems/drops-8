@@ -1,0 +1,16 @@
+webform_ui:
+  version: 1.x
+  css:
+    theme:
+      css/webform_ui.module.css: {}
+  js:
+    js/webform_ui.js:  {}
+
+webform_ui.element:
+  version: 1.x
+  js:
+    js/webform_ui.element.js:  {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/jquery.once

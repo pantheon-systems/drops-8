@@ -1,0 +1,5 @@
+media_type:
+  label: 'Media type'
+  plugin_manager_service_id: plugin.manager.media_entity.type
+  plugin_definition_decorator_class: \Drupal\plugin\PluginDefinition\ArrayPluginDefinitionDecorator
+  plugin_configuration_schema_id: media_entity.bundle.type.[plugin_id]

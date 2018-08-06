@@ -1,0 +1,10 @@
+id: iphone_7
+label: 'iPhone 7'
+weight: -10
+status: 1
+orientation: portrait
+dimensions:
+  width: 750
+  height: 1334
+  dppx: !!float 2
+langcode: en

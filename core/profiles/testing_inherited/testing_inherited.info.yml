@@ -1,0 +1,21 @@
+name: Testing Inherited
+type: profile
+description: 'Profile for testing base profile inheritance.'
+version: VERSION
+core: 8.x
+hidden: true
+
+base profile:
+  name: testing
+  excluded_dependencies:
+    - page_cache
+  excluded_themes:
+    - classy
+
+dependencies:
+  - block
+  - config
+  - syslog
+
+themes:
+  - stable

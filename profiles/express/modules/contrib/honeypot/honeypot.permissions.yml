@@ -1,0 +1,7 @@
+'administer honeypot':
+  title: 'Administer Honeypot'
+  description: 'Administer Honeypot-protected forms and settings.'
+
+'bypass honeypot protection':
+  title: 'Bypass Honeypot protection'
+  description: 'Bypass Honeypot form protection.'

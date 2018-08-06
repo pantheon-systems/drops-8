@@ -1,0 +1,30 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.test_entity_reference_widget_view
+  module:
+    - views
+name: test_entity_browser_iframe_node_view
+label: 'Test entity browser iframe with view widget for nodes'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: true
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  2bc90663-50f6-4a01-98a3-734f97bf89eb:
+    settings:
+      view: test_entity_reference_widget_view
+      view_display: entity_browser_1
+      submit_text: 'Select entities'
+      auto_select: false
+    uuid: 2bc90663-50f6-4a01-98a3-734f97bf89eb
+    weight: 1
+    label: view
+    id: view

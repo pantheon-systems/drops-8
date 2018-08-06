@@ -1,0 +1,128 @@
+<?php
+
+/**
+ * @file
+ * Update scripts for the Metatag Open Graph module.
+ */
+
+use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\metatag\Entity\MetatagDefaults;
+
+/**
+ * Implementsations of hook_update_N().
+ */
+
+/**
+ * The "article:tags" meta tag was renamed to the correct "article:tag".
+ */
+function metatag_open_graph_update_8101() {
+  /* @var $configs Drupal\metatag\Entity\MetatagDefaults */
+  $configs = MetatagDefaults::loadMultiple();
+
+  foreach ($configs as $config) {
+    $tags = $config->get('tags');
+
+    if (array_key_exists("article_tags", $tags)) {
+      $tags['article_tag'] = $tags['article_tags'];
+      unset($tags['article_tags']);
+      $config->set("tags", $tags);
+      $config->save();
+    }
+  }
+}
+
+/**
+ * The "article_tags" tag config was renamed "article_tag" on content entities.
+ */
+function metatag_open_graph_update_8102(&$sandbox) {
+  // Update existing content with reference to old article_tags.
+  $etm = Drupal::entityTypeManager();
+
+  if (empty($sandbox)) {
+
+    $field_map = Drupal::getContainer()->get('entity_field.manager')->getFieldMap();
+    $sandbox['todo'] = [];
+    $sandbox['done'] = 0;
+    $sandbox['max'] = 0;
+    $sandbox['#finished'] = 0;
+
+    foreach ($field_map as $entity_type => $fields) {
+      foreach ($fields as $field_name => $field_def) {
+        if ($field_def['type'] == "metatag") {
+          // We found a metatag field, so query for all the entities of this
+          // type that have "article_tags" in the serialized array.
+          $q = \Drupal::entityQuery($entity_type);
+          $q->condition($field_name, "article_tags", "CONTAINS");
+          $count = $q->count()->execute();
+
+          if ($count > 0) {
+            $sandbox['todo'][$entity_type][$field_name] = 0;
+            $sandbox['max'] += $count;
+          }
+        }
+      }
+    }
+
+    if ($sandbox['max'] == 0) {
+      // Nothing to do.
+      $sandbox['#finished'] = 1;
+      return;
+    }
+  }
+
+  foreach ($sandbox['todo'] as $entity_type => $fields) {
+
+    /* @var $def Drupal\Core\Entity\ContentEntityType */
+    $def = Drupal::entityTypeManager()->getDefinition($entity_type);
+
+    // Grab the primary key field for this entity type
+    // so we can filter and order by it.
+    $id_col = $def->getKey("id");
+
+    foreach ($fields as $field_name => $last) {
+      $q = \Drupal::entityQuery($entity_type);
+      $q->condition($field_name, "article_tags", "CONTAINS");
+      $q->condition($id_col, $last, ">");
+      $q->sort($id_col);
+      $q->pager(20);
+      $res = $q->execute();
+
+      if (empty($res)) {
+        unset($sandbox['todo'][$entity_type][$field_name]);
+        continue;
+      }
+
+      $entities = $etm->getStorage($entity_type)->loadMultiple($res);
+
+      foreach ($entities as $entity) {
+        /* @var $entity ContentEntityBase */
+        if ($entity instanceof ContentEntityBase) {
+          if ($entity->hasField($field_name)) {
+            /* @var LanguageInterface $langcode */
+            foreach ($entity->getTranslationLanguages() as $langcode) {
+              // For each translation of this entity (including the source)...
+              $trans = $entity->getTranslation($langcode->getId());
+              $tags_serialized = $trans->get($field_name)->value;
+              if ($tags_serialized) {
+                // Change key from article_tags to article_tag.
+                $tags = unserialize($tags_serialized);
+                if (array_key_exists("article_tags", $tags)) {
+                  $tags['article_tag'] = $tags['article_tags'];
+                  unset($tags['article_tags']);
+                  $trans->set($field_name, serialize($tags));
+                  $trans->save();
+                }
+              }
+            }
+          }
+        }
+
+        // Store the last pk per entity type and field name.
+        $sandbox['todo'][$entity_type][$field_name] = $entity->id();
+        $sandbox['done']++;
+        $sandbox['#finished'] = $sandbox['done'] / $sandbox['max'];
+      }
+    }
+  }
+}

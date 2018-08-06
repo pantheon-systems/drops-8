@@ -1,0 +1,14 @@
+uuid: 0658980f-30ff-4ae6-ace9-1ba45a253b40
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: HwcLwgGP0beqb0fn_hVnvk5HiOFujSn6KJJLdYLHdhQ
+id: feedback
+label: 'Website feedback'
+recipients:
+  - asdf@asdf.com
+reply: ''
+weight: 0
+message: 'Your message has been sent.'
+redirect: ''

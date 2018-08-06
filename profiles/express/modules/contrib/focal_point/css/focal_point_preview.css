@@ -1,0 +1,48 @@
+#focal-point-preview {
+  max-height: 550px;
+  text-align: center;
+}
+
+#focal-point-preview-image {
+  max-height: 500px;
+  max-width: 100%;
+  box-shadow: 4px 4px 10px rgba(0,0,0,0.75);
+}
+
+#focal-point-derivatives {
+  height: 14.5em;
+  white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
+}
+
+.focal-point-derivative-preview {
+  display: inline-block;
+  text-align: center;
+  font-size: 1em;
+  margin: .5em 1em 1em 0;
+  padding: 0 1em 1em 1em;
+  border: 1px solid #CCCCCC;
+  background: #EEEEEE;
+  min-height: 11.5em;
+  vertical-align: top;
+  cursor: pointer;
+}
+
+.focal-point-derivative-preview.active {
+  background: #CCCCCC;
+  border-color: #999999;
+}
+
+.focal-point-derivative-preview-image {
+  max-height: 8em;
+  max-width: 100%;
+}
+
+#focal-point-preview-wrapper .note {
+  display: block;
+  color: #999999;
+  font-size: .8em;
+  line-height: 1.5em;
+  text-align: center;
+}

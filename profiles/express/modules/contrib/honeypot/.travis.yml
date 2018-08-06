@@ -1,0 +1,40 @@
+---
+language: php
+php: '7.1'
+services: docker
+
+env:
+  DOCKER_COMPOSE_VERSION: 1.13.0
+
+before_install:
+  # List available docker-engine versions.
+  - apt-cache madison docker-engine
+
+  # Upgrade docker.
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+  - sudo apt-get update
+  - sudo apt-get -y install docker-ce
+
+  # Upgrade docker-compose.
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+
+  # Pull container.
+  - docker pull geerlingguy/drupal-vm:latest
+
+script:
+  # Build environment and install Honeypot.
+  - docker-compose up -d
+  - docker exec honeypot install-drupal
+  - docker exec honeypot ln -s /opt/honeypot/ /var/www/drupalvm/drupal/web/modules/honeypot
+  - docker exec honeypot bash -c 'cd /var/www/drupalvm/drupal/web; drush en -y honeypot simpletest'
+
+  # Fix permissions on the simpletest directories.
+  - docker exec honeypot chown -R www-data:www-data /var/www/drupalvm/drupal/web/sites/simpletest
+  - docker exec honeypot chown -R www-data:www-data /var/www/drupalvm/drupal/web/sites/default/files
+
+  # Run module tests.
+  - docker exec honeypot bash -c 'sudo -u www-data php /var/www/drupalvm/drupal/web/core/scripts/run-tests.sh --verbose --module honeypot --url http://local.drupalhoneypot.com/'

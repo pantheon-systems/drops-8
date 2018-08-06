@@ -1,0 +1,9 @@
+type: ief_simple_single
+name: IEF single simple
+description: 'Content type for testing simple IEF widget on a single-value field.'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false
+status: true
+langcode: en

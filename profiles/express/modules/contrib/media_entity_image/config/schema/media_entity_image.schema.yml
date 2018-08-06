@@ -1,0 +1,24 @@
+media_entity.bundle.type.image:
+  type: mapping
+  label: 'Image type configuration'
+  mapping:
+    source_field:
+      type: string
+      label: 'Field with embed code/URL'
+    gather_exif:
+      type: boolean
+      label: 'Gather EXIF metadata'
+
+entity_browser.browser.widget.media_entity_image_upload:
+  type: mapping
+  label: 'Media images upload widget configuration'
+  mapping:
+    upload_location:
+      type: string
+      label: 'Upload location'
+    extensions:
+      type: string
+      label: 'Allowed file extensions'
+    media_bundle:
+      type: string
+      label: 'Media bundle for uploaded files'

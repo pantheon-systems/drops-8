@@ -1,0 +1,145 @@
+# Schema for the configuration files of the google_analytics module.
+
+google_analytics.settings:
+  type: config_object
+  label: 'Google Analytics settings'
+  mapping:
+    account:
+      type: string
+      label: 'Web Property ID'
+    premium:
+      type: boolean
+      label: 'Premium account'
+    domain_mode:
+      type: integer
+      label: 'What are you tracking?'
+    cross_domains:
+      type: string
+      label: 'List of top-level domains'
+    visibility:
+      type: mapping
+      label: 'Visibility'
+      mapping:
+        request_path_mode:
+          type: integer
+          label: 'Add tracking to specific pages'
+        request_path_pages:
+          type: string
+          label: 'Pages by their paths'
+        user_role_mode:
+          type: integer
+          label: 'Add tracking for specific roles'
+        user_role_roles:
+          type: sequence
+          label: 'Roles'
+          sequence:
+            type: string
+            label: 'Role'
+        user_account_mode:
+          type: integer
+          label: 'Allow users to customize tracking on their account page'
+    track:
+      type: mapping
+      label: 'Links and downloads'
+      mapping:
+        outbound:
+          type: boolean
+          label: 'Track clicks on outbound links'
+        mailto:
+          type: boolean
+          label: 'Track clicks on mailto links'
+        files:
+          type: boolean
+          label: 'Track downloads'
+        files_extensions:
+          type: string
+          label: 'File extension list'
+        colorbox:
+          type: boolean
+          label: 'Track content in colorbox modal dialogs'
+        linkid:
+          type: boolean
+          label: 'Enable enhanced link attribution'
+        urlfragments:
+          type: boolean
+          label: 'Track changing URL fragments as pageviews'
+        userid:
+          type: boolean
+          label: 'Track User ID'
+        messages:
+          type: sequence
+          label: 'Track messages of type'
+          sequence:
+            type: string
+            label: 'Message type'
+        site_search:
+          type: boolean
+          label: 'Track internal search'
+        adsense:
+          type: boolean
+          label: 'Track AdSense ads'
+        displayfeatures:
+          type: boolean
+          label: 'Track display features'
+    privacy:
+      type: mapping
+      label: 'Privacy'
+      mapping:
+        anonymizeip:
+          type: boolean
+          label: 'Anonymize visitors IP address'
+    custom:
+      type: mapping
+      label: 'Custom variables'
+      mapping:
+        dimension:
+          type: sequence
+          label: 'Custom dimensions'
+          sequence:
+            type: mapping
+            label: 'Dimension'
+            mapping:
+              index:
+                type: integer
+                label: Index
+              value:
+                type: string
+                label: Value
+        metric:
+          type: sequence
+          label: 'Custom metrics'
+          sequence:
+            type: mapping
+            label: 'Metric'
+            mapping:
+              index:
+                type: integer
+                label: Index
+              value:
+                type: string
+                label: Value
+    codesnippet:
+      type: mapping
+      label: 'Custom code snippets'
+      mapping:
+        create:
+          type: sequence
+          label: 'Create only fields'
+          sequence:
+            type: ignore
+            label: 'Create field'
+        before:
+          type: string
+          label: 'Code snippet (before)'
+        after:
+          type: string
+          label: 'Code snippet (after)'
+    translation_set:
+      type: boolean
+      label: 'Track translation sets as one unit'
+    cache:
+      type: boolean
+      label: 'Locally cache tracking code file'
+    debug:
+      type: boolean
+      label: 'Load debugging code of Google Universal Analytics'

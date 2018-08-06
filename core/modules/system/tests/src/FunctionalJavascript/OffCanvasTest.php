@@ -5,7 +5,7 @@ namespace Drupal\Tests\system\FunctionalJavascript;
 /**
  * Tests the off-canvas dialog functionality.
  *
- * @group system
+ * @group settings_tray
  */
 class OffCanvasTest extends OffCanvasTestBase {
 

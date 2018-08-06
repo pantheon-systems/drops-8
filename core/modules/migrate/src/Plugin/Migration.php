@@ -620,22 +620,19 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   }
 
   /**
-   * Find migration dependencies from migration_lookup and sub_process plugins.
+   * Find migration dependencies from the migration and the iterator plugins.
    *
-   * @param array $process
-   *   A process configuration array.
-   *
+   * @param $process
    * @return array
-   *   The migration dependencies.
    */
   protected function findMigrationDependencies($process) {
     $return = [];
     foreach ($this->getProcessNormalized($process) as $process_pipeline) {
       foreach ($process_pipeline as $plugin_configuration) {
-        if (in_array($plugin_configuration['plugin'], ['migration', 'migration_lookup'], TRUE)) {
+        if ($plugin_configuration['plugin'] == 'migration') {
           $return = array_merge($return, (array) $plugin_configuration['migration']);
         }
-        if (in_array($plugin_configuration['plugin'], ['iterator', 'sub_process'], TRUE)) {
+        if ($plugin_configuration['plugin'] == 'sub_process') {
           $return = array_merge($return, $this->findMigrationDependencies($plugin_configuration['process']));
         }
       }

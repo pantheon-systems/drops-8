@@ -1,0 +1,15 @@
+name: 'Media entity image test'
+type: module
+description: 'Provides test bundle for media entity image.'
+# core: 8.x
+package: Testing
+
+dependencies:
+  - entity_browser
+  - media_entity_image
+
+# Information added by Drupal.org packaging script on 2016-08-02
+version: '8.x-1.2'
+core: '8.x'
+project: 'media_entity_image'
+datestamp: 1470170950

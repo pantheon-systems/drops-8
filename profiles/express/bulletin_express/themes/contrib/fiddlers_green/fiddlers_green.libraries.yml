@@ -1,0 +1,9 @@
+global-styling:
+  version: 1.x
+  css:
+    theme:
+      css/fiddlers-green.css: {}
+  js:
+    js/fiddlers_green.js: {}
+  dependencies:
+    - core/jquery

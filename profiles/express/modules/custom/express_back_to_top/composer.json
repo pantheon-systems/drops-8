@@ -1,0 +1,6 @@
+{
+  "name": "drupal/express_back_to_top"
+  "description": "This is a composer.json file."
+  "type": "drupal-module"
+  "license": "GPL-2.0+"
+}

@@ -56,5 +56,3 @@ destination:
 migration_dependencies:
   required:
     - d6_menu
-  optional:
-    - d6_node

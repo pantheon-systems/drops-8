@@ -1,0 +1,13 @@
+{
+  "name": "drupal/video_embed_field",
+  "description": "A pluggable field type for storing videos from external video hosts such as Vimeo and YouTube.",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/video_embed_field",
+  "license": "GPL-2.0+",
+  "extra": {
+    "drupal": {
+      "package": "Field types",
+      "version": "8.x-1.x"
+    }
+  }
+}

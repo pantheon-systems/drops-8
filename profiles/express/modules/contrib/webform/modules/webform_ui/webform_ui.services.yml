@@ -1,0 +1,5 @@
+services:
+  webform_ui.path_processor:
+    class: Drupal\webform_ui\PathProcessor\WebformUiPathProcessor
+    tags:
+      - {name: path_processor_outbound}

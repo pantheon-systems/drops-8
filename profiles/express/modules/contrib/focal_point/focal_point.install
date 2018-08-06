@@ -1,0 +1,179 @@
+<?php
+
+/**
+ * @file
+ * Install hooks for focal_point.
+ */
+
+use Drupal\Core\Database\Database;
+use Drupal\Core\Utility\UpdateException;
+
+/**
+ * Checks if required version of Crop API is installed.
+ *
+ * @return bool
+ *   TRUE if dependency is met and FALSE if not.
+ */
+function _focal_point_check_crop_version() {
+  if (\Drupal::moduleHandler()->moduleExists('crop')) {
+    $info = system_get_info('module', 'crop');
+    if (version_compare($info['version'], '8.x-1.0-alpha2') >= 0) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function focal_point_uninstall() {
+  // Remove the focal point configurations.
+  \Drupal::configFactory()->getEditable('focal_point.settings')->delete();
+  \Drupal::configFactory()->getEditable('focal_point.preview')->delete();
+  \Drupal::configFactory()->getEditable('crop.type.focal_point')->delete();
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function focal_point_requirements($phase) {
+  $requirements = [];
+  if ($phase == 'update' && !_focal_point_check_crop_version()) {
+    $requirements = [
+      'crop' => [
+        'title' => t('Focal point'),
+        'value' => t('Crop API missing'),
+        'description' => t(
+          '<a href=":url">Crop API</a> module is now a dependency and needs to be installed before running updates.',
+          [':url' => 'https://www.drupal.org/project/crop']
+        ),
+        'severity' => REQUIREMENT_ERROR,
+      ],
+    ];
+  }
+  return $requirements;
+}
+
+/**
+ * Install default config.
+ */
+function focal_point_update_8001() {
+  if (!_focal_point_check_crop_version()) {
+    throw new UpdateException('Crop API (drupal.org/project/crop) module is now a dependency and needs to be installed before running updates.');
+  }
+
+  \Drupal::service('config.installer')
+    ->installDefaultConfig('module', 'focal_point');
+}
+
+/**
+ * Migrates legacy values to crop entities.
+ */
+function focal_point_update_8002(&$sandbox) {
+  /** @var \Drupal\file\FileUsage\FileUsageInterface $file_usage */
+  $file_storage = \Drupal::entityTypeManager()->getStorage('file');
+  $crop_storage = \Drupal::entityTypeManager()->getStorage('crop');
+  $crop_type = \Drupal::config('focal_point.settings')->get('crop_type');
+  if (!isset($sandbox['num_processed'])) {
+    $sandbox['last_fid'] = 0;
+    $sandbox['num_processed'] = 0;
+    $sandbox['num_skipped'] = 0;
+    $sandbox['total_items'] = Database::getConnection()
+      ->select('focal_point', 'fp')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  $focal_points = Database::getConnection()
+    ->select('focal_point', 'fp')
+    ->fields('fp')
+    ->condition('fp.fid', $sandbox['last_fid'], '>')
+    ->orderBy('fp.fid')
+    ->execute()
+    ->fetchAll();
+
+  foreach ($focal_points as $focal_point) {
+    /** @var \Drupal\file\FileInterface $file */
+    $file = $file_storage->load($focal_point->fid);
+
+    if (!is_null($file)) {
+      $size = getimagesize($file->getFileUri());
+
+      // Now we have all information we need. Let's create crop entity.
+      $focal_point = explode(',', $focal_point->focal_point);
+      $crop_storage
+        ->create([
+          'type' => $crop_type,
+          'entity_id' => $file->id(),
+          'entity_type' => 'file',
+          'uri' => $file->getFileUri(),
+          'x' => (int) round((intval($focal_point[0]) / 100.) * $size[0]),
+          'y' => (int) round((intval($focal_point[1]) / 100.) * $size[1]),
+        ])
+        ->save();
+      $sandbox['num_processed']++;
+    }
+    else {
+      $sandbox['num_skipped']++;
+    }
+    $sandbox['last_fid'] = $focal_point->fid;
+  }
+
+  $sandbox['#finished'] = $sandbox['total_items'] ? ($sandbox['num_processed'] + $sandbox['num_skipped']) / $sandbox['total_items'] : 1;
+
+  // Intentionally leaving legacy table. You never know...
+}
+
+/**
+ * Install preview config.
+ */
+function focal_point_update_8003() {
+  // Get all current configs for Focal Point.
+  $existing_config = \Drupal::configFactory()->getEditable('focal_point.settings');
+
+  // Install the new configuration.
+  \Drupal::service('config.installer')
+    ->installDefaultConfig('module', 'focal_point');
+
+  // Reset the existing configs in case they were changed when installing the
+  // new configuration.
+  $existing_config->save();
+}
+
+/**
+ * Migrates image fields to use a dedicated focal point image widget.
+ */
+function focal_point_update_8004() {
+  $mapping = \Drupal::service('entity_field.manager')->getFieldMapByFieldType('image');
+  $formStorage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
+  $previewLink = \Drupal::config('focal_point.preview')->get('display_link');
+  \Drupal::service('plugin.manager.field.widget')->clearCachedDefinitions();
+
+  foreach ($mapping as $entity => $fields) {
+    foreach ($fields as $fieldName => $def) {
+      foreach ($def['bundles'] as $bundle) {
+        $properties = [
+          'targetEntityType' => $entity,
+          'bundle' => $bundle,
+        ];
+        if ($formDisplays = $formStorage->loadByProperties($properties)) {
+          /** @var \Drupal\Core\Entity\Entity\EntityFormDisplay $formDisplay */
+          foreach ($formDisplays as $formDisplay) {
+            $componentConfig = $formDisplay->getComponent($fieldName);
+            if (is_array($componentConfig) && $componentConfig['type'] === 'image_image') {
+              $componentConfig['type'] = 'image_focal_point';
+              $componentConfig['settings']['preview_link'] = $previewLink;
+              $componentConfig['settings']['offsets'] = '50,50';
+              $formDisplay->setComponent($fieldName, $componentConfig)->save();
+            }
+          }
+        }
+      }
+    }
+  }
+
+  \Drupal::configFactory()->getEditable('focal_point.preview')->delete();
+}

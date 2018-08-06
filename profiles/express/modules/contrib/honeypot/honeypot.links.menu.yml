@@ -1,0 +1,5 @@
+honeypot.config:
+  title: Honeypot configuration
+  description: 'Configure Honeypot spam prevention and the forms on which Honeypot will be used.'
+  parent: system.admin_config_content
+  route_name: honeypot.config

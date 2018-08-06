@@ -1,0 +1,72 @@
+captcha_settings:
+  path: '/admin/config/people/captcha'
+  defaults:
+    _form: '\Drupal\captcha\Form\CaptchaSettingsForm'
+    _title: 'CAPTCHA settings'
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+captcha_examples:
+  path: '/admin/config/people/captcha/examples/{module}/{challenge}'
+  defaults:
+    _form: '\Drupal\captcha\Form\CaptchaExamplesForm'
+    module: ''
+    challenge: ''
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+captcha_point.list:
+  path: '/admin/config/people/captcha/captcha-points'
+  defaults:
+    _entity_list: 'captcha_point'
+    _title: 'CAPTCHA configuration'
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+captcha_point.add:
+  path: '/admin/config/people/captcha/captcha-points/add'
+  defaults:
+    _entity_form: 'captcha_point.add'
+    _title: 'Add CAPTCHA point'
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+entity.captcha_point.edit_form:
+  path: '/admin/config/people/captcha/captcha-points/{captcha_point}'
+  defaults:
+    _entity_form: 'captcha_point.edit'
+    _title: 'Edit CAPTCHA point'
+  options:
+      _admin_route: TRUE
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+entity.captcha_point.disable:
+  path: '/admin/config/people/captcha/captcha-points/{captcha_point}/disable'
+  defaults:
+    _entity_form: 'captcha_point.disable'
+    _title: 'Disable CAPTCHA point'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _entity_access: 'captcha_point.update'
+
+entity.captcha_point.enable:
+  path: '/admin/config/people/captcha/captcha-points/{captcha_point}/enable'
+  defaults:
+    _entity_form: 'captcha_point.enable'
+    _title: 'Enable CAPTCHA point'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _entity_access: 'captcha_point.update'
+
+entity.captcha_point.delete_form:
+  path: '/admin/config/people/captcha/captcha-points/{captcha_point}/delete'
+  defaults:
+    _entity_form: 'captcha_point.delete'
+    _title: 'Delete CAPTCHA point'
+  options:
+      _admin_route: TRUE
+  requirements:
+    _permission: 'administer CAPTCHA settings'

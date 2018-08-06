@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\migrate\Unit\process;
 
-use Drupal\Component\Utility\Variable;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\MigrateSkipRowException;
 use Drupal\migrate\Plugin\migrate\process\StaticMap;
@@ -51,7 +50,7 @@ class StaticMapTest extends MigrateProcessTestCase {
    * Tests when the source is invalid.
    */
   public function testMapwithInvalidSource() {
-    $this->setExpectedException(MigrateSkipRowException::class, sprintf("No static mapping found for '%s' and no default value provided for destination '%s'.", Variable::export(['bar']), 'destinationproperty'));
+    $this->setExpectedException(MigrateSkipRowException::class);
     $this->plugin->transform(['bar'], $this->migrateExecutable, $this->row, 'destinationproperty');
   }
 

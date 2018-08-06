@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform scheduled email module.
+ */
+
+use Drupal\Core\Entity\EntityTypeInterface;
+
+/**
+ * Implements hook_schema().
+ */
+function webform_scheduled_email_schema() {
+  $schema['webform_scheduled_email'] = [
+    'description' => 'Table that contains Webform scheduled emails.',
+    'fields' => [
+      'eid' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Scheduled email ID.',
+      ],
+      'webform_id' => [
+        'description' => 'The webform id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'entity_type' => [
+        'description' => 'The entity type to which this submission was submitted from.',
+        'type' => 'varchar',
+        'length' => EntityTypeInterface::ID_MAX_LENGTH,
+        'not null' => FALSE,
+      ],
+      'entity_id' => [
+        'description' => 'The ID of the entity of which this webform submission was submitted from.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'sid' => [
+        'description' => 'The webform submission id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'handler_id' => [
+        'description' => 'The webform handler id.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+      'state' => [
+        'description' => 'The state of the scheduled email. (schedule, reschedule, unschedule, or send)',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+      ],
+      'send' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => 0,
+        'description' => 'Unix timestamp of when email should be sent.',
+      ],
+    ],
+    'primary key' => ['eid'],
+    'indexes' => [
+      'webform_id' => ['webform_id'],
+      'sid' => ['sid'],
+      'scheduled' => ['webform_id', 'handler_id', 'send'],
+    ],
+  ];
+  return $schema;
+}

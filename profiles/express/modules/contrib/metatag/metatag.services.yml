@@ -1,0 +1,33 @@
+services:
+  plugin.manager.metatag.tag:
+    class: Drupal\metatag\MetatagTagPluginManager
+    parent: default_plugin_manager
+
+  plugin.manager.metatag.group:
+    class: Drupal\metatag\MetatagGroupPluginManager
+    parent: default_plugin_manager
+
+  metatag.token:
+    class: Drupal\metatag\MetatagToken
+    arguments: ['@token']
+
+  metatag.manager:
+    class: Drupal\metatag\MetatagManager
+    arguments: ['@plugin.manager.metatag.group', '@plugin.manager.metatag.tag', '@metatag.token', '@logger.factory', '@entity_type.manager']
+
+  # Priority of the metatag normalizer must be higher than other
+  # general-purpose typed data and field item normalizers.
+  metatag.normalizer.metatag_field:
+    class: Drupal\metatag\Normalizer\FieldItemNormalizer
+    tags:
+      - { name: normalizer, priority: 30 }
+
+  metatag.normalizer.metatag:
+    class: Drupal\metatag\Normalizer\MetatagNormalizer
+    tags:
+      - { name: normalizer, priority: 30 }
+
+  metatag.normalizer.metatag.hal:
+    class: Drupal\metatag\Normalizer\MetatagHalNormalizer
+    tags:
+      - { name: normalizer, priority: 31 }

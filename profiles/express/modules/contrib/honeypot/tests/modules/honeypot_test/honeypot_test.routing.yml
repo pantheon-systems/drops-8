@@ -1,0 +1,8 @@
+honeypot_test.submit_form:
+  path: '/honeypot_test/submit_form'
+  defaults:
+    _title: 'Test programmatic form submission'
+    _controller: '\Drupal\honeypot_test\Controller\HoneypotTestController::submitFormPage'
+  requirements:
+    # This is a test form, we don't need to worry about access.
+    _access: 'TRUE'

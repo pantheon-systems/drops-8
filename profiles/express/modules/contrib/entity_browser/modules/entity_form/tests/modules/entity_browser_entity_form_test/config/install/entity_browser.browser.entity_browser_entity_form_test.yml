@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies: {  }
+name: entity_browser_entity_form_test
+label: 'Entity browser entity form test'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: true
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  611fa923-4515-4405-a406-45f79e6f63c9:
+    settings:
+      upload_location: 'public://'
+    uuid: 611fa923-4515-4405-a406-45f79e6f63c9
+    weight: 2
+    label: upload
+    id: upload

@@ -1,0 +1,7 @@
+focal_point.preview:
+  path: '/admin/focal_point/preview/{fid}/{focal_point_value}'
+  defaults:
+    _controller: '\Drupal\focal_point\Controller\FocalPointPreviewController::content'
+    _title: 'Focal Point Preview'
+  requirements:
+    _custom_access: '\Drupal\focal_point\Controller\FocalPointPreviewController::access'

@@ -1,0 +1,174 @@
+<?php
+
+/**
+ * @file
+ * Verifies if user is a human without necessity to solve a CAPTCHA.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
+
+require_once dirname(__FILE__) . '/recaptcha-php/src/ReCaptcha/ReCaptcha.php';
+require_once dirname(__FILE__) . '/recaptcha-php/src/ReCaptcha/RequestMethod.php';
+require_once dirname(__FILE__) . '/recaptcha-php/src/ReCaptcha/RequestParameters.php';
+require_once dirname(__FILE__) . '/recaptcha-php/src/ReCaptcha/Response.php';
+require_once dirname(__FILE__) . '/src/ReCaptcha/RequestMethod/Drupal8Post.php';
+
+/**
+ * Implements hook_help().
+ */
+function recaptcha_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'recaptcha.admin_settings_form':
+      return t('Google <a href=":url">reCAPTCHA</a> is a free service to protect your website from spam and abuse. reCAPTCHA uses an advanced risk analysis engine and adaptive CAPTCHAs to keep automated software from engaging in abusive activities on your site. It does this while letting your valid users pass through with ease.', array(':url' => 'https://www.google.com/recaptcha'));
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function recaptcha_theme() {
+  return array(
+    'recaptcha_widget_noscript' => array(
+      'variables' => array(
+        'widget' => NULL,
+      ),
+      'template' => 'recaptcha-widget-noscript',
+    ),
+  );
+}
+
+/**
+ * Implements hook_captcha().
+ */
+function recaptcha_captcha($op, $captcha_type = '') {
+
+  switch ($op) {
+    case 'list':
+      return ['reCAPTCHA'];
+
+    case 'generate':
+      $captcha = [];
+      if ($captcha_type == 'reCAPTCHA') {
+        $config = \Drupal::config('recaptcha.settings');
+        $renderer = \Drupal::service('renderer');
+        $recaptcha_site_key = $config->get('site_key');
+        $recaptcha_secret_key = $config->get('secret_key');
+
+        if (!empty($recaptcha_site_key) && !empty($recaptcha_secret_key)) {
+          // Build the reCAPTCHA captcha form if site_key and secret_key are
+          // configured. Captcha requires TRUE to be returned in solution.
+          $captcha['solution'] = TRUE;
+          $captcha['captcha_validate'] = 'recaptcha_captcha_validation';
+          $captcha['form']['captcha_response'] = [
+            '#type' => 'hidden',
+            '#value' => 'Google no captcha',
+          ];
+
+          $noscript = '';
+          if ($config->get('widget.noscript')) {
+            $recaptcha_widget_noscript = [
+              '#theme' => 'recaptcha_widget_noscript',
+              '#widget' => [
+                'sitekey' => $recaptcha_site_key,
+                'language' => \Drupal::service('language_manager')->getCurrentLanguage()->getId(),
+              ],
+            ];
+            $noscript = $renderer->render($recaptcha_widget_noscript);
+          }
+
+          $attributes = [
+            'class' => 'g-recaptcha',
+            'data-sitekey' => $recaptcha_site_key,
+            'data-theme' => $config->get('widget.theme'),
+            'data-type' => $config->get('widget.type'),
+            'data-size' => $config->get('widget.size'),
+            'data-tabindex' => $config->get('widget.tabindex'),
+          ];
+          // Filter out empty tabindex/size.
+          $attributes = array_filter($attributes);
+
+          $captcha['form']['recaptcha_widget'] = [
+            '#markup' => '<div' . new Attribute($attributes) . '></div>',
+            '#suffix' => $noscript,
+            '#attached' => [
+              'html_head' => [
+                [
+                  [
+                    '#tag' => 'script',
+                    '#attributes' => [
+                      'src' => Url::fromUri('https://www.google.com/recaptcha/api.js', ['query' => ['hl' => \Drupal::service('language_manager')->getCurrentLanguage()->getId()], 'absolute' => TRUE])->toString(),
+                      'async' => TRUE,
+                      'defer' => TRUE,
+                    ],
+                  ],
+                  'recaptcha_api'
+                ],
+              ],
+            ],
+          ];
+        }
+        else {
+          // Fallback to Math captcha as reCAPTCHA is not configured.
+          $captcha = captcha_captcha('generate', 'Math');
+        }
+
+        // If module configuration changes the form cache need to be refreshed.
+        $renderer->addCacheableDependency($captcha['form'], $config);
+      }
+      return $captcha;
+  }
+}
+
+/**
+ * CAPTCHA Callback; Validates the reCAPTCHA code.
+ */
+function recaptcha_captcha_validation($solution, $response, $element, $form_state) {
+  $recaptcha_secret_key = \Drupal::config('recaptcha.settings')->get('secret_key');
+  if (empty($_POST['g-recaptcha-response']) || empty($recaptcha_secret_key)) {
+    return FALSE;
+  }
+
+  // Use Drupal::httpClient() to circumvent all issues with the Google library.
+  $recaptcha = new \ReCaptcha\ReCaptcha($recaptcha_secret_key, new \ReCaptcha\RequestMethod\Drupal8Post());
+
+  $resp = $recaptcha->verify(
+    $_POST['g-recaptcha-response'],
+    \Drupal::request()->getClientIp()
+  );
+
+  if ($resp->isSuccess()) {
+    // Verified!
+    return TRUE;
+  }
+  else {
+    // Error code reference, https://developers.google.com/recaptcha/docs/verify
+    $error_codes = [
+      'missing-input-secret' => t('The secret parameter is missing.'),
+      'invalid-input-secret' => t('The secret parameter is invalid or malformed.'),
+      'missing-input-response' => t('The response parameter is missing.'),
+      'invalid-input-response' => t('The response parameter is invalid or malformed.'),
+      'invalid-json' => t('The json response is invalid or malformed.'),
+      'unknown' => t('Unknown error.'),
+    ];
+    foreach ($resp->getErrorCodes() as $code) {
+      if (!isset($error_codes[$code])) {
+        $code = 'unknown';
+      }
+      \Drupal::logger('reCAPTCHA web service')->error('@error', ['@error' => $error_codes[$code]]);
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Process variables for recaptcha-widget-noscript.tpl.php.
+ *
+ * @see recaptcha-widget-noscript.tpl.php
+ */
+function template_preprocess_recaptcha_widget_noscript(&$variables) {
+  $variables['sitekey']  = $variables['widget']['sitekey'];
+  $variables['language'] = $variables['widget']['language'];
+  $variables['url']      = Url::fromUri('https://www.google.com/recaptcha/api/fallback', ['query' => ['k' => $variables['widget']['sitekey'], 'hl' => $variables['widget']['language']], 'absolute' => TRUE])->toString();
+}

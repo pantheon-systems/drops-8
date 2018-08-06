@@ -1,0 +1,15 @@
+entity.linkit_profile.edit_form:
+  route_name: entity.linkit_profile.edit_form
+  title: 'Edit'
+  base_route: entity.linkit_profile.edit_form
+  weight: 0
+linkit.matchers:
+  route_name: linkit.matchers
+  title: 'Manage matchers'
+  base_route: entity.linkit_profile.edit_form
+  weight: 5
+linkit.attributes:
+  route_name: linkit.attributes
+  title: 'Manage attributes'
+  base_route: entity.linkit_profile.edit_form
+  weight: 10

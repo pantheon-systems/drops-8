@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for Features.
+ */
+
+/**
+ * Rebuild the container to add a parameter to the features.manager service.
+ */
+function features_update_8300() {
+  // Empty update to cause a cache rebuild so that the container is rebuilt.
+}
+
+/**
+ * Update existing feature bundles with new alter plugin configuration.
+ */
+function features_update_8301() {
+  foreach (\Drupal::service('entity_type.manager')->getStorage('features_bundle')->loadMultiple() as $bundle) {
+    $bundle = \Drupal::configFactory()->getEditable('features.bundle.' . $bundle->id());
+    $assignments = $bundle->get('assignments');
+    $assignments['alter'] = [
+      'core' => TRUE,
+      'uuid' => TRUE,
+      'user_permissions' => TRUE,
+      'enabled' => TRUE,
+      'weight' => 0,
+    ];
+    $bundle->set('assignments', $assignments)->save();
+  }
+}

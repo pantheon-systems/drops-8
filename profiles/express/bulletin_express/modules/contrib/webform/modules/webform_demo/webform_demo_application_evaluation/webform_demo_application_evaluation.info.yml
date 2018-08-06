@@ -1,0 +1,14 @@
+name: 'Webform Demo: Application/Evaluation System'
+type: module
+description: 'Demonstrate how to use the Webform module to build an application/evaluation system.'
+package: 'Webform Demo'
+# core: 8.x
+dependencies:
+  - 'drupal:block'
+  - 'drupal:webform'
+
+# Information added by Drupal.org packaging script on 2017-04-21
+version: '8.x-5.0-beta12'
+core: '8.x'
+project: 'webform'
+datestamp: 1492798453

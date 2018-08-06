@@ -1,0 +1,22 @@
+{
+  "name": "drupal/media_entity",
+  "type": "drupal-module",
+  "description": "Provides a lean and simple way to store media on Drupal 8 sites.",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/media_entity",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/media_entity",
+    "source": "https://www.drupal.org/project/media_entity"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://packagist.drupal-composer.org"
+    }
+  ],
+  "require": {
+    "drupal/core": "~8.1"
+  }
+}

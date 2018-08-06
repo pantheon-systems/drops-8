@@ -1,0 +1,83 @@
+Video_Filter 8.x-1.x-dev, xxxx-xx-xx
+------------------------------------
+#2813801 by joco_sp, cha0s, DamienMcKenna: Use protocol-relative URLs.
+#2761347 by Vinay15, mark_fullmer: Tidy up coding standards.
+#2794361 by chishah92: "Illegal string offset id" error in
+  VideoFilter::process().
+#2757213 by dagmar: Fixed file permissions in directory structure.
+#2916178 by DamienMcKenna: Added the CHANGELOG.txt file.
+#2913236 by DamienMcKenna: Fix the tests in the D8 branch.
+#2916088 by DamienMcKenna, vilepickle: Add Brightcove support.
+#2865384 by Pavan B S: Convert module to use short array syntax.
+
+
+Video_Filter 8.x-1.0-alpha2, 2016-06-01
+---------------------------------------
+By minnur: Refine Instagram VideoFilter plugin.
+#2693581 by mandclu, orom: Default Height is 50px.
+By minnur: Remove unused file.
+#2688115 by heykarthikwithu: Depreciated methods / unused imports in code base.
+#2273421 by minnur: YouTube filter causes letterboxing due to control bar.
+By minnur: Refine example URL.
+By minnur: Refine Youtube options form.
+By minnur: Improve Video Filter dialog UI.
+By minnur: Code cleanup. Add fallback thumbnail image.
+By minnur: Refine filter logic to respect available plugins option.
+By minnur: Refine default value.
+#2033919 by adr_p, minnur: Allow to disable multiple sources.
+By minnur: Cleanup and optimze code.
+By minnur: Refine Rutube provider.
+#278604 by Ramir, minnur: Add support for Mail.ru.
+By minnur: Add Rutube support.
+#1246206 by caschbre, minnur: Add support for FoxNews.
+#1335094 by minnur, fenda: Ustream video filter.
+By minnur: Support editor picks URLs.
+#199819 by minnur: Myvideo Support.
+#1934908 by minnur: Dailymotion: Autoplay option is ignored in Flash player.
+By minnur: Fix spacing.
+By minnur: Add fullscreen option to Vimeo.
+By minnur: Code cleanup.
+By minnur: Code cleanup.
+By minnur: Add Vevo provider.
+By minnur: Fix minor PHP issues.
+#2682153 by Grienauer: Provide example url for Whatchado.
+#1899602 by minnur: Enable YouTube enablejsapi and other options.
+By minnur: Add Facebook support.
+By minnur: Interface cleanup.
+By minnur: Refine plugin options.
+By minnur: Add width/height options to plugins.
+By minnur: Refine Youtube and Vimeo attributes.
+By minnur: Add more Youtube embed options.
+#2682069 from MarkConroy, DamienMcKenna: Added DemocracyNow support.
+By minnur: Refine example module.
+#2361429 by errand, tvalimaa: Add support for time markers in Youtube plugin.
+#2361429 by minnur: Add support for time markers in Youtube plugin.
+#2681899 by minnur: Code cleanup.
+#2467125 by Rosenstrauch: Added Whatchado support.
+#1393668 by flymatic, DamienMcKenna: Added VBox7 support.
+#1934942 by mogtofu33: Support for DailyMotion HTML5 support.
+#2135239 by marvil07: Allow archive.org videos that include a period in the
+  identifier.
+By minnur: Allow individual codec options.
+By minnur: Initial commit for unit tests.
+By minnur: Add Giphy support.
+By minnur: Refine Wistia codec. Implement Twitter codec.
+By minnur: Refine Twitch. Implement Coub.
+By minnur: Refine Twitch codec.
+By minnur: Refine comment.
+By minnur: Add Youtube playlist support. Add Teachertube and Wistia (need to
+  test) support.
+By minnur: Add Video Filter integration example module.
+By minnur: Allow full screen (Youtube).
+By minnur: Add support for Instagram, Twitch and TED.
+By minnur: Fix minor issue.
+By minnur: Fix YouKu autoplay.
+By minnur: Add use StringTranslationTrait.
+By minnur: Port codecs.
+By minnur: Replace Blip.Tv with Maker.Tv. Refine templates. Refine methods.
+By minnur: Troubleshoot filter issues.
+
+
+Video_Filter 8.x-1.0-alpha1, 2016-03-03
+---------------------------------------
+By minnur: Initial release

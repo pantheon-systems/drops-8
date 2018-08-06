@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - express_site_info
+  theme:
+    - fiddlers_green
+id: expresssiteinfo
+theme: fiddlers_green
+region: site_info
+weight: 0
+provider: null
+plugin: 'Express Site Info'
+settings:
+  id: 'Express Site Info'
+  label: 'Express Site Info'
+  provider: express_site_info
+  label_display: visible
+  contact_info: 'No information has been set.'
+visibility: {  }

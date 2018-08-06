@@ -10,10 +10,6 @@
   flex-direction: column;
 }
 
-.node--view-mode-highlighted-medium .node__content {
-  flex: 0 0 auto;
-}
-
 .node--view-mode-highlighted-medium .node__meta {
   padding: 1rem 1.5rem 0 1.5rem;
 }
@@ -24,7 +20,7 @@
 }
 
 .node--view-mode-highlighted-medium .node__title {
-  font-weight: 400;
+  font-weight: normal;
   margin-bottom: 1rem;
 }
 

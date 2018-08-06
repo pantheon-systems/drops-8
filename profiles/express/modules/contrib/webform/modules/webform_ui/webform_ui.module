@@ -1,0 +1,81 @@
+<?php
+
+/**
+ * @file
+ * Provides a simple user interface for building and maintaining webforms.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\Utility\WebformDialogHelper;
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function webform_ui_entity_type_alter(array &$entity_types) {
+  if (isset($entity_types['webform'])) {
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $webform_entity_type */
+    $webform_entity_type = $entity_types['webform'];
+
+    // Swap the 'default' webform handler with the webform UI entity form
+    // and move the old webform source entity webform to a new 'source'
+    // webform handler.
+    $handlers = $webform_entity_type->getHandlerClasses();
+    $handlers['form']['source'] = $handlers['form']['edit'];
+    $handlers['form']['edit'] = 'Drupal\webform_ui\WebformUiEntityElementsForm';
+    $handlers['form']['quick_edit'] = 'Drupal\webform_ui\WebformUiEntityElementsForm';
+    $webform_entity_type->setHandlerClass('form', $handlers['form']);
+  }
+
+  if (isset($entity_types['webform_options'])) {
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $webform_entity_type */
+    $webform_options_entity_type = $entity_types['webform_options'];
+
+    // Swap the 'default' webform handler with the webform UI option form
+    // and move the old webform option source entity webform to a new 'source'
+    // webform handler.
+    $handlers = $webform_options_entity_type->getHandlerClasses();
+    $handlers['form']['source'] = $handlers['form']['edit'];
+    $handlers['form']['add'] = 'Drupal\webform_ui\WebformUiOptionsForm';
+    $handlers['form']['edit'] = 'Drupal\webform_ui\WebformUiOptionsForm';
+    $handlers['form']['duplicate'] = 'Drupal\webform_ui\WebformUiOptionsForm';
+    $webform_options_entity_type->setHandlerClass('form', $handlers['form']);
+  }
+}
+
+/**
+ * Implements hook_webform_submission_form_alter().
+ */
+function webform_ui_webform_submission_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  // Attach dialog libraries to editable webforms to make sure that the
+  // quickedit dialog/system tray works as expected.
+  if (\Drupal::moduleHandler()->moduleExists('quickedit')) {
+    /** @var \Drupal\webform\WebformSubmissionForm $form_object */
+    $form_object = $form_state->getFormObject();
+    if ($form_object->getEntity()->access('update')) {
+      WebformDialogHelper::attachLibraries($form);
+    }
+  }
+}
+
+/**
+ * Implements hook_contextual_links_view_alter().
+ *
+ * Issue #2752637: hook_contextual_links_view_alter not getting called.
+ * @see https://www.drupal.org/node/2752637
+ *
+ * Issue #2773591: New contextual links are not available after a module is installed
+ * @see https://www.drupal.org/node/2773591
+ */
+function webform_ui_contextual_links_view_alter(&$element, $items) {
+  if (isset($element['#links']['entitywebformquickedit'])) {
+    $element['#links']['entitywebformquickedit']['attributes'] = WebformDialogHelper::getModalDialogAttributes();
+
+    // Place Quick link first.
+    // @todo Figure out why contextual link weight is not being respected.
+    $quick_edit_link = $element['#links']['entitywebformquickedit'];
+    unset($element['#links']['entitywebformquickedit']);
+    $element['#links'] = ['entitywebformquickedit' => $quick_edit_link] + $element['#links'];
+
+    $element['#attached']['library'][] = WebformDialogHelper::useOffCanvas() ? 'outside_in/drupal.off_canvas' : 'core/drupal.dialog.ajax';
+  }
+}

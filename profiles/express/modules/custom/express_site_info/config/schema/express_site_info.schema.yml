@@ -1,0 +1,8 @@
+express_site_info:
+  type: config_object
+  label: 'express Site Info'
+  mapping:
+    express_site_info:
+      data_user:
+        type: string
+        label: 'express Site Info Contact Info'

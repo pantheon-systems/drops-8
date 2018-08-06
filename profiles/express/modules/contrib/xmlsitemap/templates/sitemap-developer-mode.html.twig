@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Sitemap template output when developer_mode flag is set.
+ *
+ * Available variables:
+ * - current_context: The current context.
+ *   - language: The langcode of the context.
+ * - sitemap: The sitemap object to be displayed.
+ *   - uri: Sitemap uri.
+ *   - id: Entity id.
+ *   - label: Entity label.
+ *   - chunks: Number of chunks of the sitemap.
+ *   - max_filesize: Maximum filesize allowed for sitemap XML file.
+ *   - context: Context of the sitemap.
+ *   - updated: Last time when sitemap was updated.
+ *   - originalId: The original ID of the configuration entity.
+ *   - pluginConfigKey: The name of the property that is used to store plugin
+ *     configuration.
+ *   - status: The enabled/disabled status of the configuration entity.
+ *   - isSyncing: Whether the config is being created, updated or deleted
+ *     through the import process.
+ *   - isUninstalling: Whether the config is being deleted by the uninstall
+ *     process.
+ *   - uuid: Unique identified for the sitemap entity.
+ *   - langcode: The language code of the entity's default language.
+ *   - entityTypeId: The entity type.
+ *   - enforceIsNew: Boolean indicating whether the entity should be forced to
+ *     be new.
+ *   - _serviceIds: Services that are used for this sitemap entity.
+ *   - dependencies: Dependencies for the sitemap.
+ * - chunk: Current chunk of the sitemap.
+ * - cache_file_location: Path for the sitemap cache file.
+ * - cache_file_exists: Boolean indicating if the sitemap cache file exists.
+ *
+ * @see Drupal\xmlsitemap\Controller\XmlSitemapController::renderSitemapXml()
+ */
+#}
+Current context: {{ current_context }} <br />
+Sitemap: {{ sitemap }} <br />
+Chunk: {{ chunk }} <br />
+Cache file location: {{ cache_file_location }} <br />
+Cache file exists: {{ cache_file_exists }} <br />

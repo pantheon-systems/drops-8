@@ -268,7 +268,7 @@ function comment_node_view_alter(array &$build, EntityInterface $node, EntityVie
  *   content language of the current request.
  *
  * @return array
- *   An array as expected by \Drupal\Core\Render\RendererInterface::render().
+ *   An array as expected by drupal_render().
  *
  * @deprecated in Drupal 8.x and will be removed before Drupal 9.0.
  *   Use \Drupal::entityManager()->getViewBuilder('comment')->view().
@@ -291,13 +291,12 @@ function comment_view(CommentInterface $comment, $view_mode = 'full', $langcode 
  *   Defaults to NULL.
  *
  * @return array
- *   An array in the format expected by
- *   \Drupal\Core\Render\RendererInterface::render().
+ *   An array in the format expected by drupal_render().
  *
  * @deprecated in Drupal 8.x and will be removed before Drupal 9.0.
  *   Use \Drupal::entityManager()->getViewBuilder('comment')->viewMultiple().
  *
- * @see \Drupal\Core\Render\RendererInterface::render()
+ * @see drupal_render()
  */
 function comment_view_multiple($comments, $view_mode = 'full', $langcode = NULL) {
   return entity_view_multiple($comments, $view_mode, $langcode);
@@ -559,7 +558,7 @@ function comment_user_predelete($account) {
  *   The current state of the form.
  *
  * @return array
- *   An array as expected by \Drupal\Core\Render\RendererInterface::render().
+ *   An array as expected by drupal_render().
  */
 function comment_preview(CommentInterface $comment, FormStateInterface $form_state) {
   $preview_build = [];

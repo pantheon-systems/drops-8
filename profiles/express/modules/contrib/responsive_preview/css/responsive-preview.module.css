@@ -1,0 +1,160 @@
+/**
+ * @file
+ * Base styling for responsive preview.
+ */
+
+/**
+ * Constrain the window height to the client height when the preview is active.
+ */
+.responsive-preview-active {
+  height: 100%;
+  overflow: hidden;
+}
+
+/**
+ * Toolbar tab.
+ */
+.toolbar-tab-responsive-preview {
+  display: none;
+}
+
+/* At narrow screen widths, float the tab to the left so it falls in line with
+ * the rest of the toolbar tabs. */
+.toolbar .toolbar-bar .toolbar-tab-responsive-preview.toolbar-tab {
+  display: block;
+  float: right; /* LTR */
+  position: relative;
+}
+
+[dir="rtl"] .toolbar .toolbar-bar .toolbar-tab-responsive-preview.toolbar-tab {
+  float: left;
+}
+
+.toolbar-tab-responsive-preview .responsive-preview-trigger {
+  display: block;
+}
+
+/* Device preview options. */
+.toolbar-tab-responsive-preview .responsive-preview-item-list {
+  display: none;
+  position: absolute;
+  white-space: nowrap;
+  z-index: 512;
+}
+
+.toolbar-tab-responsive-preview.open .responsive-preview-item-list {
+  display: block;
+}
+
+.toolbar-tab-responsive-preview.toolbar-tab .responsive-preview-options li {
+  float: none;
+  position: relative;
+}
+
+/**
+ * Preview container.
+ *
+ * The container is kept offscreen after it is built and has been disabled.
+ */
+.responsive-preview {
+  bottom: 0;
+  height: 100%;
+  left: -200%; /* LTR */
+  position: relative;
+  top: 0;
+  width: 100%;
+  z-index: 500;
+}
+
+[dir="rtl"] .responsive-preview {
+  left: auto;
+  right: -200%;
+}
+
+.responsive-preview.active {
+  left: 0; /* LTR */
+  position: fixed;
+}
+
+[dir="rtl"] .responsive-preview.active {
+  left: auto;
+  right: 0;
+}
+
+.responsive-preview-control {
+  position: absolute;
+}
+
+.responsive-preview-modal-background {
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+/**
+ * Preview iframe.
+ */
+.responsive-preview-frame-container {
+  position: absolute;
+  z-index: 100;
+}
+
+.responsive-preview-frame-container iframe {
+  display: block;
+  position: relative;
+}
+
+/**
+ * Scroll container.
+ */
+#responsive-preview-scroll-track {
+  bottom: 0;
+  left: 0;
+  overflow: visible;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 1;
+}
+
+#responsive-preview-scroll-pane {
+  min-height: 100%;
+  position: relative;
+  width: 100%;
+}
+
+/**
+ * Override Toolbar styling in the preview iframe.
+ */
+body.toolbar-tray-open.responsive-preview-frame {
+  padding-top: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.responsive-preview-frame {
+  background-color: white;
+  overflow-x: hidden !important;
+}
+
+.responsive-preview-frame #toolbar-administration {
+  display: none !important;
+}
+
+.responsive-preview-frame .node-preview-container {
+  display: none !important;
+}
+
+.responsive-preview-frame .contextual {
+  display: none !important;
+}
+
+/**
+ * Hide contextual toolbar tab when preview is active.
+ */
+.responsive-preview-active .contextual-toolbar-tab {
+  display: none !important;
+}

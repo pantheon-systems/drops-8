@@ -1,0 +1,9 @@
+type: ief_reference_type
+name: IEF reference type
+description: 'Entity reference content type.'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false
+status: true
+langcode: en

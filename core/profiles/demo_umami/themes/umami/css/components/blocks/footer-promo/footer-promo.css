@@ -9,7 +9,7 @@
 
 .block-type-footer-promo-block .block__title {
   font-size: 1.5rem;
-  font-weight: 400;
+  font-weight: normal;
 }
 
 .block-type-footer-promo-block .footer-promo-content {
@@ -18,14 +18,17 @@
 
 .block-type-footer-promo-block .footer-promo-content a {
   background-color: inherit;
+  display: block;
   color: #fff;
-  font-weight: 700;
+  font-weight: bold;
+  text-decoration: none;
 }
 
 .block-type-footer-promo-block .footer-promo-content a:active,
 .block-type-footer-promo-block .footer-promo-content a:focus,
 .block-type-footer-promo-block .footer-promo-content a:hover {
   background-color: transparent;
+  text-decoration: underline;
 }
 
 .block-type-footer-promo-block .footer-promo-content a:after {

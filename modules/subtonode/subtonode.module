@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Contains subtonode.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\node\Entity\Node;
+use Drupal\webform\Entity\WebformSubmission;
+
+/**
+ * Implements hook_help().
+ */
+function subtonode_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the subtonode module.
+    case 'help.page.subtonode':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Create nodes from webform submissions.') . '</p>';
+      return $output;
+
+    default:
+  }
+}

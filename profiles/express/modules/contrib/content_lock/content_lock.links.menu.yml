@@ -1,0 +1,6 @@
+content_lock.content_lock_settings_form:
+  title: 'Content Lock Settings'
+  route_name: content_lock.content_lock_settings_form
+  description: 'Content Lock settings'
+  parent: system.admin_config_content
+  weight: 99

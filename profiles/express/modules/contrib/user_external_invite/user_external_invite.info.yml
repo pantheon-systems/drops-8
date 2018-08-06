@@ -1,0 +1,13 @@
+name: User External Invite
+type: module
+description: 'Allows users with permissions to assign a role and email invitations to other users. Requires external authentication.'
+# core: 8.x
+configure: user_external_invite.configure
+dependencies:
+ - token
+
+# Information added by Drupal.org packaging script on 2017-05-03
+version: '8.x-1.x-dev'
+core: '8.x'
+project: 'user_external_invite'
+datestamp: 1493831890

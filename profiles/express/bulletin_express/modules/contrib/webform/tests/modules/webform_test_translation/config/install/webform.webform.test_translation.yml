@@ -1,0 +1,128 @@
+langcode: en
+status: open
+open: null
+close: null
+dependencies:
+  enforced:
+    module:
+      - webform_test_translation
+uid: null
+template: false
+id: test_translation
+title: 'Test: Translations'
+description: 'Test translating a webform.'
+elements: |
+  textfield:
+    '#type': textfield
+    '#title': 'Text field'
+  select_options:
+    '#type': select
+    '#title': 'Select (options)'
+    '#options': test_translation
+  select_custom:
+    '#type': webform_select_other
+    '#title': 'Select (custom)'
+    '#options':
+      4: Four
+      5: Five
+      6: Six
+    '#other__option_label': 'Custom number...'
+  details:
+    '#type': details
+    '#title': Details
+    markup:
+      '#markup': 'This is some HTML markup.'
+css: ''
+javascript: ''
+settings:
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_label: 'Send message'
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_confidential: false
+  form_confidential_message: ''
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_next_button_label: ''
+  wizard_prev_button_label: ''
+  wizard_start_label: ''
+  wizard_complete: true
+  wizard_complete_label: ''
+  preview: 0
+  preview_next_button_label: ''
+  preview_prev_button_label: ''
+  preview_message: ''
+  draft: none
+  draft_auto_save: false
+  draft_button_label: ''
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: url_message
+  confirmation_message: 'Your message has been sent.'
+  confirmation_url: '<front>'
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+handlers:
+  email_confirmation:
+    id: email
+    label: 'Email confirmation'
+    handler_id: email_confirmation
+    status: true
+    weight: 1
+    settings:
+      to_mail: default
+      cc_mail: ''
+      bcc_mail: ''
+      from_mail: default
+      from_name: default
+      subject: default
+      body: default
+      excluded_elements: {  }
+      html: true
+      attachments: false
+      debug: false

@@ -1,0 +1,9 @@
+id: test
+label: 'Test bundle'
+description: 'Test bundle.'
+type: generic
+type_configuration: {  }
+status: true
+langcode: en
+dependencies: {  }
+field_map: {  }

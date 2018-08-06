@@ -1,0 +1,7 @@
+views.field.redirect_404_operations:
+  type: views_field
+  label: 'Redirect 404 operations'
+  mapping:
+    text:
+      type: label
+      label: 'Redirect 404 operations'

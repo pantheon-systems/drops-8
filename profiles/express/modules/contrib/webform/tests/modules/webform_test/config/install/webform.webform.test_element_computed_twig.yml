@@ -1,0 +1,189 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_computed_twig
+title: 'Test: Element: Computed twig'
+description: 'Test computed twig element.'
+category: 'Test: Element'
+elements: |
+  number:
+    '#type': number
+    '#title': number
+    '#default_value': 2
+  simple_string:
+    '#type': textfield
+    '#title': simple_string
+    '#default_value': 'This is a string'
+  complex_string:
+    '#type': textfield
+    '#title': complex_string
+    '#default_value': 'This is a <strong>complex</strong> string, which contains "double" and ''single'' quotes with special characters like >, <, ><, and <>.'
+  text_format:
+    '#type': text_format
+    '#title': text_format
+    '#default_value': |
+      <p>This is a <strong>text format</strong> string.</p>
+      <p>It contains &quot;double&quot; and 'single' quotes with special characters like &lt;, &gt;, &lt;&gt;, and &gt;&lt;.</p>
+  xss:
+    '#type': textfield
+    '#title': xss
+    '#default_value': '<script>alert("XSS");</script>'
+  webform_computed_twig_auto:
+    '#type': webform_computed_twig
+    '#title': webform_computed_twig_auto
+    '#display_on': view
+    '#value': |
+      <b class="webform_computed_twig_auto">number:</b> {{ webform_token('[webform_submission:values:number]', webform_submission) }} * 2 = {{ webform_token('[webform_submission:values:number]', webform_submission) * 2 }}<br />
+      <b class="webform_computed_twig_auto">simple string:</b> {{ webform_token('[webform_submission:values:simple_string]', webform_submission) }}<br />
+      <b class="webform_computed_twig_auto">complex string:</b> {{ webform_token('[webform_submission:values:complex_string]', webform_submission) }}<br />
+      <b class="webform_computed_twig_auto">text_format:</b> {{ webform_token('[webform_submission:values:text_format]', webform_submission) }}<br />
+      <b class="webform_computed_twig_auto">xss:</b> {{ webform_token('[webform_submission:values:xss]', webform_submission) }}<br />
+  webform_computed_twig_html:
+    '#type': webform_computed_twig
+    '#title': webform_computed_twig_html
+    '#mode': html
+    '#display_on': view
+    '#value': |
+      <b class="webform_computed_twig_html">number:</b> {{ webform_token('[webform_submission:values:number]', webform_submission) }} * 2 = {{ webform_token('[webform_submission:values:number]', webform_submission) * 2 }}<br />
+      <b class="webform_computed_twig_html">simple string:</b> {{ webform_token('[webform_submission:values:simple_string]', webform_submission) }}<br />
+      <b class="webform_computed_twig_html">complex string:</b> {{ webform_token('[webform_submission:values:complex_string]', webform_submission) }}<br />
+      <b class="webform_computed_twig_html">text_format:</b> {{ webform_token('[webform_submission:values:text_format]', webform_submission) }}<br />
+      <b class="webform_computed_twig_html">xss:</b> {{ webform_token('[webform_submission:values:xss]', webform_submission) }}<br />
+  webform_computed_twig_text:
+    '#type': webform_computed_twig
+    '#title': webform_computed_twig_text
+    '#mode': text
+    '#display_on': view
+    '#value': |
+      number: {{ webform_token('[webform_submission:values:number]', webform_submission) }} * 2 = {{ webform_token('[webform_submission:values:number]', webform_submission) * 2 }}
+      simple string: {{ webform_token('[webform_submission:values:simple_string]', webform_submission) }}
+      complex string: {{ webform_token('[webform_submission:values:complex_string]', webform_submission) }}
+      text_format: {{ webform_token('[webform_submission:values:text_format]', webform_submission) }}
+      xss: {{ webform_token('[webform_submission:values:xss]', webform_submission) }}
+  webform_computed_twig_data:
+    '#type': webform_computed_twig
+    '#title': webform_computed_twig_data
+    '#display_on': view
+    '#value': |
+      <b class="webform_computed_twig_data">number:</b> {{ data.number }} * 2 = {{ data.number * 2 }}<br />
+      <b class="webform_computed_twig_data">simple string:</b> {{ data.simple_string }}<br />
+      <b class="webform_computed_twig_data">complex string:</b> {{ data.complex_string }}<br />
+      <b class="webform_computed_twig_data">text_format:</b> {{ data.text_format.value }}<br />
+      <b class="webform_computed_twig_data">xss:</b> {{ data.xss }}<br />
+  webform_computed_twig_store:
+    '#type': webform_computed_twig
+    '#title': webform_computed_twig_store
+    '#mode': text
+    '#display_on': none
+    '#value': '{{ data.simple_string }}'
+    '#store': true
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

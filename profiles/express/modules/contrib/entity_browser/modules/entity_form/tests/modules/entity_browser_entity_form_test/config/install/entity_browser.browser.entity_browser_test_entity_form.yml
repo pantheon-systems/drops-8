@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.content
+  module:
+    - entity_browser_entity_form
+    - views
+name: entity_browser_test_entity_form
+label: 'Entity Browser Test'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  9c6ee4c0-4642-4203-b4bd-ec0bad068ad3:
+    settings:
+      entity_type: node
+      bundle: article
+      form_mode: default
+      submit_text: 'Save entity'
+    uuid: 9c6ee4c0-4642-4203-b4bd-ec0bad068ad3
+    weight: 2
+    label: entity_form
+    id: entity_form

@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies: { }
+name: test_entity_browser_standalone_upload
+label: 'Test entity browser standalone upload'
+display: standalone
+display_configuration:
+  path: '/entity-browser/standalone-upload'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  2dc1ab07-2f8f-42c9-aab7-7eef7f8b7d87:
+    settings:
+      upload_location: 'public://'
+      submit_text: 'Select files'
+    uuid: 2dc1ab07-2f8f-42c9-aab7-7eef7f8b7d87
+    weight: -9
+    label: upload
+    id: upload

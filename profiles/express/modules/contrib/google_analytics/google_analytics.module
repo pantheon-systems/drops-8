@@ -1,0 +1,680 @@
+<?php
+
+/**
+ * @file
+ * Drupal Module: Google Analytics.
+ *
+ * Adds the required Javascript to all your Drupal pages to allow tracking by
+ * the Google Analytics statistics package.
+ *
+ * @author: Alexander Hass <http://drupal.org/user/85918>
+ */
+
+use Drupal\Component\Serialization\Json;
+use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Site\Settings;
+use Drupal\Core\Url;
+use Drupal\node\NodeInterface;
+use GuzzleHttp\Exception\RequestException;
+use Drupal\google_analytics\Component\Render\GoogleAnalyticsJavaScriptSnippet;
+
+/**
+ * Define the default file extension list that should be tracked as download.
+ */
+define('GOOGLE_ANALYTICS_TRACKFILES_EXTENSIONS', '7z|aac|arc|arj|asf|asx|avi|bin|csv|doc(x|m)?|dot(x|m)?|exe|flv|gif|gz|gzip|hqx|jar|jpe?g|js|mp(2|3|4|e?g)|mov(ie)?|msi|msp|pdf|phps|png|ppt(x|m)?|pot(x|m)?|pps(x|m)?|ppam|sld(x|m)?|thmx|qtm?|ra(m|r)?|sea|sit|tar|tgz|torrent|txt|wav|wma|wmv|wpd|xls(x|m|b)?|xlt(x|m)|xlam|xml|z|zip');
+
+/**
+ * Advertise the supported google analytics api details.
+ */
+function google_analytics_api() {
+  return [
+    'api' => 'analytics.js',
+  ];
+}
+
+/**
+ * Implements hook_help().
+ */
+function google_analytics_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.google_analytics':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Google Analytics adds a web statistics tracking system to your website. This system incorporates numerous statistical features. For an extensive listing of these features see the <a href=":project">Google Analytics</a> project site. Beyond that, additional information can be found at the <a href=":documentation">Drupal - Google Analytics documentation</a>.', [':documentation' => 'https://www.drupal.org/node/37694', ':project' => 'https://www.drupal.org/project/google_analytics']) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dt>' . t('Configuring Google Analytics') . '</dt>';
+      $output .= '<dd>' . t('All settings for this module can be found on the <a href=":ga_settings">Google Analytics settings</a> page. When entering the Google Analytics account number here, it will automatically add the required JavaScript to every page generated. The <em>General Settings</em> section on this page provides additional instruction about setting up tracking thru the Google account.', [':ga_settings' => Url::fromRoute('google_analytics.admin_settings_form')->toString()]) . '</dd>';
+      $output .= '<dt>' . t('Additional features') . '</dt>';
+      $output .= '<dd>' . t('The Google Analytics module offers a bit more than basic tracking. <em>Page Tracking</em> for instance allows you to provide a list of pages to track, or a list of pages not to track. Role and Link tracking features are also available. For a comprehensive discussion on the setup and use of its many feature see the <a href=":documentation">Drupal - Google Analytics documentation</a>.', [':documentation' => 'https://www.drupal.org/node/37694']) . '</dd>';
+      return $output;
+
+    case 'google_analytics.admin_settings_form':
+      return t('<a href=":ga_url">Google Analytics</a> is a free (registration required) website traffic and marketing effectiveness service.', [':ga_url' => 'http://www.google.com/analytics/']);
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Insert JavaScript to the appropriate scope/region of the page.
+ */
+function google_analytics_page_attachments(array &$page) {
+  $account = \Drupal::currentUser();
+  $config = \Drupal::config('google_analytics.settings');
+  $id = $config->get('account');
+  $request = \Drupal::request();
+  $base_path = base_path();
+
+  // Add module cache tags.
+  $page['#cache']['tags'] = Cache::mergeTags(isset($page['#cache']['tags']) ? $page['#cache']['tags'] : [], $config->getCacheTags());
+
+  // Get page http status code for visibility filtering.
+  $status = NULL;
+  if ($exception = $request->attributes->get('exception')) {
+    $status = $exception->getStatusCode();
+  }
+  $trackable_status_codes = [
+    // "Forbidden" status code.
+    '403',
+    // "Not Found" status code.
+    '404',
+  ];
+
+  // 1. Check if the GA account number has a valid value.
+  // 2. Track page views based on visibility value.
+  // 3. Check if we should track the currently active user's role.
+  // 4. Ignore pages visibility filter for 404 or 403 status codes.
+  if (preg_match('/^UA-\d+-\d+$/', $id) && (_google_analytics_visibility_pages() || in_array($status, $trackable_status_codes)) && _google_analytics_visibility_user($account)) {
+    // Init variables.
+    $debug = $config->get('debug');
+    $url_custom = '';
+
+    // Add link tracking.
+    $link_settings = [];
+    if ($track_outbound = $config->get('track.outbound')) {
+      $link_settings['trackOutbound'] = $track_outbound;
+    }
+    if ($track_mailto = $config->get('track.mailto')) {
+      $link_settings['trackMailto'] = $track_mailto;
+    }
+    if (($track_download = $config->get('track.files')) && ($trackfiles_extensions = $config->get('track.files_extensions'))) {
+      $link_settings['trackDownload'] = $track_download;
+      $link_settings['trackDownloadExtensions'] = $trackfiles_extensions;
+    }
+    if ((\Drupal::moduleHandler()->moduleExists('colorbox')) && $track_colorbox = $config->get('track.colorbox')) {
+      $link_settings['trackColorbox'] = $track_colorbox;
+    }
+    if ($track_domain_mode = $config->get('domain_mode')) {
+      $link_settings['trackDomainMode'] = $track_domain_mode;
+    }
+    if ($track_cross_domains = $config->get('cross_domains')) {
+      $link_settings['trackCrossDomains'] = preg_split('/(\r\n?|\n)/', $track_cross_domains);
+    }
+    if ($track_url_fragments = $config->get('track.urlfragments')) {
+      $link_settings['trackUrlFragments'] = $track_url_fragments;
+      $url_custom = 'location.pathname + location.search + location.hash';
+    }
+
+    if (!empty($link_settings)) {
+      $page['#attached']['drupalSettings']['google_analytics'] = $link_settings;
+
+      // Add debugging code.
+      if ($debug) {
+        $page['#attached']['library'][] = 'google_analytics/google_analytics.debug';
+        // Add the JS test in development to the page.
+        // $page['#attached']['library'][] = 'google_analytics/google_analytics.test';
+      }
+      else {
+        $page['#attached']['library'][] = 'google_analytics/google_analytics';
+      }
+    }
+
+    // Add messages tracking.
+    $message_events = '';
+    if ($message_types = $config->get('track.messages')) {
+      $message_types = array_values(array_filter($message_types));
+      $status_heading = [
+        'status' => t('Status message'),
+        'warning' => t('Warning message'),
+        'error' => t('Error message'),
+      ];
+
+      foreach (drupal_get_messages(NULL, FALSE) as $type => $messages) {
+        // Track only the selected message types.
+        if (in_array($type, $message_types)) {
+          foreach ($messages as $message) {
+            // @todo: Track as exceptions?
+            $message_events .= 'ga("send", "event", ' . Json::encode(t('Messages')) . ', ' . Json::encode($status_heading[$type]) . ', ' . Json::encode(strip_tags($message)) . ');';
+          }
+        }
+      }
+    }
+
+    // Site search tracking support.
+    if (\Drupal::moduleHandler()->moduleExists('search') && $config->get('track.site_search') && (strpos(\Drupal::routeMatch()->getRouteName(), 'search.view') === 0) && $keys = ($request->query->has('keys') ? trim($request->get('keys')) : '')) {
+      // hook_item_list__search_results() is not executed if search result is
+      // empty. Make sure the counter is set to 0 if there are no results.
+      $entity_id = \Drupal::routeMatch()->getParameter('entity')->id();
+      $url_custom = '(window.google_analytics_search_results) ? ' . Json::encode(Url::fromRoute('search.view_' . $entity_id, [], ['query' => ['search' => $keys]])->toString()) . ' : ' . Json::encode(Url::fromRoute('search.view_' . $entity_id, ['query' => ['search' => 'no-results:' . $keys, 'cat' => 'no-results']])->toString());
+    }
+
+    // If this node is a translation of another node, pass the original
+    // node instead.
+    if (\Drupal::moduleHandler()->moduleExists('content_translation') && $config->get('translation_set')) {
+      // Check if we have a node object, it has translation enabled, and its
+      // language code does not match its source language code.
+      if ($request->attributes->has('node')) {
+        $node = $request->attributes->get('node');
+        if ($node instanceof NodeInterface && \Drupal::service('entity.repository')->getTranslationFromContext($node) !== $node->getUntranslated()) {
+          $url_custom = Json::encode(Url::fromRoute('entity.node.canonical', ['node' => $node->id()], ['language' => $node->getUntranslated()->language()])->toString());
+        }
+      }
+    }
+
+    // Track access denied (403) and file not found (404) pages.
+    if ($status == '403') {
+      // See http://www.google.com/support/analytics/bin/answer.py?answer=86927
+      $url_custom = '"' . $base_path . '403.html?page=" + document.location.pathname + document.location.search + "&from=" + document.referrer';
+    }
+    elseif ($status == '404') {
+      $url_custom = '"' . $base_path . '404.html?page=" + document.location.pathname + document.location.search + "&from=" + document.referrer';
+    }
+
+    // #2693595: User has entered an invalid login and clicked on forgot
+    // password link. This link contains the username or email address and may
+    // get send to Google if we do not override it. Override only if 'name'
+    // query param exists. Last custom url condition, this need to win.
+    //
+    // URLs to protect are:
+    // - user/password?name=username
+    // - user/password?name=foo@example.com
+    if (\Drupal::routeMatch()->getRouteName() == 'user.pass' && $request->query->has('name')) {
+      $url_custom = '"' . $base_path . 'user/password"';
+    }
+
+    // Add custom dimensions and metrics.
+    $custom_var = '';
+    foreach (['dimension', 'metric'] as $google_analytics_custom_type) {
+      $google_analytics_custom_vars = $config->get('custom.' . $google_analytics_custom_type);
+      // Are there dimensions or metrics configured?
+      if (!empty($google_analytics_custom_vars)) {
+        // Add all the configured variables to the content.
+        foreach ($google_analytics_custom_vars as $google_analytics_custom_var) {
+          // Replace tokens in values.
+          $types = [];
+          if ($request->attributes->has('node')) {
+            $node = $request->attributes->get('node');
+            if ($node instanceof NodeInterface) {
+              $types += ['node' => $node];
+            }
+          }
+          $google_analytics_custom_var['value'] = \Drupal::token()->replace($google_analytics_custom_var['value'], $types, ['clear' => TRUE]);
+
+          // Suppress empty values.
+          if (!Unicode::strlen(trim($google_analytics_custom_var['value']))) {
+            continue;
+          }
+
+          // Per documentation the max length of a dimension is 150 bytes.
+          // A metric has no length limitation. It's not documented if this
+          // limit means 150 bytes after url encoding or before.
+          // See https://developers.google.com/analytics/devguides/collection/analyticsjs/field-reference#customs
+          if ($google_analytics_custom_type == 'dimension' && Unicode::strlen($google_analytics_custom_var['value']) > 150) {
+            $google_analytics_custom_var['value'] = substr($google_analytics_custom_var['value'], 0, 150);
+          }
+
+          // Cast metric values for json_encode to data type numeric.
+          if ($google_analytics_custom_type == 'metric') {
+            settype($google_analytics_custom_var['value'], 'float');
+          };
+
+          // Add variables to tracker.
+          $custom_var .= 'ga("set", ' . Json::encode($google_analytics_custom_type . $google_analytics_custom_var['index']) . ', ' . Json::encode($google_analytics_custom_var['value']) . ');';
+        }
+      }
+    }
+
+    // Build tracker code.
+    $script = '(function(i,s,o,g,r,a,m){';
+    $script .= 'i["GoogleAnalyticsObject"]=r;i[r]=i[r]||function(){';
+    $script .= '(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),';
+    $script .= 'm=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)';
+    $script .= '})(window,document,"script",';
+
+    // Which version of the tracking library should be used?
+    $library_tracker_url = 'https://www.google-analytics.com/' . ($debug ? 'analytics_debug.js' : 'analytics.js');
+
+    // Should a local cached copy of analytics.js be used?
+    if ($config->get('cache') && $url = _google_analytics_cache($library_tracker_url)) {
+      // A dummy query-string is added to filenames, to gain control over
+      // browser-caching. The string changes on every update or full cache
+      // flush, forcing browsers to load a new copy of the files, as the
+      // URL changed.
+      $query_string = '?' . (\Drupal::state()->get('system.css_js_query_string') ?: '0');
+
+      $script .= '"' . $url . $query_string . '"';
+    }
+    else {
+      $script .= '"' . $library_tracker_url . '"';
+    }
+    $script .= ',"ga");';
+
+    // Add any custom code snippets if specified.
+    $codesnippet_create = $config->get('codesnippet.create');
+    $codesnippet_before = $config->get('codesnippet.before');
+    $codesnippet_after = $config->get('codesnippet.after');
+
+    // Build the create only fields list.
+    $create_only_fields = ['cookieDomain' => 'auto'];
+    $create_only_fields = array_merge($create_only_fields, $codesnippet_create);
+
+    // Domain tracking type.
+    global $cookie_domain;
+    $domain_mode = $config->get('domain_mode');
+    $googleanalytics_adsense_script = '';
+
+    // Per RFC 2109, cookie domains must contain at least one dot other than the
+    // first. For hosts such as 'localhost' or IP Addresses we don't set a
+    // cookie domain.
+    if ($domain_mode == 1 && count(explode('.', $cookie_domain)) > 2 && !is_numeric(str_replace('.', '', $cookie_domain))) {
+      $create_only_fields = array_merge($create_only_fields, ['cookieDomain' => $cookie_domain]);
+      $googleanalytics_adsense_script .= 'window.google_analytics_domain_name = ' . Json::encode($cookie_domain) . ';';
+    }
+    elseif ($domain_mode == 2) {
+      // Cross Domain tracking. 'autoLinker' need to be enabled in 'create'.
+      $create_only_fields = array_merge($create_only_fields, ['allowLinker' => TRUE]);
+      $googleanalytics_adsense_script .= 'window.google_analytics_domain_name = "none";';
+    }
+
+    // Track logged in users across all devices.
+    if ($config->get('track.userid') && $account->isAuthenticated()) {
+      $create_only_fields['userId'] = google_analytics_user_id_hash($account->id());
+    }
+
+    // Create a tracker.
+    $script .= 'ga("create", ' . Json::encode($id) . ', ' . Json::encode($create_only_fields) . ');';
+
+    // Prepare Adsense tracking.
+    $googleanalytics_adsense_script .= 'window.google_analytics_uacct = ' . Json::encode($id) . ';';
+
+    // Add enhanced link attribution after 'create', but before 'pageview' send.
+    // @see https://support.google.com/analytics/answer/2558867
+    if ($config->get('track.linkid')) {
+      $script .= 'ga("require", "linkid", "linkid.js");';
+    }
+
+    // Add display features after 'create', but before 'pageview' send.
+    // @see https://support.google.com/analytics/answer/2444872
+    if ($config->get('track.displayfeatures')) {
+      $script .= 'ga("require", "displayfeatures");';
+    }
+
+    // Domain tracking type.
+    if ($domain_mode == 2) {
+      // Cross Domain tracking
+      // https://developers.google.com/analytics/devguides/collection/upgrade/reference/gajs-analyticsjs#cross-domain
+      $script .= 'ga("require", "linker");';
+      $script .= 'ga("linker:autoLink", ' . Json::encode($link_settings['trackCrossDomains']) . ');';
+    }
+
+    if ($config->get('privacy.anonymizeip')) {
+      $script .= 'ga("set", "anonymizeIp", true);';
+    }
+
+    if (!empty($custom_var)) {
+      $script .= $custom_var;
+    }
+    if (!empty($codesnippet_before)) {
+      $script .= $codesnippet_before;
+    }
+    if (!empty($url_custom)) {
+      $script .= 'ga("set", "page", ' . $url_custom . ');';
+    }
+    $script .= 'ga("send", "pageview");';
+
+    if (!empty($message_events)) {
+      $script .= $message_events;
+    }
+    if (!empty($codesnippet_after)) {
+      $script .= $codesnippet_after;
+    }
+
+    if ($config->get('track.adsense')) {
+      // Custom tracking. Prepend before all other JavaScript.
+      // @TODO: https://support.google.com/adsense/answer/98142
+      // sounds like it could be appended to $script.
+      $script = $googleanalytics_adsense_script . $script;
+    }
+
+    $page['#attached']['html_head'][] = [
+      [
+        '#tag' => 'script',
+        '#value' => new GoogleAnalyticsJavaScriptSnippet($script),
+      ],
+      'google_analytics_tracking_script',
+    ];
+  }
+}
+
+/**
+ * Generate user id hash to implement USER_ID.
+ *
+ * The USER_ID value should be a unique, persistent, and non-personally
+ * identifiable string identifier that represents a user or signed-in
+ * account across devices.
+ *
+ * @param int $uid
+ *   User id.
+ *
+ * @return string
+ *   User id hash.
+ */
+function google_analytics_user_id_hash($uid) {
+  return Crypt::hmacBase64($uid, \Drupal::service('private_key')->get() . Settings::getHashSalt());
+}
+
+/**
+ * Implements hook_entity_extra_field_info().
+ */
+function google_analytics_entity_extra_field_info() {
+  $extra['user']['user']['form']['google_analytics'] = [
+    'label' => t('Google Analytics settings'),
+    'description' => t('Google Analytics module form element.'),
+    'weight' => 3,
+  ];
+
+  return $extra;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function google_analytics_form_user_form_alter(&$form, FormStateInterface $form_state) {
+  $config = \Drupal::config('google_analytics.settings');
+  $account = $form_state->getFormObject()->getEntity();
+
+  if ($account->hasPermission('opt-in or out of google analytics tracking') && ($visibility_user_account_mode = $config->get('visibility.user_account_mode')) != 0 && _google_analytics_visibility_roles($account)) {
+    $account_data_google_analytics = \Drupal::service('user.data')->get('google_analytics', $account->id());
+
+    $form['google_analytics'] = [
+      '#type' => 'details',
+      '#title' => t('Google Analytics settings'),
+      '#weight' => 3,
+      '#open' => TRUE,
+    ];
+
+    switch ($visibility_user_account_mode) {
+      case 1:
+        $description = t('Users are tracked by default, but you are able to opt out.');
+        break;
+
+      case 2:
+        $description = t('Users are <em>not</em> tracked by default, but you are able to opt in.');
+        break;
+    }
+
+    $form['google_analytics']['user_account_users'] = [
+      '#type' => 'checkbox',
+      '#title' => t('Enable user tracking'),
+      '#description' => $description,
+      '#default_value' => isset($account_data_google_analytics['user_account_users']) ? $account_data_google_analytics['user_account_users'] : ($visibility_user_account_mode == 1),
+    ];
+
+    // hook_user_update() is missing in D8, add custom submit handler.
+    $form['actions']['submit']['#submit'][] = 'google_analytics_user_profile_form_submit';
+  }
+}
+
+/**
+ * Submit callback for user profile form to save the Google Analytics setting.
+ */
+function google_analytics_user_profile_form_submit($form, FormStateInterface $form_state) {
+  $account = $form_state->getFormObject()->getEntity();
+  if ($account->id() && $form_state->hasValue('user_account_users')) {
+    \Drupal::service('user.data')->set('google_analytics', $account->id(), 'user_account_users', (int) $form_state->getValue('user_account_users'));
+  }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function google_analytics_cron() {
+  $config = \Drupal::config('google_analytics.settings');
+
+  // Regenerate the tracking code file every day.
+  if (REQUEST_TIME - \Drupal::state()->get('google_analytics.last_cache') >= 86400 && $config->get('cache')) {
+    _google_analytics_cache('https://www.google-analytics.com/analytics.js', TRUE);
+    \Drupal::state()->set('google_analytics.last_cache', REQUEST_TIME);
+  }
+}
+
+/**
+ * Implements hook_preprocess_item_list__search_results().
+ *
+ * Collects and adds the number of search results to the head.
+ */
+function google_analytics_preprocess_item_list__search_results(&$variables) {
+  $config = \Drupal::config('google_analytics.settings');
+
+  // Only run on search results list.
+  if ($config->get('track.site_search')) {
+    // There is no search result $variable available that hold the number of
+    // items found. The variable $variables['items'] has the current page items
+    // only. But the pager item mumber can tell the number of search results.
+    global $pager_total_items;
+
+    $variables['#attached']['html_head'][] = [
+      [
+        '#tag' => 'script',
+        '#value' => 'window.google_analytics_search_results = ' . intval($pager_total_items[0]) . ';',
+        '#weight' => JS_LIBRARY - 1,
+      ],
+      'google_analytics_search_script',
+    ];
+  }
+}
+
+/**
+ * Download/Synchronize/Cache tracking code file locally.
+ *
+ * @param string $location
+ *   The full URL to the external javascript file.
+ * @param bool $synchronize
+ *   Synchronize to local cache if remote file has changed.
+ *
+ * @return mixed
+ *   The path to the local javascript file on success, boolean FALSE on failure.
+ */
+function _google_analytics_cache($location, $synchronize = FALSE) {
+  $path = 'public://google_analytics';
+  $file_destination = $path . '/' . basename($location);
+
+  if (!file_exists($file_destination) || $synchronize) {
+    // Download the latest tracking code.
+    try {
+      $data = \Drupal::httpClient()
+        ->get($location)
+        ->getBody(TRUE);
+
+      if (file_exists($file_destination)) {
+        // Synchronize tracking code and and replace local file if outdated.
+        $data_hash_local = Crypt::hashBase64(file_get_contents($file_destination));
+        $data_hash_remote = Crypt::hashBase64($data);
+        // Check that the files directory is writable.
+        if ($data_hash_local != $data_hash_remote && file_prepare_directory($path)) {
+          // Save updated tracking code file to disk.
+          file_unmanaged_save_data($data, $file_destination, FILE_EXISTS_REPLACE);
+          // Based on Drupal Core class AssetDumper.
+          if (extension_loaded('zlib') && \Drupal::config('system.performance')->get('js.gzip')) {
+            file_unmanaged_save_data(gzencode($data, 9, FORCE_GZIP), $file_destination . '.gz', FILE_EXISTS_REPLACE);
+          }
+          \Drupal::logger('google_analytics')->info('Locally cached tracking code file has been updated.');
+
+          // Change query-strings on css/js files to enforce reload for all
+          // users.
+          _drupal_flush_css_js();
+        }
+      }
+      else {
+        // Check that the files directory is writable.
+        if (file_prepare_directory($path, FILE_CREATE_DIRECTORY)) {
+          // There is no need to flush JS here as core refreshes JS caches
+          // automatically, if new files are added.
+          file_unmanaged_save_data($data, $file_destination, FILE_EXISTS_REPLACE);
+          // Based on Drupal Core class AssetDumper.
+          if (extension_loaded('zlib') && \Drupal::config('system.performance')->get('js.gzip')) {
+            file_unmanaged_save_data(gzencode($data, 9, FORCE_GZIP), $file_destination . '.gz', FILE_EXISTS_REPLACE);
+          }
+          \Drupal::logger('google_analytics')->info('Locally cached tracking code file has been saved.');
+
+          // Return the local JS file path.
+          return file_url_transform_relative(file_create_url($file_destination));
+        }
+      }
+    }
+    catch (RequestException $exception) {
+      watchdog_exception('google_analytics', $exception);
+    }
+  }
+  else {
+    // Return the local JS file path.
+    return file_url_transform_relative(file_create_url($file_destination));
+  }
+}
+
+/**
+ * Delete cached files and directory.
+ */
+function google_analytics_clear_js_cache() {
+  $path = 'public://google_analytics';
+  if (file_prepare_directory($path)) {
+    file_scan_directory($path, '/.*/', ['callback' => 'file_unmanaged_delete']);
+    \Drupal::service('file_system')->rmdir($path);
+
+    // Change query-strings on css/js files to enforce reload for all users.
+    _drupal_flush_css_js();
+
+    \Drupal::logger('google_analytics')->info('Local cache has been purged.');
+  }
+}
+
+/**
+ * Tracking visibility check for an user object.
+ *
+ * @param object $account
+ *   A user object containing an array of roles to check.
+ *
+ * @return bool
+ *   TRUE if the current user is being tracked by Google Analytics,
+ *   otherwise FALSE.
+ */
+function _google_analytics_visibility_user($account) {
+  $config = \Drupal::config('google_analytics.settings');
+  $enabled = FALSE;
+
+  // Is current user a member of a role that should be tracked?
+  if (_google_analytics_visibility_roles($account)) {
+
+    // Use the user's block visibility setting, if necessary.
+    if (($visibility_user_account_mode = $config->get('visibility.user_account_mode')) != 0) {
+      $user_data_google_analytics = \Drupal::service('user.data')->get('google_analytics', $account->id());
+      if ($account->id() && isset($user_data_google_analytics['user_account_users'])) {
+        $enabled = $user_data_google_analytics['user_account_users'];
+      }
+      else {
+        $enabled = ($visibility_user_account_mode == 1);
+      }
+    }
+    else {
+      $enabled = TRUE;
+    }
+
+  }
+
+  return $enabled;
+}
+
+/**
+ * Tracking visibility check for user roles.
+ *
+ * Based on visibility setting this function returns TRUE if JS code should
+ * be added for the current role and otherwise FALSE.
+ *
+ * @param object $account
+ *   A user object containing an array of roles to check.
+ *
+ * @return bool
+ *   TRUE if JS code should be added for the current role and otherwise FALSE.
+ */
+function _google_analytics_visibility_roles($account) {
+  $config = \Drupal::config('google_analytics.settings');
+  $enabled = $visibility_user_role_mode = $config->get('visibility.user_role_mode');
+  $visibility_user_role_roles = $config->get('visibility.user_role_roles');
+
+  if (count($visibility_user_role_roles) > 0) {
+    // One or more roles are selected.
+    foreach (array_values($account->getRoles()) as $user_role) {
+      // Is the current user a member of one of these roles?
+      if (in_array($user_role, $visibility_user_role_roles)) {
+        // Current user is a member of a role that should be tracked/excluded
+        // from tracking.
+        $enabled = !$visibility_user_role_mode;
+        break;
+      }
+    }
+  }
+  else {
+    // No role is selected for tracking, therefore all roles should be tracked.
+    $enabled = TRUE;
+  }
+
+  return $enabled;
+}
+
+/**
+ * Tracking visibility check for pages.
+ *
+ * Based on visibility setting this function returns TRUE if JS code should
+ * be added to the current page and otherwise FALSE.
+ */
+function _google_analytics_visibility_pages() {
+  static $page_match;
+
+  // Cache visibility result if function is called more than once.
+  if (!isset($page_match)) {
+    $config = \Drupal::config('google_analytics.settings');
+    $visibility_request_path_mode = $config->get('visibility.request_path_mode');
+    $visibility_request_path_pages = $config->get('visibility.request_path_pages');
+
+    // Match path if necessary.
+    if (!empty($visibility_request_path_pages)) {
+      // Convert path to lowercase. This allows comparison of the same path
+      // with different case. Ex: /Page, /page, /PAGE.
+      $pages = Unicode::strtolower($visibility_request_path_pages);
+      if ($visibility_request_path_mode < 2) {
+        // Compare the lowercase path alias (if any) and internal path.
+        $path = \Drupal::service('path.current')->getPath();
+        $path_alias = Unicode::strtolower(\Drupal::service('path.alias_manager')->getAliasByPath($path));
+        $page_match = \Drupal::service('path.matcher')->matchPath($path_alias, $pages) || (($path != $path_alias) && \Drupal::service('path.matcher')->matchPath($path, $pages));
+        // When $visibility_request_path_mode has a value of 0, the tracking
+        // code is displayed on all pages except those listed in $pages. When
+        // set to 1, it is displayed only on those pages listed in $pages.
+        $page_match = !($visibility_request_path_mode xor $page_match);
+      }
+      elseif (\Drupal::moduleHandler()->moduleExists('php')) {
+        $page_match = php_eval($visibility_request_path_pages);
+      }
+      else {
+        $page_match = FALSE;
+      }
+    }
+    else {
+      $page_match = TRUE;
+    }
+
+  }
+  return $page_match;
+}

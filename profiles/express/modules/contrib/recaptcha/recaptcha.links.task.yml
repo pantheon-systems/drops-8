@@ -1,0 +1,4 @@
+recaptcha.admin_settings_form_tab:
+  route_name: recaptcha.admin_settings_form
+  title: reCAPTCHA
+  base_route: captcha_settings

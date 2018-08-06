@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies: {  }
+name: test_entity_browser_token
+label: 'Test entity browser token'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  dd3fbe95-1e31-4d7e-8b4f-e685a7668342:
+    settings:
+      upload_location: 'public://[current-user:account-name]/'
+    uuid: dd3fbe95-1e31-4d7e-8b4f-e685a7668342
+    weight: 1
+    label: upload
+    id: upload

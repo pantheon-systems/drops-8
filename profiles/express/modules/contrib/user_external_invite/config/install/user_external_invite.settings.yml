@@ -1,0 +1,33 @@
+user_external_invite_roles:
+user_external_invite_default_role: 0
+user_external_invite_days_valid_for: 5
+user_external_invite_delete_old_invites: 2592000
+user_external_invite_no_query_params: FALSE
+user_external_invite_use_universal_from_email: FALSE
+user_external_invite_universal_from_email:
+user_external_invite_invite_template: |
+  [user_external_invite:invite_custom]
+
+  You have been invited to join the [site:name] website as a user with [user_external_invite:invite_role] access privileges.
+
+  To accept this invitation:
+  1) Go to [user_external_invite:invite_link]
+  2) Login with your username and password.
+
+  Upon completion, you will receive an email confirming your access. Please note that invite is only valid until [user_external_invite:invite_expiration]. You will have to contact the site owner if you haven't accepted the invite by that date.
+user_external_invite_confirmation_template: |
+  We have received your request to grant [user_external_invite:invite_role] access to the following:
+
+  [user_external_invite:invited_emails]
+
+  An email invitation has been sent requesting the user to login and accept the invitation. Upon completion, a confirmation email will be sent. Please note that invite is valid until [user_external_invite:invite_expiration] and you will have to send out another invite if the invitee hasn't accepted it by this date.
+
+  If you did not submit this request or need to modify it, please contact your administrator at [site:mail].
+user_external_invite_accepted_template: |
+  We are confirming [user_external_invite:invited_email] now has [user_external_invite:invite_role] access to the [site:name], [site:url], website.
+user_external_invite_accepted_confirmation_template: |
+  You have successfully joined the [site:name] website as a user with [user_external_invite:invite_role] access privileges.
+
+  To access and edit this site:
+  1) Go to [site:login-url]
+  2) Login with your username and password.

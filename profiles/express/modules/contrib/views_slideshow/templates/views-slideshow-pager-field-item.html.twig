@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow pager item.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the element.
+ * - count: The page number.
+ * - location: Location of pager.
+ * - item: Rendered field(s) making up item.
+ * - vss_id: The slideshow's id.
+ *
+ * @see template_preprocess_views_slideshow_pager_field_item()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div id="views_slideshow_pager_field_item_{{ location }}_{{ vss_id }}_{{ count }}" {{ attributes.addClass(classes) }}>
+  {{ item }}
+</div>

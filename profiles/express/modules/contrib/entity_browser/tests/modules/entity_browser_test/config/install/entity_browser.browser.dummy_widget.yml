@@ -1,0 +1,16 @@
+name: dummy_widget
+label: 'Browser with dummy widget'
+display: standalone
+display_configuration:
+  path: '/entity-browser/dummy-widget'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  7d8a347f-84e6-483e-89e0-2021fb479616:
+    id: dummy
+    label: 'Dummy widget'
+    weight: 0
+    uuid: 7d8a347f-84e6-483e-89e0-2021fb479616
+    settings: {  }

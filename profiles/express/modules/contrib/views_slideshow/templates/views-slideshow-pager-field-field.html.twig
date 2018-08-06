@@ -1,0 +1,25 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow pager field field data.
+ *
+ * Available variables:
+ * - css_identifier: css identified for the field..
+ * - label: Label for the field.
+ * - output: The field data.
+ *
+ * @see template_preprocess_views_slideshow_pager_field_field()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div class="views-field-{{ css_identifier }}">
+  {% if label %}
+    <label class="view-label-{{ css_identifier }}">
+      {{ label }}:
+    </label>
+  {% endif %}
+  <div class="views-content-{{ css_identifier }}">
+    {{ output }}
+  </div>
+</div>

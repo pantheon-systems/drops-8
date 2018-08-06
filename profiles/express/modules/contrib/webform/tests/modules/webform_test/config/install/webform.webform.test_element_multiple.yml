@@ -1,0 +1,322 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_multiple
+title: 'Test: Element: Multiple'
+description: 'Test multiple element.'
+category: 'Test: Element'
+elements: |
+  webform_multiple_default:
+    '#type': webform_multiple
+    '#title': webform_multiple_default
+    '#default_value':
+      - One
+      - Two
+      - Three
+  webform_multiple_no_sorting:
+    '#type': webform_multiple
+    '#title': webform_multiple_no_sorting
+    '#sorting': false
+    '#default_value':
+      - One
+      - Two
+      - Three
+  webform_multiple_no_operations:
+    '#type': webform_multiple
+    '#title': webform_multiple_no_operations
+    '#operations': false
+    '#default_value':
+      - One
+      - Two
+      - Three
+  webform_multiple_email_five:
+    '#type': webform_multiple
+    '#title': webform_multiple_email_five
+    '#cardinality': 5
+    '#element':
+      '#type': email
+      '#title': 'Please enter an email address'
+      '#title_display': invisible
+      '#placeholder': 'Enter email address'
+    '#default_value':
+      - example@example.com
+      - test@test.com
+  webform_multiple_datelist:
+    '#type': webform_multiple
+    '#title': webform_multiple_datelist
+    '#element':
+      '#type': datelist
+  webform_multiple_name_composite:
+    '#type': webform_multiple
+    '#title': webform_multiple_name_composite
+    '#header': true
+    '#element':
+      '#type': webform_name
+    '#default_value':
+      - first: John
+        last: Smith
+      - first: Jane
+        last: Doe
+  webform_multiple_elements_name_item:
+    '#type': webform_multiple
+    '#title': webform_multiple_elements_name_item
+    '#element':
+      first_name:
+        '#type': textfield
+        '#title': first_name
+      last_name:
+        '#type': textfield
+        '#title': last_name
+    '#default_value':
+      - first_name: John
+        last_name: Smith
+      - first_name: Jane
+        last_name: Doe
+  webform_multiple_elements_name_table:
+    '#type': webform_multiple
+    '#title': webform_multiple_elements_name_table
+    '#header': true
+    '#element':
+      first_name:
+        '#type': textfield
+        '#title': first_name
+        '#title_display': invisible
+        '#placeholder': 'Enter first name'
+      last_name:
+        '#type': textfield
+        '#title': last_name
+        '#title_display': invisible
+        '#placeholder': 'Enter last name'
+    '#default_value':
+      - first_name: John
+        last_name: Smith
+      - first_name: Jane
+        last_name: Doe
+  webform_multiple_options:
+    '#type': webform_multiple
+    '#title': webform_multiple_options
+    '#header': true
+    '#label': option
+    '#labels': options
+    '#element':
+      value:
+        '#type': textfield
+        '#title': 'Option value'
+        '#title_display': invisible
+        '#placeholder': 'Enter value'
+      text:
+        '#type': textfield
+        '#title': 'Option text'
+        '#title_display': invisible
+        '#placeholder': 'Enter text'
+    '#default_value':
+      - value: one
+        text: One
+      - value: two
+        text: Two
+  webform_multiple_key:
+    '#type': webform_multiple
+    '#title': webform_multiple_key
+    '#key': value
+    '#header': true
+    '#label': option
+    '#labels': options
+    '#element':
+      value:
+        '#type': textfield
+        '#title': 'Option value'
+        '#title_display': invisible
+        '#placeholder': 'Enter value'
+      text:
+        '#type': textfield
+        '#title': 'Option text'
+        '#title_display': invisible
+        '#placeholder': 'Enter text'
+      score:
+        '#type': number
+        '#title': 'Option score'
+        '#title_display': invisible
+        '#placeholder': 'Enter score'
+    '#default_value':
+      one:
+        text: One
+        score: 1
+      two:
+        text: Two
+        score: 2
+  webform_multiple_elements_hidden_table:
+    '#type': webform_multiple
+    '#title': webform_multiple_elements_hidden_table
+    '#header': true
+    '#element':
+      id:
+        '#type': value
+      first_name:
+        '#type': textfield
+        '#title': first_name
+        '#title_display': invisible
+        '#placeholder': 'Enter first name'
+      last_name:
+        '#access': false
+        '#type': textfield
+        '#title': last_name
+        '#title_display': invisible
+        '#placeholder': 'Enter last name'
+    '#default_value':
+      - id: john
+        first_name: John
+        last_name: Smith
+      - id: jane
+        first_name: Jane
+        last_name: Doe
+  webform_multiple_elements_flattened:
+    '#type': webform_multiple
+    '#title': webform_multiple_elements_flattened
+    '#header': true
+    '#element':
+      value:
+        '#type': textfield
+        '#title': value
+        '#title_display': invisible
+        '#placeholder': 'Enter value'
+        '#help': 'This is custom help text'
+      option:
+        '#type': container
+        '#title': 'text/description'
+        '#title_display': invisible
+        '#help': 'This is custom help text'
+        text:
+          '#type': textfield
+          '#title': text
+          '#title_display': invisible
+          '#placeholder': 'Enter text'
+        description:
+          '#type': textfield
+          '#title': description
+          '#title_display': invisible
+          '#placeholder': 'Enter description'
+    '#default_value':
+      - value: one
+        text: One
+        description: This is the number 1.
+      - value: two
+        text: Two
+        description: This is the number 2.
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: true
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  debug:
+    id: debug
+    label: Debug
+    handler_id: debug
+    status: true
+    conditions: {  }
+    weight: 0
+    settings: {  }

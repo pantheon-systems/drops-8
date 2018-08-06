@@ -1,0 +1,229 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_format_custom
+title: 'Test: Element: Format custom'
+description: 'Test element custom formatting.'
+category: 'Test: Element'
+elements: |
+  textfield_custom_value:
+    '#type': textfield
+    '#title': textfield_custom
+    '#format': custom
+    '#format_html': |
+      <em>{{ value }}</em>
+    '#format_text': |
+      /{{ value }}/
+    '#default_value': '{textfield_custom}'
+  textfield_custom_value_multiple:
+    '#type': textfield
+    '#title': textfield_custom
+    '#multiple': true
+    '#format': custom
+    '#format_html': |
+      <em>{{ value }}</em>
+    '#format_text': |
+      /{{ value }}/
+    '#format_items': custom
+    '#format_items_html': |
+      <table>
+      {% for item in items %}
+        <tr {% if loop.index is divisibleby(2) %}style="background-color: #ffc"{% endif %}><td>{{ item }}</td></tr>
+      {% endfor %}
+      </table>
+    '#format_items_text': |
+      {% for item in items %}
+      ⦿ {{ item }}
+      {% endfor %}
+    '#default_value':
+      - One
+      - Two
+      - Three
+      - Four
+      - Five
+  image_custom:
+    '#type': webform_image_file
+    '#title': image_custom
+    '#format': custom
+    '#format_html': |
+      value: {{ value }}<br/>
+      item['value']: {{ item['value'] }}<br/>
+      item['raw']: {{ item['raw'] }}<br/>
+      item['link']: {{ item['link'] }}<br/>
+      item['id']: {{ item['id'] }}<br/>
+      item['url']: {{ item['url'] }}<br/>
+      item['original:image']: <div style="width: 100px">{{ item['original:image'] }}</div>
+      item['original:link']: <div style="width: 100px">{{ item['original:link'] }}</div>
+      item['original:modal']: <div style="width: 100px">{{ item['original:modal'] }}</div>
+    '#format_text': |
+      value: {{ value }}
+      item['value']: {{ item['value'] }}
+      item['raw']: {{ item['raw'] }}
+      item['link']: {{ item['link'] }}
+      item['id']: {{ item['id'] }}
+      item['url']: {{ item['url'] }}
+  address_custom:
+    '#type': webform_address
+    '#title': address_custom
+    '#format': custom
+    '#format_html': |
+      element.address: {{ element.address }}<br/>
+      element.address_2: {{ element.address_2 }}<br/>
+      element.city: {{ element.city }}<br/>
+      element.state_province: {{ element.state_province }}<br/>
+      element.postal_code: {{ element.postal_code }}<br/>
+      element.country: {{ element.country }}<br/>
+    '#format_text': |
+      element.address: {{ element.address }}
+      element.address_2: {{ element.address_2 }}
+      element.city: {{ element.city }}
+      element.state_province: {{ element.state_province }}
+      element.postal_code: {{ element.postal_code }}
+      element.country: {{ element.country }}
+    '#state_province__type': webform_select_other
+    '#country__type': webform_select_other
+    '#default_value':
+      address: '{address}'
+      address_2: '{address_2}'
+      city: '{city}'
+      state_province: '{state_province}'
+      postal_code: '{postal_code}'
+      country: '{country}'
+  fieldset_custom:
+    '#type': fieldset
+    '#title': fieldset_custom
+    '#format': custom
+    '#format_html': |
+      {{ item.details }}
+    '#format_text': |
+      {{ item.details }}
+    fieldset_custom_textfield:
+      '#type': textfield
+      '#title': fieldset_custom_textfield
+      '#default_value': '{fieldset_custom_textfield}'
+  fieldset_custom_children:
+    '#type': fieldset
+    '#title': fieldset_custom_children
+    '#format': custom
+    '#format_html': |
+      <h3>fieldset_custom_children</h3>
+      <hr />
+      {{ children }}
+    '#format_text': |
+      fieldset_custom_children
+      ------------------------
+      {{ children }}
+    fieldset_custom_children_textfield:
+      '#type': textfield
+      '#title': fieldset_custom_children_textfield
+      '#default_value': '{fieldset_custom_children_textfield}'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,9 @@
+cu-back-to-top:
+  version: 1.x
+  css:
+    theme:
+      css/cu_back_to_top.css: {}
+  js:
+    js/cu_back_to_top.js: {}
+  dependencies:
+    - core/jquery

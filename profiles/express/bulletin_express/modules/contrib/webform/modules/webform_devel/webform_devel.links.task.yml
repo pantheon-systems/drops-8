@@ -1,0 +1,5 @@
+entity.webform.export_form:
+  title: 'Export'
+  route_name: entity.webform.export_form
+  parent_id: devel.entities:webform.devel_tab
+  weight: 100

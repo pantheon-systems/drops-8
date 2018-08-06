@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Contains libraries_ui.module..
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function libraries_ui_theme() {
+  $items = [
+      'libraries_ui' => [
+          'render element' => 'element',
+      ],
+  ];
+  return $items;
+}
+/**
+ * Implements hook_help().
+ */
+function libraries_ui_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the libraries_ui module.
+    case 'help.page.libraries_ui':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('This module will display all libraries information in your website') . '</p>';
+      return $output;
+
+    default:
+  }
+}

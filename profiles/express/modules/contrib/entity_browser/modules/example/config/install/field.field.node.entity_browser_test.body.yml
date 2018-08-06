@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.body
+    - node.type.entity_browser_test
+  module:
+    - entity_browser_example
+    - text
+  enforced:
+    module:
+      - entity_browser_example
+id: node.entity_browser_test.body
+field_name: body
+entity_type: node
+bundle: entity_browser_test
+label: Body
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  display_summary: true
+third_party_settings: {  }
+field_type: text_with_summary

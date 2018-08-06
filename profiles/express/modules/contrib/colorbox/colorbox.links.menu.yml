@@ -1,0 +1,5 @@
+colorbox.admin_settings:
+  title: 'Colorbox settings'
+  description: 'Configure the Colorbox settings.'
+  parent: system.admin_config_media
+  route_name: colorbox.admin_settings

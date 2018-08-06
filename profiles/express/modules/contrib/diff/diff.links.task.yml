@@ -1,0 +1,9 @@
+diff.general_settings:
+  route_name: diff.general_settings
+  base_route: diff.general_settings
+  title: Settings
+
+diff.fields_list:
+  route_name: diff.fields_list
+  base_route: diff.general_settings
+  title: Fields

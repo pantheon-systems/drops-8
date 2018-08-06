@@ -1,0 +1,109 @@
+<?php
+
+/**
+ * @file
+ *
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperInterface;
+use Drupal\Core\Url;
+use Drupal\linkit\ProfileInterface;
+
+/**
+ * Implements hook_help().
+ */
+function linkit_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'entity.linkit_profile.attributes':
+      return '<p>' . t('Attributes are HTML attributes that will be attached to the insert plugin.') . '</p>';
+      break;
+  }
+}
+
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for linkit_profile_form on behalf
+ * of the 'imce' module.
+ *
+ * Adds IMCE settings to the form.
+ *
+ * @see imce_form_linkit_profile_form_builder()
+ */
+function imce_form_linkit_profile_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\Linkit\ProfileInterface $linkit_profile */
+  $linkit_profile = $form_state->getFormObject()->getEntity();
+
+  $form['imce'] = array(
+    '#type' => 'details',
+    '#title' => t('IMCE integration'),
+    '#group' => 'additional_settings',
+  );
+
+  $form['imce']['imce_use'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable IMCE File Browser in the editor dialog.'),
+    '#default_value' => $linkit_profile->getThirdPartySetting('imce', 'use', FALSE),
+  );
+
+  $scheme_options = \Drupal::service('stream_wrapper_manager')->getNames(StreamWrapperInterface::READ_VISIBLE);
+  $form['imce']['imce_scheme'] = array(
+    '#type' => 'radios',
+    '#title' => t('Scheme'),
+    '#options' => $scheme_options,
+    '#default_value' => $linkit_profile->getThirdPartySetting('imce', 'scheme', 'public'),
+    '#states' => [
+      'visible' => [
+        ':input[name="imce_use"]' => ['checked' => TRUE],
+      ],
+    ],
+  );
+
+  $form['#entity_builders'][] = 'imce_form_linkit_profile_form_builder';
+}
+
+/**
+ * Entity builder for the linkit profile form with imce options.
+ *
+ * @see imce_form_linkit_profile_form_alter().
+ */
+function imce_form_linkit_profile_form_builder($entity_type, ProfileInterface $linkit_profile, &$form, FormStateInterface $form_state) {
+  $linkit_profile->setThirdPartySetting('imce', 'use', $form_state->getValue('imce_use'));
+  $linkit_profile->setThirdPartySetting('imce', 'scheme', $form_state->getValue('imce_scheme'));
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for linkit_editor_dialog_form on
+ * behalf of the 'imce' module.
+ *
+ * Adds a button to open the imce file browser if it is enabled.
+ */
+function imce_form_linkit_editor_dialog_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\Linkit\ProfileInterface $linkit_profile */
+  $linkit_profile = $form_state->getFormObject()->getLinkitProfile();
+
+  if($linkit_profile->getThirdPartySetting('imce', 'use', FALSE)) {
+    $form['imce-link'] = [
+      '#type' => 'link',
+      '#title' => t('Open IMCE file browser'),
+      '#url' => Url::fromRoute('imce.page', [
+        'scheme' => $linkit_profile->getThirdPartySetting('imce', 'scheme', 'public'),
+      ]),
+      '#options' => array(
+        'query' => array(
+          'sendto' => 'linkitImce.sendto',
+        ),
+      ),
+      '#attributes' => [
+        'class' => ['linkit-imce-open'],
+      ],
+      '#attached' => [
+        'library' => [
+          'linkit/linkit.imce'
+        ],
+      ],
+      '#weight' => 1,
+    ];
+  }
+}

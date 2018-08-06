@@ -1,0 +1,70 @@
+@media screen and (max-width: 1250px) {
+    .entities-list tbody * {
+        display: block;
+    }
+
+    .entities-list thead tr th:nth-child(2), .entities-list thead tr th:nth-child(3), .entities-list thead tr th:nth-child(4) {
+        display: none;
+    }
+
+    .entities-list tbody tr td a.tabledrag-handle {
+        position: absolute;
+        margin-left: -40px;
+    }
+
+    .entities-list tbody tr td {
+        margin-left: 20px;
+    }
+}
+
+@media screen and (min-width: 1251px) {
+    .entities-list {
+        table-layout: fixed;
+    }
+}
+
+@media screen and (min-width: 1021px) and (max-width: 1100px) {
+    .toolbar-tray-open.toolbar-vertical .entities-list {
+        display: inline-block;
+    }
+
+    .toolbar-tray-open.toolbar-vertical .entities-list thead, .toolbar-tray-open .entities-list tbody {
+        display: inline-block;
+        width: 100%;
+    }
+
+    .toolbar-tray-open.toolbar-vertical .entities-list thead > tr {
+        display: table;
+        width: 100%;
+    }
+
+    .toolbar-tray-open.toolbar-vertical .entities-list tbody tr td {
+        padding-right: 0;
+    }
+}
+
+@media screen and (min-width: 780px) and (max-width: 920px) {
+    .entities-list input.form-text, .entities-list textarea.form-textarea {
+        width: 100%;
+    }
+}
+
+@media screen and (min-width: 610px) and (max-width: 780px) {
+    .toolbar-tray-open .entities-list {
+        display: inline-block;
+    }
+
+    .toolbar-tray-open .entities-list thead, .toolbar-tray-open .entities-list tbody {
+        display: inline-block;
+        width: 100%;
+    }
+
+    .toolbar-tray-open .entities-list thead > tr {
+        display: table;
+        width: 100%;
+    }
+
+    .toolbar-tray-open .entities-list tbody tr td {
+        padding-right: 0;
+    }
+}

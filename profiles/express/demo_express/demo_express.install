@@ -1,0 +1,20 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the profilename install profile.
+ */
+
+/**
+ * Implements hook_install().
+ *
+ * Perform actions to set up the site for this profile.
+ *
+ * @see system_install()
+ */
+function demo_express_install() {
+  // Can add code in here to make nodes, terms, etc.
+  \Drupal::configFactory()
+    ->getEditable('system.theme')
+    ->set('default', 'catapult')
+    ->save();
+}

@@ -1,0 +1,101 @@
+<?php
+
+/**
+ * Implements hook_theme_suggestions_HOOK() for "block".
+ */
+function menu_block_theme_suggestions_block(array $variables) {
+  $suggestions = [];
+
+  // Check if this is a menu_block block.
+  if (isset($variables['elements']['#base_plugin_id']) && $variables['elements']['#base_plugin_id'] == 'menu_block') {
+    $menu_name = strtr($variables['elements']['#derivative_plugin_id'], '-', '_');
+    $config = isset($variables['elements']['#configuration']) ? $variables['elements']['#configuration'] : [];
+
+    // Context module (and perhaps others?) adds 'region' into the config.
+    if (!empty($config['region'])) {
+      $suggestions[] = 'block__menu_block__region_' . $config['region'];
+      $suggestions[] = 'block__menu_block__' . $menu_name . '__region_' . $config['region'];
+    }
+
+    // Add our custom theme suggestion.
+    if (!empty($config['suggestion']) && $config['suggestion'] !== $menu_name) {
+      $suggestions[] = 'block__menu_block__' . $config['suggestion'];
+    }
+
+    // Context module adds block 'uuid' into the config.
+    if (!empty($config['uuid'])) {
+      $suggestions[] = 'block__menu_block__' . strtr($config['uuid'], '-', '_');
+    }
+  }
+
+  return $suggestions;
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK_alter().
+ *
+ * Adds block__system_menu_block so menu blocks work the same as core's menu
+ * blocks.
+ */
+function menu_block_theme_suggestions_block_alter(array &$suggestions, array $variables) {
+  if ($suggestions[0] == 'block__menu_block') {
+    if ($suggestions[1] == 'block__menu_block') {
+      // Since this first suggestion is a dupe, replace it with the system suggestion.
+      $suggestions[0] = 'block__system_menu_block';
+    }
+    // If some other module has removed the duplicates, use array_unshift().
+    else {
+      array_unshift($suggestions, 'block__system_menu_block');
+    }
+    // The suggestions added with menu_block_theme_suggestions_block() are added
+    // after the machine name-based suggestion, but are less specific and should
+    // come before it.
+    if (!empty($variables['elements']['#id'])) {
+      $machine_name_suggestion = 'block__' . $variables['elements']['#id'];
+      $suggestions = array_diff($suggestions, [$machine_name_suggestion]);
+      $suggestions[] = $machine_name_suggestion;
+    }
+  }
+}
+
+/**
+ * Implements hook_theme_registry_alter().
+ */
+function menu_block_theme_registry_alter(&$theme_registry) {
+  // Add $menu_block_configuration as a variable to the 'menu' theme hook. Set
+  // its default value to be an empty array.
+  $theme_registry['menu']['variables']['menu_block_configuration'] = [];
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK() for "menu".
+ */
+function menu_block_theme_suggestions_menu(array $variables) {
+  $suggestions = [];
+
+  // The MenuBlock plugin's build() method populates this variable.
+  if (!empty($variables['menu_block_configuration'])) {
+    $config = $variables['menu_block_configuration'];
+    $menu_name = strtr($variables['menu_name'], '-', '_');
+
+    $suggestions[] = 'menu__' . $menu_name;
+
+    // Context module (and perhaps others?) adds 'region' into the config.
+    if (!empty($config['region'])) {
+      $suggestions[] = 'menu__region_' . $config['region'];
+      $suggestions[] = 'menu__' . $menu_name . '__region_' . $config['region'];
+    }
+
+    // Add our custom theme suggestion.
+    if (!empty($config['suggestion']) && $config['suggestion'] !== $menu_name) {
+      $suggestions[] = 'menu__' . $config['suggestion'];
+    }
+
+    // Context module adds block 'uuid' into the config.
+    if (!empty($config['uuid'])) {
+      $suggestions[] = 'menu__' . $menu_name . '__' . $config['uuid'];
+    }
+  }
+
+  return $suggestions;
+}

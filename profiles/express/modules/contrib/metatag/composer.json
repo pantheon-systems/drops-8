@@ -1,0 +1,28 @@
+{
+  "name": "drupal/metatag",
+  "description": "Manage meta tags for all entities.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "keywords": [
+    "php",
+    "seo"
+  ],
+  "homepage": "https://www.drupal.org/project/metatag",
+  "authors": [
+    {
+      "name": "See contributors",
+      "homepage": "https://www.drupal.org/node/640498/committers",
+      "role": "Developer"
+    }
+  ],
+  "support": {
+    "issues": "http://drupal.org/project/issues/metatag"
+  },
+  "require": {
+    "drupal/token": "^1.0"
+  },
+  "require-dev": {
+    "drupal/devel": "^1.0",
+    "drupal/restui": "^1.0"
+  }
+}

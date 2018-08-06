@@ -1,0 +1,4 @@
+services:
+  plugin.manager.crop.entity_provider:
+    class: Drupal\crop\EntityProviderManager
+    parent: default_plugin_manager

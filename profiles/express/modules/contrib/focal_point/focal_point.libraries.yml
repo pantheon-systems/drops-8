@@ -1,0 +1,20 @@
+drupal.focal_point:
+  version: VERSION
+  js:
+    js/focal_point.js: {}
+  css:
+    theme:
+      css/focal_point.css: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.ui
+    - core/jquery.ui.draggable
+    - core/drupal
+
+drupal.focal_point_preview:
+  version: VERSION
+  js:
+      js/focal_point_preview.js: {}
+  css:
+    theme:
+      css/focal_point_preview.css: {}

@@ -1,0 +1,20 @@
+uuid: a0c566bc-f82b-4f0a-8185-d85fa90b8cd1
+langcode: en
+status: true
+dependencies:
+  theme:
+    - catapult
+_core:
+  default_config_hash: wo9n4vydqkBzmxBmSQCiyufFnqP2yyf1GB9Kx1crDI0
+id: catapult_local_actions
+theme: catapult
+region: content
+weight: -7
+provider: null
+plugin: local_actions_block
+settings:
+  id: local_actions_block
+  label: 'Primary admin actions'
+  provider: core
+  label_display: '0'
+visibility: {  }

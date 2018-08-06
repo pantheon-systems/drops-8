@@ -1,0 +1,16 @@
+services:
+  redirect.404_subscriber:
+    class: Drupal\redirect_404\EventSubscriber\Redirect404Subscriber
+    arguments: ['@path.current', '@path.matcher', '@request_stack', '@language_manager', '@redirect.not_found_storage', '@config.factory']
+    tags:
+      - { name: event_subscriber }
+  redirect.not_found_storage:
+    class: Drupal\redirect_404\SqlRedirectNotFoundStorage
+    arguments: ['@database', '@config.factory']
+    tags:
+      - { name: backend_overridable }
+  logger.redirect_404:
+    public: false
+    class: \Drupal\redirect_404\Render\Redirect404LogSuppressor
+    decorates: logger.factory
+    arguments: ['@logger.redirect_404.inner', '@config.factory']

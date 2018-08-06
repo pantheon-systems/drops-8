@@ -1,0 +1,5 @@
+entity.webform.templates:
+  title: 'Templates'
+  route_name: entity.webform.templates
+  base_route: entity.webform.collection
+  weight: 10

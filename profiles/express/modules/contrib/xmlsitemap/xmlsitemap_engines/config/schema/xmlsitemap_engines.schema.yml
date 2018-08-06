@@ -1,0 +1,18 @@
+# Schema for the xmlsitemap_engines configuration files of the XMLSitemap module.
+
+xmlsitemap_engines.settings:
+  type: config_object
+  label: 'XMLSitemap engines settings'
+  mapping:
+    engines:
+      type: sequence
+      label: 'Engines that will receive the sitemap'
+      sequence:
+        type: string
+        label: 'Search engine'
+    custom_urls:
+      type: string
+      label: 'Url engines'
+    minimum_lifetime:
+      type: integer
+      label: 'Minumum lifetime for sitemaps'

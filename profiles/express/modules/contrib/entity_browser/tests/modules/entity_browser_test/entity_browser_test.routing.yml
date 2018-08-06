@@ -1,0 +1,7 @@
+entity_browser_test.element:
+  path: '/test-element'
+  defaults:
+    _form: '\Drupal\entity_browser_test\Form\FormElementTest'
+    _title: 'Entity browser form element test'
+  requirements:
+    _access: 'TRUE'

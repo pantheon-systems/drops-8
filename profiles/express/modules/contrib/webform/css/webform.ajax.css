@@ -1,0 +1,46 @@
+/**
+ * @file
+ * Ajax styles
+ */
+
+/**
+ * Floating Ajax message container.
+ *
+ * Display status message in a floating container at the bottom of the page.
+ * NOTE: It is disiplay to display message floating at top because of the floating
+ * admin toolbar.
+ *
+ * @see Drupal.AjaxCommands.prototype.webformInsert
+ */
+.webform-ajax-messages {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+}
+
+.webform-ajax-messages .messages {
+  border-width: 10px 0 0 0;
+  margin: 0;
+  font-weight: bold;
+}
+
+.webform-ajax-messages .messages + .messages {
+  margin: 0;
+}
+
+/**
+ * Always position webform modal dialog at the top of the page.
+ *
+ * This prevents the dialogs position from jumping as its content is refreshed
+ * and when the window is resized.
+ *
+ * @see core/misc/dialog/dialog.position.js
+ * @see \Drupal\webform\Utility\WebformDialogHelper::getModalDialogAttributes
+ */
+.webform-modal {
+  top: 50px !important;
+}
+
+.toolbar-tray-open.toolbar-horizontal .webform-modal {
+  top: 90px !important;
+}

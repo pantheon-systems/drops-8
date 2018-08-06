@@ -1,0 +1,232 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples
+open: null
+close: null
+uid: null
+template: false
+id: example_elements_composite
+title: 'Example: Elements: Composite'
+description: 'Examples of composite elements, includes address, contact, and credit card.'
+category: Example
+elements: |
+  webform_address_example:
+    '#type': details
+    '#title': Address
+    '#open': true
+    webform_address:
+      '#type': webform_address
+      '#title': Address
+    webform_address_multiple:
+      '#type': webform_address
+      '#title': 'Address multiple'
+      '#multiple': true
+      '#multiple__header': true
+  webform_contact_example:
+    '#type': details
+    '#title': Contact
+    '#open': true
+    webform_contact:
+      '#type': webform_contact
+      '#title': Contact
+    webform_contact_multiple:
+      '#type': webform_contact
+      '#title': 'Contact multiple'
+      '#multiple': true
+  webform_creditcard_example:
+    '#type': details
+    '#title': 'Credit card'
+    '#open': true
+    webform_creditcard:
+      '#type': webform_creditcard
+      '#title': 'Credit card'
+  webform_likert_example:
+    '#type': details
+    '#title': Likert
+    '#open': true
+    webform_likert:
+      '#type': webform_likert
+      '#title': Likert
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: 1
+        2: 2
+        3: 3
+        4: 4
+        5: 5
+  webform_link_example:
+    '#type': details
+    '#title': Link
+    '#open': true
+    webform_link:
+      '#type': webform_link
+      '#title': Link
+    webform_link_multiple:
+      '#type': webform_link
+      '#title': 'Link multiple'
+      '#multiple': true
+      '#multiple__header': true
+  webform_location_example:
+    '#type': details
+    '#title': Location
+    '#open': true
+    webform_location:
+      '#type': webform_location
+      '#title': Location
+      '#map': true
+      '#geolocation': true
+      '#format': map
+    webform_location_multiple:
+      '#type': webform_location
+      '#title': 'Location multiple'
+      '#map': true
+      '#geolocation': true
+      '#format': map
+      '#multiple': true
+  webform_mapping_example:
+    '#type': details
+    '#title': Mapping
+    '#open': true
+    webform_mapping:
+      '#type': webform_mapping
+      '#title': Mapping
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+  webform_name_example:
+    '#type': details
+    '#title': Name
+    '#open': true
+    webform_name:
+      '#type': webform_name
+      '#title': Name
+    webform_name_multiple:
+      '#type': webform_name
+      '#title': 'Name multiple'
+      '#multiple': true
+      '#multiple__header': true
+  webform_telephone_example:
+    '#type': details
+    '#title': 'Telephone advanced'
+    '#open': true
+    webform_telephone:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced'
+    webform_telephone_multiple:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced multiple'
+      '#multiple': true
+      '#multiple__header': true
+  text_format_example:
+    '#type': details
+    '#title': 'Text format'
+    '#open': true
+    text_format:
+      '#type': text_format
+      '#title': 'Text format'
+      '#description': '<b>Known Issues:</b><br/><a href="https://www.drupal.org/node/997826">Issue #997826: #states doesn''t work correctly with type text_format</a><br/><a href="https://www.drupal.org/node/2625128">Issue #2625128: Text format selection stays visible when using editor and a hidden webform state</a><br/><a href="https://www.drupal.org/node/1954968">Issue #1954968: Required CKEditor fields always fail HTML5 validation</a>'
+css: ''
+javascript: ''
+settings:
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_label: ''
+  form_submit_once: false
+  form_submit_attributes: {  }
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_log: false
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_next_button_label: ''
+  wizard_next_button_attributes: {  }
+  wizard_prev_button_label: ''
+  wizard_prev_button_attributes: {  }
+  wizard_start_label: ''
+  wizard_complete: true
+  wizard_complete_label: ''
+  preview: 0
+  preview_next_button_label: ''
+  preview_next_button_attributes: {  }
+  preview_prev_button_label: ''
+  preview_prev_button_attributes: {  }
+  preview_message: ''
+  draft: none
+  draft_auto_save: false
+  draft_button_label: ''
+  draft_button_attributes: {  }
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+handlers: {  }

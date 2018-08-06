@@ -1,0 +1,26 @@
+uuid: f189ac74-5439-424d-9cb4-488c98e5177e
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_ief_entity_no_bundle
+    - node.type.ief_simple_entity_no_bundle
+id: node.ief_simple_entity_no_bundle.field_ief_entity_no_bundle
+field_name: field_ief_entity_no_bundle
+entity_type: node
+bundle: ief_simple_entity_no_bundle
+label: ief_entity_no_bundle
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:entity_test__without_bundle'
+  handler_settings:
+    target_bundles: null
+    sort:
+      field: _none
+    auto_create: false
+field_type: entity_reference
+

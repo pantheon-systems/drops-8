@@ -1,0 +1,32 @@
+range_options:
+  '#title': 'Range Options'
+  '#type': details
+  '#open': true
+  number_range:
+    '#type': 'select'
+    '#title': 'Range (1-10)'
+    '#options': range
+    '#min': 1
+    '#max': 10
+    '#step': 1
+  number_padded_range:
+    '#type': 'select'
+    '#title': 'Range (001-010)'
+    '#options': range
+    '#min': 1
+    '#max': 10
+    '#step': 1
+    '#pad_length': 3
+    '#pad_string': '0'
+  letter_uppercase_range:
+    '#type': 'select'
+    '#title': 'Range (A-Z)'
+    '#options': range
+    '#min': A
+    '#max': Z
+  letter_lowercase_range:
+    '#type': 'select'
+    '#title': 'Range (a-z)'
+    '#options': range
+    '#min': a
+    '#max': z

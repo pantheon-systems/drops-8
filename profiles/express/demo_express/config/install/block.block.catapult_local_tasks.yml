@@ -1,0 +1,22 @@
+uuid: 589987fe-b660-4091-b5a9-aab0d26e4810
+langcode: en
+status: true
+dependencies:
+  theme:
+    - catapult
+_core:
+  default_config_hash: r5TsqthEumNkxQwa81AmUaUMb2ZgM8i9eqyZqEQd-7w
+id: catapult_local_tasks
+theme: catapult
+region: content
+weight: -7
+provider: null
+plugin: local_tasks_block
+settings:
+  id: local_tasks_block
+  label: Tabs
+  provider: core
+  label_display: '0'
+  primary: true
+  secondary: true
+visibility: {  }

@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Install and uninstall schema and functions for the xmlsitemap_custom module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function xmlsitemap_custom_uninstall() {
+  \Drupal::moduleHandler()->load('xmlsitemap');
+  \Drupal::service('xmlsitemap.link_storage')->deleteMultiple(array('type' => 'custom'));
+}

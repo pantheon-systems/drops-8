@@ -1,0 +1,22 @@
+uuid: 911da727-9687-4fa6-b614-3d3f080539aa
+langcode: en
+status: true
+dependencies:
+  module:
+    - search
+  theme:
+    - catapult
+_core:
+  default_config_hash: N1BbHMOz0ZpwvTU3JzX3IOdjv7ukhS_Tc1aVPJYV0MI
+id: catapult_search
+theme: catapult
+region: header
+weight: -5
+provider: null
+plugin: search_form_block
+settings:
+  id: search_form_block
+  label: Search
+  provider: search
+  label_display: '0'
+visibility: {  }

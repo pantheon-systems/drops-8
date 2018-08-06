@@ -1,0 +1,217 @@
+langcode: en
+status: closed
+dependencies:
+  enforced:
+    module:
+      - webform_templates
+open: null
+close: null
+uid: null
+template: true
+id: template_job_application
+title: 'Job Application'
+description: 'A job application webform template.'
+category: ''
+elements: |
+  information:
+    '#title': 'Your Information'
+    '#type': fieldset
+    first_name:
+      '#title': 'First Name'
+      '#type': textfield
+      '#required': true
+    last_name:
+      '#title': 'Last Name'
+      '#type': textfield
+      '#required': true
+    gender:
+      '#type': radios
+      '#title': Gender
+      '#options': gender
+      '#required': true
+  contact_information:
+    '#title': 'Contact Information'
+    '#type': fieldset
+    contact:
+      '#type': webform_contact
+      '#title': Contact
+      '#title_display': invisible
+      '#name__access': false
+      '#company__access': false
+  resume:
+    '#title': 'Your Resume'
+    '#type': fieldset
+    resume_method:
+      '#type': radios
+      '#options':
+        attach: 'Attach resume file'
+        paste: 'Paste your resume'
+      '#prefix': '<div class="container-inline">'
+      '#suffix': '</div>'
+      '#default_value': attach
+    resume_file:
+      '#type': managed_file
+      '#title': Resume
+      '#title_display': invisible
+      '#states':
+        visible:
+          ':input[name="resume_method"]':
+            value: attach
+        required:
+          ':input[name="resume_method"]':
+            value: attach
+        enabled:
+          ':input[name="resume_method"]':
+            value: attach
+    resume_text:
+      '#type': textarea
+      '#title': Resume
+      '#title_display': invisible
+      '#states':
+        visible:
+          ':input[name="resume_method"]':
+            value: paste
+        required:
+          ':input[name="resume_method"]':
+            value: paste
+        enabled:
+          ':input[name="resume_method"]':
+            value: paste
+  actions:
+    '#type': webform_actions
+    '#title': 'Submit button(s)'
+    '#submit__label': Apply
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: 'Thank you for applying.'
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  email_notification:
+    id: email
+    label: 'Email Notification'
+    handler_id: email_notification
+    status: true
+    conditions: {  }
+    weight: 1
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: '[webform_submission:values:email:raw]'
+      from_options: {  }
+      from_name: '[webform_submission:values:first_name] [webform_submission:values:last_name]'
+      subject: default
+      body: default
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: true
+      attachments: false
+      debug: false
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''

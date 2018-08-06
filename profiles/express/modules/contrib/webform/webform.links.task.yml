@@ -1,0 +1,339 @@
+# Manage
+
+entity.webform.collection:
+  title: 'Forms'
+  route_name: entity.webform.collection
+  base_route: entity.webform.collection
+  weight: 0
+
+# Templates have weight: 10. @see webform_templates.links.task.yml
+
+entity.webform_submission.collection:
+  title: 'Submissions'
+  route_name: entity.webform_submission.collection
+  base_route: entity.webform.collection
+  weight: 20
+
+entity.webform_submission.collection_manage:
+  title: 'Manage'
+  route_name: entity.webform_submission.collection
+  parent_id: entity.webform_submission.collection
+  weight: 0
+
+entity.webform_submission.collection_purge:
+  title: 'Purge'
+  route_name: entity.webform_submission.collection_purge
+  parent_id: entity.webform_submission.collection
+  weight: 10
+
+entity.webform_submission.collection_log:
+  title: 'Log'
+  route_name: entity.webform_submission.collection_log
+  parent_id: entity.webform_submission.collection
+  weight: 20
+
+# Settings.
+
+webform.config:
+  title: 'Configuration'
+  route_name: webform.config
+  base_route: entity.webform.collection
+  weight: 30
+
+webform.config.forms:
+  title: 'Forms'
+  route_name: webform.config
+  parent_id: webform.config
+  weight: 10
+
+webform.config.elements:
+  title: 'Elements'
+  route_name: webform.config.elements
+  parent_id: webform.config
+  weight: 20
+
+webform.config.options:
+  title: 'Options'
+  route_name: entity.webform_options.collection
+  parent_id: webform.config
+  weight: 30
+
+webform.config.submissions:
+  title: 'Submissions'
+  route_name: webform.config.submissions
+  parent_id: webform.config
+  weight: 40
+
+webform.config.handlers:
+  title: 'Handlers'
+  route_name: webform.config.handlers
+  parent_id: webform.config
+  weight: 50
+
+webform.config.exporters:
+  title: 'Exporters'
+  route_name: webform.config.exporters
+  parent_id: webform.config
+  weight: 60
+
+webform.config.libraries:
+  title: 'Libraries'
+  route_name: webform.config.libraries
+  parent_id: webform.config
+  weight: 70
+
+webform.config.advanced:
+  title: 'Advanced'
+  route_name: webform.config.advanced
+  parent_id: webform.config
+  weight: 80
+
+# Plugins.
+
+webform.plugins:
+  title: 'Plugins'
+  route_name: webform.element_plugins
+  base_route: entity.webform.collection
+  weight: 40
+
+webform.plugins.elements:
+  title: 'Elements'
+  route_name: webform.element_plugins
+  parent_id: webform.plugins
+  weight: 0
+
+webform.plugins.handlers:
+  title: 'Handlers'
+  route_name: webform.handler_plugins
+  parent_id: webform.plugins
+  weight: 10
+
+webform.plugins.exporters:
+  title: 'Exporters'
+  route_name: webform.exporter_plugins
+  parent_id: webform.plugins
+  weight: 20
+
+webform.addons:
+  title: 'Add-ons'
+  route_name: webform.addons
+  base_route: entity.webform.collection
+  weight: 50
+
+webform.about:
+  title: 'About'
+  route_name: webform.about
+  base_route: entity.webform.collection
+  weight: 50
+
+webform.about.webform:
+  title: 'Webform'
+  route_name: webform.about
+  parent_id: webform.about
+  weight: 0
+
+webform.about.drupal:
+  title: 'Drupal'
+  route_name: webform.about.drupal
+  parent_id: webform.about
+  weight: 10
+
+# Form
+
+entity.webform.canonical:
+  title: 'View'
+  route_name: entity.webform.canonical
+  base_route: entity.webform.canonical
+  weight: 0
+
+# Webform test.
+
+entity.webform.test_form:
+  title: 'Test'
+  route_name: entity.webform.test_form
+  base_route: entity.webform.canonical
+  weight: 10
+
+# Webform results.
+
+entity.webform.results:
+  title: 'Results'
+  route_name: entity.webform.results_submissions
+  base_route: entity.webform.canonical
+  weight: 20
+
+entity.webform.results_submissions:
+  title: 'Submissions'
+  route_name: entity.webform.results_submissions
+  parent_id: entity.webform.results
+  weight: 0
+
+entity.webform.results_export:
+  title: 'Download'
+  route_name: entity.webform.results_export
+  parent_id: entity.webform.results
+  weight: 10
+
+entity.webform.results_clear:
+  title: 'Clear'
+  route_name: entity.webform.results_clear
+  parent_id: entity.webform.results
+  weight: 20
+
+entity.webform.results_log:
+  title: 'Log'
+  route_name: entity.webform.results_log
+  parent_id: entity.webform.results
+  weight: 30
+
+# Webform edit (build).
+
+entity.webform.edit_form:
+  title: 'Build'
+  route_name: entity.webform.edit_form
+  base_route: entity.webform.canonical
+  weight: 30
+
+# Webform settings.
+
+entity.webform.settings:
+  title: 'Settings'
+  route_name: entity.webform.settings
+  base_route: entity.webform.canonical
+  weight: 40
+
+entity.webform.settings_general:
+  title: 'General'
+  route_name: entity.webform.settings
+  parent_id: entity.webform.settings
+  weight: 0
+
+entity.webform.settings_form:
+  title: 'Form'
+  route_name: entity.webform.settings_form
+  parent_id: entity.webform.settings
+  weight: 10
+
+entity.webform.settings_submissions:
+  title: 'Submissions'
+  route_name: entity.webform.settings_submissions
+  parent_id: entity.webform.settings
+  weight: 20
+
+entity.webform.settings_confirmation:
+  title: 'Confirmation'
+  route_name: entity.webform.settings_confirmation
+  parent_id: entity.webform.settings
+  weight: 30
+
+entity.webform.settings_handlers:
+  title: 'Emails / Handlers'
+  route_name: entity.webform.handlers
+  parent_id: entity.webform.settings
+  weight: 40
+
+entity.webform.settings_assets:
+  title: 'CSS / JS'
+  route_name: entity.webform.settings_assets
+  parent_id: entity.webform.settings
+  weight: 50
+
+entity.webform.settings_access:
+  title: 'Access'
+  route_name: entity.webform.settings_access
+  parent_id: entity.webform.settings
+  weight: 60
+
+# Submission
+
+entity.webform_submission.canonical:
+  title: 'View'
+  route_name: entity.webform_submission.canonical
+  base_route: entity.webform_submission.canonical
+  weight: 0
+
+entity.webform_submission.html:
+  title: 'HTML'
+  route_name: entity.webform_submission.canonical
+  parent_id: entity.webform_submission.canonical
+  weight: 10
+
+entity.webform_submission.table:
+  title: 'Table'
+  route_name: entity.webform_submission.table
+  parent_id: entity.webform_submission.canonical
+  weight: 20
+
+entity.webform_submission.text:
+  title: 'Plain text'
+  route_name: entity.webform_submission.text
+  parent_id: entity.webform_submission.canonical
+  weight: 30
+
+entity.webform_submission.yaml:
+  title: 'Data (YAML)'
+  route_name: entity.webform_submission.yaml
+  parent_id: entity.webform_submission.canonical
+  weight: 40
+
+entity.webform_submission.edit_form:
+  title: 'Edit'
+  route_name: entity.webform_submission.edit_form
+  base_route: entity.webform_submission.canonical
+  weight: 10
+
+entity.webform_submission.edit_form.page:
+  title: 'Pages'
+  route_name: entity.webform_submission.edit_form
+  parent_id: entity.webform_submission.edit_form
+  weight: 0
+
+entity.webform_submission.edit_form.all:
+  title: 'All'
+  route_name: entity.webform_submission.edit_form.all
+  parent_id: entity.webform_submission.edit_form
+  weight: 10
+
+entity.webform_submission.notes_form:
+  title: 'Notes'
+  route_name: entity.webform_submission.notes_form
+  base_route: entity.webform_submission.canonical
+  weight: 20
+
+entity.webform_submission.resend_form:
+  title: 'Resend'
+  route_name: entity.webform_submission.resend_form
+  base_route: entity.webform_submission.canonical
+  weight: 30
+
+entity.webform_submission.delete_form:
+  title: 'Delete'
+  route_name: entity.webform_submission.delete_form
+  base_route: entity.webform_submission.canonical
+  weight: 40
+
+entity.webform_submission.log:
+  title: 'Log'
+  route_name: entity.webform_submission.log
+  base_route: entity.webform_submission.canonical
+  weight: 50
+
+# User Submission
+
+entity.webform.user.submission:
+  title: 'View'
+  route_name: entity.webform.user.submission
+  base_route: entity.webform.user.submission
+  weight: 0
+
+entity.webform.user.submission.edit:
+  title: 'Edit'
+  route_name: entity.webform.user.submission.edit
+  base_route: entity.webform.user.submission
+  weight: 10
+
+entity.webform.user.submission.delete:
+  title: 'Delete'
+  route_name: entity.webform.user.submission.delete
+  base_route: entity.webform.user.submission
+  weight: 20

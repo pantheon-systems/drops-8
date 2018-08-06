@@ -1,0 +1,35 @@
+/**
+ * @file
+ * Styles for lists of entities display using FieldWidgetDisplayInterface plugins.
+ *
+ * Currently used on Entity browser entity reference field widget and Multi-step
+ * selection display plugin.
+ *
+ * These styles are compatible with Bartik, Seven, and Classy themes.
+ */
+
+.entities-list .item-container {
+  display: inline-block;
+  margin: 10px 10px 15px;
+  vertical-align: text-bottom;
+}
+
+.entities-list .item-container > img,
+.entities-list .item-container > input {
+  display: block;
+  margin: 5px auto 0;
+}
+
+.entities-list.sortable .item-container:hover {
+  cursor: move;
+  opacity: 0.6;
+}
+
+.entities-list .rendered-entity {
+  display: inline-block;
+  vertical-align: text-top;
+}
+
+.entities-list.hidden {
+  display: none;
+}

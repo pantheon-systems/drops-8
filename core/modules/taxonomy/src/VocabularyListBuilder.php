@@ -123,7 +123,7 @@ class VocabularyListBuilder extends DraggableListBuilder {
     $header['label'] = t('Vocabulary name');
     $header['description'] = t('Description');
 
-    if ($this->currentUser->hasPermission('administer vocabularies') && !empty($this->weightKey)) {
+    if ($this->currentUser->hasPermission('administer vocabularies')) {
       $header['weight'] = t('Weight');
     }
 

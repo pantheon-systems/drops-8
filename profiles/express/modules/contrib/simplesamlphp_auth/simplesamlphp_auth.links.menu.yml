@@ -1,0 +1,5 @@
+simplesamlphp_auth.admin_settings:
+  title: 'SimpleSAMLphp Auth Settings'
+  parent: user.admin_index
+  description: 'Control the various settings of the simpleSAMLphp authentication module'
+  route_name: simplesamlphp_auth.admin_settings

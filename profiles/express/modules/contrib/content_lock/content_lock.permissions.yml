@@ -1,0 +1,6 @@
+break content lock:
+  title: 'Break content lock'
+  description: 'Break a lock on content so that it may be edited.'
+administer content lock:
+  title: 'Administer Content Lock settings'
+  description: 'Set on which entity type content lock is enabled'

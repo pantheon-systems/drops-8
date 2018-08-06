@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of an user crop effect.
+ *
+ * Available variables:
+ * - data: The current configuration for this manual crop effect, including:
+ *   - crop_type: Crop type label that is used with the effect.
+ * - effect: The effect information, including:
+ *   - id: The effect identifier.
+ *   - label: The effect name.
+ *   - description: The effect description.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if data.crop_type -%}
+    {% trans %}
+    uses <em>{{ data.crop_type|e }}</em> crop type
+    {% endtrans %}
+{%- endif %}

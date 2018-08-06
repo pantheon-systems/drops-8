@@ -1,0 +1,7 @@
+redirect_domain.domain_list:
+  path: '/admin/config/search/redirect/domain'
+  defaults:
+    _title: 'Domain redirects'
+    _form: '\Drupal\redirect_domain\Form\RedirectDomainForm'
+  requirements:
+    _permission: 'administer redirects'

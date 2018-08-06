@@ -1,0 +1,163 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_form_wizard_advanced
+title: 'Test: Webform: Wizard advanced'
+description: 'Test a multiple step ''wizard'' webform with save draft, auto save, and preview.'
+category: 'Test: Webform'
+elements: |
+  '#attributes':
+    novalidate: novalidate
+    data-current-page: '[webform_submission:current-page]'
+  information:
+    '#title': 'Your Information'
+    '#type': webform_wizard_page
+    '#open': true
+    first_name:
+      '#title': 'First Name'
+      '#type': textfield
+      '#required': true
+      '#default_value': John
+    last_name:
+      '#title': 'Last Name'
+      '#type': textfield
+      '#required': true
+      '#default_value': Smith
+    gender:
+      '#type': radios
+      '#title': Gender
+      '#options': gender
+      '#required': true
+      '#default_value': Male
+  contact:
+    '#title': 'Contact Information'
+    '#type': webform_wizard_page
+    '#open': true
+    email:
+      '#title': Email
+      '#type': email
+      '#required': true
+      '#default_value': johnsmith@example.com
+    phone:
+      '#title': Phone
+      '#type': tel
+      '#required': true
+      '#default_value': 999-999-9999
+  feedback:
+    '#title': 'Your Feedback'
+    '#type': webform_wizard_page
+    '#open': true
+    comments:
+      '#type': textarea
+      '#required': true
+      '#default_value': 'Here is some feedback'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: true
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: true
+  wizard_progress_percentage: true
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: authenticated
+  draft_multiple: false
+  draft_auto_save: true
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,144 @@
+<?php
+
+/**
+ * @file
+ * Installation hooks for diff module.
+ */
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_requirements().
+ */
+function diff_requirements($phase) {
+  $requirements = [];
+
+  if ($phase == 'runtime') {
+    $config = \Drupal::config('diff.settings');
+    $setting_enabled = $config->get('general_settings.layout_plugins.visual_inline.enabled');
+    $has_htmlDiffAdvanced = class_exists('\HtmlDiffAdvanced');
+
+    $requirements['html_diff_advanced'] = [
+      'title' => t('Diff'),
+      'value' => t('Installed correctly'),
+      'description' => t('Diff module has been installed correctly.'),
+    ];
+    if (!$has_htmlDiffAdvanced) {
+      if ($setting_enabled) {
+        $requirements['html_diff_advanced']['value'] = t('Dependencies not found');
+        $requirements['html_diff_advanced']['severity'] = REQUIREMENT_ERROR;
+        $requirements['html_diff_advanced']['description'] = t("The HTML Diff layout requires the HtmlDiffAdvanced library. Please consult README.txt for installation instructions.");
+      }
+      else {
+        $requirements['html_diff_advanced']['value'] = t('Visual inline layout');
+        $requirements['html_diff_advanced']['severity'] = REQUIREMENT_INFO;
+        $requirements['html_diff_advanced']['description'] = t('Diff adds a visual rendered display, consult README.txt for installation instructions and enable it in <a href=":settings">settings</a>.', [':settings' => Url::fromRoute('diff.general_settings')->toString()]);
+      }
+    }
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_install().
+ */
+function diff_install() {
+  $visual_inline = \Drupal::service('plugin.manager.diff.layout')->hasDefinition('visual_inline');
+  // Enable Visual Inline layout if library found.
+  if ($visual_inline) {
+    $config = \Drupal::configFactory()->getEditable('diff.settings');
+    $settings_enabled = $config->get('general_settings.layout_plugins.visual_inline.enabled');
+    if (!$settings_enabled) {
+      $config->set('general_settings.layout_plugins.visual_inline.enabled', TRUE);
+    }
+    $config->save();
+  }
+}
+
+/**
+ * Delete stale field diff configuration. Please reconfigure diff plugins.
+ */
+function diff_update_8001() {
+  $config = \Drupal::configFactory()->getEditable('diff.settings');
+  $config->clear('entity');
+  $config->save();
+  $config = \Drupal::configFactory()->getEditable('diff.plugins');
+  $config->clear('field_types');
+  $config->save();
+}
+
+/**
+ * Update diff.settings to include general_settings.revision_pager_limit.
+ */
+function diff_update_8002() {
+  $config_factory = \Drupal::configFactory();
+  $config = $config_factory->getEditable('diff.settings');
+  $config->set('general_settings.revision_pager_limit', 50);
+  $config->save(TRUE);
+}
+
+/**
+ * Delete stale theme configuration.
+ */
+function diff_update_8003() {
+  $config = \Drupal::configFactory()->getEditable('diff.settings');
+  $config->clear('general_settings.theme');
+  $config->save();
+}
+
+/**
+ * Enable all layout plugins to be used.
+ */
+function diff_update_8004() {
+  $config = \Drupal::configFactory()->getEditable('diff.settings');
+  $plugins = \Drupal::service('plugin.manager.diff.layout')->getDefinitions();
+  foreach ($plugins as $key => $value) {
+    $plugin_options[$key] = $value['label'];
+    $config->set('general_settings.layout_plugins.' . $key . '.enabled', TRUE);
+  }
+  $config->save();
+}
+
+/**
+ * Update settings.
+ */
+function diff_update_8005() {
+  // The original update function had a bug, it set the new configuration of
+  // layout plugins using the old keys (which were changed). Update 8006 will
+  // fix this issue.
+}
+
+/**
+ * Update settings, set the new keys of layout plugins.
+ */
+function diff_update_8006() {
+  $config = \Drupal::configFactory()->getEditable('diff.settings');
+  $layout_manager = \Drupal::service('plugin.manager.diff.layout');
+  $layout_manager->clearCachedDefinitions();
+  $plugins = $layout_manager->getDefinitions();
+  $config->clear('general_settings.layout_plugins');
+  foreach ($plugins as $key => $value) {
+    $plugin_options[$key] = $value['label'];
+    $config->set('general_settings.layout_plugins.' . $key . '.enabled', TRUE);
+  }
+  $config->save();
+}
+
+/**
+ * Update settings, renamed 'standard' to 'default'.
+ */
+function diff_update_8008() {
+  $config = \Drupal::configFactory()->getEditable('diff.settings');
+  $config->set('general_settings.visual_inline_theme', 'default');
+  $config->save();
+}
+
+/**
+ * Remove content type settings.
+ */
+function diff_update_8009() {
+  $config = \Drupal::configFactory()->getEditable('diff.settings');
+  $config->clear('content_type_settings');
+  $config->save();
+}

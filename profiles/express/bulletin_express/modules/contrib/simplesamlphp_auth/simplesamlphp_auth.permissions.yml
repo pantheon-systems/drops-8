@@ -1,0 +1,7 @@
+administer simplesamlphp authentication:
+  title: 'Administer SimpleSAMLphp Authentication'
+  restrict access: true
+change saml authentication setting:
+  title: 'Change SAML authentication setting for individual accounts'
+  description: Allow users to enable or disable SAML authentication per user on user edit forms.
+  restrict access: true

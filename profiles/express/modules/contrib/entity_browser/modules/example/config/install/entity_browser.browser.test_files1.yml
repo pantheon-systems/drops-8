@@ -1,0 +1,27 @@
+langcode: und
+status: true
+dependencies:
+  module:
+    - entity_browser_example
+  enforced:
+    module:
+      - entity_browser_example
+name: test_files1
+label: 'Test entity browser for files'
+display: modal
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  735d146c-a4b2-4327-a057-d109e0905e05:
+    settings:
+      upload_location: 'public://'
+    uuid: 735d146c-a4b2-4327-a057-d109e0905e05
+    weight: 0
+    label: 'Upload files'
+    id: upload

@@ -1,0 +1,28 @@
+honeypot.settings:
+  type: config_object
+  mapping:
+    protect_all_forms:
+      type: boolean
+      label: 'Protect all forms'
+    unprotected_forms:
+      type: sequence
+      label: 'Unprotected forms'
+      sequence:
+        type: string
+        label: 'Unprotected form'
+    log:
+      type: boolean
+      label: 'Log blocked form submissions'
+    element_name:
+      type: string
+      label: 'Honeypot element name'
+    time_limit:
+      type: integer
+      label: 'Honeypot time limit'
+    expire:
+      type: integer
+      label: 'Expiration'
+    form_settings:
+      type: sequence
+      sequence:
+        type: boolean

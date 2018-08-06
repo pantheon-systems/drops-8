@@ -1,0 +1,19 @@
+{
+  "name": "drupal/views_slideshow",
+  "description": "Describes relationships between entities.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/views_slideshow",
+  "authors": [
+    {
+      "name": "See contributors",
+      "homepage":"https://www.drupal.org/node/160350/committers"
+    }
+  ],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/views_slideshow",
+    "irc": "irc://irc.freenode.org/drupal-contribute",
+    "source": "https://cgit.drupalcode.org/views_slideshow"
+  },
+  "require": {}
+}

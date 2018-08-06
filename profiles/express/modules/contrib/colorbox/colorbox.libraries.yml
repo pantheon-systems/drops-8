@@ -1,0 +1,101 @@
+colorbox:
+  remote: http://github.com/jackmoore/colorbox
+  version: VERSION
+  license:
+    name: MIT
+    gpl-compatible: false
+  js:
+    /libraries/colorbox/jquery.colorbox-min.js: { minified: true }
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+
+colorbox-dev:
+  remote: http://github.com/jackmoore/colorbox
+  version: VERSION
+  license:
+    name: MIT
+    gpl-compatible: false
+  js:
+    /libraries/colorbox/jquery.colorbox.js: { }
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+
+init:
+  version: VERSION
+  js:
+    js/colorbox.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+plain:
+  version: VERSION
+  js:
+    styles/plain/colorbox_style.js: {}
+  css:
+    theme:
+      styles/plain/colorbox_style.css: {}
+  dependencies:
+    - colorbox/init
+
+stockholmsyndrome:
+  version: VERSION
+  js:
+    styles/stockholmsyndrome/colorbox_style.js: {}
+  css:
+    theme:
+      styles/stockholmsyndrome/colorbox_style.css: {}
+  dependencies:
+    - colorbox/init
+
+default:
+  version: VERSION
+  js:
+    styles/default/colorbox_style.js: {}
+  css:
+    theme:
+      styles/default/colorbox_style.css: {}
+  dependencies:
+    - colorbox/init
+
+example1:
+  version: VERSION
+  css:
+    theme:
+      /libraries/colorbox/example1/colorbox.css: {}
+  dependencies:
+    - colorbox/init
+
+example2:
+  version: VERSION
+  css:
+    theme:
+      /libraries/colorbox/example2/colorbox.css: {}
+  dependencies:
+    - colorbox/init
+
+example3:
+  version: VERSION
+  css:
+    theme:
+      /libraries/colorbox/example3/colorbox.css: {}
+  dependencies:
+    - colorbox/init
+
+example4:
+  version: VERSION
+  css:
+    theme:
+      /libraries/colorbox/example4/colorbox.css: {}
+  dependencies:
+    - colorbox/init
+
+example4:
+  version: VERSION
+  css:
+    theme:
+      /libraries/colorbox/example5/colorbox.css: {}
+  dependencies:
+    - colorbox/init

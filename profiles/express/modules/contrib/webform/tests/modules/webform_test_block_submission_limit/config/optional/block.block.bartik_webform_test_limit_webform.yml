@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - webform
+  theme:
+    - bartik
+  enforced:
+    module:
+      - webform_test_block_submission_limit
+id: bartik_webform_test_limit_webform
+theme: bartik
+region: sidebar_second
+weight: 10
+provider: null
+plugin: webform_submission_limit_block
+settings:
+  id: webform_submission_limit_block
+  label: 'Webform Limits'
+  provider: webform
+  label_display: visible
+  type: webform
+  source_entity: false
+  content: ''
+  progress_bar: true
+  progress_bar_label: '[total] webform submission(s)'
+  progress_bar_message: '[limit] webform limit'
+  webform_id: ''
+  entity_type: ''
+  entity_id: ''
+visibility: {  }

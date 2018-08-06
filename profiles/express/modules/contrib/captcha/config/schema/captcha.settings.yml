@@ -1,0 +1,34 @@
+# Schema for the configuration files of the captcha module.
+#wrong_response_counter
+
+captcha.settings:
+  type: config_object
+  label: 'External Links Settings'
+  mapping:
+    default_challenge:
+      type: string
+      label: 'The default challenge for captcha.'
+    description:
+      type: label
+      label: 'The default captcha description.'
+    administration_mode:
+      type: boolean
+      label: 'Add CAPTCHA administration links to forms'
+    allow_on_admin_pages:
+      type: boolean
+      label: 'Allow CAPTCHAs and CAPTCHA administration links on administrative pages'
+    add_captcha_description:
+      type: boolean
+      label: 'Add a description to the CAPTCHA'
+    default_validation:
+      type: integer
+      label: 'Default CAPTCHA validation'
+    persistence:
+      type: integer
+      label: 'CAPTCHA Persistence'
+    enable_stats:
+      type: boolean
+      label: 'Enable statistics'
+    log_wrong_responses:
+      type: boolean
+      label: 'Log wrong responses'

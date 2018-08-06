@@ -1,0 +1,249 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_other
+title: 'Test: Element: Other'
+description: 'Test the webform other elements, includes select_other, checkboxes_other, radios_other, and buttons_other.'
+category: 'Test: Element'
+elements: |
+  select_other:
+    '#type': details
+    '#title': 'Select other (select_other)'
+    '#open': true
+    select_other_basic:
+      '#type': webform_select_other
+      '#title': 'Select other basic'
+      '#options':
+        One: One
+        'Option Group':
+          Two: Two
+        Three: Three
+      '#default_value': Four
+    select_other_advanced:
+      '#type': webform_select_other
+      '#title': 'Select other advanced'
+      '#default_value': Four
+      '#options':
+        One: One
+        'Option Group':
+          Two: Two
+        Three: Three
+      '#empty_option': Select...
+      '#other__option_label': 'Is there another option you wish to enter?'
+      '#other__title': Other
+      '#other__placeholder': 'What is this other option'
+      '#other__description': 'Other select description'
+      '#other__size': 20
+      '#other__maxlength': 20
+      '#required': true
+    select_other_multiple:
+      '#type': webform_select_other
+      '#title': 'Select other multiple'
+      '#multiple': true
+      '#options':
+        One: One
+        'Option Group':
+          Two: Two
+        Three: Three
+      '#default_value':
+        - One
+        - Two
+        - Four
+  checkboxes_other:
+    '#type': details
+    '#title': 'Checkboxes other (checkboxes_other)'
+    '#open': true
+    checkboxes_other_basic:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other basic'
+      '#options':
+        One: One
+        Two: Two
+        Three: Three
+      '#default_value':
+        - One
+        - Two
+        - Four
+    checkboxes_other_advanced:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other advanced'
+      '#options':
+        One: One
+        Two: Two
+        Three: Three
+      '#default_value':
+        - One
+        - Two
+        - Four
+      '#required': true
+      '#options_display': two_columns
+      '#other__option_label': 'Is there another option you wish to enter?'
+      '#other__placeholder': 'What is this other option'
+      '#other__description': 'Other checkbox description'
+  radios_other:
+    '#type': details
+    '#title': 'Radios other (radios_other)'
+    '#open': true
+    radios_other_basic:
+      '#type': webform_radios_other
+      '#title': 'Radios other basic'
+      '#options':
+        One: One
+        Two: Two
+        Three: Three
+      '#default_value': Four
+    radios_other_advanced:
+      '#type': webform_radios_other
+      '#title': 'Radios other advanced'
+      '#options':
+        One: One
+        Two: Two
+        Three: Three
+      '#default_value': Four
+      '#required': true
+      '#options_display': two_columns
+      '#other__option_label': 'Is there another option you wish to enter?'
+      '#other__placeholder': 'What is this other option'
+      '#other__description': 'Other radio description'
+  buttons_other:
+    '#type': details
+    '#title': 'Buttons other (buttons_other)'
+    '#open': true
+    buttons_other_basic:
+      '#type': webform_buttons_other
+      '#title': 'Buttons other basic'
+      '#options':
+        One: One
+        Two: Two
+        Three: Three
+      '#default_value': Four
+    buttons_other_advanced:
+      '#type': webform_buttons_other
+      '#title': 'Buttons other advanced'
+      '#options':
+        One: One
+        Two: Two
+        Three: Three
+      '#default_value': Four
+      '#required': true
+      '#other__option_label': Other
+      '#other__placeholder': 'What is this other option'
+      '#other__description': 'Other button description'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: true
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  debug:
+    id: debug
+    label: Debug
+    handler_id: debug
+    status: true
+    conditions: {  }
+    weight: 1
+    settings: {  }

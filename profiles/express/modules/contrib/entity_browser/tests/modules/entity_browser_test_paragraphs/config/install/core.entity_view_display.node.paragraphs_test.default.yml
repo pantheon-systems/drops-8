@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.paragraphs_test.field_paragraph
+    - node.type.paragraphs_test
+  module:
+    - entity_reference_revisions
+    - user
+id: node.paragraphs_test.default
+targetEntityType: node
+bundle: paragraphs_test
+mode: default
+content:
+  field_paragraph:
+    type: entity_reference_revisions_entity_view
+    weight: 101
+    label: above
+    settings:
+      view_mode: default
+      link: ''
+    third_party_settings: {  }
+  links:
+    weight: 100
+hidden: {  }

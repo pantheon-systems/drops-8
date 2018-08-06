@@ -1,0 +1,4 @@
+role_delegation.edit_form:
+  route_name: role_delegation.edit_form
+  base_route: entity.user.canonical
+  title: 'Roles'

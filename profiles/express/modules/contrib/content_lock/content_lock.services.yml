@@ -1,0 +1,4 @@
+services:
+  content_lock:
+    class: Drupal\content_lock\ContentLock\ContentLock
+    arguments: ['@database', '@module_handler', '@csrf_token', '@date.formatter', '@current_user', '@config.factory', '@request_stack', '@entity_type.manager']

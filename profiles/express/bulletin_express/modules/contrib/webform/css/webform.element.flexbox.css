@@ -1,0 +1,167 @@
+/**
+ * @file
+ * Flexbox styles.
+ *
+ * @see /webform/example_layout_flexbox
+ * @see /webform/test_element_flexbox_flex
+ */
+
+@media (min-width: 768px) {
+
+  .webform-flexbox {
+    display: -webkit-flex;
+    display: flex;
+    margin: 1em -.5em;
+  }
+
+  .webform-flexbox .webform-flexbox {
+    margin: 1em 0;
+  }
+
+  .webform-flexbox--flex-start {
+    -webkit-align-items: flex-start;
+    align-items: flex-start;
+  }
+
+  .webform-flexbox--flex-end {
+    -webkit-align-items: flex-end;
+    align-items: flex-end;
+  }
+
+  .webform-flexbox--center {
+    -webkit-align-items: center;
+    align-items: center;
+  }
+
+  .webform-flex {
+    min-width: 0;
+  }
+
+  .webform-flex--container {
+    margin: 0 .5em;
+  }
+
+  .webform-flex--container > .form-item {
+    margin: 0;
+  }
+
+  .webform-flex--container > .form-item > input,
+  .webform-flex--container > .form-item > select {
+    width: 100%;
+  }
+
+  .container-inline .webform-flex--container > .form-item > input,
+  .container-inline .webform-flex--container > .form-item > select {
+    width: inherit;
+  }
+
+  .webform-flex--container > .webform-has-field-prefix > input,
+  .webform-flex--container > .webform-has-field-suffix > input,
+  .webform-flex--container > .webform-has-field-prefix > select,
+  .webform-flex--container > .webform-has-field-suffix > select {
+    width: 85%;
+  }
+
+  .webform-flex--container > .webform-has-field-prefix.webform-flex.webform-has-field-suffix > input,
+  .webform-flex--container > .webform-has-field-prefix.webform-flex.webform-has-field-suffix > select {
+    width: 70%;
+  }
+
+  .webform-flex--1 {
+    -webkit-flex: 1;
+    flex: 1;
+  }
+
+  .webform-flex--2 {
+    -webkit-flex: 2;
+    flex: 2;
+  }
+
+  .webform-flex--3 {
+    -webkit-flex: 3;
+    flex: 3;
+  }
+
+  .webform-flex--4 {
+    -webkit-flex: 4;
+    flex: 4;
+  }
+
+  .webform-flex--5 {
+    -webkit-flex: 5;
+    flex: 5;
+  }
+
+  .webform-flex--6 {
+    -webkit-flex: 6;
+    flex: 6;
+  }
+
+  .webform-flex--7 {
+    -webkit-flex: 7;
+    flex: 7;
+  }
+
+  .webform-flex--8 {
+    -webkit-flex: 8;
+    flex: 8;
+  }
+
+  .webform-flex--9 {
+    -webkit-flex: 9;
+    flex: 9;
+  }
+
+  .webform-flex--10 {
+    -webkit-flex: 10;
+    flex: 10;
+  }
+
+  .webform-flex--11 {
+    -webkit-flex: 11;
+    flex: 11;
+  }
+
+  .webform-flex--12 {
+    -webkit-flex: 12;
+    flex: 12;
+  }
+
+  /**
+   * Select other.
+   */
+  .webform-flex--container > .form-type-webform-select-other select {
+    width: 100%;
+  }
+
+  .webform-flex--container > .form-type-webform-select-other .form-item {
+    margin: 0;
+  }
+
+  .webform-flex--container > .form-type-webform-select-other .form-item + .form-item {
+    margin-top: .5em;
+  }
+
+  /**
+   * Range.
+   */
+  .webform-flex--container > .form-type-range-output > .form-range-output {
+    width: 66%;
+  }
+
+  /**
+   * Composite.
+   */
+  .form-composite > .webform-flexbox {
+    margin: 1em -.5em;
+  }
+
+  /**
+   * Radios/checkboxes.
+   */
+  .form-type-checkbox,
+  .form-type-radio {
+    white-space: nowrap;
+  }
+
+}

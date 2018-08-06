@@ -1,0 +1,17 @@
+entity.media_bundle.collection:
+  title: 'Media bundles'
+  parent: system.admin_structure
+  description: 'Manage media bundles.'
+  route_name: entity.media_bundle.collection
+
+entity.media.collection:
+  title: 'Media'
+  parent: system.admin_content
+  description: 'Find and manage media.'
+  route_name: view.media.media_page_list
+
+entity.media.add:
+  title: 'Add a new media'
+  parent: entity.media.collection
+  description: 'Add a new media entity.'
+  route_name: entity.media.add_page

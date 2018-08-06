@@ -1,0 +1,33 @@
+<?php
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+
+/**
+* Implements hook_help().
+*/
+function redirect_domain_help($route_name, RouteMatchInterface $route_match) {
+  $output = '';
+  switch ($route_name) {
+    case 'help.page.redirect_domain':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Redirect domain module allows users to redirect between domains.') . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dt>' . t('Manage domain redirects') . '</dt>';
+      $output .= '<dd>' . t('The domain redirect is accessed through <a href=":domainlist">Domain Redirects</a>. The user can add the domain redirects through the domain redirect table which consists of the domain from which it needs to be redirected, the sub path and the complete url destination to which it needs to be redirected. The module also supports the usage of a wildcard redirecting, thus many requests can be handled with one instance of domain redirect.', [':domainlist' => Url::fromRoute('redirect_domain.domain_list')->toString()]) . '</dd>';
+      return $output;
+    case 'redirect_domain.domain_list':
+      $output = '<p>' . t('The domain redirect table consists of the domain from which it needs to be redirected, the sub path and the complete url destination to which it needs to be redirected.') . '</p>';
+      $output .= '<h5>' . t('Example Configuration') . '</h5>';
+      $output .= '<ul>';
+      $output .= '<li> example.com/redirect => redirected.com/example-path </li>';
+      $output .= '<li> foo.com/* => bar.com </li>';
+      $output .= '</ul>';
+      $output .= '<h5>' . t('Example Redirects') . '</h5>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Request: example.com/redirect => Response: redirected.com/example-path') . '</li>';
+      $output .= '<li>' . t('Request: foo.com/any-path => Response: bar.com') . '</li>';
+      $output .= '</ul>';
+      return $output;
+  }
+}

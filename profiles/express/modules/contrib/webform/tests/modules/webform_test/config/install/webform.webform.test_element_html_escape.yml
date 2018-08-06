@@ -1,0 +1,620 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_html_escape
+title: 'Test: Element: HTML escaping'
+description: 'Test element HTML escaping support'
+category: 'Test: Element'
+elements: |
+  basic_elements:
+    '#type': details
+    '#title': 'Basic elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    checkbox:
+      '#type': checkbox
+      '#title': 'Checkbox | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    password:
+      '#type': password
+      '#title': 'Password | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    textarea:
+      '#type': textarea
+      '#title': 'Textarea | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#rows': 2
+    textarea_multiple:
+      '#type': textarea
+      '#title': 'Textarea multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#rows': 2
+      '#multiple': true
+    textfield:
+      '#type': textfield
+      '#title': 'Text field | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    textfield_multiple:
+      '#type': textfield
+      '#title': 'Text field multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    webform_autocomplete:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_autocomplete_multiple:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    captcha:
+      '#type': captcha
+      '#title': 'CAPTCHA | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#captcha_admin_mode': true
+      '#captcha_type': image_captcha/Image
+    webform_codemirror:
+      '#type': webform_codemirror
+      '#title': 'CodeMirror | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#mode': yaml
+    color:
+      '#type': color
+      '#title': 'Color | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_creditcard_number:
+      '#type': webform_creditcard_number
+      '#title': 'Credit card number | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    email:
+      '#type': email
+      '#title': 'Email | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    email_multiple:
+      '#type': email
+      '#title': 'Email multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    webform_email_confirm:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_email_multiple:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    number:
+      '#type': number
+      '#title': 'Number | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+    number_multiple:
+      '#type': number
+      '#title': 'Number multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#multiple': true
+    password_confirm:
+      '#type': password_confirm
+      '#title': 'Password confirm | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+    range:
+      '#type': range
+      '#title': 'Range | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#range__output': true
+      '#range__output_prefix': $
+      '#range__output_suffix': '.00'
+    webform_rating:
+      '#type': webform_rating
+      '#title': 'Rating | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    search:
+      '#type': search
+      '#title': 'Search | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_signature:
+      '#type': webform_signature
+      '#title': 'Signature | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    tel:
+      '#type': tel
+      '#title': 'Telephone | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#international': true
+    tel_multiple:
+      '#type': tel
+      '#title': 'Telephone multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#international': true
+      '#multiple': true
+    webform_terms_of_service:
+      '#type': webform_terms_of_service
+      '#title': 'I agree to the {terms of service}. | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#required': true
+      '#terms_type': slideout
+      '#terms_content': '<em>These are the terms of service.</em>'
+    webform_toggle:
+      '#type': webform_toggle
+      '#title': 'Toggle | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    url:
+      '#type': url
+      '#title': 'URL | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    url_multiple:
+      '#type': url
+      '#title': 'URL multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+  markup_elements:
+    '#type': details
+    '#title': 'Markup elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    processed_text:
+      '#type': processed_text
+      '#title': 'Advanced HTML/Text | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_markup:
+      '#type': webform_markup
+      '#title': 'Basic HTML | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2700667">Issue #2700667: Notice: Undefined index: #type in drupal_process_states()</a>'
+    webform_horizontal_rule:
+      '#type': webform_horizontal_rule
+      '#attributes':
+        class:
+          - webform-horizontal-rule--dotted
+          - webform-horizontal-rule--thick
+    webform_message:
+      '#type': webform_message
+      '#title': 'Message | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#message_type': warning
+      '#message_message': 'This is a <strong>warning</strong> message.'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/77245">Issue #77245: A place for JavaScript status messages</a>'
+    table:
+      '#type': table
+      '#title': 'Table | <script>alert(''This markup is not escaped properly!!!'') </script>'
+  file_upload_elements:
+    '#type': details
+    '#title': 'File upload elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    webform_audio_file:
+      '#type': webform_audio_file
+      '#title': 'Audio file | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_audio_file_multiple:
+      '#type': webform_audio_file
+      '#title': 'Audio file multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    webform_document_file:
+      '#type': webform_document_file
+      '#title': 'Document file | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_document_file_multiple:
+      '#type': webform_document_file
+      '#title': 'Document file multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    managed_file:
+      '#type': managed_file
+      '#title': 'File | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2705471">Issue #2705471: Webform states managed file fields</a><br /><a href="https://www.drupal.org/node/2113931">Issue #2113931: File Field design update</a><br /><a href="https://www.drupal.org/node/2346893">Issue #2346893: Duplicate Ajax wrapper around a file field</a><br /><a href="https://www.drupal.org/node/2482783">Issue #2482783: File upload errors not set or shown correctly</a>'
+    managed_file_multiple:
+      '#type': managed_file
+      '#title': 'File multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    webform_image_file:
+      '#type': webform_image_file
+      '#title': 'Image file | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_image_file_multiple:
+      '#type': webform_image_file
+      '#title': 'Image file multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    webform_video_file:
+      '#type': webform_video_file
+      '#title': 'Video file | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_video_file_multiple:
+      '#type': webform_video_file
+      '#title': 'Video file multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+  options_elements:
+    '#type': details
+    '#title': 'Options elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    webform_buttons:
+      '#type': webform_buttons
+      '#title': 'Buttons | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_buttons_other:
+      '#type': webform_buttons_other
+      '#title': 'Buttons other | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    checkboxes:
+      '#type': checkboxes
+      '#title': 'Checkboxes | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+    webform_checkboxes_other:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+    webform_image_select:
+      '#type': webform_image_select
+      '#title': 'Image select | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+    webform_image_select_multiple:
+      '#type': webform_image_select
+      '#title': 'Image select multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+      '#multiple': true
+    radios:
+      '#type': radios
+      '#title': 'Radios | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+    webform_radios_other:
+      '#type': webform_radios_other
+      '#title': 'Radios other | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+    select:
+      '#type': select
+      '#title': 'Select | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+    select_multiple:
+      '#type': select
+      '#title': 'Select multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#multiple': true
+      '#select2': true
+    webform_select_other:
+      '#type': webform_select_other
+      '#title': 'Select other | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_select_other_multiple:
+      '#type': webform_select_other
+      '#title': 'Select other multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#multiple': true
+      '#select2': true
+    tableselect:
+      '#type': tableselect
+      '#title': 'Table select | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_tableselect_sort:
+      '#type': webform_tableselect_sort
+      '#title': 'Tableselect sort | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_table_sort:
+      '#type': webform_table_sort
+      '#title': 'Table sort | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_toggles:
+      '#type': webform_toggles
+      '#title': 'Toggles | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  computed_elements:
+    '#type': details
+    '#title': 'Computed Elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    webform_computed_token:
+      '#type': webform_computed_token
+      '#title': 'Computed token | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#value': 'This is a Computed token value.'
+    webform_computed_twig:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#value': 'This is a Computed Twig value.'
+  containers:
+    '#type': details
+    '#title': 'Containers | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    container:
+      '#type': container
+      '#title': 'Container | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    details:
+      '#type': details
+      '#title': 'Details | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2348851">Issue #2348851: Regression: Allow HTML tags inside detail summary</a>'
+    fieldset:
+      '#type': fieldset
+      '#title': 'Fieldset | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    item:
+      '#type': item
+      '#title': 'Item | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix} | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#field_suffix': '{field_suffix} | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+    label:
+      '#type': label
+      '#title': 'Label | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    webform_section:
+      '#type': webform_section
+      '#title': 'Section | <script>alert(''This markup is not escaped properly!!!'') </script>'
+  date_time_elements:
+    '#type': details
+    '#title': 'Date/time elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    date:
+      '#type': date
+      '#title': 'Date | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    date_multiple:
+      '#type': date
+      '#title': 'Date multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    datetime:
+      '#type': datetime
+      '#title': 'Date/time | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+    datetime_multiple:
+      '#type': datetime
+      '#title': 'Date/time multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    datelist:
+      '#type': datelist
+      '#title': 'Date list | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    datelist_multiple:
+      '#type': datelist
+      '#title': 'Date list multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+    webform_time:
+      '#type': webform_time
+      '#title': 'Time | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+    webform_time_multiple:
+      '#type': webform_time
+      '#title': 'Time multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#multiple': true
+  entity_reference_elements:
+    '#type': details
+    '#title': 'Entity reference elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    entity_autocomplete:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+    entity_autocomplete_tags:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete tags | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#tags': true
+    entity_autocomplete_multiple:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#multiple': true
+    webform_entity_checkboxes:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    webform_entity_radios:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    webform_entity_select:
+      '#type': webform_entity_select
+      '#title': 'Entity select | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    webform_entity_select_multiple:
+      '#type': webform_entity_select
+      '#title': 'Entity select multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#multiple': true
+      '#select2': true
+    webform_term_checkboxes:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#vocabulary': tags
+    webform_term_select:
+      '#type': webform_term_select
+      '#title': 'Term select | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#vocabulary': tags
+    webform_term_select_multiple:
+      '#type': webform_term_select
+      '#title': 'Term select multiple | <script>alert(''This markup is not escaped properly!!!'') </script>'
+      '#vocabulary': tags
+      '#multiple': true
+      '#select2': true
+  other_elements:
+    '#type': details
+    '#title': 'Other elements | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    '#open': true
+    language_select:
+      '#type': language_select
+      '#title': 'Language select | <script>alert(''This markup is not escaped properly!!!'') </script>'
+    machine_name:
+      '#type': machine_name
+      '#title': 'Machine name | <script>alert(''This markup is not escaped properly!!!'') </script>'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

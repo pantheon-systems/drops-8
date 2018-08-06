@@ -1,0 +1,37 @@
+# Schema for the configuration files of the Redirect module.
+
+redirect.settings:
+  type: config_entity
+  label: 'Redirect settings'
+  mapping:
+    canonical:
+      type: boolean
+      label: 'Redirect from non-canonical URLs to the canonical URLs.'
+    auto_redirect:
+      type: boolean
+      label: 'Automatically create redirects when URL aliases are changed.'
+    default_status_code:
+      type: integer
+      label: 'Default redirect status'
+    passthrough_querystring:
+      type: boolean
+      label: 'Retain query string through redirect.'
+    warning:
+      type: boolean
+      label: 'Display a warning message to users when they are redirected.'
+    ignore_admin_path:
+      type: boolean
+      label: 'Allow redirections on admin paths.'
+    access_check:
+      type: boolean
+      label: 'Menu Access Checking'
+    content_location_header:
+      type: boolean
+      label: 'Set Content Location Header'
+    route_normalizer_enabled:
+      type: boolean
+      label: 'Enable route normalizer'
+
+action.configuration.redirect_delete_action:
+  type: action_configuration_default
+  label: 'Delete redirect configuration'

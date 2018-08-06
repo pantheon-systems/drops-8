@@ -1,0 +1,14 @@
+features:
+  node_user_picture: 1
+  comment_user_picture: 1
+  comment_user_verification: 1
+  favicon: 1
+logo:
+  use_default: 1
+favicon:
+  use_default: 1
+foo_example: asdf
+homepage_hero_image: 'https://images5.alphacoders.com/655/655648.jpg'
+homepage_hero_image_alt_text: 'Alt text for everyone!'
+_core:
+  default_config_hash: CbwdrQ9C-xU4EpX0eGFI0_1UMdMqJWBvfR0m6Z21_3c

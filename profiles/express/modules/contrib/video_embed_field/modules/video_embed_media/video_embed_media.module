@@ -1,0 +1,18 @@
+<?php
+
+/**
+ * @file
+ * The module file for video_embed_media.
+ */
+
+use Drupal\media_entity\Entity\MediaBundle;
+use Drupal\video_embed_media\Plugin\MediaEntity\Type\VideoEmbedField;
+
+/**
+ * Implements hook_ENTITY_TYPE_insert() for media_bundle.
+ */
+function video_embed_media_media_bundle_insert(MediaBundle $media_bundle) {
+  if ($media_bundle->type === 'video_embed_field' && !$media_bundle->isSyncing() && empty($media_bundle->getTypeConfiguration()['source_field'])) {
+    VideoEmbedField::createVideoEmbedField($media_bundle->id());
+  }
+}

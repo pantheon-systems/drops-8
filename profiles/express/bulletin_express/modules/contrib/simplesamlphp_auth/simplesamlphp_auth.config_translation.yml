@@ -1,0 +1,5 @@
+simplesamlphp_auth.admin_settings:
+  title: 'SimpleSAMLphp Auth Settings'
+  base_route_name: simplesamlphp_auth.admin_settings
+  names:
+    - simplesamlphp_auth.settings

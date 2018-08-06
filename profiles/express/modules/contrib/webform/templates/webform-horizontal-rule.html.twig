@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation of a Webform horizontal_rule element.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the horizontal_rule element.
+ *
+ * @see template_preprocess_webform_horizontal_rule()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.element.horizontal_rule') }}
+{%
+set classes = [
+  'webform-horizontal-rule',
+]
+%}
+<hr{{ attributes.addClass(classes) }} />

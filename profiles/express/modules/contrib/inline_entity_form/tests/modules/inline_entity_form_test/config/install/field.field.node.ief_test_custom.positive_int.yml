@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.positive_int
+    - node.type.ief_test_custom
+id: node.ief_test_custom.positive_int
+field_name: positive_int
+entity_type: node
+bundle: ief_test_custom
+label: 'Positive int'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  min: 1
+  max: null
+  prefix: ''
+  suffix: ''
+field_type: integer

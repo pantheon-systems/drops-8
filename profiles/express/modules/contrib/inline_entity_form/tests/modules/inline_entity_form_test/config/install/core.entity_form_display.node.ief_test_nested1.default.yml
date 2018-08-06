@@ -1,0 +1,53 @@
+langcode: und
+status: true
+dependencies:
+  config:
+    - node.type.ief_test_nested1
+id: node.ief_test_nested1.default
+targetEntityType: node
+bundle: ief_test_nested1
+mode: default
+content:
+  title:
+    type: string_textfield
+    weight: 0
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  created:
+    type: datetime_timestamp
+    weight: 10
+    settings: {  }
+    third_party_settings: {  }
+  promote:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 15
+    third_party_settings: {  }
+  sticky:
+    type: boolean_checkbox
+    settings:
+      display_label: true
+    weight: 16
+    third_party_settings: {  }
+  uid:
+    type: entity_reference_autocomplete
+    weight: 5
+    settings:
+      match_operator: CONTAINS
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+  test_ref_nested1:
+    weight: 30
+    settings:
+      match_operator: CONTAINS
+      allow_existing: false
+      override_labels: true
+      label_singular: 'node 2'
+      label_plural: 'nodes 2'
+    third_party_settings: {  }
+    type: inline_entity_form_complex
+hidden: {  }

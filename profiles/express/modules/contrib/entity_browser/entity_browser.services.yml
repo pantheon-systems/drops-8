@@ -1,0 +1,34 @@
+services:
+  plugin.manager.entity_browser.display:
+    class: Drupal\entity_browser\DisplayManager
+    parent: default_plugin_manager
+  plugin.manager.entity_browser.selection_display:
+    class: Drupal\entity_browser\SelectionDisplayManager
+    parent: default_plugin_manager
+  plugin.manager.entity_browser.widget:
+    class: Drupal\entity_browser\WidgetManager
+    parent: default_plugin_manager
+  plugin.manager.entity_browser.widget_selector:
+    class: Drupal\entity_browser\WidgetSelectorManager
+    parent: default_plugin_manager
+  plugin.manager.entity_browser.field_widget_display:
+    class: Drupal\entity_browser\FieldWidgetDisplayManager
+    parent: default_plugin_manager
+  plugin.manager.entity_browser.widget_validation:
+    class: Drupal\entity_browser\WidgetValidationManager
+    parent: default_plugin_manager
+  entity_browser.route_subscriber:
+    class: Drupal\entity_browser\RouteSubscriber
+    arguments: ['@entity.manager', '@plugin.manager.entity_browser.display', '@entity.query']
+  entity_browser.ctools_fallback_route_enhancer:
+    class: Drupal\entity_browser\Routing\CtoolsFallbackRouteEnhancer
+    arguments: ['@module_handler']
+    tags:
+      - { name: route_enhancer }
+  entity_browser.selection_storage:
+    # Symfony will complain if the class is not defined. However, it seems that
+    # it doesn't use it at all. Interface is not the best thing to set here, but
+    # it seems the best option at the end of the day.
+    class: Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+    factory: keyvalue.expirable:get
+    arguments: ['entity_browser']

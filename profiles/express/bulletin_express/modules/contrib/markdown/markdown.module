@@ -1,0 +1,70 @@
+<?php
+
+/**
+ * @file
+ * Provides a Markdown input filter.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function markdown_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.markdown':
+      return t('<p>The Markdown filter allows you to enter content using <a href="http://daringfireball.net/projects/markdown">Markdown</a>, a simple plain-text syntax that is transformed into valid HTML.</p>');
+  }
+}
+
+/**
+ * Implements hook_libraries_info().
+ */
+function markdown_libraries_info() {
+  $libraries['php-markdown'] = array(
+    'name' => 'PHP Markdown Lib',
+    'vendor url' => 'http://michelf.ca/projects/php-markdown/',
+    'download url' => 'https://github.com/michelf/php-markdown/archive/lib.zip',
+    'path' => 'Michelf',
+    'version arguments' => array(
+      'file' => 'Readme.md',
+      'pattern' => '@(?i:PHP Markdown Lib) ([0-9\.]+)@',
+      'lines' => 5,
+    ),
+    'files' => array(
+      'php' => array(
+        'Markdown.inc.php',
+      ),
+    ),
+    'variants' => array(
+      'markdown' => array(
+        'files' => array(
+          'php' => array(
+            'Markdown.inc.php',
+          ),
+        ),
+      ),
+      'markdown-extra' => array(
+        'files' => array(
+          'php' => array(
+            'MarkdownExtra.inc.php',
+          ),
+        ),
+      ),
+    ),
+  );
+
+  return $libraries;
+}
+
+/**
+ * Implements hook_migration_plugins_alter().
+ */
+function markdown_migration_plugins_alter(array &$migrations) {
+  if (isset($migrations['d7_filter_format'])) {
+    $migration = &$migrations['d7_filter_format'];
+
+    // Add mapping from filter_markdown to markdown for D7 migratins.
+    $migration['process']['filters']['process']['id']['map']['filter_markdown'] = 'markdown';
+  }
+}

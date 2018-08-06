@@ -1,0 +1,69 @@
+media_entity.settings:
+  type: config_object
+  label: 'Media entity settings'
+  mapping:
+    icon_base:
+      type: string
+      label: 'Base folder for icons installation'
+
+media_entity.bundle.*:
+  type: config_entity
+  label: 'Media bundle'
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: 'Label'
+    description:
+      type: text
+      label: 'Description'
+    type:
+      type: string
+      label: 'Type plugin ID'
+    queue_thumbnail_downloads:
+      type: boolean
+      label: 'Queue thumbnail downloads'
+    new_revision:
+      type: boolean
+      label: 'Whether a new revision should be created by default'
+    type_configuration:
+      type: media_entity.bundle.type.[%parent.type]
+    field_map:
+      type: sequence
+      label: 'Field map'
+      sequence:
+        type: string
+    third_party_settings:
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: media_entity.bundle.third_party.[%key]
+
+action.configuration.media_delete_action:
+  type: action_configuration_default
+  label: 'Delete media configuration'
+
+action.configuration.media_save_action:
+  type: action_configuration_default
+  label: 'Save media configuration'
+
+action.configuration.media_publish_action:
+  type: action_configuration_default
+  label: 'Publish media configuration'
+
+action.configuration.media_unpublish_action:
+  type: action_configuration_default
+  label: 'Unpublish media configuration'
+
+field.formatter.settings.media_thumbnail:
+  type: mapping
+  label: 'Media thumbnail field display format settings'
+  mapping:
+    image_link:
+      type: string
+      label: 'Link image to'
+    image_style:
+      type: string
+      label: 'Image style'

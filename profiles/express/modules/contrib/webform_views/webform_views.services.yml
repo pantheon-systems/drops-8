@@ -1,0 +1,6 @@
+services:
+  webform_views.route_subscriber:
+    class: Drupal\webform_views\Routing\RouteSubscriber
+    arguments: [ '@state', '@entity_type.manager' ]
+    tags:
+      - { name: event_subscriber }

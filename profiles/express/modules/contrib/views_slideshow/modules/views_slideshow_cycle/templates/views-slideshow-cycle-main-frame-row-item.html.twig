@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an item on a views slideshow cycle slide.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the element.
+ * - count: The slide number.
+ * - item: Rendeder field(s) making up item.
+ * - item_count: nth item on slide.
+ * - length: Total number of slides.
+ * - view: The view.
+ *
+ * @see template_preprocess_views_slideshow_cycle_main_frame_row_item()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div {{ attributes.addClass(classes) }}>
+  {{ item }}
+</div>

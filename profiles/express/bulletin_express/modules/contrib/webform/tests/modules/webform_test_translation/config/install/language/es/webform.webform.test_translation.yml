@@ -1,0 +1,28 @@
+title: 'Prueba: Traducción'
+description: 'Prueba de la traducción de un formulario.'
+elements: |
+  textfield:
+    '#title': 'Campo de texto'
+  select_options:
+    '#title': 'Seleccione (opciones)'
+  select_custom:
+    '#title': 'Seleccione (personalizado)'
+    '#options':
+      4: 'Las cuatro'
+      5: Cinco
+      6: Seis
+    '#other__option_label': 'Número personalizado...'
+  details:
+    '#title': Detalles
+  markup:
+    '#markup': 'Esto es un poco de marcado HTML.'
+settings:
+  form_submit_label: 'Enviar mensaje'
+  confirmation_message: 'Tu mensaje ha sido enviado.'
+handlers:
+  email_confirmation:
+    label: ' Confirmación de correo electrónico'
+dependencies:
+  enforced:
+    module:
+      - webform_test_translation

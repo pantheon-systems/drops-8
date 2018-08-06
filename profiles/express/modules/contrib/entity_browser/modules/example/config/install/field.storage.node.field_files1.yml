@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - entity_browser_example
+  enforced:
+    module:
+      - entity_browser_example
+id: node.field_files1
+field_name: field_files1
+entity_type: node
+type: entity_reference
+settings:
+  target_type: file
+module: entity_browser_example
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false

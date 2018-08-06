@@ -152,8 +152,7 @@ class SystemManager {
    * hidden, so we supply the contents of the block.
    *
    * @return array
-   *   A render array suitable for
-   *   \Drupal\Core\Render\RendererInterface::render().
+   *   A render array suitable for drupal_render.
    */
   public function getBlockContents() {
     // We hard-code the menu name here since otherwise a link in the tools menu

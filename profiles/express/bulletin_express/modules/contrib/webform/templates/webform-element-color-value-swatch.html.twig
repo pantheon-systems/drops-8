@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a webform color element value swatch.
+ *
+ * Using an inline style so that the color swatch will look okay when it is
+ * sent via email.
+ *
+ * Available variables:
+ * - element: The element.
+ * - value: The element's value.
+ * - options Associative array of options for element.
+ *   - multiline: Flag to determine if value spans multiple lines.
+ *   - email: Flag to determine if element is for an email.
+ */
+#}
+<span style="display:inline-block; height:1em; width:1em; border:1px solid #000; background-color:{{ value }}"></span> {{ value }}

@@ -57,7 +57,7 @@ interface TermInterface extends ContentEntityInterface, EntityChangedInterface {
   /**
    * Sets the name of the term.
    *
-   * @param string $name
+   * @param int $name
    *   The term's name.
    *
    * @return $this

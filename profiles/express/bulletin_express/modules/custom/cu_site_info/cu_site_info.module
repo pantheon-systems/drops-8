@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Site info.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function cu_site_info_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.community_funded':
+      $output = '<h3>' . t('About CU Site Info') . '</h3>';
+      $output .= '<p>' . t('This module displays your contact information via a block.') . '</p>';
+      return $output;
+  }
+}
+
+function cu_site_info_block_view_cu_site_info_alter(array &$build, \Drupal\Core\Block\BlockPluginInterface $block) {
+  dpm('$build');
+}

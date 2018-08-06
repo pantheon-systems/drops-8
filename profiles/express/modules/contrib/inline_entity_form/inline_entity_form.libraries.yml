@@ -1,0 +1,15 @@
+widget:
+  version: VERSION
+  js:
+    js/inline_entity_form.js: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+    - core/drupalSettings
+
+commerce_product.base:
+  version: VERSION
+  css:
+    theme:
+      css/commerce-product.css: {}

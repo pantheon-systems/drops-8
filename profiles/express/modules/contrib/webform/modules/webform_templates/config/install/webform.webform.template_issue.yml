@@ -1,0 +1,226 @@
+langcode: en
+status: closed
+dependencies:
+  enforced:
+    module:
+      - webform_templates
+open: null
+close: null
+uid: null
+template: true
+id: template_issue
+title: Issue
+description: 'An issue webform template.'
+category: ''
+elements: |
+  meta_data_details:
+    '#title': 'Issue Meta Data'
+    '#type': details
+    '#open': true
+    meta_data_01:
+      '#type': webform_flexbox
+      title:
+        '#type': textfield
+        '#title': Title
+        '#required': true
+      project:
+        '#type': select
+        '#title': Project
+        '#required': true
+        '#options':
+          'Project I': 'Project I'
+          'Project II': 'Project II'
+          'Project III': 'Project III'
+    meta_data_02:
+      '#type': webform_flexbox
+      category:
+        '#type': select
+        '#title': Category
+        '#required': true
+        '#options':
+          'Bug report': 'Bug report'
+          Task: Task
+          'Feature request': 'Feature request'
+          'Support request': 'Support request'
+          Plan: Plan
+      priority:
+        '#type': select
+        '#title': Priority
+        '#required': true
+        '#options':
+          4: Critical
+          3: Major
+          2: Normal
+          1: Minor
+      status:
+        '#type': webform_select_other
+        '#title': Status
+        '#required': true
+        '#options':
+          Active: Active
+          'Needs work': 'Needs work'
+          'Needs review': 'Needs review'
+          'Reviewed & tested by the community': 'Reviewed & tested by the community'
+          'Patch (to be ported)': 'Patch (to be ported)'
+          Fixed: Fixed
+          Postponed: Postponed
+          'Postponed (maintainer needs more info)': 'Postponed (maintainer needs more info)'
+          'Closed (duplicate)': 'Closed (duplicate)'
+          'Closed (won''t fix)': 'Closed (won''t fix)'
+          'Closed (works as designed)': 'Closed (works as designed)'
+          'Closed (cannot reproduce)': 'Closed (cannot reproduce)'
+          'Closed (outdated)': 'Closed (outdated)'
+      version:
+        '#type': webform_autocomplete
+        '#title': Version
+        '#required': true
+        '#autocomplete_existing': true
+      component:
+        '#type': webform_select_other
+        '#title': Component
+        '#required': true
+        '#options':
+          Code: Code
+          Documentation: Documentation
+          Miscellaneous: Miscellaneous
+          'User interface': 'User interface'
+      assigned:
+        '#type': entity_autocomplete
+        '#title': Assigned
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: false
+    meta_data_03:
+      '#type': webform_flexbox
+      tags:
+        '#type': entity_autocomplete
+        '#title': 'Issue Tags'
+        '#description': 'Do <strong>NOT</strong> use tags for adding random keywords or duplicating any other fields.  Separate terms with a comma, not a space.'
+        '#tags': true
+        '#target_type': taxonomy_term
+        '#selection_handler': 'default:taxonomy_term'
+        '#selection_settings':
+          target_bundles:
+            tags: tags
+          auto_create: 1
+          auto_create_bundle: tags
+  summary_and_relationshsips_details:
+    '#title': 'Issue Summary'
+    '#type': details
+    '#open': true
+    summary:
+      '#type': text_format
+      '#title': Summary
+      '#description': 'An issue summary is a concise overview of a full issue report. Issue summaries need to be written if the issue has more than a few comments and/or an average developer cannot understand the subject matter after a few minutes of study. These summaries are key sources of information for core developers, patch reviewers and users who need to skim large amounts of issues and information quickly.'
+  files_details:
+    '#title': Files
+    '#type': details
+    '#open': true
+    files:
+      '#type': managed_file
+      '#title': Files
+      '#multiple': true
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: false
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

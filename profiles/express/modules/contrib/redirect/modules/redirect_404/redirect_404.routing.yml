@@ -1,0 +1,15 @@
+redirect_404.fix_404:
+  path: '/admin/config/search/redirect/404'
+  defaults:
+    _title: 'Fix 404 pages'
+    _form: '\Drupal\redirect_404\Form\RedirectFix404Form'
+  requirements:
+    _permission: 'administer redirects'
+
+redirect_404.ignore_404:
+  path: '/admin/config/search/redirect/404/ignore'
+  defaults:
+    _controller: '\Drupal\redirect_404\Controller\Fix404IgnoreController::ignorePath'
+  requirements:
+    _permission: 'administer redirect settings'
+    _csrf_token: 'TRUE'

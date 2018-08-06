@@ -1,0 +1,15 @@
+/**
+ * @file
+ * Stylesheet for the Linkit module admin GUI.
+ */
+
+.linkit-plugin-summary {
+  float: left;
+  font-size: .9em;
+  line-height: 1.2em;
+}
+
+.linkit-matcher-add-form tbody td:first-child,
+.linkit-attribute-add-form tbody td:first-child {
+  width: 1%;
+}

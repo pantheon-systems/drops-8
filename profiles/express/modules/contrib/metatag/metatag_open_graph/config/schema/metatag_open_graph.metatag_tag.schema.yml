@@ -1,0 +1,114 @@
+metatag.metatag_tag.og_country_name:
+  type: label
+  label: 'Open Graph: Country name'
+metatag.metatag_tag.og_description:
+  type: label
+  label: 'Open Graph: Description'
+metatag.metatag_tag.og_determiner:
+  type: label
+  label: 'Open Graph: Determiner'
+metatag.metatag_tag.og_email:
+  type: label
+  label: 'Open Graph: Email'
+metatag.metatag_tag.og_fax_number:
+  type: label
+  label: 'Open Graph: Fax number'
+metatag.metatag_tag.og_image:
+  type: label
+  label: 'Open Graph: Image'
+metatag.metatag_tag.og_image_height:
+  type: label
+  label: 'Open Graph: Image height'
+metatag.metatag_tag.og_image_secure_url:
+  type: label
+  label: 'Open Graph: Image secure URL'
+metatag.metatag_tag.og_image_type:
+  type: label
+  label: 'Open Graph: Image type'
+metatag.metatag_tag.og_image_url:
+  type: label
+  label: 'Open Graph: Image URL'
+metatag.metatag_tag.og_image_width:
+  type: label
+  label: 'Open Graph: Image width'
+metatag.metatag_tag.og_latitude:
+  type: label
+  label: 'Open Graph: Latitude'
+metatag.metatag_tag.og_locale:
+  type: label
+  label: 'Open Graph: Locale'
+metatag.metatag_tag.og_locale_alternative:
+  type: label
+  label: 'Open Graph: Alternative locale'
+metatag.metatag_tag.og_locality:
+  type: label
+  label: 'Open Graph: Locality'
+metatag.metatag_tag.og_longitude:
+  type: label
+  label: 'Open Graph: Longitude'
+metatag.metatag_tag.og_phone_number:
+  type: label
+  label: 'Open Graph: Phone number'
+metatag.metatag_tag.og_postal_code:
+  type: label
+  label: 'Open Graph: Postal code'
+metatag.metatag_tag.og_region:
+  type: label
+  label: 'Open Graph: Region'
+metatag.metatag_tag.og_see_also:
+  type: label
+  label: 'Open Graph: See also'
+metatag.metatag_tag.og_site_name:
+  type: label
+  label: 'Open Graph: Site name'
+metatag.metatag_tag.og_street_address:
+  type: label
+  label: 'Open Graph: Street address'
+metatag.metatag_tag.og_title:
+  type: label
+  label: 'Open Graph: Title'
+metatag.metatag_tag.og_type:
+  type: label
+  label: 'Open Graph: Type'
+metatag.metatag_tag.og_updated_time:
+  type: label
+  label: 'Open Graph: Updated time'
+metatag.metatag_tag.og_url:
+  type: label
+  label: 'Open Graph: URL'
+metatag.metatag_tag.og_video:
+  type: label
+  label: 'Open Graph: Video URL'
+metatag.metatag_tag.og_video_height:
+  type: label
+  label: 'Open Graph: Video height'
+metatag.metatag_tag.og_video_secure_url:
+  type: label
+  label: 'Open Graph: Video Secure URL'
+metatag.metatag_tag.og_video_type:
+  type: label
+  label: 'Open Graph: Video type'
+metatag.metatag_tag.og_video_width:
+  type: label
+  label: 'Open Graph: Video width'
+metatag.metatag_tag.article_author:
+  type: label
+  label: 'Article author'
+metatag.metatag_tag.article_expiration_time:
+  type: label
+  label: 'Article expiration time'
+metatag.metatag_tag.article_modified_time:
+  type: label
+  label: 'Article modified time'
+metatag.metatag_tag.article_published_time:
+  type: label
+  label: 'Article published time'
+metatag.metatag_tag.article_publisher:
+  type: label
+  label: 'Article publisher'
+metatag.metatag_tag.article_section:
+  type: label
+  label: 'Article section'
+metatag.metatag_tag.article_tag:
+  type: label
+  label: 'Article tag(s)'

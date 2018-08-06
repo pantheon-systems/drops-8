@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Theme implementation for webform help video using YouTube.
+ *
+ * Available variables
+ * - youtube_id: YouTube video id.
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.help') }}
+<div class="webform-help-video-youtube">
+  <div class="webform-help-video-youtube--container">
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/{{ youtube_id }}{{ autoplay ? '?autoplay=1' : '' }}" frameborder="0" allowfullscreen></iframe>
+  </div>
+</div>

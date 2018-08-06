@@ -1,0 +1,8 @@
+{
+  "name": "drupal/inline_entity_form",
+  "description": "Provides a widget for inline management (creation, modification, removal) of referenced entities.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": { }
+}

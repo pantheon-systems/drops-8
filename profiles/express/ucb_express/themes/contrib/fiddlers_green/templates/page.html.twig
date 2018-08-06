@@ -1,0 +1,158 @@
+{% set container = theme.settings.fluid_container ? 'container-fluid' : 'container' %}
+
+<div class="header-nav">
+  {# Header #}
+  <header class="clearfix">
+    <div id="site-info">
+      {% if page.branding %}
+        {% block branding %}
+          <div class="col-lg-8 col-md-8 col-sm-12 col-xs-12" role="branding">
+            {{ page.branding }}
+          </div>
+        {% endblock %}
+      {% endif %}
+      {% if page.search_box %}
+        {% block search_box %}
+          <div class="col-lg-4 col-md-4" role="search">
+            {{ page.search_box }}
+          </div>
+        {% endblock %}d
+      {% endif %}
+    </div>
+  </header>
+  <nav class="clearfix">
+      {# Navbar #}
+      {% if page.menu or page.menu_collapsible %}
+          {% block navbar %}
+              {%
+              set navbar_classes = [
+              'navbar',
+              theme.settings.navbar_inverse ? 'navbar-inverse' : 'navbar-default',
+              theme.settings.navbar_position ? 'navbar-' ~ theme.settings.navbar_position|clean_class : container,
+              ]
+              %}
+              <div{{ navbar_attributes.addClass(navbar_classes) }} id="navbar" role="banner">
+                  {% if not navbar_attributes.hasClass('container') %}
+                  <div class="{{ container }}">
+                      {% endif %}
+                      <div class="navbar-header">
+                          {{ page.menu }}
+                          {# .btn-navbar is used as the toggle for collapsed navbar content #}
+                          {% if page.menu_collapsible %}
+                              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-collapse">
+                                  <span class="sr-only">{{ 'Toggle menu'|t }}</span>
+                                  <span class="icon-bar"></span>
+                                  <span class="icon-bar"></span>
+                                  <span class="icon-bar"></span>
+                              </button>
+                          {% endif %}
+                      </div>
+
+                      {# Menu (collapsible) #}
+                      {% if page.menu_collapsible %}
+                          <div id="navbar-collapse" class="navbar-collapse collapse">
+                              {{ page.menu_collapsible }}
+                          </div>
+                      {% endif %}
+                      {% if not navbar_attributes.hasClass('container') %}
+                  </div>
+                  {% endif %}
+              </div>
+          {% endblock %}
+      {% endif %}
+  </nav>
+</div>
+{# Main #}
+{% block main %}
+  <div role="main" class="main-container {{ container }} js-quickedit-main-content">
+    <div class="row">
+        {# Sidebar First #}
+        {% if page.sidebar_first %}
+            {% block sidebar_first %}
+                <aside class="col-sm-3" role="complementary">
+                    {{ page.sidebar_first }}
+                </aside>
+            {% endblock %}
+        {% endif %}
+
+        {# Content #}
+        {%
+        set content_classes = [
+        page.sidebar_first and page.sidebar_second ? 'col-sm-6',
+        page.sidebar_first and page.sidebar_second is empty ? 'col-sm-9',
+        page.sidebar_second and page.sidebar_first is empty ? 'col-sm-9',
+        page.sidebar_first is empty and page.sidebar_second is empty ? 'col-sm-12'
+        ]
+        %}
+      <section{{ content_attributes.addClass(content_classes) }}>
+
+          {# Highlighted #}
+          {% if page.highlighted %}
+              {% block highlighted %}
+                <div class="highlighted">{{ page.highlighted }}</div>
+              {% endblock %}
+          {% endif %}
+
+          {# Breadcrumbs #}
+          {% if breadcrumb %}
+              {% block breadcrumb %}
+                  {{ breadcrumb }}
+              {% endblock %}
+          {% endif %}
+
+          {# Action Links #}
+          {% if action_links %}
+              {% block action_links %}
+                <ul class="action-links">{{ action_links }}</ul>
+              {% endblock %}
+          {% endif %}
+
+          {# Help #}
+          {% if page.help %}
+              {% block help %}
+                  {{ page.help }}
+              {% endblock %}
+          {% endif %}
+
+          {# Content #}
+          {% block content %}
+            <a id="main-content"></a>
+              {{ page.content }}
+          {% endblock %}
+      </section>
+
+        {# Sidebar Second #}
+        {% if page.sidebar_second %}
+            {% block sidebar_second %}
+              <aside class="col-sm-3" role="complementary">
+                  {{ page.sidebar_second }}
+              </aside>
+            {% endblock %}
+        {% endif %}
+    </div>
+  </div>
+{% endblock %}
+
+{% block footer %}
+  <footer class="footer {{ container }}" role="contentinfo">
+    <div id="footer-info">
+      {{ page.footer }}
+
+      {% if page.site_info %}
+        {% block site_info %}
+          <div class="block-cu-site-info col-lg-8 col-md-8 {{ container }}" role="site_info">
+            {{ page.site_info }}
+          </div>
+        {% endblock %}
+      {% endif %}
+
+      <div id="cu-footer" class="col-lg-4 col-md-4 pull-right">
+        <p><a href="//www.colorado.edu"><img src="http://www.colorado.edu/webcentral/profiles/ucb_express/themes/expressbase/images/beboulder/be-boulder-white.png" alt="University of Colorado Boulder" class="beboulder"/></a></p>
+        <p><strong><a href="http://www.colorado.edu">University of Colorado Boulder</a></strong><br />&copy; Regents of the University of Colorado<br />
+          <span class="required-links"><a href="http://www.colorado.edu/about/privacy-statement">Privacy</a> &bull; <a href="http://www.colorado.edu/about/legal-trademarks">Legal &amp; Trademarks</a></span></p>
+      </div>
+    </div>
+  </footer>
+{% endblock %}
+
+

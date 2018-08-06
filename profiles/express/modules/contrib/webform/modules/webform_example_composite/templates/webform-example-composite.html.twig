@@ -1,0 +1,35 @@
+{#
+/**
+ * @file
+ * Default theme implementation of a webform example composite.
+ *
+ * Available variables:
+ * - content: The webform example composite to be output.
+
+ * @see template_preprocess_webform_example_composite()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform_example_composite/webform_example_composite') }}
+{% if flexbox %}
+
+    <div class="webform-flexbox">
+      {% if content.first_name %}
+        <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.first_name }}</div></div>
+      {% endif %}
+      {% if content.last_name %}
+        <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.last_name }}</div></div>
+      {% endif %}
+      {% if content.date_of_birth %}
+        <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.date_of_birth }}</div></div>
+      {% endif %}
+      {% if content.gender %}
+        <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.gender }}</div></div>
+      {% endif %}
+    </div>
+
+{% else %}
+  {{ content }}
+{% endif %}
+

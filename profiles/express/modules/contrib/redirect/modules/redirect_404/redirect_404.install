@@ -1,0 +1,62 @@
+<?php
+
+/**
+ * @file
+ * Update hooks for the redirect_404 module.
+ */
+
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\redirect_404\SqlRedirectNotFoundStorage;
+
+/**
+ * Implements hook_schema().
+ */
+function redirect_404_schema() {
+  $schema['redirect_404'] = [
+    'description' => 'Stores 404 requests.',
+    'fields' => [
+      'path' => [
+        'description' => 'The path of the request.',
+        'type' => 'varchar',
+        'length' => SqlRedirectNotFoundStorage::MAX_PATH_LENGTH,
+        'not null' => TRUE,
+      ],
+      'langcode' => [
+        'description' => 'The language of this request.',
+        'type' => 'varchar_ascii',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
+      ],
+      'count' => [
+        'description' => 'The number of requests with that path and language.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'timestamp' => [
+        'description' => 'The timestamp of the last request with that path and language.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'resolved' => [
+        'description' => 'Boolean indicating whether or not this path has a redirect assigned.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['path', 'langcode'],
+  ];
+  return $schema;
+}
+
+/**
+ * Remove relevancy field from the redirect_404 table.
+ */
+function redirect_404_update_8101() {
+  \Drupal::database()->schema()->dropField('redirect_404', 'relevancy');
+}

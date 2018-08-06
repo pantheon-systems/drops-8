@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow pager item.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the element.
+ * - rendered_field_items: The individual pager elements.
+ * - widget_id: The pager id.
+ *
+ * @see template_preprocess_views_slideshow_pager_field_item()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div id="{{ widget_id }}" {{ attributes.addClass(classes) }}>
+    {{ rendered_field_items }}
+</div>

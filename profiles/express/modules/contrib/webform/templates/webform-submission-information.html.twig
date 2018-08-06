@@ -1,0 +1,60 @@
+{#
+/**
+ * @file
+ * Default theme implementation for webform submission information.
+ *
+ * Available variables:
+ * @todo Add variables.
+ *
+ * @see template_preprocess_webform_submission_information()
+ *
+ * @ingroup themeable
+ */
+#}
+<details data-webform-element-id="{{ webform_id }}--submission_information"{% if open %} open="open"{% endif %}>
+  <summary role="button"{% if open %} aria-expanded="true" aria-pressed="true"{% endif %}>{{ 'Submission information'|t }}</summary>
+  <div class="details-wrapper">
+    {% if submissions_view %}
+      <div><b>{{ 'Submission Number'|t }}:</b> {{ serial }}</div>
+      <div><b>{{ 'Submission ID'|t }}:</b> {{ sid }}</div>
+      <div><b>{{ 'Submission UUID'|t }}:</b> {{ uuid }}</div>
+      {% if uri %}
+        <div><b>{{ 'Submission URI'|t }}:</b> {{ uri }}</div>
+      {% endif %}
+      {% if token_update %}
+        <div><b>{{ 'Submission Update'|t }}:</b> {{ token_update }}</div>
+      {% endif %}
+      <br />
+      <div><b>{{ 'Created'|t }}:</b> {{ created }}</div>
+      <div><b>{{ 'Completed'|t }}:</b> {{ completed }}</div>
+      <div><b>{{ 'Changed'|t }}:</b> {{ changed }}</div>
+      <br />
+      <div><b>{{ 'Remote IP address'|t }}:</b> {{ remote_addr }}</div>
+      <div><b>{{ 'Submitted by'|t }}:</b> {{ submitted_by }}</div>
+      <div><b>{{ 'Language'|t }}:</b> {{ language }}</div>
+      <br />
+      <div><b>{{ 'Is draft'|t }}:</b> {{ is_draft }}</div>
+      {% if current_page %}
+        <div><b>{{ 'Current page'|t }}:</b> {{ current_page }}</div>
+      {% endif %}
+      <div><b>{{ 'Webform'|t }}:</b> {{ webform }}</div>
+      {% if submitted_to %}
+        <div><b>{{ 'Submitted to'|t }}:</b> {{ submitted_to }}</div>
+      {% endif %}
+      {% if sticky or notes %}
+        <br />
+        {% if sticky %}
+          <div><b>{{ 'Flagged'|t }}:</b> {{ sticky }}</div>
+        {% endif %}
+        {% if notes %}
+          <div><b>{{ 'Notes'|t }}:</b> {{ notes }}</div>
+        {% endif %}
+      {% endif %}
+
+    {% else %}
+      <div><b>{{ 'Submission Number'|t }}:</b> {{ serial }}</div>
+      <div><b>{{ 'Created'|t }}:</b> {{ created }}</div>
+    {% endif %}
+
+  </div>
+</details>

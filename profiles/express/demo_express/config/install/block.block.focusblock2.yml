@@ -1,0 +1,23 @@
+uuid: 263d6d2f-35bc-49c6-ae7c-da33d2aa16da
+langcode: en
+status: false
+dependencies:
+  theme:
+    - catapult
+_core:
+  default_config_hash: P9Nq-ubSlJqFZ2wkDJ1dJdVEmbW-byKEl4vVoDmeZQk
+id: focusblock2
+theme: catapult
+region: header
+weight: 0
+provider: null
+plugin: 'block_content:31c10d10-69a0-45e8-894c-80e4685aad45'
+settings:
+  id: 'block_content:31c10d10-69a0-45e8-894c-80e4685aad45'
+  label: 'Focus block 2'
+  provider: block_content
+  label_display: visible
+  status: true
+  info: ''
+  view_mode: full
+visibility: {  }

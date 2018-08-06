@@ -1,0 +1,7 @@
+services:
+  colorbox.activation_check:
+    class: Drupal\colorbox\ActivationCheck
+    arguments: ['@config.factory', '@request_stack']
+  colorbox.attachment:
+    class: Drupal\colorbox\ColorboxAttachment
+    arguments: ['@colorbox.activation_check', '@module_handler', '@config.factory']

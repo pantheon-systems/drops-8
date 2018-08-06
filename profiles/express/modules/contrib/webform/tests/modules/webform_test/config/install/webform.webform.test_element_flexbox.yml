@@ -1,0 +1,1079 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_flexbox
+title: 'Test: Element: Flexbox'
+description: 'Test flexbox layout.'
+category: 'Test: Element'
+elements: |
+  flexbox_processed_text:
+    '#type': webform_flexbox
+    flex_processed_text_left:
+      '#type': processed_text
+      '#title': 'Advanced HTML/Text 01'
+    flex_processed_text_right:
+      '#type': processed_text
+      '#title': 'Advanced HTML/Text 02'
+  flexbox_webform_markup:
+    '#type': webform_flexbox
+    flex_webform_markup_left:
+      '#type': webform_markup
+      '#title': 'Basic HTML 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2700667">Issue #2700667: Notice: Undefined index: #type in drupal_process_states()</a>'
+    flex_webform_markup_right:
+      '#type': webform_markup
+      '#title': 'Basic HTML 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2700667">Issue #2700667: Notice: Undefined index: #type in drupal_process_states()</a>'
+  flexbox_container:
+    '#type': webform_flexbox
+    flex_container_left:
+      '#type': container
+      '#title': 'Container 01'
+    flex_container_right:
+      '#type': container
+      '#title': 'Container 02'
+  flexbox_details:
+    '#type': webform_flexbox
+    flex_details_left:
+      '#type': details
+      '#title': 'Details 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2348851">Issue #2348851: Regression: Allow HTML tags inside detail summary</a>'
+    flex_details_right:
+      '#type': details
+      '#title': 'Details 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2348851">Issue #2348851: Regression: Allow HTML tags inside detail summary</a>'
+  flexbox_fieldset:
+    '#type': webform_flexbox
+    flex_fieldset_left:
+      '#type': fieldset
+      '#title': 'Fieldset 01'
+    flex_fieldset_right:
+      '#type': fieldset
+      '#title': 'Fieldset 02'
+  flexbox_item:
+    '#type': webform_flexbox
+    flex_item_left:
+      '#type': item
+      '#title': 'Item 01'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+    flex_item_right:
+      '#type': item
+      '#title': 'Item 02'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+  flexbox_label:
+    '#type': webform_flexbox
+    flex_label_left:
+      '#type': label
+      '#title': 'Label 01'
+    flex_label_right:
+      '#type': label
+      '#title': 'Label 02'
+  flexbox_webform_message:
+    '#type': webform_flexbox
+    flex_webform_message_left:
+      '#type': webform_message
+      '#title': 'Message 01'
+      '#message_type': warning
+      '#message_message': 'This is a <strong>warning</strong> message.'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/77245">Issue #77245: A place for JavaScript status messages</a>'
+    flex_webform_message_right:
+      '#type': webform_message
+      '#title': 'Message 02'
+      '#message_type': warning
+      '#message_message': 'This is a <strong>warning</strong> message.'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/77245">Issue #77245: A place for JavaScript status messages</a>'
+  flexbox_webform_section:
+    '#type': webform_flexbox
+    flex_webform_section_left:
+      '#type': webform_section
+      '#title': 'Section 01'
+    flex_webform_section_right:
+      '#type': webform_section
+      '#title': 'Section 02'
+  flexbox_table:
+    '#type': webform_flexbox
+    flex_table_left:
+      '#type': table
+      '#title': 'Table 01'
+    flex_table_right:
+      '#type': table
+      '#title': 'Table 02'
+  flexbox_webform_address:
+    '#type': webform_flexbox
+    flex_webform_address_left:
+      '#type': webform_address
+      '#title': 'Address 01'
+    flex_webform_address_right:
+      '#type': webform_address
+      '#title': 'Address 02'
+  flexbox_webform_audio_file:
+    '#type': webform_flexbox
+    flex_webform_audio_file_left:
+      '#type': webform_audio_file
+      '#title': 'Audio file 01'
+    flex_webform_audio_file_right:
+      '#type': webform_audio_file
+      '#title': 'Audio file 02'
+  flexbox_webform_autocomplete:
+    '#type': webform_flexbox
+    flex_webform_autocomplete_left:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete 01'
+    flex_webform_autocomplete_right:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete 02'
+  flexbox_webform_buttons:
+    '#type': webform_flexbox
+    flex_webform_buttons_left:
+      '#type': webform_buttons
+      '#title': 'Buttons 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_webform_buttons_right:
+      '#type': webform_buttons
+      '#title': 'Buttons 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_webform_buttons_other:
+    '#type': webform_flexbox
+    flex_webform_buttons_other_left:
+      '#type': webform_buttons_other
+      '#title': 'Buttons other 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_webform_buttons_other_right:
+      '#type': webform_buttons_other
+      '#title': 'Buttons other 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_captcha:
+    '#type': webform_flexbox
+    flex_captcha_left:
+      '#type': captcha
+      '#title': 'CAPTCHA 01'
+      '#captcha_admin_mode': true
+      '#captcha_type': image_captcha/Image
+    flex_captcha_right:
+      '#type': captcha
+      '#title': 'CAPTCHA 02'
+      '#captcha_admin_mode': true
+      '#captcha_type': image_captcha/Image
+  flexbox_checkbox:
+    '#type': webform_flexbox
+    flex_checkbox_left:
+      '#type': checkbox
+      '#title': 'Checkbox 01'
+    flex_checkbox_right:
+      '#type': checkbox
+      '#title': 'Checkbox 02'
+  flexbox_checkboxes:
+    '#type': webform_flexbox
+    flex_checkboxes_left:
+      '#type': checkboxes
+      '#title': 'Checkboxes 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+    flex_checkboxes_right:
+      '#type': checkboxes
+      '#title': 'Checkboxes 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+  flexbox_webform_checkboxes_other:
+    '#type': webform_flexbox
+    flex_webform_checkboxes_other_left:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+    flex_webform_checkboxes_other_right:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+  flexbox_webform_codemirror:
+    '#type': webform_flexbox
+    flex_webform_codemirror_left:
+      '#type': webform_codemirror
+      '#title': 'CodeMirror 01'
+      '#mode': yaml
+    flex_webform_codemirror_right:
+      '#type': webform_codemirror
+      '#title': 'CodeMirror 02'
+      '#mode': yaml
+  flexbox_color:
+    '#type': webform_flexbox
+    flex_color_left:
+      '#type': color
+      '#title': 'Color 01'
+    flex_color_right:
+      '#type': color
+      '#title': 'Color 02'
+  flexbox_webform_composite:
+    '#type': webform_flexbox
+    flex_webform_composite_left:
+      '#type': webform_composite
+      '#title': 'Composite custom 01'
+      '#element':
+        name:
+          '#type': textfield
+          '#title': Name
+          '#title_display': invisible
+        gender:
+          '#type': select
+          '#title': Gender
+          '#title_display': invisible
+          '#options':
+            Male: Male
+            Female: Female
+    flex_webform_composite_right:
+      '#type': webform_composite
+      '#title': 'Composite custom 02'
+      '#element':
+        name:
+          '#type': textfield
+          '#title': Name
+          '#title_display': invisible
+        gender:
+          '#type': select
+          '#title': Gender
+          '#title_display': invisible
+          '#options':
+            Male: Male
+            Female: Female
+  flexbox_webform_computed_token:
+    '#type': webform_flexbox
+    flex_webform_computed_token_left:
+      '#type': webform_computed_token
+      '#title': 'Computed token 01'
+      '#value': 'This is a Computed token value.'
+    flex_webform_computed_token_right:
+      '#type': webform_computed_token
+      '#title': 'Computed token 02'
+      '#value': 'This is a Computed token value.'
+  flexbox_webform_computed_twig:
+    '#type': webform_flexbox
+    flex_webform_computed_twig_left:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig 01'
+      '#value': 'This is a Computed Twig value.'
+    flex_webform_computed_twig_right:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig 02'
+      '#value': 'This is a Computed Twig value.'
+  flexbox_webform_contact:
+    '#type': webform_flexbox
+    flex_webform_contact_left:
+      '#type': webform_contact
+      '#title': 'Contact 01'
+    flex_webform_contact_right:
+      '#type': webform_contact
+      '#title': 'Contact 02'
+  flexbox_webform_creditcard:
+    '#type': webform_flexbox
+    flex_webform_creditcard_left:
+      '#type': webform_creditcard
+      '#title': 'Credit card 01'
+    flex_webform_creditcard_right:
+      '#type': webform_creditcard
+      '#title': 'Credit card 02'
+  flexbox_webform_creditcard_number:
+    '#type': webform_flexbox
+    flex_webform_creditcard_number_left:
+      '#type': webform_creditcard_number
+      '#title': 'Credit card number 01'
+    flex_webform_creditcard_number_right:
+      '#type': webform_creditcard_number
+      '#title': 'Credit card number 02'
+  flexbox_date:
+    '#type': webform_flexbox
+    flex_date_left:
+      '#type': date
+      '#title': 'Date 01'
+    flex_date_right:
+      '#type': date
+      '#title': 'Date 02'
+  flexbox_datetime:
+    '#type': webform_flexbox
+    flex_datetime_left:
+      '#type': datetime
+      '#title': 'Date/time 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+    flex_datetime_right:
+      '#type': datetime
+      '#title': 'Date/time 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+  flexbox_datelist:
+    '#type': webform_flexbox
+    flex_datelist_left:
+      '#type': datelist
+      '#title': 'Date list 01'
+    flex_datelist_right:
+      '#type': datelist
+      '#title': 'Date list 02'
+  flexbox_webform_document_file:
+    '#type': webform_flexbox
+    flex_webform_document_file_left:
+      '#type': webform_document_file
+      '#title': 'Document file 01'
+    flex_webform_document_file_right:
+      '#type': webform_document_file
+      '#title': 'Document file 02'
+  flexbox_email:
+    '#type': webform_flexbox
+    flex_email_left:
+      '#type': email
+      '#title': 'Email 01'
+    flex_email_right:
+      '#type': email
+      '#title': 'Email 02'
+  flexbox_webform_email_confirm:
+    '#type': webform_flexbox
+    flex_webform_email_confirm_left:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm 01'
+    flex_webform_email_confirm_right:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm 02'
+  flexbox_webform_email_multiple:
+    '#type': webform_flexbox
+    flex_webform_email_multiple_left:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple 01'
+    flex_webform_email_multiple_right:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple 02'
+  flexbox_entity_autocomplete:
+    '#type': webform_flexbox
+    flex_entity_autocomplete_left:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete 01'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+    flex_entity_autocomplete_right:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete 02'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+  flexbox_webform_entity_checkboxes:
+    '#type': webform_flexbox
+    flex_webform_entity_checkboxes_left:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes 01'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    flex_webform_entity_checkboxes_right:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes 02'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+  flexbox_webform_entity_radios:
+    '#type': webform_flexbox
+    flex_webform_entity_radios_left:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios 01'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    flex_webform_entity_radios_right:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios 02'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+  flexbox_webform_entity_select:
+    '#type': webform_flexbox
+    flex_webform_entity_select_left:
+      '#type': webform_entity_select
+      '#title': 'Entity select 01'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    flex_webform_entity_select_right:
+      '#type': webform_entity_select
+      '#title': 'Entity select 02'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+  flexbox_managed_file:
+    '#type': webform_flexbox
+    flex_managed_file_left:
+      '#type': managed_file
+      '#title': 'File 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2705471">Issue #2705471: Webform states managed file fields</a><br /><a href="https://www.drupal.org/node/2113931">Issue #2113931: File Field design update</a><br /><a href="https://www.drupal.org/node/2346893">Issue #2346893: Duplicate Ajax wrapper around a file field</a><br /><a href="https://www.drupal.org/node/2482783">Issue #2482783: File upload errors not set or shown correctly</a>'
+    flex_managed_file_right:
+      '#type': managed_file
+      '#title': 'File 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2705471">Issue #2705471: Webform states managed file fields</a><br /><a href="https://www.drupal.org/node/2113931">Issue #2113931: File Field design update</a><br /><a href="https://www.drupal.org/node/2346893">Issue #2346893: Duplicate Ajax wrapper around a file field</a><br /><a href="https://www.drupal.org/node/2482783">Issue #2482783: File upload errors not set or shown correctly</a>'
+  flexbox_webform_horizontal_rule:
+    '#type': webform_flexbox
+    flex_webform_horizontal_rule_left:
+      '#type': webform_horizontal_rule
+      '#attributes':
+        class:
+          - webform-horizontal-rule--dotted
+          - webform-horizontal-rule--thick
+      '#title': 'webform_horizontal_rule 01'
+    flex_webform_horizontal_rule_right:
+      '#type': webform_horizontal_rule
+      '#attributes':
+        class:
+          - webform-horizontal-rule--dotted
+          - webform-horizontal-rule--thick
+      '#title': 'webform_horizontal_rule 02'
+  flexbox_webform_image_file:
+    '#type': webform_flexbox
+    flex_webform_image_file_left:
+      '#type': webform_image_file
+      '#title': 'Image file 01'
+    flex_webform_image_file_right:
+      '#type': webform_image_file
+      '#title': 'Image file 02'
+  flexbox_webform_image_select:
+    '#type': webform_flexbox
+    flex_webform_image_select_left:
+      '#type': webform_image_select
+      '#title': 'Image select 01'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+    flex_webform_image_select_right:
+      '#type': webform_image_select
+      '#title': 'Image select 02'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+  flexbox_language_select:
+    '#type': webform_flexbox
+    flex_language_select_left:
+      '#type': language_select
+      '#title': 'Language select 01'
+    flex_language_select_right:
+      '#type': language_select
+      '#title': 'Language select 02'
+  flexbox_webform_likert:
+    '#type': webform_flexbox
+    flex_webform_likert_left:
+      '#type': webform_likert
+      '#title': 'Likert 01'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+    flex_webform_likert_right:
+      '#type': webform_likert
+      '#title': 'Likert 02'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+  flexbox_webform_link:
+    '#type': webform_flexbox
+    flex_webform_link_left:
+      '#type': webform_link
+      '#title': 'Link 01'
+    flex_webform_link_right:
+      '#type': webform_link
+      '#title': 'Link 02'
+  flexbox_webform_location:
+    '#type': webform_flexbox
+    flex_webform_location_left:
+      '#type': webform_location
+      '#title': 'Location 01'
+      '#map': true
+      '#geolocation': true
+      '#format': map
+    flex_webform_location_right:
+      '#type': webform_location
+      '#title': 'Location 02'
+      '#map': true
+      '#geolocation': true
+      '#format': map
+  flexbox_machine_name:
+    '#type': webform_flexbox
+    flex_machine_name_left:
+      '#type': machine_name
+      '#title': 'Machine name 01'
+    flex_machine_name_right:
+      '#type': machine_name
+      '#title': 'Machine name 02'
+  flexbox_webform_mapping:
+    '#type': webform_flexbox
+    flex_webform_mapping_left:
+      '#type': webform_mapping
+      '#title': 'Mapping 01'
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+    flex_webform_mapping_right:
+      '#type': webform_mapping
+      '#title': 'Mapping 02'
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+  flexbox_webform_name:
+    '#type': webform_flexbox
+    flex_webform_name_left:
+      '#type': webform_name
+      '#title': 'Name 01'
+    flex_webform_name_right:
+      '#type': webform_name
+      '#title': 'Name 02'
+  flexbox_number:
+    '#type': webform_flexbox
+    flex_number_left:
+      '#type': number
+      '#title': 'Number 01'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+    flex_number_right:
+      '#type': number
+      '#title': 'Number 02'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+  flexbox_password:
+    '#type': webform_flexbox
+    flex_password_left:
+      '#type': password
+      '#title': 'Password 01'
+    flex_password_right:
+      '#type': password
+      '#title': 'Password 02'
+  flexbox_password_confirm:
+    '#type': webform_flexbox
+    flex_password_confirm_left:
+      '#type': password_confirm
+      '#title': 'Password confirm 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+    flex_password_confirm_right:
+      '#type': password_confirm
+      '#title': 'Password confirm 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+  flexbox_radios:
+    '#type': webform_flexbox
+    flex_radios_left:
+      '#type': radios
+      '#title': 'Radios 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+    flex_radios_right:
+      '#type': radios
+      '#title': 'Radios 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+  flexbox_webform_radios_other:
+    '#type': webform_flexbox
+    flex_webform_radios_other_left:
+      '#type': webform_radios_other
+      '#title': 'Radios other 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+    flex_webform_radios_other_right:
+      '#type': webform_radios_other
+      '#title': 'Radios other 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+  flexbox_range:
+    '#type': webform_flexbox
+    flex_range_left:
+      '#type': range
+      '#title': 'Range 01'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#range__output': true
+      '#range__output_prefix': $
+      '#range__output_suffix': '.00'
+    flex_range_right:
+      '#type': range
+      '#title': 'Range 02'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#range__output': true
+      '#range__output_prefix': $
+      '#range__output_suffix': '.00'
+  flexbox_webform_rating:
+    '#type': webform_flexbox
+    flex_webform_rating_left:
+      '#type': webform_rating
+      '#title': 'Rating 01'
+    flex_webform_rating_right:
+      '#type': webform_rating
+      '#title': 'Rating 02'
+  flexbox_search:
+    '#type': webform_flexbox
+    flex_search_left:
+      '#type': search
+      '#title': 'Search 01'
+    flex_search_right:
+      '#type': search
+      '#title': 'Search 02'
+  flexbox_select:
+    '#type': webform_flexbox
+    flex_select_left:
+      '#type': select
+      '#title': 'Select 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+    flex_select_right:
+      '#type': select
+      '#title': 'Select 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+  flexbox_webform_select_other:
+    '#type': webform_flexbox
+    flex_webform_select_other_left:
+      '#type': webform_select_other
+      '#title': 'Select other 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_webform_select_other_right:
+      '#type': webform_select_other
+      '#title': 'Select other 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_webform_signature:
+    '#type': webform_flexbox
+    flex_webform_signature_left:
+      '#type': webform_signature
+      '#title': 'Signature 01'
+    flex_webform_signature_right:
+      '#type': webform_signature
+      '#title': 'Signature 02'
+  flexbox_tableselect:
+    '#type': webform_flexbox
+    flex_tableselect_left:
+      '#type': tableselect
+      '#title': 'Table select 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_tableselect_right:
+      '#type': tableselect
+      '#title': 'Table select 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_webform_tableselect_sort:
+    '#type': webform_flexbox
+    flex_webform_tableselect_sort_left:
+      '#type': webform_tableselect_sort
+      '#title': 'Tableselect sort 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_webform_tableselect_sort_right:
+      '#type': webform_tableselect_sort
+      '#title': 'Tableselect sort 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_webform_table_sort:
+    '#type': webform_flexbox
+    flex_webform_table_sort_left:
+      '#type': webform_table_sort
+      '#title': 'Table sort 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_webform_table_sort_right:
+      '#type': webform_table_sort
+      '#title': 'Table sort 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_tel:
+    '#type': webform_flexbox
+    flex_tel_left:
+      '#type': tel
+      '#title': 'Telephone 01'
+      '#international': true
+    flex_tel_right:
+      '#type': tel
+      '#title': 'Telephone 02'
+      '#international': true
+  flexbox_webform_telephone:
+    '#type': webform_flexbox
+    flex_webform_telephone_left:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced 01'
+    flex_webform_telephone_right:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced 02'
+  flexbox_webform_term_checkboxes:
+    '#type': webform_flexbox
+    flex_webform_term_checkboxes_left:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes 01'
+      '#vocabulary': tags
+    flex_webform_term_checkboxes_right:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes 02'
+      '#vocabulary': tags
+  flexbox_webform_term_select:
+    '#type': webform_flexbox
+    flex_webform_term_select_left:
+      '#type': webform_term_select
+      '#title': 'Term select 01'
+      '#vocabulary': tags
+    flex_webform_term_select_right:
+      '#type': webform_term_select
+      '#title': 'Term select 02'
+      '#vocabulary': tags
+  flexbox_webform_terms_of_service:
+    '#type': webform_flexbox
+    flex_webform_terms_of_service_left:
+      '#type': webform_terms_of_service
+      '#title': 'I agree to the {terms of service}. 01'
+      '#required': true
+      '#terms_type': slideout
+      '#terms_content': '<em>These are the terms of service.</em>'
+    flex_webform_terms_of_service_right:
+      '#type': webform_terms_of_service
+      '#title': 'I agree to the {terms of service}. 02'
+      '#required': true
+      '#terms_type': slideout
+      '#terms_content': '<em>These are the terms of service.</em>'
+  flexbox_textarea:
+    '#type': webform_flexbox
+    flex_textarea_left:
+      '#type': textarea
+      '#title': 'Textarea 01'
+      '#rows': 2
+    flex_textarea_right:
+      '#type': textarea
+      '#title': 'Textarea 02'
+      '#rows': 2
+  flexbox_textfield:
+    '#type': webform_flexbox
+    flex_textfield_left:
+      '#type': textfield
+      '#title': 'Text field 01'
+    flex_textfield_right:
+      '#type': textfield
+      '#title': 'Text field 02'
+  flexbox_text_format:
+    '#type': webform_flexbox
+    flex_text_format_left:
+      '#type': text_format
+      '#title': 'Text format 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/997826">Issue #997826: #states doesn''t work correctly with type text_format</a><br /><a href="https://www.drupal.org/node/2625128">Issue #2625128: Text format selection stays visible when using editor and a hidden webform state</a><br /><a href="https://www.drupal.org/node/1954968">Issue #1954968: Required CKEditor fields always fail HTML5 validation</a>'
+    flex_text_format_right:
+      '#type': text_format
+      '#title': 'Text format 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/997826">Issue #997826: #states doesn''t work correctly with type text_format</a><br /><a href="https://www.drupal.org/node/2625128">Issue #2625128: Text format selection stays visible when using editor and a hidden webform state</a><br /><a href="https://www.drupal.org/node/1954968">Issue #1954968: Required CKEditor fields always fail HTML5 validation</a>'
+  flexbox_webform_time:
+    '#type': webform_flexbox
+    flex_webform_time_left:
+      '#type': webform_time
+      '#title': 'Time 01'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+    flex_webform_time_right:
+      '#type': webform_time
+      '#title': 'Time 02'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+  flexbox_webform_toggle:
+    '#type': webform_flexbox
+    flex_webform_toggle_left:
+      '#type': webform_toggle
+      '#title': 'Toggle 01'
+    flex_webform_toggle_right:
+      '#type': webform_toggle
+      '#title': 'Toggle 02'
+  flexbox_webform_toggles:
+    '#type': webform_flexbox
+    flex_webform_toggles_left:
+      '#type': webform_toggles
+      '#title': 'Toggles 01'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    flex_webform_toggles_right:
+      '#type': webform_toggles
+      '#title': 'Toggles 02'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  flexbox_url:
+    '#type': webform_flexbox
+    flex_url_left:
+      '#type': url
+      '#title': 'URL 01'
+    flex_url_right:
+      '#type': url
+      '#title': 'URL 02'
+  flexbox_webform_video_file:
+    '#type': webform_flexbox
+    flex_webform_video_file_left:
+      '#type': webform_video_file
+      '#title': 'Video file 01'
+    flex_webform_video_file_right:
+      '#type': webform_video_file
+      '#title': 'Video file 02'
+  flexbox_properties:
+    '#type': webform_flexbox
+    properties_number:
+      '#type': number
+      '#title': currency
+      '#description': 'A description'
+      '#field_prefix': $
+      '#field_suffix': '.00'
+    properties_textfield:
+      '#type': textfield
+      '#title': textfield
+      '#description': 'A description'
+  flexbox_toggle:
+    '#type': webform_flexbox
+    '#align_items': flex-end
+    toggle:
+      '#type': toggle
+      '#title': toggle
+    toggle_textfield:
+      '#type': textfield
+      '#title': textfield
+      '#flex': 5
+    toggle_rating:
+      '#type': rating
+      '#title': rating
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,12 @@
+name: Linkit
+description: Linkit
+package: Custom
+type: module
+# core: 8.x
+configure: entity.linkit_profile.collection
+
+# Information added by Drupal.org packaging script on 2017-03-21
+version: '8.x-4.3'
+core: '8.x'
+project: 'linkit'
+datestamp: 1490127367

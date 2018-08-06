@@ -1,0 +1,5 @@
+# Schema for the theme setting configuration file of the Demo Theme theme.
+
+THEMENAME.settings:
+  type: theme_settings
+  label: 'demo theme settings'

@@ -1,0 +1,15 @@
+content_lock.settings:
+  type: config_object
+  mapping:
+    verbose:
+      type: integer
+      label: 'Display content lock messages'
+    types:
+      type: sequence
+      label: 'Types'
+      sequence:
+        type: sequence
+        label: 'Entity type'
+        sequence:
+          type: string
+          label: 'Bundle type'

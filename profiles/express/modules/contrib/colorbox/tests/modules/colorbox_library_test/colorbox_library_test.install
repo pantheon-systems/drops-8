@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Install file for the colorbox library test module.
+ */
+
+use Drupal\Core\Site\Settings;
+
+/**
+ * Implements hook_install().
+ */
+function colorbox_library_test_install() {
+  $library_folder = Settings::get('file_public_path') . '/libraries';
+  $zip_file = $library_folder . '/colorbox.zip';
+  $colorbox_folder = $library_folder . '/colorbox';
+  if (file_exists($colorbox_folder)) {
+    return;
+  }
+  file_prepare_directory($library_folder, FILE_MODIFY_PERMISSIONS | FILE_CREATE_DIRECTORY);
+  copy('https://github.com/jackmoore/colorbox/archive/master.zip', $zip_file);
+  $zip = new \ZipArchive();
+  $zip->open($zip_file);
+  $zip->extractTo($library_folder);
+  rename($library_folder . '/colorbox-master', $colorbox_folder);
+}

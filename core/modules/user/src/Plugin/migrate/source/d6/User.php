@@ -33,6 +33,14 @@ class User extends DrupalSqlBase {
     // Add roles field.
     $fields['roles'] = $this->t('Roles');
 
+    // Profile fields.
+    if ($this->moduleExists('profile')) {
+      $fields += $this->select('profile_fields', 'pf')
+        ->fields('pf', ['name', 'title'])
+        ->execute()
+        ->fetchAllKeyed();
+    }
+
     return $fields;
   }
 

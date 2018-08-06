@@ -1,0 +1,14 @@
+/**
+ * @file
+ * Terms of service element styles.
+ */
+
+.webform-terms-of-service-details {
+  border: 1px solid #ccc;
+  padding: .5em 1em;
+  margin: .5em 0;
+}
+
+.webform-terms-of-service-details--title {
+  font-weight: bold;
+}

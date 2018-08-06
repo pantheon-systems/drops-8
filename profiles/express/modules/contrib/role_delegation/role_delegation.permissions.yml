@@ -1,0 +1,7 @@
+assign all roles:
+  title: 'Assign all roles'
+  description: 'Access permission for assigning all roles.'
+  restrict access: TRUE
+
+permission_callbacks:
+  - permission_generator.role_delegation::rolePermissions

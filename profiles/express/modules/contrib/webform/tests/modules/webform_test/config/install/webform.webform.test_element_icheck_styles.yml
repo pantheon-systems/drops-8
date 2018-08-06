@@ -1,0 +1,1014 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_icheck_styles
+title: 'Test: Element: iCheck style'
+description: 'Test iCheck style.'
+category: 'Test: Element'
+elements: |
+  minimal:
+    '#type': details
+    '#title': Minimal
+    '#open': true
+    minimal_checkboxes:
+      '#type': checkboxes
+      '#title': 'Minimal checkboxes (minimal)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal
+    minimal_radios:
+      '#type': radios
+      '#title': 'Minimal radios (minimal)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal
+    minimal_grey_checkboxes:
+      '#type': checkboxes
+      '#title': 'Grey checkboxes (minimal-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-grey
+    minimal_grey_radios:
+      '#type': radios
+      '#title': 'Grey radios (minimal-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-grey
+    minimal_yellow_checkboxes:
+      '#type': checkboxes
+      '#title': 'Yellow checkboxes (minimal-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-yellow
+    minimal_yellow_radios:
+      '#type': radios
+      '#title': 'Yellow radios (minimal-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-yellow
+    minimal_orange_checkboxes:
+      '#type': checkboxes
+      '#title': 'Orange checkboxes (minimal-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-orange
+    minimal_orange_radios:
+      '#type': radios
+      '#title': 'Orange radios (minimal-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-orange
+    minimal_red_checkboxes:
+      '#type': checkboxes
+      '#title': 'Red checkboxes (minimal-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-red
+    minimal_red_radios:
+      '#type': radios
+      '#title': 'Red radios (minimal-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-red
+    minimal_pink_checkboxes:
+      '#type': checkboxes
+      '#title': 'Pink checkboxes (minimal-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-pink
+    minimal_pink_radios:
+      '#type': radios
+      '#title': 'Pink radios (minimal-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-pink
+    minimal_purple_checkboxes:
+      '#type': checkboxes
+      '#title': 'Purple checkboxes (minimal-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-purple
+    minimal_purple_radios:
+      '#type': radios
+      '#title': 'Purple radios (minimal-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-purple
+    minimal_blue_checkboxes:
+      '#type': checkboxes
+      '#title': 'Blue checkboxes (minimal-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-blue
+    minimal_blue_radios:
+      '#type': radios
+      '#title': 'Blue radios (minimal-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-blue
+    minimal_green_checkboxes:
+      '#type': checkboxes
+      '#title': 'Green checkboxes (minimal-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-green
+    minimal_green_radios:
+      '#type': radios
+      '#title': 'Green radios (minimal-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-green
+    minimal_aero_checkboxes:
+      '#type': checkboxes
+      '#title': 'Aero checkboxes (minimal-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': minimal-aero
+    minimal_aero_radios:
+      '#type': radios
+      '#title': 'Aero radios (minimal-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': minimal-aero
+  flat:
+    '#type': details
+    '#title': Flat
+    '#open': true
+    flat_checkboxes:
+      '#type': checkboxes
+      '#title': 'Flat checkboxes (flat)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat
+    flat_radios:
+      '#type': radios
+      '#title': 'Flat radios (flat)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat
+    flat_grey_checkboxes:
+      '#type': checkboxes
+      '#title': 'Grey checkboxes (flat-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-grey
+    flat_grey_radios:
+      '#type': radios
+      '#title': 'Grey radios (flat-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-grey
+    flat_yellow_checkboxes:
+      '#type': checkboxes
+      '#title': 'Yellow checkboxes (flat-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-yellow
+    flat_yellow_radios:
+      '#type': radios
+      '#title': 'Yellow radios (flat-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-yellow
+    flat_orange_checkboxes:
+      '#type': checkboxes
+      '#title': 'Orange checkboxes (flat-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-orange
+    flat_orange_radios:
+      '#type': radios
+      '#title': 'Orange radios (flat-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-orange
+    flat_red_checkboxes:
+      '#type': checkboxes
+      '#title': 'Red checkboxes (flat-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-red
+    flat_red_radios:
+      '#type': radios
+      '#title': 'Red radios (flat-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-red
+    flat_pink_checkboxes:
+      '#type': checkboxes
+      '#title': 'Pink checkboxes (flat-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-pink
+    flat_pink_radios:
+      '#type': radios
+      '#title': 'Pink radios (flat-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-pink
+    flat_purple_checkboxes:
+      '#type': checkboxes
+      '#title': 'Purple checkboxes (flat-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-purple
+    flat_purple_radios:
+      '#type': radios
+      '#title': 'Purple radios (flat-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-purple
+    flat_blue_checkboxes:
+      '#type': checkboxes
+      '#title': 'Blue checkboxes (flat-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-blue
+    flat_blue_radios:
+      '#type': radios
+      '#title': 'Blue radios (flat-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-blue
+    flat_green_checkboxes:
+      '#type': checkboxes
+      '#title': 'Green checkboxes (flat-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-green
+    flat_green_radios:
+      '#type': radios
+      '#title': 'Green radios (flat-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-green
+    flat_aero_checkboxes:
+      '#type': checkboxes
+      '#title': 'Aero checkboxes (flat-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': flat-aero
+    flat_aero_radios:
+      '#type': radios
+      '#title': 'Aero radios (flat-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': flat-aero
+  line:
+    '#type': details
+    '#title': Line
+    '#open': true
+    line_checkboxes:
+      '#type': checkboxes
+      '#title': 'Line checkboxes (line)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line
+    line_radios:
+      '#type': radios
+      '#title': 'Line radios (line)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line
+    line_grey_checkboxes:
+      '#type': checkboxes
+      '#title': 'Grey checkboxes (line-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-grey
+    line_grey_radios:
+      '#type': radios
+      '#title': 'Grey radios (line-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-grey
+    line_yellow_checkboxes:
+      '#type': checkboxes
+      '#title': 'Yellow checkboxes (line-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-yellow
+    line_yellow_radios:
+      '#type': radios
+      '#title': 'Yellow radios (line-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-yellow
+    line_orange_checkboxes:
+      '#type': checkboxes
+      '#title': 'Orange checkboxes (line-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-orange
+    line_orange_radios:
+      '#type': radios
+      '#title': 'Orange radios (line-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-orange
+    line_red_checkboxes:
+      '#type': checkboxes
+      '#title': 'Red checkboxes (line-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-red
+    line_red_radios:
+      '#type': radios
+      '#title': 'Red radios (line-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-red
+    line_pink_checkboxes:
+      '#type': checkboxes
+      '#title': 'Pink checkboxes (line-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-pink
+    line_pink_radios:
+      '#type': radios
+      '#title': 'Pink radios (line-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-pink
+    line_purple_checkboxes:
+      '#type': checkboxes
+      '#title': 'Purple checkboxes (line-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-purple
+    line_purple_radios:
+      '#type': radios
+      '#title': 'Purple radios (line-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-purple
+    line_blue_checkboxes:
+      '#type': checkboxes
+      '#title': 'Blue checkboxes (line-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-blue
+    line_blue_radios:
+      '#type': radios
+      '#title': 'Blue radios (line-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-blue
+    line_green_checkboxes:
+      '#type': checkboxes
+      '#title': 'Green checkboxes (line-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-green
+    line_green_radios:
+      '#type': radios
+      '#title': 'Green radios (line-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-green
+    line_aero_checkboxes:
+      '#type': checkboxes
+      '#title': 'Aero checkboxes (line-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': line-aero
+    line_aero_radios:
+      '#type': radios
+      '#title': 'Aero radios (line-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': line-aero
+  square:
+    '#type': details
+    '#title': Square
+    '#open': true
+    square_checkboxes:
+      '#type': checkboxes
+      '#title': 'Square checkboxes (square)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square
+    square_radios:
+      '#type': radios
+      '#title': 'Square radios (square)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square
+    square_grey_checkboxes:
+      '#type': checkboxes
+      '#title': 'Grey checkboxes (square-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-grey
+    square_grey_radios:
+      '#type': radios
+      '#title': 'Grey radios (square-grey)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-grey
+    square_yellow_checkboxes:
+      '#type': checkboxes
+      '#title': 'Yellow checkboxes (square-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-yellow
+    square_yellow_radios:
+      '#type': radios
+      '#title': 'Yellow radios (square-yellow)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-yellow
+    square_orange_checkboxes:
+      '#type': checkboxes
+      '#title': 'Orange checkboxes (square-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-orange
+    square_orange_radios:
+      '#type': radios
+      '#title': 'Orange radios (square-orange)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-orange
+    square_red_checkboxes:
+      '#type': checkboxes
+      '#title': 'Red checkboxes (square-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-red
+    square_red_radios:
+      '#type': radios
+      '#title': 'Red radios (square-red)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-red
+    square_pink_checkboxes:
+      '#type': checkboxes
+      '#title': 'Pink checkboxes (square-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-pink
+    square_pink_radios:
+      '#type': radios
+      '#title': 'Pink radios (square-pink)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-pink
+    square_purple_checkboxes:
+      '#type': checkboxes
+      '#title': 'Purple checkboxes (square-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-purple
+    square_purple_radios:
+      '#type': radios
+      '#title': 'Purple radios (square-purple)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-purple
+    square_blue_checkboxes:
+      '#type': checkboxes
+      '#title': 'Blue checkboxes (square-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-blue
+    square_blue_radios:
+      '#type': radios
+      '#title': 'Blue radios (square-blue)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-blue
+    square_green_checkboxes:
+      '#type': checkboxes
+      '#title': 'Green checkboxes (square-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-green
+    square_green_radios:
+      '#type': radios
+      '#title': 'Green radios (square-green)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-green
+    square_aero_checkboxes:
+      '#type': checkboxes
+      '#title': 'Aero checkboxes (square-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#wrapper_attributes':
+        class: container-inline
+      '#icheck': square-aero
+    square_aero_radios:
+      '#type': radios
+      '#title': 'Aero radios (square-aero)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#default_value': one
+      '#icheck': square-aero
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

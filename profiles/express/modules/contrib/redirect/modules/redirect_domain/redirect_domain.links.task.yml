@@ -1,0 +1,5 @@
+redirect_domain.domain_list:
+  title: 'Domain redirects'
+  base_route: redirect.list
+  route_name: redirect_domain.domain_list
+  weight: 60

@@ -1,0 +1,163 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_form_wizard_access
+title: 'Test: Webform: Wizard access'
+description: 'Test wizard with page specific access rules.'
+category: 'Test: Webform'
+elements: |
+  page_all:
+    '#title': All
+    '#type': webform_wizard_page
+    textfield_all:
+      '#type': textfield
+      '#title': textfield_all
+      '#default_value': '{textfield_all}'
+  page_anonymous:
+    '#type': webform_wizard_page
+    '#title': Anonymous
+    '#access_create_roles':
+      - anonymous
+    '#access_update_roles':
+      - anonymous
+    '#access_view_roles':
+      - anonymous
+    textfield_anonymous:
+      '#type': textfield
+      '#title': textfield_anonymous
+      '#default_value': '{textfield_anonymous}'
+  page_authenticated:
+    '#type': webform_wizard_page
+    '#title': Authenticated
+    '#access_create_roles':
+      - authenticated
+    '#access_update_roles':
+      - authenticated
+    '#access_view_roles':
+      - authenticated
+    textfield_authenticated:
+      '#type': textfield
+      '#title': textfield_authenticated
+      '#default_value': '{textfield_authenticated}'
+  page_private:
+    '#type': webform_wizard_page
+    '#title': Private
+    '#private': true
+    textfield_private:
+      '#type': textfield
+      '#title': textfield_private
+      '#default_value': '{textfield_private}'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

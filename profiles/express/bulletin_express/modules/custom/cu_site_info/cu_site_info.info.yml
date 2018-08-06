@@ -1,0 +1,5 @@
+name: CU Site Information Block
+type: module
+description: Fill in with contact information
+package: CU-Core
+core: 8.x

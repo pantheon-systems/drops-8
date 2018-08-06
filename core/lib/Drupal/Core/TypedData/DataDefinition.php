@@ -273,14 +273,7 @@ class DataDefinition implements DataDefinitionInterface, \ArrayAccess {
   }
 
   /**
-   * Sets an array of validation constraints.
-   *
-   * @param array $constraints
-   *   An array of validation constraint definitions, keyed by constraint name.
-   *   Each constraint definition can be used for instantiating
-   *   \Symfony\Component\Validator\Constraint objects.
-   *
-   * @return $this
+   * {@inheritdoc}
    */
   public function setConstraints(array $constraints) {
     $this->definition['constraints'] = $constraints;

@@ -1,0 +1,20 @@
+views.style.slideshow:
+  type: views_style
+  label: 'Slideshow'
+  mapping:
+    slideshow_skin:
+      type:  string
+      label: 'Skin to apply to the slideshow'
+    slideshow_type:
+      type: string
+      label: 'Main frame plugin to use to render the slideshow'
+    widgets:
+      type: mapping
+      label: 'Control widgets for the slideshow'
+      mapping:
+        top:
+          type: views_slideshow_control_group
+          label: 'Widget configuration for above the slideshow'
+        bottom:
+          type: views_slideshow_control_group
+          label: 'Widget configuration for below the slideshow'

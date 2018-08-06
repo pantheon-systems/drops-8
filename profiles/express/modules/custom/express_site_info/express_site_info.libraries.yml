@@ -1,0 +1,5 @@
+express_site_info_styles:
+  version: 1.0
+  css:
+    theme:
+      express_site_info.css: {}

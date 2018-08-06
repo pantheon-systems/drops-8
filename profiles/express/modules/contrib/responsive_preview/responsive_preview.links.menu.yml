@@ -1,0 +1,6 @@
+entity.responsive_preview_device.collection:
+  title: 'Responsive preview'
+  route_name: entity.responsive_preview_device.collection
+  description: 'Manage Devices used for the responsive preview'
+  parent: system.admin_config_ui
+  weight: 99

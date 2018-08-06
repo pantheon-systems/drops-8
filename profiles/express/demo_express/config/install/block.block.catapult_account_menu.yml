@@ -1,0 +1,26 @@
+uuid: 26069f23-d897-4710-9e3e-b248a4446e16
+langcode: en
+status: false
+dependencies:
+  config:
+    - system.menu.account
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: ALnkWibDXIYxId-O5Y2T9kNabvG1R-S2EOT8ItWmZnU
+id: catapult_account_menu
+theme: catapult
+region: header
+weight: -1
+provider: null
+plugin: 'system_menu_block:account'
+settings:
+  id: 'system_menu_block:account'
+  label: 'User account menu'
+  provider: system
+  label_display: '0'
+  level: 1
+  depth: 1
+visibility: {  }

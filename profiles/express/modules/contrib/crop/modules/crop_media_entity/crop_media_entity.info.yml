@@ -1,0 +1,14 @@
+name: Media entity crop
+description: 'Provides Media entity integration for Crop API.'
+# core: 8.x
+package: Media
+type: module
+dependencies:
+  - crop
+  - media_entity
+
+# Information added by Drupal.org packaging script on 2017-10-26
+version: '8.x-1.3'
+core: '8.x'
+project: 'crop'
+datestamp: 1509015249

@@ -1,0 +1,19 @@
+webform_bootstrap_test_module.styleguide.bootstrap:
+  path: '/admin/structure/webform/styleguide/bootstrap'
+  defaults:
+    _controller: '\Drupal\webform_bootstrap_test_module\Controller\WebformBootstrapTestModuleController::styleguide'
+    _title: 'Style guide'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    _admin_route: FALSE
+
+webform_bootstrap_test_module.styleguide.drupal:
+  path: '/admin/structure/webform/styleguide/drupal'
+  defaults:
+    _controller: 'Drupal\styleguide\Controller\StyleguideController::page'
+    _title: 'Style guide'
+  requirements:
+    _permission: 'view style guides'
+  options:
+    _admin_route: FALSE

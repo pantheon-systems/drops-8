@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow text pause control.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the control.
+ * - start_text: Text to display while playing.
+ * - vss_id: The slideshow's id.
+ *
+ * @see template_preprocess_views_slideshow_controls_text_pause()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<span id="views_slideshow_controls_text_pause_{{ vss_id }}" {{ attributes.addClass(classes) }}>
+  <a href="#">{{ start_text }}</a>
+</span>

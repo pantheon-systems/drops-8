@@ -1,0 +1,21 @@
+administer media:
+  title: 'Administer media'
+  restrict access: TRUE
+administer media bundles:
+  title: 'Administer media bundles'
+  restrict access: TRUE
+access media overview:
+  title: 'Access the Media overview page'
+  description: 'Get an overview of all media items.'
+view media:
+  title: 'View media'
+update media:
+  title: 'Update media'
+update any media:
+  title: 'Update any media'
+delete media:
+  title:  'Delete media'
+delete any media:
+  title:  'Delete any media'
+create media:
+  title: 'Create media'

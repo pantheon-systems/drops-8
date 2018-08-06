@@ -1,0 +1,33 @@
+pathologic.settings:
+  type: config_object
+  mapping:
+    scheme_whitelist:
+      type: sequence
+      label: 'Scheme whitelist'
+      sequence:
+        - type: string
+          label: 'Scheme'
+    protocol_style:
+      type: string
+      label: 'Protocol style'
+    local_paths:
+      type: string
+      label: 'Also considered local'
+
+filter_settings.filter_pathologic:
+  type: filter
+  label: 'Pathologic'
+  mapping:
+    settings_source:
+      type: string
+      label: 'Settings source'
+    local_settings:
+      type: mapping
+      label: 'Local settings'
+      mapping:
+        protocol_style:
+          type: string
+          label: 'Protocol style'
+        local_paths:
+          type: string
+          label: 'Also considered local'

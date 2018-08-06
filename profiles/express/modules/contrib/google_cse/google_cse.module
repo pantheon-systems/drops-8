@@ -1,0 +1,132 @@
+<?php
+
+/**
+ * @file
+ * Display a Google Custom Search Engine (CSE) on your site.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function google_cse_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.google_cse':
+
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Google Custom Search Engine (CSE) is an embedded search engine that can be used to search any set of one or more sites.  No Google API key is required. Read more at <a href="http://www.google.com/cse/." target="blank">http://www.google.com/cse/</a>.') . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<p>' . t('After installing this module, activate Google CSE at <a href="/admin/config/search/pages" target="blank">admin/config/search/pages</a>, optionally setting it as the default search module, and configure it by entering Google\'s unique ID for your CSE.  Once you have granted permission for one or more roles to search  the Google CSE, the search page can be found at search/google, and a separate self-contained search block can also be enabled.') . '</p>';
+      $output .= '<b>' . t('Blocks') . '</b>';
+      $output .= '<p>' . t('The include Google CSE block can optionally be enabled at admin/structure/block.  The "Google CSE" block provides a search box and also displays the search results.  After entering search terms, the user  will be returned to the same page (via GET request) and the results will be displayed.  Do not allow this Google CSE block to appear on the search/google page, as the search results will fail to display.') . '</p>';
+      $output .= '<b>' . t('SiteSearch') . '</b>';
+      $output .= '<p>' . t('In addition to the CSE functionality, SiteSearch on one or more domains or URL paths can optionally be configured.  Radio buttons allow users to search on either the SiteSearch option(s) or the CSE, and searches can default to either option.') . '</p>';
+      $output .= '<b>' . t('Advanced Settings') . '</b>';
+      $output .= '<p>' . t("The collapsed advanced settings on the settings page provide various customizations such as country and language preferences.  For example, with the Locale module enabled, the Google CSE user interface language can be selected dynamically based on the current user's language.") . '</p>';
+
+      return $output;
+  }
+}
+
+/**
+ * Get the relevant language to use for the search.
+ *
+ * @return string
+ *   The language.
+ */
+function google_cse_language() {
+  $config = \Drupal::config('search.page.google_cse_search')->get('configuration');
+  return isset($config['locale_hl']) ? \Drupal::languageManager()->getCurrentLanguage()->getId() : $config['hl'];
+}
+
+/**
+ * Implements hook_proxy_settings_info().
+ */
+function google_cse_proxy_settings_info() {
+  return array(
+    'google_cse_adv' => array(
+      'name' => 'Google Custom Search Engine',
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function google_cse_theme($existing, $type, $theme, $path) {
+  return array(
+    'google_cse_results' => array(
+      'variables' => array('form' => FALSE, 'path' => $path),
+      'file' => 'google_cse.theme.inc',
+      'template' => 'google_cse_results',
+    ),
+    // @TODO confirm the placement of template file.
+    // @see https://www.drupal.org/node/2853472
+    'google_cse_adv_results' => array(
+      'variables' => array('form' => FALSE, 'path' => $path),
+      'file' => 'google_cse.theme.inc',
+      'template' => 'google_cse_adv/templates/google_cse_adv_results',
+    ),
+    // Shows a message when the search does not return any result.
+    'google_cse_search_noresults' => array(
+      'variables' => array(),
+      'function' => 'theme_google_cse_search_noresults',
+    ),
+  );
+}
+
+/**
+ * Implements hook_library_info_build().
+ */
+function google_cse_library_info_build() {
+  $libraries = [];
+  $config = \Drupal::config('search.page.google_cse_search');
+  // Add the custom css.
+  if (Drupal::moduleHandler()->moduleExists('google_cse')) {
+    $libraries['google_cse/googlecseCustomcss'] = [
+      'css' => [
+        'theme' => [
+          $config->get('configuration')['custom_css'] => [
+            'type' => 'external',
+          ],
+        ],
+      ],
+    ];
+  }
+
+  return $libraries;
+}
+
+/**
+ * Adds custom submit handler for search block form.
+ */
+function google_cse_form_search_block_form_alter(&$form, &$form_state, $form_id) {
+  $config = \Drupal::config('search.page.google_cse_search');
+  $activeSearchPages = \Drupal::service('search.search_page_repository')->getActiveSearchPages();
+  if (array_key_exists('google_cse_search', $activeSearchPages)) {
+    \Drupal::service('google_cse.services')->siteSearchForm($form);
+    $form['#attributes']['class'][] = 'google-cse';
+    $form['#attached']['library'] = [
+      'google_cse/googlecseWatermark',
+    ];
+    $form['#attached']['drupalSettings'] = [
+      'googleCSE' => [
+        'cx' => $config->get('configuration')['cx'],
+        'language' => google_cse_language(),
+        'resultsWidth' => intval($config->get('configuration')['results_width']),
+        'domain' => $config->get('configuration')['domain'],
+      ],
+    ];
+  }
+}
+
+/**
+ * Brief message to display when no results match the query.
+ *
+ * @see search_help()
+ */
+function theme_google_cse_search_noresults() {
+  return t(\Drupal::config('search.page.google_cse_search')->get('no_results_message'));
+}

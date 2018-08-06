@@ -1,0 +1,21 @@
+user_external_invite.invite_users:
+  path: '/admin/people/invite/invite'
+  defaults:
+    _controller: '\Drupal\user_external_invite\Controller\UserInviteController::inviteUsers'
+    _title: 'Invite Users'
+  requirements:
+    _permission: 'invite users'
+user_external_invite.manage_invites:
+  path: '/admin/people/invite/operations'
+  defaults:
+    _controller: '\Drupal\user_external_invite\Controller\UserInviteController::manageInvites'
+    _title: 'Manage Invites'
+  requirements:
+    _permission: 'invite users'
+user_external_invite.settings.form:
+  path: '/admin/config/people/invite'
+  defaults:
+    _form: '\Drupal\user_external_invite\Form\InviteSettingsForm'
+    _title: 'User External Invite Settings'
+  requirements:
+    _permission: 'administer users'

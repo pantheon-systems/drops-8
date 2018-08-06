@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a webform base element as html.
+ *
+ * Available variables:
+ * - element: The element.
+ * - title: The label for the element.
+ * - value: The content for the element.
+ * - item: The form item used to display the element.
+ * - options Associative array of options for element.
+ *   - multiline: Flag to determine if value spans multiple lines.
+ *   - email: Flag to determine if element is for an email.
+ */
+#}
+{% if options.email %}
+  {% if title %}<b>{{ title }}</b><br />{% endif %}{{ value }}<br /><br />
+{% else %}
+  {{ item }}
+{% endif %}
+

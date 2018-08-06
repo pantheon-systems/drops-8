@@ -1,0 +1,5 @@
+redirect_404.goto_fix_404:
+  route_name: redirect_404.fix_404
+  title: 'Fix 404 pages with URL redirects'
+  appears_on:
+    - 'dblog.page_not_found'

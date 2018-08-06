@@ -1,0 +1,70 @@
+name: Bulletin Express
+type: profile
+description: 'Express installation profile'
+core: 8.x
+
+# Base profile
+base profile:
+  name: express
+
+# Required modules
+dependencies:
+  # Core required?
+  - automated_cron
+  - block
+  - block_content
+  - breakpoint
+  - ckeditor
+  - color
+  - comment
+  - config
+  - contact
+  - contextual
+  - datetime
+  - dblog
+  - dynamic_page_cache
+  - editor
+  - field
+  - field_ui
+  - file
+  - filter
+  - help
+  - history
+  - image
+  - link
+  - markdown
+  - menu_ui
+  - node
+  - options
+  - page_cache
+  - path
+  - quickedit
+  - rdf
+  - search
+  - shortcut
+  - system
+  - taxonomy
+  - text
+  - toolbar
+  - tour
+  - update
+  - user
+  - views_ui
+  - menu_link_content
+  - views
+  # Express modules
+  - cu_site_info
+  - cu_back_to_top
+  # Contrib modules for Bulletin
+  - webform
+  - webform_node
+  - webform_ui
+  - webform_views
+
+themes:
+  # Admin theme for now
+  - seven
+  # Contrib required
+  - bootstrap
+  # CU-Boulder theme
+  - fiddlers_green

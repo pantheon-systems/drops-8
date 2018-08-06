@@ -1,0 +1,106 @@
+/**
+ * @file
+ * Seven theme styles.
+ */
+
+/* Align all tables cells top */
+table td {
+  vertical-align: top;
+}
+
+/* Add margin around HR tags */
+table hr {
+  margin: .5em 0;
+}
+
+/* Add background to nested details */
+details details {
+  background-color: #f8f8f8;
+}
+
+/* Reduce the width of number inputs */
+input.form-number {
+  width: 6em;
+}
+
+details details details {
+  background-color: #fff;
+}
+
+/* Add yellow background to tooltips and tabs */
+.ui-tooltip.ui-widget {
+  background: #fe6;;
+  border: 1px solid #ed5;
+}
+
+.webform-tabs .ui-tabs-active.ui-state-active {
+  background: #fe6;
+  border: 1px solid #ed5;
+}
+
+/* Accordion icon */
+.ui-accordion-icons .ui-icon {
+  display: inline-block;
+}
+
+/* CodeMirror viewer */
+pre.webform-codemirror-runmode {
+  padding: .5em 1.5em;
+}
+
+/* Hide tabs and elements from printing. */
+@media print {
+  body {
+    padding-top: 0 !important; /* Using !import to ensure that <body style="padding-top: *"> set via the toolbar.module is overridden. */
+  }
+
+  .region.region-highlighted,
+  .shortcut-action,
+  .dropbutton-wrapper,
+  .block-system-breadcrumb-block,
+  .block-local-tasks-block,
+  .pager,
+  .button-action,
+  .webform-submission-navigation,
+  .webform-filter-form {
+    display: none !important; /* Using !important to ensure with these elements are hidden with getting into a specificity war */
+  }
+}
+
+/* System tray divider */
+/* @todo Issue #2862625: Rename offcanvas to two words in code and comments. https://www.drupal.org/node/2862625 */
+.ui-dialog.ui-dialog-offcanvas .ui-resizable-w,
+.ui-dialog.ui-dialog-off-canvas .ui-resizable-w {
+  background-color: #bfbfba;
+  border: 1px solid #6b6b6b;
+  border-width: 1px 2px;
+}
+
+/* System tray title bar */
+.ui-dialog.ui-dialog-offcanvas .ui-dialog-titlebar,
+.ui-dialog.ui-dialog-off-canvas .ui-dialog-titlebar {
+  border-radius: 0;
+}
+
+/* System tray actions */
+.ui-dialog.ui-dialog-offcanvas .ui-dialog-content .form-actions,
+.ui-dialog.ui-dialog-off-canvas .ui-dialog-content .form-actions {
+  margin: 1em 0;
+}
+
+/* jQuery UI button states */
+.webform-buttons .ui-button.ui-state-default {
+  background: #f5f5f2;
+  border: solid 1px #bfbfba;
+}
+
+.webform-buttons .ui-button.ui-state-active {
+  color: #840;
+  background: #fe6;
+  border: solid 1px #ed5;
+}
+
+/* jQuery UI tabs */
+.ui-tabs .ui-tabs-panel {
+  padding: 0;
+}

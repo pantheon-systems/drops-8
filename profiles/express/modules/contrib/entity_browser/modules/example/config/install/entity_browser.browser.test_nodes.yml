@@ -1,0 +1,30 @@
+langcode: und
+status: true
+dependencies:
+  config:
+    - views.view.nodes_entity_browser
+  module:
+    - views
+  enforced:
+    module:
+      - entity_browser_example
+name: test_nodes
+label: 'Test entity browser for nodes'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  8dcc81c7-e24c-4d0b-85a1-bbd03a56dbe3:
+    settings:
+      view: nodes_entity_browser
+      view_display: entity_browser_1
+    uuid: 8dcc81c7-e24c-4d0b-85a1-bbd03a56dbe3
+    weight: 0
+    label: 'Node listing'
+    id: view

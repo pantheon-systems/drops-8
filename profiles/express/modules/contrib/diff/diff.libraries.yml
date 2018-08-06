@@ -1,0 +1,34 @@
+diff.general:
+  version: 1.x
+  css:
+    theme:
+      css/diff.general.css: {}
+  js:
+    js/diff.js: {}
+  dependencies:
+    - core/drupalSettings
+    - core/jquery.once
+
+diff.double_column:
+  version: 1.x
+  css:
+    theme:
+      css/diff.double-column.css: {}
+
+diff.single_column:
+  version: 1.x
+  css:
+    theme:
+      css/diff.single-column.css: {}
+
+diff.colors:
+  version: 1.x
+  css:
+    theme:
+      css/diff.colors.css: {}
+
+diff.visual_inline:
+  version: VERSION
+  css:
+    base:
+      css/diff.visual-inline.css: {}

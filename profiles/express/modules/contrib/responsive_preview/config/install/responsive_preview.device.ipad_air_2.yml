@@ -1,0 +1,10 @@
+id: ipad_air_2
+label: 'iPad Air 2'
+weight: -7
+status: 1
+orientation: portrait
+dimensions:
+  width: 1536
+  height: 2048
+  dppx: !!float 2
+langcode: en

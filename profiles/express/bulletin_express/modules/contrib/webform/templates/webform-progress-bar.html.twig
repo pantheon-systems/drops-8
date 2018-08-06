@@ -1,0 +1,33 @@
+{#
+/**
+ * @file
+ * Default theme implementation from webform wizard progress bar.
+ *
+ * Available variables:
+ * - webform: A webform.
+ * - pages: Associatve array of wizard pages.
+ * - progress: Array of wizard progress containing page titles.
+ * - current_page: Current wizard page key.
+ * - current_index: The current wizard page index.
+ * - max_pages: Maximum number of pages to be displayed.
+ *
+ * @see template_preprocess_webform_progress_bar()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.progress.bar') }}
+
+{% if progress|length < max_pages %}
+<ol class="webform-progress-bar" data-steps="{{ progress|length }}">
+{% for index, title in progress %}{%
+  set classes = [
+    'webform-progress-bar__page',
+    index < current_index ? 'webform-progress-bar__page--done',
+    index == current_index ? 'webform-progress-bar__page--current',
+  ]
+%}<li{{ attributes.setAttribute('class', '').addClass(classes) }}>
+  <b>{{ title }}</b>{% if (loop.first	or loop.last) %}<span></span>{% endif %}
+</li>{% endfor %}
+</ol>
+{% endif %}

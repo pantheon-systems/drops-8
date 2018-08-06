@@ -1,0 +1,17 @@
+/**
+ * @file
+ * Dropbutton styles.
+ *
+ * @see /admin/structure/webform
+ * @see /admin/structure/webform/manage/{webform}/results/submissions
+ * @see /admin/structure/webform/manage/{webform}
+ * @see /admin/structure/webform/manage/{webform}/handlers
+ */
+
+/**
+ * Hide dropbutton to prevent FOUC (flash of unstyled content).
+ */
+.webform-dropbutton .dropbutton-wrapper {
+  visibility: hidden;
+  min-width: 100px;
+}

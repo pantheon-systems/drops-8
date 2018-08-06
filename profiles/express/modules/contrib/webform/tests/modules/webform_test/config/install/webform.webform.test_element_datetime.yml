@@ -1,0 +1,203 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_datetime
+title: 'Test: Element: Date/time'
+description: 'Test date/time element'
+category: 'Test: Element'
+elements: |
+  datetime_default:
+    '#type': datetime
+    '#title': datetime_default
+    '#default_value': '2009-08-18T01:00:00-05:00'
+  datetime_html5_datetime:
+    '#type': datetime
+    '#title': datetime_html5_datetime
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#date_date_element': datetime
+    '#date_time_element': none
+  datetime_html5_datetime_local:
+    '#type': datetime
+    '#title': datetime_html5_datetime_local
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#date_date_element': datetime-local
+    '#date_time_element': none
+  datetime_html5_time:
+    '#type': datetime
+    '#title': datetime_html5_time
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#date_date_element': none
+    '#date_time_element': time
+    '#format': html_time
+  datetime_text_datetime:
+    '#type': datetime
+    '#title': datetime_text_datetime
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#date_date_element': text
+    '#date_time_element': text
+  datetime_year_range:
+    '#type': datetime
+    '#title': datetime_year_range
+    '#descripion': '(-10:+1)'
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#date_year_range': '-10:+1'
+  datetime_min_max:
+    '#type': datetime
+    '#title': datetime_min_max
+    '#description': '(2009-01-01 to 2009-12-31)'
+    '#min': '2009-01-01'
+    '#max': '2009-12-31'
+    '#default_value': '2009-08-18'
+  datetime_datepicker_timepicker:
+    '#type': datetime
+    '#title': datetime_datepicker_timepicker
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#date_date_element': datepicker
+    '#date_date_format': 'D, m/d/Y'
+    '#date_time_element': timepicker
+    '#date_time_format': 'g:i A'
+  datetime_time_min_max:
+    '#type': datetime
+    '#title': datetime_time_min_max
+    '#description': '(2009-01-01 to 2009-12-31 and 09:00:00 to 17:00:00)'
+    '#min': '2009-01-01'
+    '#max': '2009-12-31'
+    '#date_time_min': '09:00:00'
+    '#date_time_max': '17:00:00'
+    '#date_time_step': '1800'
+    '#default_value': '2009-08-18T18:00:00-05:00'
+  datetime_datepicker_timepicker_time_min_max:
+    '#type': datetime
+    '#title': datetime_datepicker_timepicker_time_min_max
+    '#description': '(2009-01-01 to 2009-12-31 and 09:00:00 to 17:00:00)'
+    '#min': '2009-01-01'
+    '#max': '2009-12-31'
+    '#date_time_min': '09:00:00'
+    '#date_time_max': '17:00:00'
+    '#date_time_step': '1800'
+    '#date_date_element': datepicker
+    '#date_date_format': 'D, m/d/Y'
+    '#date_time_element': timepicker
+    '#date_time_format': 'g:i A'
+    '#default_value': '2009-08-18T18:00:00-05:00'
+  datetime_no_seconds:
+    '#type': datetime
+    '#title': datetime_no_seconds
+    '#description': |
+      @see <a href="https://www.drupal.org/node/2917107">Issue #2917107: Date and Time validation problem</a><b r/>
+      @see <a href="https://www.drupal.org/node/2723159">Issue #2723159: Datetime form element cannot validate when using a format without seconds</a><b r/>
+    '#date_date_element': datepicker
+    '#date_time_element': text
+    '#date_time_format': 'H:i'
+    '#date_time_step': '900'
+    '#default_value': '2009-08-18T01:00:00-05:00'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

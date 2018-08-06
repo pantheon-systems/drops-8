@@ -1,0 +1,8 @@
+media_bundle_form:
+  version: VERSION
+  js:
+    'js/media_bundle_form.js': {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupal.form

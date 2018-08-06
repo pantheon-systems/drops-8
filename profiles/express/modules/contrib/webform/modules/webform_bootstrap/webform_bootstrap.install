@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * @file
+ * Installation information for the 'MSK YAML form' module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function webform_bootstrap_install() {
+  // Load webform_bootstrap module after the webform.module.
+  module_set_weight('webform_bootstrap', 1);
+}

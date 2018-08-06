@@ -1,6 +1,6 @@
 {
   "name": "drupal/core-uuid",
-  "description": "UUID generation and validation.",
+  "description": "PHP library for reading PO files.",
   "type": "library",
   "license": "GPL-2.0-or-later",
   "support": {

@@ -1,0 +1,6 @@
+user_external_invite.settings:
+  title: 'User External Invite Settings'
+  description: 'Configure roles to invite and invite message settings.'
+  route_name: user_external_invite.settings.form
+  parent: user.admin_index
+  #weight: 5

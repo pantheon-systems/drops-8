@@ -1,0 +1,13 @@
+name: 'View Unpublished'
+description: 'Select which roles should be able to see unpublished nodes.'
+package: Permissions
+# core: 8.x
+type: module
+dependencies:
+  - node
+
+# Information added by Drupal.org packaging script on 2017-02-12
+version: '8.x-1.0-alpha1+3-dev'
+core: '8.x'
+project: 'view_unpublished'
+datestamp: 1486932786

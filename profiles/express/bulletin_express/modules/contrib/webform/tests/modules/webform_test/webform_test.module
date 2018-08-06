@@ -1,0 +1,262 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform related testing.
+ */
+
+use Drupal\Core\Serialization\Yaml;
+use Drupal\Core\Url;
+
+/******************************************************************************/
+// Generate elements.
+/******************************************************************************/
+
+/**
+ * Implements hook_preprocess_HOOK().
+ */
+function webform_test_preprocess_page(&$variables) {
+  if (!isset($_GET['generate'])
+    && in_array(\Drupal::routeMatch()->getRouteName(), ['entity.webform.canonical', 'entity.webform.edit_form', 'entity.webform.source_form'])
+    && _webform_test_load_include(\Drupal::routeMatch()->getRawParameter('webform'))
+  ) {
+    $t_args = [':href' => Url::fromRouteMatch(\Drupal::routeMatch())->toString() . '?generate'];
+    drupal_set_message(t('The below webform\'s elements are automatically generated and exported. You can regenerate the below elements by appending <a href=":href">?generate</a> to this page\'s URL.', $t_args), 'warning');
+  }
+}
+
+/**
+ * Implements hook_webform_load().
+ */
+function webform_test_webform_load(array $entities) {
+  // If ?generate is passed to the current pages URL the test webform's elements
+  // will get rebuilt.
+  if (!isset($_GET['generate'])) {
+    return;
+  }
+
+  foreach ($entities as $id => $entity) {
+    $name = _webform_test_load_include($id);
+    if ($name) {
+      $function = 'webform_test_' . $name;
+      $elements = $function($entity);
+      $entity->setElements($elements);
+
+      // Issue: Unable to execute Webform::save().
+      // $entity->save();
+      // Workaround: Write the elements directory to webform config.
+      \Drupal::configFactory()->getEditable('webform.webform.' . $id)
+        ->set('elements', Yaml::encode($elements))
+        ->save();
+
+      // Display message.
+      drupal_set_message(t('Generated elements for %title webform', ['%title' => $entity->label()]));
+    }
+  }
+}
+
+/**
+ * Load webform test include file.
+ *
+ * @param string $id
+ *   The webform ID.
+ *
+ * @return string|bool
+ *   The webform test generating name or FALSE if the webform has not test
+ *   include file.
+ */
+function _webform_test_load_include($id) {
+  if (preg_match('/^(test_form_(?:wizard_)?long)_\d+$/', $id, $match)) {
+    $id = $match[1];
+  }
+
+  $include_base_path = drupal_get_path('module', 'webform_test') . '/includes';
+  if (file_exists("$include_base_path/webform_test.$id.inc")) {
+    module_load_include('inc', 'webform_test', 'includes/webform_test.' . $id);
+    return $id;
+  }
+  else {
+    return FALSE;
+  }
+}
+
+/**
+ * Get issues related to elements #states API.
+ *
+ * @return array
+ *   Associative array containing issues related to elements #states API.
+ */
+function _webform_test_issues() {
+  return [
+    'submit' => [
+      '1671190' => 'Use <button /> webform element type instead of <input type="submit" />',
+    ],
+    'datetime' => [
+      '2419131' => '#states attribute does not work on #type datetime',
+    ],
+    'details' => [
+      '2348851' => 'Regression: Allow HTML tags inside detail summary',
+    ],
+    'entity_autocomplete' => [
+      '2826451' => 'TermSelection returning HTML characters in select list',
+    ],
+    'item' => [
+      '783438' => '#states doesn\'t work for #type item',
+    ],
+    'managed_file' => [
+      '2705471' => 'Webform states managed file fields',
+      '2113931' => 'File Field design update',
+    ],
+    'password_confirm' => [
+      '1427838' => 'password and password_confirm children do not pick up #states or #attributes',
+    ],
+    'select' => [
+      '1426646' => '"-Select-" option is lost when webform elements uses \'#states\'',
+      '1149078' => 'States API doesn\'t work with multiple select fields',
+      '2791741' => 'FAPI states: fields aren\'t hidden initially when depending on multi-value selection',
+    ],
+    'radios' => [
+      '2731991' => 'Setting required on radios marks all options required',
+      '994360' => '#states cannot disable/enable radios and checkboxes',
+      '2836364' => 'Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.',
+    ],
+    'checkboxes' => [
+      '994360' => '#states cannot disable/enable radios and checkboxes',
+      '2836364' => 'Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.',
+    ],
+    'text_format' => [
+      '997826' => '#states doesn\'t work correctly with type text_format',
+      '2625128' => 'Text format selection stays visible when using editor and a hidden webform state',
+      '1954968' => 'Required CKEditor fields always fail HTML5 validation',
+    ],
+    'webform_markup' => [
+      '2700667' => 'Notice: Undefined index: #type in drupal_process_states()',
+    ],
+    'webform_message' => [
+      '77245' => 'A place for JavaScript status messages',
+    ],
+    'webform_time' => [
+      '1838234' => 'Add jQuery Timepicker for the Time element of the datetime field',
+    ],
+  ];
+}
+
+/**
+ * Generate an example of a specified element type.
+ *
+ * @param string $type
+ *   An element type.
+ * @param array $options
+ *   Options for generating the example element.
+ *
+ * @return array|bool
+ *   An example element or FALSE if the element type can't have an example.
+ */
+function _webform_test_get_example_element($type, array $options = []) {
+  static $skipped_elements;
+  static $default_elements;
+
+  // Elements to be ignored.
+  if (!isset($skipped_elements)) {
+    $skipped_elements = [
+      'hidden',
+      'table',
+      'webform_element',
+      'webform_flexbox',
+      'webform_test',
+      'webform_wizard_page',
+    ];
+
+    // Some tests don't install the filter.module so we should skip elements
+    // that is depend on the filter.module.
+    if (!\Drupal::moduleHandler()->moduleExists('filter')) {
+      $skipped_elements[] = 'processed_text';
+      $skipped_elements[] = 'text_format';
+    }
+  }
+
+  $options += [
+    'issues' => TRUE,
+  ];
+  // Default element properties.
+  if (!isset($default_elements)) {
+    $yaml = file_get_contents(drupal_get_path('module', 'webform_test') . '/includes/webform_test.example_elements.yml');
+    $default_elements = Yaml::decode($yaml);
+  }
+
+  if (isset($skipped_elements[$type])) {
+    return FALSE;
+  }
+
+  /** @var \Drupal\webform\WebformElementManagerInterface $element_manager */
+  $element_manager = \Drupal::service('plugin.manager.webform.element');
+
+  $webform_element = $element_manager->createInstance($type);
+
+  $element = [
+    '#type' => (string) $webform_element->getTypeName(),
+    '#title' => (string) $webform_element->getPluginLabel(),
+  ];
+
+  // Add known issues to #description.
+  if ($options['issues']) {
+    $issues = _webform_test_issues();
+    if (isset($issues[$type])) {
+      $items = [];
+      foreach ($issues[$type] as $issue_number => $issue_title) {
+        $items[$issue_number] = "<a href=\"https://www.drupal.org/node/$issue_number\">Issue #$issue_number: $issue_title</a>";
+      }
+      $element['#description'] = '<b>' . t('Known Issues:') . '</b><br/>' . implode('<br/>', $items);
+    }
+  }
+
+  // Set default element properties.
+  if (isset($default_elements[$type])) {
+    $element += $default_elements[$type];
+  }
+
+  // Set default container content.
+  if ($webform_element->isContainer($element)) {
+    if (!in_array($type, ['captcha'])) {
+      $element[$type . '_content'] = [
+        '#markup' => 'This is a ' . $webform_element->getPluginLabel() . ' container.',
+      ];
+    }
+  }
+
+  // Add known issues to #description.
+  if (isset($issues[$type])) {
+    $items = [];
+    foreach ($issues[$type] as $issue_number => $issue_title) {
+      $items[$issue_number] = "<a href=\"https://www.drupal.org/node/$issue_number\">Issue #$issue_number: $issue_title</a>";
+    }
+    $element['#description'] = '<b>' . t('Known Issues:') . '</b><br/>' . implode('<br/>', $items);
+  }
+
+  // Set default element properties.
+  if (isset($default_elements[$type])) {
+    $element += $default_elements[$type];
+  }
+
+  // Set default options.
+  if ($webform_element->hasProperty('options')) {
+    $element['#options'] = [
+      'one' => 'One',
+      'two' => 'Two',
+      'three' => 'Three',
+      'four' => 'Four',
+      'five' => 'Five',
+    ];
+  }
+
+  // Set default container content.
+  if ($webform_element->isContainer($element)) {
+    if (!in_array($type, ['captcha'])) {
+      $element[$type . '_content'] = [
+        '#markup' => 'This is a ' . $webform_element->getPluginLabel() . ' container.',
+      ];
+    }
+  }
+
+  return $element;
+}

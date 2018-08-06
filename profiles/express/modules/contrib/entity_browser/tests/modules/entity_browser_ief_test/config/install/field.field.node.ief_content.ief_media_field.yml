@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.ief_media_field
+    - media_entity.bundle.ief_media_bundle
+    - node.type.ief_content
+id: node.ief_content.ief_media_field
+field_name: ief_media_field
+entity_type: node
+bundle: ief_content
+label: Media
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      ief_media_bundle: ief_media_bundle
+    sort:
+      field: _none
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

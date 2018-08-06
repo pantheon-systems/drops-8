@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation of a telephone composite webform element.
+ *
+ * Available variables:
+ * - content: The telephone webform element to be output.
+ * - flexbox: Determines if Flexbox layout should be applied to the composite
+ *   element.
+ *
+ * @see template_preprocess_webform_composite_telephone()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.element.composite') }}
+
+{{ content.type }}
+{{ content.phone }}
+{{ content.ext }}

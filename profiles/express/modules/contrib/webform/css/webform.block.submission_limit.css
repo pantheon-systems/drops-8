@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Submission limit block styles.
+ */
+
+/**
+ * Disable progress bar animation.
+ */
+.block-webform-submission-limit-block .progress__bar {
+  -webkit-animation: none;
+  -moz-animation: none;
+  -webkit-transition: none;
+}

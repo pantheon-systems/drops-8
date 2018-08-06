@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the markdown module.
+ */
+
+/**
+ * Implements hook_requirements().
+ */
+function markdown_requirements($phase) {
+  $requirements = array();
+
+  if ($phase == 'runtime') {
+    $composer_loaded = class_exists('Michelf\MarkdownExtra') || class_exists('League\CommonMark\CommonMarkConverter');
+    if (!$composer_loaded && \Drupal::moduleHandler()->moduleExists('libraries')) {
+      $library = libraries_detect('php-markdown');
+      $error_message = isset($library['error message']) ? $library['error message'] : '';
+
+      if (empty($library['installed'])) {
+        $requirements['php_markdown_lib'] = array(
+          'title' => t('Markdown library'),
+          'severity' => REQUIREMENT_ERROR,
+          'value' => t('Not found'),
+          'description' => t('@error You need to download the <a href=":markdown_link">PHP Markdown Lib</a>, extract the archive and place the directory in the %path directory on your server.', array(
+            '@error' => $error_message,
+            ':markdown_link' => $library['download url'],
+            '%path' => 'libraries',
+          )),
+        );
+      }
+      else {
+        $requirements['php_markdown_lib'] = array(
+          'title' => t('Markdown library'),
+          'severity' => REQUIREMENT_OK,
+          'value' => $library['name'] . ' ' . $library['version'],
+        );
+      }
+    }
+    elseif (!$composer_loaded) {
+      $requirements['php_markdown_lib'] = array(
+        'title' => t('Markdown library'),
+        'severity' => REQUIREMENT_ERROR,
+        'value' => t('Not found'),
+        'description' => t('You need to use composer to install the <a href=":markdown_link">PHP Markdown Lib</a> and/or the <a href=":commonmark_link">CommonMark Lib</a>.', array(
+          ':markdown_link' => 'https://packagist.org/packages/michelf/php-markdown',
+          ':commonmark_link' => 'https://packagist.org/packages/league/commonmark',
+        )),
+      );
+    }
+    else {
+      $requirements['php_markdown_lib'] = array(
+        'title' => t('Markdown library'),
+        'severity' => REQUIREMENT_OK,
+        'value' => t('Library found'),
+      );
+    }
+  }
+
+  return $requirements;
+}

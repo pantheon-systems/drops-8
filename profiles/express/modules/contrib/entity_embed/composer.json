@@ -1,0 +1,11 @@
+{
+  "name": "drupal/entity_embed",
+  "description": "Allows any entity to be embedded within a text area using a WYSIWYG editor.",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/entity_embed",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/entity_embed",
+    "irc": "irc://irc.freenode.org/drupal-media"
+  },
+  "license": "GPL-2.0+"
+}

@@ -1,0 +1,12 @@
+id: node.diff
+label: 'Revision comparison'
+status: false
+cache: true
+targetEntityType: node
+dependencies:
+  module:
+    - node
+  enforced:
+    module:
+      - node
+      - diff

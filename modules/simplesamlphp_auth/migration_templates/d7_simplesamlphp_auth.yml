@@ -1,0 +1,50 @@
+id: d7_simplesamlphp_auth
+label: SimpleSAMLphp Auth settings
+migration_tags:
+  - Drupal 7
+source:
+  plugin: variable
+  constants:
+    activate: false
+  variables:
+    - simplesamlphp_auth_mailattr
+    - simplesamlphp_auth_unique_id
+    - simplesamlphp_auth_user_name
+    - simplesamlphp_auth_authsource
+    - simplesamlphp_auth_rolepopulation
+    - simplesamlphp_auth_roleevaleverytime
+    - simplesamlphp_auth_debug
+    - simplesamlphp_auth_registerusers
+    - simplesamlphp_auth_allowsetdrupalpwd
+    - simplesamlphp_auth_allowdefaultlogin
+    - simplesamlphp_auth_allowdefaultloginroles
+    - simplesamlphp_auth_allowdefaultloginusers
+    - simplesamlphp_auth_login_link_display_name
+    - simplesamlphp_auth_logoutgotourl
+    - simplesamlphp_auth_autoenablesaml
+process:
+  activate: 'constants/activate' # Always migrate "activate" setting to false, to avoid lockouts
+  mail_attr: simplesamlphp_auth_mailattr
+  unique_id: simplesamlphp_auth_unique_id
+  user_name: simplesamlphp_auth_user_name
+  auth_source: simplesamlphp_auth_authsource
+  login_link_display_name: simplesamlphp_auth_login_link_display_name
+  role/population: simplesamlphp_auth_rolepopulation
+  role/eval_every_time: simplesamlphp_auth_roleevaleverytime
+  register_users: simplesamlphp_auth_registerusers
+  allow/set_drupal_pwd: simplesamlphp_auth_allowsetdrupalpwd
+  allow/default_login: simplesamlphp_auth_allowdefaultlogin
+  allow/default_login_roles:
+    plugin: migration
+    migration: d7_user_role
+    source: simplesamlphp_auth_allowdefaultloginroles
+  allow/default_login_users: simplesamlphp_auth_allowdefaultloginusers
+  logout_goto_url: simplesamlphp_auth_logoutgotourl
+  autoenablesaml: simplesamlphp_auth_autoenablesaml
+  debug: simplesamlphp_auth_debug
+destination:
+  plugin: config
+  config_name: simplesamlphp_auth.settings
+migration_dependencies:
+  required:
+    - d7_user_role

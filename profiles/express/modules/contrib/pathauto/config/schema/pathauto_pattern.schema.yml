@@ -1,0 +1,40 @@
+pathauto.pattern.*:
+  type: config_entity
+  label: 'Pathauto pattern config'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    uuid:
+      type: string
+    type:
+      type: string
+      label: 'Pattern type'
+    pattern:
+      type: string
+      label: 'Pattern'
+    selection_criteria:
+      type: sequence
+      label: 'Selection criteria'
+      sequence:
+        type: condition.plugin.[id]
+        label: 'Selection condition'
+    selection_logic:
+      type: string
+      label: 'Selection logic'
+    weight:
+      type: integer
+      label: 'Weight'
+    relationships:
+      type: sequence
+      label: 'Context definitions'
+      sequence:
+        - type: mapping
+          label: 'Relationship'
+          mapping:
+            label:
+              type: label
+              label: 'Label'

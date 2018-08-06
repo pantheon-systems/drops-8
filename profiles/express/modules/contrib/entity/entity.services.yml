@@ -1,0 +1,16 @@
+services:
+  access_checker.entity_revision:
+    class: \Drupal\entity\Access\EntityRevisionRouteAccessChecker
+    arguments: ['@entity_type.manager', '@current_route_match']
+    tags:
+      - { name: access_check, applies_to: _entity_access_revision }
+
+  entity.bundle_plugin_installer:
+    class: Drupal\entity\BundlePlugin\BundlePluginInstaller
+    arguments: ['@entity_type.manager', '@entity_bundle.listener', '@field_storage_definition.listener', '@field_definition.listener']
+
+  entity.bundle_plugin.uninstall_validator:
+    class: \Drupal\entity\BundlePlugin\BundlePluginUninstallValidator
+    tags:
+      - { name: module_install.uninstall_validator }
+    arguments: ['@entity_type.manager', '@string_translation']

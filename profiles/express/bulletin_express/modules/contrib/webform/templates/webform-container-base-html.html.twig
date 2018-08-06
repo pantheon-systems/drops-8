@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a webform base container as html.
+ *
+ * Available variables:
+ * - element: The webform element.
+ * - id: The webform element id.
+ * - title: The label for the container.
+ * - value: The content for the container.
+ * - options Associative array of options for element.
+ *   - email: Flag to determine if element is for an email.
+ */
+#}
+{% if options.email %}
+<h3>{{ title }}</h3>
+{{ value }}
+{% else %}
+<details data-webform-element-id="{{ id }}" open="open">
+<summary role="button" aria-expanded="true" aria-pressed="true">{{ title }}</summary>
+<div class="details-wrapper">{{ value }}</div>
+</details>
+{% endif %}

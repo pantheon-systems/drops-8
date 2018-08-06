@@ -1,0 +1,6 @@
+recaptcha.admin_settings_form:
+  title: 'reCAPTCHA'
+  parent: captcha.settings
+  description: 'Administer the Google No CAPTCHA reCAPTCHA web service.'
+  route_name: recaptcha.admin_settings_form
+  weight: 1

@@ -1,0 +1,10 @@
+{
+  "name": "drupal/redirect",
+  "description": "Allows users to redirect from old URLs to new URLs.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/core": "~8"
+  }
+}

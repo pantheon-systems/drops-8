@@ -1,0 +1,15 @@
+metatag.metatag_tag.thumbnail:
+  type: label
+  label: 'Thumbnail'
+metatag.metatag_tag.department:
+  type: label
+  label: 'Department'
+metatag.metatag_tag.audience:
+  type: label
+  label: 'Content audience'
+metatag.metatag_tag.doc_status:
+  type: label
+  label: 'Document status'
+metatag.metatag_tag.google_rating:
+  type: label
+  label: 'google_rating'

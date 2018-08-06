@@ -1,0 +1,16 @@
+name: 'Webform module translation tests'
+type: module
+description: 'Support module for Webform module translation testing that provides working examples for translating webforms.'
+package: Testing
+# core: 8.x
+dependencies:
+  - 'drupal:config_translation'
+  - 'drupal:language'
+  - 'drupal:locale'
+  - 'drupal:webform'
+
+# Information added by Drupal.org packaging script on 2017-11-03
+version: '8.x-5.0-beta23'
+core: '8.x'
+project: 'webform'
+datestamp: 1509673996

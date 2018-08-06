@@ -1,0 +1,9 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+id: node.inline
+label: Inline
+targetEntityType: node
+cache: true

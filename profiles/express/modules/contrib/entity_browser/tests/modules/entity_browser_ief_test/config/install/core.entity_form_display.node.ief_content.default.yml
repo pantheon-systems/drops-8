@@ -1,0 +1,41 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ief_content.ief_media_field
+    - node.type.ief_content
+  module:
+    - entity_browser_entity_form
+    - inline_entity_form
+id: node.ief_content.default
+targetEntityType: node
+bundle: ief_content
+mode: default
+content:
+  ief_media_field:
+    weight: 31
+    settings:
+      form_mode: default
+      override_labels: true
+      label_singular: 'Test File Media'
+      label_plural: ''
+      allow_new: true
+      allow_existing: true
+      match_operator: CONTAINS
+    third_party_settings:
+      entity_browser_entity_form:
+        entity_browser_id: _none
+    type: inline_entity_form_complex
+  title:
+    type: string_textfield
+    weight: -5
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  path: true
+  promote: true
+  sticky: true
+  uid: true

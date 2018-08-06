@@ -1,0 +1,7 @@
+xmlsitemap_engines.settings:
+  path: '/admin/config/search/xmlsitemap/engines'
+  defaults:
+    _form: '\Drupal\xmlsitemap_engines\Form\XmlSitemapEnginesSettingsForm'
+    _title: 'Search Engines'
+  requirements:
+    _permission: 'administer xmlsitemap'

@@ -1,0 +1,40 @@
+xmlsitemap.add:
+  route_name: 'entity.xmlsitemap.add_form'
+  title: 'Add XmlSitemap'
+  appears_on:
+    - xmlsitemap.admin_search
+    - xmlsitemap.admin_search_list
+
+xmlsitemap.edit:
+  route_name: 'entity.xmlsitemap.edit_form'
+  title: 'Edit XmlSitemap'
+  appears_on:
+    - xmlsitemap.admin_search
+    - xmlsitemap.admin_search_list
+
+xmlsitemap.delete:
+  route_name: 'entity.xmlsitemap.delete_form'
+  title: 'Delete XmlSitemap'
+  appears_on:
+    - xmlsitemap.admin_search
+    - xmlsitemap.admin_search_list
+
+xmlsitemap.admin_search:
+  route_name: xmlsitemap.admin_search
+  base_route: xmlsitemap.admin_search
+  title: 'List'
+
+xmlsitemap.admin_settings:
+  route_name: xmlsitemap.admin_settings
+  base_route: xmlsitemap.admin_search
+  title: 'Settings'
+
+xmlsitemap.admin_rebuild:
+  route_name: xmlsitemap.admin_rebuild
+  base_route: xmlsitemap.admin_search
+  title: 'Rebuild'
+
+xmlsitemap.entities_settings:
+  route_name: xmlsitemap.entities_settings
+  base_route: xmlsitemap.admin_search
+  title: 'Sitemap Entities'

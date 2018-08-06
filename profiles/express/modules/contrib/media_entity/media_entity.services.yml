@@ -1,0 +1,4 @@
+services:
+  plugin.manager.media_entity.type:
+    class: Drupal\media_entity\MediaTypeManager
+    parent: default_plugin_manager

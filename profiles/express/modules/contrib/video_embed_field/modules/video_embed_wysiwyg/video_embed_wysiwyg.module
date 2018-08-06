@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * @file
+ * Module file for video_embed_wysiwyg.
+ */
+
+use Drupal\editor\Entity\Editor;
+use Drupal\Core\Form\FormStateInterface;
+
+// The documentation URL for the WYSIWYG filter.
+define('VIDEO_EMBED_WYSIWYG_DOCUMENTATION_URL', 'https://www.drupal.org/node/2805545');
+
+/**
+ * Implements hook_ckeditor_css_alter().
+ */
+function video_embed_wysiwyg_ckeditor_css_alter(array &$css, Editor $editor) {
+  $css[] = drupal_get_path('module', 'video_embed_wysiwyg') . '/plugin/plugin.css';
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function video_embed_wysiwyg_form_filter_format_form_alter(&$form, $form_state, $form_id) {
+  $form['#validate'][] = 'video_embed_wysiwyg_toolbar_filter_validate';
+  $form['#validate'][] = 'video_embed_wysiwyg_filter_weight_validate';
+}
+
+/**
+ * Validate callback to check if the filter and button are both enabled.
+ */
+function video_embed_wysiwyg_toolbar_filter_validate($form, FormStateInterface $form_state) {
+  $filter_enabled = !empty($form_state->getValue(['filters', 'video_embed_wysiwyg', 'status']));
+  $button_enabled = FALSE;
+  $button_rows = json_decode($form_state->getValue(['editor', 'settings', 'toolbar', 'button_groups']), TRUE);
+  if (!empty($button_rows)) {
+    foreach ($button_rows as $button_row) {
+      foreach ($button_row as $button_group) {
+        foreach ($button_group['items'] as $item) {
+          if ($item === 'video_embed') {
+            $button_enabled = TRUE;
+            break 2;
+          }
+        }
+      }
+    }
+  }
+  // The button and filter can either both be enabled or disabled.
+  if ($filter_enabled !== $button_enabled) {
+    $form_state->setError($form['filters']['status']['video_embed_wysiwyg'], t('To embed videos, make sure you have enabled the "Video Embed WYSIWYG" filter and dragged the video icon into the WYSIWYG toolbar. For more information <a href="@url">read the documentation</a>.', ['@url' => VIDEO_EMBED_WYSIWYG_DOCUMENTATION_URL]));
+  }
+}
+
+/**
+ * Validate the filters are not in an order that will cause conflicts.
+ */
+function video_embed_wysiwyg_filter_weight_validate($form, FormStateInterface $form_state) {
+  // Don't validate if the WYSIWYG filter is not enabled.
+  if (empty($form_state->getValue(['filters', 'video_embed_wysiwyg', 'status']))) {
+    return;
+  }
+
+  $wysiwyg_weight = $form_state->getValue(['filters', 'video_embed_wysiwyg', 'weight']);
+
+  // Check the WYSIWYG filter runs before url filtering.
+  if (!empty($form_state->getValue(['filters', 'filter_url', 'status']))) {
+    $filter_weight = $form_state->getValue(['filters', 'filter_url', 'weight']);
+    if ($wysiwyg_weight > $filter_weight) {
+      $form_state->setError($form['filters']['status']['video_embed_wysiwyg'], t('The "Video Embed WYSIWYG" filter must run before the "Convert URLs into links" filter to function correctly. For more information <a href="@url">read the documentation</a>.', ['@url' => VIDEO_EMBED_WYSIWYG_DOCUMENTATION_URL]));
+    }
+  }
+  // Check the WYSIWYG filter runs after the HTML tag filter.
+  if (!empty($form_state->getValue(['filters', 'filter_html', 'status']))) {
+    $html_filter_weight = $form_state->getValue(['filters', 'filter_html', 'weight']);
+    if ($wysiwyg_weight < $html_filter_weight) {
+      $form_state->setError($form['filters']['status']['video_embed_wysiwyg'], t('The "Video Embed WYSIWYG" filter must run after the "Limit allowed HTML tags" filter to function correctly. For more information <a href="@url">read the documentation</a>.', ['@url' => VIDEO_EMBED_WYSIWYG_DOCUMENTATION_URL]));
+    }
+  }
+}

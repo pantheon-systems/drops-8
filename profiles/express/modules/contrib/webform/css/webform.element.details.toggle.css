@@ -1,0 +1,21 @@
+/**
+ * @file
+ * Element details toggle all styles.
+ *
+ * @see /webform/test_form_details_toggle
+ */
+
+.webform-details-toggle-state-wrapper {
+  text-align: right; /* LTR */
+}
+[dir="rtl"] .webform-details-toggle-state-wrapper {
+  text-align: left;
+}
+
+.webform-details-toggle-state-wrapper {
+  margin-top: 1em;
+}
+
+.webform-details-toggle-state-wrapper + details {
+  margin-top: 0;
+}

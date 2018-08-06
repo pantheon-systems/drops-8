@@ -1,0 +1,336 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element
+title: 'Test: Element'
+description: 'Test instances of common webform elements.'
+category: 'Test: Element'
+elements: |
+  hidden:
+    '#type': hidden
+    '#title': hidden
+    '#value': '{hidden}'
+  value:
+    '#type': value
+    '#title': value
+    '#value': '{value}'
+  markup_elements:
+    '#type': details
+    '#title': 'Markup Elements'
+    '#open': true
+    item:
+      '#type': item
+      '#title': '{item title}'
+      '#description': '{item description}'
+      '#markup': '{item markup}'
+      '#prefix': '{item prefix}'
+      '#suffix': '{item suffix}'
+      '#field_prefix': '{item field_prefix}'
+      '#field_suffix': '{item field_suffix}'
+    markup:
+      '#markup': '<p>{markup}</p>'
+    processed_text:
+      '#format': plain_text
+      '#text': '<p>{processed_text}</p>'
+      '#type': processed_text
+    label:
+      '#type': label
+      '#title': label
+      '#required': true
+    container:
+      '#type': container
+      content:
+        '#markup': '<p>{container}</p>'
+  standard_elements:
+    '#type': details
+    '#title': 'Standard Elements'
+    '#open': true
+    textarea:
+      '#type': textarea
+      '#title': textarea
+      '#default_value': |
+        {textarea line 1}
+        {textarea line 2}
+    textfield:
+      '#type': textfield
+      '#title': textfield
+      '#default_value': '{textfield}'
+    password:
+      '#type': password
+      '#title': password
+      '#default_value': '{password}'
+    select:
+      '#type': select
+      '#title': select
+      '#options':
+        1: one
+        2: two
+        3: three
+      '#default_value': 1
+    select_multiple:
+      '#type': select
+      '#title': select_multiple
+      '#multiple': true
+      '#options':
+        1: one
+        2: two
+        3: three
+      '#default_value':
+        - 1
+        - 2
+    checkbox:
+      '#type': checkbox
+      '#title': checkbox
+      '#default_value': 1
+    checkboxes:
+      '#type': checkboxes
+      '#title': checkboxes
+      '#options':
+        1: one
+        2: two
+        3: three
+      '#default_value':
+        - 1
+        - 2
+    radios:
+      '#type': radios
+      '#title': radios
+      '#options':
+        'Yes': 'Yes'
+        'No': 'No'
+      '#default_value': 'Yes'
+  html5_elements:
+    '#type': details
+    '#title': 'HTML5 Elements'
+    '#open': true
+    email:
+      '#type': email
+      '#title': email
+      '#default_value': example@example.com
+    number:
+      '#type': number
+      '#title': number
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#default_value': 1
+    range:
+      '#type': range
+      '#title': range
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#default_value': 1
+    tel:
+      '#type': tel
+      '#title': tel
+      '#default_value': 999-999-9999
+    url:
+      '#type': url
+      '#title': url
+      '#default_value': 'http://example.com'
+    color:
+      '#type': color
+      '#title': color
+      '#default_value': '#ffffcc'
+    weight:
+      '#type': weight
+      '#title': weight
+      '#default_value': 0
+  date_elements:
+    '#type': details
+    '#title': 'Date Elements'
+    '#open': true
+    date:
+      '#type': date
+      '#title': date
+      '#format': 'l, F j, Y'
+      '#default_value': '2009-08-18'
+    datetime:
+      '#type': datetime
+      '#title': datetime
+      '#format': 'l, F j, Y - g:i A'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+    datelist:
+      '#type': datelist
+      '#title': datelist
+      '#date_part_order':
+        - month
+        - day
+        - year
+        - hour
+        - minute
+        - second
+        - ampm
+      '#format': 'l, F j, Y - g:i A'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+  custom_elements:
+    '#type': details
+    '#title': 'Custom Elements'
+    '#open': true
+    dollars:
+      '#type': number
+      '#title': dollars
+      '#min': 0
+      '#step': 1
+      '#default_value': 100
+      '#field_prefix': $
+      '#field_suffix': '.00'
+  drupal_elements:
+    '#type': details
+    '#title': 'Drupal Elements'
+    '#open': true
+    text_format:
+      '#type': text_format
+      '#title': text_format
+      '#format': full_html
+      '#default_value': '<p>The quick brown fox jumped over the lazy dog.</p>'
+    entity_autocomplete_user:
+      '#type': entity_autocomplete
+      '#title': entity_autocomplete_user
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#default_value': 1
+    entity_autocomplete_users:
+      '#type': entity_autocomplete
+      '#title': entity_autocomplete_users
+      '#tags': true
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#default_value':
+        - 1
+        - 2
+        - 3
+    language_select:
+      '#type': language_select
+      '#title': language_select
+      '#languages': 3
+      '#default_value': en
+    password_confirm:
+      '#type': password_confirm
+      '#title': password_confirm
+      '#default_value': '{default_value}'
+    tableselect:
+      '#type': tableselect
+      '#title': tableselect
+      '#options':
+        1: one
+        2: two
+        3: three
+      '#default_value':
+        - 1
+        - 2
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

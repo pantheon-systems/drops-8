@@ -1,0 +1,6 @@
+langcode: en
+status: false
+dependencies: {  }
+formId: user_pass
+captchaType: default
+label: null

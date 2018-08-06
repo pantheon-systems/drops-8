@@ -1,0 +1,11 @@
+/**
+ * @file
+ * Image file styles.
+ *
+ * @see /webform/test_element_media_file
+ */
+
+img.webform-image-file {
+  max-width: 100%;
+  height: auto;
+}

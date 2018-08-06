@@ -1,0 +1,121 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform Test Bootstrap module.
+ */
+
+use Drupal\Core\Serialization\Yaml;
+
+/**
+ * Implements hook_install().
+ */
+function webform_bootstrap_test_module_install() {
+  // Uninstall bootstrap theme.
+  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
+  $theme_handler = \Drupal::service('theme_handler');
+  $theme_handler->install(['webform_bootstrap_test_theme', 'bootstrap']);
+
+  // Set default theme to bootstrap.
+  \Drupal::configFactory()->getEditable('system.theme')
+    ->set('default', 'webform_bootstrap_test_theme')
+    ->save();
+
+  // Set Bootstrap container and button classes.
+  $container_classes = '
+container-inline clearfix
+form--inline clearfix
+well
+well well-sm
+well well-lg
+alert alert-warning
+alert alert-danger
+alert alert-success
+alert alert-info
+alert-dismissible';
+
+  $element_classes = '
+input-sm
+input-lg';
+
+  $button_classes = '
+btn
+btn btn-default
+btn btn-primary
+btn btn-success
+btn btn-info
+btn btn-warning
+btn btn-danger
+btn btn-link
+btn-xs
+btn-sm
+btn-lg';
+
+  $assets_css = '.tabs--primary /* Add space between tabs and webform. */ {
+  margin-bottom: 25px;
+}
+
+.webform-actions /* Add space between webform and submit buttons (aka actions). */ {
+  margin-top: 25px;
+}
+
+.form-required:after /* Fix required asterix (*) spacing. */ {
+  margin: 0 0 5px 5px;
+}
+
+.alert .btn-primary,
+.alert .btn-primary:hover,
+.alert .btn-success,
+.alert .btn-success:hover,
+.alert .btn-info,
+.alert .btn-info:hover,
+.alert .btn-warning,
+.alert .btn-warning:hover,
+.alert .btn-danger,
+.alert .btn-danger:hover /* Button labels inside alert boxes should be white. */ {
+  color: #fff;
+}';
+
+  \Drupal::configFactory()->getEditable('webform.settings')
+    ->set('settings.form_classes', $container_classes)
+    ->set('settings.button_classes', $button_classes)
+    ->set('settings.confirmation_classes', $container_classes)
+    ->set('settings.confirmation_back_classes', $button_classes)
+    ->set('settings.preview_classes', $container_classes)
+    ->set('element.wrapper_classes', $container_classes)
+    ->set('element.classes', $element_classes)
+    ->set('assets.css', $assets_css)
+    ->save();
+
+  // Set Bootstrap theme settings.
+  \Drupal::configFactory()->getEditable('webform_bootstrap_test_theme.settings')
+    ->set('modal_size', 'modal-lg')
+    ->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_bootstrap_test_module_uninstall() {
+  // Restore default container and button classes.
+  $default_config = Yaml::decode(file_get_contents(drupal_get_path('module', 'webform') . '/config/install/webform.settings.yml'));
+  \Drupal::configFactory()->getEditable('webform.settings')
+    ->set('settings.form_classes', $default_config['settings']['settings']['form_classes'])
+    ->set('settings.button_classes', $default_config['settings']['button_classes'])
+    ->set('settings.confirmation_classes', $default_config['settings']['confirmation_classes'])
+    ->set('settings.confirmation_back_classes', $default_config['settings']['confirmation_back_classes'])
+    ->set('element.wrapper_classes', $default_config['element']['wrapper_classes'])
+    ->set('element.classes', $default_config['element']['classes'])
+    ->set('assets.css', '')
+    ->save();
+
+  // Set default theme to bartik.
+  \Drupal::configFactory()->getEditable('system.theme')
+    ->set('default', 'bartik')
+    ->save();
+
+  // Uninstall bootstrap theme.
+  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
+  $theme_handler = \Drupal::service('theme_handler');
+  $theme_handler->uninstall(['webform_bootstrap_test_theme', 'bootstrap']);
+}

@@ -1,0 +1,6 @@
+services:
+  redirect_domain.request_subscriber:
+    class: Drupal\redirect_domain\EventSubscriber\DomainRedirectRequestSubscriber
+    arguments: ['@config.factory', '@redirect.checker', '@path.matcher']
+    tags:
+      - { name: event_subscriber }

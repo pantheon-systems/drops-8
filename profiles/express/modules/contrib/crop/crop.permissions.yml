@@ -1,0 +1,6 @@
+administer crop:
+  title: 'Administer crop settings'
+  description: 'Administer the basic settings for Crop API.'
+administer crop types:
+  title: 'Administer crop types'
+  description: 'Administer crop types.'

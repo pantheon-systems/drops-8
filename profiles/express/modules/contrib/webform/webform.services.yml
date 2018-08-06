@@ -1,0 +1,130 @@
+services:
+
+  # Plugins.
+
+  plugin.manager.webform.element:
+    class: Drupal\webform\Plugin\WebformElementManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@theme_handler', '@config.factory', '@plugin.manager.element_info']
+
+  plugin.manager.webform.handler:
+    class: Drupal\webform\Plugin\WebformHandlerManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
+
+  plugin.manager.webform.exporter:
+    class: Drupal\webform\Plugin\WebformExporterManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
+
+  # Logger.
+
+  logger.channel.webform:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['webform']
+
+  # Services.
+
+  webform.addons_manager:
+    class: Drupal\webform\WebformAddonsManager
+
+  webform.elements_validator:
+    class: Drupal\webform\WebformEntityElementsValidator
+
+  webform.email_provider:
+    class: Drupal\webform\WebformEmailProvider
+    arguments: ['@config.factory', '@module_handler', '@plugin.manager.mail']
+
+  webform.entity_reference_manager:
+    class: Drupal\webform\WebformEntityReferenceManager
+    arguments: ['@current_route_match', '@current_user', '@user.data']
+
+  webform.help_manager:
+    class: Drupal\webform\WebformHelpManager
+    arguments: ['@current_user', '@config.factory', '@module_handler', '@state', '@path.matcher', '@webform.addons_manager', '@webform.libraries_manager', '@plugin.manager.webform.element']
+
+  webform.libraries_manager:
+    class: Drupal\webform\WebformLibrariesManager
+    arguments: ['@config.factory', '@module_handler', '@renderer']
+
+  webform.message_manager:
+    class: Drupal\webform\WebformMessageManager
+    arguments: ['@current_user', '@config.factory', '@entity_type.manager', '@logger.channel.webform', '@renderer', '@webform.request', '@webform.token_manager']
+
+  webform.translation_manager:
+    class: Drupal\webform\WebformTranslationManager
+    arguments: ['@language_manager', '@config.factory', '@plugin.manager.webform.element']
+
+  webform.request:
+    class: Drupal\webform\WebformRequest
+    arguments: ['@router.route_provider', '@request_stack', '@router.admin_context', '@current_route_match', '@entity_type.manager', '@entity_type.repository', '@webform.entity_reference_manager']
+
+  webform_submission.generate:
+    class: Drupal\webform\WebformSubmissionGenerate
+    arguments: ['@config.factory', '@webform.token_manager', '@plugin.manager.webform.element']
+
+  webform_submission.exporter:
+    class: Drupal\webform\WebformSubmissionExporter
+    arguments: ['@config.factory', '@file_system', '@entity_type.manager', '@stream_wrapper_manager', '@plugin.manager.webform.element', '@plugin.manager.webform.exporter']
+
+  webform.third_party_settings_manager:
+    class: Drupal\webform\WebformThirdPartySettingsManager
+    arguments: ['@config.factory', '@module_handler', '@path.validator', '@webform.addons_manager']
+
+  webform.token_manager:
+    class: Drupal\webform\WebformTokenManager
+    arguments: ['@config.factory', '@module_handler', '@token']
+
+  webform_submission.conditions_validator:
+    class: Drupal\webform\WebformSubmissionConditionsValidator
+    arguments: ['@plugin.manager.webform.element']
+
+  # Breadcrumb builder.
+
+  webform.breadcrumb:
+    class: Drupal\webform\Breadcrumb\WebformBreadcrumbBuilder
+    arguments: ['@module_handler', '@webform.request', '@string_translation']
+    tags:
+      - { name: breadcrumb_builder, priority: 1002 }
+
+  # Event subscriber.
+
+  webform.event_subscriber:
+    class: Drupal\webform\EventSubscriber\WebformSubscriber
+    arguments: ['@current_user', '@config.factory']
+    tags:
+      - { name: event_subscriber }
+
+  # Route subscriber.
+
+  webform.route_subscriber:
+    class: Drupal\webform\Routing\WebformRouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  # Route context.
+
+  webform.webform_route_context:
+    class: Drupal\webform\ContextProvider\WebformRouteContext
+    arguments: ['@current_route_match']
+    tags:
+      - { name: 'context_provider' }
+
+  webform.webform_submission_route_context:
+    class: Drupal\webform\ContextProvider\WebformSubmissionRouteContext
+    arguments: ['@current_route_match']
+    tags:
+      - { name: 'context_provider' }
+
+  # Theme negotiator
+
+  webform.theme_negotiator:
+    class: Drupal\webform\Theme\WebformThemeNegotiator
+    arguments: ['@current_user', '@config.factory']
+    tags:
+      - { name: theme_negotiator, priority: -41 }
+
+  # Twig extension.
+
+  webform.twig_extension:
+    class: Drupal\webform\Twig\TwigExtension
+    tags:
+      - { name: twig.extension }

@@ -1,0 +1,20 @@
+services:
+  simplesamlphp_auth.manager:
+    class: Drupal\simplesamlphp_auth\Service\SimplesamlphpAuthManager
+    arguments: ['@config.factory']
+  simplesamlphp_auth.drupalauth:
+    class: Drupal\simplesamlphp_auth\Service\SimplesamlphpDrupalAuth
+    arguments: ['@simplesamlphp_auth.manager', '@config.factory', '@entity_type.manager', '@logger.channel.simplesamlphp_auth', '@externalauth.externalauth', '@current_user']
+  simplesamlphp_auth_event_subscriber:
+    class: Drupal\simplesamlphp_auth\EventSubscriber\SimplesamlSubscriber
+    arguments: ['@simplesamlphp_auth.manager', '@current_user', '@config.factory', '@logger.channel.simplesamlphp_auth']
+    tags:
+      - {name: event_subscriber}
+  simplesamlphp_auth_externalauth_event_subscriber:
+    class: Drupal\simplesamlphp_auth\EventSubscriber\SimplesamlExternalauthSubscriber
+    arguments: ['@simplesamlphp_auth.manager', '@simplesamlphp_auth.drupalauth', '@config.factory', '@logger.channel.simplesamlphp_auth']
+    tags:
+      - {name: event_subscriber}
+  logger.channel.simplesamlphp_auth:
+    parent: logger.channel_base
+    arguments: ['simplesamlphp_auth']

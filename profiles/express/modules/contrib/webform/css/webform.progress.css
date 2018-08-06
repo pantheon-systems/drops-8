@@ -1,0 +1,10 @@
+/**
+ * @file
+ * Wizard progress (numbering) styles.
+ *
+ * @see /webform/test_form_wizard_advanced
+ */
+
+.webform-progress__status {
+  text-align: center;
+}

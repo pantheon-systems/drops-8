@@ -1,0 +1,1740 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_format_multiple
+title: 'Test: Element: Format multiple values'
+description: 'Test element formatting with multiple value.'
+category: 'Test: Element'
+elements: |
+  basic_elements:
+    '#type': details
+    '#title': 'Basic elements'
+    '#open': true
+    textarea:
+      '#type': details
+      '#title': Textarea
+      textarea_comma:
+        '#type': textarea
+        '#title': 'Textarea (Comma)'
+        '#rows': 2
+        '#multiple': true
+        '#default_value':
+          - 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.'
+          - 'Huius, Lyco, oratione locuples, rebus ipsis ielunior. Duo Reges: constructio interrete. Sed haec in pueris; Sed utrum hortandus es nobis, Luci, inquit, an etiam tua sponte propensus es? Sapiens autem semper beatus est et est aliquando in dolore; Immo videri fortasse. Paulum, cum regem Persem captum adduceret, eodem flumine invectio? Et ille ridens: Video, inquit, quid agas;'
+          - 'Quae cum dixisset, finem ille. Quamquam non negatis nos intellegere quid sit voluptas, sed quid ille dicat. Progredientibus autem aetatibus sensim tardeve potius quasi nosmet ipsos cognoscimus. Gloriosa ostentatio in constituendo summo bono. Qui-vere falsone, quaerere mittimus-dicitur oculis se privasse; Duarum enim vitarum nobis erunt instituta capienda. Comprehensum, quod cognitum non habet? Qui enim existimabit posse se miserum esse beatus non erit. Causa autem fuit huc veniendi ut quosdam hinc libros promerem. Nunc omni virtuti vitium contrario nomine opponitur.'
+        '#format_items': comma
+      textarea_semicolon:
+        '#type': textarea
+        '#title': 'Textarea (Semicolon)'
+        '#rows': 2
+        '#multiple': true
+        '#default_value':
+          - 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.'
+          - 'Huius, Lyco, oratione locuples, rebus ipsis ielunior. Duo Reges: constructio interrete. Sed haec in pueris; Sed utrum hortandus es nobis, Luci, inquit, an etiam tua sponte propensus es? Sapiens autem semper beatus est et est aliquando in dolore; Immo videri fortasse. Paulum, cum regem Persem captum adduceret, eodem flumine invectio? Et ille ridens: Video, inquit, quid agas;'
+          - 'Quae cum dixisset, finem ille. Quamquam non negatis nos intellegere quid sit voluptas, sed quid ille dicat. Progredientibus autem aetatibus sensim tardeve potius quasi nosmet ipsos cognoscimus. Gloriosa ostentatio in constituendo summo bono. Qui-vere falsone, quaerere mittimus-dicitur oculis se privasse; Duarum enim vitarum nobis erunt instituta capienda. Comprehensum, quod cognitum non habet? Qui enim existimabit posse se miserum esse beatus non erit. Causa autem fuit huc veniendi ut quosdam hinc libros promerem. Nunc omni virtuti vitium contrario nomine opponitur.'
+        '#format_items': semicolon
+      textarea_and:
+        '#type': textarea
+        '#title': 'Textarea (And)'
+        '#rows': 2
+        '#multiple': true
+        '#default_value':
+          - 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.'
+          - 'Huius, Lyco, oratione locuples, rebus ipsis ielunior. Duo Reges: constructio interrete. Sed haec in pueris; Sed utrum hortandus es nobis, Luci, inquit, an etiam tua sponte propensus es? Sapiens autem semper beatus est et est aliquando in dolore; Immo videri fortasse. Paulum, cum regem Persem captum adduceret, eodem flumine invectio? Et ille ridens: Video, inquit, quid agas;'
+          - 'Quae cum dixisset, finem ille. Quamquam non negatis nos intellegere quid sit voluptas, sed quid ille dicat. Progredientibus autem aetatibus sensim tardeve potius quasi nosmet ipsos cognoscimus. Gloriosa ostentatio in constituendo summo bono. Qui-vere falsone, quaerere mittimus-dicitur oculis se privasse; Duarum enim vitarum nobis erunt instituta capienda. Comprehensum, quod cognitum non habet? Qui enim existimabit posse se miserum esse beatus non erit. Causa autem fuit huc veniendi ut quosdam hinc libros promerem. Nunc omni virtuti vitium contrario nomine opponitur.'
+        '#format_items': and
+      textarea_ol:
+        '#type': textarea
+        '#title': 'Textarea (Ordered list)'
+        '#rows': 2
+        '#multiple': true
+        '#default_value':
+          - 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.'
+          - 'Huius, Lyco, oratione locuples, rebus ipsis ielunior. Duo Reges: constructio interrete. Sed haec in pueris; Sed utrum hortandus es nobis, Luci, inquit, an etiam tua sponte propensus es? Sapiens autem semper beatus est et est aliquando in dolore; Immo videri fortasse. Paulum, cum regem Persem captum adduceret, eodem flumine invectio? Et ille ridens: Video, inquit, quid agas;'
+          - 'Quae cum dixisset, finem ille. Quamquam non negatis nos intellegere quid sit voluptas, sed quid ille dicat. Progredientibus autem aetatibus sensim tardeve potius quasi nosmet ipsos cognoscimus. Gloriosa ostentatio in constituendo summo bono. Qui-vere falsone, quaerere mittimus-dicitur oculis se privasse; Duarum enim vitarum nobis erunt instituta capienda. Comprehensum, quod cognitum non habet? Qui enim existimabit posse se miserum esse beatus non erit. Causa autem fuit huc veniendi ut quosdam hinc libros promerem. Nunc omni virtuti vitium contrario nomine opponitur.'
+        '#format_items': ol
+      textarea_ul:
+        '#type': textarea
+        '#title': 'Textarea (Unordered list)'
+        '#rows': 2
+        '#multiple': true
+        '#default_value':
+          - 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.'
+          - 'Huius, Lyco, oratione locuples, rebus ipsis ielunior. Duo Reges: constructio interrete. Sed haec in pueris; Sed utrum hortandus es nobis, Luci, inquit, an etiam tua sponte propensus es? Sapiens autem semper beatus est et est aliquando in dolore; Immo videri fortasse. Paulum, cum regem Persem captum adduceret, eodem flumine invectio? Et ille ridens: Video, inquit, quid agas;'
+          - 'Quae cum dixisset, finem ille. Quamquam non negatis nos intellegere quid sit voluptas, sed quid ille dicat. Progredientibus autem aetatibus sensim tardeve potius quasi nosmet ipsos cognoscimus. Gloriosa ostentatio in constituendo summo bono. Qui-vere falsone, quaerere mittimus-dicitur oculis se privasse; Duarum enim vitarum nobis erunt instituta capienda. Comprehensum, quod cognitum non habet? Qui enim existimabit posse se miserum esse beatus non erit. Causa autem fuit huc veniendi ut quosdam hinc libros promerem. Nunc omni virtuti vitium contrario nomine opponitur.'
+        '#format_items': ul
+    textfield:
+      '#type': details
+      '#title': 'Text field'
+      textfield_comma:
+        '#type': textfield
+        '#title': 'Text field (Comma)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': comma
+      textfield_semicolon:
+        '#type': textfield
+        '#title': 'Text field (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': semicolon
+      textfield_and:
+        '#type': textfield
+        '#title': 'Text field (And)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': and
+      textfield_ol:
+        '#type': textfield
+        '#title': 'Text field (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': ol
+      textfield_ul:
+        '#type': textfield
+        '#title': 'Text field (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': ul
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements'
+    '#open': true
+    webform_autocomplete:
+      '#type': details
+      '#title': Autocomplete
+      webform_autocomplete_comma:
+        '#type': webform_autocomplete
+        '#title': 'Autocomplete (Comma)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': comma
+      webform_autocomplete_semicolon:
+        '#type': webform_autocomplete
+        '#title': 'Autocomplete (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': semicolon
+      webform_autocomplete_and:
+        '#type': webform_autocomplete
+        '#title': 'Autocomplete (And)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': and
+      webform_autocomplete_ol:
+        '#type': webform_autocomplete
+        '#title': 'Autocomplete (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': ol
+      webform_autocomplete_ul:
+        '#type': webform_autocomplete
+        '#title': 'Autocomplete (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': ul
+    email:
+      '#type': details
+      '#title': Email
+      email_comma:
+        '#type': email
+        '#title': 'Email (Comma)'
+        '#multiple': true
+        '#default_value':
+          - example@example.com
+          - test@test.com
+          - random@random.com
+        '#format_items': comma
+      email_semicolon:
+        '#type': email
+        '#title': 'Email (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - example@example.com
+          - test@test.com
+          - random@random.com
+        '#format_items': semicolon
+      email_and:
+        '#type': email
+        '#title': 'Email (And)'
+        '#multiple': true
+        '#default_value':
+          - example@example.com
+          - test@test.com
+          - random@random.com
+        '#format_items': and
+      email_ol:
+        '#type': email
+        '#title': 'Email (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - example@example.com
+          - test@test.com
+          - random@random.com
+        '#format_items': ol
+      email_ul:
+        '#type': email
+        '#title': 'Email (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - example@example.com
+          - test@test.com
+          - random@random.com
+        '#format_items': ul
+    number:
+      '#type': details
+      '#title': Number
+      number_comma:
+        '#type': number
+        '#title': 'Number (Comma)'
+        '#min': 0
+        '#max': 10
+        '#step': 1
+        '#multiple': true
+        '#default_value':
+          - 0
+          - !!float 5
+          - 10
+        '#format_items': comma
+      number_semicolon:
+        '#type': number
+        '#title': 'Number (Semicolon)'
+        '#min': 0
+        '#max': 10
+        '#step': 1
+        '#multiple': true
+        '#default_value':
+          - 0
+          - !!float 5
+          - 10
+        '#format_items': semicolon
+      number_and:
+        '#type': number
+        '#title': 'Number (And)'
+        '#min': 0
+        '#max': 10
+        '#step': 1
+        '#multiple': true
+        '#default_value':
+          - 0
+          - !!float 5
+          - 10
+        '#format_items': and
+      number_ol:
+        '#type': number
+        '#title': 'Number (Ordered list)'
+        '#min': 0
+        '#max': 10
+        '#step': 1
+        '#multiple': true
+        '#default_value':
+          - 0
+          - !!float 5
+          - 10
+        '#format_items': ol
+      number_ul:
+        '#type': number
+        '#title': 'Number (Unordered list)'
+        '#min': 0
+        '#max': 10
+        '#step': 1
+        '#multiple': true
+        '#default_value':
+          - 0
+          - !!float 5
+          - 10
+        '#format_items': ul
+    tel:
+      '#type': details
+      '#title': Telephone
+      tel_comma:
+        '#type': tel
+        '#title': 'Telephone (Comma)'
+        '#international': true
+        '#multiple': true
+        '#default_value':
+          - '+1 212-333-4444'
+          - '+1 718-555-6666'
+        '#format_items': comma
+      tel_semicolon:
+        '#type': tel
+        '#title': 'Telephone (Semicolon)'
+        '#international': true
+        '#multiple': true
+        '#default_value':
+          - '+1 212-333-4444'
+          - '+1 718-555-6666'
+        '#format_items': semicolon
+      tel_and:
+        '#type': tel
+        '#title': 'Telephone (And)'
+        '#international': true
+        '#multiple': true
+        '#default_value':
+          - '+1 212-333-4444'
+          - '+1 718-555-6666'
+        '#format_items': and
+      tel_ol:
+        '#type': tel
+        '#title': 'Telephone (Ordered list)'
+        '#international': true
+        '#multiple': true
+        '#default_value':
+          - '+1 212-333-4444'
+          - '+1 718-555-6666'
+        '#format_items': ol
+      tel_ul:
+        '#type': tel
+        '#title': 'Telephone (Unordered list)'
+        '#international': true
+        '#multiple': true
+        '#default_value':
+          - '+1 212-333-4444'
+          - '+1 718-555-6666'
+        '#format_items': ul
+    url:
+      '#type': details
+      '#title': URL
+      url_comma:
+        '#type': url
+        '#title': 'URL (Comma)'
+        '#multiple': true
+        '#default_value':
+          - 'http://example.com'
+          - 'http://test.com'
+        '#format_items': comma
+      url_semicolon:
+        '#type': url
+        '#title': 'URL (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - 'http://example.com'
+          - 'http://test.com'
+        '#format_items': semicolon
+      url_and:
+        '#type': url
+        '#title': 'URL (And)'
+        '#multiple': true
+        '#default_value':
+          - 'http://example.com'
+          - 'http://test.com'
+        '#format_items': and
+      url_ol:
+        '#type': url
+        '#title': 'URL (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - 'http://example.com'
+          - 'http://test.com'
+        '#format_items': ol
+      url_ul:
+        '#type': url
+        '#title': 'URL (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - 'http://example.com'
+          - 'http://test.com'
+        '#format_items': ul
+  options_elements:
+    '#type': details
+    '#title': 'Options elements'
+    '#open': true
+    checkboxes:
+      '#type': details
+      '#title': Checkboxes
+      checkboxes_comma:
+        '#type': checkboxes
+        '#title': 'Checkboxes (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      checkboxes_semicolon:
+        '#type': checkboxes
+        '#title': 'Checkboxes (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      checkboxes_and:
+        '#type': checkboxes
+        '#title': 'Checkboxes (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      checkboxes_ol:
+        '#type': checkboxes
+        '#title': 'Checkboxes (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      checkboxes_ul:
+        '#type': checkboxes
+        '#title': 'Checkboxes (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    webform_checkboxes_other:
+      '#type': details
+      '#title': 'Checkboxes other'
+      webform_checkboxes_other_comma:
+        '#type': webform_checkboxes_other
+        '#title': 'Checkboxes other (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      webform_checkboxes_other_semicolon:
+        '#type': webform_checkboxes_other
+        '#title': 'Checkboxes other (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      webform_checkboxes_other_and:
+        '#type': webform_checkboxes_other
+        '#title': 'Checkboxes other (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      webform_checkboxes_other_ol:
+        '#type': webform_checkboxes_other
+        '#title': 'Checkboxes other (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      webform_checkboxes_other_ul:
+        '#type': webform_checkboxes_other
+        '#title': 'Checkboxes other (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#options_display': side_by_side
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    webform_image_select:
+      '#type': details
+      '#title': 'Image select'
+      webform_image_select_comma:
+        '#type': webform_image_select
+        '#title': 'Image select (Comma)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': comma
+      webform_image_select_semicolon:
+        '#type': webform_image_select
+        '#title': 'Image select (Semicolon)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': semicolon
+      webform_image_select_and:
+        '#type': webform_image_select
+        '#title': 'Image select (And)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': and
+      webform_image_select_ol:
+        '#type': webform_image_select
+        '#title': 'Image select (Ordered list)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': ol
+      webform_image_select_ul:
+        '#type': webform_image_select
+        '#title': 'Image select (Unordered list)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': ul
+      webform_image_select_br:
+        '#type': webform_image_select
+        '#title': 'Image select (Break)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': br
+      webform_image_select_space:
+        '#type': webform_image_select
+        '#title': 'Image select (Space)'
+        '#show_label': true
+        '#images':
+          bear_1:
+            text: 'Bear 1'
+            src: 'https://www.placebear.com/80/100'
+          bear_2:
+            text: 'Bear 2'
+            src: 'https://www.placebear.com/100/100'
+          bear_3:
+            text: 'Bear 3'
+            src: 'https://www.placebear.com/120/100'
+        '#multiple': true
+        '#default_value':
+          - Loremipsum
+          - Oratione
+          - Dixisset
+        '#format_items': space
+    select:
+      '#type': details
+      '#title': Select
+      select_comma:
+        '#type': select
+        '#title': 'Select (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      select_semicolon:
+        '#type': select
+        '#title': 'Select (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      select_and:
+        '#type': select
+        '#title': 'Select (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      select_ol:
+        '#type': select
+        '#title': 'Select (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      select_ul:
+        '#type': select
+        '#title': 'Select (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    webform_select_other:
+      '#type': details
+      '#title': 'Select other'
+      webform_select_other_comma:
+        '#type': webform_select_other
+        '#title': 'Select other (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      webform_select_other_semicolon:
+        '#type': webform_select_other
+        '#title': 'Select other (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      webform_select_other_and:
+        '#type': webform_select_other
+        '#title': 'Select other (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      webform_select_other_ol:
+        '#type': webform_select_other
+        '#title': 'Select other (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      webform_select_other_ul:
+        '#type': webform_select_other
+        '#title': 'Select other (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    tableselect:
+      '#type': details
+      '#title': 'Table select'
+      tableselect_comma:
+        '#type': tableselect
+        '#title': 'Table select (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      tableselect_semicolon:
+        '#type': tableselect
+        '#title': 'Table select (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      tableselect_and:
+        '#type': tableselect
+        '#title': 'Table select (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      tableselect_ol:
+        '#type': tableselect
+        '#title': 'Table select (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      tableselect_ul:
+        '#type': tableselect
+        '#title': 'Table select (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    webform_tableselect_sort:
+      '#type': details
+      '#title': 'Tableselect sort'
+      webform_tableselect_sort_comma:
+        '#type': webform_tableselect_sort
+        '#title': 'Tableselect sort (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      webform_tableselect_sort_semicolon:
+        '#type': webform_tableselect_sort
+        '#title': 'Tableselect sort (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      webform_tableselect_sort_and:
+        '#type': webform_tableselect_sort
+        '#title': 'Tableselect sort (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      webform_tableselect_sort_ol:
+        '#type': webform_tableselect_sort
+        '#title': 'Tableselect sort (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      webform_tableselect_sort_ul:
+        '#type': webform_tableselect_sort
+        '#title': 'Tableselect sort (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#multiple': true
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    webform_table_sort:
+      '#type': details
+      '#title': 'Table sort'
+      webform_table_sort_comma:
+        '#type': webform_table_sort
+        '#title': 'Table sort (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      webform_table_sort_semicolon:
+        '#type': webform_table_sort
+        '#title': 'Table sort (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      webform_table_sort_and:
+        '#type': webform_table_sort
+        '#title': 'Table sort (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      webform_table_sort_ol:
+        '#type': webform_table_sort
+        '#title': 'Table sort (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      webform_table_sort_ul:
+        '#type': webform_table_sort
+        '#title': 'Table sort (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+    webform_toggles:
+      '#type': details
+      '#title': Toggles
+      webform_toggles_comma:
+        '#type': webform_toggles
+        '#title': 'Toggles (Comma)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': comma
+      webform_toggles_semicolon:
+        '#type': webform_toggles
+        '#title': 'Toggles (Semicolon)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': semicolon
+      webform_toggles_and:
+        '#type': webform_toggles
+        '#title': 'Toggles (And)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': and
+      webform_toggles_ol:
+        '#type': webform_toggles
+        '#title': 'Toggles (Ordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ol
+      webform_toggles_ul:
+        '#type': webform_toggles
+        '#title': 'Toggles (Unordered list)'
+        '#options':
+          one: One
+          two: Two
+          three: Three
+        '#default_value':
+          - one
+          - two
+          - three
+        '#format_items': ul
+  date_time_elements:
+    '#type': details
+    '#title': 'Date/time elements'
+    '#open': true
+    date:
+      '#type': details
+      '#title': Date
+      date_comma:
+        '#type': date
+        '#title': 'Date (Comma)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': comma
+      date_semicolon:
+        '#type': date
+        '#title': 'Date (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': semicolon
+      date_and:
+        '#type': date
+        '#title': 'Date (And)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': and
+      date_ol:
+        '#type': date
+        '#title': 'Date (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': ol
+      date_ul:
+        '#type': date
+        '#title': 'Date (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': ul
+    datetime:
+      '#type': details
+      '#title': Date/time
+      datetime_comma:
+        '#type': datetime
+        '#title': 'Date/time (Comma)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': comma
+      datetime_semicolon:
+        '#type': datetime
+        '#title': 'Date/time (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': semicolon
+      datetime_and:
+        '#type': datetime
+        '#title': 'Date/time (And)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': and
+      datetime_ol:
+        '#type': datetime
+        '#title': 'Date/time (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': ol
+      datetime_ul:
+        '#type': datetime
+        '#title': 'Date/time (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': ul
+    datelist:
+      '#type': details
+      '#title': 'Date list'
+      datelist_comma:
+        '#type': datelist
+        '#title': 'Date list (Comma)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': comma
+      datelist_semicolon:
+        '#type': datelist
+        '#title': 'Date list (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': semicolon
+      datelist_and:
+        '#type': datelist
+        '#title': 'Date list (And)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': and
+      datelist_ol:
+        '#type': datelist
+        '#title': 'Date list (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': ol
+      datelist_ul:
+        '#type': datelist
+        '#title': 'Date list (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - '1942-06-18'
+          - '1940-07-07'
+          - '1943-02-25'
+        '#format_items': ul
+    webform_time:
+      '#type': details
+      '#title': Time
+      webform_time_comma:
+        '#type': webform_time
+        '#title': 'Time (Comma)'
+        '#multiple': true
+        '#default_value':
+          - '09:00'
+          - '17:00'
+        '#format_items': comma
+      webform_time_semicolon:
+        '#type': webform_time
+        '#title': 'Time (Semicolon)'
+        '#multiple': true
+        '#default_value':
+          - '09:00'
+          - '17:00'
+        '#format_items': semicolon
+      webform_time_and:
+        '#type': webform_time
+        '#title': 'Time (And)'
+        '#multiple': true
+        '#default_value':
+          - '09:00'
+          - '17:00'
+        '#format_items': and
+      webform_time_ol:
+        '#type': webform_time
+        '#title': 'Time (Ordered list)'
+        '#multiple': true
+        '#default_value':
+          - '09:00'
+          - '17:00'
+        '#format_items': ol
+      webform_time_ul:
+        '#type': webform_time
+        '#title': 'Time (Unordered list)'
+        '#multiple': true
+        '#default_value':
+          - '09:00'
+          - '17:00'
+        '#format_items': ul
+  entity_reference_elements:
+    '#type': details
+    '#title': 'Entity reference elements'
+    '#open': true
+    entity_autocomplete:
+      '#type': details
+      '#title': 'Entity autocomplete'
+      entity_autocomplete_comma:
+        '#type': entity_autocomplete
+        '#title': 'Entity autocomplete (Comma)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': comma
+      entity_autocomplete_semicolon:
+        '#type': entity_autocomplete
+        '#title': 'Entity autocomplete (Semicolon)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': semicolon
+      entity_autocomplete_and:
+        '#type': entity_autocomplete
+        '#title': 'Entity autocomplete (And)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': and
+      entity_autocomplete_ol:
+        '#type': entity_autocomplete
+        '#title': 'Entity autocomplete (Ordered list)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': ol
+      entity_autocomplete_ul:
+        '#type': entity_autocomplete
+        '#title': 'Entity autocomplete (Unordered list)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': ul
+    webform_entity_checkboxes:
+      '#type': details
+      '#title': 'Entity checkboxes'
+      webform_entity_checkboxes_comma:
+        '#type': webform_entity_checkboxes
+        '#title': 'Entity checkboxes (Comma)'
+        '#options_display': side_by_side
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': comma
+      webform_entity_checkboxes_semicolon:
+        '#type': webform_entity_checkboxes
+        '#title': 'Entity checkboxes (Semicolon)'
+        '#options_display': side_by_side
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': semicolon
+      webform_entity_checkboxes_and:
+        '#type': webform_entity_checkboxes
+        '#title': 'Entity checkboxes (And)'
+        '#options_display': side_by_side
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': and
+      webform_entity_checkboxes_ol:
+        '#type': webform_entity_checkboxes
+        '#title': 'Entity checkboxes (Ordered list)'
+        '#options_display': side_by_side
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': ol
+      webform_entity_checkboxes_ul:
+        '#type': webform_entity_checkboxes
+        '#title': 'Entity checkboxes (Unordered list)'
+        '#options_display': side_by_side
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': ul
+    webform_entity_select:
+      '#type': details
+      '#title': 'Entity select'
+      webform_entity_select_comma:
+        '#type': webform_entity_select
+        '#title': 'Entity select (Comma)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': comma
+      webform_entity_select_semicolon:
+        '#type': webform_entity_select
+        '#title': 'Entity select (Semicolon)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': semicolon
+      webform_entity_select_and:
+        '#type': webform_entity_select
+        '#title': 'Entity select (And)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': and
+      webform_entity_select_ol:
+        '#type': webform_entity_select
+        '#title': 'Entity select (Ordered list)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': ol
+      webform_entity_select_ul:
+        '#type': webform_entity_select
+        '#title': 'Entity select (Unordered list)'
+        '#target_type': user
+        '#selection_handler': 'default:user'
+        '#selection_settings':
+          include_anonymous: true
+        '#options':
+          1: Administrator
+          0: Anonymous
+        '#multiple': true
+        '#default_value':
+          - 1
+        '#format_items': ul
+    webform_term_checkboxes:
+      '#type': details
+      '#title': 'Term checkboxes'
+      webform_term_checkboxes_comma:
+        '#type': webform_term_checkboxes
+        '#title': 'Term checkboxes (Comma)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': comma
+      webform_term_checkboxes_semicolon:
+        '#type': webform_term_checkboxes
+        '#title': 'Term checkboxes (Semicolon)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': semicolon
+      webform_term_checkboxes_and:
+        '#type': webform_term_checkboxes
+        '#title': 'Term checkboxes (And)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': and
+      webform_term_checkboxes_ol:
+        '#type': webform_term_checkboxes
+        '#title': 'Term checkboxes (Ordered list)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': ol
+      webform_term_checkboxes_ul:
+        '#type': webform_term_checkboxes
+        '#title': 'Term checkboxes (Unordered list)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': ul
+    webform_term_select:
+      '#type': details
+      '#title': 'Term select'
+      webform_term_select_comma:
+        '#type': webform_term_select
+        '#title': 'Term select (Comma)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': comma
+      webform_term_select_semicolon:
+        '#type': webform_term_select
+        '#title': 'Term select (Semicolon)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': semicolon
+      webform_term_select_and:
+        '#type': webform_term_select
+        '#title': 'Term select (And)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': and
+      webform_term_select_ol:
+        '#type': webform_term_select
+        '#title': 'Term select (Ordered list)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': ol
+      webform_term_select_ul:
+        '#type': webform_term_select
+        '#title': 'Term select (Unordered list)'
+        '#vocabulary': tags
+        '#multiple': true
+        '#default_value':
+          - 41
+          - 48
+          - 43
+        '#format_items': ul
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  email_text:
+    id: email
+    label: 'Email (Text)'
+    handler_id: email_text
+    status: true
+    conditions: {  }
+    weight: 1
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: default
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: false
+      attachments: false
+      debug: true
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''
+  email_html:
+    id: email
+    label: 'Email (HTML)'
+    handler_id: email_html
+    status: true
+    conditions: {  }
+    weight: 2
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: default
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: true
+      attachments: false
+      debug: true
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''

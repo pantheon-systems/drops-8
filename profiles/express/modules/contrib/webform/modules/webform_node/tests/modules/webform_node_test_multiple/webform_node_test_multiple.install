@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the webform node test multiple module.
+ */
+
+use Drupal\node\Entity\Node;
+use Drupal\webform\WebformInterface;
+
+/**
+ * Implements hook_install().
+ */
+function webform_node_test_multiple_install() {
+  $webform_node = Node::create([
+    'type' => 'webform_test_multiple',
+    'title' => 'Webform Node Test Multiple',
+    'status' => 1,
+  ]);
+  $webform_node->field_webform_test_multiple_a->target_id = 'webform_node_test_multiple_a';
+  $webform_node->field_webform_test_multiple_a->status = WebformInterface::STATUS_OPEN;
+  $webform_node->field_webform_test_multiple_a->open = '';
+  $webform_node->field_webform_test_multiple_a->close = '';
+  $webform_node->field_webform_test_multiple_b->target_id = 'webform_node_test_multiple_b';
+  $webform_node->field_webform_test_multiple_b->status = WebformInterface::STATUS_OPEN;
+  $webform_node->field_webform_test_multiple_b->open = '';
+  $webform_node->field_webform_test_multiple_b->close = '';
+  $webform_node->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_node_test_multiple_uninstall() {
+  $entity_ids = \Drupal::entityQuery('node')
+    ->condition('field_webform_test_multiple_a.target_id', 'webform_node_test_multiple_a')
+    ->execute();
+  if ($entity_ids) {
+    /** @var \Drupal\node\Entity\Node[] $nodes */
+    $nodes = Node::loadMultiple($entity_ids);
+    foreach ($nodes as $node) {
+      $node->delete();
+    }
+  }
+}

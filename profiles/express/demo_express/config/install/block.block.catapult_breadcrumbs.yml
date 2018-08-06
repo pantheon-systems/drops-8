@@ -1,0 +1,22 @@
+uuid: 8f7dd85b-5e16-4576-802b-958290f1d357
+langcode: en
+status: false
+dependencies:
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: GWIETJJyg3-tdhaeH002qu1Lz8zv9mAN9nE5Y95lbwg
+id: catapult_breadcrumbs
+theme: catapult
+region: header
+weight: -4
+provider: null
+plugin: system_breadcrumb_block
+settings:
+  id: system_breadcrumb_block
+  label: Breadcrumbs
+  provider: system
+  label_display: '0'
+visibility: {  }

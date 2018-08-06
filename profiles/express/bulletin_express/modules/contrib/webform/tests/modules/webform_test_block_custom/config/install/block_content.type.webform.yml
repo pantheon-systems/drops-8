@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+id: webform
+label: Webform
+revision: 0
+description: 'A webform block type used to test webform and custom block integration.'

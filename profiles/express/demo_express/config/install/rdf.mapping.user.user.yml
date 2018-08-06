@@ -1,0 +1,17 @@
+uuid: 52493549-5cfd-42a2-8da1-e0304b161fbb
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+_core:
+  default_config_hash: 6FGq13prTAcS6uhzRfBmqBlbY8lXLI1P6KTxymNvHEI
+id: user.user
+targetEntityType: user
+bundle: user
+types:
+  - 'schema:Person'
+fieldMappings:
+  name:
+    properties:
+      - 'schema:name'

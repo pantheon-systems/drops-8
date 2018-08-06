@@ -1,0 +1,30 @@
+# core: 8.x
+type: theme
+base theme: bootstrap
+
+name: 'Demo Express Theme'
+description: 'Uses the jsDelivr CDN for all CSS and JavaScript. No source files or compiling is necessary and is recommended for simple sites or beginners.'
+package: 'Bootstrap'
+
+regions:
+  navigation: 'Navigation'
+  navigation_collapsible: 'Navigation (Collapsible)'
+  header: 'Top Bar'
+  highlighted: 'Highlighted'
+  help: 'Help'
+  content: 'Content'
+  sidebar_first: 'Primary'
+  sidebar_second: 'Secondary'
+  footer: 'Footer'
+  footer_right: 'Footer Right'
+  page_top: 'Page top'
+  page_bottom: 'Page bottom'
+
+libraries:
+  - 'demo_theme/global-styling'
+
+# Information added by Drupal.org packaging script on 2017-11-06
+version: '8.x-1.x-dev'
+core: '8.x'
+project: 'express'
+datestamp: 1509983891

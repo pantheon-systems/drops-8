@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * @file
+ * Module file for video_embed_field.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_theme().
+ */
+function video_embed_field_theme() {
+  return [
+    'video_embed_iframe' => [
+      'variables' => [
+        'url' => '',
+        'query' => [],
+        'attributes' => [],
+        'fragment' => '',
+      ],
+    ],
+    'video_embed_field_missing_provider' => [
+      'variables' => [],
+    ],
+  ];
+}
+
+/**
+ *  Implements hook_help().
+ */
+function video_embed_field_help($route_name, RouteMatchInterface $route_match) {
+  if ($route_name !== 'help.page.video_embed_field') {
+    return;
+  }
+  $links = [
+    ':field_help' => \Drupal::moduleHandler()->moduleExists('field_ui') ? Url::fromRoute('help.page', ['name' => 'field_ui'])->toString() : '#',
+    ':field_ui_help' => Url::fromRoute('help.page', ['name' => 'field'])->toString(),
+    ':video_embed_field_docs' => 'https://www.drupal.org/node/2322455',
+    ':project_page' => 'http://drupal.org/project/video_embed_field',
+  ];
+  $output = '';
+  $output .= '<h3>' . t('About') . '</h3>';
+  $output .= '<p>' . t('The Video Embed Field module provides a simple field type you can use to embed videos and their preview thumbnails from YouTube, Vimeo and other providers. See the <a href=":field_help">Field module help</a> and the <a href=":field_ui_help">Field UI help</a> pages for general information on fields and how to create and manage them. For more Video Embed Field help, see the <a href=":video_embed_field_docs">online community documentation</a> or the <a href=":project_page">module project page</a>.', $links) . '</p>';
+  return $output;
+}

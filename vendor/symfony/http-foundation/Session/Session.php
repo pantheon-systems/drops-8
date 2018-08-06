@@ -11,12 +11,12 @@
 
 namespace Symfony\Component\HttpFoundation\Session;
 
+use Symfony\Component\HttpFoundation\Session\Storage\SessionStorageInterface;
 use Symfony\Component\HttpFoundation\Session\Attribute\AttributeBag;
 use Symfony\Component\HttpFoundation\Session\Attribute\AttributeBagInterface;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBag;
 use Symfony\Component\HttpFoundation\Session\Flash\FlashBagInterface;
 use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
-use Symfony\Component\HttpFoundation\Session\Storage\SessionStorageInterface;
 
 /**
  * @author Fabien Potencier <fabien@symfony.com>
@@ -29,7 +29,7 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
     private $flashName;
     private $attributeName;
     private $data = array();
-    private $usageIndex = 0;
+    private $hasBeenStarted;
 
     /**
      * @param SessionStorageInterface $storage    A SessionStorageInterface instance
@@ -138,17 +138,17 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
      */
     public function count()
     {
-        return \count($this->getAttributeBag()->all());
+        return count($this->getAttributeBag()->all());
     }
 
     /**
-     * @return int
+     * @return bool
      *
      * @internal
      */
-    public function getUsageIndex()
+    public function hasBeenStarted()
     {
-        return $this->usageIndex;
+        return $this->hasBeenStarted;
     }
 
     /**
@@ -158,9 +158,6 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
      */
     public function isEmpty()
     {
-        if ($this->isStarted()) {
-            ++$this->usageIndex;
-        }
         foreach ($this->data as &$data) {
             if (!empty($data)) {
                 return false;
@@ -233,8 +230,6 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
      */
     public function getMetadataBag()
     {
-        ++$this->usageIndex;
-
         return $this->storage->getMetadataBag();
     }
 
@@ -243,7 +238,7 @@ class Session implements SessionInterface, \IteratorAggregate, \Countable
      */
     public function registerBag(SessionBagInterface $bag)
     {
-        $this->storage->registerBag(new SessionBagProxy($bag, $this->data, $this->usageIndex));
+        $this->storage->registerBag(new SessionBagProxy($bag, $this->data, $this->hasBeenStarted));
     }
 
     /**

@@ -1,0 +1,24 @@
+uuid: 7d562e33-03d5-4618-88d6-e1bb71feb9f8
+langcode: en
+status: true
+dependencies:
+  config:
+    - block_content.type.basic
+    - field.storage.block_content.body
+  module:
+    - text
+_core:
+  default_config_hash: vyB1fsm7Kqir0ukMfO8F7A4f8tvfAflseVxmcOXTHzA
+id: block_content.basic.body
+field_name: body
+entity_type: block_content
+bundle: basic
+label: Body
+description: ''
+required: false
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings:
+  display_summary: false
+field_type: text_with_summary

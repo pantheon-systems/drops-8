@@ -1,0 +1,13 @@
+name: Media entity document
+description: 'Media entity local documents provider.'
+type: module
+package: Media
+# core: 8.x
+dependencies:
+  - media_entity
+
+# Information added by Drupal.org packaging script on 2016-08-03
+version: '8.x-1.1'
+core: '8.x'
+project: 'media_entity_document'
+datestamp: 1470211440

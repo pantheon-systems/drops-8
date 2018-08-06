@@ -1,0 +1,55 @@
+image_captcha.settings:
+  type: config_object
+  label: 'Image Captcha settings'
+  mapping:
+    image_captcha_fonts_preview_map_cache:
+      type: sequence
+      label: 'Font preview map cache'
+    image_captcha_fonts:
+      type: sequence
+      label: Fonts
+      sequence:
+        type: string
+        label: 'Font filepath'
+    image_captcha_font_size:
+      type: integer
+      label: 'Font Size in Image Captcha'
+    image_captcha_character_spacing:
+      type: string
+      label: 'Spacing between characters'
+    image_captcha_image_allowed_chars:
+      type: string
+      label: 'String with allowed characters'
+    image_captcha_code_length:
+      type: integer
+      label: 'Captcha code length'
+    image_captcha_rtl_support:
+      type: integer
+      label: 'Right to left support'
+    image_captcha_background_color:
+      type: string
+      label: 'Hexadecimal background color code'
+    image_captcha_foreground_color:
+      type: string
+      label: 'Hexadecimal foreground color code'
+    image_captcha_foreground_color_randomness:
+      type: integer
+      label: 'Background color randomness'
+    image_captcha_file_format:
+      type: integer
+      label: 'File format'
+    image_captcha_distortion_amplitude:
+      type: integer
+      label: 'Distortion amplitude'
+    image_captcha_bilinear_interpolation:
+      type: integer
+      label: 'Bilinear interpolation'
+    image_captcha_dot_noise:
+      type: integer
+      label: 'Dot noise'
+    image_captcha_line_noise:
+      type: integer
+      label: 'Line noise'
+    image_captcha_noise_level:
+      type: integer
+      label: 'Noise level'

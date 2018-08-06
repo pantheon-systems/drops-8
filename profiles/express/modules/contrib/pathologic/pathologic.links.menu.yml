@@ -1,0 +1,5 @@
+pathologic.config_form:
+  title: 'Pathologic configuration'
+  parent: system.admin_config_content
+  description: 'Configure how Pathologic adjusts link and image paths in content.'
+  route_name: pathologic.config_form

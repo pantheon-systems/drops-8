@@ -1,0 +1,54 @@
+{#
+Setting Up Variables
+#}
+{% set libraries_ui = element.libraries_ui %}
+ {% for project_name,group_name in libraries_ui %}
+     <details>
+         <summary>{{ project_name }}</summary>
+         <div class="details-wrapper">
+             {% for group_name,breakpoint_info in group_name %}
+                 <strong>{{ group_name }}</strong>
+                 <ul>
+                     {% for key,value in breakpoint_info %}
+                         {% if value is not null and value is not empty %}
+                             <li>
+                                <strong>{{ key }}</strong>{{ ':' }}
+                                     {% if key ==  ('css' or 'js' ) %}
+                                         {% for assets_key, assets_value in value %}
+                                            {% for assets_key, assets_value in assets_value %}
+                                            <ul>
+                                                {% if assets_value is not null and assets_value is not empty %}
+                                                    {% if assets_key == 'minified' %}
+                                                        {% set assets_value = 'yes' %}
+                                                    {% endif %}
+                                                    <li>
+                                                         <strong>{{ assets_key }}: </strong>{{ assets_value }}
+                                                    </li>
+                                                {% endif %}
+                                            </ul>
+                                        {% endfor %}
+                                    {% endfor %}
+                                {% if key ==  ('license' or 'dependencies')%}
+                                        {% for license_key, license_value in value %}
+                                     <ul>
+                                         {% if license_value is not null and license_value is not empty %}
+                                         <li>
+                                             {% if key ==  'license'%} <strong>{{ license_key }}: </strong>{% endif %}
+                                             {{ license_value }}
+                                         </li>
+                                         {% endif %}
+                                     </ul>
+                                 {% endfor %}
+                                {% endif %}
+                                {% else %}
+                                     {{ value }}
+                                {% endif %}
+                         {% endif %}
+                         </li>
+                     {% endfor %}
+                 </ul>
+             {% endfor %}
+         </div>
+     </details>
+ {% endfor %}
+

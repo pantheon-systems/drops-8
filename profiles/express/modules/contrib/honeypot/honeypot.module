@@ -1,0 +1,316 @@
+<?php
+
+/**
+ * @file
+ * Honeypot module, for deterring spam bots from completing Drupal forms.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Component\Utility\Crypt;
+
+/**
+ * Implements hook_cron().
+ */
+function honeypot_cron() {
+  // Delete {honeypot_user} entries older than the value of honeypot_expire.
+  $expire_limit = \Drupal::config('honeypot.settings')->get('expire');
+  \Drupal::database()->delete('honeypot_user')
+    ->condition('timestamp', REQUEST_TIME - $expire_limit, '<')
+    ->execute();
+}
+
+/**
+ * Implements hook_form_alter().
+ *
+ * Add Honeypot features to forms enabled in the Honeypot admin interface.
+ */
+function honeypot_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  // Don't use for maintenance mode forms (install, update, etc.).
+  if (defined('MAINTENANCE_MODE')) {
+    return;
+  }
+
+  // Add a tag to all forms, so that if they are cached and honeypot
+  // configuration is changed, the cached forms are invalidated and honeypot
+  // protection can be re-evaluated.
+  $form['#cache']['tags'][] = 'config:honeypot.settings';
+
+  // Get list of unprotected forms and setting for whether to protect all forms.
+  $unprotected_forms = \Drupal::config('honeypot.settings')->get('unprotected_forms');
+  $protect_all_forms = \Drupal::config('honeypot.settings')->get('protect_all_forms');
+
+  // If configured to protect all forms, add protection to every form.
+  if ($protect_all_forms && !in_array($form_id, $unprotected_forms)) {
+    // Don't protect system forms - only admins should have access, and system
+    // forms may be programmatically submitted by drush and other modules.
+    if (strpos($form_id, 'system_') === FALSE && strpos($form_id, 'search_') === FALSE && strpos($form_id, 'views_exposed_form_') === FALSE) {
+      honeypot_add_form_protection($form, $form_state, ['honeypot', 'time_restriction']);
+    }
+  }
+
+  // Otherwise add form protection to admin-configured forms.
+  elseif ($forms_to_protect = honeypot_get_protected_forms()) {
+    foreach ($forms_to_protect as $protect_form_id) {
+      // For most forms, do a straight check on the form ID.
+      if ($form_id == $protect_form_id) {
+        honeypot_add_form_protection($form, $form_state, ['honeypot', 'time_restriction']);
+      }
+    }
+  }
+}
+
+/**
+ * Build an array of all the protected forms on the site, by form_id.
+ */
+function honeypot_get_protected_forms() {
+  $forms = &drupal_static(__FUNCTION__);
+
+  // If the data isn't already in memory, get from cache or look it up fresh.
+  if (!isset($forms)) {
+    if ($cache = \Drupal::cache()->get('honeypot_protected_forms')) {
+      $forms = $cache->data;
+    }
+    else {
+      $form_settings = \Drupal::config('honeypot.settings')->get('form_settings');
+      if (!empty($form_settings)) {
+        // Add each form that's enabled to the $forms array.
+        foreach ($form_settings as $form_id => $enabled) {
+          if ($enabled) {
+            $forms[] = $form_id;
+          }
+        }
+      }
+      else {
+        $forms = [];
+      }
+
+      // Save the cached data.
+      \Drupal::cache()->set('honeypot_protected_forms', $forms);
+    }
+  }
+
+  return $forms;
+}
+
+/**
+ * Form builder function to add different types of protection to forms.
+ *
+ * @param array $options
+ *   Array of options to be added to form. Currently accepts 'honeypot' and
+ *   'time_restriction'.
+ */
+function honeypot_add_form_protection(&$form, FormStateInterface $form_state, array $options = []) {
+  $account = \Drupal::currentUser();
+
+  // Allow other modules to alter the protections applied to this form.
+  \Drupal::moduleHandler()->alter('honeypot_form_protections', $options, $form);
+
+  // Don't add any protections if the user can bypass the Honeypot.
+  if ($account->hasPermission('bypass honeypot protection')) {
+    return;
+  }
+
+  // Build the honeypot element.
+  if (in_array('honeypot', $options)) {
+    // Get the element name (default is generic 'url').
+    $honeypot_element = \Drupal::config('honeypot.settings')->get('element_name');
+
+    // Build the honeypot element.
+    $honeypot_class = $honeypot_element . '-textfield';
+    $form[$honeypot_element] = [
+      '#theme_wrappers' => [
+        'container' => [
+          '#id' => NULL,
+          '#attributes' => [
+            'class' => [
+              $honeypot_class,
+            ],
+            'style' => [
+              'display: none !important;',
+            ],
+          ],
+        ],
+      ],
+      '#type' => 'textfield',
+      '#title' => t('Leave this field blank'),
+      '#size' => 20,
+      '#weight' => 100,
+      '#attributes' => ['autocomplete' => 'off'],
+      '#element_validate' => ['_honeypot_honeypot_validate'],
+    ];
+
+  }
+
+  // Set the time restriction for this form (if it's not disabled).
+  if (in_array('time_restriction', $options) && \Drupal::config('honeypot.settings')->get('time_limit') != 0) {
+    // Set the current time in a hidden value to be checked later.
+    $input = $form_state->getUserInput();
+    if (empty($input['honeypot_time'])) {
+      $identifier = Crypt::randomBytesBase64();
+      \Drupal::service('keyvalue.expirable')->get('honeypot_time_restriction')->set($identifier, time(), 3600*24);
+    }
+    else {
+      $identifier = $input['honeypot_time'];
+    }
+    $form['honeypot_time'] = [
+      '#type' => 'hidden',
+      '#title' => t('Timestamp'),
+      '#default_value' => $identifier,
+      '#element_validate' => ['_honeypot_time_restriction_validate'],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+
+    // Disable page caching to make sure timestamp isn't cached.
+    $account = \Drupal::currentUser();
+    if ($account->id() == 0) {
+      // TODO D8 - Use DIC? See: http://drupal.org/node/1539454
+      // Should this now set 'omit_vary_cookie' instead?
+      Drupal::service('page_cache_kill_switch')->trigger();
+    }
+  }
+
+  // Allow other modules to react to addition of form protection.
+  if (!empty($options)) {
+    \Drupal::moduleHandler()->invokeAll('honeypot_add_form_protection', [$options, $form]);
+  }
+}
+
+/**
+ * Validate honeypot field.
+ */
+function _honeypot_honeypot_validate($element, FormStateInterface $form_state) {
+  // Get the honeypot field value.
+  $honeypot_value = $element['#value'];
+
+  // Make sure it's empty.
+  if (!empty($honeypot_value)) {
+    _honeypot_log($form_state->getValue('form_id'), 'honeypot');
+    $form_state->setErrorByName('', t('There was a problem with your form submission. Please refresh the page and try again.'));
+  }
+}
+
+/**
+ * Validate honeypot's time restriction field.
+ */
+function _honeypot_time_restriction_validate($element, FormStateInterface $form_state) {
+  if ($form_state->isProgrammed()) {
+    // Don't do anything if the form was submitted programmatically.
+    return;
+  }
+
+  $triggering_element = $form_state->getTriggeringElement();
+  // Don't do anything if the triggering element is a preview button.
+  if ($triggering_element['#value'] == t('Preview')) {
+    return;
+  }
+
+  // Get the time value.
+  $identifier = $form_state->getValue('honeypot_time', FALSE);
+  $honeypot_time = \Drupal::service('keyvalue.expirable')->get('honeypot_time_restriction')->get($identifier, 0);
+
+  // Get the honeypot_time_limit.
+  $time_limit = honeypot_get_time_limit($form_state->getValues());
+
+  // Make sure current time - (time_limit + form time value) is greater than 0.
+  // If not, throw an error.
+  if (!$honeypot_time || REQUEST_TIME < ($honeypot_time + $time_limit)) {
+    _honeypot_log($form_state->getValue('form_id'), 'honeypot_time');
+    $time_limit = honeypot_get_time_limit();
+    \Drupal::service('keyvalue.expirable')->get('honeypot_time_restriction')->set($identifier, REQUEST_TIME, 3600*24);
+    $form_state->setErrorByName('', t('There was a problem with your form submission. Please wait @limit seconds and try again.', ['@limit' => $time_limit]));
+  }
+}
+
+/**
+ * Log blocked form submissions.
+ *
+ * @param string $form_id
+ *   Form ID for the form on which submission was blocked.
+ * @param string $type
+ *   String indicating the reason the submission was blocked. Allowed values:
+ *     - honeypot: If honeypot field was filled in.
+ *     - honeypot_time: If form was completed before the configured time limit.
+ */
+function _honeypot_log($form_id, $type) {
+  honeypot_log_failure($form_id, $type);
+  if (\Drupal::config('honeypot.settings')->get('log')) {
+    $variables = [
+      '%form'  => $form_id,
+      '@cause' => ($type == 'honeypot') ? t('submission of a value in the honeypot field') : t('submission of the form in less than minimum required time'),
+    ];
+    \Drupal::logger('honeypot')->notice(t('Blocked submission of %form due to @cause.', $variables));
+  }
+}
+
+/**
+ * Look up the time limit for the current user.
+ *
+ * @param array $form_values
+ *   Array of form values (optional).
+ */
+function honeypot_get_time_limit(array $form_values = []) {
+  $account = \Drupal::currentUser();
+  $honeypot_time_limit = \Drupal::config('honeypot.settings')->get('time_limit');
+
+  // Only calculate time limit if honeypot_time_limit has a value > 0.
+  if ($honeypot_time_limit) {
+    $expire_time = \Drupal::config('honeypot.settings')->get('expire');
+
+    // Query the {honeypot_user} table to determine the number of failed
+    // submissions for the current user.
+    $uid = $account->id();
+    $query = \Drupal::database()->select('honeypot_user', 'hu')
+      ->condition('uid', $uid)
+      ->condition('timestamp', REQUEST_TIME - $expire_time, '>');
+
+    // For anonymous users, take the hostname into account.
+    if ($uid === 0) {
+      $hostname = \Drupal::request()->getClientIp();
+      $query->condition('hostname', $hostname);
+    }
+    $number = $query->countQuery()->execute()->fetchField();
+
+    // Don't add more than 30 days' worth of extra time.
+    $honeypot_time_limit = (int) min($honeypot_time_limit + exp($number) - 1, 2592000);
+    // TODO - Only accepts two args.
+    $additions = \Drupal::moduleHandler()->invokeAll('honeypot_time_limit', [
+      $honeypot_time_limit,
+      $form_values,
+      $number,
+    ]);
+    if (count($additions)) {
+      $honeypot_time_limit += array_sum($additions);
+    }
+  }
+  return $honeypot_time_limit;
+}
+
+/**
+ * Log the failed submission with timestamp and hostname.
+ *
+ * @param string $form_id
+ *   Form ID for the rejected form submission.
+ * @param string $type
+ *   String indicating the reason the submission was blocked. Allowed values:
+ *     - honeypot: If honeypot field was filled in.
+ *     - honeypot_time: If form was completed before the configured time limit.
+ */
+function honeypot_log_failure($form_id, $type) {
+  $account = \Drupal::currentUser();
+  $uid = $account->id();
+
+  // Log failed submissions.
+  \Drupal::database()->insert('honeypot_user')
+    ->fields([
+      'uid' => $uid,
+      'hostname' => Drupal::request()->getClientIp(),
+      'timestamp' => REQUEST_TIME,
+    ])
+    ->execute();
+
+  // Allow other modules to react to honeypot rejections.
+  // TODO - Only accepts two args.
+  \Drupal::moduleHandler()->invokeAll('honeypot_reject', [$form_id, $uid, $type]);
+}

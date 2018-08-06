@@ -1,0 +1,27 @@
+# Configuration schema for the Libraries API module.
+
+libraries.settings:
+  type: config_object
+  title: 'Libraries API settings'
+  mapping:
+    definition:
+      type: mapping
+      title: 'Library definition settings'
+      mapping:
+        local:
+          type: mapping
+          title: 'Local'
+          mapping:
+            path:
+              type: path
+              title: 'Local path'
+        remote:
+          type: mapping
+          title: 'Remote'
+          mapping:
+            enable:
+              type: boolean
+              title: 'Enable remote fetching of library definitions'
+            url:
+              type: uri
+              title: 'The URL of the canonical library registry.'

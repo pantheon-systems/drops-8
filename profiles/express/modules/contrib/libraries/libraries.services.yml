@@ -1,0 +1,68 @@
+services:
+  libraries.manager:
+    class: Drupal\libraries\ExternalLibrary\LibraryManager
+    arguments:
+      - '@libraries.definition.discovery'
+      - '@plugin.manager.libraries.library_type'
+      - '@libraries.extension_handler'
+
+  # These services are modified depending on the values of the
+  # 'libraries.settings' configuration object. See LibrariesServiceProvider.
+  libraries.definition.discovery:
+    class: Drupal\libraries\ExternalLibrary\Definition\ChainDefinitionDiscovery
+    arguments: ['@serialization.yaml']
+    calls:
+      - [addDiscovery, ['@libraries.definition.discovery.local']]
+  libraries.definition.discovery.local:
+    class: Drupal\libraries\ExternalLibrary\Definition\WritableFileDefinitionDiscovery
+    arguments: ['@serialization.yaml', 'public://library-definitions']
+  libraries.definition.discovery.remote:
+    class: Drupal\libraries\ExternalLibrary\Definition\GuzzleDefinitionDiscovery
+    arguments:
+      - '@http_client'
+      - '@serialization.json'
+      - 'http://cgit.drupalcode.org/libraries_registry/plain/registry/8'
+
+  plugin.manager.libraries.library_type:
+    class: Drupal\libraries\ExternalLibrary\Type\LibraryTypeFactory
+    parent: default_plugin_manager
+  plugin.manager.libraries.locator:
+    class: Drupal\libraries\ExternalLibrary\Local\LocatorManager
+    parent: default_plugin_manager
+  plugin.manager.libraries.version_detector:
+    class: Drupal\libraries\ExternalLibrary\Version\VersionDetectorManager
+    parent: default_plugin_manager
+
+  libraries.config_subscriber:
+    class: Drupal\libraries\Config\LibrariesConfigSubscriber
+    arguments: ['@kernel']
+    tags:
+      - { name: event_subscriber }
+
+  libraries.extension_handler:
+    class: Drupal\libraries\Extension\ExtensionHandler
+    arguments: ['%app.root', '@module_handler', '@theme_handler']
+  libraries.php_file_loader:
+    class: Drupal\libraries\ExternalLibrary\PhpFile\PhpRequireLoader
+
+  stream_wrapper.library_definitions:
+    class: Drupal\libraries\StreamWrapper\LibraryDefinitionsStream
+    arguments: ['@config.factory']
+    tags:
+      - { name: stream_wrapper, scheme: 'library-definitions' }
+  stream_wrapper.asset_libraries:
+    class: Drupal\libraries\StreamWrapper\AssetLibrariesStream
+    tags:
+      - { name: stream_wrapper, scheme: 'asset' }
+  stream_wrapper.php_file_libraries:
+    class: Drupal\libraries\StreamWrapper\PhpFileLibrariesStream
+    tags:
+      - { name: stream_wrapper, scheme: 'php-file' }
+
+
+  cache.libraries:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [library]

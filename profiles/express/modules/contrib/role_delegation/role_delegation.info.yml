@@ -1,0 +1,12 @@
+name: Role delegation
+type: module
+description: 'Allows site administrators to grant some roles the authority to assign selected roles to users.'
+package: Custom
+# version: VERSION
+# core: 8.x
+
+# Information added by Drupal.org packaging script on 2016-04-02
+version: '8.x-1.0-alpha1'
+core: '8.x'
+project: 'role_delegation'
+datestamp: 1459597147

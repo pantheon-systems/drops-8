@@ -1,0 +1,40 @@
+{#
+/**
+ * @file
+ * Default theme implementation of a name composite webform element.
+ *
+ * Available variables:
+ * - content: The name webform element to be output.
+ * - flexbox: Determines if Flexbox layout should be applied to the composite
+ *   element.
+ *
+ * @see template_preprocess_webform_name()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.element.composite') }}
+{% if flexbox %}
+  <div class="webform-flexbox">
+    {% if content.title %}
+      <div class="webform-flex webform-flex--2"><div class="webform-flex--container">{{ content.title }}</div></div>
+    {% endif %}
+    {% if content.first %}
+      <div class="webform-flex webform-flex--3"><div class="webform-flex--container">{{ content.first }}</div></div>
+    {% endif %}
+    {% if content.middle %}
+      <div class="webform-flex webform-flex--2"><div class="webform-flex--container">{{ content.middle }}</div></div>
+    {% endif %}
+    {% if content.last %}
+      <div class="webform-flex webform-flex--3"><div class="webform-flex--container">{{ content.last }}</div></div>
+    {% endif %}
+    {% if content.suffix %}
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.suffix }}</div></div>
+    {% endif %}
+    {% if content.degree %}
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.degree }}</div></div>
+    {% endif %}
+  </div>
+{% else %}
+  {{ content }}
+{% endif %}

@@ -1,0 +1,3 @@
+'edit webform source':
+  title: 'Edit webform source code'
+  description: '<xem>Warning: Give to site builder and developer roles only;</em> Editing webform source code allows users alter and possibly break a webform''s render array.'

@@ -933,11 +933,9 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->baseEntityType->setLinkTemplate('delete-form', '/entity_test/{entity_test}/delete');
 
     $data = $this->viewsData->getViewsData();
-    foreach (['entity_test', 'entity_test_revision'] as $table_name) {
-      $this->assertEquals('entity_link', $data[$table_name]['view_entity_test']['field']['id']);
-      $this->assertEquals('entity_link_edit', $data[$table_name]['edit_entity_test']['field']['id']);
-      $this->assertEquals('entity_link_delete', $data[$table_name]['delete_entity_test']['field']['id']);
-    }
+    $this->assertEquals('entity_link', $data['entity_test']['view_entity_test']['field']['id']);
+    $this->assertEquals('entity_link_edit', $data['entity_test']['edit_entity_test']['field']['id']);
+    $this->assertEquals('entity_link_delete', $data['entity_test']['delete_entity_test']['field']['id']);
   }
 
   /**
@@ -947,13 +945,10 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->baseEntityType->setLinkTemplate('edit-form', '/entity_test/{entity_test}/edit');
 
     $data = $this->viewsData->getViewsData();
+    $this->assertFalse(isset($data['entity_test']['view_entity_test']));
+    $this->assertFalse(isset($data['entity_test']['delete_entity_test']));
 
-    foreach (['entity_test', 'entity_test_revision'] as $table_name) {
-      $this->assertFalse(isset($data[$table_name]['view_entity_test']));
-      $this->assertFalse(isset($data[$table_name]['delete_entity_test']));
-
-      $this->assertEquals('entity_link_edit', $data[$table_name]['edit_entity_test']['field']['id']);
-    }
+    $this->assertEquals('entity_link_edit', $data['entity_test']['edit_entity_test']['field']['id']);
   }
 
   /**

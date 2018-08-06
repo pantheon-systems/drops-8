@@ -1,0 +1,379 @@
+entity.webform.references:
+  path: '/admin/structure/webform/manage/{webform}/references'
+  defaults:
+    _controller: '\Drupal\webform_node\Controller\WebformNodeReferencesListController::listing'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  requirements:
+    _entity_access: 'webform.update'
+
+entity.node.webform.confirmation:
+  path: '/node/{node}/webform/confirmation'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformEntityController::confirmation'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: view
+    entity_access: 'webform.submission_create'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformAccess'
+
+entity.node.webform.user.submissions:
+  path: '/node/{node}/webform/submissions'
+  defaults:
+    _entity_list: 'webform_submission'
+    _title: 'Submissions'
+    operation: ''
+    entity_access: 'webform.submission_view_own'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformAccess'
+
+entity.node.webform.user.drafts:
+  path: '/node/{node}/webform/drafts'
+  defaults:
+    _entity_list: 'webform_submission'
+    _title: 'Drafts'
+    operation: view
+    entity_access: 'webform.submission_create'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformAccess'
+
+entity.node.webform.user.submission:
+  path: '/node/{node}/webform/submissions/{webform_submission}'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    type: 'default'
+    operation: webform_submission_view
+    entity_access: 'webform_submission.view'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform.user.submission.edit:
+  path: '/node/{node}/webform/submissions/{webform_submission}/edit'
+  defaults:
+    _entity_form: 'webform_submission.edit'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_edit
+    entity_access: 'webform_submission.update'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform.user.submission.delete:
+  path: '/node/{node}/webform/submissions/{webform_submission}/delete'
+  defaults:
+    _entity_form: 'webform_submission.delete'
+    _title: 'Delete webform submission'
+    operation: webform_submission_delete
+    entity_access: 'webform_submission.delete'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform.test_form:
+  path: '/node/{node}/webform/test'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformTestController::testForm'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.update'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformAccess'
+
+entity.node.webform.results_submissions:
+  path: '/node/{node}/webform/results/submissions'
+  defaults:
+    _entity_list: 'webform_submission'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform.results_submissions.custom:
+  path: '/node/{node}/webform/results/submissions/custom'
+  defaults:
+    _form: 'Drupal\webform\Form\WebformResultsCustomForm'
+    _title: 'Customize table'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform.results_export:
+  path: '/node/{node}/webform/results/download'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformResultsExportController::index'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform.results_export_file:
+  path: '/node/{node}/webform/results/download/file/{filename}'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformResultsExportController::file'
+    _title_callback: 'Drupal\webform\Controller\WebformEntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform.results_clear:
+  path: '/node/{node}/webform/results/clear'
+  defaults:
+    _form: 'Drupal\webform\Form\WebformResultsClearForm'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_delete
+    entity_access: 'webform.submission_purge_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform.results_log:
+  path: '/node/{node}/webform/results/log'
+  defaults:
+    _controller: '\Drupal\webform_node\Controller\WebformNodeSubmissionLogController::overview'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _permission: 'access webform submission log'
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformLogAccess'
+
+entity.node.webform_submission.canonical:
+  path: '/node/{node}/webform/submission/{webform_submission}'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    type: 'default'
+    operation: webform_submission_view
+    entity_access: 'webform_submission.view'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.table:
+  path: '/node/{node}/webform/submission/{webform_submission}/table'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    type: 'table'
+    operation: webform_submission_view
+    entity_access: 'webform_submission.view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.text:
+  path: '/node/{node}/webform/submission/{webform_submission}/text'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    type: 'text'
+    operation: webform_submission_view
+    entity_access: 'webform_submission.view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.yaml:
+  path: '/node/{node}/webform/submission/{webform_submission}/yaml'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    type: 'yaml'
+    operation: webform_submission_view
+    entity_access: 'webform_submission.view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.edit_form:
+  path: '/node/{node}/webform/submission/{webform_submission}/edit'
+  defaults:
+    _entity_form: 'webform_submission.edit'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_edit
+    entity_access: 'webform_submission.update'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.edit_form.all:
+  path: '/node/{node}/webform/submission/{webform_submission}/edit/all'
+  defaults:
+    _entity_form: 'webform_submission.edit_all'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_edit_all
+    entity_access: 'webform_submission.update'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.notes_form:
+  path: '/node/{node}/webform/submission/{webform_submission}/notes'
+  defaults:
+    _entity_form: 'webform_submission.notes'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_notes
+    entity_access: 'webform_submission.update_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.resend_form:
+  path: '/node/{node}/webform/submission/{webform_submission}/resend'
+  defaults:
+    _form: 'Drupal\webform\Form\WebformSubmissionResendForm'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_resend
+    entity_access: 'webform_submission.update_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.duplicate_form:
+  path: '/node/{node}/webform/submission/{webform_submission}/duplicate'
+  defaults:
+    _entity_form: 'webform_submission.duplicate'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_duplicate
+    entity_access: 'webform_submission.update_any'
+    duplicate: TRUE
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.delete_form:
+  path: '/node/{node}/webform/submission/{webform_submission}/delete'
+  defaults:
+    _entity_form: 'webform_submission.delete'
+    _title: 'Delete webform submission'
+    operation: webform_submission_delete
+    entity_access: 'webform_submission.delete'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformSubmissionAccess'
+
+entity.node.webform_submission.log:
+  path: '/node/{node}/webform/submission/{webform_submission}/log'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionLogController::overview'
+    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _permission: 'access webform submission log'
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformLogAccess'
+
+entity.node.webform.entity_reference.set:
+  path: '/node/{node}/webform/change/{webform}'
+  defaults:
+    _controller: '\Drupal\webform_node\Controller\WebformNodeEntityReferenceController::change'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformAccess'
+    _csrf_token: 'TRUE'

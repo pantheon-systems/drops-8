@@ -1,0 +1,75 @@
+<?php
+
+/**
+ * Contains hook implementations for the metatag_views module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\views\ViewEntityInterface;
+use Drupal\views\ViewExecutable;
+use Drupal\views\Views;
+
+/**
+ * Gets the metatags of a specific view, if set.
+ *
+ * @param mixed $view
+ *   The view id, view config entity or view executable.
+ * @param string $display
+ *   The display id. If empty uses the preselected display if $view is a
+ *   ViewExecutable, otherwise the default display.
+ *
+ * @return array|null
+ *   The metatags if set, null otherwise.
+ */
+function metatag_get_view_tags($view, $display_id = NULL) {
+  if (empty($view)) {
+    return;
+  }
+  if ($view instanceof ViewEntityInterface) {
+    $view = $view->getExecutable();
+  }
+  elseif (is_string($view)) {
+    $view = Views::getView($view);
+  }
+  if (!$view instanceof ViewExecutable) {
+    return;
+  }
+  $view->setDisplay($display_id);
+
+  // And get the list of extenders for this display.
+  $extenders = $view->getDisplay()->getExtenders();
+  if (!isset($extenders['metatag_display_extender'])) {
+    // If the id of the plugin is not in the list then something is wrong.
+    return;
+  }
+
+  // Retrieve the metatag settings from the extender.
+  return $extenders['metatag_display_extender']->getMetatags();
+}
+
+/**
+ * Implements hook_metatags_alter().
+ */
+function metatag_views_metatags_alter(&$metatags, $context) {
+  if (!$context['entity'] instanceof ViewEntityInterface) {
+    return;
+  }
+
+  $view = $context['entity']->getExecutable();
+  // If display_id is not available, will default to Master display.
+  $display_id = \Drupal::routeMatch()->getParameter('display_id');
+  if ($tags = metatag_get_view_tags($view, $display_id)) {
+    // Apply view overrides.
+    $metatags = array_merge($metatags, $tags);
+  }
+}
+
+/**
+ * Implements hook_metatag_route_entity().
+ */
+function metatag_views_metatag_route_entity(RouteMatchInterface $route_match) {
+  if ($view_id = $route_match->getParameter('view_id')) {
+    $entity = \Drupal::entityTypeManager()->getStorage('view')->load($view_id);
+    return $entity;
+  }
+}

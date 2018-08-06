@@ -1,0 +1,29 @@
+simplesamlphp_auth.admin_settings:
+  path: '/admin/config/people/simplesamlphp_auth'
+  defaults:
+    _title: 'SimpleSAMLphp Auth Settings'
+    _form: '\Drupal\simplesamlphp_auth\Form\BasicSettingsForm'
+  requirements:
+    _permission: 'administer simpleSAMLphp authentication'
+simplesamlphp_auth.admin_settings_local:
+  path: '/admin/config/people/simplesamlphp_auth/local'
+  defaults:
+    _title: 'Local authentication'
+    _form: '\Drupal\simplesamlphp_auth\Form\LocalSettingsForm'
+  requirements:
+    _permission: 'administer simpleSAMLphp authentication'
+simplesamlphp_auth.admin_settings_sync:
+  path: '/admin/config/people/simplesamlphp_auth/sync'
+  defaults:
+    _title: 'User info and syncing'
+    _form: '\Drupal\simplesamlphp_auth\Form\SyncingSettingsForm'
+  requirements:
+    _permission: 'administer simpleSAMLphp authentication'
+simplesamlphp_auth.saml_login:
+  path: '/saml_login'
+  defaults:
+    _controller: '\Drupal\simplesamlphp_auth\Controller\SimplesamlphpAuthController::authenticate'
+  requirements:
+    _access: 'TRUE'
+  options:
+     no_cache: TRUE

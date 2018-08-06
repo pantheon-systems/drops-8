@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Provides a webform content type which allows webforms to be integrated into a website as nodes.
+ */
+
+use Drupal\Core\Session\AccountInterface;
+use Drupal\node\NodeInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\webform\Plugin\Field\FieldType\WebformEntityReferenceItem;
+use Drupal\Core\Extension\Extension;
+
+/**
+ * Implements hook_node_access().
+ */
+function webform_node_node_access(NodeInterface $node, $operation, AccountInterface $account) {
+  if (strpos($operation, 'webform_submission_') !== 0) {
+    return AccessResult::neutral();
+  }
+  else {
+    // Check that the node has a webform field that has been populated.
+    $webform_field_name = WebformEntityReferenceItem::getEntityWebformFieldName($node);
+    if (!$webform_field_name || !$node->$webform_field_name->entity) {
+      return AccessResult::forbidden();
+    }
+
+    // Check administer webform submissions.
+    if ($account->hasPermission('administer webform submission')) {
+      return AccessResult::allowed();
+    }
+
+    // Change access to ANY submission.
+    $operation = str_replace('webform_submission_', '', $operation);
+    $any_permission = "$operation webform submissions any node";
+    if ($account->hasPermission($any_permission)) {
+      return AccessResult::allowed();
+    }
+
+    // Change access to submission associated with the node's webform.
+    $own_permission = "$operation webform submissions own node";
+    if ($account->hasPermission($own_permission) && $node->getOwnerId() === $account->id()) {
+      return AccessResult::allowed();
+    }
+
+    return AccessResult::forbidden();
+  }
+}

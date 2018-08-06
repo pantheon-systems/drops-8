@@ -1,0 +1,6 @@
+# Metatag defaults menu items definition
+entity.metatag_defaults.collection:
+  title: 'Metatag'
+  route_name: entity.metatag_defaults.collection
+  description: 'Configure Metatag defaults.'
+  parent: system.admin_config_search

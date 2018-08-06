@@ -1,0 +1,20 @@
+{{ attach_library('focal_point/drupal.focal_point_preview') }}
+
+<div id="focal-point-preview-wrapper">
+  <span class="derivatives-note note">{{ derivative_image_note }}</span>
+  <div id="focal-point-derivatives">
+    {% for style,derivative in derivative_images %}
+      <div id="focal-point-derivative-preview-{{ style }}" class="focal-point-derivative-preview">
+        <h3 class="focal-point-derivative-preview-label">{{ derivative.style }}</h3>
+        {{ derivative.image }}
+      </div>
+    {% endfor %}
+  </div>
+
+  <div id="focal-point-preview">
+    <h2 id="focal-point-preview-label">{{ 'Original image'|t }}</h2>
+    {{ original_image }}
+  </div>
+  <span class="preview-note note">{{ preview_image_note }}</span>
+
+</div>

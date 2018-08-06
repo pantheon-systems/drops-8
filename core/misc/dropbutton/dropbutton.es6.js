@@ -214,7 +214,7 @@
      * @param {object} options
      *   Options object.
      * @param {string} [options.title]
-     *   The button text.
+     *   The HTML anchor title attribute and text for the inner span element.
      *
      * @return {string}
      *   A string representing a DOM fragment.

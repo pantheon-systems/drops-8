@@ -1,0 +1,32 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_form_mode.node.inline
+    - field.field.node.ief_test_custom.positive_int
+    - node.type.ief_test_custom
+_core:
+  default_config_hash: ulZ9aLpVyfyaKg--5wsjuuRcYj6fNv0bw2MB-BDCq_Q
+id: node.ief_test_custom.inline
+targetEntityType: node
+bundle: ief_test_custom
+mode: inline
+content:
+  positive_int:
+    weight: 1
+    settings:
+      placeholder: ''
+    third_party_settings: {  }
+    type: number
+  title:
+    type: string_textfield
+    weight: 0
+    settings:
+      size: 60
+      placeholder: ''
+    third_party_settings: {  }
+hidden:
+  created: true
+  promote: true
+  sticky: true
+  uid: true

@@ -7,7 +7,6 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\file\FileInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\file\Entity\File;
-use Drupal\Tests\TestFileCreationTrait;
 
 /**
  * Provides methods specifically for testing File module's field handling.
@@ -15,9 +14,6 @@ use Drupal\Tests\TestFileCreationTrait;
 abstract class FileFieldTestBase extends BrowserTestBase {
 
   use FileFieldCreationTrait;
-  use TestFileCreationTrait {
-    getTestFiles as drupalGetTestFiles;
-  }
 
   /**
   * Modules to enable.
@@ -160,7 +156,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
         $edit[$name][] = $file_path;
       }
     }
-    $this->drupalPostForm("node/$nid/edit", $edit, t('Save'));
+    $this->drupalPostForm("node/$nid/edit", $edit, t('Save and keep published'));
 
     return $nid;
   }
@@ -176,7 +172,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
     ];
 
     $this->drupalPostForm('node/' . $nid . '/edit', [], t('Remove'));
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, $edit, t('Save and keep published'));
   }
 
   /**
@@ -189,7 +185,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
     ];
 
     $this->drupalPostForm('node/' . $nid . '/edit', [], t('Remove'));
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, $edit, t('Save and keep published'));
   }
 
   /**

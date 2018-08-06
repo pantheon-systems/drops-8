@@ -1,0 +1,4 @@
+services:
+  google_cse.services:
+    class: Drupal\google_cse\GoogleCSEServices
+    arguments: ['@request_stack', '@config.factory', '@language_manager', '@renderer', '@module_handler']

@@ -1,0 +1,12 @@
+{
+  "name": "drupal/colorbox",
+  "description": "A light-weight, customizable lightbox plugin for jQuery.",
+  "type": "drupal-module",
+  "homepage": "https://www.drupal.org/project/colorbox",
+  "support": {
+    "issues": "https://www.drupal.org/project/colorbox",
+    "source": "https://cgit.drupalcode.org/colorbox"
+  },
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev"
+}

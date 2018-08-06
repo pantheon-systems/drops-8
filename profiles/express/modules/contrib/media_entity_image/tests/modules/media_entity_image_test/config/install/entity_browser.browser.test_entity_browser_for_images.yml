@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - media_entity_image
+name: test_entity_browser_for_images
+label: 'Test entity browser for images'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: tabs
+widget_selector_configuration: {  }
+widgets:
+  3d078004-0b1f-4663-9a5f-2af662e4c892:
+    settings:
+      extensions: 'jpg jpeg png gif'
+      media_bundle: media_bundle_for_images
+      upload_location: 'public://'
+    uuid: 3d078004-0b1f-4663-9a5f-2af662e4c892
+    weight: 1
+    label: 'Media entity image upload'
+    id: media_entity_image_upload

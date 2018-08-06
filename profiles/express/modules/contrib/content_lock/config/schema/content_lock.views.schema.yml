@@ -1,0 +1,19 @@
+views.filter.content_lock_filter:
+  type: views.filter.boolean
+  label: 'Is Locked'
+  mapping:
+    value:
+      type: string
+      label: 'Value'
+
+views.field.content_lock_field:
+  type: views.field.boolean
+  label: 'Is Locked'
+
+views.field.content_lock_break_link:
+  type: views_field
+  label: 'Break link'
+
+views.sort.content_lock_sort:
+  type: views.sort.standard
+  label: 'Content lock sort'

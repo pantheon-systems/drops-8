@@ -303,7 +303,7 @@ class EntityManager implements EntityManagerInterface, ContainerAwareInterface {
    * {@inheritdoc}
    *
    * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
-   *   Use \Drupal\Core\Entity\EntityTypeBundleInfoInterface::clearCachedBundles()
+   *   Use \Drupal\Core\Entity\EntityTypeBundleManagerInterface::clearCachedBundles()
    *   instead.
    *
    * @see https://www.drupal.org/node/2549139
@@ -316,7 +316,7 @@ class EntityManager implements EntityManagerInterface, ContainerAwareInterface {
    * {@inheritdoc}
    *
    * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
-   *   Use \Drupal\Core\Entity\EntityTypeBundleInfoInterface::getBundleInfo()
+   *   Use \Drupal\Core\Entity\EntityTypeBundleManagerInterface::getBundleInfo()
    *   instead.
    *
    * @see https://www.drupal.org/node/2549139
@@ -329,7 +329,7 @@ class EntityManager implements EntityManagerInterface, ContainerAwareInterface {
    * {@inheritdoc}
    *
    * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
-   *   Use \Drupal\Core\Entity\EntityTypeBundleInfoInterface::getAllBundleInfo()
+   *   Use \Drupal\Core\Entity\EntityTypeBundleManagerInterface::getAllBundleInfo()
    *   instead.
    *
    * @see https://www.drupal.org/node/2549139

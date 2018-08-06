@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of a webform email handler.
+ *
+ * Available variables:
+ * - settings: The current configuration for this email handler.
+ * - handler: The email handler.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if settings.debug %}<b class="color-error">{{ 'Debugging is enabled'|t }}</b><br />{% endif %}
+<b>{{ 'To:'|t }}</b> {{ settings.to_mail }}<br />
+{% if settings.cc_mail %}<b>{{ 'CC:'|t }}</b> {{ settings.cc_mail }}<br />{% endif %}
+{% if settings.bcc_mail %}<b>{{ 'BCC:'|t }}</b> {{ settings.bcc_mail }}<br />{% endif %}
+<b>{{ 'From:'|t }}</b> {% if settings.from_name %}{{ settings.from_name }}{% endif %} &lt;{{ settings.from_mail }}&gt;<br />
+<b>{{ 'Subject:'|t }}</b> {{ settings.subject }}<br />
+<b>{{ 'Settings:'|t }}</b> {{ settings.html ? 'HTML' : 'Plain text'|t }}{{ settings.html and settings.attachments ? '/' : '' }}{{ settings.attachments ? 'Attachments '|t : '' }}<br />
+<b>{{ 'Sent when:'|t }}</b> {{ settings.states|join('; ') }}<br />

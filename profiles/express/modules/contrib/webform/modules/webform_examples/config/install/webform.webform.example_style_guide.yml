@@ -1,0 +1,643 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples
+open: null
+close: null
+uid: null
+template: false
+id: example_style_guide
+title: 'Example: Style Guide'
+description: 'Style Guide containing examples of all elements and layouts.'
+category: Example
+elements: |
+  introduction:
+    '#markup': '<p>Below is a style guide containing examples of all elements and layouts.</p>'
+  basic_elements:
+    '#type': details
+    '#title': 'Basic elements'
+    '#open': true
+    textfield:
+      '#type': textfield
+      '#title': 'Text field'
+    textarea:
+      '#type': textarea
+      '#title': Textarea
+    select:
+      '#type': select
+      '#title': Select
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    select_select2:
+      '#type': select
+      '#title': 'Select (Select2)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#select2': true
+    select_multiple:
+      '#type': select
+      '#title': 'Select multiple'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#multiple': true
+    select_multiple_select2:
+      '#type': select
+      '#title': 'Select multiple (Select2)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#multiple': true
+      '#select2': true
+    checkboxes:
+      '#type': checkboxes
+      '#title': Checkboxes
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    checkboxes_help:
+      '#type': checkboxes
+      '#title': 'Checkboxes with help text'
+      '#options_display': side_by_side
+      '#options_description_display': help
+      '#options':
+        one: 'One -- This is help text.'
+        two: 'Two -- This is help text.'
+        three: 'Three -- This is  help text.'
+    checkboxes_description:
+      '#type': checkboxes
+      '#title': 'Checkboxes with descriptions'
+      '#options_description_display': description
+      '#options':
+        one: 'One -- This is a descripion.'
+        two: 'Two -- This is a descripion.'
+        three: 'Three -- This is a descripion.'
+    checkboxes_icheck:
+      '#type': checkboxes
+      '#title': 'Checkboxes (iCheck)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#icheck': minimal
+    radios:
+      '#type': radios
+      '#title': Radios
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    radios_icheck:
+      '#type': radios
+      '#title': 'Radios (iCheck)'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#icheck': minimal
+    password:
+      '#type': password
+      '#title': Password
+    password_confirm:
+      '#type': password_confirm
+      '#title': 'Password confirm'
+  date_elements:
+    '#type': details
+    '#title': 'Date elements'
+    '#open': true
+    date:
+      '#type': date
+      '#title': Date
+    datetime:
+      '#type': datetime
+      '#title': Date/time
+    datelist:
+      '#type': datelist
+      '#title': 'Date list'
+    date_datepicker:
+      '#type': date
+      '#title': 'Date picker'
+      '#datepicker': true
+      '#date_date_format': 'D, m/d/Y'
+    webform_time:
+      '#type': webform_time
+      '#title': Time
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements'
+    '#open': true
+    tel:
+      '#type': tel
+      '#title': Telephone
+    tel_international:
+      '#type': tel
+      '#title': 'Telephone (International)'
+      '#international': true
+    url:
+      '#type': url
+      '#title': URL
+    search:
+      '#type': search
+      '#title': Search
+    number:
+      '#type': number
+      '#title': Number
+      '#min': 0
+      '#max': 10
+      '#step': 1
+    range:
+      '#type': range
+      '#title': Range
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#range__output': true
+      '#range__output_prefix': $
+      '#range__output_suffix': '.00'
+    color:
+      '#type': color
+      '#title': Color
+    text_format:
+      '#type': text_format
+      '#title': 'Text format'
+    managed_file:
+      '#type': managed_file
+      '#title': 'File upload'
+    managed_file_multiple:
+      '#type': managed_file
+      '#title': 'File upload multiple'
+      '#multiple': true
+    managed_file_button:
+      '#type': managed_file
+      '#title': 'File upload button'
+      '#button': true
+    text_format:
+      '#type': text_format
+      '#title': 'Text format'
+    tableselect:
+      '#type': tableselect
+      '#title': 'Table select'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_tableselect_sort:
+      '#type': webform_tableselect_sort
+      '#title': 'Tableselect sort'
+      '#options':
+        one: One
+        two: Two
+    webform_table_sort:
+      '#type': webform_table_sort
+      '#title': 'Table sort'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_autocomplete:
+      '#type': webform_autocomplete
+      '#title': Autocomplete
+      '#autocomplete_items': country_names
+    webform_buttons:
+      '#type': webform_buttons
+      '#title': Buttons
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_codemirror:
+      '#type': webform_codemirror
+      '#title': CodeMirror
+      '#mode': yaml
+    webform_image_select:
+      '#type': webform_image_select
+      '#title': 'Image select'
+      '#show_label': true
+      '#images':
+        kitten_1:
+          text: 'Cute Kitten 1'
+          src: 'http://placekitten.com/220/200'
+        kitten_2:
+          text: 'Cute Kitten 2'
+          src: 'http://placekitten.com/180/200'
+        kitten_3:
+          text: 'Cute Kitten 3'
+          src: 'http://placekitten.com/130/200'
+    webform_rating:
+      '#type': webform_rating
+      '#title': Rating
+    webform_signature:
+      '#type': webform_signature
+      '#title': Signature
+    webform_terms_of_service:
+      '#type': webform_terms_of_service
+      '#terms_content': 'These are the terms of service.'
+    webform_toggle:
+      '#type': webform_toggle
+      '#title': Toggle
+    webform_toggles:
+      '#type': webform_toggles
+      '#title': Toggles
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_likert:
+      '#type': webform_likert
+      '#title': Likert
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: 1
+        2: 2
+        3: 3
+        4: 4
+        5: 5
+  entity_reference_elements:
+    '#type': details
+    '#title': 'Entity reference elements'
+    '#open': true
+    entity_autocomplete:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+    entity_autocomplete_tags:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete tags'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#tags': true
+    entity_autocomplete_multiple:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete multiple'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#multiple': true
+    webform_entity_checkboxes:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    webform_entity_radios:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+    webform_entity_select:
+      '#type': webform_entity_select
+      '#title': 'Entity select'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+    webform_entity_select_multiple:
+      '#type': webform_entity_select
+      '#title': 'Entity select multiple'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#multiple': true
+      '#select2': true
+    webform_term_checkboxes:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes'
+      '#vocabulary': tags
+    webform_term_select:
+      '#type': webform_term_select
+      '#title': 'Term select'
+      '#vocabulary': tags
+    webform_term_select_multiple:
+      '#type': webform_term_select
+      '#title': 'Term select multiple'
+      '#vocabulary': tags
+      '#multiple': true
+      '#select2': true
+  webform_composites:
+    '#type': details
+    '#title': 'Webform composites'
+    '#open': true
+    webform_address:
+      '#type': webform_address
+      '#title': Address
+      '#flexbox': false
+    webform_location:
+      '#type': webform_location
+      '#title': Location
+      '#map': true
+      '#geolocation': true
+      '#format': map
+    webform_link_multiple:
+      '#type': webform_link
+      '#title': 'Link multiple'
+      '#multiple': true
+      '#multiple__header': true
+    webform_custom_composite:
+      '#type': webform_composite
+      '#title': 'Custom composite'
+      '#element':
+        first_name:
+          '#type': textfield
+          '#title': 'First name'
+        last_name:
+          '#type': textfield
+          '#title': 'Last name'
+        gender:
+          '#type': select
+          '#options': gender
+          '#title': Gender
+        martial_status:
+          '#type': webform_select_other
+          '#options': marital_status
+          '#title': 'Martial status'
+        employment_status:
+          '#type': webform_select_other
+          '#options': employment_status
+          '#title': 'Employment status'
+        age:
+          '#type': number
+          '#title': 'Age'
+  form_elements:
+    '#type': details
+    '#title': 'Form elements'
+    '#open': true
+    form_element:
+      '#type': textfield
+      '#title': 'Form element'
+      '#description': '{description}'
+      '#size': 5
+      '#field_prefix': '$'
+      '#field_suffix': '.00'
+    form_element_required:
+      '#type': textfield
+      '#title': 'Form element (Required)'
+      '#required': TRUE
+      '#default_value': '{value}'
+      '#attributes':
+        class:
+          - error
+    form_element_disabled:
+      '#type': textfield
+      '#title': 'Form element (Disabled)'
+      '#default_value': '{value}'
+      '#disabled': true
+    form_element_input_mask:
+      '#type': textfield
+      '#title': 'Form element (Input mask: Phone)'
+      '#input_mask': '(999) 999-9999'
+    title_display_before:
+      '#type': textfield
+      '#title': 'Title displayed before'
+      '#title_display': before
+      '#description': 'This is a description.'
+    title_display_after:
+      '#type': textfield
+      '#title': 'Title displayed after'
+      '#title_display': after
+      '#description': 'This is a description.'
+    title_help:
+      '#type': textfield
+      '#title': 'Title with help (tooltip)'
+      '#help': 'This is help displayed in a tooltip. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.'
+    title_display_inline:
+      '#type': textfield
+      '#title': 'Title displayed inline'
+      '#title_display': inline
+      '#description': 'This is a description.'
+    description_display_before:
+      '#type': textfield
+      '#title': 'Description displayed before'
+      '#description': 'This description is displayed before the input.'
+      '#description_display': before
+    description_display_tooltip:
+      '#type': textfield
+      '#title': 'Description displayed in tooltip'
+      '#description': 'This description is displayed in a tooltip. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.'
+      '#description_display': tooltip
+    description_more:
+      '#type': textfield
+      '#title': 'Description with (read) more'
+      '#description': 'This is a description.'
+      '#more': 'This is more text'
+  container_elements:
+    '#type': details
+    '#title': 'Containers elements'
+    '#open': true
+    details:
+      '#type': details
+      '#title': Details
+      '#description': 'This is a description.'
+    fieldset:
+      '#type': fieldset
+      '#title': Fieldset
+      '#description': 'This is a description.'
+    webform_section:
+      '#type': webform_section
+      '#title': Section
+      '#description': 'This is a description.'
+    container_form_inline:
+      '#type': container
+      '#attributes':
+        class:
+          - 'form--inline clearfix'
+      form_inline_01:
+        '#title': 'Form inline 01'
+        '#type': textfield
+        '#size': 10
+      form_inline_02:
+        '#title': 'Form inline 02'
+        '#type': textfield
+        '#size': 10
+    container_inline:
+      '#title': 'Container inline'
+      '#type': textfield
+      '#wrapper_attributes':
+        class:
+          - 'container-inline clearfix'
+  divider:
+    '#type': details
+    '#title': 'Divider'
+    '#open': true
+    horizontal_rule:
+      '#type': webform_horizontal_rule
+      '#attributes':
+        class:
+          - webform-horizontal-rule--dotted
+          - webform-horizontal-rule--thick
+  messages:
+    '#type': details
+    '#title': Messages
+    '#open': true
+    message_info:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is an <strong>info</strong> message.'
+      '#message_close': true
+    message_status:
+      '#type': webform_message
+      '#message_message': 'This is a <strong>status</strong> message.'
+      '#message_close': true
+    message_warning:
+      '#type': webform_message
+      '#message_type': warning
+      '#message_message': 'This is a <strong>warning</strong> message.'
+      '#message_close': true
+    message_error:
+      '#type': webform_message
+      '#message_type': error
+      '#message_message': 'This is a <strong>error</strong> message.'
+      '#message_close': true
+  flexbox:
+    '#type': details
+    '#title': 'Flexbox'
+    '#open': true
+    webform_flexbox:
+      '#type': webform_flexbox
+      '#title': 'Flexbox elements'
+      element_flex_1:
+        '#type': textfield
+        '#title': 'Element (Flex: 1)'
+        '#flex': 1
+      element_flex_2:
+        '#type': textfield
+        '#title': 'Element (Flex: 2)'
+        '#flex': 2
+      element_flex_3:
+        '#type': textfield
+        '#title': 'Element (Flex: 3)'
+        '#flex': 3
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: true
+  wizard_progress_percentage: true
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

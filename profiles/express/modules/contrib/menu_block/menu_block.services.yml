@@ -1,0 +1,6 @@
+services:
+  menu_block.kernel_view_subscriber:
+    class: Drupal\menu_block\EventSubscriber\MenuBlockKernelViewSubscriber
+    arguments: ['@current_route_match']
+    tags:
+      - { name: event_subscriber }

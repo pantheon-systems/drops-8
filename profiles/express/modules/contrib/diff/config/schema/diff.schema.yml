@@ -1,0 +1,205 @@
+diff.settings:
+  type: config_object
+  label: 'Settings'
+  mapping:
+    general_settings:
+      type: mapping
+      label: 'General Settings'
+      mapping:
+        radio_behavior:
+          type: label
+          label: 'Radio button behaviour'
+        context_lines_leading:
+          type: integer
+          label: 'Number of leading context lines'
+        context_lines_trailing:
+          type: integer
+          label: 'Number of trailing context lines'
+        revision_pager_limit:
+          type: integer
+          label: 'Revisions per page to be displayed in diff pager'
+        layout_plugins:
+          type: sequence
+          label: 'Plugins'
+          sequence:
+            type: mapping
+            label: 'Layout plugins configuration'
+            mapping:
+              enabled:
+                type: boolean
+                label: 'Enabled'
+              weight:
+                type: integer
+                label: 'Weight'
+        visual_inline_theme:
+          type: string
+          label: 'Theme'
+    entity:
+      type: sequence
+      label: 'Entities'
+      sequence:
+        - type: sequence
+          label: 'Entity ID'
+          sequence:
+            - type: integer
+              label: 'Compare base field'
+
+diff.plugins:
+  type: config_object
+  label: 'Entity Type'
+  mapping:
+    fields:
+      type: sequence
+      label: 'Field'
+      sequence:
+        type: sequence
+        sequence:
+          type: mapping
+          label: 'Diff configuration for a field type'
+          mapping:
+            type:
+              type: text
+              label: 'Plugin key'
+            settings:
+              type: diff.plugin.settings.[%parent.type]
+
+diff.plugin.settings_base:
+  type: mapping
+  label: 'Settings for base diff builder plugin'
+  mapping:
+    show_header:
+      type: integer
+      label: 'Compare the field title'
+    markdown:
+      type: string
+      label: 'Mark-down function ID'
+
+# The plugins which extend the base diff builder plugin and don't provide
+# any configuration form will validate on this entry.
+diff.plugin.settings.*:
+  type: diff.plugin.settings_base
+
+diff.plugin.settings.file_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for file field diff builder plugin'
+  mapping:
+    show_id:
+      type: integer
+      label: 'Compare the ID of the file'
+    compare_description_field:
+      type: integer
+      label: 'Compare the description of the file'
+    compare_display_field:
+      type: integer
+      label: 'Compare the description of the file'
+    property_separator:
+      type: text
+      label: 'Separator between multiple compared properties'
+
+diff.plugin.settings.image_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for image field diff builder plugin'
+  mapping:
+    show_id:
+      type: integer
+      label: 'Compare the ID of the image'
+    compare_alt_field:
+      type: integer
+      label: 'Compare the alt of the image'
+    compare_title_field:
+      type: integer
+      label: 'Compare the title of the image'
+    property_separator:
+      type: text
+      label: 'Separator between multiple compared properties'
+    show_thumbnail:
+      type: integer
+      label: 'Show the image thumbnail'
+
+diff.plugin.settings.list_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for list field diff builder plugin'
+  mapping:
+    compare:
+      type: text
+      label: 'Comparison method key'
+
+diff.plugin.settings.term_reference_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for term reference field diff builder plugin'
+  mapping:
+    show_name:
+      type: integer
+      label: 'Compare the taxonomy term string'
+    show_id:
+      type: integer
+      label: 'Compare the taxonomy term id'
+
+diff.plugin.settings.text_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for text field diff builder plugin'
+  mapping:
+    compare_format:
+      type: integer
+      label: 'Compare the format of the text'
+
+diff.plugin.settings.text_summary_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for text with summary field diff builder plugin'
+  mapping:
+    compare_format:
+      type: integer
+      label: 'Compare the format of the text'
+    compare_summary:
+      type: integer
+      label: 'Compare the summary of the text'
+
+diff.plugin.settings.link_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for link field diff builder plugin'
+  mapping:
+    compare_title:
+      type: integer
+      label: 'Compare the title of the link'
+    compare_uri:
+      type: integer
+      label: 'Compare the URI of the link'
+
+diff.plugin.settings.comment_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for comment field diff builder plugin'
+  mapping:
+    compare_key:
+      type: integer
+      label: 'Compare the status key of the comments'
+    compare_string:
+      type: integer
+      label: 'Compare the status string of the comments'
+
+diff.plugin.settings.entity_reference_field_diff_builder:
+  type: diff.plugin.settings_base
+  label: 'Settings for entity reference field diff builder plugin'
+  mapping:
+    compare_entity_reference:
+      type: integer
+      label: 'Entity reference component to compare'
+
+diff.layout_plugins:
+  type: config_object
+  label: 'Plugin'
+  mapping:
+    type: sequence
+    sequence:
+      type: mapping
+      label: 'Diff configuration for a field type'
+      mapping:
+        type:
+          type: text
+          label: 'Plugin key'
+        settings:
+          type: diff.layout_plugin.settings.[%parent.type]
+
+diff.layout_plugin.settings_base:
+  type: mapping
+  label: 'Settings for base diff layout plugin'
+  mapping:

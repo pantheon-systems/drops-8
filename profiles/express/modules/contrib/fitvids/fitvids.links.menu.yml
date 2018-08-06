@@ -1,0 +1,5 @@
+fitvids.admin:
+  title: 'FitVids'
+  description: 'Configuration for FitVids module'
+  parent: system.admin_config_media
+  route_name: fitvids.admin

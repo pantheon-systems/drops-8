@@ -1,0 +1,31 @@
+langcode: und
+status: true
+dependencies:
+  config:
+    - field.storage.node.test_ref_nested1
+    - node.type.ief_test_nested1
+  module:
+    - inline_entity_form_test
+    - entity_reference
+  enforced:
+    module:
+      - inline_entity_form_test
+id: node.ief_test_nested1.test_ref_nested1
+field_name: test_ref_nested1
+entity_type: node
+bundle: ief_test_nested1
+label: Multiple nodes
+description: 'Reference multiple nodes.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: default:node
+  handler_settings:
+    target_bundles:
+      ief_reference_type: ief_test_nested2
+    sort:
+      field: _none
+third_party_settings: {  }
+field_type: entity_reference

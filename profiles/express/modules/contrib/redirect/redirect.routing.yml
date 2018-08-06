@@ -1,0 +1,58 @@
+redirect.list:
+  path: '/admin/config/search/redirect'
+  defaults:
+    _entity_list: 'redirect'
+    _title: 'URL redirects'
+  requirements:
+    _permission: 'administer redirects'
+
+entity.redirect.canonical:
+  path: '/admin/config/search/redirect/edit/{redirect}'
+  defaults:
+    _entity_form: 'redirect.edit'
+    _title: 'Edit URL redirect'
+  requirements:
+    _entity_access: 'redirect.update'
+
+redirect.add:
+  path: '/admin/config/search/redirect/add'
+  defaults:
+    _entity_form: 'redirect.default'
+    _title: 'Add URL redirect'
+  requirements:
+    _entity_create_access: 'redirect'
+
+entity.redirect.edit_form:
+  path: '/admin/config/search/redirect/edit/{redirect}'
+  defaults:
+    _entity_form: 'redirect.edit'
+    _title: 'Edit URL redirect'
+  requirements:
+    _entity_access: 'redirect.update'
+
+entity.redirect.delete_form:
+  path: '/admin/config/search/redirect/delete/{redirect}'
+  defaults:
+    _entity_form: 'redirect.delete'
+    _title: 'Delete URL redirect'
+  requirements:
+    _entity_access: 'redirect.delete'
+
+entity.redirect.multiple_delete_confirm:
+  path: '/admin/config/search/redirect/delete'
+  defaults:
+    _form: '\Drupal\redirect\Form\RedirectDeleteMultipleForm'
+  requirements:
+    _permission: 'administer redirects'
+
+redirect.settings:
+  path: '/admin/config/search/redirect/settings'
+  defaults:
+    _form: '\Drupal\redirect\Form\RedirectSettingsForm'
+    _title: 'Settings'
+  requirements:
+    _permission: 'administer redirect settings'
+
+#redirect.devel_generate:
+#  requirements:
+#    _module_dependencies: 'devel'

@@ -1,0 +1,18 @@
+redirect_domain.domains:
+  type: config_object
+  label: 'Redirect domains'
+  mapping:
+    domain_redirects:
+      type: sequence
+      label: 'Domain redirects'
+      sequence:
+        type: sequence
+        sequence:
+          type: mapping
+          mapping:
+            sub_path:
+              type: string
+              label: 'Sub path'
+            destination:
+              type: string
+              label: 'Destination'

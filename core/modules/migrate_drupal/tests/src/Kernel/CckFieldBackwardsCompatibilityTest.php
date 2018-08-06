@@ -7,7 +7,6 @@ use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
 
 /**
  * @group migrate_drupal
- * @group legacy
  */
 class CckFieldBackwardsCompatibilityTest extends MigrateDrupal6TestBase {
 
@@ -18,8 +17,6 @@ class CckFieldBackwardsCompatibilityTest extends MigrateDrupal6TestBase {
 
   /**
    * Ensures that the cckfield backwards compatibility layer is invoked.
-   *
-   * @expectedDeprecation MigrateCckFieldInterface is deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.x. Use \Drupal\migrate_drupal\Annotation\MigrateField instead.
    */
   public function testBackwardsCompatibility() {
     $migration = $this->container

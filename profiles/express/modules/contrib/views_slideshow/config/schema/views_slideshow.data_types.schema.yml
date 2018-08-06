@@ -1,0 +1,55 @@
+# Basic data types for views slideshows.
+
+views_slideshow_widget:
+  type: mapping
+  label: 'widget'
+  mapping:
+    enable:
+      type: boolean
+      label: 'Show widget'
+    weight:
+      type: string
+      label: 'Sort order'
+    hide_on_single_slide:
+      type: string
+      label: 'Hide if only one slide'
+
+views_slideshow_control_group:
+  type: mapping
+  label: 'Group of widget settings for slideshow region'
+  mapping:
+    views_slideshow_controls:
+      type: views_slideshow_widget
+      label: 'Slideshow controls'
+      mapping:
+        enable:
+          type: boolean
+          label: 'Show widget'
+        weight:
+          type: string
+          label: 'Sort order'
+        hide_on_single_slide:
+          type: string
+          label: 'Hide if only one slide'
+        type:
+          type: string
+          label: 'The control type'
+    views_slideshow_slide_counter:
+      type: views_slideshow_widget
+      label: 'Slide Counter'
+    views_slideshow_pager:
+      type: views_slideshow_widget
+      label: 'Slideshow pager'
+      mapping:
+        enable:
+          type: boolean
+          label: 'Show widget'
+        weight:
+          type: string
+          label: 'Sort order'
+        hide_on_single_slide:
+          type: string
+          label: 'Hide if only one slide'
+        type:
+          type: string
+          label: 'The control type'

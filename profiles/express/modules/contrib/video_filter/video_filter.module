@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Video Filter module.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function video_filter_theme() {
+  return [
+    'video_filter_iframe' => [
+      'variables' => [
+        'video'   => [],
+      ],
+    ],
+    'video_filter_flash' => [
+      'variables' => [
+        'video'   => [],
+      ],
+    ],
+    'video_filter_html' => [
+      'variables' => [
+        'video' => [],
+      ],
+    ],
+  ];
+}

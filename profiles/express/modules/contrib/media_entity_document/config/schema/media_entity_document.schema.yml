@@ -1,0 +1,7 @@
+media_entity.bundle.type.document:
+  type: mapping
+  label: 'Document type configuration'
+  mapping:
+    source_field:
+      type: string
+      label: 'Field with source information'

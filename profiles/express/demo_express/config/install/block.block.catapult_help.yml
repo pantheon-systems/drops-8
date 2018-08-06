@@ -1,0 +1,22 @@
+uuid: 385a362c-ddce-4600-be7a-bf0aa84b860e
+langcode: en
+status: true
+dependencies:
+  module:
+    - help
+  theme:
+    - catapult
+_core:
+  default_config_hash: Y4ZDo-57K9QI7azgefdxAAtgg1rr-DTmTM16ywphbwk
+id: catapult_help
+theme: catapult
+region: content
+weight: -7
+provider: null
+plugin: help_block
+settings:
+  id: help_block
+  label: Help
+  provider: help
+  label_display: '0'
+visibility: {  }

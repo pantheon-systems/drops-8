@@ -1,0 +1,220 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples
+open: null
+close: null
+uid: null
+template: false
+id: example_flexbox_layout
+title: 'Example: Flexbox layout'
+description: 'Examples of multiple column webform layout using <a href="https://css-tricks.com/snippets/css/a-guide-to-flexbox/">Flexbox</a>.'
+category: Example
+elements: |
+  name:
+    '#type': webform_flexbox
+    title:
+      '#type': textfield
+      '#title': Title
+    first_name:
+      '#type': textfield
+      '#title': 'First name'
+      '#flex': 3
+    middle_name:
+      '#type': textfield
+      '#title': 'Middle name'
+      '#flex': 3
+    last_name:
+      '#type': textfield
+      '#title': 'Last name'
+      '#flex': 5
+    suffix:
+      '#type': textfield
+      '#title': Suffix
+  personal_information_1:
+    '#type': webform_flexbox
+    birth_date:
+      '#type': datelist
+      '#title': 'Birth date'
+      '#date_part_order':
+        - month
+        - day
+        - year
+    gender:
+      '#type': radios
+      '#title': Gender
+      '#options': gender
+      '#options_display': two_columns
+  personal_information_2:
+    '#type': webform_flexbox
+    ethnicity:
+      '#type': webform_checkboxes_other
+      '#title': Ethnicity
+      '#options': ethnicity
+      '#options_display': three_columns
+    marital_status:
+      '#type': radios
+      '#title': 'Marital status'
+      '#options': marital_status
+      '#options_display': two_columns
+  work:
+    '#type': webform_flexbox
+    employment_status:
+      '#type': webform_select_other
+      '#title': 'Employment status'
+      '#options': employment_status
+    industry:
+      '#type': webform_select_other
+      '#title': 'If employed, industry of employer'
+      '#options': industry
+  address_line_1:
+    '#type': webform_flexbox
+    address:
+      '#type': textfield
+      '#title': 'Street address (Line 1)'
+  address_line_2:
+    '#type': webform_flexbox
+    address_1:
+      '#type': textfield
+      '#title': 'Street address (Line 2)'
+  address_line_3:
+    '#type': webform_flexbox
+    city:
+      '#type': textfield
+      '#title': City
+    state_province:
+      '#type': webform_select_other
+      '#title': State/Province
+      '#options': state_province_names
+    zip:
+      '#type': textfield
+      '#title': Zip
+  address_line_4:
+    country:
+      '#type': select
+      '#title': Country
+      '#options': country_names
+  phone_number:
+    '#type': webform_flexbox
+    mobile_phone:
+      '#type': tel
+      '#title': 'Mobile phone'
+    home_phone:
+      '#type': tel
+      '#title': 'Home phone'
+    work_phone:
+      '#type': tel
+      '#title': 'Home phone'
+  web:
+    '#type': webform_flexbox
+    email:
+      '#type': email
+      '#title': 'Email address'
+    url:
+      '#type': url
+      '#title': 'Home page (URL)'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,34 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - views
+name: test_dropdown
+label: 'Test browser Dropdown'
+display: standalone
+display_configuration:
+  path: '/entity-browser/test-dropdown'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: drop_down
+widget_selector_configuration: {  }
+widgets:
+  8dcc81c7-e24c-4d0b-85a1-bbd03a56dbe3:
+    id: view
+    label: 'View widget nr. 1'
+    weight: 2
+    uuid: 8dcc81c7-e24c-4d0b-85a1-bbd03a56dbe3
+    settings: {  }
+  df9b03c8-4ad4-44c9-925a-57ab0cc7e6d6:
+    id: view
+    label: 'View widget nr. 2'
+    weight: 1
+    uuid: df9b03c8-4ad4-44c9-925a-57ab0cc7e6d6
+    settings: {  }
+  a1665840-4b0b-11e4-916c-0800200c9a66:
+    id: upload
+    label: 'Upload'
+    weight: 0
+    uuid: a1665840-4b0b-11e4-916c-0800200c9a66
+    settings:
+      upload_location: 'public://'

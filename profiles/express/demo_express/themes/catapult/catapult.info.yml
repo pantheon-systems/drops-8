@@ -1,0 +1,16 @@
+name: Catapult
+type: theme
+base theme: classy
+description: A responsive Drupal 8 theme
+core: 8.x
+version: 1.x
+
+libraries:
+  - catapult/global-styling
+
+regions:
+  header: Header
+  hero: Hero
+  block_row: Block Row
+  content: Content
+  footer: Footer

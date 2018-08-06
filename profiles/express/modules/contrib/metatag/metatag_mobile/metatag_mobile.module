@@ -1,0 +1,117 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_mobile.module..
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_mobile_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_mobile module.
+    case 'help.page.metatag_mobile':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides support for meta tags used to control the mobile browser experience.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function metatag_mobile_theme() {
+  $info['metatag_mobile_android_app'] = [
+    'render element' => 'element',
+  ];
+  $info['metatag_mobile_ios_app'] = [
+    'render element' => 'element',
+  ];
+
+  return $info;
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function metatag_mobile_page_attachments_alter(array &$attachments) {
+  if (isset($attachments['#attached']['html_head'])) {
+    // A list of core tags that will be replaced, in the format:
+    //   core tag => Metatag-supplied tag
+    // This assumes that the module's meta tags are output *before* the core
+    // tags, if this changes then We're Going To Have A Bad Time.
+    $dupes = [
+      'MobileOptimized' => 'mobileoptimized',
+      'HandheldFriendly' => 'handheldfriendly',
+      'viewport' => 'viewport',
+    ];
+
+    // Keep track of when the Metatag-supplied meta tags are found, so if the
+    // core tag is also found it can be removed.
+    $found = [];
+
+    foreach ($dupes as $core_tag => $meta_tag) {
+      foreach ($attachments['#attached']['html_head'] as $key => $item) {
+        // The Metatag values are output before core's, so skip the first item
+        // found so it can be picked up as the dupe; this is important for the
+        // "viewport" meta tag where both core and Metatag use the same name.
+        if ($item[1] == $meta_tag && !isset($found[$meta_tag])) {
+          $found[$meta_tag] = $key;
+        }
+        elseif ($item[1] == $core_tag) {
+          if (isset($found[$meta_tag])) {
+            // @todo This ought to work, but doesn't?
+            // $attachments['#attached']['html_head'][$key]['#access'] = FALSE;
+            unset($attachments['#attached']['html_head'][$key]);
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Theme callback for an Android app link meta tag.
+ *
+ * The format is:
+ * <link rel="alternate" href="android-app://com.example.Example/sitesection/sitepage/thispage" />
+ */
+function theme_metatag_mobile_android_app($variables) {
+  // Pass everything through to the normal 'link' tag theme.
+  $variables['element']['#name'] = 'alternative';
+  $variables['element']['#value'] = 'android-app://' . $variables['element']['#value'];
+
+  return theme('metatag_link_rel', $variables);
+}
+
+/**
+ * Theme callback for an iOS app link meta tag.
+ *
+ * The format is:
+ * <link rel="alternate" href="ios-app://123456/example/hello-screen" />
+ */
+function theme_metatag_mobile_ios_app($variables) {
+  // Pass everything through to the normal 'link' tag theme.
+  $variables['element']['#name'] = 'alternative';
+  $variables['element']['#value'] = 'ios-app://' . $variables['element']['#value'];
+
+  return theme('metatag_link_rel', $variables);
+}
+
+/*
+* theme-color
+* MobileOptimized
+* HandheldFriendly
+* viewport
+* cleartype
+* apple-mobile-web-app-capable
+* apple-mobile-web-app-status-bar-style
+* format-detection
+* android-app
+*/

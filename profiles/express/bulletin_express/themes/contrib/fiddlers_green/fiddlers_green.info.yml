@@ -1,0 +1,32 @@
+name: Fiddlers' Green
+type: theme
+description: A green theme for people who want to listen to Irish folk music.
+package: Custom
+core: 8.x
+libraries:
+  - fiddlers_green/global-styling
+
+base theme: bootstrap
+#Using Classy as a base theme https://www.drupal.org/theme-guide/8/classy
+
+regions:
+  content: 'Content'
+  branding: 'Branding'
+  search_box: 'Search'
+  secondary_menu: 'Secondary Menu'
+  menu: 'Menu'
+  menu_collapsible: 'Menu (Collapsible)'
+  sidebar_first: 'Sidebar First'
+  sidebar_second: 'Sidebar Second'
+  intro: 'Wide Intro'
+  slider: 'Slider'
+  help: 'Help'
+  wide_2: 'Wide Post'
+  after_content: 'After Content'
+  lower: 'After Content 2'
+  footer: 'Footer'
+  site_info: 'Site Information'
+  alerts: 'Alerts'
+  content_sidebar_right: 'Content Sidebar Right'
+  content_sidebar_left: 'Content Sidebar Left'
+  content_bottom: 'Content Bottom'

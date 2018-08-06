@@ -1,0 +1,108 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform Test Exporter module.
+ */
+
+use Drupal\node\NodeInterface;
+use Drupal\node\Entity\Node;
+use Drupal\node\Entity\NodeType;
+use Drupal\webform\Entity\WebformSubmission;
+
+/**
+ * Implements hook_install().
+ */
+function webform_test_submissions_install() {
+  // Create 'webform_test_submissions' content-type.
+  if (!NodeType::load('webform_test_submissions')) {
+    $node_type = NodeType::create([
+      'type' => 'webform_test_submissions',
+      'name' => 'Webform Test Submissions',
+    ]);
+    $node_type->save();
+  }
+
+  // Create three 'webform_test_submissions' nodes.
+  $nodes = [];
+  for ($i = 0; $i < 3; $i++) {
+    $node = Node::create([
+      'body' => [
+        [
+          'value' => '{Body}',
+          'format' => filter_default_format(),
+        ]
+      ],
+      'title' => 'Node ' . $i,
+      'type' => 'webform_test_submissions',
+      'uid' => 0,
+      'status' => NodeInterface::PUBLISHED
+    ]);
+    $node->save();
+    $nodes[$i] = $node->id();
+  }
+
+  // Create 'webform_test_submissions' submissions.
+  $records = [
+    [
+      'created' => strtotime('2000-01-01'),
+      'data' => [
+        'first_name' => 'George',
+        'last_name' => 'Washington',
+        'sex' => 'Male',
+        'dob' => '1732-02-22',
+        'node' => $nodes[0],
+        'colors' => ['white'],
+        'likert' => ['q1' => 1, 'q2' => 1, 'q3' => 1],
+        'address' => ['address' => '{Address}', 'city' => '{City}', 'state_province' => 'New York', 'country' => 'United States', 'postal_code' => '11111-1111'],
+      ],
+    ],
+    [
+      'created' => strtotime('2001-01-01'),
+      'data' => [
+        'first_name' => 'Abraham',
+        'last_name' => 'Lincoln',
+        'sex' => 'Male',
+        'dob' => '1809-02-12',
+        'node' => $nodes[1],
+        'colors' => ['red', 'white', 'blue'],
+        'likert' => ['q1' => 2, 'q2' => 2, 'q3' => 2],
+        'address' => ['address' => '{Address}', 'city' => '{City}', 'state_province' => 'New York', 'country' => 'United States', 'postal_code' => '11111-1111'],
+      ],
+    ],
+    [
+      'created' => strtotime('2002-01-01'),
+      'data' => [
+        'first_name' => 'Hillary',
+        'last_name' => 'Clinton',
+        'sex' => 'Female',
+        'dob' => '1947-10-26',
+        'node' => $nodes[2],
+        'colors' => ['red'],
+        'likert' => ['q1' => 2, 'q2' => 2, 'q3' => 2],
+        'address' => ['address' => '{Address}', 'city' => '{City}', 'state_province' => 'New York', 'country' => 'United States', 'postal_code' => '11111-1111'],
+      ],
+    ],
+  ];
+  foreach ($records as $record) {
+    $values = [
+      'webform_id' => 'test_submissions',
+      'uid' => 0,
+    ] + $record;
+    WebformSubmission::create($values)->save();
+  }
+}
+
+/**
+ * Implements hook_install().
+ */
+function webform_test_submissions_uninstall() {
+  $nodes = \Drupal::entityTypeManager()->getStorage('node')->loadByProperties(['type' => 'webform_test_submissions']);
+  foreach ($nodes as $node) {
+    $node->delete();
+  }
+
+  if ($node_type = NodeType::load('webform_test_submissions')) {
+    $node_type->delete();
+  }
+}

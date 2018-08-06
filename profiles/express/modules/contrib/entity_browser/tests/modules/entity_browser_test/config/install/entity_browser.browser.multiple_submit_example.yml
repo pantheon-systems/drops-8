@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - entity_browser_test
+name: multiple_submit_example
+label: 'Multiple submit example'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  726ded86-f5ab-458d-8556-989059287346:
+    settings:
+      submit_text: 'Select entities'
+    uuid: 726ded86-f5ab-458d-8556-989059287346
+    weight: 1
+    label: multiple_submit_test_widget
+    id: multiple_submit_test_widget

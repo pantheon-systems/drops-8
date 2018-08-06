@@ -1,0 +1,17 @@
+langcode: en
+status: true
+id: node.ief_reference_type.first_name
+field_name: first_name
+entity_type: node
+bundle: ief_reference_type
+label: 'First name'
+description: ''
+required: true
+default_value: {  }
+default_value_callback: ''
+settings: { }
+field_type: text
+dependencies:
+  config:
+    - field.storage.node.first_name
+    - node.type.ief_reference_type

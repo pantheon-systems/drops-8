@@ -5,7 +5,7 @@ namespace Drupal\Tests\block_content\Functional;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
 use Drupal\Component\Utility\Unicode;
-use Drupal\Tests\content_translation\Functional\ContentTranslationUITestBase;
+use Drupal\content_translation\Tests\ContentTranslationUITestBase;
 
 /**
  * Tests the block content translation UI.

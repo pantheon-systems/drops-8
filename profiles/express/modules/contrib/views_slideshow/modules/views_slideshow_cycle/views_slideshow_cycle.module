@@ -1,0 +1,95 @@
+<?php
+
+/**
+ * @file
+ * Views Slideshow: cycle is typically used for field views.
+ */
+
+use Drupal\Core\Url;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Link;
+
+/**
+ * Implements hook_help().
+ */
+function views_slideshow_cycle_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.views_slideshow_cycle':
+      if (\Drupal::moduleHandler()->moduleExists('advanced_help')) {
+        $output = '<p>' . Link::fromTextAndUrl(t('Click here to view the documentation for Views Slideshow Cycle.'), Url::fromRoute('advanced_help.module_index', ['module' => 'views_slideshow_cycle'])->toString()) . '</p>';
+      }
+      else {
+        $output = '<p>' . t('Views Slideshow Cycle help can be found by installing and enabling the @advanced_help', ['@advanced_help' => Link::fromTextAndUrl(t('Advanced Help module'), Url::fromUri('http://drupal.org/project/advanced_help'))->toString()]) . '</p>';
+      }
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function views_slideshow_cycle_theme($existing, $type, $theme, $path) {
+  return [
+    'views_slideshow_cycle' => [
+      'variables' => [
+        'view' => NULL,
+        'settings' => [],
+        'rows' => [],
+        'title' => '',
+      ],
+      'template' => 'views-slideshow-cycle',
+      'file' => 'views_slideshow_cycle.theme.inc',
+    ],
+    'views_slideshow_cycle_main_frame' => [
+      'variables' => [
+        'vss_id' => NULL,
+        'view' => NULL,
+        'settings' => NULL,
+        'rows' => NULL,
+      ],
+      'template' => 'views-slideshow-cycle-main-frame',
+      'file' => 'views_slideshow_cycle.theme.inc',
+    ],
+    'views_slideshow_cycle_main_frame_row' => [
+      'variables' => [
+        'vss_id' => NULL,
+        'items' => NULL,
+        'count' => NULL,
+        'view' => NULL,
+      ],
+      'template' => 'views-slideshow-cycle-main-frame-row',
+      'file' => 'views_slideshow_cycle.theme.inc',
+    ],
+    'views_slideshow_cycle_main_frame_row_item' => [
+      'variables' => [
+        'item' => NULL,
+        'item_count' => NULL,
+        'count' => NULL,
+        'view' => NULL,
+        'length' => NULL,
+      ],
+      'template' => 'views-slideshow-cycle-main-frame-row-item',
+      'file' => 'views_slideshow_cycle.theme.inc',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_preprocess_views_slideshow_pager_fields().
+ *
+ * As it is a preprocess function, store it with other functions in theme.inc.
+ */
+function views_slideshow_cycle_preprocess_views_slideshow_pager_fields(&$vars) {
+  \Drupal::moduleHandler()->loadInclude('views_slideshow_cycle', 'inc', 'views_slideshow_cycle.theme');
+  _views_slideshow_cycle_preprocess_views_slideshow_pager_fields($vars);
+}
+
+/**
+ * Implements hook_preprocess_views_slideshow_slide_counter().
+ *
+ * As it is a preprocess function, store it with other functions in theme.inc.
+ */
+function views_slideshow_cycle_preprocess_views_slideshow_slide_counter(&$vars) {
+  \Drupal::moduleHandler()->loadInclude('views_slideshow_cycle', 'inc', 'views_slideshow_cycle.theme');
+  _views_slideshow_cycle_preprocess_views_slideshow_slide_counter($vars);
+}

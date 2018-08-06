@@ -1,0 +1,4 @@
+name: Libraries
+type: module
+description: Allows version-dependent and shared usage of external libraries.
+core: 8.x

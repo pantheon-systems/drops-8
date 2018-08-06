@@ -1,0 +1,17 @@
+/**
+ * @file
+ * Webform node references styling.
+ */
+
+/**
+ * Local actions.
+ */
+.webform-node-references-local-actions {
+  margin: 1em 0;
+}
+
+.webform-node-references-local-actions .button,
+.webform-node-references-local-actions .button:first-child {
+  margin-left: 0;
+  margin-right: 1em;
+}

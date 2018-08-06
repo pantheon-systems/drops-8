@@ -1,0 +1,42 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.ief_view_files
+  module:
+    - views
+name: ief_entity_browser_file
+label: 'Test entity browser file'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: multi_step_display
+selection_display_configuration:
+  entity_type: file
+  display: label
+  display_settings: {  }
+  select_text: 'Use selected'
+  selection_hidden: false
+widget_selector: tabs
+widget_selector_configuration: {  }
+widgets:
+  2dc1ab07-2f8f-42c9-aab7-7eef7f8b7d87:
+    settings:
+      upload_location: 'public://'
+      submit_text: 'Select files'
+    uuid: 2dc1ab07-2f8f-42c9-aab7-7eef7f8b7d87
+    weight: -9
+    label: upload
+    id: upload
+  774798f1-5ec5-4b63-84bd-124cd51ec07d:
+    settings:
+      view: ief_view_files
+      view_display: entity_browser_1
+      submit_text: 'Select entities'
+    uuid: 774798f1-5ec5-4b63-84bd-124cd51ec07d
+    weight: -10
+    label: view
+    id: view

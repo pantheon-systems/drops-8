@@ -1,0 +1,51 @@
+/**
+ * @file
+ * Navigation styles.
+ *
+ * @see /admin/structure/webform/manage/{webform_id}/submission/{webform_submission_id}
+ */
+
+/**
+ * Navigation.
+ */
+.webform-submission-navigation {
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  margin: 0.5em 0;
+}
+
+/**
+ * Pager.
+ */
+.webform-submission-pager {
+  margin: 0;
+  overflow: auto;
+  padding: 0.5em 0;
+}
+
+.webform-submission-pager__item {
+  display: inline-block;
+  list-style-type: none;
+  vertical-align: top;
+}
+
+.webform-submission-pager__item--previous {
+  text-align: left; /* LTR */
+  width: 45%;
+}
+
+[dir="rtl"] .webform-submission-pager__item--previous {
+  float: right;
+  text-align: right;
+}
+
+.webform-submission-pager__item--next {
+  float: right; /* LTR */
+  text-align: right; /* LTR */
+  width: 45%;
+}
+
+[dir="rtl"] .webform-submission-pager__item--next {
+  float: left;
+  text-align: left;
+}

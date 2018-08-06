@@ -1,0 +1,6 @@
+redirect_404.fix_404:
+  title: 'Fix 404 pages'
+  parent: redirect.list
+  route_name: redirect_404.fix_404
+  description: 'Add redirects for 404 pages.'
+  menu_name: admin

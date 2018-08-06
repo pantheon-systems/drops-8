@@ -1,0 +1,22 @@
+uuid: c484cd0c-cfe5-40fd-87d1-266403dd012d
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: K7NxJt9xagAZqMrMCALPFFqD4gInvk3DWiSI-OUAtpU
+id: catapult_content
+theme: catapult
+region: content
+weight: 0
+provider: null
+plugin: system_main_block
+settings:
+  id: system_main_block
+  label: 'Main page content'
+  provider: system
+  label_display: '0'
+visibility: {  }

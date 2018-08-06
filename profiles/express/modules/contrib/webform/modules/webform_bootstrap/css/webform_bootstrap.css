@@ -1,0 +1,12 @@
+/**
+ * @file
+ * Webform Bootstrap styling.
+ */
+
+/**
+ * Issue #2896773: Elements do not resize properly within flexbox.
+ * Issue #2829634: Why is telephone field inline?
+ */
+.webform-flex--container .form-inline .form-control {
+  width: 100%;
+}

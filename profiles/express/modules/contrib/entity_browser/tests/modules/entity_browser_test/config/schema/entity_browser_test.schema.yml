@@ -1,0 +1,29 @@
+entity_browser.browser.widget.dummy:
+  type: mapping
+  label: 'Dummy widget configuration'
+  mapping:
+    submit_text:
+      type: string
+      label: 'Submit button text'
+    text:
+      type: string
+      label: 'Text'
+
+entity_browser.browser.widget.multiple_submit_test_widget:
+  type: mapping
+  label: 'Multiple submit widget configuration'
+  mapping:
+    submit_text:
+      type: string
+      label: 'Submit button text'
+
+entity_browser.browser.widget.pager_test:
+  type: mapping
+  label: 'Pager widget configuration'
+  mapping:
+    submit_text:
+      type: string
+      label: 'Submit button text'
+    items_per_page:
+      type: integer
+      label: 'Items per page'

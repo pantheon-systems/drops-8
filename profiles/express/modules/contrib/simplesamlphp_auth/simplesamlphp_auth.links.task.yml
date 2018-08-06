@@ -1,0 +1,16 @@
+simplesamlphp_auth.admin_settings_tab:
+  route_name: simplesamlphp_auth.admin_settings
+  title: Settings
+  base_route: simplesamlphp_auth.admin_settings
+simplesamlphp_auth.admin_settings_basic:
+  title: Basic settings
+  route_name: simplesamlphp_auth.admin_settings
+  parent_id: simplesamlphp_auth.admin_settings_tab
+simplesamlphp_auth.admin_settings_local:
+  title: Local authentication
+  route_name: simplesamlphp_auth.admin_settings_local
+  parent_id: simplesamlphp_auth.admin_settings_tab
+simplesamlphp_auth.admin_settings_sync:
+  title: User info and syncing
+  route_name: simplesamlphp_auth.admin_settings_sync
+  parent_id: simplesamlphp_auth.admin_settings_tab

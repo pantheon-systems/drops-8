@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ * Various install/uninstall hooks for the Metatag Views module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function metatag_views_install() {
+  // Enable metatag_display_extender plugin.
+  $config = \Drupal::service('config.factory')->getEditable('views.settings');
+  $display_extenders = $config->get('display_extenders') ?: [];
+  $display_extenders[] = 'metatag_display_extender';
+  $config->set('display_extenders', $display_extenders);
+  $config->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function metatag_views_uninstall() {
+  // Disable metatag_display_extender plugin.
+  $config = \Drupal::service('config.factory')->getEditable('views.settings');
+  $display_extenders = $config->get('display_extenders') ?: [];
+
+  $key = array_search('metatag_display_extender', $display_extenders);
+  if ($key !== FALSE) {
+    unset($display_extenders[$key]);
+    $config->set('display_extenders', $display_extenders);
+    $config->save();
+  }
+}

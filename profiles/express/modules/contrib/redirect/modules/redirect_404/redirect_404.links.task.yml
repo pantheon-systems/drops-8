@@ -1,0 +1,5 @@
+redirect_404.fix_404:
+  route_name: redirect_404.fix_404
+  base_route: redirect.list
+  title: Fix 404 pages
+  weight: 30

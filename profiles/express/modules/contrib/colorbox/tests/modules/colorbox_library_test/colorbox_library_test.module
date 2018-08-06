@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Test specific changes for the colorbox library test.
+ */
+
+use Drupal\Core\Site\Settings;
+
+/**
+ * Implements hook_library_alter().
+ */
+function colorbox_library_test_library_info_alter(&$libraries, $extension) {
+  if ($extension !== 'colorbox') {
+    return;
+  }
+  foreach ($libraries['colorbox']['js'] as $key => $library) {
+    $libraries['colorbox']['js']['/' . Settings::get('file_public_path') . $key] = $library;
+    unset($libraries['colorbox']['js'][$key]);
+  }
+}

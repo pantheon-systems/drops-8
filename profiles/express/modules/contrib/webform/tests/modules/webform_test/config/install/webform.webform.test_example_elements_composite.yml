@@ -1,0 +1,271 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_example_elements_composite
+title: 'Test: Example: Elements: Composite'
+description: 'Examples of composite elements, includes address, contact, and credit card.'
+category: 'Test: Example'
+elements: |
+  webform_address_example:
+    '#type': details
+    '#title': Address
+    '#open': true
+    webform_address:
+      '#type': webform_address
+      '#title': Address
+    webform_address_multiple:
+      '#type': webform_address
+      '#title': 'Address multiple'
+      '#multiple': true
+  webform_composite_example:
+    '#type': details
+    '#title': 'Composite custom'
+    '#open': true
+    webform_composite:
+      '#type': webform_composite
+      '#title': 'Composite custom'
+      '#element':
+        name:
+          '#type': textfield
+          '#title': Name
+          '#title_display': invisible
+        gender:
+          '#type': select
+          '#title': Gender
+          '#title_display': invisible
+          '#options':
+            Male: Male
+            Female: Female
+    webform_composite_multiple:
+      '#type': webform_composite
+      '#title': 'Composite custom multiple'
+      '#element':
+        name:
+          '#type': textfield
+          '#title': Name
+          '#title_display': invisible
+        gender:
+          '#type': select
+          '#title': Gender
+          '#title_display': invisible
+          '#options':
+            Male: Male
+            Female: Female
+      '#multiple': true
+      '#multiple__header': true
+  webform_contact_example:
+    '#type': details
+    '#title': Contact
+    '#open': true
+    webform_contact:
+      '#type': webform_contact
+      '#title': Contact
+    webform_contact_multiple:
+      '#type': webform_contact
+      '#title': 'Contact multiple'
+      '#multiple': true
+  webform_creditcard_example:
+    '#type': details
+    '#title': 'Credit card'
+    '#open': true
+    webform_creditcard:
+      '#type': webform_creditcard
+      '#title': 'Credit card'
+  webform_likert_example:
+    '#type': details
+    '#title': Likert
+    '#open': true
+    webform_likert:
+      '#type': webform_likert
+      '#title': Likert
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+  webform_link_example:
+    '#type': details
+    '#title': Link
+    '#open': true
+    webform_link:
+      '#type': webform_link
+      '#title': Link
+    webform_link_multiple:
+      '#type': webform_link
+      '#title': 'Link multiple'
+      '#multiple': true
+  webform_location_example:
+    '#type': details
+    '#title': Location
+    '#open': true
+    webform_location:
+      '#type': webform_location
+      '#title': Location
+      '#map': true
+      '#geolocation': true
+      '#format': map
+    webform_location_multiple:
+      '#type': webform_location
+      '#title': 'Location multiple'
+      '#map': true
+      '#geolocation': true
+      '#format': map
+      '#multiple': true
+  webform_mapping_example:
+    '#type': details
+    '#title': Mapping
+    '#open': true
+    webform_mapping:
+      '#type': webform_mapping
+      '#title': Mapping
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+  webform_name_example:
+    '#type': details
+    '#title': Name
+    '#open': true
+    webform_name:
+      '#type': webform_name
+      '#title': Name
+    webform_name_multiple:
+      '#type': webform_name
+      '#title': 'Name multiple'
+      '#multiple': true
+  webform_telephone_example:
+    '#type': details
+    '#title': 'Telephone advanced'
+    '#open': true
+    webform_telephone:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced'
+    webform_telephone_multiple:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced multiple'
+      '#multiple': true
+  text_format_example:
+    '#type': details
+    '#title': 'Text format'
+    '#open': true
+    text_format:
+      '#type': text_format
+      '#title': 'Text format'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/997826">Issue #997826: #states doesn''t work correctly with type text_format</a><br /><a href="https://www.drupal.org/node/2625128">Issue #2625128: Text format selection stays visible when using editor and a hidden webform state</a><br /><a href="https://www.drupal.org/node/1954968">Issue #1954968: Required CKEditor fields always fail HTML5 validation</a>'
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

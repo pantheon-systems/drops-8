@@ -1,0 +1,18 @@
+name: Entity Browser
+description: 'Provide a generic entity browser/picker/selector.'
+type: module
+package: Media
+# core: 8.x
+test_dependencies:
+  - ctools:ctools
+  - token:token
+  - inline_entity_form:inline_entity_form
+  - media_entity:media_entity
+  - paragraphs:paragraphs
+configure: entity.entity_browser.collection
+
+# Information added by Drupal.org packaging script on 2017-09-19
+version: '8.x-1.3'
+core: '8.x'
+project: 'entity_browser'
+datestamp: 1505838852

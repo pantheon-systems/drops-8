@@ -1,0 +1,67 @@
+/**
+ * @file
+ * States element styles.
+ *
+ * @see /webform/test_element_states
+ */
+
+.webform-states-table td {
+  white-space: nowrap;
+}
+
+tr.webform-states-table--state {
+  border-top: 2px solid #a6a6a6;
+}
+
+tr.webform-states-table--state:first-child {
+  border-top: inherit;
+}
+
+tr.webform-states-table--state td select {
+  width: inherit;
+  max-width: inherit;
+}
+
+.webform-states-table--state td.webform-states-table--state select,
+.webform-states-table--condition select,
+.webform-states-table--condition input[type="text"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+.webform-states-table--condition input[type="text"] {
+  margin-top: 4px;
+}
+
+.webform-states-table .image-button {
+  margin: 0;
+}
+
+.webform-states-table th.webform-states-table--operations,
+.webform-states-table td.webform-states-table--operations {
+  padding: 0 2px;
+  vertical-align: middle;
+}
+
+.webform-states-table td.webform-states-table--operations input {
+  margin: 0 2px;
+}
+
+.webform-states-table td.webform-states-table--operations input {
+  opacity: 0.4;
+}
+
+.webform-states-table td.webform-states-table--operations input:hover,
+.webform-states-table td.webform-states-table--operations input:focus,
+.webform-states-table td.webform-states-table--operations input:active {
+  opacity: 1;
+  background: none;
+}
+
+/**
+ * Suppress table drag warnings.
+ */
+.webform-states-table .tabledrag-changed-warning,
+.webform-states-table .tabledrag-changed {
+  display: none !important; /* Must use !important because .tabledrag-changed 'display' is set via JavaScript */
+}

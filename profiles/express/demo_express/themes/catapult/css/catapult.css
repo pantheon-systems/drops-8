@@ -1,0 +1,223 @@
+/*
+ * Typography
+ *
+ */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Open Sans', sans-serif;
+}
+
+h1 {
+  font-size: 3em;
+}
+
+h2 {
+  font-size: 2.6em;
+}
+
+h3 {
+  font-size: 2.2em;
+}
+
+h4 {
+  font-size: 2em;
+}
+
+h5 {
+  font-size: 1.8em;
+}
+
+h6 {
+  font-size: 1.5em;
+}
+
+p {
+  font-family: 'Lora', serif;
+  font-size: 1.25em;
+}
+
+/* Links */
+a {
+  color: darkgray;
+  text-decoration: underline;
+}
+a:hover {
+   color: firebrick;
+}
+h2 a {
+  text-decoration: none;
+}
+
+/*
+ * Colors (for sass later on)
+ * primary: black?
+ * secondary: firebrick
+ * muted_primary: darkgray
+ */
+
+/*
+ * Header
+ *
+ */
+.site-name {
+  color: black;
+  font-size: 2em;
+}
+.site-name a {
+  color: black;
+  font-weight: bold;
+  text-decoration: none;
+}
+.site-slogan {
+  font-size: 1em;
+  font-style: italic;
+}
+#search-block-form {
+  margin: 1em;
+  font-family: 'Open Sans', sans-serif;
+}
+#search-block-form input {
+  border-radius: 8px;
+}
+
+/*
+ * Navigation
+ *
+ */
+ul.menu {
+  display: flex;
+  flex-direction: column;
+}
+@media screen and (min-width: 900px) {
+  ul.menu {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+  }
+}
+
+/*Begin sub-menu styling*/
+ul.sub-menu {
+  display: none;
+}
+ul.menu li:hover > ul.sub-menu {
+  display: block !important;
+}
+ul.sub-menu {
+  position: absolute;
+  padding: 0;
+  box-shadow: 2px 2px 2px darkgray;
+}
+ul.sub-menu > li.menu-item {
+  padding:
+  width: 100%;
+  height: 1.5em;
+  list-style-image: none;
+  list-style: none;
+  background: #ffffff;
+}
+/*End of sub-menu styling*/
+
+li.menu-item {
+  font-size: 1.2em;
+}
+@media screen and (min-width: 900px) {
+  ul.menu > li.menu-item {
+    margin: 0 0.4em;
+  }
+}
+ul.menu a {
+  font-family: 'Open Sans', sans-serif;
+  text-transform: capitalize;
+  text-decoration: none;
+  padding: 0 0.5em;
+}
+ul.menu a.is-active:hover {
+  color: firebrick;
+}
+
+/*
+ * Hero image
+ *
+ */
+#hero-image {
+  display: flex;
+  max-height: 70vh;
+}
+iframe#hero-image {
+  width: 100vw;
+}
+#hero-image figure {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+#hero-image img {
+  width: 100vw;
+}
+
+/*
+ * Hero block
+ *
+ */
+.region-hero {
+  margin: 3em;
+}
+
+/*
+ * Block Row
+ *
+ */
+.region-block-row {
+  display: flex;
+  flex-direction: column;
+}
+@media screen and (min-width: 900px) {
+  .region-block-row {
+    flex-direction: row;
+  }
+  .region-block-row .block {
+    flex: calc(100 / 3) 0 0;
+  }
+}
+
+/*
+ * Content
+ *
+ */
+blockquote {
+  padding: 1em 2em;
+  background: lightgray;
+  border-radius: 15px;
+  margin: 2em 3em;
+}
+blockquote h1, blockquote h2, blockquote h3, blockquote h4, blockquote h5, blockquote h6 {
+  margin: 0;
+}
+blockquote p {
+  font-size: +130%;
+  line-height: 1.3em;
+}
+.layout-content {
+  margin: 0 2em;
+}
+
+/*
+ * Footer
+ *
+ */
+.region-footer {
+  margin: 0 2.5em 3em 2.5em;
+}
+
+/*
+ * Article image field
+ *
+ */
+.field--name-field-image img {
+  /*border-radius: 50%;*/
+  height: 20em;
+  width: 20em;
+  float: right;
+  margin: 1.5em 1em;
+}

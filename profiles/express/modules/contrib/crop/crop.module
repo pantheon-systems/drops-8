@@ -1,0 +1,174 @@
+<?php
+
+/**
+ * @file
+ * The Crop API Drupal module.
+ *
+ * Provides storage and API for image crops.
+ */
+use Drupal\Component\Utility\UrlHelper;
+use \Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\crop\Entity\Crop;
+use Drupal\image\Entity\ImageStyle;
+use \Drupal\media_entity\MediaBundleInterface;
+use \Drupal\file\FileInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function crop_theme() {
+  return [
+    'crop_crop_summary' => [
+      'variables' => ['data' => [], 'effect' => []],
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for crop_crop summary template.
+ *
+ * Default template: crop-crop-summary.twig.html.
+ */
+function template_preprocess_crop_crop_summary(&$variables) {
+  if (!empty($variables['data']['crop_type'])) {
+    $type = \Drupal::entityTypeManager()->getStorage('crop_type')->load($variables['data']['crop_type']);
+    $variables['data']['crop_type'] = $type->label();
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds crop configuration fields to media bundle form.
+ */
+function crop_form_media_bundle_edit_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
+  /** @var \Drupal\media_entity\MediaBundleInterface $bundle */
+  $bundle = $form['#entity'];
+  $options = [];
+  $allowed_field_types = ['file', 'image'];
+  foreach (\Drupal::service('entity_field.manager')->getFieldDefinitions('media', $bundle->id()) as $field_name => $field) {
+    if (in_array($field->getType(), $allowed_field_types) && !$field->getFieldStorageDefinition()->isBaseField()) {
+      $options[$field_name] = $field->getLabel();
+    }
+  }
+
+  $form['#entity_builders'][] = 'crop_media_bundle_form_builder';
+  $form['crop'] = [
+    '#type' => 'fieldset',
+    '#title' => t('Crop configuration'),
+  ];
+
+  if (empty($options)) {
+    $form['crop']['image_field'] = [
+      '#type' => 'value',
+      '#value' => NULL,
+    ];
+
+    $form['crop']['message'] = [
+      '#markup' => t('There are no file or image fields on this bundle at the moment. In order to configure crop add at least one such field and come back.'),
+    ];
+
+    return;
+  }
+
+  $form['crop']['image_field'] = [
+    '#type' => 'select',
+    '#title' => t('Image field'),
+    '#default_value' => $bundle->getThirdPartySetting('crop', 'image_field'),
+    '#options' => $options,
+    '#description' => t('Select field that stores image which needs to be cropped.'),
+  ];
+
+}
+
+/**
+ * Entity builder for Media bundle.
+ *
+ * Adds third party settings to Media bundle config entity.
+ *
+ * @see crop_form_media_bundle_form_alter()
+ */
+function crop_media_bundle_form_builder($entity_type, MediaBundleInterface $bundle, &$form, FormStateInterface $form_state) {
+  $bundle->setThirdPartySetting('crop', 'image_field', $form_state->getValue('image_field'));
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ *
+ * Deletes orphaned crops when a file is deleted.
+ */
+function crop_file_delete(FileInterface $file) {
+  // Get all crops for the file being deleted.
+  $crops = \Drupal::entityTypeManager()
+    ->getStorage('crop')
+    ->loadByProperties(['uri' => $file->getFileUri()]);
+
+  foreach ($crops as $crop) {
+    $crop->delete();
+  }
+}
+
+/**
+ * Implements hook_file_url_alter().
+ */
+function crop_file_url_alter(&$uri) {
+  // Process only files that are stored in "styles" directory.
+  if (strpos($uri, '/styles/') !== FALSE && preg_match('/\/styles\/(.*?)\/(.*?)\/(.+)/', $uri, $match)) {
+    // Match image style, schema, file subdirectory and file name.
+    // Get the image style ID.
+    $image_style = $match[1];
+    // Get the file path without query parameter.
+    $parsed_uri = UrlHelper::parse($match[3]);
+    // Get the file URI using parsed schema and file path.
+    $file_uri = $match[2] . '://' . $parsed_uri['path'];
+
+    // Prevent double hashing, if there is a hash argument already, do not add
+    // it again.
+    if (!empty($parsed_uri['query']['h'])) {
+      return;
+    }
+
+    /** @var \Drupal\image\Entity\ImageStyle $image_style */
+    if (!$image_style = ImageStyle::load($image_style)) {
+      return;
+    }
+
+    $crop_type = NULL;
+    // Find whether matched image style uses "crop_type" effect.
+    /* @var  \Drupal\image\ImageEffectInterface $effect */
+    foreach ($image_style->getEffects() as $uuid => $effect) {
+      $data_effect = $image_style->getEffect($uuid)->getConfiguration()['data'];
+      if (isset($data_effect['crop_type'])) {
+        $crop_type = $data_effect['crop_type'];
+        break;
+      }
+    }
+
+    // In case the image style uses "crop_type" effect, load the crop entity.
+    if ($crop_type && $crop = Crop::findCrop($file_uri, $crop_type)) {
+      // Found a crop for this image, append a hash of it to the URL,
+      // so that browsers reload the image and CDNs and proxies can be bypassed.
+      $shortened_hash = substr(md5(implode($crop->position()) . implode($crop->anchor())), 0, 8);
+
+      // If the URI has a schema and that is not http, https or data, convert
+      // the URI to the external URL. Otherwise the appended query argument
+      // will be encoded.
+      // @see file_create_url()
+      $scheme = \Drupal::service('file_system')->uriScheme($uri);
+      if ($scheme && !in_array($scheme, ['http', 'https', 'data'])) {
+        if ($wrapper = \Drupal::service('stream_wrapper_manager')->getViaUri($uri)) {
+          $uri = $wrapper->getExternalUrl();
+        }
+      }
+
+      // Append either with a ? or a & if there are existing query arguments.
+      if (strpos($uri, '?') === FALSE) {
+        $uri .= '?h=' . $shortened_hash;
+      }
+      else {
+        $uri .= '&h=' . $shortened_hash;
+      }
+    }
+  }
+}

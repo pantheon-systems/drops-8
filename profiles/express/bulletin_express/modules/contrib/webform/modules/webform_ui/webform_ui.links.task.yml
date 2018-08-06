@@ -1,0 +1,24 @@
+# Forms
+
+entity.webform.source_form_elements:
+  title: 'Source (YAML)'
+  route_name: entity.webform.source_form
+  parent_id: entity.webform.edit_form
+
+
+# Webform Options
+
+entity.webform_options:
+  title: 'Edit'
+  route_name: entity.webform_options.edit_form
+  base_route: entity.webform_options.edit_form
+
+entity.webform_options.edit_form:
+  title: 'Options'
+  route_name: entity.webform_options.edit_form
+  parent_id: entity.webform_options
+
+entity.webform_options.source_form:
+  title: 'Source (YAML)'
+  route_name: entity.webform_options.source_form
+  parent_id: entity.webform_options

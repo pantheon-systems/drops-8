@@ -1,0 +1,74 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for Honeypot.
+ */
+
+use Drupal\Core\Url;
+use Drupal\Core\Link;
+
+/**
+ * Implements hook_schema().
+ */
+function honeypot_schema() {
+  $schema['honeypot_user'] = [
+    'description' => 'Table that stores failed attempts to submit a form.',
+    'fields' => [
+      'uid' => [
+        'description' => 'Foreign key to {users}.uid; uniquely identifies a Drupal user to whom this ACL data applies.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'hostname' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Hostname of user that that triggered honeypot.',
+      ],
+      'timestamp' => [
+        'description' => 'Date/time when the form submission failed, as Unix timestamp.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'timestamp' => ['timestamp'],
+    ],
+  ];
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function honeypot_install() {
+  if (PHP_SAPI !== 'cli') {
+    $config_url = Url::fromUri('base://admin/config/content/honeypot');
+    drupal_set_message(t(
+      'Honeypot installed successfully. Please <a href=":url">configure Honeypot</a> to protect your forms from spam bots.',
+      [':url' => $config_url->toString()]
+    ));
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function honeypot_uninstall() {
+  // Clear the bootstrap cache.
+  \Drupal::cache('bootstrap')->deleteAll();
+}
+
+/**
+ * Adds the 'hostname' column to the {honeypot_user} table.
+ */
+function honeypot_update_8100() {
+  $schema = honeypot_schema();
+  $spec = $schema['honeypot_user']['fields']['hostname'];
+  $spec['initial'] = '';
+  \Drupal::database()->schema()->addField('honeypot_user', 'hostname', $spec);
+}

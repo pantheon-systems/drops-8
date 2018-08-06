@@ -1,0 +1,7 @@
+webform_example_remote_post.remote_post:
+  path: '/webform_example_remote_post/{type}'
+  defaults:
+    _controller: '\Drupal\webform_example_remote_post\Controller\WebformExampleRemotePostController::index'
+  requirements:
+    # Example remote post handler does not require any access controls.
+    _access: 'TRUE'

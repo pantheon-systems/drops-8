@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - entity_browser_test
+name: pager
+label: pager
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: tabs
+widget_selector_configuration: {  }
+widgets:
+  7e334547-c1e4-4397-8cc0-07e4e5c277ac:
+    settings:
+      items_per_page: 2
+      submit_text: 'Select entities'
+    uuid: 7e334547-c1e4-4397-8cc0-07e4e5c277ac
+    weight: 1
+    label: pager_test
+    id: pager_test

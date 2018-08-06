@@ -1,0 +1,149 @@
+/**
+ * @file
+ * Webform UI styling
+ */
+
+/**
+ * Tables
+ */
+th.webform-ui-element-operations {
+  width: 140px;
+}
+
+thead th .dropbutton {
+  text-transform: none;
+}
+
+/**
+ * Elements (/admin/structure/webform/manage/{webform})
+ */
+.webform-ui-elements-table .button {
+  white-space: nowrap;
+}
+
+.webform-ui-elements-table .form-type-checkbox {
+  text-align: center;
+}
+
+.webform-ui-elements-table .webform-ui-element-required {
+  width: 10%;
+}
+
+.webform-ui-elements-table tr:first-child {
+  border-top: inherit !important;
+}
+
+.webform-ui-elements-table td:nth-child(1) {
+  word-wrap: break-word;
+  min-width: 200px;
+}
+
+.webform-ui-elements-table td:nth-child(3) {
+  word-wrap: break-word;
+}
+
+@media screen and (max-width: 1024px) {
+  .webform-ui-elements-table td:nth-child(3) {
+    max-width: 150px;
+  }
+}
+
+.webform-ui-elements-table tr.webform-ui-element-type-webform_wizard_page {
+  border-top: 2px solid #a6a6a6;
+}
+
+.webform-ui-elements-table tr.webform-ui-element-type-webform_flexbox {
+  border-top: 2px dotted #a6a6a6;
+  font-weight: bold;
+}
+
+.webform-ui-elements-table tr.webform-ui-element-type-details,
+.webform-ui-elements-table tr.webform-ui-element-type-fieldset {
+  border-top: 2px dashed #a6a6a6;
+  font-weight: bold;
+}
+
+.webform-ui-elements-table tr.webform-ui-element-type-webform_actions td {
+  border-top: 1px solid #a6a6a6;
+  border-bottom: 1px solid #a6a6a6;
+  background-color: #f5f5f2;
+  font-weight: bold;
+}
+
+/**
+ * Element types (/admin/structure/webform/manage/[webform_id]/element/add)
+ */
+.webform-ui-element-type-select-form > details > .details-wrapper {
+  padding: 0.5em 0.5em 0 0.5em;
+}
+
+.webform-ui-element-type-select-form .tableresponsive-toggle,
+.webform-ui-element-type-change-form .tableresponsive-toggle /* Hide unneeded responsive toggle. @see Drupal.behaviors.tableResponsive */ {
+  display: none !important;
+}
+
+.webform-ui-element-type-table details {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.webform-ui-element-type-table tr td:first-child,
+.webform-ui-element-type-table tr td:last-child {
+  white-space: nowrap;
+}
+
+.webform-ui-element-type-table > tbody > tr > td:last-child {
+  text-align: right;
+}
+
+.webform-ui-element-type-table .webform-flexbox {
+  margin: 0 -.5em;
+}
+
+.webform-ui-element-type-table .webform-flexbox .form-item {
+  margin-right: .5em;
+}
+
+.webform-ui-element-type-table input.form-autocomplete,
+.webform-ui-element-type-table input.form-text,
+.webform-ui-element-type-table input.form-tel,
+.webform-ui-element-type-table input.form-email,
+.webform-ui-element-type-table input.form-url,
+.webform-ui-element-type-table input.form-search,
+.webform-ui-element-type-table input.form-number,
+.webform-ui-element-type-table input.form-color,
+.webform-ui-element-type-table input.form-file,
+.webform-ui-element-type-table input.form-date,
+.webform-ui-element-type-table input.form-time,
+.webform-ui-element-type-table textarea.form-textarea,
+.webform-ui-element-type-table select {
+  max-width: 385px;
+}
+
+.webform-ui-element-type-table .cke_contents {
+  height: 100px !important;
+}
+
+.webform-ui-element-type-placeholder {
+  border: 1px dashed #bbb;
+  padding: .4em;
+  color: #888;
+}
+
+/**
+ * Element (/admin/structure/webform/manage/[webform_id]/element/add/[elment_type])
+ * @see \Drupal\webform\Plugin\WebformElementBase::form
+ */
+.form--inline.webform-ui-element-form-inline--input .form-item {
+  min-width: 150px;
+}
+
+.form--inline.webform-ui-element-form-inline--input .form-type-checkbox {
+  min-width: inherit;
+}
+
+.form--inline.webform-ui-element-form-inline--input .form-item select,
+.form--inline.webform-ui-element-form-inline--input .form-item input[type="text"],
+.form--inline.webform-ui-element-form-inline--input .form-item input[type="number"]{
+  width: 140px
+}

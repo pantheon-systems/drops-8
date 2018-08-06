@@ -1,0 +1,12 @@
+route_callbacks:
+  - '\Drupal\content_lock\Routing\BreakLockRoutes::routes'
+
+content_lock.content_lock_settings_form:
+  path: '/admin/config/content/contentlocksettings'
+  defaults:
+    _form: '\Drupal\content_lock\Form\ContentLockSettingsForm'
+    _title: 'Content Lock Settings'
+  requirements:
+    _permission: 'administer content lock'
+  options:
+    _admin_route: TRUE

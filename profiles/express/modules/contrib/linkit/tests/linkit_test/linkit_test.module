@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Support module for Linkit testing.
+ */
+
+
+/**
+ * Implements hook_linkit_attribute_alter().
+ */
+function linkit_test_linkit_attribute_alter(&$linkit_attribute_info) {
+  if (isset($linkit_attribute_info['dummyattribute'])) {
+    $linkit_attribute_info['dummyattribute']['description'] = t('Altered dummy description');
+  }
+}

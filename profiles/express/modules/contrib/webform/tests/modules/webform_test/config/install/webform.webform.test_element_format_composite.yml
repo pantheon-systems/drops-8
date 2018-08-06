@@ -1,0 +1,601 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_format_composite
+title: 'Test: Element: Format composite'
+description: 'Test composite element formatting.'
+category: 'Test: Element'
+elements: |
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements'
+    '#open': true
+    webform_mapping:
+      '#type': details
+      '#title': Mapping
+      webform_mapping_value:
+        '#type': webform_mapping
+        '#title': 'Mapping (Value)'
+        '#source':
+          one: One
+          two: Two
+          three: Three
+        '#destination':
+          four: Four
+          five: Five
+          six: Six
+        '#default_value':
+          one: four
+          two: four
+          three: four
+        '#format': value
+      webform_mapping_raw:
+        '#type': webform_mapping
+        '#title': 'Mapping (Raw value)'
+        '#source':
+          one: One
+          two: Two
+          three: Three
+        '#destination':
+          four: Four
+          five: Five
+          six: Six
+        '#default_value':
+          one: four
+          two: four
+          three: four
+        '#format': raw
+      webform_mapping_list:
+        '#type': webform_mapping
+        '#title': 'Mapping (List)'
+        '#source':
+          one: One
+          two: Two
+          three: Three
+        '#destination':
+          four: Four
+          five: Five
+          six: Six
+        '#default_value':
+          one: four
+          two: four
+          three: four
+        '#format': list
+      webform_mapping_table:
+        '#type': webform_mapping
+        '#title': 'Mapping (Table)'
+        '#source':
+          one: One
+          two: Two
+          three: Three
+        '#destination':
+          four: Four
+          five: Five
+          six: Six
+        '#default_value':
+          one: four
+          two: four
+          three: four
+        '#format': table
+    text_format:
+      '#type': details
+      '#title': 'Text format'
+      text_format_basic_html:
+        '#type': text_format
+        '#title': 'Text format (Basic HTML)'
+        '#default_value':
+          value: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.</p>'
+        '#format': basic_html
+      text_format_full_html:
+        '#type': text_format
+        '#title': 'Text format (Full HTML)'
+        '#default_value':
+          value: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.</p>'
+        '#format': full_html
+      text_format_plain_text:
+        '#type': text_format
+        '#title': 'Text format (Plain text)'
+        '#default_value':
+          value: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.</p>'
+        '#format': plain_text
+      text_format_restricted_html:
+        '#type': text_format
+        '#title': 'Text format (Restricted HTML)'
+        '#default_value':
+          value: '<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Negat esse eam, inquit, propter se expetendam. Primum Theophrasti, Strato, physicum se voluit; Id mihi magnum videtur. Itaque mihi non satis videmini considerare quod iter sit naturae quaeque progressio. Quare hoc videndum est, possitne nobis hoc ratio philosophorum dare. Est enim tanti philosophi tamque nobilis audacter sua decreta defendere.</p>'
+        '#format': restricted_html
+  composite_elements:
+    '#type': details
+    '#title': 'Composite elements'
+    '#open': true
+    webform_address:
+      '#type': details
+      '#title': Address
+      webform_address_value:
+        '#type': webform_address
+        '#title': 'Address (Value)'
+        '#default_value':
+          address: '10 Main Street'
+          address_2: '10 Main Street'
+          city: Springfield
+          state_province: Alabama
+          postal_code: Loremipsum
+          country: Afghanistan
+        '#format': value
+      webform_address_raw:
+        '#type': webform_address
+        '#title': 'Address (Raw value)'
+        '#default_value':
+          address: '10 Main Street'
+          address_2: '10 Main Street'
+          city: Springfield
+          state_province: Alabama
+          postal_code: Loremipsum
+          country: Afghanistan
+        '#format': raw
+      webform_address_list:
+        '#type': webform_address
+        '#title': 'Address (List)'
+        '#default_value':
+          address: '10 Main Street'
+          address_2: '10 Main Street'
+          city: Springfield
+          state_province: Alabama
+          postal_code: Loremipsum
+          country: Afghanistan
+        '#format': list
+    webform_contact:
+      '#type': details
+      '#title': Contact
+      webform_contact_value:
+        '#type': webform_contact
+        '#title': 'Contact (Value)'
+        '#default_value':
+          name: Loremipsum
+          company: Loremipsum
+          email: example@example.com
+          phone: 123-456-7890
+          address: '10 Main Street'
+          address_2: '10 Main Street'
+          city: Springfield
+          state_province: Alabama
+          postal_code: Loremipsum
+          country: Afghanistan
+        '#format': value
+      webform_contact_raw:
+        '#type': webform_contact
+        '#title': 'Contact (Raw value)'
+        '#default_value':
+          name: Loremipsum
+          company: Loremipsum
+          email: example@example.com
+          phone: 123-456-7890
+          address: '10 Main Street'
+          address_2: '10 Main Street'
+          city: Springfield
+          state_province: Alabama
+          postal_code: Loremipsum
+          country: Afghanistan
+        '#format': raw
+      webform_contact_list:
+        '#type': webform_contact
+        '#title': 'Contact (List)'
+        '#default_value':
+          name: Loremipsum
+          company: Loremipsum
+          email: example@example.com
+          phone: 123-456-7890
+          address: '10 Main Street'
+          address_2: '10 Main Street'
+          city: Springfield
+          state_province: Alabama
+          postal_code: Loremipsum
+          country: Afghanistan
+        '#format': list
+    webform_creditcard:
+      '#type': details
+      '#title': 'Credit card'
+      webform_creditcard_value:
+        '#type': webform_creditcard
+        '#title': 'Credit card (Value)'
+        '#default_value':
+          warning: null
+          name: Loremipsum
+          type: VI
+          number: '4111111111111111'
+          civ: 111
+          expiration: null
+          expiration_month: 1
+          expiration_year: 2017
+        '#format': value
+      webform_creditcard_raw:
+        '#type': webform_creditcard
+        '#title': 'Credit card (Raw value)'
+        '#default_value':
+          warning: null
+          name: Loremipsum
+          type: VI
+          number: '4111111111111111'
+          civ: 111
+          expiration: null
+          expiration_month: 1
+          expiration_year: 2017
+        '#format': raw
+      webform_creditcard_list:
+        '#type': webform_creditcard
+        '#title': 'Credit card (List)'
+        '#default_value':
+          warning: null
+          name: Loremipsum
+          type: VI
+          number: '4111111111111111'
+          civ: 111
+          expiration: null
+          expiration_month: 1
+          expiration_year: 2017
+        '#format': list
+    webform_link:
+      '#type': details
+      '#title': Link
+      webform_link_value:
+        '#type': webform_link
+        '#title': 'Link (Value)'
+        '#default_value':
+          title: Loremipsum
+          url: 'http://example.com'
+        '#format': value
+      webform_link_raw:
+        '#type': webform_link
+        '#title': 'Link (Raw value)'
+        '#default_value':
+          title: Loremipsum
+          url: 'http://example.com'
+        '#format': raw
+      webform_link_list:
+        '#type': webform_link
+        '#title': 'Link (List)'
+        '#default_value':
+          title: Loremipsum
+          url: 'http://example.com'
+        '#format': list
+    webform_location:
+      '#type': details
+      '#title': Location
+      webform_location_value:
+        '#type': webform_location
+        '#title': 'Location (Value)'
+        '#map': true
+        '#geolocation': true
+        '#format': value
+        '#default_value':
+          value: 'The White House, 1600 Pennsylvania Ave NW, Washington, DC 20500, USA'
+      webform_location_raw:
+        '#type': webform_location
+        '#title': 'Location (Raw value)'
+        '#map': true
+        '#geolocation': true
+        '#format': raw
+        '#default_value':
+          value: 'The White House, 1600 Pennsylvania Ave NW, Washington, DC 20500, USA'
+      webform_location_list:
+        '#type': webform_location
+        '#title': 'Location (List)'
+        '#map': true
+        '#geolocation': true
+        '#format': list
+        '#default_value':
+          value: 'The White House, 1600 Pennsylvania Ave NW, Washington, DC 20500, USA'
+      webform_location_map:
+        '#type': webform_location
+        '#title': 'Location (Map)'
+        '#map': true
+        '#geolocation': true
+        '#format': map
+        '#default_value':
+          value: 'The White House, 1600 Pennsylvania Ave NW, Washington, DC 20500, USA'
+    webform_name:
+      '#type': details
+      '#title': Name
+      webform_name_value:
+        '#type': webform_name
+        '#title': 'Name (Value)'
+        '#default_value':
+          title: Miss
+          first: Loremipsum
+          middle: Loremipsum
+          last: Loremipsum
+          suffix: Loremipsum
+          degree: Loremipsum
+        '#format': value
+      webform_name_raw:
+        '#type': webform_name
+        '#title': 'Name (Raw value)'
+        '#default_value':
+          title: Miss
+          first: Loremipsum
+          middle: Loremipsum
+          last: Loremipsum
+          suffix: Loremipsum
+          degree: Loremipsum
+        '#format': raw
+      webform_name_list:
+        '#type': webform_name
+        '#title': 'Name (List)'
+        '#default_value':
+          title: Miss
+          first: Loremipsum
+          middle: Loremipsum
+          last: Loremipsum
+          suffix: Loremipsum
+          degree: Loremipsum
+        '#format': list
+    webform_telephone:
+      '#type': details
+      '#title': 'Telephone advanced'
+      webform_telephone_value:
+        '#type': webform_telephone
+        '#title': 'Telephone advanced (Value)'
+        '#default_value':
+          type: Home
+          phone: '+1 212-333-4444'
+          ext: 0
+        '#format': value
+      webform_telephone_raw:
+        '#type': webform_telephone
+        '#title': 'Telephone advanced (Raw value)'
+        '#default_value':
+          type: Home
+          phone: '+1 212-333-4444'
+          ext: 0
+        '#format': raw
+      webform_telephone_list:
+        '#type': webform_telephone
+        '#title': 'Telephone advanced (List)'
+        '#default_value':
+          type: Home
+          phone: '+1 212-333-4444'
+          ext: 0
+        '#format': list
+  options_elements:
+    '#type': details
+    '#title': 'Options elements'
+    '#open': true
+    webform_likert:
+      '#type': details
+      '#title': Likert
+      webform_likert_value:
+        '#type': webform_likert
+        '#title': 'Likert (Value)'
+        '#questions':
+          q1: 'Please answer question 1?'
+          q2: 'How about now answering question 2?'
+          q3: 'Finally, here is question 3?'
+        '#answers':
+          1: '1'
+          2: '2'
+          3: '3'
+        '#default_value':
+          q1: 1
+          q2: 1
+          q3: 1
+        '#format': value
+      webform_likert_raw:
+        '#type': webform_likert
+        '#title': 'Likert (Raw value)'
+        '#questions':
+          q1: 'Please answer question 1?'
+          q2: 'How about now answering question 2?'
+          q3: 'Finally, here is question 3?'
+        '#answers':
+          1: '1'
+          2: '2'
+          3: '3'
+        '#default_value':
+          q1: 1
+          q2: 1
+          q3: 1
+        '#format': raw
+      webform_likert_list:
+        '#type': webform_likert
+        '#title': 'Likert (List)'
+        '#questions':
+          q1: 'Please answer question 1?'
+          q2: 'How about now answering question 2?'
+          q3: 'Finally, here is question 3?'
+        '#answers':
+          1: '1'
+          2: '2'
+          3: '3'
+        '#default_value':
+          q1: 1
+          q2: 1
+          q3: 1
+        '#format': list
+      webform_likert_table:
+        '#type': webform_likert
+        '#title': 'Likert (Table)'
+        '#questions':
+          q1: 'Please answer question 1?'
+          q2: 'How about now answering question 2?'
+          q3: 'Finally, here is question 3?'
+        '#answers':
+          1: '1'
+          2: '2'
+          3: '3'
+        '#default_value':
+          q1: 1
+          q2: 1
+          q3: 1
+        '#format': table
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  email_text:
+    id: email
+    label: 'Email (Text)'
+    handler_id: email_text
+    status: true
+    conditions: {  }
+    weight: 1
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: default
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: false
+      attachments: false
+      debug: true
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''
+  email_html:
+    id: email
+    label: 'Email (HTML)'
+    handler_id: email_html
+    status: true
+    conditions: {  }
+    weight: 2
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: default
+      from_options: {  }
+      from_name: default
+      subject: default
+      body: default
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: true
+      attachments: false
+      debug: true
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''

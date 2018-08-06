@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ief_content.ief_media_field
+    - node.type.ief_content
+  module:
+    - user
+id: node.ief_content.default
+targetEntityType: node
+bundle: ief_content
+mode: default
+content:
+  ief_media_field:
+    weight: 101
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+hidden:
+  links: true

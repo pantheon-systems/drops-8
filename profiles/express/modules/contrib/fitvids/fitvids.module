@@ -1,0 +1,86 @@
+<?php
+/**
+ * @file
+ * Includes the FitVids.js jQuery plugin for fluid width video embeds.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+// Constants
+define("FITVIDS_GITHUB_URL", 'https://github.com/davatron5000/FitVids.js');
+define("FITVIDS_PLUGIN_URL", 'https://raw.github.com/davatron5000/FitVids.js/master/jquery.fitvids.js');
+define("FITVIDS_PLUGIN_FILENAME", 'jquery.fitvids.js');
+define("FITVIDS_LIBRARY_PATH", '/libraries/fitvids/jquery.fitvids.js');
+
+/**
+ * Implements hook_help().
+ *
+ * Through hook_help(), a module can make documentation available to the user
+ * for the module as a whole or for specific routes. Where the help appears
+ * depends on the $route_name specified.
+ *
+ * Help text will be displayed in the region designated for help text. Typically
+ * this is the 'Help' region which can be found at admin/structure/block.
+ *
+ * The help text in the first example below, will appear on the simple page at
+ * examples/page_example/simple.
+ *
+ * The second example text will be available on the admin help page (admin/help)
+ * in the list of help topics using the name of the module. To specify help in
+ * the admin section combine the special route name of 'help.page' with the
+ * module's machine name, as in 'help.page.page_example' below.
+ *
+ * @see hook_help()
+ */
+function fitvids_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.fitvids':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t("The Fitvids module uses <a href=\"@github\" rel=\"external\">the FitVids.js jQuery plugin</a> to achieve fluid/responsive video embeds. You don't need it for pure HTML5 videos.", array('@github' => FITVIDS_GITHUB_URL)) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<p>' . t("Use this module if you are using a responsive theme (such as Bootstrap), and want the videos to scale to fit the available space. By default it supports YouTube, Vimeo and Kickstarter.") . '</p>';
+      return $output;
+      break;
+  }
+}
+
+/**
+ * Implements hook_page_attachments() to insert JavaScript to the appropriate scope/region of the page.
+ */
+function fitvids_page_attachments(array &$page) {
+  
+  // Get config variables
+  $config = \Drupal::config('fitvids.settings');
+  $selectors = $config->get('selectors');
+  $custom_vendors = $config->get('custom_vendors');
+  $ignore_selectors = $config->get('ignore_selectors');
+  
+  // Get video containers
+  $selectors_for_js = implode(',', explode(PHP_EOL, $selectors));
+  
+  // Get custom vendor iframes
+  if (strlen(trim($custom_vendors))) {
+    $custom_vendors_for_js = explode(PHP_EOL, $custom_vendors);
+    foreach ($custom_vendors_for_js as $key => $value) {
+      $custom_vendors_for_js[$key] = 'iframe[src^="' . trim($value) . '"]';
+    }
+    $custom_vendors_for_js = implode(',', $custom_vendors_for_js);
+  }
+  else {
+    $custom_vendors_for_js = '';
+  }
+  
+  // Get ignored containers
+  $ignore_selectors_for_js = implode(',', explode(PHP_EOL, $ignore_selectors));
+  
+  // Export settings
+  $page['#attached']['drupalSettings']['fitvids']['selectors'] = $selectors_for_js;
+  $page['#attached']['drupalSettings']['fitvids']['custom_vendors'] = $custom_vendors_for_js;
+  $page['#attached']['drupalSettings']['fitvids']['ignore_selectors'] = $ignore_selectors_for_js;
+  
+  // Attach libraries
+  $page['#attached']['library'][] = 'fitvids/fitvids';
+  $page['#attached']['library'][] = 'fitvids/init';
+  
+}

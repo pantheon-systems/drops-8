@@ -1,0 +1,18 @@
+video_filter.dialog:
+  path: '/video-filter/dialog/{filter_format}'
+  defaults:
+    _form: '\Drupal\video_filter\Form\VideoFilterDialog'
+    _title: 'Video Filter'
+  options:
+    _theme: ajax_base_page
+  requirements:
+    _entity_access: 'filter_format.use'
+video_filter.preview:
+  path: '/video-filter/preview/{filter_format}/{token}'
+  defaults:
+    _controller: '\Drupal\video_filter\Controller\VideoFilter::preview'
+    _title: 'Video Filter'
+  options:
+    _theme: ajax_base_page
+  requirements:
+    _entity_access: 'filter_format.use'

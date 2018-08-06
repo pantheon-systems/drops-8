@@ -52,11 +52,11 @@ class FileAccessControlHandler extends EntityAccessControlHandler {
           //   services can be more properly injected.
           $allowed_fids = \Drupal::service('session')->get('anonymous_allowed_file_ids', []);
           if (!empty($allowed_fids[$entity->id()])) {
-            return AccessResult::allowed()->addCacheContexts(['session', 'user']);
+            return AccessResult::allowed();
           }
         }
         else {
-          return AccessResult::allowed()->addCacheContexts(['user']);
+          return AccessResult::allowed();
         }
       }
     }

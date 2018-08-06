@@ -1,0 +1,5 @@
+services:
+  access_check.filter_in_use:
+    class: Drupal\video_embed_wysiwyg\Access\FilterInUse
+    tags:
+      - { name: access_check, applies_to: _access_video_embed_wysiwyg_filter_in_use }

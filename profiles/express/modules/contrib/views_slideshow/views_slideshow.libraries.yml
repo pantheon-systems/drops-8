@@ -1,0 +1,30 @@
+form:
+  version: VERSION
+  css:
+    theme:
+      css/views_slideshow.css: {}
+
+widget_info:
+  version: VERSION
+  js:
+    js/views_slideshow.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+
+controls_text:
+  version: VERSION
+  css:
+    css/controls_text.css: {}
+
+jquery_hoverIntent:
+  remote: https://github.com/briancherne/jquery-hoverIntent
+  version: 1.9
+  license:
+      name: MIT
+      gpl-compatible: true
+  js:
+    /libraries/jquery.hoverIntent/jquery.hoverIntent.js: {}
+  dependencies:
+    - core/jquery

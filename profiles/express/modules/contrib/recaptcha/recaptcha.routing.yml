@@ -1,0 +1,7 @@
+recaptcha.admin_settings_form:
+  path: '/admin/config/people/captcha/recaptcha'
+  defaults:
+    _form: '\Drupal\recaptcha\Form\ReCaptchaAdminSettingsForm'
+    _title: 'reCAPTCHA'
+  requirements:
+    _permission: 'administer recaptcha'

@@ -1,0 +1,131 @@
+# Schema for the configuration files of the Linkit module.
+
+linkit.linkit_profile.*:
+  type: config_entity
+  mapping:
+    label:
+      type: label
+      label: 'Name'
+    id:
+      type: string
+    description:
+      type: string
+    attributes:
+      type: sequence
+      sequence:
+        type: linkit.attribute
+    matchers:
+      type: sequence
+      sequence:
+        type: linkit.matcher
+
+linkit.attribute:
+  type: mapping
+  mapping:
+    id:
+      type: string
+    settings:
+      type: linkit.attribute.[%parent.id]
+    weight:
+      type: integer
+
+linkit.attribute.*:
+  type: mapping
+  label: 'Attribute settings'
+
+# Plugin \Drupal\linkit\Plugin\Linkit\Attribute\Target
+linkit.attribute.target:
+  type: linkit.attribute
+  mapping:
+    widget_type:
+      type: string
+
+# Plugin \Drupal\linkit\Plugin\Linkit\Attribute\Title
+linkit.attribute.title:
+  type: linkit.attribute
+  mapping:
+    automatic_title:
+      type: boolean
+
+linkit.matcher:
+  type: mapping
+  mapping:
+    id:
+      type: string
+    uuid:
+      type: string
+    settings:
+      type: linkit.matcher.[%parent.id]
+    weight:
+      type: integer
+
+linkit.matcher.*:
+  type: mapping
+  label: 'Matcher settings'
+
+linkit.matcher.entity:
+  type: mapping
+  mapping:
+    result_description:
+      type: string
+    bundles:
+      type: sequence
+      sequence:
+        type: string
+      nullable: true
+    group_by_bundle:
+      type: boolean
+
+linkit.matcher.entity:*:
+  type: linkit.matcher.entity
+
+# Plugin \Drupal\linkit\Plugin\Linkit\Matcher\FileMatcher
+linkit.matcher.entity:file:
+  type: linkit.matcher.entity
+  mapping:
+    images:
+      type: mapping
+      mapping:
+        show_dimensions:
+          type: boolean
+        show_thumbnail:
+          type: boolean
+        thumbnail_image_style:
+          type: string
+          nullable: true
+
+# Plugin \Drupal\linkit\Plugin\Linkit\Matcher\NodeMatcher
+linkit.matcher.entity:node:
+  type: linkit.matcher.entity
+  mapping:
+    include_unpublished:
+      type: boolean
+
+# Plugin \Drupal\linkit\Plugin\Linkit\Matcher\UserMatcher
+linkit.matcher.entity:user:
+  type: linkit.matcher.entity
+  mapping:
+    roles:
+      type: sequence
+      sequence:
+        type: string
+      nullable: true
+    include_blocked:
+      type: boolean
+
+# Third party settings on behalf of the imce module.
+linkit.linkit_profile.*.third_party.imce:
+  type: mapping
+  mapping:
+    use:
+      type: boolean
+    scheme:
+      type: string
+
+ckeditor.plugin.linkit:
+  type: mapping
+  label: 'Profile dropdown'
+  mapping:
+    linkit_profile:
+      type: string
+      label: 'List of profiles'

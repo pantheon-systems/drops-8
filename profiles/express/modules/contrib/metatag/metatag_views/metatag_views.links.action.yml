@@ -1,0 +1,5 @@
+metatag_views.metatags.add:
+  route_name: 'metatag_views.metatags.add'
+  title: 'Add views meta tags'
+  appears_on:
+    - metatag_views.metatags.list

@@ -1,0 +1,9 @@
+{#
+/**
+ * @file
+ * Video Filter (HTML5).
+ */
+#}
+<div class="video-filter">
+  <iframe src="{{ video.iframe.src }}" width="{{ video.width }}" height="{{ video.height }}" class="{{ video.classes|join(' ') }}"{% for key, value in video.iframe.properties %} {{ key }}="{{ value }}"{% endfor %} frameborder="0"></iframe>
+</div>

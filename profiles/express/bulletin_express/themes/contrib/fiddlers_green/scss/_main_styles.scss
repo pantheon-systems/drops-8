@@ -1,0 +1,180 @@
+// GLOBAL HTML/BODY
+html {
+  background: $real_black;
+}
+body {
+  margin-top: 0;
+
+  img {
+    max-width: 100%;
+  }
+}
+
+a:link, a:visited, a {
+  color: $link_blue;
+}
+
+// Literally too lazy to track this down. Deal with it.
+.toolbar-menu > li > a:visited {
+  color: #565656 !important;
+}
+
+// HEADER
+header {
+  margin: 0;
+  padding: 1% 6% 0 6%;
+  background: $real_black;
+  width: 100%;
+
+  section, p {
+    color: $text_white;
+  }
+
+  a, a:link, a:visited {
+    color: $text_white;
+  }
+
+  #site-info {
+    display: block;
+    max-width: 1160px;
+    margin: 0 auto;
+  }
+}
+
+.logo img {
+  width: 64px;
+}
+
+.culinks {
+  color: $text_white;
+  font-size: small;
+  float: right;
+}
+
+// NAV
+.home {
+  margin: 0;
+  padding: 0 !important;
+}
+
+.navbar-default {
+  background: $real_white;
+  border-bottom: 1px solid #d7d7d7;
+}
+
+.navbar-default .navbar-nav > .active > a {
+  background-color: $cugold;
+  color: $bg_dark1;
+}
+
+.navbar-default .navbar-nav > li > a {
+  color: $bg_dark1;
+}
+
+.navbar-default .navbar-nav > .active > a, .navbar-default .navbar-nav > .active > a:hover, .navbar-default .navbar-nav > .active > a:focus {
+  color: $bg_dark1;
+  background-color: $cugold;
+}
+
+.main-menu-item {
+  color: $gray;
+  line-height: 64px;
+  font-weight: 600;
+  border-right: 1px solid #d7d7d7;
+  padding: 6px 0px !important;
+
+  &:link {
+    background-color: $real_white;
+    color: $bg_dark1;
+  }
+  &:hover,
+  &:focus,
+  &.navbar-default .navbar-nav > .active > a, .navbar-default .navbar-nav > .active > a:hover, .navbar-default .navbar-nav > .active > a:focus {
+    background-color: $cugold;
+    color: $bg_dark1;
+  }
+  &:active, &.active, a:active {
+    background-color: $cugold;
+    color: $bg_dark1;
+  }
+}
+
+// FOOTER
+.footer {
+  margin: 0;
+  padding: 2% 6%;
+  background: $real_black;
+  width: 100%;
+
+  section, p {
+    color: $text_white;
+  }
+
+  a, a:link, a:visited {
+    color: $cugold !important;
+  }
+
+  #footer-info {
+    display: block;
+    max-width: 1160px;
+    margin: 0 auto;
+  }
+}
+
+// CONTENT/SECTION
+section {
+  margin-bottom: 2%;
+}
+
+// BUTTONS
+@mixin btn($textcolor, $backgroundcolor, $bordercolor) {
+  color: $textcolor;
+  background-color: $backgroundcolor;
+  border-color: $bordercolor;
+
+  &:hover,
+  &:focus {
+    color: $textcolor;
+    background-color: darken($backgroundcolor, 3%);
+    border-color: $bordercolor;
+    //text-shadow: 0.5px 0.5px 20px $bg_dark1;
+    box-shadow: 0px 3px 12px -6px $gray;
+  }
+
+  &:active {
+    box-shadow: 0px 3px 12px -6px $gray;
+  }
+}
+
+.btn-primary {
+  @include btn($text_white, $link_blue, $link_blue);
+}
+
+.btn-secondary {
+  @include btn($text_black, $cugold, $cugold);
+}
+
+.btn-success {
+  @include btn($text_white, $real_black, $real_black);
+}
+
+.btn-info {
+  @include btn($text_white, $gray, $gray);
+}
+
+.btn-warning {
+  @include btn($text_black, $real_white, $gray);
+}
+
+.btn-danger {
+  @include btn($text_black, $cugold, $cugold);
+}
+
+.btn-link {
+  @include btn($link_blue, transparent, transparent);
+}
+
+// FONT TEXT WORDS ETC.
+.page-header span {
+  font-family: "Neue Helvetica W01", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}

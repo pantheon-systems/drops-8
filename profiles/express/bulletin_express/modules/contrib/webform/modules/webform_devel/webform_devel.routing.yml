@@ -1,0 +1,7 @@
+entity.webform.export_form:
+  path: '/admin/structure/webform/manage/{webform}/export'
+  defaults:
+    _entity_form: 'webform.export'
+    _title_callback: '\Drupal\webform\Controller\WebformController::title'
+  requirements:
+    _permission: 'access devel information'

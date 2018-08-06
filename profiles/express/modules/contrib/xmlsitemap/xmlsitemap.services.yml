@@ -1,0 +1,14 @@
+services:
+  xmlsitemap_generator:
+    class: Drupal\xmlsitemap\XmlSitemapGenerator
+    arguments: ['@config.factory', '@state', '@language_manager', '@logger.channel.xmlsitemap']
+    tags:
+      - { name: xmlsitemap_generator }
+  xmlsitemap.link_storage:
+    class: Drupal\xmlsitemap\XmlSitemapLinkStorage
+    arguments: ['@state', '@module_handler']
+    tags:
+      - { name: xmlsitemap.link_storage }
+  logger.channel.xmlsitemap:
+    parent: logger.channel_base
+    arguments: ['xmlsitemap']

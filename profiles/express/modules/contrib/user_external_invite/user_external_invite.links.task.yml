@@ -1,0 +1,10 @@
+user_external_invite.invite:
+  route_name: user_external_invite.invite_users
+  base_route: user_external_invite.invite_users
+  title: 'Invite Users'
+  weight: 1
+user_external_invite.manage:
+  route_name: user_external_invite.manage_invites
+  base_route: user_external_invite.invite_users
+  title: 'Manage Invites'
+  weight: 2

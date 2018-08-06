@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for view_unpublished.
+ */
+
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_install().
+ */
+function view_unpublished_install() {
+  node_access_needs_rebuild(TRUE);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function view_unpublished_uninstall() {
+  node_access_needs_rebuild(TRUE);
+}
+
+/**
+ * Make a node access permissions rebuild needed to fix multilingual grants.
+ */
+function view_unpublished_update_8001() {
+  // We can't just rebuild all the permissions in the update batch because of
+  // https://www.drupal.org/node/2785155 and the ability to run updates using
+  // the update_free_access setting.
+  node_access_needs_rebuild(TRUE);
+  return t(
+    'A rebuild of node access permissions is necessary. Rebuilding may take some time if there is a lot of content or complex permission settings. After rebuilding has completed, content will automatically use the new permissions. <a href=":rebuild">Rebuild permissions</a>',
+    [':rebuild' => Url::fromRoute('node.configure_rebuild_confirm')->toString()]
+  );
+}

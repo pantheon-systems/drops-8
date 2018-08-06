@@ -1,0 +1,16 @@
+# Schema for the configuration files of the Linkit test module.
+
+
+# Plugin \Drupal\linkit_test\Plugin\Linkit\Attribute\ConfigurableDummyAttribute
+linkit.attribute.configurable_dummy_attribute:
+  type: linkit.attribute
+  mapping:
+    dummy_setting:
+      type: boolean
+
+# Plugin \Drupal\linkit_test\Plugin\Linkit\Matcher\ConfigurableDummyMatcher
+linkit.matcher.configurable_dummy_matcher:
+  type: linkit.matcher
+  mapping:
+    dummy_setting:
+      type: boolean

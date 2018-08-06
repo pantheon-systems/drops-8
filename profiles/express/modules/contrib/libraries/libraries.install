@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Containsinstall, uninstall and update functions for Libraries API.
+ */
+
+use Drupal\libraries\ExternalLibrary\Definition\FileDefinitionDiscovery;
+
+/**
+ * Implements hook_install().
+ */
+function libraries_install() {
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  $file_system->mkdir('public://library-definitions');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function libraries_uninstall() {
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  $file_system->rmdir('public://library-definitions');
+}

@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_test_custom_route.module..
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_test_custom_route_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_test_custom_route module.
+    case 'help.page.metatag_test_custom_route':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Support module for testing handling of a custom route.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_metatag_route_entity().
+ */
+function metatag_test_custom_route_metatag_route_entity(RouteMatchInterface $route_match) {
+  if ($route_match->getRouteName() === 'metatag_test_custom_route.entity_route') {
+    if ($entity_test = $route_match->getParameter('entity_test')) {
+      return $entity_test;
+    }
+  }
+}

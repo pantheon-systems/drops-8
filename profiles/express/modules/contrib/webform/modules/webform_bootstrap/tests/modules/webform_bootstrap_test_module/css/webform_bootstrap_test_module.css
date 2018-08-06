@@ -1,0 +1,20 @@
+/**
+ * @file
+ * Webform Bootstrap test module styles
+ */
+
+
+/**
+ * Make sure .btn font color is white.
+ */
+.messages a.btn,
+.messages a.btn:hover {
+  color: #fff;
+}
+
+/**
+ * Add right margin to local actions button links.
+ */
+.webform-ui-local-actions a.btn {
+  margin-right: 12px;
+}

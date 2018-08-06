@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ * Helper module for the diff tests.
+ */
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\diff\Routing\DiffRouteProvider;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function diff_test_entity_type_alter(array &$entity_types) {
+  /** @var \Drupal\Core\Entity\EntityType $entity_type */
+  $entity_type = $entity_types['entity_test_rev'];
+  $handlers = $entity_type->get('handlers');
+  $handlers['route_provider']['html_diff'] = DiffRouteProvider::class;
+  $entity_type->set('handlers', $handlers);
+  $entity_type->setLinkTemplate('revisions-diff', "/entity_test_rev/{entity_test_rev}/revision/{left_revision}/{right_revision}");
+}
+
+/**
+ * Implements hook_entity_field_access().
+ */
+function diff_test_entity_field_access($operation, FieldDefinitionInterface $field_definition, AccountInterface $account, FieldItemListInterface $items = NULL) {
+  if ($field_definition->getName() == 'field_diff_deny_access') {
+    return AccessResult::forbidden();
+  }
+  return AccessResult::allowed();
+}

@@ -1,0 +1,4 @@
+services:
+  focal_point.manager:
+    class: Drupal\focal_point\FocalPointManager
+    arguments: ['@entity_type.manager']

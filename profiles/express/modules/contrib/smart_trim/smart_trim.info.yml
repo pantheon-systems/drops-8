@@ -1,0 +1,15 @@
+name: 'Smart Trim'
+type: module
+description: 'Provides a more robust alternative to "summary or trimmed" textfield format'
+package: Fields
+# core: 8.x
+dependencies:
+  - field
+  - filter
+  - text
+
+# Information added by Drupal.org packaging script on 2016-05-13
+version: '8.x-1.0'
+core: '8.x'
+project: 'smart_trim'
+datestamp: 1463159295

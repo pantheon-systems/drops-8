@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - entity_browser_example
+    - node
+  enforced:
+    module:
+      - entity_browser_example
+id: node.field_nodes
+field_name: field_nodes
+entity_type: node
+type: entity_reference
+settings:
+  target_type: node
+module: entity_browser_example
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false

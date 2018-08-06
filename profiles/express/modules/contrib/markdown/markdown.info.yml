@@ -1,0 +1,11 @@
+name: 'Markdown filter'
+type: module
+description: 'Allows content to be submitted using Markdown, a simple plain-text syntax that is transformed into valid HTML.'
+package: 'Input filters'
+# core: 8.x
+
+# Information added by Drupal.org packaging script on 2017-05-31
+version: '8.x-1.2'
+core: '8.x'
+project: 'markdown'
+datestamp: 1496237345

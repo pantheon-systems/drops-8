@@ -1,0 +1,78 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the webform demo application evaluation module.
+ */
+
+use Drupal\node\Entity\Node;
+use Drupal\webform\WebformInterface;
+
+/**
+ * Implements hook_install().
+ */
+function webform_demo_application_evaluation_install() {
+  // Create a webform:demo_application node with some submissions.
+  if (\Drupal::moduleHandler()->moduleExists('webform_node')) {
+    // Create a webform node.
+    $webform_node = Node::create([
+      'type' => 'webform',
+      'title' => 'Demo: Application',
+      'status' => 1,
+    ]);
+    $webform_node->webform->target_id = 'demo_application';
+    $webform_node->webform->status = WebformInterface::STATUS_OPEN;
+    $webform_node->webform->open = '';
+    $webform_node->webform->close = '';
+    $webform_node->save();
+
+    // Generate some initial webform node applications.
+    if (\Drupal::moduleHandler()->moduleExists('devel_generate')) {
+      /** @var \Drupal\devel_generate\DevelGeneratePluginManager $devel_generate_manager */
+      $devel_generate_manager = \Drupal::service('plugin.manager.develgenerate');
+
+      /** @var \Drupal\webform\Plugin\DevelGenerate\WebformSubmissionDevelGenerate $webform_submission_devel_generate */
+      $webform_submission_devel_generate = $devel_generate_manager->createInstance('webform_submission', []);
+      $webform_submission_devel_generate->generateElements([
+        'webform_ids' => [
+          'demo_application' => 'demo_application',
+        ],
+        'entity-type' => 'node',
+        'entity-id' => $webform_node->id(),
+        'num' => 50,
+      ]);
+    }
+  }
+
+  // Add submissions to demo_application webform.
+  if (\Drupal::moduleHandler()->moduleExists('devel_generate')) {
+    /** @var \Drupal\devel_generate\DevelGeneratePluginManager $devel_generate_manager */
+    $devel_generate_manager = \Drupal::service('plugin.manager.develgenerate');
+
+    /** @var \Drupal\webform\Plugin\DevelGenerate\WebformSubmissionDevelGenerate $webform_submission_devel_generate */
+    $webform_submission_devel_generate = $devel_generate_manager->createInstance('webform_submission', []);
+    $webform_submission_devel_generate->generateElements([
+      'webform_ids' => [
+        'demo_application' => 'demo_application',
+      ],
+      'num' => 50,
+    ]);
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_demo_application_evaluation_uninstall() {
+  // Delete all webform:demo_application nodes.
+  $entity_ids = \Drupal::entityQuery('node')
+    ->condition('webform.target_id', 'demo_application')
+    ->execute();
+  if ($entity_ids) {
+    /** @var \Drupal\node\Entity\Node[] $nodes */
+    $nodes = Node::loadMultiple($entity_ids);
+    foreach ($nodes as $node) {
+      $node->delete();
+    }
+  }
+}

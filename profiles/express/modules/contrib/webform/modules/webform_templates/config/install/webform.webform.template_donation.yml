@@ -1,0 +1,222 @@
+langcode: en
+status: closed
+dependencies:
+  enforced:
+    module:
+      - webform_templates
+open: null
+close: null
+uid: null
+template: true
+id: template_donation
+title: Donation
+description: 'A donation webform template.'
+category: ''
+elements: |
+  donation:
+    '#title': 'Donation Information'
+    '#type': fieldset
+    amount:
+      '#type': webform_buttons_other
+      '#title': Amount
+      '#title_display': invisible
+      '#required': true
+      '#options':
+        25: $25
+        50: $50
+        100: $100
+        250: $250
+        500: $500
+      '#other__option_label': Other
+      '#other__title': 'Please Enter Your Donation'
+      '#other__type': number
+      '#other__min': 1
+      '#other__placeholder': ''
+      '#other__field_prefix': $
+      '#other__field_suffix': '.00'
+  billing:
+    '#title': 'Billing Information'
+    '#type': fieldset
+    name:
+      '#type': webform_name
+      '#title': Name
+      '#title_display': invisible
+      '#required': true
+      '#first__required': true
+      '#last__required': true
+      '#suffix__access': false
+      '#degree__access': false
+      '#flexbox': '1'
+    address:
+      '#type': webform_address
+      '#title': Address
+      '#title_display': invisible
+      '#required': true
+      '#address__required': true
+      '#city__required': true
+      '#state_province__required': true
+      '#postal_code__required': true
+      '#country__required': true
+      '#flexbox': '1'
+    email:
+      '#type': pmail
+      '#title': Email
+      '#required': true
+    phone:
+      '#type': phone
+      '#title': Phone
+  payment:
+    '#title': 'Payment Information'
+    '#type': fieldset
+    credit_card:
+      '#type': webform_creditcard
+      '#title': 'Credit Card'
+      '#title_display': invisible
+      '#required': true
+      '#name__required': true
+      '#type__required': true
+      '#number__required': true
+      '#civ__required': true
+      '#expiration_month__required': true
+      '#expiration_year__required': true
+      '#flexbox': '1'
+  actions:
+    '#type': webform_actions
+    '#title': 'Submit button(s)'
+    '#submit__label': Donate
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: |
+    <h2>Thank you!!!</h2>
+    <p>Your donation was processed successfully!</p>
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  email_notification:
+    id: email
+    label: 'Email Notification'
+    handler_id: email_notification
+    status: true
+    conditions: {  }
+    weight: 1
+    settings:
+      states:
+        - completed
+      to_mail: default
+      to_options: {  }
+      cc_mail: ''
+      cc_options: {  }
+      bcc_mail: ''
+      bcc_options: {  }
+      from_mail: '[webform_submission:values:email:raw]'
+      from_options: {  }
+      from_name: '[webform_submission:values:first_name] [webform_submission:values:last_name]'
+      subject: default
+      body: default
+      excluded_elements: {  }
+      ignore_access: false
+      exclude_empty: true
+      html: true
+      attachments: false
+      debug: false
+      reply_to: ''
+      return_path: ''
+      sender_mail: ''
+      sender_name: ''

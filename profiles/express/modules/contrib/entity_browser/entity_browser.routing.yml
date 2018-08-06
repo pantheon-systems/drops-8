@@ -1,0 +1,49 @@
+route_callbacks:
+  - 'entity_browser.route_subscriber:routes'
+
+entity_browser.edit_form:
+  path: /entity_browser/{entity_type}/{entity}/edit
+  defaults:
+    _controller: '\Drupal\entity_browser\Controllers\EntityBrowserController::entityBrowserEdit'
+  requirements:
+    _entity_access: 'entity.update'
+  options:
+    _admin_route: TRUE
+    parameters:
+      entity:
+        type: entity:{entity_type}
+
+entity.entity_browser.add_form:
+  path: '/admin/config/content/entity_browser/add'
+  defaults:
+    _entity_wizard: 'entity_browser.add'
+    _title: 'Add Entity browser'
+    tempstore_id: 'entity_browser.config'
+  requirements:
+    _permission: 'administer entity browsers'
+
+entity.entity_browser.edit_form:
+  path: '/admin/config/content/entity_browser/{entity_browser}/{step}'
+  defaults:
+    _entity_wizard: 'entity_browser.edit'
+    _title: 'Edit Entity browser'
+    tempstore_id: 'entity_browser.config'
+    step: 'general'
+  requirements:
+    _permission: 'administer entity browsers'
+
+entity.entity_browser.collection:
+  path: '/admin/config/content/entity_browser'
+  defaults:
+    _entity_list: 'entity_browser'
+    _title: 'Entity Browsers'
+  requirements:
+    _permission: 'administer entity browsers'
+
+entity.entity_browser.delete_form:
+  path: '/admin/config/content/entity_browser/{entity_browser}/delete'
+  defaults:
+    _entity_form: 'entity_browser.delete'
+    _title: 'Delete Entity browser'
+  requirements:
+    _permission: 'administer entity browsers'

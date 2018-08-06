@@ -1,0 +1,14 @@
+name: 'reCAPTCHA'
+type: module
+description: 'Protect your website from spam and abuse while letting real people pass through with ease.'
+package: Spam control
+# core: 8.x
+configure: recaptcha.admin_settings_form
+dependencies:
+  - captcha
+
+# Information added by Drupal.org packaging script on 2016-07-30
+version: '8.x-2.2'
+core: '8.x'
+project: 'recaptcha'
+datestamp: 1469859566

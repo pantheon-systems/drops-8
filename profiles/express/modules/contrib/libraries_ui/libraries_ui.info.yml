@@ -1,0 +1,10 @@
+name: 'Libraries UI'
+type: 'module'
+description: 'This module will display all libraries information in your website'
+# core: 8.x
+
+# Information added by Drupal.org packaging script on 2016-05-03
+version: '8.x-1.0'
+core: '8.x'
+project: 'libraries_ui'
+datestamp: 1462273985

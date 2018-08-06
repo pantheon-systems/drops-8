@@ -1,0 +1,12 @@
+name: Video Embed Field Mock Provider
+description: A mock provider for testing purposes only.
+type: module
+hidden: true
+package: Testing
+# core: 8.x
+
+# Information added by Drupal.org packaging script on 2017-04-26
+version: '8.x-1.5'
+core: '8.x'
+project: 'video_embed_field'
+datestamp: 1493246351

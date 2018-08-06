@@ -1,0 +1,17 @@
+entity.webform.results_submissions:
+  title: Results
+  route_name: entity.webform.results_submissions
+  group: webform
+  weight: 0
+
+entity.webform.edit_form:
+  title: Build
+  route_name: entity.webform.edit_form
+  group: webform
+  weight: 10
+
+entity.webform.settings:
+  title: Settings
+  route_name: entity.webform.settings
+  group: webform
+  weight: 20

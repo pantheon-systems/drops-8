@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an individual views slideshow cycle slide.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the element.
+ * - count: The slide number.
+ * - rendered_items: Rendered items for slide.
+ * - vss_id: The slideshow's id.
+ *
+ * @see template_preprocess_views_slideshow_()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div id="views_slideshow_cycle_div_{{ vss_id }}_{{ count }}" {{ attributes.addClass(classes) }}>
+  {% for rendered_item in rendered_items %}
+    {{ rendered_item }}
+  {% endfor %}
+</div>

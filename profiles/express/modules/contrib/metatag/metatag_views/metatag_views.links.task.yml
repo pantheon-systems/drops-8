@@ -1,0 +1,18 @@
+metatag_views.defaults:
+  title: 'Defaults'
+  route_name: entity.metatag_defaults.collection
+  base_route: entity.metatag_defaults.collection
+  weight: 0
+metatag_views.tab_views:
+  title: 'Views'
+  route_name: metatag_views.metatags.list
+  base_route: entity.metatag_defaults.collection
+
+metatag_views.metatags.edit:
+  title: 'Edit'
+  route_name: metatag_views.metatags.edit
+  base_route: metatag_views.metatags.edit
+metatag_views.metatags.translate_overview:
+  title: 'Translate'
+  route_name: metatag_views.metatags.translate_overview
+  base_route: metatag_views.metatags.edit

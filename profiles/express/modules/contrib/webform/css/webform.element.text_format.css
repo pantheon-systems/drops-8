@@ -1,0 +1,12 @@
+/**
+ * @file
+ * Text form element styles.
+ */
+
+/**
+ * Add more padding to text form tips when they are displayed in a modal.
+ * @see \Drupal\webform\Plugin\WebformElement\TextFormat::afterBuild
+ */
+.webform-text-format-help-dialog .ui-dialog-content > div {
+  padding: 0 1em 1em 1em;
+}

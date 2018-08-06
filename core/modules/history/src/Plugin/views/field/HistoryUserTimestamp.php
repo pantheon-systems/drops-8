@@ -42,9 +42,6 @@ class HistoryUserTimestamp extends Node {
     }
   }
 
-  /**
-   * {@inheritdoc}
-   */
   protected function defineOptions() {
     $options = parent::defineOptions();
 
@@ -53,9 +50,6 @@ class HistoryUserTimestamp extends Node {
     return $options;
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     parent::buildOptionsForm($form, $form_state);
     if (\Drupal::moduleHandler()->moduleExists('comment')) {
@@ -67,9 +61,6 @@ class HistoryUserTimestamp extends Node {
     }
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public function query() {
     // Only add ourselves to the query if logged in.
     if (\Drupal::currentUser()->isAnonymous()) {

@@ -1,0 +1,3 @@
+bundle: test_mybundle
+excluded:
+  - system.theme

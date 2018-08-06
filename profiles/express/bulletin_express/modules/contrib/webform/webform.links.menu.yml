@@ -1,0 +1,5 @@
+entity.webform.collection:
+  title: 'Webforms'
+  description: 'Create webforms and manage submissions.'
+  parent: system.admin_structure
+  route_name: entity.webform.collection

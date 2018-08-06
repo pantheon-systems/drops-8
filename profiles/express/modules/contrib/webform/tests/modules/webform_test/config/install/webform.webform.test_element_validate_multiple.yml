@@ -1,0 +1,189 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_validate_multiple
+title: 'Test: Element: Validate Multiple'
+description: 'Test #multiple element validation support.'
+category: 'Test: Element'
+elements: |
+  textfield:
+    '#type': details
+    '#title': textfield
+    '#open': true
+    webform_element_multiple_textfield_unlimited:
+      '#type': textfield
+      '#title': webform_element_multiple_textfield_unlimited
+      '#multiple': TRUE
+    webform_element_multiple_textfield_three:
+      '#type': textfield
+      '#title': webform_element_multiple_textfield_three
+      '#multiple': 3
+  webform_link:
+    '#type': details
+    '#title': webform_link
+    '#open': true
+    webform_element_multiple_link_three:
+      '#type': webform_link
+      '#title': webform_element_multiple_link_three
+      '#multiple': 3
+      '#multiple__header': true
+    webform_element_multiple_link_unlimited:
+      '#type': webform_link
+      '#title': webform_element_multiple_link_unlimited
+      '#multiple': TRUE
+      '#multiple__header': true
+  checkboxes:
+    '#type': details
+    '#title': checkboxes
+    '#open': true
+    webform_element_multiple_checkboxes_two:
+      '#type': checkboxes
+      '#title': webform_element_multiple_checkboxes_two
+      '#multiple': 2
+      '#multiple_error': 'Please check only two options.'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+        four: Four
+  select:
+    '#type': details
+    '#title': select
+    '#open': true
+    webform_element_multiple_select_two:
+      '#type': select
+      '#title': webform_element_multiple_select_two
+      '#select2': true
+      '#multiple': 2
+      '#options':
+        one: One
+        two: Two
+        three: Three
+        four: Four
+  file:
+    '#type': details
+    '#title': managed_file
+    '#open': true
+    webform_element_multiple_managed_file_two:
+      '#type': managed_file
+      '#title': webform_element_multiple_managed_file_two
+      '#select2': true
+      '#multiple': 2
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  debug:
+    id: debug
+    label: Debug
+    handler_id: debug
+    status: true
+    conditions: {  }
+    weight: 0
+    settings: {  }

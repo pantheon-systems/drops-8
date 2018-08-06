@@ -1,0 +1,87 @@
+xmlsitemap.admin_search:
+  path: '/admin/config/search/xmlsitemap'
+  defaults:
+    _entity_list: 'xmlsitemap'
+    _title: 'XML sitemap'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap.admin_search_list:
+  path: '/admin/config/search/xmlsitemap/list'
+  defaults:
+    _entity_list: 'xmlsitemap'
+    _title: 'XML sitemap'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+entity.xmlsitemap.add_form:
+  path: '/admin/config/search/xmlsitemap/add'
+  defaults:
+    _entity_form: 'xmlsitemap.add'
+    _title: 'Add new XML sitemap'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+entity.xmlsitemap.edit_form:
+  path: '/admin/config/search/xmlsitemap/{xmlsitemap}/edit'
+  defaults:
+    _entity_form: 'xmlsitemap.edit'
+    _title: 'Edit XML sitemap'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+entity.xmlsitemap.delete_form:
+  path: '/admin/config/search/xmlsitemap/{xmlsitemap}/delete'
+  defaults:
+    _entity_form: 'xmlsitemap.delete'
+    _title: 'Delete XML sitemap'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap.admin_settings:
+  path: '/admin/config/search/xmlsitemap/settings'
+  defaults:
+    _form: '\Drupal\xmlsitemap\Form\XmlSitemapSettingsForm'
+    _title: 'Settings'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap.entities_settings:
+  path: '/admin/config/search/xmlsitemap/entities/settings'
+  defaults:
+    _form: '\Drupal\xmlsitemap\Form\XmlSitemapEntitiesSettingsForm'
+    _title: 'Custom Entities Settings'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap.admin_settings_bundle:
+  path: '/admin/config/search/xmlsitemap/settings/{entity}/{bundle}'
+  defaults:
+    _form: '\Drupal\xmlsitemap\Form\XmlSitemapLinkBundleSettingsForm'
+    _title: 'Link Bundle Settings'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap.admin_rebuild:
+  path: '/admin/config/search/xmlsitemap/rebuild'
+  defaults:
+    _form: '\Drupal\xmlsitemap\Form\XmlSitemapRebuildForm'
+    _title: 'Rebuild links'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap.sitemap_xml:
+  path: '/sitemap.xml'
+  defaults:
+    _controller: '\Drupal\xmlsitemap\Controller\XmlSitemapController::renderSitemapXml'
+    _title: 'Sitemap XML'
+  requirements:
+    _access: 'TRUE'
+
+xmlsitemap.sitemap_xsl:
+  path: '/sitemap.xsl'
+  defaults:
+    _controller: '\Drupal\xmlsitemap\Controller\XmlSitemapController::renderSitemapXsl'
+    _title: 'Sitemap XSL'
+  requirements:
+    _access: 'TRUE'

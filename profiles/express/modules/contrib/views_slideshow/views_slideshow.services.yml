@@ -1,0 +1,19 @@
+services:
+  plugin.manager.views_slideshow.slideshow_skin:
+    class: Drupal\views_slideshow\ViewsSlideshowSkinPluginManager
+    parent: default_plugin_manager
+
+  plugin.manager.views_slideshow.slideshow_type:
+    class: Drupal\views_slideshow\ViewsSlideshowTypePluginManager
+    parent: default_plugin_manager
+
+  plugin.manager.views_slideshow.widget_type:
+    class: Drupal\views_slideshow\ViewsSlideshowWidgetTypePluginManager
+    parent: default_plugin_manager
+
+  plugin.manager.views_slideshow.widget:
+    class: Drupal\views_slideshow\ViewsSlideshowWidgetPluginManager
+    parent: default_plugin_manager
+
+  views_slideshow.format_addons_name:
+      class: Drupal\views_slideshow\FormatAddonsName

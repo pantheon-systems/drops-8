@@ -1,0 +1,20 @@
+uuid: 08289ee3-b37b-42a1-91f8-f50e1a4965ea
+langcode: en
+status: true
+dependencies:
+  theme:
+    - catapult
+_core:
+  default_config_hash: Wf30mHPkCtYOIY2w8HhxVX1f14h3oygb5TFb2711cxM
+id: catapult_page_title
+theme: catapult
+region: content
+weight: -7
+provider: null
+plugin: page_title_block
+settings:
+  id: page_title_block
+  label: 'Page title'
+  provider: core
+  label_display: '0'
+visibility: {  }

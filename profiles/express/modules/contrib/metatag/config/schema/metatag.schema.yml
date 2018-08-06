@@ -1,0 +1,8 @@
+# Schema for metatag.
+field.value.metatag:
+  type: mapping
+  label: 'Default value'
+  mapping:
+    value:
+      type: string
+      label: 'Metatags'

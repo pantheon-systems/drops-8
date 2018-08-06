@@ -15,10 +15,10 @@
 
 namespace Symfony\Component\HttpKernel\HttpCache;
 
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\TerminableInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Cache provides HTTP caching.
@@ -165,11 +165,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
         // FIXME: catch exceptions and implement a 500 error page here? -> in Varnish, there is a built-in error page mechanism
         if (HttpKernelInterface::MASTER_REQUEST === $type) {
             $this->traces = array();
-            // Keep a clone of the original request for surrogates so they can access it.
-            // We must clone here to get a separate instance because the application will modify the request during
-            // the application flow (we know it always does because we do ourselves by setting REMOTE_ADDR to 127.0.0.1
-            // and adding the X-Forwarded-For header, see HttpCache::forward()).
-            $this->request = clone $request;
+            $this->request = $request;
             if (null !== $this->surrogate) {
                 $this->surrogateCacheStrategy = $this->surrogate->createCacheStrategy();
             }
@@ -370,7 +366,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
 
             // return the response and not the cache entry if the response is valid but not cached
             $etag = $response->getEtag();
-            if ($etag && \in_array($etag, $requestEtags) && !\in_array($etag, $cachedEtags)) {
+            if ($etag && in_array($etag, $requestEtags) && !in_array($etag, $cachedEtags)) {
                 return $response;
             }
 
@@ -444,11 +440,30 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
             $this->surrogate->addSurrogateCapability($request);
         }
 
+        // modify the X-Forwarded-For header if needed
+        $forwardedFor = $request->headers->get('X-Forwarded-For');
+        if ($forwardedFor) {
+            $request->headers->set('X-Forwarded-For', $forwardedFor.', '.$request->server->get('REMOTE_ADDR'));
+        } else {
+            $request->headers->set('X-Forwarded-For', $request->server->get('REMOTE_ADDR'));
+        }
+
+        // fix the client IP address by setting it to 127.0.0.1 as HttpCache
+        // is always called from the same process as the backend.
+        $request->server->set('REMOTE_ADDR', '127.0.0.1');
+
+        // make sure HttpCache is a trusted proxy
+        if (!in_array('127.0.0.1', $trustedProxies = Request::getTrustedProxies())) {
+            $trustedProxies[] = '127.0.0.1';
+            Request::setTrustedProxies($trustedProxies, Request::HEADER_X_FORWARDED_ALL);
+        }
+
         // always a "master" request (as the real master request can be in cache)
-        $response = SubRequestHandler::handle($this->kernel, $request, HttpKernelInterface::MASTER_REQUEST, $catch);
+        $response = $this->kernel->handle($request, HttpKernelInterface::MASTER_REQUEST, $catch);
+        // FIXME: we probably need to also catch exceptions if raw === true
 
         // we don't implement the stale-if-error on Requests, which is nonetheless part of the RFC
-        if (null !== $entry && \in_array($response->getStatusCode(), array(500, 502, 503, 504))) {
+        if (null !== $entry && in_array($response->getStatusCode(), array(500, 502, 503, 504))) {
             if (null === $age = $entry->headers->getCacheControlDirective('stale-if-error')) {
                 $age = $this->options['stale_if_error'];
             }
@@ -587,7 +602,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
             $response->setContent(ob_get_clean());
             $response->headers->remove('X-Body-Eval');
             if (!$response->headers->has('Transfer-Encoding')) {
-                $response->headers->set('Content-Length', \strlen($response->getContent()));
+                $response->headers->set('Content-Length', strlen($response->getContent()));
             }
         } elseif ($response->headers->has('X-Body-File')) {
             // Response does not include possibly dynamic content (ESI, SSI), so we need
@@ -621,7 +636,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
             $key = strtolower(str_replace('HTTP_', '', $key));
 
             if ('cookie' === $key) {
-                if (\count($request->cookies->all())) {
+                if (count($request->cookies->all())) {
                     return true;
                 }
             } elseif ($request->headers->has($key)) {

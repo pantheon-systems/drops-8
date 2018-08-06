@@ -1,0 +1,51 @@
+{"level":"debug","msg":"main.go started","time":"2017-03-24T19:33:53+01:00"}
+{"level":"info","msg":"Preflight(dockerMachinePath) = /usr/local/bin/docker-machine","time":"2017-03-24T19:33:53+01:00"}
+{"level":"info","msg":" Preflight(dockerMachineInstalled) = true","time":"2017-03-24T19:33:53+01:00"}
+{"level":"info","msg":"Preflight(dockerPath) = /usr/local/bin/docker","time":"2017-03-24T19:33:53+01:00"}
+{"level":"info","msg":" Preflight(dockerInstalled) = true","time":"2017-03-24T19:33:53+01:00"}
+{"level":"info","msg":"Preflight(socket) = tcp://10.211.55.8:2376","time":"2017-03-24T19:33:53+01:00"}
+{"level":"info","msg":" Preflight(dockerIsUp) = true","time":"2017-03-24T19:33:53+01:00"}
+{"level":"debug","msg":"app.Stop(drupal8)","time":"2017-03-24T19:33:53+01:00"}
+{"level":"error","msg":"open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:33:53+01:00"}
+{"level":"error","msg":"Error in Docker project creation: open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:33:53+01:00"}
+{"level":"fatal","msg":"Error in Docker project creation: open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:33:53+01:00"}
+{"level":"debug","msg":"main.go started","time":"2017-03-24T19:33:58+01:00"}
+{"level":"info","msg":"Preflight(dockerMachinePath) = /usr/local/bin/docker-machine","time":"2017-03-24T19:33:58+01:00"}
+{"level":"info","msg":" Preflight(dockerMachineInstalled) = true","time":"2017-03-24T19:33:58+01:00"}
+{"level":"info","msg":"Preflight(dockerPath) = /usr/local/bin/docker","time":"2017-03-24T19:33:58+01:00"}
+{"level":"info","msg":" Preflight(dockerInstalled) = true","time":"2017-03-24T19:33:58+01:00"}
+{"level":"info","msg":"Preflight(socket) = tcp://10.211.55.8:2376","time":"2017-03-24T19:33:58+01:00"}
+{"level":"info","msg":" Preflight(dockerIsUp) = true","time":"2017-03-24T19:33:58+01:00"}
+{"level":"debug","msg":"app.Stop(d8)","time":"2017-03-24T19:33:58+01:00"}
+{"level":"debug","msg":"main.go started","time":"2017-03-24T19:44:13+01:00"}
+{"level":"info","msg":"Preflight(dockerMachinePath) = /usr/local/bin/docker-machine","time":"2017-03-24T19:44:13+01:00"}
+{"level":"info","msg":" Preflight(dockerMachineInstalled) = true","time":"2017-03-24T19:44:13+01:00"}
+{"level":"info","msg":"Preflight(dockerPath) = /usr/local/bin/docker","time":"2017-03-24T19:44:13+01:00"}
+{"level":"info","msg":" Preflight(dockerInstalled) = true","time":"2017-03-24T19:44:13+01:00"}
+{"level":"info","msg":"Preflight(socket) = tcp://10.211.55.8:2376","time":"2017-03-24T19:44:13+01:00"}
+{"level":"info","msg":" Preflight(dockerIsUp) = true","time":"2017-03-24T19:44:13+01:00"}
+{"level":"debug","msg":"app.Start(drupal8)","time":"2017-03-24T19:44:13+01:00"}
+{"level":"error","msg":"open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:44:13+01:00"}
+{"level":"error","msg":"Error in Docker project creation: open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:44:13+01:00"}
+{"level":"fatal","msg":"Error in Docker project creation: open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:44:13+01:00"}
+{"level":"debug","msg":"main.go started","time":"2017-03-24T19:44:17+01:00"}
+{"level":"info","msg":"Preflight(dockerMachinePath) = /usr/local/bin/docker-machine","time":"2017-03-24T19:44:17+01:00"}
+{"level":"info","msg":" Preflight(dockerMachineInstalled) = true","time":"2017-03-24T19:44:17+01:00"}
+{"level":"info","msg":"Preflight(dockerPath) = /usr/local/bin/docker","time":"2017-03-24T19:44:17+01:00"}
+{"level":"info","msg":" Preflight(dockerInstalled) = true","time":"2017-03-24T19:44:17+01:00"}
+{"level":"info","msg":"Preflight(socket) = tcp://10.211.55.8:2376","time":"2017-03-24T19:44:17+01:00"}
+{"level":"info","msg":" Preflight(dockerIsUp) = true","time":"2017-03-24T19:44:17+01:00"}
+{"level":"debug","msg":"app.Start(drupal8builder)","time":"2017-03-24T19:44:17+01:00"}
+{"level":"error","msg":"open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:44:17+01:00"}
+{"level":"error","msg":"Error in Docker project creation: open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:44:17+01:00"}
+{"level":"fatal","msg":"Error in Docker project creation: open /docker-compose.yml: no such file or directory","time":"2017-03-24T19:44:17+01:00"}
+{"level":"debug","msg":"main.go started","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":"Preflight(dockerMachinePath) = /usr/local/bin/docker-machine","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":" Preflight(dockerMachineInstalled) = true","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":"Preflight(dockerPath) = /usr/local/bin/docker","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":" Preflight(dockerInstalled) = true","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":"Preflight(socket) = tcp://10.211.55.8:2376","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":" Preflight(dockerIsUp) = true","time":"2017-03-24T19:44:25+01:00"}
+{"level":"debug","msg":"app.Start(d8builder)","time":"2017-03-24T19:44:25+01:00"}
+{"level":"info","msg":"- Project:d8builderstatus is: STARTED","time":"2017-03-24T19:44:28+01:00"}
+{"level":"debug","msg":"Show(d8builder)","time":"2017-03-24T19:44:28+01:00"}

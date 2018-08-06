@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - webform
+  theme:
+    - seven
+  enforced:
+    module:
+      - webform_demo_application_evaluation
+id: seven_webform_demo_application_evaluation
+theme: seven
+region: content
+weight: 5
+provider: null
+plugin: webform_block
+settings:
+  id: webform_block
+  label: 'Demo: Application Evaluation'
+  provider: webform
+  label_display: '0'
+  webform_id: demo_application_evaluation
+  default_data: ''
+visibility:
+  webform:
+    id: webform
+    webforms:
+      demo_application: demo_application
+    negate: false
+    context_mapping:
+      webform_submission: '@webform.webform_submission_route_context:webform_submission'

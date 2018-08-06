@@ -1,0 +1,5 @@
+webform_editorial.index:
+  title: 'Editorial'
+  route_name: webform_editorial.index
+  base_route: entity.webform.collection
+  weight: 90

@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an views slideshow cycle main frame.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the element.
+ * - rendered_rows: The slides.
+ * - vss_id: The slideshow id.
+ *
+ * @see template_preprocess_views_slideshow_cycle_main_frame()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div id="views_slideshow_cycle_teaser_section_{{ vss_id }}" {{ attributes.addClass(classes) }}>
+  {% for rendered_row in rendered_rows %}
+   {{ rendered_row }}
+  {% endfor %}
+</div>

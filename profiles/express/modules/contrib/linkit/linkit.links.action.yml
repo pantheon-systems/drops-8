@@ -1,0 +1,18 @@
+linkit_profile.add_form:
+  route_name: entity.linkit_profile.add_form
+  title: 'Add profile'
+  appears_on:
+    - entity.linkit_profile.collection
+
+linkit.matcher.add:
+  route_name: linkit.matcher.add
+  title: 'Add matcher'
+  appears_on:
+    - linkit.matchers
+
+linkit.attribute.add:
+  route_name: linkit.attribute.add
+  title: 'Add attribute'
+  appears_on:
+    - linkit.attributes
+

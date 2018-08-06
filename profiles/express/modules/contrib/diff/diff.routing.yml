@@ -1,0 +1,25 @@
+diff.revisions_diff:
+  path: '/node/{node}/revisions/view/{left_revision}/{right_revision}/{filter}'
+  defaults:
+    _controller: '\Drupal\diff\Controller\NodeRevisionController::compareNodeRevisions'
+    _title: Diff General Settings
+  requirements:
+    _access_node_revision: 'view'
+  options:
+    _admin_route: TRUE
+
+diff.general_settings:
+  path: '/admin/config/content/diff/general'
+  defaults:
+    _form: '\Drupal\diff\Form\GeneralSettingsForm'
+    _title: Diff General Settings
+  requirements:
+    _permission: 'administer site configuration'
+
+diff.fields_list:
+  path: '/admin/config/content/diff/fields'
+  defaults:
+    _form: '\Drupal\diff\Form\FieldsSettingsForm'
+    _title: Fields Settings
+  requirements:
+    _permission: 'administer site configuration'

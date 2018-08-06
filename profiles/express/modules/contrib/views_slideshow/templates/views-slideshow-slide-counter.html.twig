@@ -1,0 +1,18 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow slide counter.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the counter's div element.
+ * - slide_count: Total number of slides.
+ * - vss_id: The slideshow's id.
+ *
+ * @see template_preprocess_views_slideshow_slide_counter()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<div id="views_slideshow_slide_counter_{{ vss_id }}" {{ attributes.addClass(classes) }}>
+  <span class="num">1</span> {{ 'of'|t }} <span class="total">{{ slide_count }}</span>
+</div>

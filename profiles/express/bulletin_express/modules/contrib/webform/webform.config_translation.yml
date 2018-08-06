@@ -1,0 +1,5 @@
+webform.settings:
+  title: 'Webform settings'
+  base_route_name: webform.settings
+  names:
+    - webform.settings

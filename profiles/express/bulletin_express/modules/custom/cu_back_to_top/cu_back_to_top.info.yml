@@ -1,0 +1,12 @@
+name: Back to top
+description: Adds a back to top link at the bottom of the browser window.
+package: CU-Core
+version: 7.x-1.0
+
+type: module
+core: 8.x
+
+configure: cu_back_to_top.settings
+
+hidden: false
+

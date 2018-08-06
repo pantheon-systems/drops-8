@@ -1,0 +1,3 @@
+'never autoplay videos':
+  title: Never autoplay videos
+  description: Disables autoplay for every video viewed by users with the given role.

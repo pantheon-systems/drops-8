@@ -1,0 +1,307 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples
+open: null
+close: null
+uid: null
+template: false
+id: example_layout_basic
+title: 'Example: Layout: Basic'
+description: 'Examples of basic element layout and enhancements using messages, CSS classes, custom attributes, and tables.'
+category: Example
+elements: |
+  message_example:
+    '#type': details
+    '#title': Messages
+    '#open': true
+    message_info:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is an <strong>info</strong> message.'
+      '#message_close': true
+    message_status:
+      '#type': webform_message
+      '#message_message': 'This is a <strong>status</strong> message.'
+      '#message_close': true
+    message_warning:
+      '#type': webform_message
+      '#message_type': warning
+      '#message_message': 'This is a <strong>warning</strong> message.'
+      '#message_close': true
+    message_error:
+      '#type': webform_message
+      '#message_type': error
+      '#message_message': 'This is a <strong>error</strong> message.'
+      '#message_close': true
+  form_inline_example:
+    '#type': details
+    '#title': 'Webform inline with warning (.form--inline.messages.messages--warning)'
+    '#open': true
+    form_inline_container:
+      '#type': container
+      '#attributes':
+        class:
+          - 'form--inline clearfix'
+          - 'messages messages--warning'
+        style: 'padding-top: 0; padding-bottom: 0;'
+      form_inline_first_name:
+        '#title': 'First Name'
+        '#type': textfield
+        '#size': 20
+      form_inline_last_name:
+        '#title': 'Last Name'
+        '#type': textfield
+        '#size': 20
+  container_inline_example:
+    '#type': details
+    '#title': 'Container inline (.container-inline)'
+    '#open': true
+    container_inline_first_name:
+      '#title': 'First Name'
+      '#type': textfield
+      '#size': 20
+      '#wrapper_attributes':
+        class:
+          - 'container-inline clearfix'
+    container_inline_last_name:
+      '#title': 'Last Name'
+      '#type': textfield
+      '#size': 20
+      '#wrapper_attributes':
+        class:
+          - 'container-inline clearfix'
+  options_example:
+    '#type': details
+    '#title': 'Options (#options_display)'
+    '#open': true
+    checkboxes_side_by_side:
+      '#type': checkboxes
+      '#title': 'Checkboxes side by side'
+      '#options_display': side_by_side
+      '#options':
+        one: One
+        two: Two
+        three: Three
+        four: Four
+        five: Five
+        six: Six
+    radios_two_columns:
+      '#type': radios
+      '#title': 'Radios two columns'
+      '#options_display': two_columns
+      '#options':
+        one: One
+        two: Two
+        three: Three
+        four: Four
+        five: Five
+        six: Six
+    checkboxes_two_columns:
+      '#type': radios
+      '#title': 'Checkboxes three columns'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+        four: Four
+        five: Five
+        six: Six
+      '#options_display': three_columns
+  title_example:
+    '#type': details
+    '#title': 'Title display'
+    '#open': true
+    title_display_before:
+      '#type': textfield
+      '#title': 'Title displayed before'
+      '#title_display': before
+    title_display_after:
+      '#type': textfield
+      '#title': 'Title displayed after'
+      '#title_display': after
+    title_display_inline:
+      '#type': textfield
+      '#title': 'Title displayed inline'
+      '#title_display': inline
+  description_example:
+    '#type': details
+    '#title': 'Description display'
+    '#open': true
+    description_display_before:
+      '#type': textfield
+      '#title': 'Description displayed before'
+      '#description': 'This description is displayed before the input.'
+      '#description_display': before
+    description_display_tooltip:
+      '#type': textfield
+      '#title': 'Description displayed in tooltip'
+      '#description': 'This description is displayed in a tooltip.  Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante.'
+      '#description_display': tooltip
+  table_example:
+    '#type': details
+    '#title': Table
+    '#open': true
+    table:
+      '#type': table
+      '#header':
+        - 'First Name'
+        - 'Last Name'
+        - Gender
+        - 'US Citizen'
+      table__1:
+        table__1__first_name:
+          '#title': '1 - First name'
+          '#title_display': invisible
+          '#type': textfield
+          '#size': 30
+        table__1__last_name:
+          '#title': '1 - Last name'
+          '#title_display': invisible
+          '#type': textfield
+          '#size': 30
+        table__1__gender:
+          '#title': '1 - Gender'
+          '#title_display': invisible
+          '#type': select
+          '#options': gender
+        table__1__us:
+          '#title': '1 - US Citizen'
+          '#title_display': invisible
+          '#type': checkbox
+      table__2:
+        table__2__first_name:
+          '#title': '2 - First name'
+          '#title_display': invisible
+          '#type': textfield
+          '#size': 30
+        table__2__last_name:
+          '#title': '2 - Last name'
+          '#title_display': invisible
+          '#type': textfield
+          '#size': 30
+        table__2__gender:
+          '#title': '2 - Gender'
+          '#title_display': invisible
+          '#type': select
+          '#options': gender
+        table__2__us:
+          '#title': '2 - US Citizen'
+          '#title_display': invisible
+          '#type': checkbox
+      table__3:
+        table__3__first_name:
+          '#title': '3 - First name'
+          '#title_display': invisible
+          '#type': textfield
+          '#size': 30
+        table__3__last_name:
+          '#title': '3 - Last name'
+          '#title_display': invisible
+          '#type': textfield
+          '#size': 30
+        table__3__gender:
+          '#title': '3 - Gender'
+          '#title_display': invisible
+          '#type': select
+          '#options': gender
+        table__3__us:
+          '#title': '3 - US Citizen'
+          '#title_display': invisible
+          '#type': checkbox
+css: ''
+javascript: ''
+settings:
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_label: ''
+  form_submit_once: false
+  form_submit_attributes: {  }
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_log: false
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_next_button_label: ''
+  wizard_next_button_attributes: {  }
+  wizard_prev_button_label: ''
+  wizard_prev_button_attributes: {  }
+  wizard_start_label: ''
+  wizard_complete: true
+  wizard_complete_label: ''
+  preview: 0
+  preview_next_button_label: ''
+  preview_next_button_attributes: {  }
+  preview_prev_button_label: ''
+  preview_prev_button_attributes: {  }
+  preview_message: ''
+  draft: none
+  draft_auto_save: false
+  draft_button_label: ''
+  draft_button_attributes: {  }
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+handlers: {  }

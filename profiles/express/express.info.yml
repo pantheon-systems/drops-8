@@ -1,0 +1,63 @@
+name: Express
+type: profile
+description: 'Express installation profile'
+core: 8.x
+version: '8.x-1.0'
+
+# Base profile
+'base profile': standard
+
+# Required modules
+dependencies:
+  # Core required?
+  - automated_cron
+  - block
+  - block_content
+  - breakpoint
+  - ckeditor
+  - color
+  - comment
+  - config
+  - contact
+  - contextual
+  - datetime
+  - dblog
+  - dynamic_page_cache
+  - editor
+  - field
+  - field_ui
+  - file
+  - filter
+  - help
+  - history
+  - image
+  - link
+  - markdown
+  - menu_ui
+  - node
+  - options
+  - page_cache
+  - path
+  - quickedit
+  - rdf
+  - search
+  - shortcut
+  - system
+  - taxonomy
+  - text
+  - toolbar
+  - tour
+  - update
+  - user
+  - views_ui
+  - menu_link_content
+  - views
+  # Express modules
+  - express_site_info
+  - express_back_to_top
+
+themes:
+  # Admin theme for now
+  - seven
+  # Contrib required
+  - bootstrap

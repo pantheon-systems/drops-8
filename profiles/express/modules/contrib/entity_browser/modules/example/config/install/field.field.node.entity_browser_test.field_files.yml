@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_files
+    - node.type.entity_browser_test
+  module:
+    - entity_browser_example
+  enforced:
+    module:
+      - entity_browser_example
+id: node.entity_browser_test.field_files
+field_name: field_files
+entity_type: node
+bundle: entity_browser_test
+label: Files
+description: 'Attach files. Click on the link below and pick or upload them.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: default
+  handler_settings:
+    target_bundles: null
+    sort:
+      field: _none
+third_party_settings: {  }
+field_type: entity_reference

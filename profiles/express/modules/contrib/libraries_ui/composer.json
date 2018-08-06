@@ -1,0 +1,14 @@
+{
+  "name": "drupal/libraries_ui",
+  "type": "drupal-module",
+  "description": "This module will display all libraries information in your website",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/libraries_ui",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "http://drupal.org/project/issues/libraries_ui",
+    "source": "http://cgit.drupalcode.org/libraries_ui"
+  },
+  "require": { }
+}

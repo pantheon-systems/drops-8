@@ -1,0 +1,6 @@
+libraries_ui:
+  title: 'Libraries UI'
+  description: 'Provide all libraries information availables.'
+  parent: system.admin_config_media
+  route_name: libraries_ui.librares_ui_controller_librariesui
+  weight: 100

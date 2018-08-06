@@ -1,0 +1,11 @@
+{
+  "name": "drupal/ucb_express",
+  "description": "Express installation profile for Drupal 8.",
+  "type": "drupal-profile",
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "michelf/php-markdown": "^1.7.0"
+  }
+}

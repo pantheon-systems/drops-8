@@ -1,0 +1,13 @@
+name: Test Core
+type: module
+# core: 8.x
+package: Test
+# Ensure features is enabled first
+dependencies:
+  - features
+
+# Information added by Drupal.org packaging script on 2017-03-07
+version: '8.x-3.5'
+core: '8.x'
+project: 'features'
+datestamp: 1488908587

@@ -1,0 +1,17 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - node.type.ief_complex_simple
+  module:
+    - user
+id: node.ief_complex_simple.teaser
+targetEntityType: node
+bundle: ief_complex_simple
+mode: teaser
+content:
+  links:
+    weight: 100
+hidden:
+  langcode: true

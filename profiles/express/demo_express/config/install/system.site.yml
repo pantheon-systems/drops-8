@@ -1,0 +1,14 @@
+uuid: 5e496e2e-6263-45fe-a424-bfe73022ecdf
+name: Express8
+mail: asdf@asdf.com
+slogan: 'This here''s the slogan'
+page:
+  403: ''
+  404: ''
+  front: /node
+admin_compact_mode: false
+weight_select_max: 100
+langcode: en
+default_langcode: en
+_core:
+  default_config_hash: Wh_fQnlzkhGHXu8CQ0Hcn4pILUjYomZVxXQhGghmHmg

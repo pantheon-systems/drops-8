@@ -1,0 +1,108 @@
+metatag.metatag_tag.twitter_cards_app_id_googleplay:
+  type: label
+  label: 'Twitter Cards: Google Play app ID'
+metatag.metatag_tag.twitter_cards_app_id_ipad:
+  type: label
+  label: 'Twitter Cards: iPad app ID'
+metatag.metatag_tag.twitter_cards_app_id_iphone:
+  type: label
+  label: 'Twitter Cards: iPhone app ID'
+metatag.metatag_tag.twitter_cards_app_name_googleplay:
+  type: label
+  label: 'Twitter Cards: Google Play app name'
+metatag.metatag_tag.twitter_cards_app_name_ipad:
+  type: label
+  label: 'Twitter Cards: iPad app name'
+metatag.metatag_tag.twitter_cards_app_name_iphone:
+  type: label
+  label: 'Twitter Cards: iPhone app name'
+metatag.metatag_tag.twitter_cards_app_store_country:
+  type: label
+  label: 'Twitter Cards: App store country'
+metatag.metatag_tag.twitter_cards_app_url_googleplay:
+  type: label
+  label: 'Twitter Cards: Google Play app URL schema'
+metatag.metatag_tag.twitter_cards_app_url_ipad:
+  type: label
+  label: 'Twitter Cards: iPad app URL schema'
+metatag.metatag_tag.twitter_cards_app_url_iphone:
+  type: label
+  label: 'Twitter Cards: iPhone app URL schema'
+metatag.metatag_tag.twitter_cards_creator:
+  type: label
+  label: "Twitter Cards: Creator's Twitter account"
+metatag.metatag_tag.twitter_cards_creator_id:
+  type: label
+  label: "Twitter Cards: Creator's Twitter account ID"
+metatag.metatag_tag.twitter_cards_data1:
+  type: label
+  label: 'Twitter Cards: Data 1'
+metatag.metatag_tag.twitter_cards_data2:
+  type: label
+  label: 'Twitter Cards: Data 2'
+metatag.metatag_tag.twitter_cards_description:
+  type: label
+  label: 'Twitter Cards: Description'
+metatag.metatag_tag.twitter_cards_donottrack:
+  type: label
+  label: 'Twitter Cards: Do Not Track'
+metatag.metatag_tag.twitter_cards_gallery_image0:
+  type: label
+  label: 'Twitter Cards: 1st gallery image'
+metatag.metatag_tag.twitter_cards_gallery_image1:
+  type: label
+  label: 'Twitter Cards: 2nd gallery image'
+metatag.metatag_tag.twitter_cards_gallery_image2:
+  type: label
+  label: 'Twitter Cards: 3rd gallery image'
+metatag.metatag_tag.twitter_cards_gallery_image3:
+  type: label
+  label: 'Twitter Cards: 4th gallery image'
+metatag.metatag_tag.twitter_cards_image:
+  type: label
+  label: 'Twitter Cards: Image URL'
+metatag.metatag_tag.twitter_cards_image_height:
+  type: label
+  label: 'Twitter Cards: Image height'
+metatag.metatag_tag.twitter_cards_image_width:
+  type: label
+  label: 'Twitter Cards: Image width'
+metatag.metatag_tag.twitter_cards_image_alt:
+  type: label
+  label: 'Twitter Cards: Image alternative text'
+metatag.metatag_tag.twitter_cards_label1:
+  type: label
+  label: 'Twitter Cards: Label 1'
+metatag.metatag_tag.twitter_cards_label2:
+  type: label
+  label: 'Twitter Cards: Label 2'
+metatag.metatag_tag.twitter_cards_page_url:
+  type: label
+  label: 'Twitter Cards: Page URL'
+metatag.metatag_tag.twitter_cards_player:
+  type: label
+  label: 'Twitter Cards: Media player URL'
+metatag.metatag_tag.twitter_cards_player_height:
+  type: label
+  label: 'Twitter Cards: Media player height'
+metatag.metatag_tag.twitter_cards_player_stream:
+  type: label
+  label: 'Twitter Cards: MP4 media stream URL'
+metatag.metatag_tag.twitter_cards_player_stream_content_type:
+  type: label
+  label: 'Twitter Cards: MP4 media straem MIME-type'
+metatag.metatag_tag.twitter_cards_player_width:
+  type: label
+  label: 'Twitter Cards: Media player width'
+metatag.metatag_tag.twitter_cards_site:
+  type: label
+  label: "Twitter Cards: Site's Twitter account"
+metatag.metatag_tag.twitter_cards_site_id:
+  type: label
+  label: "Twitter Cards: Site's Twitter account ID"
+metatag.metatag_tag.twitter_cards_title:
+  type: label
+  label: 'Twitter Cards: Title'
+metatag.metatag_tag.twitter_cards_type:
+  type: label
+  label: 'Twitter Cards: Type'

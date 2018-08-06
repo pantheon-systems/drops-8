@@ -9,7 +9,7 @@
 
 .menu-footer__title {
   font-size: 1.5rem;
-  font-weight: 400;
+  font-weight: normal;
 }
 
 .menu-footer__item {
@@ -18,7 +18,8 @@
 
 .menu-footer .menu-footer__link {
   background-color: transparent;
-  font-weight: 700;
+  text-decoration: none;
+  font-weight: bold;
   color: #fff;
 }
 
@@ -26,6 +27,7 @@
 .menu-footer .menu-footer__link:focus,
 .menu-footer .menu-footer__link:hover {
   background-color: transparent;
+  text-decoration: underline;
 }
 
 @media screen and (min-width: 60rem) {

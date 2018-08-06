@@ -1,0 +1,26 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - webform_test_block_context
+  theme:
+    - bartik
+id: bartik_webform_test_block_context_node
+theme: bartik
+region: content
+weight: 0
+provider: null
+plugin: webform_test_block_context_block
+settings:
+  id: webform_test_block_context_block
+  label: 'Webform node context'
+  provider: webform_test_block_context
+  label_display: visible
+visibility:
+  webform:
+    id: webform
+    webforms:
+      contact: contact
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'

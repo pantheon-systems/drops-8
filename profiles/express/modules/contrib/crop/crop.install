@@ -1,0 +1,61 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Crop API module.
+ */
+
+use Drupal\crop\Entity\Crop;
+
+/**
+ * Delete orphaned crop entities.
+ */
+function crop_update_8001(&$sandbox) {
+  // Unsure we have current element set to 0.
+  if (!isset($sandbox['current'])) {
+    $sandbox['current'] = 0;
+    $sandbox['total'] = \Drupal::entityQuery('crop')
+      ->count()
+      ->execute();
+  }
+
+  $items_per_batch = 100;
+  $crops = \Drupal::entityQuery('crop')
+    ->sort('cid', 'ASC')
+    ->range($sandbox['current'], $items_per_batch)
+    ->execute();
+
+  if (empty($crops)) {
+    $sandbox['#finished'] = 1;
+  }
+  else {
+    foreach ($crops as $cid) {
+      /** @var \Drupal\crop\Entity\Crop $crop */
+      $crop = Crop::load($cid);
+      $files = \Drupal::entityQuery('file')
+        ->condition('uri', $crop->get('uri')->value)
+        ->count();
+
+      // Checks if the file exist, if not exist delete this orphan crop.
+      if (empty($files->execute())) {
+        // Lets tell the site admin what we are doing.
+        \Drupal::logger('crop_api')
+          ->notice(
+            'The orphaned crop @cid referring to image with URI @uri has been deleted.',
+            ['@cid' => $cid, 'uri' => $crop->uri->value]
+          );
+        $crop->delete();
+      }
+      $sandbox['current']++;
+    }
+    $sandbox['#finished'] = $sandbox['current'] / $sandbox['total'];
+  }
+}
+
+/**
+ * Let Drupal know that there is a new config available.
+ */
+function crop_update_8002() {
+  \Drupal::service('config.installer')
+    ->installDefaultConfig('module', 'crop');
+}

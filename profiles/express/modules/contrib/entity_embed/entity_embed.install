@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for Entity Embed.
+ */
+
+use Drupal\embed\Entity\EmbedButton;
+use Drupal\Core\Utility\UpdateException;
+
+/**
+ * Convert entity embed buttons to embed buttons.
+ *
+ * @todo Can we reuse the existing UUID and save before deleting the old button?
+ */
+function entity_embed_update_8001() {
+  $config_factory = \Drupal::configFactory();
+
+  foreach ($config_factory->listAll('entity_embed.embed_button.') as $config_name) {
+    $old_embed_button = $config_factory->getEditable($config_name);
+    $values = $old_embed_button->getRawData();
+
+    if (EmbedButton::load($values['id'])) {
+      throw new UpdateException('Unable to convert entity_embed.embed_button.' . $values['id'] . ' to embed.button.' . $values['id'] . ' since the latter already exists.');
+    }
+
+    // Move some data around.
+    $values['type_id'] = 'entity';
+    $values['type_settings'] = [
+      'entity_type' => $values['entity_type'],
+      'bundles' => array_keys(array_filter($values['entity_type_bundles'])),
+      'display_plugins' => array_keys(array_filter($values['display_plugins'])),
+    ];
+    $values['icon_uuid'] = $values['button_icon_uuid'];
+    unset($values['entity_type']);
+    unset($values['entity_type_bundles']);
+    unset($values['display_plugins']);
+    unset($values['button_icon_uuid']);
+
+    // Save the new embed button and delete the old one.
+    $embed_button = EmbedButton::create($values);
+    $embed_button->save();
+    $old_embed_button->delete();
+  }
+}
+
+/**
+ * Updates the default mode settings.
+ */
+function entity_embed_update_8002() {
+  \Drupal::configFactory()
+    ->getEditable('entity_embed.settings')
+    ->set('rendered_entity_mode', TRUE)
+    ->save();
+}
+
+/**
+ * Updates allowed HTML for all filter format config entities that have an
+ * Entity Embed button.
+ */
+function entity_embed_update_8003() {
+  $buttons = \Drupal::entityTypeManager()->getStorage('embed_button')->loadMultiple();
+  $filter_formats_with_embed_button = [];
+
+  // Get filter formats from editors with entity embed button.
+  foreach (\Drupal::entityTypeManager()->getStorage('editor')->loadMultiple() as $editor) {
+    foreach (new RecursiveIteratorIterator(new RecursiveArrayIterator($editor->getSettings())) as $settings_value) {
+      foreach ($buttons as $button) {
+        if ($settings_value == $button->id()) {
+          $filter_formats_with_embed_button[] = $editor->getFilterFormat();
+        }
+      }
+    }
+  }
+  foreach ($filter_formats_with_embed_button as $filter_format) {
+    foreach ($filter_format->filters()->getAll() as $filter) {
+      if (isset($filter->getConfiguration()['settings']['allowed_html'])) {
+        $allowed_html = $filter->getConfiguration()['settings']['allowed_html'];
+        if (strpos($allowed_html, 'data-entity-embed-settings')) {
+          $allowed_html = str_replace('data-entity-embed-settings', 'data-entity-embed-settings data-entity-embed-display-settings', $allowed_html);
+          $filter_format->setFilterConfig($filter->getPluginId(), ['settings' => ['allowed_html' => $allowed_html]]);
+          $filter_format->save();
+        }
+      }
+    }
+  }
+}

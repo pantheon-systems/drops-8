@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.content_embed.field_content_reference
+    - paragraphs.paragraphs_type.content_embed
+id: paragraph.content_embed.default
+targetEntityType: paragraph
+bundle: content_embed
+mode: default
+content:
+  field_content_reference:
+    weight: 0
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+  field_paragraphs_nested:
+    type: entity_reference_revisions_entity_view
+    weight: 1
+    label: above
+    settings:
+      view_mode: default
+      link: ''
+    third_party_settings: {  }
+hidden: {  }

@@ -1,0 +1,71 @@
+/**
+ * @file
+ * States element styles.
+ *
+ * @see /webform/test_element_states
+ */
+
+.webform-states-table td {
+  white-space: nowrap;
+}
+
+.webform-states-table--state {
+  border-top: 2px solid #a6a6a6;
+}
+
+.webform-states-table--state:first-child {
+  border-top: inherit;
+}
+
+.webform-states-table--state td select {
+  width: inherit;
+  max-width: inherit;
+}
+
+.webform-states-table--state td:first-child select,
+.webform-states-table--condition select,
+.webform-states-table--condition input[type="text"] {
+  width: 100%;
+  max-width: 100%;
+}
+
+.webform-states-table .image-button {
+  margin: 0;
+}
+
+.webform-states-table th:last-child,
+.webform-states-table td:last-child {
+  padding: 0 2px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.webform-states-table td:last-child input {
+  margin: 0 2px;
+}
+
+.webform-states-table td:last-child input {
+  opacity: 0.4;
+}
+
+.webform-states-table td:last-child input:hover,
+.webform-states-table td:last-child input:focus,
+.webform-states-table td:last-child input:active {
+  opacity: 1;
+  background: none;
+}
+
+/**
+ * Hide AJAX throbber.
+ */
+.form-type-webform-element-states .ajax-progress-throbber {
+  display: none;
+}
+
+/**
+ * Suppress table drag warnings.
+ */
+.webform-states-table .tabledrag-changed-warning,
+.webform-states-table .tabledrag-changed {
+  display: none !important; /* Must use !important because .tabledrag-changed 'display' is set via JavaScript */
+}

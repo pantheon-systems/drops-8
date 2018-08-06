@@ -83,7 +83,6 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $assert_session->linkExists('Add term');
     $assert_session->buttonExists('Save');
     $assert_session->pageTextContains('Weight');
-    $assert_session->fieldExists('Weight');
     $assert_session->pageTextContains($edit_help_text);
 
     // Visit vocabulary overview without terms. 'Add term' should be shown.
@@ -109,8 +108,7 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $assert_session->linkNotExists('Edit');
     $assert_session->linkNotExists('Delete');
     $assert_session->buttonNotExists('Save');
-    $assert_session->pageTextContains('Weight');
-    $assert_session->fieldNotExists('Weight');
+    $assert_session->pageTextNotContains('Weight');
     $assert_session->linkNotExists('Add term');
     $assert_session->pageTextContains($no_edit_help_text);
 
@@ -134,7 +132,6 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $assert_session->linkNotExists('Delete');
     $assert_session->buttonExists('Save');
     $assert_session->pageTextContains('Weight');
-    $assert_session->fieldExists('Weight');
     $assert_session->linkNotExists('Add term');
     $assert_session->pageTextContains($edit_help_text);
 
@@ -157,8 +154,7 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $assert_session->linkExists('Delete');
     $assert_session->linkNotExists('Add term');
     $assert_session->buttonNotExists('Save');
-    $assert_session->pageTextContains('Weight');
-    $assert_session->fieldNotExists('Weight');
+    $assert_session->pageTextNotContains('Weight');
     $assert_session->pageTextContains($no_edit_help_text);
 
     // Visit vocabulary overview without terms. 'Add term' should not be shown.
@@ -183,7 +179,6 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $assert_session->linkNotExists('Add term');
     $assert_session->buttonExists('Save');
     $assert_session->pageTextContains('Weight');
-    $assert_session->fieldExists('Weight');
     $assert_session->pageTextContains($edit_help_text);
 
     // Visit vocabulary overview without terms. 'Add term' should not be shown.
@@ -206,8 +201,7 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
     $assert_session->linkNotExists('Delete');
     $assert_session->linkExists('Add term');
     $assert_session->buttonNotExists('Save');
-    $assert_session->pageTextContains('Weight');
-    $assert_session->fieldNotExists('Weight');
+    $assert_session->pageTextNotContains('Weight');
     $assert_session->pageTextContains($no_edit_help_text);
 
     // Visit vocabulary overview without terms. 'Add term' should not be shown.

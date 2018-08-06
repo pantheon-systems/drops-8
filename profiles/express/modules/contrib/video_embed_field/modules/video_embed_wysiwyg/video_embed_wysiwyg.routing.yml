@@ -1,0 +1,10 @@
+video_embed_wysiwyg.video_dialog:
+  path: '/video-embed-wysiwyg/dialog/{filter_format}'
+  defaults:
+    _form: '\Drupal\video_embed_wysiwyg\Form\VideoEmbedDialog'
+    _title: 'Video Form'
+  options:
+    _theme: ajax_base_page
+  requirements:
+    _entity_access: 'filter_format.use'
+    _access_video_embed_wysiwyg_filter_in_use: 'TRUE'

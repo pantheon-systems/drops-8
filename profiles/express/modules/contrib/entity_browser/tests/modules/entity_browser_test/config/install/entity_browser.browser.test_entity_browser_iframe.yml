@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies: {  }
+name: test_entity_browser_iframe
+label: 'Test entity browser iframe'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+  auto_open: false
+selection_display: multi_step_display
+selection_display_configuration:
+  entity_type: file
+  display: label
+  display_settings: {  }
+  select_text: 'Use selected'
+  selection_hidden: false
+widget_selector: tabs
+widget_selector_configuration: {  }
+widgets:
+  871dbf77-012e-41cb-b32a-ada353d2de35:
+    settings:
+      upload_location: 'public://'
+    uuid: 871dbf77-012e-41cb-b32a-ada353d2de35
+    weight: 1
+    label: upload
+    id: upload

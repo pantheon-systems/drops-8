@@ -1,0 +1,26 @@
+redirect.list:
+  title: 'URL redirects'
+  parent: system.admin_config_search
+  description: 'Redirect users from one URL to another.'
+  route_name: redirect.list
+  menu_name: admin
+
+redirect.add:
+  title: 'Add redirects'
+  parent: redirect.list
+  route_name: redirect.list
+  menu_name: admin
+
+redirect.settings:
+  title: 'Settings'
+  parent: redirect.list
+  route_name: redirect.settings
+  description: 'Configure behavior for URL redirects.'
+  menu_name: admin
+
+#redirect.devel_generate:
+#  title: 'Generate redirects'
+#  parent: dblog.page_not_found
+#  route_name: redirect.devel_generate
+#  description: 'Generate a given number of redirects. Optionally delete current redirects.'
+#  menu_name: admin

@@ -1,0 +1,40 @@
+{
+  "name": "drupal/diff",
+  "description": "Compares two entity revisions",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "authors": [
+    {
+      "name": "Miro Dietiker (miro_dietiker)",
+      "homepage": "https://www.drupal.org/u/miro_dietiker",
+      "role": "Maintainer"
+    },
+    {
+      "name": "Juampy NR (juampynr)",
+      "homepage": "https://www.drupal.org/u/juampynr",
+      "role": "Maintainer"
+    },
+    {
+      "name": "Lucian Hangea (lhangea)",
+      "homepage": "https://www.drupal.org/u/lhangea",
+      "role": "Maintainer"
+    },
+    {
+      "name": "Alan D.",
+      "homepage": "https://www.drupal.org/u/alan-d.",
+      "role": "Maintainer"
+    },
+    {
+      "name": "Brian Gilbert (realityloop).",
+      "homepage": "https://www.drupal.org/u/realityloop",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/diff",
+    "source": "http://cgit.drupalcode.org/diff"
+  },
+  "require":{
+    "mkalkbrenner/php-htmldiff-advanced": "~0.0.8"
+  }
+}

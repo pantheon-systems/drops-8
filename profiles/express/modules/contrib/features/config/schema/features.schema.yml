@@ -1,0 +1,207 @@
+features.settings:
+  type: config_entity
+  label: 'Features settings'
+  mapping:
+    export:
+      type: mapping
+      label: "Export settings"
+      mapping:
+        folder:
+          type: string
+          label: "Folder"
+    langcode:
+      type: string
+      label: "Language Code"
+
+features.bundle.*:
+  type: config_entity
+  label: 'Features bundle'
+  mapping:
+    machine_name:
+      type: string
+      label: "Machine name"
+    name:
+      type: string
+      label: "Name"
+    description:
+      type: string
+      label: "Description"
+    assignments:
+      type: sequence
+      label: "Assignment"
+      sequence:
+        type: features.assignment.[%key]
+    profile_name:
+      type: string
+      label: "Profile name"
+    is_profile:
+      type: boolean
+      label: "Is install profile"
+
+features.assignment.*:
+  type: mapping
+  label: "Assignment settings"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+
+features.assignment.base:
+  type: mapping
+  label: "Base type"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+    types:
+      type: mapping
+      label: "Types"
+      mapping:
+        config:
+          type: sequence
+          label: "Configuration Types"
+          sequence:
+            type: string
+        content:
+          type: sequence
+          label: "Content entity types"
+          sequence:
+            type: string
+
+features.assignment.core:
+  type: mapping
+  label: "Core type"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+    types:
+      type: mapping
+      label: "Types"
+      mapping:
+        config:
+          type: sequence
+          label: "Configuration Types"
+          sequence:
+            type: string
+
+features.assignment.exclude:
+  type: mapping
+  label: "Exclude"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+    types:
+      type: mapping
+      label: "Types"
+      mapping:
+        config:
+          type: sequence
+          label: "Configuration Types"
+          sequence:
+            type: string
+    curated:
+      type: boolean
+      label: "Exclude designated site-specific configuration"
+    module:
+      type: mapping
+      label: "Module"
+      mapping:
+        installed:
+          type: boolean
+          label: "Exclude installed module-provided entity configuration"
+        profile:
+          type: boolean
+          label: "Don't exclude install profile's configuration"
+        namespace:
+          type: boolean
+          label: "Don't exclude non-installed configuration by namespace"
+        namespace_any:
+          type: boolean
+          label: "Don't exclude ANY configuration by namespace"
+
+features.assignment.optional:
+  type: mapping
+  label: "Optional"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+    types:
+      type: mapping
+      label: "Types"
+      mapping:
+        config:
+          type: sequence
+          label: "Configuration Types"
+          sequence:
+            type: string
+
+features.assignment.profile:
+  type: mapping
+  label: "Profile"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+    curated:
+      type: boolean
+      label: "Add commonly-needed configuration"
+    standard:
+      type: mapping
+      label: "Standard"
+      mapping:
+        files:
+          type: boolean
+          label: "Add configuration and files from Standard profile"
+        dependencies:
+          type: boolean
+          label: "Add module and theme dependencies from Standard profile"
+    types:
+      type: mapping
+      label: "Types"
+      mapping:
+        config:
+          type: sequence
+          label: "Configuration Types"
+          sequence:
+            type: string
+
+features.assignment.site:
+  type: mapping
+  label: "Site"
+  mapping:
+    enabled:
+      type: boolean
+      label: "Enabled"
+    weight:
+      type: integer
+      label: "Weight"
+    types:
+      type: mapping
+      label: "Types"
+      mapping:
+        config:
+          type: sequence
+          label: "Configuration Types"
+          sequence:
+            type: string

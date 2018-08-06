@@ -1,0 +1,10 @@
+/**
+ * @file
+ * File upload button styles.
+ *
+ * @see https://stackoverflow.com/questions/21842274/cross-browser-custom-styling-for-file-upload-button
+ */
+.webform-file-button-input {
+  position: fixed;
+  top: -1000px;
+}

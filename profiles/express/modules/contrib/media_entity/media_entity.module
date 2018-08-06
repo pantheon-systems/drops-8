@@ -1,0 +1,84 @@
+<?php
+
+/**
+ * @file
+ * Provides media entities.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function media_entity_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.media_entity':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The <a href=":media_entity_url">Media Entity</a> module provides a "base" entity for media. This is a very basic entity which can reference to all kinds of media-objects (local files, YouTube videos, Tweets, Instagram photos, ...). Media entity provides a relation between your website and the media resource. You can reference to/use this entity within any other entity on your site. For more information, see the <a href=":media_entity_handbook">online documentation for the Media Entity module</a>.',
+          [
+            ':media_entity_url' => 'https://www.drupal.org/project/media_entity',
+            ':media_entity_handbook' => 'https://drupal-media.gitbooks.io/drupal8-guide/content/modules/media_entity/intro.html',
+          ]) . '</p>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<p>' . t('For detailed information about the usage of this module please refer to <a href=":media_entity_handbook">the official documentation</a>.',
+          [
+            ':media_entity_handbook' => 'https://drupal-media.gitbooks.io/drupal8-guide/content/modules/media_entity/intro.html',
+          ]) . '</p>';
+
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function media_entity_theme() {
+  return [
+    'media' => [
+      'render element' => 'elements',
+      'file' => 'media_entity.theme.inc',
+      'template' => 'media',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK().
+ */
+function media_entity_theme_suggestions_media(array $variables) {
+  $suggestions = [];
+  $media = $variables['elements']['#media'];
+  $sanitized_view_mode = strtr($variables['elements']['#view_mode'], '.', '_');
+
+  $suggestions[] = 'media__' . $sanitized_view_mode;
+  $suggestions[] = 'media__' . $media->bundle();
+  $suggestions[] = 'media__' . $media->bundle() . '__' . $sanitized_view_mode;
+  $suggestions[] = 'media__' . $media->id();
+  $suggestions[] = 'media__' . $media->id() . '__' . $sanitized_view_mode;
+
+  return $suggestions;
+}
+
+/**
+ * Copy the media file icons to files directory for use with image styles.
+ *
+ * @param string $source
+ *   Source folder.
+ * @param string $destination
+ *   Destination folder.
+ *
+ * @throws Exception
+ */
+function media_entity_copy_icons($source, $destination) {
+  if (!file_prepare_directory($destination, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS)) {
+    throw new Exception("Unable to create directory $destination.");
+  }
+
+  $files = file_scan_directory($source, '/.*\.(png|jpg)$/');
+  foreach ($files as $file) {
+    $result = file_unmanaged_copy($file->uri, $destination, FILE_EXISTS_REPLACE);
+    if (!$result) {
+      throw new Exception("Unable to copy {$file->uri} to $destination.");
+    }
+  }
+}

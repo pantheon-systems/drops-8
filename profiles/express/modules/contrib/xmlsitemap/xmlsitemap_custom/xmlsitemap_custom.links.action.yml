@@ -1,0 +1,5 @@
+xmlsitemap_custom.add:
+  route_name: xmlsitemap_custom.add
+  title: 'Add custom link'
+  appears_on:
+    - xmlsitemap_custom.list

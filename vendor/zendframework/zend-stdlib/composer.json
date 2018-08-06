@@ -13,17 +13,17 @@
         }
     },
     "require": {
-        "php": "^5.5 || ^7.0"
+        "php": "^5.6 || ^7.0"
     },
     "require-dev": {
-        "fabpot/php-cs-fixer": "1.7.*",
+        "athletic/athletic": "~0.1",
         "phpunit/PHPUnit": "~4.0",
-        "athletic/athletic": "~0.1"
+        "zendframework/zend-coding-standard": "~1.0.0"
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "3.0-dev",
-            "dev-develop": "3.1-dev"
+            "dev-master": "3.1-dev",
+            "dev-develop": "3.2-dev"
         }
     },
     "autoload-dev": {
@@ -31,5 +31,16 @@
             "ZendTest\\Stdlib\\": "test/",
             "ZendBench\\Stdlib\\": "benchmark/"
         }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@test"
+        ],
+        "cs-check": "phpcs",
+        "cs-fix": "phpcbf",
+        "test": "phpunit --colors=always",
+        "test-coverage": "phpunit --colors=always --coverage-clover clover.xml",
+        "upload-coverage": "coveralls -v"
     }
 }

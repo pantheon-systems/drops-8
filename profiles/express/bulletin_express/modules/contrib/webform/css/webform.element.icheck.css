@@ -1,0 +1,12 @@
+/**
+ * @file
+ * iCheck element styles.
+ */
+
+/**
+ * Hide checkbox/radio as the page loads
+ */
+[data-webform-icheck] input[type="checkbox"],
+[data-webform-icheck] input[type="radio"] {
+  opacity: 0;
+}

@@ -1,0 +1,10 @@
+id: small
+label: Smart phone
+dimensions:
+  width: 768
+  height: 1280
+  dppx: 2
+orientation: portrait
+weight: 0
+status: 0
+langcode: en

@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.ief_simple_single.single
+    - node.type.ief_simple_single
+  module:
+    - user
+id: node.ief_simple_single.default
+targetEntityType: node
+bundle: ief_simple_single
+mode: default
+content:
+  single:
+    type: entity_reference_label
+    weight: 0
+    label: above
+    settings:
+      link: false
+    third_party_settings: {  }
+hidden:
+  links: true

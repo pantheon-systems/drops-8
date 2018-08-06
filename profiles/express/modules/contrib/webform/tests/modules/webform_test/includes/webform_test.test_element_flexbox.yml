@@ -1,0 +1,58 @@
+flexbox_properties:
+  '#type': webform_flexbox
+  properties_number:
+    '#type': number
+    '#title': 'currency'
+    '#description': 'A description'
+    '#field_prefix': '$'
+    '#field_suffix': '.00'
+  properties_textfield:
+    '#type': textfield
+    '#title': 'textfield'
+    '#description': 'A description'
+
+flexbox_checkboxes:
+  '#type': webform_flexbox
+  checkboxes_textfield:
+    '#type': textfield
+    '#title': 'textfield'
+  checkboxes_horizontal:
+    '#type': checkboxes
+    '#title': 'checkboxes_horizontal'
+    '#options_display': side_by_side
+    '#options':
+      one: One
+      two: Two
+      three: Three
+
+flexbox_toggle:
+  '#type': webform_flexbox
+  '#align_items': flex-end
+  toggle:
+    '#type': toggle
+    '#title': 'toggle'
+  toggle_textfield:
+    '#type': textfield
+    '#title': 'textfield'
+    '#flex': 5
+  toggle_rating:
+    '#type': rating
+    '#title': 'rating'
+
+flexbox_date:
+  '#type': webform_flexbox
+  '#align_items': center
+  date:
+    '#type': date
+    '#title': 'date'
+    '#format': 'l, F j, Y'
+    '#default_value': '2009-08-18'
+    '#flex': 4
+  to:
+    '#markup': '- to - '
+  datetime:
+    '#type': datetime
+    '#title': 'datetime'
+    '#format': 'l, F j, Y - g:i A'
+    '#default_value': '2009-08-18T01:00:00-05:00'
+    '#flex': 4

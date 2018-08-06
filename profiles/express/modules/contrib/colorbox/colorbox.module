@@ -1,0 +1,47 @@
+<?php
+
+/**
+ * @file
+ * A light-weight, customizable lightbox plugin.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function colorbox_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.colorbox':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Colorbox is a light-weight, customizable lightbox plugin for jQuery 1.4.3+. This module allows for integration of Colorbox into Drupal.</br>The jQuery library is a part of Drupal since version 5+.') . '</p>';
+      $output .= '<h3>' . t('Configuration') . '</h3>';
+      $output .= '<p>' . t('Go to "Configuration" -> "Media" -> "Colorbox" to find all the configuration options.') . '</p>';
+      $output .= '<h3>' . t('Add a custom Colorbox style to your theme') . '</h3>';
+      $output .= '<p>' . t('The easiest way is to start with either the default style or one of the example styles included in the Colorbox JS library download. Simply copy the entire style folder to your theme and rename it to something logical like "mycolorbox". Inside that folder are both a .css and .js file, rename both of those as well to match
+your folder name: i.e. "colorbox_mycolorbox.css" and "colorbox_mycolorbox.js"') . '</p>';
+      $output .= '<p>' . t("Add entries in your theme's .info file for the Colorbox CSS/JS files:") . '</p>';
+      $output .= '<p>' . t('stylesheets[all][] = mycolorbox/colorbox_mycolorbox.css</br>scripts[] = mycolorbox/colorbox_mycolorbox.js') . '</p>';
+      $output .= '<p>' . t('Go to "Configuration" -> "Media" -> "Colorbox" and select "None" under "Styles and Options". This will leave the styling of Colorbox up to your theme.</br>Make any CSS adjustments to your "colorbox_mycolorbox.css" file.') . '</p>';
+      return $output;
+  }
+}
+
+
+/**
+ * Implements hook_theme().
+ */
+function colorbox_theme() {
+  return array(
+    'colorbox_formatter' => array(
+      'variables' => array(
+        'item' => NULL,
+        'item_attributes' => NULL,
+        'entity' => NULL,
+        'settings' => NULL,
+      ),
+      'file' => 'colorbox.theme.inc',
+    ),
+  );
+}

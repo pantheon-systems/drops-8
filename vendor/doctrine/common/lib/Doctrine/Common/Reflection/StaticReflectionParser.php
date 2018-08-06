@@ -51,6 +51,13 @@ class StaticReflectionParser implements ReflectionProviderInterface
     protected $classAnnotationOptimize;
 
     /**
+     * A ClassFinder object which finds the class.
+     *
+     * @var ClassFinderInterface
+     */
+    protected $finder;
+
+    /**
      * Whether the parser has run.
      *
      * @var boolean
@@ -74,7 +81,7 @@ class StaticReflectionParser implements ReflectionProviderInterface
     /**
      * The docComment of the class.
      *
-     * @var string
+     * @var mixed[]
      */
     protected $docComment = [
         'class' => '',
@@ -137,70 +144,74 @@ class StaticReflectionParser implements ReflectionProviderInterface
         }
         $tokenParser = new TokenParser($contents);
         $docComment = '';
+        $last_token = false;
+
         while ($token = $tokenParser->next(false)) {
-            if (is_array($token)) {
-                switch ($token[0]) {
-                    case T_USE:
-                        $this->useStatements = array_merge($this->useStatements, $tokenParser->parseUseStatement());
-                        break;
-                    case T_DOC_COMMENT:
-                        $docComment = $token[1];
-                        break;
-                    case T_CLASS:
+            switch ($token[0]) {
+                case T_USE:
+                    $this->useStatements = array_merge($this->useStatements, $tokenParser->parseUseStatement());
+                    break;
+                case T_DOC_COMMENT:
+                    $docComment = $token[1];
+                    break;
+                case T_CLASS:
+                    if ($last_token !== T_PAAMAYIM_NEKUDOTAYIM) {
                         $this->docComment['class'] = $docComment;
                         $docComment = '';
-                        break;
-                    case T_VAR:
-                    case T_PRIVATE:
-                    case T_PROTECTED:
-                    case T_PUBLIC:
-                        $token = $tokenParser->next();
-                        if ($token[0] === T_VARIABLE) {
-                            $propertyName = substr($token[1], 1);
-                            $this->docComment['property'][$propertyName] = $docComment;
-                            continue 2;
-                        }
-                        if ($token[0] !== T_FUNCTION) {
-                            // For example, it can be T_FINAL.
-                            continue 2;
-                        }
-                        // No break.
-                    case T_FUNCTION:
-                        // The next string after function is the name, but
-                        // there can be & before the function name so find the
-                        // string.
-                        while (($token = $tokenParser->next()) && $token[0] !== T_STRING);
-                        $methodName = $token[1];
-                        $this->docComment['method'][$methodName] = $docComment;
-                        $docComment = '';
-                        break;
-                    case T_EXTENDS:
-                        $this->parentClassName = $tokenParser->parseClass();
-                        $nsPos = strpos($this->parentClassName, '\\');
-                        $fullySpecified = false;
-                        if ($nsPos === 0) {
-                            $fullySpecified = true;
+                    }
+                    break;
+                case T_VAR:
+                case T_PRIVATE:
+                case T_PROTECTED:
+                case T_PUBLIC:
+                    $token = $tokenParser->next();
+                    if ($token[0] === T_VARIABLE) {
+                        $propertyName = substr($token[1], 1);
+                        $this->docComment['property'][$propertyName] = $docComment;
+                        continue 2;
+                    }
+                    if ($token[0] !== T_FUNCTION) {
+                        // For example, it can be T_FINAL.
+                        continue 2;
+                    }
+                    // No break.
+                case T_FUNCTION:
+                    // The next string after function is the name, but
+                    // there can be & before the function name so find the
+                    // string.
+                    while (($token = $tokenParser->next()) && $token[0] !== T_STRING);
+                    $methodName = $token[1];
+                    $this->docComment['method'][$methodName] = $docComment;
+                    $docComment = '';
+                    break;
+                case T_EXTENDS:
+                    $this->parentClassName = $tokenParser->parseClass();
+                    $nsPos = strpos($this->parentClassName, '\\');
+                    $fullySpecified = false;
+                    if ($nsPos === 0) {
+                        $fullySpecified = true;
+                    } else {
+                        if ($nsPos) {
+                            $prefix = strtolower(substr($this->parentClassName, 0, $nsPos));
+                            $postfix = substr($this->parentClassName, $nsPos);
                         } else {
-                            if ($nsPos) {
-                                $prefix = strtolower(substr($this->parentClassName, 0, $nsPos));
-                                $postfix = substr($this->parentClassName, $nsPos);
-                            } else {
-                                $prefix = strtolower($this->parentClassName);
-                                $postfix = '';
-                            }
-                            foreach ($this->useStatements as $alias => $use) {
-                                if ($alias == $prefix) {
-                                    $this->parentClassName = '\\' . $use . $postfix;
-                                    $fullySpecified = true;
-                              }
-                            }
+                            $prefix = strtolower($this->parentClassName);
+                            $postfix = '';
                         }
-                        if (!$fullySpecified) {
-                            $this->parentClassName = '\\' . $this->namespace . '\\' . $this->parentClassName;
+                        foreach ($this->useStatements as $alias => $use) {
+                            if ($alias == $prefix) {
+                                $this->parentClassName = '\\' . $use . $postfix;
+                                $fullySpecified = true;
+                          }
                         }
-                        break;
-                }
+                    }
+                    if (!$fullySpecified) {
+                        $this->parentClassName = '\\' . $this->namespace . '\\' . $this->parentClassName;
+                    }
+                    break;
             }
+
+            $last_token = $token[0];
         }
     }
 

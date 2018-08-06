@@ -89,26 +89,6 @@ class RendererTest extends RendererTestBase {
       ['#markup' => 'foo'],
       'foo',
     ];
-    // Basic #markup based renderable array with value '0'.
-    $data[] = [
-      ['#markup' => '0'],
-      '0',
-    ];
-    // Basic #markup based renderable array with value 0.
-    $data[] = [
-      ['#markup' => 0],
-      '0',
-    ];
-    // Basic #markup based renderable array with value ''.
-    $data[] = [
-      ['#markup' => ''],
-      '',
-    ];
-    // Basic #markup based renderable array with value NULL.
-    $data[] = [
-      ['#markup' => NULL],
-      '',
-    ];
     // Basic #plain_text based renderable array.
     $data[] = [
       ['#plain_text' => 'foo'],
@@ -123,26 +103,6 @@ class RendererTest extends RendererTestBase {
     $data[] = [
       ['#plain_text' => Markup::create('<em>foo</em>')],
       '&lt;em&gt;foo&lt;/em&gt;',
-    ];
-    // #plain_text based renderable array with value '0'.
-    $data[] = [
-      ['#plain_text' => '0'],
-      '0',
-    ];
-    // #plain_text based renderable array with value 0.
-    $data[] = [
-      ['#plain_text' => 0],
-      '0',
-    ];
-    // #plain_text based renderable array with value ''.
-    $data[] = [
-      ['#plain_text' => ''],
-      '',
-    ];
-    // #plain_text based renderable array with value NULL.
-    $data[] = [
-      ['#plain_text' => NULL],
-      '',
     ];
     // Renderable child element.
     $data[] = [

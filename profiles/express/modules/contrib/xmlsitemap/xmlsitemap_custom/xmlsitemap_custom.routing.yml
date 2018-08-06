@@ -1,0 +1,31 @@
+xmlsitemap_custom.list:
+  path: '/admin/config/search/xmlsitemap/custom'
+  defaults:
+    _controller: '\Drupal\xmlsitemap_custom\Controller\XmlSitemapCustomListController::render'
+    _title: 'Custom links'
+  requirements:
+    _permission: 'administer xmlsitemap'
+    
+xmlsitemap_custom.add:
+  path: '/admin/config/search/xmlsitemap/custom/add'
+  defaults:
+    _form: '\Drupal\xmlsitemap_custom\Form\XmlSitemapCustomAddForm'
+    _title: 'Add custom link'
+  requirements:
+    _permission: 'administer xmlsitemap'
+
+xmlsitemap_custom.edit:
+  path: '/admin/config/search/xmlsitemap/custom/edit/{link}'
+  defaults:
+    _form: '\Drupal\xmlsitemap_custom\Form\XmlSitemapCustomEditForm'
+    _title: 'Edit custom link'
+  requirements:
+    _permission: 'administer xmlsitemap'
+    
+xmlsitemap_custom.delete:
+  path: '/admin/config/search/xmlsitemap/custom/delete/{link}'
+  defaults:
+    _form: '\Drupal\xmlsitemap_custom\Form\XmlSitemapCustomDeleteForm'
+    _title: 'Delete custom link'
+  requirements:
+    _permission: 'administer xmlsitemap'

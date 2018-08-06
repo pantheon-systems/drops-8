@@ -1,0 +1,48 @@
+<?php
+
+function catapult_form_system_theme_settings_alter(&$form, \Drupal\Core\Form\FormStateInterface &$form_state, $form_id = NULL) {
+  // Work-around for a core bug affecting admin themes. See issue #943212.
+  if (isset($form_id)) {
+    return;
+  }
+
+  $form['homepage_hero_image'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Homepage hero image'),
+    '#default_value' => theme_get_setting('homepage_hero_image'),
+    '#description'   => t("This adds a hero image to the homepage of the site. Will not display if empty."),
+  );
+
+  $form['homepage_hero_image_alt_text'] = array(
+    '#type'          => 'textfield',
+    '#title'         => t('Alt text for hero image'),
+    '#default_value' => theme_get_setting('homepage_hero_image_alt_text')
+  );
+}
+
+function catapult_preprocess_page(&$variables) {
+  $variables['homepage_hero_image'] = theme_get_setting('homepage_hero_image');
+  $variables['homepage_hero_image_alt_text'] = theme_get_setting('homepage_hero_image_alt_text');
+}
+
+/**
+ * Implements hook_preprocess_menu().
+ */
+function catapult_preprocess_menu(array &$variables) {
+  /*
+  $i = 1; $last = count($variables['items']);
+  foreach ($variables['items'] as $key => $item) {
+    $attribute = &$variables['items'][$key]['attributes'];
+
+    if ($i == 1) {
+      $attribute->addClass('first');
+    } elseif ($i == $last) {
+      $attribute->addClass('last');
+    }
+
+    if (empty($variables['items'][$key]['below'])) {
+      $attribute->addClass('leaf');
+    }
+  }
+  */
+}

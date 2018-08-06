@@ -1,0 +1,51 @@
+/**
+ * @file
+ * Stylesheet for the diff table.
+ */
+td.diff-section-title,
+div.diff-section-title {
+  font-size: 0.83em;
+  font-weight: bold;
+  padding: 0.1em 1em;
+}
+td.diff-prevlink {
+  text-align: left;
+}
+td.diff-nextlink {
+  text-align: right;
+}
+td.diff-deletedline {
+  width: 50%;
+  padding: 0 1em;
+}
+td.diff-addedline {
+  width: 50%;
+  padding: 0 1em;
+}
+td.field-name {
+  text-align: left;
+  font-weight: bold;
+}
+td.rev-navigation {
+  text-align: center;
+  vertical-align: middle;
+}
+td.diff-context {
+  padding: 0.3em 1em;
+  vertical-align: top;
+}
+td.diff-marker {
+  text-align: center;
+  padding: 0.3em 1em;
+  width: 1%;
+}
+td.diff td {
+  padding: 0 1em;
+}
+td.diff-line-number {
+  text-align: center;
+  padding: 0.3em 1em;
+  width: 1%;
+  color: #AAA;
+  border-right: 1px #e6e4df solid;
+}

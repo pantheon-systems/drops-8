@@ -1,0 +1,10 @@
+redirect.list:
+  route_name: redirect.list
+  base_route: redirect.list
+  title: URL Redirects
+
+redirect.settings:
+  route_name: redirect.settings
+  base_route: redirect.list
+  title: Settings
+  weight: 50

@@ -1,0 +1,108 @@
+/**
+ * @file
+ * Multiple element styles.
+ *
+ * @see /webform/test_element_multiple
+ */
+
+.form-type-webform-multiple:after {
+  content: " ";
+  display: table;
+  clear: both;
+}
+
+.webform-multiple-table table {
+  margin-bottom: 2px;
+}
+
+.webform-multiple-table td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.webform-multiple-table td.webform-multiple-table--handle {
+  padding: 0 0 0 1em;
+  width: 26px;
+  vertical-align: middle;
+  text-align: center;
+}
+
+.webform-multiple-table td.webform-multiple-table--weight {
+  width: 20px;
+}
+
+.webform-multiple-table td.webform-multiple-table--operations {
+  padding: 0 2px;
+  vertical-align: middle;
+  text-align: center;
+  width: 60px;
+}
+
+.webform-multiple-table td.webform-multiple-table--operations input {
+  margin: 0 2px;
+}
+
+.webform-multiple-table td.webform-multiple-table--operations input {
+  opacity: 0.4;
+}
+
+.webform-multiple-table td.webform-multiple-table--operations input:hover,
+.webform-multiple-table td.webform-multiple-table--operations input:focus,
+.webform-multiple-table td.webform-multiple-table--operations input:active {
+  opacity: 1;
+  background: none;
+}
+
+.webform-multiple-table td select,
+.webform-multiple-table td .form-type-textfield input,
+.webform-multiple-table td .form-type-email input,
+.webform-multiple-table td .form-type-url input,
+.webform-multiple-table td .form-type-tel input,
+.webform-multiple-table td .form-type-entity-autocomplete input,
+.webform-multiple-table td .form-type-webform-autocomplete input {
+  width: 100%;
+}
+
+.webform-multiple-table td .container-inline select,
+.form-type-webform-multiple.webform-has-field-prefix td select,
+.form-type-webform-multiple.webform-has-field-suffix td select,
+.form-type-webform-multiple.webform-has-field-prefix td input,
+.form-type-webform-multiple.webform-has-field-suffix td input {
+  width: auto;
+}
+
+.webform-multiple-table .webform-multiple-sort-weight {
+  width: 4em;
+}
+
+.webform-multiple-table td input[type="image"] {
+  padding: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.webform-multiple-table .container-inline input[type="submit"] {
+  width: inherit;
+}
+
+/**
+ * Suppress table drag warnings.
+ */
+.webform-multiple-table .tabledrag-changed-warning,
+.webform-multiple-table .tabledrag-changed {
+  display: none !important; /* Must use !important because .tabledrag-changed 'display' is set via JavaScript */
+}
+
+/**
+ * Tweak tabledrag toggle weight.
+ */
+.webform-multiple-tabledrag-toggle-weight {
+  float: right;
+}
+
+/**
+ * IMCE tweaks
+ */
+.webform-multiple-table .imce-url-button {
+  display: block;
+}

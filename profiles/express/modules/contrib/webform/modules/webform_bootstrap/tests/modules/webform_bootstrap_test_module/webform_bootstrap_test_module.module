@@ -1,0 +1,29 @@
+<?php
+
+/**
+ * @file
+ * Installs and integrates the Webform Test Bootstrap theme.
+ */
+
+use Drupal\webform\Utility\WebformThemeHelper;
+
+/**
+ * Implements hook_page_attachments().
+ */
+function webform_bootstrap_test_module_page_attachments(array &$attachments) {
+  $attachments['#attached']['library'][] = 'webform_bootstrap_test_module/webform_bootstrap_test_module';
+}
+
+/**
+ * Implements hook_preprocess_page().
+ */
+function webform_bootstrap_test_module_preprocess_page(&$variables) {
+  if (!WebformThemeHelper::isActiveTheme('bootstrap')) {
+    return;
+  }
+
+  // Remove sidebar second from admin route.
+  if (\Drupal::routeMatch()->getRouteObject()->getOption('_admin_route')) {
+    $variables['page']['sidebar_second'] = NULL;
+  }
+}

@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ *
+ * This module allows site administrators to grant some roles the authority to
+ * change roles assigned to users, without them needing the 'administer access
+ * control' permission.
+ *
+ * It provides its own tab in the user profile so that roles can be changed
+ * without needing access to the user edit form.
+ */
+
+use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\user\Entity;
+use Drupal\user\Entity\Role;
+use Drupal\user\RoleInterface;
+
+/**
+ * Implements hook_help().
+ */
+function role_delegation_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page':
+      $output = '<p>' . t('This module allows site administrators to grant some roles the authority to assign selected roles to users, without them needing the <em>administer permissions</em> permission.') . '</p>';
+      $output .= '<p>' . t('It provides its own tab in the user profile so that roles can be assigned without needing access to the user edit form.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function role_delegation_user_role_delete(RoleInterface $entity) {
+  $permission = sprintf('assign %s role', $entity->id());
+
+  $roles = \Drupal::entityQuery('user_role')
+    ->condition('permissions.*', $permission)
+    ->condition('id', $entity->id(), '<>')
+    ->execute();
+
+  /** @var \Drupal\user\RoleInterface $role */
+  foreach (Role::loadMultiple($roles) as $role) {
+    $role->revokePermission($permission);
+    $role->save();
+  }
+}

@@ -1,0 +1,42 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.webform_demo_event.body
+    - field.field.node.webform_demo_event.field_webform_demo_event_date
+    - field.field.node.webform_demo_event.webform
+    - node.type.webform_demo_event
+  module:
+    - datetime
+    - text
+    - user
+id: node.webform_demo_event.teaser
+targetEntityType: node
+bundle: webform_demo_event
+mode: teaser
+content:
+  body:
+    label: hidden
+    type: text_summary_or_trimmed
+    weight: 1
+    settings:
+      trim_length: 600
+    third_party_settings: {  }
+    region: content
+  field_webform_demo_event_date:
+    type: datetime_default
+    weight: 0
+    region: content
+    label: above
+    settings:
+      format_type: medium
+      timezone_override: ''
+    third_party_settings: {  }
+  links:
+    weight: 2
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  webform: true

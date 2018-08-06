@@ -1,0 +1,66 @@
+<?php
+
+/**
+ * @file
+ * Framework for allowing entities to be embedded using CKEditor plugin and text
+ * format.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function entity_embed_theme() {
+  return [
+    'entity_embed_container' => [
+      'render element' => 'element',
+    ],
+  ];
+}
+
+/**
+ * Prepares variables for entity embed container templates.
+ *
+ * Default template: entity-embed-container.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *     Properties used: #attributes, #children.
+ */
+function template_preprocess_entity_embed_container(&$variables) {
+  $variables['element'] += ['#attributes' => []];
+  $variables['attributes'] = $variables['element']['#attributes'];
+  $variables['children'] = $variables['element']['#children'];
+}
+
+/**
+ * Implements hook_entity_embed_display_plugins_alter() on behalf of file.module.
+ */
+function file_entity_embed_display_plugins_alter(array &$plugins) {
+  // The RSS enclosure field formatter is not usable for Entity Embed.
+  unset($plugins['file:file_rss_enclosure']);
+}
+
+/**
+ * Implements hook_entity_embed_display_plugins_alter() on behalf of taxonomy.module.
+ */
+function taxonomy_entity_embed_display_plugins_alter(array &$plugins) {
+  // The RSS category field formatter is not usable for Entity Embed.
+  unset($plugins['entity_reference:entity_reference_rss_category']);
+}
+
+/**
+ * Implements hook_entity_embed_display_plugins_for_context_alter().
+ *
+ * The 'Rendered entity' formatter can not be used for files unless the
+ * file_entity module is available.
+ *
+ * @see https://www.drupal.org/node/2468387
+ *
+ * @todo Remove when https://www.drupal.org/node/2567919 is fixed in core.
+ */
+function entity_embed_entity_embed_display_plugins_for_context_alter(array &$definitions, array $context) {
+  if ($context['entity_type'] === 'file' && !\Drupal::moduleHandler()->moduleExists('file_entity')) {
+    unset($definitions['entity_reference:entity_reference_entity_view']);
+  }
+}

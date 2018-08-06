@@ -1,0 +1,13 @@
+name: 'Redirect Domain'
+type: module
+description: 'Allows users to redirect between domains.'
+# core: 8.x
+
+dependencies:
+ - redirect
+
+# Information added by Drupal.org packaging script on 2017-07-30
+version: '8.x-1.0-beta1'
+core: '8.x'
+project: 'redirect'
+datestamp: 1501443548

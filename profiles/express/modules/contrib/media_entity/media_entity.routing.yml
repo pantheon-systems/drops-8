@@ -1,0 +1,14 @@
+entity.media.multiple_delete_confirm:
+  path: '/admin/content/media/delete'
+  defaults:
+    _form: '\Drupal\media_entity\Form\DeleteMultiple'
+  requirements:
+    _permission: 'delete any media'
+
+entity.media_bundle.collection:
+  path: '/admin/structure/media'
+  defaults:
+    _entity_list: 'media_bundle'
+    _title: 'Media bundles'
+  requirements:
+    _permission: 'administer media bundles'

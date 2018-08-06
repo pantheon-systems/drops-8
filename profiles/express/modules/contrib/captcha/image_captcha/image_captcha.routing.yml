@@ -1,0 +1,20 @@
+image_captcha.settings:
+  path: '/admin/config/people/captcha/image_captcha'
+  defaults:
+    _form: '\Drupal\image_captcha\Form\ImageCaptchaSettingsForm'
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+image_captcha.font_preview:
+  path: '/admin/config/people/captcha/image_captcha/font_preview/{token}'
+  defaults:
+    _controller: '\Drupal\image_captcha\Controller\CaptchaFontPreview::content'
+  requirements:
+    _permission: 'administer CAPTCHA settings'
+
+image_captcha.generator:
+  path: '/image-captcha-generate/{session_id}/{timestamp}'
+  defaults:
+    _controller: '\Drupal\image_captcha\Controller\CaptchaImageGeneratorController::image'
+  requirements:
+    _access: 'TRUE'

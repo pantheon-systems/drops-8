@@ -1,0 +1,175 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_demo_application_evaluation
+open: null
+close: null
+uid: null
+template: false
+id: demo_application
+title: 'Demo: Application'
+description: 'A demonstration of a very basic application form.'
+category: Demo
+elements: |
+  contact:
+    '#type': webform_contact
+    '#title': Contact
+    '#name__required': true
+    '#company__required': true
+    '#email__required': true
+    '#phone__required': true
+    '#address__required': true
+    '#address_2__required': true
+    '#city__required': true
+    '#state_province__required': true
+    '#postal_code__required': true
+    '#country__required': true
+  application_status:
+    '#type': details
+    '#title': 'Application Status'
+    '#open': true
+    '#admin': true
+    '#access_create_roles': {  }
+    state:
+      '#type': webform_buttons
+      '#title': 'Application State'
+      '#options':
+        completed: Completed
+        in_review: 'In review'
+        accepted: Accepted
+        rejected: Rejected
+      '#access_create_roles': {  }
+    completed_date:
+      '#type': datetime
+      '#title': 'Application Completed Date'
+      '#access_create_roles': {  }
+      '#access_update_roles': {  }
+      '#access_view_roles':
+        - authenticated
+    in_review_date:
+      '#type': datetime
+      '#title': 'Application In Review Date'
+      '#access_create_roles': {  }
+      '#access_update_roles': {  }
+      '#access_view_roles':
+        - authenticated
+    accepted_date:
+      '#type': datetime
+      '#title': 'Application Accepted Date'
+      '#access_create_roles': {  }
+      '#access_update_roles': {  }
+      '#access_view_roles':
+        - authenticated
+    rejected_date:
+      '#type': datetime
+      '#title': 'Application Rejected Date'
+      '#access_create_roles': {  }
+      '#access_update_roles': {  }
+      '#access_view_roles':
+        - authenticated
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: 'Application: [webform_submission:values:contact:name]'
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles:
+      - authenticated
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

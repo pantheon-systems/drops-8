@@ -1,0 +1,3 @@
+views.field.webform_submission_bulk_form:
+  type: views_field_bulk_form
+  label: 'Webform submission bulk form'

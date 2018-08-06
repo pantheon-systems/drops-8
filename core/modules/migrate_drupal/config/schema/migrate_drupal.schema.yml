@@ -8,9 +8,3 @@ migrate_drupal.settings:
       sequence:
         type: string
         label: 'Tag'
-    follow_up_migration_tags:
-      type: sequence
-      label: 'Follow-up migration tags'
-      sequence:
-        type: string
-        label: 'Tag'

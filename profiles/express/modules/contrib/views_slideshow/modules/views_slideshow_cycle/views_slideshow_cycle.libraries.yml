@@ -1,0 +1,51 @@
+formoptions:
+  js:
+    js/formoptions.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
+views_slideshow_cycle:
+  css:
+    component:
+      css/views_slideshow_cycle.css: {}
+  js:
+    js/views_slideshow_cycle.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+
+jquery_cycle:
+  remote: http://malsup.github.io/jquery.cycle.all.js
+  version: 3.0.3
+  license:
+    name: MIT
+    url: http://jquery.malsup.com/license.html
+    gpl-compatible: true
+  js:
+    /libraries/jquery.cycle/jquery.cycle.all.js: {}
+  dependencies:
+    - core/jquery
+
+json2:
+  remote: https://raw.githubusercontent.com/douglascrockford/JSON-js/master/json2.js
+  version: 2.0
+  license:
+    name: MIT
+    url: https://github.com/douglascrockford/JSON-js/blob/master/README
+    gpl-compatible: true
+  js:
+    /libraries/json2/json2.js: {}
+
+jquery_pause:
+  remote: https://github.com/tobia/Pause
+  version: 3.0.3
+  license:
+    name: GNU
+    url: https://raw.githubusercontent.com/tobia/Pause/master/LICENSE.txt
+    gpl-compatible: true
+  js:
+    /libraries/jquery.pause/jquery.pause.js: {}
+  dependencies:
+    - core/jquery

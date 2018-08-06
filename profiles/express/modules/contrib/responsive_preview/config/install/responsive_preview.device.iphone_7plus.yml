@@ -1,0 +1,11 @@
+id: iphone_7plus
+uuid: a7bacfc2-7a3b-4f48-8a2e-f039734fdee4
+label: 'iPhone 7+'
+weight: -9
+status: 1
+orientation: portrait
+dimensions:
+  width: 1242
+  height: 2208
+  dppx: !!float 3
+langcode: en

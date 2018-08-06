@@ -1,0 +1,77 @@
+<?php
+
+/**
+ * @file
+ * Allow users to specify a focal point on content images.
+ *
+ * @todo add support for default foal point value calculation method.
+ * @todo add test drive functionality?
+ */
+
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function focal_point_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.focal_point':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t("Focal Point allows you to specify the portion of an image that is most important.</br>This information can be used when the image is cropped or cropped and scaled so that you don't, for example, end up with an image that cuts off the subject's head.") . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function focal_point_theme($existing, $type, $theme, $path) {
+  return [
+    'focal_point_preview_page' => [
+      'variables' => [
+        'original_image' => NULL,
+        'derivative_images' => [],
+        'focal_point' => '',
+        'preview_image_note' => '',
+        'derivative_image_note' => '',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_insert().
+ *
+ * @see focal_point_entity_update
+ */
+function focal_point_entity_insert(EntityInterface $entity) {
+  focal_point_entity_update($entity);
+}
+
+/**
+ * Implements hook_entity_update().
+ *
+ * Saves the focal point value for the image file entity about to be saved.
+ */
+function focal_point_entity_update(EntityInterface $entity) {
+  // Only worry about entities that are fieldable.
+  if ($entity instanceof FieldableEntityInterface) {
+    // Loop all the fields and save focal point values for images.
+    foreach ($entity->getFieldDefinitions() as $key => $field) {
+      if ($field->getType() == 'image' && $entity->hasField($field->getName())) {
+        // Loop through all values for this field. Its cardinality might be > 1.
+        foreach ($entity->{$field->getName()} as $item) {
+          if (isset($item->focal_point)) {
+            list($x, $y) = explode(',', $item->focal_point);
+            $crop_type = \Drupal::config('focal_point.settings')->get('crop_type');
+            $crop = \Drupal::service('focal_point.manager')->getCropEntity($item->entity, $crop_type);
+            \Drupal::service('focal_point.manager')->saveCropEntity($x, $y, $item->width, $item->height, $crop);
+          }
+        }
+      }
+    }
+  }
+}

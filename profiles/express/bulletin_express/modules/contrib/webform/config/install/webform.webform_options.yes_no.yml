@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - webform
+id: yes_no
+label: Yes/No
+category: General
+options: |
+  Yes: Yes
+  No: No

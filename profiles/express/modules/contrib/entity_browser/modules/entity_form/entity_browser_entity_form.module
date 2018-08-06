@@ -1,0 +1,193 @@
+<?php
+
+/**
+ * @file
+ * Hook implementations for entity_browser_entity_form.module.
+ *
+ * Provides integration with the Inline entity form module.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\WidgetInterface;
+use Drupal\Core\Url;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\entity_browser\Element\EntityBrowserElement;
+use Drupal\Core\Field\FieldStorageDefinitionInterface;
+
+/**
+ * Implements hook_inline_entity_form_reference_form_alter().
+ */
+function entity_browser_entity_form_inline_entity_form_reference_form_alter(&$reference_form, FormStateInterface &$form_state) {
+  /** @var \Drupal\field\FieldConfigInterface $instance */
+  $instance = $form_state->get([
+    'inline_entity_form',
+    $reference_form['#ief_id'],
+    'instance',
+  ]);
+
+  /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $form_display */
+  $entity_form_id = $instance->getTargetEntityTypeId() . '.' . $instance->getTargetBundle() . '.default';
+  // TODO - 'default' might become configurable or something else in the future.
+  // See https://www.drupal.org/node/2510274
+  $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load($entity_form_id);
+
+  $widget = $form_display->getRenderer($instance->getName());
+
+  $entity_browser_id = $widget->getThirdPartySetting('entity_browser_entity_form', 'entity_browser_id', '_none');
+  if ($entity_browser_id === '_none') {
+    return;
+  }
+
+  // Fetch the number of currently selected entities, if any.
+  $count_existing_selection = count($form_state->get([
+    'inline_entity_form',
+    $reference_form['#ief_id'],
+    'entities',
+  ]));
+
+  $cardinality = FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED;
+  if($instance->getFieldStorageDefinition()->get('cardinality') !== $cardinality) {
+    $cardinality = $instance->getFieldStorageDefinition()->get('cardinality') - $count_existing_selection;
+  }
+
+  unset($reference_form['entity_id']);
+  $reference_form['entity_browser'] = [
+    '#type' => 'entity_browser',
+    '#entity_browser' => $entity_browser_id,
+    '#cardinality' => $cardinality,
+  ];
+  $reference_form['#attached']['library'][] = 'entity_browser_entity_form/ief_autocomplete';
+  $reference_form['actions']['ief_reference_save']['#ajax']['event'] = 'entities-selected';
+
+  // Add custom validation and submit callbacks as we need to handle
+  // multi-value cases.
+  $reference_form['#element_validate'][0] = 'entity_browser_entity_form_reference_form_validate';
+  $reference_form['#ief_element_submit'][0] = 'entity_browser_entity_form_reference_form_submit';
+}
+
+/**
+ * Validates the form for adding existing entities.
+ *
+ * TODO see if we can get away without overriding entire IEF function.
+ *
+ * @param array $reference_form
+ *   The reference entity form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The form state of the parent form.
+ *
+ * @see inline_entity_form_reference_form_validate()
+ */
+function entity_browser_entity_form_reference_form_validate(array &$reference_form, FormStateInterface $form_state) {
+  $form_values = NestedArray::getValue($form_state->getValues(), $reference_form['#parents']);
+  if (empty($form_values['entity_browser']['entity_ids'])) {
+    // The entity_id element is required, the value is empty only if
+    // the form was cancelled.
+    return;
+  }
+  $ief_id = $reference_form['#ief_id'];
+  $labels = $reference_form['#ief_labels'];
+  $attach_entities = EntityBrowserElement::processEntityIds($form_values['entity_browser']['entity_ids']);
+
+  // Check if the entity is already referenced by the field.
+  if (!empty($attach_entities)) {
+    foreach ($attach_entities as $attach_entity) {
+      foreach ($form_state->get(['inline_entity_form', $ief_id, 'entities']) as $key => $value) {
+        if ($value['entity'] == $attach_entity) {
+          $form_state->setError($reference_form, t('The selected @label has already been added.', ['@label' => $labels['singular']]));
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Submits the form for adding existing entities.
+ *
+ * Adds the specified entity to the IEF form state.
+ *
+ * TODO see if we can get away without overriding entire IEF function.
+ *
+ * @param array $reference_form
+ *   The reference entity form.
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ *   The form state of the parent form.
+ *
+ * @see inline_entity_form_reference_form_submit()
+ */
+function entity_browser_entity_form_reference_form_submit($reference_form, FormStateInterface $form_state) {
+  $ief_id = $reference_form['#ief_id'];
+  $form_values = NestedArray::getValue($form_state->getValues(), $reference_form['#parents']);
+  $attach_entities = EntityBrowserElement::processEntityIds($form_values['entity_browser']['entity_ids']);
+  $entities =& $form_state->get(['inline_entity_form', $ief_id, 'entities']);
+
+  // Determine the correct weight of the new element.
+  $weight = 0;
+  if ($entities) {
+    $weight = max(array_keys($entities)) + 1;
+  }
+
+  foreach ($attach_entities as $attach_entity) {
+    $entities[] = array(
+      'entity' => $attach_entity,
+      'weight' => $weight,
+      'form' => NULL,
+      'needs_save' => FALSE,
+    );
+    $weight++;
+  }
+  $form_state->set(['inline_entity_form', $ief_id, 'entities'], $entities);
+
+  // In some rare cases entity_ids keeps values of selected entities which then
+  // causes problems in subsequent selections. Let's make sure it is empty and
+  // ready for next usage of entity browser.
+  $form_state->setValueForElement($reference_form['entity_browser']['entity_ids'], '');
+  $input = &$form_state->getUserInput();
+  NestedArray::unsetValue($input, array_merge($reference_form['#parents'], ['entity_browser', 'entity_ids']));
+}
+
+/**
+ * Implements hook_field_widget_third_party_settings_form().
+ */
+function entity_browser_entity_form_field_widget_third_party_settings_form(WidgetInterface $plugin, FieldDefinitionInterface $field_definition, $form_mode, $form, FormStateInterface $form_state) {
+  if ($plugin->getPluginId() == 'inline_entity_form_complex') {
+    $entity_browsers = \Drupal::service('entity_type.manager')->getStorage('entity_browser')->loadMultiple();
+    if ($entity_browsers) {
+      $options = [];
+      foreach ($entity_browsers as $entity_browser) {
+        $options[$entity_browser->id()] = $entity_browser->label();
+      }
+      $element['entity_browser_id'] = [
+        '#type' => 'select',
+        '#title' => t('Entity browser'),
+        '#options' => $options,
+        '#empty_option' => t('- None -'),
+        '#empty_value' => '_none',
+        '#default_value' => $plugin->getThirdPartySetting('entity_browser_entity_form', 'entity_browser_id'),
+      ];
+    }
+    else {
+      $element['message'] = [
+        '#markup' => t('There are no entity browsers available. You can create one <a href="@url">here</a>.', ['@url' => Url::fromRoute('entity.entity_browser.collection')->toString()]),
+      ];
+    }
+    return $element;
+  }
+}
+
+/**
+ * Implements hook_field_widget_settings_summary_alter().
+ */
+function entity_browser_entity_form_field_widget_settings_summary_alter(&$summary, $context) {
+  $plugin = $context['widget'];
+  if ($plugin->getPluginId() == 'inline_entity_form_complex' && $plugin->getThirdPartySetting('entity_browser_entity_form', 'entity_browser_id') && $plugin->getThirdPartySetting('entity_browser_entity_form', 'entity_browser_id') !== '_none') {
+    $entity_browser_id = $plugin->getThirdPartySetting('entity_browser_entity_form', 'entity_browser_id');
+    $entity_browser = \Drupal::service('entity_type.manager')->getStorage('entity_browser')->load($entity_browser_id);
+    if ($entity_browser) {
+      $summary[] = t('Entity browser: @entity_browser.', [
+        '@entity_browser' => $entity_browser->label(),
+      ]);
+    }
+    return $summary;
+  }
+}

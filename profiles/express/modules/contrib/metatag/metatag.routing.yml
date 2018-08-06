@@ -1,0 +1,50 @@
+# MetatagDefaults routing definition
+entity.metatag_defaults.collection:
+  path: '/admin/config/search/metatag'
+  defaults:
+    _entity_list: 'metatag_defaults'
+    _title: 'Metatag'
+  requirements:
+    _permission: 'administer meta tags'
+  options:
+    _admin_route: TRUE
+
+entity.metatag_defaults.add_form:
+  path: '/admin/config/search/metatag/add'
+  defaults:
+    _entity_form: 'metatag_defaults.add'
+    _title: 'Add default meta tags'
+  requirements:
+    _permission: 'administer meta tags'
+  options:
+    _admin_route: TRUE
+
+entity.metatag_defaults.edit_form:
+  path: '/admin/config/search/metatag/{metatag_defaults}'
+  defaults:
+    _entity_form: 'metatag_defaults.edit'
+    _title: 'Edit default meta tags'
+  requirements:
+    _permission: 'administer meta tags'
+  options:
+    _admin_route: TRUE
+
+entity.metatag_defaults.delete_form:
+  path: '/admin/config/search/metatag/{metatag_defaults}/delete'
+  defaults:
+    _entity_form: 'metatag_defaults.delete'
+    _title: 'Delete default meta tags'
+  requirements:
+    _permission: 'administer meta tags'
+  options:
+    _admin_route: TRUE
+
+entity.metatag_defaults.revert_form:
+  path: '/admin/config/search/metatag/{metatag_defaults}/revert'
+  defaults:
+    _entity_form: 'metatag_defaults.revert'
+    _title: 'Revert default meta tags'
+  requirements:
+    _permission: 'administer meta tags'
+  options:
+    _admin_route: TRUE

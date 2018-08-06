@@ -1,0 +1,135 @@
+entity.webform.references:
+  title: 'References'
+  route_name: entity.webform.references
+  base_route: entity.webform.canonical
+  weight: 50
+
+entity.node.webform.test_form:
+  title: 'Test'
+  route_name: entity.node.webform.test_form
+  base_route: entity.node.canonical
+  # No weight provided. @see node.links.task.yml
+
+entity.node.webform.results:
+  title: 'Results'
+  route_name: entity.node.webform.results_submissions
+  base_route: entity.node.canonical
+  # No weight provided. @see node.links.task.yml
+
+entity.node.webform.results_submissions:
+  title: 'Submissions'
+  route_name: entity.node.webform.results_submissions
+  parent_id: entity.node.webform.results
+  weight: 0
+
+entity.node.webform.results_export:
+  title: 'Download'
+  route_name: entity.node.webform.results_export
+  parent_id: entity.node.webform.results
+  weight: 10
+
+entity.node.webform.results_clear:
+  title: 'Clear'
+  route_name: entity.node.webform.results_clear
+  parent_id: entity.node.webform.results
+  weight: 20
+
+entity.node.webform.results_log:
+  title: 'Log'
+  route_name: entity.node.webform.results_log
+  parent_id: entity.node.webform.results
+  weight: 30
+
+# Submission.
+
+entity.node.webform_submission.canonical:
+  title: 'View'
+  route_name: entity.node.webform_submission.canonical
+  base_route: entity.node.webform_submission.canonical
+  weight: 0
+
+entity.node.webform_submission.html:
+  title: 'HTML'
+  route_name: entity.node.webform_submission.canonical
+  parent_id: entity.node.webform_submission.canonical
+  weight: 10
+
+entity.node.webform_submission.table:
+  title: 'Table'
+  route_name: entity.node.webform_submission.table
+  parent_id: entity.node.webform_submission.canonical
+  weight: 20
+
+entity.node.webform_submission.text:
+  title: 'Plain text'
+  route_name: entity.node.webform_submission.text
+  parent_id: entity.node.webform_submission.canonical
+  weight: 30
+
+entity.node.webform_submission.yaml:
+  title: 'Data (YAML)'
+  route_name: entity.node.webform_submission.yaml
+  parent_id: entity.node.webform_submission.canonical
+  weight: 40
+
+entity.node.webform_submission.edit_form:
+  title: 'Edit'
+  route_name: entity.node.webform_submission.edit_form
+  base_route: entity.node.webform_submission.canonical
+  weight: 10
+
+entity.node.webform_submission.edit_form.page:
+  title: 'Pages'
+  route_name: entity.node.webform_submission.edit_form
+  parent_id: entity.node.webform_submission.edit_form
+  weight: 0
+
+entity.node.webform_submission.edit_form.all:
+  title: 'All'
+  route_name: entity.node.webform_submission.edit_form.all
+  parent_id: entity.node.webform_submission.edit_form
+  weight: 10
+
+entity.node.webform_submission.notes_form:
+  title: 'Notes'
+  route_name: entity.node.webform_submission.notes_form
+  base_route: entity.node.webform_submission.canonical
+  weight: 20
+
+entity.node.webform_submission.resend_form:
+  title: 'Resend'
+  route_name: entity.node.webform_submission.resend_form
+  base_route: entity.node.webform_submission.canonical
+  weight: 30
+
+entity.node.webform_submission.delete_form:
+  title: 'Delete'
+  route_name: entity.node.webform_submission.delete_form
+  base_route: entity.node.webform_submission.canonical
+  weight: 40
+
+entity.node.webform_submission.log:
+  title: 'Log'
+  route_name: entity.node.webform_submission.log
+  base_route: entity.node.webform_submission.canonical
+  weight: 50
+
+# User Submission.
+
+entity.node.webform.user.submission:
+  title: 'View'
+  route_name: entity.node.webform.user.submission
+  base_route: entity.node.webform.user.submission
+  weight: 0
+
+entity.node.webform.user.submission.edit:
+  title: 'Edit'
+  route_name: entity.node.webform.user.submission.edit
+  base_route: entity.node.webform.user.submission
+  weight: 10
+
+entity.node.webform.user.submission.delete:
+  title: 'Delete'
+  route_name: entity.node.webform.user.submission.delete
+  base_route: entity.node.webform.user.submission
+  weight: 20

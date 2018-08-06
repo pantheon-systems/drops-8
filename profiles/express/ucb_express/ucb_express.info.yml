@@ -1,0 +1,27 @@
+name: UCB Express
+type: profile
+description: 'UCB Express installation profile'
+core: 8.x
+
+# Base profile
+base profile:
+  name: express
+
+# Required modules
+dependencies:
+  # Express modules
+  - express_site_info
+  - express_back_to_top
+  # Contrib modules for Bulletin
+  - webform
+  - webform_node
+  - webform_ui
+  - webform_views
+
+themes:
+  # Admin theme for now
+  - seven
+  # Contrib required
+  - bootstrap
+  # CU-Boulder theme
+  - fiddlers_green

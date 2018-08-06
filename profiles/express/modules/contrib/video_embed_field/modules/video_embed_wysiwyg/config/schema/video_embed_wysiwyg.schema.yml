@@ -1,0 +1,24 @@
+ckeditor.plugin.video_embed:
+  label: 'Video Embed'
+  type: mapping
+  mapping:
+    defaults:
+      label: 'Defaults'
+      type: mapping
+      mapping:
+        children:
+          label: 'Children'
+          type: mapping
+          mapping:
+            autoplay:
+              label: 'Autoplay'
+              type: boolean
+            responsive:
+              label: 'Responsive'
+              type: boolean
+            width:
+              label: 'Width'
+              type: string
+            height:
+              label: 'Height'
+              type: string

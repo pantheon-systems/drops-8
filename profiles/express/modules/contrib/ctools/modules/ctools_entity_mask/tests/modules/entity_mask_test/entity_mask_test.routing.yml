@@ -1,0 +1,9 @@
+fake_block_content.add_form:
+  path: '/fake-block/add/{block_content_type}'
+  defaults:
+    _controller: '\Drupal\block_content\Controller\BlockContentController::addForm'
+    _title_callback: 'Drupal\block_content\Controller\BlockContentController::getAddFormTitle'
+  options:
+    _admin_route: TRUE
+  requirements:
+    _permission: 'administer blocks'

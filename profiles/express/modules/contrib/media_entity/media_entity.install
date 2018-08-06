@@ -1,0 +1,103 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall and update hooks for Media entity module.
+ */
+
+/**
+ * Checks if required version of the Entity API is installed.
+ *
+ * @return bool
+ *   TRUE if dependency is met and FALSE if not.
+ */
+function _media_entity_check_entity_version() {
+  if (\Drupal::moduleHandler()->moduleExists('entity')) {
+    $info = system_get_info('module', 'entity');
+    if (version_compare($info['version'], '8.x-1.0-alpha3') >= 0) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function media_entity_requirements($phase) {
+  $requirements = [];
+  if ($phase == 'update' && !_media_entity_check_entity_version()) {
+    $requirements['entity'] = [
+      'title' => t('Media entity'),
+      'value' => t('Entity API missing'),
+      'description' => t(
+        '<a href=":url">Entity API >= 8.x-1.0-alpha3</a> module is now a dependency and needs to be installed before running updates.',
+        [':url' => 'https://www.drupal.org/project/entity']
+      ),
+      'severity' => REQUIREMENT_ERROR,
+    ];
+  }
+  return $requirements;
+}
+
+/**
+ * Implements hook_install().
+ */
+function media_entity_install() {
+  $source = drupal_get_path('module', 'media_entity') . '/images/icons';
+  $destination = \Drupal::config('media_entity.settings')->get('icon_base');
+  media_entity_copy_icons($source, $destination);
+}
+
+/**
+ * Remove "type" base field.
+ */
+function media_entity_update_8001() {
+  $fields = \Drupal::database()->query('DESCRIBE {media_field_data}')->fetchCol();
+  if (in_array('type', $fields)) {
+    \Drupal::database()->update('media_field_data')
+      ->fields(['type' => NULL])
+      ->execute();
+  }
+
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($field = $manager->getFieldStorageDefinition('type', 'media')) {
+    $manager->uninstallFieldStorageDefinition($field);
+  }
+}
+
+/**
+ * Ensure media entity status value (defaulting to 1).
+ */
+function media_entity_update_8002() {
+  // Ensure status values in 'media_field_data' table.
+  if (\Drupal::database()->schema()->tableExists('media_field_data')) {
+    \Drupal::database()
+      ->update('media_field_data')
+      ->fields(['status' => 1])
+      ->condition('status', NULL, 'IS NULL')
+      ->execute();
+  }
+
+  // Ensure status values in 'media_field_revision' table.
+  if (\Drupal::database()->schema()->tableExists('media_field_revision')) {
+    \Drupal::database()
+      ->update('media_field_revision')
+      ->fields(['status' => 1])
+      ->condition('status', NULL, 'IS NULL')
+      ->execute();
+  }
+
+  // Flush all caches.
+  drupal_flush_all_caches();
+}
+
+/**
+ * Ensure Entity API is installed.
+ */
+function media_entity_update_8003() {
+  if (!_media_entity_check_entity_version()) {
+    throw new \Drupal\Core\Utility\UpdateException('Entity API >= 8.x-1.0-alpha3 (drupal.org/project/entity) module is now a dependency and needs to be installed before running updates.');
+  }
+}

@@ -1,0 +1,5 @@
+captcha_point.add:
+  route_name: 'captcha_point.add'
+  title: 'Add captcha point'
+  appears_on:
+    - captcha_point.list

@@ -1,0 +1,37 @@
+langcode: und
+status: true
+dependencies:
+  config:
+    - views.view.files_entity_browser
+  module:
+    - views
+  enforced:
+    module:
+      - entity_browser_example
+name: test_files
+label: 'Test entity browser for files'
+display: iframe
+display_configuration:
+  width: '650'
+  height: '500'
+  link_text: 'Select entities'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: tabs
+widget_selector_configuration: {  }
+widgets:
+  a4ad947c-9669-497c-9988-24351955a02f:
+    settings:
+      view: files_entity_browser
+      view_display: entity_browser_1
+    uuid: a4ad947c-9669-497c-9988-24351955a02f
+    weight: 1
+    label: 'Files listing'
+    id: view
+  735d146c-a4b2-4327-a057-d109e0905e05:
+    settings:
+      upload_location: 'public://'
+    uuid: 735d146c-a4b2-4327-a057-d109e0905e05
+    weight: 0
+    label: 'Upload files'
+    id: upload

@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * @file
+ * Allowed time-based automatic unlocking of nodes.
+ */
+
+use Drupal\node\NodeInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\user\Entity\User;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\taxonomy\TermInterface;
+use Drupal\block_content\BlockContentInterface;
+
+/**
+ * Implements hook_cron().
+ *
+ * Breaks batches of stale locks whenever the cron hooks are
+ * run. Inspired by original content_lock_cron() (leftover from the
+ * checkout module).
+ */
+function content_lock_timeout_cron() {
+  $config = \Drupal::config('content_lock_timeout.settings');
+  $timeout_minutes = $config->get('content_lock_timeout_minutes');
+  $last_valid_time = time() - 60 * $timeout_minutes;
+  /** @var \Drupal\content_lock\ContentLock\ContentLock $lock_service */
+  $lock_service = \Drupal::service('content_lock');
+
+  // We call release() for each lock so that the
+  // hook_content_lock_released may be invoked.
+  $query = \Drupal::database()->select('content_lock', 'c');
+  $query->fields('c')
+    ->condition('c.timestamp', $last_valid_time, '<');
+  $count = 0;
+  foreach ($query->execute() as $obj) {
+    $lock_service->release($obj->entity_id, $obj->uid, $obj->entity_type);
+    $count++;
+  }
+
+  if ($count) {
+    $period = \Drupal::service('date.formatter')->formatInterval($timeout_minutes * 60);
+    \Drupal::logger('content_lock_timeout')->notice(
+      'Released @count stale node locks which lasted at least @period.',
+      ['@count' => $count, '@period' => $period]
+    );
+  }
+}
+
+/**
+ * Implements hook_entity_prepare_form().
+ */
+function content_lock_timeout_entity_prepare_form(EntityInterface $entity, $operation, FormStateInterface $form_state) {
+  // We support entity type Node, Term and Block Content.
+  if ($entity instanceof NodeInterface || $entity instanceof TermInterface || $entity instanceof BlockContentInterface) {
+    $user = \Drupal::currentUser();
+    $config = \Drupal::config('content_lock_timeout.settings');
+    if (!$config->get('content_lock_timeout_on_edit')) {
+      return;
+    }
+    $timeout_minutes = $config->get('content_lock_timeout_minutes');
+    $last_valid_time = time() - 60 * $timeout_minutes;
+
+    /** @var \Drupal\content_lock\ContentLock\ContentLock $lock_service */
+    $lock_service = \Drupal::service('content_lock');
+
+    // This is a new, unsaved entity (which thus can't be locked).
+    // This is a stale lock.
+    // There already is a lock on this entity.
+    // A different user owns the lock.
+    // There is already a lock on this entity.
+    if (!empty($entity->id())
+      && is_object($lock = $lock_service->fetchLock($entity->id(), $entity->getEntityTypeId()))
+      && $lock->uid != $user->id()
+      && $lock->timestamp < $last_valid_time
+      // Now check a subset of the conditions that content_lock_form_alter()
+      // checks before it sets a lock. Many of the checks don't apply because
+      // we know the uid of the lock is different from the current user's uid
+      // and that the node already exists. That is, we don't need as many checks
+      // because there's already a lock on this node.
+      // The user must have this permission to be able to break the lock.
+      // A valid user is needed for locking.
+      && $user->hasPermission('break content lock')
+      && ($user->id() > 0)
+    ) {
+      $lock_service->release($entity->id(), $lock->uid, $entity->getEntityTypeId());
+
+      if ($lock_service->verbose()) {
+        $username = User::load($lock->uid)->getDisplayName();
+        $date = \Drupal::service('date.formatter')->formatInterval(REQUEST_TIME - $lock->timestamp);
+        $stale_time = \Drupal::service('date.formatter')->formatInterval($last_valid_time - $lock->timestamp);
+        drupal_set_message(t('Breaking existing lock by @name so that you may edit this node. (This lock was set @date ago and was stale since @stale_time.)',
+          [
+            '@name' => $username,
+            '@date' => $date,
+            '@stale_time' => $stale_time,
+          ]));
+      }
+    }
+  }
+}

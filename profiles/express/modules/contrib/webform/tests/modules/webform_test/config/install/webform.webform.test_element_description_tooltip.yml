@@ -1,0 +1,586 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_description_tooltip
+title: 'Test: Element: Description tooltip'
+description: 'Test element eescription tooltip.'
+category: 'Test: Element'
+elements: |
+  basic_elements:
+    '#type': details
+    '#title': 'Basic elements'
+    '#open': true
+    checkbox:
+      '#type': checkbox
+      '#title': Checkbox
+      '#description': 'This is a description for the ''checkbox'' element.'
+      '#description_display': tooltip
+    password:
+      '#type': password
+      '#title': Password
+      '#description': 'This is a description for the ''password'' element.'
+      '#description_display': tooltip
+    textarea:
+      '#type': textarea
+      '#title': Textarea
+      '#rows': 2
+      '#description': 'This is a description for the ''textarea'' element.'
+      '#description_display': tooltip
+    textfield:
+      '#type': textfield
+      '#title': 'Text field'
+      '#description': 'This is a description for the ''textfield'' element.'
+      '#description_display': tooltip
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements'
+    '#open': true
+    webform_autocomplete:
+      '#type': webform_autocomplete
+      '#title': Autocomplete
+      '#description': 'This is a description for the ''webform_autocomplete'' element.'
+      '#description_display': tooltip
+    webform_codemirror:
+      '#type': webform_codemirror
+      '#title': CodeMirror
+      '#mode': yaml
+      '#description': 'This is a description for the ''webform_codemirror'' element.'
+      '#description_display': tooltip
+    color:
+      '#type': color
+      '#title': Color
+      '#description': 'This is a description for the ''color'' element.'
+      '#description_display': tooltip
+    webform_creditcard_number:
+      '#type': webform_creditcard_number
+      '#title': 'Credit card number'
+      '#description': 'This is a description for the ''webform_creditcard_number'' element.'
+      '#description_display': tooltip
+    email:
+      '#type': email
+      '#title': Email
+      '#description': 'This is a description for the ''email'' element.'
+      '#description_display': tooltip
+    webform_email_confirm:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm'
+      '#description': 'This is a description for the ''webform_email_confirm'' element.'
+      '#description_display': tooltip
+    webform_email_multiple:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple'
+      '#description': 'This is a description for the ''webform_email_multiple'' element.'
+      '#description_display': tooltip
+    webform_mapping:
+      '#type': webform_mapping
+      '#title': Mapping
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+      '#description': 'This is a description for the ''webform_mapping'' element.'
+      '#description_display': tooltip
+    number:
+      '#type': number
+      '#title': Number
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#description': 'This is a description for the ''number'' element.'
+      '#description_display': tooltip
+    password_confirm:
+      '#type': password_confirm
+      '#title': 'Password confirm'
+      '#description': 'This is a description for the ''password_confirm'' element.'
+      '#description_display': tooltip
+    range:
+      '#type': range
+      '#title': Range
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#range__output': true
+      '#range__output_prefix': $
+      '#range__output_suffix': '.00'
+      '#description': 'This is a description for the ''range'' element.'
+      '#description_display': tooltip
+    webform_rating:
+      '#type': webform_rating
+      '#title': Rating
+      '#description': 'This is a description for the ''webform_rating'' element.'
+      '#description_display': tooltip
+    search:
+      '#type': search
+      '#title': Search
+      '#description': 'This is a description for the ''search'' element.'
+      '#description_display': tooltip
+    webform_signature:
+      '#type': webform_signature
+      '#title': Signature
+      '#description': 'This is a description for the ''webform_signature'' element.'
+      '#description_display': tooltip
+    tel:
+      '#type': tel
+      '#title': Telephone
+      '#international': true
+      '#description': 'This is a description for the ''tel'' element.'
+      '#description_display': tooltip
+    webform_toggle:
+      '#type': webform_toggle
+      '#title': Toggle
+      '#description': 'This is a description for the ''webform_toggle'' element.'
+      '#description_display': tooltip
+    url:
+      '#type': url
+      '#title': URL
+      '#description': 'This is a description for the ''url'' element.'
+      '#description_display': tooltip
+  composite_elements:
+    '#type': details
+    '#title': 'Composite elements'
+    '#open': true
+    webform_address:
+      '#type': webform_address
+      '#title': Address
+      '#description': 'This is a description for the ''webform_address'' element.'
+      '#description_display': tooltip
+    webform_composite:
+      '#type': webform_composite
+      '#title': 'Composite custom'
+      '#element':
+        name:
+          '#type': textfield
+          '#title': Name
+          '#title_display': invisible
+        gender:
+          '#type': select
+          '#title': Gender
+          '#title_display': invisible
+          '#options':
+            Male: Male
+            Female: Female
+      '#description': 'This is a description for the ''webform_composite'' element.'
+      '#description_display': tooltip
+    webform_contact:
+      '#type': webform_contact
+      '#title': Contact
+      '#description': 'This is a description for the ''webform_contact'' element.'
+      '#description_display': tooltip
+    webform_creditcard:
+      '#type': webform_creditcard
+      '#title': 'Credit card'
+      '#description': 'This is a description for the ''webform_creditcard'' element.'
+      '#description_display': tooltip
+    webform_link:
+      '#type': webform_link
+      '#title': Link
+      '#description': 'This is a description for the ''webform_link'' element.'
+      '#description_display': tooltip
+    webform_location:
+      '#type': webform_location
+      '#title': Location
+      '#map': true
+      '#geolocation': true
+      '#format': map
+      '#description': 'This is a description for the ''webform_location'' element.'
+      '#description_display': tooltip
+    webform_name:
+      '#type': webform_name
+      '#title': Name
+      '#description': 'This is a description for the ''webform_name'' element.'
+      '#description_display': tooltip
+    webform_telephone:
+      '#type': webform_telephone
+      '#title': 'Telephone advanced'
+      '#description': 'This is a description for the ''webform_telephone'' element.'
+      '#description_display': tooltip
+  file_upload_elements:
+    '#type': details
+    '#title': 'File upload elements'
+    '#open': true
+    webform_audio_file:
+      '#type': webform_audio_file
+      '#title': 'Audio file'
+      '#description': 'This is a description for the ''webform_audio_file'' element.'
+      '#description_display': tooltip
+    webform_document_file:
+      '#type': webform_document_file
+      '#title': 'Document file'
+      '#description': 'This is a description for the ''webform_document_file'' element.'
+      '#description_display': tooltip
+    managed_file:
+      '#type': managed_file
+      '#title': File
+      '#description': 'This is a description for the ''managed_file'' element.'
+      '#description_display': tooltip
+    webform_image_file:
+      '#type': webform_image_file
+      '#title': 'Image file'
+      '#description': 'This is a description for the ''webform_image_file'' element.'
+      '#description_display': tooltip
+    webform_video_file:
+      '#type': webform_video_file
+      '#title': 'Video file'
+      '#description': 'This is a description for the ''webform_video_file'' element.'
+      '#description_display': tooltip
+  options_elements:
+    '#type': details
+    '#title': 'Options elements'
+    '#open': true
+    webform_buttons:
+      '#type': webform_buttons
+      '#title': Buttons
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': 'This is a description for the ''webform_buttons'' element.'
+      '#description_display': tooltip
+    webform_buttons_other:
+      '#type': webform_buttons_other
+      '#title': 'Buttons other'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': 'This is a description for the ''webform_buttons_other'' element.'
+      '#description_display': tooltip
+    checkboxes:
+      '#type': checkboxes
+      '#title': Checkboxes
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': 'This is a description for the ''checkboxes'' element.'
+      '#description_display': tooltip
+    webform_checkboxes_other:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': 'This is a description for the ''webform_checkboxes_other'' element.'
+      '#description_display': tooltip
+    webform_image_select:
+      '#type': webform_image_select
+      '#title': 'Image select'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+      '#description': 'This is a description for the ''webform_image_select'' element.'
+      '#description_display': tooltip
+    webform_likert:
+      '#type': webform_likert
+      '#title': Likert
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+      '#description': 'This is a description for the ''webform_likert'' element.'
+      '#description_display': tooltip
+    radios:
+      '#type': radios
+      '#title': Radios
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': 'This is a description for the ''radios'' element.'
+      '#description_display': tooltip
+    webform_radios_other:
+      '#type': webform_radios_other
+      '#title': 'Radios other'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': 'This is a description for the ''webform_radios_other'' element.'
+      '#description_display': tooltip
+    select:
+      '#type': select
+      '#title': Select
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': 'This is a description for the ''select'' element.'
+      '#description_display': tooltip
+    webform_select_other:
+      '#type': webform_select_other
+      '#title': 'Select other'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': 'This is a description for the ''webform_select_other'' element.'
+      '#description_display': tooltip
+    webform_toggles:
+      '#type': webform_toggles
+      '#title': Toggles
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': 'This is a description for the ''webform_toggles'' element.'
+      '#description_display': tooltip
+  computed_elements:
+    '#type': details
+    '#title': 'Computed Elements'
+    '#open': true
+    webform_computed_token:
+      '#type': webform_computed_token
+      '#title': 'Computed token'
+      '#value': 'This is a Computed token value.'
+      '#description': 'This is a description for the ''webform_computed_token'' element.'
+      '#description_display': tooltip
+    webform_computed_twig:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig'
+      '#value': 'This is a Computed Twig value.'
+      '#description': 'This is a description for the ''webform_computed_twig'' element.'
+      '#description_display': tooltip
+  date_time_elements:
+    '#type': details
+    '#title': 'Date/time elements'
+    '#open': true
+    date:
+      '#type': date
+      '#title': Date
+      '#description': 'This is a description for the ''date'' element.'
+      '#description_display': tooltip
+    datetime:
+      '#type': datetime
+      '#title': Date/time
+      '#description': 'This is a description for the ''datetime'' element.'
+      '#description_display': tooltip
+    datelist:
+      '#type': datelist
+      '#title': 'Date list'
+      '#description': 'This is a description for the ''datelist'' element.'
+      '#description_display': tooltip
+    webform_time:
+      '#type': webform_time
+      '#title': Time
+      '#description': 'This is a description for the ''webform_time'' element.'
+      '#description_display': tooltip
+  entity_reference_elements:
+    '#type': details
+    '#title': 'Entity reference elements'
+    '#open': true
+    entity_autocomplete:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': 'This is a description for the ''entity_autocomplete'' element.'
+      '#description_display': tooltip
+    webform_entity_checkboxes:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#description': 'This is a description for the ''webform_entity_checkboxes'' element.'
+      '#description_display': tooltip
+    webform_entity_radios:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#description': 'This is a description for the ''webform_entity_radios'' element.'
+      '#description_display': tooltip
+    webform_entity_select:
+      '#type': webform_entity_select
+      '#title': 'Entity select'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#description': 'This is a description for the ''webform_entity_select'' element.'
+      '#description_display': tooltip
+    webform_term_checkboxes:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes'
+      '#vocabulary': tags
+      '#description': 'This is a description for the ''webform_term_checkboxes'' element.'
+      '#description_display': tooltip
+    webform_term_select:
+      '#type': webform_term_select
+      '#title': 'Term select'
+      '#vocabulary': tags
+      '#description': 'This is a description for the ''webform_term_select'' element.'
+      '#description_display': tooltip
+  containers:
+    '#type': details
+    '#title': Containers
+    '#open': true
+    item:
+      '#type': item
+      '#title': Item
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': 'This is a description for the ''item'' element.'
+      '#description_display': tooltip
+  other_elements:
+    '#type': details
+    '#title': 'Other elements'
+    '#open': true
+    language_select:
+      '#type': language_select
+      '#title': 'Language select'
+      '#description': 'This is a description for the ''language_select'' element.'
+      '#description_display': tooltip
+    machine_name:
+      '#type': machine_name
+      '#title': 'Machine name'
+      '#description': 'This is a description for the ''machine_name'' element.'
+      '#description_display': tooltip
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,10 @@
+colorbox:
+  js:
+    js/video-embed-field.colorbox.js: {}
+  dependencies:
+    - colorbox/colorbox
+
+responsive-video:
+  css:
+    component:
+      css/video_embed_field.responsive-video.css: {}

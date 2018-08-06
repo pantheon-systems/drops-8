@@ -63,7 +63,7 @@ class ConnectionUnitTest extends KernelTestBase {
    *
    * @return int
    */
-  protected function getConnectionId() {
+  protected function getConnectionID() {
     return (int) Database::getConnection($this->target, $this->key)->query('SELECT CONNECTION_ID()')->fetchField();
   }
 
@@ -92,7 +92,7 @@ class ConnectionUnitTest extends KernelTestBase {
   /**
    * Tests Database::closeConnection() without query.
    *
-   * @todo getConnectionId() executes a query.
+   * @todo getConnectionID() executes a query.
    */
   public function testOpenClose() {
     if ($this->skipTest) {
@@ -100,7 +100,7 @@ class ConnectionUnitTest extends KernelTestBase {
     }
     // Add and open a new connection.
     $this->addConnection();
-    $id = $this->getConnectionId();
+    $id = $this->getConnectionID();
     Database::getConnection($this->target, $this->key);
 
     // Verify that there is a new connection.
@@ -124,7 +124,7 @@ class ConnectionUnitTest extends KernelTestBase {
     }
     // Add and open a new connection.
     $this->addConnection();
-    $id = $this->getConnectionId();
+    $id = $this->getConnectionID();
     Database::getConnection($this->target, $this->key);
 
     // Verify that there is a new connection.
@@ -151,7 +151,7 @@ class ConnectionUnitTest extends KernelTestBase {
     }
     // Add and open a new connection.
     $this->addConnection();
-    $id = $this->getConnectionId();
+    $id = $this->getConnectionID();
     Database::getConnection($this->target, $this->key);
 
     // Verify that there is a new connection.
@@ -178,7 +178,7 @@ class ConnectionUnitTest extends KernelTestBase {
     }
     // Add and open a new connection.
     $this->addConnection();
-    $id = $this->getConnectionId();
+    $id = $this->getConnectionID();
     Database::getConnection($this->target, $this->key);
 
     // Verify that there is a new connection.

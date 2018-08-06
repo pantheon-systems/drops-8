@@ -1,0 +1,25 @@
+uuid: 9b702c10-891d-4c75-9ace-da7c7fc1673f
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: PoXBbt6sZSlCzNH1zRNTswNPlFNP0_3Va0GCmVGHAtw
+id: catapult_branding
+theme: catapult
+region: header
+weight: -7
+provider: null
+plugin: system_branding_block
+settings:
+  id: system_branding_block
+  label: 'Site branding'
+  provider: system
+  label_display: '0'
+  use_site_logo: true
+  use_site_name: true
+  use_site_slogan: true
+visibility: {  }

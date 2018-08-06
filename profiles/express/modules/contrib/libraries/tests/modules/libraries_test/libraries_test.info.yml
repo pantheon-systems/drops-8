@@ -1,0 +1,10 @@
+name: Libraries test module
+type: module
+description: Tests library detection and loading.
+core: 8.x
+dependencies:
+  - libraries
+hidden: TRUE
+library_dependencies:
+  - test_asset_library
+  - test_asset_multiple_library

@@ -1,0 +1,5 @@
+webform.config:
+  title: 'Webform configuration'
+  base_route_name: webform.config
+  names:
+    - webform.settings

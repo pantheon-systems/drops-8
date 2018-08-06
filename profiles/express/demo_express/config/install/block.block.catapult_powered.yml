@@ -1,0 +1,22 @@
+uuid: 5ff314aa-c1eb-43d9-989c-bf54c4b2a121
+langcode: en
+status: true
+dependencies:
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: 1CWzMD5nWE8H84M-9F24ubWVDiiXBvh0gojlUiqNi1E
+id: catapult_powered
+theme: catapult
+region: footer
+weight: -5
+provider: null
+plugin: system_powered_by_block
+settings:
+  id: system_powered_by_block
+  label: 'Powered by Drupal'
+  provider: system
+  label_display: '0'
+visibility: {  }

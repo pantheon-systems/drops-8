@@ -1,0 +1,8 @@
+cu_site_info:
+  type: config_object
+  label: 'CU Site Info'
+  mapping:
+    cu_site_info:
+      data_user:
+        type: string
+        label: 'CU Site Info Contact Info'

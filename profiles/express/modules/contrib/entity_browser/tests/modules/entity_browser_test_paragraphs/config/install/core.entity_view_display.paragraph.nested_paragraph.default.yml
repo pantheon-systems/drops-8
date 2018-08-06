@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.paragraph.nested_paragraph.field_content_reference
+    - paragraphs.paragraphs_type.nested_paragraph
+id: paragraph.nested_paragraph.default
+targetEntityType: paragraph
+bundle: nested_paragraph
+mode: default
+content:
+  field_content_reference:
+    weight: 0
+    label: above
+    settings:
+      link: true
+    third_party_settings: {  }
+    type: entity_reference_label
+hidden: {  }

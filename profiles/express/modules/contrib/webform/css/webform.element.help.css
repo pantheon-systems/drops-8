@@ -1,0 +1,38 @@
+/**
+ * @file
+ * Element help styles.
+ */
+
+.webform-element-help {
+  display: inline-block;
+  border: 2px solid #bbb;
+  background: #bbb;
+  line-height: 14px;
+  width: 14px;
+  font-size: 12px;
+  border-radius: 50%;
+  font-weight: bold;
+  text-align: center;
+  vertical-align: baseline;
+  margin: 0 .3em;
+}
+
+.webform-element-help:link,
+.webform-element-help:visited {
+  color: #fff;
+  text-decoration: none;
+}
+
+.webform-element-help:focus,
+.webform-element-help:active,
+.webform-element-help:hover {
+  border: 2px solid #0074bd;
+  background: #0074bd;
+  color: #fff;
+  text-decoration: none;
+  cursor: help;
+}
+
+.ui-tooltip.webform-element-help--tooltip {
+  max-width: 400px;
+}

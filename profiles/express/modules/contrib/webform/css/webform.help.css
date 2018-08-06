@@ -1,0 +1,77 @@
+/**
+ * @file
+ * Help styles.
+ *
+ * @see /admin/help/webform
+ * @see /admin/help/webform/introduction
+ */
+
+/**
+ * Help block.
+ */
+.block-help {
+  margin: 1em 0;
+}
+
+/**
+ * Help page.
+ */
+.webform-help h4 {
+  font-size: 1em;
+  text-transform: uppercase;
+}
+
+.webform-help .button.button--primary {
+  width: 100%;
+  max-width: 600px;
+  margin: 0;
+}
+
+.webform-help img {
+  width: 100%;
+  height: auto;
+}
+
+.webform-help .webform-help-video-youtube {
+  max-width: 600px;
+}
+
+/**
+ * Help play button.
+ */
+.button.button-webform-play:before {
+  content: '► ';
+  font-size: .8em;
+}
+
+/**
+ * Help accordion.
+ */
+.webform-help-accordion dt {
+  font-weight: bold;
+}
+
+/**
+ * Help video.
+ */
+.webform-help-video-youtube {
+  margin: 1.5em 0;
+  max-width: 1024px;
+  border: 1px solid #000;
+}
+
+.webform-help-video-youtube--container {
+  position: relative;
+  padding-bottom: 56.25%;
+  padding-top: 30px;
+  height: 0;
+  overflow: hidden;
+}
+
+.webform-help-video-youtube iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}

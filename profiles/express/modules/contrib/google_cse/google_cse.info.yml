@@ -1,0 +1,10 @@
+name: Google CSE
+type: module
+description: Use Google Custom Search to search your site and/or any other sites.
+# core: 8.x
+
+# Information added by Drupal.org packaging script on 2017-04-26
+version: '8.x-3.x-dev'
+core: '8.x'
+project: 'google_cse'
+datestamp: 1493222646

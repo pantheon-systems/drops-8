@@ -1,0 +1,24 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_files_over_ajax
+    - node.type.entity_browser_test
+id: node.entity_browser_test.field_files_over_ajax
+field_name: field_files_over_ajax
+entity_type: node
+bundle: entity_browser_test
+label: 'Files (with auto loading)'
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:file'
+  handler_settings:
+    target_bundles: null
+    sort:
+      field: _none
+    auto_create: false
+field_type: entity_reference

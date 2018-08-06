@@ -1,0 +1,278 @@
+<?php
+
+/**
+ * @file
+ * Implements image CAPTCHA for use with the CAPTCHA module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+
+define('IMAGE_CAPTCHA_ALLOWED_CHARACTERS', 'aAbBCdEeFfGHhijKLMmNPQRrSTtWXYZ23456789');
+
+// Setup status flags.
+define('IMAGE_CAPTCHA_ERROR_NO_GDLIB', 1);
+define('IMAGE_CAPTCHA_ERROR_NO_TTF_SUPPORT', 2);
+define('IMAGE_CAPTCHA_ERROR_TTF_FILE_READ_PROBLEM', 4);
+
+define('IMAGE_CAPTCHA_FILE_FORMAT_JPG', 1);
+define('IMAGE_CAPTCHA_FILE_FORMAT_PNG', 2);
+define('IMAGE_CAPTCHA_FILE_FORMAT_TRANSPARENT_PNG', 3);
+
+/**
+ * Implements hook_help().
+ */
+function image_captcha_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'image_captcha.settings':
+      $output = '<p>' . t('The image CAPTCHA is a popular challenge where a random textual code is obfuscated in an image. The image is generated on the fly for each request, which is rather CPU intensive for the server. Be careful with the size and computation related settings.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Getter for fonts to use in the image CAPTCHA.
+ *
+ * @return array
+ *   List of font paths.
+ */
+function _image_captcha_get_enabled_fonts() {
+  if (IMAGE_CAPTCHA_ERROR_NO_TTF_SUPPORT & _image_captcha_check_setup(FALSE)) {
+    return ['BUILTIN'];
+  }
+  else {
+    return \Drupal::config('image_captcha.settings')
+      ->get('image_captcha_fonts');
+  }
+}
+
+/**
+ * Helper function for checking if the specified fonts are available.
+ *
+ * @param array $fonts
+ *   Paths of fonts to check.
+ *
+ * @return array
+ *   List($readable_fonts, $problem_fonts).
+ */
+function _image_captcha_check_fonts($fonts) {
+  $readable_fonts = [];
+  $problem_fonts = [];
+
+  foreach ($fonts as $font) {
+    if ($font != 'BUILTIN' && (!is_file($font) || !is_readable($font))) {
+      $problem_fonts[] = $font;
+    }
+    else {
+      $readable_fonts[] = $font;
+    }
+  }
+
+  return [$readable_fonts, $problem_fonts];
+}
+
+/**
+ * Helper function for splitting an utf8 string correctly in characters.
+ *
+ * Assumes the given utf8 string is well formed.
+ * See http://en.wikipedia.org/wiki/Utf8 for more info.
+ *
+ * @param string $str
+ *   UTF8 string to be split.
+ *
+ * @return array
+ *   List of caracters given string consists of.
+ */
+function _image_captcha_utf8_split($str) {
+  $characters = [];
+  $len = strlen($str);
+
+  for ($i = 0; $i < $len;) {
+    $chr = ord($str[$i]);
+    // One byte character (0zzzzzzz).
+    if (($chr & 0x80) == 0x00) {
+      $width = 1;
+    }
+    else {
+      // Two byte character (first byte: 110yyyyy).
+      if (($chr & 0xE0) == 0xC0) {
+        $width = 2;
+      }
+      // Three byte character (first byte: 1110xxxx).
+      elseif (($chr & 0xF0) == 0xE0) {
+        $width = 3;
+      }
+      // Four byte character (first byte: 11110www).
+      elseif (($chr & 0xF8) == 0xF0) {
+        $width = 4;
+      }
+      else {
+        \Drupal::logger('CAPTCHA')
+          ->error('Encountered an illegal byte while splitting an utf8 string in characters.');
+        return $characters;
+      }
+    }
+
+    $characters[] = substr($str, $i, $width);
+    $i += $width;
+  }
+
+  return $characters;
+}
+
+/**
+ * Helper function for checking the setup of the Image CAPTCHA.
+ *
+ * The image CAPTCHA requires at least the GD PHP library.
+ * Support for TTF is recommended and the enabled
+ * font files should be readable.
+ * This functions checks these things.
+ *
+ * @param bool $check_fonts
+ *   Whether or not the enabled fonts should be checked.
+ *
+ * @return int
+ *   Status code: bitwise 'OR' of status flags like
+ *   IMAGE_CAPTCHA_ERROR_NO_GDLIB, IMAGE_CAPTCHA_ERROR_NO_TTF_SUPPORT,
+ *   IMAGE_CAPTCHA_ERROR_TTF_FILE_READ_PROBLEM.
+ */
+function _image_captcha_check_setup($check_fonts = TRUE) {
+  $status = 0;
+  // Check if we can use the GD library.
+  // We need at least the imagepng function.
+  // Note that the imagejpg function is optionally also used, but not required.
+  if (!function_exists('imagepng')) {
+    $status = $status | IMAGE_CAPTCHA_ERROR_NO_GDLIB;
+  }
+
+  if (!function_exists('imagettftext')) {
+    $status = $status | IMAGE_CAPTCHA_ERROR_NO_TTF_SUPPORT;
+  }
+
+  if ($check_fonts) {
+    // Check availability of enabled fonts.
+    $fonts = _image_captcha_get_enabled_fonts();
+    $readable_fonts = [];
+    list($readable_fonts, $problem_fonts) = _image_captcha_check_fonts($fonts);
+    if (count($problem_fonts) != 0) {
+      $status = $status | IMAGE_CAPTCHA_ERROR_TTF_FILE_READ_PROBLEM;
+    }
+  }
+
+  return $status;
+}
+
+/**
+ * Helper function for calculating image height and width.
+ *
+ * They are based on given code and current font/spacing settings.
+ *
+ * @param string $code
+ *   The utf8 string which will be used to split in characters.
+ *
+ * @return array
+ *   Array($width, $heigh).
+ */
+function _image_captcha_image_size($code) {
+  $config = \Drupal::config('image_captcha.settings');
+  $font_size = (int) $config->get('image_captcha_font_size');
+  $character_spacing = (float) $config->get('image_captcha_character_spacing');
+  $characters = _image_captcha_utf8_split($code);
+  $character_quantity = count($characters);
+
+  // Calculate height and width.
+  $width = $character_spacing * $font_size * $character_quantity;
+  $height = 2 * $font_size;
+
+  return [$width, $height];
+}
+
+/**
+ * Implements hook_captcha().
+ */
+function image_captcha_captcha($op, $captcha_type = '', $captcha_sid = NULL) {
+  $config = \Drupal::config('image_captcha.settings');
+
+  switch ($op) {
+    case 'list':
+      // Only offer the image CAPTCHA if it is possible to generate an image
+      // on this setup.
+      if (!(_image_captcha_check_setup() & IMAGE_CAPTCHA_ERROR_NO_GDLIB)) {
+        return ['Image'];
+      }
+      else {
+        return [];
+      }
+      break;
+
+    case 'generate':
+      if ($captcha_type == 'Image') {
+        // In maintenance mode, the image CAPTCHA does not work because
+        // the request for the image itself won't succeed (only ?q=user
+        // is permitted for unauthenticated users). We fall back to the
+        // Math CAPTCHA in that case.
+        if (defined('MAINTENANCE_MODE') && \Drupal::currentUser()
+            ->isAnonymous()
+        ) {
+          return captcha_captcha('generate', 'Math');
+        }
+        // Generate a CAPTCHA code.
+        $allowed_chars = _image_captcha_utf8_split($config->get('image_captcha_image_allowed_chars'));
+        $code_length = (int) $config->get('image_captcha_code_length');
+        $code = '';
+
+        for ($i = 0; $i < $code_length; $i++) {
+          $code .= $allowed_chars[array_rand($allowed_chars)];
+        }
+
+        // Build the result to return.
+        $result = [];
+
+        $result['solution'] = $code;
+        // Generate image source URL (add timestamp to avoid problems with
+        // client side caching: subsequent images of the same CAPTCHA session
+        // have the same URL, but should display a different code).
+        list($width, $height) = _image_captcha_image_size($code);
+        $result['form']['captcha_image'] = [
+          '#theme' => 'image',
+          '#uri' => Url::fromRoute('image_captcha.generator', [
+            'session_id' => $captcha_sid,
+            'timestamp' => REQUEST_TIME,
+          ])->toString(),
+          '#width' => $width,
+          '#height' => $height,
+          '#alt' => t('Image CAPTCHA'),
+          '#title' => t('Image CAPTCHA'),
+          '#weight' => -2,
+        ];
+
+        $result['form']['captcha_response'] = [
+          '#type' => 'textfield',
+          '#title' => t('What code is in the image?'),
+          '#description' => t('Enter the characters shown in the image.'),
+          '#weight' => 0,
+          '#required' => TRUE,
+          '#size' => 15,
+          '#attributes' => ['autocomplete' => 'off'],
+          '#cache' => ['max-age' => 0],
+        ];
+
+        // Handle the case insensitive validation option combined with
+        // ignoring spaces.
+        switch (\Drupal::config('captcha.settings')
+          ->get('default_validation')) {
+          case CAPTCHA_DEFAULT_VALIDATION_CASE_SENSITIVE:
+            $result['captcha_validate'] = 'captcha_validate_ignore_spaces';
+            break;
+
+          case CAPTCHA_DEFAULT_VALIDATION_CASE_INSENSITIVE:
+            $result['captcha_validate'] = 'captcha_validate_case_insensitive_ignore_spaces';
+            break;
+        }
+        \Drupal::service('page_cache_kill_switch')->trigger();
+
+        return $result;
+      }
+      break;
+  }
+}

@@ -1,0 +1,90 @@
+/**
+ * @file
+ * General stylesheet for the diff module.
+ */
+.diff-button {
+  margin-bottom: 20px;
+}
+
+.diff-responsive-table-wrapper {
+  min-height: 0%;
+  overflow-x: auto;
+}
+.diff-responsive-table {
+  max-width: 100%;
+}
+
+#diffadminplugins .messages {
+  margin-bottom: 0.5em;
+}
+
+.diff-navigation {
+  display: flex;
+  justify-content: space-between;
+}
+.diff-navigation label {
+  display: none;
+}
+@media screen and (min-width: 920px) {
+  .diff-navigation label {
+    display: block;
+  }
+}
+
+.diff-controls {
+  display: flex;
+  margin-bottom: 1em;
+  width: 100%;
+}
+.diff-controls__item {
+  padding-right: 1em;
+}
+
+.diff-revision__items-group:first-child {
+  margin-bottom: 0.5em;
+}
+.diff-revision__item-date {
+  float: left;
+  padding-right: 1em;
+}
+@media screen and (min-width: 560px) {
+  .diff-revision__items {
+    display: table;
+    margin-left: -1em;
+    margin-right: -1em;
+  }
+  .diff-revision__items-group {
+    display: table-row;
+  }
+  .diff-revision__item {
+    display: table-cell;
+    padding-left: 1em;
+    padding-right: 1em;
+  }
+  .diff-revision__item-date {
+    float: none;
+    white-space: nowrap;
+  }
+  .diff-revision__item-author {
+    white-space: nowrap;
+  }
+}
+
+@media screen and (min-width: 920px) {
+  .diff-header {
+    display: flex;
+  }
+
+  .diff-navigation {
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 25%;
+  }
+  .diff-navigation__link.prev-link {
+    order: 1;
+  }
+
+  .diff-revision {
+    width: 75%;
+  }
+}

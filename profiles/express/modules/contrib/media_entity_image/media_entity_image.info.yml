@@ -1,0 +1,16 @@
+name: Media entity image
+description: 'Media entity local images provider.'
+type: module
+package: Media
+# core: 8.x
+dependencies:
+  - media_entity
+
+test_dependencies:
+  - entity_browser
+
+# Information added by Drupal.org packaging script on 2016-08-02
+version: '8.x-1.2'
+core: '8.x'
+project: 'media_entity_image'
+datestamp: 1470170950

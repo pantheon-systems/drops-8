@@ -1,0 +1,2 @@
+crop_type: 'focal_point'
+default_value: '50,50'

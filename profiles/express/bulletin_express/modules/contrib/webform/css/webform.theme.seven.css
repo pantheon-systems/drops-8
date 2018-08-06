@@ -1,0 +1,67 @@
+/**
+ * @file
+ * Seven theme styles.
+ */
+
+/* Align all tables cells top */
+table td {
+  vertical-align: top;
+}
+
+/* Add margin around HR tags */
+table hr {
+  margin: .5em 0;
+}
+
+/* Add background to nested details */
+details details {
+  background-color: #f8f8f8;
+}
+
+details details details {
+  background-color: #fff;
+}
+
+/* Add white background to tooltips */
+.ui-tooltip.ui-widget {
+  background: #fff;
+}
+
+/* Hide tabs and elements from printing. */
+@media print {
+  body {
+    padding-top: 0 !important; /* Using !import to ensure that <body style="padding-top: *"> set via the toolbar.module is overridden. */
+  }
+
+  .shortcut-action,
+  .dropbutton-wrapper,
+  .block-system-breadcrumb-block,
+  .block-local-tasks-block,
+  .pager,
+  .button-action,
+  .webform-submission-navigation,
+  .webform-filter-form {
+    display: none !important; /* Using !important to ensure with these elements are hidden with getting into a specificity war */
+  }
+}
+
+/* System tray divider */
+/* @todo Issue #2862625: Rename offcanvas to two words in code and comments. https://www.drupal.org/node/2862625 */
+.ui-dialog.ui-dialog-offcanvas .ui-resizable-w,
+.ui-dialog.ui-dialog-off-canvas .ui-resizable-w {
+  background-color: #bfbfba;
+  border: 1px solid #6b6b6b;
+  border-width: 1px 2px;
+}
+
+/* System tray title bar */
+.ui-dialog.ui-dialog-offcanvas .ui-dialog-titlebar,
+.ui-dialog.ui-dialog-off-canvas .ui-dialog-titlebar{
+  border-radius: 0;
+}
+
+/* System tray actions */
+.ui-dialog.ui-dialog-off-canvas .ui-dialog-content .form-actions
+.ui-dialog.ui-dialog-offcanvas .ui-dialog-content .form-actions {
+  margin: 1em 0;
+}

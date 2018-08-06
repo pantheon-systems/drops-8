@@ -1,0 +1,64 @@
+.flex-container {
+  display: flex;
+}
+.flex-item {
+  flex: 1 1 0;
+}
+.block-row-block {
+
+}
+.block-row-block > .flex-item {
+  margin: 0 1em;
+}
+.block-row-block > .flex-item > h2 {
+  text-align: center;
+}
+.block-row-block > .flex-item > p {
+  line-height: 1.35em;
+}
+
+
+/*
+ * Header
+ *
+ */
+#header .region-header {
+  margin: 1em 0;
+}
+@media screen and (min-width: 900px) {
+  #header .region-header {
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Logo and site name, slogan. */
+#block-catapult-branding, #block-catapult-sitebranding {
+  min-height: 65px;
+  display: flex;
+  max-width: fit-content;
+}
+#block-catapult-branding img, #block-catapult-sitebranding img {
+  display: block;
+  height: 65px;
+  width: auto;
+  margin: 0 1em;
+}
+#block-catapult-branding .branding-text, #block-catapult-sitebranding .branding-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 65px;
+}
+
+/*
+ * Navigation
+ *
+ */
+#block-catapult-main-menu {
+  flex: 1;
+  justify-content: flex-end;
+}
+#block-catapult-main-menu .menu-item--collapsed {
+
+}

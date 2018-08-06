@@ -1,0 +1,3 @@
+auto_entitylabel.config:
+  class: \Drupal\Core\Menu\LocalTaskDefault
+  deriver: \Drupal\auto_entitylabel\Plugin\Derivative\AutoEntityLabelConfigTask

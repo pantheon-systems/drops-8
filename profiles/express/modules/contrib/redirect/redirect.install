@@ -1,0 +1,214 @@
+<?php
+
+/**
+ * @file
+ * Update hooks for the Redirect module.
+ */
+
+use Drupal\redirect\Entity\Redirect;
+use Drupal\Core\Database\Database;
+use Drupal\system\Entity\Action;
+use Drupal\views\Entity\View;
+use Symfony\Component\Yaml\Yaml;
+use Drupal\Core\Config\InstallStorage;
+use Drupal\Core\Config\FileStorage;
+use Drupal\user\Entity\Role;
+
+/**
+ * Rehash redirects to account for case insensitivity.
+ */
+function redirect_update_8100(&$sandbox) {
+  // Loop through 100 redirects at a time.
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['current_rid'] = 0;
+    // Note, because MySQL can treat `foo = LOWER(foo)`, all records must be checked.
+    $sandbox['max'] = db_query('SELECT COUNT(1) FROM {redirect}')->fetchField();
+  }
+
+  $result = \Drupal::database()->select('redirect', 'r')
+    ->fields('r', ['rid', 'redirect_source__path', 'redirect_source__query', 'language', 'hash'])
+    ->condition('rid', $sandbox['current_rid'], '>')
+    ->range(0, 100)
+    ->orderBy('rid', 'ASC')
+    ->execute();
+
+  foreach ($result as $row) {
+    $query = !empty($row->redirect_source__query) ? unserialize($row->redirect_source__query): [];
+    $new_hash = Redirect::generateHash($row->redirect_source__path, (array) $query, $row->language);
+    if ($row->hash != $new_hash) {
+      // Do a direct query to speed things up.
+      $query = \Drupal::database();
+      $query->update('redirect')
+        ->fields(['hash' => $new_hash])
+        ->condition('rid', $row->rid)
+        ->execute();
+    }
+    $sandbox['progress']++;
+    $sandbox['current_rid'] = $row->rid;
+  }
+  // Reset caches.
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+}
+
+
+/**
+ * Update the {redirect} table.
+ */
+function redirect_update_8101() {
+  // Get the current schema, change the length.
+  $key_value_store_schema = \Drupal::keyValue('entity.storage_schema.sql');
+  $schema = $key_value_store_schema->get('redirect.field_schema_data.hash');
+  $schema['redirect']['fields']['hash']['length'] = 64;
+
+  // Set the max_length of the hash column to 64 characters.
+  Database::getConnection()
+    ->schema()
+    ->changeField('redirect', 'hash', 'hash', $schema['redirect']['fields']['hash']);
+
+  // Update the last installed field definition and field schema.
+  /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $key_value_store */
+  \Drupal::entityManager()->clearCachedFieldDefinitions();
+  $key_value_store_definition = \Drupal::keyValue('entity.definitions.installed');
+  $storage_definitions = $key_value_store_definition->get('redirect.field_storage_definitions');
+  $storage_definitions['hash'] = $storage_definition = \Drupal::entityManager()
+    ->getFieldStorageDefinitions('redirect')['hash'];
+  $key_value_store_definition->set('redirect.field_storage_definitions', $storage_definitions);
+
+  // Update the stored schema.
+  $key_value_store_schema->set('redirect.field_schema_data.hash', $schema);
+}
+
+/**
+ * Update settings based on existing settings and Globalredirect settings.
+ */
+function redirect_update_8102() {
+  // Load default configuration.
+  $redirect_settings = \Drupal::config('redirect.settings');
+  $globalredirect_settings = \Drupal::config('globalredirect.settings');
+  $config_factory = \Drupal::configFactory();
+  $redirect = $config_factory->getEditable('redirect.settings');
+  $nonclean_to_clean = $redirect_settings->get('global_clean');
+  $admin_path = $redirect_settings->get('global_admin_paths');
+  $frontpage_redirect = $redirect_settings->get('global_home');
+  $deslash = $redirect_settings->get('global_deslash');
+
+  $message = NULL;
+
+  // If Globalredirect configuration exists, use those settings.
+  if ((!$globalredirect_settings->isNew())) {
+    $access_check = $globalredirect_settings->get('access_check');
+    $normalize_aliases = $globalredirect_settings->get('normalize_aliases');
+    $content_location_header = $globalredirect_settings->get('content_location_header');
+    $term_path_handler = $globalredirect_settings->get('term_path_handler');
+    $deslash = $globalredirect_settings->get('deslash');
+    $frontpage_redirect = $globalredirect_settings->get('frontpage_redirect');
+    $nonclean_to_clean = $globalredirect_settings->get('nonclean_to_clean');
+
+    $redirect->set('access_check', $access_check);
+    $redirect->set('normalize_aliases', $normalize_aliases);
+    $redirect->set('content_location_header', $content_location_header);
+    $redirect->set('term_path_handler', $term_path_handler);
+
+    $message = 'The Globalredirect module functionality has been merged into redirect, it should be uninstalled now.';
+  }
+  else {
+    $redirect->set('access_check', FALSE);
+    $redirect->set('normalize_aliases', TRUE);
+    $redirect->set('content_location_header', FALSE);
+    $redirect->set('term_path_handler', TRUE);
+  }
+
+  // Update  new redirect settings names.
+  $redirect->set('nonclean_to_clean', $nonclean_to_clean);
+  $redirect->set('admin_path', $admin_path);
+  $redirect->set('frontpage_redirect', $frontpage_redirect);
+  $redirect->set('deslash', $deslash);
+
+  // Remove old names of  redirect settings.
+  $redirect->clear('global_clean');
+  $redirect->clear('global_admin_paths');
+  $redirect->clear('global_home');
+  $redirect->clear('global_deslash');
+
+  $redirect->save();
+
+  return $message;
+}
+
+/**
+ * Creates the new default redirect view.
+ */
+function redirect_update_8103() {
+  $message = NULL;
+
+  // Only create if the redirect view doesn't exist and views is enabled.
+  if (!View::load('redirect') && \Drupal::moduleHandler()->moduleExists('views')) {
+    $config_path = drupal_get_path('module', 'redirect') . '/config/install/views.view.redirect.yml';
+    $data = Yaml::parse($config_path);
+    \Drupal::configFactory()->getEditable('views.view.redirect')->setData($data)->save(TRUE);
+    $message = 'The new redirect view has been created.';
+  }
+  else {
+    $message = 'Not creating a redirect view since it already exists.';
+  }
+  return $message;
+}
+
+/**
+ * Save the bulk delete action to config.
+ */
+function redirect_update_8104() {
+  if (!Action::load('redirect_delete_action')) {
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $module_handler = \Drupal::moduleHandler();
+
+    // Save the bulk delete action to config.
+    $config_install_path = $module_handler->getModule('redirect')->getPath() . '/' . InstallStorage::CONFIG_INSTALL_DIRECTORY;
+    $storage = new FileStorage($config_install_path);
+    $entity_type_manager
+      ->getStorage('action')
+      ->create($storage->read('system.action.redirect_delete_action'))
+      ->trustData()
+      ->save();
+  }
+}
+
+/**
+ * Ensure to use the redirect_404 submodule.
+ */
+function redirect_update_8105() {
+  \Drupal::service('module_installer')->install(['redirect_404']);
+}
+
+/**
+ * Removes unnecessary settings from storage.
+ */
+function redirect_update_8106() {
+  $config = \Drupal::configFactory()->getEditable('redirect.settings');
+  $config->set('route_normalizer_enabled', $config->get('normalize_aliases'));
+  $config->clear('term_path_handler');
+  $config->clear('normalize_aliases');
+  $config->clear('deslash');
+  $config->clear('frontpage_redirect');
+  $config->clear('nonclean_to_clean');
+  $config->save();
+}
+
+/**
+ * Update permissions.
+ *
+ * When splitting the permission for settings from the permission to view
+ * the list of redirects, maintain the current permissions for sites which
+ * already have this module installed.
+ */
+function redirect_update_8107() {
+  if ($roles = Role::loadMultiple()) {
+    foreach ($roles as $role) {
+      if ($role->hasPermission('administer redirects')) {
+        $role->grantPermission('administer redirect settings');
+        $role->save();
+      }
+    }
+  }
+}

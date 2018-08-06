@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of a webform scheduled email handler.
+ *
+ * Available variables:
+ * - settings: The current configuration for this email handler:
+ * - handler: The handler information, including:
+ *   - id: The handler plugin id.
+ *   - handler_id: The handler id.
+ *   - label: The handler label.
+ *   - description: The handler description.
+ * - pending: Status of scheduled emails with a link to send pending emails now.
+
+ * @ingroup themeable
+ */
+#}
+
+<b>{{ 'Send on:'|t }}</b> {{ settings.send }}{% if settings.days %} {{ settings.days > 0 ? '+' : ''}}{{ settings.days }} {{ 'days'|t }}{% endif %}<br />
+<b>{{ 'Unschedule:'|t }}</b> {{ settings.unschedule ? 'Yes'|t : 'No'|t }}<br />
+<hr />
+{% include '@webform/webform-handler-email-summary.html.twig' %}
+{% if status %}{{ status }}{% endif %}

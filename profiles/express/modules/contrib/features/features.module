@@ -1,0 +1,56 @@
+<?php
+
+/**
+ * @file
+ * Main hooks for Features module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function features_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.features':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Features module provides a user interface for exporting bundles of configuration into modules. For more information, see the online documentation for <a href=":url">Features module</a>', array(
+        ':url' => 'http://drupal.org/node/2404427',
+      )) . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_file_download().
+ */
+function features_file_download($uri) {
+  $scheme = file_uri_scheme($uri);
+  $target = file_uri_target($uri);
+
+  if ($scheme == 'temporary' && $target) {
+    $request = \Drupal::request();
+    $route = $request->attributes->get('_route');
+    // Check if we were called by Features download route.
+    // No additional access checking needed here: route requires
+    // "export configuration" permission, token is validated by the controller.
+    // @see \Drupal\features\Controller\FeaturesController::downloadExport()
+    if ($route == 'features.export_download') {
+      return array(
+        'Content-disposition' => 'attachment; filename="' . $target . '"',
+      );
+    }
+  }
+}
+
+/**
+ * Implements hook_modules_installed().
+ */
+function features_modules_installed($modules) {
+  if (!in_array('features', $modules)) {
+    /** @var \Drupal\features\FeaturesAssignerInterface $assigner */
+    $assigner = \Drupal::service('features_assigner');
+    $assigner->purgeConfiguration();
+  }
+}

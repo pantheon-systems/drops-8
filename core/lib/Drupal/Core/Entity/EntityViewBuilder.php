@@ -213,7 +213,7 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
    * @return array
    *   The updated renderable array.
    *
-   * @see \Drupal\Core\Render\RendererInterface::render()
+   * @see drupal_render()
    */
   public function build(array $build) {
     $build_list = [$build];
@@ -237,7 +237,7 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
    * @return array
    *   The updated renderable array.
    *
-   * @see \Drupal\Core\Render\RendererInterface::render()
+   * @see drupal_render()
    */
   public function buildMultiple(array $build_list) {
     // Build the view modes and display objects.

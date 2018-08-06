@@ -1,0 +1,11 @@
+services:
+  access_check.role_delegation:
+    class: Drupal\role_delegation\Access\RoleDelegationAccessCheck
+    arguments: ['@permission_generator.role_delegation']
+    tags:
+      - { name: access_check, applies_to: _role_delegation_access_check }
+  delegatable_roles:
+    class: Drupal\role_delegation\DelegatableRoles
+  permission_generator.role_delegation:
+    class: Drupal\role_delegation\PermissionGenerator
+    arguments: ['@delegatable_roles']

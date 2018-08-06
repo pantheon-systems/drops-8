@@ -1,0 +1,15 @@
+{#
+/**
+ * @file
+ * Default theme implementation for an image file element.
+ *
+ * Available variables:
+ * - element: The element.
+ * - value: The element's value.
+ * - options Associative array of options for element.
+ * - file: The element's File object.
+ * - uri: The element's URI.
+ */
+#}
+{{ attach_library('webform/webform.element.image_file') }}
+<img src="{{ uri }}" class="webform-image-file" />

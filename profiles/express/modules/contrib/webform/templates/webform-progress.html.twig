@@ -1,0 +1,39 @@
+{#
+/**
+ * @file
+ * Default theme implementation for webform wizard progress.
+ *
+ * Available variables:
+ * - webform: A webform.
+ * - pages: Array of wizard pages.
+ * - current_page: Current wizard page.
+ * - total_pages: Current wizard page.
+ * - summary: Summary of progress.
+ * - percentage: Percentage completed.
+ * - bar: A progress bar.
+ *
+ * @see template_preprocess_webform_progress()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.progress') }}
+
+<div class="webform-progress">
+
+  {{ bar }}
+
+  {% if summary or percentage %}
+    <div class="webform-progress__status">
+      {% if summary %}
+        <span class="webform-progress__summary">{{ summary }}</span>
+        {% if percentage %}
+          <span class="webform-progress__percentage">({{ percentage }})</span>
+        {% endif %}
+      {% else %}
+        <span class="webform-progress__percentage">{{ percentage }}</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>

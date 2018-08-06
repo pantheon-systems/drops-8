@@ -1,0 +1,233 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_form_states_triggers
+title: 'Test: Form API #states: Triggers and Operators'
+description: 'Test Drupal''s #states API triggers (empty, checked, value, and collapsed).'
+category: 'Test: Form API #states'
+elements: |
+  checked:
+    '#type': details
+    '#title': 'Test Trigger: Checked'
+    checked_trigger:
+      '#type': checkbox
+      '#title': 'Trigger checked'
+    checked_markup:
+      '#type': webform_markup
+      '#markup': 'Checked triggered'
+      '#states':
+        visible:
+          ':input[name="checked_trigger"]':
+            checked: true
+  checked_multiple_and:
+    '#type': details
+    '#title': 'Test Trigger: Checked multiple using AND operator'
+    checked_multiple_and_trigger:
+      '#type': checkboxes
+      '#title': 'Trigger multiple checked using AND operator'
+      '#options':
+        one: 'One (show)'
+        two: 'Two (show)'
+        three: 'Three (hide)'
+    checked_multiple_and_markup:
+      '#type': webform_markup
+      '#markup': 'Checked multiple triggered using AND operator'
+      '#states':
+        visible:
+          - ':input[name="checked_multiple_and_trigger[one]"]':
+              checked: true
+          - ':input[name="checked_multiple_and_trigger[two]"]':
+              checked: true
+  checked_multiple_or:
+    '#type': details
+    '#title': 'Test Trigger: Checked multiple using OR operator'
+    checked_multiple_or_trigger:
+      '#type': checkboxes
+      '#title': 'Trigger multiple checked using OR operator'
+      '#options':
+        one: 'One (show)'
+        two: 'Two (show)'
+        three: 'Three (hide)'
+    checked_multiple_or_markup:
+      '#type': webform_markup
+      '#markup': 'Checked multiple using OR operator triggered'
+      '#states':
+        visible:
+          - ':input[name="checked_multiple_or_trigger[one]"]':
+              checked: true
+          - ':input[name="checked_multiple_or_trigger[two]"]':
+              checked: true
+  checked_multiple_xor:
+    '#type': details
+    '#title': 'Test Trigger: Checked multiple using XOR operator'
+    checked_multiple_xor_trigger:
+      '#type': checkboxes
+      '#title': 'Trigger multiple checked using XOR operator'
+      '#options':
+        one: 'One (show)'
+        two: 'Two (show)'
+        three: 'Three (hide)'
+    checked_multiple_xor_markup:
+      '#type': webform_markup
+      '#markup': 'Checked multiple using XOR operator triggered'
+      '#states':
+        visible:
+          - ':input[name="checked_multiple_xor_trigger[one]"]':
+              checked: true
+          - xor
+          - ':input[name="checked_multiple_xor_trigger[two]"]':
+              checked: true
+  value:
+    '#type': details
+    '#title': 'Test Trigger: Value'
+    '#open': true
+    value_trigger:
+      '#type': select
+      '#title': 'Trigger value'
+      '#options':
+        hide: hide
+        show: show
+    value_markup:
+      '#type': webform_markup
+      '#markup': 'Value triggered'
+      '#states':
+        visible:
+          ':input[name="value_trigger"]':
+            value: show
+  filled:
+    '#type': details
+    '#title': 'Test Trigger: Filled'
+    filled_trigger:
+      '#type': textfield
+      '#title': 'Trigger filled'
+    filled_markup:
+      '#type': webform_markup
+      '#markup': 'Filled triggered'
+      '#states':
+        visible:
+          ':input[name="filled_trigger"]':
+            filled: true
+  collapsed:
+    '#type': details
+    '#title': 'Test Trigger: Collapsed'
+    '#description': 'Below example is not working.'
+    collapsed_trigger:
+      '#type': details
+      '#title': 'Trigger collapsed'
+    collapsed_markup:
+      '#type': webform_markup
+      '#markup': 'Collapsed triggered'
+      '#states':
+        visible:
+          'details[data-webform-key="collapsed_trigger"]':
+            collapsed: true
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a views slideshow text previous control.
+ *
+ * Available variables:
+ * - classes: Classes to apply to the control.
+ * - vss_id: The slideshow's id.
+ *
+ * @see template_preprocess_views_slideshow_controls_text_previous()
+ *
+ * @ingroup vss_templates
+ */
+#}
+<span id="views_slideshow_controls_text_previous_{{ vss_id }}" {{ attributes.addClass(classes) }}>
+  <a href="#">{{ 'Previous'|t }}</a>
+</span>

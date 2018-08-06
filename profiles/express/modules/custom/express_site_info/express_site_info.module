@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * @file
+ * Site info.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function express_site_info_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.express_site_info':
+      $output = '<h3>' . t('About Express Site Info') . '</h3>';
+      $output .= '<p>' . t('This module displays your contact information via a block.') . '</p>';
+      return $output;
+  }
+}

@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.single
+    - node.type.ief_simple_single
+    - node.type.ief_test_custom
+  module:
+    - inline_entity_form_test
+  enforced:
+    module:
+      - inline_entity_form_test
+id: node.ief_simple_single.single
+field_name: single
+entity_type: node
+bundle: ief_simple_single
+label: Single node
+description: 'Reference a single node.'
+required: true
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: default
+  handler_settings:
+    target_bundles:
+      ief_test_custom: ief_test_custom
+    sort:
+      field: _none
+third_party_settings: {  }
+field_type: entity_reference

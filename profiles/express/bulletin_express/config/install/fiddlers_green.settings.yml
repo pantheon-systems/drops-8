@@ -1,0 +1,41 @@
+favicon:
+  mimetype: image/vnd.microsoft.icon
+  path: ''
+  url: 'http://localhost/~owmo7772/drop8/profiles/express/themes/custom/fiddlers_green/favicon.ico'
+  use_default: 1
+schemas:
+  bootstrap: 8000
+  fiddlers_green: 8000
+features:
+  comment_user_picture: 1
+  comment_user_verification: 1
+  favicon: 1
+  node_user_picture: 1
+logo:
+  path: ''
+  url: ''
+  use_default: 1
+navbar_position: static-top
+region_wells:
+  content: ''
+  branding: ''
+  search_box: ''
+  secondary_menu: ''
+  menu: ''
+  menu_collapsible: ''
+  sidebar_first: ''
+  sidebar_second: well
+  intro: ''
+  slider: ''
+  help: ''
+  wide_2: ''
+  after_content: ''
+  lower: ''
+  footer: ''
+  site_info: ''
+  alerts: ''
+  content_sidebar_right: ''
+  content_sidebar_left: ''
+  content_bottom: ''
+table_responsive: '-1'
+table: ''

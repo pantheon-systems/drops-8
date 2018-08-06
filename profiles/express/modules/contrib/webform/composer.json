@@ -1,0 +1,19 @@
+{
+    "name": "drupal/webform",
+    "description": "Enables the creation of webforms and questionnaires.",
+    "type": "drupal-module",
+    "license": "GPL-2.0+",
+    "minimum-stability": "dev",
+    "homepage": "https://drupal.org/project/webform",
+    "authors": [
+        {
+            "name": "Jacob Rockowitz (jrockowitz)",
+            "homepage": "https://www.drupal.org/u/jrockowitz",
+            "role": "Maintainer"
+        }
+    ],
+    "support": {
+        "issues": "https://drupal.org/project/issues/webform",
+        "source": "http://cgit.drupalcode.org/webform"
+    }
+}

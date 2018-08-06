@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies: {  }
+id: ief_media_bundle
+label: 'Test File Bundle'
+description: ''
+type: generic
+queue_thumbnail_downloads: false
+new_revision: false
+type_configuration: {  }
+field_map: {  }

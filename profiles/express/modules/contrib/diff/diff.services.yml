@@ -1,0 +1,36 @@
+services:
+  diff.route_subscriber:
+    class: Drupal\diff\Routing\RouteSubscriber
+    tags:
+      - { name: event_subscriber }
+
+  diff.diff.formatter:
+    class: Drupal\diff\DiffFormatter
+    arguments: ['@config.factory']
+
+  plugin.manager.diff.builder:
+    class: Drupal\diff\DiffBuilderManager
+    parent: default_plugin_manager
+    arguments: ['@entity_type.manager', '@config.factory']
+
+  plugin.manager.diff.layout:
+    class: Drupal\diff\DiffLayoutManager
+    parent: default_plugin_manager
+    arguments: ['@entity_type.manager', '@config.factory']
+
+  diff.entity_parser:
+    class: Drupal\diff\DiffEntityParser
+    arguments: ['@plugin.manager.diff.builder', '@config.factory']
+
+  diff.entity_comparison:
+    class: Drupal\diff\DiffEntityComparison
+    arguments: ['@config.factory', '@diff.diff.formatter','@plugin.manager.field.field_type', '@diff.entity_parser', '@plugin.manager.diff.builder']
+
+  diff.html_diff:
+    class: HtmlDiffAdvanced
+
+  theme.negotiator.visual_diff:
+    class: Drupal\diff\VisualDiffThemeNegotiator
+    arguments: ['@config.factory']
+    tags:
+      - { name: theme_negotiator, priority: 0 }

@@ -1,0 +1,6 @@
+entity.webform.scheduled_email.cron:
+  path: '/admin/structure/webform/manage/{webform}/handlers/{handler_id}/scheduled-email/cron'
+  defaults:
+    _controller: '\Drupal\webform_scheduled_email\Controller\WebformScheduledEmailController::cron'
+  requirements:
+    _entity_access: 'webform.update'

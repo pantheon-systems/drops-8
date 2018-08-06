@@ -1,0 +1,7 @@
+fitvids.admin:
+  path: '/admin/config/media/fitvids'
+  defaults:
+    _form: '\Drupal\fitvids\Form\FitvidsAdminSettingsForm'
+    _title: 'Fitvids'
+  requirements:
+    _permission: 'administer fitvids'

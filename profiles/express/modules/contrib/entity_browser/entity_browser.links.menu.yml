@@ -1,0 +1,5 @@
+entity.entity_browser.collection:
+  title: 'Entity browsers'
+  parent: system.admin_config_content
+  description: 'Manage entity browsers.'
+  route_name: entity.entity_browser.collection

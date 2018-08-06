@@ -1,0 +1,45 @@
+{#
+/**
+ * @file
+ * Default theme implementation of a creditcard composite webform element.
+ *
+ * Available variables:
+ * - content: The creditcard webform element to be output.
+ * - flexbox: Determines if Flexbox layout should be applied to the composite
+ *   element.
+ *
+ * @see template_preprocess_webform_composite_creditcard()
+ *
+ * @ingroup themeable
+ */
+#}
+{{ attach_library('webform/webform.element.composite') }}
+{% if flexbox %}
+
+  {{  content.warning }}
+
+  {% if content.name %}
+    <div class="webform-flexbox">
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.name }}</div></div>
+    </div>
+  {% endif %}
+
+  <div class="webform-flexbox">
+    {% if content.type %}
+      <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.type }}</div></div>
+    {% endif %}
+    <div class="webform-flex webform-flex--2"><div class="webform-flex--container">{{ content.number }}</div></div>
+    <div class="webform-flex webform-flex--1"><div class="webform-flex--container">{{ content.civ }}</div></div>
+  </div>
+
+  <div class="webform-flexbox">
+    <div class="webform-flex webform-flex--1"><div class="webform-flex--container">
+      {{ content.expiration }}
+      {{ content.expiration_month }}
+      {{ content.expiration_year }}
+    </div></div>
+  </div>
+
+{% else %}
+  {{ content }}
+{% endif %}

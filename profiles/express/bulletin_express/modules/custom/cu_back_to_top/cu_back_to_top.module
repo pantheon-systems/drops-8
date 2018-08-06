@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * @file
+ * Back to top.
+ */
+
+/**
+ * Preprocess theme variables for a specific theme hook.
+ *
+ * This hook allows modules to preprocess theme variables for a specific theme
+ * hook. It should only be used if a module needs to override or add to the
+ * theme preprocessing for a theme hook it didn't define.
+ *
+ * For more detailed information, see theme().
+ *
+ * @param array $variables
+ *   The variables array (modify in place).
+ */
+/**
+ * function cu_back_to_top_preprocess_html(&$variables) {
+ *  $variables['page']['back_to_top']['#markup'] = '<div id="cu_back_to_top"><a href="#page" title="Back to Top">Back to Top</a></div>';
+ *  var_dump($variables['page']);
+ * }
+ */
+
+/**
+ * Preprocess theme variables for a specific theme hook.
+ *
+ * This hook allows modules to preprocess theme variables for a specific theme
+ * hook. It should only be used if a module needs to override or add to the
+ * theme preprocessing for a theme hook it didn't define.
+ *
+ * For more detailed information, see theme().
+ *
+ * @param array $variables
+ *   The variables array (modify in place).
+ */
+function cu_back_to_top_preprocess_page(&$variables) {
+  $variables['#attached'][library][] = 'cu_back_to_top/cu-back-to-top';
+  $variables['page']['content']['back_to_top']['#markup'] = '<div id="cu_back_to_top"><a href="#page" title="Back to Top">Back to Top</a></div>';
+  //var_dump($variables['page']);
+}

@@ -1,0 +1,5 @@
+entity.linkit_profile.collection:
+  title: 'Linkit'
+  parent: system.admin_config_content
+  description: 'Manage Linkit profiles.'
+  route_name: entity.linkit_profile.collection

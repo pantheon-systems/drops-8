@@ -1,0 +1,21 @@
+/**
+ * @file
+ * Element range styles.
+ *
+ * @see /webform/example_elements#edit-range
+ * @see http://thenewcode.com/754/input-Antipode-The-HTML5-output-Element
+ */
+
+.form-range.form-range-output {
+  margin-right: 8px;
+}
+
+.form-range-output-container {
+  white-space: nowrap;
+}
+
+.form-range-output-container input,
+.form-range-output-container .field-prefix,
+.form-range-output-container .field-suffix {
+  margin-left: 2px;
+}

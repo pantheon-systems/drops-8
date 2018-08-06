@@ -1,0 +1,14 @@
+name: 'Webform module custom properties tests'
+type: module
+description: 'Support module for Webform module custom properties testing, that provides a working example of adding custom properties to elements.'
+package: Testing
+# core: 8.x
+dependencies:
+  - 'drupal:webform'
+  - 'drupal:webform_ui'
+
+# Information added by Drupal.org packaging script on 2017-04-21
+version: '8.x-5.0-beta12'
+core: '8.x'
+project: 'webform'
+datestamp: 1492798453

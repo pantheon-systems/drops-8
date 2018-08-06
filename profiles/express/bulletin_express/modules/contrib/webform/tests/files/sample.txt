@@ -1,0 +1,2 @@
+this is a sample txt file
+it has two lines

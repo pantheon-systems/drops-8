@@ -1,0 +1,44 @@
+/**
+ * @file
+ * Toggle element styles.
+ *
+ * @see /webform/example_elements
+ */
+
+html.js .form-type-webform-toggle .form-checkbox {
+  display: none;
+}
+
+html.js .form-type-webform-toggle label.option {
+  display: block;
+  float: left;
+}
+
+html.js .form-type-webform-toggle label + input + .toggle {
+  margin: 2px 0;
+}
+
+html.js .toggle {
+  display: block;
+  float: left;
+  margin: 2px .5em 2px 0;
+  text-transform: uppercase;
+}
+
+html.js .toggle.toggle-small,
+html.js .toggle.toggle-small + label {
+  height: 16px;
+  line-height: 16px;
+}
+
+html.js .toggle.toggle-medium,
+html.js .toggle.toggle-medium+ label {
+  height: 24px;
+  line-height: 24px;
+}
+
+html.js .toggle.toggle-large,
+html.js .toggle.toggle-large + label {
+  height: 36px;
+  line-height: 36px;
+}

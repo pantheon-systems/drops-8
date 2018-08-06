@@ -1,0 +1,14 @@
+parameters:
+  invite_manager.dynamic: true
+
+services:
+  user_external_invite.invite_manager:
+    class: Drupal\user_external_invite\InviteManager
+    arguments:
+      - '@keyvalue'
+      - %invite_manager.dynamic%
+  user_external_invite.invite_listener:
+    class: Drupal\user_external_invite\inviteListener
+    arguments: []
+    tags:
+      - { name: event_subscriber }

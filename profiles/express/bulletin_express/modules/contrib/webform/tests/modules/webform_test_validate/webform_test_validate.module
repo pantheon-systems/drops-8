@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform that provides form validate hooks for form validate tests.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_webform_form_FORM_ID_alter().
+ */
+function webform_test_validate_form_webform_submission_test_form_validate_form_alter(array &$form, FormStateInterface $form_state) {
+  $form['elements']['custom']['#description'] = t('Field is <b>required</b> using custom validation handler.');
+  $form['#validate'][] = 'webform_test_validate_form_webform_submission_test_form_validate_form_validate';
+}
+
+/**
+ * Implements hook_form_validate().
+ */
+function webform_test_validate_form_webform_submission_test_form_validate_form_validate($form, FormStateInterface $form_state) {
+  if (!$form_state->getValue('custom')) {
+    $form_state->setErrorByName('custom', t('Custom element is required.'));
+  }
+}

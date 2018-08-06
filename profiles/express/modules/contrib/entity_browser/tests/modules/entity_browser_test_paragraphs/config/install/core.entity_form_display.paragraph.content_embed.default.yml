@@ -1,0 +1,42 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - entity_browser.browser.test_nodes
+    - field.field.paragraph.content_embed.field_content_reference
+    - field.field.paragraph.content_embed.field_paragraphs_nested
+    - paragraphs.paragraphs_type.content_embed
+  module:
+    - entity_browser
+id: paragraph.content_embed.default
+targetEntityType: paragraph
+bundle: content_embed
+mode: default
+content:
+  field_content_reference:
+    weight: 0
+    settings:
+      entity_browser: test_nodes
+      field_widget_display: label
+      field_widget_edit: true
+      field_widget_remove: true
+      selection_mode: selection_append
+      open: true
+      field_widget_display_settings: {  }
+    third_party_settings: {  }
+    type: entity_browser_entity_reference
+  field_paragraphs_nested:
+    type: entity_reference_paragraphs
+    weight: 1
+    settings:
+      title: Paragraph
+      title_plural: Paragraphs
+      edit_mode: open
+      add_mode: dropdown
+      form_display_mode: default
+      default_paragraph_type: '_none'
+    third_party_settings: {  }
+hidden:
+  created: true
+  status: true
+  uid: true

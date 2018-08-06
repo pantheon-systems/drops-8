@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - inline_entity_form_test
+    - node
+  enforced:
+    module:
+      - inline_entity_form_test
+id: node.multi
+field_name: multi
+entity_type: node
+type: entity_reference
+settings:
+  target_type: node
+module: core
+locked: false
+cardinality: -1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false

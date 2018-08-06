@@ -1,0 +1,73 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform that tests form and element alter hooks.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+
+/******************************************************************************/
+// Form hooks.
+/******************************************************************************/
+
+/**
+ * Implements hook_form_alter().
+ */
+function webform_test_alter_hooks_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if (strpos($form_id, 'webform_') === 0) {
+    drupal_set_message(t("@hook: '@form_id' executed.", ['@hook' => 'hook_form_alter()', '@form_id' => $form_id]), 'status', TRUE);
+  }
+}
+
+/**
+ * Implements hook_form_webform_submission_form_alter().
+ */
+function webform_test_alter_hooks_form_webform_submission_form_alter(array $form, FormStateInterface $form_state, $form_id) {
+  drupal_set_message(t("@hook: '@form_id' executed.", ['@hook' => 'hook_form_webform_submission_form_alter()', '@form_id' => $form_id]), 'status', TRUE);
+}
+
+/**
+ * Implements hook_form_webform_submission_WEBFORM_ID_form_alter().
+ *
+ * @see webform_form_alter()
+ * @see \Drupal\webform\WebformSubmissionForm::getFormId
+ * @see \Drupal\Core\Form\FormBuilder::prepareForm
+ */
+function webform_test_alter_hooks_form_webform_submission_contact_form_alter(array $form, FormStateInterface $form_state, $form_id) {
+  drupal_set_message(t("@hook: '@form_id' executed.", ['@hook' => 'hook_form_webform_submission_WEBFORM_ID_form_alter()', '@form_id' => $form_id]), 'status', TRUE);
+}
+
+/**
+ * Implements hook_webform_submission_form_alter().
+ *
+ * @see \Drupal\webform\WebformSubmissionForm::buildForm
+ */
+function webform_test_alter_hooks_webform_submission_form_alter(array &$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+  drupal_set_message(t("@hook: '@form_id' executed.", ['@hook' => 'hook_webform_submission_form_alter()', '@form_id' => $form_id]), 'status', TRUE);
+}
+
+/******************************************************************************/
+// Element hooks.
+/******************************************************************************/
+
+/**
+ * Implements hook_webform_element_alter().
+ *
+ * @see webform.api.php
+ * @see \Drupal\webform\WebformSubmissionForm::prepareElements
+ */
+function webform_test_alter_hooks_webform_element_alter(array &$element, FormStateInterface $form_state, array $context) {
+  drupal_set_message(t("@hook: '@webform_key' executed.", ['@hook' => 'hook_webform_element_alter()', '@webform_key' => $element['#webform_key']]), 'status', TRUE);
+
+}
+
+/**
+ * Implements hook_webform_element_ELEMENT_TYPE_alter().
+ *
+ * @see webform.api.php
+ * @see \Drupal\webform\WebformSubmissionForm::prepareElements
+ */
+function webform_test_alter_hooks_webform_element_email_alter(array &$element, FormStateInterface $form_state, array $context) {
+  drupal_set_message(t("@hook: '@webform_key' executed.", ['@hook' => 'hook_webform_element_ELEMENT_TYPE_alter()', '@webform_key' => $element['#webform_key']]), 'status', TRUE);
+}

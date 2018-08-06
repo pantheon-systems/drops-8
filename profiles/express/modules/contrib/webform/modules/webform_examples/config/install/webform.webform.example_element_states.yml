@@ -1,0 +1,280 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples
+open: null
+close: null
+uid: null
+template: false
+id: example_element_states
+title: 'Example: Elements: Condition Logic'
+description: 'Examples of elements using conditional logic.'
+category: Example
+elements: |
+  checkbox_example:
+    '#type': details
+    '#title': 'Checkbox example'
+    '#open': true
+    checkbox:
+      '#type': checkbox
+      '#title': 'Please check this box'
+    checkbox_explain:
+      '#type': textarea
+      '#title': 'Please explain why you checked the above box'
+      '#states':
+        visible:
+          ':input[name="checkbox"]':
+            checked: true
+        required:
+          ':input[name="checkbox"]':
+            checked: true
+  checkboxes_example:
+    '#type': details
+    '#title': 'Checkboxes example'
+    '#open': true
+    checkboxes:
+      '#type': checkboxes
+      '#title': 'Please check all'
+      '#options':
+        one: One
+        two: Two
+    checkboxes_explain:
+      '#type': textarea
+      '#title': 'Please explain why you checked all the above box'
+      '#states':
+        visible:
+          ':input[name="checkboxes[one]"]':
+            checked: true
+          ':input[name="checkboxes[two]"]':
+            checked: true
+        required:
+          ':input[name="checkboxes[one]"]':
+            checked: true
+          ':input[name="checkboxes[two]"]':
+            checked: true
+  select_example:
+    '#type': details
+    '#title': 'Select with other example'
+    '#open': true
+    select:
+      '#type': select
+      '#title': 'Please select ''other'' in the below select menu.'
+      '#options':
+        1: One
+        2: Two
+        3: Three
+        other: Other...
+    select_other:
+      '#type': textfield
+      '#attributes':
+        placeholder: 'Enter other...'
+      '#states':
+        visible:
+          ':input[name="select"]':
+            value: other
+        required:
+          ':input[name="select"]':
+            value: other
+  select_multiple_example:
+    '#type': details
+    '#title': 'Select multiple example'
+    '#open': true
+    select_multiple:
+      '#type': select
+      '#title': 'Please select ''One'' or ''Two'' in the below select menu.'
+      '#options':
+        1: One
+        2: Two
+        3: Three
+        4: Four
+    select_multiple_other:
+      '#type': textfield
+      '#attributes':
+        placeholder: 'Enter other...'
+      '#states':
+        visible:
+          - ':input[name="select_multiple"]':
+              - value: 1
+          - or
+          - ':input[name="select_multiple"]':
+              - value: 2
+        required:
+          - ':input[name="select_multiple"]':
+              - value: 1
+          - or
+          - ':input[name="select_multiple"]':
+              - value: 2
+  radios_example:
+    '#type': details
+    '#title': 'Radio buttons with other example'
+    '#open': true
+    radios:
+      '#type': radios
+      '#title': 'Please select ''other'' from the below radio buttons.'
+      '#options':
+        1: One
+        2: Two
+        3: Three
+        other: Other...
+    radios_other:
+      '#type': textfield
+      '#attributes':
+        placeholder: 'Enter other...'
+      '#states':
+        visible:
+          ':input[name="radios"]':
+            value: other
+        required:
+          ':input[name="radios"]':
+            value: other
+  checkbox_more_example:
+    '#type': details
+    '#title': 'Checkbox with more information example'
+    '#open': true
+    checkbox_more:
+      '#type': checkbox
+      '#title': 'Please check this box to enter more information'
+    checkbox_more_details:
+      '#type': details
+      '#title': 'More information'
+      '#open': true
+      '#states':
+        expanded:
+          ':input[name="checkbox_more"]':
+            checked: true
+      checkbox_more_first_name:
+        '#type': textfield
+        '#title': 'First name'
+        '#states':
+          required:
+            ':input[name="checkbox_more"]':
+              checked: true
+      checkbox_more_last_name:
+        '#type': textfield
+        '#title': 'Last name'
+        '#states':
+          required:
+            ':input[name="checkbox_more"]':
+              checked: true
+  filled_example:
+    '#type': details
+    '#title': 'Text field filled example'
+    '#open': true
+    filled:
+      '#type': textfield
+      '#title': 'Fill in the below text field to enable and require the next text field.'
+    filled_next:
+      '#type': textfield
+      '#title': 'The next text field'
+      '#states':
+        enabled:
+          ':input[name="filled"]':
+            filled: true
+        required:
+          ':input[name="filled"]':
+            filled: true
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

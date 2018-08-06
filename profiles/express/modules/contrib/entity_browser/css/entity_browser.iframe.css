@@ -1,0 +1,21 @@
+/**
+ * @file
+ * Styles for the iFrame Display Plugin.
+ */
+
+/* Remove the border on our iframe element. */
+
+.entity-browser-iframe-container iframe {
+  border: none;
+  position: relative;
+  z-index: 501;
+}
+
+.entity-browser-iframe-container .ajax-progress-fullscreen {
+  position: absolute;
+  z-index: 500;
+}
+
+.entity-browser-iframe-container {
+  position: relative;
+}

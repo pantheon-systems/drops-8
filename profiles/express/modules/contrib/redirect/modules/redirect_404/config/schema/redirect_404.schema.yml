@@ -1,0 +1,14 @@
+# Schema for the configuration files of the redirect_404 module.
+
+redirect_404.settings:
+  type: config_object
+  label: '404 error database logging settings.'
+  mapping:
+    row_limit:
+      type: integer
+      label: '404 error database logs to keep.'
+    pages:
+      type: string
+    suppress_404:
+      type: boolean
+      label: "Whether to log 'page not found' messages to the standard log or not."

@@ -1,0 +1,934 @@
+# Schema for the configuration files of the Webform module.
+
+webform.settings:
+  type: config_object
+  label: 'Webform settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Webform default settings'
+      mapping:
+        default_page_base_path:
+          type: string
+          label: 'Default base path'
+        default_form_submit_label:
+          type: label
+          label: 'Default webform submit text'
+        default_form_submit_once:
+          type: boolean
+          label: 'Prevent duplicate submissions'
+        default_form_open_message:
+          type: text
+          label: 'Default webform open message'
+        default_form_close_message:
+          type: text
+          label: 'Default webform close message'
+        default_form_exception_message:
+          type: text
+          label: 'Default webform exception message'
+        default_form_confidential_message:
+          type: text
+          label: 'Default webform confidential message'
+        default_form_novalidate:
+          type: boolean
+          label: 'Disable client-side validation'
+        default_form_unsaved:
+          type: boolean
+          label: 'Warn users about unsaved changes'
+        default_form_disable_back:
+          type: boolean
+          label: 'Disable back button'
+        default_form_details_toggle:
+          type: boolean
+          label: 'Display collapse/expand all details link'
+        default_wizard_prev_button_label:
+          type: label
+          label: 'Default wizard previous page button label'
+        default_wizard_next_button_label:
+          type: label
+          label: 'Default wizard next page button label'
+        default_wizard_start_label:
+          type: label
+          label: 'Default wizard start label'
+        default_wizard_complete_label:
+          type: label
+          label: 'Default wizard complete label'
+        default_preview_next_button_label:
+          type: label
+          label: 'Default preview button label'
+        default_preview_prev_button_label:
+          type: label
+          label: 'Default preview previous page button label'
+        default_preview_message:
+          type: text
+          label: 'Default preview message'
+        default_draft_button_label:
+          type: label
+          label: 'Default draft button label'
+        default_draft_saved_message:
+          type: text
+          label: 'Default draft save message'
+        default_draft_loaded_message:
+          type: text
+          label: 'Default draft load message'
+        default_confirmation_message:
+          type: text
+          label: 'Default confirmation message'
+        default_confirmation_back_label:
+          type: text
+          label: 'Default confirmation back label'
+        default_limit_total_message:
+          type: text
+          label: 'Default limit total message'
+        default_limit_user_message:
+          type: text
+          label: 'Default limit user message'
+        default_submission_log:
+          type: boolean
+          label: 'Default submission logging'
+        form_classes:
+          type: string
+          label: 'Form CSS classes '
+        button_classes:
+          type: string
+          label: 'Button CSS classes'
+        confirmation_classes:
+          type: string
+          label: 'Confirmation CSS classes'
+        confirmation_back_classes:
+          type: string
+          label: 'Confirmation back link CSS classes'
+    assets:
+      type: mapping
+      label: 'Global Assets (CSS/JavaScript)'
+      mapping:
+        css:
+          type: string
+          label: 'CSS (Cascading Style Sheets)'
+        javascript:
+          type: string
+          label: 'JavaScript'
+    elements:
+      type: mapping
+      label: 'Elements default settings'
+      mapping:
+        allowed_tags:
+          type: string
+          label: 'Allowed tags'
+        wrapper_classes:
+          type: string
+          label: 'Wrapper CSS classes'
+        classes:
+          type: string
+          label: 'Element CSS classes'
+        default_icheck:
+          type: string
+          label: 'Default iCheck style'
+        default_description_display:
+          type: string
+          label: 'Default title display'
+        default_google_maps_api_key:
+          type: string
+          label: 'Default Google Maps API key'
+        excluded_types:
+          type: ignore
+          label: 'Excluded types'
+    file:
+      type: mapping
+      label: 'File upload default settings'
+      mapping:
+        file_public:
+          type: boolean
+          label: 'Allow files to be uploaded to public file system.'
+        default_max_filesize:
+          type: string
+          label: 'Default maximum upload size'
+        default_managed_file_extensions:
+          type: string
+          label: 'Default allowed managed file extensions'
+        default_image_file_extensions:
+          type: string
+          label: 'Default allowed image file extensions'
+        default_video_file_extensions:
+          type: string
+          label: 'Default allowed video file extensions'
+        default_audio_file_extensions:
+          type: string
+          label: 'Default allowed audio file extensions'
+        default_document_file_extensions:
+          type: string
+          label: 'Default allowed document file extensions'
+    format:
+      type: ignore
+      label: 'Format default settings'
+    mail:
+      type: mapping
+      label: 'Email default settings'
+      mapping:
+        default_from_mail:
+          type: email
+          label: 'Default from email'
+        default_from_name:
+          type: label
+          label: 'Default from name'
+        default_reply_to:
+          type: label
+          label: 'Default reply to email'
+        default_return_path:
+          type: label
+          label: 'Default return path email'
+        default_subject:
+          type: label
+          label: 'Default email subject'
+        default_body_text:
+          type: text
+          label: 'Default email body (Plain text)'
+        default_body_html:
+          type: text
+          label: 'Default email body (HTML)'
+        roles:
+          type: sequence
+          label: 'Roles'
+          sequence:
+            type: string
+            label: 'Role'
+    export:
+      type: mapping
+      label: 'Export default settings'
+      mapping:
+        exporter:
+          type: string
+          label: 'Results exporter'
+        delimiter:
+          type: string
+          label: 'Delimiter text format'
+        multiple_delimiter:
+          type: string
+          label: 'Element multiple values delimiter'
+        excel:
+          type: boolean
+          label: 'Open HTML table in Excel'
+        file_name:
+          type: string
+          label: 'File name'
+        header_format:
+          type: string
+          label: 'Column header format'
+        header_prefix:
+          type: boolean
+          label: 'Column header prefix'
+        header_prefix_key_delimiter:
+          type: string
+          label: 'Column header prefix key delimiter'
+        header_prefix_label_delimiter:
+          type: string
+          label: 'Column header prefix label delimiter'
+        entity_reference_format:
+          type: string
+          label: 'Options format'
+        options_format:
+          type: string
+          label: 'Options item format'
+        options_item_format:
+          type: string
+          label: 'Entity reference format'
+        likert_answers_format:
+          type: string
+          label: 'Likert answers format'
+        signature_format:
+          type: string
+          label: 'Signature format'
+        composite_element_item_format:
+          type: string
+          label: 'Composite element item format'
+    batch:
+      type: mapping
+      label: 'Batch settings'
+      mapping:
+        default_batch_export_size:
+          type: integer
+          label: 'Batch export size'
+        default_batch_update_size:
+          type: integer
+          label: 'Batch update size'
+        default_batch_delete_size:
+          type: integer
+          label: 'Batch delete size'
+    purge_settings:
+      type: mapping
+      label: 'Automated purging settings'
+      mapping:
+        cron_size:
+          type: integer
+          label: 'Amount of submissions to process'
+    test:
+      type: mapping
+      label: 'Test settings'
+      mapping:
+        types:
+          type: text
+          label: 'Test types'
+        names:
+          type: text
+          label: 'Test names'
+    ui:
+      type: mapping
+      label: 'User interface settings'
+      mapping:
+        video_display:
+          type: string
+          label: 'Video display'
+        dialog_disabled:
+          type: boolean
+          label: 'Disable dialogs'
+        offcanvas_disabled:
+          type: boolean
+          label: 'Disable system tray'
+        html_editor_disabled:
+          type: boolean
+          label: 'Disable HTML editor'
+        details_save:
+          type: boolean
+          label: 'Save details open/close state'
+    libraries:
+      type: mapping
+      label: 'Library settings'
+      mapping:
+        excluded_libraries:
+          type: ignore
+          label: 'Excluded libraries'
+        cdn:
+          type: boolean
+          label: 'Use CDN'
+    third_party_settings:
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: webform.admin_settings.third_party.[%key]
+
+webform.webform.*:
+  type: config_entity
+  label: 'Webforms'
+  mapping:
+    status:
+      type: string
+      label: 'Status'
+    open:
+      type: string
+      label: 'Open date/time'
+    close:
+      type: string
+      label: 'Close date/time'
+    uid:
+      type: integer
+      label: 'Author'
+    template:
+      type: boolean
+      label: 'Template'
+    id:
+      type: string
+      label: 'Machine name'
+    title:
+      type: label
+      label: 'Title'
+    description:
+      type: label
+      label: 'Administrative description'
+    category:
+      type: label
+      label: 'Category'
+    elements:
+      type: text
+      label: 'Elements (YAML)'
+    css:
+      type: string
+      label: 'CSS (Cascading Style Sheets)'
+    javascript:
+      type: string
+      label: 'JavaScript'
+    settings:
+      type: mapping
+      label: 'Settings'
+      mapping:
+        page:
+          type: boolean
+          label: 'Enable page'
+        page_submit_path:
+          type: string
+          label: 'Page submit URL alias'
+        page_confirm_path:
+          type: string
+          label: 'Page confirm URL alias'
+        form_submit_label:
+          type: label
+          label: 'Webform submit text'
+        form_submit_once:
+          type: boolean
+          label: 'Prevent duplicate submissions'
+        form_submit_attributes:
+          type: ignore
+          label: 'Form submit attributes'
+        form_open_message:
+          type: text
+          label: 'Form open message'
+        form_close_message:
+          type: text
+          label: 'Form closed message'
+        form_exception_message:
+          type: text
+          label: 'Form exception message'
+        form_previous_submissions:
+          type: boolean
+          label: 'Form previous submissions notification'
+        form_confidential:
+          type: boolean
+          label: 'Form confidential'
+        form_confidential_message:
+          type: text
+          label: 'Form confidential message'
+        form_convert_anonymous:
+          type: boolean
+          label: 'Convert anonymous drafts and submissions to authenticated.'
+        form_prepopulate:
+          type: boolean
+          label: 'Form prepopulate elements'
+        form_prepopulate_source_entity:
+          type: boolean
+          label: 'Form prepopulate source entity'
+        form_unsaved:
+          type: boolean
+          label: 'Warn users about unsaved changes'
+        form_disable_back:
+          type: boolean
+          label: 'Disable back button'
+        form_disable_autocomplete:
+          type: boolean
+          label: 'Disable autocompletion'
+        form_novalidate:
+          type: boolean
+          label: 'Disable client-side validation'
+        form_autofocus:
+          type: boolean
+          label: 'Autofocus'
+        form_details_toggle:
+          type: boolean
+          label: 'Display collapse/expand all details link'
+        submission_log:
+          type: boolean
+          label: 'Submission logging'
+        wizard_progress_bar:
+          type: boolean
+          label: 'Show wizard progress bar'
+        wizard_progress_pages:
+          type: boolean
+          label: 'Show wizard progress pages'
+        wizard_progress_percentage:
+          type: boolean
+          label: 'Show wizard progress pages'
+        wizard_start_label:
+          type: label
+          label: 'Wizard start label'
+        wizard_start_attributes:
+          type: ignore
+          label: 'Wizard start attributes'
+        wizard_complete:
+          type: boolean
+          label: 'Include confirmation page in progress'
+        wizard_complete_label:
+          type: label
+          label: 'Wizard complete label'
+        wizard_prev_button_label:
+          type: label
+          label: 'Wizard previous page button label'
+        wizard_prev_button_attributes:
+          type: ignore
+          label: 'Wizard previous page button attributes'
+        wizard_next_button_label:
+          type: label
+          label: 'Wizard next page button label'
+        wizard_next_button_attributes:
+          type: ignore
+          label: 'Wizard next page button attributes'
+        preview:
+          type: integer
+          label: 'Enable preview page'
+        preview_next_button_label:
+          type: label
+          label: 'Preview button label'
+        preview_next_button_attributes:
+          type: ignore
+          label: 'Preview button attributes'
+        preview_prev_button_label:
+          type: label
+          label: 'Previous page button label'
+        preview_prev_button_attributes:
+          type: ignore
+          label: 'Previous page button attributes'
+        preview_message:
+          type: text
+          label: 'Preview message'
+        draft:
+          type: string
+          label: 'Allow your users to save and finish the webform later.'
+        draft_auto_save:
+          type: boolean
+          label: 'Automatically save as draft when previewing and when there are validation errors.'
+        draft_button_label:
+          type: label
+          label: 'Draft button label'
+        draft_button_attributes:
+          type: ignore
+          label: 'Draft button attributes'
+        draft_saved_message:
+          type: text
+          label: 'Draft saved message'
+        draft_loaded_message:
+          type: text
+          label: 'Draft loaded message'
+        confirmation_type:
+          type: string
+          label: 'Confirmation type'
+        confirmation_url:
+          type: string
+          label: 'Confirmation URL'
+        confirmation_title:
+          type: text
+          label: 'Confirmation title'
+        confirmation_message:
+          type: text
+          label: 'Confirmation message'
+        confirmation_attributes:
+          type: ignore
+          label: 'Confirmation attributes'
+        confirmation_back:
+          type: boolean
+          label: 'Display back to webform link.'
+        confirmation_back_label:
+          type: text
+          label: 'Confirmation back link label'
+        confirmation_back_attributes:
+          type: ignore
+          label: 'Confirmation back link attributes'
+        limit_total:
+          type: integer
+          label: 'Limit total submissions'
+        limit_total_message:
+          type: text
+          label: 'Limit total message'
+        limit_user:
+          type: integer
+          label: 'Limit user submissions'
+        limit_user_message:
+          type: text
+          label: 'Limit user message'
+        purge:
+          type: string
+          label: 'Default purging'
+        purge_days:
+          type: integer
+          label: 'Default days to retain submissions'
+        entity_limit_total:
+          type: integer
+          label: 'Entity limit total submissions'
+        entity_limit_user:
+          type: integer
+          label: 'Entity limit user submissions'
+        results_disabled:
+          type: boolean
+          label: 'Results disabled'
+        results_disabled_ignore:
+          type: boolean
+          label: 'Ignore disabled results warning'
+        token_update:
+          type: boolean
+          label: 'Allow updates using token'
+    access:
+      type: mapping
+      label: 'Access'
+      mapping:
+        create:
+          type: mapping
+          label: 'Create webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        view_any:
+          type: mapping
+          label: 'View any webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        update_any:
+          type: mapping
+          label: 'Update any webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        delete_any:
+          type: mapping
+          label: 'Delete any webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        purge_any:
+          type: mapping
+          label: 'Purge any webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        view_own:
+          type: mapping
+          label: 'View own webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        update_own:
+          type: mapping
+          label: 'Update own webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+        delete_own:
+          type: mapping
+          label: 'Delete own webform submissions'
+          mapping:
+            roles:
+              type: sequence
+              label: 'Roles'
+              sequence:
+                type: string
+                label: 'Role'
+            users:
+              type: sequence
+              label: 'Users'
+              sequence:
+                type: integer
+                label: 'User IDs'
+    handlers:
+      type: sequence
+      label: 'Webform handlers'
+      sequence:
+        type: mapping
+        mapping:
+          id:
+            type: string
+          handler_id:
+            type: string
+          label:
+            type: label
+          status:
+            type: boolean
+          weight:
+            type: integer
+          settings:
+            type: webform.handler.[%parent.id]
+    third_party_settings:
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: webform.settings.third_party.[%key]
+
+webform.handler.*:
+  type: mapping
+  label: 'Handler settings'
+
+webform.handler.log:
+  type: mapping
+  label: 'Log'
+  mapping: {  }
+
+webform.handler.email:
+  type: mapping
+  label: 'Email'
+  mapping:
+    states:
+      type: sequence
+      label: 'States'
+      sequence:
+        type: string
+        label: 'State'
+    to_mail:
+      label: 'Email to address'
+      type: email
+    to_options:
+      label: 'Email to address options'
+      type: ignore
+    bcc_mail:
+      label: 'Email BCC address'
+      type: email
+    bcc_options:
+      label: 'Email BCC address options'
+      type: ignore
+    cc_mail:
+      label: 'Email CC address'
+      type: email
+    cc_options:
+      label: 'Email CC address options'
+      type: ignore
+    from_mail:
+      label: 'Email from address'
+      type: email
+    from_options:
+      label: 'Email from address options'
+      type: ignore
+    from_name:
+      label: 'Email from name'
+      type: label
+    reply_to:
+      type: label
+      label: 'Reply to email'
+    return_path:
+      type: label
+      label: 'Return path email'
+    subject:
+      label: 'Email subject'
+      type: label
+    body:
+      label: 'Email body'
+      type: text
+    excluded_elements:
+      type: sequence
+      label: 'Exclude elements'
+      sequence:
+        type: string
+        label: 'Element name'
+    html:
+      type: boolean
+      label: 'HTML'
+    attachments:
+      type: boolean
+      label: 'Attachments'
+    debug:
+      type: boolean
+      label: 'Enable debugging'
+
+webform.handler.remote_post:
+  type: mapping
+  label: 'Remote Post'
+  mapping:
+    type:
+      label: 'Type'
+      type: string
+    insert_url:
+      label: 'Insert URL'
+      type: uri
+    update_url:
+      label: 'Update URL'
+      type: uri
+    delete_url:
+      label: 'Delete URL'
+      type: uri
+    excluded_data:
+      type: sequence
+      label: 'Excluded data'
+      sequence:
+        type: string
+        label: 'Data name'
+    custom_data:
+      label: 'Custom data'
+      type: string
+    insert_custom_data:
+      label: 'Insert custom data'
+      type: string
+    update_custom_data:
+      label: 'Update custom data'
+      type: string
+    delete_custom_data:
+      label: 'Delete custom data'
+      type: string
+    debug:
+      type: boolean
+      label: 'Enable debugging'
+
+webform.exporter.*:
+  type: mapping
+  label: 'Exporter settings'
+
+webform.exporter.delimited_text:
+  type: mapping
+  label: 'Delimiter'
+  mapping:
+    delimiter:
+      type: string
+      label: 'Delimiter'
+
+webform.webform_options.*:
+  type: config_entity
+  label: 'Options'
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: 'Label'
+    category:
+      type: label
+      label: 'Category'
+    options:
+      type: text
+      label: 'Options (YAML)'
+
+block.settings.webform_block:
+  type: block_settings
+  label: 'Webforms block'
+  mapping:
+    webform_id:
+      type: text
+      label: 'Webforms'
+    default_data:
+      type: text
+      label: 'Default webform submission data'
+
+# Schema for the configuration of the webform field type.
+
+field.storage_settings.webform:
+  type: mapping
+  label: 'Webform field storage settings'
+  mapping:
+    target_type:
+      type: string
+      label: 'Type of item to reference'
+
+base_webform_field_field_settings:
+  type: mapping
+  mapping:
+    handler:
+      type: string
+      label: 'Reference method'
+    handler_settings:
+      type: entity_reference_selection.[%parent.handler]
+      label: 'Entity reference selection settings'
+
+field.field_settings.webform:
+  type: base_webform_field_field_settings
+  label: 'Webform settings'
+  mapping:
+    default_data:
+      type: string
+      label: 'Default webform submission data'
+    status:
+      type: string
+      label: 'Webform status'
+    open:
+      type: string
+      label: 'Webform open date/time'
+    close:
+      type: string
+      label: 'Webform close date/time'
+
+field.widget.settings.webform_entity_reference_autocomplete:
+  type: mapping
+  label: 'Webform autocomplete display format settings'
+  mapping:
+    match_operator:
+      type: string
+      label: 'Autocomplete matching'
+    size:
+      type: integer
+      label: 'Size of textfield'
+    placeholder:
+      type: label
+      label: 'Placeholder'
+
+field.formatter.settings.webform_entity_reference_entity_view:
+  type: mapping
+  label: 'Display the referenced webform with default submission data.'
+
+field.formatter.settings.webform_entity_reference_link:
+  type: mapping
+  label: 'Display the referenced webform as a link.'
+  mapping:
+    label:
+      type: label
+      label: 'Link label to the referenced webform'
+
+action.configuration.webform_submission_delete_action:
+  type: action_configuration_default
+  label: 'Delete submission configuration'
+
+action.configuration.webform_submission_make_sticky_action:
+  type: action_configuration_default
+  label: 'Star/Flag selected submission configuration'
+
+action.configuration.webform_submission_make_unsticky_action:
+  type: action_configuration_default
+  label: 'Unstar/Unflag selected submission configuration'
+
+condition.plugin.webform:
+  type: condition.plugin
+  mapping:
+    webforms:
+      type: sequence
+      sequence:
+        type: string

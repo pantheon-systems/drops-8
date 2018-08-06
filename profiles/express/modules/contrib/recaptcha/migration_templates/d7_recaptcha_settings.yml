@@ -1,0 +1,25 @@
+id: d7_recaptcha_settings
+label: reCAPTCHA 7 configuration
+migration_groups:
+  - Drupal 7
+source:
+  plugin: variable
+  variables:
+    - recaptcha_site_key
+    - recaptcha_secret_key
+    - recaptcha_theme
+    - recaptcha_type
+    - recaptcha_size
+    - recaptcha_tabindex
+    - recaptcha_noscript
+process:
+  site_key: recaptcha_site_key
+  secret_key: recaptcha_secret_key
+  'widget/theme': recaptcha_theme
+  'widget/type': recaptcha_type
+  'widget/size': recaptcha_size
+  'widget/tabindex': recaptcha_tabindex
+  'widget/noscript': recaptcha_noscript
+destination:
+  plugin: config
+  config_name: recaptcha.settings

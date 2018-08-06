@@ -1,0 +1,15 @@
+webform_bootstrap_test_module.styleguide:
+  title: 'Style guide'
+  route_name: webform_bootstrap_test_module.styleguide.bootstrap
+  base_route: entity.webform.collection
+  weight: 100
+
+webform_bootstrap_test_module.styleguide.bootstrap:
+  title: 'Bootstrap'
+  route_name: webform_bootstrap_test_module.styleguide.bootstrap
+  parent_id: webform_bootstrap_test_module.styleguide
+
+webform_bootstrap_test_module.styleguide.drupal:
+  title: 'Drupal'
+  route_name: webform_bootstrap_test_module.styleguide.drupal
+  parent_id: webform_bootstrap_test_module.styleguide

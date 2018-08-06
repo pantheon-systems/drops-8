@@ -1,0 +1,94 @@
+item:
+  '#markup': '{markup}'
+  '#field_prefix': '{field_prefix}'
+  '#field_suffix': '{field_suffix}'
+number:
+  '#min': 0
+  '#max': 10
+  '#step': 1
+range:
+  '#min': 0
+  '#max': 100
+  '#step': 1
+  '#range__output': true
+  '#range__output_prefix': '$'
+  '#range__output_suffix': '.00'
+tel:
+  '#international': true
+entity_autocomplete:
+  '#target_type': 'user'
+  '#selection_handler': 'default:user'
+  '#selection_settings':
+    include_anonymous: true
+language_select:
+  '#languages': 3
+webform_autocomplete:
+  '#autocomplete_items': country_names
+webform_codemirror:
+  '#mode': yaml
+webform_entity_select:
+  '#target_type': 'user'
+  '#selection_handler': 'default:user'
+  '#selection_settings':
+    include_anonymous: true
+webform_entity_checkboxes:
+  '#target_type': 'user'
+  '#selection_handler': 'default:user'
+  '#selection_settings':
+    include_anonymous: true
+  '#options':
+    1: 'Administrator'
+    0: 'Anonymous'
+webform_entity_radios:
+  '#target_type': 'user'
+  '#selection_handler': 'default:user'
+  '#selection_settings':
+    include_anonymous: true
+  '#options':
+    1: 'Administrator'
+    0: 'Anonymous'
+webform_image_select:
+  '#show_label': true
+  '#images':
+    kitten_1:
+      text: 'Cute Kitten 1'
+      src: 'http://placekitten.com/220/200'
+    kitten_2:
+      text: 'Cute Kitten 2'
+      src: 'http://placekitten.com/180/200'
+    kitten_3:
+      text: 'Cute Kitten 3'
+      src: 'http://placekitten.com/130/200'
+webform_likert:
+  '#questions':
+    q1: 'Please answer question 1?'
+    q2: 'How about now answering question 2?'
+    q3: 'Finally, here is question 3?'
+  '#answers':
+    1: 1
+    2: 2
+    3: 3
+    4: 4
+    5: 5
+webform_location:
+  '#map': true
+  '#geolocation': true
+  '#format': map
+webform_mapping:
+  '#type': webform_mapping
+  '#title': webform_mapping
+  '#source':
+    one: One
+    two: Two
+    three: Three
+  '#destination':
+    four: Four
+    five: Five
+    six: Six
+webform_message:
+  '#message_type': 'warning'
+  '#message_message': 'This is a <strong>warning</strong> message.'
+webform_term_checkboxes:
+  '#vocabulary': tags
+webform_term_select:
+  '#vocabulary': tags

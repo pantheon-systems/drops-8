@@ -24,7 +24,7 @@ interface FlashBagInterface extends SessionBagInterface
      * Adds a flash message for type.
      *
      * @param string $type
-     * @param mixed  $message
+     * @param string $message
      */
     public function add($type, $message);
 

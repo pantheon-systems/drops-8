@@ -198,7 +198,7 @@ class DedupeEntityTest extends MigrateProcessTestCase {
 
     // Entity 'forums' is pre-existing, entity 'test_vocab' was migrated.
     $this->idMap
-      ->method('lookupSourceId')
+      ->method('lookupSourceID')
       ->will($this->returnValueMap([
         [['test_field' => 'forums'], FALSE],
         [['test_field' => 'test_vocab'], ['source_id' => 42]],

@@ -1,0 +1,49 @@
+/**
+ * @file
+ * Bartik theme styles.
+ */
+
+/**
+ * Add background color to table cells so that very wide off-screen tables look okay.
+ */
+table {
+  background-color: #fff;
+}
+
+/**
+ * Tweak webform (elements) form.
+ */
+.webform-form .tableresponsive-toggle-columns,
+.webform-form .tabledrag-toggle-weight-wrapper {
+  display: none;
+}
+
+/**
+ * Tweak webform element form.
+ */
+.webform-states-table th:last-child,
+.webform-states-table td:last-child {
+  min-width: 65px;
+}
+
+.webform-states-table td:last-child input {
+  margin: 0;
+}
+
+.webform-multiple-table td:last-child,
+.webform-multiple-table td:last-child {
+  min-width: 65px;
+}
+
+.webform-multiple-table td:last-child input {
+  margin: 0;
+}
+
+/**
+ * Tweak off-canvas webform element form.
+ */
+/* @todo Issue #2862625: Rename offcanvas to two words in code and comments. https://www.drupal.org/node/2862625 */
+.ui-dialog-offcanvas .webform-ui-element-form details > .details-wrapper,
+.ui-dialog-off-canvas .webform-ui-element-form details > .details-wrapper{
+  padding: 0 .5em;
+}

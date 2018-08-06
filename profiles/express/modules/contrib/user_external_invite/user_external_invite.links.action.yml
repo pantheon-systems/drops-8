@@ -1,0 +1,5 @@
+user_external_invite.invite_users:
+  route_name: user_external_invite.invite_users
+  title: 'Invite user'
+  appears_on:
+    - entity.user.collection

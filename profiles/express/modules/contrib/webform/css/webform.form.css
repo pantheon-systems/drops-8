@@ -1,0 +1,41 @@
+/**
+ * @file
+ * Webform styles.
+ */
+
+/**
+ * Container inline
+ */
+.form-item .container-inline {
+  margin: 2px 0;
+}
+
+/**
+ * Issue #2731991: Setting required on radios marks all options required.
+ */
+.form-checkboxes .form-required:after,
+.form-radios .form-required:after {
+  display: none;
+}
+
+/**
+ * Element inline
+ */
+.webform-element--title-inline label {
+  display: inline;
+}
+
+.webform-element--title-inline label {
+  padding-right: 0.5em;
+}
+
+.webform-element--title-inline label::after {
+  content: ':';
+}
+
+/**
+ * Readonly inputs.
+ */
+.webform-readonly {
+  background-color: #f0f0f0;
+}

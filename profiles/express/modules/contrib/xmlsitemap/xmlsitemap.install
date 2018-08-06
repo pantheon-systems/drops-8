@@ -1,0 +1,349 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the xmlsitemap module.
+ *
+ * @ingroup xmlsitemap
+ */
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_requirements().
+ */
+function xmlsitemap_requirements($phase) {
+  $requirements = array();
+  $t = 't';
+
+  // Check that required PHP extensions are enabled.
+  // Note: Drupal 7 already requires the 'xml' extension.
+  $required_extensions = array('xmlwriter');
+  $missing_extensions = array_diff($required_extensions, array_filter($required_extensions, 'extension_loaded'));
+
+  if (!empty($missing_extensions)) {
+    $items = array('#type' => 'item_list', 'items' => $missing_extensions);
+    $requirements['xmlsitemap_php_extensions'] = array(
+      'title' => $t('XML sitemap PHP extensions'),
+      'value' => $t('Disabled'),
+      'severity' => REQUIREMENT_ERROR,
+      'description' => $t("The XML sitemap module requires you to enable the PHP extensions in the following list (see the <a href=\"@xmlsitemap_requirements\">module's system requirements page</a> for more information):", array(
+        '@xmlsitemap_requirements' => 'http://drupal.org/documentation/modules/xmlsitemap/requirements',
+      )) . \Drupal::service('renderer')->render($items),
+    );
+  }
+
+  if ($phase == 'runtime') {
+    // If clean URLs are disabled there must not be an actual sitemap.xml in
+    // the root directory.
+    if (\Drupal::config('xmlsitemap.settings')->get('clean_url') && file_exists(DRUPAL_ROOT . '/sitemap.xml')) {
+      $requirements['xmlsitemap_file'] = array(
+        'title' => $t('XML sitemap'),
+        'value' => $t('Existing sitemap.xml file found.'),
+        'severity' => REQUIREMENT_ERROR,
+        'description' => $t('The XML sitemap module cannot display its XML output if there is an existing sitemap.xml file in your website root.'),
+      );
+    }
+
+    // Check that the base directory and all its subdirectories are writable.
+    $requirements['xmlsitemap_directory'] = array(
+      'title' => $t('XML sitemap cache directory'),
+      'value' => $t('Writable'),
+    );
+    if (!xmlsitemap_check_directory()) {
+      $requirements['xmlsitemap_directory']['value'] = $t('Not found or not writable');
+      $requirements['xmlsitemap_directory']['severity'] = REQUIREMENT_ERROR;
+      $requirements['xmlsitemap_directory']['description'] = $t('The directory %directory was not found or is not writable by the server. See <a href="@docpage">@docpage</a> for more information.', array('%directory' => xmlsitemap_get_directory(), '@docpage' => 'http://drupal.org/node/34025'));
+    }
+    else {
+      $directories = xmlsitemap_check_all_directories();
+      foreach ($directories as $directory => $writable) {
+        if ($writable) {
+          unset($directories[$directory]);
+        }
+      }
+      if (!empty($directories)) {
+        $items = array('#type' => 'item_list', 'items' => array_keys($directories));
+        $requirements['xmlsitemap_directory']['value'] = $t('Not found or not writable');
+        $requirements['xmlsitemap_directory']['severity'] = REQUIREMENT_ERROR;
+        $requirements['xmlsitemap_directory']['description'] = $t('The following directories were not found or are not writable by the server. See <a href="@docpage">@docpage</a> for more information. @directories', array('@directories' => \Drupal::service('renderer')->render($items), '@docpage' => 'http://drupal.org/node/34025'));
+      }
+    }
+    $sitemaps = xmlsitemap_sitemap_load_multiple();
+    $max_links = -1;
+    $max_chunks = -1;
+    $max_filesize = -1;
+    foreach ($sitemaps as $sitemap) {
+      $max_links = max(array($max_links, $sitemap->getLinks()));
+      $max_chunks = max(array($max_chunks, $sitemap->getChunks()));
+      $max_filesize = max(array($max_filesize, $sitemap->getMaxFileSize()));
+    }
+    // The maximum number of links in a sitemap.
+    $max_links_limit = XMLSITEMAP_MAX_SITEMAP_LINKS * XMLSITEMAP_MAX_SITEMAP_LINKS;
+    if ($max_links > $max_links_limit) {
+      $requirements['xmlsitemap_link_count'] = array(
+        'title' => $t('XML sitemap link count'),
+        'value' => $max_links,
+        'description' => $t('You have exceeded the number of links that your sitemap can contain (@num).', array('@num' => number_format($max_links))),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+
+    // The maximum number of chunks in a sitemap.
+    if ($max_chunks > XMLSITEMAP_MAX_SITEMAP_LINKS) {
+      $requirements['xmlsitemap_chunk_count'] = array(
+        'title' => $t('XML sitemap page count'),
+        'value' => $max_chunks,
+        'description' => $t('You have exceeded the number of sitemap pages (@number).', array('@number' => number_format(XMLSITEMAP_MAX_SITEMAP_LINKS))),
+        'severity' => REQUIREMENT_ERROR,
+      );
+      if (!in_array(xmlsitemap_get_chunk_size(), array(50000, 'auto'))) {
+        $requirements['xmlsitemap_chunk_count']['description'] .= ' ' . t('Please increase the number of links per page.');
+      }
+    }
+
+    // Check maximum file size.
+    $requirements['xmlsitemap_file_size'] = array(
+      'title' => $t('XML sitemap maximum file size'),
+      'value' => format_size($max_filesize),
+    );
+    if ($max_filesize > XMLSITEMAP_MAX_SITEMAP_FILESIZE) {
+      $requirements['xmlsitemap_file_size']['description'] = $t('You have exceeded the maximum sitemap file size of @size. If possible, decrease the number of links per sitemap page.', array('@size' => format_size(XMLSITEMAP_MAX_SITEMAP_FILESIZE)));
+      $requirements['xmlsitemap_file_size']['severity'] = REQUIREMENT_ERROR;
+    }
+    elseif (!\Drupal::state()->get('xmlsitemap_developer_mode')) {
+      unset($requirements['xmlsitemap_file_size']);
+    }
+
+    // Check when the cached files were last generated.
+    $generated_last = \Drupal::state()->get('xmlsitemap_generated_last', 0);
+    $generated_ago = REQUEST_TIME - $generated_last;
+    $requirements['xmlsitemap_generated'] = array(
+      'title' => $t('XML sitemap'),
+      'value' => $generated_last ? $t('Last attempted generation on @date (@interval ago).', array('@date' => format_date($generated_last, 'small'), '@interval' => \Drupal::service('date.formatter')->formatInterval($generated_ago))) : $t('Cached files have not been generated yet.'),
+      'severity' => REQUIREMENT_OK,
+    );
+    if (\Drupal::state()->get('xmlsitemap_rebuild_needed')) {
+      $requirements['xmlsitemap_generated']['severity'] = REQUIREMENT_ERROR;
+      $requirements['xmlsitemap_generated']['description'] = $t('The XML sitemap data is out of sync and needs to be <a href="@link-rebuild">completely rebuilt<a>.', array('@link-rebuild' => Url::fromRoute('xmlsitemap.admin_rebuild')->toString()));
+    }
+    elseif (\Drupal::state()->get('xmlsitemap_regenerate_needed')) {
+      if ($max_filesize == 0) {
+        // A maximum sitemap file size of 0 indicates an error in generation.
+        $requirements['xmlsitemap_generated']['severity'] = REQUIREMENT_ERROR;
+      }
+      elseif ($generated_ago >= \Drupal::config('xmlsitemap.settings')->get('cron_threshold_error')) {
+        $requirements['xmlsitemap_generated']['severity'] = REQUIREMENT_ERROR;
+      }
+      elseif ($generated_ago >= \Drupal::config('xmlsitemap.settings')->get('cron_threshold_warning')) {
+        $requirements['xmlsitemap_generated']['severity'] = REQUIREMENT_WARNING;
+      }
+      if ($requirements['xmlsitemap_generated']['severity']) {
+        $requirements['xmlsitemap_generated']['description'] = $t('The XML cached files are out of date and need to be regenerated. You can <a href="@link-cron">run cron manually</a> to regenerate the sitemap files.', array('@link-cron' => Url::fromRoute('system.run_cron', [], array('query' => drupal_get_destination()))->toString()));
+      }
+    }
+    $anonymous_accout = new AnonymousUserSession();
+
+    if (!$anonymous_accout->hasPermission('access user profiles') && xmlsitemap_link_bundle_check_enabled('user', 'user')) {
+      $requirements['xmlsitemap_user_anonymous_permission'] = array(
+        'title' => $t('XML sitemap user'),
+        'value' => $t('Anonymous access to user profiles'),
+        'description' => $t('In order to list user profile links in the sitemap, the anonymous user must have the <a href="@perm-link"><em>View user profiles</em> permission</a>.', array('@perm-link' => Url::fromRoute('entity.user_role.edit_permissions_form', ['user_role' => DRUPAL_ANONYMOUS_RID], array('fragment' => 'module-user'))->toString())),
+        'severity' => REQUIREMENT_ERROR,
+      );
+    }
+  }
+
+  return $requirements;
+}
+
+/**
+ * Implements hook_schema().
+ */
+function xmlsitemap_schema() {
+  // @todo Rename to xmlsitemap_link
+  $schema['xmlsitemap'] = array(
+    'description' => 'The base table for xmlsitemap links.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'Primary key with type; a unique id for the item.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      //'unsigned' => TRUE,
+      //'default' => 0,
+      ),
+      'type' => array(
+        'description' => 'Primary key with id; the type of item (e.g. node, user, etc.).',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'subtype' => array(
+        'description' => 'A sub-type identifier for the link (node type, menu name, term VID, etc.).',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'loc' => array(
+        'description' => 'The URL to the item relative to the Drupal path.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'language' => array(
+        'description' => 'The {languages}.language of this link or an empty string if it is language-neutral.',
+        'type' => 'varchar',
+        'length' => 12,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'access' => array(
+        'description' => 'A boolean that represents if the item is viewable by the anonymous user. This field is useful to store the result of node_access() so we can retain changefreq and priority_override information.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'status' => array(
+        'description' => 'An integer that represents if the item is included in the sitemap.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'status_override' => array(
+        'description' => 'A boolean that if TRUE means that the status field has been overridden from its default value.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'lastmod' => array(
+        'description' => 'The UNIX timestamp of last modification of the item.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'priority' => array(
+        'description' => 'The priority of this URL relative to other URLs on your site. Valid values range from 0.0 to 1.0.',
+        'type' => 'float',
+        'default' => NULL,
+      // @todo Convert this field to non-nullable.
+      //'default' => 0.5,
+      //'not null' => NULL,
+      ),
+      'priority_override' => array(
+        'description' => 'A boolean that if TRUE means that the priority field has been overridden from its default value.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changefreq' => array(
+        'description' => 'The average time in seconds between changes of this item.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changecount' => array(
+        'description' => 'The number of times this item has been changed. Used to help calculate the next changefreq value.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('id', 'type'),
+    'indexes' => array(
+      'loc' => array('loc'),
+      'access_status_loc' => array('access', 'status', 'loc'),
+      'type_subtype' => array('type', 'subtype'),
+      'language' => array('language'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function xmlsitemap_install() {
+  // Set this module's weight to 1 so xmlsitemap_cron() runs after all other
+  // xmlsitemap_x_cron() runs.
+  module_set_weight('xmlsitemap', 1);
+
+  // Insert the homepage link into the {xmlsitemap} table so we do not show an
+  // empty sitemap after install.
+  db_insert('xmlsitemap')
+      ->fields(array(
+        'type' => 'frontpage',
+        'id' => 0,
+        'loc' => '',
+        'priority' => \Drupal::config('xmlsitemap.settings')->get('frontpage_priority'),
+        'changefreq' => \Drupal::config('xmlsitemap.settings')->get('frontpage_changefreq'),
+        'language' => LanguageInterface::LANGCODE_NOT_SPECIFIED,
+      ))
+      ->execute();
+
+  $state_variables = xmlsitemap_state_variables();
+  \Drupal::state()->setMultiple($state_variables);
+  \Drupal::state()->set('xmlsitemap_base_url', Url::fromRoute('<front>', [], array('absolute' => TRUE))->toString());
+  $context = xmlsitemap_get_current_context();
+  $sitemap = \Drupal::entityTypeManager()->getStorage('xmlsitemap')->create(array(
+    'id' => xmlsitemap_sitemap_get_context_hash($context),
+  ));
+  $sitemap->context = xmlsitemap_get_current_context();
+  $sitemap = $sitemap->setLabel(\Drupal::state()->get('xmlsitemap_base_url'));
+  $sitemap->save();
+
+  xmlsitemap_check_directory();
+  \Drupal::state()->set('xmlsitemap_regenerate_needed', TRUE);
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function xmlsitemap_uninstall() {
+  // Remove config variables.
+  $variables = array_keys(xmlsitemap_config_variables());
+  $editable = \Drupal::configFactory()->getEditable('xmlsitemap.settings');
+  foreach ($variables as $variable) {
+    $editable->clear($variable);
+  }
+
+  $variables = array_keys(xmlsitemap_state_variables());
+  foreach ($variables as $variable) {
+    \Drupal::state()->delete($variable);
+  }
+
+  // Remove the file cache directory.
+  xmlsitemap_clear_directory(NULL, TRUE);
+
+  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
+  $bundles = \Drupal::service('entity_type.bundle.info')->getAllBundleInfo();
+
+  $state_variables = array();
+  foreach ($entity_types as $entity_type_id => $entity_type) {
+    if (isset($bundles[$entity_type_id])) {
+      foreach ($bundles[$entity_type_id] as $bundle_id => $bundle) {
+        xmlsitemap_link_bundle_delete($entity_type_id, $bundle_id);
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function xmlsitemap_update_last_removed() {
+  return 7203;
+}

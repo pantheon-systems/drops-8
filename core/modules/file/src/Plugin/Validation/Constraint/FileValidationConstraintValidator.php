@@ -15,12 +15,7 @@ class FileValidationConstraintValidator extends ConstraintValidator {
    */
   public function validate($value, Constraint $constraint) {
     // Get the file to execute validators.
-    $target = $value->get('entity')->getTarget();
-    if (!$target) {
-      return;
-    }
-
-    $file = $target->getValue();
+    $file = $value->get('entity')->getTarget()->getValue();
     // Get the validators.
     $validators = $value->getUploadValidators();
     // Checks that a file meets the criteria specified by the validators.

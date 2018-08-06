@@ -1,0 +1,15 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - webform
+id: likert_satisfaction
+label: 'Likert: Satisfaction'
+category: Likert
+options: |
+  1: Very Unsatisfied
+  2: Unsatisfied
+  3: Neutral
+  4: Satisfied
+  5: Very Satisfied

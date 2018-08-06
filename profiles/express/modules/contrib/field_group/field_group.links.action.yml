@@ -1,0 +1,3 @@
+field_group.field_group_add:
+  class: \Drupal\Core\Menu\LocalActionDefault
+  deriver: \Drupal\field_group\Plugin\Derivative\FieldGroupLocalAction

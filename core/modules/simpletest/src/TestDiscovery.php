@@ -331,7 +331,7 @@ class TestDiscovery {
    *   If the class does not have a @group annotation.
    */
   public static function getTestInfo($classname, $doc_comment = NULL) {
-    if ($doc_comment === NULL) {
+    if (!$doc_comment) {
       $reflection = new \ReflectionClass($classname);
       $doc_comment = $reflection->getDocComment();
     }

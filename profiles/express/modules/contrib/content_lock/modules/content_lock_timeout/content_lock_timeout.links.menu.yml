@@ -1,0 +1,6 @@
+content_lock_timeout.settings_form:
+  title: 'Content Lock Timeout'
+  route_name: content_lock_timeout.settings_form
+  description: 'Content lock timeout settings'
+  parent: system.admin_config_system
+  weight: 99

@@ -1,0 +1,9 @@
+type: ief_test_complex
+name: IEF test complex
+description: 'Content type for IEF complex widget testing.'
+help: ''
+new_revision: false
+preview_mode: 1
+display_submitted: false
+status: true
+langcode: en

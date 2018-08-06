@@ -1,0 +1,18 @@
+# Schema for the configuration files of the Video Filter module.
+
+filter_settings.video_filter:
+  type: filter
+  label: 'Video Filter'
+  mapping:
+    width:
+      type: integer
+      label: 'Player Width'
+    height:
+      type: integer
+      label: 'Player Height'
+    plugins:
+      type: sequence
+      label: 'Available plugins'
+    allow_multiple_sources:
+      type: boolean
+      label: 'Allow multiple sources'

@@ -1,0 +1,24 @@
+name: test
+label: 'Test browser'
+display: standalone
+display_configuration:
+  path: '/entity-browser/test'
+selection_display: no_display
+selection_display_configuration: {  }
+widget_selector: single
+widget_selector_configuration: {  }
+widgets:
+  8dcc81c7-e24c-4d0b-85a1-bbd03a56dbe3:
+    id: dummy
+    label: 'Dummy widget nr. 1'
+    weight: 0
+    uuid: 8dcc81c7-e24c-4d0b-85a1-bbd03a56dbe3
+    settings:
+      text: 'Number one'
+  df9b03c8-4ad4-44c9-925a-57ab0cc7e6d6:
+    id: dummy
+    label: 'Dummy widget nr. 2'
+    weight: 1
+    uuid: df9b03c8-4ad4-44c9-925a-57ab0cc7e6d6
+    settings:
+      text: 'Number two'

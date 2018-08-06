@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Install file for video_embed_media.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function video_embed_media_install() {
+  if (\Drupal::moduleHandler()->moduleExists('media_entity_embeddable_video')) {
+    \Drupal::service('video_embed_media.upgrade_manager')->upgrade();
+  }
+  // Copy the video icons into the right place.
+  $icon_folder = drupal_get_path('module', 'video_embed_media') . '/images/icons';
+  $destination = \Drupal::config('media_entity.settings')->get('icon_base');
+  media_entity_copy_icons($icon_folder, $destination);
+}

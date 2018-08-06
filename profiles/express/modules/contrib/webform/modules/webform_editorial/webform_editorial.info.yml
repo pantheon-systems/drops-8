@@ -1,0 +1,14 @@
+name: 'Webform Editorial'
+type: module
+description: 'Provides editorial management tools for the Webform module.'
+package: Webform
+# core: 8.x
+hidden: true
+dependencies:
+  - 'drupal:webform'
+
+# Information added by Drupal.org packaging script on 2017-11-03
+version: '8.x-5.0-beta23'
+core: '8.x'
+project: 'webform'
+datestamp: 1509673996

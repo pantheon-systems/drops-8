@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.ief_complex_outer
+    - node.type.ief_complex_simple
+    - node.type.ief_simple_single
+id: node.ief_complex_simple.ief_complex_outer
+field_name: ief_complex_outer
+entity_type: node
+bundle: ief_complex_simple
+label: 'Complex Outer'
+description: 'Reference nodes with complex widget outer.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:node'
+  handler_settings:
+    target_bundles:
+      ief_simple_single: ief_simple_single
+    sort:
+      field: _none
+field_type: entity_reference

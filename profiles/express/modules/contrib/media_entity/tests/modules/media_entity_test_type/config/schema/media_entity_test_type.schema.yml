@@ -1,0 +1,7 @@
+media_entity.bundle.type.test_type:
+  type: mapping
+  label: 'Test type configuration'
+  mapping:
+    test_config_value:
+      type: string
+      label: 'Test config value'

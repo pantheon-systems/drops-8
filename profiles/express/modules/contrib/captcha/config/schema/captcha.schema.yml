@@ -1,0 +1,16 @@
+captcha.captcha_point.*:
+  type: config_entity
+  label: 'CAPTCHA point'
+  mapping:
+    formId:
+      type: string
+      label: 'Form ID'
+    captchaType:
+      type: string
+      label: 'Captcha Type'
+    label:
+      type: label
+      label: 'Label'
+    uuid:
+      type: string
+      label: 'UUID'

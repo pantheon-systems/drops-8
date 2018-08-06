@@ -1,0 +1,77 @@
+/**
+ * @file
+ * Bartik theme styles.
+ */
+
+/**
+ * Add background color to table cells so that very wide off-screen tables look okay.
+ */
+table {
+  background-color: #fff;
+}
+
+/**
+ * Tweak webform (elements) form.
+ */
+.webform-form .tableresponsive-toggle-columns,
+.webform-form .tabledrag-toggle-weight-wrapper {
+  display: none;
+}
+
+.webform-submission-form .form-type-radio .description,
+.webform-submission-form .form-type-checkbox .description {
+  margin-left: 1.6em;
+}
+
+/**
+ * Tweak webform element form.
+ */
+.webform-states-table th.webform-states-table--operations,
+.webform-states-table td.webform-states-table--operations {
+  min-width: 65px;
+}
+
+.webform-states-table td:last-child input {
+  margin: 0;
+}
+
+.webform-multiple-table td.webform-multiple-table--operations,
+.webform-multiple-table td.webform-multiple-table--operations {
+  min-width: 65px;
+}
+
+.webform-multiple-table td.webform-multiple-table--operations input {
+  margin: 0;
+}
+
+/**
+ * Tweak off-canvas webform element form.
+ */
+/* @todo Issue #2862625: Rename offcanvas to two words in code and comments. https://www.drupal.org/node/2862625 */
+.ui-dialog-offcanvas .webform-ui-element-form details > .details-wrapper,
+.ui-dialog-off-canvas .webform-ui-element-form details > .details-wrapper {
+  padding: 0 .5em;
+}
+
+/**
+ * Tweak progress tracker.
+ *
+ * ISSUE:
+ * Bartik theme is not displaying line between the markers.
+ * The #main-wrapper {background: #ffffff) in core/themes/bartik/css/colors.css is causing the problem.
+ *
+ * WORKAROUND:
+ * Define z-index for .progress-step.
+ */
+.webform-progress-tracker .progress-step {
+  z-index: 0;
+}
+
+/**
+ * Tweak element help.
+ * @see css/webform.element.help.css
+ */
+summary .webform-element-help {
+  border-color: #999;
+  background: #999;
+}

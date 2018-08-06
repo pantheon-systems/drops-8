@@ -1,0 +1,26 @@
+uuid: 87046637-74fb-4c6a-963c-40717f572c63
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.main
+  module:
+    - system
+  theme:
+    - catapult
+_core:
+  default_config_hash: 25CTXXT6XHjAZJbVdM6Z_1DUvS9I4Z5Y9naiCluB6SQ
+id: catapult_main_menu
+theme: catapult
+region: header
+weight: -6
+provider: null
+plugin: 'system_menu_block:main'
+settings:
+  id: 'system_menu_block:main'
+  label: 'Main navigation'
+  provider: system
+  label_display: '0'
+  level: 1
+  depth: 0
+visibility: {  }

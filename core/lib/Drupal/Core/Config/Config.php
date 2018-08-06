@@ -219,10 +219,6 @@ class Config extends StorableConfigBase {
       }
     }
 
-    // Potentially configuration schema could have changed the underlying data's
-    // types.
-    $this->resetOverriddenData();
-
     $this->storage->write($this->name, $this->data);
     if (!$this->isNew) {
       Cache::invalidateTags($this->getCacheTags());
@@ -230,6 +226,9 @@ class Config extends StorableConfigBase {
     $this->isNew = FALSE;
     $this->eventDispatcher->dispatch(ConfigEvents::SAVE, new ConfigCrudEvent($this));
     $this->originalData = $this->data;
+    // Potentially configuration schema could have changed the underlying data's
+    // types.
+    $this->resetOverriddenData();
     return $this;
   }
 

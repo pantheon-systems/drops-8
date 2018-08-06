@@ -1,0 +1,48 @@
+webform_editorial.index:
+  title: 'Editorial'
+  route_name: webform_editorial.index
+  parent: entity.webform.collection
+  description: 'Editorial management tools for the Webform module.'
+
+webform_editorial.help:
+  title: 'Help'
+  description: 'Review and download Webform help titles and descriptions.'
+  parent: webform_editorial.index
+  route_name: webform_editorial.help
+  weight: 0
+
+webform_editorial.videos:
+  title: 'Videos'
+  description: 'Review and download Webform video titles and descriptions.'
+  parent: webform_editorial.index
+  route_name: webform_editorial.videos
+  weight: 10
+
+webform_editorial.elements:
+  title: 'Elements'
+  description: 'Review and download Webform element titles and descriptions.'
+  parent: webform_editorial.index
+  route_name: webform_editorial.elements
+  weight: 20
+
+webform_editorial.libraries:
+  title: 'Libraries'
+  description: 'Review and download Webform libraries titles and descriptions.'
+  parent: webform_editorial.index
+  route_name: webform_editorial.libraries
+  weight: 30
+
+webform_editorial.schema:
+  title: 'Schema'
+  description: 'Review and download Webform schema.'
+  parent: webform_editorial.index
+  route_name: webform_editorial.schema
+  weight: 40
+
+webform_editorial.drush:
+  title: 'Drush'
+  description: 'Review and download Webform drush documents.'
+  parent: webform_editorial.index
+  route_name: webform_editorial.drush
+  weight: 40
+

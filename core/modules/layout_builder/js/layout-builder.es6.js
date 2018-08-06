@@ -4,7 +4,6 @@
       $(context).find('.layout-builder--layout__region').sortable({
         items: '> .draggable',
         connectWith: '.layout-builder--layout__region',
-        placeholder: 'ui-state-drop',
 
         /**
          * Updates the layout with the new position of the block.

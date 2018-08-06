@@ -34,7 +34,7 @@ class InstanceofConfigurator extends AbstractServiceConfigurator
      *
      * @param string $fqcn
      *
-     * @return self
+     * @return InstanceofConfigurator
      */
     final protected function setInstanceof($fqcn)
     {

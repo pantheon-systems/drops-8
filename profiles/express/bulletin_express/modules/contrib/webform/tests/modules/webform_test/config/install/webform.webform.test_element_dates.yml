@@ -1,0 +1,254 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_dates
+title: 'Test: Element: Dates'
+description: 'Test date elements.'
+category: 'Test: Element'
+elements: |
+  date_elements:
+    '#type': details
+    '#title': 'Date Elements'
+    '#open': true
+    date_default:
+      '#type': date
+      '#title': 'date default'
+      '#default_value': '2009-08-18'
+    date_custom:
+      '#type': date
+      '#title': 'date custom'
+      '#date_date_format': d-M-Y
+      '#min': '2008-01-01'
+      '#max': '2010-12-31'
+      '#default_value': '2009-08-18'
+      '#description': '(2008-01-01 to 2010-12-31) + (d-M-Y)'
+    date_min_max:
+      '#type': date
+      '#title': 'date (min/max)'
+      '#description': '(2009-01-01 to 2009-12-31)'
+      '#min': '2009-01-01'
+      '#max': '2009-12-31'
+      '#default_value': '2009-08-18'
+    date_min_max_dynamic:
+      '#type': date
+      '#title': 'date range (dynamic)'
+      '#description': '(-1 year to +1 year)'
+      '#min': '-1 year'
+      '#max': '+1 year'
+      '#default_value': now
+  datetime_elements:
+    '#type': details
+    '#title': 'Date/Time Elements'
+    '#open': true
+    datetime_default:
+      '#type': datetime
+      '#title': 'datetime default'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+    datetime_html5_datetime:
+      '#type': datetime
+      '#title': 'datetime HTML5 datetime'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+      '#date_date_element': datetime
+      '#date_time_element': none
+    datetime_html5_datetime_local:
+      '#type': datetime
+      '#title': 'datetime HTML5 datetime local'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+      '#date_date_element': datetime-local
+      '#date_time_element': none
+    datetime_html5_time:
+      '#type': datetime
+      '#title': 'datetime HTML5 time'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+      '#date_date_element': none
+      '#date_time_element': time
+      '#format': html_time
+    datetime_text_datetime:
+      '#type': datetime
+      '#title': 'datetime text datetime'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+      '#date_date_element': text
+      '#date_time_element': text
+    datetime_year_range:
+      '#type': datetime
+      '#title': 'datetime year range (-10:+1)'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+      '#date_year_range': '-10:+1'
+    datetime_min_max:
+      '#type': datetime
+      '#title': 'datetime (min/max)'
+      '#description': '(2009-01-01 to 2009-12-31)'
+      '#min': '2009-01-01'
+      '#max': '2009-12-31'
+      '#default_value': '2009-08-18'
+  datelist_elements:
+    '#type': details
+    '#title': 'Date List Elements'
+    '#open': true
+    datelist_default:
+      '#type': datelist
+      '#title': 'datelist default'
+      '#default_value': '2009-08-18T01:00:00-05:00'
+    datelist_datetime:
+      '#type': datelist
+      '#title': 'datelist datetime'
+      '#date_part_order':
+        - month
+        - day
+        - year
+        - hour
+        - minute
+        - second
+        - ampm
+      '#default_value': '2009-08-18T01:00:00-05:00'
+    datelist_date:
+      '#type': datelist
+      '#title': 'datelist date'
+      '#date_part_order':
+        - month
+        - day
+        - year
+      '#default_value': '2009-08-18T01:00:00-00:00'
+    datelist_min_max:
+      '#type': datelist
+      '#title': 'datelist (min/max)'
+      '#description': '(2009-01-01 to 2009-12-31)'
+      '#min': '2009-01-01'
+      '#max': '2009-12-31'
+      '#default_value': '2009-08-18'
+  time_elements:
+    '#type': details
+    '#title': 'Time Elements'
+    '#open': true
+    time_default:
+      '#type': webform_time
+      '#title': 'time default'
+      '#default_value': '14:00'
+    time_24_hour:
+      '#type': webform_time
+      '#title': 'time 24 hour'
+      '#time_format': 'H:i'
+      '#default_value': '14:00'
+    time_12_hour:
+      '#type': webform_time
+      '#title': 'time 12 hour'
+      '#time_format': 'g:i A'
+      '#default_value': '14:00'
+    time_12_hour_plus_6_hours:
+      '#type': webform_time
+      '#title': 'time 12 hour (+6 hours)'
+      '#time_format': 'g:i A'
+      '#default_value': '+6 hours'
+    time_steps:
+      '#type': webform_time
+      '#title': 'time (step)'
+      '#default_value': '14:00'
+      '#step': 900
+    time_min_max:
+      '#type': webform_time
+      '#title': 'time (min/max)'
+      '#min': '14:00'
+      '#max': '18:00'
+      '#description': '(14:00 to 18:00)'
+      '#default_value': '14:00'
+css: ''
+javascript: ''
+settings:
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_label: ''
+  form_submit_once: false
+  form_submit_attributes: {  }
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_log: false
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_next_button_label: ''
+  wizard_next_button_attributes: {  }
+  wizard_prev_button_label: ''
+  wizard_prev_button_attributes: {  }
+  wizard_start_label: ''
+  wizard_complete: true
+  wizard_complete_label: ''
+  preview: 1
+  preview_next_button_label: ''
+  preview_next_button_attributes: {  }
+  preview_prev_button_label: ''
+  preview_prev_button_attributes: {  }
+  preview_message: ''
+  draft: none
+  draft_auto_save: false
+  draft_button_label: ''
+  draft_button_attributes: {  }
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+handlers: {  }

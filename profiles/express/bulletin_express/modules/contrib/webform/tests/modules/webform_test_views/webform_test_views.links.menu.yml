@@ -1,0 +1,5 @@
+webform_test.index:
+  title: 'Testing'
+  route_name: webform_test.index
+  parent: entity.webform.collection
+  description: 'Test webform functionality.'

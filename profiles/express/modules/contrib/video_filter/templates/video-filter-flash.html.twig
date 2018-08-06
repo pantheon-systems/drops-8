@@ -1,0 +1,13 @@
+{#
+/**
+ * @file
+ * Video Filter (Flash).
+ */
+#}
+<div class="video-filter">
+  <object class="{{ video.classes|join(' ') }}" type="application/x-shockwave-flash" width="{{ video.width }}" height="{{ video.height }}" data="{{ video.flash.src }}"{% for key, value in video.flash.properties %} {{ key }}="{{ value }}"{% endfor %}>
+    {% for key, value in video.flash.params %}
+    <param name="{{ key }}" value="{{ value }}" />
+    {% endfor %}
+  </object>
+</div>

@@ -1,0 +1,26 @@
+services:
+  pathauto.generator:
+    class: Drupal\pathauto\PathautoGenerator
+    arguments: ['@config.factory', '@module_handler', '@token', '@pathauto.alias_cleaner', '@pathauto.alias_storage_helper', '@pathauto.alias_uniquifier', '@pathauto.verbose_messenger', '@string_translation', '@token.entity_mapper', '@entity_type.manager']
+  pathauto.alias_cleaner:
+    class: Drupal\pathauto\AliasCleaner
+    arguments: ['@config.factory', '@pathauto.alias_storage_helper', '@language_manager', '@cache.discovery', '@transliteration', '@module_handler']
+  pathauto.alias_storage_helper:
+    class: Drupal\pathauto\AliasStorageHelper
+    arguments: ['@config.factory', '@path.alias_storage', '@database','@pathauto.verbose_messenger', '@string_translation']
+    tags:
+      - { name: backend_overridable }
+  pathauto.alias_uniquifier:
+    class: Drupal\pathauto\AliasUniquifier
+    arguments: ['@config.factory', '@pathauto.alias_storage_helper','@module_handler', '@router.route_provider', '@path.alias_manager']
+  pathauto.verbose_messenger:
+    class: Drupal\pathauto\VerboseMessenger
+    arguments: ['@config.factory', '@current_user']
+  plugin.manager.alias_type:
+    class: Drupal\pathauto\AliasTypeManager
+    parent: default_plugin_manager
+  pathauto.settings_cache_tag:
+    class: Drupal\pathauto\EventSubscriber\PathautoSettingsCacheTag
+    arguments: ['@entity_field.manager', '@plugin.manager.alias_type']
+    tags:
+      - { name: event_subscriber }

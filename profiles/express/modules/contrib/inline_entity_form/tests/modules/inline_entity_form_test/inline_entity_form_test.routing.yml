@@ -1,0 +1,16 @@
+inline_entity_form_test.form:
+  path: '/ief-test/{form_mode}'
+  defaults:
+    _form: '\Drupal\inline_entity_form_test\IefTest'
+    _title: 'IEF test'
+    form_mode: 'default'
+  requirements:
+    _access: 'TRUE'
+inline_entity_form_test.edit_form:
+  path: '/ief-edit-test/{node}/{form_mode}'
+  defaults:
+    _form: '\Drupal\inline_entity_form_test\IefEditTest'
+    _title: 'IEF test'
+    form_mode: 'default'
+  requirements:
+    _access: 'TRUE'

@@ -1,0 +1,19 @@
+drupal.responsive-preview:
+  version: VERSION
+  js:
+    js/responsive-preview.js: {}
+  css:
+    component:
+      css/responsive-preview.module.css: {}
+    theme:
+      css/responsive-preview.theme.css: {}
+      css/responsive-preview.icons.css: {}
+  dependencies:
+    - core/jquery
+    - core/jquery.once
+    - core/drupal
+    - core/drupalSettings
+    - core/debounce
+    - core/displace
+    - core/backbone
+    - core/jquery.ui.position

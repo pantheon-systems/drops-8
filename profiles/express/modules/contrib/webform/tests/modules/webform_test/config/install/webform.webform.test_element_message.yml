@@ -1,0 +1,187 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+uid: null
+template: false
+id: test_element_message
+title: 'Test: Element: Message'
+description: 'Test the message element.'
+category: 'Test: Element'
+elements: |
+  message_types:
+    '#type': details
+    '#title': 'Message type'
+    '#open': true
+    message_info:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is an <strong>info</strong> message.'
+    message_status:
+      '#type': webform_message
+      '#message_message': 'This is a <strong>status</strong> message.'
+    message_warning:
+      '#type': webform_message
+      '#message_type': warning
+      '#message_message': 'This is a <strong>warning</strong> message.'
+    message_error:
+      '#type': webform_message
+      '#message_type': error
+      '#message_message': 'This is a <strong>error</strong> message.'
+  message_close:
+    '#type': details
+    '#title': 'Message close'
+    '#open': true
+    message_close_hide:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed using hide effect</b>.'
+      '#message_close': true
+      '#message_close_effect': hide
+    message_close_fade:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed using fade effect</b>.'
+      '#message_close': true
+      '#message_close_effect': fade
+    message_close_slide:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed using slide effect</b>.'
+      '#message_close': true
+      '#message_close_effect': slide
+  message_storage:
+    '#type': details
+    '#title': 'Message close storage'
+    '#open': true
+    message_close_storage_session:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed and saved in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage">session storage</a></b>.'
+      '#message_close': true
+      '#message_storage': session
+    message_close_storage_local:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed and saved in <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage">local storage</a>.</b>'
+      '#message_close': true
+      '#message_storage': local
+    message_close_storage_user:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed and saved in <a href="https://api.drupal.org/api/drupal/core!modules!user!src!UserData.php/class/UserData">User Data</a></b>. (Authenticated users only)'
+      '#message_close': true
+      '#message_storage': user
+    message_close_storage_state:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is message that can be <b>closed and saved in <a href="https://www.drupal.org/docs/8/api/state-api">State API</a></b>. (Authenticated users only)'
+      '#message_close': true
+      '#message_storage': state
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_unsaved: false
+  form_disable_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  submission_label: ''
+  submission_log: false
+  submission_user_columns: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_start_label: ''
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  limit_total: null
+  limit_total_message: ''
+  limit_user: null
+  limit_user_message: ''
+  purge: none
+  purge_days: null
+  entity_limit_total: null
+  entity_limit_user: null
+  results_disabled: false
+  results_disabled_ignore: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }

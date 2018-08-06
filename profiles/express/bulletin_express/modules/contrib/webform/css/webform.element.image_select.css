@@ -1,0 +1,15 @@
+/**
+ * @file
+ * Image select styles.
+ *
+ * @see /webform/test_element_image_select
+ */
+
+html.js .js-form-type-webform-image-select {
+  position: relative;
+}
+
+html.js .js-webform-image-select {
+  position: absolute;
+  opacity: 0;
+}

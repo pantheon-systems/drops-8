@@ -1,0 +1,15 @@
+<?php
+/**
+ * @file
+ * Bootstrap sub-theme.
+ *
+ * Place your custom PHP code in this file.
+ */
+
+function demo_theme_preprocess_page(&$variables) {
+  $block = \Drupal\block\Entity\Block::load('searchform');
+  $block_content = \Drupal::entityTypeManager()
+    ->getViewBuilder('block')
+    ->view($block);
+  $variables['searchform'] = $block_content;
+}

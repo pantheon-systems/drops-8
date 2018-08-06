@@ -1,0 +1,19 @@
+<?php
+
+/**
+ * @file
+ * Provides starter templates that can be used to create new webforms.
+ */
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function webform_templates_entity_type_alter(array &$entity_types) {
+  if (isset($entity_types['webform_submission'])) {
+    /** @var \Drupal\Core\Entity\ContentEntityTypeInterface $webform_submission_entity_type */
+    $webform_submission_entity_type = $entity_types['webform_submission'];
+    $handlers = $webform_submission_entity_type->getHandlerClasses();
+    $handlers['form']['preview'] = 'Drupal\webform_templates\WebformTemplatesSubmissionPreviewForm';
+    $webform_submission_entity_type->setHandlerClass('form', $handlers['form']);
+  }
+}

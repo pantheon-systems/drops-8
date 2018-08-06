@@ -1,0 +1,9 @@
+express-back-to-top:
+  version: 1.x
+  css:
+    theme:
+      css/express_back_to_top.css: {}
+  js:
+    js/express_back_to_top.js: {}
+  dependencies:
+    - core/jquery
