@@ -1,0 +1,10 @@
+services:
+  externalauth.authmap:
+    class: Drupal\externalauth\Authmap
+    arguments: ['@database']
+  externalauth.externalauth:
+    class: Drupal\externalauth\ExternalAuth
+    arguments: ['@entity.manager', '@externalauth.authmap', '@logger.channel.externalauth', '@event_dispatcher']
+  logger.channel.externalauth:
+    parent: logger.channel_base
+    arguments: ['externalauth']

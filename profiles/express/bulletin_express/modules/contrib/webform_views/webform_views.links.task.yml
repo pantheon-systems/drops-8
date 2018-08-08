@@ -1,3 +1,0 @@
-webform_view:
-  class: Drupal\Core\Menu\LocalTaskDefault
-  deriver: \Drupal\webform_views\Plugin\Derivative\ViewsLocalTask

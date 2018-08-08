@@ -1,0 +1,9 @@
+description: 'Displays current cache context for the application.'
+messages:
+    code: 'Context ID'
+    label: 'Label'
+    class: 'Class path'
+examples:
+    - description: 'Displays cache context'
+      execution: |
+        drupal debug:cache:context

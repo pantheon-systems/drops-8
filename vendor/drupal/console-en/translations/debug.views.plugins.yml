@@ -1,0 +1,12 @@
+description: 'Displays current views plugins for the application'
+arguments:
+    type: 'Filter views plugins by type'
+messages:
+  type: 'Type'
+  name: 'Name'
+  provider: 'Provider'
+  views: 'Views'
+examples:
+    - description: 'List of views plugins'
+      execution: |
+        drupal debug:views:plugins

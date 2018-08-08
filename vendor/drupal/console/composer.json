@@ -1,0 +1,66 @@
+{
+    "name": "drupal/console",
+    "description": "The Drupal CLI. A tool to generate boilerplate code, interact with and debug Drupal.",
+    "keywords": ["Drupal", "Console", "Development", "Symfony"],
+    "homepage": "http://drupalconsole.com/",
+    "type": "library",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name":      "David Flores",
+            "email":     "dmousex@gmail.com",
+            "homepage":  "http://dmouse.net"
+        },
+        {
+            "name":      "Jesus Manuel Olivas",
+            "email":     "jesus.olivas@gmail.com",
+            "homepage":  "http://jmolivas.com"
+        },
+        {
+            "name":      "Eduardo Garcia",
+            "email":     "enzo@enzolutions.com",
+            "homepage":  "http://enzolutions.com/"
+        },
+        {
+            "name":      "Omar Aguirre",
+            "email":     "omersguchigu@gmail.com"
+        },
+        {
+            "name":      "Drupal Console Contributors",
+            "homepage":  "https://github.com/hechoendrupal/drupal-console/graphs/contributors"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/hechoendrupal/drupal-console/issues",
+        "forum": "https://gitter.im/hechoendrupal/DrupalConsole",
+        "docs": "https://docs.drupalconsole.com/"
+    },
+    "require": {
+        "php": "^5.5.9 || ^7.0",
+        "alchemy/zippy": "0.4.3",
+        "composer/installers": "~1.0",
+        "doctrine/annotations": "^1.2",
+        "doctrine/collections": "^1.3",
+        "drupal/console-core": "1.8.0",
+        "drupal/console-extend-plugin": "~0",
+        "guzzlehttp/guzzle": "~6.1",
+        "psy/psysh": "0.6.* || ~0.8",
+        "symfony/css-selector": "~2.8|~3.0",
+        "symfony/dom-crawler": "~2.8|~3.0",
+        "symfony/http-foundation": "~2.8|~3.0"
+    },
+    "suggest": {
+        "symfony/thanks": "Thank your favorite PHP projects on Github using the CLI!",
+        "vlucas/phpdotenv": "Loads environment variables from .env to getenv(), $_ENV and $_SERVER automagically."
+    },
+    "bin": ["bin/drupal"],
+    "config": {
+        "bin-dir": "bin/",
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "autoload": {
+        "psr-4": {"Drupal\\Console\\": "src"}
+    }
+}

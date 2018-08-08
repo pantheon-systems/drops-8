@@ -1,9 +1,0 @@
-label: 'Prueba: Traducción'
-options: |
-  1: Uno
-  2: Dos
-  3: Tres
-dependencies:
-  enforced:
-    module:
-      - webform_test_translation

@@ -1,0 +1,11 @@
+description: 'List all multi-sites available in system'
+help: 'The <info>debug:multisite</info> list all known multi-sites.'
+messages:
+  no-multisites: 'No multi-sites configured'
+  site: 'Site'
+  directory: 'Directory'
+  site-format: 'Sites are written using the format: <port>.<domain>.<path>'
+examples:
+    - description: 'Displays multi-site information'
+      execution: |
+        drupal debug:multisite

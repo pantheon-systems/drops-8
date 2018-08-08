@@ -1,0 +1,85 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the externalauth module.
+ */
+
+use Drupal\Core\Database\Database;
+
+/**
+ * Implements hook_schema().
+ */
+function externalauth_schema() {
+  $schema['authmap'] = array(
+    'description' => 'Stores distributed authentication mapping.',
+    'fields' => array(
+      'uid' => array(
+        'description' => 'Primary key: {users}.uid for user.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'provider' => array(
+        'description' => 'The name of the authentication provider providing the authname',
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'authname' => array(
+        'description' => 'Unique authentication name provided by authentication provider',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'data' => array(
+        'description' => 'Extra (serialized) data to store with the authname.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+      ),
+    ),
+    'primary key' => array('uid', 'provider'),
+    'indexes' => array(
+      'uid' => array('uid'),
+    ),
+    'unique keys' => array(
+      'authname_provider' => array('authname', 'provider'),
+    ),
+    'foreign keys' => array(
+      'uid' => array('users' => 'uid'),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Change {authmap}.authname type from varchar_ascii to varchar.
+ */
+function externalauth_update_8101() {
+  $schema = Database::getConnection()->schema();
+  $schema->changeField('authmap', 'authname', 'authname', array(
+    'description' => 'Unique authentication name provided by authentication provider',
+    'type' => 'varchar',
+    'length' => 128,
+    'not null' => TRUE,
+    'default' => '',
+  ));
+}
+
+/**
+ * Make index on authname+provider unique.
+ */
+function externalauth_update_8102() {
+  /** @var \Drupal\Core\Database\Schema $schema */
+  $schema = \Drupal::service('database')->schema();
+  // This 'add' can potentially fail, if duplicate authnames are registered
+  // already. This is why we do it before the 'remove'. If this happens, the
+  // website maintainer is required to fix the table contents themselves.
+  $schema->addUniqueKey('authmap', 'authname_provider', array('authname', 'provider'));
+  $schema->dropIndex('authmap', 'auth_provider');
+}

@@ -1,0 +1,23 @@
+description: 'Export a view in YAML format inside a provided module to reuse in other website.'
+messages:
+    view_exported: 'View exported sucessfully'
+    depencies-included: 'The following module dependencies were included at "%s"'
+questions:
+    view: 'View to be exported'
+    optional-config: 'Export view in module as an optional configuration'
+    include-module-dependencies: 'Include view module dependencies in module info YAML file'
+arguments:
+    view-id: 'View ID'
+options:
+    optional-config: 'Export view as an optional YAML configuration in your module'
+    include-module-dependencies: 'Include module dependencies in module info YAML file'
+examples:
+    - description: 'Provide a view id'
+      execution: drupal config:export:view viewid
+    - description: 'You can provide the interactive values like parameter.'
+      execution: |
+        drupal config:export:view viewid \
+          --module="modulename" \
+          --optional-config \
+          --include-module-dependencies
+

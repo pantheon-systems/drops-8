@@ -1,0 +1,9 @@
+name: subtonode
+type: module
+description: Create nodes from webform submissions.
+core: 8.x
+package: Custom
+
+requirements:
+ - webform
+ - webform_views

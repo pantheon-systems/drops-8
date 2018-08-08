@@ -1,0 +1,116 @@
+commands:
+  config:
+    config-delete: 'config:delete'
+    config-edit: 'config:edit'
+    config-export: 'config:export'
+    config-get: 'debug:config CONFIG_NAME'
+    config-import: 'config:import'
+    config-list: 'debug:config'
+    config-pull: ~
+    config-set: 'config:override'
+  core:
+    archive-dump: ~
+    archive-restore: ~
+    core-cli: 'shell'
+    core-config: ~
+    core-cron: 'cron:execute'
+    core-execute: 'exec'
+    core-init: 'init'
+    core-quick-drupal: 'quick:start'
+    core-requirements: 'site:status'
+    core-rsync: ~
+    core-status: 'site:status'
+    core-topic: ~
+    drupal-directory: ~
+    entity-updates: 'update:entities'
+    help: 'help'
+    image-derive: ~
+    image-flush: 'image:styles:flush'
+    php-eval: ~
+    php-script: ~
+    queue-list: 'debug:queue'
+    queue-run: 'queue:run'
+    shell-alias: ~
+    site-alias: 'debug:site'
+    site-install: 'site:install'
+    site-set: ~
+    site-ssh: ~
+    twig-compile: ~
+    updatedb: 'update:execute'
+    updatedb-status: 'debug:update'
+    version: '--version'
+  field:
+    field-clone: ~
+    field-create: ~
+    field-delete: ~
+    field-info: 'field:info'
+    field-update: ~
+  language:
+    language-add: 'locale:language:add'
+    language-disable: 'locale:language:delete'
+  make:
+    make: ~
+    make-convert: ~
+    make-generate: ~
+    make-lock: ~
+    make-update: ~
+  other:
+    registry-rebuild: 'cache:rebuild all'
+  pm:
+    pm-disable: 'module:uninstall, theme:uninstall'
+    pm-download: 'module:download, theme:download'
+    pm-enable: 'module:install, theme:install'
+    pm-info: ~
+    pm-list: 'debug:module, debug:theme'
+    pm-projectinfo: ~
+    pm-refresh: ~
+    pm-releasenotes: ~
+    pm-releases: ~
+    pm-uninstall: 'module:uninstall, theme:uninstall'
+    pm-update: 'module:update, theme:update'
+    pm-updatecode: ~
+    pm-updatestatus: ~
+  role:
+    role-add-perm: ~
+    role-create: ~
+    role-delete: ~
+    role-list: ~
+    role-remove-perm: ~
+  runserver:
+    runserver: 'server'
+  sql:
+    sql-cli: 'database:client'
+    sql-connect: 'database:connect'
+    sql-create: ~
+    sql-drop: 'database:drop'
+    sql-dump: 'database:dump'
+    sql-query: 'database:query'
+    sql-sanitize: ~
+    sql-sync: ~
+  search:
+    search-index: ~
+    search-reindex: ~
+    search-status: ~
+  site_audit:
+    cache-clear: 'cache:rebuild'
+    cache-get: ~
+    cache-rebuild: 'cache:rebuild'
+    cache-set: ~
+  state:
+    state-delete: 'state:delete'
+    state-get: 'debug:state'
+    state-set: 'state:override'
+  user:
+    user-add-role: 'user:role'
+    user-block: ~
+    user-cancel: ~
+    user-create: 'user:create'
+    user-information: ~
+    user-login: 'user:login:url'
+    user-password: 'user:password:reset'
+    user-remove-role: 'user:role'
+    user-unblock: ~
+  watchdog:
+    watchdog-delete: 'database:log:clear'
+    watchdog-list: 'database:log:poll'
+    watchdog-show: 'debug:database:log'

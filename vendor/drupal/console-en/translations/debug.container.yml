@@ -1,0 +1,25 @@
+description: 'Displays current services for an application.'
+arguments:
+    service: 'Service name.'
+    method: 'Method name.'
+    arguments: 'Array of Arguments in CSV or JSON format.'
+options:
+  tag: 'Service tag '
+messages:
+    service-id: 'Service ID'
+    class-name: 'Class Name'
+    service: 'Service'
+    class: 'Class'
+    interface: 'Interface(s)'
+    parent: 'Parent class'
+    variables: 'Variables'
+    methods: 'Methods'
+    arguments: 'Arguments'
+    method: 'Method'
+    return: 'Return'
+errors:
+    method-not-exists: 'This method doesn''t exists in this service.'
+examples:
+    - description: 'Displays the views.views_data_helper services'
+      execution: |
+        drupal debug:container views.views_data_helper

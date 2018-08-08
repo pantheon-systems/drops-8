@@ -1,7 +1,0 @@
-services:
-  webform_node.uninstall_validator:
-    class: Drupal\webform_node\WebformNodeUninstallValidator
-    tags:
-      - { name: module_install.uninstall_validator }
-    arguments: ['@entity_type.manager', '@string_translation']
-    lazy: true

@@ -1,0 +1,15 @@
+description: 'Generate module permissions'
+help: 'The <info>generate:permissions</info> command helps you generate new permissions'
+welcome: 'Welcome to the Drupal Permission generator'
+options:
+  module: 'The Module name.'
+questions:
+  module: 'Enter the module name'
+  permission: 'Enter a permission'
+  title: 'Enter a title for the permission'
+  description: 'Enter a description for the permission'
+  restrict-access: 'Restrict Access'
+  add: 'Do you want to add another permission?'
+suggestions:
+  access-content: 'Access content'
+  allow-access-content: 'Allow access to my content'

@@ -1,0 +1,57 @@
+description: 'Generate a new form config'
+help: 'The <info>generate:form:config</info> command helps you generate a new form config'
+welcome: 'Welcome to the Drupal Form Config generator'
+options:
+  module: 'The Module name.'
+  class: 'The form class name'
+  form-id: 'The Form id'
+  services: 'Load services from the container.'
+  config-file: 'Add a config file'
+  inputs: 'Create inputs in a form.'
+  path: 'Enter the form path'
+  menu-link-gen: 'Generate a menu link'
+  menu-link-title: 'A title for the menu link'
+  menu-parent: 'Menu parent'
+  menu-link-desc: 'A description for the menu link'
+questions:
+  module: 'Enter the module name'
+  class: 'Enter the Form Class name'
+  form-id: 'Enter the Form id'
+  services: 'Enter your service'
+  config-file: 'Do you want to generate a config file?'
+  routing: 'Would you like to register a route for this form?'
+  path: 'Enter the route path'
+  max-amount-characters: 'Maximum amount of characters'
+  textfield-width-in-chars: 'Width of the textfield (in characters)'
+  multiselect-size-in-lines: 'Size of multiselect box (in lines)'
+  input-options: 'Input options separated by comma'
+  menu-link-gen: 'Generate a menu link'
+  menu-link-title: 'Enter a title for the menu link'
+  menu-parent: 'Enter Menu parent'
+  menu-link-desc: 'Enter a description for the menu link'
+  type: 'Enter New field type'
+  label: 'Input label'
+  description: 'Description'
+  default-value: 'Default value'
+  weight: 'Weight for input item'
+suggestions:
+  description-for-menu: 'A description for the menu entry'
+examples:
+  - description: 'Generate an empty form with config file specifying the module name, the class, a form id and the path'
+    execution: |
+      drupal generate:form:config  \
+        --module="modulename"  \
+        --class="DefaultForm"  \
+        --form-id="default_form"  \
+        --config-file  \
+        --path="/modulename/form/default"
+  - description: 'Generate a form with 2 fields and a config file specifying the module name, the class, a form id, the inputs and the path'
+    execution: |
+      drupal generate:form:config  \
+        --module="modulename"  \
+        --class="DefaultForm"  \
+        --form-id="default_form"  \
+        --config-file  \
+        --inputs='"name":"inputname", "type":"text_format", "label":"InputName", "options":"", "description":"Just a text input", "maxlength":"", "size":"", "default_value":"", "weight":"0", "fieldset":""'  \
+        --inputs='"name":"email", "type":"email", "label":"Email", "options":"", "description":"Just an email input", "maxlength":"", "size":"", "default_value":"", "weight":"0", "fieldset":""'  \
+        --path="/modulename/form/default"

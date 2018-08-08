@@ -1,0 +1,37 @@
+description: 'Generate a profile.'
+help: 'The <info>generate:profile</info> command helps you generate a new installation profile.'
+welcome: 'Welcome to the Drupal installation profile generator'
+options:
+  profile: 'The profile name'
+  machine-name: 'The machine name (lowercase and underscore only)'
+  profile-path: 'The path of the profile'
+  description: 'Profile description'
+  core: 'Core version'
+  dependencies: 'Module dependencies separated by commas (i.e. context, panels)'
+  themes: 'the theme name'
+  distribution: 'The distribution name'
+questions:
+  profile: 'Enter the name of the new profile'
+  machine-name: 'Enter the machine name'
+  profile-path: 'Enter the profile Path'
+  description: 'Enter the description'
+  core: 'Enter Drupal Core version'
+  dependencies: 'Would you like to add module dependencies?'
+  themes: 'Enter theme name'
+  distribution: 'Is this install profile intended to be a distribution?'
+suggestions:
+  my-useful-profile: 'My Useful Profile'
+  my-kick-ass-distribution: 'My Kick-ass Distribution'
+warnings:
+  module-unavailable: 'Warning: The following modules are not available in your local environment "%s"'
+errors:
+  directory-exists: 'The target directory "%s" is not empty.'
+examples:
+  - description: 'Generate a profile specifying the profile name, the machine name, a description, the core and its module dependencies'
+    execution: |
+      drupal generate:profile  \
+        --profile="NewProfileName"  \
+        --machine-name="newprofilename"  \
+        --description="My Useful Profile"  \
+        --core="8.x"  \
+        --dependencies="modulename"

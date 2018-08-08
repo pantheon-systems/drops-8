@@ -1,0 +1,20 @@
+description: 'List Test Units available for the application.'
+help: 'List Test Units available for the application.'
+arguments:
+    test-class: 'Test Class'
+options:
+    group: Group
+messages:
+    class: 'Test Class'
+    description: Description
+    group: Group
+    type: 'Test Type'
+    missing-dependency: 'Missing dependency'
+    methods: 'Test methods'
+    not-found: 'Debug wasn''t found, try enclosure test id between double quotes.'
+    success-groups: 'All testing groups were listed sucessfully, use the group argument to filter Test unit by group i.e $ drupal debug:test Url'
+    success-group: 'All test units for group "%s" were listed sucessfully'
+examples:
+    - description: ''
+      execution: |
+        drupal debug:test

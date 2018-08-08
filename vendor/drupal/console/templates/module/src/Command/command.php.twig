@@ -1,0 +1,85 @@
+{% extends "base/class.php.twig" %}
+
+{% block file_path %}
+\Drupal\{{extension}}\Command\{{ class }}.
+{% endblock %}
+
+{% block namespace_class %}
+namespace Drupal\{{extension}}\Command;
+{% endblock %}
+
+{% block use_class %}
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+{% if container_aware %}
+use Drupal\Console\Core\Command\ContainerAwareCommand;
+{% else %}
+use Drupal\Console\Core\Command\Command;
+{% endif %}
+use Drupal\Console\Annotations\DrupalCommand;
+{% endblock %}
+
+{% block class_declaration %}
+/**
+ * Class {{ class_name }}.
+ *
+ * @DrupalCommand (
+ *     extension="{{extension}}",
+ *     extensionType="{{ extension_type }}"
+ * )
+ */
+class {{ class_name }} extends {% if container_aware %}ContainerAwareCommand{% else %}Command{% endif %} {% endblock %}
+{% block class_construct %}
+{% if services is not empty %}
+
+  /**
+   * Constructs a new {{ class_name }} object.
+   */
+  public function __construct({{ servicesAsParameters(services)|join(', ') }}) {
+{{ serviceClassInitialization(services) }}
+    parent::__construct();
+  }
+{% endif %}
+{% endblock %}
+
+{% block class_methods %}
+  /**
+   * {@inheritdoc}
+   */
+  protected function configure() {
+    $this
+      ->setName('{{ name }}')
+      ->setDescription($this->trans('commands.{{ command_key }}.description'));
+  }
+
+{% if initialize %}
+ /**
+  * {@inheritdoc}
+  */
+  protected function initialize(InputInterface $input, OutputInterface $output) {
+    parent::initialize($input, $output);
+    $this->getIo()->info('initialize');
+  }
+
+{% endif %}
+{% if interact %}
+ /**
+  * {@inheritdoc}
+  */
+  protected function interact(InputInterface $input, OutputInterface $output) {
+    $this->getIo()->info('interact');
+  }
+
+{% endif %}
+  /**
+   * {@inheritdoc}
+   */
+  protected function execute(InputInterface $input, OutputInterface $output) {
+    $this->getIo()->info('execute');
+    $this->getIo()->info($this->trans('commands.{{ command_key }}.messages.success'));
+{% if class_generator %}
+    $this->generator->generate([]);
+{% endif %}
+  }
+
+{%- endblock -%}

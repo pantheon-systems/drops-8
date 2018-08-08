@@ -1,0 +1,9 @@
+description: 'List image styles on the site'
+messages:
+    styles-list: 'Image Styles defined in the site'
+    styles-label: 'Label'
+    styles-name: 'Machine Name'
+examples:
+    - description: 'List all images styles on the site'
+      execution: |
+        drupal debug:image:styles

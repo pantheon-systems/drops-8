@@ -1,5 +1,0 @@
-webform_test.index:
-  title: 'Testing'
-  route_name: webform_test.index
-  base_route: entity.webform.collection
-  weight: 100

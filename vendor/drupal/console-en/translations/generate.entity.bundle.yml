@@ -1,0 +1,20 @@
+description: 'Generate a new content type (node / entity bundle)'
+help: 'The <info>generate:contenttype</info> command helps you generate a new content type.'
+welcome: 'Welcome to the Drupal Content Type generator'
+options:
+  module: 'The Module name.'
+  bundle-name: 'The content type''s machine name'
+  bundle-title: 'The content type''s human-readable name'
+questions:
+  module: 'Enter the module name'
+  bundle-name: 'Enter the machine name of your new content type'
+  bundle-title: 'Enter the human-readable name of your new content type'
+message:
+  error-state1: placeholder
+examples:
+  - description: 'Generate bundle entity specifying the module, the bundle name and its title'
+    execution: |
+      drupal generate:entity:bundle  \
+        --module="modulename"  \
+        --bundle-name="default"  \
+        --bundle-title="default"

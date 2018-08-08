@@ -1,7 +1,0 @@
-webform_test_handler.remote_post:
-  path: '/webform_test/remote_post/{type}'
-  defaults:
-    _controller: '\Drupal\webform_test_handler\Controller\WebformTestRemotePostController::index'
-  requirements:
-    # Remote post mock handler does not require any access controls.
-    _access: 'TRUE'

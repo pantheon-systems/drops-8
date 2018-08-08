@@ -1,0 +1,5 @@
+subtonode.create_node:
+  title: 'Create node from submission'
+  route_name: subtonode.create_node
+  parent_id: entity.webform_submission.edit_form
+  weight: 9

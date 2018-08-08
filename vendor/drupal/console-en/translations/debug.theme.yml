@@ -1,0 +1,22 @@
+description: 'Displays current themes for the application'
+arguments:
+    theme: 'Specific theme to debug'
+messages:
+    theme-id: 'Id'
+    theme-name: 'Name'
+    status: 'Status'
+    version: 'Version'
+    installed: 'Installed'
+    uninstalled: 'Uninstalled'
+    default-theme: 'Default theme'
+    properties: 'Properties'
+    regions: 'Regions'
+    invalid-theme: 'Theme "%s" is invalid'
+    theme-properties: 'Properties'
+examples:
+    - description: 'List of themes on the site'
+      execution: |
+        drupal debug:theme
+    - description: 'Bartik theme information'
+      execution: |
+        drupal debug:theme bartik

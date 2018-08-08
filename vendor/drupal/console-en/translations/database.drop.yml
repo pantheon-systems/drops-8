@@ -1,0 +1,14 @@
+description: "Drop all tables in a given database."
+help: 'The <info>database:drop</info> command helps you drop database tables.'
+arguments:
+  database: 'Database key from settings.php'
+question:
+    drop-tables: 'Confirm you really want to drop all tables in the database "%s"?'
+messages:
+    table: 'Table'
+    table-drop: 'Drop "%s" tables successfully'
+examples:
+    - description: 'Drop the tables on the database specified on the argument'
+      execution: |
+        drupal database:drop \
+          <database>

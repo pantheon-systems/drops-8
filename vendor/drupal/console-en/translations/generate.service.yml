@@ -1,0 +1,38 @@
+description: 'Generate service'
+help: 'The <info>generate:service</info> command helps you generate a new service.'
+welcome: 'Welcome to the Drupal service generator'
+options:
+  module: 'The Module name.'
+  service-name: 'Service name'
+  class: 'Class name'
+  interface: 'Interface'
+  interface-name: 'Interface name'
+  services: 'Load services from the container.'
+  path-service:  'Path'
+questions:
+  module: 'Enter the module name'
+  service-name: 'Enter the service name'
+  class: 'Enter the Class name'
+  interface: 'Create an interface'
+  interface-name: 'Enter the interface name'
+  services: 'Enter your service'
+  path-service: 'Enter the path for the services'
+messages:
+  service-already-taken: 'The service name has been already taken in module "%s"'
+examples:
+  - description: 'Generate a services without interface specifying the module name, the service name, the class and its path'
+    execution: |
+      drupal generate:service  \
+        --module="modulename"  \
+        --name="modulename.default"  \
+        --class="DefaultService"  \
+        --path-service="/modules/custom/modulename/src/"
+  - description: 'Generate a services with interface specifying the module name, the service name, the class, the interface name and its path'
+    execution: |
+      drupal generate:service  \
+        --module="modulename"  \
+        --name="modulename.default"  \
+        --class="DefaultService"  \
+        --interface  \
+        --interface-name="InterfaceName"  \
+        --path-service="/modules/custom/modulename/src/"

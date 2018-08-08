@@ -1,7 +1,0 @@
-webform_test.index:
-  path: '/admin/structure/webform/test'
-  defaults:
-    _controller: '\Drupal\system\Controller\SystemController::systemAdminMenuBlockPage'
-    _title: 'Webforms'
-  requirements:
-    _permission: 'administer site configuration'

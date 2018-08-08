@@ -1,0 +1,11 @@
+description: 'Clear failed login attempts for an account.'
+help: 'The <info>user:login:clear:attempts</info> command resets the failed login attempts for an account.'
+arguments:
+    user: 'User name/id.'
+questions:
+    user: 'Enter User name/id'
+messages:
+    successful: 'Login attempts were successfully cleared for user: "%s".'
+errors:
+    invalid-user: 'Cannot load user entity using: "%s".'
+    no-flood: 'No flood table on the system.'

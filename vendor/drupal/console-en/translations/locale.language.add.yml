@@ -1,0 +1,8 @@
+description: 'Add languages to be supported by your site'
+messages:
+  invalid-language: 'Language "%s" is an invalid language'
+  invalid-languages: 'Languages "%s" are invalid'
+  language-add-successfully: 'Language "%s" was added successfully.'
+  languages-add-successfully: 'Languages "%s" were added successfully.'
+  language-installed: 'Language "%s" is already installed.'
+  languages-installed: 'Languages "%s" are already installed.'

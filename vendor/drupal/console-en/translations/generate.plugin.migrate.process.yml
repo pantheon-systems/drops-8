@@ -1,0 +1,18 @@
+description: 'Generate a migrate process plugin'
+help: 'Creates new process plugin for the migration.'
+welcome: 'Welcome to the Drupal Migrate Process Plugin generator'
+options:
+  module: 'The Module name.'
+  class: 'Plugin class name'
+  plugin-id: 'Plugin id'
+questions:
+  module: 'Enter the module name'
+  class: 'Enter the migration process plugin class name'
+  plugin-id: 'Enter the migration process plugin id'
+examples:
+  - description: 'Generate a migration plugin process specifying the module name, the class and its id'
+    execution: |
+      drupal generate:plugin:migrate:process  \
+        --module="modulename"  \
+        --class="MigrationProcess"  \
+        --plugin-id="migrationprocess"

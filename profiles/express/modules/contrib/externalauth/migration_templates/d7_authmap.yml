@@ -1,0 +1,22 @@
+id: d7_authmap
+label: Authmap
+migration_tags:
+  - Drupal 7
+source:
+  plugin: authmap
+process:
+  uid:
+    -
+      plugin: migration
+      migration: d7_user
+      source: uid
+    -
+      plugin: skip_on_empty
+      method: row
+  provider: module
+  authname: authname
+destination:
+  plugin: authmap
+migration_dependencies:
+  required:
+    - d7_user

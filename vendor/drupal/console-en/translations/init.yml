@@ -1,0 +1,17 @@
+description: 'Copy configuration files.'
+options:
+  destination: 'Destination directory to copy files'
+  override: 'Override configurations files flag'
+  autocomplete: 'Autocomplete tool files flag.'
+  site: 'Use local site as destination.'
+questions:
+  destination: 'Select destination to copy configuration'
+  autocomplete: 'Generate autocomplete files'
+  language: 'Select language'
+  temp: 'Enter temporary file path'
+  chain: 'Copy chain files examples'
+  sites: 'Copy site alias files examples'
+  temp: 'Enter temporary file path'
+  learning: 'Shows information for learning purposes?'
+  generate-inline: 'Show inline representation of the executed command?'
+  generate-chain: 'Show chain representation of the executed command?'
