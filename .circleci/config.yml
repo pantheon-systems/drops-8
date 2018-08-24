@@ -46,7 +46,7 @@ jobs:
 
 workflows:
   version: 2
-  wordpress:
+  drops-8:
     jobs:
       - test
       - merge:
