@@ -41,13 +41,12 @@ class AreaTest extends ViewTestBase {
       'title' => 'Test Example area',
       'help' => 'A area handler which just exists for tests.',
       'area' => [
-        'id' => 'test_example'
-      ]
+        'id' => 'test_example',
+      ],
     ];
 
     return $data;
   }
-
 
   /**
    * Tests the generic UI of a area handler.

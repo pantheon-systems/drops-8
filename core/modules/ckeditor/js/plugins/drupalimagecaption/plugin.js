@@ -6,6 +6,22 @@
 **/
 
 (function (CKEDITOR) {
+  function findElementByName(element, name) {
+    if (element.name === name) {
+      return element;
+    }
+
+    var found = null;
+    element.forEach(function (el) {
+      if (el.name === name) {
+        found = el;
+
+        return false;
+      }
+    }, CKEDITOR.NODE_ELEMENT);
+    return found;
+  }
+
   CKEDITOR.plugins.add('drupalimagecaption', {
     requires: 'drupalimage',
 
@@ -72,9 +88,11 @@
         widgetDefinition.upcast = function (element, data) {
           if (element.name !== 'img' || !element.attributes['data-entity-type'] || !element.attributes['data-entity-uuid']) {
             return;
-          } else if (element.attributes['data-cke-realelement']) {
-              return;
-            }
+          }
+
+          if (element.attributes['data-cke-realelement']) {
+            return;
+          }
 
           element = originalUpcast.call(this, element, data);
           var attrs = element.attributes;
@@ -192,20 +210,4 @@
       }
     }
   });
-
-  function findElementByName(element, name) {
-    if (element.name === name) {
-      return element;
-    }
-
-    var found = null;
-    element.forEach(function (el) {
-      if (el.name === name) {
-        found = el;
-
-        return false;
-      }
-    }, CKEDITOR.NODE_ELEMENT);
-    return found;
-  }
 })(CKEDITOR);

@@ -7,6 +7,7 @@ use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\views\Tests\ViewResultAssertionTrait;
 use Drupal\views\Tests\ViewTestData;
+use Drupal\views\ViewsData;
 
 /**
  * Defines a base class for Views kernel testing.
@@ -48,6 +49,7 @@ abstract class ViewsKernelTestBase extends KernelTestBase {
       ViewTestData::createTestViews(get_class($this), ['views_test_config']);
     }
   }
+
   /**
    * Sets up the configuration and schema of views and views_test_data modules.
    *
@@ -64,6 +66,7 @@ abstract class ViewsKernelTestBase extends KernelTestBase {
     // Define the schema and views data variable before enabling the test module.
     $state->set('views_test_data_schema', $this->schemaDefinition());
     $state->set('views_test_data_views_data', $this->viewsData());
+    $this->container->get('views.views_data')->clear();
 
     $this->installConfig(['views', 'views_test_config', 'views_test_data']);
     foreach ($this->schemaDefinition() as $table => $schema) {

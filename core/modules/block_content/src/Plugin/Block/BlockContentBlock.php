@@ -29,7 +29,7 @@ class BlockContentBlock extends BlockBase implements ContainerFactoryPluginInter
   /**
    * The Plugin Block Manager.
    *
-   * @var \Drupal\Core\Block\BlockManagerInterface.
+   * @var \Drupal\Core\Block\BlockManagerInterface
    */
   protected $blockManager;
 
@@ -43,7 +43,7 @@ class BlockContentBlock extends BlockBase implements ContainerFactoryPluginInter
   /**
    * The Drupal account to use for checking for access to block.
    *
-   * @var \Drupal\Core\Session\AccountInterface.
+   * @var \Drupal\Core\Session\AccountInterface
    */
   protected $account;
 
@@ -190,9 +190,9 @@ class BlockContentBlock extends BlockBase implements ContainerFactoryPluginInter
       return [
         '#markup' => $this->t('Block with uuid %uuid does not exist. <a href=":url">Add custom block</a>.', [
           '%uuid' => $this->getDerivativeId(),
-          ':url' => $this->urlGenerator->generate('block_content.add_page')
+          ':url' => $this->urlGenerator->generate('block_content.add_page'),
         ]),
-        '#access' => $this->account->hasPermission('administer blocks')
+        '#access' => $this->account->hasPermission('administer blocks'),
       ];
     }
   }

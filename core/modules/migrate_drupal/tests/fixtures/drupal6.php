@@ -746,7 +746,7 @@ $connection->insert('blocks')
   'throttle' => '0',
   'visibility' => '0',
   'pages' => '',
-  'title' => '',
+  'title' => 'zu - Navigation',
   'cache' => '-1',
 ))
 ->values(array(
@@ -8706,6 +8706,30 @@ $connection->schema()->createTable('i18n_blocks', array(
   'mysql_character_set' => 'utf8',
 ));
 
+$connection->insert('i18n_blocks')
+->fields(array(
+  'ibid',
+  'module',
+  'delta',
+  'type',
+  'language',
+))
+->values(array(
+  'ibid' => '1',
+  'module' => 'user',
+  'delta' => '1',
+  'type' => '0',
+  'language' => 'zu',
+))
+->values(array(
+  'ibid' => '2',
+  'module' => 'menu',
+  'delta' => 'menu-translation-test',
+  'type' => '0',
+  'language' => 'zu',
+))
+->execute();
+
 $connection->schema()->createTable('i18n_strings', array(
   'fields' => array(
     'lid' => array(
@@ -9852,6 +9876,14 @@ $connection->insert('i18n_strings')
   'lid' => '1678',
   'objectid' => 'profile_really_really_love_migrating',
   'type' => 'field',
+  'property' => 'title',
+  'objectindex' => '0',
+  'format' => '0',
+))
+->values(array(
+  'lid' => '1679',
+  'objectid' => 'menu-translation-test',
+  'type' => 'menu',
   'property' => 'title',
   'objectindex' => '0',
   'format' => '0',
@@ -22355,6 +22387,13 @@ $connection->insert('locales_source')
   'location' => 'field:profile_really_really_love_migrating:title',
   'textgroup' => 'profile',
   'source' => 'I really, really, really love migrating',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '1679',
+  'location' => 'menu:menu-translation-test:title',
+  'textgroup' => 'menu',
+  'source' => 'Translation test',
   'version' => '1',
 ))
 ->execute();
@@ -44122,17 +44161,6 @@ $connection->insert('node_revisions')
   'format' => '1',
 ))
 ->values(array(
-  'nid' => '1',
-  'vid' => '2',
-  'uid' => '2',
-  'title' => 'Test title rev 2',
-  'body' => 'body test rev 2',
-  'teaser' => 'teaser test rev 2',
-  'log' => 'modified rev 2',
-  'timestamp' => '1390095702',
-  'format' => '1',
-))
-->values(array(
   'nid' => '2',
   'vid' => '3',
   'uid' => '1',
@@ -44361,6 +44389,17 @@ $connection->insert('node_revisions')
   'teaser' => 'Le peuple zoulou.',
   'log' => '',
   'timestamp' => '1520613305',
+  'format' => '1',
+))
+->values(array(
+  'nid' => '1',
+  'vid' => '2001',
+  'uid' => '2',
+  'title' => 'Test title rev 2',
+  'body' => 'body test rev 2',
+  'teaser' => 'teaser test rev 2',
+  'log' => 'modified rev 2',
+  'timestamp' => '1390095702',
   'format' => '1',
 ))
 ->execute();
@@ -46796,12 +46835,12 @@ $connection->insert('term_node')
 ))
 ->values(array(
   'nid' => '1',
-  'vid' => '2',
+  'vid' => '2001',
   'tid' => '4',
 ))
 ->values(array(
   'nid' => '1',
-  'vid' => '2',
+  'vid' => '2001',
   'tid' => '5',
 ))
 ->values(array(

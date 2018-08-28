@@ -64,7 +64,7 @@ if ($args['list']) {
   echo "\nAvailable test groups & classes\n";
   echo "-------------------------------\n\n";
   try {
-    $groups = simpletest_test_get_all($args['module']);
+    $groups = \Drupal::service('test_discovery')->getTestClasses($args['module']);
   }
   catch (Exception $e) {
     error_log((string) $e);
@@ -125,8 +125,8 @@ if ($args['clean']) {
   echo "\nEnvironment cleaned.\n";
 
   // Get the status messages and print them.
-  $messages = drupal_get_messages('status');
-  foreach ($messages['status'] as $text) {
+  $messages = \Drupal::messenger()->messagesByType('status');
+  foreach ($messages as $text) {
     echo " - " . $text . "\n";
   }
   exit(SIMPLETEST_SCRIPT_EXIT_SUCCESS);
@@ -140,7 +140,7 @@ else {
   $phpunit_version = Version::id();
 }
 if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
-  simpletest_script_print_error("PHPUnit testing framework version 6 or greater is required when running on PHP 7.2 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
+  simpletest_script_print_error("PHPUnit testing framework version 6 or greater is required when running on PHP 7.0 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
   exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
 }
 
@@ -310,7 +310,12 @@ All arguments are long options.
 
   --suppress-deprecations
 
-              Stops tests from failing if deprecation errors are triggered.
+              Stops tests from failing if deprecation errors are triggered. If
+              this is not set the value specified in the
+              SYMFONY_DEPRECATIONS_HELPER environment variable, or the value
+              specified in core/phpunit.xml (if it exists), or the default value
+              will be used. The default is that any unexpected silenced
+              deprecation error will fail tests.
 
   <test1>[,<test2>[,<test3> ...]]
 
@@ -825,13 +830,6 @@ function simpletest_script_run_one_test($test_id, $test_class) {
     if ($args['suppress-deprecations']) {
       putenv('SYMFONY_DEPRECATIONS_HELPER=disabled');
     }
-    else {
-      // Prevent deprecations caused by vendor code calling deprecated code.
-      // This also prevents mock objects in PHPUnit 6 triggering silenced
-      // deprecations from breaking the test suite. We should consider changing
-      // this to 'strict' once PHPUnit 4 is no longer used.
-      putenv('SYMFONY_DEPRECATIONS_HELPER=weak_vendors');
-    }
     if (is_subclass_of($test_class, TestCase::class)) {
       $status = simpletest_script_run_phpunit($test_id, $test_class);
     }
@@ -1004,11 +1002,13 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
 function simpletest_script_get_test_list() {
   global $args;
 
+  /** $test_discovery \Drupal\simpletest\TestDiscovery */
+  $test_discovery = \Drupal::service('test_discovery');
   $types_processed = empty($args['types']);
   $test_list = [];
   if ($args['all'] || $args['module']) {
     try {
-      $groups = simpletest_test_get_all($args['module'], $args['types']);
+      $groups = $test_discovery->getTestClasses($args['module'], $args['types']);
       $types_processed = TRUE;
     }
     catch (Exception $e) {
@@ -1031,7 +1031,7 @@ function simpletest_script_get_test_list() {
         }
         else {
           try {
-            $groups = simpletest_test_get_all(NULL, $args['types']);
+            $groups = $test_discovery->getTestClasses(NULL, $args['types']);
           }
           catch (Exception $e) {
             echo (string) $e;
@@ -1132,7 +1132,7 @@ function simpletest_script_get_test_list() {
     }
     else {
       try {
-        $groups = simpletest_test_get_all(NULL, $args['types']);
+        $groups = $test_discovery->getTestClasses(NULL, $args['types']);
         $types_processed = TRUE;
       }
       catch (Exception $e) {

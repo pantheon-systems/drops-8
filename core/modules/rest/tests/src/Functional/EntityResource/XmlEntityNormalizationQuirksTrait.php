@@ -14,6 +14,7 @@ use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\options\Plugin\Field\FieldType\ListIntegerItem;
 use Drupal\path\Plugin\Field\FieldType\PathItem;
 use Drupal\Tests\rest\Functional\XmlNormalizationQuirksTrait;
+use Drupal\user\StatusItem;
 
 /**
  * Trait for EntityResourceTestBase subclasses testing $format='xml'.
@@ -63,6 +64,9 @@ trait XmlEntityNormalizationQuirksTrait {
       for ($i = 0; $i < count($normalization[$field_name]); $i++) {
         switch ($field->getItemDefinition()->getClass()) {
           case BooleanItem::class:
+          case StatusItem::class:
+            // @todo Remove the StatusItem case in
+            //   https://www.drupal.org/project/drupal/issues/2936864.
             $value = &$normalization[$field_name][$i]['value'];
             $value = $value === TRUE ? '1' : '0';
             break;
@@ -99,14 +103,13 @@ trait XmlEntityNormalizationQuirksTrait {
         }
       }
 
-      if (!empty($normalization[$field_name])) {
+      if (count($normalization[$field_name]) === 1) {
         $normalization[$field_name] = $normalization[$field_name][0];
       }
     }
 
     return $normalization;
   }
-
 
   /**
    * Applies the XML config entity encoding quirks that remain after decoding.

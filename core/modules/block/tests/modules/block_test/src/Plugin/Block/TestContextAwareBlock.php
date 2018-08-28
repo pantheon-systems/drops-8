@@ -37,7 +37,7 @@ class TestContextAwareBlock extends BlockBase {
    */
   protected function blockAccess(AccountInterface $account) {
     if ($this->getContextValue('user') instanceof UserInterface) {
-      drupal_set_message('User context found.');
+      $this->messenger()->addStatus('User context found.');
     }
 
     return parent::blockAccess($account);

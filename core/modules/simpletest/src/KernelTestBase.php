@@ -3,7 +3,7 @@
 namespace Drupal\simpletest;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Variable;
 use Drupal\Core\Config\Development\ConfigSchemaChecker;
 use Drupal\Core\Database\Database;
@@ -14,6 +14,7 @@ use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\KeyValueStore\KeyValueMemoryFactory;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Site\Settings;
+use Drupal\KernelTests\TestServiceProvider;
 use Symfony\Component\DependencyInjection\Parameter;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Symfony\Component\DependencyInjection\Reference;
@@ -101,7 +102,7 @@ abstract class KernelTestBase extends TestBase {
   /**
    * A KeyValueMemoryFactory instance to use when building the container.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueMemoryFactory.
+   * @var \Drupal\Core\KeyValueStore\KeyValueMemoryFactory
    */
   protected $keyValueFactory;
 
@@ -198,7 +199,7 @@ EOD;
 
     // Add this test class as a service provider.
     // @todo Remove the indirection; implement ServiceProviderInterface instead.
-    $GLOBALS['conf']['container_service_providers']['TestServiceProvider'] = 'Drupal\simpletest\TestServiceProvider';
+    $GLOBALS['conf']['container_service_providers']['TestServiceProvider'] = TestServiceProvider::class;
 
     // Bootstrap a new kernel.
     $class_loader = require DRUPAL_ROOT . '/autoload.php';
@@ -477,7 +478,6 @@ EOD;
     ]));
   }
 
-
   /**
    * Installs the storage schema for a specific entity type.
    *
@@ -499,7 +499,7 @@ EOD;
       $all_tables_exist = TRUE;
       foreach ($tables as $table) {
         if (!$db_schema->tableExists($table)) {
-          $this->fail(SafeMarkup::format('Installed entity type table for the %entity_type entity type: %table', [
+          $this->fail(new FormattableMarkup('Installed entity type table for the %entity_type entity type: %table', [
             '%entity_type' => $entity_type_id,
             '%table' => $table,
           ]));
@@ -507,7 +507,7 @@ EOD;
         }
       }
       if ($all_tables_exist) {
-        $this->pass(SafeMarkup::format('Installed entity type tables for the %entity_type entity type: %tables', [
+        $this->pass(new FormattableMarkup('Installed entity type tables for the %entity_type entity type: %tables', [
           '%entity_type' => $entity_type_id,
           '%tables' => '{' . implode('}, {', $tables) . '}',
         ]));
