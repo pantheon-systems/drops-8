@@ -4,7 +4,7 @@ namespace Drupal\Tests\block_content\Functional\Views;
 
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Tests\views\Functional\ViewTestBase;
 use Drupal\views\Tests\ViewTestData;
 
@@ -68,7 +68,7 @@ abstract class BlockContentTestBase extends ViewTestBase {
     if ($block_content = BlockContent::create($settings)) {
       $status = $block_content->save();
     }
-    $this->assertEqual($status, SAVED_NEW, SafeMarkup::format('Created block content %info.', ['%info' => $block_content->label()]));
+    $this->assertEqual($status, SAVED_NEW, new FormattableMarkup('Created block content %info.', ['%info' => $block_content->label()]));
     return $block_content;
   }
 
@@ -94,13 +94,13 @@ abstract class BlockContentTestBase extends ViewTestBase {
     $values += [
       'id' => $id,
       'label' => $id,
-      'revision' => FALSE
+      'revision' => FALSE,
     ];
     $bundle = BlockContentType::create($values);
     $status = $bundle->save();
     block_content_add_body_field($bundle->id());
 
-    $this->assertEqual($status, SAVED_NEW, SafeMarkup::format('Created block content type %bundle.', ['%bundle' => $bundle->id()]));
+    $this->assertEqual($status, SAVED_NEW, new FormattableMarkup('Created block content type %bundle.', ['%bundle' => $bundle->id()]));
     return $bundle;
   }
 

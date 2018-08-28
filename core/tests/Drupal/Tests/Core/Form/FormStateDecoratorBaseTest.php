@@ -1119,6 +1119,7 @@ class FormStateDecoratorBaseTest extends UnitTestCase {
 
     $this->assertSame($values, $this->formStateDecoratorBase->getValues());
   }
+
   /**
    * @covers ::getValue
    */
@@ -1253,7 +1254,7 @@ class FormStateDecoratorBaseTest extends UnitTestCase {
   public function testSetRedirect() {
     $route_name = 'foo';
     $route_parameters = [
-      'bar' => 'baz'
+      'bar' => 'baz',
     ];
     $options = [
       'qux' => 'foo',

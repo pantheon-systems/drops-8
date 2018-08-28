@@ -3,7 +3,7 @@
 namespace Drupal\Tests\system\Functional\Module;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -57,6 +57,17 @@ class UninstallTest extends BrowserTestBase {
     $this->drupalGet('admin/modules/uninstall');
     $this->assertTitle(t('Uninstall') . ' | Drupal');
 
+    foreach (\Drupal::service('extension.list.module')->getAllInstalledInfo() as $module => $info) {
+      $field_name = "uninstall[$module]";
+      if (!empty($info['required'])) {
+        // A required module should not be listed on the uninstall page.
+        $this->assertSession()->fieldNotExists($field_name);
+      }
+      else {
+        $this->assertSession()->fieldExists($field_name);
+      }
+    }
+
     // Be sure labels are rendered properly.
     // @see regression https://www.drupal.org/node/2512106
     $this->assertRaw('<label for="edit-uninstall-node" class="module-name table-filter-text-source">Node</label>');
@@ -103,7 +114,7 @@ class UninstallTest extends BrowserTestBase {
     // cleared during the uninstall.
     \Drupal::cache()->set('uninstall_test', 'test_uninstall_page', Cache::PERMANENT);
     $cached = \Drupal::cache()->get('uninstall_test');
-    $this->assertEqual($cached->data, 'test_uninstall_page', SafeMarkup::format('Cache entry found: @bin', ['@bin' => $cached->data]));
+    $this->assertEqual($cached->data, 'test_uninstall_page', new FormattableMarkup('Cache entry found: @bin', ['@bin' => $cached->data]));
 
     $this->drupalPostForm(NULL, NULL, t('Uninstall'));
     $this->assertText(t('The selected modules have been uninstalled.'), 'Modules status has been updated.');

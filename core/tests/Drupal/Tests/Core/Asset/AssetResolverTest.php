@@ -114,6 +114,12 @@ class AssetResolverTest extends UnitTestCase {
   /**
    * @covers ::getCssAssets
    * @dataProvider providerAttachedAssets
+   * @group legacy
+   *
+   * Note the legacy group is used here because
+   * ActiveTheme::getStyleSheetsRemove() is called and is deprecated. As this
+   * code path will still be triggered until Drupal 9 we have to add the group.
+   * We do not trigger a silenced deprecation.
    */
   public function testGetCssAssets(AttachedAssetsInterface $assets_a, AttachedAssetsInterface $assets_b, $expected_cache_item_count) {
     $this->assetResolver->getCssAssets($assets_a, FALSE);
@@ -141,12 +147,12 @@ class AssetResolverTest extends UnitTestCase {
       'same libraries, different timestamps' => [
         (new AttachedAssets())->setAlreadyLoadedLibraries([])->setLibraries(['core/drupal'])->setSettings(['currentTime' => $time]),
         (new AttachedAssets())->setAlreadyLoadedLibraries([])->setLibraries(['core/drupal'])->setSettings(['currentTime' => $time + 100]),
-        1
+        1,
       ],
       'different libraries, same timestamps' => [
         (new AttachedAssets())->setAlreadyLoadedLibraries([])->setLibraries(['core/drupal'])->setSettings(['currenttime' => $time]),
         (new AttachedAssets())->setAlreadyLoadedLibraries([])->setLibraries(['core/drupal', 'core/jquery'])->setSettings(['currentTime' => $time]),
-        2
+        2,
       ],
     ];
   }
@@ -162,6 +168,7 @@ if (!defined('JS_DEFAULT')) {
 }
 
 class TestMemoryBackend extends MemoryBackend {
+
   public function getAllCids() {
     return array_keys($this->cache);
   }

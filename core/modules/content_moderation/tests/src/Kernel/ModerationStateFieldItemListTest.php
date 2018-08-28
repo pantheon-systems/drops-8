@@ -5,7 +5,7 @@ namespace Drupal\Tests\content_moderation\Kernel;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
-use Drupal\workflows\Entity\Workflow;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 
 /**
  * @coversDefaultClass \Drupal\content_moderation\Plugin\Field\ModerationStateFieldItemList
@@ -13,6 +13,8 @@ use Drupal\workflows\Entity\Workflow;
  * @group content_moderation
  */
 class ModerationStateFieldItemListTest extends KernelTestBase {
+
+  use ContentModerationTestTrait;
 
   /**
    * {@inheritdoc}
@@ -51,7 +53,7 @@ class ModerationStateFieldItemListTest extends KernelTestBase {
       'type' => 'example',
     ]);
     $node_type->save();
-    $workflow = Workflow::load('editorial');
+    $workflow = $this->createEditorialWorkflow();
     $workflow->getTypePlugin()->addEntityTypeAndBundle('node', 'example');
     $workflow->save();
 
@@ -245,6 +247,36 @@ class ModerationStateFieldItemListTest extends KernelTestBase {
         'published',
         TRUE,
         TRUE,
+      ],
+    ];
+  }
+
+  /**
+   * Test saving a moderated node with an existing ID.
+   *
+   * @dataProvider moderatedEntityWithExistingIdTestCases
+   */
+  public function testModeratedEntityWithExistingId($state) {
+    $node = Node::create([
+      'title' => 'Test title',
+      'type' => 'example',
+      'nid' => 999,
+      'moderation_state' => $state,
+    ]);
+    $node->save();
+    $this->assertEquals($state, $node->moderation_state->value);
+  }
+
+  /**
+   * Test cases for ::testModeratedEntityWithExistingId.
+   */
+  public function moderatedEntityWithExistingIdTestCases() {
+    return [
+      'Draft non-default state' => [
+        'draft',
+      ],
+      'Published default state' => [
+        'published',
       ],
     ];
   }

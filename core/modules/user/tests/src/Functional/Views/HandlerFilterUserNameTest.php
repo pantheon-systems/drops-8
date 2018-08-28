@@ -66,7 +66,6 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     }
   }
 
-
   /**
    * Tests just using the filter.
    */
@@ -96,7 +95,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $users = [$this->randomMachineName()];
     $users = array_map('strtolower', $users);
     $edit = [
-      'options[value]' => implode(', ', $users)
+      'options[value]' => implode(', ', $users),
     ];
     $this->drupalPostForm($path, $edit, t('Apply'));
     $this->assertRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));
@@ -106,7 +105,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $users = [$random_name, $this->names[0]];
     $users = array_map('strtolower', $users);
     $edit = [
-      'options[value]' => implode(', ', $users)
+      'options[value]' => implode(', ', $users),
     ];
     $users = [$users[0]];
     $this->drupalPostForm($path, $edit, t('Apply'));
@@ -116,7 +115,7 @@ class HandlerFilterUserNameTest extends ViewTestBase {
     $users = $this->names;
     $users = array_map('strtolower', $users);
     $edit = [
-      'options[value]' => implode(', ', $users)
+      'options[value]' => implode(', ', $users),
     ];
     $this->drupalPostForm($path, $edit, t('Apply'));
     $this->assertNoRaw(t('There are no entities matching "%value".', ['%value' => implode(', ', $users)]));

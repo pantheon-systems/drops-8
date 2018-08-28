@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\ConfigFormBaseTrait;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -43,6 +44,13 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
   protected $searchManager;
 
   /**
+   * The messenger.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
    * Constructs a new SearchPageListBuilder object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -53,11 +61,14 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
    *   The search plugin manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, SearchPluginManager $search_manager, ConfigFactoryInterface $config_factory) {
+  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage, SearchPluginManager $search_manager, ConfigFactoryInterface $config_factory, MessengerInterface $messenger) {
     parent::__construct($entity_type, $storage);
     $this->configFactory = $config_factory;
     $this->searchManager = $search_manager;
+    $this->messenger = $messenger;
   }
 
   /**
@@ -68,7 +79,8 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       $entity_type,
       $container->get('entity.manager')->getStorage($entity_type->id()),
       $container->get('plugin.manager.search'),
-      $container->get('config.factory')
+      $container->get('config.factory'),
+      $container->get('messenger')
     );
   }
 
@@ -145,7 +157,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       $status = $entity->getPlugin()->indexStatus();
       $row['progress']['#markup'] = $this->t('%num_indexed of %num_total indexed', [
         '%num_indexed' => $status['total'] - $status['remaining'],
-        '%num_total' => $status['total']
+        '%num_total' => $status['total'],
       ]);
     }
     else {
@@ -215,7 +227,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       '#open' => TRUE,
     ];
     $form['indexing_settings']['info'] = [
-      '#markup' => $this->t("<p>Search pages that use an index may use the default index provided by the Search module, or they may use a different indexing mechanism. These settings are for the default index. <em>Changing these settings will cause the default search index to be rebuilt to reflect the new settings. Searching will continue to work, based on the existing index, but new content won't be indexed until all existing content has been re-indexed.</em></p><p><em>The default settings should be appropriate for the majority of sites.</em></p>")
+      '#markup' => $this->t("<p>Search pages that use an index may use the default index provided by the Search module, or they may use a different indexing mechanism. These settings are for the default index. <em>Changing these settings will cause the default search index to be rebuilt to reflect the new settings. Searching will continue to work, based on the existing index, but new content won't be indexed until all existing content has been re-indexed.</em></p><p><em>The default settings should be appropriate for the majority of sites.</em></p>"),
     ];
     $form['indexing_settings']['minimum_word_size'] = [
       '#type' => 'number',
@@ -229,7 +241,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       '#type' => 'checkbox',
       '#title' => $this->t('Simple CJK handling'),
       '#default_value' => $search_settings->get('index.overlap_cjk'),
-      '#description' => $this->t('Whether to apply a simple Chinese/Japanese/Korean tokenizer based on overlapping sequences. Turn this off if you want to use an external preprocessor for this instead. Does not affect other languages.')
+      '#description' => $this->t('Whether to apply a simple Chinese/Japanese/Korean tokenizer based on overlapping sequences. Turn this off if you want to use an external preprocessor for this instead. Does not affect other languages.'),
     ];
 
     // Indexing settings:
@@ -333,7 +345,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       $search_settings->set('index.overlap_cjk', $form_state->getValue('overlap_cjk'));
       // Specifically mark items in the default index for reindexing, since
       // these settings are used in the search_index() function.
-      drupal_set_message($this->t('The default search index will be rebuilt.'));
+      $this->messenger->addStatus($this->t('The default search index will be rebuilt.'));
       search_mark_for_reindex();
     }
 
@@ -342,7 +354,7 @@ class SearchPageListBuilder extends DraggableListBuilder implements FormInterfac
       ->set('logging', $form_state->getValue('logging'))
       ->save();
 
-    drupal_set_message($this->t('The configuration options have been saved.'));
+    $this->messenger->addStatus($this->t('The configuration options have been saved.'));
   }
 
   /**

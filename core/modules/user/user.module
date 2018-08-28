@@ -491,9 +491,9 @@ function template_preprocess_username(&$variables) {
   // unsanitized version, in case other preprocess functions want to implement
   // their own shortening logic or add markup. If they do so, they must ensure
   // that $variables['name'] is safe for printing.
-  $name  = $account->getDisplayName();
+  $name = $account->getDisplayName();
   $variables['name_raw'] = $account->getUsername();
-  if (Unicode::strlen($name) > 20) {
+  if (mb_strlen($name) > 20) {
     $name = Unicode::truncate($name, 15, FALSE, TRUE);
     $variables['truncated'] = TRUE;
   }
@@ -609,7 +609,7 @@ function user_pass_reset_url($account, $options = []) {
     ],
     [
       'absolute' => TRUE,
-      'language' => \Drupal::languageManager()->getLanguage($langcode)
+      'language' => \Drupal::languageManager()->getLanguage($langcode),
     ]
   );
 }
@@ -638,7 +638,7 @@ function user_cancel_url(UserInterface $account, $options = []) {
   return \Drupal::url('user.cancel_confirm', [
     'user' => $account->id(),
     'timestamp' => $timestamp,
-    'hashed_pass' => user_pass_rehash($account, $timestamp)
+    'hashed_pass' => user_pass_rehash($account, $timestamp),
   ], $url_options);
 }
 
@@ -690,7 +690,7 @@ function user_cancel($edit, $uid, $method) {
   $account = User::load($uid);
 
   if (!$account) {
-    drupal_set_message(t('The user account %id does not exist.', ['%id' => $uid]), 'error');
+    \Drupal::messenger()->addError(t('The user account %id does not exist.', ['%id' => $uid]));
     \Drupal::logger('user')->error('Attempted to cancel non-existing user account: %id.', ['%id' => $uid]);
     return;
   }
@@ -761,7 +761,7 @@ function _user_cancel($edit, $account, $method) {
       }
       $account->block();
       $account->save();
-      drupal_set_message(t('%name has been disabled.', ['%name' => $account->getDisplayName()]));
+      \Drupal::messenger()->addStatus(t('%name has been disabled.', ['%name' => $account->getDisplayName()]));
       $logger->notice('Blocked user: %name %email.', ['%name' => $account->getAccountName(), '%email' => '<' . $account->getEmail() . '>']);
       break;
 
@@ -772,7 +772,7 @@ function _user_cancel($edit, $account, $method) {
         _user_mail_notify('status_canceled', $account);
       }
       $account->delete();
-      drupal_set_message(t('%name has been deleted.', ['%name' => $account->getDisplayName()]));
+      \Drupal::messenger()->addStatus(t('%name has been deleted.', ['%name' => $account->getDisplayName()]));
       $logger->notice('Deleted user: %name %email.', ['%name' => $account->getAccountName(), '%email' => '<' . $account->getEmail() . '>']);
       break;
   }

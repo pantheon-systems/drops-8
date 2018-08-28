@@ -121,7 +121,7 @@ function callback_batch_finished($success, $results, $operations) {
       '#items' => $results,
     ];
     $message .= drupal_render($list);
-    drupal_set_message($message);
+    \Drupal::messenger()->addStatus($message);
   }
   else {
     // An error occurred.
@@ -129,9 +129,9 @@ function callback_batch_finished($success, $results, $operations) {
     $error_operation = reset($operations);
     $message = t('An error occurred while processing %error_operation with arguments: @arguments', [
       '%error_operation' => $error_operation[0],
-      '@arguments' => print_r($error_operation[1], TRUE)
+      '@arguments' => print_r($error_operation[1], TRUE),
     ]);
-    drupal_set_message($message, 'error');
+    \Drupal::messenger()->addError($message);
   }
 }
 

@@ -30,11 +30,11 @@ abstract class FileResourceTestBase extends EntityResourceTestBase {
    * {@inheritdoc}
    */
   protected static $patchProtectedFieldNames = [
-    'uri',
-    'filemime',
-    'filesize',
-    'status',
-    'changed',
+    'uri' => NULL,
+    'filemime' => NULL,
+    'filesize' => NULL,
+    'status' => NULL,
+    'changed' => NULL,
   ];
 
   /**
@@ -204,7 +204,12 @@ abstract class FileResourceTestBase extends EntityResourceTestBase {
    * {@inheritdoc}
    */
   public function testPost() {
-    // @todo https://www.drupal.org/node/1927648
+    // Drupal does not allow creating file entities independently. It allows you
+    // to create file entities that are referenced from another entity (e.g. an
+    // image for a node's image field).
+    // For that purpose, there is the "file_upload" REST resource plugin.
+    // @see \Drupal\file\FileAccessControlHandler::checkCreateAccess()
+    // @see \Drupal\file\Plugin\rest\resource\FileUploadResource
     $this->markTestSkipped();
   }
 
@@ -219,8 +224,8 @@ abstract class FileResourceTestBase extends EntityResourceTestBase {
     if ($method === 'GET') {
       return "The 'access content' permission is required.";
     }
-    if ($method === 'PATCH') {
-      return 'You are not authorized to update this file entity.';
+    if ($method === 'PATCH' || $method === 'DELETE') {
+      return 'Only the file owner can update or delete the file entity.';
     }
     return parent::getExpectedUnauthorizedAccessMessage($method);
   }

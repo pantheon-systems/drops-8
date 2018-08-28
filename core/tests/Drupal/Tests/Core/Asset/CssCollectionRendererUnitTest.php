@@ -15,7 +15,7 @@ class CssCollectionRendererUnitTest extends UnitTestCase {
   /**
    * A CSS asset renderer.
    *
-   * @var \Drupal\Core\Asset\CssRenderer object.
+   * @var \Drupal\Core\Asset\CssCollectionRenderer
    */
   protected $renderer;
 
@@ -94,7 +94,7 @@ class CssCollectionRendererUnitTest extends UnitTestCase {
         '#tag' => 'style',
         '#value' => $value,
         '#attributes' => [
-          'media' => $media
+          'media' => $media,
         ],
         '#browsers' => $browsers,
       ];
@@ -461,7 +461,7 @@ class CssCollectionRendererUnitTest extends UnitTestCase {
       'media' => 'all',
       'preprocess' => TRUE,
       'browsers' => [],
-      'data' => 'http://example.com/popular.js'
+      'data' => 'http://example.com/popular.js',
     ];
     $this->renderer->render($css_group);
   }
@@ -473,9 +473,11 @@ class CssCollectionRendererUnitTest extends UnitTestCase {
  * Component/Utility.
  */
 if (!function_exists('Drupal\Tests\Core\Asset\file_create_url')) {
+
   function file_create_url($uri) {
     return 'file_create_url:' . $uri;
   }
+
 }
 
 /**
@@ -483,9 +485,11 @@ if (!function_exists('Drupal\Tests\Core\Asset\file_create_url')) {
  * Component/Utility.
  */
 if (!function_exists('Drupal\Tests\Core\Asset\file_url_transform_relative')) {
+
   function file_url_transform_relative($uri) {
     return 'file_url_transform_relative:' . $uri;
   }
+
 }
 
 /**

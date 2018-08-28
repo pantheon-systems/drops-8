@@ -283,13 +283,13 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
           'config_dependencies' => [
             'config' => [$instance_dependency_1],
             'module' => [$instance_dependency_2],
-          ]
+          ],
         ],
         [
           'config' => [$instance_dependency_1],
-          'module' => [$instance_dependency_2, 'test']
-        ]
-      ]
+          'module' => [$instance_dependency_2, 'test'],
+        ],
+      ],
     ];
   }
 
@@ -553,32 +553,6 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::toArray
-   */
-  public function testToArraySchemaFallback() {
-    $this->typedConfigManager->expects($this->once())
-      ->method('getDefinition')
-      ->will($this->returnValue(['mapping' => ['id' => '', 'dependencies' => '']]));
-    $this->entityType->expects($this->any())
-      ->method('getPropertiesToExport')
-      ->willReturn([]);
-    $properties = $this->entity->toArray();
-    $this->assertInternalType('array', $properties);
-    $this->assertEquals(['id' => $this->entity->id(), 'dependencies' => []], $properties);
-  }
-
-  /**
-   * @covers ::toArray
-   */
-  public function testToArrayFallback() {
-    $this->entityType->expects($this->any())
-      ->method('getPropertiesToExport')
-      ->willReturn([]);
-    $this->setExpectedException(SchemaIncompleteException::class);
-    $this->entity->toArray();
-  }
-
-  /**
    * @covers ::getThirdPartySetting
    * @covers ::setThirdPartySetting
    * @covers ::getThirdPartySettings
@@ -610,6 +584,17 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     // Test unsetThirdPartyProviders().
     $this->entity->unsetThirdPartySetting('test_provider2', $key);
     $this->assertEquals([$third_party], $this->entity->getThirdPartyProviders());
+  }
+
+  /**
+   * @covers ::toArray
+   */
+  public function testToArraySchemaException() {
+    $this->entityType->expects($this->any())
+      ->method('getPropertiesToExport')
+      ->willReturn(NULL);
+    $this->setExpectedException(SchemaIncompleteException::class, 'Incomplete or missing schema for test_provider.');
+    $this->entity->toArray();
   }
 
 }

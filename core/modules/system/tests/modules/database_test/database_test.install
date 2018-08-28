@@ -47,7 +47,7 @@ function database_test_schema() {
     ],
     'primary key' => ['id'],
     'unique keys' => [
-      'name' => ['name']
+      'name' => ['name'],
     ],
     'indexes' => [
       'ages' => ['age'],
@@ -148,7 +148,7 @@ function database_test_schema() {
       ],
       'blob2' => [
         'description' => 'A second BLOB field.',
-        'type' => 'blob'
+        'type' => 'blob',
       ],
     ],
     'primary key' => ['id'],
@@ -212,7 +212,7 @@ function database_test_schema() {
     ],
     'primary key' => ['id'],
     'unique keys' => [
-      'name' => ['name']
+      'name' => ['name'],
     ],
     'indexes' => [
       'ages' => ['age'],
@@ -242,7 +242,7 @@ function database_test_schema() {
     ],
     'primary key' => ['id'],
     'unique keys' => [
-      'name' => ['name']
+      'name' => ['name'],
     ],
   ];
 
@@ -285,6 +285,10 @@ function database_test_schema() {
       ],
       'offset' => [
         'description' => 'A column with preserved name.',
+        'type' => 'text',
+      ],
+      'function' => [
+        'description' => 'A column with reserved name in MySQL 8.',
         'type' => 'text',
       ],
     ],
