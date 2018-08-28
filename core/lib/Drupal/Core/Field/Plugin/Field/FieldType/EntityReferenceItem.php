@@ -699,8 +699,8 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
         'field_storage_config' => [
           'settings' => [
             'target_type' => $entity_type->id(),
-          ]
-        ]
+          ],
+        ],
       ];
     }
 

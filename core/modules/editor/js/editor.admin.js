@@ -17,6 +17,10 @@
       $(document).trigger('drupalEditorFeatureModified', feature);
     },
     featureIsAllowedByFilters: function featureIsAllowedByFilters(feature) {
+      function emptyProperties(section) {
+        return section.attributes.length === 0 && section.classes.length === 0 && section.styles.length === 0;
+      }
+
       function generateUniverseFromFeatureRequirements(feature) {
         var properties = ['attributes', 'styles', 'classes'];
         var universe = {};
@@ -49,34 +53,6 @@
         }
 
         return universe;
-      }
-
-      function emptyProperties(section) {
-        return section.attributes.length === 0 && section.classes.length === 0 && section.styles.length === 0;
-      }
-
-      function findPropertyValuesOnTag(universe, tag, property, propertyValues, allowing) {
-        if (tag === '*') {
-          return findPropertyValuesOnAllTags(universe, property, propertyValues, allowing);
-        }
-
-        var atLeastOneFound = false;
-        _.each(propertyValues, function (propertyValue) {
-          if (findPropertyValueOnTag(universe, tag, property, propertyValue, allowing)) {
-            atLeastOneFound = true;
-          }
-        });
-        return atLeastOneFound;
-      }
-
-      function findPropertyValuesOnAllTags(universe, property, propertyValues, allowing) {
-        var atLeastOneFound = false;
-        _.each(_.keys(universe), function (tag) {
-          if (findPropertyValuesOnTag(universe, tag, property, propertyValues, allowing)) {
-            atLeastOneFound = true;
-          }
-        });
-        return atLeastOneFound;
       }
 
       function findPropertyValueOnTag(universe, tag, property, propertyValue, allowing) {
@@ -114,15 +90,28 @@
         return atLeastOneFound;
       }
 
-      function deleteFromUniverseIfAllowed(universe, tag) {
+      function findPropertyValuesOnAllTags(universe, property, propertyValues, allowing) {
+        var atLeastOneFound = false;
+        _.each(_.keys(universe), function (tag) {
+          if (findPropertyValuesOnTag(universe, tag, property, propertyValues, allowing)) {
+            atLeastOneFound = true;
+          }
+        });
+        return atLeastOneFound;
+      }
+
+      function findPropertyValuesOnTag(universe, tag, property, propertyValues, allowing) {
         if (tag === '*') {
-          return deleteAllTagsFromUniverseIfAllowed(universe);
+          return findPropertyValuesOnAllTags(universe, property, propertyValues, allowing);
         }
-        if (_.has(universe, tag) && _.every(_.omit(universe[tag], 'touchedByAllowedPropertyRule'))) {
-          delete universe[tag];
-          return true;
-        }
-        return false;
+
+        var atLeastOneFound = false;
+        _.each(propertyValues, function (propertyValue) {
+          if (findPropertyValueOnTag(universe, tag, property, propertyValue, allowing)) {
+            atLeastOneFound = true;
+          }
+        });
+        return atLeastOneFound;
       }
 
       function deleteAllTagsFromUniverseIfAllowed(universe) {
@@ -133,6 +122,17 @@
           }
         });
         return atLeastOneDeleted;
+      }
+
+      function deleteFromUniverseIfAllowed(universe, tag) {
+        if (tag === '*') {
+          return deleteAllTagsFromUniverseIfAllowed(universe);
+        }
+        if (_.has(universe, tag) && _.every(_.omit(universe[tag], 'touchedByAllowedPropertyRule'))) {
+          delete universe[tag];
+          return true;
+        }
+        return false;
       }
 
       function anyForbiddenFilterRuleMatches(universe, filterStatus) {
@@ -256,24 +256,26 @@
       }
 
       Drupal.filterConfiguration.update();
-
-      for (var filterID in Drupal.filterConfiguration.statuses) {
-        if (Drupal.filterConfiguration.statuses.hasOwnProperty(filterID)) {
-          var filterStatus = Drupal.filterConfiguration.statuses[filterID];
-          if (!filterStatusAllowsFeature(filterStatus, feature)) {
-            return false;
-          }
-        }
-      }
-
-      return true;
+      return Object.keys(Drupal.filterConfiguration.statuses).every(function (filterID) {
+        return filterStatusAllowsFeature(Drupal.filterConfiguration.statuses[filterID], feature);
+      });
     }
   };
 
   Drupal.EditorFeatureHTMLRule = function () {
-    this.required = { tags: [], attributes: [], styles: [], classes: [] };
+    this.required = {
+      tags: [],
+      attributes: [],
+      styles: [],
+      classes: []
+    };
 
-    this.allowed = { tags: [], attributes: [], styles: [], classes: [] };
+    this.allowed = {
+      tags: [],
+      attributes: [],
+      styles: [],
+      classes: []
+    };
 
     this.raw = null;
   };

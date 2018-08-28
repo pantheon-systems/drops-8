@@ -26,7 +26,7 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
   /**
    * The loaded View object.
    *
-   * @var \Drupal\views\ViewExecutable;
+   * @var \Drupal\views\ViewExecutable
    */
   protected $view;
 
@@ -132,7 +132,7 @@ class ViewsSelection extends SelectionPluginBase implements ContainerFactoryPlug
     // Check that the view is valid and the display still exists.
     $this->view = Views::getView($view_name);
     if (!$this->view || !$this->view->access($display_name)) {
-      drupal_set_message(t('The reference view %view_name cannot be found.', ['%view_name' => $view_name]), 'warning');
+      \Drupal::messenger()->addWarning(t('The reference view %view_name cannot be found.', ['%view_name' => $view_name]));
       return FALSE;
     }
     $this->view->setDisplay($display_name);

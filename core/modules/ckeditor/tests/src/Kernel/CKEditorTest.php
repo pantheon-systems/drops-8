@@ -24,7 +24,7 @@ class CKEditorTest extends KernelTestBase {
   /**
    * An instance of the "CKEditor" text editor plugin.
    *
-   * @var \Drupal\ckeditor\Plugin\Editor\CKEditor;
+   * @var \Drupal\ckeditor\Plugin\Editor\CKEditor
    */
   protected $ckeditor;
 
@@ -50,7 +50,7 @@ class CKEditorTest extends KernelTestBase {
           'status' => 1,
           'settings' => [
             'allowed_html' => '<h2 id> <h3> <h4> <h5> <h6> <p> <br> <strong> <a href hreflang>',
-          ]
+          ],
         ],
       ],
     ]);

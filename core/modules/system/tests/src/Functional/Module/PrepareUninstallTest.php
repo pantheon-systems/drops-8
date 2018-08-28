@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\system\Functional\Module;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\taxonomy\Functional\TaxonomyTestTrait;
 
@@ -78,15 +77,15 @@ class PrepareUninstallTest extends BrowserTestBase {
       $this->assertText($this->terms[$term_count - $i]->label());
     }
     $term_count = $term_count - 10;
-    $this->assertText("And $term_count more taxonomy term entities.");
+    $this->assertText("And $term_count more taxonomy terms.");
     $this->assertText('This action cannot be undone.');
     $this->assertText('Make a backup of your database if you want to be able to restore these items.');
-    $this->drupalPostForm(NULL, [], t('Delete all taxonomy term entities'));
+    $this->drupalPostForm(NULL, [], t('Delete all taxonomy terms'));
 
     // Check that we are redirected to the uninstall page and data has been
     // removed.
     $this->assertUrl('admin/modules/uninstall', []);
-    $this->assertText('All taxonomy term entities have been deleted.');
+    $this->assertText('All taxonomy terms have been deleted.');
 
     // Check that there is no more data to be deleted, Taxonomy is ready to be
     // uninstalled.
@@ -162,14 +161,14 @@ class PrepareUninstallTest extends BrowserTestBase {
     $storage = $this->container->get('entity.manager')
       ->getStorage('entity_test_no_label');
     $storage->create([
-      'id' => Unicode::strtolower($this->randomMachineName()),
+      'id' => mb_strtolower($this->randomMachineName()),
       'name' => $this->randomMachineName(),
     ])->save();
     $this->drupalGet('admin/modules/uninstall/entity/entity_test_no_label');
     $this->assertText('This will delete 1 entity test without label.');
     $this->assertFieldByXPath($button_xpath, NULL, 'Button with value "Delete all entity test without label entities" found');
     $storage->create([
-      'id' => Unicode::strtolower($this->randomMachineName()),
+      'id' => mb_strtolower($this->randomMachineName()),
       'name' => $this->randomMachineName(),
     ])->save();
     $this->drupalGet('admin/modules/uninstall/entity/entity_test_no_label');

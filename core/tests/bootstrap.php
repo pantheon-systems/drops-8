@@ -129,6 +129,7 @@ function drupal_phpunit_populate_class_loader() {
 
   // Start with classes in known locations.
   $loader->add('Drupal\\Tests', __DIR__);
+  $loader->add('Drupal\\TestSite', __DIR__);
   $loader->add('Drupal\\KernelTests', __DIR__);
   $loader->add('Drupal\\FunctionalTests', __DIR__);
   $loader->add('Drupal\\FunctionalJavascriptTests', __DIR__);
@@ -159,7 +160,7 @@ else {
   $phpunit_version = Version::id();
 }
 if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
-  $message = "PHPUnit testing framework version 6 or greater is required when running on PHP 7.2 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.";
+  $message = "PHPUnit testing framework version 6 or greater is required when running on PHP 7.0 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.";
   echo "\033[31m" . $message . "\n\033[0m";
   exit(1);
 }
@@ -168,6 +169,10 @@ if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
 // numbers handling.
 // @see \Drupal\Core\DrupalKernel::bootEnvironment()
 setlocale(LC_ALL, 'C');
+
+// Set appropriate configuration for multi-byte strings.
+mb_internal_encoding('utf-8');
+mb_language('uni');
 
 // Set the default timezone. While this doesn't cause any tests to fail, PHP
 // complains if 'date.timezone' is not set in php.ini. The Australia/Sydney
@@ -195,5 +200,5 @@ if (version_compare($phpunit_version, '6.1', '>=')) {
   class_alias('\PHPUnit\Framework\SkippedTestError', '\PHPUnit_Framework_SkippedTestError');
   class_alias('\PHPUnit\Framework\TestCase', '\PHPUnit_Framework_TestCase');
   class_alias('\PHPUnit\Util\Test', '\PHPUnit_Util_Test');
-  class_alias('\PHPUnit\Util\XML', '\PHPUnit_Util_XML');
+  class_alias('\PHPUnit\Util\Xml', '\PHPUnit_Util_XML');
 }

@@ -2,6 +2,8 @@
 
 namespace Drupal\system\Tests\Installer;
 
+@trigger_error(__NAMESPACE__ . '\ConfigAfterInstallerTestBase is deprecated in Drupal 8.6.0 and will be removed before Drupal 9.0.0. Instead, use \Drupal\FunctionalTests\Installer\ConfigAfterInstallerTestBase.', E_USER_DEPRECATED);
+
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Config\StorageInterface;
@@ -10,6 +12,9 @@ use Drupal\simpletest\InstallerTestBase;
 
 /**
  * Provides a class for install profiles to check their installed config.
+ *
+ * @deprecated in Drupal 8.6.0 and will be removed before Drupal 9.0.0.
+ *   Use \Drupal\FunctionalTests\Installer\ConfigAfterInstallerTestBase.
  */
 abstract class ConfigAfterInstallerTestBase extends InstallerTestBase {
 

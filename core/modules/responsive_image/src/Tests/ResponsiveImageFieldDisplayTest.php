@@ -2,7 +2,6 @@
 
 namespace Drupal\responsive_image\Tests;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\image\Tests\ImageFieldTestBase;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\node\Entity\Node;
@@ -52,7 +51,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
       'create article content',
       'edit any article content',
       'delete any article content',
-      'administer image styles'
+      'administer image styles',
     ]);
     $this->drupalLogin($this->adminUser);
     // Add responsive image style.
@@ -152,6 +151,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
         ->save();
     }
   }
+
   /**
    * Test responsive image formatters on node display.
    *
@@ -168,7 +168,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = $this->container->get('renderer');
     $node_storage = $this->container->get('entity.manager')->getStorage('node');
-    $field_name = Unicode::strtolower($this->randomMachineName());
+    $field_name = mb_strtolower($this->randomMachineName());
     $this->createImageField($field_name, 'article', ['uri_scheme' => $scheme]);
     // Create a new node with an image attached. Make sure we use a large image
     // so the scale effects of the image styles always have an effect.
@@ -366,7 +366,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
       ])
       ->save();
     $node_storage = $this->container->get('entity.manager')->getStorage('node');
-    $field_name = Unicode::strtolower($this->randomMachineName());
+    $field_name = mb_strtolower($this->randomMachineName());
     $this->createImageField($field_name, 'article', ['uri_scheme' => 'public']);
     // Create a new node with an image attached.
     $test_image = current($this->drupalGetTestFiles('image'));
@@ -414,7 +414,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
         ])
       ->save();
     $node_storage = $this->container->get('entity.manager')->getStorage('node');
-    $field_name = Unicode::strtolower($this->randomMachineName());
+    $field_name = mb_strtolower($this->randomMachineName());
     $this->createImageField($field_name, 'article', ['uri_scheme' => 'public']);
     // Create a new node with an image attached.
     $test_image = current($this->drupalGetTestFiles('image'));
@@ -451,7 +451,7 @@ class ResponsiveImageFieldDisplayTest extends ImageFieldTestBase {
    *   The link type to test. Either 'file' or 'content'.
    */
   private function assertResponsiveImageFieldFormattersLink($link_type) {
-    $field_name = Unicode::strtolower($this->randomMachineName());
+    $field_name = mb_strtolower($this->randomMachineName());
     $field_settings = ['alt_field_required' => 0];
     $this->createImageField($field_name, 'article', ['uri_scheme' => 'public'], $field_settings);
     // Create a new node with an image attached.

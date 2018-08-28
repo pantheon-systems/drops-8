@@ -84,7 +84,7 @@ class FieldStorageConfigEditForm extends EntityForm {
     $ids = (object) [
       'entity_type' => $form_state->get('entity_type_id'),
       'bundle' => $form_state->get('bundle'),
-      'entity_id' => NULL
+      'entity_id' => NULL,
     ];
     $entity = _field_create_entity_from_ids($ids);
     $items = $entity->get($this->entity->getName());
@@ -222,7 +222,7 @@ class FieldStorageConfigEditForm extends EntityForm {
     $field_label = $form_state->get('field_config')->label();
     try {
       $this->entity->save();
-      drupal_set_message($this->t('Updated field %label field settings.', ['%label' => $field_label]));
+      $this->messenger()->addStatus($this->t('Updated field %label field settings.', ['%label' => $field_label]));
       $request = $this->getRequest();
       if (($destinations = $request->query->get('destinations')) && $next_destination = FieldUI::getNextDestination($destinations)) {
         $request->query->remove('destinations');
@@ -233,7 +233,7 @@ class FieldStorageConfigEditForm extends EntityForm {
       }
     }
     catch (\Exception $e) {
-      drupal_set_message($this->t('Attempt to update field %label failed: %message.', ['%label' => $field_label, '%message' => $e->getMessage()]), 'error');
+      $this->messenger()->addStatus($this->t('Attempt to update field %label failed: %message.', ['%label' => $field_label, '%message' => $e->getMessage()]));
     }
   }
 

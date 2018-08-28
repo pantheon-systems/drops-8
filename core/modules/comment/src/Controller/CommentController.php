@@ -82,10 +82,10 @@ class CommentController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    */
   public function commentApprove(CommentInterface $comment) {
-    $comment->setPublished(TRUE);
+    $comment->setPublished();
     $comment->save();
 
-    drupal_set_message($this->t('Comment approved.'));
+    $this->messenger()->addStatus($this->t('Comment approved.'));
     $permalink_uri = $comment->permalink();
     $permalink_uri->setAbsolute();
     return new RedirectResponse($permalink_uri->toString());

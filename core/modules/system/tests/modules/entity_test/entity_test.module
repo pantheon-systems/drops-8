@@ -306,7 +306,7 @@ function entity_test_entity_extra_field_info() {
         'description' => t('An extra field on the display side, hidden by default.'),
         'visible' => FALSE,
       ],
-    ]
+    ],
   ];
 
   return $extra;
@@ -678,6 +678,23 @@ function entity_test_entity_test_mul_langcode_key_translation_insert(EntityInter
  */
 function entity_test_entity_test_mul_langcode_key_translation_delete(EntityInterface $translation) {
   _entity_test_record_hooks('entity_test_mul_langcode_key_translation_delete', $translation->language()->getId());
+}
+
+/**
+ * Implements hook_entity_revision_create().
+ */
+function entity_test_entity_revision_create(EntityInterface $new_revision, EntityInterface $entity, $keep_untranslatable_fields) {
+  _entity_test_record_hooks('entity_revision_create', ['new_revision' => $new_revision, 'entity' => $entity, 'keep_untranslatable_fields' => $keep_untranslatable_fields]);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_revision_create() for 'entity_test_mulrev'.
+ */
+function entity_test_entity_test_mulrev_revision_create(EntityInterface $new_revision, EntityInterface $entity, $keep_untranslatable_fields) {
+  if ($new_revision->get('name')->value == 'revision_create_test_it') {
+    $new_revision->set('name', 'revision_create_test_it_altered');
+  }
+  _entity_test_record_hooks('entity_test_mulrev_revision_create', ['new_revision' => $new_revision, 'entity' => $entity, 'keep_untranslatable_fields' => $keep_untranslatable_fields]);
 }
 
 /**

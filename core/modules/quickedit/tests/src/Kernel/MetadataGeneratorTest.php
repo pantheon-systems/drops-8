@@ -30,7 +30,7 @@ class MetadataGeneratorTest extends QuickEditTestBase {
   /**
    * The metadata generator object to be tested.
    *
-   * @var \Drupal\quickedit\MetadataGeneratorInterface.php
+   * @var \Drupal\quickedit\MetadataGeneratorInterface
    */
   protected $metadataGenerator;
 
@@ -169,7 +169,7 @@ class MetadataGeneratorTest extends QuickEditTestBase {
       'label' => 'Rich text field',
       'editor' => 'wysiwyg',
       'custom' => [
-        'format' => 'full_html'
+        'format' => 'full_html',
       ],
     ];
     $this->assertEqual($expected, $metadata, 'The correct metadata (including custom metadata) is generated.');

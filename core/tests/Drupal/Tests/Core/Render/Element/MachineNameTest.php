@@ -42,7 +42,6 @@ class MachineNameTest extends UnitTestCase {
     return $data;
   }
 
-
   /**
    * @covers ::processMachineName
    */
@@ -60,7 +59,11 @@ class MachineNameTest extends UnitTestCase {
         'maxlength' => 32,
         'additional_property' => TRUE,
         '#additional_property_with_hash' => TRUE,
-      ]
+      ],
+      // The process function requires these to be set. During regular form
+      // building they are always set.
+      '#name' => 'test_machine_name',
+      '#default_value' => NULL,
     ];
 
     $complete_form = [
@@ -68,7 +71,7 @@ class MachineNameTest extends UnitTestCase {
         '#type' => 'textfield',
         '#id' => 'source',
       ],
-      'test_machine_name' => $element
+      'test_machine_name' => $element,
     ];
 
     $form_state->setCompleteForm($complete_form);
@@ -112,7 +115,9 @@ class MachineNameTest extends UnitTestCase {
 namespace Drupal\Core\Render\Element;
 
 if (!function_exists('t')) {
+
   function t($string, array $args = []) {
     return strtr($string, $args);
   }
+
 }

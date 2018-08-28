@@ -4,9 +4,11 @@ namespace Drupal\KernelTests\Core\Theme;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\Template\TwigPhpStorageCache;
 use Drupal\KernelTests\KernelTestBase;
+use Symfony\Component\DependencyInjection\Definition;
 
 /**
  * Tests the twig environment.
@@ -110,6 +112,35 @@ class TwigEnvironmentTest extends KernelTestBase {
   }
 
   /**
+   * Ensures that templates resolve to the same class name and cache file.
+   */
+  public function testTemplateClassname() {
+    /** @var \Drupal\Core\Template\TwigEnvironment $environment */
+    $environment = \Drupal::service('twig');
+
+    // Test using an include template path.
+    $name_include = 'container.html.twig';
+    $class_include = $environment->getTemplateClass($name_include);
+    $key_include = $environment->getCache()->generateKey($name_include, $class_include);
+
+    // Test using a namespaced template path.
+    $name_namespaced = '@system/container.html.twig';
+    $class_namespaced = $environment->getTemplateClass($name_namespaced);
+    $key_namespaced = $environment->getCache()->generateKey($name_namespaced, $class_namespaced);
+
+    // Test using a direct filesystem template path.
+    $name_direct = 'core/modules/system/templates/container.html.twig';
+    $class_direct = $environment->getTemplateClass($name_direct);
+    $key_direct = $environment->getCache()->generateKey($name_direct, $class_direct);
+
+    // All three should be equal for both cases.
+    $this->assertEqual($class_include, $class_namespaced);
+    $this->assertEqual($class_namespaced, $class_direct);
+    $this->assertEqual($key_include, $key_namespaced);
+    $this->assertEqual($key_namespaced, $key_direct);
+  }
+
+  /**
    * Ensures that cacheFilename() varies by extensions + deployment identifier.
    */
   public function testCacheFilename() {
@@ -141,6 +172,53 @@ class TwigEnvironmentTest extends KernelTestBase {
     \Drupal::getContainer()->set('twig', NULL);
 
     $this->assertNotEqual($new_extension_filename, $original_filename);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function register(ContainerBuilder $container) {
+    parent::register($container);
+
+    $container->setDefinition('twig_loader__file_system', new Definition('Twig_Loader_Filesystem', [[sys_get_temp_dir()]]))
+      ->addTag('twig.loader');
+  }
+
+  /**
+   * Test template invalidation.
+   */
+  public function testTemplateInvalidation() {
+    $template_before = <<<TWIG
+<div>Hello before</div>
+TWIG;
+    $template_after = <<<TWIG
+<div>Hello after</div>
+TWIG;
+
+    $tempfile = tempnam(sys_get_temp_dir(), '__METHOD__') . '.html.twig';
+    file_put_contents($tempfile, $template_before);
+
+    /** @var \Drupal\Core\Template\TwigEnvironment $environment */
+    $environment = \Drupal::service('twig');
+
+    $output = $environment->load(basename($tempfile))->render();
+    $this->assertEquals($template_before, $output);
+
+    file_put_contents($tempfile, $template_after);
+    $output = $environment->load(basename($tempfile))->render();
+    $this->assertEquals($template_before, $output);
+
+    $environment->invalidate();
+    // Manually change $templateClassPrefix to force a different template
+    // classname, as the other class is still loaded. This wouldn't be a problem
+    // on a real site where you reload the page.
+    $reflection = new \ReflectionClass($environment);
+    $property_reflection = $reflection->getProperty('templateClassPrefix');
+    $property_reflection->setAccessible(TRUE);
+    $property_reflection->setValue($environment, 'otherPrefix');
+
+    $output = $environment->load(basename($tempfile))->render();
+    $this->assertEquals($template_after, $output);
   }
 
 }

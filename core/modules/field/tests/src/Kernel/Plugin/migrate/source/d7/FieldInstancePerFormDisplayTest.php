@@ -268,7 +268,7 @@ class FieldInstancePerFormDisplayTest extends MigrateSqlSourceTestBase {
             'deleted' => '0',
             'type' => 'number_integer',
             'translatable' => '0',
-          ]
+          ],
         ],
       ],
       [

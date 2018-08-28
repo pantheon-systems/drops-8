@@ -6,9 +6,13 @@ use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
+use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
-use Drupal\Tests\BrowserTestBase;
+use Drupal\taxonomy\Entity\Term;
+use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\node\NodeInterface;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\user\Entity\User;
 use Drupal\comment\Entity\Comment;
 
@@ -17,22 +21,47 @@ use Drupal\comment\Entity\Comment;
  *
  * @group entity_reference
  */
-class EntityReferenceSelectionAccessTest extends BrowserTestBase {
+class EntityReferenceSelectionAccessTest extends KernelTestBase {
 
   use CommentTestTrait;
+  use ContentTypeCreationTrait;
+  use UserCreationTrait;
 
   /**
    * Modules to enable.
    *
    * @var array
    */
-  public static $modules = ['node', 'comment'];
+  public static $modules = ['comment', 'field', 'node', 'system', 'taxonomy', 'text', 'user'];
 
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
-    // Create an Article node type.
-    $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
+    $this->installSchema('system', 'sequences');
+    $this->installSchema('comment', ['comment_entity_statistics']);
+
+    $this->installEntitySchema('comment');
+    $this->installEntitySchema('node');
+    $this->installEntitySchema('taxonomy_term');
+    $this->installEntitySchema('user');
+
+    $this->installConfig(['comment', 'field', 'node', 'taxonomy', 'user']);
+
+    // Create the anonymous and the admin users.
+    $anonymous_user = User::create([
+      'uid' => 0,
+      'name' => '',
+    ]);
+    $anonymous_user->save();
+    $admin_user = User::create([
+      'uid' => 1,
+      'name' => 'admin',
+      'status' => 1,
+    ]);
+    $admin_user->save();
   }
 
   /**
@@ -110,8 +139,8 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     }
 
     // Test as a non-admin.
-    $normal_user = $this->drupalCreateUser(['access content']);
-    \Drupal::currentUser()->setAccount($normal_user);
+    $normal_user = $this->createUser(['access content']);
+    $this->setCurrentUser($normal_user);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -162,8 +191,8 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     $this->assertReferenceable($selection_options, $referenceable_tests, 'Node handler');
 
     // Test as an admin.
-    $admin_user = $this->drupalCreateUser(['access content', 'bypass node access']);
-    \Drupal::currentUser()->setAccount($admin_user);
+    $content_admin = $this->createUser(['access content', 'bypass node access']);
+    $this->setCurrentUser($content_admin);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -239,7 +268,7 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     }
 
     // Test as a non-admin.
-    \Drupal::currentUser()->setAccount($users['non_admin']);
+    $this->setCurrentUser($users['non_admin']);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -278,7 +307,7 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     ];
     $this->assertReferenceable($selection_options, $referenceable_tests, 'User handler');
 
-    \Drupal::currentUser()->setAccount($users['admin']);
+    $this->setCurrentUser($users['admin']);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -361,6 +390,7 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     ];
 
     // Build a set of test data.
+    $this->createContentType(['type' => 'article', 'name' => 'Article']);
     $node_values = [
       'published' => [
         'type' => 'article',
@@ -431,8 +461,8 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     }
 
     // Test as a non-admin.
-    $normal_user = $this->drupalCreateUser(['access content', 'access comments']);
-    \Drupal::currentUser()->setAccount($normal_user);
+    $normal_user = $this->createUser(['access content', 'access comments']);
+    $this->setCurrentUser($normal_user);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -470,8 +500,8 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     $this->assertReferenceable($selection_options, $referenceable_tests, 'Comment handler');
 
     // Test as a comment admin.
-    $admin_user = $this->drupalCreateUser(['access content', 'access comments', 'administer comments']);
-    \Drupal::currentUser()->setAccount($admin_user);
+    $admin_user = $this->createUser(['access content', 'access comments', 'administer comments']);
+    $this->setCurrentUser($admin_user);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -488,8 +518,8 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
     $this->assertReferenceable($selection_options, $referenceable_tests, 'Comment handler (comment admin)');
 
     // Test as a node and comment admin.
-    $admin_user = $this->drupalCreateUser(['access content', 'access comments', 'administer comments', 'bypass node access']);
-    \Drupal::currentUser()->setAccount($admin_user);
+    $admin_user = $this->createUser(['access content', 'access comments', 'administer comments', 'bypass node access']);
+    $this->setCurrentUser($admin_user);
     $referenceable_tests = [
       [
         'arguments' => [
@@ -505,6 +535,150 @@ class EntityReferenceSelectionAccessTest extends BrowserTestBase {
       ],
     ];
     $this->assertReferenceable($selection_options, $referenceable_tests, 'Comment handler (comment + node admin)');
+  }
+
+  /**
+   * Test the term-specific overrides of the selection handler.
+   */
+  public function testTermHandler() {
+    // Create a 'Tags' vocabulary.
+    Vocabulary::create([
+      'name' => 'Tags',
+      'description' => $this->randomMachineName(),
+      'vid' => 'tags',
+    ])->save();
+
+    $selection_options = [
+      'target_type' => 'taxonomy_term',
+      'handler' => 'default',
+      'target_bundles' => NULL,
+    ];
+
+    // Build a set of test data.
+    $term_values = [
+      'published1' => [
+        'vid' => 'tags',
+        'status' => 1,
+        'name' => 'Term published1',
+      ],
+      'published2' => [
+        'vid' => 'tags',
+        'status' => 1,
+        'name' => 'Term published2',
+      ],
+      'unpublished' => [
+        'vid' => 'tags',
+        'status' => 0,
+        'name' => 'Term unpublished',
+      ],
+      'published3' => [
+        'vid' => 'tags',
+        'status' => 1,
+        'name' => 'Term published3',
+        'parent' => 'unpublished',
+      ],
+      'published4' => [
+        'vid' => 'tags',
+        'status' => 1,
+        'name' => 'Term published4',
+        'parent' => 'published3',
+      ],
+    ];
+
+    $terms = [];
+    $term_labels = [];
+    foreach ($term_values as $key => $values) {
+      $term = Term::create($values);
+      if (isset($values['parent'])) {
+        $term->parent->entity = $terms[$values['parent']];
+      }
+      $term->save();
+      $terms[$key] = $term;
+      $term_labels[$key] = Html::escape($term->label());
+    }
+
+    // Test as a non-admin.
+    $normal_user = $this->createUser(['access content']);
+    $this->setCurrentUser($normal_user);
+    $referenceable_tests = [
+      [
+        'arguments' => [
+          [NULL, 'CONTAINS'],
+        ],
+        'result' => [
+          'tags' => [
+            $terms['published1']->id() => $term_labels['published1'],
+            $terms['published2']->id() => $term_labels['published2'],
+          ],
+        ],
+      ],
+      [
+        'arguments' => [
+          ['published1', 'CONTAINS'],
+          ['Published1', 'CONTAINS'],
+        ],
+        'result' => [
+          'tags' => [
+            $terms['published1']->id() => $term_labels['published1'],
+          ],
+        ],
+      ],
+      [
+        'arguments' => [
+          ['published2', 'CONTAINS'],
+          ['Published2', 'CONTAINS'],
+        ],
+        'result' => [
+          'tags' => [
+            $terms['published2']->id() => $term_labels['published2'],
+          ],
+        ],
+      ],
+      [
+        'arguments' => [
+          ['invalid term', 'CONTAINS'],
+        ],
+        'result' => [],
+      ],
+      [
+        'arguments' => [
+          ['Term unpublished', 'CONTAINS'],
+        ],
+        'result' => [],
+      ],
+    ];
+    $this->assertReferenceable($selection_options, $referenceable_tests, 'Term handler');
+
+    // Test as an admin.
+    $admin_user = $this->createUser(['access content', 'administer taxonomy']);
+    $this->setCurrentUser($admin_user);
+    $referenceable_tests = [
+      [
+        'arguments' => [
+          [NULL, 'CONTAINS'],
+        ],
+        'result' => [
+          'tags' => [
+            $terms['published1']->id() => $term_labels['published1'],
+            $terms['published2']->id() => $term_labels['published2'],
+            $terms['unpublished']->id() => $term_labels['unpublished'],
+            $terms['published3']->id() => '-' . $term_labels['published3'],
+            $terms['published4']->id() => '--' . $term_labels['published4'],
+          ],
+        ],
+      ],
+      [
+        'arguments' => [
+          ['Term unpublished', 'CONTAINS'],
+        ],
+        'result' => [
+          'tags' => [
+            $terms['unpublished']->id() => $term_labels['unpublished'],
+          ],
+        ],
+      ],
+    ];
+    $this->assertReferenceable($selection_options, $referenceable_tests, 'Term handler (admin)');
   }
 
 }

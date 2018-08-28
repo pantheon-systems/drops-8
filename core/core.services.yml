@@ -505,6 +505,12 @@ services:
       - { name: service_collector, tag: 'module_install.uninstall_validator', call: addUninstallValidator }
     arguments: ['@app.root', '@module_handler', '@kernel', '@router.builder']
     lazy: true
+  extension.list.module:
+    class: Drupal\Core\Extension\ModuleExtensionList
+    arguments: ['@app.root', 'module', '@cache.default', '@info_parser', '@module_handler', '@state', '@config.factory', '@extension.list.profile', '%install_profile%', '%container.modules%']
+  extension.list.profile:
+    class: Drupal\Core\Extension\ProfileExtensionList
+    arguments: ['@app.root', 'profile', '@cache.default', '@info_parser', '@module_handler', '@state', '%install_profile%']
   content_uninstall_validator:
     class: Drupal\Core\Entity\ContentUninstallValidator
     tags:
@@ -533,6 +539,8 @@ services:
     # @todo Remove this tag in https://www.drupal.org/node/2549143.
     tags:
       - { name: plugin_manager_cache_clear }
+  entity.memory_cache:
+    class: Drupal\Core\Cache\MemoryCache\MemoryCache
   entity_type.manager:
     class: Drupal\Core\Entity\EntityTypeManager
     arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@string_translation', '@class_resolver']
@@ -567,7 +575,7 @@ services:
       - { name: event_subscriber }
   entity.definition_update_manager:
     class: Drupal\Core\Entity\EntityDefinitionUpdateManager
-    arguments: ['@entity.manager']
+    arguments: ['@entity.manager', '@entity.last_installed_schema.repository']
   entity.last_installed_schema.repository:
     class: Drupal\Core\Entity\EntityLastInstalledSchemaRepository
     arguments: ['@keyvalue']
@@ -600,6 +608,7 @@ services:
   plugin.manager.block:
     class: Drupal\Core\Block\BlockManager
     parent: default_plugin_manager
+    arguments: ['@logger.channel.default']
   plugin.manager.field.field_type:
     class: Drupal\Core\Field\FieldTypePluginManager
     arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@typed_data_manager']
@@ -634,10 +643,10 @@ services:
     arguments: ['@menu.link_tree', '@entity.manager', '@string_translation']
   plugin.manager.menu.local_action:
     class: Drupal\Core\Menu\LocalActionManager
-    arguments: ['@controller_resolver', '@request_stack', '@current_route_match', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
+    arguments: ['@http_kernel.controller.argument_resolver', '@request_stack', '@current_route_match', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
   plugin.manager.menu.local_task:
     class: Drupal\Core\Menu\LocalTaskManager
-    arguments: ['@controller_resolver', '@request_stack', '@current_route_match', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
+    arguments: ['@http_kernel.controller.argument_resolver', '@request_stack', '@current_route_match', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
   plugin.manager.menu.contextual_link:
     class: Drupal\Core\Menu\ContextualLinkManager
     arguments: ['@controller_resolver', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user', '@request_stack']
@@ -702,12 +711,37 @@ services:
       - [setContainer, ['@service_container']]
   title_resolver:
     class: Drupal\Core\Controller\TitleResolver
-    arguments: ['@controller_resolver', '@string_translation']
+    arguments: ['@controller_resolver', '@string_translation', '@http_kernel.controller.argument_resolver']
   http_kernel:
     class: Stack\StackedHttpKernel
   http_kernel.basic:
     class: Symfony\Component\HttpKernel\HttpKernel
-    arguments: ['@event_dispatcher', '@controller_resolver', '@request_stack']
+    arguments: ['@event_dispatcher', '@controller_resolver', '@request_stack', '@http_kernel.controller.argument_resolver']
+  http_kernel.controller.argument_resolver:
+    class: Symfony\Component\HttpKernel\Controller\ArgumentResolver
+    arguments: ['@http_kernel.controller.argument_metadata_factory', ['@argument_resolver.request_attribute', '@argument_resolver.raw_parameter', '@argument_resolver.request', '@argument_resolver.psr7_request', '@argument_resolver.route_match', '@argument_resolver.default']]
+  http_kernel.controller.argument_metadata_factory:
+    class: Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadataFactory
+    public: false
+  argument_resolver.request_attribute:
+    class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestAttributeValueResolver
+    public: false
+  argument_resolver.raw_parameter:
+    class: Drupal\Core\Controller\ArgumentResolver\RawParameterValueResolver
+    public: false
+  argument_resolver.request:
+    class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestValueResolver
+    public: false
+  argument_resolver.psr7_request:
+    class: Drupal\Core\Controller\ArgumentResolver\Psr7RequestValueResolver
+    arguments: ['@psr7.http_message_factory']
+    public: false
+  argument_resolver.route_match:
+    class: Drupal\Core\Controller\ArgumentResolver\RouteMatchValueResolver
+    public: false
+  argument_resolver.default:
+    class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\DefaultValueResolver
+    public: false
   http_middleware.negotiation:
     class: Drupal\Core\StackMiddleware\NegotiationMiddleware
     tags:
@@ -873,6 +907,7 @@ services:
     arguments: ['@entity.manager']
     calls:
       - [setContainer, ['@service_container']]
+    deprecated: The "%service_id%" service is deprecated. Use the 'entity_type.manager' service to get an entity type's storage object and then call \Drupal\Core\Entity\EntityStorageInterface::getQuery() or \Drupal\Core\Entity\EntityStorageInterface::getAggregateQuery() instead. See https://www.drupal.org/node/2849874
   entity.query.config:
     class: Drupal\Core\Config\Entity\Query\QueryFactory
     arguments: ['@config.factory', '@keyvalue', '@config.manager']
@@ -998,7 +1033,7 @@ services:
       - { name: event_subscriber }
   form_ajax_subscriber:
     class: Drupal\Core\Form\EventSubscriber\FormAjaxSubscriber
-    arguments: ['@form_ajax_response_builder', '@string_translation']
+    arguments: ['@form_ajax_response_builder', '@string_translation', '@messenger']
     tags:
       - { name: event_subscriber }
   route_enhancer.param_conversion:
@@ -1064,6 +1099,11 @@ services:
     arguments: ['@title_resolver', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_dialog.off_canvas }
+  main_content_renderer.off_canvas_top:
+    class: Drupal\Core\Render\MainContent\OffCanvasRenderer
+    arguments: ['@title_resolver', '@renderer', 'top']
+    tags:
+      - { name: render.main_content_renderer, format: drupal_dialog.off_canvas_top }
   main_content_renderer.modal:
     class: Drupal\Core\Render\MainContent\ModalRenderer
     arguments: ['@title_resolver']
@@ -1071,10 +1111,10 @@ services:
       - { name: render.main_content_renderer, format: drupal_modal }
   controller.form:
     class: Drupal\Core\Controller\HtmlFormController
-    arguments: ['@controller_resolver', '@form_builder', '@class_resolver']
+    arguments: ['@http_kernel.controller.argument_resolver', '@form_builder', '@class_resolver']
   controller.entity_form:
     class: Drupal\Core\Entity\HtmlEntityFormController
-    arguments: ['@controller_resolver', '@form_builder', '@entity.manager']
+    arguments: ['@http_kernel.controller.argument_resolver', '@form_builder', '@entity.manager']
   form_ajax_response_builder:
     class: Drupal\Core\Form\FormAjaxResponseBuilder
     arguments: ['@main_content_renderer.ajax', '@current_route_match']
@@ -1126,6 +1166,11 @@ services:
     arguments: ['@entity_type.manager', '@entity_type.bundle.info']
     tags:
       - { name: access_check, applies_to: _entity_create_any_access }
+  access_check.entity_delete_multiple:
+    class: Drupal\Core\Entity\EntityDeleteMultipleAccessCheck
+    arguments: ['@entity_type.manager', '@tempstore.private', '@request_stack']
+    tags:
+      - { name: access_check, applies_to: _entity_delete_multiple_access }
   access_check.theme:
     class: Drupal\Core\Theme\ThemeAccessCheck
     arguments: ['@theme_handler']
@@ -1373,11 +1418,13 @@ services:
     class: Drupal\Component\Bridge\ZfExtensionManagerSfContainer
     calls:
       - [setContainer, ['@service_container']]
+      - [setStandalone, ['\Zend\Feed\Reader\StandaloneExtensionManager']]
     arguments: ['feed.reader.']
   feed.bridge.writer:
     class: Drupal\Component\Bridge\ZfExtensionManagerSfContainer
     calls:
       - [setContainer, ['@service_container']]
+      - [setStandalone, ['\Zend\Feed\Writer\StandaloneExtensionManager']]
     arguments: ['feed.writer.']
 # Zend Feed reader plugins. Plugin instances should not be shared.
   feed.reader.dublincoreentry:
@@ -1582,7 +1629,10 @@ services:
       - { name: service_collector, tag: twig.loader, call: addLoader, required: TRUE }
   twig.loader.filesystem:
     class: Drupal\Core\Template\Loader\FilesystemLoader
-    arguments: ['@app.root', '@module_handler', '@theme_handler']
+    # We use '.' instead of '@app.root' as the path for non-namespaced template
+    # files so that they match the relative paths of templates loaded via the
+    # theme registry or via Twig namespaces.
+    arguments: ['.', '@module_handler', '@theme_handler']
     tags:
       - { name: twig.loader, priority: 100 }
   twig.loader.theme_registry:
@@ -1623,7 +1673,7 @@ services:
     arguments: ['@controller_resolver', '@theme.manager', '@plugin.manager.element_info', '@render_placeholder_generator', '@render_cache', '@request_stack', '%renderer.config%']
   early_rendering_controller_wrapper_subscriber:
     class: Drupal\Core\EventSubscriber\EarlyRenderingControllerWrapperSubscriber
-    arguments: ['@controller_resolver', '@renderer']
+    arguments: ['@http_kernel.controller.argument_resolver', '@renderer']
     tags:
       - { name: event_subscriber }
   # Placeholder strategies for rendering placeholders.

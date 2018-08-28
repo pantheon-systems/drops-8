@@ -3,7 +3,6 @@
 namespace Drupal\quickedit\Tests;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Utility\Unicode;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -87,7 +86,7 @@ class QuickEditLoadingTest extends WebTestBase {
         0 => [
           'value' => '<p>How are you?</p>',
           'format' => 'filtered_html',
-        ]
+        ],
       ],
       'revision_log' => $this->randomString(),
     ]);
@@ -188,7 +187,7 @@ class QuickEditLoadingTest extends WebTestBase {
         'label' => 'Body',
         'access' => TRUE,
         'editor' => 'form',
-      ]
+      ],
     ];
     $this->assertIdentical(Json::decode($response), $expected, 'The metadata HTTP request answers with the correct JSON response.');
     // Restore drupalSettings to build the next requests; simpletest wipes them
@@ -216,7 +215,7 @@ class QuickEditLoadingTest extends WebTestBase {
     $ajax_commands = Json::decode($response);
     $this->assertIdentical(1, count($ajax_commands), 'The field form HTTP request results in one AJAX command.');
     $this->assertIdentical('quickeditFieldForm', $ajax_commands[0]['command'], 'The first AJAX command is a quickeditFieldForm command.');
-    $this->assertIdentical('<form ', Unicode::substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
+    $this->assertIdentical('<form ', mb_substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
 
     // Prepare form values for submission. drupalPostAjaxForm() is not suitable
     // for handling pages with JSON responses, so we need our own solution here.
@@ -286,7 +285,7 @@ class QuickEditLoadingTest extends WebTestBase {
       $ajax_commands = Json::decode($response);
       $this->assertIdentical(1, count($ajax_commands), 'The field form HTTP request results in one AJAX command.');
       $this->assertIdentical('quickeditFieldForm', $ajax_commands[0]['command'], 'The first AJAX command is a quickeditFieldForm command.');
-      $this->assertIdentical('<form ', Unicode::substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
+      $this->assertIdentical('<form ', mb_substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
 
       // Submit field form.
       preg_match('/\sname="form_token" value="([^"]+)"/', $ajax_commands[0]['data'], $token_match);
@@ -374,7 +373,7 @@ class QuickEditLoadingTest extends WebTestBase {
         'label' => 'Title',
         'access' => TRUE,
         'editor' => 'plain_text',
-      ]
+      ],
     ];
     $this->assertIdentical(Json::decode($response), $expected, 'The metadata HTTP request answers with the correct JSON response.');
     // Restore drupalSettings to build the next requests; simpletest wipes them
@@ -389,7 +388,7 @@ class QuickEditLoadingTest extends WebTestBase {
     $ajax_commands = Json::decode($response);
     $this->assertIdentical(1, count($ajax_commands), 'The field form HTTP request results in one AJAX command.');
     $this->assertIdentical('quickeditFieldForm', $ajax_commands[0]['command'], 'The first AJAX command is a quickeditFieldForm command.');
-    $this->assertIdentical('<form ', Unicode::substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
+    $this->assertIdentical('<form ', mb_substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
 
     // Prepare form values for submission. drupalPostAjaxForm() is not suitable
     // for handling pages with JSON responses, so we need our own solution
@@ -602,7 +601,7 @@ class QuickEditLoadingTest extends WebTestBase {
     $response = $this->drupalPost('quickedit/form/node/1/field_image/en/full', '', ['nocssjs' => 'true'] + $this->getAjaxPageStatePostData(), ['query' => [MainContentViewSubscriber::WRAPPER_FORMAT => 'drupal_ajax']]);
     $this->assertResponse(200);
     $ajax_commands = Json::decode($response);
-    $this->assertIdentical('<form ', Unicode::substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
+    $this->assertIdentical('<form ', mb_substr($ajax_commands[0]['data'], 0, 6), 'The quickeditFieldForm command contains a form.');
   }
 
 }
