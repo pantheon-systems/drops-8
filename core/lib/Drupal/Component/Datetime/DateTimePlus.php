@@ -41,12 +41,12 @@ class DateTimePlus {
 
   use ToStringTrait;
 
-  const FORMAT   = 'Y-m-d H:i:s';
+  const FORMAT = 'Y-m-d H:i:s';
 
   /**
    * A RFC7231 Compliant date.
    *
-   * http://tools.ietf.org/html/rfc7231#section-7.1.1.1
+   * @see http://tools.ietf.org/html/rfc7231#section-7.1.1.1
    *
    * Example: Sun, 06 Nov 1994 08:49:37 GMT
    */
@@ -477,7 +477,6 @@ class DateTimePlus {
     return $format;
   }
 
-
   /**
    * Examines getLastErrors() to see what errors to report.
    *
@@ -713,6 +712,16 @@ class DateTimePlus {
    */
   public function setDefaultDateTime() {
     $this->dateTimeObject->setTime(12, 0, 0);
+  }
+
+  /**
+   * Gets a clone of the proxied PHP \DateTime object wrapped by this class.
+   *
+   * @return \DateTime
+   *   A clone of the wrapped PHP \DateTime object.
+   */
+  public function getPhpDateTime() {
+    return clone $this->dateTimeObject;
   }
 
 }

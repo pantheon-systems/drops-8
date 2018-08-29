@@ -5,8 +5,15 @@ namespace Drupal\system\Tests\Entity;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\entity_test\FieldStorageDefinition;
 
+@trigger_error(__NAMESPACE__ . '\EntityDefinitionTestTrait is deprecated in Drupal 8.6.x and will be removed before Drupal 9.0.0. Instead, use \Drupal\Tests\system\Functional\Entity\Traits\EntityDefinitionTestTrait. See https://www.drupal.org/node/2946549.', E_USER_DEPRECATED);
+
 /**
  * Provides some test methods used to update existing entity definitions.
+ *
+ * @deprecated in Drupal 8.6.x and will be removed before Drupal 9.0.0.
+ * Use \Drupal\Tests\system\Functional\Entity\Traits\EntityDefinitionTestTrait.
+ *
+ * @see https://www.drupal.org/node/2946549
  */
 trait EntityDefinitionTestTrait {
 

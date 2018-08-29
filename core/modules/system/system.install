@@ -51,10 +51,10 @@ function system_requirements($phase) {
         'value' => t('%profile_name (%profile-%version)', [
           '%profile_name' => $info['name'],
           '%profile' => $profile,
-          '%version' => $info['version']
+          '%version' => $info['version'],
         ]),
         'severity' => REQUIREMENT_INFO,
-        'weight' => -9
+        'weight' => -9,
       ];
     }
 
@@ -77,14 +77,15 @@ function system_requirements($phase) {
   }
 
   // Web server information.
-  $software = \Drupal::request()->server->get('SERVER_SOFTWARE');
+  $request_object = \Drupal::request();
+  $software = $request_object->server->get('SERVER_SOFTWARE');
   $requirements['webserver'] = [
     'title' => t('Web server'),
     'value' => $software,
   ];
 
   // Tests clean URL support.
-  if ($phase == 'install' && $install_state['interactive'] && !isset($_GET['rewrite']) && strpos($software, 'Apache') !== FALSE) {
+  if ($phase == 'install' && $install_state['interactive'] && !$request_object->query->has('rewrite') && strpos($software, 'Apache') !== FALSE) {
     // If the Apache rewrite module is not enabled, Apache version must be >=
     // 2.2.16 because of the FallbackResource directive in the root .htaccess
     // file. Since the Apache version reported by the server is dependent on the
@@ -435,12 +436,13 @@ function system_requirements($phase) {
     // directory. This allows additional files in the site directory to be
     // updated when they are managed in a version control system.
     if (Settings::get('skip_permissions_hardening')) {
-      $conf_errors[] = t('Protection disabled');
+      $error_value = t('Protection disabled');
       // If permissions hardening is disabled, then only show a warning for a
       // writable file, as a reminder, rather than an error.
       $file_protection_severity = REQUIREMENT_WARNING;
     }
     else {
+      $error_value = t('Not protected');
       // In normal operation, writable files or directories are an error.
       $file_protection_severity = REQUIREMENT_ERROR;
       if (!drupal_verify_install_file($site_path, FILE_NOT_WRITABLE, 'dir')) {
@@ -449,7 +451,7 @@ function system_requirements($phase) {
     }
     foreach (['settings.php', 'settings.local.php', 'services.yml'] as $conf_file) {
       $full_path = $site_path . '/' . $conf_file;
-      if (file_exists($full_path) && (Settings::get('skip_permissions_hardening') || !drupal_verify_install_file($full_path, FILE_EXIST | FILE_READABLE | FILE_NOT_WRITABLE))) {
+      if (file_exists($full_path) && !drupal_verify_install_file($full_path, FILE_EXIST | FILE_READABLE | FILE_NOT_WRITABLE, 'file', !Settings::get('skip_permissions_hardening'))) {
         $conf_errors[] = t("The file %file is not protected from modifications and poses a security risk. You must change the file's permissions to be non-writable.", ['%file' => $full_path]);
       }
     }
@@ -471,7 +473,7 @@ function system_requirements($phase) {
         ];
       }
       $requirements['configuration_files'] = [
-        'value' => t('Not protected'),
+        'value' => $error_value,
         'severity' => $file_protection_severity,
         'description' => $description,
       ];
@@ -998,6 +1000,34 @@ function system_requirements($phase) {
       'description' => t('You are running on a system where PHP is compiled or limited to using 32-bit integers. This will limit the range of dates and timestamps to the years 1901-2038. Read about the <a href=":url">limitations of 32-bit PHP</a>.', [':url' => 'https://www.drupal.org/docs/8/system-requirements/limitations-of-32-bit-php']),
       'severity' => REQUIREMENT_WARNING,
     ];
+  }
+
+  // During installs from configuration don't support install profiles that
+  // implement hook_install.
+  if ($phase == 'install' && !empty($install_state['config_install_path'])) {
+    $install_hook = $install_state['parameters']['profile'] . '_install';
+    if (function_exists($install_hook)) {
+      $requirements['config_install'] = [
+        'title' => t('Configuration install'),
+        'value' => $install_state['parameters']['profile'],
+        'description' => t('The selected profile has a hook_install() implementation and therefore can not be installed from configuration.'),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+
+  if ($phase === 'runtime') {
+    $settings = Settings::getAll();
+    if (array_key_exists('install_profile', $settings)) {
+      // The following message is only informational because not all site owners
+      // have access to edit their settings.php as it may be controlled by their
+      // hosting provider.
+      $requirements['install_profile_in_settings'] = [
+        'title' => t('Install profile in settings'),
+        'value' => t("Drupal 8 no longer uses the \$settings['install_profile'] value in settings.php and it can be removed."),
+        'severity' => REQUIREMENT_INFO,
+      ];
+    }
   }
 
   return $requirements;
@@ -1836,6 +1866,10 @@ function system_update_8200(&$sandbox) {
  */
 function system_update_8201() {
   // Empty update to cause a cache rebuild.
+
+  // Use hook_post_update_NAME() instead to clear the cache.
+  // The use of hook_update_N() to clear the cache has been deprecated
+  // see https://www.drupal.org/node/2960601 for more details.
 }
 
 /**
@@ -1843,6 +1877,10 @@ function system_update_8201() {
  */
 function system_update_8202() {
   // Empty update to cause a cache rebuild.
+
+  // Use hook_post_update_NAME() instead to clear the cache.The use
+  // of hook_update_N to clear the cache has been deprecated see
+  // https://www.drupal.org/node/2960601 for more details.
 }
 
 /**

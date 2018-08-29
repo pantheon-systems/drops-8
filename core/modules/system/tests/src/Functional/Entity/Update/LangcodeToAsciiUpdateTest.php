@@ -9,6 +9,7 @@ use Drupal\FunctionalTests\Update\UpdatePathTestBase;
  * Tests that the entity langcode fields have been updated to varchar_ascii.
  *
  * @group Entity
+ * @group legacy
  */
 class LangcodeToAsciiUpdateTest extends UpdatePathTestBase {
 
@@ -39,7 +40,8 @@ class LangcodeToAsciiUpdateTest extends UpdatePathTestBase {
     ];
     foreach ($tables as $table => $columns) {
       foreach ($columns as $column) {
-        $this->assertEqual('utf8mb4_general_ci', $this->getColumnCollation($table, $column), 'Found correct starting collation for ' . $table . '.' . $column);
+        // Depending on MYSQL versions you get different collations.
+        $this->assertContains($this->getColumnCollation($table, $column), ['utf8mb4_0900_ai_ci', 'utf8mb4_general_ci'], 'Found correct starting collation for ' . $table . '.' . $column);
       }
     }
 

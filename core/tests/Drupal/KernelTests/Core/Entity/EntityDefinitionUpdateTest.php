@@ -15,10 +15,12 @@ use Drupal\Core\Field\FieldException;
 use Drupal\Core\Field\FieldStorageDefinitionEvents;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\entity_test_update\Entity\EntityTestUpdate;
-use Drupal\system\Tests\Entity\EntityDefinitionTestTrait;
+use Drupal\Tests\system\Functional\Entity\Traits\EntityDefinitionTestTrait;
 
 /**
  * Tests EntityDefinitionUpdateManager functionality.
+ *
+ * @coversDefaultClass \Drupal\Core\Entity\EntityDefinitionUpdateManager
  *
  * @group Entity
  */
@@ -1067,7 +1069,7 @@ class EntityDefinitionUpdateTest extends EntityKernelTestBase {
     // field, allowing us to test the 'default_value' parameter of
     // \Drupal\Core\Field\BaseFieldDefinition::setInitialValueFromField().
     $storage->create([
-      'name' => 'Second entity'
+      'name' => 'Second entity',
     ])->save();
 
     // Add a base field with an initial value inherited from another field.
@@ -1177,6 +1179,20 @@ class EntityDefinitionUpdateTest extends EntityKernelTestBase {
     catch (FieldException $e) {
       $this->assertEquals('Illegal initial value definition on new_base_field: Both fields have to be stored in the shared entity tables.', $e->getMessage());
       $this->pass('Using a field that is not stored in the shared tables as initial value does not work.');
+    }
+  }
+
+  /**
+   * @covers ::getEntityTypes
+   */
+  public function testGetEntityTypes() {
+    $entity_type_definitions = $this->entityDefinitionUpdateManager->getEntityTypes();
+
+    // Ensure that we have at least one entity type to check below.
+    $this->assertGreaterThanOrEqual(1, count($entity_type_definitions));
+
+    foreach ($entity_type_definitions as $entity_type_id => $entity_type) {
+      $this->assertEquals($this->entityDefinitionUpdateManager->getEntityType($entity_type_id), $entity_type);
     }
   }
 

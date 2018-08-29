@@ -39,7 +39,7 @@ class MediaDisplayTest extends MediaJavascriptTestBase {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
 
-    $media_type = $this->createMediaType();
+    $media_type = $this->createMediaType('test');
 
     // Create a media item.
     $media = Media::create([
@@ -54,6 +54,8 @@ class MediaDisplayTest extends MediaJavascriptTestBase {
 
     // Enable the field on the display and verify it becomes visible on the UI.
     $this->drupalGet("/admin/structure/media/manage/{$media_type->id()}/display");
+    $assert_session->buttonExists('Show row weights')->press();
+    $this->assertSession()->waitForElementVisible('css', '[name="fields[name][region]"]');
     $page->selectFieldOption('fields[name][region]', 'content');
     $assert_session->waitForElementVisible('css', '#edit-fields-name-settings-edit');
     $page->pressButton('Save');
@@ -61,33 +63,39 @@ class MediaDisplayTest extends MediaJavascriptTestBase {
     // Verify the name is present, and its text matches what is expected.
     $assert_session->elementExists('css', '.field--name-name');
     $name_field = $page->find('css', '.field--name-name .field__item');
-    $this->assertEquals($media->label(), $name_field->getText());
+    $this->assertSame($media->label(), $name_field->getText());
 
     // In the standard profile, there are some pre-cooked types. Make sure the
     // elements configured on their displays are the expected ones.
     $this->drupalGet('media/add/image');
     $image_media_name = 'Fantastic image asset!';
     $page->fillField('name[0][value]', $image_media_name);
-    $page->attachFileToField('files[field_media_image_0]', \Drupal::root() . '/core/modules/media/tests/fixtures/example_1.jpeg');
+    $page->attachFileToField('files[field_media_image_0]', $this->root . '/core/modules/media/tests/fixtures/example_1.jpeg');
     $result = $assert_session->waitForButton('Remove');
     $this->assertNotEmpty($result);
     $page->fillField('field_media_image[0][alt]', 'Image Alt Text 1');
     $page->pressButton('Save');
-    $image_media_id = $this->container->get('entity.query')->get('media')
+    $image_media_id = $this->container
+      ->get('entity_type.manager')
+      ->getStorage('media')
+      ->getQuery()
       ->sort('mid', 'DESC')
       ->execute();
     $image_media_id = reset($image_media_id);
 
+    // Go to the media entity view.
+    $this->drupalGet('/media/' . $image_media_id);
+
     // Here we expect to see only the image, nothing else.
     // Assert only one element in the content region.
-    $this->assertEquals(1, count($page->findAll('css', '.media--type-image > div')));
+    $this->assertSame(1, count($page->findAll('css', '.media--type-image > div')));
     // Assert the image is present inside the media element.
     $media_item = $assert_session->elementExists('css', '.media--type-image > div');
     $assert_session->elementExists('css', 'img', $media_item);
     // Assert that the image src is the original image and not an image style.
     $media_image = $assert_session->elementExists('css', '.media--type-image img');
     $expected_image_src = file_url_transform_relative(file_create_url(\Drupal::token()->replace('public://[date:custom:Y]-[date:custom:m]/example_1.jpeg')));
-    $this->assertEquals($expected_image_src, $media_image->getAttribute('src'));
+    $this->assertSame($expected_image_src, $media_image->getAttribute('src'));
 
     $test_filename = $this->randomMachineName() . '.txt';
     $test_filepath = 'public://' . $test_filename;
@@ -99,13 +107,16 @@ class MediaDisplayTest extends MediaJavascriptTestBase {
     $this->assertNotEmpty($result);
     $page->pressButton('Save');
 
+    // Go to the media entity view.
+    $this->drupalGet($this->assertLinkToCreatedMedia());
+
     // Here we expect to see only the linked filename.
     // Assert only one element in the content region.
-    $this->assertEquals(1, count($page->findAll('css', 'article.media--type-file > div')));
+    $this->assertSame(1, count($page->findAll('css', 'article.media--type-file > div')));
     // Assert the file link is present, and its text matches the filename.
     $assert_session->elementExists('css', 'article.media--type-file .field--name-field-media-file a');
     $link = $page->find('css', 'article.media--type-file .field--name-field-media-file a');
-    $this->assertEquals($test_filename, $link->getText());
+    $this->assertSame($test_filename, $link->getText());
 
     // Create a node type "page" to use as host entity.
     $node_type = NodeType::create([
@@ -165,7 +176,7 @@ class MediaDisplayTest extends MediaJavascriptTestBase {
     $assert_session->elementNotExists('css', '.field--name-name');
     $assert_session->pageTextNotContains($image_media_name);
     // Only one element is present inside the media container.
-    $this->assertEquals(1, count($page->findAll('css', '.field--name-field-related-media article.media--type-image > div')));
+    $this->assertSame(1, count($page->findAll('css', '.field--name-field-related-media article.media--type-image > div')));
     // Assert the image is present.
     $assert_session->elementExists('css', '.field--name-field-related-media article.media--type-image img');
   }

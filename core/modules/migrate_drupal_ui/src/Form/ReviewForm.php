@@ -81,7 +81,6 @@ class ReviewForm extends MigrateUpgradeFormBase {
       'fieldgroup',
       'filefield_meta',
       'help',
-      'i18n',
       'i18nstrings',
       'imageapi',
       'imageapi_gd',
@@ -138,6 +137,7 @@ class ReviewForm extends MigrateUpgradeFormBase {
       'simpletest',
       'stylizer',
       'term_depth',
+      'title',
       'toolbar',
       'translation',
       'trigger',
@@ -260,12 +260,8 @@ class ReviewForm extends MigrateUpgradeFormBase {
     $missing_module_list = [
       '#type' => 'details',
       '#open' => TRUE,
-      '#title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'span',
-        '#value' => $this->t('Modules that will not be upgraded'),
-        '#attributes' => ['id' => ['error']],
-      ],
+      '#title' => $this->t('Modules that will not be upgraded'),
+      '#summary_attributes' => ['id' => ['error']],
       '#description' => $this->t('There are no modules installed on your new site to replace these modules. If you proceed with the upgrade now, configuration and/or content needed by these modules will not be available on your new site. For more information, see <a href=":review">Review the pre-upgrade analysis</a> in the <a href=":migrate">Upgrading to Drupal 8</a> handbook.', [':review' => 'https://www.drupal.org/docs/8/upgrade/upgrade-using-web-browser#pre-upgrade-analysis', ':migrate' => 'https://www.drupal.org/docs/8/upgrade']),
       '#weight' => 2,
     ];
@@ -301,12 +297,8 @@ class ReviewForm extends MigrateUpgradeFormBase {
     // Available migrations.
     $available_module_list = [
       '#type' => 'details',
-      '#title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'span',
-        '#value' => $this->t('Modules that will be upgraded'),
-        '#attributes' => ['id' => ['checked']],
-      ],
+      '#title' => $this->t('Modules that will be upgraded'),
+      '#summary_attributes' => ['id' => ['checked']],
       '#weight' => 3,
     ];
 

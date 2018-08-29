@@ -15,7 +15,14 @@ class MigrateMenuLinkTranslationTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_ui', 'menu_link_content', 'language'];
+  public static $modules = [
+    'menu_ui',
+    'menu_link_content',
+    'language',
+    'content_translation',
+    // Required for translation migrations.
+    'migrate_drupal_multilingual',
+  ];
 
   /**
    * {@inheritdoc}

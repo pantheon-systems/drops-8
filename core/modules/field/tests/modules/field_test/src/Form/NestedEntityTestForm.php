@@ -42,14 +42,14 @@ class NestedEntityTestForm extends FormBase {
       '#tree' => TRUE,
       '#parents' => ['entity_2'],
       '#weight' => 50,
-      '#attributes' => ['class' => ['entity-2']]
+      '#attributes' => ['class' => ['entity-2']],
     ];
 
     $form_display_2->buildForm($entity_2, $form['entity_2'], $form_state);
 
     if ($entity_2 instanceof EntityChangedInterface) {
       // Changed must be sent to the client, for later overwrite error checking.
-      // @see Drupal\field\Tests\NestedFormTest::testNestedEntityFormEntityLevelValidation()
+      // @see \Drupal\Tests\field\Functional\NestedFormTest::testNestedEntityFormEntityLevelValidation()
       $form['entity_2']['changed'] = [
         '#type' => 'hidden',
         '#default_value' => $entity_1->getChangedTime(),
@@ -82,7 +82,7 @@ class NestedEntityTestForm extends FormBase {
     // Extract the values of fields that are not rendered through widgets, by
     // simply copying from top-level form values. This leaves the fields that
     // are not being edited within this form untouched.
-    // @see Drupal\field\Tests\NestedFormTest::testNestedEntityFormEntityLevelValidation()
+    // @see \Drupal\Tests\field\Functional\NestedFormTest::testNestedEntityFormEntityLevelValidation()
     foreach ($form_state->getValues()['entity_2'] as $name => $values) {
       if ($entity_2->hasField($name) && !isset($extracted[$name])) {
         $entity_2->set($name, $values);
@@ -92,7 +92,7 @@ class NestedEntityTestForm extends FormBase {
   }
 
   /**
-   * {@inheritdoc]
+   * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     /** @var \Drupal\Core\Entity\EntityInterface $entity_1 */
@@ -103,7 +103,7 @@ class NestedEntityTestForm extends FormBase {
     $entity_2 = $form_state->get('entity_2');
     $entity_2->save();
 
-    drupal_set_message($this->t('test_entities @id_1 and @id_2 have been updated.', ['@id_1' => $entity_1->id(), '@id_2' => $entity_2->id()]));
+    $this->messenger()->addStatus($this->t('test_entities @id_1 and @id_2 have been updated.', ['@id_1' => $entity_1->id(), '@id_2' => $entity_2->id()]));
   }
 
 }

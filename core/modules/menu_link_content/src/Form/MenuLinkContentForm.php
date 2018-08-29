@@ -4,7 +4,7 @@ namespace Drupal\menu_link_content\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\ContentEntityForm;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -43,8 +43,8 @@ class MenuLinkContentForm extends ContentEntityForm {
   /**
    * Constructs a MenuLinkContentForm object.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    * @param \Drupal\Core\Menu\MenuParentFormSelectorInterface $menu_parent_selector
    *   The menu parent form selector service.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
@@ -56,8 +56,8 @@ class MenuLinkContentForm extends ContentEntityForm {
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The time service.
    */
-  public function __construct(EntityManagerInterface $entity_manager, MenuParentFormSelectorInterface $menu_parent_selector, LanguageManagerInterface $language_manager, PathValidatorInterface $path_validator, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, TimeInterface $time = NULL) {
-    parent::__construct($entity_manager, $entity_type_bundle_info, $time);
+  public function __construct(EntityRepositoryInterface $entity_repository, MenuParentFormSelectorInterface $menu_parent_selector, LanguageManagerInterface $language_manager, PathValidatorInterface $path_validator, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, TimeInterface $time = NULL) {
+    parent::__construct($entity_repository, $entity_type_bundle_info, $time);
     $this->menuParentSelector = $menu_parent_selector;
     $this->pathValidator = $path_validator;
   }
@@ -67,7 +67,7 @@ class MenuLinkContentForm extends ContentEntityForm {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager'),
+      $container->get('entity.repository'),
       $container->get('menu.parent_form_selector'),
       $container->get('language_manager'),
       $container->get('path.validator'),
@@ -130,14 +130,14 @@ class MenuLinkContentForm extends ContentEntityForm {
     $saved = $menu_link->save();
 
     if ($saved) {
-      drupal_set_message($this->t('The menu link has been saved.'));
+      $this->messenger()->addStatus($this->t('The menu link has been saved.'));
       $form_state->setRedirect(
         'entity.menu_link_content.canonical',
         ['menu_link_content' => $menu_link->id()]
       );
     }
     else {
-      drupal_set_message($this->t('There was an error saving the menu link.'), 'error');
+      $this->messenger()->addError($this->t('There was an error saving the menu link.'));
       $form_state->setRebuild();
     }
   }

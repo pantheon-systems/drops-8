@@ -176,7 +176,7 @@ class EntityViewsDataTest extends UnitTestCase {
       ->setSetting('max_length', 255);
 
     // A base field with cardinality > 1
-    $base_fields['string']  = BaseFieldDefinition::create('string')
+    $base_fields['string'] = BaseFieldDefinition::create('string')
       ->setLabel('Strong')
       ->setTranslatable(TRUE)
       ->setCardinality(2);
@@ -457,7 +457,7 @@ class EntityViewsDataTest extends UnitTestCase {
         ->setLabel('ID')
         ->setDescription('The ID of the user entity.')
         ->setReadOnly(TRUE)
-        ->setSetting('unsigned', TRUE)
+        ->setSetting('unsigned', TRUE),
     ];
     $this->entityManager->expects($this->any())
       ->method('getBaseFieldDefinitions')
@@ -578,7 +578,7 @@ class EntityViewsDataTest extends UnitTestCase {
         ->setLabel('ID')
         ->setDescription('The ID of the user entity.')
         ->setReadOnly(TRUE)
-        ->setSetting('unsigned', TRUE)
+        ->setSetting('unsigned', TRUE),
     ];
     $entity_test_type = new ConfigEntityType(['id' => 'entity_test_bundle']);
 
@@ -730,7 +730,7 @@ class EntityViewsDataTest extends UnitTestCase {
         ->setLabel('ID')
         ->setDescription('The ID of the user entity.')
         ->setReadOnly(TRUE)
-        ->setSetting('unsigned', TRUE)
+        ->setSetting('unsigned', TRUE),
     ];
     $this->entityManager->expects($this->any())
       ->method('getBaseFieldDefinitions')
@@ -1134,16 +1134,20 @@ class TestEntityType extends ContentEntityType {
 namespace Drupal\entity_test\Entity;
 
 if (!function_exists('t')) {
+
   function t($string, array $args = []) {
     return strtr($string, $args);
   }
+
 }
 
 
 namespace Drupal\Core\Entity;
 
 if (!function_exists('t')) {
+
   function t($string, array $args = []) {
     return strtr($string, $args);
   }
+
 }

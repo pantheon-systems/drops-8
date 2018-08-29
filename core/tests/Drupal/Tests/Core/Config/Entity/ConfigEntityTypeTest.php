@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\Core\Config\Entity;
 
+use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Config\Entity\Exception\ConfigEntityStorageClassException;
@@ -11,6 +13,23 @@ use Drupal\Core\Config\Entity\Exception\ConfigEntityStorageClassException;
  * @group Config
  */
 class ConfigEntityTypeTest extends UnitTestCase {
+
+  /**
+   * The mocked typed config manager.
+   *
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   */
+  protected $typedConfigManager;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    $this->typedConfigManager = $this->getMock(TypedConfigManagerInterface::class);
+    $container = new ContainerBuilder();
+    $container->set('config.typed', $this->typedConfigManager);
+    \Drupal::setContainer($container);
+  }
 
   /**
    * Sets up a ConfigEntityType object for a given set of values.
@@ -85,7 +104,7 @@ class ConfigEntityTypeTest extends UnitTestCase {
     $this->setExpectedException(ConfigEntityStorageClassException::class, '\Drupal\Core\Entity\KeyValueStore\KeyValueEntityStorage is not \Drupal\Core\Config\Entity\ConfigEntityStorage or it does not extend it');
     new ConfigEntityType([
       'id' => 'example_config_entity_type',
-      'handlers' => ['storage' => '\Drupal\Core\Entity\KeyValueStore\KeyValueEntityStorage']
+      'handlers' => ['storage' => '\Drupal\Core\Entity\KeyValueStore\KeyValueEntityStorage'],
     ]);
   }
 
@@ -138,11 +157,6 @@ class ConfigEntityTypeTest extends UnitTestCase {
   public function providerGetPropertiesToExport() {
     $data = [];
     $data[] = [
-      [],
-      NULL,
-    ];
-
-    $data[] = [
       [
         'config_export' => [
           'id',
@@ -175,6 +189,29 @@ class ConfigEntityTypeTest extends UnitTestCase {
       ],
     ];
     return $data;
+  }
+
+  /**
+   * @covers ::getPropertiesToExport
+   */
+  public function testGetPropertiesToExportSchemaFallback() {
+    $this->typedConfigManager->expects($this->once())
+      ->method('getDefinition')
+      ->will($this->returnValue(['mapping' => ['id' => '', 'dependencies' => '']]));
+    $config_entity_type = new ConfigEntityType([
+      'id' => 'example_config_entity_type',
+    ]);
+    $this->assertEquals(['id' => 'id', 'dependencies' => 'dependencies'], $config_entity_type->getPropertiesToExport('test'));
+  }
+
+  /**
+   * @covers ::getPropertiesToExport
+   */
+  public function testGetPropertiesToExportNoFallback() {
+    $config_entity_type = new ConfigEntityType([
+      'id' => 'example_config_entity_type',
+    ]);
+    $this->assertNull($config_entity_type->getPropertiesToExport());
   }
 
 }
