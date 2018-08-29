@@ -3,12 +3,12 @@
 namespace Drupal\Tests\user\Functional\Update;
 
 use Drupal\FunctionalTests\Update\UpdatePathTestBase;
-use Drupal\user\Entity\Role;
 
 /**
  * Tests user permissions sort upgrade path.
  *
  * @group Update
+ * @group legacy
  */
 class UserUpdateOrderPermissionsTest extends UpdatePathTestBase {
 
@@ -25,14 +25,14 @@ class UserUpdateOrderPermissionsTest extends UpdatePathTestBase {
    * Tests that permissions are ordered by machine name.
    */
   public function testPermissionsOrder() {
-    $authenticated = Role::load('authenticated');
-    $permissions = $authenticated->getPermissions();
+    $authenticated = \Drupal::config('user.role.authenticated');
+    $permissions = $authenticated->get('permissions');
     sort($permissions);
-    $this->assertNotIdentical($permissions, $authenticated->getPermissions());
+    $this->assertNotSame($permissions, $authenticated->get('permissions'));
 
     $this->runUpdates();
-    $authenticated = Role::load('authenticated');
-    $this->assertIdentical($permissions, $authenticated->getPermissions());
+    $authenticated = \Drupal::config('user.role.authenticated');
+    $this->assertSame($permissions, $authenticated->get('permissions'));
   }
 
 }

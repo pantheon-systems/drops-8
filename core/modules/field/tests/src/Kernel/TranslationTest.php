@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\field\Kernel;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -19,7 +18,7 @@ class TranslationTest extends FieldKernelTestBase {
   /**
    * Modules to enable.
    *
-   * node is required because the tests alter the node entity type.
+   * The node module is required because the tests alter the node entity type.
    *
    * @var array
    */
@@ -75,7 +74,7 @@ class TranslationTest extends FieldKernelTestBase {
 
     $this->installConfig(['language']);
 
-    $this->fieldName = Unicode::strtolower($this->randomMachineName());
+    $this->fieldName = mb_strtolower($this->randomMachineName());
 
     $this->entityType = 'entity_test';
 
@@ -140,7 +139,7 @@ class TranslationTest extends FieldKernelTestBase {
     }
 
     // Test default values.
-    $field_name_default = Unicode::strtolower($this->randomMachineName() . '_field_name');
+    $field_name_default = mb_strtolower($this->randomMachineName() . '_field_name');
     $field_storage_definition = $this->fieldStorageDefinition;
     $field_storage_definition['field_name'] = $field_name_default;
     $field_storage = FieldStorageConfig::create($field_storage_definition);

@@ -29,7 +29,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
    */
   protected $permissions = [
     'administer blocks',
-    'administer block_content fields'
+    'administer block_content fields',
   ];
 
   /**
@@ -122,7 +122,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
       $front_page_path => 'Home',
       'admin/structure/block' => 'Block layout',
       'admin/structure/block/block-content' => 'Custom block library',
-      'admin/structure/block/block-content/manage/basic' => 'Bar',
+      'admin/structure/block/block-content/manage/basic' => 'Edit Bar',
     ]);
     \Drupal::entityManager()->clearCachedFieldDefinitions();
 

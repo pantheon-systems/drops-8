@@ -2,16 +2,10 @@
 
 namespace Drupal\layout_builder\Entity;
 
-use Drupal\Component\Plugin\Definition\PluginDefinitionInterface;
-use Drupal\Component\Plugin\DependentPluginInterface;
-use Drupal\Component\Plugin\PluginInspectionInterface;
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Entity\EntityViewDisplay as BaseEntityViewDisplay;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Plugin\Context\Context;
-use Drupal\Core\Plugin\Context\ContextDefinition;
-use Drupal\Core\Plugin\Definition\DependentPluginDefinitionInterface;
+use Drupal\Core\Plugin\Context\EntityContext;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -32,6 +26,24 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
   use SectionStorageTrait;
 
   /**
+   * The entity field manager.
+   *
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface
+   */
+  protected $entityFieldManager;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(array $values, $entity_type) {
+    // Set $entityFieldManager before calling the parent constructor because the
+    // constructor will call init() which then calls setComponent() which needs
+    // $entityFieldManager.
+    $this->entityFieldManager = \Drupal::service('entity_field.manager');
+    parent::__construct($values, $entity_type);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function isOverridable() {
@@ -43,6 +55,30 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
    */
   public function setOverridable($overridable = TRUE) {
     $this->setThirdPartySetting('layout_builder', 'allow_custom', $overridable);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isLayoutBuilderEnabled() {
+    return (bool) $this->getThirdPartySetting('layout_builder', 'enabled');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function enableLayoutBuilder() {
+    $this->setThirdPartySetting('layout_builder', 'enabled', TRUE);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function disableLayoutBuilder() {
+    $this->setOverridable(FALSE);
+    $this->setThirdPartySetting('layout_builder', 'enabled', FALSE);
     return $this;
   }
 
@@ -78,6 +114,27 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
       }
       elseif ($field = FieldConfig::loadByName($entity_type_id, $bundle, 'layout_builder__layout')) {
         $field->delete();
+      }
+    }
+
+    $already_enabled = isset($this->original) ? $this->original->isLayoutBuilderEnabled() : FALSE;
+    $set_enabled = $this->isLayoutBuilderEnabled();
+    if ($already_enabled !== $set_enabled) {
+      if ($set_enabled) {
+        // Loop through all existing field-based components and add them as
+        // section-based components.
+        $components = $this->getComponents();
+        // Sort the components by weight.
+        uasort($components, 'Drupal\Component\Utility\SortArray::sortByWeightElement');
+        foreach ($components as $name => $component) {
+          $this->setComponent($name, $component);
+        }
+      }
+      else {
+        // When being disabled, remove all existing section data.
+        while (count($this) > 0) {
+          $this->removeSection(0);
+        }
       }
     }
   }
@@ -141,7 +198,11 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
    */
   public function buildMultiple(array $entities) {
     $build_list = parent::buildMultiple($entities);
+    if (!$this->isLayoutBuilderEnabled()) {
+      return $build_list;
+    }
 
+    /** @var \Drupal\Core\Entity\EntityInterface $entity */
     foreach ($entities as $id => $entity) {
       $sections = $this->getRuntimeSections($entity);
       if ($sections) {
@@ -155,9 +216,10 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
         // Bypass ::getContexts() in order to use the runtime entity, not a
         // sample entity.
         $contexts = $this->contextRepository()->getAvailableContexts();
-        // @todo Use EntityContextDefinition after resolving
-        //   https://www.drupal.org/node/2932462.
-        $contexts['layout_builder.entity'] = new Context(new ContextDefinition("entity:{$entity->getEntityTypeId()}", new TranslatableMarkup('@entity being viewed', ['@entity' => $entity->getEntityType()->getLabel()])), $entity);
+        $label = new TranslatableMarkup('@entity being viewed', [
+          '@entity' => $entity->getEntityType()->getSingularLabel(),
+        ]);
+        $contexts['layout_builder.entity'] = EntityContext::fromEntity($entity, $label);
         foreach ($sections as $delta => $section) {
           $build_list[$id]['_layout_builder'][$delta] = $section->toRenderArray($contexts);
         }
@@ -247,49 +309,13 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
   }
 
   /**
-   * Calculates and returns dependencies of a specific plugin instance.
-   *
-   * @param \Drupal\Component\Plugin\PluginInspectionInterface $instance
-   *   The plugin instance.
-   *
-   * @return array
-   *   An array of dependencies keyed by the type of dependency.
-   *
-   * @todo Replace this in https://www.drupal.org/project/drupal/issues/2939925.
-   */
-  protected function getPluginDependencies(PluginInspectionInterface $instance) {
-    $dependencies = [];
-    $definition = $instance->getPluginDefinition();
-    if ($definition instanceof PluginDefinitionInterface) {
-      $dependencies['module'][] = $definition->getProvider();
-      if ($definition instanceof DependentPluginDefinitionInterface && $config_dependencies = $definition->getConfigDependencies()) {
-        $dependencies = NestedArray::mergeDeep($dependencies, $config_dependencies);
-      }
-    }
-    elseif (is_array($definition)) {
-      $dependencies['module'][] = $definition['provider'];
-      // Plugins can declare additional dependencies in their definition.
-      if (isset($definition['config_dependencies'])) {
-        $dependencies = NestedArray::mergeDeep($dependencies, $definition['config_dependencies']);
-      }
-    }
-
-    // If a plugin is dependent, calculate its dependencies.
-    if ($instance instanceof DependentPluginInterface && $plugin_dependencies = $instance->calculateDependencies()) {
-      $dependencies = NestedArray::mergeDeep($dependencies, $plugin_dependencies);
-    }
-    return $dependencies;
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function setComponent($name, array $options = []) {
     parent::setComponent($name, $options);
 
-    // @todo Remove workaround for EntityViewBuilder::getSingleFieldDisplay() in
-    //   https://www.drupal.org/project/drupal/issues/2936464.
-    if ($this->getMode() === static::CUSTOM_MODE) {
+    // Only continue if Layout Builder is enabled.
+    if (!$this->isLayoutBuilderEnabled()) {
       return $this;
     }
 
@@ -297,13 +323,21 @@ class LayoutBuilderEntityViewDisplay extends BaseEntityViewDisplay implements La
     $options = $this->content[$name];
     // Provide backwards compatibility by converting to a section component.
     $field_definition = $this->getFieldDefinition($name);
-    if ($field_definition && $field_definition->isDisplayConfigurable('view') && isset($options['type'])) {
-      $configuration = [];
-      $configuration['id'] = 'field_block:' . $this->getTargetEntityTypeId() . ':' . $this->getTargetBundle() . ':' . $name;
-      $configuration['label_display'] = FALSE;
-      $keys = array_flip(['type', 'label', 'settings', 'third_party_settings']);
-      $configuration['formatter'] = array_intersect_key($options, $keys);
-      $configuration['context_mapping']['entity'] = 'layout_builder.entity';
+    $extra_fields = $this->entityFieldManager->getExtraFields($this->getTargetEntityTypeId(), $this->getTargetBundle());
+    $is_view_configurable_non_extra_field = $field_definition && $field_definition->isDisplayConfigurable('view') && isset($options['type']);
+    if ($is_view_configurable_non_extra_field || isset($extra_fields['display'][$name])) {
+      $configuration = [
+        'label_display' => '0',
+        'context_mapping' => ['entity' => 'layout_builder.entity'],
+      ];
+      if ($is_view_configurable_non_extra_field) {
+        $configuration['id'] = 'field_block:' . $this->getTargetEntityTypeId() . ':' . $this->getTargetBundle() . ':' . $name;
+        $keys = array_flip(['type', 'label', 'settings', 'third_party_settings']);
+        $configuration['formatter'] = array_intersect_key($options, $keys);
+      }
+      else {
+        $configuration['id'] = 'extra_field_block:' . $this->getTargetEntityTypeId() . ':' . $this->getTargetBundle() . ':' . $name;
+      }
 
       $section = $this->getDefaultSection();
       $region = isset($options['region']) ? $options['region'] : $section->getDefaultRegion();

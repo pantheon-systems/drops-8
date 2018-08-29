@@ -61,7 +61,7 @@ class ArgumentsResolverTest extends TestCase {
 
     // Test with a raw value that overrides the provided upcast value, since
     // it is not typehinted.
-    $scalars  = ['foo' => 'baz'];
+    $scalars = ['foo' => 'baz'];
     $objects = ['foo' => new \stdClass()];
     $data[] = [
       function ($foo) {}, $scalars, $objects, [], ['baz'],
@@ -206,6 +206,7 @@ class ArgumentsResolverTest extends TestCase {
  * Provides a test class.
  */
 class TestClass {
+
   public function access($foo) {
   }
 

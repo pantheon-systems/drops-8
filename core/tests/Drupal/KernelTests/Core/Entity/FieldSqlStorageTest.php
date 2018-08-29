@@ -2,7 +2,6 @@
 
 namespace Drupal\KernelTests\Core\Entity;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\Exception\FieldStorageDefinitionUpdateForbiddenException;
 use Drupal\field\Entity\FieldConfig;
@@ -89,7 +88,7 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     $this->fieldStorage->save();
     $this->field = FieldConfig::create([
       'field_storage' => $this->fieldStorage,
-      'bundle' => $entity_type
+      'bundle' => $entity_type,
     ]);
     $this->field->save();
 
@@ -278,7 +277,7 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     $storage = $this->container->get('entity.manager')->getStorage($entity_type);
 
     // Create two fields and generate random values.
-    $name_base = Unicode::strtolower($this->randomMachineName(FieldStorageConfig::NAME_MAX_LENGTH - 1));
+    $name_base = mb_strtolower($this->randomMachineName(FieldStorageConfig::NAME_MAX_LENGTH - 1));
     $field_names = [];
     $values = [];
     for ($i = 0; $i < 2; $i++) {
@@ -380,8 +379,9 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
       $this->tableMapping->getDedicatedDataTableName($prior_field_storage),
       $this->tableMapping->getDedicatedRevisionTableName($prior_field_storage),
     ];
+    $schema = Database::getConnection()->schema();
     foreach ($tables as $table_name) {
-      $this->assertTrue(db_table_exists($table_name), t('Table %table exists.', ['%table' => $table_name]));
+      $this->assertTrue($schema->tableExists($table_name), t('Table %table exists.', ['%table' => $table_name]));
     }
   }
 

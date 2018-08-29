@@ -14,7 +14,7 @@ class ErrorTestController extends ControllerBase {
   /**
    * The database connection.
    *
-   * @var \Drupal\Core\Database\Connection;
+   * @var \Drupal\Core\Database\Connection
    */
   protected $database;
 
@@ -88,7 +88,7 @@ class ErrorTestController extends ControllerBase {
       '#post_render' => [
         function () {
           throw new \Exception('This is an exception that occurs during rendering');
-        }
+        },
       ],
     ];
   }

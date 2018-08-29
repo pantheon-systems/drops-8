@@ -37,7 +37,7 @@ class LocaleConfigSubscriberTest extends KernelTestBase {
   /**
    * The string storage used in this test.
    *
-   * @var \Drupal\locale\StringStorageInterface;
+   * @var \Drupal\locale\StringStorageInterface
    */
   protected $stringStorage;
 
@@ -186,7 +186,6 @@ class LocaleConfigSubscriberTest extends KernelTestBase {
     $this->assertNoConfigOverride($config_name, $key, $source, $langcode);
     $this->assertNoTranslation($config_name, $langcode);
   }
-
 
   /**
    * Sets up a configuration string with a translation.

@@ -100,7 +100,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
    *   The value to search for.
    * @param string $message
    *   (optional) A message to display with the assertion. Do not translate
-   *   messages: use \Drupal\Component\Utility\SafeMarkup::format() to embed
+   *   messages: use \Drupal\Component\Render\FormattableMarkup to embed
    *   variables in the message text, not t(). If left blank, a default message
    *   will be displayed.
    * @param string $group
@@ -125,7 +125,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
    *   The value to search for.
    * @param string $message
    *   (optional) A message to display with the assertion. Do not translate
-   *   messages: use \Drupal\Component\Utility\SafeMarkup::format() to embed
+   *   messages: use \Drupal\Component\Render\FormattableMarkup to embed
    *   variables in the message text, not t(). If left blank, a default message
    *   will be displayed.
    * @param string $group
@@ -809,7 +809,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       'khoảng cách từ đại lí đến',
       'của hãng bao gồm ba dòng',
       'сд асд асд ас',
-      'асд асд асд ас'
+      'асд асд асд ас',
     ];
     // Just test maxlength without word boundary.
     $alter = [

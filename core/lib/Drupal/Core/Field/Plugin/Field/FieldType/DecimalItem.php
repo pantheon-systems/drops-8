@@ -52,7 +52,7 @@ class DecimalItem extends NumericItemBase {
           'type' => 'numeric',
           'precision' => $field_definition->getSetting('precision'),
           'scale' => $field_definition->getSetting('scale'),
-        ]
+        ],
       ],
     ];
   }
@@ -98,13 +98,12 @@ class DecimalItem extends NumericItemBase {
       'value' => [
         'Regex' => [
           'pattern' => '/^[+-]?((\d+(\.\d*)?)|(\.\d+))$/i',
-        ]
+        ],
       ],
     ]);
 
     return $constraints;
   }
-
 
   /**
    * {@inheritdoc}
@@ -153,7 +152,6 @@ class DecimalItem extends NumericItemBase {
     $values['value'] = self::truncateDecimal($random_decimal, $scale);
     return $values;
   }
-
 
   /**
    * Helper method to get the number of decimal digits out of a decimal number.

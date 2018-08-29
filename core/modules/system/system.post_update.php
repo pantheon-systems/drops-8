@@ -5,7 +5,9 @@
  * Post update functions for System.
  */
 
+use Drupal\Core\Config\Entity\ConfigEntityUpdater;
 use Drupal\Core\Entity\Display\EntityDisplayInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 
@@ -48,7 +50,6 @@ function system_post_update_add_region_to_entity_displays() {
   array_map($entity_save, EntityViewDisplay::loadMultiple());
   array_map($entity_save, EntityFormDisplay::loadMultiple());
 }
-
 
 /**
  * Force caches using hashes to be cleared (Twig, render cache, etc.).
@@ -110,4 +111,61 @@ function system_post_update_change_action_plugins() {
       $action->save();
     }
   }
+}
+
+/**
+ * Change plugin IDs of delete actions.
+ */
+function system_post_update_change_delete_action_plugins() {
+  $old_new_action_id_map = [
+    'comment_delete_action' => 'entity:delete_action:comment',
+    'node_delete_action' => 'entity:delete_action:node',
+  ];
+
+  /** @var \Drupal\system\Entity\Action[] $actions */
+  $actions = \Drupal::entityTypeManager()->getStorage('action')->loadMultiple();
+  foreach ($actions as $action) {
+    if (isset($old_new_action_id_map[$action->getPlugin()->getPluginId()])) {
+      $action->setPlugin($old_new_action_id_map[$action->getPlugin()->getPluginId()]);
+      $action->save();
+    }
+  }
+}
+
+/**
+ * Force cache clear for language item callback.
+ *
+ * @see https://www.drupal.org/node/2851736
+ */
+function system_post_update_language_item_callback() {
+  // Empty post-update hook.
+}
+
+/**
+ * Update all entity displays that contain extra fields.
+ */
+function system_post_update_extra_fields(&$sandbox = NULL) {
+  $config_entity_updater = \Drupal::classResolver(ConfigEntityUpdater::class);
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+
+  $callback = function (EntityDisplayInterface $display) use ($entity_field_manager) {
+    $display_context = $display instanceof EntityViewDisplayInterface ? 'display' : 'form';
+    $extra_fields = $entity_field_manager->getExtraFields($display->getTargetEntityTypeId(), $display->getTargetBundle());
+
+    // If any extra fields are used as a component, resave the display with the
+    // updated component information.
+    $needs_save = FALSE;
+    if (!empty($extra_fields[$display_context])) {
+      foreach ($extra_fields[$display_context] as $name => $extra_field) {
+        if ($component = $display->getComponent($name)) {
+          $display->setComponent($name, $component);
+          $needs_save = TRUE;
+        }
+      }
+    }
+    return $needs_save;
+  };
+
+  $config_entity_updater->update($sandbox, 'entity_form_display', $callback);
+  $config_entity_updater->update($sandbox, 'entity_view_display', $callback);
 }

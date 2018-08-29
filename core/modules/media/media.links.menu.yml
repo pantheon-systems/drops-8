@@ -4,3 +4,8 @@ entity.media_type.collection:
   description: 'Manage media types.'
   route_name: entity.media_type.collection
 
+media.settings:
+  title: 'Media settings'
+  parent: system.admin_config_media
+  description: 'Manage media settings.'
+  route_name: media.settings

@@ -7,13 +7,13 @@
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\BootstrapConfigStorageFactory;
+use Drupal\Core\Extension\Exception\UnknownExtensionException;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\Utility\Error;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
@@ -235,43 +235,45 @@ function drupal_get_filename($type, $name, $filename = NULL) {
     return 'core/core.info.yml';
   }
 
-  // Profiles are converted into modules in system_rebuild_module_data().
-  // @todo Remove false-exposure of profiles as modules.
-  if ($type == 'profile') {
-    $type = 'module';
+  if ($type === 'module' || $type === 'profile') {
+    $service_id = 'extension.list.' . $type;
+    /** @var \Drupal\Core\Extension\ExtensionList $extension_list */
+    $extension_list = \Drupal::service($service_id);
+    if (isset($filename)) {
+      // Manually add the info file path of an extension.
+      $extension_list->setPathname($name, $filename);
+    }
+    try {
+      return $extension_list->getPathname($name);
+    }
+    catch (UnknownExtensionException $e) {
+      // Catch the exception. This will result in triggering an error.
+    }
   }
-  if (!isset($files[$type])) {
-    $files[$type] = [];
-  }
+  else {
 
-  if (isset($filename)) {
-    $files[$type][$name] = $filename;
-  }
-  elseif (!isset($files[$type][$name])) {
-    // If the pathname of the requested extension is not known, try to retrieve
-    // the list of extension pathnames from various providers, checking faster
-    // providers first.
-    // Retrieve the current module list (derived from the service container).
-    if ($type == 'module' && \Drupal::hasService('module_handler')) {
-      foreach (\Drupal::moduleHandler()->getModuleList() as $module_name => $module) {
-        $files[$type][$module_name] = $module->getPathname();
+    if (!isset($files[$type])) {
+      $files[$type] = [];
+    }
+
+    if (isset($filename)) {
+      $files[$type][$name] = $filename;
+    }
+    elseif (!isset($files[$type][$name])) {
+      // If still unknown, retrieve the file list prepared in state by
+      // \Drupal\Core\Extension\ExtensionList() and
+      // \Drupal\Core\Extension\ThemeHandlerInterface::rebuildThemeData().
+      if (!isset($files[$type][$name]) && \Drupal::hasService('state')) {
+        $files[$type] += \Drupal::state()->get('system.' . $type . '.files', []);
       }
     }
-    // If still unknown, retrieve the file list prepared in state by
-    // system_rebuild_module_data() and
-    // \Drupal\Core\Extension\ThemeHandlerInterface::rebuildThemeData().
-    if (!isset($files[$type][$name]) && \Drupal::hasService('state')) {
-      $files[$type] += \Drupal::state()->get('system.' . $type . '.files', []);
-    }
-    // If still unknown, create a user-level error message.
-    if (!isset($files[$type][$name])) {
-      trigger_error(SafeMarkup::format('The following @type is missing from the file system: @name', ['@type' => $type, '@name' => $name]), E_USER_WARNING);
-    }
-  }
 
-  if (isset($files[$type][$name])) {
-    return $files[$type][$name];
+    if (isset($files[$type][$name])) {
+      return $files[$type][$name];
+    }
   }
+  // If the filename is still unknown, create a user-level error message.
+  trigger_error(new FormattableMarkup('The following @type is missing from the file system: @name', ['@type' => $type, '@name' => $name]), E_USER_WARNING);
 }
 
 /**
@@ -347,7 +349,7 @@ function t($string, array $args = [], array $options = []) {
  * @see https://www.drupal.org/node/2302363
  */
 function format_string($string, array $args) {
-  return SafeMarkup::format($string, $args);
+  return new FormattableMarkup($string, $args);
 }
 
 /**
@@ -794,12 +796,6 @@ function drupal_get_profile() {
     else {
       $profile = BootstrapConfigStorageFactory::getDatabaseStorage()->read('core.extension')['profile'];
     }
-
-    // A BC layer just in in case this only exists in Settings. Introduced in
-    // Drupal 8.3.x and will be removed before Drupal 9.0.0.
-    if (empty($profile)) {
-      $profile = Settings::get('install_profile');
-    }
   }
 
   return $profile;
@@ -979,10 +975,10 @@ function drupal_static_reset($name = NULL) {
  * Formats text for emphasized display in a placeholder inside a sentence.
  *
  * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0. Use
- *   \Drupal\Component\Utility\SafeMarkup::format() or Twig's "placeholder"
- *   filter instead. Note this method should not be used to simply emphasize a
- *   string and therefore has few valid use-cases. Note also, that this method
- *   does not mark the string as safe.
+ *   \Drupal\Component\Render\FormattableMarkup or Twig's "placeholder" filter
+ *   instead. Note this method should not be used to simply emphasize a string
+ *   and therefore has few valid use-cases. Note also, that this method does not
+ *   mark the string as safe.
  *
  * @see https://www.drupal.org/node/2302363
  */
