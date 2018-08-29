@@ -2,8 +2,7 @@
 
 namespace Drupal\views;
 
-use Drupal\Component\Utility\Unicode;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Defines a helper class for stuff related to views data.
@@ -120,7 +119,7 @@ class ViewsDataHelper {
                 }
                 else {
                   if ($string != 'base') {
-                    $strings[$field][$key][$string] = SafeMarkup::format("Error: missing @component", ['@component' => $string]);
+                    $strings[$field][$key][$string] = new FormattableMarkup("Error: missing @component", ['@component' => $string]);
                   }
                 }
               }
@@ -174,14 +173,14 @@ class ViewsDataHelper {
    *   decided.
    */
   protected static function fetchedFieldSort($a, $b) {
-    $a_group = Unicode::strtolower($a['group']);
-    $b_group = Unicode::strtolower($b['group']);
+    $a_group = mb_strtolower($a['group']);
+    $b_group = mb_strtolower($b['group']);
     if ($a_group != $b_group) {
       return $a_group < $b_group ? -1 : 1;
     }
 
-    $a_title = Unicode::strtolower($a['title']);
-    $b_title = Unicode::strtolower($b['title']);
+    $a_title = mb_strtolower($a['title']);
+    $b_title = mb_strtolower($b['title']);
     if ($a_title != $b_title) {
       return $a_title < $b_title ? -1 : 1;
     }

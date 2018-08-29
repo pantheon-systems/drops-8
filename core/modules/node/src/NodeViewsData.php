@@ -280,7 +280,7 @@ class NodeViewsData extends EntityViewsData {
 
     // Define the base group of this table. Fields that don't have a group defined
     // will go into this field by default.
-    $data['node_access']['table']['group']  = $this->t('Content access');
+    $data['node_access']['table']['group'] = $this->t('Content access');
 
     // For other base tables, explain how we join.
     $data['node_access']['table']['join'] = [
@@ -322,7 +322,7 @@ class NodeViewsData extends EntityViewsData {
             'field' => 'sid',
             'table' => 'search_index',
             'extra' => "node_search_index.type = 'node_search' AND node_search_index.langcode = node_field_data.langcode",
-          ]
+          ],
         ];
 
         $data['node_search_total']['table']['join'] = [

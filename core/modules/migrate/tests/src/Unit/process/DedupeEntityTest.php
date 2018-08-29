@@ -6,7 +6,6 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\migrate\Plugin\migrate\process\DedupeEntity;
-use Drupal\Component\Utility\Unicode;
 
 /**
  * @coversDefaultClass \Drupal\migrate\Plugin\migrate\process\DedupeEntity
@@ -18,7 +17,7 @@ class DedupeEntityTest extends MigrateProcessTestCase {
   /**
    * The mock entity query.
    *
-   * @var \Drupal\Core\Entity\Query\QueryInterface|\Drupal\Core\Entity\Query\QueryFactory
+   * @var \Drupal\Core\Entity\Query\QueryInterface
    */
   protected $entityQuery;
 
@@ -77,7 +76,7 @@ class DedupeEntityTest extends MigrateProcessTestCase {
     $this->entityQueryExpects($count);
     $value = $this->randomMachineName(32);
     $actual = $plugin->transform($value, $this->migrateExecutable, $this->row, 'testproperty');
-    $expected = Unicode::substr($value, $start, $length);
+    $expected = mb_substr($value, $start, $length);
     $expected .= $count ? $postfix . $count : '';
     $this->assertSame($expected, $actual);
   }

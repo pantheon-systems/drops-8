@@ -71,7 +71,7 @@ class Html {
   public static function getClass($class) {
     $class = (string) $class;
     if (!isset(static::$classes[$class])) {
-      static::$classes[$class] = static::cleanCssIdentifier(Unicode::strtolower($class));
+      static::$classes[$class] = static::cleanCssIdentifier(mb_strtolower($class));
     }
     return static::$classes[$class];
   }
@@ -79,9 +79,10 @@ class Html {
   /**
    * Prepares a string for use as a CSS identifier (element, class, or ID name).
    *
-   * http://www.w3.org/TR/CSS21/syndata.html#characters shows the syntax for
-   * valid CSS identifiers (including element names, classes, and IDs in
-   * selectors.)
+   * Link below shows the syntax for valid CSS identifiers (including element
+   * names, classes, and IDs in selectors).
+   *
+   * @see http://www.w3.org/TR/CSS21/syndata.html#characters
    *
    * @param string $identifier
    *   The identifier to clean.
@@ -124,7 +125,7 @@ class Html {
     // Identifiers cannot start with a digit, two hyphens, or a hyphen followed by a digit.
     $identifier = preg_replace([
       '/^[0-9]/',
-      '/^(-[0-9])|^(--)/'
+      '/^(-[0-9])|^(--)/',
     ], ['_', '__'], $identifier);
     return $identifier;
   }
@@ -215,7 +216,7 @@ class Html {
    * @see self::getUniqueId()
    */
   public static function getId($id) {
-    $id = str_replace([' ', '_', '[', ']'], ['-', '-', '-', ''], Unicode::strtolower($id));
+    $id = str_replace([' ', '_', '[', ']'], ['-', '-', '-', ''], mb_strtolower($id));
 
     // As defined in http://www.w3.org/TR/html4/types.html#type-name, HTML IDs can
     // only contain letters, digits ([0-9]), hyphens ("-"), underscores ("_"),

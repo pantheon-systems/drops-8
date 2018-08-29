@@ -124,7 +124,7 @@ class NodeTypeForm extends BundleEntityFormBase {
         DRUPAL_REQUIRED => t('Required'),
       ],
     ];
-    $form['submission']['help']  = [
+    $form['submission']['help'] = [
       '#type' => 'textarea',
       '#title' => t('Explanation or submission guidelines'),
       '#default_value' => $type->getHelp(),
@@ -225,11 +225,11 @@ class NodeTypeForm extends BundleEntityFormBase {
     $t_args = ['%name' => $type->label()];
 
     if ($status == SAVED_UPDATED) {
-      drupal_set_message(t('The content type %name has been updated.', $t_args));
+      $this->messenger()->addStatus($this->t('The content type %name has been updated.', $t_args));
     }
     elseif ($status == SAVED_NEW) {
       node_add_body_field($type);
-      drupal_set_message(t('The content type %name has been added.', $t_args));
+      $this->messenger()->addStatus($this->t('The content type %name has been added.', $t_args));
       $context = array_merge($t_args, ['link' => $type->link($this->t('View'), 'collection')]);
       $this->logger('node')->notice('Added content type %name.', $context);
     }

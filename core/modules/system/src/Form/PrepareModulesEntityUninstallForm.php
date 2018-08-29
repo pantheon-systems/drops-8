@@ -159,7 +159,7 @@ class PrepareModulesEntityUninstallForm extends ConfirmFormBase {
             '@entity_type_singular' => $entity_type->getSingularLabel(),
             '@entity_type_plural' => $entity_type->getPluralLabel(),
           ]
-        )
+        ),
       ];
     }
 
@@ -250,7 +250,7 @@ class PrepareModulesEntityUninstallForm extends ConfirmFormBase {
    */
   public static function moduleBatchFinished($success, $results, $operations) {
     $entity_type_plural = \Drupal::entityTypeManager()->getDefinition($results['entity_type_id'])->getPluralLabel();
-    drupal_set_message(t('All @entity_type_plural have been deleted.', ['@entity_type_plural' => $entity_type_plural]));
+    \Drupal::messenger()->addStatus(t('All @entity_type_plural have been deleted.', ['@entity_type_plural' => $entity_type_plural]));
 
     return new RedirectResponse(Url::fromRoute('system.modules_uninstall')->setAbsolute()->toString());
   }

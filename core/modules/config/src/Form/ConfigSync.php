@@ -4,6 +4,7 @@ namespace Drupal\config\Form;
 
 use Drupal\Core\Config\ConfigImporterException;
 use Drupal\Core\Config\ConfigImporter;
+use Drupal\Core\Config\Importer\ConfigImporterBatch;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -64,7 +65,7 @@ class ConfigSync extends FormBase {
   /**
    * The configuration manager.
    *
-   * @var \Drupal\Core\Config\ConfigManagerInterface;
+   * @var \Drupal\Core\Config\ConfigManagerInterface
    */
   protected $configManager;
 
@@ -191,7 +192,7 @@ class ConfigSync extends FormBase {
       return $form;
     }
     elseif (!$storage_comparer->validateSiteUuid()) {
-      drupal_set_message($this->t('The staged configuration cannot be imported, because it originates from a different site than this site. You can only synchronize configuration between cloned instances of this site.'), 'error');
+      $this->messenger()->addError($this->t('The staged configuration cannot be imported, because it originates from a different site than this site. You can only synchronize configuration between cloned instances of this site.'));
       $form['actions']['#access'] = FALSE;
       return $form;
     }
@@ -214,14 +215,14 @@ class ConfigSync extends FormBase {
         sort($change_list);
         $message = [
           [
-            '#markup' => $this->t('The following items in your active configuration have changes since the last import that may be lost on the next import.')
+            '#markup' => $this->t('The following items in your active configuration have changes since the last import that may be lost on the next import.'),
           ],
           [
             '#theme' => 'item_list',
             '#items' => $change_list,
-          ]
+          ],
         ];
-        drupal_set_message($this->renderer->renderPlain($message), 'warning');
+        $this->messenger()->addWarning($this->renderer->renderPlain($message));
       }
     }
 
@@ -295,7 +296,7 @@ class ConfigSync extends FormBase {
               'class' => ['use-ajax'],
               'data-dialog-type' => 'modal',
               'data-dialog-options' => json_encode([
-                'width' => 700
+                'width' => 700,
               ]),
             ],
           ];
@@ -330,30 +331,30 @@ class ConfigSync extends FormBase {
       $this->getStringTranslation()
     );
     if ($config_importer->alreadyImporting()) {
-      drupal_set_message($this->t('Another request may be synchronizing configuration already.'));
+      $this->messenger()->addStatus($this->t('Another request may be synchronizing configuration already.'));
     }
     else {
       try {
         $sync_steps = $config_importer->initialize();
         $batch = [
           'operations' => [],
-          'finished' => [get_class($this), 'finishBatch'],
+          'finished' => [ConfigImporterBatch::class, 'finish'],
           'title' => t('Synchronizing configuration'),
           'init_message' => t('Starting configuration synchronization.'),
           'progress_message' => t('Completed step @current of @total.'),
           'error_message' => t('Configuration synchronization has encountered an error.'),
         ];
         foreach ($sync_steps as $sync_step) {
-          $batch['operations'][] = [[get_class($this), 'processBatch'], [$config_importer, $sync_step]];
+          $batch['operations'][] = [[ConfigImporterBatch::class, 'process'], [$config_importer, $sync_step]];
         }
 
         batch_set($batch);
       }
       catch (ConfigImporterException $e) {
         // There are validation errors.
-        drupal_set_message($this->t('The configuration cannot be imported because it failed validation for the following reasons:'), 'error');
+        $this->messenger()->addError($this->t('The configuration cannot be imported because it failed validation for the following reasons:'));
         foreach ($config_importer->getErrors() as $message) {
-          drupal_set_message($message, 'error');
+          $this->messenger()->addError($message);
         }
       }
     }
@@ -368,20 +369,15 @@ class ConfigSync extends FormBase {
    *   The synchronization step to do.
    * @param array $context
    *   The batch context.
+   *
+   * @deprecated in Drupal 8.6.0 and will be removed before 9.0.0. Use
+   *   \Drupal\Core\Config\Importer\ConfigImporterBatch::process() instead.
+   *
+   * @see https://www.drupal.org/node/2897299
    */
   public static function processBatch(ConfigImporter $config_importer, $sync_step, &$context) {
-    if (!isset($context['sandbox']['config_importer'])) {
-      $context['sandbox']['config_importer'] = $config_importer;
-    }
-
-    $config_importer = $context['sandbox']['config_importer'];
-    $config_importer->doSyncStep($sync_step, $context);
-    if ($errors = $config_importer->getErrors()) {
-      if (!isset($context['results']['errors'])) {
-        $context['results']['errors'] = [];
-      }
-      $context['results']['errors'] += $errors;
-    }
+    @trigger_error('\Drupal\config\Form\ConfigSync::processBatch() deprecated in Drupal 8.6.0 and will be removed before 9.0.0. Use \Drupal\Core\Config\Importer\ConfigImporterBatch::process() instead. See https://www.drupal.org/node/2897299');
+    ConfigImporterBatch::process($config_importer, $sync_step, $context);
   }
 
   /**
@@ -389,27 +385,15 @@ class ConfigSync extends FormBase {
    *
    * This function is a static function to avoid serializing the ConfigSync
    * object unnecessarily.
+   *
+   * @deprecated in Drupal 8.6.0 and will be removed before 9.0.0. Use
+   *   \Drupal\Core\Config\Importer\ConfigImporterBatch::finish() instead.
+   *
+   * @see https://www.drupal.org/node/2897299
    */
   public static function finishBatch($success, $results, $operations) {
-    if ($success) {
-      if (!empty($results['errors'])) {
-        foreach ($results['errors'] as $error) {
-          drupal_set_message($error, 'error');
-          \Drupal::logger('config_sync')->error($error);
-        }
-        drupal_set_message(\Drupal::translation()->translate('The configuration was imported with errors.'), 'warning');
-      }
-      else {
-        drupal_set_message(\Drupal::translation()->translate('The configuration was imported successfully.'));
-      }
-    }
-    else {
-      // An error occurred.
-      // $operations contains the operations that remained unprocessed.
-      $error_operation = reset($operations);
-      $message = \Drupal::translation()->translate('An error occurred while processing %error_operation with arguments: @arguments', ['%error_operation' => $error_operation[0], '@arguments' => print_r($error_operation[1], TRUE)]);
-      drupal_set_message($message, 'error');
-    }
+    @trigger_error('\Drupal\config\Form\ConfigSync::finishBatch() deprecated in Drupal 8.6.0 and will be removed before 9.0.0. Use \Drupal\Core\Config\Importer\ConfigImporterBatch::finish() instead. See https://www.drupal.org/node/2897299');
+    ConfigImporterBatch::finish($success, $results, $operations);
   }
 
 }

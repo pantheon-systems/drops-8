@@ -7,8 +7,8 @@ use Drupal\migrate\Audit\AuditResult;
 use Drupal\migrate\Audit\IdAuditor;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
 use Drupal\Tests\migrate_drupal\Traits\CreateTestContentEntitiesTrait;
-use Drupal\workflows\Entity\Workflow;
 
 /**
  * Tests the migration auditor for ID conflicts.
@@ -19,6 +19,7 @@ class MigrateDrupal6AuditIdsTest extends MigrateDrupal6TestBase {
 
   use FileSystemModuleDiscoveryDataProviderTrait;
   use CreateTestContentEntitiesTrait;
+  use ContentModerationTestTrait;
 
   /**
    * {@inheritdoc}
@@ -44,7 +45,7 @@ class MigrateDrupal6AuditIdsTest extends MigrateDrupal6TestBase {
     $this->installEntitySchema('content_moderation_state');
     $this->installConfig('content_moderation');
     NodeType::create(['type' => 'page'])->save();
-    $workflow = Workflow::load('editorial');
+    $workflow = $this->createEditorialWorkflow();
     $workflow->getTypePlugin()->addEntityTypeAndBundle('node', 'page');
     $workflow->save();
   }
@@ -60,8 +61,9 @@ class MigrateDrupal6AuditIdsTest extends MigrateDrupal6TestBase {
 
     // Insert data in the d6_node:page migration mappping table to simulate a
     // previously migrated node.
-    $table_name = $this->getMigration('d6_node:page')->getIdMap()->mapTableName();
-    $this->container->get('database')->insert($table_name)
+    $id_map = $this->getMigration('d6_node:page')->getIdMap();
+    $table_name = $id_map->mapTableName();
+    $id_map->getDatabase()->insert($table_name)
       ->fields([
         'source_ids_hash' => 1,
         'sourceid1' => 1,
@@ -158,8 +160,9 @@ class MigrateDrupal6AuditIdsTest extends MigrateDrupal6TestBase {
 
     // Insert data in the d6_node_revision:page migration mappping table to
     // simulate a previously migrated node revison.
-    $table_name = $this->getMigration('d6_node_revision:page')->getIdMap()->mapTableName();
-    $this->container->get('database')->insert($table_name)
+    $id_map = $this->getMigration('d6_node_revision:page')->getIdMap();
+    $table_name = $id_map->mapTableName();
+    $id_map->getDatabase()->insert($table_name)
       ->fields([
         'source_ids_hash' => 1,
         'sourceid1' => 1,

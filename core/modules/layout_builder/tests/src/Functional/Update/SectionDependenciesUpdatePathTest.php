@@ -9,6 +9,7 @@ use Drupal\FunctionalTests\Update\UpdatePathTestBase;
  * Tests the upgrade path for Layout Builder section dependencies.
  *
  * @group layout_builder
+ * @group legacy
  */
 class SectionDependenciesUpdatePathTest extends UpdatePathTestBase {
 
@@ -18,6 +19,7 @@ class SectionDependenciesUpdatePathTest extends UpdatePathTestBase {
   protected function setDatabaseDumpFiles() {
     $this->databaseDumpFiles = [
       __DIR__ . '/../../../../../system/tests/fixtures/update/drupal-8.4.0.bare.standard.php.gz',
+      __DIR__ . '/../../../fixtures/update/layout-builder.php',
       __DIR__ . '/../../../fixtures/update/section-dependencies.php',
     ];
   }

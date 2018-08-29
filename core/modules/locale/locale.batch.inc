@@ -104,22 +104,22 @@ function locale_translation_batch_status_finished($success, $results) {
       else {
         $message = \Drupal::translation()->formatPlural(count($results['failed_files']), 'One translation files could not be checked. See the log for details.', '@count translation files could not be checked. See the log for details.');
       }
-      drupal_set_message($message, 'error');
+      \Drupal::messenger()->addError($message);
     }
     if (isset($results['files'])) {
-      drupal_set_message(\Drupal::translation()->formatPlural(
+      \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural(
         count($results['files']),
         'Checked available interface translation updates for one project.',
         'Checked available interface translation updates for @count projects.'
       ));
     }
     if (!isset($results['failed_files']) && !isset($results['files'])) {
-      drupal_set_message(t('Nothing to check.'));
+      \Drupal::messenger()->addStatus(t('Nothing to check.'));
     }
     \Drupal::state()->set('locale.translation_last_checked', REQUEST_TIME);
   }
   else {
-    drupal_set_message(t('An error occurred trying to check available interface translation updates.'), 'error');
+    \Drupal::messenger()->addError(t('An error occurred trying to check available interface translation updates.'));
   }
 }
 
@@ -242,7 +242,7 @@ function locale_translation_http_check($uri) {
       'allow_redirects' => [
         'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $request_uri) use (&$actual_uri) {
           $actual_uri = (string) $request_uri;
-        }
+        },
       ],
     ])->head($uri);
     $result = [];

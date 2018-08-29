@@ -3,12 +3,13 @@
 namespace Drupal\FunctionalTests\Update;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 
 /**
  * Tests the update path base class.
  *
  * @group Update
+ * @group legacy
  */
 class UpdatePathTestBaseTest extends UpdatePathTestBase {
 
@@ -32,7 +33,7 @@ class UpdatePathTestBaseTest extends UpdatePathTestBase {
    */
   public function testDatabaseLoaded() {
     foreach (['user', 'node', 'system', 'update_test_schema'] as $module) {
-      $this->assertEqual(drupal_get_installed_schema_version($module), 8000, SafeMarkup::format('Module @module schema is 8000', ['@module' => $module]));
+      $this->assertEqual(drupal_get_installed_schema_version($module), 8000, new FormattableMarkup('Module @module schema is 8000', ['@module' => $module]));
     }
 
     // Ensure that all {router} entries can be unserialized. If they cannot be

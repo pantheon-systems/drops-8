@@ -2,7 +2,6 @@
 
 namespace Drupal\field\Tests\EntityReference;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field_ui\Tests\FieldUiTestTrait;
@@ -294,7 +293,7 @@ class EntityReferenceAdminTest extends WebTestBase {
 
     $edit = [
       'title[0][value]' => 'Example',
-      'field_test_entity_ref_field[0][target_id]' => 'Test'
+      'field_test_entity_ref_field[0][target_id]' => 'Test',
     ];
     $this->drupalPostForm('node/add/' . $this->type, $edit, t('Save'));
 
@@ -303,7 +302,7 @@ class EntityReferenceAdminTest extends WebTestBase {
 
     $edit = [
       'title[0][value]' => 'Test',
-      'field_test_entity_ref_field[0][target_id]' => $node1->getTitle()
+      'field_test_entity_ref_field[0][target_id]' => $node1->getTitle(),
     ];
     $this->drupalPostForm('node/add/' . $this->type, $edit, t('Save'));
 
@@ -316,7 +315,7 @@ class EntityReferenceAdminTest extends WebTestBase {
 
     $edit = [
       'title[0][value]' => 'Test',
-      'field_test_entity_ref_field[0][target_id]' => $node1->getTitle() . ' (' . $node1->id() . ')'
+      'field_test_entity_ref_field[0][target_id]' => $node1->getTitle() . ' (' . $node1->id() . ')',
     ];
     $this->drupalPostForm('node/add/' . $this->type, $edit, t('Save'));
     $this->assertLink($node1->getTitle());
@@ -424,7 +423,7 @@ class EntityReferenceAdminTest extends WebTestBase {
     /** @var \Drupal\taxonomy\Entity\Vocabulary[] $vocabularies */
     $vocabularies = [];
     for ($i = 0; $i < 2; $i++) {
-      $vid = Unicode::strtolower($this->randomMachineName());
+      $vid = mb_strtolower($this->randomMachineName());
       $vocabularies[$i] = Vocabulary::create([
         'name' => $this->randomString(),
         'vid' => $vid,
