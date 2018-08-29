@@ -51,7 +51,7 @@ abstract class ConfigFormBase extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    drupal_set_message($this->t('The configuration options have been saved.'));
+    $this->messenger()->addStatus($this->t('The configuration options have been saved.'));
   }
 
 }

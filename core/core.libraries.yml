@@ -24,10 +24,10 @@ classList:
 
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
-  version: "4.8.0+2018-04-18-security-patch"
+  version: "4.10.0"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://github.com/ckeditor/ckeditor-dev/blob/4.8.0/LICENSE.md
+    url: https://github.com/ckeditor/ckeditor-dev/blob/4.10.0/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
@@ -378,11 +378,11 @@ jquery.farbtastic:
     - core/jquery
 
 jquery.form:
-  remote: https://github.com/malsup/form
-  version: "3.51"
+  remote: https://github.com/jquery-form/form
+  version: "4.22"
   license:
     name: GNU-GPL-2.0-or-later
-    url: http://malsup.github.com/gpl-license-v2.txt
+    url: https://raw.githubusercontent.com/jquery-form/form/master/LICENSE-LGPLv3
     gpl-compatible: true
   js:
     assets/vendor/jquery-form/jquery.form.min.js: { minified: true }
@@ -890,6 +890,7 @@ normalize:
   css:
     base:
       assets/vendor/normalize-css/normalize.css: { weight: -20 }
+      misc/normalize-fixes.css: { weight: -19 }
 
 picturefill:
   remote: https://github.com/scottjehl/picturefill

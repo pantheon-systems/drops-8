@@ -2,11 +2,17 @@
 
 namespace Drupal\Tests\search\Functional;
 
+@trigger_error(__NAMESPACE__ . '\SearchTestBase is deprecated in Drupal 8.6.x and will be removed before Drupal 9.0.0. Instead, use \Drupal\Tests\BrowserTestBase. See https://www.drupal.org/node/2979950.', E_USER_DEPRECATED);
+
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Component\Utility\SafeMarkup;
 
 /**
  * Defines the common search test code.
+ *
+ * @deprecated in Drupal 8.6.0 and will be removed in Drupal 9.0.0. Use
+ *   \Drupal\Tests\BrowserTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2979950
  */
 abstract class SearchTestBase extends BrowserTestBase {
 
@@ -28,17 +34,7 @@ abstract class SearchTestBase extends BrowserTestBase {
   }
 
   /**
-   * Simulates submission of a form using GET instead of POST.
-   *
-   * Forms that use the GET method cannot be submitted with
-   * WebTestBase::drupalPostForm(), which explicitly uses POST to submit the
-   * form. So this method finds the form, verifies that it has input fields and
-   * a submit button matching the inputs to this method, and then calls
-   * WebTestBase::drupalGet() to simulate the form submission to the 'action'
-   * URL of the form (if set, or the current URL if not).
-   *
-   * See WebTestBase::drupalPostForm() for more detailed documentation of the
-   * function parameters.
+   * Submission of a form via press submit button.
    *
    * @param string $path
    *   Location of the form to be submitted: either a Drupal path, absolute
@@ -51,42 +47,15 @@ abstract class SearchTestBase extends BrowserTestBase {
    *   this does not support AJAX.
    * @param string $form_html_id
    *   (optional) HTML ID of the form, to disambiguate.
+   *
+   * @deprecated in Drupal 8.6.x, to be removed before Drupal 9.0.x. Use
+   *   \Drupal\Tests\BrowserTestBase::drupalPostForm() instead.
+   *
+   * @see https://www.drupal.org/node/2979950
    */
   protected function submitGetForm($path, $edit, $submit, $form_html_id = NULL) {
-    if (isset($path)) {
-      $this->drupalGet($path);
-    }
-
-    if ($this->parse()) {
-      // Iterate over forms to find one that matches $edit and $submit.
-      $edit_save = $edit;
-      $xpath = '//form';
-      if (!empty($form_html_id)) {
-        $xpath .= "[@id='" . $form_html_id . "']";
-      }
-      $forms = $this->xpath($xpath);
-      foreach ($forms as $form) {
-        // Try to set the fields of this form as specified in $edit.
-        $edit = $edit_save;
-        $post = [];
-        $upload = [];
-        $submit_matches = $this->handleForm($post, $edit, $upload, $submit, $form);
-        if (!$edit && $submit_matches) {
-          // Everything matched, so "submit" the form.
-          $action = isset($form['action']) ? $this->getAbsoluteUrl((string) $form['action']) : NULL;
-          $this->drupalGet($action, ['query' => $post]);
-          return;
-        }
-      }
-
-      // We have not found a form which contained all fields of $edit and
-      // the submit button.
-      foreach ($edit as $name => $value) {
-        $this->fail(SafeMarkup::format('Failed to set field @name to @value', ['@name' => $name, '@value' => $value]));
-      }
-      $this->assertTrue($submit_matches, format_string('Found the @submit button', ['@submit' => $submit]));
-      $this->fail(format_string('Found the requested form fields at @path', ['@path' => $path]));
-    }
+    @trigger_error(__CLASS__ . '::' . __FUNCTION__ . '() is deprecated in Drupal 8.6.x, for removal before the Drupal 9.0.0 release. Use \Drupal\Tests\BrowserTestBase::drupalPostForm() instead. See https://www.drupal.org/node/2979950.', E_USER_DEPRECATED);
+    $this->drupalPostForm($path, $edit, $submit, [], $form_html_id);
   }
 
 }

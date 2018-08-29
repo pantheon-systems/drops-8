@@ -3,7 +3,6 @@
 namespace Drupal\Tests\menu_ui\Functional;
 
 use Drupal\block\Entity\Block;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Menu\MenuLinkInterface;
 use Drupal\Core\Url;
@@ -208,7 +207,7 @@ class MenuUiTest extends BrowserTestBase {
     $this->assertRaw(t('@name cannot be longer than %max characters but is currently %length characters long.', [
       '@name' => t('Menu name'),
       '%max' => MENU_MAX_MENU_NAME_LENGTH_UI,
-      '%length' => Unicode::strlen($menu_name),
+      '%length' => mb_strlen($menu_name),
     ]));
 
     // Change the menu_name so it no longer exceeds the maximum length.
@@ -220,7 +219,7 @@ class MenuUiTest extends BrowserTestBase {
     $this->assertNoRaw(t('@name cannot be longer than %max characters but is currently %length characters long.', [
       '@name' => t('Menu name'),
       '%max' => MENU_MAX_MENU_NAME_LENGTH_UI,
-      '%length' => Unicode::strlen($menu_name),
+      '%length' => mb_strlen($menu_name),
     ]));
     // Verify that the confirmation message is displayed.
     $this->assertRaw(t('Menu %label has been added.', ['%label' => $label]));
@@ -663,7 +662,7 @@ class MenuUiTest extends BrowserTestBase {
       $this->drupalPostForm("admin/structure/menu/manage/{$this->menu->id()}/add", $edit, t('Save'));
       $menu_links = entity_load_multiple_by_properties('menu_link_content', ['title' => $title]);
       $last_link = reset($menu_links);
-      $created_links[]  = 'tools:' . $last_link->getPluginId();
+      $created_links[] = 'tools:' . $last_link->getPluginId();
     }
 
     // The last link cannot be a parent in the new menu link form.

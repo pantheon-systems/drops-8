@@ -2,12 +2,12 @@
 
 namespace Drupal\Tests\system\FunctionalJavascript;
 
-use Drupal\FunctionalJavascriptTests\JavascriptTestBase;
+use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 
 /**
  * Base class contains common test functionality for the Off-canvas dialog.
  */
-abstract class OffCanvasTestBase extends JavascriptTestBase {
+abstract class OffCanvasTestBase extends WebDriverTestBase {
 
   /**
    * {@inheritdoc}
@@ -60,14 +60,21 @@ abstract class OffCanvasTestBase extends JavascriptTestBase {
 
   /**
    * Waits for off-canvas dialog to open.
+   *
+   * @param string $position
+   *   The position of the dialog.
+   *
+   * @throws \Behat\Mink\Exception\ElementNotFoundException
    */
-  protected function waitForOffCanvasToOpen() {
+  protected function waitForOffCanvasToOpen($position = 'side') {
     $web_assert = $this->assertSession();
     // Wait just slightly longer than the off-canvas dialog CSS animation.
     // @see core/misc/dialog/off-canvas.motion.css
     $this->getSession()->wait(800);
     $web_assert->assertWaitOnAjaxRequest();
     $this->assertElementVisibleAfterWait('css', '#drupal-off-canvas');
+    // Check that the canvas is positioned on the side.
+    $web_assert->elementExists('css', '.ui-dialog-position-' . $position);
   }
 
   /**
@@ -99,8 +106,22 @@ abstract class OffCanvasTestBase extends JavascriptTestBase {
    * @todo Remove in https://www.drupal.org/node/2892440.
    */
   protected function waitForNoElement($selector, $timeout = 10000) {
-    $condition = "(typeof jQuery !== 'undefined' && jQuery('$selector').length === 0)";
-    $this->assertJsCondition($condition, $timeout);
+
+    $start = microtime(TRUE);
+    $end = $start + ($timeout / 1000);
+    $page = $this->getSession()->getPage();
+
+    do {
+      $result = $page->find('css', $selector);
+
+      if (empty($result)) {
+        return;
+      }
+
+      usleep(100000);
+    } while (microtime(TRUE) < $end);
+
+    $this->assertEmpty($result, 'Element was not on the page after wait.');
   }
 
   /**
@@ -125,7 +146,22 @@ abstract class OffCanvasTestBase extends JavascriptTestBase {
    *   (Optional) Timeout in milliseconds, defaults to 10000.
    */
   protected function assertElementVisibleAfterWait($selector, $locator, $timeout = 10000) {
+    $this->assertSession()->assertWaitOnAjaxRequest();
     $this->assertNotEmpty($this->assertSession()->waitForElementVisible($selector, $locator, $timeout));
+  }
+
+  /**
+   * Dataprovider that returns theme name as the sole argument.
+   */
+  public function themeDataProvider() {
+    $themes = $this->getTestThemes();
+    $data = [];
+    foreach ($themes as $theme) {
+      $data[$theme] = [
+        $theme,
+      ];
+    }
+    return $data;
   }
 
 }

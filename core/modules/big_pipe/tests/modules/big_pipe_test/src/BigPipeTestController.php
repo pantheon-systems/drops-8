@@ -24,7 +24,7 @@ class BigPipeTestController {
     if ($has_session) {
       // Only set a message if a session already exists, otherwise we always
       // trigger a session, which means we can't test no-session requests.
-      drupal_set_message('Hello from BigPipe!');
+      \Drupal::messenger()->addStatus('Hello from BigPipe!');
     }
     $build['html'] = $cases['html']->renderArray;
 
@@ -91,7 +91,7 @@ class BigPipeTestController {
   public static function currentTime() {
     return [
       '#markup' => '<time datetime="' . date('Y-m-d', 668948400) . '"></time>',
-      '#cache' => ['max-age' => 0]
+      '#cache' => ['max-age' => 0],
     ];
   }
 

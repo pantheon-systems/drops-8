@@ -195,7 +195,7 @@ class FilterKernelTest extends KernelTestBase {
         'allowed_html' => '<img src data-align data-caption>',
         'filter_html_help' => 1,
         'filter_html_nofollow' => 0,
-      ]
+      ],
     ]);
     $test_with_html_filter = function ($input) use ($filter, $html_filter, $renderer) {
       return $renderer->executeInRenderContext(new RenderContext(), function () use ($input, $filter, $html_filter) {
@@ -388,7 +388,6 @@ class FilterKernelTest extends KernelTestBase {
     }
   }
 
-
   /**
    * Tests filter settings, defaults, access restrictions and similar.
    *
@@ -411,7 +410,7 @@ class FilterKernelTest extends KernelTestBase {
         'allowed_html' => '<a> <p> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd> <br>',
         'filter_html_help' => 1,
         'filter_html_nofollow' => 0,
-      ]
+      ],
     ]);
 
     // HTML filter is not able to secure some tags, these should never be
@@ -466,7 +465,7 @@ class FilterKernelTest extends KernelTestBase {
         'allowed_html' => '<a href llama> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd> <br>',
         'filter_html_help' => 1,
         'filter_html_nofollow' => 0,
-      ]
+      ],
     ]);
     $f = (string) $filter->process('<a kitten="cute" llama="awesome">link</a>', Language::LANGCODE_NOT_SPECIFIED);
     $this->assertNormalized($f, '<a llama="awesome">link</a>', 'HTML filter keeps explicitly allowed attributes, and removes attributes that are not explicitly allowed.');
@@ -478,7 +477,7 @@ class FilterKernelTest extends KernelTestBase {
         'allowed_html' => '<a href llama="majestical epic"> <em> <strong> <cite> <blockquote> <code> <ul> <ol> <li> <dl> <dt> <dd> <br>',
         'filter_html_help' => 1,
         'filter_html_nofollow' => 0,
-      ]
+      ],
     ]);
     $f = (string) $filter->process('<a kitten="cute" llama="awesome">link</a>', Language::LANGCODE_NOT_SPECIFIED);
     $this->assertIdentical($f, '<a>link</a>', 'HTML filter removes allowed attributes that do not have an explicitly allowed value.');
@@ -501,7 +500,7 @@ class FilterKernelTest extends KernelTestBase {
         'allowed_html' => '<a href>',
         'filter_html_help' => 1,
         'filter_html_nofollow' => 1,
-      ]
+      ],
     ]);
 
     // Test if the rel="nofollow" attribute is added, even if we try to prevent
@@ -549,7 +548,7 @@ class FilterKernelTest extends KernelTestBase {
     $filter->setConfiguration([
       'settings' => [
         'filter_url_length' => 496,
-      ]
+      ],
     ]);
 
     // @todo Possible categories:
@@ -842,7 +841,7 @@ www.example.com with a newline in comments -->
     $filter->setConfiguration([
       'settings' => [
         'filter_url_length' => 20,
-      ]
+      ],
     ]);
     $tests = [
       'www.trimmed.com/d/ff.ext?a=1&b=2#a1' => [
@@ -924,7 +923,7 @@ www.example.com with a newline in comments -->
     $filter->setConfiguration([
       'settings' => [
         'filter_url_length' => 496,
-      ]
+      ],
     ]);
     $path = __DIR__ . '/../..';
 

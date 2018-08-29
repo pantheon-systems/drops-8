@@ -38,7 +38,7 @@ class QuickEditIntegrationTest extends QuickEditTestBase {
   /**
    * The metadata generator object to be tested.
    *
-   * @var \Drupal\quickedit\MetadataGeneratorInterface.php
+   * @var \Drupal\quickedit\MetadataGeneratorInterface
    */
   protected $metadataGenerator;
 
@@ -221,7 +221,7 @@ class QuickEditIntegrationTest extends QuickEditTestBase {
       [
         'command' => 'editorGetUntransformedText',
         'data' => 'Test',
-      ]
+      ],
     ];
 
     $ajax_response_attachments_processor = \Drupal::service('ajax_response.attachments_processor');

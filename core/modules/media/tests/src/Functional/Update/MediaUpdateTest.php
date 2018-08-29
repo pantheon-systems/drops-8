@@ -9,6 +9,7 @@ use Drupal\user\Entity\Role;
  * Tests that media settings are properly updated during database updates.
  *
  * @group media
+ * @group legacy
  */
 class MediaUpdateTest extends UpdatePathTestBase {
 
@@ -17,8 +18,9 @@ class MediaUpdateTest extends UpdatePathTestBase {
    */
   protected function setDatabaseDumpFiles() {
     $this->databaseDumpFiles = [
-      __DIR__ . '/../../../../../system/tests/fixtures/update/drupal-8.bare.standard.php.gz',
-      __DIR__ . '/../../../fixtures/update/drupal-8.media-enabled.php',
+      __DIR__ . '/../../../../../system/tests/fixtures/update/drupal-8.4.0.bare.standard.php.gz',
+      __DIR__ . '/../../../fixtures/update/drupal-8.4.0-media_installed.php',
+      __DIR__ . '/../../../fixtures/update/drupal-8.media-add-additional-permissions.php',
     ];
   }
 
@@ -28,16 +30,6 @@ class MediaUpdateTest extends UpdatePathTestBase {
    * @see media_update_8500()
    */
   public function testBundlePermission() {
-    $role = Role::load(Role::AUTHENTICATED_ID);
-
-    $this->grantPermissions($role, [
-      'update media',
-      'update any media',
-      'delete media',
-      'delete any media',
-      'create media',
-    ]);
-
     $this->runUpdates();
 
     /** @var \Drupal\user\RoleInterface $role */
@@ -51,6 +43,23 @@ class MediaUpdateTest extends UpdatePathTestBase {
       $this->assertTrue($role->hasPermission("delete own $media_type media"));
       $this->assertTrue($role->hasPermission("delete any $media_type media"));
     }
+  }
+
+  /**
+   * Tests that media.settings config is updated with oEmbed configuration.
+   *
+   * @see media_update_8600()
+   */
+  public function testOEmbedConfig() {
+    $config = $this->config('media.settings');
+    $this->assertNull($config->get('oembed_providers_url'));
+    $this->assertNull($config->get('iframe_domain'));
+
+    $this->runUpdates();
+
+    $config = $this->config('media.settings');
+    $this->assertSame('https://oembed.com/providers.json', $config->get('oembed_providers_url'));
+    $this->assertSame('', $config->get('iframe_domain'));
   }
 
 }

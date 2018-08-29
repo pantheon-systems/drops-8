@@ -104,7 +104,8 @@ function field_test_field_widget_form_alter(&$element, FormStateInterface $form_
   // Set a message if this is for the form displayed to set default value for
   // the field.
   if ($context['default']) {
-    drupal_set_message('From hook_field_widget_form_alter(): Default form is true.');
+    \Drupal::messenger()
+      ->addStatus('From hook_field_widget_form_alter(): Default form is true.');
   }
 }
 
@@ -129,7 +130,6 @@ function field_test_field_widget_multivalue_test_field_widget_multiple_single_va
   _field_test_alter_widget("hook_field_widget_multivalue_WIDGET_TYPE_form_alter", $elements, $form_state, $context);
 }
 
-
 /**
  * Sets up alterations for widget alter tests.
  *
@@ -140,7 +140,7 @@ function _field_test_alter_widget($hook, array &$elements, FormStateInterface $f
   // Set a message if this is for the form displayed to set default value for
   // the field.
   if ($context['default']) {
-    drupal_set_message("From $hook(): Default form is true.");
+    \Drupal::messenger()->addStatus("From $hook(): Default form is true.");
   }
   $alter_info = \Drupal::state()->get("field_test.widget_alter_test");
   $name = $context['items']->getFieldDefinition()->getName();
@@ -162,7 +162,6 @@ function field_test_query_efq_table_prefixing_test_alter(&$query) {
   // exception if the EFQ does not properly prefix the base table.
   $query->join('entity_test', 'et2', '%alias.id = entity_test.id');
 }
-
 
 /**
  * Implements hook_query_TAG_alter() for tag 'efq_metadata_test'.

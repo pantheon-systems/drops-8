@@ -145,7 +145,7 @@ class DbDumpCommand extends DbCommandBase {
       $name = $row['Field'];
       // Parse out the field type and meta information.
       preg_match('@([a-z]+)(?:\((\d+)(?:,(\d+))?\))?\s*(unsigned)?@', $row['Type'], $matches);
-      $type  = $this->fieldTypeMap($connection, $matches[1]);
+      $type = $this->fieldTypeMap($connection, $matches[1]);
       if ($row['Extra'] === 'auto_increment') {
         // If this is an auto increment, then the type is 'serial'.
         $type = 'serial';
@@ -259,8 +259,12 @@ class DbDumpCommand extends DbCommandBase {
     $query = $connection->query("SHOW TABLE STATUS LIKE '{" . $table . "}'");
     $data = $query->fetchAssoc();
 
+    // Map the collation to a character set. For example, 'utf8mb4_general_ci'
+    // (MySQL 5) or 'utf8mb4_0900_ai_ci' (MySQL 8) will be mapped to 'utf8mb4'.
+    list($charset,) = explode('_', $data['Collation'], 2);
+
     // Set `mysql_character_set`. This will be ignored by other backends.
-    $definition['mysql_character_set'] = str_replace('_general_ci', '', $data['Collation']);
+    $definition['mysql_character_set'] = $charset;
   }
 
   /**

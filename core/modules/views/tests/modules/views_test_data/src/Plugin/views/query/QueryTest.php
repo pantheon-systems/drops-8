@@ -60,7 +60,7 @@ class QueryTest extends QueryPluginBase {
     $this->conditions[] = [
       'field' => $field,
       'value' => $value,
-      'operator' => $operator
+      'operator' => $operator,
     ];
 
   }
@@ -73,7 +73,6 @@ class QueryTest extends QueryPluginBase {
   public function addOrderBy($table, $field = NULL, $order = 'ASC', $alias = '', $params = []) {
     $this->orderBy = ['field' => $field, 'order' => $order];
   }
-
 
   public function ensureTable($table, $relationship = NULL, JoinPluginBase $join = NULL) {
     // There is no concept of joins.

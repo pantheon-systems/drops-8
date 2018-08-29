@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\image\Functional;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\file\Entity\File;
@@ -369,13 +368,13 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
    */
   public function testInvalidDefaultImage() {
     $field_storage = FieldStorageConfig::create([
-      'field_name' => Unicode::strtolower($this->randomMachineName()),
+      'field_name' => mb_strtolower($this->randomMachineName()),
       'entity_type' => 'node',
       'type' => 'image',
       'settings' => [
         'default_image' => [
           'uuid' => 100000,
-        ]
+        ],
       ],
     ]);
     $field_storage->save();
@@ -390,7 +389,7 @@ class ImageFieldDefaultImagesTest extends ImageFieldTestBase {
       'settings' => [
         'default_image' => [
           'uuid' => 100000,
-        ]
+        ],
       ],
     ]);
     $field->save();

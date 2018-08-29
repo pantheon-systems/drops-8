@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\taxonomy\Functional;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\taxonomy\Entity\Vocabulary;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -144,12 +143,12 @@ class VocabularyCrudTest extends TaxonomyTestBase {
   public function testUninstallReinstall() {
     // Field storages and fields attached to taxonomy term bundles should be
     // removed when the module is uninstalled.
-    $field_name = Unicode::strtolower($this->randomMachineName() . '_field_name');
+    $field_name = mb_strtolower($this->randomMachineName() . '_field_name');
     $storage_definition = [
       'field_name' => $field_name,
       'entity_type' => 'taxonomy_term',
       'type' => 'text',
-      'cardinality' => 4
+      'cardinality' => 4,
     ];
     FieldStorageConfig::create($storage_definition)->save();
     $field_definition = [
@@ -165,7 +164,7 @@ class VocabularyCrudTest extends TaxonomyTestBase {
     // installed for testing below.
     $this->vocabulary->unsetThirdPartySetting('taxonomy_crud', 'foo');
 
-    require_once \Drupal::root() . '/core/includes/install.inc';
+    require_once $this->root . '/core/includes/install.inc';
     $this->container->get('module_installer')->uninstall(['taxonomy']);
     $this->container->get('module_installer')->install(['taxonomy']);
 
