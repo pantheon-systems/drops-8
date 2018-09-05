@@ -94,7 +94,7 @@ abstract class MigrateUpgradeExecuteTestBase extends MigrateUpgradeTestBase {
     }
     else {
       $session->responseContains('Unable to read from Public files directory.');
-      $session->responseContains('Unable to read from Private file directory.');
+      $session->responseContains('Unable to read from Private files directory.');
     }
 
     // Restart the upgrade process.
@@ -138,7 +138,7 @@ abstract class MigrateUpgradeExecuteTestBase extends MigrateUpgradeTestBase {
     $this->drupalPostForm(NULL, $edits, t('Review upgrade'));
     $session->pageTextContains('WARNING: Content may be overwritten on your new site.');
     $session->pageTextContains('There is conflicting content of these types:');
-    $session->pageTextContains('file entities');
+    $session->pageTextContains('files');
     $session->pageTextContains('content item revisions');
     $session->pageTextContains('There is translated content of these types:');
     $session->pageTextContains('content items');

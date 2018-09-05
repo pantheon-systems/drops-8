@@ -3,7 +3,7 @@
 namespace Drupal\Tests\config\Functional;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Tests\BrowserTestBase;
 
@@ -433,7 +433,7 @@ class ConfigImportUITest extends BrowserTestBase {
 
     // Attempt to import configuration and verify that an error message appears.
     $this->drupalPostForm(NULL, [], t('Import all'));
-    $this->assertText(SafeMarkup::format('Deleted and replaced configuration entity "@name"', ['@name' => $name_secondary]));
+    $this->assertText(new FormattableMarkup('Deleted and replaced configuration entity "@name"', ['@name' => $name_secondary]));
     $this->assertText(t('The configuration was imported with errors.'));
     $this->assertNoText(t('The configuration was imported successfully.'));
     $this->assertText(t('There are no configuration changes to import.'));
@@ -516,6 +516,19 @@ class ConfigImportUITest extends BrowserTestBase {
     $this->assertText('Unable to uninstall the Classy theme since the Bartik theme is installed.');
     $this->assertText('Unable to install the does_not_exist module since it does not exist.');
     $this->assertText('Unable to install the does_not_exist theme since it does not exist.');
+  }
+
+  /**
+   * Tests that errors set in the batch and on the ConfigImporter are merged.
+   */
+  public function testBatchErrors() {
+    $new_site_name = 'Config import test ' . $this->randomString();
+    $this->prepareSiteNameUpdate($new_site_name);
+    \Drupal::state()->set('config_import_steps_alter.error', TRUE);
+    $this->drupalPostForm('admin/config/development/configuration', [], t('Import all'));
+    $this->assertSession()->responseContains('_config_import_test_config_import_steps_alter batch error');
+    $this->assertSession()->responseContains('_config_import_test_config_import_steps_alter ConfigImporter error');
+    $this->assertSession()->responseContains('The configuration was imported with errors.');
   }
 
 }

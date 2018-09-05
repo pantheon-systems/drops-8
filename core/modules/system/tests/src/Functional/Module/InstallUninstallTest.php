@@ -4,6 +4,7 @@ namespace Drupal\Tests\system\Functional\Module;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\workspaces\Entity\Workspace;
 
 /**
  * Install/uninstall core module and confirm table creation/deletion.
@@ -22,7 +23,8 @@ class InstallUninstallTest extends ModuleTestBase {
    */
   public function testInstallUninstall() {
     // Set a variable so that the hook implementations in system_test.module
-    // will display messages via drupal_set_message().
+    // will display messages via
+    // \Drupal\Core\Messenger\MessengerInterface::addStatus().
     $this->container->get('state')->set('system_test.verbose_module_hooks', TRUE);
 
     // Install and uninstall module_test to ensure hook_preinstall_module and
@@ -145,6 +147,12 @@ class InstallUninstallTest extends ModuleTestBase {
       if ($name == 'forum') {
         // Forum has an extra step to be able to uninstall it.
         $this->preUninstallForum();
+      }
+
+      // Delete all workspaces before uninstall.
+      if ($name == 'workspaces') {
+        $workspaces = Workspace::loadMultiple();
+        \Drupal::entityTypeManager()->getStorage('workspace')->delete($workspaces);
       }
 
       $now_installed_list = \Drupal::moduleHandler()->getModuleList();

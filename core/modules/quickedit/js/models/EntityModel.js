@@ -193,7 +193,9 @@
                 error: function error() {
                   entityModel.set('isCommitting', false);
 
-                  entityModel.set('state', 'opened', { reason: 'networkerror' });
+                  entityModel.set('state', 'opened', {
+                    reason: 'networkerror'
+                  });
 
                   var message = Drupal.t('Your changes to <q>@entity-title</q> could not be saved, either due to a website problem or a network connection problem.<br>Please try again.', { '@entity-title': entityModel.get('label') });
                   Drupal.quickedit.util.networkErrorModal(Drupal.t('Network problem!'), message);
@@ -256,9 +258,11 @@
 
         if (!this._acceptStateChange(currentState, nextState, options)) {
           return 'state change not accepted';
-        } else if (!this._fieldsHaveAcceptableStates(acceptedFieldStates)) {
-            return 'state change not accepted because fields are not in acceptable state';
-          }
+        }
+
+        if (!this._fieldsHaveAcceptableStates(acceptedFieldStates)) {
+          return 'state change not accepted because fields are not in acceptable state';
+        }
       }
 
       var currentIsCommitting = this.get('isCommitting');

@@ -43,7 +43,7 @@ class BlockContent extends DeriverBase implements ContainerDeriverInterface {
    * {@inheritdoc}
    */
   public function getDerivativeDefinitions($base_plugin_definition) {
-    $block_contents = $this->blockContentStorage->loadMultiple();
+    $block_contents = $this->blockContentStorage->loadByProperties(['reusable' => TRUE]);
     // Reset the discovered definitions.
     $this->derivatives = [];
     /** @var $block_content \Drupal\block_content\Entity\BlockContent */
@@ -51,7 +51,7 @@ class BlockContent extends DeriverBase implements ContainerDeriverInterface {
       $this->derivatives[$block_content->uuid()] = $base_plugin_definition;
       $this->derivatives[$block_content->uuid()]['admin_label'] = $block_content->label();
       $this->derivatives[$block_content->uuid()]['config_dependencies']['content'] = [
-        $block_content->getConfigDependencyName()
+        $block_content->getConfigDependencyName(),
       ];
     }
     return parent::getDerivativeDefinitions($base_plugin_definition);

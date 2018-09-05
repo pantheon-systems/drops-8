@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\node\Functional\Views;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\views\Views;
 
@@ -55,7 +55,7 @@ class BulkFormTest extends NodeTestBase {
         'promote' => FALSE,
       ];
       $node = $this->drupalCreateNode($values);
-      $this->pass(SafeMarkup::format('Node %title created with language %langcode.', ['%title' => $node->label(), '%langcode' => $node->language()->getId()]));
+      $this->pass(new FormattableMarkup('Node %title created with language %langcode.', ['%title' => $node->label(), '%langcode' => $node->language()->getId()]));
       $this->nodes[] = $node;
     }
 
@@ -66,7 +66,7 @@ class BulkFormTest extends NodeTestBase {
         if (!$node->hasTranslation($langcode)) {
           $title = $this->randomMachineName() . ' [' . $node->id() . ':' . $langcode . ']';
           $translation = $node->addTranslation($langcode, ['title' => $title, 'promote' => FALSE]);
-          $this->pass(SafeMarkup::format('Translation %title created with language %langcode.', ['%title' => $translation->label(), '%langcode' => $translation->language()->getId()]));
+          $this->pass(new FormattableMarkup('Translation %title created with language %langcode.', ['%title' => $translation->label(), '%langcode' => $translation->language()->getId()]));
         }
       }
       $node->save();
@@ -77,7 +77,7 @@ class BulkFormTest extends NodeTestBase {
     $langcode = 'en';
     $title = $this->randomMachineName() . ' [' . $node->id() . ':' . $langcode . ']';
     $translation = $node->addTranslation($langcode, ['title' => $title]);
-    $this->pass(SafeMarkup::format('Translation %title created with language %langcode.', ['%title' => $translation->label(), '%langcode' => $translation->language()->getId()]));
+    $this->pass(new FormattableMarkup('Translation %title created with language %langcode.', ['%title' => $translation->label(), '%langcode' => $translation->language()->getId()]));
     $node->save();
 
     // Check that all created translations are selected by the test view.
@@ -249,15 +249,15 @@ class BulkFormTest extends NodeTestBase {
     $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
 
     $label = $this->loadNode(1)->label();
-    $this->assertText("$label (Original translation) - The following content translations will be deleted:");
+    $this->assertText("$label (Original translation) - The following content item translations will be deleted:");
     $label = $this->loadNode(2)->label();
-    $this->assertText("$label (Original translation) - The following content translations will be deleted:");
+    $this->assertText("$label (Original translation) - The following content item translations will be deleted:");
     $label = $this->loadNode(3)->getTranslation('en')->label();
     $this->assertText($label);
-    $this->assertNoText("$label (Original translation) - The following content translations will be deleted:");
+    $this->assertNoText("$label (Original translation) - The following content item translations will be deleted:");
     $label = $this->loadNode(4)->label();
     $this->assertText($label);
-    $this->assertNoText("$label (Original translation) - The following content translations will be deleted:");
+    $this->assertNoText("$label (Original translation) - The following content item translations will be deleted:");
 
     $this->drupalPostForm(NULL, [], t('Delete'));
 
@@ -273,7 +273,7 @@ class BulkFormTest extends NodeTestBase {
     $node = $this->loadNode(5);
     $this->assertTrue($node, '5: Node has not been deleted');
 
-    $this->assertText('Deleted 8 posts.');
+    $this->assertText('Deleted 8 content items.');
   }
 
   /**

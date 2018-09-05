@@ -4,7 +4,7 @@ namespace Drupal\views\Plugin\views\display;
 
 use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\CacheableDependencyInterface;
@@ -962,7 +962,6 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     return $this->dependencies;
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -1022,7 +1021,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
     }
 
     if (!empty($class)) {
-      $text = SafeMarkup::format('<span>@text</span>', ['@text' => $text]);
+      $text = new FormattableMarkup('<span>@text</span>', ['@text' => $text]);
     }
 
     if (empty($title)) {
@@ -1033,13 +1032,13 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
         'js' => 'nojs',
         'view' => $this->view->storage->id(),
         'display_id' => $this->display['id'],
-        'type' => $section
+        'type' => $section,
       ], [
         'attributes' => [
           'class' => ['views-ajax-link', $class],
           'title' => $title,
-          'id' => Html::getUniqueId('views-' . $this->display['id'] . '-' . $section)
-        ]
+          'id' => Html::getUniqueId('views-' . $this->display['id'] . '-' . $section),
+        ],
     ]));
   }
 
@@ -2587,7 +2586,7 @@ abstract class DisplayPluginBase extends PluginBase implements DisplayPluginInte
   public function getPagerText() {
     return [
       'items per page title' => $this->t('Items to display'),
-      'items per page description' => $this->t('Enter 0 for no limit.')
+      'items per page description' => $this->t('Enter 0 for no limit.'),
     ];
   }
 

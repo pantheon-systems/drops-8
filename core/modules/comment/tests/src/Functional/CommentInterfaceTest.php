@@ -5,7 +5,6 @@ namespace Drupal\Tests\comment\Functional;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\comment\Entity\Comment;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Entity\Entity\EntityViewMode;
 use Drupal\user\RoleInterface;
@@ -166,7 +165,7 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->setCommentsPerPage(50);
 
     // Attempt to reply to an unpublished comment.
-    $reply_loaded->setPublished(FALSE);
+    $reply_loaded->setUnpublished();
     $reply_loaded->save();
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $reply_loaded->id());
     $this->assertResponse(403);
@@ -311,7 +310,7 @@ class CommentInterfaceTest extends CommentTestBase {
     $this->assertRaw('<p>' . $comment_text . '</p>');
 
     // Create a new comment entity view mode.
-    $mode = Unicode::strtolower($this->randomMachineName());
+    $mode = mb_strtolower($this->randomMachineName());
     EntityViewMode::create([
       'targetEntityType' => 'comment',
       'id' => "comment.$mode",

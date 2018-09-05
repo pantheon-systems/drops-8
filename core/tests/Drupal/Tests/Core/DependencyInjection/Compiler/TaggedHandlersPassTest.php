@@ -347,7 +347,7 @@ class TaggedHandlersPassTest extends UnitTestCase {
     $container
       ->register('consumer_id', __NAMESPACE__ . '\ValidConsumerWithExtraArguments')
       ->addTag('service_collector', [
-        'call' => 'addNoPriority'
+        'call' => 'addNoPriority',
       ]);
 
     $container
@@ -376,7 +376,7 @@ class TaggedHandlersPassTest extends UnitTestCase {
     $container
       ->register('consumer_id', __NAMESPACE__ . '\ValidConsumerWithExtraArguments')
       ->addTag('service_collector', [
-        'call' => 'addWithId'
+        'call' => 'addWithId',
       ]);
 
     $container
@@ -408,7 +408,7 @@ class TaggedHandlersPassTest extends UnitTestCase {
     $container
       ->register('consumer_id', __NAMESPACE__ . '\ValidConsumerWithExtraArguments')
       ->addTag('service_collector', [
-        'call' => 'addWithDifferentOrder'
+        'call' => 'addWithDifferentOrder',
       ]);
 
     $container
@@ -416,7 +416,7 @@ class TaggedHandlersPassTest extends UnitTestCase {
       ->addTag('consumer_id', [
         'priority' => 0,
         'extra1' => 'extra1',
-        'extra3' => 'extra3'
+        'extra3' => 'extra3',
       ]);
 
     $handler_pass = new TaggedHandlersPass();
@@ -433,26 +433,34 @@ class TaggedHandlersPassTest extends UnitTestCase {
 interface HandlerInterface {
 }
 class ValidConsumer {
+
   public function addHandler(HandlerInterface $instance, $priority = 0) {
   }
+
   public function addNoPriority(HandlerInterface $instance) {
   }
+
   public function addWithId(HandlerInterface $instance, $id, $priority = 0) {
   }
 
 }
 class InvalidConsumer {
+
   public function addHandler($instance, $priority = 0) {
   }
 
 }
 class ValidConsumerWithExtraArguments {
+
   public function addHandler(HandlerInterface $instance, $priority = 0, $extra1 = '', $extra2 = '') {
   }
+
   public function addNoPriority(HandlerInterface $instance, $extra) {
   }
+
   public function addWithId(HandlerInterface $instance, $id, $priority = 0, $extra1 = '', $extra2 = NULL) {
   }
+
   public function addWithDifferentOrder(HandlerInterface $instance, $extra1, $priority = 0, $extra2 = 'default2', $extra3 = 'default3') {
   }
 

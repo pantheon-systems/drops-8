@@ -334,13 +334,13 @@ class EntityAccessControlHandlerTest extends EntityLanguageTestBase {
     $this->assertFalse($entity->get('uuid')->access('edit'));
     $access_result = $entity->get('uuid')->access('edit', NULL, TRUE);
     $this->assertTrue($access_result->isForbidden());
-    $this->assertEquals('The entity UUID cannot be changed', $access_result->getReason());
+    $this->assertEquals('The entity UUID cannot be changed.', $access_result->getReason());
 
     // Ensure the ID is still not allowed to be edited.
     $this->assertFalse($entity->get('id')->access('edit'));
     $access_result = $entity->get('id')->access('edit', NULL, TRUE);
     $this->assertTrue($access_result->isForbidden());
-    $this->assertEquals('The entity ID cannot be changed', $access_result->getReason());
+    $this->assertEquals('The entity ID cannot be changed.', $access_result->getReason());
   }
 
   public function providerTestFieldAccess() {
@@ -351,7 +351,7 @@ class EntityAccessControlHandlerTest extends EntityLanguageTestBase {
           'name' => 'A test entity',
           'uuid' => '60e3a179-79ed-4653-ad52-5e614c8e8fbe',
         ],
-        FALSE
+        FALSE,
       ],
       'string ID entity' => [
         EntityTestStringId::class,
@@ -360,7 +360,7 @@ class EntityAccessControlHandlerTest extends EntityLanguageTestBase {
           'name' => 'A test entity',
           'uuid' => '60e3a179-79ed-4653-ad52-5e614c8e8fbe',
         ],
-        TRUE
+        TRUE,
       ],
     ];
   }

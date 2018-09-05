@@ -104,7 +104,7 @@ function node_help($route_name, RouteMatchInterface $route_match) {
     else {
       $message = t('The content access permissions need to be rebuilt. <a href=":node_access_rebuild">Rebuild permissions</a>.', [':node_access_rebuild' => \Drupal::url('node.configure_rebuild_confirm')]);
     }
-    drupal_set_message($message, 'error');
+    \Drupal::messenger()->addError($message);
   }
 
   switch ($route_name) {
@@ -547,9 +547,12 @@ function template_preprocess_node_add_list(&$variables) {
  * Implements hook_preprocess_HOOK() for HTML document templates.
  */
 function node_preprocess_html(&$variables) {
-  // If on an individual node page, add the node type to body classes.
-  if (($node = \Drupal::routeMatch()->getParameter('node')) && $node instanceof NodeInterface) {
-    $variables['node_type'] = $node->getType();
+  // If on an individual node page or node preview page, add the node type to
+  // the body classes.
+  if (($node = \Drupal::routeMatch()->getParameter('node')) || ($node = \Drupal::routeMatch()->getParameter('node_preview'))) {
+    if ($node instanceof NodeInterface) {
+      $variables['node_type'] = $node->getType();
+    }
   }
 }
 
@@ -841,7 +844,7 @@ function node_page_top(array &$page) {
     $page['page_top']['node_preview'] = [
       '#type' => 'container',
       '#attributes' => [
-        'class' => ['node-preview-container', 'container-inline']
+        'class' => ['node-preview-container', 'container-inline'],
       ],
     ];
 
@@ -1035,7 +1038,6 @@ function node_access_view_all_nodes($account = NULL) {
   return $access[$account->id()];
 }
 
-
 /**
  * Implements hook_query_TAG_alter().
  *
@@ -1186,7 +1188,7 @@ function node_access_rebuild($batch_mode = FALSE) {
         'operations' => [
           ['_node_access_rebuild_batch_operation', []],
         ],
-        'finished' => '_node_access_rebuild_batch_finished'
+        'finished' => '_node_access_rebuild_batch_finished',
       ];
       batch_set($batch);
     }
@@ -1222,7 +1224,7 @@ function node_access_rebuild($batch_mode = FALSE) {
   }
 
   if (!isset($batch)) {
-    drupal_set_message(t('Content permissions have been rebuilt.'));
+    \Drupal::messenger()->addStatus(t('Content permissions have been rebuilt.'));
     node_access_needs_rebuild(FALSE);
   }
 }
@@ -1295,11 +1297,11 @@ function _node_access_rebuild_batch_operation(&$context) {
  */
 function _node_access_rebuild_batch_finished($success, $results, $operations) {
   if ($success) {
-    drupal_set_message(t('The content access permissions have been rebuilt.'));
+    \Drupal::messenger()->addStatus(t('The content access permissions have been rebuilt.'));
     node_access_needs_rebuild(FALSE);
   }
   else {
-    drupal_set_message(t('The content access permissions have not been properly rebuilt.'), 'error');
+    \Drupal::messenger()->addError(t('The content access permissions have not been properly rebuilt.'));
   }
 }
 

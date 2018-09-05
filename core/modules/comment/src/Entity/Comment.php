@@ -56,6 +56,7 @@ use Drupal\user\UserInterface;
  *   links = {
  *     "canonical" = "/comment/{comment}",
  *     "delete-form" = "/comment/{comment}/delete",
+ *     "delete-multiple-form" = "/admin/content/comment/delete",
  *     "edit-form" = "/comment/{comment}/edit",
  *     "create" = "/comment",
  *   },
@@ -142,10 +143,6 @@ class Comment extends ContentEntityBase implements CommentInterface {
         $this->threadLock = $lock_name;
       }
       $this->setThread($thread);
-      if (!$this->getHostname()) {
-        // Ensure a client host from the current request.
-        $this->setHostname(\Drupal::request()->getClientIP());
-      }
     }
     // The entity fields for name and mail have no meaning if the user is not
     // Anonymous. Set them to NULL to make it clearer that they are not used.
@@ -290,7 +287,8 @@ class Comment extends ContentEntityBase implements CommentInterface {
       ->setLabel(t('Hostname'))
       ->setDescription(t("The comment author's hostname."))
       ->setTranslatable(TRUE)
-      ->setSetting('max_length', 128);
+      ->setSetting('max_length', 128)
+      ->setDefaultValueCallback(static::class . '::getDefaultHostname');
 
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(t('Created'))
@@ -569,6 +567,16 @@ class Comment extends ContentEntityBase implements CommentInterface {
    */
   public static function getDefaultStatus() {
     return \Drupal::currentUser()->hasPermission('skip comment approval') ? CommentInterface::PUBLISHED : CommentInterface::NOT_PUBLISHED;
+  }
+
+  /**
+   * Returns the default value for entity hostname base field.
+   *
+   * @return string
+   *   The client host name.
+   */
+  public static function getDefaultHostname() {
+    return \Drupal::request()->getClientIP();
   }
 
 }

@@ -4,7 +4,6 @@ namespace Drupal\Tests\block_content\Functional;
 
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\block_content\Entity\BlockContentType;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Tests\content_translation\Functional\ContentTranslationUITestBase;
 
 /**
@@ -24,7 +23,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
     'content_translation',
     'block',
     'field_ui',
-    'block_content'
+    'block_content',
   ];
 
   /**
@@ -60,7 +59,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
     $bundle = BlockContentType::create([
       'id' => $this->bundle,
       'label' => $this->bundle,
-      'revision' => FALSE
+      'revision' => FALSE,
     ]);
     $bundle->save();
   }
@@ -73,7 +72,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
       'translate any entity',
       'access administration pages',
       'administer blocks',
-      'administer block_content fields'
+      'administer block_content fields',
     ]);
   }
 
@@ -96,7 +95,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
     $block_content = BlockContent::create([
       'info' => $title,
       'type' => $bundle,
-      'langcode' => 'en'
+      'langcode' => 'en',
     ]);
     $block_content->save();
     return $block_content;
@@ -106,7 +105,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
    * {@inheritdoc}
    */
   protected function getNewEntityValues($langcode) {
-    return ['info' => Unicode::strtolower($this->randomMachineName())] + parent::getNewEntityValues($langcode);
+    return ['info' => mb_strtolower($this->randomMachineName())] + parent::getNewEntityValues($langcode);
   }
 
   /**
@@ -162,7 +161,7 @@ class BlockContentTranslationUITest extends ContentTranslationUITestBase {
     $bundle = BlockContentType::create([
       'id' => $disabled_bundle,
       'label' => $disabled_bundle,
-      'revision' => FALSE
+      'revision' => FALSE,
     ]);
     $bundle->save();
 

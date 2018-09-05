@@ -33,6 +33,7 @@ class ContentTranslationConfigImportTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
+    $this->installConfig(['system']);
     $this->installEntitySchema('entity_test_mul');
     $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.sync'));
 
@@ -74,7 +75,7 @@ class ContentTranslationConfigImportTest extends KernelTestBase {
       'langcode' => 'en',
       'status' => TRUE,
       'dependencies' => [
-        'module' => ['content_translation']
+        'module' => ['content_translation'],
       ],
       'id' => $config_id,
       'target_entity_type_id' => 'entity_test_mul',

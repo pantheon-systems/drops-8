@@ -8,6 +8,7 @@ use Drupal\FunctionalTests\Update\UpdatePathTestBase;
  * Tests system_post_update_recalculate_dependencies_for_installed_config_entities().
  *
  * @group Update
+ * @group legacy
  */
 class RecalculatedDependencyTest extends UpdatePathTestBase {
 
@@ -58,7 +59,7 @@ class RecalculatedDependencyTest extends UpdatePathTestBase {
     $this->assertEqual([
       'field.storage.node.field_tags',
       'node.type.article',
-      'taxonomy.vocabulary.tags'
+      'taxonomy.vocabulary.tags',
     ], $data['dependencies']['config']);
 
     $data = \Drupal::config('field.field.user.user.user_picture')->get();

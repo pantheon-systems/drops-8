@@ -2,7 +2,6 @@
 
 namespace Drupal\Core\Database\Driver\pgsql;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Database\SchemaObjectExistsException;
 use Drupal\Core\Database\SchemaObjectDoesNotExistException;
 use Drupal\Core\Database\Schema as DatabaseSchema;
@@ -250,7 +249,8 @@ EOD;
     }
 
     $sql_keys = [];
-    if (isset($table['primary key']) && is_array($table['primary key'])) {
+    if (!empty($table['primary key']) && is_array($table['primary key'])) {
+      $this->ensureNotNullPrimaryKey($table['primary key'], $table['fields']);
       $sql_keys[] = 'CONSTRAINT ' . $this->ensureIdentifiersLength($name, '', 'pkey') . ' PRIMARY KEY (' . $this->createPrimaryKeySql($table['primary key']) . ')';
     }
     if (isset($table['unique keys']) && is_array($table['unique keys'])) {
@@ -350,7 +350,7 @@ EOD;
     // Set the correct database-engine specific datatype.
     // In case one is already provided, force it to lowercase.
     if (isset($field['pgsql_type'])) {
-      $field['pgsql_type'] = Unicode::strtolower($field['pgsql_type']);
+      $field['pgsql_type'] = mb_strtolower($field['pgsql_type']);
     }
     else {
       $map = $this->getFieldTypeMap();
@@ -552,7 +552,10 @@ EOD;
     }
 
     // Fields that are part of a PRIMARY KEY must be added as NOT NULL.
-    $is_primary_key = isset($keys_new['primary key']) && in_array($field, $keys_new['primary key'], TRUE);
+    $is_primary_key = isset($new_keys['primary key']) && in_array($field, $new_keys['primary key'], TRUE);
+    if ($is_primary_key) {
+      $this->ensureNotNullPrimaryKey($new_keys['primary key'], [$field => $spec]);
+    }
 
     $fixnull = FALSE;
     if (!empty($spec['not null']) && !isset($spec['default']) && !$is_primary_key) {
@@ -562,11 +565,6 @@ EOD;
     $query = 'ALTER TABLE {' . $table . '} ADD COLUMN ';
     $query .= $this->createFieldSql($field, $this->processField($spec));
     $this->connection->query($query);
-    if (isset($spec['initial'])) {
-      $this->connection->update($table)
-        ->fields([$field => $spec['initial']])
-        ->execute();
-    }
     if (isset($spec['initial_from_field'])) {
       if (isset($spec['initial'])) {
         $expression = 'COALESCE(' . $spec['initial_from_field'] . ', :default_initial_value)';
@@ -578,6 +576,11 @@ EOD;
       }
       $this->connection->update($table)
         ->expression($field, $expression, $arguments)
+        ->execute();
+    }
+    elseif (isset($spec['initial'])) {
+      $this->connection->update($table)
+        ->fields([$field => $spec['initial']])
         ->execute();
     }
     if ($fixnull) {
@@ -719,6 +722,29 @@ EOD;
   /**
    * {@inheritdoc}
    */
+  protected function findPrimaryKeyColumns($table) {
+    if (!$this->tableExists($table)) {
+      return FALSE;
+    }
+
+    // Fetch the 'indkey' column from 'pg_index' to figure out the order of the
+    // primary key.
+    // @todo Use 'array_position()' to be able to perform the ordering in SQL
+    //   directly when 9.5 is the minimum  PostgreSQL version.
+    $result = $this->connection->query("SELECT a.attname, i.indkey FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) WHERE i.indrelid = '{" . $table . "}'::regclass AND i.indisprimary")->fetchAllKeyed();
+    if (!$result) {
+      return [];
+    }
+
+    $order = explode(' ', reset($result));
+    $columns = array_combine($order, array_keys($result));
+    ksort($columns);
+    return array_values($columns);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function addUniqueKey($table, $name, $fields) {
     if (!$this->tableExists($table)) {
       throw new SchemaObjectDoesNotExistException(t("Cannot add unique key @name to table @table: table doesn't exist.", ['@table' => $table, '@name' => $name]));
@@ -781,6 +807,9 @@ EOD;
     }
     if (($field != $field_new) && $this->fieldExists($table, $field_new)) {
       throw new SchemaObjectExistsException(t("Cannot rename field @table.@name to @name_new: target field already exists.", ['@table' => $table, '@name' => $field, '@name_new' => $field_new]));
+    }
+    if (isset($new_keys['primary key']) && in_array($field_new, $new_keys['primary key'], TRUE)) {
+      $this->ensureNotNullPrimaryKey($new_keys['primary key'], [$field_new => $spec]);
     }
 
     $spec = $this->processField($spec);

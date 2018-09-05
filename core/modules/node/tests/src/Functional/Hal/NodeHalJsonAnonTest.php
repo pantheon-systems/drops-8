@@ -33,6 +33,19 @@ class NodeHalJsonAnonTest extends NodeResourceTestBase {
   /**
    * {@inheritdoc}
    */
+  protected static $patchProtectedFieldNames = [
+    'revision_timestamp' => NULL,
+    'created' => "The 'administer nodes' permission is required.",
+    'changed' => NULL,
+    'promote' => "The 'administer nodes' permission is required.",
+    'sticky' => "The 'administer nodes' permission is required.",
+    'path' => "The following permissions are required: 'create url aliases' OR 'administer url aliases'.",
+    'revision_uid' => NULL,
+  ];
+
+  /**
+   * {@inheritdoc}
+   */
   protected function getExpectedNormalizedEntity() {
     $default_normalization = parent::getExpectedNormalizedEntity();
 
@@ -71,7 +84,7 @@ class NodeHalJsonAnonTest extends NodeResourceTestBase {
               ],
             ],
             'uuid' => [
-              ['value' => $author->uuid()]
+              ['value' => $author->uuid()],
             ],
           ],
         ],
@@ -86,7 +99,7 @@ class NodeHalJsonAnonTest extends NodeResourceTestBase {
               ],
             ],
             'uuid' => [
-              ['value' => $author->uuid()]
+              ['value' => $author->uuid()],
             ],
             'lang' => 'en',
           ],
