@@ -808,12 +808,15 @@ abstract class Connection {
    * @param string $table
    *   The table to use for the insert statement.
    * @param array $options
-   *   (optional) An array of options on the query.
+   *   (optional) An associative array of options to control how the query is
+   *   run. The given options will be merged with
+   *   \Drupal\Core\Database\Connection::defaultOptions().
    *
    * @return \Drupal\Core\Database\Query\Insert
    *   A new Insert query object.
    *
    * @see \Drupal\Core\Database\Query\Insert
+   * @see \Drupal\Core\Database\Connection::defaultOptions()
    */
   public function insert($table, array $options = []) {
     $class = $this->getDriverClass('Insert');
@@ -862,12 +865,15 @@ abstract class Connection {
    * @param string $table
    *   The table to use for the update statement.
    * @param array $options
-   *   (optional) An array of options on the query.
+   *   (optional) An associative array of options to control how the query is
+   *   run. The given options will be merged with
+   *   \Drupal\Core\Database\Connection::defaultOptions().
    *
    * @return \Drupal\Core\Database\Query\Update
    *   A new Update query object.
    *
    * @see \Drupal\Core\Database\Query\Update
+   * @see \Drupal\Core\Database\Connection::defaultOptions()
    */
   public function update($table, array $options = []) {
     $class = $this->getDriverClass('Update');
@@ -880,12 +886,15 @@ abstract class Connection {
    * @param string $table
    *   The table to use for the delete statement.
    * @param array $options
-   *   (optional) An array of options on the query.
+   *   (optional) An associative array of options to control how the query is
+   *   run. The given options will be merged with
+   *   \Drupal\Core\Database\Connection::defaultOptions().
    *
    * @return \Drupal\Core\Database\Query\Delete
    *   A new Delete query object.
    *
    * @see \Drupal\Core\Database\Query\Delete
+   * @see \Drupal\Core\Database\Connection::defaultOptions()
    */
   public function delete($table, array $options = []) {
     $class = $this->getDriverClass('Delete');
@@ -1470,6 +1479,118 @@ abstract class Connection {
    */
   public function __sleep() {
     throw new \LogicException('The database connection is not serializable. This probably means you are serializing an object that has an indirect reference to the database connection. Adjust your code so that is not necessary. Alternatively, look at DependencySerializationTrait as a temporary solution.');
+  }
+
+  /**
+   * Creates an array of database connection options from a URL.
+   *
+   * @internal
+   *   This method should not be called. Use
+   *   \Drupal\Core\Database\Database::convertDbUrlToConnectionInfo() instead.
+   *
+   * @param string $url
+   *   The URL.
+   * @param string $root
+   *   The root directory of the Drupal installation. Some database drivers,
+   *   like for example SQLite, need this information.
+   *
+   * @return array
+   *   The connection options.
+   *
+   * @throws \InvalidArgumentException
+   *   Exception thrown when the provided URL does not meet the minimum
+   *   requirements.
+   *
+   * @see \Drupal\Core\Database\Database::convertDbUrlToConnectionInfo()
+   */
+  public static function createConnectionOptionsFromUrl($url, $root) {
+    $url_components = parse_url($url);
+    if (!isset($url_components['scheme'], $url_components['host'], $url_components['path'])) {
+      throw new \InvalidArgumentException('Minimum requirement: driver://host/database');
+    }
+
+    $url_components += [
+      'user' => '',
+      'pass' => '',
+      'fragment' => '',
+    ];
+
+    // Remove leading slash from the URL path.
+    if ($url_components['path'][0] === '/') {
+      $url_components['path'] = substr($url_components['path'], 1);
+    }
+
+    // Use reflection to get the namespace of the class being called.
+    $reflector = new \ReflectionClass(get_called_class());
+
+    $database = [
+      'driver' => $url_components['scheme'],
+      'username' => $url_components['user'],
+      'password' => $url_components['pass'],
+      'host' => $url_components['host'],
+      'database' => $url_components['path'],
+      'namespace' => $reflector->getNamespaceName(),
+    ];
+
+    if (isset($url_components['port'])) {
+      $database['port'] = $url_components['port'];
+    }
+
+    if (!empty($url_components['fragment'])) {
+      $database['prefix']['default'] = $url_components['fragment'];
+    }
+
+    return $database;
+  }
+
+  /**
+   * Creates a URL from an array of database connection options.
+   *
+   * @internal
+   *   This method should not be called. Use
+   *   \Drupal\Core\Database\Database::getConnectionInfoAsUrl() instead.
+   *
+   * @param array $connection_options
+   *   The array of connection options for a database connection.
+   *
+   * @return string
+   *   The connection info as a URL.
+   *
+   * @throws \InvalidArgumentException
+   *   Exception thrown when the provided array of connection options does not
+   *   meet the minimum requirements.
+   *
+   * @see \Drupal\Core\Database\Database::getConnectionInfoAsUrl()
+   */
+  public static function createUrlFromConnectionOptions(array $connection_options) {
+    if (!isset($connection_options['driver'], $connection_options['database'])) {
+      throw new \InvalidArgumentException("As a minimum, the connection options array must contain at least the 'driver' and 'database' keys");
+    }
+
+    $user = '';
+    if (isset($connection_options['username'])) {
+      $user = $connection_options['username'];
+      if (isset($connection_options['password'])) {
+        $user .= ':' . $connection_options['password'];
+      }
+      $user .= '@';
+    }
+
+    $host = empty($connection_options['host']) ? 'localhost' : $connection_options['host'];
+
+    $db_url = $connection_options['driver'] . '://' . $user . $host;
+
+    if (isset($connection_options['port'])) {
+      $db_url .= ':' . $connection_options['port'];
+    }
+
+    $db_url .= '/' . $connection_options['database'];
+
+    if (isset($connection_options['prefix']['default']) && $connection_options['prefix']['default'] !== '') {
+      $db_url .= '#' . $connection_options['prefix']['default'];
+    }
+
+    return $db_url;
   }
 
 }

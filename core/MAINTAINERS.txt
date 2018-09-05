@@ -135,7 +135,7 @@ Configuration UI
 
 Configuration Translation
 - Gábor Hojtsy 'Gábor Hojtsy' https://www.drupal.org/u/gábor-hojtsy
-- Tobias Stöckler 'tstoeckler' https://www.drupal.org/u/tstoeckler
+- Tobias Zimmermann 'tstoeckler' https://www.drupal.org/u/tstoeckler
 - Vijayachandran Mani 'vijaycs85' https://www.drupal.org/u/vijaycs85
 
 Contact
@@ -144,6 +144,7 @@ Contact
 - Andrey Postnikov 'andypost' https://www.drupal.org/u/andypost
 
 Content Moderation
+- Sam Becker 'Sam152' https://www.drupal.org/u/sam152
 - Tim Millwood 'timmillwood' https://www.drupal.org/u/timmillwood
 
 Content Translation
@@ -197,7 +198,7 @@ Entity API
 - Hristo Chonov 'hchonov' https://www.drupal.org/u/hchonov
 - Sascha Grossenbacher 'Berdir' https://www.drupal.org/u/berdir
 - Francesco Placella 'plach' https://www.drupal.org/u/plach
-- Tobias Stöckler 'tstoeckler' https://www.drupal.org/u/tstoeckler
+- Tobias Zimmermann 'tstoeckler' https://www.drupal.org/u/tstoeckler
 
 Extension API
 - ?
@@ -266,6 +267,8 @@ Markup
 
 Media
 - Sean Blommaert 'seanB' https://www.drupal.org/u/seanb
+- Marcos Cano 'marcoscano' https://www.drupal.org/u/marcoscano
+- Christian Fritsch 'chr.fritsch' https://www.drupal.org/u/chr.fritsch
 - Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
 
 Menu
@@ -350,7 +353,7 @@ Seven
 - ?
 
 Shortcut
-- Tobias Stöckler 'tstoeckler' https://www.drupal.org/u/tstoeckler
+- Tobias Zimmermann 'tstoeckler' https://www.drupal.org/u/tstoeckler
 - Jibran Ijaz 'jibran' https://www.drupal.org/u/jibran
 
 Stable
@@ -473,8 +476,9 @@ API-first Initiative
 - Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
 - Mateu Aguiló Bosch 'e0ipso' https://www.drupal.org/u/e0ipso
 
-JavaScript Modernization Initiative
+Admin UI & JavaScript Modernisation Initiative
 - Angela Byron 'webchick' https://www.drupal.org/u/webchick
+- Cristina Chumillas 'ckrina' https://www.drupal.org/u/ckrina
 - Matthew Grill 'drpal' https://www.drupal.org/u/drpal
 - Sally Young 'justafish' https://www.drupal.org/u/justafish
 
@@ -515,8 +519,10 @@ participate in mentoring.
 
 - Mauricio Dinarte 'dinarcon' https://www.drupal.org/u/dinarcon
 - Lucas Hedding 'heddn' https://www.drupal.org/u/heddn
+- Tara King 'sparklingrobots' https://www.drupal.org/u/sparklingrobots
 - Rachel Lawson 'rachel_norfolk' https://www.drupal.org/u/rachel_norfolk
 - Valery Lourie 'valthebald' https://www.drupal.org/u/valthebald
+- Elli Ludwigson 'ekl1773' https://www.drupal.org/u/ekl1773
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 - Matthew Radcliffe 'mradcliffe' https://www.drupal.org/u/mradcliffe
 

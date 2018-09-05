@@ -331,7 +331,7 @@ class FormCacheTest extends UnitTestCase {
   public function testSetCacheWithForm() {
     $form_build_id = 'the_form_build_id';
     $form = [
-      '#form_id' => 'the_form_id'
+      '#form_id' => 'the_form_id',
     ];
     $form_state = new FormState();
 
@@ -416,7 +416,6 @@ class FormCacheTest extends UnitTestCase {
       ->with('Form build-id mismatch detected while attempting to store a form in the cache.');
     $this->formCache->setCache($form_build_id, $form, $form_state);
   }
-
 
   /**
    * @covers ::deleteCache

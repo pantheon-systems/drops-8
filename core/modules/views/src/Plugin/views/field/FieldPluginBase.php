@@ -4,7 +4,6 @@ namespace Drupal\views\Plugin\views\field;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Render\MarkupInterface;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Form\FormStateInterface;
@@ -186,7 +185,13 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
           }
 
           if (empty($table_alias)) {
-            debug(t('Handler @handler tried to add additional_field @identifier but @table could not be added!', ['@handler' => $this->definition['id'], '@identifier' => $identifier, '@table' => $info['table']]));
+            trigger_error(sprintf(
+              "Handler % tried to add additional_field %s but % could not be added!",
+              $this->definition['id'],
+              $identifier,
+              $info['table']
+            ), E_USER_WARNING);
+
             $this->aliases[$identifier] = 'broken';
             continue;
           }
@@ -312,7 +317,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
       // @todo Add possible html5 elements.
       $elements = [
         '' => $this->t('- Use default -'),
-        '0' => $this->t('- None -')
+        '0' => $this->t('- None -'),
       ];
       $elements += \Drupal::config('views.settings')->get('field_rewrite_elements');
     }
@@ -1288,7 +1293,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
         $base_path = base_path();
         // Checks whether the path starts with the base_path.
         if (strpos($more_link_path, $base_path) === 0) {
-          $more_link_path = Unicode::substr($more_link_path, Unicode::strlen($base_path));
+          $more_link_path = mb_substr($more_link_path, mb_strlen($base_path));
         }
 
         // @todo Views should expect and store a leading /. See
@@ -1388,7 +1393,7 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
     ];
 
     $alter += [
-      'path' => NULL
+      'path' => NULL,
     ];
 
     $path = $alter['path'];
@@ -1792,8 +1797,8 @@ abstract class FieldPluginBase extends HandlerBase implements FieldHandlerInterf
    *   The trimmed string.
    */
   public static function trimText($alter, $value) {
-    if (Unicode::strlen($value) > $alter['max_length']) {
-      $value = Unicode::substr($value, 0, $alter['max_length']);
+    if (mb_strlen($value) > $alter['max_length']) {
+      $value = mb_substr($value, 0, $alter['max_length']);
       if (!empty($alter['word_boundary'])) {
         $regex = "(.*)\b.+";
         if (function_exists('mb_ereg')) {

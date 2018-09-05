@@ -4,7 +4,7 @@ namespace Drupal\Tests\system\Functional\Form;
 
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
@@ -151,7 +151,7 @@ class FormTest extends BrowserTestBase {
       }
     }
     // Clear the expected form error messages so they don't appear as exceptions.
-    drupal_get_messages();
+    \Drupal::messenger()->deleteAll();
   }
 
   /**
@@ -426,7 +426,7 @@ class FormTest extends BrowserTestBase {
       'multiple_no_default_required[]' => 'three',
     ];
     $this->drupalPostForm(NULL, $edit, 'Submit');
-    $values = Json::decode($this->getRawContent());
+    $values = Json::decode($this->getSession()->getPage()->getContent());
 
     // Verify expected values.
     $expected = [
@@ -622,7 +622,7 @@ class FormTest extends BrowserTestBase {
     // the disabled container.
     $actual_count = count($disabled_elements);
     $expected_count = 42;
-    $this->assertEqual($actual_count, $expected_count, SafeMarkup::format('Found @actual elements with disabled property (expected @expected).', [
+    $this->assertEqual($actual_count, $expected_count, new FormattableMarkup('Found @actual elements with disabled property (expected @expected).', [
       '@actual' => count($disabled_elements),
       '@expected' => $expected_count,
     ]));

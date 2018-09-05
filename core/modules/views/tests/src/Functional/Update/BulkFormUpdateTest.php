@@ -9,6 +9,7 @@ use Drupal\views\Entity\View;
  * Tests Views image style dependencies update.
  *
  * @group views
+ * @group legacy
  */
 class BulkFormUpdateTest extends UpdatePathTestBase {
 
@@ -18,7 +19,7 @@ class BulkFormUpdateTest extends UpdatePathTestBase {
   protected function setDatabaseDumpFiles() {
     $this->databaseDumpFiles = [
       __DIR__ . '/../../../../../system/tests/fixtures/update/drupal-8.bare.standard.php.gz',
-      __DIR__ . '/../../../fixtures/update/legacy-bulk-form-update.php'
+      __DIR__ . '/../../../fixtures/update/legacy-bulk-form-update.php',
     ];
   }
 

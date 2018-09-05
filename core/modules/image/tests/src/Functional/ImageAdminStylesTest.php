@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\image\Functional;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
@@ -152,7 +152,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
       $uuids[$effect->getPluginId()] = $uuid;
       $effect_configuration = $effect->getConfiguration();
       foreach ($effect_edits[$effect->getPluginId()] as $field => $value) {
-        $this->assertEqual($value, $effect_configuration['data'][$field], SafeMarkup::format('The %field field in the %effect effect has the correct value of %value.', ['%field' => $field, '%effect' => $effect->getPluginId(), '%value' => $value]));
+        $this->assertEqual($value, $effect_configuration['data'][$field], new FormattableMarkup('The %field field in the %effect effect has the correct value of %value.', ['%field' => $field, '%effect' => $effect->getPluginId(), '%value' => $value]));
       }
     }
 
@@ -199,7 +199,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     $image_path = $this->createSampleImage($style);
     $this->assertEqual($this->getImageCount($style), 1, format_string('Image style %style image %file successfully generated.', ['%style' => $style->label(), '%file' => $image_path]));
 
-    $this->drupalPostForm($style_path, $edit, t('Update style'));
+    $this->drupalPostForm($style_path, $edit, t('Save'));
 
     // Note that after changing the style name, the style path is changed.
     $style_path = 'admin/config/media/image-styles/manage/' . $style_name;
@@ -337,7 +337,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
       'name' => $new_style_name,
       'label' => $new_style_label,
     ];
-    $this->drupalPostForm($style_path . $style_name, $edit, t('Update style'));
+    $this->drupalPostForm($style_path . $style_name, $edit, t('Save'));
     $this->assertText(t('Changes to the style have been saved.'), format_string('Style %name was renamed to %new_name.', ['%name' => $style_name, '%new_name' => $new_style_name]));
     $this->drupalGet('node/' . $nid);
 

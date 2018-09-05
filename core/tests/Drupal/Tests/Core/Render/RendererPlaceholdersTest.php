@@ -35,7 +35,7 @@ class RendererPlaceholdersTest extends RendererTestBase {
   /**
    * Provides the two classes of placeholders: cacheable and uncacheable.
    *
-   * i.e. with or without #cache[keys].
+   * I.e. with or without #cache[keys].
    *
    * Also, different types:
    * - A) automatically generated placeholder
@@ -574,6 +574,7 @@ class RendererPlaceholdersTest extends RendererTestBase {
       $this->assertEquals($expected_data, $cached_element, 'The correct data is cached: the stored #markup and #attached properties are not affected by the placeholder being replaced.');
     }
   }
+
   /**
    * @covers ::render
    * @covers ::doRender
@@ -1124,7 +1125,7 @@ HTML;
 EOS;
         $output = str_replace([
           '{{ title }}',
-          '{{ children }}'
+          '{{ children }}',
         ], [$vars['#title'], $vars['#children']], $output);
         return $output;
       });

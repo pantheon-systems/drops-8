@@ -6,13 +6,18 @@
  */
 
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Batch\BatchBuilder;
+use Drupal\Core\Config\ConfigImporter;
+use Drupal\Core\Config\ConfigImporterException;
+use Drupal\Core\Config\Importer\ConfigImporterBatch;
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Installer\Exception\AlreadyInstalledException;
 use Drupal\Core\Installer\Exception\InstallerException;
-use Drupal\Core\Installer\Exception\InstallProfileMismatchException;
 use Drupal\Core\Installer\Exception\NoProfilesException;
 use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Language\Language;
@@ -89,10 +94,13 @@ const INSTALL_TASK_RUN_IF_NOT_COMPLETED = 3;
  *   page request (optimized for the command line) and not send any output
  *   intended for the web browser. See install_state_defaults() for a list of
  *   elements that are allowed to appear in this array.
+ * @param callable $callback
+ *   (optional) A callback to allow command line processes to update a progress
+ *   bar. The callback is passed the $install_state variable.
  *
  * @see install_state_defaults()
  */
-function install_drupal($class_loader, $settings = []) {
+function install_drupal($class_loader, $settings = [], callable $callback = NULL) {
   // Support the old way of calling this function with just a settings array.
   // @todo Remove this when Drush is updated in the Drupal testing
   //   infrastructure in https://www.drupal.org/node/2389243
@@ -114,7 +122,7 @@ function install_drupal($class_loader, $settings = []) {
     install_begin_request($class_loader, $install_state);
     // Based on the installation state, run the remaining tasks for this page
     // request, and collect any output.
-    $output = install_run_tasks($install_state);
+    $output = install_run_tasks($install_state, $callback);
   }
   catch (InstallerException $e) {
     // In the non-interactive installer, exceptions are always thrown directly.
@@ -135,6 +143,9 @@ function install_drupal($class_loader, $settings = []) {
   $state = $install_state;
   if (!empty($install_state['installation_finished'])) {
     unset($GLOBALS['install_state']);
+    // If installation is finished ensure any further container rebuilds do not
+    // use the installer's service provider.
+    unset($GLOBALS['conf']['container_service_providers']['InstallerServiceProvider']);
   }
 
   // All available tasks for this page request are now complete. Interactive
@@ -157,7 +168,11 @@ function install_drupal($class_loader, $settings = []) {
     }
     elseif ($state['installation_finished']) {
       // Redirect to the newly installed site.
-      install_goto('');
+      $finish_url = '';
+      if (isset($install_state['profile_info']['distribution']['install']['finish_url'])) {
+        $finish_url = $install_state['profile_info']['distribution']['install']['finish_url'];
+      }
+      install_goto($finish_url);
     }
   }
 }
@@ -188,6 +203,10 @@ function install_state_defaults() {
     // The last task that was completed during the previous installation
     // request.
     'completed_task' => NULL,
+    // Partial configuration cached during an installation from existing config.
+    'config' => NULL,
+    // The path to the configuration to install when installing from config.
+    'config_install_path' => NULL,
     // TRUE when there are valid config directories.
     'config_verified' => FALSE,
     // TRUE when there is a valid database connection.
@@ -282,6 +301,8 @@ function install_state_defaults() {
  * @param $install_state
  *   An array of information about the current installation state. This is
  *   modified with information gleaned from the beginning of the page request.
+ *
+ * @see install_drupal()
  */
 function install_begin_request($class_loader, &$install_state) {
   $request = Request::createFromGlobals();
@@ -302,12 +323,6 @@ function install_begin_request($class_loader, &$install_state) {
   // Allow command line scripts to override server variables used by Drupal.
   require_once __DIR__ . '/bootstrap.inc';
 
-  // Before having installed the system module and being able to do a module
-  // rebuild, prime the drupal_get_filename() static cache with the module's
-  // exact location.
-  // @todo Remove as part of https://www.drupal.org/node/2186491
-  drupal_get_filename('module', 'system', 'core/modules/system/system.info.yml');
-
   // If the hash salt leaks, it becomes possible to forge a valid testing user
   // agent, install a new copy of Drupal, and take over the original site.
   // The user agent header is used to pass a database prefix in the request when
@@ -327,7 +342,7 @@ function install_begin_request($class_loader, &$install_state) {
     date_default_timezone_set('Australia/Sydney');
   }
 
-  $site_path = DrupalKernel::findSitePath($request, FALSE);
+  $site_path = empty($install_state['site_path']) ? DrupalKernel::findSitePath($request, FALSE) : $install_state['site_path'];
   Settings::initialize(dirname(dirname(__DIR__)), $site_path, $class_loader);
 
   // Ensure that procedural dependencies are loaded as early as possible,
@@ -414,11 +429,15 @@ function install_begin_request($class_loader, &$install_state) {
   }
   else {
     $environment = 'prod';
+    $GLOBALS['conf']['container_service_providers']['InstallerServiceProvider'] = 'Drupal\Core\Installer\NormalInstallerServiceProvider';
   }
   $GLOBALS['conf']['container_service_providers']['InstallerConfigOverride'] = 'Drupal\Core\Installer\ConfigOverride';
 
-  // Only allow dumping the container once the hash salt has been created.
-  $kernel = InstallerKernel::createFromRequest($request, $class_loader, $environment, (bool) Settings::get('hash_salt', FALSE));
+  // Only allow dumping the container once the hash salt has been created. Note,
+  // InstallerKernel::createFromRequest() is not used because Settings is
+  // already initialized.
+  $kernel = new InstallerKernel($environment, $class_loader, (bool) Settings::get('hash_salt', FALSE));
+  $kernel::bootEnvironment();
   $kernel->setSitePath($site_path);
   $kernel->boot();
   $container = $kernel->getContainer();
@@ -444,6 +463,9 @@ function install_begin_request($class_loader, &$install_state) {
   // Prime drupal_get_filename()'s static cache.
   foreach ($install_state['profiles'] as $name => $profile) {
     drupal_get_filename('profile', $name, $profile->getPathname());
+    // drupal_get_filename() is called both with 'module' and 'profile', see
+    // \Drupal\Core\Config\ConfigInstaller::getProfileStorages for example.
+    drupal_get_filename('module', $name, $profile->getPathname());
   }
 
   if ($profile = _install_select_profile($install_state)) {
@@ -454,9 +476,19 @@ function install_begin_request($class_loader, &$install_state) {
     }
   }
 
-  // Use the language from the profile configuration, if available, to override
-  // the language previously set in the parameters.
-  if (isset($install_state['profile_info']['distribution']['langcode'])) {
+  // Before having installed the system module and being able to do a module
+  // rebuild, prime the drupal_get_filename() static cache with the system
+  // module's location.
+  // @todo Remove as part of https://www.drupal.org/node/2186491
+  drupal_get_filename('module', 'system', 'core/modules/system/system.info.yml');
+
+  // Use the language from profile configuration if available.
+  if (!empty($install_state['config_install_path']) && $install_state['config']['system.site']) {
+    $install_state['parameters']['langcode'] = $install_state['config']['system.site']['default_langcode'];
+  }
+  elseif (isset($install_state['profile_info']['distribution']['langcode'])) {
+    // Otherwise, Use the language from the profile configuration, if available,
+    // to override the language previously set in the parameters.
     $install_state['parameters']['langcode'] = $install_state['profile_info']['distribution']['langcode'];
   }
 
@@ -528,11 +560,14 @@ function install_begin_request($class_loader, &$install_state) {
  * @param $install_state
  *   An array of information about the current installation state. This is
  *   passed along to each task, so it can be modified if necessary.
+ * @param callable $callback
+ *   (optional) A callback to allow command line processes to update a progress
+ *   bar. The callback is passed the $install_state variable.
  *
  * @return
  *   HTML output from the last completed task.
  */
-function install_run_tasks(&$install_state) {
+function install_run_tasks(&$install_state, callable $callback = NULL) {
   do {
     // Obtain a list of tasks to perform. The list of tasks itself can be
     // dynamic (e.g., some might be defined by the installation profile,
@@ -563,6 +598,9 @@ function install_run_tasks(&$install_state) {
       if ($task['run'] == INSTALL_TASK_RUN_IF_NOT_COMPLETED || $install_state['installation_finished']) {
         \Drupal::state()->set('install_task', $install_state['installation_finished'] ? 'done' : $task_name);
       }
+    }
+    if ($callback) {
+      $callback($install_state);
     }
     // Stop when there are no tasks left. In the case of an interactive
     // installation, also stop if we have some output to send to the browser,
@@ -792,6 +830,30 @@ function install_tasks($install_state) {
       'function' => 'Drupal\Core\Installer\Form\SiteConfigureForm',
     ],
   ];
+
+  if (!empty($install_state['config_install_path'])) {
+    // The chosen profile indicates that rather than installing a new site, an
+    // instance of the same site should be installed from the given
+    // configuration.
+    // That means we need to remove the steps installing the extensions and
+    // replace them with a configuration synchronization step.
+    unset($tasks['install_download_translation']);
+    $key = array_search('install_profile_modules', array_keys($tasks), TRUE);
+    unset($tasks['install_profile_modules']);
+    unset($tasks['install_profile_themes']);
+    unset($tasks['install_install_profile']);
+    $config_tasks = [
+      'install_config_import_batch' => [
+        'display_name' => t('Install configuration'),
+        'type' => 'batch',
+      ],
+      'install_config_download_translations' => [],
+      'install_config_revert_install_changes' => [],
+    ];
+    $tasks = array_slice($tasks, 0, $key, TRUE) +
+      $config_tasks +
+      array_slice($tasks, $key, NULL, TRUE);
+  }
 
   // Now add any tasks defined by the installation profile.
   if (!empty($install_state['parameters']['profile'])) {
@@ -1078,7 +1140,7 @@ function install_base_system(&$install_state) {
 
   // Save the list of other modules to install for the upcoming tasks.
   // State can be set to the database now that system.module is installed.
-  $modules = $install_state['profile_info']['dependencies'];
+  $modules = $install_state['profile_info']['install'];
 
   \Drupal::state()->set('install_profile_modules', array_diff($modules, ['system']));
   $install_state['base_system_verified'] = TRUE;
@@ -1466,9 +1528,24 @@ function _install_get_version_info($version) {
  *   profile information will be added here.
  */
 function install_load_profile(&$install_state) {
+  global $config_directories;
   $profile = $install_state['parameters']['profile'];
   $install_state['profiles'][$profile]->load();
   $install_state['profile_info'] = install_profile_info($profile, isset($install_state['parameters']['langcode']) ? $install_state['parameters']['langcode'] : 'en');
+
+  if (!empty($install_state['parameters']['existing_config']) && !empty($config_directories[CONFIG_SYNC_DIRECTORY])) {
+    $install_state['config_install_path'] = $config_directories[CONFIG_SYNC_DIRECTORY];
+  }
+  // If the profile has a config/sync directory copy the information to the
+  // install_state global.
+  elseif (!empty($install_state['profile_info']['config_install_path'])) {
+    $install_state['config_install_path'] = $install_state['profile_info']['config_install_path'];
+  }
+
+  if (!empty($install_state['config_install_path'])) {
+    $sync = new FileStorage($install_state['config_install_path']);
+    $install_state['config']['system.site'] = $sync->read('system.site');
+  }
 }
 
 /**
@@ -1796,7 +1873,7 @@ function install_finished(&$install_state) {
   $success_message = t('Congratulations, you installed @drupal!', [
     '@drupal' => drupal_install_profile_distribution_name(),
   ]);
-  drupal_set_message($success_message);
+  \Drupal::messenger()->addStatus($success_message);
 }
 
 /**
@@ -1890,7 +1967,7 @@ function install_check_translations($langcode, $server_pattern) {
     }
   }
 
-  // If the translations directory does not exists, throw an error.
+  // If the translations directory does not exist, throw an error.
   if (!$translations_directory_exists) {
     $requirements['translations directory exists'] = [
       'title'       => t('Translations directory'),
@@ -2028,7 +2105,7 @@ function install_check_requirements($install_state) {
         'severity' => REQUIREMENT_ERROR,
         'description' => t('The @drupal installer requires that the %default-file file not be modified in any way from the original download.', [
             '@drupal' => drupal_install_profile_distribution_name(),
-            '%default-file' => $default_file
+            '%default-file' => $default_file,
           ]),
       ];
     }
@@ -2089,7 +2166,7 @@ function install_check_requirements($install_state) {
             '@drupal' => drupal_install_profile_distribution_name(),
             '%file' => $file,
             '%default_file' => $default_file,
-            ':install_txt' => base_path() . 'core/INSTALL.txt'
+            ':install_txt' => base_path() . 'core/INSTALL.txt',
           ]),
       ];
     }
@@ -2107,7 +2184,7 @@ function install_check_requirements($install_state) {
           'description' => t('@drupal requires read permissions to %file at all times. The <a href=":handbook_url">webhosting issues</a> documentation section offers help on this and other topics.', [
               '@drupal' => drupal_install_profile_distribution_name(),
               '%file' => $file,
-              ':handbook_url' => 'https://www.drupal.org/server-permissions'
+              ':handbook_url' => 'https://www.drupal.org/server-permissions',
             ]),
         ];
       }
@@ -2120,7 +2197,7 @@ function install_check_requirements($install_state) {
           'description' => t('The @drupal installer requires write permissions to %file during the installation process. The <a href=":handbook_url">webhosting issues</a> documentation section offers help on this and other topics.', [
               '@drupal' => drupal_install_profile_distribution_name(),
               '%file' => $file,
-              ':handbook_url' => 'https://www.drupal.org/server-permissions'
+              ':handbook_url' => 'https://www.drupal.org/server-permissions',
             ]),
         ];
       }
@@ -2140,7 +2217,7 @@ function install_check_requirements($install_state) {
               '%file' => $file,
               '%default_file' => $default_file,
               ':install_txt' => base_path() . 'core/INSTALL.txt',
-              ':handbook_url' => 'https://www.drupal.org/server-permissions'
+              ':handbook_url' => 'https://www.drupal.org/server-permissions',
             ]),
         ];
       }
@@ -2214,16 +2291,16 @@ function install_display_requirements($install_state, $requirements) {
  *
  * @see _install_select_profile()
  *
- * @throws \Drupal\Core\Installer\Exception\InstallProfileMismatchException
- *
  * @deprecated in Drupal 8.3.0 and will be removed before Drupal 9.0.0. The
  *    install profile is written to core.extension.
  */
 function install_write_profile($install_state) {
-  // Only need to write to settings.php if it is possible. The primary storage
-  // for the install profile is the core.extension configuration.
+  // Only write the install profile to settings.php if it already exists. The
+  // value from settings.php is never used but drupal_rewrite_settings() does
+  // not support removing a setting. If the value is present in settings.php
+  // there will be an informational notice on the status report.
   $settings_path = \Drupal::service('site.path') . '/settings.php';
-  if (is_writable($settings_path)) {
+  if (is_writable($settings_path) && array_key_exists('install_profile', Settings::getAll())) {
     // Remember the profile which was used.
     $settings['settings']['install_profile'] = (object) [
       'value' => $install_state['parameters']['profile'],
@@ -2231,7 +2308,135 @@ function install_write_profile($install_state) {
     ];
     drupal_rewrite_settings($settings);
   }
-  elseif (($settings_profile = Settings::get('install_profile')) && $settings_profile !== $install_state['parameters']['profile']) {
-    throw new InstallProfileMismatchException($install_state['parameters']['profile'], $settings_profile, $settings_path, \Drupal::translation());
+}
+
+/**
+ * Creates a batch for the config importer to process.
+ *
+ * @see install_tasks()
+ */
+function install_config_import_batch() {
+  // We need to manually trigger the installation of core-provided entity types,
+  // as those will not be handled by the module installer.
+  // @see install_profile_modules()
+  install_core_entity_type_definitions();
+
+  // Get the sync storage.
+  $sync = \Drupal::service('config.storage.sync');
+  // Match up the site UUIDs, the install_base_system install task will have
+  // installed the system module and created a new UUID.
+  $system_site = $sync->read('system.site');
+  \Drupal::configFactory()->getEditable('system.site')->set('uuid', $system_site['uuid'])->save();
+
+  // Create the storage comparer and the config importer.
+  $config_manager = \Drupal::service('config.manager');
+  $storage_comparer = new StorageComparer($sync, \Drupal::service('config.storage'), $config_manager);
+  $storage_comparer->createChangelist();
+  $config_importer = new ConfigImporter(
+    $storage_comparer,
+    \Drupal::service('event_dispatcher'),
+    $config_manager,
+    \Drupal::service('lock.persistent'),
+    \Drupal::service('config.typed'),
+    \Drupal::service('module_handler'),
+    \Drupal::service('module_installer'),
+    \Drupal::service('theme_handler'),
+    \Drupal::service('string_translation')
+  );
+
+  try {
+    $sync_steps = $config_importer->initialize();
+
+    $batch_builder = new BatchBuilder();
+    $batch_builder
+      ->setFinishCallback([ConfigImporterBatch::class, 'finish'])
+      ->setTitle(t('Importing configuration'))
+      ->setInitMessage(t('Starting configuration import.'))
+      ->setErrorMessage(t('Configuration import has encountered an error.'));
+
+    foreach ($sync_steps as $sync_step) {
+      $batch_builder->addOperation([ConfigImporterBatch::class, 'process'], [$config_importer, $sync_step]);
+    }
+
+    return $batch_builder->toArray();
+  }
+  catch (ConfigImporterException $e) {
+    global $install_state;
+    // There are validation errors.
+    $messenger = \Drupal::messenger();
+    $messenger->addError(t('The configuration synchronization failed validation.'));
+    foreach ($config_importer->getErrors() as $message) {
+      $messenger->addError($message);
+    }
+    install_display_output(['#title' => t('Configuration validation')], $install_state);
+  }
+}
+
+/**
+ * Replaces install_download_translation() during configuration installs.
+ *
+ * @param array $install_state
+ *   An array of information about the current installation state.
+ *
+ * @return string
+ *   A themed status report, or an exception if there are requirement errors.
+ *   Upon successful download the page is reloaded and no output is returned.
+ *
+ * @see install_download_translation()
+ */
+function install_config_download_translations(&$install_state) {
+  $needs_download = isset($install_state['parameters']['langcode']) && !isset($install_state['translations'][$install_state['parameters']['langcode']]) && $install_state['parameters']['langcode'] !== 'en';
+  if ($needs_download) {
+    return install_download_translation($install_state);
+  }
+}
+
+/**
+ * Reverts configuration if hook_install() implementations have made changes.
+ *
+ * This step ensures that the final configuration matches the configuration
+ * provided to the installer.
+ */
+function install_config_revert_install_changes() {
+  global $install_state;
+
+  $config_manager = \Drupal::service('config.manager');
+  $storage_comparer = new StorageComparer(\Drupal::service('config.storage.sync'), \Drupal::service('config.storage'), $config_manager);
+  $storage_comparer->createChangelist();
+  if ($storage_comparer->hasChanges()) {
+    $config_importer = new ConfigImporter(
+      $storage_comparer,
+      \Drupal::service('event_dispatcher'),
+      $config_manager,
+      \Drupal::service('lock.persistent'),
+      \Drupal::service('config.typed'),
+      \Drupal::service('module_handler'),
+      \Drupal::service('module_installer'),
+      \Drupal::service('theme_handler'),
+      \Drupal::service('string_translation')
+    );
+    try {
+      $config_importer->import();
+    }
+    catch (ConfigImporterException $e) {
+      global $install_state;
+      $messenger = \Drupal::messenger();
+      // There are validation errors.
+      $messenger->addError(t('The configuration synchronization failed validation.'));
+      foreach ($config_importer->getErrors() as $message) {
+        $messenger->addError($message);
+      }
+      install_display_output(['#title' => t('Configuration validation')], $install_state);
+    }
+
+    // At this point the configuration should match completely.
+    if (\Drupal::moduleHandler()->moduleExists('language')) {
+      // If the English language exists at this point we need to ensure
+      // install_download_additional_translations_operations() does not delete
+      // it.
+      if (ConfigurableLanguage::load('en')) {
+        $install_state['profile_info']['keep_english'] = TRUE;
+      }
+    }
   }
 }

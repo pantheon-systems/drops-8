@@ -51,26 +51,25 @@ class UrlAliasFixtures {
       [
         'source' => '/node/1',
         'alias' => '/alias_for_node_1_en',
-        'langcode' => 'en'
+        'langcode' => 'en',
       ],
       [
         'source' => '/node/2',
         'alias' => '/alias_for_node_2_en',
-        'langcode' => 'en'
+        'langcode' => 'en',
       ],
       [
         'source' => '/node/1',
         'alias' => '/alias_for_node_1_fr',
-        'langcode' => 'fr'
+        'langcode' => 'fr',
       ],
       [
         'source' => '/node/1',
         'alias' => '/alias_for_node_1_und',
-        'langcode' => 'und'
-      ]
+        'langcode' => 'und',
+      ],
     ];
   }
-
 
   /**
    * Returns the table definition for the URL alias fixtures.
