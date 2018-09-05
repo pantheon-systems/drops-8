@@ -165,7 +165,6 @@ class Connection extends DatabaseConnection {
     return $pdo;
   }
 
-
   /**
    * Destructor for the SQLite connection.
    *
@@ -434,6 +433,52 @@ class Connection extends DatabaseConnection {
 
     // Don't include the SQLite database file name as part of the table name.
     return $prefix . $table;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createConnectionOptionsFromUrl($url, $root) {
+    $database = parent::createConnectionOptionsFromUrl($url, $root);
+
+    // A SQLite database path with two leading slashes indicates a system path.
+    // Otherwise the path is relative to the Drupal root.
+    $url_components = parse_url($url);
+    if ($url_components['path'][0] === '/') {
+      $url_components['path'] = substr($url_components['path'], 1);
+    }
+    if ($url_components['path'][0] === '/') {
+      $database['database'] = $url_components['path'];
+    }
+    else {
+      $database['database'] = $root . '/' . $url_components['path'];
+    }
+
+    // User credentials and system port are irrelevant for SQLite.
+    unset(
+      $database['username'],
+      $database['password'],
+      $database['port']
+    );
+
+    return $database;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createUrlFromConnectionOptions(array $connection_options) {
+    if (!isset($connection_options['driver'], $connection_options['database'])) {
+      throw new \InvalidArgumentException("As a minimum, the connection options array must contain at least the 'driver' and 'database' keys");
+    }
+
+    $db_url = 'sqlite://localhost/' . $connection_options['database'];
+
+    if (isset($connection_options['prefix']['default']) && $connection_options['prefix']['default'] !== NULL && $connection_options['prefix']['default'] !== '') {
+      $db_url .= '#' . $connection_options['prefix']['default'];
+    }
+
+    return $db_url;
   }
 
 }

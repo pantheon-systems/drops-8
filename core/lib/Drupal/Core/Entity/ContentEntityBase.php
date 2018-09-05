@@ -2,10 +2,9 @@
 
 namespace Drupal\Core\Entity;
 
-use Drupal\Component\Utility\SafeMarkup;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\Plugin\DataType\EntityReference;
 use Drupal\Core\Field\BaseFieldDefinition;
-use Drupal\Core\Field\ChangedFieldItemList;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -175,6 +174,13 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
    * @var bool[]
    */
   protected $enforceRevisionTranslationAffected = [];
+
+  /**
+   * Local cache for fields to skip from the checking for translation changes.
+   *
+   * @var array
+   */
+  protected static $fieldsToSkipFromTranslationChangesCheck = [];
 
   /**
    * {@inheritdoc}
@@ -799,7 +805,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
           // Update the default internal language cache.
           $this->setDefaultLangcode();
           if (isset($this->translations[$this->defaultLangcode])) {
-            $message = SafeMarkup::format('A translation already exists for the specified language (@langcode).', ['@langcode' => $this->defaultLangcode]);
+            $message = new FormattableMarkup('A translation already exists for the specified language (@langcode).', ['@langcode' => $this->defaultLangcode]);
             throw new \InvalidArgumentException($message);
           }
           $this->updateFieldLangcodes($this->defaultLangcode);
@@ -810,7 +816,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
           $items = $this->get($this->langcodeKey);
           if ($items->value != $this->activeLangcode) {
             $items->setValue($this->activeLangcode, FALSE);
-            $message = SafeMarkup::format('The translation language cannot be changed (@langcode).', ['@langcode' => $this->activeLangcode]);
+            $message = new FormattableMarkup('The translation language cannot be changed (@langcode).', ['@langcode' => $this->activeLangcode]);
             throw new \LogicException($message);
           }
         }
@@ -821,7 +827,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
         //   read-only. See https://www.drupal.org/node/2443991.
         if (isset($this->values[$this->defaultLangcodeKey]) && $this->get($this->defaultLangcodeKey)->value != $this->isDefaultTranslation()) {
           $this->get($this->defaultLangcodeKey)->setValue($this->isDefaultTranslation(), FALSE);
-          $message = SafeMarkup::format('The default translation flag cannot be changed (@langcode).', ['@langcode' => $this->activeLangcode]);
+          $message = new FormattableMarkup('The default translation flag cannot be changed (@langcode).', ['@langcode' => $this->activeLangcode]);
           throw new \LogicException($message);
         }
         break;
@@ -846,8 +852,8 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
 
     // Populate entity translation object cache so it will be available for all
     // translation objects.
-    if ($langcode == $this->activeLangcode) {
-      $this->translations[$langcode]['entity'] = $this;
+    if (!isset($this->translations[$this->activeLangcode]['entity'])) {
+      $this->translations[$this->activeLangcode]['entity'] = $this;
     }
 
     // If we already have a translation object for the specified language we can
@@ -1377,7 +1383,11 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
    *   An array of field names.
    */
   protected function getFieldsToSkipFromTranslationChangesCheck() {
-    return $this->traitGetFieldsToSkipFromTranslationChangesCheck($this);
+    $bundle = $this->bundle();
+    if (!isset(static::$fieldsToSkipFromTranslationChangesCheck[$this->entityTypeId][$bundle])) {
+      static::$fieldsToSkipFromTranslationChangesCheck[$this->entityTypeId][$bundle] = $this->traitGetFieldsToSkipFromTranslationChangesCheck($this);
+    }
+    return static::$fieldsToSkipFromTranslationChangesCheck[$this->entityTypeId][$bundle];
   }
 
   /**
@@ -1413,6 +1423,7 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
     // possible or be meaningless.
     /** @var \Drupal\Core\Entity\ContentEntityBase $translation */
     $translation = $original->getTranslation($this->activeLangcode);
+    $langcode = $this->language()->getId();
 
     // The list of fields to skip from the comparision.
     $skip_fields = $this->getFieldsToSkipFromTranslationChangesCheck();
@@ -1428,18 +1439,10 @@ abstract class ContentEntityBase extends Entity implements \IteratorAggregate, C
       if (in_array($field_name, $skip_fields, TRUE) || ($skip_untranslatable_fields && !$definition->isTranslatable())) {
         continue;
       }
-      $field = $this->get($field_name);
-      // When saving entities in the user interface, the changed timestamp is
-      // automatically incremented by ContentEntityForm::submitForm() even if
-      // nothing was actually changed. Thus, the changed time needs to be
-      // ignored when determining whether there are any actual changes in the
-      // entity.
-      if (!($field instanceof ChangedFieldItemList) && !$definition->isComputed()) {
-        $items = $field->filterEmptyItems();
-        $original_items = $translation->get($field_name)->filterEmptyItems();
-        if (!$items->equals($original_items)) {
-          return TRUE;
-        }
+      $items = $this->get($field_name)->filterEmptyItems();
+      $original_items = $translation->get($field_name)->filterEmptyItems();
+      if ($items->hasAffectingChanges($original_items, $langcode)) {
+        return TRUE;
       }
     }
 

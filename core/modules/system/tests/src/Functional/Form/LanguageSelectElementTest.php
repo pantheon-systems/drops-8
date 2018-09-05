@@ -45,7 +45,7 @@ class LanguageSelectElementTest extends BrowserTestBase {
         'edit-languages-all' => LanguageInterface::STATE_ALL,
         'edit-languages-configurable' => LanguageInterface::STATE_CONFIGURABLE,
         'edit-languages-locked' => LanguageInterface::STATE_LOCKED,
-        'edit-languages-config-and-locked' => LanguageInterface::STATE_CONFIGURABLE | LanguageInterface::STATE_LOCKED
+        'edit-languages-config-and-locked' => LanguageInterface::STATE_CONFIGURABLE | LanguageInterface::STATE_LOCKED,
     ];
     foreach ($ids as $id => $flags) {
       $this->assertField($id, format_string('The @id field was found on the page.', ['@id' => $id]));
@@ -83,7 +83,7 @@ class LanguageSelectElementTest extends BrowserTestBase {
     // field elements.
     $edit = [];
     $this->drupalPostForm(NULL, $edit, t('Submit'));
-    $values = Json::decode($this->getRawContent());
+    $values = Json::decode($this->getSession()->getPage()->getContent());
     $this->assertEqual($values['languages_all'], 'xx');
     $this->assertEqual($values['languages_configurable'], 'en');
     $this->assertEqual($values['languages_locked'], LanguageInterface::LANGCODE_NOT_SPECIFIED);

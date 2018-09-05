@@ -5,7 +5,7 @@
  * @see http://www.whatwg.org/specs/web-apps/current-work/multipage/commands.html#the-dialog-element
  */
 
-(function ($, Drupal, drupalSettings) {
+(function($, Drupal, drupalSettings) {
   /**
    * Default dialog options.
    *
@@ -59,19 +59,12 @@
    * @return {Drupal.dialog~dialogDefinition}
    *   The dialog instance.
    */
-  Drupal.dialog = function (element, options) {
+  Drupal.dialog = function(element, options) {
     let undef;
     const $element = $(element);
     const dialog = {
       open: false,
       returnValue: undef,
-      show() {
-        openDialog({ modal: false });
-      },
-      showModal() {
-        openDialog({ modal: true });
-      },
-      close: closeDialog,
     };
 
     function openDialog(settings) {
@@ -91,6 +84,14 @@
       $(window).trigger('dialog:afterclose', [dialog, $element]);
     }
 
+    dialog.show = () => {
+      openDialog({ modal: false });
+    };
+    dialog.showModal = () => {
+      openDialog({ modal: true });
+    };
+    dialog.close = closeDialog;
+
     return dialog;
   };
-}(jQuery, Drupal, drupalSettings));
+})(jQuery, Drupal, drupalSettings);

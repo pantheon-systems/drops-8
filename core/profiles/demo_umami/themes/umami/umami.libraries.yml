@@ -16,7 +16,10 @@ global:
       css/components/content/full/node-full.css: {}
       css/components/content-types/article/article.css: {}
       css/components/content-types/recipe/recipe.css: {}
+      css/components/fields/field.css: {}
+      css/components/fields/ingredients.css: {}
       css/components/fields/label-items.css: {}
+      css/components/fields/recipe-instruction.css: {}
       css/components/forms/buttons.css: {}
       css/components/views/promoted-items.css: {}
       css/components/views/frontpage.css: {}
@@ -30,6 +33,7 @@ global:
       css/components/regions/bottom/bottom.css: {}
       css/components/regions/footer/footer.css: {}
       css/components/regions/header/header.css: {}
+      css/components/regions/pre-header/pre-header.css: {}
     layout:
       css/layout/grid-2.css: {}
       css/layout/grid-3.css: {}
@@ -53,6 +57,11 @@ quicklinks:
     theme:
       css/components/blocks/quicklinks/quicklinks.css: {}
 
+recipe-collections:
+  css:
+    theme:
+      css/components/blocks/recipe-collections/recipe-collections.css: {}
+
 two-columns:
   css:
     layout:
@@ -64,30 +73,25 @@ webfonts:
     theme:
       'https://fonts.googleapis.com/css?family=Open+Sans|Scope+One': { type: external, minified: true }
 
-view-mode-highlighted-bottom:
+view-mode-card:
   css:
     theme:
-      css/components/content/highlighted-bottom/highlighted-bottom.css: {}
+      css/components/content/card/card.css: {}
   dependencies:
     - umami/more-link
 
-view-mode-highlighted-small:
+view-mode-card-common:
   css:
     theme:
-      css/components/content/highlighted-small/highlighted-small.css: {}
+      css/components/content/card/card.css: {}
+      css/components/content/card-common/card-common.css: {}
   dependencies:
     - umami/more-link
 
-view-mode-highlighted-medium:
+view-mode-card-common-alt:
   css:
     theme:
-      css/components/content/highlighted-medium/highlighted-medium.css: {}
-  dependencies:
-    - umami/more-link
-
-view-mode-highlighted-top:
-  css:
-    theme:
-      css/components/content/highlighted-top/highlighted-top.css: {}
+      css/components/content/card/card.css: {}
+      css/components/content/card-common-alt/card-common-alt.css: {}
   dependencies:
     - umami/more-link

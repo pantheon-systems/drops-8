@@ -28,6 +28,8 @@ use Symfony\Component\HttpFoundation\Request;
  *   "before updates" state. Normally, these will add some configuration data to
  *   the database, set up some tables/fields, etc.
  * - Create a class that extends this class.
+ * - Ensure that the test is in the legacy group. Tests can have multiple
+ *   groups.
  * - In your setUp() method, point the $this->databaseDumpFiles variable to the
  *   database dump files, and then call parent::setUp() to run the base setUp()
  *   method in this class.
@@ -161,7 +163,15 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
     $kernel = TestRunnerKernel::createFromRequest($request, $autoloader);
     $kernel->loadLegacyIncludes();
 
-    $this->changeDatabasePrefix();
+    // Set the update url. This must be set here rather than in
+    // self::__construct() or the old URL generator will leak additional test
+    // sites.
+    $this->updateUrl = Url::fromRoute('system.db_update');
+
+    $this->setupBaseUrl();
+
+    // Install Drupal test site.
+    $this->prepareEnvironment();
     $this->runDbTasks();
     // Allow classes to set database dump files.
     $this->setDatabaseDumpFiles();
@@ -173,15 +183,6 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
       parent::setUp();
       return;
     }
-    // Set the update url. This must be set here rather than in
-    // self::__construct() or the old URL generator will leak additional test
-    // sites.
-    $this->updateUrl = Url::fromRoute('system.db_update');
-
-    $this->setupBaseUrl();
-
-    // Install Drupal test site.
-    $this->prepareEnvironment();
     $this->installDrupal();
 
     // Add the config directories to settings.php.
@@ -193,7 +194,7 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
 
     $this->replaceUser1();
 
-    require_once \Drupal::root() . '/core/includes/update.inc';
+    require_once $this->root . '/core/includes/update.inc';
 
     // Setup Mink.
     $session = $this->initMink();
@@ -265,7 +266,7 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
     }
 
     $selectors_handler = new SelectorsHandler([
-      'hidden_field_selector' => new HiddenFieldSelector()
+      'hidden_field_selector' => new HiddenFieldSelector(),
     ]);
     $session = new Session($driver, $selectors_handler);
     $this->mink = new Mink();

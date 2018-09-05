@@ -58,7 +58,7 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   protected $renderer;
 
   /**
-   * Constructs a Drupal\Component\Plugin\PluginBase object.
+   * Constructs a \Drupal\ckeditor\Plugin\Editor\CKEditor object.
    *
    * @param array $configuration
    *   A configuration array containing information about the plugin instance.
@@ -210,8 +210,8 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
              0 => [
                'name' => 'All existing buttons',
                'items' => $all_buttons,
-             ]
-           ]
+             ],
+           ],
          ],
         ],
         'plugins' => $settings['plugins'],

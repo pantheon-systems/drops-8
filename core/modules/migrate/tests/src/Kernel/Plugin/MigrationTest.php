@@ -3,6 +3,8 @@
 namespace Drupal\Tests\migrate\Kernel\Plugin;
 
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\migrate\MigrateException;
+use Drupal\migrate\MigrateSkipRowException;
 
 /**
  * Tests the migration plugin.
@@ -28,6 +30,17 @@ class MigrationTest extends KernelTestBase {
   }
 
   /**
+   * Tests Migration::getProcessPlugins() throws an exception.
+   *
+   * @covers ::getProcessPlugins
+   */
+  public function testGetProcessPluginsException() {
+    $migration = \Drupal::service('plugin.manager.migration')->createStubMigration([]);
+    $this->setExpectedException(MigrateException::class, 'Invalid process configuration for foobar');
+    $migration->getProcessPlugins(['foobar' => ['plugin' => 'get']]);
+  }
+
+  /**
    * Tests Migration::getMigrationDependencies()
    *
    * @covers ::getMigrationDependencies
@@ -39,7 +52,7 @@ class MigrationTest extends KernelTestBase {
         'f1' => 'bar',
         'f2' => [
           'plugin' => 'migration',
-          'migration' => 'm1'
+          'migration' => 'm1',
         ],
         'f3' => [
           'plugin' => 'sub_process',
@@ -52,7 +65,7 @@ class MigrationTest extends KernelTestBase {
         ],
         'f4' => [
           'plugin' => 'migration_lookup',
-          'migration' => 'm3'
+          'migration' => 'm3',
         ],
         'f5' => [
           'plugin' => 'sub_process',
@@ -101,6 +114,17 @@ class MigrationTest extends KernelTestBase {
     $migration->setTrackLastImported(TRUE);
     $this->assertEquals(TRUE, $migration->getTrackLastImported());
     $this->assertEquals(TRUE, $migration->isTrackLastImported());
+  }
+
+  /**
+   * Tests Migration::getDestinationPlugin()
+   *
+   * @covers ::getDestinationPlugin
+   */
+  public function testGetDestinationPlugin() {
+    $migration = \Drupal::service('plugin.manager.migration')->createStubMigration(['destination' => ['no_stub' => TRUE]]);
+    $this->setExpectedException(MigrateSkipRowException::class, "Stub requested but not made because no_stub configuration is set.");
+    $migration->getDestinationPlugin(TRUE);
   }
 
 }

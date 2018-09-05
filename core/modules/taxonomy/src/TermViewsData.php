@@ -36,7 +36,7 @@ class TermViewsData extends EntityViewsData {
     $data['taxonomy_term_field_data']['tid']['filter']['id'] = 'taxonomy_index_tid';
     $data['taxonomy_term_field_data']['tid']['filter']['title'] = $this->t('Term');
     $data['taxonomy_term_field_data']['tid']['filter']['help'] = $this->t('Taxonomy term chosen from autocomplete or select widget.');
-    $data['taxonomy_term_field_data']['tid']['filter']['hierarchy table'] = 'taxonomy_term_hierarchy';
+    $data['taxonomy_term_field_data']['tid']['filter']['hierarchy table'] = 'taxonomy_term__parent';
     $data['taxonomy_term_field_data']['tid']['filter']['numeric'] = TRUE;
 
     $data['taxonomy_term_field_data']['tid_raw'] = [
@@ -61,12 +61,12 @@ class TermViewsData extends EntityViewsData {
         'argument field' => 'tid',
         'base'   => 'node_field_data',
         'field'  => 'nid',
-        'relationship' => 'node_field_data:term_node_tid'
+        'relationship' => 'node_field_data:term_node_tid',
       ],
     ];
 
     $data['taxonomy_term_field_data']['vid']['help'] = $this->t('Filter the results of "Taxonomy: Term" to a particular vocabulary.');
-    unset($data['taxonomy_term_field_data']['vid']['field']);
+    $data['taxonomy_term_field_data']['vid']['field']['help'] = t('The vocabulary name.');
     $data['taxonomy_term_field_data']['vid']['argument']['id'] = 'vocabulary_vid';
     unset($data['taxonomy_term_field_data']['vid']['sort']);
 
@@ -133,7 +133,7 @@ class TermViewsData extends EntityViewsData {
       ],
     ];
 
-    $data['taxonomy_index']['table']['group']  = $this->t('Taxonomy term');
+    $data['taxonomy_index']['table']['group'] = $this->t('Taxonomy term');
 
     $data['taxonomy_index']['table']['join'] = [
       'taxonomy_term_field_data' => [
@@ -146,8 +146,8 @@ class TermViewsData extends EntityViewsData {
         'left_field' => 'nid',
         'field' => 'nid',
       ],
-      'taxonomy_term_hierarchy' => [
-        'left_field' => 'tid',
+      'taxonomy_term__parent' => [
+        'left_field' => 'entity_id',
         'field' => 'tid',
       ],
     ];
@@ -181,7 +181,7 @@ class TermViewsData extends EntityViewsData {
       'filter' => [
         'title' => $this->t('Has taxonomy term'),
         'id' => 'taxonomy_index_tid',
-        'hierarchy table' => 'taxonomy_term_hierarchy',
+        'hierarchy table' => 'taxonomy_term__parent',
         'numeric' => TRUE,
         'skip base' => 'taxonomy_term_field_data',
         'allow empty' => TRUE,
@@ -216,47 +216,22 @@ class TermViewsData extends EntityViewsData {
       'title' => $this->t('Post date'),
       'help' => $this->t('The date the content related to a term was posted.'),
       'sort' => [
-        'id' => 'date'
+        'id' => 'date',
       ],
       'filter' => [
         'id' => 'date',
       ],
     ];
 
-    $data['taxonomy_term_hierarchy']['table']['group']  = $this->t('Taxonomy term');
-    $data['taxonomy_term_hierarchy']['table']['provider']  = 'taxonomy';
-
-    $data['taxonomy_term_hierarchy']['table']['join'] = [
-      'taxonomy_term_hierarchy' => [
-        // Link to self through left.parent = right.tid (going down in depth).
-        'left_field' => 'tid',
-        'field' => 'parent',
-      ],
-      'taxonomy_term_field_data' => [
-        // Link directly to taxonomy_term_field_data via tid.
-        'left_field' => 'tid',
-        'field' => 'tid',
-      ],
+    // Link to self through left.parent = right.tid (going down in depth).
+    $data['taxonomy_term__parent']['table']['join']['taxonomy_term__parent'] = [
+      'left_field' => 'entity_id',
+      'field' => 'parent_target_id',
     ];
 
-    $data['taxonomy_term_hierarchy']['parent'] = [
-      'title' => $this->t('Parent term'),
-      'help' => $this->t('The parent term of the term. This can produce duplicate entries if you are using a vocabulary that allows multiple parents.'),
-      'relationship' => [
-        'base' => 'taxonomy_term_field_data',
-        'field' => 'parent',
-        'label' => $this->t('Parent'),
-        'id' => 'standard',
-      ],
-      'filter' => [
-        'help' => $this->t('Filter the results of "Taxonomy: Term" by the parent pid.'),
-        'id' => 'numeric',
-      ],
-      'argument' => [
-        'help' => $this->t('The parent term of the term.'),
-        'id' => 'taxonomy',
-      ],
-    ];
+    $data['taxonomy_term__parent']['parent_target_id']['help'] = $this->t('The parent term of the term. This can produce duplicate entries if you are using a vocabulary that allows multiple parents.');
+    $data['taxonomy_term__parent']['parent_target_id']['relationship']['label'] = $this->t('Parent');
+    $data['taxonomy_term__parent']['parent_target_id']['argument']['id'] = 'taxonomy';
 
     return $data;
   }

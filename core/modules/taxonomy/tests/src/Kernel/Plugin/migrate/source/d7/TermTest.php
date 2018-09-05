@@ -126,18 +126,56 @@ class TermTest extends MigrateSqlSourceTestBase {
         'machine_name' => 'categories',
       ],
     ];
+    $tests[0]['source_data']['field_config'] = [
+      [
+        'id' => '3',
+        'translatable' => '0',
+      ],
+      [
+        'id' => '4',
+        'translatable' => '1',
+      ],
+      [
+        'id' => '5',
+        'translatable' => '1',
+      ],
+    ];
     $tests[0]['source_data']['field_config_instance'] = [
       [
+        'id' => '2',
+        'field_id' => 3,
         'field_name' => 'field_term_field',
         'entity_type' => 'taxonomy_term',
         'bundle' => 'tags',
+        'data' => 'a:0:{}',
         'deleted' => 0,
       ],
       [
+        'id' => '3',
+        'field_id' => 3,
         'field_name' => 'field_term_field',
         'entity_type' => 'taxonomy_term',
         'bundle' => 'categories',
+        'data' => 'a:0:{}',
         'deleted' => 0,
+      ],
+      [
+        'id' => '4',
+        'field_id' => '4',
+        'field_name' => 'name_field',
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'tags',
+        'data' => 'a:0:{}',
+        'deleted' => '0',
+      ],
+      [
+        'id' => '5',
+        'field_id' => '5',
+        'field_name' => 'description_field',
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'tags',
+        'data' => 'a:0:{}',
+        'deleted' => '0',
       ],
     ];
     $tests[0]['source_data']['field_data_field_term_field'] = [
@@ -156,6 +194,61 @@ class TermTest extends MigrateSqlSourceTestBase {
         'delta' => 0,
       ],
     ];
+    $tests[0]['source_data']['field_data_name_field'] = [
+      [
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'tags',
+        'deleted' => '0',
+        'entity_id' => '1',
+        'revision_id' => '1',
+        'language' => 'und',
+        'delta' => '0',
+        'name_field_value' => 'name value 1 (name_field)',
+        'name_field_format' => NULL,
+      ],
+      [
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'tags',
+        'deleted' => '0',
+        'entity_id' => '4',
+        'revision_id' => '4',
+        'language' => 'und',
+        'delta' => '0',
+        'name_field_value' => 'name value 4 (name_field)',
+        'name_field_format' => NULL,
+      ],
+    ];
+    $tests[0]['source_data']['field_data_description_field'] = [
+      [
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'tags',
+        'deleted' => '0',
+        'entity_id' => '1',
+        'revision_id' => '1',
+        'language' => 'und',
+        'delta' => '0',
+        'description_field_value' => 'description value 1 (description_field)',
+        'description_field_format' => NULL,
+      ],
+      [
+        'entity_type' => 'taxonomy_term',
+        'bundle' => 'tags',
+        'deleted' => '0',
+        'entity_id' => '4',
+        'revision_id' => '4',
+        'language' => 'und',
+        'delta' => '0',
+        'description_field_value' => 'description value 4 (description_field)',
+        'description_field_format' => NULL,
+      ],
+    ];
+    $tests[0]['source_data']['system'] = [
+      [
+        'name' => 'title',
+        'type' => 'module',
+        'status' => 1,
+      ],
+    ];
     $tests[0]['source_data']['variable'] = [
       [
         'name' => 'forum_containers',
@@ -168,8 +261,8 @@ class TermTest extends MigrateSqlSourceTestBase {
       [
         'tid' => 1,
         'vid' => 5,
-        'name' => 'name value 1',
-        'description' => 'description value 1',
+        'name' => 'name value 1 (name_field)',
+        'description' => 'description value 1 (description_field)',
         'weight' => 0,
         'parent' => [0],
       ],
@@ -192,8 +285,8 @@ class TermTest extends MigrateSqlSourceTestBase {
       [
         'tid' => 4,
         'vid' => 5,
-        'name' => 'name value 4',
-        'description' => 'description value 4',
+        'name' => 'name value 4 (name_field)',
+        'description' => 'description value 4 (description_field)',
         'weight' => 1,
         'parent' => [1],
       ],
@@ -233,16 +326,16 @@ class TermTest extends MigrateSqlSourceTestBase {
       [
         'tid' => 1,
         'vid' => 5,
-        'name' => 'name value 1',
-        'description' => 'description value 1',
+        'name' => 'name value 1 (name_field)',
+        'description' => 'description value 1 (description_field)',
         'weight' => 0,
         'parent' => [0],
       ],
       [
         'tid' => 4,
         'vid' => 5,
-        'name' => 'name value 4',
-        'description' => 'description value 4',
+        'name' => 'name value 4 (name_field)',
+        'description' => 'description value 4 (description_field)',
         'weight' => 1,
         'parent' => [1],
       ],

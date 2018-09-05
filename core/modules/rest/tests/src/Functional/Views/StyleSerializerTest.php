@@ -296,7 +296,7 @@ class StyleSerializerTest extends ViewTestBase {
       'entity_test:7',
       'entity_test:8',
       'entity_test:9',
-      'entity_test_list'
+      'entity_test_list',
     ];
     $cache_contexts = [
       'entity_test_view_grants',
@@ -639,7 +639,7 @@ class StyleSerializerTest extends ViewTestBase {
     $node->save();
     $result = Json::decode($this->drupalGet('test/serialize/node-field', ['query' => ['_format' => 'json']]));
     $this->assertEqual($result[1]['nid'], $node->id());
-    $this->assertTrue(strpos($this->getRawContent(), "<script") === FALSE, "No script tag is present in the raw page contents.");
+    $this->assertTrue(strpos($this->getSession()->getPage()->getContent(), "<script") === FALSE, "No script tag is present in the raw page contents.");
 
     $this->drupalLogin($this->adminUser);
 
