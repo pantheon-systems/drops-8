@@ -743,7 +743,7 @@ $settings['file_scan_ignore_directories'] = [
  * Include the Pantheon-specific settings file.
  *
  * n.b. The settings.pantheon.php file makes some changes
- *      that affect all envrionments that this site
+ *      that affect all environments that this site
  *      exists in.  Always include this file, even in
  *      a local development environment, to insure that
  *      the site settings remain consistent.
