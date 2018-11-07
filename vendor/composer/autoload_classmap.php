@@ -2036,6 +2036,7 @@ return array(
     'Stack\\StackedHttpKernel' => $vendorDir . '/stack/builder/src/Stack/StackedHttpKernel.php',
     'Symfony\\Bridge\\PsrHttpMessage\\Factory\\DiactorosFactory' => $vendorDir . '/symfony/psr-http-message-bridge/Factory/DiactorosFactory.php',
     'Symfony\\Bridge\\PsrHttpMessage\\Factory\\HttpFoundationFactory' => $vendorDir . '/symfony/psr-http-message-bridge/Factory/HttpFoundationFactory.php',
+    'Symfony\\Bridge\\PsrHttpMessage\\Factory\\PsrHttpFactory' => $vendorDir . '/symfony/psr-http-message-bridge/Factory/PsrHttpFactory.php',
     'Symfony\\Bridge\\PsrHttpMessage\\HttpFoundationFactoryInterface' => $vendorDir . '/symfony/psr-http-message-bridge/HttpFoundationFactoryInterface.php',
     'Symfony\\Bridge\\PsrHttpMessage\\HttpMessageFactoryInterface' => $vendorDir . '/symfony/psr-http-message-bridge/HttpMessageFactoryInterface.php',
     'Symfony\\Cmf\\Component\\Routing\\Candidates\\Candidates' => $vendorDir . '/symfony-cmf/routing/Candidates/Candidates.php',
