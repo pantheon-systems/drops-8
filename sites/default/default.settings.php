@@ -1,5 +1,7 @@
 <?php
 
+// @codingStandardsIgnoreFile
+
 /**
  * @file
  * Drupal site-specific configuration file.
@@ -86,7 +88,7 @@
  * );
  * @endcode
  */
- $databases = array();
+$databases = [];
 
 /**
  * Customizing database settings.
@@ -144,6 +146,11 @@
  * @code
  *   'prefix' => 'main_',
  * @endcode
+ *
+ * Per-table prefixes are deprecated as of Drupal 8.2, and will be removed in
+ * Drupal 9.0. After that, only a single prefix for all tables will be
+ * supported.
+ *
  * To provide prefixes for specific tables, set 'prefix' as an array.
  * The array's keys are the table names and the values are the prefixes.
  * The 'default' element is mandatory and holds the prefix for any tables
@@ -244,7 +251,7 @@
  *   );
  * @endcode
  */
-$config_directories = array();
+$config_directories = [];
 
 /**
  * Settings:
@@ -255,18 +262,6 @@ $config_directories = array();
  *
  * @see \Drupal\Core\Site\Settings::get()
  */
-
-/**
- * The active installation profile.
- *
- * Changing this after installation is not recommended as it changes which
- * directories are scanned during extension discovery. If this is set prior to
- * installation this value will be rewritten according to the profile selected
- * by the user.
- *
- * @see install_select_profile()
- */
-# $settings['install_profile'] = '';
 
 /**
  * Salt for one-time login links, cancel links, form tokens, etc.
@@ -367,7 +362,7 @@ $settings['update_free_access'] = FALSE;
  * Specify every reverse proxy IP address in your environment.
  * This setting is required if $settings['reverse_proxy'] is TRUE.
  */
-# $settings['reverse_proxy_addresses'] = array('a.b.c.d', ...);
+# $settings['reverse_proxy_addresses'] = ['a.b.c.d', ...];
 
 /**
  * Set this value if your proxy server sends the client IP in a header
@@ -430,6 +425,15 @@ $settings['update_free_access'] = FALSE;
  */
 # $settings['cache_ttl_4xx'] = 3600;
 
+/**
+ * Expiration of cached forms.
+ *
+ * Drupal's Form API stores details of forms in a cache and these entries are
+ * kept for at least 6 hours by default. Expired entries are cleared by cron.
+ *
+ * @see \Drupal\Core\Form\FormCache::setCache()
+ */
+# $settings['form_cache_expiration'] = 21600;
 
 /**
  * Class Loader.
@@ -552,10 +556,10 @@ if ($settings['hash_salt']) {
  * The "en" part of the variable name, is dynamic and can be any langcode of
  * any added language. (eg locale_custom_strings_de for german).
  */
-# $settings['locale_custom_strings_en'][''] = array(
+# $settings['locale_custom_strings_en'][''] = [
 #   'forum'      => 'Discussion board',
 #   '@count min' => '@count minutes',
-# );
+# ];
 
 /**
  * A custom theme for the offline page:
@@ -609,7 +613,7 @@ if ($settings['hash_salt']) {
  *   override in a services.yml file in the same directory as settings.php
  *   (definitions in this file will override service definition defaults).
  */
-# $settings['bootstrap_config_storage'] = array('Drupal\Core\Config\BootstrapConfigStorageFactory', 'getFileStorage');
+# $settings['bootstrap_config_storage'] = ['Drupal\Core\Config\BootstrapConfigStorageFactory', 'getFileStorage'];
 
 /**
  * Configuration overrides.
@@ -633,6 +637,7 @@ if ($settings['hash_salt']) {
  * configuration values in settings.php will not fire any of the configuration
  * change events.
  */
+# $config['system.file']['path']['temporary'] = '/tmp';
 # $config['system.site']['name'] = 'My Drupal site';
 # $config['system.theme']['default'] = 'stark';
 # $config['user.settings']['anonymous'] = 'Visitor';
@@ -740,17 +745,14 @@ $settings['file_scan_ignore_directories'] = [
 ];
 
 /**
- * Include the Pantheon-specific settings file.
+ * The default number of entities to update in a batch process.
  *
- * n.b. The settings.pantheon.php file makes some changes
- *      that affect all envrionments that this site
- *      exists in.  Always include this file, even in
- *      a local development environment, to insure that
- *      the site settings remain consistent.
+ * This is used by update and post-update functions that need to go through and
+ * change all the entities on a site, so it is useful to increase this number
+ * if your hosting configuration (i.e. RAM allocation, CPU speed) allows for a
+ * larger number of entities to be processed in a single batch run.
  */
-if (file_exists(__DIR__ . '/settings.pantheon.php')) {
-  include __DIR__ . "/settings.pantheon.php";
-}
+$settings['entity_update_batch_size'] = 50;
 
 /**
  * Load local development override configuration, if available.
