@@ -50,6 +50,10 @@ class FilesystemTest extends FilesystemTestCase
             $this->markTestSkipped('This test cannot run on Windows.');
         }
 
+        if (!getenv('USER') || 'root' === getenv('USER')) {
+            $this->markTestSkipped('This test will fail if run under superuser');
+        }
+
         $sourceFilePath = $this->workspace.\DIRECTORY_SEPARATOR.'copy_source_file';
         $targetFilePath = $this->workspace.\DIRECTORY_SEPARATOR.'copy_target_file';
 
@@ -124,6 +128,10 @@ class FilesystemTest extends FilesystemTestCase
             $this->markTestSkipped('This test cannot run on Windows.');
         }
 
+        if (!getenv('USER') || 'root' === getenv('USER')) {
+            $this->markTestSkipped('This test will fail if run under superuser');
+        }
+
         $sourceFilePath = $this->workspace.\DIRECTORY_SEPARATOR.'copy_source_file';
         $targetFilePath = $this->workspace.\DIRECTORY_SEPARATOR.'copy_target_file';
 
@@ -161,7 +169,10 @@ class FilesystemTest extends FilesystemTestCase
      */
     public function testCopyForOriginUrlsAndExistingLocalFileDefaultsToCopy()
     {
-        $sourceFilePath = 'http://symfony.com/images/common/logo/logo_symfony_header.png';
+        if (!\in_array('https', stream_get_wrappers())) {
+            $this->markTestSkipped('"https" stream wrapper is not enabled.');
+        }
+        $sourceFilePath = 'https://symfony.com/images/common/logo/logo_symfony_header.png';
         $targetFilePath = $this->workspace.\DIRECTORY_SEPARATOR.'copy_target_file';
 
         file_put_contents($targetFilePath, 'TARGET FILE');
@@ -1481,6 +1492,31 @@ class FilesystemTest extends FilesystemTestCase
             $this->assertFilePermissions(664, $filename);
             umask($oldMask);
         }
+    }
+
+    public function testDumpFileWithArray()
+    {
+        $filename = $this->workspace.\DIRECTORY_SEPARATOR.'foo'.\DIRECTORY_SEPARATOR.'baz.txt';
+
+        $this->filesystem->dumpFile($filename, array('bar'));
+
+        $this->assertFileExists($filename);
+        $this->assertStringEqualsFile($filename, 'bar');
+    }
+
+    public function testDumpFileWithResource()
+    {
+        $filename = $this->workspace.\DIRECTORY_SEPARATOR.'foo'.\DIRECTORY_SEPARATOR.'baz.txt';
+
+        $resource = fopen('php://memory', 'rw');
+        fwrite($resource, 'bar');
+        fseek($resource, 0);
+
+        $this->filesystem->dumpFile($filename, $resource);
+
+        fclose($resource);
+        $this->assertFileExists($filename);
+        $this->assertStringEqualsFile($filename, 'bar');
     }
 
     public function testDumpFileOverwritesAnExistingFile()

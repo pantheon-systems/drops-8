@@ -1,17 +1,37 @@
 <?php
 /**
- * Zend Framework (http://framework.zend.com/)
- *
- * @see       http://github.com/zendframework/zend-diactoros for the canonical source repository
- * @copyright Copyright (c) 2015-2016 Zend Technologies USA Inc. (http://www.zend.com)
+ * @see       https://github.com/zendframework/zend-diactoros for the canonical source repository
+ * @copyright Copyright (c) 2015-2017 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
  */
 
 namespace Zend\Diactoros;
 
 use InvalidArgumentException;
-use RuntimeException;
 use Psr\Http\Message\StreamInterface;
+use RuntimeException;
+
+use function array_key_exists;
+use function fclose;
+use function feof;
+use function fopen;
+use function fread;
+use function fseek;
+use function fstat;
+use function ftell;
+use function fwrite;
+use function get_resource_type;
+use function is_int;
+use function is_resource;
+use function is_string;
+use function restore_error_handler;
+use function set_error_handler;
+use function stream_get_contents;
+use function stream_get_meta_data;
+use function strstr;
+
+use const E_WARNING;
+use const SEEK_SET;
 
 /**
  * Implementation of PSR HTTP streams
@@ -105,7 +125,11 @@ class Stream implements StreamInterface
         }
 
         $stats = fstat($this->resource);
-        return $stats['size'];
+        if ($stats !== false) {
+            return $stats['size'];
+        }
+
+        return null;
     }
 
     /**
@@ -306,8 +330,12 @@ class Stream implements StreamInterface
 
         if (is_string($stream)) {
             set_error_handler(function ($e) use (&$error) {
+                if ($e !== E_WARNING) {
+                    return;
+                }
+
                 $error = $e;
-            }, E_WARNING);
+            });
             $resource = fopen($stream, $mode);
             restore_error_handler();
         }

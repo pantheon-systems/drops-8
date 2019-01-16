@@ -36,4 +36,41 @@ trait BrowserConfigurationTrait {
     return $this->command('set_debug', $this->debug);
   }
 
+  /**
+   * Set the timeout after which any resource requested will stop
+   * trying and proceed with other parts of the page
+   * @param int $resourceTimeout
+   * @return bool
+   */
+  public function resourceTimeout($resourceTimeout) {
+    return $this->command('set_resource_timeout', $resourceTimeout);
+  }
+
+  /**
+   * Sets or unsets web proxy.
+   *
+   * @param string|false $proxy proxy url formatted as '(http|socks5)://[username:password@]host:port', or false to unset
+   * @return bool
+   * @throws \UnexpectedValueException when the proxy url is invalid
+   */
+  public function setProxy($proxy)
+  {
+    $args = array('set_proxy');
+    if ($proxy !== false)
+    {
+      if (preg_match('~^(http|socks5)://(?:([^:@/]*?):([^:@/]*?)@)?([^:@/]+):(\d+)$~', $proxy, $components))
+      {
+        array_push($args, $components[4], intval($components[5], 10), $components[1]);
+        if (strlen($components[2]) || strlen($components[3]))
+        {
+          array_push($args, urldecode($components[2]), urldecode($components[3]));
+        }
+      }
+      else
+      {
+        throw new \UnexpectedValueException('Invalid proxy url ' . $proxy);
+      }
+    }
+    return call_user_func_array(array($this, 'command'), $args);
+  }
 }

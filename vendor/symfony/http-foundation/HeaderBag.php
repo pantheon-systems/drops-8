@@ -101,9 +101,9 @@ class HeaderBag implements \IteratorAggregate, \Countable
     /**
      * Returns a header value by name.
      *
-     * @param string               $key     The header name
-     * @param string|string[]|null $default The default value
-     * @param bool                 $first   Whether to return the first value or all header values
+     * @param string      $key     The header name
+     * @param string|null $default The default value
+     * @param bool        $first   Whether to return the first value or all header values
      *
      * @return string|string[]|null The first header value or default value if $first is true, an array of values otherwise
      */
@@ -206,7 +206,7 @@ class HeaderBag implements \IteratorAggregate, \Countable
      * @param string    $key     The parameter key
      * @param \DateTime $default The default value
      *
-     * @return null|\DateTime The parsed DateTime or the default value if the header does not exist
+     * @return \DateTime|null The parsed DateTime or the default value if the header does not exist
      *
      * @throws \RuntimeException When the HTTP header is not parseable
      */

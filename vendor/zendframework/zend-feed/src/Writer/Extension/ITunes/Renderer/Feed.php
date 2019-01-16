@@ -44,6 +44,8 @@ class Feed extends Extension\AbstractRenderer
         $this->_setOwners($this->dom, $this->base);
         $this->_setSubtitle($this->dom, $this->base);
         $this->_setSummary($this->dom, $this->base);
+        $this->_setType($this->dom, $this->base);
+        $this->_setComplete($this->dom, $this->base);
         if ($this->called) {
             $this->_appendNamespaces();
         }
@@ -54,10 +56,14 @@ class Feed extends Extension\AbstractRenderer
      *
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _appendNamespaces()
     {
-        $this->getRootElement()->setAttribute('xmlns:itunes',
-            'http://www.itunes.com/dtds/podcast-1.0.dtd');
+        // @codingStandardsIgnoreEnd
+        $this->getRootElement()->setAttribute(
+            'xmlns:itunes',
+            'http://www.itunes.com/dtds/podcast-1.0.dtd'
+        );
     }
 
     /**
@@ -67,10 +73,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setAuthors(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $authors = $this->getDataContainer()->getItunesAuthors();
-        if (!$authors || empty($authors)) {
+        if (! $authors || empty($authors)) {
             return;
         }
         foreach ($authors as $author) {
@@ -89,8 +97,10 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setBlock(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $block = $this->getDataContainer()->getItunesBlock();
         if ($block === null) {
             return;
@@ -109,14 +119,16 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setCategories(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $cats = $this->getDataContainer()->getItunesCategories();
-        if (!$cats || empty($cats)) {
+        if (! $cats || empty($cats)) {
             return;
         }
         foreach ($cats as $key => $cat) {
-            if (!is_array($cat)) {
+            if (! is_array($cat)) {
                 $el = $dom->createElement('itunes:category');
                 $el->setAttribute('text', $cat);
                 $root->appendChild($el);
@@ -141,10 +153,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setImage(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $image = $this->getDataContainer()->getItunesImage();
-        if (!$image) {
+        if (! $image) {
             return;
         }
         $el = $dom->createElement('itunes:image');
@@ -160,10 +174,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setDuration(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $duration = $this->getDataContainer()->getItunesDuration();
-        if (!$duration) {
+        if (! $duration) {
             return;
         }
         $el = $dom->createElement('itunes:duration');
@@ -180,8 +196,10 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setExplicit(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $explicit = $this->getDataContainer()->getItunesExplicit();
         if ($explicit === null) {
             return;
@@ -200,10 +218,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setKeywords(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $keywords = $this->getDataContainer()->getItunesKeywords();
-        if (!$keywords || empty($keywords)) {
+        if (! $keywords || empty($keywords)) {
             return;
         }
         $el = $dom->createElement('itunes:keywords');
@@ -220,10 +240,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setNewFeedUrl(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $url = $this->getDataContainer()->getItunesNewFeedUrl();
-        if (!$url) {
+        if (! $url) {
             return;
         }
         $el = $dom->createElement('itunes:new-feed-url');
@@ -240,10 +262,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setOwners(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $owners = $this->getDataContainer()->getItunesOwners();
-        if (!$owners || empty($owners)) {
+        if (! $owners || empty($owners)) {
             return;
         }
         foreach ($owners as $owner) {
@@ -268,10 +292,12 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setSubtitle(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $subtitle = $this->getDataContainer()->getItunesSubtitle();
-        if (!$subtitle) {
+        if (! $subtitle) {
             return;
         }
         $el = $dom->createElement('itunes:subtitle');
@@ -288,14 +314,60 @@ class Feed extends Extension\AbstractRenderer
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setSummary(DOMDocument $dom, DOMElement $root)
     {
+        // @codingStandardsIgnoreEnd
         $summary = $this->getDataContainer()->getItunesSummary();
-        if (!$summary) {
+        if (! $summary) {
             return;
         }
         $el = $dom->createElement('itunes:summary');
         $text = $dom->createTextNode($summary);
+        $el->appendChild($text);
+        $root->appendChild($el);
+        $this->called = true;
+    }
+
+    /**
+     * Set podcast type
+     *
+     * @param  DOMDocument $dom
+     * @param  DOMElement $root
+     * @return void
+     */
+    // @codingStandardsIgnoreStart
+    protected function _setType(DOMDocument $dom, DOMElement $root)
+    {
+        // @codingStandardsIgnoreEnd
+        $type = $this->getDataContainer()->getItunesType();
+        if (! $type) {
+            return;
+        }
+        $el = $dom->createElement('itunes:type');
+        $text = $dom->createTextNode($type);
+        $el->appendChild($text);
+        $root->appendChild($el);
+        $this->called = true;
+    }
+
+    /**
+     * Set complete status
+     *
+     * @param  DOMDocument $dom
+     * @param  DOMElement $root
+     * @return void
+     */
+    // @codingStandardsIgnoreStart
+    protected function _setComplete(DOMDocument $dom, DOMElement $root)
+    {
+        // @codingStandardsIgnoreEnd
+        $status = $this->getDataContainer()->getItunesComplete();
+        if (! $status) {
+            return;
+        }
+        $el = $dom->createElement('itunes:complete');
+        $text = $dom->createTextNode('Yes');
         $el->appendChild($text);
         $root->appendChild($el);
         $this->called = true;

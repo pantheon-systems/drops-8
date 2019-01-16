@@ -1,18 +1,14 @@
 <?php
 /**
- * Zend Framework (http://framework.zend.com/)
- *
- * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
+ * @see       https://github.com/zendframework/zend-feed for the canonical source repository
+ * @copyright Copyright (c) 2005-2018 Zend Technologies USA Inc. (https://www.zend.com)
+ * @license   https://github.com/zendframework/zend-feed/blob/master/LICENSE.md New BSD License
  */
 
 namespace Zend\Feed\Reader\Extension\Podcast;
 
 use Zend\Feed\Reader\Extension;
 
-/**
-*/
 class Entry extends Extension\AbstractEntry
 {
     /**
@@ -28,7 +24,7 @@ class Entry extends Extension\AbstractEntry
 
         $author = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:author)');
 
-        if (!$author) {
+        if (! $author) {
             $author = null;
         }
 
@@ -50,7 +46,7 @@ class Entry extends Extension\AbstractEntry
 
         $block = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:block)');
 
-        if (!$block) {
+        if (! $block) {
             $block = null;
         }
 
@@ -72,7 +68,7 @@ class Entry extends Extension\AbstractEntry
 
         $duration = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:duration)');
 
-        if (!$duration) {
+        if (! $duration) {
             $duration = null;
         }
 
@@ -94,7 +90,7 @@ class Entry extends Extension\AbstractEntry
 
         $explicit = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:explicit)');
 
-        if (!$explicit) {
+        if (! $explicit) {
             $explicit = null;
         }
 
@@ -106,17 +102,25 @@ class Entry extends Extension\AbstractEntry
     /**
      * Get the entry keywords
      *
+     * @deprecated since 2.10.0; itunes:keywords is no longer part of the
+     *     iTunes podcast RSS specification.
      * @return string
      */
     public function getKeywords()
     {
+        trigger_error(
+            'itunes:keywords has been deprecated in the iTunes podcast RSS specification,'
+            . ' and should not be relied on.',
+            \E_USER_DEPRECATED
+        );
+
         if (isset($this->data['keywords'])) {
             return $this->data['keywords'];
         }
 
         $keywords = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:keywords)');
 
-        if (!$keywords) {
+        if (! $keywords) {
             $keywords = null;
         }
 
@@ -138,7 +142,7 @@ class Entry extends Extension\AbstractEntry
 
         $subtitle = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:subtitle)');
 
-        if (!$subtitle) {
+        if (! $subtitle) {
             $subtitle = null;
         }
 
@@ -160,13 +164,121 @@ class Entry extends Extension\AbstractEntry
 
         $summary = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:summary)');
 
-        if (!$summary) {
+        if (! $summary) {
             $summary = null;
         }
 
         $this->data['summary'] = $summary;
 
         return $this->data['summary'];
+    }
+
+    /**
+     * Get the entry image
+     *
+     * @return string
+     */
+    public function getItunesImage()
+    {
+        if (isset($this->data['image'])) {
+            return $this->data['image'];
+        }
+
+        $image = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:image/@href)');
+
+        if (! $image) {
+            $image = null;
+        }
+
+        $this->data['image'] = $image;
+
+        return $this->data['image'];
+    }
+
+    /**
+     * Get the episode number
+     *
+     * @return null|int
+     */
+    public function getEpisode()
+    {
+        if (isset($this->data['episode'])) {
+            return $this->data['episode'];
+        }
+
+        $episode = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:episode)');
+
+        if (! $episode) {
+            $episode = null;
+        }
+
+        $this->data['episode'] = null === $episode ? $episode : (int) $episode;
+
+        return $this->data['episode'];
+    }
+
+    /**
+     * Get the episode number
+     *
+     * @return string One of "full", "trailer", or "bonus"; defaults to "full".
+     */
+    public function getEpisodeType()
+    {
+        if (isset($this->data['episodeType'])) {
+            return $this->data['episodeType'];
+        }
+
+        $type = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:episodeType)');
+
+        if (! $type) {
+            $type = 'full';
+        }
+
+        $this->data['episodeType'] = (string) $type;
+
+        return $this->data['episodeType'];
+    }
+
+    /**
+     * Is the episode closed captioned?
+     *
+     * Returns true only if itunes:isClosedCaptioned has the value 'Yes'.
+     *
+     * @return bool
+     */
+    public function isClosedCaptioned()
+    {
+        if (isset($this->data['isClosedCaptioned'])) {
+            return $this->data['isClosedCaptioned'];
+        }
+
+        $status = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:isClosedCaptioned)');
+
+        $this->data['isClosedCaptioned'] = $status === 'Yes';
+
+        return $this->data['isClosedCaptioned'];
+    }
+
+    /**
+     * Get the season number
+     *
+     * @return null|int
+     */
+    public function getSeason()
+    {
+        if (isset($this->data['season'])) {
+            return $this->data['season'];
+        }
+
+        $season = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:season)');
+
+        if (! $season) {
+            $season = null;
+        }
+
+        $this->data['season'] = null === $season ? $season : (int) $season;
+
+        return $this->data['season'];
     }
 
     /**

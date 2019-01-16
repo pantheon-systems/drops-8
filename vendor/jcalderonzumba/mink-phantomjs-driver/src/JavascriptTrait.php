@@ -15,7 +15,7 @@ trait JavascriptTrait {
    * @param string $script
    */
   public function executeScript($script) {
-    $this->browser->execute($script);
+    $this->browser->execute($this->fixSelfExecutingFunction($script));
   }
 
   /**
@@ -24,7 +24,11 @@ trait JavascriptTrait {
    * @return mixed
    */
   public function evaluateScript($script) {
-    return $this->browser->evaluate($script);
+      $script = preg_replace('/^return\s+/', '', $script);
+
+      $script = $this->fixSelfExecutingFunction($script);
+
+      return $this->browser->evaluate($script);
   }
 
   /**
@@ -40,10 +44,32 @@ trait JavascriptTrait {
     $end = $start + $timeout / 1000.0;
     do {
       $result = $this->browser->evaluate($condition);
+      if ($result) {
+        // No need to wait any longer when the condition is met already.
+        return TRUE;
+      }
       usleep(100000);
     } while (microtime(true) < $end && !$result);
 
     return (bool)$result;
   }
 
+    /**
+     * Fixes self-executing functions to allow evaluating them.
+     *
+     * The self-executing function must be wrapped in braces to work.
+     *
+     * @param string $script
+     *
+     * @return string
+     */
+    private function fixSelfExecutingFunction($script)
+    {
+        if (preg_match('/^function[\s\(]/', $script)) {
+            $script = preg_replace('/;$/', '', $script);
+            $script = '(' . $script . ')';
+        }
+
+        return $script;
+    }
 }
