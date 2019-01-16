@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\contextual\FunctionalJavascript;
 
-use Drupal\FunctionalJavascriptTests\JavascriptTestBase;
+use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 use Drupal\user\Entity\Role;
 
 /**
@@ -10,7 +10,7 @@ use Drupal\user\Entity\Role;
  *
  * @group contextual
  */
-class ContextualLinksTest extends JavascriptTestBase {
+class ContextualLinksTest extends WebDriverTestBase {
 
   use ContextualLinkClickTrait;
 
@@ -90,6 +90,21 @@ class ContextualLinksTest extends JavascriptTestBase {
     $this->getSession()->getPage()->find('css', '.contextual-toolbar-tab button')->press();
     $this->clickContextualLink('#block-branding', 'Test Link', FALSE);
     $this->assertSession()->pageTextContains('Everything is contextual!');
+  }
+
+  /**
+   * Test the contextual links destination.
+   */
+  public function testContextualLinksDestination() {
+    $this->grantPermissions(Role::load(Role::AUTHENTICATED_ID), [
+      'access contextual links',
+      'administer blocks',
+    ]);
+    $this->drupalGet('user');
+    $this->assertSession()->waitForElement('css', '.contextual button');
+    $expected_destination_value = (string) $this->loggedInUser->toUrl()->toString();
+    $contextual_link_url_parsed = parse_url($this->getSession()->getPage()->findLink('Configure block')->getAttribute('href'));
+    $this->assertEquals("destination=$expected_destination_value", $contextual_link_url_parsed['query']);
   }
 
 }

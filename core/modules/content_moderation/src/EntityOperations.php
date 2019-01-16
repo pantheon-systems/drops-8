@@ -5,8 +5,10 @@ namespace Drupal\content_moderation;
 use Drupal\content_moderation\Entity\ContentModerationState as ContentModerationStateEntity;
 use Drupal\content_moderation\Entity\ContentModerationStateInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -182,11 +184,16 @@ class EntityOperations implements ContainerInjectionInterface {
     // Sync translations.
     if ($entity->getEntityType()->hasKey('langcode')) {
       $entity_langcode = $entity->language()->getId();
-      if (!$content_moderation_state->hasTranslation($entity_langcode)) {
-        $content_moderation_state->addTranslation($entity_langcode);
+      if ($entity->isDefaultTranslation()) {
+        $content_moderation_state->langcode = $entity_langcode;
       }
-      if ($content_moderation_state->language()->getId() !== $entity_langcode) {
-        $content_moderation_state = $content_moderation_state->getTranslation($entity_langcode);
+      else {
+        if (!$content_moderation_state->hasTranslation($entity_langcode)) {
+          $content_moderation_state->addTranslation($entity_langcode);
+        }
+        if ($content_moderation_state->language()->getId() !== $entity_langcode) {
+          $content_moderation_state = $content_moderation_state->getTranslation($entity_langcode);
+        }
       }
     }
 
@@ -278,17 +285,39 @@ class EntityOperations implements ContainerInjectionInterface {
     // The moderation form should be displayed only when viewing the latest
     // (translation-affecting) revision, unless it was created as published
     // default revision.
+    if (($entity->isDefaultRevision() || $entity->wasDefaultRevision()) && $this->isPublished($entity)) {
+      return;
+    }
     if (!$entity->isLatestRevision() && !$entity->isLatestTranslationAffectedRevision()) {
       return;
     }
-    if (($entity->isDefaultRevision() || $entity->wasDefaultRevision()) && ($moderation_state = $entity->get('moderation_state')->value)) {
-      $workflow = $this->moderationInfo->getWorkflowForEntity($entity);
-      if ($workflow->getTypePlugin()->getState($moderation_state)->isPublishedState()) {
-        return;
-      }
-    }
 
     $build['content_moderation_control'] = $this->formBuilder->getForm(EntityModerationForm::class, $entity);
+  }
+
+  /**
+   * Checks if the entity is published.
+   *
+   * This method is optimized to not have to unnecessarily load the moderation
+   * state and workflow if it is not required.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity to check.
+   *
+   * @return bool
+   *   TRUE if the entity is published, FALSE otherwise.
+   */
+  protected function isPublished(ContentEntityInterface $entity) {
+    // If the entity implements EntityPublishedInterface directly, check that
+    // first, otherwise fall back to check through the workflow state.
+    if ($entity instanceof EntityPublishedInterface) {
+      return $entity->isPublished();
+    }
+    if ($moderation_state = $entity->get('moderation_state')->value) {
+      $workflow = $this->moderationInfo->getWorkflowForEntity($entity);
+      return $workflow->getTypePlugin()->getState($moderation_state)->isPublishedState();
+    }
+    return FALSE;
   }
 
 }

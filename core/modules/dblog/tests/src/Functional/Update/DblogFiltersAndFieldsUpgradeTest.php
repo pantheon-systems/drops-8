@@ -12,6 +12,7 @@ use Drupal\Core\Serialization\Yaml;
  * @see dblog_update_8400()
  *
  * @group Update
+ * @group legacy
  */
 class DblogFiltersAndFieldsUpgradeTest extends UpdatePathTestBase {
 
@@ -64,7 +65,7 @@ class DblogFiltersAndFieldsUpgradeTest extends UpdatePathTestBase {
     // Now save the view. This trigger dblog_view_presave().
     $view->save();
 
-    // Finally check the same convertion proccess ran.
+    // Finally check the same conversion process ran.
     $data = $view->storage->toArray();
     $fields = $data['display']['default']['display_options']['fields'];
     $filters = $data['display']['default']['display_options']['filters'];

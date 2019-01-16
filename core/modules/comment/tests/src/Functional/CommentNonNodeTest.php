@@ -10,9 +10,9 @@ use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\field_ui\Tests\FieldUiTestTrait;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Tests\field_ui\Traits\FieldUiTestTrait;
 use Drupal\user\RoleInterface;
 
 /**
@@ -190,7 +190,7 @@ class CommentNonNodeTest extends BrowserTestBase {
       $regex .= $comment->comment_body->value . '(.*?)';
       $regex .= '/s';
 
-      return (boolean) preg_match($regex, $this->getRawContent());
+      return (boolean) preg_match($regex, $this->getSession()->getPage()->getContent());
     }
     else {
       return FALSE;
@@ -204,7 +204,7 @@ class CommentNonNodeTest extends BrowserTestBase {
    *   Contact info is available.
    */
   public function commentContactInfoAvailable() {
-    return preg_match('/(input).*?(name="name").*?(input).*?(name="mail").*?(input).*?(name="homepage")/s', $this->getRawContent());
+    return preg_match('/(input).*?(name="name").*?(input).*?(name="mail").*?(input).*?(name="homepage")/s', $this->getSession()->getPage()->getContent());
   }
 
   /**
@@ -243,7 +243,7 @@ class CommentNonNodeTest extends BrowserTestBase {
    */
   public function getUnapprovedComment($subject) {
     $this->drupalGet('admin/content/comment/approval');
-    preg_match('/href="(.*?)#comment-([^"]+)"(.*?)>(' . $subject . ')/', $this->getRawContent(), $match);
+    preg_match('/href="(.*?)#comment-([^"]+)"(.*?)>(' . $subject . ')/', $this->getSession()->getPage()->getContent(), $match);
 
     return $match[2];
   }
@@ -253,7 +253,7 @@ class CommentNonNodeTest extends BrowserTestBase {
    */
   public function testCommentFunctionality() {
     $limited_user = $this->drupalCreateUser([
-      'administer entity_test fields'
+      'administer entity_test fields',
     ]);
     $this->drupalLogin($limited_user);
     // Test that default field exists.

@@ -39,7 +39,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
         $form['deleted_translations'] = [
           '#theme' => 'item_list',
           '#title' => $this->t('The following @entity-type translations will be deleted:', [
-            '@entity-type' => $entity->getEntityType()->getLowercaseLabel()
+            '@entity-type' => $entity->getEntityType()->getLowercaseLabel(),
           ]),
           '#items' => $languages,
         ];
@@ -60,6 +60,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
     $entity = $this->getEntity();
+    $message = $this->getDeletionMessage();
 
     // Make sure that deleting a translation does not delete the whole entity.
     if (!$entity->isDefaultTranslation()) {
@@ -73,7 +74,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
       $form_state->setRedirectUrl($this->getRedirectUrl());
     }
 
-    drupal_set_message($this->getDeletionMessage());
+    $this->messenger()->addStatus($message);
     $this->logDeletionMessage();
   }
 

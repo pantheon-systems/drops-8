@@ -103,7 +103,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
    * By default, filters are not exposed and added to the first non-reserved
    * filter group.
    *
-   * @var array()
+   * @var array
    */
   protected $filter_defaults = [
     'id' => NULL,
@@ -177,7 +177,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
           'plugin_id' => 'boolean',
           'entity_type' => $this->entityTypeId,
           'entity_field' => $field_name,
-        ]
+        ],
       ] + $this->filters;
     }
 

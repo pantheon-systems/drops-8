@@ -85,7 +85,7 @@ class LocalTaskDefaultTest extends UnitTestCase {
    */
   public function testGetRouteParametersForStaticRoute() {
     $this->pluginDefinition = [
-      'route_name' => 'test_route'
+      'route_name' => 'test_route',
     ];
 
     $this->routeProvider->expects($this->once())
@@ -105,7 +105,7 @@ class LocalTaskDefaultTest extends UnitTestCase {
   public function testGetRouteParametersInPluginDefinitions() {
     $this->pluginDefinition = [
       'route_name' => 'test_route',
-      'route_parameters' => ['parameter' => 'example']
+      'route_parameters' => ['parameter' => 'example'],
     ];
 
     $this->routeProvider->expects($this->once())
@@ -124,7 +124,7 @@ class LocalTaskDefaultTest extends UnitTestCase {
    */
   public function testGetRouteParametersForDynamicRouteWithNonUpcastedParameters() {
     $this->pluginDefinition = [
-      'route_name' => 'test_route'
+      'route_name' => 'test_route',
     ];
 
     $route = new Route('/test-route/{parameter}');
@@ -147,7 +147,7 @@ class LocalTaskDefaultTest extends UnitTestCase {
    */
   public function testGetRouteParametersForDynamicRouteWithUpcastedParameters() {
     $this->pluginDefinition = [
-      'route_name' => 'test_route'
+      'route_name' => 'test_route',
     ];
 
     $route = new Route('/test-route/{parameter}');
@@ -160,6 +160,28 @@ class LocalTaskDefaultTest extends UnitTestCase {
 
     $route_match = new RouteMatch('', $route, ['parameter' => (object) 'example2'], ['parameter' => 'example']);
     $this->assertEquals(['parameter' => 'example'], $this->localTaskBase->getRouteParameters($route_match));
+  }
+
+  /**
+   * Tests the getRouteParameters method for a route with upcasted parameters.
+   *
+   * @covers ::getRouteParameters
+   */
+  public function testGetRouteParametersForDynamicRouteWithUpcastedParametersEmptyRawParameters() {
+    $this->pluginDefinition = [
+      'route_name' => 'test_route',
+    ];
+
+    $route = new Route('/test-route/{parameter}');
+    $this->routeProvider->expects($this->once())
+      ->method('getRouteByName')
+      ->with('test_route')
+      ->will($this->returnValue($route));
+
+    $this->setupLocalTaskDefault();
+
+    $route_match = new RouteMatch('', $route, ['parameter' => (object) 'example2']);
+    $this->assertEquals(['parameter' => (object) 'example2'], $this->localTaskBase->getRouteParameters($route_match));
   }
 
   /**
@@ -177,17 +199,17 @@ class LocalTaskDefaultTest extends UnitTestCase {
         [
           'base_route' => 'local_task_default',
           'route_name' => 'local_task_default',
-          'id' => 'local_task_default'
+          'id' => 'local_task_default',
         ],
         'local_task_default',
-        -10
+        -10,
       ],
       // If the base route is different from the route of the tab, ignore it.
       [
         [
           'base_route' => 'local_task_example',
           'route_name' => 'local_task_other',
-          'id' => 'local_task_default'
+          'id' => 'local_task_default',
         ],
         'local_task_default',
         0,
@@ -291,9 +313,9 @@ class LocalTaskDefaultTest extends UnitTestCase {
       'attributes' => [
         'class' => [
           'example',
-          'is-active'
-        ]
-      ]
+          'is-active',
+        ],
+      ],
     ], $this->localTaskBase->getOptions($route_match));
   }
 
@@ -317,6 +339,7 @@ class LocalTaskDefaultTest extends UnitTestCase {
 }
 
 class TestLocalTaskDefault extends LocalTaskDefault {
+
   public function setRouteProvider(RouteProviderInterface $route_provider) {
     $this->routeProvider = $route_provider;
     return $this;

@@ -6,9 +6,10 @@ use Drupal\filter\Entity\FilterFormat;
 use Drupal\FunctionalTests\Update\UpdatePathTestBase;
 
 /**
- * Tests that the allowed html configutations are updated with attributes.
+ * Tests that the allowed html configurations are updated with attributes.
  *
  * @group Entity
+ * @group legacy
  */
 class FilterHtmlUpdateTest extends UpdatePathTestBase {
 

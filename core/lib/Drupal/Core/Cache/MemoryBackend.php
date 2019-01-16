@@ -156,10 +156,9 @@ class MemoryBackend implements CacheBackendInterface, CacheTagsInvalidatorInterf
    * {@inheritdoc}
    */
   public function invalidateMultiple(array $cids) {
-    foreach ($cids as $cid) {
-      if (isset($this->cache[$cid])) {
-        $this->cache[$cid]->expire = $this->getRequestTime() - 1;
-      }
+    $items = array_intersect_key($this->cache, array_flip($cids));
+    foreach ($items as $cid => $item) {
+      $this->cache[$cid]->expire = $this->getRequestTime() - 1;
     }
   }
 

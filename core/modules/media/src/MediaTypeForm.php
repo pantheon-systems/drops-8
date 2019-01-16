@@ -2,6 +2,7 @@
 
 namespace Drupal\media;
 
+use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -23,7 +24,7 @@ class MediaTypeForm extends EntityForm {
   /**
    * Media source plugin manager.
    *
-   * @var \Drupal\media\MediaSourceManager
+   * @var \Drupal\Component\Plugin\PluginManagerInterface
    */
   protected $sourceManager;
 
@@ -37,12 +38,12 @@ class MediaTypeForm extends EntityForm {
   /**
    * Constructs a new class instance.
    *
-   * @param \Drupal\media\MediaSourceManager $source_manager
+   * @param \Drupal\Component\Plugin\PluginManagerInterface $source_manager
    *   Media source plugin manager.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    *   Entity field manager service.
    */
-  public function __construct(MediaSourceManager $source_manager, EntityFieldManagerInterface $entity_field_manager) {
+  public function __construct(PluginManagerInterface $source_manager, EntityFieldManagerInterface $entity_field_manager) {
     $this->sourceManager = $source_manager;
     $this->entityFieldManager = $entity_field_manager;
   }
@@ -118,7 +119,7 @@ class MediaTypeForm extends EntityForm {
       '#attributes' => ['id' => 'source-dependent'],
     ];
 
-    if ($source) {
+    if (!$this->entity->isNew()) {
       $source_description = $this->t('<em>The media source cannot be changed after the media type is created.</em>');
     }
     else {
@@ -131,22 +132,11 @@ class MediaTypeForm extends EntityForm {
       '#options' => $options,
       '#description' => $source_description,
       '#ajax' => ['callback' => '::ajaxHandlerData'],
-      // Rebuilding the form as part of the AJAX request is a workaround to
-      // enforce machine_name validation.
-      // @todo This was added as part of #2932226 and it should be removed once
-      //   https://www.drupal.org/project/drupal/issues/2557299 solves it in a
-      //   more generic way.
-      '#executes_submit_callback' => TRUE,
-      '#submit' => [[static::class, 'rebuildSubmit']],
       '#required' => TRUE,
       // Once the media type is created, its source plugin cannot be changed
       // anymore.
-      '#disabled' => !empty($source),
+      '#disabled' => !$this->entity->isNew(),
     ];
-
-    if (!$source) {
-      $form['type']['#empty_option'] = $this->t('- Select media source -');
-    }
 
     if ($source) {
       // Media source plugin configuration.
@@ -241,18 +231,6 @@ class MediaTypeForm extends EntityForm {
   }
 
   /**
-   * Form submission handler to rebuild the form on select submit.
-   *
-   * @param array $form
-   *   Full form array.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   Current form state.
-   */
-  public static function rebuildSubmit(array &$form, FormStateInterface $form_state) {
-    $form_state->setRebuild();
-  }
-
-  /**
    * Prepares workflow options to be used in the 'checkboxes' form element.
    *
    * @return array
@@ -326,6 +304,17 @@ class MediaTypeForm extends EntityForm {
    */
   protected function actions(array $form, FormStateInterface $form_state) {
     $actions = parent::actions($form, $form_state);
+
+    // If the media source has not been chosen yet, turn the submit button into
+    // a button. This rebuilds the form with the media source's configuration
+    // form visible, instead of saving the media type. This allows users to
+    // create a media type without JavaScript enabled. With JavaScript enabled,
+    // this rebuild occurs during an AJAX request.
+    // @see \Drupal\media\MediaTypeForm::ajaxHandlerData()
+    if (empty($this->getEntity()->get('source'))) {
+      $actions['submit']['#type'] = 'button';
+    }
+
     $actions['submit']['#value'] = $this->t('Save');
     $actions['delete']['#value'] = $this->t('Delete');
     $actions['delete']['#access'] = $this->entity->access('delete');
@@ -373,10 +362,10 @@ class MediaTypeForm extends EntityForm {
 
     $t_args = ['%name' => $media_type->label()];
     if ($status === SAVED_UPDATED) {
-      drupal_set_message($this->t('The media type %name has been updated.', $t_args));
+      $this->messenger()->addStatus($this->t('The media type %name has been updated.', $t_args));
     }
     elseif ($status === SAVED_NEW) {
-      drupal_set_message($this->t('The media type %name has been added.', $t_args));
+      $this->messenger()->addStatus($this->t('The media type %name has been added.', $t_args));
       $this->logger('media')->notice('Added media type %name.', $t_args);
     }
 

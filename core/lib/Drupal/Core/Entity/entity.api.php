@@ -811,10 +811,10 @@ function hook_entity_view_mode_info_alter(&$view_modes) {
  *   An associative array of all entity bundles, keyed by the entity
  *   type name, and then the bundle name, with the following keys:
  *   - label: The human-readable name of the bundle.
- *   - uri_callback: The same as the 'uri_callback' key defined for the entity
- *     type in the EntityManager, but for the bundle only. When determining
- *     the URI of an entity, if a 'uri_callback' is defined for both the
- *     entity type and the bundle, the one for the bundle is used.
+ *   - uri_callback: (optional) The same as the 'uri_callback' key defined for
+ *     the entity type in the EntityManager, but for the bundle only. When
+ *     determining the URI of an entity, if a 'uri_callback' is defined for both
+ *     the entity type and the bundle, the one for the bundle is used.
  *   - translatable: (optional) A boolean value specifying whether this bundle
  *     has translation support enabled. Defaults to FALSE.
  *
@@ -907,6 +907,54 @@ function hook_entity_create(\Drupal\Core\Entity\EntityInterface $entity) {
  */
 function hook_ENTITY_TYPE_create(\Drupal\Core\Entity\EntityInterface $entity) {
   \Drupal::logger('example')->info('ENTITY_TYPE created: @label', ['@label' => $entity->label()]);
+}
+
+/**
+ * Respond to entity revision creation.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $new_revision
+ *   The new revision that was created.
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The original entity that was used to create the revision from.
+ * @param bool|null $keep_untranslatable_fields
+ *   Whether untranslatable field values were kept (TRUE) or copied from the
+ *   default revision (FALSE) when generating a merged revision. If no value was
+ *   explicitly specified (NULL), a default value of TRUE should be assumed if
+ *   the provided entity is the default translation and untranslatable fields
+ *   should only affect the default translation, FALSE otherwise.
+ *
+ * @ingroup entity_crud
+ * @see \Drupal\Core\Entity\RevisionableStorageInterface::createRevision()
+ * @see \Drupal\Core\Entity\TranslatableRevisionableStorageInterface::createRevision()
+ */
+function hook_entity_revision_create(Drupal\Core\Entity\EntityInterface $new_revision, Drupal\Core\Entity\EntityInterface $entity, $keep_untranslatable_fields) {
+  // Retain the value from an untranslatable field, which are by default
+  // synchronized from the default revision.
+  $new_revision->set('untranslatable_field', $entity->get('untranslatable_field'));
+}
+
+/**
+ * Respond to entity revision creation.
+ *
+ * @param \Drupal\Core\Entity\EntityInterface $new_revision
+ *   The new revision that was created.
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The original entity that was used to create the revision from.
+ * @param bool|null $keep_untranslatable_fields
+ *   Whether untranslatable field values were kept (TRUE) or copied from the
+ *   default revision (FALSE) when generating a merged revision. If no value was
+ *   explicitly specified (NULL), a default value of TRUE should be assumed if
+ *   the provided entity is the default translation and untranslatable fields
+ *   should only affect the default translation, FALSE otherwise.
+ *
+ * @ingroup entity_crud
+ * @see \Drupal\Core\Entity\RevisionableStorageInterface::createRevision()
+ * @see \Drupal\Core\Entity\TranslatableRevisionableStorageInterface::createRevision()
+ */
+function hook_ENTITY_TYPE_revision_create(Drupal\Core\Entity\EntityInterface $new_revision, Drupal\Core\Entity\EntityInterface $entity, $keep_untranslatable_fields) {
+  // Retain the value from an untranslatable field, which are by default
+  // synchronized from the default revision.
+  $new_revision->set('untranslatable_field', $entity->get('untranslatable_field'));
 }
 
 /**

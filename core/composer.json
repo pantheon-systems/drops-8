@@ -31,6 +31,7 @@
         "symfony/process": "~3.4.0",
         "symfony/polyfill-iconv": "^1.0",
         "symfony/yaml": "~3.4.5",
+        "typo3/phar-stream-wrapper": "^2.0.1",
         "twig/twig": "^1.35.0",
         "doctrine/common": "^2.5",
         "doctrine/annotations": "^1.2",
@@ -58,8 +59,8 @@
         "jcalderonzumba/gastonjs": "^1.0.2",
         "jcalderonzumba/mink-phantomjs-driver": "^0.3.1",
         "mikey179/vfsStream": "^1.2",
-        "phpunit/phpunit": "^4.8.35 || ^6.1",
-        "phpspec/prophecy": "^1.4",
+        "phpunit/phpunit": "^4.8.35 || ^6.5",
+        "phpspec/prophecy": "^1.7",
         "symfony/css-selector": "^3.4.0",
         "symfony/phpunit-bridge": "^3.4.3",
         "symfony/debug": "^3.4.0"
@@ -133,10 +134,12 @@
         "drupal/locale": "self.version",
         "drupal/minimal": "self.version",
         "drupal/media": "self.version",
+        "drupal/media_library": "self.version",
         "drupal/menu_link_content": "self.version",
         "drupal/menu_ui": "self.version",
         "drupal/migrate": "self.version",
         "drupal/migrate_drupal": "self.version",
+        "drupal/migrate_drupal_multilingual": "self.version",
         "drupal/migrate_drupal_ui": "self.version",
         "drupal/node": "self.version",
         "drupal/options": "self.version",
@@ -167,7 +170,8 @@
         "drupal/user": "self.version",
         "drupal/views": "self.version",
         "drupal/views_ui": "self.version",
-        "drupal/workflows": "self.version"
+        "drupal/workflows": "self.version",
+        "drupal/workspaces": "self.version"
     },
     "extra": {
         "merge-plugin": {

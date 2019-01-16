@@ -94,9 +94,11 @@ class Tables implements TablesInterface {
       $specifier = $specifiers[$key];
       if (isset($field_storage_definitions[$specifier])) {
         $field_storage = $field_storage_definitions[$specifier];
+        $column = $field_storage->getMainPropertyName();
       }
       else {
         $field_storage = FALSE;
+        $column = NULL;
       }
 
       // If there is revision support, only the current revisions are being
@@ -121,8 +123,6 @@ class Tables implements TablesInterface {
       // Check whether this field is stored in a dedicated table.
       if ($field_storage && $table_mapping->requiresDedicatedTableStorage($field_storage)) {
         $delta = NULL;
-        // Find the field column.
-        $column = $field_storage->getMainPropertyName();
 
         if ($key < $count) {
           $next = $specifiers[$key + 1];
@@ -176,10 +176,6 @@ class Tables implements TablesInterface {
         }
         $table = $this->ensureFieldTable($index_prefix, $field_storage, $type, $langcode, $base_table, $entity_id_field, $field_id_field, $delta);
         $sql_column = $table_mapping->getFieldColumnName($field_storage, $column);
-        $property_definitions = $field_storage->getPropertyDefinitions();
-        if (isset($property_definitions[$column])) {
-          $this->caseSensitiveFields[$field] = $property_definitions[$column]->getSetting('case_sensitive');
-        }
       }
       // The field is stored in a shared table.
       else {
@@ -188,6 +184,7 @@ class Tables implements TablesInterface {
         // finds the property first. The data table is preferred, which is why
         // it gets added before the base table.
         $entity_tables = [];
+        $revision_table = NULL;
         if ($all_revisions && $field_storage && $field_storage->isRevisionable()) {
           $data_table = $entity_type->getRevisionDataTable();
           $entity_base_table = $entity_type->getRevisionTable();
@@ -195,10 +192,17 @@ class Tables implements TablesInterface {
         else {
           $data_table = $entity_type->getDataTable();
           $entity_base_table = $entity_type->getBaseTable();
+
+          if ($field_storage && $field_storage->isRevisionable() && in_array($field_storage->getName(), $entity_type->getRevisionMetadataKeys())) {
+            $revision_table = $entity_type->getRevisionTable();
+          }
         }
         if ($data_table) {
           $this->sqlQuery->addMetaData('simple_query', FALSE);
           $entity_tables[$data_table] = $this->getTableMapping($data_table, $entity_type_id);
+        }
+        if ($revision_table) {
+          $entity_tables[$revision_table] = $this->getTableMapping($revision_table, $entity_type_id);
         }
         $entity_tables[$entity_base_table] = $this->getTableMapping($entity_base_table, $entity_type_id);
         $sql_column = $specifier;
@@ -239,18 +243,17 @@ class Tables implements TablesInterface {
         }
 
         $table = $this->ensureEntityTable($index_prefix, $sql_column, $type, $langcode, $base_table, $entity_id_field, $entity_tables);
-
-        // If there is a field storage (some specifiers are not), check for case
-        // sensitivity.
-        if ($field_storage) {
-          $column = $field_storage->getMainPropertyName();
-          $base_field_property_definitions = $field_storage->getPropertyDefinitions();
-          if (isset($base_field_property_definitions[$column])) {
-            $this->caseSensitiveFields[$field] = $base_field_property_definitions[$column]->getSetting('case_sensitive');
-          }
-        }
-
       }
+
+      // If there is a field storage (some specifiers are not) and a field
+      // column, check for case sensitivity.
+      if ($field_storage && $column) {
+        $property_definitions = $field_storage->getPropertyDefinitions();
+        if (isset($property_definitions[$column])) {
+          $this->caseSensitiveFields[$field] = $property_definitions[$column]->getSetting('case_sensitive');
+        }
+      }
+
       // If there are more specifiers to come, it's a relationship.
       if ($field_storage && $key < $count) {
         // Computed fields have prepared their property definition already, do

@@ -62,7 +62,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
       'field_name' => 'image_test',
       'bundle' => 'entity_test',
     ])->save();
-    file_unmanaged_copy(\Drupal::root() . '/core/misc/druplicon.png', 'public://example.jpg');
+    file_unmanaged_copy($this->root . '/core/misc/druplicon.png', 'public://example.jpg');
     $this->image = File::create([
       'uri' => 'public://example.jpg',
     ]);
@@ -127,7 +127,7 @@ class ImageThemeFunctionTest extends KernelTestBase {
       ':fragment' => '#' . $fragment,
       ':url' => $url,
       ':width' => $image->getWidth(),
-      ':height' => $image->getHeight()
+      ':height' => $image->getHeight(),
     ]);
     $this->assertEqual(count($elements), 1, 'theme_image_formatter() correctly renders a link fragment.');
   }

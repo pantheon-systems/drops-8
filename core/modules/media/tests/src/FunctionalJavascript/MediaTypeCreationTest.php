@@ -12,6 +12,45 @@ use Drupal\Component\Utility\Html;
 class MediaTypeCreationTest extends MediaJavascriptTestBase {
 
   /**
+   * Tests the source field behavior on the add media type form.
+   */
+  public function testSourceChangeOnMediaTypeCreationForm() {
+    $session = $this->getSession();
+    $page = $session->getPage();
+    $assert_session = $this->assertSession();
+
+    $label = 'Type with Default Field';
+    $mediaTypeMachineName = str_replace(' ', '_', strtolower($label));
+
+    $this->drupalGet('admin/structure/media/add');
+
+    // Fill in a label to the media type.
+    $page->fillField('label', $label);
+    $this->assertNotEmpty(
+      $assert_session->waitForElementVisible('css', '.machine-name-value')
+    );
+
+    // Select the media source used by our media type.
+    $assert_session->selectExists('Media source')->selectOption('test_different_displays');
+    $this->assertNotEmpty(
+      $assert_session->waitForElementVisible('css', 'fieldset[data-drupal-selector="edit-source-configuration"]')
+    );
+
+    // Change the media source.
+    $assert_session->selectExists('Media source')->selectOption('test');
+    $this->assertNotEmpty(
+      $assert_session->waitForElement('css', 'fieldset[data-drupal-selector="edit-source-configuration"] .fieldset-wrapper .placeholder:contains("Text (plain)")')
+    );
+
+    $page->pressButton('Save');
+
+    // Check that source can not be changed anymore.
+    $this->drupalGet("admin/structure/media/manage/{$mediaTypeMachineName}");
+    $assert_session->pageTextContains('The media source cannot be changed after the media type is created');
+    $assert_session->fieldDisabled('Media source');
+  }
+
+  /**
    * Tests the media type creation form.
    */
   public function testMediaTypeCreationFormWithDefaultField() {
@@ -24,18 +63,20 @@ class MediaTypeCreationTest extends MediaJavascriptTestBase {
 
     $this->drupalGet('admin/structure/media/add');
 
-    // Fill in a label to the media type.
-    $page->fillField('label', $label);
-    // Wait for machine name generation. Default: waitUntilVisible(), does not
-    // work properly.
-    $session->wait(5000, "jQuery('.machine-name-value').text() === '{$mediaTypeMachineName}'");
-
-    // Select the media source used by our media type.
+    // Select the media source used by our media type. Do this before setting
+    // the label or machine name in order to guard against the regression in
+    // https://www.drupal.org/project/drupal/issues/2557299.
     $assert_session->fieldExists('Media source');
     $assert_session->optionExists('Media source', 'test');
     $page->selectFieldOption('Media source', 'test');
     $result = $assert_session->waitForElementVisible('css', 'fieldset[data-drupal-selector="edit-source-configuration"]');
     $this->assertNotEmpty($result);
+
+    // Fill in a label to the media type.
+    $page->fillField('label', $label);
+    // Wait for machine name generation. Default: waitUntilVisible(), does not
+    // work properly.
+    $session->wait(5000, "jQuery('.machine-name-value').text() === '{$mediaTypeMachineName}'");
 
     $page->pressButton('Save');
 
@@ -97,17 +138,28 @@ class MediaTypeCreationTest extends MediaJavascriptTestBase {
 
     // Create a new media type, which should create a new field we can reuse.
     $this->drupalGet('/admin/structure/media/add');
-    $page->fillField('label', 'Pastafazoul');
-    $session->wait(5000, "jQuery('.machine-name-value').text() === 'pastafazoul'");
+    // Choose the source plugin before setting the label and machine name.
     $page->selectFieldOption('Media source', 'test');
     $result = $assert_session->waitForElementVisible('css', 'fieldset[data-drupal-selector="edit-source-configuration"]');
     $this->assertNotEmpty($result);
+    $page->fillField('label', 'Pastafazoul');
+    $session->wait(5000, "jQuery('.machine-name-value').text() === 'pastafazoul'");
     $page->pressButton('Save');
 
     $label = 'Type reusing Default Field';
     $mediaTypeMachineName = str_replace(' ', '_', strtolower($label));
 
     $this->drupalGet('admin/structure/media/add');
+
+    // Select the media source used by our media type. Do this before setting
+    // the label and machine name.
+    $assert_session->fieldExists('Media source');
+    $assert_session->optionExists('Media source', 'test');
+    $page->selectFieldOption('Media source', 'test');
+    $result = $assert_session->waitForElementVisible('css', 'fieldset[data-drupal-selector="edit-source-configuration"]');
+    $this->assertNotEmpty($result);
+    // Select the existing field for re-use.
+    $page->selectFieldOption('source_configuration[source_field]', 'field_media_test');
 
     // Fill in a label to the media type.
     $page->fillField('label', $label);
@@ -116,14 +168,6 @@ class MediaTypeCreationTest extends MediaJavascriptTestBase {
     // work properly.
     $session->wait(5000, "jQuery('.machine-name-value').text() === '{$mediaTypeMachineName}'");
 
-    // Select the media source used by our media type.
-    $assert_session->fieldExists('Media source');
-    $assert_session->optionExists('Media source', 'test');
-    $page->selectFieldOption('Media source', 'test');
-    $result = $assert_session->waitForElementVisible('css', 'fieldset[data-drupal-selector="edit-source-configuration"]');
-    $this->assertNotEmpty($result);
-    // Select the existing field for re-use.
-    $page->selectFieldOption('source_configuration[source_field]', 'field_media_test');
     $page->pressButton('Save');
 
     // Check that no new fields were created.

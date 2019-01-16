@@ -84,6 +84,29 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
    */
   protected function validateModules(ConfigImporter $config_importer) {
     $core_extension = $config_importer->getStorageComparer()->getSourceStorage()->read('core.extension');
+
+    // Get the install profile from the site's configuration.
+    $current_core_extension = $config_importer->getStorageComparer()->getTargetStorage()->read('core.extension');
+    $install_profile = isset($current_core_extension['profile']) ? $current_core_extension['profile'] : NULL;
+
+    // Ensure the profile is not changing.
+    if ($install_profile !== $core_extension['profile']) {
+      if (drupal_installation_attempted()) {
+        $config_importer->logError($this->t('The selected installation profile %install_profile does not match the profile stored in configuration %config_profile.', [
+          '%install_profile' => $install_profile,
+          '%config_profile' => $core_extension['profile'],
+        ]));
+        // If this error has occurred the other checks are irrelevant.
+        return;
+      }
+      else {
+        $config_importer->logError($this->t('Cannot change the install profile from %profile to %new_profile once Drupal is installed.', [
+          '%profile' => $install_profile,
+          '%new_profile' => $core_extension['profile'],
+        ]));
+      }
+    }
+
     // Get a list of modules with dependency weights as values.
     $module_data = $this->getModuleData();
     $nonexistent_modules = array_keys(array_diff_key($core_extension['module'], $module_data));
@@ -117,15 +140,6 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
       }
     }
 
-    // Get the active install profile from the site's configuration.
-    $current_core_extension = $config_importer->getStorageComparer()->getTargetStorage()->read('core.extension');
-    if (isset($current_core_extension['profile'])) {
-      // Ensure the active profile is not changing.
-      if ($current_core_extension['profile'] !== $core_extension['profile']) {
-        $config_importer->logError($this->t('Cannot change the install profile from %new_profile to %profile once Drupal is installed.', ['%profile' => $current_core_extension['profile'], '%new_profile' => $core_extension['profile']]));
-      }
-    }
-
     // Ensure that all modules being uninstalled are not required by modules
     // that will be installed after the import.
     $uninstalls = $config_importer->getExtensionChangelist('module', 'uninstall');
@@ -144,32 +158,10 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
       }
     }
 
-    // Don't allow profiles to be uninstalled. It's possible for no profile to
-    // be set yet if the config is being imported during initial site install.
-    if ($main_profile instanceof \Drupal\core\Extension\Extension) {
-      if (in_array($main_profile->getName(), $uninstalls, TRUE)) {
-        // Ensure that the active profile is not being uninstalled.
-        $profile_name = $main_profile->info['name'];
-        $config_importer->logError($this->t('Unable to uninstall the %profile profile since it is the main install profile.', ['%profile' => $profile_name]));
-      }
-
-      if ($profile_uninstalls = array_intersect_key($profiles, array_flip($uninstalls))) {
-        // Ensure that none of the parent profiles are being uninstalled.
-        $profile_names = [];
-        foreach ($profile_uninstalls as $profile) {
-          if ($profile->getName() !== $main_profile->getName()) {
-            $profile_names[] = $module_data[$profile->getName()]->info['name'];
-          }
-        }
-        if (!empty($profile_names)) {
-          $message = $this->formatPlural(count($profile_names),
-            'Unable to uninstall the :profile profile since it is a parent of another installed profile.',
-            'Unable to uninstall the :profile profiles since they are parents of another installed profile.',
-            [':profile' => implode(', ', $profile_names)]
-          );
-          $config_importer->logError($message);
-        }
-      }
+    // Ensure that the install profile is not being uninstalled.
+    if (in_array($install_profile, $uninstalls, TRUE)) {
+      $profile_name = $module_data[$install_profile]->info['name'];
+      $config_importer->logError($this->t('Unable to uninstall the %profile profile since it is the install profile.', ['%profile' => $profile_name]));
     }
   }
 
@@ -247,19 +239,19 @@ class ConfigImportSubscriber extends ConfigImportValidateEventSubscriberBase {
         if (!isset($core_extension['module'][$owner]) && isset($module_data[$owner])) {
           $message = $this->t('Configuration %name depends on the %owner module that will not be installed after import.', [
             '%name' => $name,
-            '%owner' => $module_data[$owner]->info['name']
+            '%owner' => $module_data[$owner]->info['name'],
           ]);
         }
         elseif (!isset($core_extension['theme'][$owner]) && isset($theme_data[$owner])) {
           $message = $this->t('Configuration %name depends on the %owner theme that will not be installed after import.', [
             '%name' => $name,
-            '%owner' => $theme_data[$owner]->info['name']
+            '%owner' => $theme_data[$owner]->info['name'],
           ]);
         }
         elseif (!isset($core_extension['module'][$owner]) && !isset($core_extension['theme'][$owner])) {
           $message = $this->t('Configuration %name depends on the %owner extension that will not be installed after import.', [
             '%name' => $name,
-            '%owner' => $owner
+            '%owner' => $owner,
           ]);
         }
 

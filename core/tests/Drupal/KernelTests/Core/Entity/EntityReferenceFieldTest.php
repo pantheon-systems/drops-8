@@ -7,9 +7,9 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\field\Tests\EntityReference\EntityReferenceTestTrait;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use Drupal\user\RoleInterface;
@@ -212,7 +212,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
     // Create the default target entity.
     $target_entity = EntityTestStringId::create([
       'id' => $this->randomString(),
-      'type' => $this->bundle
+      'type' => $this->bundle,
     ]);
     $target_entity->save();
 
@@ -381,7 +381,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
     $definitions = [
       'target_reference' => BaseFieldDefinition::create('entity_reference')
         ->setSetting('target_type', $entity_type->id())
-        ->setSetting('handler', 'default')
+        ->setSetting('handler', 'default'),
     ];
     $this->state->set('entity_test_update.additional_base_field_definitions', $definitions);
     $this->entityManager->clearCachedDefinitions();

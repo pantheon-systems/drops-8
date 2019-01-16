@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\field\Kernel\Boolean;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\entity_test\Entity\EntityTest;
@@ -55,7 +54,7 @@ class BooleanFormatterTest extends KernelTestBase {
 
     $this->entityType = 'entity_test';
     $this->bundle = $this->entityType;
-    $this->fieldName = Unicode::strtolower($this->randomMachineName());
+    $this->fieldName = mb_strtolower($this->randomMachineName());
 
     $field_storage = FieldStorageConfig::create([
       'field_name' => $this->fieldName,
@@ -115,7 +114,7 @@ class BooleanFormatterTest extends KernelTestBase {
     $format = [
       'format' => 'custom',
       'format_custom_false' => 'FALSE',
-      'format_custom_true' => 'TRUE'
+      'format_custom_true' => 'TRUE',
     ];
     $data[] = [0, $format, 'FALSE'];
     $data[] = [1, $format, 'TRUE'];

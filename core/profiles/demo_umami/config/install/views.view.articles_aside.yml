@@ -2,7 +2,7 @@ langcode: en
 status: true
 dependencies:
   config:
-    - core.entity_view_mode.node.highlighted_small
+    - core.entity_view_mode.node.card
     - node.type.article
   module:
     - node
@@ -58,7 +58,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: highlighted_small
+          view_mode: card
       fields:
         title:
           id: title
@@ -144,6 +144,20 @@ display:
           expose:
             label: ''
           granularity: second
+        nid:
+          id: nid
+          table: node_field_data
+          field: nid
+          relationship: none
+          group_type: group
+          admin_label: ''
+          order: ASC
+          exposed: false
+          expose:
+            label: ''
+          entity_type: node
+          entity_field: nid
+          plugin_id: standard
       title: 'More featured articles'
       header: {  }
       footer: {  }

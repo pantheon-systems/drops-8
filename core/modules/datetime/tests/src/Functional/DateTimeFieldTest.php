@@ -3,8 +3,6 @@
 namespace Drupal\Tests\datetime\Functional;
 
 use Drupal\Component\Render\FormattableMarkup;
-use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
@@ -173,7 +171,7 @@ class DateTimeFieldTest extends DateTestBase {
       // past.  First update the test entity so that the date difference always
       // has the same interval.  Since the database always stores UTC, and the
       // interval will use this, force the test date to use UTC and not the local
-      // or user timezome.
+      // or user timezone.
       $timestamp = REQUEST_TIME - 87654321;
       $entity = EntityTest::load($id);
       $field_name = $this->fieldStorage->getName();
@@ -190,8 +188,8 @@ class DateTimeFieldTest extends DateTestBase {
       entity_get_display($this->field->getTargetEntityTypeId(), $this->field->getTargetBundle(), 'full')
         ->setComponent($field_name, $this->displayOptions)
         ->save();
-      $expected = SafeMarkup::format($this->displayOptions['settings']['past_format'], [
-        '@interval' => $this->dateFormatter->formatTimeDiffSince($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']])
+      $expected = new FormattableMarkup($this->displayOptions['settings']['past_format'], [
+        '@interval' => $this->dateFormatter->formatTimeDiffSince($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']]),
       ]);
       $output = $this->renderTestEntity($id);
       $this->assertContains((string) $expected, $output, new FormattableMarkup('Formatted date field using datetime_time_ago format displayed as %expected in %timezone.', [
@@ -203,7 +201,7 @@ class DateTimeFieldTest extends DateTestBase {
       // future.  First update the test entity so that the date difference always
       // has the same interval.  Since the database always stores UTC, and the
       // interval will use this, force the test date to use UTC and not the local
-      // or user timezome.
+      // or user timezone.
       $timestamp = REQUEST_TIME + 87654321;
       $entity = EntityTest::load($id);
       $field_name = $this->fieldStorage->getName();
@@ -214,8 +212,8 @@ class DateTimeFieldTest extends DateTestBase {
       entity_get_display($this->field->getTargetEntityTypeId(), $this->field->getTargetBundle(), 'full')
         ->setComponent($field_name, $this->displayOptions)
         ->save();
-      $expected = SafeMarkup::format($this->displayOptions['settings']['future_format'], [
-        '@interval' => $this->dateFormatter->formatTimeDiffUntil($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']])
+      $expected = new FormattableMarkup($this->displayOptions['settings']['future_format'], [
+        '@interval' => $this->dateFormatter->formatTimeDiffUntil($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']]),
       ]);
       $output = $this->renderTestEntity($id);
       $this->assertContains((string) $expected, $output, new FormattableMarkup('Formatted date field using datetime_time_ago format displayed as %expected in %timezone.', [
@@ -285,7 +283,7 @@ class DateTimeFieldTest extends DateTestBase {
             $expected_iso = format_date($date->getTimestamp(), 'custom', 'Y-m-d\TH:i:s\Z', 'UTC');
             $output = $this->renderTestEntity($id);
             $expected_markup = '<time datetime="' . $expected_iso . '" class="datetime">' . $expected . '</time>';
-            $this->assertContains($expected_markup, $output, SafeMarkup::format('Formatted date field using %value format displayed as %expected with %expected_iso attribute.', ['%value' => $new_value, '%expected' => $expected, '%expected_iso' => $expected_iso]));
+            $this->assertContains($expected_markup, $output, new FormattableMarkup('Formatted date field using %value format displayed as %expected with %expected_iso attribute.', ['%value' => $new_value, '%expected' => $expected, '%expected_iso' => $expected_iso]));
             break;
         }
       }
@@ -299,7 +297,7 @@ class DateTimeFieldTest extends DateTestBase {
       ->save();
     $expected = $date->format(DateTimeItemInterface::DATETIME_STORAGE_FORMAT);
     $output = $this->renderTestEntity($id);
-    $this->assertContains($expected, $output, SafeMarkup::format('Formatted date field using plain format displayed as %expected.', ['%expected' => $expected]));
+    $this->assertContains($expected, $output, new FormattableMarkup('Formatted date field using plain format displayed as %expected.', ['%expected' => $expected]));
 
     // Verify that the 'datetime_custom' formatter works.
     $this->displayOptions['type'] = 'datetime_custom';
@@ -309,7 +307,7 @@ class DateTimeFieldTest extends DateTestBase {
       ->save();
     $expected = $date->format($this->displayOptions['settings']['date_format']);
     $output = $this->renderTestEntity($id);
-    $this->assertContains($expected, $output, SafeMarkup::format('Formatted date field using datetime_custom format displayed as %expected.', ['%expected' => $expected]));
+    $this->assertContains($expected, $output, new FormattableMarkup('Formatted date field using datetime_custom format displayed as %expected.', ['%expected' => $expected]));
 
     // Verify that the 'timezone_override' setting works.
     $this->displayOptions['type'] = 'datetime_custom';
@@ -319,13 +317,13 @@ class DateTimeFieldTest extends DateTestBase {
       ->save();
     $expected = $date->format($this->displayOptions['settings']['date_format'], ['timezone' => 'America/New_York']);
     $output = $this->renderTestEntity($id);
-    $this->assertContains($expected, $output, SafeMarkup::format('Formatted date field using datetime_custom format displayed as %expected.', ['%expected' => $expected]));
+    $this->assertContains($expected, $output, new FormattableMarkup('Formatted date field using datetime_custom format displayed as %expected.', ['%expected' => $expected]));
 
     // Verify that the 'datetime_time_ago' formatter works for intervals in the
     // past.  First update the test entity so that the date difference always
     // has the same interval.  Since the database always stores UTC, and the
     // interval will use this, force the test date to use UTC and not the local
-    // or user timezome.
+    // or user timezone.
     $timestamp = REQUEST_TIME - 87654321;
     $entity = EntityTest::load($id);
     $field_name = $this->fieldStorage->getName();
@@ -342,17 +340,17 @@ class DateTimeFieldTest extends DateTestBase {
     entity_get_display($this->field->getTargetEntityTypeId(), $this->field->getTargetBundle(), 'full')
       ->setComponent($field_name, $this->displayOptions)
       ->save();
-    $expected = SafeMarkup::format($this->displayOptions['settings']['past_format'], [
-      '@interval' => $this->dateFormatter->formatTimeDiffSince($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']])
+    $expected = new FormattableMarkup($this->displayOptions['settings']['past_format'], [
+      '@interval' => $this->dateFormatter->formatTimeDiffSince($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']]),
     ]);
     $output = $this->renderTestEntity($id);
-    $this->assertContains((string) $expected, $output, SafeMarkup::format('Formatted date field using datetime_time_ago format displayed as %expected.', ['%expected' => $expected]));
+    $this->assertContains((string) $expected, $output, new FormattableMarkup('Formatted date field using datetime_time_ago format displayed as %expected.', ['%expected' => $expected]));
 
     // Verify that the 'datetime_time_ago' formatter works for intervals in the
     // future.  First update the test entity so that the date difference always
     // has the same interval.  Since the database always stores UTC, and the
     // interval will use this, force the test date to use UTC and not the local
-    // or user timezome.
+    // or user timezone.
     $timestamp = REQUEST_TIME + 87654321;
     $entity = EntityTest::load($id);
     $field_name = $this->fieldStorage->getName();
@@ -363,11 +361,11 @@ class DateTimeFieldTest extends DateTestBase {
     entity_get_display($this->field->getTargetEntityTypeId(), $this->field->getTargetBundle(), 'full')
       ->setComponent($field_name, $this->displayOptions)
       ->save();
-    $expected = SafeMarkup::format($this->displayOptions['settings']['future_format'], [
-      '@interval' => $this->dateFormatter->formatTimeDiffUntil($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']])
+    $expected = new FormattableMarkup($this->displayOptions['settings']['future_format'], [
+      '@interval' => $this->dateFormatter->formatTimeDiffUntil($timestamp, ['granularity' => $this->displayOptions['settings']['granularity']]),
     ]);
     $output = $this->renderTestEntity($id);
-    $this->assertContains((string) $expected, $output, SafeMarkup::format('Formatted date field using datetime_time_ago format displayed as %expected.', ['%expected' => $expected]));
+    $this->assertContains((string) $expected, $output, new FormattableMarkup('Formatted date field using datetime_time_ago format displayed as %expected.', ['%expected' => $expected]));
   }
 
   /**
@@ -648,7 +646,7 @@ class DateTimeFieldTest extends DateTestBase {
     $this->drupalCreateContentType(['type' => 'date_content']);
 
     // Create a field storage with settings to validate.
-    $field_name = Unicode::strtolower($this->randomMachineName());
+    $field_name = mb_strtolower($this->randomMachineName());
     $field_storage = FieldStorageConfig::create([
       'field_name' => $field_name,
       'entity_type' => 'node',
@@ -855,7 +853,7 @@ class DateTimeFieldTest extends DateTestBase {
     $this->drupalCreateContentType(['type' => 'date_content']);
 
     // Create a field storage with settings to validate.
-    $field_name = Unicode::strtolower($this->randomMachineName());
+    $field_name = mb_strtolower($this->randomMachineName());
     $field_storage = FieldStorageConfig::create([
       'field_name' => $field_name,
       'entity_type' => 'node',

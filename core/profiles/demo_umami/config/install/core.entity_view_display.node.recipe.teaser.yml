@@ -3,7 +3,6 @@ status: true
 dependencies:
   config:
     - core.entity_view_mode.node.teaser
-    - field.field.node.recipe.field_author
     - field.field.node.recipe.field_cooking_time
     - field.field.node.recipe.field_difficulty
     - field.field.node.recipe.field_image
@@ -26,7 +25,7 @@ content:
     weight: 100
     region: content
 hidden:
-  field_author: true
+  content_moderation_control: true
   field_cooking_time: true
   field_difficulty: true
   field_image: true

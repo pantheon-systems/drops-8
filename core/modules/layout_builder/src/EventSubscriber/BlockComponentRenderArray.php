@@ -2,9 +2,13 @@
 
 namespace Drupal\layout_builder\EventSubscriber;
 
+use Drupal\block_content\Access\RefinableDependentAccessInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Render\PreviewFallbackInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\layout_builder\Access\LayoutPreviewAccessAllowed;
 use Drupal\layout_builder\Event\SectionComponentBuildRenderArrayEvent;
 use Drupal\layout_builder\LayoutBuilderEvents;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -56,6 +60,24 @@ class BlockComponentRenderArray implements EventSubscriberInterface {
       return;
     }
 
+    // Set block access dependency even if we are not checking access on
+    // this level. The block itself may render another
+    // RefinableDependentAccessInterface object and need to pass on this value.
+    if ($block instanceof RefinableDependentAccessInterface) {
+      $contexts = $event->getContexts();
+      if (isset($contexts['layout_builder.entity'])) {
+        if ($entity = $contexts['layout_builder.entity']->getContextValue()) {
+          if ($event->inPreview()) {
+            // If previewing in Layout Builder allow access.
+            $block->setAccessDependency(new LayoutPreviewAccessAllowed());
+          }
+          else {
+            $block->setAccessDependency($entity);
+          }
+        }
+      }
+    }
+
     // Only check access if the component is not being previewed.
     if ($event->inPreview()) {
       $access = AccessResult::allowed()->setCacheMaxAge(0);
@@ -68,6 +90,14 @@ class BlockComponentRenderArray implements EventSubscriberInterface {
     if ($access->isAllowed()) {
       $event->addCacheableDependency($block);
 
+      $content = $block->build();
+      $is_content_empty = Element::isEmpty($content);
+      $is_placeholder_ready = $event->inPreview() && $block instanceof PreviewFallbackInterface;
+      // If the content is empty and no placeholder is available, return.
+      if ($is_content_empty && !$is_placeholder_ready) {
+        return;
+      }
+
       $build = [
         // @todo Move this to BlockBase in https://www.drupal.org/node/2931040.
         '#theme' => 'block',
@@ -76,8 +106,11 @@ class BlockComponentRenderArray implements EventSubscriberInterface {
         '#base_plugin_id' => $block->getBaseId(),
         '#derivative_plugin_id' => $block->getDerivativeId(),
         '#weight' => $event->getComponent()->getWeight(),
-        'content' => $block->build(),
+        'content' => $content,
       ];
+      if ($is_content_empty && $is_placeholder_ready) {
+        $build['content']['#markup'] = $block->getPreviewFallbackString();
+      }
       $event->setBuild($build);
     }
   }

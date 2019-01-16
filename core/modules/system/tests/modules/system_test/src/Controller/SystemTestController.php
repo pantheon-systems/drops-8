@@ -107,10 +107,10 @@ class SystemTestController extends ControllerBase {
    * @return string
    *   Empty string, we just test the setting of messages.
    */
-  public function drupalSetMessageTest() {
+  public function messengerServiceTest() {
     // Set two messages.
-    drupal_set_message('First message (removed).');
-    drupal_set_message(t('Second message with <em>markup!</em> (not removed).'));
+    $this->messenger->addStatus('First message (removed).');
+    $this->messenger->addStatus($this->t('Second message with <em>markup!</em> (not removed).'));
     $messages = $this->messenger->deleteByType('status');
     // Remove the first.
     unset($messages[0]);
@@ -120,27 +120,27 @@ class SystemTestController extends ControllerBase {
     }
 
     // Duplicate message check.
-    drupal_set_message('Non Duplicated message', 'status', FALSE);
-    drupal_set_message('Non Duplicated message', 'status', FALSE);
+    $this->messenger->addStatus('Non Duplicated message');
+    $this->messenger->addStatus('Non Duplicated message');
 
-    drupal_set_message('Duplicated message', 'status', TRUE);
-    drupal_set_message('Duplicated message', 'status', TRUE);
+    $this->messenger->addStatus('Duplicated message', TRUE);
+    $this->messenger->addStatus('Duplicated message', TRUE);
 
     // Add a Markup message.
-    drupal_set_message(Markup::create('Markup with <em>markup!</em>'));
+    $this->messenger->addStatus(Markup::create('Markup with <em>markup!</em>'));
     // Test duplicate Markup messages.
-    drupal_set_message(Markup::create('Markup with <em>markup!</em>'));
+    $this->messenger->addStatus(Markup::create('Markup with <em>markup!</em>'));
     // Ensure that multiple Markup messages work.
-    drupal_set_message(Markup::create('Markup2 with <em>markup!</em>'));
+    $this->messenger->addStatus(Markup::create('Markup2 with <em>markup!</em>'));
 
     // Test mixing of types.
-    drupal_set_message(Markup::create('Non duplicate Markup / string.'));
-    drupal_set_message('Non duplicate Markup / string.');
-    drupal_set_message(Markup::create('Duplicate Markup / string.'), 'status', TRUE);
-    drupal_set_message('Duplicate Markup / string.', 'status', TRUE);
+    $this->messenger->addStatus(Markup::create('Non duplicate Markup / string.'));
+    $this->messenger->addStatus('Non duplicate Markup / string.');
+    $this->messenger->addStatus(Markup::create('Duplicate Markup / string.'), TRUE);
+    $this->messenger->addStatus('Duplicate Markup / string.', TRUE);
 
     // Test auto-escape of non safe strings.
-    drupal_set_message('<em>This<span>markup will be</span> escaped</em>.');
+    $this->messenger->addStatus('<em>This<span>markup will be</span> escaped</em>.');
 
     return [];
   }
@@ -287,7 +287,7 @@ class SystemTestController extends ControllerBase {
   }
 
   /**
-   * A plain Symfony reponse with Cache-Control: public, max-age=60.
+   * A plain Symfony response with Cache-Control: public, max-age=60.
    */
   public function respondWithPublicResponse() {
     return (new Response('test'))->setPublic()->setMaxAge(60);

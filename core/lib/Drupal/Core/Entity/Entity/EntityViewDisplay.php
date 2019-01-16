@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityDisplayPluginCollection;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Entity\EntityDisplayBase;
+use Drupal\Core\Render\Element;
 use Drupal\Core\TypedData\TranslatableInterface as TranslatableDataInterface;
 
 /**
@@ -201,7 +202,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
         'view_mode' => $this->originalMode,
         // No need to prepare, defaults have been merged in setComponent().
         'prepare' => FALSE,
-        'configuration' => $configuration
+        'configuration' => $configuration,
       ]);
     }
     else {
@@ -269,7 +270,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
     foreach ($entities as $id => $entity) {
       // Assign the configured weights.
       foreach ($this->getComponents() as $name => $options) {
-        if (isset($build_list[$id][$name])) {
+        if (isset($build_list[$id][$name]) && !Element::isEmpty($build_list[$id][$name])) {
           $build_list[$id][$name]['#weight'] = $options['weight'];
         }
       }
@@ -301,7 +302,7 @@ class EntityViewDisplay extends EntityDisplayBase implements EntityViewDisplayIn
     }
 
     return [
-      'formatters' => new EntityDisplayPluginCollection($this->pluginManager, $configurations)
+      'formatters' => new EntityDisplayPluginCollection($this->pluginManager, $configurations),
     ];
   }
 

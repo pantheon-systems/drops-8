@@ -529,14 +529,14 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $this->fail('Too many source IDs should throw');
     }
     catch (MigrateException $e) {
-      $this->assertEquals("Extra unknown items in source IDs: array (\n  0 => 3,\n)", $e->getMessage());
+      $this->assertEquals("Extra unknown items for map migrate_map_sql_idmap_test in source IDs: array (\n  0 => 3,\n)", $e->getMessage());
     }
     try {
       $id_map->lookupDestinationIds(['nid' => 1, 'aaa' => '2']);
       $this->fail('Unknown source ID key should throw');
     }
     catch (MigrateException $e) {
-      $this->assertEquals("Extra unknown items in source IDs: array (\n  'aaa' => '2',\n)", $e->getMessage());
+      $this->assertEquals("Extra unknown items for map migrate_map_sql_idmap_test in source IDs: array (\n  'aaa' => '2',\n)", $e->getMessage());
     }
 
     // Verify that we are looking up by source_id_hash when all source IDs are
@@ -1010,6 +1010,29 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $contents[] = (array) $row;
     }
     return $contents;
+  }
+
+  /**
+   * Tests the delayed creation of the "map" and "message" migrate tables.
+   */
+  public function testMapTableCreation() {
+    $id_map = $this->getIdMap();
+    $map_table_name = $id_map->mapTableName();
+    $message_table_name = $id_map->messageTableName();
+
+    // Check that tables names do exist.
+    $this->assertEquals('migrate_map_sql_idmap_test', $map_table_name);
+    $this->assertEquals('migrate_message_sql_idmap_test', $message_table_name);
+
+    // Check that tables don't exist.
+    $this->assertFalse($this->database->schema()->tableExists($map_table_name));
+    $this->assertFalse($this->database->schema()->tableExists($message_table_name));
+
+    $id_map->getDatabase();
+
+    // Check that tables do exist.
+    $this->assertTrue($this->database->schema()->tableExists($map_table_name));
+    $this->assertTrue($this->database->schema()->tableExists($message_table_name));
   }
 
 }

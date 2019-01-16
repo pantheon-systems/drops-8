@@ -11,12 +11,23 @@ use Drupal\block_content\BlockContentTypeInterface;
  * @ConfigEntityType(
  *   id = "block_content_type",
  *   label = @Translation("Custom block type"),
+ *   label_collection = @Translation("Custom block types"),
+ *   label_singular = @Translation("custom block type"),
+ *   label_plural = @Translation("custom block types"),
+ *   label_count = @PluralTranslation(
+ *     singular = "@count custom block type",
+ *     plural = "@count custom block types",
+ *   ),
+ *   label_collection = @Translation("Custom block library"),
  *   handlers = {
  *     "form" = {
  *       "default" = "Drupal\block_content\BlockContentTypeForm",
  *       "add" = "Drupal\block_content\BlockContentTypeForm",
  *       "edit" = "Drupal\block_content\BlockContentTypeForm",
  *       "delete" = "Drupal\block_content\Form\BlockContentTypeDeleteForm"
+ *     },
+ *     "route_provider" = {
+ *       "html" = "Drupal\Core\Entity\Routing\AdminHtmlRouteProvider"
  *     },
  *     "list_builder" = "Drupal\block_content\BlockContentTypeListBuilder"
  *   },

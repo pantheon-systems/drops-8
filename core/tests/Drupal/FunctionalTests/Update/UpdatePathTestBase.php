@@ -2,14 +2,9 @@
 
 namespace Drupal\FunctionalTests\Update;
 
-use Behat\Mink\Driver\GoutteDriver;
-use Behat\Mink\Mink;
-use Behat\Mink\Selector\SelectorsHandler;
-use Behat\Mink\Session;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Test\TestRunnerKernel;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\Tests\HiddenFieldSelector;
 use Drupal\Tests\SchemaCheckTestTrait;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -28,6 +23,8 @@ use Symfony\Component\HttpFoundation\Request;
  *   "before updates" state. Normally, these will add some configuration data to
  *   the database, set up some tables/fields, etc.
  * - Create a class that extends this class.
+ * - Ensure that the test is in the legacy group. Tests can have multiple
+ *   groups.
  * - In your setUp() method, point the $this->databaseDumpFiles variable to the
  *   database dump files, and then call parent::setUp() to run the base setUp()
  *   method in this class.
@@ -161,7 +158,15 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
     $kernel = TestRunnerKernel::createFromRequest($request, $autoloader);
     $kernel->loadLegacyIncludes();
 
-    $this->changeDatabasePrefix();
+    // Set the update url. This must be set here rather than in
+    // self::__construct() or the old URL generator will leak additional test
+    // sites.
+    $this->updateUrl = Url::fromRoute('system.db_update');
+
+    $this->setupBaseUrl();
+
+    // Install Drupal test site.
+    $this->prepareEnvironment();
     $this->runDbTasks();
     // Allow classes to set database dump files.
     $this->setDatabaseDumpFiles();
@@ -173,15 +178,6 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
       parent::setUp();
       return;
     }
-    // Set the update url. This must be set here rather than in
-    // self::__construct() or the old URL generator will leak additional test
-    // sites.
-    $this->updateUrl = Url::fromRoute('system.db_update');
-
-    $this->setupBaseUrl();
-
-    // Install Drupal test site.
-    $this->prepareEnvironment();
     $this->installDrupal();
 
     // Add the config directories to settings.php.
@@ -193,17 +189,10 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
 
     $this->replaceUser1();
 
-    require_once \Drupal::root() . '/core/includes/update.inc';
+    require_once $this->root . '/core/includes/update.inc';
 
     // Setup Mink.
-    $session = $this->initMink();
-
-    $cookies = $this->extractCookiesFromRequest(\Drupal::request());
-    foreach ($cookies as $cookie_name => $values) {
-      foreach ($values as $value) {
-        $session->setCookie($cookie_name, $value);
-      }
-    }
+    $this->initMink();
 
     // Set up the browser test output file.
     $this->initBrowserOutputFile();
@@ -243,37 +232,8 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function initMink() {
-    $driver = $this->getDefaultDriverInstance();
-
-    if ($driver instanceof GoutteDriver) {
-      // Turn off curl timeout. Having a timeout is not a problem in a normal
-      // test running, but it is a problem when debugging. Also, disable SSL
-      // peer verification so that testing under HTTPS always works.
-      /** @var \GuzzleHttp\Client $client */
-      $client = $this->container->get('http_client_factory')->fromOptions([
-        'timeout' => NULL,
-        'verify' => FALSE,
-      ]);
-
-      // Inject a Guzzle middleware to generate debug output for every request
-      // performed in the test.
-      $handler_stack = $client->getConfig('handler');
-      $handler_stack->push($this->getResponseLogHandler());
-
-      $driver->getClient()->setClient($client);
-    }
-
-    $selectors_handler = new SelectorsHandler([
-      'hidden_field_selector' => new HiddenFieldSelector()
-    ]);
-    $session = new Session($driver, $selectors_handler);
-    $this->mink = new Mink();
-    $this->mink->registerSession('default', $session);
-    $this->mink->setDefaultSessionName('default');
-    $this->registerSessions();
-
-    return $session;
+  protected function initFrontPage() {
+    // Do nothing as Drupal is not installed yet.
   }
 
   /**
@@ -336,7 +296,10 @@ abstract class UpdatePathTestBase extends BrowserTestBase {
 
     // Ensure there are no failed updates.
     if ($this->checkFailedUpdates) {
-      $this->assertNoRaw('<strong>' . t('Failed:') . '</strong>');
+      $failure = $this->cssSelect('.failure');
+      if ($failure) {
+        $this->fail('The update failed with the following message: "' . reset($failure)->getText() . '"');
+      }
 
       // Ensure that there are no pending updates.
       foreach (['update', 'post_update'] as $update_type) {

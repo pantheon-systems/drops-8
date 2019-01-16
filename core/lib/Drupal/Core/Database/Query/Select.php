@@ -828,7 +828,7 @@ class Select extends Query implements SelectInterface {
     $query .= implode(', ', $fields);
 
     // FROM - We presume all queries have a FROM, as any query that doesn't won't need the query builder anyway.
-    $query .= "\nFROM ";
+    $query .= "\nFROM";
     foreach ($this->tables as $table) {
       $query .= "\n";
       if (isset($table['join type'])) {
@@ -914,6 +914,8 @@ class Select extends Query implements SelectInterface {
    * {@inheritdoc}
    */
   public function __clone() {
+    parent::__clone();
+
     // On cloning, also clone the dependent objects. However, we do not
     // want to clone the database connection object as that would duplicate the
     // connection itself.
@@ -922,6 +924,11 @@ class Select extends Query implements SelectInterface {
     $this->having = clone($this->having);
     foreach ($this->union as $key => $aggregate) {
       $this->union[$key]['query'] = clone($aggregate['query']);
+    }
+    foreach ($this->tables as $alias => $table) {
+      if ($table['table'] instanceof SelectInterface) {
+        $this->tables[$alias]['table'] = clone $table['table'];
+      }
     }
   }
 

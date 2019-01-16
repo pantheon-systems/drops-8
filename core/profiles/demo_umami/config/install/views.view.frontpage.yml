@@ -2,7 +2,7 @@ langcode: en
 status: true
 dependencies:
   config:
-    - core.entity_view_mode.node.highlighted_bottom
+    - core.entity_view_mode.node.card_common
     - core.entity_view_mode.node.rss
     - node.type.recipe
   module:
@@ -218,7 +218,7 @@ display:
         type: 'entity:node'
         options:
           relationship: none
-          view_mode: highlighted_bottom
+          view_mode: card_common
       sorts:
         sticky:
           admin_label: ''
@@ -249,6 +249,20 @@ display:
           granularity: second
           entity_type: node
           entity_field: created
+        nid:
+          id: nid
+          table: node_field_data
+          field: nid
+          relationship: none
+          group_type: group
+          admin_label: ''
+          order: ASC
+          exposed: false
+          expose:
+            label: ''
+          entity_type: node
+          entity_field: nid
+          plugin_id: standard
       style:
         type: default
         options:
@@ -256,7 +270,7 @@ display:
           row_class: ''
           default_row_class: true
           uses_fields: false
-      title: Recipes
+      title: Home
       header:
         area:
           id: area

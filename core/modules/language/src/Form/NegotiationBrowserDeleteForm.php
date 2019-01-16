@@ -29,7 +29,6 @@ class NegotiationBrowserDeleteForm extends ConfirmFormBase {
     return ['language.mappings'];
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -76,7 +75,7 @@ class NegotiationBrowserDeleteForm extends ConfirmFormBase {
 
     $this->logger('language')->notice('The browser language detection mapping for the %browser browser language code has been deleted.', $args);
 
-    drupal_set_message($this->t('The mapping for the %browser browser language code has been deleted.', $args));
+    $this->messenger()->addStatus($this->t('The mapping for the %browser browser language code has been deleted.', $args));
 
     $form_state->setRedirect('language.negotiation_browser');
   }

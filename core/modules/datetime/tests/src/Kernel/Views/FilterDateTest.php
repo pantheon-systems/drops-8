@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\datetime\Kernel\Views;
 
-use Drupal\Component\Datetime\DateTimePlus;
 use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\node\Entity\Node;
@@ -72,6 +71,15 @@ class FilterDateTest extends DateTimeHandlerTestBase {
       $node->save();
       $this->nodes[] = $node;
     }
+
+    // Add a node where the date field is empty.
+    $node = Node::create([
+      'title' => $this->randomMachineName(8),
+      'type' => 'page',
+      'field_date' => [],
+    ]);
+    $node->save();
+    $this->nodes[] = $node;
   }
 
   /**
@@ -131,6 +139,30 @@ class FilterDateTest extends DateTimeHandlerTestBase {
       ];
       $this->assertIdenticalResultset($view, $expected_result, $this->map);
       $view->destroy();
+
+      // Test the empty operator.
+      $view->initHandlers();
+      $view->filter[$field]->operator = 'empty';
+      $view->setDisplay('default');
+      $this->executeView($view);
+      $expected_result = [
+        ['nid' => $this->nodes[3]->id()],
+      ];
+      $this->assertIdenticalResultset($view, $expected_result, $this->map);
+      $view->destroy();
+
+      // Test the not empty operator.
+      $view->initHandlers();
+      $view->filter[$field]->operator = 'not empty';
+      $view->setDisplay('default');
+      $this->executeView($view);
+      $expected_result = [
+        ['nid' => $this->nodes[0]->id()],
+        ['nid' => $this->nodes[1]->id()],
+        ['nid' => $this->nodes[2]->id()],
+      ];
+      $this->assertIdenticalResultset($view, $expected_result, $this->map);
+      $view->destroy();
     }
   }
 
@@ -180,44 +212,6 @@ class FilterDateTest extends DateTimeHandlerTestBase {
       $this->assertIdenticalResultset($view, $expected_result, $this->map);
       $view->destroy();
     }
-  }
-
-  /**
-   * Returns UTC timestamp of user's TZ 'now'.
-   *
-   * The date field stores date_only values without conversion, considering them
-   * already as UTC. This method returns the UTC equivalent of user's 'now' as a
-   * unix timestamp, so they match using Y-m-d format.
-   *
-   * @return int
-   *   Unix timestamp.
-   */
-  protected function getUTCEquivalentOfUserNowAsTimestamp() {
-    $user_now = new DateTimePlus('now', new \DateTimeZone(drupal_get_user_timezone()));
-    $utc_equivalent = new DateTimePlus($user_now->format('Y-m-d H:i:s'), new \DateTimeZone(DATETIME_STORAGE_TIMEZONE));
-
-    return $utc_equivalent->getTimestamp();
-  }
-
-  /**
-   * Returns an array formatted date_only values.
-   *
-   * @param int $timestamp
-   *   Unix Timestamp equivalent to user's "now".
-   *
-   * @return array
-   *   An array of DATETIME_DATE_STORAGE_FORMAT date values. In order tomorrow,
-   *   today and yesterday.
-   */
-  protected function getRelativeDateValuesFromTimestamp($timestamp) {
-    return [
-      // Tomorrow.
-      \Drupal::service('date.formatter')->format($timestamp + 86400, 'custom', DATETIME_DATE_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
-      // Today.
-      \Drupal::service('date.formatter')->format($timestamp, 'custom', DATETIME_DATE_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
-      // Yesterday.
-      \Drupal::service('date.formatter')->format($timestamp - 86400, 'custom', DATETIME_DATE_STORAGE_FORMAT, DATETIME_STORAGE_TIMEZONE),
-    ];
   }
 
   /**

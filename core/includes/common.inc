@@ -17,7 +17,6 @@ use Drupal\Core\Cache\Cache;
 use Drupal\Core\Render\Element\Link;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
-use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\StringTranslation\PluralTranslatableMarkup;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element;
@@ -47,7 +46,7 @@ use Drupal\Core\Render\Element;
  *
  * Correct:
  * @code
- *   $my_substring = Unicode::substr($original_string, 0, 5);
+ *   $my_substring = mb_substr($original_string, 0, 5);
  * @endcode
  *
  * @}
@@ -215,7 +214,7 @@ function valid_email_address($mail) {
  * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
  *   Use UrlHelper::stripDangerousProtocols() or UrlHelper::filterBadProtocol()
  *   instead. UrlHelper::stripDangerousProtocols() can be used in conjunction
- *   with \Drupal\Component\Utility\SafeMarkup::format() and an @variable
+ *   with \Drupal\Component\Render\FormattableMarkup and an @variable
  *   placeholder which will perform the necessary escaping.
  *   UrlHelper::filterBadProtocol() is functionality equivalent to check_url()
  *   apart from the fact it is protected from double escaping bugs. Note that
@@ -252,41 +251,45 @@ function check_url($uri) {
  *   A translated string representation of the size.
  */
 function format_size($size, $langcode = NULL) {
-  if ($size < Bytes::KILOBYTE) {
+  $absolute_size = abs($size);
+  if ($absolute_size < Bytes::KILOBYTE) {
     return \Drupal::translation()->formatPlural($size, '1 byte', '@count bytes', [], ['langcode' => $langcode]);
   }
-  else {
-    // Convert bytes to kilobytes.
-    $size = $size / Bytes::KILOBYTE;
-    $units = ['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-    foreach ($units as $unit) {
-      if (round($size, 2) >= Bytes::KILOBYTE) {
-        $size = $size / Bytes::KILOBYTE;
-      }
-      else {
-        break;
-      }
+  // Create a multiplier to preserve the sign of $size.
+  $sign = $absolute_size / $size;
+  foreach (['KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'] as $unit) {
+    $absolute_size /= Bytes::KILOBYTE;
+    $rounded_size = round($absolute_size, 2);
+    if ($rounded_size < Bytes::KILOBYTE) {
+      break;
     }
-    $args = ['@size' => round($size, 2)];
-    $options = ['langcode' => $langcode];
-    switch ($unit) {
-      case 'KB':
-        return new TranslatableMarkup('@size KB', $args, $options);
-      case 'MB':
-        return new TranslatableMarkup('@size MB', $args, $options);
-      case 'GB':
-        return new TranslatableMarkup('@size GB', $args, $options);
-      case 'TB':
-        return new TranslatableMarkup('@size TB', $args, $options);
-      case 'PB':
-        return new TranslatableMarkup('@size PB', $args, $options);
-      case 'EB':
-        return new TranslatableMarkup('@size EB', $args, $options);
-      case 'ZB':
-        return new TranslatableMarkup('@size ZB', $args, $options);
-      case 'YB':
-        return new TranslatableMarkup('@size YB', $args, $options);
-    }
+  }
+  $args = ['@size' => $rounded_size * $sign];
+  $options = ['langcode' => $langcode];
+  switch ($unit) {
+    case 'KB':
+      return new TranslatableMarkup('@size KB', $args, $options);
+
+    case 'MB':
+      return new TranslatableMarkup('@size MB', $args, $options);
+
+    case 'GB':
+      return new TranslatableMarkup('@size GB', $args, $options);
+
+    case 'TB':
+      return new TranslatableMarkup('@size TB', $args, $options);
+
+    case 'PB':
+      return new TranslatableMarkup('@size PB', $args, $options);
+
+    case 'EB':
+      return new TranslatableMarkup('@size EB', $args, $options);
+
+    case 'ZB':
+      return new TranslatableMarkup('@size ZB', $args, $options);
+
+    case 'YB':
+      return new TranslatableMarkup('@size YB', $args, $options);
   }
 }
 
@@ -409,8 +412,8 @@ function drupal_set_time_limit($time_limit) {
 /**
  * Returns the base URL path (i.e., directory) of the Drupal installation.
  *
- * base_path() adds a "/" to the beginning and end of the returned path if the
- * path is not empty. At the very least, this will return "/".
+ * Function base_path() adds a "/" to the beginning and end of the returned path
+ * if the path is not empty. At the very least, this will return "/".
  *
  * Examples:
  * - http://example.com returns "/" because the path is empty.
@@ -491,7 +494,7 @@ function drupal_js_defaults($data = NULL) {
  *
  * Every condition is a key/value pair, whose key is a jQuery selector that
  * denotes another element on the page, and whose value is an array of
- * conditions, which must bet met on that element:
+ * conditions, which must be met on that element:
  * @code
  * array(
  *   'visible' => array(
@@ -716,7 +719,7 @@ function drupal_attach_tabledrag(&$element, array $options) {
     'subgroup' => NULL,
     'source' => NULL,
     'hidden' => TRUE,
-    'limit' => 0
+    'limit' => 0,
   ];
 
   $group = $options['group'];
@@ -1117,7 +1120,7 @@ function drupal_flush_all_caches() {
   \Drupal::service('kernel')->invalidateContainer();
 
   // Wipe the Twig PHP Storage cache.
-  PhpStorageFactory::get('twig')->deleteAll();
+  \Drupal::service('twig')->invalidate();
 
   // Rebuild module and theme data.
   $module_data = system_rebuild_module_data();

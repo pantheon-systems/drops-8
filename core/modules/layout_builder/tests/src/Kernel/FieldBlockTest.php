@@ -10,7 +10,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FormatterPluginManager;
-use Drupal\Core\Plugin\Context\ContextDefinition;
+use Drupal\Core\Plugin\Context\EntityContextDefinition;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
 use Drupal\layout_builder\Plugin\Block\FieldBlock;
@@ -207,7 +207,7 @@ class FieldBlockTest extends EntityKernelTestBase {
       'admin_label' => 'Test Block',
       'bundles' => ['entity_test'],
       'context' => [
-        'entity' => new ContextDefinition('entity:entity_test', 'Test', TRUE),
+        'entity' => EntityContextDefinition::fromEntityTypeId('entity_test')->setLabel('Test'),
       ],
     ];
     $formatter_manager = $this->prophesize(FormatterPluginManager::class);
@@ -230,11 +230,10 @@ class FieldBlockTest extends EntityKernelTestBase {
    * @covers ::build
    * @dataProvider providerTestBuild
    */
-  public function testBuild(PromiseInterface $promise, $in_preview, $expected_markup, $log_message = '', $log_arguments = []) {
+  public function testBuild(PromiseInterface $promise, $expected_markup, $log_message = '', $log_arguments = []) {
     $entity = $this->prophesize(FieldableEntityInterface::class);
     $field = $this->prophesize(FieldItemListInterface::class);
     $entity->get('the_field_name')->willReturn($field->reveal());
-    $entity->in_preview = $in_preview;
     $field->view(Argument::type('array'))->will($promise);
 
     $field_definition = $this->prophesize(FieldDefinitionInterface::class);
@@ -269,37 +268,17 @@ class FieldBlockTest extends EntityKernelTestBase {
    */
   public function providerTestBuild() {
     $data = [];
-    $data['array, no preview'] = [
+    $data['array'] = [
       new ReturnPromise([['content' => ['#markup' => 'The field value']]]),
-      FALSE,
       'The field value',
     ];
-    $data['array, preview'] = [
-      new ReturnPromise([['content' => ['#markup' => 'The field value']]]),
-      TRUE,
-      'The field value',
-    ];
-    $data['empty array, no preview'] = [
+    $data['empty array'] = [
       new ReturnPromise([[]]),
-      FALSE,
       '',
     ];
-    $data['empty array, preview'] = [
-      new ReturnPromise([[]]),
-      TRUE,
-      'Placeholder for the "The Field Label" field',
-    ];
-    $data['exception, no preview'] = [
+    $data['exception'] = [
       new ThrowPromise(new \Exception('The exception message')),
-      FALSE,
       '',
-      'The field "%field" failed to render with the error of "%error".',
-      ['%field' => 'the_field_name', '%error' => 'The exception message'],
-    ];
-    $data['exception, preview'] = [
-      new ThrowPromise(new \Exception('The exception message')),
-      TRUE,
-      'Placeholder for the "The Field Label" field',
       'The field "%field" failed to render with the error of "%error".',
       ['%field' => 'the_field_name', '%error' => 'The exception message'],
     ];

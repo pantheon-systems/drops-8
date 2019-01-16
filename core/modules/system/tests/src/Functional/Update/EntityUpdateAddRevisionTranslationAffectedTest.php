@@ -3,7 +3,7 @@
 namespace Drupal\Tests\system\Functional\Update;
 
 use Drupal\FunctionalTests\Update\UpdatePathTestBase;
-use Drupal\system\Tests\Entity\EntityDefinitionTestTrait;
+use Drupal\Tests\system\Functional\Entity\Traits\EntityDefinitionTestTrait;
 
 /**
  * Tests the upgrade path for adding the 'revision_translation_affected' field.
@@ -11,6 +11,7 @@ use Drupal\system\Tests\Entity\EntityDefinitionTestTrait;
  * @see https://www.drupal.org/node/2896845
  *
  * @group Update
+ * @group legacy
  */
 class EntityUpdateAddRevisionTranslationAffectedTest extends UpdatePathTestBase {
 

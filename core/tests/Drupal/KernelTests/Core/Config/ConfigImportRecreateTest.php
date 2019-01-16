@@ -2,7 +2,6 @@
 
 namespace Drupal\KernelTests\Core\Config;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Config\ConfigImporter;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\KernelTests\KernelTestBase;
@@ -33,7 +32,7 @@ class ConfigImportRecreateTest extends KernelTestBase {
     parent::setUp();
 
     $this->installEntitySchema('node');
-    $this->installConfig(['field', 'node']);
+    $this->installConfig(['system', 'field', 'node']);
 
     $this->copyConfig($this->container->get('config.storage'), $this->container->get('config.storage.sync'));
 
@@ -57,7 +56,7 @@ class ConfigImportRecreateTest extends KernelTestBase {
   }
 
   public function testRecreateEntity() {
-    $type_name = Unicode::strtolower($this->randomMachineName(16));
+    $type_name = mb_strtolower($this->randomMachineName(16));
     $content_type = NodeType::create([
       'type' => $type_name,
       'name' => 'Node type one',

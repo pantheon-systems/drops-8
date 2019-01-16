@@ -33,7 +33,7 @@ abstract class Tasks {
     ],
     [
       'arguments'   => [
-        'CREATE TABLE {drupal_install_test} (id int NULL)',
+        'CREATE TABLE {drupal_install_test} (id int NOT NULL PRIMARY KEY)',
         'Drupal can use CREATE TABLE database commands.',
         'Failed to <strong>CREATE</strong> a test table on your database server with the command %query. The server reports the following message: %error.<p>Are you sure the configured username has the necessary permissions to create tables in the database?</p>',
         TRUE,
@@ -156,7 +156,7 @@ abstract class Tasks {
   protected function connect() {
     try {
       // This doesn't actually test the connection.
-      db_set_active();
+      Database::setActiveConnection();
       // Now actually do a check.
       Database::getConnection();
       $this->pass('Drupal can CONNECT to the database ok.');

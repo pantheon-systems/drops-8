@@ -6,7 +6,7 @@ namespace Drupal\Core\StreamWrapper;
  * Defines a Drupal stream wrapper extension.
  *
  * Provides a Drupal interface and classes to implement PHP stream wrappers for
- * public, private, and temporary files. Extends the StreamWrapperInterface
+ * public, private, and temporary files. Extends the PhpStreamWrapperInterface
  * with methods expected by Drupal stream wrapper classes.
  *
  * A stream wrapper is an abstraction of a file system that allows Drupal to
@@ -82,7 +82,7 @@ interface StreamWrapperInterface extends PhpStreamWrapperInterface {
   const READ_VISIBLE = 0x0014;
 
   /**
-   * This is the default 'type' falg. This does not include
+   * This is the default 'type' flag. This does not include
    * StreamWrapperInterface::LOCAL, because PHP grants a greater trust level to
    * local files (for example, they can be used in an "include" statement,
    * regardless of the "allow_url_include" setting), so stream wrappers need to

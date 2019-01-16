@@ -253,7 +253,7 @@ function update_authorize_update_batch_finished($success, $results) {
     '#type' => 'link',
     '#url' => $url,
     '#title' => t('Run database updates'),
-    // Since this is being called outsite of the primary front controller,
+    // Since this is being called outside of the primary front controller,
     // the base_url needs to be set explicitly to ensure that links are
     // relative to the site root.
     // @todo Simplify with https://www.drupal.org/node/2548095
@@ -261,7 +261,7 @@ function update_authorize_update_batch_finished($success, $results) {
       'absolute' => TRUE,
       'base_url' => $GLOBALS['base_url'],
     ],
-    '#access' => $url->access(\Drupal::currentUser())
+    '#access' => $url->access(\Drupal::currentUser()),
   ];
 
   // Unset the variable since it is no longer needed.

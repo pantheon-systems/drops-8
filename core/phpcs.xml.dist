@@ -7,10 +7,13 @@
   <file>scripts/rebuild_token_calculator.sh</file>
   <file>scripts/run-tests.sh</file>
   <file>scripts/update-countries.sh</file>
-  <arg name="extensions" value="inc,install,module,php,profile,test,theme"/>
+  <arg name="extensions" value="inc,install,module,php,profile,test,theme,yml"/>
 
   <!--Exclude third party code.-->
   <exclude-pattern>./assets/vendor/*</exclude-pattern>
+  <!--Exclude folders used by common frontend tools. These folders match the file_scan_ignore_directories setting in default.settings.php-->
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+  <exclude-pattern>*/bower_components/*</exclude-pattern>
 
   <!--Exclude test files that are intentionally empty, or intentionally violate coding standards.-->
   <exclude-pattern>./modules/system/tests/fixtures/HtaccessTest</exclude-pattern>
@@ -21,6 +24,12 @@
 
   <!-- Only include specific sniffs that pass. This ensures that, if new sniffs are added, HEAD does not fail.-->
   <!-- Drupal sniffs -->
+  <rule ref="Drupal.Array.Array">
+    <!-- Sniff for these errors: CommaLastItem -->
+    <exclude name="Drupal.Array.Array.ArrayClosingIndentation"/>
+    <exclude name="Drupal.Array.Array.ArrayIndentation"/>
+    <exclude name="Drupal.Array.Array.LongLineDeclaration"/>
+  </rule>
   <rule ref="Drupal.Classes.ClassCreateInstance"/>
   <rule ref="Drupal.Classes.ClassDeclaration"/>
   <rule ref="Drupal.Classes.FullyQualifiedNamespace"/>
@@ -36,8 +45,7 @@
   <rule ref="Drupal.Commenting.DocComment">
     <!-- Sniff for these errors: SpacingAfterTagGroup, WrongEnd, SpacingBetween,
       ContentAfterOpen, SpacingBeforeShort, TagValueIndent, ShortStartSpace,
-      SpacingAfter -->
-    <exclude name="Drupal.Commenting.DocComment.LongNotCapital"/>
+      SpacingAfter, LongNotCapital -->
     <!-- ParamNotFirst still not decided for PHPUnit-based tests.
       @see https://www.drupal.org/node/2253915 -->
     <exclude name="Drupal.Commenting.DocComment.ParamNotFirst"/>
@@ -91,6 +99,7 @@
   <rule ref="Drupal.Files.FileEncoding"/>
   <rule ref="Drupal.Files.TxtFileLineLength"/>
   <rule ref="Drupal.Formatting.MultiLineAssignment"/>
+  <rule ref="Drupal.Formatting.MultipleStatementAlignment"/>
   <rule ref="Drupal.Formatting.SpaceInlineIf"/>
   <rule ref="Drupal.Formatting.SpaceUnaryOperator"/>
   <rule ref="Drupal.Functions.DiscouragedFunctions"/>
@@ -154,6 +163,12 @@
   <rule ref="Generic.PHP.LowerCaseKeyword"/>
   <rule ref="Generic.PHP.UpperCaseConstant"/>
   <rule ref="Generic.WhiteSpace.DisallowTabIndent"/>
+
+  <!-- Internal sniffs -->
+  <rule ref="Internal.NoCodeFound">
+    <!-- No PHP code in *.yml -->
+    <exclude-pattern>*.yml</exclude-pattern>
+  </rule>
 
   <!-- MySource sniffs -->
   <rule ref="MySource.Debug.DebugCode"/>
@@ -299,6 +314,11 @@
     <properties>
       <property name="spacing" value="1"/>
       <property name="ignoreNewlines" value="true"/>
+    </properties>
+  </rule>
+  <rule ref="Squiz.WhiteSpace.FunctionSpacing">
+    <properties>
+      <property name="spacing" value="1"/>
     </properties>
   </rule>
   <rule ref="Squiz.WhiteSpace.LanguageConstructSpacing" />

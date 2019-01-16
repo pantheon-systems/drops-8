@@ -22,7 +22,7 @@ use Drupal\Core\Database\Query\Condition;
  * practices.
  *
  * For more detailed information on the database abstraction layer, see
- * https://www.drupal.org/developing/api/database.
+ * https://www.drupal.org/docs/8/api/database-api/database-api-overview.
  *
  * @section sec_entity Querying entities
  * Any query on Drupal entities or fields should use the Entity Query API. See
@@ -30,19 +30,20 @@ use Drupal\Core\Database\Query\Condition;
  *
  * @section sec_simple Simple SELECT database queries
  * For simple SELECT queries that do not involve entities, the Drupal database
- * abstraction layer provides the functions db_query() and db_query_range(),
- * which execute SELECT queries (optionally with range limits) and return result
- * sets that you can iterate over using foreach loops. (The result sets are
- * objects implementing the \Drupal\Core\Database\StatementInterface interface.)
+ * abstraction layer provides the functions \Drupal::database()->query() and
+ * \Drupal::database()->queryRange(), which execute SELECT queries (optionally
+ * with range limits) and return result sets that you can iterate over using
+ * foreach loops. (The result sets are objects implementing the
+ * \Drupal\Core\Database\StatementInterface interface.)
  * You can use the simple query functions for query strings that are not
  * dynamic (except for placeholders, see below), and that you are certain will
  * work in any database engine. See @ref sec_dynamic below if you have a more
  * complex query, or a query whose syntax would be different in some databases.
  *
- * As a note, db_query() and similar functions are wrappers on connection object
- * methods. In most classes, you should use dependency injection and the
- * database connection object instead of these wrappers; See @ref sec_connection
- * below for details.
+ * Note: \Drupal::database() is used here as a shorthand way to get a reference
+ * to the database connection object. In most classes, you should use dependency
+ * injection and inject the 'database' service to perform queries. See
+ * @ref sec_connection below for details.
  *
  * To use the simple database query functions, you will need to make a couple of
  * modifications to your bare SQL query:
@@ -55,7 +56,8 @@ use Drupal\Core\Database\Query\Condition;
  *   putting variables directly into the query, to protect against SQL
  *   injection attacks.
  * - LIMIT syntax differs between databases, so if you have a ranged query,
- *   use db_query_range() instead of db_query().
+ *   use \Drupal::database()->queryRange() instead of
+ *   \Drupal::database()->query().
  *
  * For example, if the query you want to run is:
  * @code
@@ -64,7 +66,7 @@ use Drupal\Core\Database\Query\Condition;
  * @endcode
  * you would do it like this:
  * @code
- * $result = db_query_range('SELECT e.id, e.title, e.created
+ * $result = \Drupal::database()->queryRange('SELECT e.id, e.title, e.created
  *   FROM {example} e
  *   WHERE e.uid = :uid
  *   ORDER BY e.created DESC',
@@ -91,16 +93,11 @@ use Drupal\Core\Database\Query\Condition;
  * fields (see the @link entity_api Entity API topic @endlink for more on
  * entity queries).
  *
- * As a note, db_select() and similar functions are wrappers on connection
- * object methods. In most classes, you should use dependency injection and the
- * database connection object instead of these wrappers; See @ref sec_connection
- * below for details.
- *
  * The dynamic query API lets you build up a query dynamically using method
  * calls. As an illustration, the query example from @ref sec_simple above
  * would be:
  * @code
- * $result = db_select('example', 'e')
+ * $result = \Drupal::database()->select('example', 'e')
  *   ->fields('e', array('id', 'title', 'created'))
  *   ->condition('e.uid', $uid)
  *   ->orderBy('e.created', 'DESC')
@@ -109,7 +106,7 @@ use Drupal\Core\Database\Query\Condition;
  * @endcode
  *
  * There are also methods to join to other tables, add fields with aliases,
- * isNull() to have a @code WHERE e.foo IS NULL @endcode condition, etc. See
+ * isNull() to query for NULL values, etc. See
  * https://www.drupal.org/developing/api/database for many more details.
  *
  * One note on chaining: It is common in the dynamic database API to chain
@@ -123,17 +120,19 @@ use Drupal\Core\Database\Query\Condition;
  * returns the query or something else, and only chain methods that return the
  * query.
  *
- * @section_insert INSERT, UPDATE, and DELETE queries
+ * @section sec_insert INSERT, UPDATE, and DELETE queries
  * INSERT, UPDATE, and DELETE queries need special care in order to behave
- * consistently across databases; you should never use db_query() to run
- * an INSERT, UPDATE, or DELETE query. Instead, use functions db_insert(),
- * db_update(), and db_delete() to obtain a base query on your table, and then
- * add dynamic conditions (as illustrated in @ref sec_dynamic above).
+ * consistently across databases; you should never use
+ * \Drupal::database()->query() to run an INSERT, UPDATE, or DELETE query.
+ * Instead, use functions \Drupal::database()->insert(),
+ * \Drupal::database()->update(), and \Drupal::database()->delete() to obtain
+ * a base query on your table, and then add dynamic conditions (as illustrated
+ * in @ref sec_dynamic above).
  *
- * As a note, db_insert() and similar functions are wrappers on connection
- * object methods. In most classes, you should use dependency injection and the
- * database connection object instead of these wrappers; See @ref sec_connection
- * below for details.
+ * Note: \Drupal::database() is used here as a shorthand way to get a reference
+ * to the database connection object. In most classes, you should use dependency
+ * injection and inject the 'database' service to perform queries. See
+ * @ref sec_connection below for details.
  *
  * For example, if your query is:
  * @code
@@ -142,7 +141,7 @@ use Drupal\Core\Database\Query\Condition;
  * You can execute it via:
  * @code
  * $fields = array('id' => 1, 'uid' => 2, 'path' => 'path', 'name' => 'Name');
- * db_insert('example')
+ * \Drupal::database()->insert('example')
  *   ->fields($fields)
  *   ->execute();
  * @endcode
@@ -150,21 +149,26 @@ use Drupal\Core\Database\Query\Condition;
  * @section sec_transaction Transactions
  * Drupal supports transactions, including a transparent fallback for
  * databases that do not support transactions. To start a new transaction,
- * call @code $txn = db_transaction(); @endcode The transaction will
- * remain open for as long as the variable $txn remains in scope; when $txn is
- * destroyed, the transaction will be committed. If your transaction is nested
- * inside of another then Drupal will track each transaction and only commit
- * the outer-most transaction when the last transaction object goes out out of
- * scope (when all relevant queries have completed successfully).
+ * call startTransaction(), like this:
+ * @code
+ * $transaction = \Drupal::database()->startTransaction();
+ * @endcode
+ * The transaction will remain open for as long as the variable $transaction
+ * remains in scope; when $transaction is destroyed, the transaction will be
+ * committed. If your transaction is nested inside of another then Drupal will
+ * track each transaction and only commit the outer-most transaction when the
+ * last transaction object goes out out of scope (when all relevant queries have
+ * completed successfully).
  *
  * Example:
  * @code
  * function my_transaction_function() {
+ *   $connection = \Drupal::database();
  *   // The transaction opens here.
- *   $txn = db_transaction();
+ *   $transaction = $connection->startTransaction();
  *
  *   try {
- *     $id = db_insert('example')
+ *     $id = $connection->insert('example')
  *       ->fields(array(
  *         'field1' => 'mystring',
  *         'field2' => 5,
@@ -177,20 +181,21 @@ use Drupal\Core\Database\Query\Condition;
  *   }
  *   catch (Exception $e) {
  *     // Something went wrong somewhere, so roll back now.
- *     $txn->rollBack();
+ *     $transaction->rollBack();
  *     // Log the exception to watchdog.
  *     watchdog_exception('type', $e);
  *   }
  *
- *   // $txn goes out of scope here.  Unless the transaction was rolled back, it
- *   // gets automatically committed here.
+ *   // $transaction goes out of scope here.  Unless the transaction was rolled
+ *   // back, it gets automatically committed here.
  * }
  *
  * function my_other_function($id) {
+ *   $connection = \Drupal::database();
  *   // The transaction is still open here.
  *
  *   if ($id % 2 == 0) {
- *     db_update('example')
+ *     $connection->update('example')
  *       ->condition('id', $id)
  *       ->fields(array('field2' => 10))
  *       ->execute();
@@ -199,18 +204,19 @@ use Drupal\Core\Database\Query\Condition;
  * @endcode
  *
  * @section sec_connection Database connection objects
- * The examples here all use functions like db_select() and db_query(), which
- * can be called from any Drupal method or function code. In some classes, you
- * may already have a database connection object in a member variable, or it may
- * be passed into a class constructor via dependency injection. If that is the
- * case, you can look at the code for db_select() and the other functions to see
- * how to get a query object from your connection variable. For example:
+ * The examples here all use functions like \Drupal::database()->select() and
+ * \Drupal::database()->query(), which can be called from any Drupal method or
+ * function code. In some classes, you may already have a database connection
+ * object in a member variable, or it may be passed into a class constructor
+ * via dependency injection. If that is the case, you can look at the code for
+ * \Drupal::database()->select() and the other functions to see how to get a
+ * query object from your connection variable. For example:
  * @code
  * $query = $connection->select('example', 'e');
  * @endcode
  * would be the equivalent of
  * @code
- * $query = db_select('example', 'e');
+ * $query = \Drupal::database()->select('example', 'e');
  * @endcode
  * if you had a connection object variable $connection available to use. See
  * also the @link container Services and Dependency Injection topic. @endlink
@@ -242,18 +248,15 @@ use Drupal\Core\Database\Query\Condition;
  *
  * The following keys are defined:
  *   - 'description': A string in non-markup plain text describing this table
- *     and its purpose. References to other tables should be enclosed in
- *     curly-brackets. For example, the node_field_revision table
- *     description field might contain "Stores per-revision title and
- *     body data for each {node}."
+ *     and its purpose. References to other tables should be enclosed in curly
+ *     brackets.
  *   - 'fields': An associative array ('fieldname' => specification)
  *     that describes the table's database columns. The specification
  *     is also an array. The following specification parameters are defined:
  *     - 'description': A string in non-markup plain text describing this field
- *       and its purpose. References to other tables should be enclosed in
- *       curly-brackets. For example, the node table vid field
- *       description might contain "Always holds the largest (most
- *       recent) {node_field_revision}.vid value for this nid."
+ *       and its purpose. References to other tables should be enclosed in curly
+ *       brackets. For example, the users_data table 'uid' field description
+ *       might contain "The {users}.uid this record affects."
  *     - 'type': The generic datatype: 'char', 'varchar', 'text', 'blob', 'int',
  *       'float', 'numeric', or 'serial'. Most types just map to the according
  *       database engine specific data types. Use 'serial' for auto incrementing
@@ -316,64 +319,70 @@ use Drupal\Core\Database\Query\Condition;
  *    key column specifiers (see below) that form an index on the
  *    table.
  *
- * A key column specifier is either a string naming a column or an
- * array of two elements, column name and length, specifying a prefix
- * of the named column.
+ * A key column specifier is either a string naming a column or an array of two
+ * elements, column name and length, specifying a prefix of the named column.
  *
- * As an example, here is a SUBSET of the schema definition for
- * Drupal's 'node' table. It show four fields (nid, vid, type, and
- * title), the primary key on field 'nid', a unique key named 'vid' on
- * field 'vid', and two indexes, one named 'nid' on field 'nid' and
- * one named 'node_title_type' on the field 'title' and the first four
- * bytes of the field 'type':
+ * As an example, this is the schema definition for the 'users_data' table. It
+ * shows five fields ('uid', 'module', 'name', 'value', and 'serialized'), the
+ * primary key (on the 'uid', 'module', and 'name' fields), and two indexes (the
+ * 'module' index on the 'module' field and the 'name' index on the 'name'
+ * field).
  *
  * @code
- * $schema['node'] = array(
- *   'description' => 'The base table for nodes.',
- *   'fields' => array(
- *     'nid'       => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
- *     'vid'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE,'default' => 0),
- *     'type'      => array('type' => 'varchar','length' => 32,'not null' => TRUE, 'default' => ''),
- *     'language'  => array('type' => 'varchar','length' => 12,'not null' => TRUE,'default' => ''),
- *     'title'     => array('type' => 'varchar','length' => 255,'not null' => TRUE, 'default' => ''),
- *     'uid'       => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *     'status'    => array('type' => 'int', 'not null' => TRUE, 'default' => 1),
- *     'created'   => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *     'changed'   => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *     'comment'   => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *     'promote'   => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *     'moderate'  => array('type' => 'int', 'not null' => TRUE,'default' => 0),
- *     'sticky'    => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *     'translate' => array('type' => 'int', 'not null' => TRUE, 'default' => 0),
- *   ),
- *   'indexes' => array(
- *     'node_changed'        => array('changed'),
- *     'node_created'        => array('created'),
- *     'node_moderate'       => array('moderate'),
- *     'node_frontpage'      => array('promote', 'status', 'sticky', 'created'),
- *     'node_status_type'    => array('status', 'type', 'nid'),
- *     'node_title_type'     => array('title', array('type', 4)),
- *     'node_type'           => array(array('type', 4)),
- *     'uid'                 => array('uid'),
- *     'translate'           => array('translate'),
- *   ),
- *   'unique keys' => array(
- *     'vid' => array('vid'),
- *   ),
+ * $schema['users_data'] = [
+ *   'description' => 'Stores module data as key/value pairs per user.',
+ *   'fields' => [
+ *     'uid' => [
+ *       'description' => 'The {users}.uid this record affects.',
+ *       'type' => 'int',
+ *       'unsigned' => TRUE,
+ *       'not null' => TRUE,
+ *       'default' => 0,
+ *     ],
+ *     'module' => [
+ *       'description' => 'The name of the module declaring the variable.',
+ *       'type' => 'varchar_ascii',
+ *       'length' => DRUPAL_EXTENSION_NAME_MAX_LENGTH,
+ *       'not null' => TRUE,
+ *       'default' => '',
+ *     ],
+ *     'name' => [
+ *       'description' => 'The identifier of the data.',
+ *       'type' => 'varchar_ascii',
+ *       'length' => 128,
+ *       'not null' => TRUE,
+ *       'default' => '',
+ *     ],
+ *     'value' => [
+ *       'description' => 'The value.',
+ *       'type' => 'blob',
+ *       'not null' => FALSE,
+ *       'size' => 'big',
+ *     ],
+ *     'serialized' => [
+ *       'description' => 'Whether value is serialized.',
+ *       'type' => 'int',
+ *       'size' => 'tiny',
+ *       'unsigned' => TRUE,
+ *       'default' => 0,
+ *     ],
+ *   ],
+ *   'primary key' => ['uid', 'module', 'name'],
+ *   'indexes' => [
+ *     'module' => ['module'],
+ *     'name' => ['name'],
+ *   ],
  *   // For documentation purposes only; foreign keys are not created in the
  *   // database.
- *   'foreign keys' => array(
- *     'node_revision' => array(
- *       'table' => 'node_field_revision',
- *       'columns' => array('vid' => 'vid'),
- *      ),
- *     'node_author' => array(
+ *   'foreign keys' => [
+ *     'data_user' => [
  *       'table' => 'users',
- *       'columns' => array('uid' => 'uid'),
- *      ),
- *    ),
- *   'primary key' => array('nid'),
- * );
+ *       'columns' => [
+ *         'uid' => 'uid',
+ *       ],
+ *     ],
+ *   ],
+ * ];
  * @endcode
  *
  * @see drupal_install_schema()
@@ -484,60 +493,61 @@ function hook_query_TAG_alter(Drupal\Core\Database\Query\AlterableInterface $que
  * @ingroup schemaapi
  */
 function hook_schema() {
-  $schema['node'] = [
-    // Example (partial) specification for table "node".
-    'description' => 'The base table for nodes.',
+  $schema['users_data'] = [
+    'description' => 'Stores module data as key/value pairs per user.',
     'fields' => [
-      'nid' => [
-        'description' => 'The primary identifier for a node.',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ],
-      'vid' => [
-        'description' => 'The current {node_field_revision}.vid version identifier.',
+      'uid' => [
+        'description' => 'The {users}.uid this record affects.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ],
-      'type' => [
-        'description' => 'The type of this node.',
-        'type' => 'varchar',
-        'length' => 32,
+      'module' => [
+        'description' => 'The name of the module declaring the variable.',
+        'type' => 'varchar_ascii',
+        'length' => DRUPAL_EXTENSION_NAME_MAX_LENGTH,
         'not null' => TRUE,
         'default' => '',
       ],
-      'title' => [
-        'description' => 'The node title.',
-        'type' => 'varchar',
-        'length' => 255,
+      'name' => [
+        'description' => 'The identifier of the data.',
+        'type' => 'varchar_ascii',
+        'length' => 128,
         'not null' => TRUE,
         'default' => '',
+      ],
+      'value' => [
+        'description' => 'The value.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'big',
+      ],
+      'serialized' => [
+        'description' => 'Whether value is serialized.',
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'default' => 0,
       ],
     ],
+    'primary key' => ['uid', 'module', 'name'],
     'indexes' => [
-      'node_changed'        => ['changed'],
-      'node_created'        => ['created'],
-    ],
-    'unique keys' => [
-      'nid_vid' => ['nid', 'vid'],
-      'vid'     => ['vid'],
+      'module' => ['module'],
+      'name' => ['name'],
     ],
     // For documentation purposes only; foreign keys are not created in the
     // database.
     'foreign keys' => [
-      'node_revision' => [
-        'table' => 'node_field_revision',
-        'columns' => ['vid' => 'vid'],
-      ],
-      'node_author' => [
+      'data_user' => [
         'table' => 'users',
-        'columns' => ['uid' => 'uid'],
+        'columns' => [
+          'uid' => 'uid',
+        ],
       ],
     ],
-    'primary key' => ['nid'],
   ];
+
   return $schema;
 }
 

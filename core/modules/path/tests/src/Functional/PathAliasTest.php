@@ -2,9 +2,9 @@
 
 namespace Drupal\Tests\path\Functional;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Url;
 
 /**
  * Add, edit, delete, and change alias and verify its consistency in the
@@ -25,7 +25,7 @@ class PathAliasTest extends PathTestBase {
     parent::setUp();
 
     // Create test user and log in.
-    $web_user = $this->drupalCreateUser(['create page content', 'edit own page content', 'administer url aliases', 'create url aliases']);
+    $web_user = $this->drupalCreateUser(['create page content', 'edit own page content', 'administer url aliases', 'create url aliases', 'access content overview']);
     $this->drupalLogin($web_user);
   }
 
@@ -84,7 +84,7 @@ class PathAliasTest extends PathTestBase {
     $this->drupalGet($edit['alias']);
     $this->assertText($node1->label(), 'Alias works lower case.');
     $this->assertResponse(200);
-    $this->drupalGet(Unicode::strtoupper($edit['alias']));
+    $this->drupalGet(mb_strtoupper($edit['alias']));
     $this->assertText($node1->label(), 'Alias works upper case.');
     $this->assertResponse(200);
 
@@ -111,7 +111,7 @@ class PathAliasTest extends PathTestBase {
     $this->drupalPostForm('admin/config/search/path/edit/' . $pid, $edit, t('Save'));
 
     // Confirm that the alias works.
-    $this->drupalGet(Unicode::strtoupper($edit['alias']));
+    $this->drupalGet(mb_strtoupper($edit['alias']));
     $this->assertText($node1->label(), 'Changed alias works.');
     $this->assertResponse(200);
 
@@ -133,7 +133,7 @@ class PathAliasTest extends PathTestBase {
     $this->assertRaw(t('The alias %alias is already in use in this language.', ['%alias' => $edit['alias']]), 'Attempt to move alias was rejected.');
 
     $edit_upper = $edit;
-    $edit_upper['alias'] = Unicode::strtoupper($edit['alias']);
+    $edit_upper['alias'] = mb_strtoupper($edit['alias']);
     $this->drupalPostForm('admin/config/search/path/add', $edit_upper, t('Save'));
     $this->assertRaw(t('The alias %alias could not be added because it is already in use in this language with different capitalization: %stored_alias.', [
       '%alias' => $edit_upper['alias'],
@@ -266,7 +266,7 @@ class PathAliasTest extends PathTestBase {
     $this->drupalPostForm('node/' . $node1->id() . '/edit', $edit, t('Save'));
 
     // Confirm that the alias works.
-    $this->drupalGet(Unicode::strtoupper($edit['path[0][alias]']));
+    $this->drupalGet(mb_strtoupper($edit['path[0][alias]']));
     $this->assertText($node1->label(), 'Changed alias works.');
     $this->assertResponse(200);
 
@@ -328,6 +328,34 @@ class PathAliasTest extends PathTestBase {
     $node5->delete();
     $path_alias = \Drupal::service('path.alias_storage')->lookupPathAlias('/node/' . $node5->id(), $node5->language()->getId());
     $this->assertFalse($path_alias, 'Alias was successfully deleted when the referenced node was deleted.');
+
+    // Create sixth test node.
+    $node6 = $this->drupalCreateNode();
+
+    // Create an invalid alias with two leading slashes and verify that the
+    // extra slash is removed when the link is generated. This ensures that URL
+    // aliases cannot be used to inject external URLs.
+    // @todo The user interface should either display an error message or
+    //   automatically trim these invalid aliases, rather than allowing them to
+    //   be silently created, at which point the functional aspects of this
+    //   test will need to be moved elsewhere and switch to using a
+    //   programmatically-created alias instead.
+    $alias = $this->randomMachineName(8);
+    $edit = ['path[0][alias]' => '//' . $alias];
+    $this->drupalPostForm($node6->toUrl('edit-form'), $edit, t('Save'));
+    $this->drupalGet(Url::fromRoute('system.admin_content'));
+    // This checks the link href before clicking it, rather than using
+    // \Drupal\Tests\BrowserTestBase::assertSession()->addressEquals() after
+    // clicking it, because the test browser does not always preserve the
+    // correct number of slashes in the URL when it visits internal links;
+    // using \Drupal\Tests\BrowserTestBase::assertSession()->addressEquals()
+    // would actually make the test pass unconditionally on the testbot (or
+    // anywhere else where Drupal is installed in a subdirectory).
+    $link_xpath = $this->xpath('//a[normalize-space(text())=:label]', [':label' => $node6->getTitle()]);
+    $link_href = $link_xpath[0]->getAttribute('href');
+    $this->assertEquals($link_href, base_path() . $alias);
+    $this->clickLink($node6->getTitle());
+    $this->assertResponse(404);
   }
 
   /**

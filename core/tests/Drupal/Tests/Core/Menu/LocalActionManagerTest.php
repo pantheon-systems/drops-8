@@ -13,16 +13,22 @@ use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultForbidden;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Cache\Context\CacheContextsManager;
+use Drupal\Core\Controller\ControllerResolver;
+use Drupal\Core\DependencyInjection\Container;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\Language;
 use Drupal\Core\Menu\LocalActionManager;
+use Drupal\Core\Menu\LocalTaskManager;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\Tests\UnitTestCase;
+use Prophecy\Argument;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpKernel\Controller\ControllerResolverInterface;
+use Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface;
 
 /**
  * @coversDefaultClass \Drupal\Core\Menu\LocalActionManager
@@ -31,11 +37,11 @@ use Symfony\Component\HttpKernel\Controller\ControllerResolverInterface;
 class LocalActionManagerTest extends UnitTestCase {
 
   /**
-   * The mocked controller resolver.
+   * The mocked argument resolver.
    *
-   * @var \Drupal\Core\Controller\ControllerResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface|\PHPUnit_Framework_MockObject_MockObject
    */
-  protected $controllerResolver;
+  protected $argumentResolver;
 
   /**
    * The mocked request.
@@ -104,13 +110,21 @@ class LocalActionManagerTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->controllerResolver = $this->getMock('Drupal\Core\Controller\ControllerResolverInterface');
+    $this->argumentResolver = $this->getMock('\Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface');
     $this->request = $this->getMock('Symfony\Component\HttpFoundation\Request');
     $this->routeProvider = $this->getMock('Drupal\Core\Routing\RouteProviderInterface');
     $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $this->cacheBackend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
 
-    $access_result = new AccessResultForbidden();
+    $cache_contexts_manager = $this->prophesize(CacheContextsManager::class);
+    $cache_contexts_manager->assertValidTokens(Argument::any())
+      ->willReturn(TRUE);
+
+    $container = new Container();
+    $container->set('cache_contexts_manager', $cache_contexts_manager->reveal());
+    \Drupal::setContainer($container);
+
+    $access_result = (new AccessResultForbidden())->cachePerPermissions();
     $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
     $this->accessManager->expects($this->any())
       ->method('checkNamedRoute')
@@ -120,7 +134,7 @@ class LocalActionManagerTest extends UnitTestCase {
     $this->factory = $this->getMock('Drupal\Component\Plugin\Factory\FactoryInterface');
     $route_match = $this->getMock('Drupal\Core\Routing\RouteMatchInterface');
 
-    $this->localActionManager = new TestLocalActionManager($this->controllerResolver, $this->request, $route_match, $this->routeProvider, $this->moduleHandler, $this->cacheBackend, $this->accessManager, $this->account, $this->discovery, $this->factory);
+    $this->localActionManager = new TestLocalActionManager($this->argumentResolver, $this->request, $route_match, $this->routeProvider, $this->moduleHandler, $this->cacheBackend, $this->accessManager, $this->account, $this->discovery, $this->factory);
   }
 
   /**
@@ -132,7 +146,7 @@ class LocalActionManagerTest extends UnitTestCase {
       ->method('getTitle')
       ->with('test');
 
-    $this->controllerResolver->expects($this->once())
+    $this->argumentResolver->expects($this->once())
       ->method('getArguments')
       ->with($this->request, [$local_action, 'getTitle'])
       ->will($this->returnValue(['test']));
@@ -161,7 +175,7 @@ class LocalActionManagerTest extends UnitTestCase {
       $plugin->expects($this->any())
         ->method('getTitle')
         ->will($this->returnValue($plugin_definition['title']));
-      $this->controllerResolver->expects($this->any())
+      $this->argumentResolver->expects($this->any())
         ->method('getArguments')
         ->with($this->request, [$plugin, 'getTitle'])
         ->will($this->returnValue([]));
@@ -169,7 +183,7 @@ class LocalActionManagerTest extends UnitTestCase {
       $plugin->expects($this->any())
         ->method('getWeight')
         ->will($this->returnValue($plugin_definition['weight']));
-      $this->controllerResolver->expects($this->any())
+      $this->argumentResolver->expects($this->any())
         ->method('getArguments')
         ->with($this->request, [$plugin, 'getTitle'])
         ->will($this->returnValue([]));
@@ -183,6 +197,14 @@ class LocalActionManagerTest extends UnitTestCase {
   }
 
   public function getActionsForRouteProvider() {
+    $cache_contexts_manager = $this->prophesize(CacheContextsManager::class);
+    $cache_contexts_manager->assertValidTokens(Argument::any())
+      ->willReturn(TRUE);
+
+    $container = new Container();
+    $container->set('cache_contexts_manager', $cache_contexts_manager->reveal());
+    \Drupal::setContainer($container);
+
     // Single available and single expected plugins.
     $data[] = [
       'test_route',
@@ -198,7 +220,9 @@ class LocalActionManagerTest extends UnitTestCase {
       ],
       [
         '#cache' => [
-          'contexts' => ['route'],
+          'tags' => [],
+          'contexts' => ['route', 'user.permissions'],
+          'max-age' => 0,
         ],
         'plugin_id_1' => [
           '#theme' => 'menu_local_action',
@@ -207,13 +231,8 @@ class LocalActionManagerTest extends UnitTestCase {
             'url' => Url::fromRoute('test_route_2'),
             'localized_options' => '',
           ],
-          '#access' => AccessResult::forbidden(),
+          '#access' => AccessResult::forbidden()->cachePerPermissions(),
           '#weight' => 0,
-          '#cache' => [
-            'contexts' => [],
-            'tags' => [],
-            'max-age' => 0,
-          ],
         ],
       ],
     ];
@@ -240,7 +259,9 @@ class LocalActionManagerTest extends UnitTestCase {
       ],
       [
         '#cache' => [
-          'contexts' => ['route'],
+          'tags' => [],
+          'contexts' => ['route', 'user.permissions'],
+          'max-age' => 0,
         ],
         'plugin_id_1' => [
           '#theme' => 'menu_local_action',
@@ -249,13 +270,8 @@ class LocalActionManagerTest extends UnitTestCase {
             'url' => Url::fromRoute('test_route_2'),
             'localized_options' => '',
           ],
-          '#access' => AccessResult::forbidden(),
+          '#access' => AccessResult::forbidden()->cachePerPermissions(),
           '#weight' => 0,
-          '#cache' => [
-            'contexts' => [],
-            'tags' => [],
-            'max-age' => 0,
-          ],
         ],
       ],
     ];
@@ -283,7 +299,9 @@ class LocalActionManagerTest extends UnitTestCase {
       ],
       [
         '#cache' => [
-          'contexts' => ['route'],
+          'contexts' => ['route', 'user.permissions'],
+          'tags' => [],
+          'max-age' => 0,
         ],
         'plugin_id_1' => [
           '#theme' => 'menu_local_action',
@@ -292,13 +310,8 @@ class LocalActionManagerTest extends UnitTestCase {
             'url' => Url::fromRoute('test_route_2'),
             'localized_options' => '',
           ],
-          '#access' => AccessResult::forbidden(),
+          '#access' => AccessResult::forbidden()->cachePerPermissions(),
           '#weight' => 1,
-          '#cache' => [
-            'contexts' => [],
-            'tags' => [],
-            'max-age' => 0,
-          ],
         ],
         'plugin_id_2' => [
           '#theme' => 'menu_local_action',
@@ -307,13 +320,8 @@ class LocalActionManagerTest extends UnitTestCase {
             'url' => Url::fromRoute('test_route_3'),
             'localized_options' => '',
           ],
-          '#access' => AccessResult::forbidden(),
+          '#access' => AccessResult::forbidden()->cachePerPermissions(),
           '#weight' => 0,
-          '#cache' => [
-            'contexts' => [],
-            'tags' => [],
-            'max-age' => 0,
-          ],
         ],
       ],
     ];
@@ -343,7 +351,9 @@ class LocalActionManagerTest extends UnitTestCase {
       ],
       [
         '#cache' => [
-          'contexts' => ['route'],
+          'contexts' => ['route', 'user.permissions'],
+          'tags' => [],
+          'max-age' => 0,
         ],
         'plugin_id_1' => [
           '#theme' => 'menu_local_action',
@@ -352,13 +362,8 @@ class LocalActionManagerTest extends UnitTestCase {
             'url' => Url::fromRoute('test_route_2', ['test1']),
             'localized_options' => '',
           ],
-          '#access' => AccessResult::forbidden(),
+          '#access' => AccessResult::forbidden()->cachePerPermissions(),
           '#weight' => 1,
-          '#cache' => [
-            'contexts' => [],
-            'tags' => [],
-            'max-age' => 0,
-          ],
         ],
         'plugin_id_2' => [
           '#theme' => 'menu_local_action',
@@ -367,13 +372,8 @@ class LocalActionManagerTest extends UnitTestCase {
             'url' => Url::fromRoute('test_route_2', ['test2']),
             'localized_options' => '',
           ],
-          '#access' => AccessResult::forbidden(),
+          '#access' => AccessResult::forbidden()->cachePerPermissions(),
           '#weight' => 0,
-          '#cache' => [
-            'contexts' => [],
-            'tags' => [],
-            'max-age' => 0,
-          ],
         ],
       ],
     ];
@@ -381,17 +381,37 @@ class LocalActionManagerTest extends UnitTestCase {
     return $data;
   }
 
+  /**
+   * @expectedDeprecation Using the 'controller_resolver' service as the first argument is deprecated, use the 'http_kernel.controller.argument_resolver' instead. If your subclass requires the 'controller_resolver' service add it as an additional argument. See https://www.drupal.org/node/2959408.
+   * @group legacy
+   */
+  public function testControllerResolverDeprecation() {
+    $controller_resolver = $this->getMockBuilder(ControllerResolver::class)->disableOriginalConstructor()->getMock();
+    $route_match = $this->getMock('Drupal\Core\Routing\RouteMatchInterface');
+    $request_stack = new RequestStack();
+    $request_stack->push($this->request);
+    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler->expects($this->any())
+      ->method('getModuleDirectories')
+      ->willReturn([]);
+    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $language_manager->expects($this->any())
+      ->method('getCurrentLanguage')
+      ->will($this->returnValue(new Language(['id' => 'en'])));
+    new LocalTaskManager($controller_resolver, $request_stack, $route_match, $this->routeProvider, $this->moduleHandler, $this->cacheBackend, $language_manager, $this->accessManager, $this->account);
+  }
+
 }
 
 class TestLocalActionManager extends LocalActionManager {
 
-  public function __construct(ControllerResolverInterface $controller_resolver, Request $request, RouteMatchInterface $route_match, RouteProviderInterface $route_provider, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend, AccessManagerInterface $access_manager, AccountInterface $account, DiscoveryInterface $discovery, FactoryInterface $factory) {
+  public function __construct(ArgumentResolverInterface $argument_resolver, Request $request, RouteMatchInterface $route_match, RouteProviderInterface $route_provider, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend, AccessManagerInterface $access_manager, AccountInterface $account, DiscoveryInterface $discovery, FactoryInterface $factory) {
     $this->discovery = $discovery;
     $this->factory = $factory;
     $this->routeProvider = $route_provider;
     $this->accessManager = $access_manager;
     $this->account = $account;
-    $this->controllerResolver = $controller_resolver;
+    $this->argumentResolver = $argument_resolver;
     $this->requestStack = new RequestStack();
     $this->requestStack->push($request);
     $this->routeMatch = $route_match;

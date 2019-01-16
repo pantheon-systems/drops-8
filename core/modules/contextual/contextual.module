@@ -86,7 +86,7 @@ function contextual_help($route_name, RouteMatchInterface $route_match) {
       $sample_picture = [
         '#theme' => 'image',
         '#uri' => 'core/misc/icons/bebebe/pencil.svg',
-        '#alt' => t('contextual links button')
+        '#alt' => t('contextual links button'),
       ];
       $sample_picture = \Drupal::service('renderer')->render($sample_picture);
       $output .= '<li>' . t('Hovering over the area of interest will temporarily make the contextual links button visible (which looks like a pencil in most themes, and is normally displayed in the upper right corner of the area). The icon typically looks like this: @picture', ['@picture' => $sample_picture]) . '</li>';
@@ -191,13 +191,19 @@ function _contextual_links_to_id($contextual_links) {
 /**
  * Unserializes the result of _contextual_links_to_id().
  *
- * @see _contextual_links_to_id
+ * Note that $id is user input. Before calling this method the ID should be
+ * checked against the token stored in the 'data-contextual-token' attribute
+ * which is passed via the 'tokens' request parameter to
+ * \Drupal\contextual\ContextualController::render().
  *
  * @param string $id
  *   A serialized representation of a #contextual_links property value array.
  *
  * @return array
  *   The value for a #contextual_links property.
+ *
+ * @see _contextual_links_to_id()
+ * @see \Drupal\contextual\ContextualController::render()
  */
 function _contextual_id_to_links($id) {
   $contextual_links = [];

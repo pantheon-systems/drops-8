@@ -3,14 +3,14 @@
 namespace Drupal\layout_builder\Plugin\SectionStorage;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Plugin\Context\Context;
-use Drupal\Core\Plugin\Context\ContextDefinition;
-use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Plugin\Context\EntityContext;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\field_ui\FieldUI;
 use Drupal\layout_builder\DefaultsSectionStorageInterface;
@@ -32,7 +32,7 @@ use Symfony\Component\Routing\RouteCollection;
  *   experimental modules and development releases of contributed modules.
  *   See https://www.drupal.org/core/experimental for more information.
  */
-class DefaultsSectionStorage extends SectionStorageBase implements ContainerFactoryPluginInterface, DefaultsSectionStorageInterface {
+class DefaultsSectionStorage extends SectionStorageBase implements ContainerFactoryPluginInterface, DefaultsSectionStorageInterface, SectionStorageLocalTaskProviderInterface {
 
   /**
    * The entity type manager.
@@ -125,8 +125,8 @@ class DefaultsSectionStorage extends SectionStorageBase implements ContainerFact
   /**
    * {@inheritdoc}
    */
-  public function getLayoutBuilderUrl() {
-    return Url::fromRoute("layout_builder.{$this->getStorageType()}.{$this->getDisplay()->getTargetEntityTypeId()}.view", $this->getRouteParameters());
+  public function getLayoutBuilderUrl($rel = 'view') {
+    return Url::fromRoute("layout_builder.{$this->getStorageType()}.{$this->getDisplay()->getTargetEntityTypeId()}.$rel", $this->getRouteParameters());
   }
 
   /**
@@ -197,6 +197,32 @@ class DefaultsSectionStorage extends SectionStorageBase implements ContainerFact
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function buildLocalTasks($base_plugin_definition) {
+    $local_tasks = [];
+    foreach ($this->getEntityTypes() as $entity_type_id => $entity_type) {
+      $local_tasks["layout_builder.defaults.$entity_type_id.view"] = $base_plugin_definition + [
+        'route_name' => "layout_builder.defaults.$entity_type_id.view",
+        'title' => $this->t('Manage layout'),
+        'base_route' => "layout_builder.defaults.$entity_type_id.view",
+      ];
+      $local_tasks["layout_builder.defaults.$entity_type_id.save"] = $base_plugin_definition + [
+        'route_name' => "layout_builder.defaults.$entity_type_id.save",
+        'title' => $this->t('Save Layout'),
+        'parent_id' => "layout_builder_ui:layout_builder.defaults.$entity_type_id.view",
+      ];
+      $local_tasks["layout_builder.defaults.$entity_type_id.cancel"] = $base_plugin_definition + [
+        'route_name' => "layout_builder.defaults.$entity_type_id.cancel",
+        'title' => $this->t('Cancel Layout'),
+        'weight' => 5,
+        'parent_id' => "layout_builder_ui:layout_builder.defaults.$entity_type_id.view",
+      ];
+    }
+    return $local_tasks;
+  }
+
+  /**
    * Returns an array of relevant entity types.
    *
    * @return \Drupal\Core\Entity\EntityTypeInterface[]
@@ -255,12 +281,9 @@ class DefaultsSectionStorage extends SectionStorageBase implements ContainerFact
   public function getContexts() {
     $display = $this->getDisplay();
     $entity = $this->sampleEntityGenerator->get($display->getTargetEntityTypeId(), $display->getTargetBundle());
-    $context_label = new TranslatableMarkup('@entity being viewed', ['@entity' => $entity->getEntityType()->getLabel()]);
 
-    // @todo Use EntityContextDefinition after resolving
-    //   https://www.drupal.org/node/2932462.
     $contexts = [];
-    $contexts['layout_builder.entity'] = new Context(new ContextDefinition("entity:{$entity->getEntityTypeId()}", $context_label), $entity);
+    $contexts['layout_builder.entity'] = EntityContext::fromEntity($entity);
     return $contexts;
   }
 
@@ -304,6 +327,29 @@ class DefaultsSectionStorage extends SectionStorageBase implements ContainerFact
   /**
    * {@inheritdoc}
    */
+  public function isLayoutBuilderEnabled() {
+    return $this->getDisplay()->isLayoutBuilderEnabled();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function enableLayoutBuilder() {
+    $this->getDisplay()->enableLayoutBuilder();
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function disableLayoutBuilder() {
+    $this->getDisplay()->disableLayoutBuilder();
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getThirdPartySetting($module, $key, $default = NULL) {
     return $this->getDisplay()->getThirdPartySetting($module, $key, $default);
   }
@@ -328,6 +374,14 @@ class DefaultsSectionStorage extends SectionStorageBase implements ContainerFact
    */
   public function getThirdPartyProviders() {
     return $this->getDisplay()->getThirdPartyProviders();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function access($operation, AccountInterface $account = NULL, $return_as_object = FALSE) {
+    $result = AccessResult::allowedIf($this->isLayoutBuilderEnabled());
+    return $return_as_object ? $result : $result->isAllowed();
   }
 
 }

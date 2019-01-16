@@ -113,7 +113,7 @@ if ($is_allowed) {
       $page_title = $results['page_title'];
     }
     if (!empty($results['page_message'])) {
-      drupal_set_message($results['page_message']['message'], $results['page_message']['type']);
+      \Drupal::messenger()->addMessage($results['page_message']['message'], $results['page_message']['type']);
     }
 
     $content['authorize_report'] = [
@@ -125,7 +125,7 @@ if ($is_allowed) {
       $links = $results['tasks'];
     }
     else {
-      // Since this is being called outsite of the primary front controller,
+      // Since this is being called outside of the primary front controller,
       // the base_url needs to be set explicitly to ensure that links are
       // relative to the site root.
       // @todo Simplify with https://www.drupal.org/node/2548095

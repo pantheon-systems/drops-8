@@ -6,7 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
-use Drupal\Core\File\FileSystem;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Image\ImageFactory;
 use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
@@ -22,7 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   label = @Translation("Image"),
  *   description = @Translation("Use local images for reusable media."),
  *   allowed_field_types = {"image"},
- *   default_thumbnail_filename = "no-thumbnail.png"
+ *   default_thumbnail_filename = "no-thumbnail.png",
+ *   thumbnail_alt_metadata_attribute = "thumbnail_alt_value"
  * )
  */
 class Image extends File {
@@ -51,7 +52,7 @@ class Image extends File {
   /**
    * The file system service.
    *
-   * @var \Drupal\Core\File\FileSystem
+   * @var \Drupal\Core\File\FileSystemInterface
    */
   protected $fileSystem;
 
@@ -74,10 +75,10 @@ class Image extends File {
    *   The config factory service.
    * @param \Drupal\Core\Image\ImageFactory $image_factory
    *   The image factory.
-   * @param \Drupal\Core\File\FileSystem $file_system
+   * @param \Drupal\Core\File\FileSystemInterface $file_system
    *   The file system service.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, FieldTypePluginManagerInterface $field_type_manager, ConfigFactoryInterface $config_factory, ImageFactory $image_factory, FileSystem $file_system) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, EntityFieldManagerInterface $entity_field_manager, FieldTypePluginManagerInterface $field_type_manager, ConfigFactoryInterface $config_factory, ImageFactory $image_factory, FileSystemInterface $file_system) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $entity_type_manager, $entity_field_manager, $field_type_manager, $config_factory);
 
     $this->imageFactory = $image_factory;
@@ -138,6 +139,9 @@ class Image extends File {
 
       case 'thumbnail_uri':
         return $uri;
+
+      case 'thumbnail_alt_value':
+        return $media->get($this->configuration['source_field'])->alt ?: parent::getMetadata($media, $name);
     }
 
     return parent::getMetadata($media, $name);

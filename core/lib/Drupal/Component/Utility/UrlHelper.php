@@ -19,7 +19,7 @@ class UrlHelper {
   /**
    * Parses an array into a valid, rawurlencoded query string.
    *
-   * rawurlencode() is RFC3986 compliant, and as a consequence RFC3987
+   * Function rawurlencode() is RFC3986 compliant, and as a consequence RFC3987
    * compliant. The latter defines the required format of "URLs" in HTML5.
    * urlencode() is almost the same as rawurlencode(), except that it encodes
    * spaces as "+" instead of "%20". This makes its result non compliant to
@@ -248,6 +248,16 @@ class UrlHelper {
    *   Exception thrown when a either $url or $bath_url are not fully qualified.
    */
   public static function externalIsLocal($url, $base_url) {
+    // Some browsers treat \ as / so normalize to forward slashes.
+    $url = str_replace('\\', '/', $url);
+
+    // Leading control characters may be ignored or mishandled by browsers, so
+    // assume such a path may lead to an non-local location. The \p{C} character
+    // class matches all UTF-8 control, unassigned, and private characters.
+    if (preg_match('/^\p{C}/u', $url) !== 0) {
+      return FALSE;
+    }
+
     $url_parts = parse_url($url);
     $base_parts = parse_url($base_url);
 

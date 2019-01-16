@@ -112,13 +112,13 @@ class OverridesSectionStorageTest extends UnitTestCase {
       $entity_storage = $this->prophesize(EntityStorageInterface::class);
 
       $entity_without_layout = $this->prophesize(FieldableEntityInterface::class);
-      $entity_without_layout->hasField('layout_builder__layout')->willReturn(FALSE);
-      $entity_without_layout->get('layout_builder__layout')->shouldNotBeCalled();
+      $entity_without_layout->hasField(OverridesSectionStorage::FIELD_NAME)->willReturn(FALSE);
+      $entity_without_layout->get(OverridesSectionStorage::FIELD_NAME)->shouldNotBeCalled();
       $entity_storage->load('entity_without_layout')->willReturn($entity_without_layout->reveal());
 
       $entity_with_layout = $this->prophesize(FieldableEntityInterface::class);
-      $entity_with_layout->hasField('layout_builder__layout')->willReturn(TRUE);
-      $entity_with_layout->get('layout_builder__layout')->willReturn('the_return_value');
+      $entity_with_layout->hasField(OverridesSectionStorage::FIELD_NAME)->willReturn(TRUE);
+      $entity_with_layout->get(OverridesSectionStorage::FIELD_NAME)->willReturn('the_return_value');
       $entity_storage->load('entity_with_layout')->willReturn($entity_with_layout->reveal());
 
       $this->entityTypeManager->getStorage($expected_entity_type_id)->willReturn($entity_storage->reveal());
@@ -223,6 +223,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
         ],
         [
           'parameters' => [
@@ -242,6 +243,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
         ],
         [
           'parameters' => [
@@ -261,6 +263,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
         ],
         [
           'parameters' => [
@@ -280,6 +283,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
         ],
         [
           'parameters' => [
@@ -301,6 +305,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
           'with_integer_id' => '\d+',
         ],
         [
@@ -321,6 +326,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
           'with_integer_id' => '\d+',
         ],
         [
@@ -341,6 +347,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
           'with_integer_id' => '\d+',
         ],
         [
@@ -361,6 +368,7 @@ class OverridesSectionStorageTest extends UnitTestCase {
         ],
         [
           '_has_layout_section' => 'true',
+          '_layout_builder_access' => 'view',
           'with_integer_id' => '\d+',
         ],
         [

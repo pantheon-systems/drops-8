@@ -83,7 +83,7 @@ class MigrationPluginManager extends DefaultPluginManager implements MigrationPl
       // This gets rid of migrations which try to use a non-existent source
       // plugin. The common case for this is if the source plugin has, or
       // specifies, a non-existent provider.
-      $only_with_source_discovery  = new NoSourcePluginDecorator($yaml_discovery);
+      $only_with_source_discovery = new NoSourcePluginDecorator($yaml_discovery);
       // This gets rid of migrations with explicit providers set if one of the
       // providers do not exist before we try to use a potentially non-existing
       // deriver. This is a rare case.
@@ -160,7 +160,6 @@ class MigrationPluginManager extends DefaultPluginManager implements MigrationPl
     return $plugin_ids;
   }
 
-
   /**
    * {@inheritdoc}
    */
@@ -209,7 +208,14 @@ class MigrationPluginManager extends DefaultPluginManager implements MigrationPl
         $migration->set('requirements', $required_dependency_graph[$migration_id]['paths']);
       }
     }
-    array_multisort($weights, SORT_DESC, SORT_NUMERIC, $migrations);
+    // Sort weights, labels, and keys in the same order as each other.
+    array_multisort(
+      // Use the numerical weight as the primary sort.
+      $weights, SORT_DESC, SORT_NUMERIC,
+      // When migrations have the same weight, sort them alphabetically by ID.
+      array_keys($migrations), SORT_ASC, SORT_NATURAL,
+      $migrations
+    );
 
     return $migrations;
   }

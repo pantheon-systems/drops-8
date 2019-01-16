@@ -20,7 +20,7 @@ class CssOptimizerUnitTest extends UnitTestCase {
   /**
    * A CSS asset optimizer.
    *
-   * @var \Drupal\Core\Asset\CssOptimizer object.
+   * @var \Drupal\Core\Asset\CssOptimizer
    */
   protected $optimizer;
 
@@ -107,7 +107,7 @@ class CssOptimizerUnitTest extends UnitTestCase {
         str_replace('url(../images/icon.png)', 'url(' . file_url_transform_relative(file_create_url($path . 'images/icon.png')) . ')', file_get_contents($absolute_path . 'css_subfolder/css_input_with_import.css.optimized.css')),
       ],
       // File. Tests:
-      // - Any @charaset declaration at the beginning of a file should be
+      // - Any @charset declaration at the beginning of a file should be
       //   removed without breaking subsequent CSS.
       [
         [
@@ -269,9 +269,11 @@ class CssOptimizerUnitTest extends UnitTestCase {
  * Component/Utility.
  */
 if (!function_exists('Drupal\Tests\Core\Asset\file_create_url')) {
+
   function file_create_url($uri) {
     return 'file_create_url:' . $uri;
   }
+
 }
 
 /**
@@ -279,9 +281,11 @@ if (!function_exists('Drupal\Tests\Core\Asset\file_create_url')) {
  * Component/Utility.
  */
 if (!function_exists('Drupal\Tests\Core\Asset\file_url_transform_relative')) {
+
   function file_url_transform_relative($uri) {
     return 'file_url_transform_relative:' . $uri;
   }
+
 }
 
 /**
