@@ -17,7 +17,10 @@ return array(
     'Drupal\\Core\\DrupalKernel' => $baseDir . '/core/lib/Drupal/Core/DrupalKernel.php',
     'Drupal\\Core\\DrupalKernelInterface' => $baseDir . '/core/lib/Drupal/Core/DrupalKernelInterface.php',
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> update-8.6.7
     'Drupal\\Core\\Entity\\Annotation\\ConfigEntityType' => $baseDir . '/core/lib/Drupal/Core/Entity/Annotation/ConfigEntityType.php',
     'Drupal\\Core\\Entity\\Annotation\\ContentEntityType' => $baseDir . '/core/lib/Drupal/Core/Entity/Annotation/ContentEntityType.php',
     'Drupal\\Core\\Entity\\Annotation\\EntityReferenceSelection' => $baseDir . '/core/lib/Drupal/Core/Entity/Annotation/EntityReferenceSelection.php',
@@ -879,7 +882,10 @@ return array(
     'Drupal\\Core\\SitePathFactory' => $baseDir . '/core/lib/Drupal/Core/SitePathFactory.php',
     'Drupal\\Core\\Site\\MaintenanceMode' => $baseDir . '/core/lib/Drupal/Core/Site/MaintenanceMode.php',
     'Drupal\\Core\\Site\\MaintenanceModeInterface' => $baseDir . '/core/lib/Drupal/Core/Site/MaintenanceModeInterface.php',
+<<<<<<< HEAD
 >>>>>>> drops-8/update-8.6.7
+=======
+>>>>>>> update-8.6.7
     'Drupal\\Core\\Site\\Settings' => $baseDir . '/core/lib/Drupal/Core/Site/Settings.php',
     'Error' => $vendorDir . '/symfony/polyfill-php70/Resources/stubs/Error.php',
     'File_Iterator' => $vendorDir . '/phpunit/php-file-iterator/src/Iterator.php',
@@ -1426,6 +1432,7 @@ return array(
     'Symfony\\Component\\HttpKernel\\HttpKernelInterface' => $vendorDir . '/symfony/http-kernel/HttpKernelInterface.php',
     'Symfony\\Component\\HttpKernel\\TerminableInterface' => $vendorDir . '/symfony/http-kernel/TerminableInterface.php',
 <<<<<<< HEAD
+<<<<<<< HEAD
     'Text_Template' => $vendorDir . '/phpunit/php-text-template/src/Template.php',
     'TheSeer\\Tokenizer\\Exception' => $vendorDir . '/theseer/tokenizer/src/Exception.php',
     'TheSeer\\Tokenizer\\NamespaceUri' => $vendorDir . '/theseer/tokenizer/src/NamespaceUri.php',
@@ -1436,6 +1443,8 @@ return array(
     'TheSeer\\Tokenizer\\Tokenizer' => $vendorDir . '/theseer/tokenizer/src/Tokenizer.php',
     'TheSeer\\Tokenizer\\XMLSerializer' => $vendorDir . '/theseer/tokenizer/src/XMLSerializer.php',
 =======
+=======
+>>>>>>> update-8.6.7
     'Symfony\\Component\\HttpKernel\\UriSigner' => $vendorDir . '/symfony/http-kernel/UriSigner.php',
     'Symfony\\Component\\Process\\Exception\\ExceptionInterface' => $vendorDir . '/symfony/process/Exception/ExceptionInterface.php',
     'Symfony\\Component\\Process\\Exception\\InvalidArgumentException' => $vendorDir . '/symfony/process/Exception/InvalidArgumentException.php',
@@ -2209,6 +2218,9 @@ return array(
     'Twig_TokenStream' => $vendorDir . '/twig/twig/lib/Twig/TokenStream.php',
     'Twig_Util_DeprecationCollector' => $vendorDir . '/twig/twig/lib/Twig/Util/DeprecationCollector.php',
     'Twig_Util_TemplateDirIterator' => $vendorDir . '/twig/twig/lib/Twig/Util/TemplateDirIterator.php',
+<<<<<<< HEAD
 >>>>>>> drops-8/update-8.6.7
+=======
+>>>>>>> update-8.6.7
     'TypeError' => $vendorDir . '/symfony/polyfill-php70/Resources/stubs/TypeError.php',
 );

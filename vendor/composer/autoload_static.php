@@ -228,12 +228,15 @@ class ComposerStaticInitDrupal8
             0 => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src',
         ),
 <<<<<<< HEAD
+<<<<<<< HEAD
         'Symfony\\Polyfill\\Php72\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php72',
         ),
 =======
 >>>>>>> drops-8/update-8.6.7
+=======
+>>>>>>> update-8.6.7
         'Symfony\\Polyfill\\Php70\\' => 
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-php70',
@@ -661,7 +664,10 @@ class ComposerStaticInitDrupal8
         'Drupal\\Core\\DrupalKernel' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/DrupalKernel.php',
         'Drupal\\Core\\DrupalKernelInterface' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/DrupalKernelInterface.php',
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> update-8.6.7
         'Drupal\\Core\\Entity\\Annotation\\ConfigEntityType' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Entity/Annotation/ConfigEntityType.php',
         'Drupal\\Core\\Entity\\Annotation\\ContentEntityType' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Entity/Annotation/ContentEntityType.php',
         'Drupal\\Core\\Entity\\Annotation\\EntityReferenceSelection' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Entity/Annotation/EntityReferenceSelection.php',
@@ -1523,7 +1529,10 @@ class ComposerStaticInitDrupal8
         'Drupal\\Core\\SitePathFactory' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/SitePathFactory.php',
         'Drupal\\Core\\Site\\MaintenanceMode' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Site/MaintenanceMode.php',
         'Drupal\\Core\\Site\\MaintenanceModeInterface' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Site/MaintenanceModeInterface.php',
+<<<<<<< HEAD
 >>>>>>> drops-8/update-8.6.7
+=======
+>>>>>>> update-8.6.7
         'Drupal\\Core\\Site\\Settings' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Site/Settings.php',
         'Error' => __DIR__ . '/..' . '/symfony/polyfill-php70/Resources/stubs/Error.php',
         'File_Iterator' => __DIR__ . '/..' . '/phpunit/php-file-iterator/src/Iterator.php',
@@ -2070,6 +2079,7 @@ class ComposerStaticInitDrupal8
         'Symfony\\Component\\HttpKernel\\HttpKernelInterface' => __DIR__ . '/..' . '/symfony/http-kernel/HttpKernelInterface.php',
         'Symfony\\Component\\HttpKernel\\TerminableInterface' => __DIR__ . '/..' . '/symfony/http-kernel/TerminableInterface.php',
 <<<<<<< HEAD
+<<<<<<< HEAD
         'Text_Template' => __DIR__ . '/..' . '/phpunit/php-text-template/src/Template.php',
         'TheSeer\\Tokenizer\\Exception' => __DIR__ . '/..' . '/theseer/tokenizer/src/Exception.php',
         'TheSeer\\Tokenizer\\NamespaceUri' => __DIR__ . '/..' . '/theseer/tokenizer/src/NamespaceUri.php',
@@ -2080,6 +2090,8 @@ class ComposerStaticInitDrupal8
         'TheSeer\\Tokenizer\\Tokenizer' => __DIR__ . '/..' . '/theseer/tokenizer/src/Tokenizer.php',
         'TheSeer\\Tokenizer\\XMLSerializer' => __DIR__ . '/..' . '/theseer/tokenizer/src/XMLSerializer.php',
 =======
+=======
+>>>>>>> update-8.6.7
         'Symfony\\Component\\HttpKernel\\UriSigner' => __DIR__ . '/..' . '/symfony/http-kernel/UriSigner.php',
         'Symfony\\Component\\Process\\Exception\\ExceptionInterface' => __DIR__ . '/..' . '/symfony/process/Exception/ExceptionInterface.php',
         'Symfony\\Component\\Process\\Exception\\InvalidArgumentException' => __DIR__ . '/..' . '/symfony/process/Exception/InvalidArgumentException.php',
@@ -2853,7 +2865,10 @@ class ComposerStaticInitDrupal8
         'Twig_TokenStream' => __DIR__ . '/..' . '/twig/twig/lib/Twig/TokenStream.php',
         'Twig_Util_DeprecationCollector' => __DIR__ . '/..' . '/twig/twig/lib/Twig/Util/DeprecationCollector.php',
         'Twig_Util_TemplateDirIterator' => __DIR__ . '/..' . '/twig/twig/lib/Twig/Util/TemplateDirIterator.php',
+<<<<<<< HEAD
 >>>>>>> drops-8/update-8.6.7
+=======
+>>>>>>> update-8.6.7
         'TypeError' => __DIR__ . '/..' . '/symfony/polyfill-php70/Resources/stubs/TypeError.php',
     );
 

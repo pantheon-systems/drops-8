@@ -22,10 +22,6 @@ class PharExtensionInterceptor implements Assertable {
    *
    * @param string $path
    *   The path of the phar file to check.
-<<<<<<< HEAD
-   *
-=======
->>>>>>> drops-8/update-8.6.7
    * @param string $command
    *   The command being carried out.
    *
@@ -49,11 +45,8 @@ class PharExtensionInterceptor implements Assertable {
   }
 
   /**
-<<<<<<< HEAD
-=======
    * Determines if a path has a .phar extension or invoked execution.
    *
->>>>>>> drops-8/update-8.6.7
    * @param string $path
    *   The path of the phar file to check.
    *
@@ -70,10 +63,6 @@ class PharExtensionInterceptor implements Assertable {
     // not not have .phar extension then this should be allowed. For
     // example, some CLI tools recommend removing the extension.
     $backtrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-<<<<<<< HEAD
-    $caller = array_pop($backtrace);
-    if (isset($caller['file']) && $baseFile === $caller['file']) {
-=======
     // Find the last entry in the backtrace containing a 'file' key as
     // sometimes the last caller is executed outside the scope of a file. For
     // example, this occurs with shutdown functions.
@@ -81,7 +70,6 @@ class PharExtensionInterceptor implements Assertable {
       $caller = array_pop($backtrace);
     } while (empty($caller['file']) && !empty($backtrace));
     if (isset($caller['file']) && $baseFile === Helper::determineBaseFile($caller['file'])) {
->>>>>>> drops-8/update-8.6.7
       return TRUE;
     }
     $fileExtension = pathinfo($baseFile, PATHINFO_EXTENSION);
