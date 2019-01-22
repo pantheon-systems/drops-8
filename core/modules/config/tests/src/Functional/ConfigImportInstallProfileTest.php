@@ -56,7 +56,7 @@ class ConfigImportInstallProfileTest extends BrowserTestBase {
 
     $this->drupalPostForm('admin/config/development/configuration', [], t('Import all'));
     $this->assertText('The configuration cannot be imported because it failed validation for the following reasons:');
-    $this->assertText('Unable to uninstall the Testing config import profile since it is the main install profile.');
+    $this->assertText('Unable to uninstall the Testing config import profile since it is the install profile.');
 
     // Uninstall dependencies of testing_config_import.
     $core['module']['testing_config_import'] = 0;

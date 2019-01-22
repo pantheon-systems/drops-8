@@ -92,15 +92,6 @@ class ExtensionDiscovery {
   protected $sitePath;
 
   /**
-   * The profile handler.
-   *
-   * Used to determine the directories in which we want to scan for modules.
-   *
-   * @var \Drupal\Core\Extension\ProfileHandlerInterface|null
-   */
-  protected $profileHandler;
-
-  /**
    * Constructs a new ExtensionDiscovery object.
    *
    * @param string $root
@@ -111,27 +102,12 @@ class ExtensionDiscovery {
    *   The available profile directories
    * @param string $site_path
    *   The path to the site.
-   * @param \Drupal\Core\Extension\ProfileHandlerInterface $profile_handler
-   *   (optional) The profile handler.
    */
-  public function __construct($root, $use_file_cache = TRUE, $profile_directories = NULL, $site_path = NULL, ProfileHandlerInterface $profile_handler = NULL) {
+  public function __construct($root, $use_file_cache = TRUE, $profile_directories = NULL, $site_path = NULL) {
     $this->root = $root;
     $this->fileCache = $use_file_cache ? FileCacheFactory::get('extension_discovery') : NULL;
     $this->profileDirectories = $profile_directories;
     $this->sitePath = $site_path;
-
-    // ExtensionDiscovery can be used without a service container
-    // (@drupalKernel::moduleData), so create a fallback profile handler if the
-    // profile_handler service is unavailable.
-    if ($profile_handler) {
-      $this->profileHandler = $profile_handler;
-    }
-    elseif (\Drupal::hasService('profile_handler')) {
-      $this->profileHandler = \Drupal::service('profile_handler');
-    }
-    else {
-      $this->profileHandler = new FallbackProfileHandler($root);
-    }
   }
 
   /**
@@ -265,11 +241,7 @@ class ExtensionDiscovery {
     // In case both profile directories contain the same extension, the actual
     // profile always has precedence.
     if ($profile) {
-      $profiles = $this->profileHandler->getProfileInheritance($profile);
-      $profile_directories = array_map(function($extension) {
-        return $extension->getPath();
-      }, $profiles);
-      $this->profileDirectories = array_unique(array_merge($profile_directories, $this->profileDirectories));
+      $this->profileDirectories[] = drupal_get_path('profile', $profile);
     }
     return $this;
   }
