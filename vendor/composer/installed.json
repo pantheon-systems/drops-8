@@ -6434,6 +6434,7 @@
         ]
     },
     {
+<<<<<<< HEAD
         "name": "webflo/drupal-finder",
         "version": "1.1.0",
         "version_normalized": "1.1.0.0",
@@ -6574,6 +6575,8 @@
         "description": "A robust cross-platform utility for normalizing, comparing and modifying file paths."
     },
     {
+=======
+>>>>>>> drops-8/update-8.6.7
         "name": "wikimedia/composer-merge-plugin",
         "version": "v1.4.1",
         "version_normalized": "1.4.1.0",
