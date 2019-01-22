@@ -4,7 +4,6 @@ namespace Composer\Installers;
 class MediaWikiInstaller extends BaseInstaller
 {
     protected $locations = array(
-        'core' => 'core/',
         'extension' => 'extensions/{$name}/',
         'skin' => 'skins/{$name}/',
     );
