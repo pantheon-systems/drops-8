@@ -1,7 +1,7 @@
 test-defaults: &test-defaults
   docker:
     - image: quay.io/pantheon-public/build-tools-ci:3.x
-  working_directory: ~/work/d7
+  working_directory: ~/work/d8
   environment:
     TZ: "/usr/share/zoneinfo/America/Los_Angeles"
     TERM: dumb
@@ -9,7 +9,7 @@ test-defaults: &test-defaults
 merge-defaults: &merge-defaults
   docker:
     - image: quay.io/getpantheon/upstream-update-build:1.x
-  working_directory: ~/work/d7
+  working_directory: ~/work/d8
   environment:
     TZ: "/usr/share/zoneinfo/America/Los_Angeles"
     TERM: dumb

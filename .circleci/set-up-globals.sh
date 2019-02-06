@@ -26,7 +26,7 @@ fi
 mkdir -p $(dirname $BASH_ENV)
 touch $BASH_ENV
 (
-  echo 'export PATH=$PATH:$HOME/bin'
+  echo 'export PATH=./vendor/bin:$PATH:$HOME/bin'
   echo 'export TERMINUS_HIDE_UPDATE_MESSAGE=1'
   echo 'export TERMINUS_ENV=ci-$CIRCLE_BUILD_NUM'
   echo 'export WORDPRESS_ADMIN_USERNAME=pantheon'
