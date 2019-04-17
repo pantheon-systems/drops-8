@@ -1525,17 +1525,17 @@
     },
     {
         "name": "symfony/dependency-injection",
-        "version": "v3.4.15",
-        "version_normalized": "3.4.15.0",
+        "version": "v3.4.26",
+        "version_normalized": "3.4.26.0",
         "source": {
             "type": "git",
             "url": "https://github.com/symfony/dependency-injection.git",
-            "reference": "09d7df7bf06c1393b6afc85875993cbdbdf897a0"
+            "reference": "dee85a9148399cdb2731603802842bcfd8afe5ab"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/09d7df7bf06c1393b6afc85875993cbdbdf897a0",
-            "reference": "09d7df7bf06c1393b6afc85875993cbdbdf897a0",
+            "url": "https://api.github.com/repos/symfony/dependency-injection/zipball/dee85a9148399cdb2731603802842bcfd8afe5ab",
+            "reference": "dee85a9148399cdb2731603802842bcfd8afe5ab",
             "shasum": ""
         },
         "require": {
@@ -1563,7 +1563,7 @@
             "symfony/proxy-manager-bridge": "Generate service proxies to lazy load them",
             "symfony/yaml": ""
         },
-        "time": "2018-08-08T11:42:34+00:00",
+        "time": "2019-04-16T11:13:42+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
@@ -1663,17 +1663,17 @@
     },
     {
         "name": "symfony/http-foundation",
-        "version": "v3.4.15",
-        "version_normalized": "3.4.15.0",
+        "version": "v3.4.26",
+        "version_normalized": "3.4.26.0",
         "source": {
             "type": "git",
             "url": "https://github.com/symfony/http-foundation.git",
-            "reference": "2fb33cb6eefe6e790e4023f7c534a9e4214252fc"
+            "reference": "90454ad44c95d75faf3507d56388056001b74baf"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/symfony/http-foundation/zipball/2fb33cb6eefe6e790e4023f7c534a9e4214252fc",
-            "reference": "2fb33cb6eefe6e790e4023f7c534a9e4214252fc",
+            "url": "https://api.github.com/repos/symfony/http-foundation/zipball/90454ad44c95d75faf3507d56388056001b74baf",
+            "reference": "90454ad44c95d75faf3507d56388056001b74baf",
             "shasum": ""
         },
         "require": {
@@ -1684,7 +1684,7 @@
         "require-dev": {
             "symfony/expression-language": "~2.8|~3.0|~4.0"
         },
-        "time": "2018-08-27T17:45:33+00:00",
+        "time": "2019-04-17T14:51:18+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
