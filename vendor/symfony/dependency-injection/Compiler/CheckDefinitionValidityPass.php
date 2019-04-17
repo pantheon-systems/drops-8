@@ -66,13 +66,7 @@ class CheckDefinitionValidityPass implements CompilerPassInterface
                     ));
                 }
 
-                throw new RuntimeException(sprintf(
-                    'The definition for "%s" has no class. If you intend to inject '
-                   .'this service dynamically at runtime, please mark it as synthetic=true. '
-                   .'If this is an abstract definition solely used by child definitions, '
-                   .'please add abstract=true, otherwise specify a class to get rid of this error.',
-                   $id
-                ));
+                throw new RuntimeException(sprintf('The definition for "%s" has no class. If you intend to inject this service dynamically at runtime, please mark it as synthetic=true. If this is an abstract definition solely used by child definitions, please add abstract=true, otherwise specify a class to get rid of this error.', $id));
             }
 
             // tag attribute values must be scalars
@@ -89,7 +83,7 @@ class CheckDefinitionValidityPass implements CompilerPassInterface
             if ($definition->isPublic() && !$definition->isPrivate()) {
                 $resolvedId = $container->resolveEnvPlaceholders($id, null, $usedEnvs);
                 if (null !== $usedEnvs) {
-                    throw new EnvParameterException(array($resolvedId), null, 'A service name ("%s") cannot contain dynamic values.');
+                    throw new EnvParameterException([$resolvedId], null, 'A service name ("%s") cannot contain dynamic values.');
                 }
             }
         }
@@ -98,7 +92,7 @@ class CheckDefinitionValidityPass implements CompilerPassInterface
             if ($alias->isPublic() && !$alias->isPrivate()) {
                 $resolvedId = $container->resolveEnvPlaceholders($id, null, $usedEnvs);
                 if (null !== $usedEnvs) {
-                    throw new EnvParameterException(array($resolvedId), null, 'An alias name ("%s") cannot contain dynamic values.');
+                    throw new EnvParameterException([$resolvedId], null, 'An alias name ("%s") cannot contain dynamic values.');
                 }
             }
         }
