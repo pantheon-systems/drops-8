@@ -4,6 +4,7 @@ namespace Drupal\Tests\aggregator\Functional;
 
 use Drupal\aggregator\Entity\Feed;
 use Drupal\Component\Utility\Html;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\aggregator\FeedInterface;
 
@@ -146,9 +147,16 @@ abstract class AggregatorTestBase extends BrowserTestBase {
    *   Number of feed items on default feed created by createFeed().
    */
   public function getDefaultFeedItemCount() {
-    // Our tests are based off of rss.xml, so let's find out how many elements should be related.
-    $feed_count = db_query_range('SELECT COUNT(DISTINCT nid) FROM {node_field_data} n WHERE n.promote = 1 AND n.status = 1', 0, $this->config('system.rss')->get('items.limit'))->fetchField();
-    return $feed_count > 10 ? 10 : $feed_count;
+    // Our tests are based off of rss.xml, so let's find out how many elements
+    // should be related.
+    $feed_count = \Drupal::entityQuery('node')
+      ->condition('promote', NodeInterface::PROMOTED)
+      ->condition('status', NodeInterface::PUBLISHED)
+      ->accessCheck(FALSE)
+      ->range(0, $this->config('system.rss')->get('items.limit'))
+      ->count()
+      ->execute();
+    return min($feed_count, 10);
   }
 
   /**
@@ -273,7 +281,7 @@ EOF;
 
     $path = 'public://valid-opml.xml';
     // Add the UTF-8 byte order mark.
-    return file_unmanaged_save_data(chr(239) . chr(187) . chr(191) . $opml, $path);
+    return \Drupal::service('file_system')->saveData(chr(239) . chr(187) . chr(191) . $opml, $path);
   }
 
   /**
@@ -290,7 +298,7 @@ EOF;
 EOF;
 
     $path = 'public://invalid-opml.xml';
-    return file_unmanaged_save_data($opml, $path);
+    return \Drupal::service('file_system')->saveData($opml, $path);
   }
 
   /**
@@ -312,7 +320,7 @@ EOF;
 EOF;
 
     $path = 'public://empty-opml.xml';
-    return file_unmanaged_save_data($opml, $path);
+    return \Drupal::service('file_system')->saveData($opml, $path);
   }
 
   /**

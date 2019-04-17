@@ -4,6 +4,7 @@ namespace Drupal\Tests\dblog\Functional;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Url;
 use Drupal\dblog\Controller\DbLogController;
@@ -112,8 +113,56 @@ class DbLogTest extends BrowserTestBase {
     // Verify hostname.
     $this->assertRaw($context['ip'], 'Found hostname on the detail page.');
 
+    // Verify location.
+    $this->assertRaw($context['request_uri'], 'Found location on the detail page.');
+
     // Verify severity.
     $this->assertText('Notice', 'The severity was properly displayed on the detail page.');
+  }
+
+  /**
+   * Test individual log event page with missing log attributes.
+   *
+   * In some cases few log attributes are missing. For example:
+   * - Missing referer: When request is made to a specific url directly and
+   *   error occurred. In this case there is no referer.
+   * - Incorrect location: When location attribute is incorrect uri which can
+   *   not be used to generate a valid link.
+   */
+  public function testLogEventPageWithMissingInfo() {
+    $this->drupalLogin($this->adminUser);
+    $connection = Database::getConnection();
+
+    // Test log event page with missing referer.
+    $this->generateLogEntries(1, [
+      'referer' => NULL,
+    ]);
+    $wid = $connection->query('SELECT MAX(wid) FROM {watchdog}')->fetchField();
+    $this->drupalGet('admin/reports/dblog/event/' . $wid);
+
+    // Verify table headers are present, even though the referrer is missing.
+    $this->assertText('Referrer', 'Referrer header is present on the detail page.');
+
+    // Verify severity.
+    $this->assertText('Notice', 'The severity is properly displayed on the detail page.');
+
+    // Test log event page with incorrect location.
+    $request_uri = '/some/incorrect/url';
+    $this->generateLogEntries(1, [
+      'request_uri' => $request_uri,
+    ]);
+    $wid = $connection->query('SELECT MAX(wid) FROM {watchdog}')->fetchField();
+    $this->drupalGet('admin/reports/dblog/event/' . $wid);
+
+    // Verify table headers are present.
+    $this->assertText('Location', 'Location header is present on the detail page.');
+
+    // Verify severity.
+    $this->assertText('Notice', 'The severity is properly displayed on the detail page.');
+
+    // Verify location is available as plain text.
+    $this->assertEquals($request_uri, $this->cssSelect('table.dblog-event > tbody > tr:nth-child(4) > td')[0]->getHtml());
+    $this->assertNoLink($request_uri);
   }
 
   /**
@@ -264,7 +313,7 @@ class DbLogTest extends BrowserTestBase {
       'link' => $link,
     ]);
 
-    $result = db_query_range('SELECT wid FROM {watchdog} ORDER BY wid DESC', 0, 1);
+    $result = Database::getConnection()->queryRange('SELECT wid FROM {watchdog} ORDER BY wid DESC', 0, 1);
     $this->drupalGet('admin/reports/dblog/event/' . $result->fetchField());
 
     // Check if the link exists (unescaped).
@@ -303,7 +352,7 @@ class DbLogTest extends BrowserTestBase {
       $ids[] = $row->wid;
     }
     $count_before = (isset($ids)) ? count($ids) : 0;
-    $this->assertTrue($count_before > 0, format_string('DBLog contains @count records for @name', ['@count' => $count_before, '@name' => $user->getUsername()]));
+    $this->assertTrue($count_before > 0, format_string('DBLog contains @count records for @name', ['@count' => $count_before, '@name' => $user->getAccountName()]));
 
     // Log in the admin user.
     $this->drupalLogin($this->adminUser);
@@ -476,7 +525,6 @@ class DbLogTest extends BrowserTestBase {
       'variables'   => [],
       'severity'    => RfcLogLevel::NOTICE,
       'link'        => NULL,
-      'user'        => $this->adminUser,
       'uid'         => $this->adminUser->id(),
       'request_uri' => $base_root . \Drupal::request()->getRequestUri(),
       'referer'     => \Drupal::request()->server->get('HTTP_REFERER'),
@@ -505,7 +553,7 @@ class DbLogTest extends BrowserTestBase {
     $this->drupalLogin($this->adminUser);
 
     // Clear the log to ensure that only generated entries will be found.
-    db_delete('watchdog')->execute();
+    Database::getConnection()->delete('watchdog')->execute();
 
     // Generate 9 random watchdog entries.
     $type_names = [];

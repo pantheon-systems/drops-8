@@ -3,7 +3,7 @@
 namespace Drupal\node\Access;
 
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
@@ -40,12 +40,12 @@ class NodeRevisionAccessCheck implements AccessInterface {
   /**
    * Constructs a new NodeRevisionAccessCheck.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    */
-  public function __construct(EntityManagerInterface $entity_manager) {
-    $this->nodeStorage = $entity_manager->getStorage('node');
-    $this->nodeAccess = $entity_manager->getAccessControlHandler('node');
+  public function __construct(EntityTypeManagerInterface $entity_type_manager) {
+    $this->nodeStorage = $entity_type_manager->getStorage('node');
+    $this->nodeAccess = $entity_type_manager->getAccessControlHandler('node');
   }
 
   /**
@@ -119,22 +119,31 @@ class NodeRevisionAccessCheck implements AccessInterface {
         $this->access[$cid] = FALSE;
         return FALSE;
       }
-
-      // There should be at least two revisions. If the vid of the given node
-      // and the vid of the default revision differ, then we already have two
-      // different revisions so there is no need for a separate database check.
-      // Also, if you try to revert to or delete the default revision, that's
-      // not good.
-      if ($node->isDefaultRevision() && ($this->nodeStorage->countDefaultLanguageRevisions($node) == 1 || $op == 'update' || $op == 'delete')) {
-        $this->access[$cid] = FALSE;
-      }
-      elseif ($account->hasPermission('administer nodes')) {
+      // If the revisions checkbox is selected for the content type, display the
+      // revisions tab.
+      $bundle_entity_type = $node->getEntityType()->getBundleEntityType();
+      $bundle_entity = \Drupal::entityTypeManager()->getStorage($bundle_entity_type)->load($bundle);
+      if ($bundle_entity->shouldCreateNewRevision() && $op === 'view') {
         $this->access[$cid] = TRUE;
       }
       else {
-        // First check the access to the default revision and finally, if the
-        // node passed in is not the default revision then access to that, too.
-        $this->access[$cid] = $this->nodeAccess->access($this->nodeStorage->load($node->id()), $op, $account) && ($node->isDefaultRevision() || $this->nodeAccess->access($node, $op, $account));
+        // There should be at least two revisions. If the vid of the given node
+        // and the vid of the default revision differ, then we already have two
+        // different revisions so there is no need for a separate database
+        // check. Also, if you try to revert to or delete the default revision,
+        // that's not good.
+        if ($node->isDefaultRevision() && ($this->nodeStorage->countDefaultLanguageRevisions($node) == 1 || $op === 'update' || $op === 'delete')) {
+          $this->access[$cid] = FALSE;
+        }
+        elseif ($account->hasPermission('administer nodes')) {
+          $this->access[$cid] = TRUE;
+        }
+        else {
+          // First check the access to the default revision and finally, if the
+          // node passed in is not the default revision then check access to
+          // that, too.
+          $this->access[$cid] = $this->nodeAccess->access($this->nodeStorage->load($node->id()), $op, $account) && ($node->isDefaultRevision() || $this->nodeAccess->access($node, $op, $account));
+        }
       }
     }
 

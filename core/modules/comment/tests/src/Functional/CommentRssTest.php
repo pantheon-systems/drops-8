@@ -5,7 +5,7 @@ namespace Drupal\Tests\comment\Functional;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
-use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * Tests comments as part of an RSS feed.
@@ -66,7 +66,7 @@ class CommentRssTest extends CommentTestBase {
       'user:3',
     ]));
 
-    $raw = '<comments>' . $this->node->url('canonical', ['fragment' => 'comments', 'absolute' => TRUE]) . '</comments>';
+    $raw = '<comments>' . $this->node->toUrl('canonical', ['fragment' => 'comments', 'absolute' => TRUE])->toString() . '</comments>';
     $this->assertRaw($raw, 'Comments as part of RSS feed.');
 
     // Hide comments from RSS feed and check presence.

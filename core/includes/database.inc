@@ -11,7 +11,6 @@
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\Condition;
-use Drupal\Core\Site\Settings;
 
 /**
  * @addtogroup database
@@ -92,6 +91,7 @@ function db_query($query, array $args = [], array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_query_range($query, $from, $count, array $args = [], array $options = []) {
+  @trigger_error('db_query_range() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call queryRange() on it. For example, $injected_database->queryRange($query, $from, $count, $args, $options). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   if (empty($options['target'])) {
     $options['target'] = 'default';
   }
@@ -116,7 +116,7 @@ function db_query_range($query, $from, $count, array $args = [], array $options 
  * @param array $options
  *   An array of options to control how the query operates.
  *
- * @return
+ * @return string
  *   The name of the temporary table.
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Instead, get
@@ -128,6 +128,7 @@ function db_query_range($query, $from, $count, array $args = [], array $options 
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_query_temporary($query, array $args = [], array $options = []) {
+  @trigger_error('db_query_temporary() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call queryTemporary() on it. For example, $injected_database->queryTemporary($query, $args, $options). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   if (empty($options['target'])) {
     $options['target'] = 'default';
   }
@@ -155,6 +156,7 @@ function db_query_temporary($query, array $args = [], array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_insert($table, array $options = []) {
+  @trigger_error('db_insert() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call insert() on it. For example, $injected_database->insert($table, $options); See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   if (empty($options['target']) || $options['target'] == 'replica') {
     $options['target'] = 'default';
   }
@@ -181,6 +183,9 @@ function db_insert($table, array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_merge($table, array $options = []) {
+  @trigger_error('db_merge() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call merge() on it. For example, $injected_database->merge($table, $options). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
+  // @todo Move away from here setting default target connection,
+  // https://www.drupal.org/node/2947775
   if (empty($options['target']) || $options['target'] == 'replica') {
     $options['target'] = 'default';
   }
@@ -207,6 +212,7 @@ function db_merge($table, array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_update($table, array $options = []) {
+  @trigger_error('db_update() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call call update() on it. For example, $injected_database->update($table, $options); See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   if (empty($options['target']) || $options['target'] == 'replica') {
     $options['target'] = 'default';
   }
@@ -233,6 +239,9 @@ function db_update($table, array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_delete($table, array $options = []) {
+  @trigger_error('db_delete is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call delete() on it. For example, $injected_database->delete($table, $options). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
+  // @todo Move away from here setting default target connection,
+  // https://www.drupal.org/node/2947775
   if (empty($options['target']) || $options['target'] == 'replica') {
     $options['target'] = 'default';
   }
@@ -259,6 +268,7 @@ function db_delete($table, array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_truncate($table, array $options = []) {
+  @trigger_error('db_truncate() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call truncate() on it. For example, $injected_database->truncate($table, $options). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   if (empty($options['target']) || $options['target'] == 'replica') {
     $options['target'] = 'default';
   }
@@ -289,6 +299,7 @@ function db_truncate($table, array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_select($table, $alias = NULL, array $options = []) {
+  @trigger_error('db_select() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call call select() on it. For example, $injected_database->db_select($table, $alias, $options); See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   if (empty($options['target'])) {
     $options['target'] = 'default';
   }
@@ -316,6 +327,9 @@ function db_select($table, $alias = NULL, array $options = []) {
  * @see \Drupal\Core\Database\Connection::defaultOptions()
  */
 function db_transaction($name = NULL, array $options = []) {
+  @trigger_error('db_transaction is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call startTransaction() on it. For example, $injected_database->startTransaction($name). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
+  // @todo Move away from here setting default target connection,
+  // https://www.drupal.org/node/2947775
   if (empty($options['target'])) {
     $options['target'] = 'default';
   }
@@ -358,6 +372,7 @@ function db_set_active($key = 'default') {
  * @see \Drupal\Core\Database\Connection::escapeTable()
  */
 function db_escape_table($table) {
+  @trigger_error('db_escape_table() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call escapeTable() on it. For example, $injected_database->escapeTable($table). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->escapeTable($table);
 }
 
@@ -374,12 +389,13 @@ function db_escape_table($table) {
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Instead, get
  *   a database connection injected into your service from the container and
- *   call escapeTable() on it. For example,
- *   $injected_database->escapeTable($table);
+ *   call escapeField() on it. For example,
+ *   $injected_database->escapeField($field);
  *
  * @see \Drupal\Core\Database\Connection::escapeField()
  */
 function db_escape_field($field) {
+  @trigger_error('db_escape_field() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call escapeField() on it. For example, $injected_database->escapeField($field). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->escapeField($field);
 }
 
@@ -421,6 +437,7 @@ function db_escape_field($field) {
  * @see \Drupal\Core\Database\Connection::escapeLike()
  */
 function db_like($string) {
+  @trigger_error('db_like() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call escapeLike() on it. For example, $injected_database->escapeLike($string). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->escapeLike($string);
 }
 
@@ -437,6 +454,7 @@ function db_like($string) {
  * @see \Drupal\Core\Database\Connection::driver()
  */
 function db_driver() {
+  @trigger_error('db_driver() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call driver() on it. For example, $injected_database->driver($string). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->driver();
 }
 
@@ -453,6 +471,7 @@ function db_driver() {
  * @see \Drupal\Core\Database\Database::closeConnection()
  */
 function db_close(array $options = []) {
+  @trigger_error('db_close() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Use \Drupal\Core\Database\Database::closeConnection() instead. See https://www.drupal.org/node/2993033.', E_USER_DEPRECATED);
   if (empty($options['target'])) {
     $options['target'] = NULL;
   }
@@ -481,6 +500,7 @@ function db_close(array $options = []) {
  * @see \Drupal\Core\Database\Connection::nextId()
  */
 function db_next_id($existing_id = 0) {
+  @trigger_error('db_next_id() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container and call nextId() on it. For example, $injected_database->nextId($existing_id). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->nextId($existing_id);
 }
 
@@ -497,6 +517,7 @@ function db_next_id($existing_id = 0) {
  * @see \Drupal\Core\Database\Query\Condition
  */
 function db_or() {
+  @trigger_error('db_or() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Create a \Drupal\Core\Database\Query\Condition object, specifying an OR conjunction: new Condition(\'OR\'), instead. See https://www.drupal.org/node/2993033.', E_USER_DEPRECATED);
   return new Condition('OR');
 }
 
@@ -513,6 +534,7 @@ function db_or() {
  * @see \Drupal\Core\Database\Query\Condition
  */
 function db_and() {
+  @trigger_error('db_and() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Create a \Drupal\Core\Database\Query\Condition object, specifying an AND conjunction: new Condition(\'AND\'), instead. See https://www.drupal.org/node/2993033.', E_USER_DEPRECATED);
   return new Condition('AND');
 }
 
@@ -523,20 +545,22 @@ function db_and() {
  *   A new Condition object, set to "XOR" all conditions together.
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Create
- *   a \Drupal\Core\Database\Query\Condition object, specifying an XOR
+ *   a \Drupal\Core\Database\Query\Condition object, specifying a XOR
  *   conjunction: new Condition('XOR');
  *
  * @see \Drupal\Core\Database\Query\Condition
  */
 function db_xor() {
+  @trigger_error('db_xor() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Create a \Drupal\Core\Database\Query\Condition object, specifying a XOR conjunction: new Condition(\'XOR\'), instead. See https://www.drupal.org/node/2993033.', E_USER_DEPRECATED);
   return new Condition('XOR');
 }
 
 /**
  * Returns a new DatabaseCondition, set to the specified conjunction.
  *
- * Internal API function call.  The db_and(), db_or(), and db_xor()
- * functions are preferred.
+ * Internal API function call.  Creating a
+ * \Drupal\Core\Database\Query\Condition object, specifying the desired
+ * conjunction ('AND', 'OR' or 'XOR'), is preferred.
  *
  * @param string $conjunction
  *   The conjunction to use for query conditions (AND, OR or XOR).
@@ -546,11 +570,12 @@ function db_xor() {
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Create
  *   a \Drupal\Core\Database\Query\Condition object, specifying the desired
- *   conjunction: new Condition($conjunctin);
+ *   conjunction: new Condition($conjunction);
  *
  * @see \Drupal\Core\Database\Query\Condition
  */
 function db_condition($conjunction) {
+  @trigger_error('db_condition() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Create a \Drupal\Core\Database\Query\Condition object, specifying the desired conjunction: new Condition($conjunction), instead. See https://www.drupal.org/node/2993033.', E_USER_DEPRECATED);
   return new Condition($conjunction);
 }
 
@@ -580,6 +605,7 @@ function db_condition($conjunction) {
  * @see \Drupal\Core\Database\Schema::createTable()
  */
 function db_create_table($name, $table) {
+  @trigger_error('db_create_table() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call createTable() on it. For example, $injected_database->schema()->createTable($name, $table). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->createTable($name, $table);
 }
 
@@ -603,6 +629,7 @@ function db_create_table($name, $table) {
  * @see \Drupal\Core\Database\Schema::fieldNames()
  */
 function db_field_names($fields) {
+  @trigger_error('db_field_names() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call fieldNames() on it. For example, $injected_database->schema()->fieldNames($fields). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->fieldNames($fields);
 }
 
@@ -625,6 +652,7 @@ function db_field_names($fields) {
  * @see \Drupal\Core\Database\Schema::indexExists()
  */
 function db_index_exists($table, $name) {
+  @trigger_error('db_index_exists() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call indexExists() on it. For example, $injected_database->schema()->indexExists($table, $name). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->indexExists($table, $name);
 }
 
@@ -672,6 +700,7 @@ function db_table_exists($table) {
  * @see \Drupal\Core\Database\Schema::fieldExists()
  */
 function db_field_exists($table, $field) {
+  @trigger_error('db_field_exists() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call fieldExists() on it. For example, $injected_database->schema()->fieldExists($table, $field). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->fieldExists($table, $field);
 }
 
@@ -692,6 +721,10 @@ function db_field_exists($table, $field) {
  * @see \Drupal\Core\Database\Schema::findTables()
  */
 function db_find_tables($table_expression) {
+  @trigger_error(
+    'db_find_tables() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Use $injected_database->schema()->findTables($table_expression) instead. See https://www.drupal.org/node/2993033',
+    E_USER_DEPRECATED
+  );
   return Database::getConnection()->schema()->findTables($table_expression);
 }
 
@@ -711,6 +744,7 @@ function db_find_tables($table_expression) {
  * @see \Drupal\Core\Database\Schema::renameTable()
  */
 function db_rename_table($table, $new_name) {
+  @trigger_error('db_rename_table() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call renameTable() on it. For example, $injected_database->schema()->renameTable($table, $new_name). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->renameTable($table, $new_name);
 }
 
@@ -749,7 +783,7 @@ function db_drop_table($table) {
  *   with adding the field. The format is the same as a table specification, but
  *   without the 'fields' element. If you are adding a type 'serial' field, you
  *   MUST specify at least one key or index including it in this array. See
- *   db_change_field() for more explanation why.
+ *   \Drupal\Core\Database\Schema::changeField() for more explanation why.
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Instead, get
  *   a database connection injected into your service from the container, get
@@ -757,9 +791,10 @@ function db_drop_table($table) {
  *   $injected_database->schema()->addField($table, $field, $spec, $keys_new);
  *
  * @see \Drupal\Core\Database\Schema::addField()
- * @see db_change_field()
+ * @see \Drupal\Core\Database\Schema::changeField()
  */
 function db_add_field($table, $field, $spec, $keys_new = []) {
+  @trigger_error('db_add_field() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call addField() on it. For example, $injected_database->schema()->addField($table, $field, $spec, $keys_new). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->addField($table, $field, $spec, $keys_new);
 }
 
@@ -783,6 +818,7 @@ function db_add_field($table, $field, $spec, $keys_new = []) {
  * @see \Drupal\Core\Database\Schema::dropField()
  */
 function db_drop_field($table, $field) {
+  @trigger_error('db_drop_field() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call dropField() on it. For example, $injected_database->schema()->dropField($table, $field). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->dropField($table, $field);
 }
 
@@ -798,12 +834,14 @@ function db_drop_field($table, $field) {
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Instead, get
  *   a database connection injected into your service from the container, get
- *   its schema driver, and call fieldSetDefault() on it. For example,
- *   $injected_database->schema()->fieldSetDefault($table, $field, $default);
+ *   its schema driver, and call changeField() on it, passing a full field
+ *   specification. For example,
+ *   $injected_database->schema()->changeField($table, $field, $field_new, $spec, $keys_new);
  *
- * @see \Drupal\Core\Database\Schema::fieldSetDefault()
+ * @see \Drupal\Core\Database\Schema::changeField()
  */
 function db_field_set_default($table, $field, $default) {
+  @trigger_error('db_field_set_default() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call changeField() on it, passing a full field specification. For example, $injected_database->schema()->changeField($table, $field, $field_new, $spec, $keys_new). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->fieldSetDefault($table, $field, $default);
 }
 
@@ -817,12 +855,14 @@ function db_field_set_default($table, $field, $default) {
  *
  * @deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Instead, get
  *   a database connection injected into your service from the container, get
- *   its schema driver, and call fieldSetNoDefault() on it. For example,
- *   $injected_database->schema()->fieldSetNoDefault($table, $field);
+ *   its schema driver, and call changeField() on it, passing a full field
+ *   specification. For example,
+ *   $injected_database->schema()->changeField($table, $field, $field_new, $spec, $keys_new);
  *
- * @see \Drupal\Core\Database\Schema::fieldSetNoDefault()
+ * @see \Drupal\Core\Database\Schema::changeField()
  */
 function db_field_set_no_default($table, $field) {
+  @trigger_error('db_field_set_no_default() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call changeField() on it, passing a full field specification. For example, $injected_database->schema()->changeField($table, $field, $field_new, $spec, $keys_new). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->fieldSetNoDefault($table, $field);
 }
 
@@ -842,6 +882,7 @@ function db_field_set_no_default($table, $field) {
  * @see \Drupal\Core\Database\Schema::addPrimaryKey()
  */
 function db_add_primary_key($table, $fields) {
+  @trigger_error('db_add_primary_key() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call addPrimaryKey() on it. For example, $injected_database->schema()->addPrimaryKey($table, $fields). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->addPrimaryKey($table, $fields);
 }
 
@@ -863,6 +904,7 @@ function db_add_primary_key($table, $fields) {
  * @see \Drupal\Core\Database\Schema::dropPrimaryKey()
  */
 function db_drop_primary_key($table) {
+  @trigger_error('db_drop_primary_key() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call dropPrimaryKey() on it. For example, $injected_database->schema()->dropPrimaryKey($table). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->dropPrimaryKey($table);
 }
 
@@ -884,6 +926,7 @@ function db_drop_primary_key($table) {
  * @see \Drupal\Core\Database\Schema::addUniqueKey()
  */
 function db_add_unique_key($table, $name, $fields) {
+  @trigger_error('db_add_unique_key() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call addUniqueKey() on it. For example, $injected_database->schema()->addUniqueKey($table, $name, $fields). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->addUniqueKey($table, $name, $fields);
 }
 
@@ -907,6 +950,7 @@ function db_add_unique_key($table, $name, $fields) {
  * @see \Drupal\Core\Database\Schema::dropUniqueKey()
  */
 function db_drop_unique_key($table, $name) {
+  @trigger_error('db_drop_unique_key() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call dropUniqueKey() on it. For example, $injected_database->schema()->dropUniqueKey($table, $name). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->dropUniqueKey($table, $name);
 }
 
@@ -934,7 +978,8 @@ function db_drop_unique_key($table, $name) {
  * @see \Drupal\Core\Database\Schema::addIndex()
  */
 function db_add_index($table, $name, $fields, array $spec) {
-  return Database::getConnection()->schema()->addIndex($table, $name, $fields, $spec);
+  @trigger_error('db_add_index() is deprecated in Drupal 8.0.x and will be removed in Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call addIndex() on it. For example, $injected_database->schema()->addIndex($table, $name, $fields, $spec). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
+  Database::getConnection()->schema()->addIndex($table, $name, $fields, $spec);
 }
 
 /**
@@ -957,6 +1002,7 @@ function db_add_index($table, $name, $fields, array $spec) {
  * @see \Drupal\Core\Database\Schema::dropIndex()
  */
 function db_drop_index($table, $name) {
+  @trigger_error('db_drop_index() is deprecated in Drupal 8.0.x and will be removed before Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call dropIndex() on it. For example, $injected_database->schema()->dropIndex($table, $name). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
   return Database::getConnection()->schema()->dropIndex($table, $name);
 }
 
@@ -967,9 +1013,10 @@ function db_drop_index($table, $name) {
  * recreate all indices and primary keys that are using the changed field.
  *
  * That means that you have to drop all affected keys and indexes with
- * db_drop_{primary_key,unique_key,index}() before calling db_change_field().
+ * db_drop_{primary_key,unique_key,index}() before calling
+ * \Drupal\Core\Database\Schema::changeField().
  * To recreate the keys and indices, pass the key definitions as the optional
- * $keys_new argument directly to db_change_field().
+ * $keys_new argument directly to \Drupal\Core\Database\Schema::changeField().
  *
  * For example, suppose you have:
  * @code
@@ -983,8 +1030,9 @@ function db_drop_index($table, $name) {
  * and you want to change foo.bar to be type serial, leaving it as the primary
  * key. The correct sequence is:
  * @code
- * db_drop_primary_key('foo');
- * db_change_field('foo', 'bar', 'bar',
+ * $schema = \Drupal::database()->schema();
+ * $schema->dropPrimaryKey('foo');
+ * $schema->changeField('foo', 'bar', 'bar',
  *   array('type' => 'serial', 'not null' => TRUE),
  *   array('primary key' => array('bar')));
  * @endcode
@@ -1028,6 +1076,7 @@ function db_drop_index($table, $name) {
  * @see \Drupal\Core\Database\Schema::changeField()
  */
 function db_change_field($table, $field, $field_new, $spec, $keys_new = []) {
+  @trigger_error("Deprecated as of Drupal 8.0.x, will be removed in Drupal 9.0.0. Instead, get a database connection injected into your service from the container, get its schema driver, and call changeField() on it. For example, \$injected_database->schema()->changeField(\$table, \$field, \$field_new, \$spec, \$keys_new). See https://www.drupal.org/node/2993033", E_USER_DEPRECATED);
   return Database::getConnection()->schema()->changeField($table, $field, $field_new, $spec, $keys_new);
 }
 
@@ -1039,18 +1088,14 @@ function db_change_field($table, $field, $field_new, $spec, $keys_new = []) {
  * Sets a session variable specifying the lag time for ignoring a replica
  * server (A replica server is traditionally referred to as
  * a "slave" in database server documentation).
+ *
+ * @deprecated as of Drupal 8.7.x, will be removed in Drupal 9.0.0. Use
+ *   \Drupal::service('database.replica_kill_switch')->trigger() instead.
+ *
+ * @see https://www.drupal.org/node/2997500
  * @see https://www.drupal.org/node/2275877
  */
 function db_ignore_replica() {
-  $connection_info = Database::getConnectionInfo();
-  // Only set ignore_replica_server if there are replica servers being used,
-  // which is assumed if there are more than one.
-  if (count($connection_info) > 1) {
-    // Five minutes is long enough to allow the replica to break and resume
-    // interrupted replication without causing problems on the Drupal site from
-    // the old data.
-    $duration = Settings::get('maximum_replication_lag', 300);
-    // Set session variable with amount of time to delay before using replica.
-    $_SESSION['ignore_replica_server'] = REQUEST_TIME + $duration;
-  }
+  @trigger_error('db_ignore_replica() is deprecated in Drupal 8.7.x and will be removed before Drupal 9.0.0. Use \Drupal\Core\Database\ReplicaKillSwitch::trigger() instead. See https://www.drupal.org/node/2997500', E_USER_DEPRECATED);
+  \Drupal::service('database.replica_kill_switch')->trigger();
 }

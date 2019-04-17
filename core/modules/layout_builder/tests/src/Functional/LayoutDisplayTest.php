@@ -22,10 +22,6 @@ class LayoutDisplayTest extends BrowserTestBase {
   protected function setUp() {
     parent::setUp();
 
-    // @todo The Layout Builder UI relies on local tasks; fix in
-    //   https://www.drupal.org/project/drupal/issues/2917777.
-    $this->drupalPlaceBlock('local_tasks_block');
-
     $this->createContentType([
       'type' => 'bundle_with_section_field',
     ]);
@@ -56,15 +52,13 @@ class LayoutDisplayTest extends BrowserTestBase {
     $this->drupalGet('node/1');
     $assert_session->pageTextNotContains('Powered by Drupal');
 
-    $assert_session->linkExists('Layout');
-    $this->clickLink('Layout');
+    $this->drupalGet('node/1/layout');
     $assert_session->linkExists('Add Block');
     $this->clickLink('Add Block');
     $assert_session->linkExists('Powered by Drupal');
     $this->clickLink('Powered by Drupal');
     $page->pressButton('Add Block');
-    $assert_session->linkExists('Save Layout');
-    $this->clickLink('Save Layout');
+    $page->pressButton('Save');
     $assert_session->pageTextContains('Powered by Drupal');
 
     // Add a new view mode.

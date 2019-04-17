@@ -16,9 +16,9 @@ use Symfony\Component\Process\Exception\RuntimeException;
 /**
  * PhpProcess runs a PHP script in an independent process.
  *
- * $p = new PhpProcess('<?php echo "foo"; ?>');
- * $p->run();
- * print $p->getOutput()."\n";
+ *     $p = new PhpProcess('<?php echo "foo"; ?>');
+ *     $p->run();
+ *     print $p->getOutput()."\n";
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
@@ -37,7 +37,7 @@ class PhpProcess extends Process
         if (false === $php = $executableFinder->find(false)) {
             $php = null;
         } else {
-            $php = array_merge(array($php), $executableFinder->findArguments());
+            $php = array_merge([$php], $executableFinder->findArguments());
         }
         if ('phpdbg' === \PHP_SAPI) {
             $file = tempnam(sys_get_temp_dir(), 'dbg');
@@ -64,7 +64,7 @@ class PhpProcess extends Process
     /**
      * {@inheritdoc}
      */
-    public function start(callable $callback = null/*, array $env = array()*/)
+    public function start(callable $callback = null/*, array $env = []*/)
     {
         if (null === $this->getCommandLine()) {
             throw new RuntimeException('Unable to find the PHP executable.');

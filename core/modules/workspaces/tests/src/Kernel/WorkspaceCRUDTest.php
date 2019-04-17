@@ -7,6 +7,7 @@ use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\workspaces\Entity\Workspace;
+use Drupal\workspaces\Entity\WorkspaceAssociation;
 
 /**
  * Tests CRUD operations for workspaces.
@@ -59,13 +60,14 @@ class WorkspaceCRUDTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installSchema('system', ['key_value_expire', 'sequences']);
+    $this->setUpCurrentUser();
+
+    $this->installSchema('system', ['key_value_expire']);
     $this->installSchema('node', ['node_access']);
 
     $this->installEntitySchema('workspace');
     $this->installEntitySchema('workspace_association');
     $this->installEntitySchema('node');
-    $this->installEntitySchema('user');
 
     $this->installConfig(['filter', 'node', 'system']);
 
@@ -186,6 +188,30 @@ class WorkspaceCRUDTest extends KernelTestBase {
 
     $workspace_deleted = \Drupal::state()->get('workspace.deleted');
     $this->assertCount(0, $workspace_deleted);
+  }
+
+  /**
+   * Tests workspace association validation.
+   *
+   * @covers \Drupal\workspaces\Entity\WorkspaceAssociation::validate
+   */
+  public function testWorkspaceAssociationValidation() {
+    $workspace = Workspace::create([
+      'id' => 'gibbon',
+      'label' => 'Gibbon',
+    ]);
+    $workspace->save();
+    $node = $this->createNode();
+
+    $workspace_association = WorkspaceAssociation::create([
+      'workspace' => $workspace,
+      'target_entity_type_id' => $node->getEntityTypeId(),
+      'target_entity_id' => $node->id(),
+      'target_entity_revision_id' => $node->getRevisionId(),
+    ]);
+
+    $violations = $workspace_association->validate();
+    $this->assertCount(0, $violations);
   }
 
 }

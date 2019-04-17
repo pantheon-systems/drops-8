@@ -72,4 +72,50 @@ class CommentUpdateTest extends UpdatePathTestBase {
     $this->assertTrue(\Drupal::database()->schema()->indexExists('comment_field_data', 'comment__status_comment_type'));
   }
 
+  /**
+   * Tests that the comment entity type has an 'owner' entity key.
+   *
+   * @see comment_update_8700()
+   */
+  public function testOwnerEntityKey() {
+    // Check that the 'owner' entity key does not exist prior to the update.
+    $entity_type = \Drupal::entityDefinitionUpdateManager()->getEntityType('comment');
+    $this->assertFalse($entity_type->getKey('owner'));
+
+    // Run updates.
+    $this->runUpdates();
+
+    // Check that the entity key exists and it has the correct value.
+    $entity_type = \Drupal::entityDefinitionUpdateManager()->getEntityType('comment');
+    $this->assertEquals('uid', $entity_type->getKey('owner'));
+  }
+
+  /**
+   * Tests whether the 'entity_type' and 'field_name' columns are required.
+   *
+   * @see comment_update_8701()
+   */
+  public function testCommentEntityTypeAndFieldNameRequired() {
+    $database = \Drupal::database();
+    $this->assertEquals(2, $database->query('SELECT count(*) FROM {comment_field_data}')->fetchField());
+    if ($database->driver() === 'mysql') {
+      $table_description = $database
+        ->query('DESCRIBE {comment_field_data}')
+        ->fetchAllAssoc('Field');
+      $this->assertEquals('YES', $table_description['entity_type']->Null);
+      $this->assertEquals('YES', $table_description['field_name']->Null);
+    }
+
+    $this->runUpdates();
+
+    $this->assertEquals(2, $database->query('SELECT count(*) FROM {comment_field_data}')->fetchField());
+    if ($database->driver() === 'mysql') {
+      $table_description = $database
+        ->query('DESCRIBE {comment_field_data}')
+        ->fetchAllAssoc('Field');
+      $this->assertEquals('NO', $table_description['entity_type']->Null);
+      $this->assertEquals('NO', $table_description['field_name']->Null);
+    }
+  }
+
 }

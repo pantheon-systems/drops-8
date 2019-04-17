@@ -61,7 +61,7 @@ class CommentNonNodeTest extends BrowserTestBase {
     $this->addDefaultCommentField('entity_test', 'entity_test');
 
     // Verify that bundles are defined correctly.
-    $bundles = \Drupal::entityManager()->getBundleInfo('comment');
+    $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo('comment');
     $this->assertEqual($bundles['comment']['label'], 'Comment settings');
 
     // Create test user.
@@ -185,7 +185,7 @@ class CommentNonNodeTest extends BrowserTestBase {
   public function commentExists(CommentInterface $comment = NULL, $reply = FALSE) {
     if ($comment) {
       $regex = '/' . ($reply ? '<div class="indented">(.*?)' : '');
-      $regex .= '<a id="comment-' . $comment->id() . '"(.*?)';
+      $regex .= '<article(.*?)id="comment-' . $comment->id() . '"(.*?)';
       $regex .= $comment->getSubject() . '(.*?)';
       $regex .= $comment->comment_body->value . '(.*?)';
       $regex .= '/s';
@@ -341,7 +341,7 @@ class CommentNonNodeTest extends BrowserTestBase {
 
     // Attempt to view comments while disallowed.
     $this->drupalGet('entity-test/' . $this->entity->id());
-    $this->assertNoPattern('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
+    $this->assertSession()->responseNotMatches('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
     $this->assertNoLink('Add new comment', 'Link to add comment was found.');
 
     // Attempt to view test entity comment form while disallowed.
@@ -373,7 +373,7 @@ class CommentNonNodeTest extends BrowserTestBase {
       'view test entity' => TRUE,
     ]);
     $this->drupalGet('entity_test/' . $this->entity->id());
-    $this->assertNoPattern('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
+    $this->assertSession()->responseNotMatches('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
     $this->assertFieldByName('subject[0][value]', '', 'Subject field found.');
     $this->assertFieldByName('comment_body[0][value]', '', 'Comment field found.');
 
@@ -396,14 +396,14 @@ class CommentNonNodeTest extends BrowserTestBase {
     // Test comment option change in field settings.
     $edit = [
       'default_value_input[comment][0][status]' => CommentItemInterface::CLOSED,
-      'settings[anonymous]' => COMMENT_ANONYMOUS_MAY_CONTACT,
+      'settings[anonymous]' => CommentInterface::ANONYMOUS_MAY_CONTACT,
     ];
     $this->drupalPostForm(NULL, $edit, t('Save settings'));
     $this->drupalGet('entity_test/structure/entity_test/fields/entity_test.entity_test.comment');
     $this->assertNoFieldChecked('edit-default-value-input-comment-0-status-0');
     $this->assertFieldChecked('edit-default-value-input-comment-0-status-1');
     $this->assertNoFieldChecked('edit-default-value-input-comment-0-status-2');
-    $this->assertFieldByName('settings[anonymous]', COMMENT_ANONYMOUS_MAY_CONTACT);
+    $this->assertFieldByName('settings[anonymous]', CommentInterface::ANONYMOUS_MAY_CONTACT);
 
     // Add a new comment-type.
     $bundle = CommentType::create([

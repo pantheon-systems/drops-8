@@ -3,7 +3,7 @@
 namespace Drupal\user\ContextProvider;
 
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\Context\ContextProviderInterface;
 use Drupal\Core\Plugin\Context\EntityContext;
 use Drupal\Core\Session\AccountInterface;
@@ -35,12 +35,12 @@ class CurrentUserContext implements ContextProviderInterface {
    *
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The current user.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    */
-  public function __construct(AccountInterface $account, EntityManagerInterface $entity_manager) {
+  public function __construct(AccountInterface $account, EntityTypeManagerInterface $entity_type_manager) {
     $this->account = $account;
-    $this->userStorage = $entity_manager->getStorage('user');
+    $this->userStorage = $entity_type_manager->getStorage('user');
   }
 
   /**
@@ -53,9 +53,14 @@ class CurrentUserContext implements ContextProviderInterface {
       // @todo Do not validate protected fields to avoid bug in TypedData,
       //   remove this in https://www.drupal.org/project/drupal/issues/2934192.
       $current_user->_skipProtectedUserFieldConstraint = TRUE;
+
+      $context = EntityContext::fromEntity($current_user, $this->t('Current user'));
+    }
+    else {
+      // If not user is available, provide an empty context object.
+      $context = EntityContext::fromEntityTypeId('user', $this->t('Current user'));
     }
 
-    $context = EntityContext::fromEntity($current_user, $this->t('Current user'));
     $cacheability = new CacheableMetadata();
     $cacheability->setCacheContexts(['user']);
     $context->addCacheableDependency($cacheability);

@@ -105,7 +105,7 @@ class DebugHandlersListener implements EventSubscriberInterface
                 if (method_exists($kernel = $event->getKernel(), 'terminateWithException')) {
                     $request = $event->getRequest();
                     $hasRun = &$this->hasTerminatedWithException;
-                    $this->exceptionHandler = function (\Exception $e) use ($kernel, $request, &$hasRun) {
+                    $this->exceptionHandler = static function (\Exception $e) use ($kernel, $request, &$hasRun) {
                         if ($hasRun) {
                             throw $e;
                         }
@@ -145,10 +145,10 @@ class DebugHandlersListener implements EventSubscriberInterface
 
     public static function getSubscribedEvents()
     {
-        $events = array(KernelEvents::REQUEST => array('configure', 2048));
+        $events = [KernelEvents::REQUEST => ['configure', 2048]];
 
         if ('cli' === \PHP_SAPI && \defined('Symfony\Component\Console\ConsoleEvents::COMMAND')) {
-            $events[ConsoleEvents::COMMAND] = array('configure', 2048);
+            $events[ConsoleEvents::COMMAND] = ['configure', 2048];
         }
 
         return $events;

@@ -87,6 +87,7 @@ class ViewEditForm extends ViewFormBase {
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state) {
+    /** @var \Drupal\views_ui\ViewUI $view */
     $view = $this->entity;
     $display_id = $this->displayID;
     // Do not allow the form to be cached, because $form_state->get('view') can become
@@ -127,20 +128,16 @@ class ViewEditForm extends ViewFormBase {
     $form['#attributes']['class'] = ['form-edit'];
 
     if ($view->isLocked()) {
-      $username = [
-        '#theme' => 'username',
-        '#account' => $this->entityManager->getStorage('user')->load($view->lock->owner),
-      ];
-      $lock_message_substitutions = [
-        '@user' => \Drupal::service('renderer')->render($username),
-        '@age' => $this->dateFormatter->formatTimeDiffSince($view->lock->updated),
-        ':url' => $view->url('break-lock-form'),
-      ];
       $form['locked'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['view-locked', 'messages', 'messages--warning']],
-        '#children' => $this->t('This view is being edited by user @user, and is therefore locked from editing by others. This lock is @age old. Click here to <a href=":url">break this lock</a>.', $lock_message_substitutions),
         '#weight' => -10,
+        'message' => [
+          '#type' => 'break_lock_link',
+          '#label' => $view->getEntityType()->getSingularLabel(),
+          '#lock' => $view->getLock(),
+          '#url' => $view->toUrl('break-lock-form'),
+        ],
       ];
     }
     else {
@@ -343,7 +340,7 @@ class ViewEditForm extends ViewFormBase {
     // Remove this view from cache so edits will be lost.
     $view = $this->entity;
     $this->tempStore->delete($view->id());
-    $form_state->setRedirectUrl($this->entity->urlInfo('collection'));
+    $form_state->setRedirectUrl($this->entity->toUrl('collection'));
   }
 
   /**
@@ -662,7 +659,7 @@ class ViewEditForm extends ViewFormBase {
 
     // Redirect to the top-level edit page. The first remaining display will
     // become the active display.
-    $form_state->setRedirectUrl($view->urlInfo('edit-form'));
+    $form_state->setRedirectUrl($view->toUrl('edit-form'));
   }
 
   /**
@@ -718,7 +715,7 @@ class ViewEditForm extends ViewFormBase {
         ],
         'duplicate' => [
           'title' => $this->t('Duplicate view'),
-          'url' => $view->urlInfo('duplicate-form'),
+          'url' => $view->toUrl('duplicate-form'),
         ],
         'reorder' => [
           'title' => $this->t('Reorder displays'),
@@ -731,7 +728,7 @@ class ViewEditForm extends ViewFormBase {
     if ($view->access('delete')) {
       $element['extra_actions']['#links']['delete'] = [
         'title' => $this->t('Delete view'),
-        'url' => $view->urlInfo('delete-form'),
+        'url' => $view->toUrl('delete-form'),
       ];
     }
 
@@ -743,13 +740,13 @@ class ViewEditForm extends ViewFormBase {
         $element['extra_actions']['#links']['revert'] = [
           'title' => $this->t('Revert view'),
           'href' => "admin/structure/views/view/{$view->id()}/revert",
-          'query' => ['destination' => $view->url('edit-form')],
+          'query' => ['destination' => $view->toUrl('edit-form')->toString()],
         ];
       }
       else {
         $element['extra_actions']['#links']['delete'] = [
           'title' => $this->t('Delete view'),
-          'url' => $view->urlInfo('delete-form'),
+          'url' => $view->toUrl('delete-form'),
         ];
       }
     }

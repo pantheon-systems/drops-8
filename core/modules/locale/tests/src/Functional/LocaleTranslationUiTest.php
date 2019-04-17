@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\locale\Functional;
 
+use Drupal\Core\Database\Database;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Core\Language\LanguageInterface;
@@ -232,7 +233,7 @@ class LocaleTranslationUiTest extends BrowserTestBase {
 
     // Retrieve the source string of the first string available in the
     // {locales_source} table and translate it.
-    $query = db_select('locales_source', 's');
+    $query = Database::getConnection()->select('locales_source', 's');
     $query->addJoin('INNER', 'locales_location', 'l', 's.lid = l.lid');
     $source = $query->fields('s', ['source'])
       ->condition('l.type', 'javascript')
@@ -262,7 +263,7 @@ class LocaleTranslationUiTest extends BrowserTestBase {
     $this->assertTrue($result = file_exists($js_file), new FormattableMarkup('JavaScript file created: %file', ['%file' => $result ? $js_file : 'not found']));
 
     // Test JavaScript translation rebuilding.
-    file_unmanaged_delete($js_file);
+    \Drupal::service('file_system')->delete($js_file);
     $this->assertTrue($result = !file_exists($js_file), new FormattableMarkup('JavaScript file deleted: %file', ['%file' => $result ? $js_file : 'found']));
     _locale_rebuild_js($langcode);
     $this->assertTrue($result = file_exists($js_file), new FormattableMarkup('JavaScript file rebuilt: %file', ['%file' => $result ? $js_file : 'not found']));

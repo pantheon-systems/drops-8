@@ -5,23 +5,24 @@
  * Configuration system that lets administrators modify the workings of the site.
  */
 
+use Drupal\Component\Gettext\PoItem;
+use Drupal\Core\Extension\Dependency;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Extension\Exception\UnknownExtensionException;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Queue\QueueGarbageCollectionInterface;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueDatabaseExpirableFactory;
 use Drupal\Core\PageCache\RequestPolicyInterface;
-use Drupal\Core\PhpStorage\PhpStorageFactory;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\StackedRouteMatchInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
-use Drupal\Core\Extension\ModuleHandler;
 use Drupal\Core\Url;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\user\UserInterface;
@@ -748,7 +749,7 @@ function system_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
     }
   }
   if (!isset($settings['pluralDelimiter'])) {
-    $settings['pluralDelimiter'] = LOCALE_PLURAL_DELIMITER;
+    $settings['pluralDelimiter'] = PoItem::DELIMITER;
   }
   // Add the theme token to ajaxPageState, ensuring the database is available
   // before doing so. Also add the loaded libraries to ajaxPageState.
@@ -837,10 +838,10 @@ function system_user_login(UserInterface $account) {
   if (!$account->getTimezone() && $config->get('timezone.user.configurable') && $config->get('timezone.user.warn')) {
     \Drupal::messenger()
       ->addStatus(t('Configure your <a href=":user-edit">account time zone setting</a>.', [
-        ':user-edit' => $account->url('edit-form', [
+        ':user-edit' => $account->toUrl('edit-form', [
           'query' => \Drupal::destination()->getAsArray(),
           'fragment' => 'edit-timezone',
-        ]),
+        ])->toString(),
       ]));
   }
 }
@@ -918,13 +919,15 @@ function system_check_directory($form_element, FormStateInterface $form_state) {
   }
 
   $logger = \Drupal::logger('file system');
-  if (!is_dir($directory) && !drupal_mkdir($directory, NULL, TRUE)) {
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  if (!is_dir($directory) && !$file_system->mkdir($directory, NULL, TRUE)) {
     // If the directory does not exist and cannot be created.
     $form_state->setErrorByName($form_element['#parents'][0], t('The directory %directory does not exist and could not be created.', ['%directory' => $directory]));
     $logger->error('The directory %directory does not exist and could not be created.', ['%directory' => $directory]);
   }
 
-  if (is_dir($directory) && !is_writable($directory) && !drupal_chmod($directory)) {
+  if (is_dir($directory) && !is_writable($directory) && !$file_system->chmod($directory)) {
     // If the directory is not writable and cannot be made so.
     $form_state->setErrorByName($form_element['#parents'][0], t('The directory %directory exists but is not writable and could not be made writable.', ['%directory' => $directory]));
     $logger->error('The directory %directory exists but is not writable and could not be made writable.', ['%directory' => $directory]);
@@ -963,38 +966,20 @@ function system_check_directory($form_element, FormStateInterface $form_state) {
  *   array is returned.
  *
  * @see system_rebuild_module_data()
- * @see \Drupal\Core\Extension\ThemeHandlerInterface::rebuildThemeData()
+ * @see \Drupal\Core\Extension\ThemeExtensionList
  */
 function system_get_info($type, $name = NULL) {
-  if ($type == 'module') {
-    /** @var \Drupal\Core\Extension\ModuleExtensionList $module_list */
-    $module_list = \Drupal::service('extension.list.module');
-    if (isset($name)) {
-      try {
-        return $module_list->getExtensionInfo($name);
-      }
-      catch (UnknownExtensionException $e) {
-        return [];
-      }
+  /** @var \Drupal\Core\Extension\ExtensionList $extension_list */
+  $extension_list = \Drupal::service('extension.list.' . $type);
+  if (isset($name)) {
+    try {
+      return $extension_list->getExtensionInfo($name);
     }
-    else {
-      return $module_list->getAllInstalledInfo();
+    catch (\InvalidArgumentException $e) {
+      return [];
     }
   }
-  else {
-    // @todo move into ThemeExtensionList https://www.drupal.org/node/2659940
-    $info = [];
-    $list = system_list($type);
-    foreach ($list as $shortname => $item) {
-      if (!empty($item->status)) {
-        $info[$shortname] = $item->info;
-      }
-    }
-    if (isset($name)) {
-      return isset($info[$name]) ? $info[$name] : [];
-    }
-    return $info;
-  }
+  return $extension_list->getAllInstalledInfo();
 }
 
 /**
@@ -1014,7 +999,7 @@ function _system_rebuild_module_data_ensure_required($module, &$modules) {
   @trigger_error("_system_rebuild_module_data_ensure_required() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. This function is no longer used in Drupal core. See https://www.drupal.org/node/2709919", E_USER_DEPRECATED);
   if (!empty($module->info['required'])) {
     foreach ($module->info['dependencies'] as $dependency) {
-      $dependency_name = ModuleHandler::parseDependency($dependency)['name'];
+      $dependency_name = Dependency::createFromString($dependency)->getName();
       if (!isset($modules[$dependency_name]->info['required'])) {
         $modules[$dependency_name]->info['required'] = TRUE;
         $modules[$dependency_name]->info['explanation'] = t('Dependency of required module @module', ['@module' => $module->info['name']]);
@@ -1254,10 +1239,6 @@ function system_cron() {
       $queue->garbageCollection();
     }
   }
-
-  // Clean up PHP storage.
-  PhpStorageFactory::get('container')->garbageCollection();
-  PhpStorageFactory::get('service_container')->garbageCollection();
 }
 
 /**
@@ -1353,15 +1334,17 @@ function system_time_zones($blank = NULL, $grouped = FALSE) {
  *     object which describes the file.
  *   - If it fails, FALSE.
  */
-function system_retrieve_file($url, $destination = NULL, $managed = FALSE, $replace = FILE_EXISTS_RENAME) {
+function system_retrieve_file($url, $destination = NULL, $managed = FALSE, $replace = FileSystemInterface::EXISTS_RENAME) {
   $parsed_url = parse_url($url);
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
   if (!isset($destination)) {
-    $path = file_build_uri(drupal_basename($parsed_url['path']));
+    $path = file_build_uri(\Drupal::service('file_system')->basename($parsed_url['path']));
   }
   else {
-    if (is_dir(\Drupal::service('file_system')->realpath($destination))) {
+    if (is_dir($file_system->realpath($destination))) {
       // Prevent URIs with triple slashes when glueing parts together.
-      $path = str_replace('///', '//', "$destination/") . drupal_basename($parsed_url['path']);
+      $path = str_replace('///', '//', "$destination/") . \Drupal::service('file_system')->basename($parsed_url['path']);
     }
     else {
       $path = $destination;
@@ -1371,10 +1354,14 @@ function system_retrieve_file($url, $destination = NULL, $managed = FALSE, $repl
     $data = (string) \Drupal::httpClient()
       ->get($url)
       ->getBody();
-    $local = $managed ? file_save_data($data, $path, $replace) : file_unmanaged_save_data($data, $path, $replace);
+    $local = $managed ? file_save_data($data, $path, $replace) : $file_system->saveData($data, $path, $replace);
   }
   catch (RequestException $exception) {
     \Drupal::messenger()->addError(t('Failed to fetch file due to error "%error"', ['%error' => $exception->getMessage()]));
+    return FALSE;
+  }
+  catch (FileException $e) {
+    \Drupal::messenger()->addError(t('Failed to save file due to error "%error"', ['%error' => $e->getMessage()]));
     return FALSE;
   }
   if (!$local) {

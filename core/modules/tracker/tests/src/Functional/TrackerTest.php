@@ -5,6 +5,7 @@ namespace Drupal\Tests\tracker\Functional;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Database\Database;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -199,7 +200,7 @@ class TrackerTest extends BrowserTestBase {
     $this->assertNoLink($unpublished->label());
     // Verify that title and tab title have been set correctly.
     $this->assertText('Activity', 'The user activity tab has the name "Activity".');
-    $this->assertTitle(t('@name | @site', ['@name' => $this->user->getUsername(), '@site' => $this->config('system.site')->get('name')]), 'The user tracker page has the correct page title.');
+    $this->assertTitle(t('@name | @site', ['@name' => $this->user->getAccountName(), '@site' => $this->config('system.site')->get('name')]), 'The user tracker page has the correct page title.');
 
     // Verify that unpublished comments are removed from the tracker.
     $admin_user = $this->drupalCreateUser(['post comments', 'administer comments', 'access user profiles']);
@@ -373,9 +374,10 @@ class TrackerTest extends BrowserTestBase {
     \Drupal::state()->set('tracker.index_nid', 4);
 
     // Clear the current tracker tables and rebuild them.
-    db_delete('tracker_node')
+    $connection = Database::getConnection();
+    $connection->delete('tracker_node')
       ->execute();
-    db_delete('tracker_user')
+    $connection->delete('tracker_user')
       ->execute();
     tracker_cron();
 

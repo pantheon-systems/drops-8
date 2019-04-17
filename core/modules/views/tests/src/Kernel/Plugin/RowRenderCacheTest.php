@@ -6,7 +6,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
-use Drupal\simpletest\UserCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
 use Drupal\views\Views;
 
@@ -167,7 +167,7 @@ class RowRenderCacheTest extends ViewsKernelTestBase {
       $counter_output = $view->style_plugin->getField($index, 'counter');
       $this->assertEqual($counter_output, $expected);
 
-      $node_url = $node->url();
+      $node_url = $node->toUrl()->toString();
       $expected = "<a href=\"$node_url\"><span class=\"da-title\">{$node->label()}</span> <span class=\"counter\">$counter_output</span></a>";
       $output = $view->style_plugin->getField($index, 'title');
       $this->assertEqual($output, $expected);
@@ -188,11 +188,10 @@ class RowRenderCacheTest extends ViewsKernelTestBase {
 
       if ($check_cache) {
         $keys = $cache_plugin->getRowCacheKeys($view->result[$index]);
-        $user_context = !$account->hasPermission('edit any test content') ? 'user' : 'user.permissions';
         $cache = [
           '#cache' => [
             'keys' => $keys,
-            'contexts' => ['languages:language_interface', 'theme', $user_context],
+            'contexts' => ['languages:language_interface', 'theme', 'user.permissions'],
           ],
         ];
         $element = $render_cache->get($cache);

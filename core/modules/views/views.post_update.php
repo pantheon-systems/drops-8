@@ -366,3 +366,26 @@ function views_post_update_table_display_cache_max_age(&$sandbox = NULL) {
     return FALSE;
   });
 }
+
+/**
+ * Update exposed filter blocks label display to be disabled.
+ */
+function views_post_update_exposed_filter_blocks_label_display(&$sandbox = NULL) {
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'block', function ($block) {
+    /** @var \Drupal\block\BlockInterface $block */
+    if (strpos($block->getPluginId(), 'views_exposed_filter_block:') === 0) {
+      $block->getPlugin()->setConfigurationValue('label_display', '0');
+      return TRUE;
+    }
+
+    return FALSE;
+  });
+}
+
+/**
+ * Rebuild cache to allow placeholder texts to be translatable.
+ */
+function views_post_update_make_placeholders_translatable() {
+  // Empty update to cause a cache rebuild to allow placeholder texts to be
+  // translatable.
+}

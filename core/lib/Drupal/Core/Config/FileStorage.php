@@ -4,6 +4,7 @@ namespace Drupal\Core\Config;
 
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Serialization\Exception\InvalidDataTypeException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Serialization\Yaml;
 
 /**
@@ -44,7 +45,6 @@ class FileStorage implements StorageInterface {
   public function __construct($directory, $collection = StorageInterface::DEFAULT_COLLECTION) {
     $this->directory = $directory;
     $this->collection = $collection;
-
     // Use a NULL File Cache backend by default. This will ensure only the
     // internal static caching of FileCache is used and thus avoids blowing up
     // the APCu cache.
@@ -76,7 +76,7 @@ class FileStorage implements StorageInterface {
    */
   protected function ensureStorage() {
     $dir = $this->getCollectionDirectory();
-    $success = file_prepare_directory($dir, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    $success = $this->getFileSystem()->prepareDirectory($dir, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
     // Only create .htaccess file in root directory.
     if ($dir == $this->directory) {
       $success = $success && file_save_htaccess($this->directory, TRUE, TRUE);
@@ -156,7 +156,7 @@ class FileStorage implements StorageInterface {
       throw new StorageException('Failed to write configuration file: ' . $this->getFilePath($name));
     }
     else {
-      drupal_chmod($target);
+      $this->getFileSystem()->chmod($target);
     }
 
     $this->fileCache->set($target, $data);
@@ -169,14 +169,10 @@ class FileStorage implements StorageInterface {
    */
   public function delete($name) {
     if (!$this->exists($name)) {
-      $dir = $this->getCollectionDirectory();
-      if (!file_exists($dir)) {
-        throw new StorageException($dir . '/ not found.');
-      }
       return FALSE;
     }
     $this->fileCache->delete($this->getFilePath($name));
-    return drupal_unlink($this->getFilePath($name));
+    return $this->getFileSystem()->unlink($this->getFilePath($name));
   }
 
   /**
@@ -185,7 +181,7 @@ class FileStorage implements StorageInterface {
   public function rename($name, $new_name) {
     $status = @rename($this->getFilePath($name), $this->getFilePath($new_name));
     if ($status === FALSE) {
-      throw new StorageException('Failed to rename configuration file from: ' . $this->getFilePath($name) . ' to: ' . $this->getFilePath($new_name));
+      return FALSE;
     }
     $this->fileCache->delete($this->getFilePath($name));
     $this->fileCache->delete($this->getFilePath($new_name));
@@ -242,8 +238,8 @@ class FileStorage implements StorageInterface {
    * {@inheritdoc}
    */
   public function deleteAll($prefix = '') {
-    $success = TRUE;
     $files = $this->listAll($prefix);
+    $success = !empty($files);
     foreach ($files as $name) {
       if (!$this->delete($name) && $success) {
         $success = FALSE;
@@ -252,7 +248,7 @@ class FileStorage implements StorageInterface {
     if ($success && $this->collection != StorageInterface::DEFAULT_COLLECTION) {
       // Remove empty directories.
       if (!(new \FilesystemIterator($this->getCollectionDirectory()))->valid()) {
-        drupal_rmdir($this->getCollectionDirectory());
+        $this->getFileSystem()->rmdir($this->getCollectionDirectory());
       }
     }
     return $success;
@@ -360,6 +356,16 @@ class FileStorage implements StorageInterface {
       $dir = $this->directory . '/' . str_replace('.', '/', $this->collection);
     }
     return $dir;
+  }
+
+  /**
+   * Returns file system service.
+   *
+   * @return \Drupal\Core\File\FileSystemInterface
+   *   The file system service.
+   */
+  private function getFileSystem() {
+    return \Drupal::service('file_system');
   }
 
 }

@@ -4,8 +4,10 @@ namespace Drupal\Tests\Core\Plugin;
 
 use Drupal\Component\Plugin\Definition\PluginDefinition;
 use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\Component\Plugin\Exception\PluginNotFoundException;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\Tests\UnitTestCase;
 
@@ -129,6 +131,16 @@ class DefaultPluginManagerTest extends UnitTestCase {
     $plugin_manager = new TestPluginManager($this->namespaces, $definitions, $module_handler, 'test_alter_hook', '\Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface');
 
     $this->assertEmpty($plugin_manager->getDefinition('cherry', FALSE), 'Plugin information is available');
+  }
+
+  /**
+   * Tests the plugin manager behavior for a missing plugin ID.
+   */
+  public function testGetDefinitionPluginNotFoundException() {
+    $plugin_manager = new TestPluginManager($this->namespaces, $this->expectedDefinitions);
+
+    $this->setExpectedException(PluginNotFoundException::class, 'The "missing" plugin does not exist. Valid plugin IDs for Drupal\Tests\Core\Plugin\TestPluginManager are: apple, banana');
+    $plugin_manager->getDefinition('missing');
   }
 
   /**
@@ -449,6 +461,35 @@ class DefaultPluginManagerTest extends UnitTestCase {
     $data['object_with_class_with_slashes'][] = (new PluginDefinition())->setClass('\Drupal\Tests\Core\Plugin\TestPluginForm');
     $data['object_with_class_with_slashes'][] = (new PluginDefinition())->setClass('Drupal\Tests\Core\Plugin\TestPluginForm');
     return $data;
+  }
+
+  /**
+   * @covers ::fixContextAwareDefinitions
+   *
+   * @group legacy
+   * @expectedDeprecation Providing context definitions via the "context" key is deprecated in Drupal 8.7.x and will be removed before Drupal 9.0.0. Use the "context_definitions" key instead.
+   */
+  public function testFixContextAwareDefinitions() {
+    $first_definition = new ContextDefinition('first');
+    $second_definition = new ContextDefinition('bar');
+
+    $definitions = $this->expectedDefinitions;
+    $definitions['apple']['context'] = ['incorrect' => $first_definition];
+    $definitions['apple']['context_definitions'] = ['correct' => $second_definition];
+
+    $expected = $this->expectedDefinitions;
+    $expected['apple']['context']['correct'] = $second_definition;
+    $expected['apple']['context']['incorrect'] = $first_definition;
+    $expected['apple']['context_definitions']['correct'] = $second_definition;
+    $expected['apple']['context_definitions']['incorrect'] = $first_definition;
+
+    $module_handler = $this->prophesize(ModuleHandlerInterface::class);
+    $plugin_manager = new TestPluginManager($this->namespaces, $definitions, $module_handler->reveal(), NULL);
+    $reflection = new \ReflectionMethod($plugin_manager, 'fixContextAwareDefinitions');
+    $reflection->setAccessible(TRUE);
+    $reflection->invokeArgs($plugin_manager, [&$definitions]);
+
+    $this->assertSame($expected, $definitions);
   }
 
 }

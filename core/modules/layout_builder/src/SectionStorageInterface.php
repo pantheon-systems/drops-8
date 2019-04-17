@@ -4,17 +4,15 @@ namespace Drupal\layout_builder;
 
 use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Access\AccessibleInterface;
+use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
+use Drupal\Core\Plugin\ContextAwarePluginInterface;
+use Drupal\Core\Session\AccountInterface;
 use Symfony\Component\Routing\RouteCollection;
 
 /**
  * Defines an interface for Section Storage type plugins.
- *
- * @internal
- *   Layout Builder is currently experimental and should only be leveraged by
- *   experimental modules and development releases of contributed modules.
- *   See https://www.drupal.org/core/experimental for more information.
  */
-interface SectionStorageInterface extends SectionListInterface, PluginInspectionInterface, AccessibleInterface {
+interface SectionStorageInterface extends SectionListInterface, PluginInspectionInterface, ContextAwarePluginInterface, AccessibleInterface {
 
   /**
    * Returns an identifier for this storage.
@@ -35,19 +33,6 @@ interface SectionStorageInterface extends SectionListInterface, PluginInspection
   public function getStorageType();
 
   /**
-   * Sets the section list on the storage.
-   *
-   * @param \Drupal\layout_builder\SectionListInterface $section_list
-   *   The section list.
-   *
-   * @return $this
-   *
-   * @internal
-   *   This should only be called during section storage instantiation.
-   */
-  public function setSectionList(SectionListInterface $section_list);
-
-  /**
    * Derives the section list from the storage ID.
    *
    * @param string $id
@@ -61,6 +46,10 @@ interface SectionStorageInterface extends SectionListInterface, PluginInspection
    *
    * @internal
    *   This should only be called during section storage instantiation.
+   *
+   * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. The
+   *   section list should be derived from context. See
+   *   https://www.drupal.org/node/3016262.
    */
   public function getSectionListFromId($id);
 
@@ -115,16 +104,45 @@ interface SectionStorageInterface extends SectionListInterface, PluginInspection
    *
    * @internal
    *   This should only be called during section storage instantiation.
+   *
+   * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0.
+   *   \Drupal\layout_builder\SectionStorageInterface::deriveContextsFromRoute()
+   *   should be used instead. See https://www.drupal.org/node/3016262.
    */
   public function extractIdFromRoute($value, $definition, $name, array $defaults);
 
   /**
-   * Provides any available contexts for the object using the sections.
+   * Derives the available plugin contexts from route values.
+   *
+   * This should only be called during section storage instantiation,
+   * specifically for use by the routing system. For all non-routing usages, use
+   * \Drupal\Component\Plugin\ContextAwarePluginInterface::getContextValue().
+   *
+   * @param mixed $value
+   *   The raw value.
+   * @param mixed $definition
+   *   The parameter definition provided in the route options.
+   * @param string $name
+   *   The name of the parameter.
+   * @param array $defaults
+   *   The route defaults array.
    *
    * @return \Drupal\Core\Plugin\Context\ContextInterface[]
-   *   The array of context objects.
+   *   The available plugin contexts.
+   *
+   * @see \Drupal\Core\ParamConverter\ParamConverterInterface::convert()
    */
-  public function getContexts();
+  public function deriveContextsFromRoute($value, $definition, $name, array $defaults);
+
+  /**
+   * Gets contexts for use during preview.
+   *
+   * When not in preview, ::getContexts() will be used.
+   *
+   * @return \Drupal\Core\Plugin\Context\ContextInterface[]
+   *   The plugin contexts suitable for previewing.
+   */
+  public function getContextsDuringPreview();
 
   /**
    * Gets the label for the object using the sections.
@@ -142,5 +160,39 @@ interface SectionStorageInterface extends SectionListInterface, PluginInspection
    *   performed.
    */
   public function save();
+
+  /**
+   * Determines if this section storage is applicable for the current contexts.
+   *
+   * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface $cacheability
+   *   Refinable cacheability object, typically provided by the section storage
+   *   manager. When implementing this method, populate $cacheability with any
+   *   information that affects whether this storage is applicable.
+   *
+   * @return bool
+   *   TRUE if this section storage is applicable, FALSE otherwise.
+   *
+   * @internal
+   *   This method is intended to be called by
+   *   \Drupal\layout_builder\SectionStorage\SectionStorageManagerInterface::findByContext().
+   *
+   * @see \Drupal\Core\Cache\RefinableCacheableDependencyInterface
+   */
+  public function isApplicable(RefinableCacheableDependencyInterface $cacheability);
+
+  /**
+   * Overrides \Drupal\Component\Plugin\PluginInspectionInterface::getPluginDefinition().
+   *
+   * @return \Drupal\layout_builder\SectionStorage\SectionStorageDefinition
+   *   The section storage definition.
+   */
+  public function getPluginDefinition();
+
+  /**
+   * Overrides \Drupal\Core\Access\AccessibleInterface::access().
+   *
+   * @ingroup layout_builder_access
+   */
+  public function access($operation, AccountInterface $account = NULL, $return_as_object = FALSE);
 
 }

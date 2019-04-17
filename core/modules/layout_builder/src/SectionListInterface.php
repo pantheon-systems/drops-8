@@ -5,11 +5,6 @@ namespace Drupal\layout_builder;
 /**
  * Defines the interface for an object that stores layout sections.
  *
- * @internal
- *   Layout Builder is currently experimental and should only be leveraged by
- *   experimental modules and development releases of contributed modules.
- *   See https://www.drupal.org/core/experimental for more information.
- *
  * @see \Drupal\layout_builder\Section
  */
 interface SectionListInterface extends \Countable {
@@ -70,5 +65,20 @@ interface SectionListInterface extends \Countable {
    * @return $this
    */
   public function removeSection($delta);
+
+  /**
+   * Removes all of the sections.
+   *
+   * @param bool $set_blank
+   *   (optional) The default implementation of section lists differentiates
+   *   between a list that has never contained any sections and a list that has
+   *   purposefully had all sections removed in order to remain blank. Passing
+   *   TRUE will mirror ::removeSection() by tracking this as a blank list.
+   *   Passing FALSE will reset the list as though it had never contained any
+   *   sections at all. Defaults to FALSE.
+   *
+   * @return $this
+   */
+  public function removeAllSections($set_blank = FALSE);
 
 }

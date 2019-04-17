@@ -134,7 +134,7 @@ function node_install() {
   }
 
   // Populate the node access table.
-  db_insert('node_access')
+  Database::getConnection()->insert('node_access')
     ->fields([
       'nid' => 0,
       'gid' => 0,
@@ -266,4 +266,17 @@ function node_update_8401() {
   if (count($modules) > 0 && \Drupal::languageManager()->isMultilingual()) {
     node_access_needs_rebuild(TRUE);
   }
+}
+
+/**
+ * Set the 'owner' entity key and update the field.
+ */
+function node_update_8700() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $definition_update_manager->getEntityType('node');
+  $keys = $entity_type->getKeys();
+  $keys['owner'] = 'uid';
+  $entity_type->set('entity_keys', $keys);
+  $definition_update_manager->updateEntityType($entity_type);
+  $definition_update_manager->updateFieldStorageDefinition($definition_update_manager->getFieldStorageDefinition('uid', 'node'));
 }

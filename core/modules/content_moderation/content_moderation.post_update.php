@@ -5,7 +5,10 @@
  * Post update functions for the Content Moderation module.
  */
 
+use Drupal\Core\Config\Entity\ConfigEntityUpdater;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Site\Settings;
+use Drupal\views\Entity\View;
 use Drupal\workflows\Entity\Workflow;
 
 /**
@@ -93,4 +96,77 @@ function content_moderation_post_update_update_cms_default_revisions(&$sandbox) 
   $storage->resetCache($entity_ids);
 
   $sandbox['offset'] += $sandbox['limit'];
+}
+
+/**
+ * Set the default moderation state for new content to 'draft'.
+ */
+function content_moderation_post_update_set_default_moderation_state(&$sandbox) {
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'workflow', function (Workflow $workflow) {
+    if ($workflow->get('type') === 'content_moderation') {
+      $configuration = $workflow->getTypePlugin()->getConfiguration();
+      $configuration['default_moderation_state'] = 'draft';
+      $workflow->getTypePlugin()->setConfiguration($configuration);
+      return TRUE;
+    }
+    return FALSE;
+  });
+}
+
+/**
+ * Set the filter on the moderation view to be the latest translation affected.
+ */
+function content_moderation_post_update_set_views_filter_latest_translation_affected_revision(&$sandbox) {
+  $original_plugin_name = 'latest_revision';
+  $new_plugin_name = 'latest_translation_affected_revision';
+
+  // Check that views is installed and the moderated content view exists.
+  if (\Drupal::moduleHandler()->moduleExists('views') && $view = View::load('moderated_content')) {
+    $display = &$view->getDisplay('default');
+    if (!isset($display['display_options']['filters'][$original_plugin_name])) {
+      return;
+    }
+
+    $translation_affected_filter = [
+      'id' => $new_plugin_name,
+      'field' => $new_plugin_name,
+      'plugin_id' => $new_plugin_name,
+    ] + $display['display_options']['filters'][$original_plugin_name];
+
+    $display['display_options']['filters'] = [$new_plugin_name => $translation_affected_filter] + $display['display_options']['filters'];
+    unset($display['display_options']['filters'][$original_plugin_name]);
+
+    $view->save();
+  }
+}
+
+/**
+ * Update the dependencies of entity displays to include associated workflow.
+ */
+function content_moderation_post_update_entity_display_dependencies(&$sandbox) {
+  /** @var \Drupal\content_moderation\ModerationInformationInterface $moderation_info */
+  $moderation_info = \Drupal::service('content_moderation.moderation_information');
+  /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager */
+  $entity_type_manager = \Drupal::service('entity_type.manager');
+
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'entity_form_display', function (EntityFormDisplay $entity_form_display) use ($moderation_info, $entity_type_manager) {
+    $associated_entity_type = $entity_type_manager->getDefinition($entity_form_display->getTargetEntityTypeId());
+
+    if ($moderation_info->isModeratedEntityType($associated_entity_type)) {
+      $entity_form_display->calculateDependencies();
+      return TRUE;
+    }
+    elseif ($moderation_state_component = $entity_form_display->getComponent('moderation_state')) {
+      // Remove the component from the entity form display, then manually delete
+      // it from the hidden components list, completely purging it.
+      $entity_form_display->removeComponent('moderation_state');
+      $hidden_components = $entity_form_display->get('hidden');
+      unset($hidden_components['moderation_state']);
+      $entity_form_display->set('hidden', $hidden_components);
+      $entity_form_display->calculateDependencies();
+      return TRUE;
+    }
+
+    return FALSE;
+  });
 }

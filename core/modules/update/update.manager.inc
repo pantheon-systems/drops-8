@@ -36,6 +36,7 @@
  * root.
  */
 
+use Drupal\Core\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -165,7 +166,12 @@ function update_manager_archive_extract($file, $directory) {
 
   $extract_location = $directory . '/' . $project;
   if (file_exists($extract_location)) {
-    file_unmanaged_delete_recursive($extract_location);
+    try {
+      \Drupal::service('file_system')->deleteRecursive($extract_location);
+    }
+    catch (FileException $e) {
+      // Ignore failed deletes.
+    }
   }
 
   $archiver->extract($directory);
@@ -213,7 +219,7 @@ function update_manager_file_get($url) {
 
   // Check the cache and download the file if needed.
   $cache_directory = _update_manager_cache_directory();
-  $local = $cache_directory . '/' . drupal_basename($parsed_url['path']);
+  $local = $cache_directory . '/' . \Drupal::service('file_system')->basename($parsed_url['path']);
 
   if (!file_exists($local) || update_delete_file_if_stale($local)) {
     return system_retrieve_file($url, $local, FALSE, FILE_EXISTS_REPLACE);
@@ -305,7 +311,7 @@ function update_manager_local_transfers_allowed() {
   // Compare the owner of a webserver-created temporary file to the owner of
   // the configuration directory to determine if local transfers will be
   // allowed.
-  $temporary_file = drupal_tempnam('temporary://', 'update_');
+  $temporary_file = \Drupal::service('file_system')->tempnam('temporary://', 'update_');
   $site_path = \Drupal::service('site.path');
   $local_transfers_allowed = fileowner($temporary_file) === fileowner($site_path);
 

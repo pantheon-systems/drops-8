@@ -6,6 +6,7 @@ use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Cache\MemoryCache\MemoryCacheInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -25,6 +26,13 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
   protected $moduleHandler;
 
   /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $connection;
+
+  /**
    * Constructs a ShortcutSetStorageController object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_info
@@ -39,11 +47,14 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
    *   The language manager.
    * @param \Drupal\Core\Cache\MemoryCache\MemoryCacheInterface $memory_cache
    *   The memory cache.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection.
    */
-  public function __construct(EntityTypeInterface $entity_info, ConfigFactoryInterface $config_factory, UuidInterface $uuid_service, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager, MemoryCacheInterface $memory_cache) {
+  public function __construct(EntityTypeInterface $entity_info, ConfigFactoryInterface $config_factory, UuidInterface $uuid_service, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager, MemoryCacheInterface $memory_cache, Connection $connection) {
     parent::__construct($entity_info, $config_factory, $uuid_service, $language_manager, $memory_cache);
 
     $this->moduleHandler = $module_handler;
+    $this->connection = $connection;
   }
 
   /**
@@ -56,7 +67,8 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
       $container->get('uuid'),
       $container->get('module_handler'),
       $container->get('language_manager'),
-      $container->get('entity.memory_cache')
+      $container->get('entity.memory_cache'),
+      $container->get('database')
     );
   }
 
@@ -66,7 +78,7 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
   public function deleteAssignedShortcutSets(ShortcutSetInterface $entity) {
     // First, delete any user assignments for this set, so that each of these
     // users will go back to using whatever default set applies.
-    db_delete('shortcut_set_users')
+    $this->connection->delete('shortcut_set_users')
       ->condition('set_name', $entity->id())
       ->execute();
   }
@@ -75,7 +87,7 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
    * {@inheritdoc}
    */
   public function assignUser(ShortcutSetInterface $shortcut_set, $account) {
-    db_merge('shortcut_set_users')
+    $this->connection->merge('shortcut_set_users')
       ->key('uid', $account->id())
       ->fields(['set_name' => $shortcut_set->id()])
       ->execute();
@@ -86,7 +98,7 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
    * {@inheritdoc}
    */
   public function unassignUser($account) {
-    $deleted = db_delete('shortcut_set_users')
+    $deleted = $this->connection->delete('shortcut_set_users')
       ->condition('uid', $account->id())
       ->execute();
     return (bool) $deleted;
@@ -96,7 +108,7 @@ class ShortcutSetStorage extends ConfigEntityStorage implements ShortcutSetStora
    * {@inheritdoc}
    */
   public function getAssignedToUser($account) {
-    $query = db_select('shortcut_set_users', 'ssu');
+    $query = $this->connection->select('shortcut_set_users', 'ssu');
     $query->fields('ssu', ['set_name']);
     $query->condition('ssu.uid', $account->id());
     return $query->execute()->fetchField();

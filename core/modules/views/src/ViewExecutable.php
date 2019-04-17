@@ -925,7 +925,7 @@ class ViewExecutable {
     if (!isset($this->pager)) {
       $this->pager = $this->display_handler->getPlugin('pager');
 
-      if ($this->pager->usePager()) {
+      if ($this->usePager()) {
         $this->pager->setCurrentPage($this->current_page);
       }
 
@@ -951,7 +951,7 @@ class ViewExecutable {
    *   The render array of the pager if it's set, blank string otherwise.
    */
   public function renderPager($exposed_input) {
-    if (!empty($this->pager) && $this->pager->usePager()) {
+    if ($this->usePager()) {
       return $this->pager->render($exposed_input);
     }
 
@@ -1417,7 +1417,7 @@ class ViewExecutable {
     }
 
     if ($cache->cacheGet('results')) {
-      if ($this->pager->usePager()) {
+      if ($this->usePager()) {
         $this->pager->total_items = $this->total_rows;
         $this->pager->updatePageInfo();
       }
@@ -1470,7 +1470,7 @@ class ViewExecutable {
     // @TODO In the longrun, it would be great to execute a view without
     //   the theme system at all. See https://www.drupal.org/node/2322623.
     $active_theme = \Drupal::theme()->getActiveTheme();
-    $themes = array_keys($active_theme->getBaseThemes());
+    $themes = array_keys($active_theme->getBaseThemeExtensions());
     $themes[] = $active_theme->getName();
 
     // Check for already-cached output.

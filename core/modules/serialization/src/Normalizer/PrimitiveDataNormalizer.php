@@ -13,9 +13,7 @@ class PrimitiveDataNormalizer extends NormalizerBase {
   use SerializedColumnNormalizerTrait;
 
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
+   * {@inheritdoc}
    */
   protected $supportedInterfaceOrClass = PrimitiveInterface::class;
 

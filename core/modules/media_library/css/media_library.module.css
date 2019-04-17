@@ -2,12 +2,29 @@
 * @file media_library.module.css
 */
 
+.media-library-wrapper {
+  display: flex;
+}
+
+.media-library-menu {
+  margin: 0;
+  padding: 0;
+}
+
+/* @todo Use a class instead of the li element.
+     https://www.drupal.org/project/drupal/issues/3029227 */
+.media-library-menu li {
+  padding: 0;
+  list-style: none;
+}
+
 .media-library-views-form > .form-actions {
   flex-basis: 100%;
 }
 
 .media-library-views-form,
 .media-library-selection,
+.media-library-add-form__selected-media .details-wrapper,
 .media-library-views-form__bulk_form,
 .media-library-view .form--inline {
   display: flex;
@@ -33,10 +50,10 @@
 
 .media-library-item .js-click-to-select-checkbox {
   position: absolute;
-  display: block;
   z-index: 1;
   top: 5px;
   right: 0;
+  display: block;
 }
 
 .media-library-item__status {
@@ -51,7 +68,7 @@
   width: 100%;
 }
 
-.media-library-view.view-display-id-widget .media-library-select-all {
+.media-library-view--widget .media-library-select-all {
   display: none;
 }
 
@@ -65,8 +82,18 @@
 
 /* @todo Remove or re-work in https://www.drupal.org/node/2985168 */
 .media-library-widget .media-library-item__name a,
-.media-library-view.view-display-id-widget .media-library-item__name a {
+.media-library-view--widget .media-library-item__name a,
+.media-library-add-form__selected-media .media-library-item__name a {
   pointer-events: none;
+}
+
+.media-library-widget-modal .ui-dialog-buttonpane {
+  display: flex;
+  align-items: center;
+}
+
+.media-library-widget-modal .ui-dialog-buttonpane .form-actions {
+  flex: 1;
 }
 
 @media screen and (max-width: 600px) {

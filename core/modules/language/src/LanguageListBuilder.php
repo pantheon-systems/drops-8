@@ -51,7 +51,7 @@ class LanguageListBuilder extends DraggableListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager')->getStorage($entity_type->id()),
+      $container->get('entity_type.manager')->getStorage($entity_type->id()),
       $container->get('language_manager'),
       $container->get('config.factory'),
       $container->get('messenger')
@@ -169,7 +169,7 @@ class LanguageListBuilder extends DraggableListBuilder {
     $this->messenger->addStatus($this->t('Configuration saved.'));
     // Force the redirection to the page with the language we have just
     // selected as default.
-    $form_state->setRedirectUrl($this->entities[$new_id]->urlInfo('collection', ['language' => $this->entities[$new_id]]));
+    $form_state->setRedirectUrl($this->entities[$new_id]->toUrl('collection', ['language' => $this->entities[$new_id]]));
   }
 
 }
