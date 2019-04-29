@@ -3,8 +3,12 @@
 namespace Drupal\hal\Normalizer;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityTypeRepositoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\TypedData\TypedDataInternalPropertiesHelper;
 use Drupal\hal\LinkManager\LinkManagerInterface;
@@ -15,15 +19,18 @@ use Symfony\Component\Serializer\Exception\UnexpectedValueException;
  * Converts the Drupal entity object structure to a HAL array structure.
  */
 class ContentEntityNormalizer extends NormalizerBase {
-
   use FieldableEntityNormalizerTrait;
+  use DeprecatedServicePropertyTrait;
 
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
+   * {@inheritdoc}
    */
-  protected $supportedInterfaceOrClass = 'Drupal\Core\Entity\ContentEntityInterface';
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $supportedInterfaceOrClass = ContentEntityInterface::class;
 
   /**
    * The hypermedia link manager.
@@ -44,11 +51,30 @@ class ContentEntityNormalizer extends NormalizerBase {
    *
    * @param \Drupal\hal\LinkManager\LinkManagerInterface $link_manager
    *   The hypermedia link manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   The module handler.
+   * @param \Drupal\Core\Entity\EntityTypeRepositoryInterface $entity_type_repository
+   *   The entity type repository.
+   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   *   The entity field manager.
    */
-  public function __construct(LinkManagerInterface $link_manager, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler) {
+  public function __construct(LinkManagerInterface $link_manager, EntityTypeManagerInterface $entity_type_manager, ModuleHandlerInterface $module_handler, EntityTypeRepositoryInterface $entity_type_repository = NULL, EntityFieldManagerInterface $entity_field_manager = NULL) {
     $this->linkManager = $link_manager;
-    $this->entityManager = $entity_manager;
+    $this->entityTypeManager = $entity_type_manager;
     $this->moduleHandler = $module_handler;
+    $this->entityTypeRepository = $entity_type_repository;
+    if (!$entity_type_repository) {
+      @trigger_error('The entity_type.repository service must be passed to ContentEntityNormalizer::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
+      $entity_type_repository = \Drupal::service('entity_type.repository');
+    }
+    $this->entityTypeRepository = $entity_type_repository;
+    if (!$entity_field_manager) {
+      @trigger_error('The entity_field.manager service must be passed to ContentEntityNormalizer::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
+      $entity_field_manager = \Drupal::service('entity_field.manager');
+    }
+    $this->entityFieldManager = $entity_field_manager;
   }
 
   /**
@@ -145,7 +171,7 @@ class ContentEntityNormalizer extends NormalizerBase {
       unset($data[$bundle_key]);
     }
 
-    $entity = $this->entityManager->getStorage($typed_data_ids['entity_type'])->create($values);
+    $entity = $this->entityTypeManager->getStorage($typed_data_ids['entity_type'])->create($values);
 
     // Remove links from data array.
     unset($data['_links']);
@@ -179,17 +205,24 @@ class ContentEntityNormalizer extends NormalizerBase {
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity.
+   * @param array $context
+   *   Normalization/serialization context.
+   *
    * @return string
    *   The entity URI.
    */
-  protected function getEntityUri(EntityInterface $entity) {
-    // Some entity types don't provide a canonical link template, at least call
-    // out to ->url().
+  protected function getEntityUri(EntityInterface $entity, array $context = []) {
+    // Some entity types don't provide a canonical link template.
     if ($entity->isNew() || !$entity->hasLinkTemplate('canonical')) {
-      return $entity->url('canonical', []);
+      return '';
     }
-    $url = $entity->urlInfo('canonical', ['absolute' => TRUE]);
-    return $url->setRouteParameter('_format', 'hal_json')->toString();
+    $url = $entity->toUrl('canonical', ['absolute' => TRUE]);
+    if (!$url->isExternal()) {
+      $url->setRouteParameter('_format', 'hal_json');
+    }
+    $generated_url = $url->toString(TRUE);
+    $this->addCacheableDependency($context, $generated_url);
+    return $generated_url->getGeneratedUrl();
   }
 
   /**

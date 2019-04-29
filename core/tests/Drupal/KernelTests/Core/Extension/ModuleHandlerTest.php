@@ -15,6 +15,8 @@ class ModuleHandlerTest extends KernelTestBase {
    * Tests requesting the name of an invalid module.
    *
    * @covers ::getName
+   * @group legacy
+   * @expectedDeprecation Calling ModuleHandler::getName() with an unknown module is deprecated in Drupal 8.7.0 and support for this will be removed in Drupal 9.0.0, check that the module exists before calling this method. See https://www.drupal.org/node/3024541.
    */
   public function testInvalidGetName() {
     $module_handler = $this->container->get('module_handler');

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\node\Functional;
 
+use Drupal\Core\Database\Database;
 use Drupal\user\RoleInterface;
 
 /**
@@ -66,17 +67,18 @@ class NodeAdminTest extends NodeTestBase {
     $this->drupalLogin($this->adminUser);
 
     $changed = REQUEST_TIME;
+    $connection = Database::getConnection();
     foreach (['dd', 'aa', 'DD', 'bb', 'cc', 'CC', 'AA', 'BB'] as $prefix) {
       $changed += 1000;
       $node = $this->drupalCreateNode(['title' => $prefix . $this->randomMachineName(6)]);
-      db_update('node_field_data')
+      $connection->update('node_field_data')
         ->fields(['changed' => $changed])
         ->condition('nid', $node->id())
         ->execute();
     }
 
     // Test that the default sort by node.changed DESC actually fires properly.
-    $nodes_query = db_select('node_field_data', 'n')
+    $nodes_query = $connection->select('node_field_data', 'n')
       ->fields('n', ['title'])
       ->orderBy('changed', 'DESC')
       ->execute()
@@ -90,7 +92,7 @@ class NodeAdminTest extends NodeTestBase {
 
     // Compare the rendered HTML node list to a query for the nodes ordered by
     // title to account for possible database-dependent sort order.
-    $nodes_query = db_select('node_field_data', 'n')
+    $nodes_query = $connection->select('node_field_data', 'n')
       ->fields('n', ['title'])
       ->orderBy('title')
       ->execute()

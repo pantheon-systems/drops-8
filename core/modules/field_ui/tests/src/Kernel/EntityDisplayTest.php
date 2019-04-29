@@ -32,6 +32,7 @@ class EntityDisplayTest extends KernelTestBase {
 
   protected function setUp() {
     parent::setUp();
+    $this->installEntitySchema('entity_test');
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installConfig(['field', 'node', 'user']);
@@ -496,17 +497,17 @@ class EntityDisplayTest extends KernelTestBase {
     $form_display_teaser->save();
 
     // Test getViewModeOptionsByBundle().
-    $view_modes = \Drupal::entityManager()->getViewModeOptionsByBundle('node', 'article');
+    $view_modes = \Drupal::service('entity_display.repository')->getViewModeOptionsByBundle('node', 'article');
     $this->assertEqual($view_modes, ['default' => 'Default']);
     $display_teaser->setStatus(TRUE)->save();
-    $view_modes = \Drupal::entityManager()->getViewModeOptionsByBundle('node', 'article');
+    $view_modes = \Drupal::service('entity_display.repository')->getViewModeOptionsByBundle('node', 'article');
     $this->assertEqual($view_modes, ['default' => 'Default', 'teaser' => 'Teaser']);
 
     // Test getFormModeOptionsByBundle().
-    $form_modes = \Drupal::entityManager()->getFormModeOptionsByBundle('user', 'user');
+    $form_modes = \Drupal::service('entity_display.repository')->getFormModeOptionsByBundle('user', 'user');
     $this->assertEqual($form_modes, ['default' => 'Default']);
     $form_display_teaser->setStatus(TRUE)->save();
-    $form_modes = \Drupal::entityManager()->getFormModeOptionsByBundle('user', 'user');
+    $form_modes = \Drupal::service('entity_display.repository')->getFormModeOptionsByBundle('user', 'user');
     $this->assertEqual($form_modes, ['default' => 'Default', 'register' => 'Register']);
   }
 

@@ -6,6 +6,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Database\StatementInterface;
 use Drupal\Core\Entity\EntityManagerInterface;
@@ -35,11 +36,18 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInterface, SearchIndexingInterface {
 
   /**
-   * A database connection object.
+   * The current database connection.
    *
    * @var \Drupal\Core\Database\Connection
    */
   protected $database;
+
+  /**
+   * The replica database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $databaseReplica;
 
   /**
    * An entity manager object.
@@ -137,7 +145,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       $container->get('language_manager'),
       $container->get('renderer'),
       $container->get('messenger'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('database.replica')
     );
   }
 
@@ -151,7 +160,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Database\Connection $database
-   *   A database connection object.
+   *   The current database connection.
    * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
    *   An entity manager object.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
@@ -166,9 +175,12 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *   The messenger.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The $account object to use for checking for access to advanced search.
+   * @param \Drupal\Core\Database\Connection|null $database_replica
+   *   (Optional) the replica database connection.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, LanguageManagerInterface $language_manager, RendererInterface $renderer, MessengerInterface $messenger, AccountInterface $account = NULL) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, LanguageManagerInterface $language_manager, RendererInterface $renderer, MessengerInterface $messenger, AccountInterface $account = NULL, Connection $database_replica = NULL) {
     $this->database = $database;
+    $this->databaseReplica = $database_replica ?: $database;
     $this->entityManager = $entity_manager;
     $this->moduleHandler = $module_handler;
     $this->searchSettings = $search_settings;
@@ -236,8 +248,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $keys = $this->keywords;
 
     // Build matching conditions.
-    $query = $this->database
-      ->select('search_index', 'i', ['target' => 'replica'])
+    $query = $this->databaseReplica
+      ->select('search_index', 'i')
       ->extend('Drupal\search\SearchQuery')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
     $query->join('node_field_data', 'n', 'n.nid = i.sid AND n.langcode = i.langcode');
@@ -350,14 +362,13 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
 
       $extra = $this->moduleHandler->invokeAll('node_search_result', [$node]);
 
-      $language = $this->languageManager->getLanguage($item->langcode);
       $username = [
         '#theme' => 'username',
         '#account' => $node->getOwner(),
       ];
 
       $result = [
-        'link' => $node->url('canonical', ['absolute' => TRUE, 'language' => $language]),
+        'link' => $node->toUrl('canonical', ['absolute' => TRUE])->toString(),
         'type' => $type->label(),
         'title' => $node->label(),
         'node' => $node,
@@ -438,7 +449,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     // per cron run.
     $limit = (int) $this->searchSettings->get('index.cron_limit');
 
-    $query = db_select('node', 'n', ['target' => 'replica']);
+    $query = $this->databaseReplica->select('node', 'n');
     $query->addField('n', 'nid');
     $query->leftJoin('search_dataset', 'sd', 'sd.sid = n.nid AND sd.type = :type', [':type' => $this->getPluginId()]);
     $query->addExpression('CASE MAX(sd.reindex) WHEN NULL THEN 0 ELSE 1 END', 'ex');

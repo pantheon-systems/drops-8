@@ -60,8 +60,8 @@ class NodeCreationTest extends NodeTestBase {
 
     // Verify that pages do not show submitted information by default.
     $this->drupalGet('node/' . $node->id());
-    $this->assertNoText($node->getOwner()->getUsername());
-    $this->assertNoText(format_date($node->getCreatedTime()));
+    $this->assertNoText($node->getOwner()->getAccountName());
+    $this->assertNoText($this->container->get('date.formatter')->format($node->getCreatedTime()));
 
     // Change the node type setting to show submitted by information.
     /** @var \Drupal\node\NodeTypeInterface $node_type */
@@ -70,8 +70,8 @@ class NodeCreationTest extends NodeTestBase {
     $node_type->save();
 
     $this->drupalGet('node/' . $node->id());
-    $this->assertText($node->getOwner()->getUsername());
-    $this->assertText(format_date($node->getCreatedTime()));
+    $this->assertText($node->getOwner()->getAccountName());
+    $this->assertText($this->container->get('date.formatter')->format($node->getCreatedTime()));
 
     // Check if the node revision checkbox is not rendered on node creation form.
     $admin_user = $this->drupalCreateUser(['administer nodes', 'create page content']);
@@ -152,6 +152,70 @@ class NodeCreationTest extends NodeTestBase {
     // Verify that the creation message contains a link to a node.
     $view_link = $this->xpath('//div[@class="messages"]//a[contains(@href, :href)]', [':href' => 'node/']);
     $this->assert(isset($view_link), 'The message area contains a link to a node');
+  }
+
+  /**
+   * Creates nodes with different authored dates.
+   */
+  public function testAuthoredDate() {
+    $now = \Drupal::time()->getRequestTime();
+    $admin = $this->drupalCreateUser([], NULL, TRUE);
+    $this->drupalLogin($admin);
+
+    // Create a node with the default creation date.
+    $edit = [
+      'title[0][value]' => $this->randomMachineName(8),
+      'body[0][value]' => $this->randomMachineName(16),
+    ];
+    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
+    $this->assertNotNull($node->getCreatedTime());
+
+    // Create a node with the custom creation date in the past.
+    $date = $now - 86400;
+    $edit = [
+      'title[0][value]' => $this->randomMachineName(8),
+      'body[0][value]' => $this->randomMachineName(16),
+      'created[0][value][date]' => date('Y-m-d', $date),
+      'created[0][value][time]' => date('H:i:s', $date),
+    ];
+    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
+    $this->assertEquals($date, $node->getCreatedTime());
+
+    // Create a node with the custom creation date in the future.
+    $date = $now + 86400;
+    $edit = [
+      'title[0][value]' => $this->randomMachineName(8),
+      'body[0][value]' => $this->randomMachineName(16),
+      'created[0][value][date]' => date('Y-m-d', $date),
+      'created[0][value][time]' => date('H:i:s', $date),
+    ];
+    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
+    $this->assertEquals($date, $node->getCreatedTime());
+
+    // Test an invalid date.
+    $edit = [
+      'title[0][value]' => $this->randomMachineName(8),
+      'body[0][value]' => $this->randomMachineName(16),
+      'created[0][value][date]' => '2013-13-13',
+      'created[0][value][time]' => '11:00:00',
+    ];
+    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->assertSession()->pageTextContains('The Authored on date is invalid.');
+    $this->assertFalse($this->drupalGetNodeByTitle($edit['title[0][value]']));
+
+    // Test an invalid time.
+    $edit = [
+      'title[0][value]' => $this->randomMachineName(8),
+      'body[0][value]' => $this->randomMachineName(16),
+      'created[0][value][date]' => '2012-01-01',
+      'created[0][value][time]' => '30:00:00',
+    ];
+    $this->drupalPostForm('node/add/page', $edit, 'Save');
+    $this->assertSession()->pageTextContains('The Authored on date is invalid.');
+    $this->assertFalse($this->drupalGetNodeByTitle($edit['title[0][value]']));
   }
 
   /**

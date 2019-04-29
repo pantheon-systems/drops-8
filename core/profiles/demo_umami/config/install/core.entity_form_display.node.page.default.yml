@@ -4,6 +4,7 @@ dependencies:
   config:
     - field.field.node.page.body
     - node.type.page
+    - workflows.workflow.editorial
   module:
     - content_moderation
     - path
@@ -27,6 +28,13 @@ content:
     weight: 2
     region: content
     settings: {  }
+    third_party_settings: {  }
+  langcode:
+    type: language_select
+    weight: 2
+    region: content
+    settings:
+      include_locked: true
     third_party_settings: {  }
   moderation_state:
     type: moderation_state_default
@@ -69,6 +77,11 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
+  translation:
+    weight: 10
+    settings: {  }
+    third_party_settings: {  }
+    region: content
   uid:
     type: entity_reference_autocomplete
     weight: 1

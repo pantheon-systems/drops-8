@@ -6,7 +6,6 @@
  */
 
 use Drupal\Component\Utility\Tags;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\Core\Render\Element;
@@ -53,23 +52,23 @@ const TAXONOMY_HIERARCHY_MULTIPLE = 2;
 function taxonomy_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.taxonomy':
-      $field_ui_url = \Drupal::moduleHandler()->moduleExists('field_ui') ? \Drupal::url('help.page', ['name' => 'field_ui']) : '#';
+      $field_ui_url = \Drupal::moduleHandler()->moduleExists('field_ui') ? Url::fromRoute('help.page', ['name' => 'field_ui'])->toString() : '#';
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Taxonomy module allows users who have permission to create and edit content to categorize (tag) content of that type. Users who have the <em>Administer vocabularies and terms</em> <a href=":permissions" title="Taxonomy module permissions">permission</a> can add <em>vocabularies</em> that contain a set of related <em>terms</em>. The terms in a vocabulary can either be pre-set by an administrator or built gradually as content is added and edited. Terms may be organized hierarchically if desired.', [':permissions' => \Drupal::url('user.admin_permissions', [], ['fragment' => 'module-taxonomy'])]) . '</p>';
+      $output .= '<p>' . t('The Taxonomy module allows users who have permission to create and edit content to categorize (tag) content of that type. Users who have the <em>Administer vocabularies and terms</em> <a href=":permissions" title="Taxonomy module permissions">permission</a> can add <em>vocabularies</em> that contain a set of related <em>terms</em>. The terms in a vocabulary can either be pre-set by an administrator or built gradually as content is added and edited. Terms may be organized hierarchically if desired.', [':permissions' => Url::fromRoute('user.admin_permissions', [], ['fragment' => 'module-taxonomy'])->toString()]) . '</p>';
       $output .= '<p>' . t('For more information, see the <a href=":taxonomy">online documentation for the Taxonomy module</a>.', [':taxonomy' => 'https://www.drupal.org/documentation/modules/taxonomy/']) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Managing vocabularies') . '</dt>';
-      $output .= '<dd>' . t('Users who have the <em>Administer vocabularies and terms</em> permission can add and edit vocabularies from the <a href=":taxonomy_admin">Taxonomy administration page</a>. Vocabularies can be deleted from their <em>Edit vocabulary</em> page. Users with the <em>Taxonomy term: Administer fields</em> permission may add additional fields for terms in that vocabulary using the <a href=":field_ui">Field UI module</a>.', [':taxonomy_admin' => \Drupal::url('entity.taxonomy_vocabulary.collection'), ':field_ui' => $field_ui_url]) . '</dd>';
+      $output .= '<dd>' . t('Users who have the <em>Administer vocabularies and terms</em> permission can add and edit vocabularies from the <a href=":taxonomy_admin">Taxonomy administration page</a>. Vocabularies can be deleted from their <em>Edit vocabulary</em> page. Users with the <em>Taxonomy term: Administer fields</em> permission may add additional fields for terms in that vocabulary using the <a href=":field_ui">Field UI module</a>.', [':taxonomy_admin' => Url::fromRoute('entity.taxonomy_vocabulary.collection')->toString(), ':field_ui' => $field_ui_url]) . '</dd>';
       $output .= '<dt>' . t('Managing terms') . '</dt>';
-      $output .= '<dd>' . t('Users who have the <em>Administer vocabularies and terms</em> permission or the <em>Edit terms</em> permission for a particular vocabulary can add, edit, and organize the terms in a vocabulary from a vocabulary\'s term listing page, which can be accessed by going to the <a href=":taxonomy_admin">Taxonomy administration page</a> and clicking <em>List terms</em> in the <em>Operations</em> column. Users must have the <em>Administer vocabularies and terms</em> permission or the <em>Delete terms</em> permission for a particular vocabulary to delete terms.', [':taxonomy_admin' => \Drupal::url('entity.taxonomy_vocabulary.collection')]) . ' </dd>';
+      $output .= '<dd>' . t('Users who have the <em>Administer vocabularies and terms</em> permission or the <em>Edit terms</em> permission for a particular vocabulary can add, edit, and organize the terms in a vocabulary from a vocabulary\'s term listing page, which can be accessed by going to the <a href=":taxonomy_admin">Taxonomy administration page</a> and clicking <em>List terms</em> in the <em>Operations</em> column. Users must have the <em>Administer vocabularies and terms</em> permission or the <em>Delete terms</em> permission for a particular vocabulary to delete terms.', [':taxonomy_admin' => Url::fromRoute('entity.taxonomy_vocabulary.collection')->toString()]) . ' </dd>';
       $output .= '<dt>' . t('Classifying entity content') . '</dt>';
-      $output .= '<dd>' . t('A user with the <em>Administer fields</em> permission for a certain entity type may add <em>Taxonomy term</em> reference fields to the entity type, which will allow entities to be classified using taxonomy terms. See the <a href=":entity_reference">Entity Reference help</a> for more information about reference fields. See the <a href=":field">Field module help</a> and the <a href=":field_ui">Field UI help</a> pages for general information on fields and how to create and manage them.', [':field_ui' => $field_ui_url, ':field' => \Drupal::url('help.page', ['name' => 'field']), ':entity_reference' => \Drupal::url('help.page', ['name' => 'entity_reference'])]) . '</dd>';
+      $output .= '<dd>' . t('A user with the <em>Administer fields</em> permission for a certain entity type may add <em>Taxonomy term</em> reference fields to the entity type, which will allow entities to be classified using taxonomy terms. See the <a href=":entity_reference">Entity Reference help</a> for more information about reference fields. See the <a href=":field">Field module help</a> and the <a href=":field_ui">Field UI help</a> pages for general information on fields and how to create and manage them.', [':field_ui' => $field_ui_url, ':field' => Url::fromRoute('help.page', ['name' => 'field'])->toString(), ':entity_reference' => Url::fromRoute('help.page', ['name' => 'entity_reference'])->toString()]) . '</dd>';
       $output .= '<dt>' . t('Adding new terms during content creation') . '</dt>';
       $output .= '<dd>' . t("Allowing users to add new terms gradually builds a vocabulary as content is added and edited. Users can add new terms if either of the two <em>Autocomplete</em> widgets is chosen for the Taxonomy term reference field in the <em>Manage form display</em> page for the field. You will also need to enable the <em>Create referenced entities if they don't already exist</em> option, and restrict the field to one vocabulary.") . '</dd>';
       $output .= '<dt>' . t('Configuring displays and form displays') . '</dt>';
-      $output .= '<dd>' . t('See the <a href=":entity_reference">Entity Reference help</a> page for the field widgets and formatters that can be configured for any reference field on the <em>Manage display</em> and <em>Manage form display</em> pages. Taxonomy additionally provides an <em>RSS category</em> formatter that displays nothing when the entity item is displayed as HTML, but displays an RSS category instead of a list when the entity item is displayed in an RSS feed.', [':entity_reference' => \Drupal::url('help.page', ['name' => 'entity_reference'])]) . '</li>';
+      $output .= '<dd>' . t('See the <a href=":entity_reference">Entity Reference help</a> page for the field widgets and formatters that can be configured for any reference field on the <em>Manage display</em> and <em>Manage form display</em> pages. Taxonomy additionally provides an <em>RSS category</em> formatter that displays nothing when the entity item is displayed as HTML, but displays an RSS category instead of a list when the entity item is displayed in an RSS feed.', [':entity_reference' => Url::fromRoute('help.page', ['name' => 'entity_reference'])->toString()]) . '</li>';
       $output .= '</ul>';
       $output .= '</dd>';
       $output .= '</dl>';
@@ -78,30 +77,17 @@ function taxonomy_help($route_name, RouteMatchInterface $route_match) {
     case 'entity.taxonomy_vocabulary.collection':
       $output = '<p>' . t('Taxonomy is for categorizing content. Terms are grouped into vocabularies. For example, a vocabulary called "Fruit" would contain the terms "Apple" and "Banana".') . '</p>';
       return $output;
-
-    case 'entity.taxonomy_vocabulary.overview_form':
-      $vocabulary = $route_match->getParameter('taxonomy_vocabulary');
-      if (\Drupal::currentUser()->hasPermission('administer taxonomy') || \Drupal::currentUser()->hasPermission('edit terms in ' . $vocabulary->id())) {
-        switch ($vocabulary->getHierarchy()) {
-          case VocabularyInterface::HIERARCHY_DISABLED:
-            return '<p>' . t('You can reorganize the terms in %capital_name using their drag-and-drop handles, and group terms under a parent term by sliding them under and to the right of the parent.', ['%capital_name' => Unicode::ucfirst($vocabulary->label()), '%name' => $vocabulary->label()]) . '</p>';
-          case VocabularyInterface::HIERARCHY_SINGLE:
-            return '<p>' . t('%capital_name contains terms grouped under parent terms. You can reorganize the terms in %capital_name using their drag-and-drop handles.', ['%capital_name' => Unicode::ucfirst($vocabulary->label()), '%name' => $vocabulary->label()]) . '</p>';
-          case VocabularyInterface::HIERARCHY_MULTIPLE:
-            return '<p>' . t('%capital_name contains terms with multiple parents. Drag and drop of terms with multiple parents is not supported, but you can re-enable drag-and-drop support by editing each term to include only a single parent.', ['%capital_name' => Unicode::ucfirst($vocabulary->label())]) . '</p>';
-        }
-      }
-      else {
-        switch ($vocabulary->getHierarchy()) {
-          case VocabularyInterface::HIERARCHY_DISABLED:
-            return '<p>' . t('%capital_name contains the following terms.', ['%capital_name' => Unicode::ucfirst($vocabulary->label())]) . '</p>';
-          case VocabularyInterface::HIERARCHY_SINGLE:
-            return '<p>' . t('%capital_name contains terms grouped under parent terms', ['%capital_name' => Unicode::ucfirst($vocabulary->label())]) . '</p>';
-          case VocabularyInterface::HIERARCHY_MULTIPLE:
-            return '<p>' . t('%capital_name contains terms with multiple parents.', ['%capital_name' => Unicode::ucfirst($vocabulary->label())]) . '</p>';
-        }
-      }
   }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function taxonomy_entity_type_alter(array &$entity_types) {
+  // @todo Moderation is disabled for taxonomy terms until when we have an UI
+  //   for them.
+  //   @see https://www.drupal.org/project/drupal/issues/2899923
+  $entity_types['taxonomy_term']->setHandlerClass('moderation', '');
 }
 
 /**
@@ -124,7 +110,7 @@ function taxonomy_page_attachments_alter(array &$page) {
       $page['#attached']['html_head_link'][] = [
         [
           'rel' => $rel,
-          'href' => $term->url($rel),
+          'href' => $term->toUrl($rel)->toString(),
         ],
         TRUE,
       ];
@@ -135,7 +121,7 @@ function taxonomy_page_attachments_alter(array &$page) {
         $page['#attached']['html_head_link'][] = [
           [
             'rel' => 'shortlink',
-            'href' => $term->url($rel, ['alias' => TRUE]),
+            'href' => $term->toUrl($rel, ['alias' => TRUE])->toString(),
           ],
           TRUE,
         ];
@@ -156,11 +142,10 @@ function taxonomy_theme() {
 }
 
 /**
- * Checks and updates the hierarchy flag of a vocabulary.
+ * Checks the hierarchy flag of a vocabulary.
  *
- * Checks the current parents of all terms in a vocabulary and updates the
- * vocabulary's hierarchy setting to the lowest possible level. If no term
- * has parent terms then the vocabulary will be given a hierarchy of
+ * Checks the current parents of all terms in a vocabulary. If no term has
+ * parent terms then the vocabulary will be given a hierarchy of
  * VocabularyInterface::HIERARCHY_DISABLED. If any term has a single parent then
  * the vocabulary will be given a hierarchy of
  * VocabularyInterface::HIERARCHY_SINGLE. If any term has multiple parents then
@@ -172,33 +157,15 @@ function taxonomy_theme() {
  * @param $changed_term
  *   An array of the term structure that was updated.
  *
- * @return
+ * @return int
  *   An integer that represents the level of the vocabulary's hierarchy.
+ *
+ * @deprecated in Drupal 8.7.x. Will be removed before Drupal 9.0.0. Use
+ *   \Drupal\taxonomy\TermStorage::getVocabularyHierarchyType() instead.
  */
 function taxonomy_check_vocabulary_hierarchy(VocabularyInterface $vocabulary, $changed_term) {
-  $tree = \Drupal::entityManager()->getStorage('taxonomy_term')->loadTree($vocabulary->id());
-  $hierarchy = VocabularyInterface::HIERARCHY_DISABLED;
-  foreach ($tree as $term) {
-    // Update the changed term with the new parent value before comparison.
-    if ($term->tid == $changed_term['tid']) {
-      $term = (object) $changed_term;
-      $term->parents = $term->parent;
-    }
-    // Check this term's parent count.
-    if (count($term->parents) > 1) {
-      $hierarchy = VocabularyInterface::HIERARCHY_MULTIPLE;
-      break;
-    }
-    elseif (count($term->parents) == 1 && !isset($term->parents[0])) {
-      $hierarchy = VocabularyInterface::HIERARCHY_SINGLE;
-    }
-  }
-  if ($hierarchy != $vocabulary->getHierarchy()) {
-    $vocabulary->setHierarchy($hierarchy);
-    $vocabulary->save();
-  }
-
-  return $hierarchy;
+  @trigger_error('taxonomy_check_vocabulary_hierarchy() is deprecated in Drupal 8.7.x and will be removed before Drupal 9.0.x. Use \Drupal\taxonomy\TermStorage::getVocabularyHierarchyType() instead.', E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()->getStorage('taxonomy_term')->getVocabularyHierarchyType($vocabulary->id());
 }
 
 /**
@@ -274,7 +241,7 @@ function template_preprocess_taxonomy_term(&$variables) {
   /** @var \Drupal\taxonomy\TermInterface $term */
   $term = $variables['term'];
 
-  $variables['url'] = $term->url();
+  $variables['url'] = $term->toUrl()->toString();
   // We use name here because that is what appears in the UI.
   $variables['name'] = $variables['elements']['name'];
   unset($variables['elements']['name']);
@@ -374,20 +341,20 @@ function taxonomy_term_load_multiple_by_name($name, $vocabulary = NULL) {
  * from the database. Terms are loaded into memory and will not require
  * database access if loaded again during the same page request.
  *
- * @see entity_load_multiple()
- * @see \Drupal\Core\Entity\Query\EntityQueryInterface
- *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal\taxonomy\Entity\Term::loadMultiple().
- *
  * @param array $tids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
  *
  * @return array
  *   An array of taxonomy term entities, indexed by tid. When no results are
  *   found, an empty array is returned.
+ *
+ * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ *   \Drupal\taxonomy\Entity\Term::loadMultiple().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function taxonomy_term_load_multiple(array $tids = NULL) {
+  @trigger_error('taxonomy_term_load_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\taxonomy\Entity\Term::loadMultiple(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   return Term::loadMultiple($tids);
 }
 
@@ -398,26 +365,24 @@ function taxonomy_term_load_multiple(array $tids = NULL) {
  * vocabulary from the database. Terms are loaded into memory and will not
  * require database access if loaded again during the same page request.
  *
- * @see entity_load_multiple()
- *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal\taxonomy\Entity\Vocabulary::loadMultiple().
- *
  * @param array $vids
  *   (optional) An array of entity IDs. If omitted, all entities are loaded.
  *
  * @return array
  *   An array of vocabulary objects, indexed by vid.
+ *
+ * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ *   \Drupal\taxonomy\Entity\Vocabulary::loadMultiple().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function taxonomy_vocabulary_load_multiple(array $vids = NULL) {
+  @trigger_error('taxonomy_vocabulary_load_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\taxonomy\Entity\Vocabulary::loadMultiple(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   return Vocabulary::loadMultiple($vids);
 }
 
 /**
  * Return the taxonomy vocabulary entity matching a vocabulary ID.
- *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal\taxonomy\Entity\Vocabulary::load().
  *
  * @param int $vid
  *   The vocabulary's ID.
@@ -425,16 +390,19 @@ function taxonomy_vocabulary_load_multiple(array $vids = NULL) {
  * @return \Drupal\taxonomy\Entity\Vocabulary|null
  *   The taxonomy vocabulary entity, if exists, NULL otherwise. Results are
  *   statically cached.
+ *
+ * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ *   \Drupal\taxonomy\Entity\Vocabulary::load().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function taxonomy_vocabulary_load($vid) {
+  @trigger_error('taxonomy_vocabulary_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\taxonomy\Entity\Vocabulary::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   return Vocabulary::load($vid);
 }
 
 /**
  * Return the taxonomy term entity matching a term ID.
- *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal\taxonomy\Entity\Term::load().
  *
  * @param $tid
  *   A term's ID
@@ -442,8 +410,14 @@ function taxonomy_vocabulary_load($vid) {
  * @return \Drupal\taxonomy\Entity\Term|null
  *   A taxonomy term entity, or NULL if the term was not found. Results are
  *   statically cached.
+ *
+ * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ *   Drupal\taxonomy\Entity\Term::load().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function taxonomy_term_load($tid) {
+  @trigger_error('taxonomy_term_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\taxonomy\Entity\Term::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if (!is_numeric($tid)) {
     return NULL;
   }
@@ -548,8 +522,9 @@ function taxonomy_build_node_index($node) {
     }
     // Insert index entries for all the node's terms.
     if (!empty($tid_all)) {
+      $connection = \Drupal::database();
       foreach ($tid_all as $tid) {
-        db_merge('taxonomy_index')
+        $connection->merge('taxonomy_index')
           ->key(['nid' => $node->id(), 'tid' => $tid, 'status' => $node->isPublished()])
           ->fields(['sticky' => $sticky, 'created' => $node->getCreatedTime()])
           ->execute();
@@ -587,7 +562,7 @@ function taxonomy_node_predelete(EntityInterface $node) {
  */
 function taxonomy_delete_node_index(EntityInterface $node) {
   if (\Drupal::config('taxonomy.settings')->get('maintain_index_table')) {
-    db_delete('taxonomy_index')->condition('nid', $node->id())->execute();
+    \Drupal::database()->delete('taxonomy_index')->condition('nid', $node->id())->execute();
   }
 }
 
@@ -597,7 +572,7 @@ function taxonomy_delete_node_index(EntityInterface $node) {
 function taxonomy_taxonomy_term_delete(Term $term) {
   if (\Drupal::config('taxonomy.settings')->get('maintain_index_table')) {
     // Clean up the {taxonomy_index} table when terms are deleted.
-    db_delete('taxonomy_index')->condition('tid', $term->id())->execute();
+    \Drupal::database()->delete('taxonomy_index')->condition('tid', $term->id())->execute();
   }
 }
 

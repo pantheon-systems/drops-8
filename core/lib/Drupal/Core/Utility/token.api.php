@@ -100,7 +100,7 @@ function hook_tokens($type, $tokens, array $data, array $options, \Drupal\Core\R
           break;
 
         case 'edit-url':
-          $replacements[$original] = $node->url('edit-form', $url_options);
+          $replacements[$original] = $node->toUrl('edit-form', $url_options)->toString();
           break;
 
         // Default values for the chained tokens handled below.
@@ -111,7 +111,7 @@ function hook_tokens($type, $tokens, array $data, array $options, \Drupal\Core\R
           break;
 
         case 'created':
-          $replacements[$original] = format_date($node->getCreatedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($node->getCreatedTime(), 'medium', '', NULL, $langcode);
           break;
       }
     }

@@ -11,6 +11,7 @@ use Drupal\Core\Password\PasswordInterface;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Plugin\migrate\destination\EntityContentBase;
 use Drupal\migrate\Row;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -111,7 +112,7 @@ class EntityUser extends EntityContentBase {
       $plugin_definition,
       $migration,
       $container->get('entity.manager')->getStorage($entity_type),
-      array_keys($container->get('entity.manager')->getBundleInfo($entity_type)),
+      array_keys($container->get('entity_type.bundle.info')->getBundleInfo($entity_type)),
       $container->get('entity.manager'),
       $container->get('plugin.manager.field.field_type'),
       $container->get('password')
@@ -167,8 +168,8 @@ class EntityUser extends EntityContentBase {
     if (is_array($name)) {
       $name = reset($name);
     }
-    if (mb_strlen($name) > USERNAME_MAX_LENGTH) {
-      $row->setDestinationProperty('name', mb_substr($name, 0, USERNAME_MAX_LENGTH));
+    if (mb_strlen($name) > UserInterface::USERNAME_MAX_LENGTH) {
+      $row->setDestinationProperty('name', mb_substr($name, 0, UserInterface::USERNAME_MAX_LENGTH));
     }
   }
 

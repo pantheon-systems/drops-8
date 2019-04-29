@@ -3,13 +3,13 @@
 namespace Drupal\views_ui\ParamConverter;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\ParamConverter\AdminPathConfigEntityConverter;
-use Drupal\Core\Routing\AdminContext;
-use Symfony\Component\Routing\Route;
 use Drupal\Core\ParamConverter\ParamConverterInterface;
+use Drupal\Core\Routing\AdminContext;
 use Drupal\Core\TempStore\SharedTempStoreFactory;
 use Drupal\views_ui\ViewUI;
+use Symfony\Component\Routing\Route;
 
 /**
  * Provides upcasting for a view entity to be used in the Views UI.
@@ -39,12 +39,18 @@ class ViewUIConverter extends AdminPathConfigEntityConverter implements ParamCon
   /**
    * Constructs a new ViewUIConverter.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Drupal\Core\TempStore\SharedTempStoreFactory $temp_store_factory
    *   The factory for the temp store object.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory.
+   * @param \Drupal\Core\Routing\AdminContext $admin_context
+   *   The route admin context service.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    */
-  public function __construct(EntityManagerInterface $entity_manager, SharedTempStoreFactory $temp_store_factory, ConfigFactoryInterface $config_factory = NULL, AdminContext $admin_context = NULL) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, SharedTempStoreFactory $temp_store_factory, ConfigFactoryInterface $config_factory = NULL, AdminContext $admin_context = NULL, $entity_repository = NULL) {
     // The config factory and admin context are new arguments due to changing
     // the parent. Avoid an error on updated sites by falling back to getting
     // them from the container.
@@ -55,7 +61,7 @@ class ViewUIConverter extends AdminPathConfigEntityConverter implements ParamCon
     if (!$admin_context) {
       $admin_context = \Drupal::service('router.admin_context');
     }
-    parent::__construct($entity_manager, $config_factory, $admin_context);
+    parent::__construct($entity_type_manager, $config_factory, $admin_context, $entity_repository);
 
     $this->tempStoreFactory = $temp_store_factory;
   }
@@ -79,7 +85,7 @@ class ViewUIConverter extends AdminPathConfigEntityConverter implements ParamCon
       else {
         $view->disable();
       }
-      $view->lock = $store->getMetadata($value);
+      $view->setLock($store->getMetadata($value));
     }
     // Otherwise, decorate the existing view for use in the UI.
     else {

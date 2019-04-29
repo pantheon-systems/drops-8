@@ -129,6 +129,14 @@ function views_views_data() {
     ],
   ];
 
+  $data['views']['display_link'] = [
+    'title' => t('Link to display'),
+    'help' => t('Displays a link to a path-based display of this view while keeping the filter criteria, sort criteria, pager settings and contextual filters.'),
+    'area' => [
+      'id' => 'display_link',
+    ],
+  ];
+
   // Registers an entity area handler per entity type.
   foreach (\Drupal::entityManager()->getDefinitions() as $entity_type_id => $entity_type) {
     // Excludes entity types, which cannot be rendered.
@@ -248,7 +256,7 @@ function views_entity_field_label($entity_type, $field_name) {
   $label_counter = [];
   $all_labels = [];
   // Count the amount of fields per label per field storage.
-  foreach (array_keys(\Drupal::entityManager()->getBundleInfo($entity_type)) as $bundle) {
+  foreach (array_keys(\Drupal::service('entity_type.bundle.info')->getBundleInfo($entity_type)) as $bundle) {
     $bundle_fields = array_filter(\Drupal::entityManager()->getFieldDefinitions($entity_type, $bundle), function ($field_definition) {
       return $field_definition instanceof FieldConfigInterface;
     });
@@ -595,9 +603,8 @@ function views_field_default_views_data(FieldStorageConfigInterface $field_stora
           $filter = 'boolean';
         }
         break;
-      case 'text':
       case 'blob':
-        // It does not make sense to sort by blob or text.
+        // It does not make sense to sort by blob.
         $allow_sort = FALSE;
       default:
         $filter = 'string';

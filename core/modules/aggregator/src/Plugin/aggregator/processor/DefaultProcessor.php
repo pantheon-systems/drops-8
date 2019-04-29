@@ -4,6 +4,7 @@ namespace Drupal\aggregator\Plugin\aggregator\processor;
 
 use Drupal\aggregator\Entity\Item;
 use Drupal\aggregator\FeedInterface;
+use Drupal\aggregator\FeedStorageInterface;
 use Drupal\aggregator\ItemStorageInterface;
 use Drupal\aggregator\Plugin\AggregatorPluginSettingsBase;
 use Drupal\aggregator\Plugin\ProcessorInterface;
@@ -14,7 +15,7 @@ use Drupal\Core\Form\ConfigFormBaseTrait;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
-use Drupal\Core\Routing\UrlGeneratorTrait;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -31,7 +32,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class DefaultProcessor extends AggregatorPluginSettingsBase implements ProcessorInterface, ContainerFactoryPluginInterface {
 
   use ConfigFormBaseTrait;
-  use UrlGeneratorTrait;
 
   /**
    * Contains the configuration object factory.
@@ -124,7 +124,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
     }, array_combine($counts, $counts));
     $intervals = [3600, 10800, 21600, 32400, 43200, 86400, 172800, 259200, 604800, 1209600, 2419200, 4838400, 9676800];
     $period = array_map([$this->dateFormatter, 'formatInterval'], array_combine($intervals, $intervals));
-    $period[AGGREGATOR_CLEAR_NEVER] = t('Never');
+    $period[FeedStorageInterface::CLEAR_NEVER] = t('Never');
 
     $form['processors'][$info['id']] = [];
     // Only wrap into details if there is a basic configuration.
@@ -150,7 +150,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
       '#title' => t('Discard items older than'),
       '#default_value' => $config->get('items.expire'),
       '#options' => $period,
-      '#description' => t('Requires a correctly configured <a href=":cron">cron maintenance task</a>.', [':cron' => $this->url('system.status')]),
+      '#description' => t('Requires a correctly configured <a href=":cron">cron maintenance task</a>.', [':cron' => Url::fromRoute('system.status')->toString()]),
     ];
 
     $lengths = [0, 200, 400, 600, 800, 1000, 1200, 1400, 1600, 1800, 2000];
@@ -255,7 +255,7 @@ class DefaultProcessor extends AggregatorPluginSettingsBase implements Processor
   public function postProcess(FeedInterface $feed) {
     $aggregator_clear = $this->configuration['items']['expire'];
 
-    if ($aggregator_clear != AGGREGATOR_CLEAR_NEVER) {
+    if ($aggregator_clear != FeedStorageInterface::CLEAR_NEVER) {
       // Delete all items that are older than flush item timer.
       $age = REQUEST_TIME - $aggregator_clear;
       $result = $this->itemStorage->getQuery()

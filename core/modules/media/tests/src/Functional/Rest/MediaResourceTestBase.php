@@ -44,6 +44,20 @@ abstract class MediaResourceTestBase extends EntityResourceTestBase {
   /**
    * {@inheritdoc}
    */
+  public function setUp() {
+    parent::setUp();
+
+    \Drupal::configFactory()
+      ->getEditable('media.settings')
+      ->set('standalone_url', TRUE)
+      ->save(TRUE);
+
+    $this->container->get('router.builder')->rebuild();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUpAuthorization($method) {
     switch ($method) {
       case 'GET':
@@ -162,7 +176,7 @@ abstract class MediaResourceTestBase extends EntityResourceTestBase {
           'target_id' => (int) $file->id(),
           'target_type' => 'file',
           'target_uuid' => $file->uuid(),
-          'url' => $file->url(),
+          'url' => $file->createFileUrl(FALSE),
         ],
       ],
       'thumbnail' => [
@@ -174,7 +188,7 @@ abstract class MediaResourceTestBase extends EntityResourceTestBase {
           'target_type' => 'file',
           'target_uuid' => $thumbnail->uuid(),
           'title' => NULL,
-          'url' => $thumbnail->url(),
+          'url' => $thumbnail->createFileUrl(FALSE),
         ],
       ],
       'status' => [
@@ -263,7 +277,7 @@ abstract class MediaResourceTestBase extends EntityResourceTestBase {
 
     switch ($method) {
       case 'GET';
-        return "The 'view media' permission is required and the media item must be published.";
+        return "The 'view media' permission is required when the media item is published.";
 
       case 'POST':
         return "The following permissions are required: 'administer media' OR 'create media' OR 'create camelids media'.";

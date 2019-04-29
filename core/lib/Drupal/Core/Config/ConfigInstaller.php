@@ -326,7 +326,7 @@ class ConfigInstaller implements ConfigInstallerInterface {
         }
         /** @var \Drupal\Core\Config\Entity\ConfigEntityStorageInterface $entity_storage */
         $entity_storage = $this->configManager
-          ->getEntityManager()
+          ->getEntityTypeManager()
           ->getStorage($entity_type);
 
         $id = $entity_storage->getIDFromConfigName($name, $entity_storage->getEntityType()->getConfigPrefix());
@@ -379,11 +379,7 @@ class ConfigInstaller implements ConfigInstallerInterface {
   }
 
   /**
-   * Gets the configuration storage that provides the default configuration.
-   *
-   * @return \Drupal\Core\Config\StorageInterface|null
-   *   The configuration storage that provides the default configuration.
-   *   Returns null if the source storage has not been set.
+   * {@inheritdoc}
    */
   public function getSourceStorage() {
     return $this->sourceStorage;

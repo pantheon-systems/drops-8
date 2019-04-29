@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\user\FunctionalJavascript;
 
+use Drupal\Core\Database\Database;
 use Drupal\Core\Test\AssertMailTrait;
 use Drupal\Core\Url;
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
@@ -65,7 +66,7 @@ class UserPasswordResetTest extends WebDriverTestBase {
     // Set the last login time that is used to generate the one-time link so
     // that it is definitely over a second ago.
     $account->login = REQUEST_TIME - mt_rand(10, 100000);
-    db_update('users_field_data')
+    Database::getConnection()->update('users_field_data')
       ->fields(['login' => $account->getLastLoginTime()])
       ->condition('uid', $account->id())
       ->execute();
@@ -84,7 +85,7 @@ class UserPasswordResetTest extends WebDriverTestBase {
     $this->drupalGet('user/password');
 
     // Reset the password by username via the password reset page.
-    $edit['name'] = $this->account->getUsername();
+    $edit['name'] = $this->account->getAccountName();
     $this->drupalPostForm(NULL, $edit, t('Submit'));
 
     $resetURL = $this->getResetURL();

@@ -72,8 +72,8 @@ class SearchExactTest extends BrowserTestBase {
 
     $edit = ['keys' => 'Druplicon'];
     $this->drupalPostForm('search/node', $edit, t('Search'));
-    $this->assertText($user->getUsername(), 'Basic page node displays author name when post settings are on.');
-    $this->assertText(format_date($node->getChangedTime(), 'short'), 'Basic page node displays post date when post settings are on.');
+    $this->assertText($user->getAccountName(), 'Basic page node displays author name when post settings are on.');
+    $this->assertText($this->container->get('date.formatter')->format($node->getChangedTime(), 'short'), 'Basic page node displays post date when post settings are on.');
 
     // Check that with post settings turned off the user and changed date
     // information is not displayed.
@@ -81,8 +81,8 @@ class SearchExactTest extends BrowserTestBase {
     $node_type_config->save();
     $edit = ['keys' => 'Druplicon'];
     $this->drupalPostForm('search/node', $edit, t('Search'));
-    $this->assertNoText($user->getUsername(), 'Basic page node does not display author name when post settings are off.');
-    $this->assertNoText(format_date($node->getChangedTime(), 'short'), 'Basic page node does not display post date when post settings are off.');
+    $this->assertNoText($user->getAccountName(), 'Basic page node does not display author name when post settings are off.');
+    $this->assertNoText($this->container->get('date.formatter')->format($node->getChangedTime(), 'short'), 'Basic page node does not display post date when post settings are off.');
 
   }
 

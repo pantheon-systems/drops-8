@@ -6,8 +6,10 @@ use Drupal\Core\Cache\NullBackend;
 use Drupal\Core\DependencyInjection\ClassResolverInterface;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\LanguageDefault;
 use Drupal\Core\Plugin\Context\Context;
 use Drupal\Core\Plugin\Context\ContextDefinition;
+use Drupal\Core\StringTranslation\TranslationManager;
 use Drupal\Core\TypedData\TypedDataManager;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Tests\Core\Plugin\Fixtures\InheritedContextDefinition;
@@ -29,6 +31,7 @@ class ContextDefinitionIsSatisfiedTest extends UnitTestCase {
     $namespaces = new \ArrayObject([
       'Drupal\\Core\\TypedData' => $this->root . '/core/lib/Drupal/Core/TypedData',
       'Drupal\\Core\\Validation' => $this->root . '/core/lib/Drupal/Core/Validation',
+      'Drupal\\Tests\\Core\\Plugin\\Fixtures' => $this->root . '/core/tests/Drupal/Tests/Core/Plugin/Fixtures',
     ]);
     $cache_backend = new NullBackend('cache');
     $module_handler = $this->prophesize(ModuleHandlerInterface::class);
@@ -42,8 +45,11 @@ class ContextDefinitionIsSatisfiedTest extends UnitTestCase {
     $type_data_manager = new TypedDataManager($namespaces, $cache_backend, $module_handler->reveal(), $class_resolver->reveal());
     $type_data_manager->setValidationConstraintManager(new ConstraintManager($namespaces, $cache_backend, $module_handler->reveal()));
 
+    $string_translation = new TranslationManager(new LanguageDefault([]));
+
     $container = new ContainerBuilder();
     $container->set('typed_data_manager', $type_data_manager);
+    $container->set('string_translation', $string_translation);
     \Drupal::setContainer($container);
   }
 
@@ -60,6 +66,7 @@ class ContextDefinitionIsSatisfiedTest extends UnitTestCase {
    *   (optional) The value to set on the context, defaults to NULL.
    *
    * @covers ::isSatisfiedBy
+   * @covers ::dataTypeMatches
    * @covers ::getSampleValues
    * @covers ::getConstraintObjects
    *
@@ -115,6 +122,16 @@ class ContextDefinitionIsSatisfiedTest extends UnitTestCase {
       TRUE,
       new InheritedContextDefinition('any'),
       new ContextDefinition('any'),
+    ];
+    $data['specific definition, generic requirement'] = [
+      TRUE,
+      new ContextDefinition('test_data_type'),
+      new ContextDefinition('test_data_type:a_variant'),
+    ];
+    $data['generic definition, specific requirement'] = [
+      FALSE,
+      new ContextDefinition('test_data_type:a_variant'),
+      new ContextDefinition('test_data_type'),
     ];
 
     return $data;

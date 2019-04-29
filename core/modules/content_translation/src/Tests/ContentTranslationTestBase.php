@@ -2,6 +2,8 @@
 
 namespace Drupal\content_translation\Tests;
 
+@trigger_error(__NAMESPACE__ . '\ContentTranslationTestBase is deprecated for removal before Drupal 9.0.0. Use Drupal\Tests\content_translation\Functional\ContentTranslationTestBase instead. See https://www.drupal.org/node/2999939', E_USER_DEPRECATED);
+
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -13,6 +15,8 @@ use Drupal\field\Entity\FieldStorageConfig;
  *
  * @deprecated Scheduled for removal in Drupal 9.0.0.
  *   Use \Drupal\Tests\content_translation\Functional\ContentTranslationTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2999939
  */
 abstract class ContentTranslationTestBase extends WebTestBase {
 
@@ -170,10 +174,9 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     // Enable translation for the current entity type and ensure the change is
     // picked up.
     \Drupal::service('content_translation.manager')->setEnabled($this->entityTypeId, $this->bundle, TRUE);
-    drupal_static_reset();
+
     \Drupal::entityManager()->clearCachedDefinitions();
     \Drupal::service('router.builder')->rebuild();
-    \Drupal::service('entity.definition_update_manager')->applyUpdates();
   }
 
   /**

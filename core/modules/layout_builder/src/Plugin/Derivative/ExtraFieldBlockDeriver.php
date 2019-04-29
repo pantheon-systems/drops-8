@@ -17,9 +17,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides entity field block definitions for every field.
  *
  * @internal
- *   Layout Builder is currently experimental and should only be leveraged by
- *   experimental modules and development releases of contributed modules.
- *   See https://www.drupal.org/core/experimental for more information.
+ *   Plugin derivers are internal.
  */
 class ExtraFieldBlockDeriver extends DeriverBase implements ContainerDeriverInterface {
 
@@ -100,7 +98,7 @@ class ExtraFieldBlockDeriver extends DeriverBase implements ContainerDeriverInte
 
           $context_definition = EntityContextDefinition::fromEntityType($entity_type)
             ->addConstraint('Bundle', [$bundle_id]);
-          $derivative['context'] = [
+          $derivative['context_definitions'] = [
             'entity' => $context_definition,
           ];
 

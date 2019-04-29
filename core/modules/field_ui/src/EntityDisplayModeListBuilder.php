@@ -45,11 +45,11 @@ class EntityDisplayModeListBuilder extends ConfigEntityListBuilder {
    * {@inheritdoc}
    */
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
-    $entity_manager = $container->get('entity.manager');
+    $entity_type_manager = $container->get('entity_type.manager');
     return new static(
       $entity_type,
-      $entity_manager->getStorage($entity_type->id()),
-      $entity_manager->getDefinitions()
+      $entity_type_manager->getStorage($entity_type->id()),
+      $entity_type_manager->getDefinitions()
     );
   }
 
@@ -117,7 +117,7 @@ class EntityDisplayModeListBuilder extends ConfigEntityListBuilder {
         'data' => [
           '#type' => 'link',
           '#url' => Url::fromRoute($short_type == 'view' ? 'entity.entity_view_mode.add_form' : 'entity.entity_form_mode.add_form', ['entity_type_id' => $entity_type]),
-          '#title' => $this->t('Add new %label @entity-type', ['%label' => $this->entityTypes[$entity_type]->getLabel(), '@entity-type' => $this->entityType->getLowercaseLabel()]),
+          '#title' => $this->t('Add new @entity-type %label', ['@entity-type' => $this->entityTypes[$entity_type]->getLabel(), '%label' => $this->entityType->getLowercaseLabel()]),
         ],
         'colspan' => count($table['#header']),
       ];

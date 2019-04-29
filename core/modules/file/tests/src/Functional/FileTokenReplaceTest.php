@@ -21,6 +21,8 @@ class FileTokenReplaceTest extends FileFieldTestBase {
     $node_storage = $this->container->get('entity.manager')->getStorage('node');
     $token_service = \Drupal::token();
     $language_interface = \Drupal::languageManager()->getCurrentLanguage();
+    /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+    $date_formatter = $this->container->get('date.formatter');
 
     // Create file field.
     $type_name = 'article';
@@ -29,7 +31,7 @@ class FileTokenReplaceTest extends FileFieldTestBase {
 
     $test_file = $this->getTestFile('text');
     // Coping a file to test uploads with non-latin filenames.
-    $filename = drupal_dirname($test_file->getFileUri()) . '/текстовый файл.txt';
+    $filename = \Drupal::service('file_system')->dirname($test_file->getFileUri()) . '/текстовый файл.txt';
     $test_file = file_copy($test_file, $filename);
 
     // Create a new node with the uploaded file.
@@ -48,10 +50,10 @@ class FileTokenReplaceTest extends FileFieldTestBase {
     $tests['[file:mime]'] = Html::escape($file->getMimeType());
     $tests['[file:size]'] = format_size($file->getSize());
     $tests['[file:url]'] = Html::escape(file_create_url($file->getFileUri()));
-    $tests['[file:created]'] = format_date($file->getCreatedTime(), 'medium', '', NULL, $language_interface->getId());
-    $tests['[file:created:short]'] = format_date($file->getCreatedTime(), 'short', '', NULL, $language_interface->getId());
-    $tests['[file:changed]'] = format_date($file->getChangedTime(), 'medium', '', NULL, $language_interface->getId());
-    $tests['[file:changed:short]'] = format_date($file->getChangedTime(), 'short', '', NULL, $language_interface->getId());
+    $tests['[file:created]'] = $date_formatter->format($file->getCreatedTime(), 'medium', '', NULL, $language_interface->getId());
+    $tests['[file:created:short]'] = $date_formatter->format($file->getCreatedTime(), 'short', '', NULL, $language_interface->getId());
+    $tests['[file:changed]'] = $date_formatter->format($file->getChangedTime(), 'medium', '', NULL, $language_interface->getId());
+    $tests['[file:changed:short]'] = $date_formatter->format($file->getChangedTime(), 'short', '', NULL, $language_interface->getId());
     $tests['[file:owner]'] = Html::escape($this->adminUser->getDisplayName());
     $tests['[file:owner:uid]'] = $file->getOwnerId();
 

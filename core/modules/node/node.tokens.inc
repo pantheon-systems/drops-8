@@ -127,7 +127,7 @@ function node_tokens($type, $tokens, array $data, array $options, BubbleableMeta
 
         case 'body':
         case 'summary':
-          $translation = \Drupal::entityManager()->getTranslationFromContext($node, $langcode, ['operation' => 'node_tokens']);
+          $translation = \Drupal::service('entity.repository')->getTranslationFromContext($node, $langcode, ['operation' => 'node_tokens']);
           if ($translation->hasField('body') && ($items = $translation->get('body')) && !$items->isEmpty()) {
             $item = $items[0];
             // If the summary was requested and is not empty, use it.
@@ -166,11 +166,11 @@ function node_tokens($type, $tokens, array $data, array $options, BubbleableMeta
           break;
 
         case 'url':
-          $replacements[$original] = $node->url('canonical', $url_options);
+          $replacements[$original] = $node->toUrl('canonical', $url_options)->toString();
           break;
 
         case 'edit-url':
-          $replacements[$original] = $node->url('edit-form', $url_options);
+          $replacements[$original] = $node->toUrl('edit-form', $url_options)->toString();
           break;
 
         // Default values for the chained tokens handled below.
@@ -183,13 +183,13 @@ function node_tokens($type, $tokens, array $data, array $options, BubbleableMeta
         case 'created':
           $date_format = DateFormat::load('medium');
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($node->getCreatedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($node->getCreatedTime(), 'medium', '', NULL, $langcode);
           break;
 
         case 'changed':
           $date_format = DateFormat::load('medium');
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($node->getChangedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($node->getChangedTime(), 'medium', '', NULL, $langcode);
           break;
       }
     }

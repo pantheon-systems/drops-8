@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\file\Kernel;
 
+use Drupal\Core\Database\Database;
 use Drupal\file\Entity\File;
 
 /**
@@ -60,8 +61,9 @@ class DeleteTest extends FileManagedUnitTestBase {
 
     // Call file_cron() to clean up the file. Make sure the changed timestamp
     // of the file is older than the system.file.temporary_maximum_age
-    // configuration value.
-    db_update('file_managed')
+    // configuration value. We use an UPDATE statement because using the API
+    // would set the timestamp.
+    Database::getConnection()->update('file_managed')
       ->fields([
         'changed' => REQUEST_TIME - ($this->config('system.file')->get('temporary_maximum_age') + 1),
       ])

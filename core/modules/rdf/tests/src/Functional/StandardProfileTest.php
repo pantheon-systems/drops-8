@@ -109,7 +109,7 @@ class StandardProfileTest extends BrowserTestBase {
     \Drupal::service('theme_handler')->install(['classy']);
     $this->config('system.theme')->set('default', 'classy')->save();
 
-    $this->baseUri = \Drupal::url('<front>', [], ['absolute' => TRUE]);
+    $this->baseUri = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
 
     // Create two test users.
     $this->adminUser = $this->drupalCreateUser([
@@ -136,7 +136,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->term->save();
 
     // Create image.
-    file_unmanaged_copy($this->root . '/core/misc/druplicon.png', 'public://example.jpg');
+    \Drupal::service('file_system')->copy($this->root . '/core/misc/druplicon.png', 'public://example.jpg');
     $this->image = File::create(['uri' => 'public://example.jpg']);
     $this->image->save();
 
@@ -170,17 +170,17 @@ class StandardProfileTest extends BrowserTestBase {
     $image_file = $this->article->get('field_image')->entity;
     $this->imageUri = ImageStyle::load('large')->buildUrl($image_file->getFileUri());
     // Term.
-    $this->termUri = $this->term->url('canonical', ['absolute' => TRUE]);
+    $this->termUri = $this->term->toUrl('canonical', ['absolute' => TRUE])->toString();
     // Article.
-    $this->articleUri = $this->article->url('canonical', ['absolute' => TRUE]);
+    $this->articleUri = $this->article->toUrl('canonical', ['absolute' => TRUE])->toString();
     // Page.
-    $this->pageUri = $this->page->url('canonical', ['absolute' => TRUE]);
+    $this->pageUri = $this->page->toUrl('canonical', ['absolute' => TRUE])->toString();
     // Author.
-    $this->authorUri = $this->adminUser->url('canonical', ['absolute' => TRUE]);
+    $this->authorUri = $this->adminUser->toUrl('canonical', ['absolute' => TRUE])->toString();
     // Comment.
-    $this->articleCommentUri = $this->articleComment->url('canonical', ['absolute' => TRUE]);
+    $this->articleCommentUri = $this->articleComment->toUrl('canonical', ['absolute' => TRUE])->toString();
     // Commenter.
-    $this->commenterUri = $this->webUser->url('canonical', ['absolute' => TRUE]);
+    $this->commenterUri = $this->webUser->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     $this->drupalLogout();
   }
@@ -244,7 +244,7 @@ class StandardProfileTest extends BrowserTestBase {
    */
   protected function doArticleRdfaTests() {
     // Feed the HTML into the parser.
-    $graph = $this->getRdfGraph($this->article->urlInfo());
+    $graph = $this->getRdfGraph($this->article->toUrl());
 
     // Type.
     $this->assertEqual($graph->type($this->articleUri), 'schema:Article', 'Article type was found (schema:Article).');
@@ -281,7 +281,7 @@ class StandardProfileTest extends BrowserTestBase {
     $node_type->save();
 
     // Feed the HTML into the parser.
-    $graph = $this->getRdfGraph($this->page->urlInfo());
+    $graph = $this->getRdfGraph($this->page->toUrl());
 
     // Type.
     $this->assertEqual($graph->type($this->pageUri), 'schema:WebPage', 'Page type was found (schema:WebPage).');
@@ -297,7 +297,7 @@ class StandardProfileTest extends BrowserTestBase {
     $this->drupalLogin($this->rootUser);
 
     // Feed the HTML into the parser.
-    $graph = $this->getRdfGraph($this->adminUser->urlInfo());
+    $graph = $this->getRdfGraph($this->adminUser->toUrl());
 
     // User type.
     $this->assertEqual($graph->type($this->authorUri), 'schema:Person', "User type was found (schema:Person) on user page.");
@@ -317,7 +317,7 @@ class StandardProfileTest extends BrowserTestBase {
    */
   protected function doTermRdfaTests() {
     // Feed the HTML into the parser.
-    $graph = $this->getRdfGraph($this->term->urlInfo());
+    $graph = $this->getRdfGraph($this->term->toUrl());
 
     // Term type.
     $this->assertEqual($graph->type($this->termUri), 'schema:Thing', "Term type was found (schema:Thing) on term page.");
@@ -345,7 +345,7 @@ class StandardProfileTest extends BrowserTestBase {
    *   The word to use in the test assertion message.
    */
   protected function assertRdfaCommonNodeProperties($graph, NodeInterface $node, $message_prefix) {
-    $uri = $node->url('canonical', ['absolute' => TRUE]);
+    $uri = $node->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     // Title.
     $expected_value = [
@@ -358,7 +358,7 @@ class StandardProfileTest extends BrowserTestBase {
     // Created date.
     $expected_value = [
       'type' => 'literal',
-      'value' => format_date($node->get('created')->value, 'custom', 'c', 'UTC'),
+      'value' => $this->container->get('date.formatter')->format($node->get('created')->value, 'custom', 'c', 'UTC'),
       'lang' => 'en',
     ];
     $this->assertTrue($graph->hasProperty($uri, 'http://schema.org/dateCreated', $expected_value), "$message_prefix created date was found (schema:dateCreated) in teaser.");
@@ -447,7 +447,7 @@ class StandardProfileTest extends BrowserTestBase {
     // Comment created date.
     $expected_value = [
       'type' => 'literal',
-      'value' => format_date($this->articleComment->get('created')->value, 'custom', 'c', 'UTC'),
+      'value' => $this->container->get('date.formatter')->format($this->articleComment->get('created')->value, 'custom', 'c', 'UTC'),
       'lang' => 'en',
     ];
     $this->assertTrue($graph->hasProperty($this->articleCommentUri, 'http://schema.org/dateCreated', $expected_value), 'Article comment created date was found (schema:dateCreated).');
@@ -477,7 +477,7 @@ class StandardProfileTest extends BrowserTestBase {
     // Comment author name.
     $expected_value = [
       'type' => 'literal',
-      'value' => $this->webUser->getUsername(),
+      'value' => $this->webUser->getAccountName(),
     ];
     $this->assertTrue($graph->hasProperty($this->commenterUri, 'http://schema.org/name', $expected_value), 'Comment author name was found (schema:name).');
   }

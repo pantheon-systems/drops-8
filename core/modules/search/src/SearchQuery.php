@@ -111,7 +111,7 @@ class SearchQuery extends SelectExtender {
    * This is always used for the second step in the query, but is not part of
    * the preparation step unless $this->simple is FALSE.
    *
-   * @var DatabaseCondition
+   * @var Drupal\Core\Database\Query\ConditionInterface[]
    */
   protected $conditions;
 
@@ -621,7 +621,7 @@ class SearchQuery extends SelectExtender {
     $expressions = [];
 
     // Add sid as the only field and count them as a subquery.
-    $count = db_select($inner->fields('i', ['sid']), NULL, ['target' => 'replica']);
+    $count = $this->connection->select($inner->fields('i', ['sid']), NULL);
 
     // Add the COUNT() expression.
     $count->addExpression('COUNT(*)');
