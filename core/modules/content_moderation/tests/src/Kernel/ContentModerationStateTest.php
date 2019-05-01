@@ -13,6 +13,7 @@ use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
+use Drupal\Tests\system\Functional\Entity\Traits\EntityDefinitionTestTrait;
 use Drupal\workflows\Entity\Workflow;
 
 /**
@@ -23,6 +24,7 @@ use Drupal\workflows\Entity\Workflow;
 class ContentModerationStateTest extends KernelTestBase {
 
   use ContentModerationTestTrait;
+  use EntityDefinitionTestTrait;
 
   /**
    * {@inheritdoc}
@@ -236,6 +238,31 @@ class ContentModerationStateTest extends KernelTestBase {
 
     $content_moderation_state = ContentModerationState::loadFromModeratedEntity($entity);
     $this->assertFalse($content_moderation_state);
+  }
+
+  /**
+   * Tests removal of content moderation state entities for preexisting content.
+   */
+  public function testExistingContentModerationStateDataRemoval() {
+    $storage = $this->entityTypeManager->getStorage('entity_test_mulrevpub');
+
+    $entity = $storage->create([]);
+    $entity->save();
+    $original_revision_id = $entity->getRevisionId();
+
+    $workflow = $this->createEditorialWorkflow();
+    $workflow->getTypePlugin()->addEntityTypeAndBundle($entity->getEntityTypeId(), $entity->bundle());
+    $workflow->save();
+
+    $entity = $this->reloadEntity($entity);
+    $entity->moderation_state = 'draft';
+    $entity->save();
+
+    $storage->deleteRevision($entity->getRevisionId());
+
+    $entity = $this->reloadEntity($entity);
+    $this->assertEquals('published', $entity->moderation_state->value);
+    $this->assertEquals($original_revision_id, $storage->getLatestRevisionId($entity->id()));
   }
 
   /**
@@ -529,7 +556,7 @@ class ContentModerationStateTest extends KernelTestBase {
     \Drupal::state()->set('entity_test_rev.entity_type', $entity_type);
 
     // Update the entity type in order to remove the 'langcode' field.
-    \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+    \Drupal::entityDefinitionUpdateManager()->updateFieldableEntityType($entity_type, \Drupal::service('entity_field.manager')->getFieldStorageDefinitions($entity_type->id()));
 
     $workflow = $this->createEditorialWorkflow();
     $workflow->getTypePlugin()->addEntityTypeAndBundle('entity_test_rev', 'entity_test_rev');
@@ -672,6 +699,16 @@ class ContentModerationStateTest extends KernelTestBase {
     /** @var \Drupal\Core\Entity\ContentEntityInterface $cms_entity */
     $cms_entity = $cms_storage->loadUnchanged(1);
     $this->assertEquals($entity->getLoadedRevisionId(), $cms_entity->get('content_entity_revision_id')->value);
+  }
+
+  /**
+   * Tests the legacy method used as the default entity owner.
+   *
+   * @group legacy
+   * @expectedDeprecation The ::getCurrentUserId method is deprecated in 8.6.x and will be removed before 9.0.0.
+   */
+  public function testGetCurrentUserId() {
+    $this->assertEquals(['0'], ContentModerationState::getCurrentUserId());
   }
 
   /**

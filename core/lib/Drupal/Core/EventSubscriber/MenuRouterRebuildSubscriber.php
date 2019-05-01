@@ -3,10 +3,12 @@
 namespace Drupal\Core\EventSubscriber;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Database\ReplicaKillSwitch;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Menu\MenuLinkManagerInterface;
 use Drupal\Core\Routing\RoutingEvents;
 use Symfony\Component\EventDispatcher\Event;
+use Drupal\Core\Database\Connection;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -27,16 +29,36 @@ class MenuRouterRebuildSubscriber implements EventSubscriberInterface {
   protected $menuLinkManager;
 
   /**
+   * The replica kill switch.
+   *
+   * @var \Drupal\Core\Database\ReplicaKillSwitch
+   */
+  protected $replicaKillSwitch;
+
+  /**
+   * The database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $connection;
+
+  /**
    * Constructs the MenuRouterRebuildSubscriber object.
    *
    * @param \Drupal\Core\Lock\LockBackendInterface $lock
    *   The lock backend.
    * @param \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager
    *   The menu link plugin manager.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection.
+   * @param \Drupal\Core\Database\ReplicaKillSwitch $replica_kill_switch
+   *   The replica kill switch.
    */
-  public function __construct(LockBackendInterface $lock, MenuLinkManagerInterface $menu_link_manager) {
+  public function __construct(LockBackendInterface $lock, MenuLinkManagerInterface $menu_link_manager, Connection $connection, ReplicaKillSwitch $replica_kill_switch) {
     $this->lock = $lock;
     $this->menuLinkManager = $menu_link_manager;
+    $this->connection = $connection;
+    $this->replicaKillSwitch = $replica_kill_switch;
   }
 
   /**
@@ -55,12 +77,12 @@ class MenuRouterRebuildSubscriber implements EventSubscriberInterface {
    */
   protected function menuLinksRebuild() {
     if ($this->lock->acquire(__FUNCTION__)) {
-      $transaction = db_transaction();
+      $transaction = $this->connection->startTransaction();
       try {
         // Ensure the menu links are up to date.
         $this->menuLinkManager->rebuild();
         // Ignore any database replicas temporarily.
-        db_ignore_replica();
+        $this->replicaKillSwitch->trigger();
       }
       catch (\Exception $e) {
         $transaction->rollBack();

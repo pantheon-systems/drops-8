@@ -66,6 +66,8 @@ use org\bovigo\vfs\visitor\vfsStreamPrintVisitor;
  * @see \Drupal\Tests\KernelTestBase::installEntitySchema()
  * @see \Drupal\Tests\KernelTestBase::installSchema()
  * @see \Drupal\Tests\BrowserTestBase
+ *
+ * @ingroup testing
  */
 abstract class KernelTestBase extends TestCase implements ServiceProviderInterface {
 
@@ -172,16 +174,6 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * @var \org\bovigo\vfs\vfsStreamDirectory
    */
   protected $vfsRoot;
-
-  /**
-   * @var int
-   */
-  protected $expectedLogSeverity;
-
-  /**
-   * @var string
-   */
-  protected $expectedLogMessage;
 
   /**
    * @todo Move into Config test base class.
@@ -340,17 +332,6 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     $GLOBALS['conf']['container_service_providers']['test'] = $this;
 
     $modules = self::getModulesToEnable(get_class($this));
-
-    // Prepare a precompiled container for all tests of this class.
-    // Substantially improves performance, since ContainerBuilder::compile()
-    // is very expensive. Encourages testing best practices (small tests).
-    // Normally a setUpBeforeClass() operation, but object scope is required to
-    // inject $this test class instance as a service provider (see above).
-    $rc = new \ReflectionClass(get_class($this));
-    $test_method_count = count(array_filter($rc->getMethods(), function ($method) {
-      // PHPUnit's @test annotations are intentionally ignored/not supported.
-      return strpos($method->getName(), 'test') === 0;
-    }));
 
     // Bootstrap the kernel. Do not use createFromRequest() to retain Settings.
     $kernel = new DrupalKernel('testing', $this->classLoader, FALSE);
@@ -728,10 +709,8 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
       $schema = drupal_get_module_schema($module, $table);
       if (empty($schema)) {
         // BC layer to avoid some contrib tests to fail.
-        // @todo Remove the BC layer before 8.1.x release.
-        // @see https://www.drupal.org/node/2670360
-        // @see https://www.drupal.org/node/2670454
         if ($module == 'system') {
+          @trigger_error('Special handling of system module schemas in \Drupal\KernelTests\KernelTestBase::installSchema has been deprecated in Drupal 8.7.x, remove any calls to this method that use invalid schema names. See https://www.drupal.org/project/drupal/issues/2794347.', E_USER_DEPRECATED);
           continue;
         }
         throw new \LogicException("$module module does not define a schema for table '$table'.");
@@ -747,14 +726,13 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    *   The ID of the entity type.
    */
   protected function installEntitySchema($entity_type_id) {
-    /** @var \Drupal\Core\Entity\EntityManagerInterface $entity_manager */
-    $entity_manager = $this->container->get('entity.manager');
-    $entity_type = $entity_manager->getDefinition($entity_type_id);
-    $entity_manager->onEntityTypeCreate($entity_type);
+    $entity_type_manager = \Drupal::entityTypeManager();
+    $entity_type = $entity_type_manager->getDefinition($entity_type_id);
+    \Drupal::service('entity_type.listener')->onEntityTypeCreate($entity_type);
 
     // For test runs, the most common storage backend is a SQL database. For
     // this case, ensure the tables got created.
-    $storage = $entity_manager->getStorage($entity_type_id);
+    $storage = $entity_type_manager->getStorage($entity_type_id);
     if ($storage instanceof SqlEntityStorageInterface) {
       $tables = $storage->getTableMapping()->getTableNames();
       $db_schema = $this->container->get('database')->schema();

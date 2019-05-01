@@ -185,3 +185,24 @@ function system_post_update_extra_fields(&$sandbox = NULL) {
 function system_post_update_states_clear_cache() {
   // Empty post-update hook.
 }
+
+/**
+ * Initialize 'expand_all_items' values to system_menu_block.
+ */
+function system_post_update_add_expand_all_items_key_in_system_menu_block(&$sandbox = NULL) {
+  if (!\Drupal::moduleHandler()->moduleExists('block')) {
+    return;
+  }
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'block', function ($block) {
+    return strpos($block->getPluginId(), 'system_menu_block:') === 0;
+  });
+}
+
+/**
+ * Clear the menu cache.
+ *
+ * @see https://www.drupal.org/project/drupal/issues/3044364
+ */
+function system_post_update_clear_menu_cache() {
+  // Empty post-update hook.
+}

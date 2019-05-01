@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\rdf\Functional;
 
+use Drupal\Core\Url;
 use Drupal\Tests\node\Functional\NodeTestBase;
 
 /**
@@ -47,8 +48,8 @@ class NodeAttributesTest extends NodeTestBase {
       'title' => $this->randomMachineName(8) . "'",
     ]);
 
-    $node_uri = $node->url('canonical', ['absolute' => TRUE]);
-    $base_uri = \Drupal::url('<front>', [], ['absolute' => TRUE]);
+    $node_uri = $node->toUrl('canonical', ['absolute' => TRUE])->toString();
+    $base_uri = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
 
     // Parses front page where the node is displayed in its teaser form.
     $parser = new \EasyRdf_Parser_Rdfa();

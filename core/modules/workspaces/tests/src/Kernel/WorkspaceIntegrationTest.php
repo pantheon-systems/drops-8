@@ -18,6 +18,7 @@ use Drupal\views\Views;
 /**
  * Tests a complete deployment scenario across different workspaces.
  *
+ * @group #slow
  * @group workspaces
  */
 class WorkspaceIntegrationTest extends KernelTestBase {
@@ -44,6 +45,13 @@ class WorkspaceIntegrationTest extends KernelTestBase {
   protected $createdTimestamp;
 
   /**
+   * An array of nodes created before installing the Workspaces module.
+   *
+   * @var \Drupal\node\NodeInterface[]
+   */
+  protected $nodes = [];
+
+  /**
    * {@inheritdoc}
    */
   protected static $modules = [
@@ -65,15 +73,15 @@ class WorkspaceIntegrationTest extends KernelTestBase {
 
     $this->entityTypeManager = \Drupal::entityTypeManager();
 
-    $this->installConfig(['filter', 'node', 'system']);
-
-    $this->installSchema('system', ['key_value_expire', 'sequences']);
-    $this->installSchema('node', ['node_access']);
-
     $this->installEntitySchema('entity_test_mulrev');
     $this->installEntitySchema('entity_test_mulrevpub');
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
+
+    $this->installConfig(['filter', 'node', 'system']);
+
+    $this->installSchema('system', ['key_value_expire', 'sequences']);
+    $this->installSchema('node', ['node_access']);
 
     $this->createContentType(['type' => 'page']);
 
@@ -82,8 +90,8 @@ class WorkspaceIntegrationTest extends KernelTestBase {
     // Create two nodes, a published and an unpublished one, so we can test the
     // behavior of the module with default/existing content.
     $this->createdTimestamp = \Drupal::time()->getRequestTime();
-    $this->createNode(['title' => 'live - 1 - r1 - published', 'created' => $this->createdTimestamp++, 'status' => TRUE]);
-    $this->createNode(['title' => 'live - 2 - r2 - unpublished', 'created' => $this->createdTimestamp++, 'status' => FALSE]);
+    $this->nodes[] = $this->createNode(['title' => 'live - 1 - r1 - published', 'created' => $this->createdTimestamp++, 'status' => TRUE]);
+    $this->nodes[] = $this->createNode(['title' => 'live - 2 - r2 - unpublished', 'created' => $this->createdTimestamp++, 'status' => FALSE]);
   }
 
   /**
@@ -96,9 +104,9 @@ class WorkspaceIntegrationTest extends KernelTestBase {
     // - a multi-dimensional array keyed by the workspace ID, then by the entity
     //   ID and finally by the revision ID.
     // - 'default_revision' indicates the entity revision that should be
-    //   returned by entity_load(), non-revision entity queries and non-revision
-    //   views *in a given workspace*, it does not indicate what is actually
-    //   stored in the base and data entity tables.
+    //   returned when loading an entity, non-revision entity queries and
+    //   non-revision views *in a given workspace*, it does not indicate what is
+    //   actually stored in the base and data entity tables.
     $test_scenarios = [];
 
     // The $expected_workspace_association array holds the revision IDs which
@@ -335,6 +343,32 @@ class WorkspaceIntegrationTest extends KernelTestBase {
 
     // Check that there are no more revisions to push.
     $this->assertEmpty($workspace_publisher->getDifferringRevisionIdsOnSource());
+  }
+
+  /**
+   * Tests entity query overrides without any conditions.
+   */
+  public function testEntityQueryWithoutConditions() {
+    $this->initializeWorkspacesModule();
+    $this->switchToWorkspace('stage');
+
+    // Add a workspace-specific revision to a pre-existing node.
+    $this->nodes[1]->title->value = 'stage - 2 - r3 - published';
+    $this->nodes[1]->save();
+
+    $query = $this->entityTypeManager->getStorage('node')->getQuery();
+    $query->sort('nid');
+    $query->pager(1);
+    $result = $query->execute();
+
+    $this->assertSame([1 => '1'], $result);
+
+    $query = $this->entityTypeManager->getStorage('node')->getQuery();
+    $query->sort('nid', 'DESC');
+    $query->pager(10);
+    $result = $query->execute();
+
+    $this->assertSame([3 => '2', 1 => '1'], $result);
   }
 
   /**
@@ -582,7 +616,7 @@ class WorkspaceIntegrationTest extends KernelTestBase {
     $published_key = $entity_keys['published'];
 
     // Check \Drupal\Core\Entity\EntityStorageInterface::loadMultiple().
-    /** @var \Drupal\Core\Entity\EntityInterface[]|\Drupal\Core\Entity\RevisionableInterface[]|\Drupal\Core\Entity\EntityPublishedInterface[] $entities */
+    /** @var \Drupal\Core\Entity\RevisionableInterface[]|\Drupal\Core\Entity\EntityPublishedInterface[] $entities */
     $entities = $this->entityTypeManager->getStorage($entity_type_id)->loadMultiple(array_column($expected_default_revisions, $id_key));
     foreach ($expected_default_revisions as $expected_default_revision) {
       $entity_id = $expected_default_revision[$id_key];
@@ -593,7 +627,7 @@ class WorkspaceIntegrationTest extends KernelTestBase {
 
     // Check \Drupal\Core\Entity\EntityStorageInterface::loadUnchanged().
     foreach ($expected_default_revisions as $expected_default_revision) {
-      /** @var \Drupal\Core\Entity\EntityInterface|\Drupal\Core\Entity\RevisionableInterface|\Drupal\Core\Entity\EntityPublishedInterface $entity */
+      /** @var \Drupal\Core\Entity\RevisionableInterface|\Drupal\Core\Entity\EntityPublishedInterface $entity */
       $entity = $this->entityTypeManager->getStorage($entity_type_id)->loadUnchanged($expected_default_revision[$id_key]);
       $this->assertEquals($expected_default_revision[$revision_key], $entity->getRevisionId());
       $this->assertEquals($expected_default_revision[$label_key], $entity->label());
@@ -616,7 +650,7 @@ class WorkspaceIntegrationTest extends KernelTestBase {
     $label_key = $entity_keys['label'];
     $published_key = $entity_keys['published'];
 
-    /** @var \Drupal\Core\Entity\EntityInterface[]|\Drupal\Core\Entity\RevisionableInterface[]|\Drupal\Core\Entity\EntityPublishedInterface[] $entities */
+    /** @var \Drupal\Core\Entity\RevisionableInterface[]|\Drupal\Core\Entity\EntityPublishedInterface[] $entities */
     $entities = $this->entityTypeManager->getStorage($entity_type_id)->loadMultipleRevisions(array_column($expected_values, $revision_key));
     foreach ($expected_values as $expected_revision) {
       $revision_id = $expected_revision[$revision_key];
@@ -753,6 +787,36 @@ class WorkspaceIntegrationTest extends KernelTestBase {
     $form_state = new FormState();
     $built_form = $form_builder->getForm(SiteInformationForm::class, $form_state);
     $form_builder->setCache($built_form['#build_id'], $built_form, $form_state);
+  }
+
+  /**
+   * Test a deployment with fields in dedicated table storage.
+   */
+  public function testPublishWorkspaceDedicatedTableStorage() {
+    $this->initializeWorkspacesModule();
+    $node_storage = $this->entityTypeManager->getStorage('node');
+
+    $this->switchToWorkspace('live');
+    $node = $node_storage->create([
+      'title' => 'Foo title',
+      // Use the body field on node as a test case because it requires dedicated
+      // table storage.
+      'body' => 'Foo body',
+      'type' => 'page',
+    ]);
+    $node->save();
+
+    $this->switchToWorkspace('stage');
+    $node->title = 'Bar title';
+    $node->body = 'Bar body';
+    $node->save();
+
+    $this->workspaces['stage']->publish();
+    $this->switchToWorkspace('live');
+
+    $reloaded = $node_storage->load($node->id());
+    $this->assertEquals('Bar title', $reloaded->title->value);
+    $this->assertEquals('Bar body', $reloaded->body->value);
   }
 
 }

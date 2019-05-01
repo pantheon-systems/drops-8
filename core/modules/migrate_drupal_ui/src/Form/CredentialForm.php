@@ -4,8 +4,9 @@ namespace Drupal\migrate_drupal_ui\Form;
 
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
+use Drupal\migrate\Exception\RequirementsException;
+use Drupal\migrate\Plugin\Exception\BadPluginDefinitionException;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\TransferException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -16,13 +17,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @internal
  */
 class CredentialForm extends MigrateUpgradeFormBase {
-
-  /**
-   * The renderer service.
-   *
-   * @var \Drupal\Core\Render\RendererInterface
-   */
-  protected $renderer;
 
   /**
    * The HTTP client to fetch the files with.
@@ -41,16 +35,13 @@ class CredentialForm extends MigrateUpgradeFormBase {
   /**
    * CredentialForm constructor.
    *
-   * @param \Drupal\Core\Render\RendererInterface $renderer
-   *   The renderer service.
    * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore_private
    *   The private tempstore factory.
    * @param \GuzzleHttp\ClientInterface $http_client
    *   A Guzzle client object.
    */
-  public function __construct(RendererInterface $renderer, PrivateTempStoreFactory $tempstore_private, ClientInterface $http_client) {
+  public function __construct(PrivateTempStoreFactory $tempstore_private, ClientInterface $http_client) {
     parent::__construct($tempstore_private);
-    $this->renderer = $renderer;
     $this->httpClient = $http_client;
   }
 
@@ -59,7 +50,6 @@ class CredentialForm extends MigrateUpgradeFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('renderer'),
       $container->get('tempstore.private'),
       $container->get('http_client')
     );
@@ -220,17 +210,20 @@ class CredentialForm extends MigrateUpgradeFormBase {
     $database['driver'] = $driver;
 
     // Validate the driver settings and just end here if we have any issues.
+    $connection = NULL;
+    $error_key = $database['driver'] . '][database';
     if ($errors = $drivers[$driver]->validateDatabaseSettings($database)) {
       foreach ($errors as $name => $message) {
         $this->errors[$name] = $message;
       }
     }
     else {
+      $error_key = $database['driver'] . '[database';
       try {
         $connection = $this->getConnection($database);
         $version = (string) $this->getLegacyDrupalVersion($connection);
         if (!$version) {
-          $this->errors[$database['driver'] . '][database'] = $this->t('Source database does not contain a recognizable Drupal version.');
+          $this->errors[$error_key] = $this->t('Source database does not contain a recognizable Drupal version.');
         }
         elseif ($version !== (string) $form_state->getValue('version')) {
           $this->errors['version'] = $this->t('Source database is Drupal version @version but version @selected was selected.',
@@ -245,7 +238,38 @@ class CredentialForm extends MigrateUpgradeFormBase {
         }
       }
       catch (\Exception $e) {
-        $this->errors[$database['driver'] . '][database'] = $e->getMessage();
+        $msg = $this->t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname?</li></ul>', ['%error' => $e->getMessage()]);
+        $this->errors[$error_key] = $msg;
+      }
+    }
+
+    // Get the Drupal version of the source database so it can be validated.
+    if (!$this->errors) {
+      $version = (string) $this->getLegacyDrupalVersion($connection);
+      if (!$version) {
+        $this->errors[$error_key] = $this->t('Source database does not contain a recognizable Drupal version.');
+      }
+      elseif ($version !== (string) $form_state->getValue('version')) {
+        $this->errors['version'] = $this->t('Source database is Drupal version @version but version @selected was selected.',
+          [
+            '@version' => $version,
+            '@selected' => $form_state->getValue('version'),
+          ]);
+      }
+    }
+
+    // Setup migrations and save form data to private store.
+    if (!$this->errors) {
+      try {
+        $this->setupMigrations($database, $form_state);
+      }
+      catch (BadPluginDefinitionException $e) {
+        // BadPluginDefinitionException occurs if the source_module is not
+        // defined, which happens during testing.
+        $this->errors[$error_key] = $e->getMessage();
+      }
+      catch (RequirementsException $e) {
+        $this->errors[$error_key] = $e->getMessage();
       }
     }
 
@@ -265,13 +289,14 @@ class CredentialForm extends MigrateUpgradeFormBase {
    */
   public function validatePaths($element, FormStateInterface $form_state) {
     if ($source = $element['#value']) {
-      $msg = $this->t('Unable to read from @title.', ['@title' => $element['#title']]);
+      $msg = $this->t('Failed to read from @title.', ['@title' => $element['#title']]);
       if (UrlHelper::isExternal($source)) {
         try {
           $this->httpClient->head($source);
         }
         catch (TransferException $e) {
-          $this->errors[$element['#name']] = $msg . ' ' . $e->getMessage();
+          $msg .= ' ' . $this->t('The server reports the following message: %error.', ['%error' => $e->getMessage()]);
+          $this->errors[$element['#name']] = $msg;
         }
       }
       elseif (!file_exists($source) || (!is_dir($source)) || (!is_readable($source))) {

@@ -18,7 +18,7 @@ class InvalidDataTest extends DatabaseTestBase {
   public function testInsertDuplicateData() {
     // Try to insert multiple records where at least one has bad data.
     try {
-      db_insert('test')
+      $this->connection->insert('test')
         ->fields(['name', 'age', 'job'])
         ->values([
           'name' => 'Elvis',
@@ -59,7 +59,7 @@ class InvalidDataTest extends DatabaseTestBase {
       }
 
       // Ensure the other values were not inserted.
-      $record = db_select('test')
+      $record = $this->connection->select('test')
         ->fields('test', ['name', 'age'])
         ->condition('age', [17, 75], 'IN')
         ->execute()->fetchObject();
@@ -75,7 +75,7 @@ class InvalidDataTest extends DatabaseTestBase {
     // Insert multiple records in 'test_people' where one has bad data
     // (duplicate key). A 'Meredith' record has already been inserted
     // in ::setUp.
-    db_insert('test_people')
+    $this->connection->insert('test_people')
       ->fields(['name', 'age', 'job'])
       ->values([
         'name' => 'Elvis',
@@ -104,12 +104,12 @@ class InvalidDataTest extends DatabaseTestBase {
       // 3 => [name] => Meredith, [age] => 30, [job] => Speaker
       // Records 0 and 1 should pass, record 2 should lead to integrity
       // constraint violation.
-      $query = db_select('test_people', 'tp')
+      $query = $this->connection->select('test_people', 'tp')
         ->fields('tp', ['name', 'age', 'job'])
         ->orderBy('name');
 
       // Try inserting from the subselect.
-      db_insert('test')
+      $this->connection->insert('test')
         ->from($query)
         ->execute();
 
@@ -136,7 +136,7 @@ class InvalidDataTest extends DatabaseTestBase {
       }
 
       // Ensure the values for records 2 and 3 were not inserted.
-      $record = db_select('test')
+      $record = $this->connection->select('test')
         ->fields('test', ['name', 'age'])
         ->condition('age', [17, 30], 'IN')
         ->execute()->fetchObject();

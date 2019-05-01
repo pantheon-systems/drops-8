@@ -7,8 +7,9 @@ use Drupal\Core\Entity\EntityChangedTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\File\Exception\FileException;
 use Drupal\file\FileInterface;
-use Drupal\user\UserInterface;
+use Drupal\user\EntityOwnerTrait;
 
 /**
  * Defines the file entity class.
@@ -36,13 +37,15 @@ use Drupal\user\UserInterface;
  *     "id" = "fid",
  *     "label" = "filename",
  *     "langcode" = "langcode",
- *     "uuid" = "uuid"
+ *     "uuid" = "uuid",
+ *     "owner" = "uid",
  *   }
  * )
  */
 class File extends ContentEntityBase implements FileInterface {
 
   use EntityChangedTrait;
+  use EntityOwnerTrait;
 
   /**
    * {@inheritdoc}
@@ -74,11 +77,23 @@ class File extends ContentEntityBase implements FileInterface {
 
   /**
    * {@inheritdoc}
+   */
+  public function createFileUrl($relative = TRUE) {
+    $url = file_create_url($this->getFileUri());
+    if ($relative && $url) {
+      $url = file_url_transform_relative($url);
+    }
+    return $url;
+  }
+
+  /**
+   * {@inheritdoc}
    *
    * @see file_url_transform_relative()
    */
   public function url($rel = 'canonical', $options = []) {
-    return file_create_url($this->getFileUri());
+    @trigger_error('File entities returning the URL to the physical file in File::url() is deprecated, use $file->createFileUrl() instead. See https://www.drupal.org/node/3019830', E_USER_DEPRECATED);
+    return $this->createFileUrl(FALSE);
   }
 
   /**
@@ -119,36 +134,6 @@ class File extends ContentEntityBase implements FileInterface {
   /**
    * {@inheritdoc}
    */
-  public function getOwner() {
-    return $this->get('uid')->entity;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getOwnerId() {
-    return $this->get('uid')->target_id;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setOwnerId($uid) {
-    $this->set('uid', $uid);
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setOwner(UserInterface $account) {
-    $this->set('uid', $account->id());
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isPermanent() {
     return $this->get('status')->value == FILE_STATUS_PERMANENT;
   }
@@ -180,7 +165,7 @@ class File extends ContentEntityBase implements FileInterface {
   public static function preCreate(EntityStorageInterface $storage, array &$values) {
     // Automatically detect filename if not set.
     if (!isset($values['filename']) && isset($values['uri'])) {
-      $values['filename'] = drupal_basename($values['uri']);
+      $values['filename'] = \Drupal::service('file_system')->basename($values['uri']);
     }
 
     // Automatically detect filemime if not set.
@@ -222,7 +207,12 @@ class File extends ContentEntityBase implements FileInterface {
       // Delete the actual file. Failures due to invalid files and files that
       // were already deleted are logged to watchdog but ignored, the
       // corresponding file entity will be deleted.
-      file_unmanaged_delete($entity->getFileUri());
+      try {
+        \Drupal::service('file_system')->delete($entity->getFileUri());
+      }
+      catch (FileException $e) {
+        // Ignore and continue.
+      }
     }
   }
 
@@ -232,6 +222,7 @@ class File extends ContentEntityBase implements FileInterface {
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
     /** @var \Drupal\Core\Field\BaseFieldDefinition[] $fields */
     $fields = parent::baseFieldDefinitions($entity_type);
+    $fields += static::ownerBaseFieldDefinitions($entity_type);
 
     $fields['fid']->setLabel(t('File ID'))
       ->setDescription(t('The file ID.'));
@@ -241,10 +232,8 @@ class File extends ContentEntityBase implements FileInterface {
     $fields['langcode']->setLabel(t('Language code'))
       ->setDescription(t('The file language code.'));
 
-    $fields['uid'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(t('User ID'))
-      ->setDescription(t('The user ID of the file.'))
-      ->setSetting('target_type', 'user');
+    $fields['uid']
+      ->setDescription(t('The user ID of the file.'));
 
     $fields['filename'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Filename'))
@@ -282,6 +271,13 @@ class File extends ContentEntityBase implements FileInterface {
       ->setDescription(t('The timestamp that the file was last changed.'));
 
     return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getDefaultEntityOwner() {
+    return NULL;
   }
 
 }

@@ -65,16 +65,18 @@ class CommentNameConstraintValidator extends ConstraintValidator implements Cont
     // If an author name and owner are given, make sure they match.
     elseif (isset($author_name) && $author_name !== '' && $owner_id) {
       $owner = $this->userStorage->load($owner_id);
-      if ($owner->getUsername() != $author_name) {
+      if ($owner->getAccountName() != $author_name) {
         $this->context->buildViolation($constraint->messageMatch)
           ->atPath('name')
           ->addViolation();
       }
     }
 
-    // Anonymous account might be required - depending on field settings.
-    if ($owner_id === 0 && empty($author_name) &&
-      $this->getAnonymousContactDetailsSetting($entity) === COMMENT_ANONYMOUS_MUST_CONTACT) {
+    // Anonymous account might be required - depending on field settings. We
+    // can't validate this without a valid commented entity, which will fail
+    // the validation elsewhere.
+    if ($owner_id === 0 && empty($author_name) && $entity->getCommentedEntity() && $entity->getFieldName() &&
+      $this->getAnonymousContactDetailsSetting($entity) === CommentInterface::ANONYMOUS_MUST_CONTACT) {
       $this->context->buildViolation($constraint->messageRequired)
         ->atPath('name')
         ->addViolation();

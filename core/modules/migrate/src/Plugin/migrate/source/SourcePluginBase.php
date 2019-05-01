@@ -84,7 +84,7 @@ abstract class SourcePluginBase extends PluginBase implements MigrateSourceInter
   /**
    * The current row from the query.
    *
-   * @var \Drupal\Migrate\Row
+   * @var \Drupal\migrate\Row
    */
   protected $currentRow;
 

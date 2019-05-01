@@ -101,7 +101,6 @@ class LoggerChannel implements LoggerChannelInterface {
     $context += [
       'channel' => $this->channel,
       'link' => '',
-      'user' => NULL,
       'uid' => 0,
       'request_uri' => '',
       'referer' => '',
@@ -113,17 +112,9 @@ class LoggerChannel implements LoggerChannelInterface {
       $context['request_uri'] = $request->getUri();
       $context['referer'] = $request->headers->get('Referer', '');
       $context['ip'] = $request->getClientIP();
-      try {
-        if ($this->currentUser) {
-          $context['user'] = $this->currentUser;
-          $context['uid'] = $this->currentUser->id();
-        }
-      }
-      catch (\Exception $e) {
-        // An exception might be thrown if the database connection is not
-        // available or due to another unexpected reason. It is more important
-        // to log the error that we already have so any additional exceptions
-        // are ignored.
+
+      if ($this->currentUser) {
+        $context['uid'] = $this->currentUser->id();
       }
     }
 

@@ -9,6 +9,7 @@ use Drupal\Core\Locale\CountryManagerInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\State\StateInterface;
 use Drupal\user\UserStorageInterface;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -178,7 +179,7 @@ class SiteConfigureForm extends ConfigFormBase {
     $form['admin_account']['account']['name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Username'),
-      '#maxlength' => USERNAME_MAX_LENGTH,
+      '#maxlength' => UserInterface::USERNAME_MAX_LENGTH,
       '#description' => $this->t("Several special characters are allowed, including space, period (.), hyphen (-), apostrophe ('), underscore (_), and the @ sign."),
       '#required' => TRUE,
       '#attributes' => ['class' => ['username']],
@@ -207,7 +208,6 @@ class SiteConfigureForm extends ConfigFormBase {
       '#empty_value' => '',
       '#default_value' => $this->config('system.date')->get('country.default'),
       '#options' => $countries,
-      '#description' => $this->t('Select the default country for the site.'),
       '#weight' => 0,
       '#access' => empty($install_state['config_install_path']),
     ];
@@ -220,7 +220,6 @@ class SiteConfigureForm extends ConfigFormBase {
       '#title' => $this->t('Default time zone'),
       '#default_value' => $default_timezone,
       '#options' => system_time_zones(NULL, TRUE),
-      '#description' => $this->t('By default, dates in this site will be displayed in the chosen time zone.'),
       '#weight' => 5,
       '#attributes' => ['class' => ['timezone-detect']],
       '#access' => empty($install_state['config_install_path']),
@@ -229,7 +228,7 @@ class SiteConfigureForm extends ConfigFormBase {
     $form['update_notifications'] = [
       '#type' => 'fieldgroup',
       '#title' => $this->t('Update notifications'),
-      '#description' => $this->t('The system will notify you when updates and important security releases are available for installed components. Anonymous information about your site is sent to <a href=":drupal">Drupal.org</a>.', [':drupal' => 'https://www.drupal.org']),
+      '#description' => $this->t('When checking for updates, anonymous information about your site is sent to <a href="@drupal">Drupal.org</a>.', ['@drupal' => 'https://drupal.org']),
       '#access' => empty($install_state['config_install_path']),
     ];
     $form['update_notifications']['enable_update_status_module'] = [

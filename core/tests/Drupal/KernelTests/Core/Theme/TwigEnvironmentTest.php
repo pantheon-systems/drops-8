@@ -148,6 +148,7 @@ class TwigEnvironmentTest extends KernelTestBase {
     // Note: Later we refetch the twig service in order to bypass its internal
     // static cache.
     $environment = \Drupal::service('twig');
+    $template_path = 'core/modules/system/templates/container.html.twig';
 
     // A template basename greater than the constant
     // TwigPhpStorageCache::SUFFIX_SUBSTRING_LENGTH should get truncated.
@@ -163,19 +164,15 @@ class TwigEnvironmentTest extends KernelTestBase {
     $expected = strlen($prefix) + 2 + 2 * TwigPhpStorageCache::SUFFIX_SUBSTRING_LENGTH;
     $this->assertEquals($expected, strlen($key));
 
-    $template_filename = 'core/modules/system/templates/container.html.twig';
     $cache = $environment->getCache();
-    $class = $environment->getTemplateClass($template_filename);
-    $original_filename = $cache->generateKey($template_filename, $class);
-
-    \Drupal::getContainer()->set('twig', NULL);
-
+    $class = $environment->getTemplateClass($template_path);
+    $original_filename = $cache->generateKey($template_path, $class);
     \Drupal::service('module_installer')->install(['twig_extension_test']);
+
     $environment = \Drupal::service('twig');
     $cache = $environment->getCache();
-    $class = $environment->getTemplateClass($template_filename);
-    $new_extension_filename = $cache->generateKey($template_filename, $class);
-
+    $class = $environment->getTemplateClass($template_path);
+    $new_extension_filename = $cache->generateKey($template_path, $class);
     \Drupal::getContainer()->set('twig', NULL);
 
     $this->assertNotEqual($new_extension_filename, $original_filename);
@@ -219,7 +216,7 @@ TWIG;
     // Manually change $templateClassPrefix to force a different template
     // classname, as the other class is still loaded. This wouldn't be a problem
     // on a real site where you reload the page.
-    $reflection = new \ReflectionClass($environment);
+    $reflection = new \ReflectionClass(\Twig_Environment::class);
     $property_reflection = $reflection->getProperty('templateClassPrefix');
     $property_reflection->setAccessible(TRUE);
     $property_reflection->setValue($environment, 'otherPrefix');

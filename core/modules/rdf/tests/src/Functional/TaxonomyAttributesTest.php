@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\rdf\Functional;
 
+use Drupal\Core\Url;
 use Drupal\Tests\taxonomy\Functional\TaxonomyTestBase;
 
 /**
@@ -44,12 +45,12 @@ class TaxonomyAttributesTest extends TaxonomyTestBase {
    */
   public function testTaxonomyTermRdfaAttributes() {
     $term = $this->createTerm($this->vocabulary);
-    $term_uri = $term->url('canonical', ['absolute' => TRUE]);
+    $term_uri = $term->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     // Parses the term's page and checks that the RDF output is correct.
     $parser = new \EasyRdf_Parser_Rdfa();
     $graph = new \EasyRdf_Graph();
-    $base_uri = \Drupal::url('<front>', [], ['absolute' => TRUE]);
+    $base_uri = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
     $parser->parse($graph, $this->drupalGet('taxonomy/term/' . $term->id()), 'rdfa', $base_uri);
 
     // Inspects RDF graph output.

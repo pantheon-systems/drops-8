@@ -239,7 +239,7 @@ abstract class Schema implements PlaceholderInterface {
    *
    * @param $table
    *   The name of the table in drupal (no prefixing).
-   * @param $name
+   * @param $column
    *   The name of the column.
    *
    * @return
@@ -316,7 +316,7 @@ abstract class Schema implements PlaceholderInterface {
    *   table along with adding the field. The format is the same as a
    *   table specification but without the 'fields' element. If you are
    *   adding a type 'serial' field, you MUST specify at least one key
-   *   or index including it in this array. See db_change_field() for more
+   *   or index including it in this array. See ::changeField() for more
    *   explanation why.
    *
    * @throws \Drupal\Core\Database\SchemaObjectDoesNotExistException
@@ -352,6 +352,11 @@ abstract class Schema implements PlaceholderInterface {
    *
    * @throws \Drupal\Core\Database\SchemaObjectDoesNotExistException
    *   If the specified table or field doesn't exist.
+   *
+   * @deprecated as of Drupal 8.7.x, will be removed in Drupal 9.0.0. Instead,
+   *   call ::changeField() passing a full field specification.
+   *
+   * @see ::changeField()
    */
   abstract public function fieldSetDefault($table, $field, $default);
 
@@ -365,6 +370,11 @@ abstract class Schema implements PlaceholderInterface {
    *
    * @throws \Drupal\Core\Database\SchemaObjectDoesNotExistException
    *   If the specified table or field doesn't exist.
+   *
+   * @deprecated as of Drupal 8.7.x, will be removed in Drupal 9.0.0. Instead,
+   *   call ::changeField() passing a full field specification.
+   *
+   * @see ::changeField()
    */
   abstract public function fieldSetNoDefault($table, $field);
 
@@ -536,15 +546,38 @@ abstract class Schema implements PlaceholderInterface {
   abstract public function dropIndex($table, $name);
 
   /**
+   * Finds the columns for the primary key, unique keys and indexes of a table.
+   *
+   * @param string $table
+   *   The name of the table.
+   *
+   * @return array
+   *   A schema array with the following keys: 'primary key', 'unique keys' and
+   *   'indexes', and values as arrays of database columns.
+   *
+   * @throws \Drupal\Core\Database\SchemaObjectDoesNotExistException
+   *   If the specified table doesn't exist.
+   * @throws \RuntimeException
+   *   If the driver does not implement this method.
+   */
+  protected function introspectIndexSchema($table) {
+    if (!$this->tableExists($table)) {
+      throw new SchemaObjectDoesNotExistException("The table $table doesn't exist.");
+    }
+    throw new \RuntimeException("The '{$this->connection->driver()}' database driver does not implement " . __METHOD__);
+  }
+
+  /**
    * Change a field definition.
    *
    * IMPORTANT NOTE: To maintain database portability, you have to explicitly
    * recreate all indices and primary keys that are using the changed field.
    *
    * That means that you have to drop all affected keys and indexes with
-   * db_drop_{primary_key,unique_key,index}() before calling db_change_field().
+   * Schema::dropPrimaryKey(), Schema::dropUniqueKey(), or Schema::dropIndex()
+   * before calling ::changeField().
    * To recreate the keys and indices, pass the key definitions as the
-   * optional $keys_new argument directly to db_change_field().
+   * optional $keys_new argument directly to ::changeField().
    *
    * For example, suppose you have:
    * @code
@@ -558,8 +591,8 @@ abstract class Schema implements PlaceholderInterface {
    * and you want to change foo.bar to be type serial, leaving it as the
    * primary key. The correct sequence is:
    * @code
-   * db_drop_primary_key('foo');
-   * db_change_field('foo', 'bar', 'bar',
+   * $injected_database->schema()->dropPrimaryKey('foo');
+   * $injected_database->schema()->changeField('foo', 'bar', 'bar',
    *   array('type' => 'serial', 'not null' => TRUE),
    *   array('primary key' => array('bar')));
    * @endcode
@@ -572,15 +605,15 @@ abstract class Schema implements PlaceholderInterface {
    *
    * On MySQL, all type 'serial' fields must be part of at least one key
    * or index as soon as they are created. You cannot use
-   * db_add_{primary_key,unique_key,index}() for this purpose because
-   * the ALTER TABLE command will fail to add the column without a key
-   * or index specification. The solution is to use the optional
-   * $keys_new argument to create the key or index at the same time as
-   * field.
+   * Schema::addPrimaryKey, Schema::addUniqueKey(), or Schema::addIndex()
+   * for this purpose because the ALTER TABLE command will fail to add
+   * the column without a key or index specification.
+   * The solution is to use the optional $keys_new argument to create the key
+   * or index at the same time as field.
    *
-   * You could use db_add_{primary_key,unique_key,index}() in all cases
-   * unless you are converting a field to be type serial. You can use
-   * the $keys_new argument in all cases.
+   * You could use Schema::addPrimaryKey, Schema::addUniqueKey(), or
+   * Schema::addIndex() in all cases unless you are converting a field to
+   * be type serial. You can use the $keys_new argument in all cases.
    *
    * @param $table
    *   Name of the table.

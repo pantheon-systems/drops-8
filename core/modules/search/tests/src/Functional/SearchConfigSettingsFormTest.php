@@ -47,7 +47,7 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
     // Link the node to itself to test that it's only indexed once. The content
     // also needs the word "pizza" so we can use it as the search keyword.
     $body_key = 'body[0][value]';
-    $edit[$body_key] = \Drupal::l($node->label(), $node->urlInfo()) . ' pizza sandwich';
+    $edit[$body_key] = \Drupal::l($node->label(), $node->toUrl()) . ' pizza sandwich';
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
 
     $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
@@ -137,7 +137,7 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
         'text' => $this->searchNode->label(),
       ],
       'user_search' => [
-        'keys' => $this->searchUser->getUsername(),
+        'keys' => $this->searchUser->getAccountName(),
         'text' => $this->searchUser->getEmail(),
       ],
       'dummy_search_type' => [
@@ -177,7 +177,7 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
       $terms = ['keys' => $info['keys']];
       $this->drupalPostForm('node', $terms, t('Search'));
       $current = $this->getURL();
-      $expected = \Drupal::url('search.view_' . $entity->id(), [], ['query' => ['keys' => $info['keys']], 'absolute' => TRUE]);
+      $expected = Url::fromRoute('search.view_' . $entity->id(), [], ['query' => ['keys' => $info['keys']], 'absolute' => TRUE])->toString();
       $this->assertEqual($current, $expected, 'Block redirected to right search page');
 
       // Try an invalid search path, which should 404.
@@ -218,9 +218,9 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
   public function testDefaultSearchPageOrdering() {
     $this->drupalGet('search');
     $elements = $this->xpath('//*[contains(@class, :class)]//a', [':class' => 'tabs primary']);
-    $this->assertIdentical($elements[0]->getAttribute('href'), \Drupal::url('search.view_node_search'));
-    $this->assertIdentical($elements[1]->getAttribute('href'), \Drupal::url('search.view_dummy_search_type'));
-    $this->assertIdentical($elements[2]->getAttribute('href'), \Drupal::url('search.view_user_search'));
+    $this->assertIdentical($elements[0]->getAttribute('href'), Url::fromRoute('search.view_node_search')->toString());
+    $this->assertIdentical($elements[1]->getAttribute('href'), Url::fromRoute('search.view_dummy_search_type')->toString());
+    $this->assertIdentical($elements[2]->getAttribute('href'), Url::fromRoute('search.view_user_search')->toString());
   }
 
   /**

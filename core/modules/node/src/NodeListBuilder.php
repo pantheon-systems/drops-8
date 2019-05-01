@@ -50,7 +50,7 @@ class NodeListBuilder extends EntityListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager')->getStorage($entity_type->id()),
+      $container->get('entity_type.manager')->getStorage($entity_type->id()),
       $container->get('date.formatter'),
       $container->get('redirect.destination')
     );
@@ -96,7 +96,7 @@ class NodeListBuilder extends EntityListBuilder {
       '#mark_type' => node_mark($entity->id(), $entity->getChangedTime()),
     ];
     $langcode = $entity->language()->getId();
-    $uri = $entity->urlInfo();
+    $uri = $entity->toUrl();
     $options = $uri->getOptions();
     $options += ($langcode != LanguageInterface::LANGCODE_NOT_SPECIFIED && isset($languages[$langcode]) ? ['language' => $languages[$langcode]] : []);
     $uri->setOptions($options);

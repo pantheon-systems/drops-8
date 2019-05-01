@@ -2803,6 +2803,18 @@ $connection->insert('content_node_field')
   'locked' => '0',
 ))
 ->values(array(
+  'field_name' => 'field_sync',
+  'type' => 'email',
+  'global_settings' => 'a:0:{}',
+  'required' => '0',
+  'multiple' => '0',
+  'db_storage' => '1',
+  'module' => 'email',
+  'db_columns' => 'a:1:{s:5:"email";a:4:{s:4:"type";s:7:"varchar";s:6:"length";i:255;s:8:"not null";b:0;s:8:"sortable";b:1;}}',
+  'active' => '1',
+  'locked' => '0',
+))
+->values(array(
   'field_name' => 'field_test',
   'type' => 'text',
   'global_settings' => 'a:4:{s:15:"text_processing";s:1:"1";s:10:"max_length";s:0:"";s:14:"allowed_values";s:0:"";s:18:"allowed_values_php";s:0:"";}',
@@ -3220,6 +3232,18 @@ $connection->insert('content_node_field_instance')
   'widget_active' => '1',
 ))
 ->values(array(
+  'field_name' => 'field_sync',
+  'type_name' => 'employee',
+  'weight' => '35',
+  'label' => 'email_sync',
+  'widget_type' => 'email_textfield',
+  'widget_settings' => 'a:3:{s:4:"size";s:2:"60";s:13:"default_value";a:1:{i:0;a:1:{s:5:"email";s:0:"";}}s:17:"default_value_php";N;}',
+  'display_settings' => 'a:7:{s:5:"label";a:2:{s:6:"format";s:5:"above";s:7:"exclude";i:0;}i:5;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:6:"teaser";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}s:4:"full";a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:4;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:2;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}i:3;a:2:{s:6:"format";s:7:"default";s:7:"exclude";i:0;}}',
+  'description' => '',
+  'widget_module' => 'email',
+  'widget_active' => '1',
+))
+->values(array(
   'field_name' => 'field_test',
   'type_name' => 'story',
   'weight' => '1',
@@ -3530,6 +3554,11 @@ $connection->schema()->createTable('content_type_employee', array(
       'size' => 'normal',
       'unsigned' => TRUE,
     ),
+    'field_sync_email' => array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => '255',
+    ),
   ),
   'primary key' => array(
     'vid',
@@ -3558,6 +3587,7 @@ $connection->insert('content_type_employee')
   'field_commander_uid',
   'field_company_2_nid',
   'field_company_3_nid',
+  'field_sync_email',
 ))
 ->values(array(
   'vid' => '21',
@@ -3565,6 +3595,7 @@ $connection->insert('content_type_employee')
   'field_commander_uid' => '8',
   'field_company_2_nid' => '15',
   'field_company_3_nid' => '16',
+  'field_sync_email' => NULL,
 ))
 ->values(array(
   'vid' => '2002',
@@ -3572,6 +3603,7 @@ $connection->insert('content_type_employee')
   'field_commander_uid' => NULL,
   'field_company_2_nid' => NULL,
   'field_company_3_nid' => NULL,
+  'field_sync_email' => 'jsmith@example.com',
 ))
 ->values(array(
   'vid' => '2003',
@@ -3579,6 +3611,7 @@ $connection->insert('content_type_employee')
   'field_commander_uid' => NULL,
   'field_company_2_nid' => NULL,
   'field_company_3_nid' => NULL,
+  'field_sync_email' => 'jsmith@example.com',
 ))
 ->execute();
 $connection->schema()->createTable('content_type_page', array(
@@ -34474,6 +34507,222 @@ $connection->insert('menu_links')
   'p9' => '0',
   'updated' => '0',
 ))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '464',
+  'plid' => '158',
+  'link_path' => 'node/add/page',
+  'router_path' => 'node/add/page',
+  'link_title' => 'Page',
+  'options' => "a:1:{s:10:\"attributes\";a:1:{s:5:\"title\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";}}",
+  'module' => 'system',
+  'hidden' => '0',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '2',
+  'customized' => '0',
+  'p1' => '158',
+  'p2' => '464',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '465',
+  'plid' => '157',
+  'link_path' => 'admin/content/node-type/page',
+  'router_path' => 'admin/content/node-type/page',
+  'link_title' => 'Page',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '3',
+  'customized' => '0',
+  'p1' => '144',
+  'p2' => '157',
+  'p3' => '465',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '466',
+  'plid' => '0',
+  'link_path' => 'admin/content/node-type/page/delete',
+  'router_path' => 'admin/content/node-type/page/delete',
+  'link_title' => 'Delete',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '0',
+  'p1' => '466',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '467',
+  'plid' => '0',
+  'link_path' => 'admin/content/node-type/employee/fields/field_company_2/remove',
+  'router_path' => 'admin/content/node-type/employee/fields/field_company_2/remove',
+  'link_title' => 'Remove field',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '0',
+  'p1' => '467',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '468',
+  'plid' => '0',
+  'link_path' => 'admin/content/node-type/employee/fields/field_company_3/remove',
+  'router_path' => 'admin/content/node-type/employee/fields/field_company_3/remove',
+  'link_title' => 'Remove field',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '0',
+  'p1' => '468',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '469',
+  'plid' => '0',
+  'link_path' => 'admin/content/node-type/page/fields/field_reference/remove',
+  'router_path' => 'admin/content/node-type/page/fields/field_reference/remove',
+  'link_title' => 'Remove field',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '0',
+  'p1' => '469',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '470',
+  'plid' => '0',
+  'link_path' => 'admin/content/node-type/page/fields/field_reference_2/remove',
+  'router_path' => 'admin/content/node-type/page/fields/field_reference_2/remove',
+  'link_title' => 'Remove field',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '0',
+  'p1' => '470',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
+->values(array(
+  'menu_name' => 'navigation',
+  'mlid' => '471',
+  'plid' => '0',
+  'link_path' => 'admin/content/node-type/story/fields/field_test_string_selectlist/remove',
+  'router_path' => 'admin/content/node-type/story/fields/field_test_string_selectlist/remove',
+  'link_title' => 'Remove field',
+  'options' => 'a:0:{}',
+  'module' => 'system',
+  'hidden' => '-1',
+  'external' => '0',
+  'has_children' => '0',
+  'expanded' => '0',
+  'weight' => '0',
+  'depth' => '1',
+  'customized' => '0',
+  'p1' => '471',
+  'p2' => '0',
+  'p3' => '0',
+  'p4' => '0',
+  'p5' => '0',
+  'p6' => '0',
+  'p7' => '0',
+  'p8' => '0',
+  'p9' => '0',
+  'updated' => '0',
+))
 ->execute();
 $connection->schema()->createTable('menu_router', array(
   'fields' => array(
@@ -37240,6 +37489,94 @@ $connection->insert('menu_router')
   'file' => 'sites/all/modules/cck/includes/content.admin.inc',
 ))
 ->values(array(
+  'path' => 'admin/content/node-type/employee/fields/field_company_2',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:23:"content_field_edit_form";i:1;s:8:"employee";i:2;s:15:"field_company_2";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/employee/fields',
+  'tab_root' => 'admin/content/node-type/employee',
+  'title' => 'Company 2',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/employee/fields/field_company_2/remove',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:25:"content_field_remove_form";i:1;s:8:"employee";i:2;s:15:"field_company_2";}',
+  'fit' => '127',
+  'number_parts' => '7',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/employee/fields/field_company_2/remove',
+  'title' => 'Remove field',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/employee/fields/field_company_3',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:23:"content_field_edit_form";i:1;s:8:"employee";i:2;s:15:"field_company_3";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/employee/fields',
+  'tab_root' => 'admin/content/node-type/employee',
+  'title' => 'Company 3',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/employee/fields/field_company_3/remove',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:25:"content_field_remove_form";i:1;s:8:"employee";i:2;s:15:"field_company_3";}',
+  'fit' => '127',
+  'number_parts' => '7',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/employee/fields/field_company_3/remove',
+  'title' => 'Remove field',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
   'path' => 'admin/content/node-type/forum',
   'load_functions' => '',
   'to_arg_functions' => '',
@@ -37416,13 +37753,277 @@ $connection->insert('menu_router')
   'file' => 'sites/all/modules/cck/includes/content.admin.inc',
 ))
 ->values(array(
+  'path' => 'admin/content/node-type/page',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => "a:2:{i:0;s:14:\"node_type_form\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:4:\"page\";s:4:\"name\";s:4:\"Page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:4:\"Body\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:4:\"page\";}}",
+  'fit' => '15',
+  'number_parts' => '4',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Page',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'modules/node/content_types.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/delete',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => "a:2:{i:0;s:24:\"node_type_delete_confirm\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:4:\"page\";s:4:\"name\";s:4:\"Page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:4:\"Body\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:4:\"page\";}}",
+  'fit' => '31',
+  'number_parts' => '5',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/page/delete',
+  'title' => 'Delete',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'modules/node/content_types.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/display',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:2:{i:0;s:29:"content_display_overview_form";i:1;s:4:"page";}',
+  'fit' => '31',
+  'number_parts' => '5',
+  'tab_parent' => 'admin/content/node-type/page',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Display fields',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '2',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/display/basic',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:29:"content_display_overview_form";i:1;s:4:"page";i:2;s:5:"basic";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/page/display',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Basic',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '136',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/display/print',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:29:"content_display_overview_form";i:1;s:4:"page";i:2;s:5:"print";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/page/display',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Print',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '1',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/display/rss',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:29:"content_display_overview_form";i:1;s:4:"page";i:2;s:3:"rss";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/page/display',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'RSS',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '1',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/edit',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => "a:2:{i:0;s:14:\"node_type_form\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:4:\"page\";s:4:\"name\";s:4:\"Page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:4:\"Body\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:4:\"page\";}}",
+  'fit' => '31',
+  'number_parts' => '5',
+  'tab_parent' => 'admin/content/node-type/page',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Edit',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '136',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'modules/node/content_types.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/fields',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:2:{i:0;s:27:"content_field_overview_form";i:1;s:4:"page";}',
+  'fit' => '31',
+  'number_parts' => '5',
+  'tab_parent' => 'admin/content/node-type/page',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Manage fields',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '1',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/fields/field_reference',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:23:"content_field_edit_form";i:1;s:4:"page";i:2;s:15:"field_reference";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/page/fields',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Reference',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/fields/field_reference/remove',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:25:"content_field_remove_form";i:1;s:4:"page";i:2;s:15:"field_reference";}',
+  'fit' => '127',
+  'number_parts' => '7',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/page/fields/field_reference/remove',
+  'title' => 'Remove field',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/fields/field_reference_2',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:23:"content_field_edit_form";i:1;s:4:"page";i:2;s:17:"field_reference_2";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/page/fields',
+  'tab_root' => 'admin/content/node-type/page',
+  'title' => 'Reference',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/page/fields/field_reference_2/remove',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:25:"content_field_remove_form";i:1;s:4:"page";i:2;s:17:"field_reference_2";}',
+  'fit' => '127',
+  'number_parts' => '7',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/page/fields/field_reference_2/remove',
+  'title' => 'Remove field',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
   'path' => 'admin/content/node-type/sponsor',
   'load_functions' => '',
   'to_arg_functions' => '',
   'access_callback' => 'user_access',
   'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
   'page_callback' => 'drupal_get_form',
-  'page_arguments' => 'a:2:{i:0;s:14:"node_type_form";i:1;O:8:"stdClass":14:{s:4:"type";s:7:"sponsor";s:4:"name";s:7:"Sponsor";s:6:"module";s:4:"node";s:11:"description";s:17:"Sponsor node type";s:4:"help";s:0:"";s:9:"has_title";s:1:"1";s:11:"title_label";s:4:"Name";s:8:"has_body";s:1:"0";s:10:"body_label";s:4:"Body";s:14:"min_word_count";s:1:"0";s:6:"custom";s:1:"0";s:8:"modified";s:1:"0";s:6:"locked";s:1:"0";s:9:"orig_type";s:0:"";}}',
+  'page_arguments' => 'a:2:{i:0;s:14:"node_type_form";i:1;O:8:"stdClass":14:{s:4:"type";s:7:"sponsor";s:4:"name";s:7:"Sponsor";s:6:"module";s:4:"node";s:11:"description";s:17:"Sponsor node type";s:4:"help";s:0:"";s:9:"has_title";s:1:"1";s:11:"title_label";s:4:"Name";s:8:"has_body";s:1:"1";s:10:"body_label";s:4:"Body";s:14:"min_word_count";s:1:"0";s:6:"custom";s:1:"0";s:8:"modified";s:1:"1";s:6:"locked";s:1:"0";s:9:"orig_type";s:0:"";}}',
   'fit' => '15',
   'number_parts' => '4',
   'tab_parent' => '',
@@ -37444,7 +38045,7 @@ $connection->insert('menu_router')
   'access_callback' => 'user_access',
   'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
   'page_callback' => 'drupal_get_form',
-  'page_arguments' => 'a:2:{i:0;s:24:"node_type_delete_confirm";i:1;O:8:"stdClass":14:{s:4:"type";s:7:"sponsor";s:4:"name";s:7:"Sponsor";s:6:"module";s:4:"node";s:11:"description";s:17:"Sponsor node type";s:4:"help";s:0:"";s:9:"has_title";s:1:"1";s:11:"title_label";s:4:"Name";s:8:"has_body";s:1:"0";s:10:"body_label";s:4:"Body";s:14:"min_word_count";s:1:"0";s:6:"custom";s:1:"0";s:8:"modified";s:1:"0";s:6:"locked";s:1:"0";s:9:"orig_type";s:0:"";}}',
+  'page_arguments' => 'a:2:{i:0;s:24:"node_type_delete_confirm";i:1;O:8:"stdClass":14:{s:4:"type";s:7:"sponsor";s:4:"name";s:7:"Sponsor";s:6:"module";s:4:"node";s:11:"description";s:17:"Sponsor node type";s:4:"help";s:0:"";s:9:"has_title";s:1:"1";s:11:"title_label";s:4:"Name";s:8:"has_body";s:1:"1";s:10:"body_label";s:4:"Body";s:14:"min_word_count";s:1:"0";s:6:"custom";s:1:"0";s:8:"modified";s:1:"1";s:6:"locked";s:1:"0";s:9:"orig_type";s:0:"";}}',
   'fit' => '31',
   'number_parts' => '5',
   'tab_parent' => '',
@@ -37554,7 +38155,7 @@ $connection->insert('menu_router')
   'access_callback' => 'user_access',
   'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
   'page_callback' => 'drupal_get_form',
-  'page_arguments' => 'a:2:{i:0;s:14:"node_type_form";i:1;O:8:"stdClass":14:{s:4:"type";s:7:"sponsor";s:4:"name";s:7:"Sponsor";s:6:"module";s:4:"node";s:11:"description";s:17:"Sponsor node type";s:4:"help";s:0:"";s:9:"has_title";s:1:"1";s:11:"title_label";s:4:"Name";s:8:"has_body";s:1:"0";s:10:"body_label";s:4:"Body";s:14:"min_word_count";s:1:"0";s:6:"custom";s:1:"0";s:8:"modified";s:1:"0";s:6:"locked";s:1:"0";s:9:"orig_type";s:0:"";}}',
+  'page_arguments' => 'a:2:{i:0;s:14:"node_type_form";i:1;O:8:"stdClass":14:{s:4:"type";s:7:"sponsor";s:4:"name";s:7:"Sponsor";s:6:"module";s:4:"node";s:11:"description";s:17:"Sponsor node type";s:4:"help";s:0:"";s:9:"has_title";s:1:"1";s:11:"title_label";s:4:"Name";s:8:"has_body";s:1:"1";s:10:"body_label";s:4:"Body";s:14:"min_word_count";s:1:"0";s:6:"custom";s:1:"0";s:8:"modified";s:1:"1";s:6:"locked";s:1:"0";s:9:"orig_type";s:0:"";}}',
   'fit' => '31',
   'number_parts' => '5',
   'tab_parent' => 'admin/content/node-type/sponsor',
@@ -38472,6 +39073,50 @@ $connection->insert('menu_router')
   'file' => 'sites/all/modules/cck/includes/content.admin.inc',
 ))
 ->values(array(
+  'path' => 'admin/content/node-type/story/fields/field_test_string_selectlist',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:23:"content_field_edit_form";i:1;s:5:"story";i:2;s:28:"field_test_string_selectlist";}',
+  'fit' => '63',
+  'number_parts' => '6',
+  'tab_parent' => 'admin/content/node-type/story/fields',
+  'tab_root' => 'admin/content/node-type/story',
+  'title' => 'String Select List Field',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '128',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
+  'path' => 'admin/content/node-type/story/fields/field_test_string_selectlist/remove',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'user_access',
+  'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
+  'page_callback' => 'drupal_get_form',
+  'page_arguments' => 'a:3:{i:0;s:25:"content_field_remove_form";i:1;s:5:"story";i:2;s:28:"field_test_string_selectlist";}',
+  'fit' => '127',
+  'number_parts' => '7',
+  'tab_parent' => '',
+  'tab_root' => 'admin/content/node-type/story/fields/field_test_string_selectlist/remove',
+  'title' => 'Remove field',
+  'title_callback' => 't',
+  'title_arguments' => '',
+  'type' => '4',
+  'block_callback' => '',
+  'description' => '',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'sites/all/modules/cck/includes/content.admin.inc',
+))
+->values(array(
   'path' => 'admin/content/node-type/story/fields/field_test_text_single_checkbox',
   'load_functions' => '',
   'to_arg_functions' => '',
@@ -38830,7 +39475,7 @@ $connection->insert('menu_router')
   'access_callback' => 'user_access',
   'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
   'page_callback' => 'drupal_get_form',
-  'page_arguments' => "a:2:{i:0;s:14:\"node_type_form\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:9:\"test_page\";s:4:\"name\";s:17:\"Migrate test page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:28:\"This is the body field label\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:4:\"page\";}}",
+  'page_arguments' => "a:2:{i:0;s:14:\"node_type_form\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:9:\"test_page\";s:4:\"name\";s:17:\"Migrate test page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:28:\"This is the body field label\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:9:\"test_page\";}}",
   'fit' => '15',
   'number_parts' => '4',
   'tab_parent' => '',
@@ -38852,7 +39497,7 @@ $connection->insert('menu_router')
   'access_callback' => 'user_access',
   'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
   'page_callback' => 'drupal_get_form',
-  'page_arguments' => "a:2:{i:0;s:24:\"node_type_delete_confirm\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:9:\"test_page\";s:4:\"name\";s:17:\"Migrate test page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:28:\"This is the body field label\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:4:\"page\";}}",
+  'page_arguments' => "a:2:{i:0;s:24:\"node_type_delete_confirm\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:9:\"test_page\";s:4:\"name\";s:17:\"Migrate test page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:28:\"This is the body field label\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:9:\"test_page\";}}",
   'fit' => '31',
   'number_parts' => '5',
   'tab_parent' => '',
@@ -38962,7 +39607,7 @@ $connection->insert('menu_router')
   'access_callback' => 'user_access',
   'access_arguments' => 'a:1:{i:0;s:24:"administer content types";}',
   'page_callback' => 'drupal_get_form',
-  'page_arguments' => "a:2:{i:0;s:14:\"node_type_form\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:9:\"test_page\";s:4:\"name\";s:17:\"Migrate test page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:28:\"This is the body field label\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:4:\"page\";}}",
+  'page_arguments' => "a:2:{i:0;s:14:\"node_type_form\";i:1;O:8:\"stdClass\":14:{s:4:\"type\";s:9:\"test_page\";s:4:\"name\";s:17:\"Migrate test page\";s:6:\"module\";s:4:\"node\";s:11:\"description\";s:296:\"A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.\";s:4:\"help\";s:0:\"\";s:9:\"has_title\";s:1:\"1\";s:11:\"title_label\";s:5:\"Title\";s:8:\"has_body\";s:1:\"1\";s:10:\"body_label\";s:28:\"This is the body field label\";s:14:\"min_word_count\";s:1:\"0\";s:6:\"custom\";s:1:\"1\";s:8:\"modified\";s:1:\"1\";s:6:\"locked\";s:1:\"0\";s:9:\"orig_type\";s:9:\"test_page\";}}",
   'fit' => '31',
   'number_parts' => '5',
   'tab_parent' => 'admin/content/node-type/test-page',
@@ -41024,28 +41669,6 @@ $connection->insert('menu_router')
   'file' => 'sites/all/modules/i18n/i18n.admin.inc',
 ))
 ->values(array(
-  'path' => 'admin/settings/language/i18n/variables',
-  'load_functions' => '',
-  'to_arg_functions' => '',
-  'access_callback' => 'user_access',
-  'access_arguments' => 'a:1:{i:0;s:29:"administer site configuration";}',
-  'page_callback' => 'drupal_get_form',
-  'page_arguments' => 'a:1:{i:0;s:25:"i18n_admin_variables_form";}',
-  'fit' => '31',
-  'number_parts' => '5',
-  'tab_parent' => 'admin/settings/language/i18n',
-  'tab_root' => 'admin/settings/language',
-  'title' => 'Variables',
-  'title_callback' => 't',
-  'title_arguments' => '',
-  'type' => '128',
-  'block_callback' => '',
-  'description' => 'Multilingual variables.',
-  'position' => '',
-  'weight' => '0',
-  'file' => 'sites/all/modules/i18n/i18n.admin.inc',
-))
-->values(array(
   'path' => 'admin/settings/language/overview',
   'load_functions' => '',
   'to_arg_functions' => '',
@@ -42955,6 +43578,28 @@ $connection->insert('menu_router')
   'type' => '6',
   'block_callback' => '',
   'description' => 'A <em>forum topic</em> is the initial post to a new discussion thread within a forum.',
+  'position' => '',
+  'weight' => '0',
+  'file' => 'modules/node/node.pages.inc',
+))
+->values(array(
+  'path' => 'node/add/page',
+  'load_functions' => '',
+  'to_arg_functions' => '',
+  'access_callback' => 'node_access',
+  'access_arguments' => 'a:2:{i:0;s:6:"create";i:1;s:4:"page";}',
+  'page_callback' => 'i18ncontent_node_add',
+  'page_arguments' => 'a:1:{i:0;i:2;}',
+  'fit' => '7',
+  'number_parts' => '3',
+  'tab_parent' => '',
+  'tab_root' => 'node/add/page',
+  'title' => 'Page',
+  'title_callback' => 'i18nstrings_title_callback',
+  'title_arguments' => 'a:2:{i:0;s:23:"nodetype:type:page:name";i:1;s:4:"Page";}',
+  'type' => '6',
+  'block_callback' => '',
+  'description' => "A <em>page</em>, similar in form to a <em>story</em>, is a simple method for creating and displaying information that rarely changes, such as an \"About us\" section of a website. By default, a <em>page</em> entry does not allow visitor comments and is not featured on the site's initial home page.",
   'position' => '',
   'weight' => '0',
   'file' => 'modules/node/node.pages.inc',
@@ -45103,11 +45748,11 @@ $connection->insert('node_type')
   'help' => '',
   'has_title' => '1',
   'title_label' => 'Name',
-  'has_body' => '0',
+  'has_body' => '1',
   'body_label' => 'Body',
   'min_word_count' => '0',
   'custom' => '0',
-  'modified' => '0',
+  'modified' => '1',
   'locked' => '0',
   'orig_type' => '',
 ))
@@ -46176,7 +46821,7 @@ $connection->insert('system')
   'name' => 'search',
   'type' => 'module',
   'owner' => '',
-  'status' => '0',
+  'status' => '1',
   'throttle' => '0',
   'bootstrap' => '0',
   'schema_version' => '-1',
@@ -46764,11 +47409,11 @@ $connection->insert('system')
   'name' => 'i18nsync',
   'type' => 'module',
   'owner' => '',
-  'status' => '0',
+  'status' => '1',
   'throttle' => '0',
   'bootstrap' => '0',
-  'schema_version' => '-1',
-  'weight' => '0',
+  'schema_version' => '0',
+  'weight' => '100',
   'info' => 'a:10:{s:4:"name";s:24:"Synchronize translations";s:11:"description";s:74:"Synchronizes taxonomy and fields accross translations of the same content.";s:12:"dependencies";a:1:{i:0;s:4:"i18n";}s:7:"package";s:13:"Multilanguage";s:4:"core";s:3:"6.x";s:7:"version";s:7:"6.x-1.4";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1270669810";s:10:"dependents";a:0:{}s:3:"php";s:5:"4.3.5";}',
 ))
 ->values(array(
@@ -47870,8 +48515,8 @@ $connection->insert('users')
   'signature' => '',
   'signature_format' => '0',
   'created' => '0',
-  'access' => '1494966478',
-  'login' => '1494966280',
+  'access' => '1543973668',
+  'login' => '1543973668',
   'status' => '1',
   'timezone' => NULL,
   'language' => '',
@@ -48226,7 +48871,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_controls_employee',
-  'value' => 'i:3;',
+  'value' => 's:1:"3";',
 ))
 ->values(array(
   'name' => 'comment_controls_page',
@@ -48234,7 +48879,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_controls_sponsor',
-  'value' => 'i:3;',
+  'value' => 's:1:"3";',
 ))
 ->values(array(
   'name' => 'comment_controls_story',
@@ -48266,7 +48911,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_default_mode_employee',
-  'value' => 'i:4;',
+  'value' => 's:1:"4";',
 ))
 ->values(array(
   'name' => 'comment_default_mode_page',
@@ -48274,7 +48919,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_default_mode_sponsor',
-  'value' => 'i:4;',
+  'value' => 's:1:"4";',
 ))
 ->values(array(
   'name' => 'comment_default_mode_story',
@@ -48306,7 +48951,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_default_order_employee',
-  'value' => 'i:1;',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'comment_default_order_page',
@@ -48314,7 +48959,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_default_order_sponsor',
-  'value' => 'i:1;',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'comment_default_order_story',
@@ -48346,7 +48991,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_default_per_page_employee',
-  'value' => 'i:50;',
+  'value' => 's:2:"50";',
 ))
 ->values(array(
   'name' => 'comment_default_per_page_page',
@@ -48354,7 +48999,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_default_per_page_sponsor',
-  'value' => 'i:50;',
+  'value' => 's:2:"50";',
 ))
 ->values(array(
   'name' => 'comment_default_per_page_story',
@@ -48377,6 +49022,10 @@ $connection->insert('variable')
   'value' => 'i:50;',
 ))
 ->values(array(
+  'name' => 'comment_employee',
+  'value' => 's:1:"2";',
+))
+->values(array(
   'name' => 'comment_form_location_article',
   'value' => 'i:0;',
 ))
@@ -48386,7 +49035,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_form_location_employee',
-  'value' => 'i:0;',
+  'value' => 's:1:"0";',
 ))
 ->values(array(
   'name' => 'comment_form_location_page',
@@ -48394,7 +49043,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_form_location_sponsor',
-  'value' => 'i:0;',
+  'value' => 's:1:"0";',
 ))
 ->values(array(
   'name' => 'comment_form_location_story',
@@ -48430,7 +49079,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_preview_employee',
-  'value' => 'i:1;',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'comment_preview_page',
@@ -48438,7 +49087,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_preview_sponsor',
-  'value' => 'i:1;',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'comment_preview_story',
@@ -48461,6 +49110,10 @@ $connection->insert('variable')
   'value' => 'i:1;',
 ))
 ->values(array(
+  'name' => 'comment_sponsor',
+  'value' => 's:1:"2";',
+))
+->values(array(
   'name' => 'comment_story',
   'value' => 's:1:"2";',
 ))
@@ -48474,7 +49127,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_subject_field_employee',
-  'value' => 'i:1;',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'comment_subject_field_page',
@@ -48482,7 +49135,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'comment_subject_field_sponsor',
-  'value' => 'i:1;',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'comment_subject_field_story',
@@ -48841,8 +49494,16 @@ $connection->insert('variable')
   'value' => 's:5:"never";',
 ))
 ->values(array(
+  'name' => 'event_nodeapi_employee',
+  'value' => 's:5:"never";',
+))
+->values(array(
   'name' => 'event_nodeapi_event',
   'value' => 's:3:"all";',
+))
+->values(array(
+  'name' => 'event_nodeapi_sponsor',
+  'value' => 's:5:"never";',
 ))
 ->values(array(
   'name' => 'event_timezone_display',
@@ -48909,6 +49570,14 @@ $connection->insert('variable')
   'value' => 's:48:"form-jFw2agRukPxjG5dG-N6joZLyoxXmCoxTzua0HUciqK0";',
 ))
 ->values(array(
+  'name' => 'form_build_id_employee',
+  'value' => 's:48:"form-q42bJnZxCCHxcx5FjxjEOd8OaEAg9wnK8nX1hBjtT4M";',
+))
+->values(array(
+  'name' => 'form_build_id_sponsor',
+  'value' => 's:48:"form-1iWzOEGgEeoeGb7ywYWz4iUNal77IHPDVwqYj-a7ezQ";',
+))
+->values(array(
   'name' => 'forum_block_num_0',
   'value' => 's:1:"3";',
 ))
@@ -48937,12 +49606,48 @@ $connection->insert('variable')
   'value' => 'a:2:{i:0;i:1;i:1;i:2;}',
 ))
 ->values(array(
+  'name' => 'i18nsync_nodeapi_employee',
+  'value' => 'a:1:{i:0;s:10:"field_sync";}',
+))
+->values(array(
   'name' => 'i18ntaxonomy_vocabulary',
   'value' => 'a:4:{i:1;s:1:"3";i:2;s:1:"2";i:3;s:1:"3";i:5;s:1:"1";}',
 ))
 ->values(array(
   'name' => 'i18n_lock_node_article',
   'value' => 'i:1;',
+))
+->values(array(
+  'name' => 'i18n_lock_node_employee',
+  'value' => 'i:0;',
+))
+->values(array(
+  'name' => 'i18n_newnode_current_employee',
+  'value' => 'i:0;',
+))
+->values(array(
+  'name' => 'i18n_node_employee',
+  'value' => 's:1:"1";',
+))
+->values(array(
+  'name' => 'i18n_required_node_employee',
+  'value' => 'i:0;',
+))
+->values(array(
+  'name' => 'i18n_lock_node_sponsor',
+  'value' => 'i:0;',
+))
+->values(array(
+  'name' => 'i18n_newnode_current_sponsor',
+  'value' => 'i:0;',
+))
+->values(array(
+  'name' => 'i18n_node_sponsor',
+  'value' => 'i:1;',
+))
+->values(array(
+  'name' => 'i18n_required_node_sponsor',
+  'value' => 'i:0;',
 ))
 ->values(array(
   'name' => 'image_jpeg_quality',
@@ -48963,6 +49668,10 @@ $connection->insert('variable')
 ->values(array(
   'name' => 'language_content_type_employee',
   'value' => 's:1:"2";',
+))
+->values(array(
+  'name' => 'language_content_type_sponsor',
+  'value' => 's:1:"1";',
 ))
 ->values(array(
   'name' => 'language_count',
@@ -49021,8 +49730,16 @@ $connection->insert('variable')
   'value' => 'a:2:{i:0;s:6:"status";i:1;s:7:"promote";}',
 ))
 ->values(array(
+  'name' => 'node_options_employee',
+  'value' => 'a:2:{i:0;s:6:"status";i:1;s:7:"promote";}',
+))
+->values(array(
   'name' => 'node_options_forum',
   'value' => 'a:1:{i:0;s:6:"status";}',
+))
+->values(array(
+  'name' => 'node_options_sponsor',
+  'value' => 'a:2:{i:0;s:6:"status";i:1;s:7:"promote";}',
 ))
 ->values(array(
   'name' => 'node_options_test_event',

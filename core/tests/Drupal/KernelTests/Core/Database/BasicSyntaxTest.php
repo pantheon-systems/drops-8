@@ -76,22 +76,22 @@ class BasicSyntaxTest extends DatabaseTestBase {
    * Tests escaping of LIKE wildcards.
    */
   public function testLikeEscape() {
-    db_insert('test')
+    $this->connection->insert('test')
       ->fields([
         'name' => 'Ring_',
       ])
       ->execute();
 
     // Match both "Ringo" and "Ring_".
-    $num_matches = db_select('test', 't')
+    $num_matches = $this->connection->select('test', 't')
       ->condition('name', 'Ring_', 'LIKE')
       ->countQuery()
       ->execute()
       ->fetchField();
     $this->assertIdentical($num_matches, '2', 'Found 2 records.');
     // Match only "Ring_" using a LIKE expression with no wildcards.
-    $num_matches = db_select('test', 't')
-      ->condition('name', db_like('Ring_'), 'LIKE')
+    $num_matches = $this->connection->select('test', 't')
+      ->condition('name', $this->connection->escapeLike('Ring_'), 'LIKE')
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -102,7 +102,7 @@ class BasicSyntaxTest extends DatabaseTestBase {
    * Tests a LIKE query containing a backslash.
    */
   public function testLikeBackslash() {
-    db_insert('test')
+    $this->connection->insert('test')
       ->fields(['name'])
       ->values([
         'name' => 'abcde\f',
@@ -114,15 +114,15 @@ class BasicSyntaxTest extends DatabaseTestBase {
 
     // Match both rows using a LIKE expression with two wildcards and a verbatim
     // backslash.
-    $num_matches = db_select('test', 't')
+    $num_matches = $this->connection->select('test', 't')
       ->condition('name', 'abc%\\\\_', 'LIKE')
       ->countQuery()
       ->execute()
       ->fetchField();
     $this->assertIdentical($num_matches, '2', 'Found 2 records.');
     // Match only the former using a LIKE expression with no wildcards.
-    $num_matches = db_select('test', 't')
-      ->condition('name', db_like('abc%\_'), 'LIKE')
+    $num_matches = $this->connection->select('test', 't')
+      ->condition('name', $this->connection->escapeLike('abc%\_'), 'LIKE')
       ->countQuery()
       ->execute()
       ->fetchField();

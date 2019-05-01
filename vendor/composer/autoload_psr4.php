@@ -39,9 +39,11 @@ return array(
     'GuzzleHttp\\Psr7\\' => array($vendorDir . '/guzzlehttp/psr7/src'),
     'GuzzleHttp\\Promise\\' => array($vendorDir . '/guzzlehttp/promises/src'),
     'GuzzleHttp\\' => array($vendorDir . '/guzzlehttp/guzzle/src'),
+    'Egulias\\EmailValidator\\' => array($vendorDir . '/egulias/email-validator/EmailValidator'),
     'Drupal\\Driver\\' => array($baseDir . '/drivers/lib/Drupal/Driver'),
     'Drupal\\Core\\Composer\\' => array($baseDir . '/core/lib/Drupal/Core/Composer'),
     'Drupal\\Core\\' => array($baseDir . '/core/lib/Drupal/Core'),
+    'Drupal\\Component\\Version\\' => array($baseDir . '/core/lib/Drupal/Component/Version'),
     'Drupal\\Component\\Uuid\\' => array($baseDir . '/core/lib/Drupal/Component/Uuid'),
     'Drupal\\Component\\Utility\\' => array($baseDir . '/core/lib/Drupal/Component/Utility'),
     'Drupal\\Component\\Transliteration\\' => array($baseDir . '/core/lib/Drupal/Component/Transliteration'),
@@ -69,5 +71,6 @@ return array(
     'Doctrine\\Common\\' => array($vendorDir . '/doctrine/common/lib/Doctrine/Common'),
     'Composer\\Semver\\' => array($vendorDir . '/composer/semver/src'),
     'Composer\\Installers\\' => array($vendorDir . '/composer/installers/src/Composer/Installers'),
+    'Brumann\\Polyfill\\' => array($vendorDir . '/brumann/polyfill-unserialize/src'),
     'Asm89\\Stack\\' => array($vendorDir . '/asm89/stack-cors/src/Asm89/Stack'),
 );

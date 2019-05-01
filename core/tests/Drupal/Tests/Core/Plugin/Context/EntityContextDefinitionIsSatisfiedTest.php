@@ -13,8 +13,11 @@ use Drupal\Core\Entity\EntityType;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Language\LanguageDefault;
+use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\EntityContext;
 use Drupal\Core\Plugin\Context\EntityContextDefinition;
+use Drupal\Core\StringTranslation\TranslationManager;
 use Drupal\Core\TypedData\TypedDataManager;
 use Drupal\Core\Validation\ConstraintManager;
 use Drupal\Tests\UnitTestCase;
@@ -75,11 +78,14 @@ class EntityContextDefinitionIsSatisfiedTest extends UnitTestCase {
 
     $this->entityTypeBundleInfo = $this->prophesize(EntityTypeBundleInfoInterface::class);
 
+    $string_translation = new TranslationManager(new LanguageDefault([]));
+
     $container = new ContainerBuilder();
     $container->set('typed_data_manager', $type_data_manager);
     $container->set('entity_type.manager', $this->entityTypeManager->reveal());
     $container->set('entity.manager', $this->entityManager->reveal());
     $container->set('entity_type.bundle.info', $this->entityTypeBundleInfo->reveal());
+    $container->set('string_translation', $string_translation);
     \Drupal::setContainer($container);
   }
 
@@ -95,19 +101,20 @@ class EntityContextDefinitionIsSatisfiedTest extends UnitTestCase {
    * @param mixed $value
    *   (optional) The value to set on the context, defaults to NULL.
    */
-  protected function assertRequirementIsSatisfied($expected, EntityContextDefinition $requirement, EntityContextDefinition $definition, $value = NULL) {
+  protected function assertRequirementIsSatisfied($expected, ContextDefinition $requirement, ContextDefinition $definition, $value = NULL) {
     $context = new EntityContext($definition, $value);
     $this->assertSame($expected, $requirement->isSatisfiedBy($context));
   }
 
   /**
    * @covers ::isSatisfiedBy
+   * @covers ::dataTypeMatches
    * @covers ::getSampleValues
    * @covers ::getConstraintObjects
    *
    * @dataProvider providerTestIsSatisfiedBy
    */
-  public function testIsSatisfiedBy($expected, EntityContextDefinition $requirement, EntityContextDefinition $definition, $value = NULL) {
+  public function testIsSatisfiedBy($expected, ContextDefinition $requirement, ContextDefinition $definition, $value = NULL) {
     $entity_storage = $this->prophesize(EntityStorageInterface::class);
     $content_entity_storage = $this->prophesize(ContentEntityStorageInterface::class);
     $this->entityTypeManager->getStorage('test_config')->willReturn($entity_storage->reveal());
@@ -169,12 +176,23 @@ class EntityContextDefinitionIsSatisfiedTest extends UnitTestCase {
       EntityContextDefinition::fromEntityType($config),
       EntityContextDefinition::fromEntityType($config),
     ];
+    $data['generic entity requirement, specific context'] = [
+      TRUE,
+      new ContextDefinition('entity'),
+      EntityContextDefinition::fromEntityType($config),
+    ];
+    $data['specific requirement, generic entity context'] = [
+      FALSE,
+      EntityContextDefinition::fromEntityType($content),
+      new ContextDefinition('entity'),
+    ];
 
     return $data;
   }
 
   /**
    * @covers ::isSatisfiedBy
+   * @covers ::dataTypeMatches
    * @covers ::getSampleValues
    * @covers ::getConstraintObjects
    *
@@ -271,6 +289,7 @@ class EntityContextDefinitionIsSatisfiedTest extends UnitTestCase {
 
   /**
    * @covers ::isSatisfiedBy
+   * @covers ::dataTypeMatches
    * @covers ::getSampleValues
    * @covers ::getConstraintObjects
    *

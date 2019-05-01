@@ -24,7 +24,7 @@ class ExposedFormTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $testViews = ['test_exposed_form_buttons', 'test_exposed_block', 'test_exposed_form_sort_items_per_page'];
+  public static $testViews = ['test_exposed_form_buttons', 'test_exposed_block', 'test_exposed_form_sort_items_per_page', 'test_exposed_form_pager'];
 
   /**
    * Modules to enable.
@@ -199,7 +199,31 @@ class ExposedFormTest extends ViewTestBase {
     $view = Views::getView('test_exposed_block');
     $view->setDisplay('page_1');
     $block = $this->drupalPlaceBlock('views_exposed_filter_block:test_exposed_block-page_1');
+
+    // Set label to display on the exposed filter form block.
+    $block->getPlugin()->setConfigurationValue('label_display', TRUE);
+    $block->save();
+
+    // Test that the block label is found.
     $this->drupalGet('test_exposed_block');
+    $this->assertText($view->getTitle(), 'Block title found.');
+
+    // Set a custom label on the exposed filter form block.
+    $block->getPlugin()->setConfigurationValue('views_label', '<strong>Custom</strong> title<script>alert("hacked!");</script>');
+    $block->save();
+
+    // Test that the custom block label is found.
+    $this->drupalGet('test_exposed_block');
+    $this->assertRaw('<strong>Custom</strong> titlealert("hacked!");', 'Custom block title found.');
+
+    // Set label to hidden on the exposed filter form block.
+    $block->getPlugin()->setConfigurationValue('label_display', FALSE);
+    $block->save();
+
+    // Test that the label is removed.
+    $this->drupalGet('test_exposed_block');
+    $this->assertNoRaw('<strong>Custom</strong> titlealert("hacked!");', 'Custom title was not displayed.');
+    $this->assertNoText($view->getTitle(), 'Block title was not displayed.');
 
     // Test there is an exposed form in a block.
     $xpath = $this->buildXPathQuery('//div[@id=:id]/form/@id', [':id' => Html::getUniqueId('block-' . $block->id())]);
@@ -355,6 +379,34 @@ class ExposedFormTest extends ViewTestBase {
     $this->assertTrue($form, 'The exposed form element was found.');
     $this->assertRaw(t('Apply'), 'Ensure the exposed form is rendered after submitting the normal form.');
     $this->assertRaw('<div class="views-row">', 'Views result shown.');
+  }
+
+  /**
+   * Tests the exposed form with a pager.
+   */
+  public function testExposedFilterPagination() {
+    $this->drupalCreateContentType(['type' => 'post']);
+    // Create some random nodes.
+    for ($i = 0; $i < 5; $i++) {
+      $this->drupalCreateNode(['type' => 'post']);
+    }
+
+    $this->drupalGet('test_exposed_form_pager');
+    $this->getSession()->getPage()->fillField('type[]', 'post');
+    $this->getSession()->getPage()->fillField('created[min]', '-1 month');
+    $this->getSession()->getPage()->fillField('created[max]', '+1 month');
+
+    // Ensure the filters can be applied.
+    $this->getSession()->getPage()->pressButton('Apply');
+    $this->assertFieldByName('type[]', 'post');
+    $this->assertFieldByName('created[min]', '-1 month');
+    $this->assertFieldByName('created[max]', '+1 month');
+
+    // Ensure the filters are still applied after pressing next.
+    $this->clickLink('Next ›');
+    $this->assertFieldByName('type[]', 'post');
+    $this->assertFieldByName('created[min]', '-1 month');
+    $this->assertFieldByName('created[max]', '+1 month');
   }
 
 }

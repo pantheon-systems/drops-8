@@ -81,12 +81,12 @@ class SessionAuthenticationTest extends BrowserTestBase {
   public function testBasicAuthSession() {
     // Set a session value on a request through basic auth.
     $test_value = 'alpaca';
-    $response = $this->basicAuthGet('session-test/set-session/' . $test_value, $this->user->getUsername(), $this->user->pass_raw);
+    $response = $this->basicAuthGet('session-test/set-session/' . $test_value, $this->user->getAccountName(), $this->user->pass_raw);
     $this->assertSessionData($response, $test_value);
     $this->assertResponse(200, 'The request to set a session value was successful.');
 
     // Test that on a subsequent request the session value is still present.
-    $response = $this->basicAuthGet('session-test/get-session', $this->user->getUsername(), $this->user->pass_raw);
+    $response = $this->basicAuthGet('session-test/get-session', $this->user->getAccountName(), $this->user->pass_raw);
     $this->assertSessionData($response, $test_value);
     $this->assertResponse(200, 'The request to get a session value was successful.');
   }

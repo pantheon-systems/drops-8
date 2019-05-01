@@ -2,8 +2,11 @@
 
 namespace Drupal\taxonomy\Form;
 
+use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -18,6 +21,12 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @internal
  */
 class OverviewTerms extends FormBase {
+  use DeprecatedServicePropertyTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
 
   /**
    * The module handler service.
@@ -31,7 +40,7 @@ class OverviewTerms extends FormBase {
    *
    * @var \Drupal\Core\Entity\EntityManagerInterface
    */
-  protected $entityManager;
+  protected $entityTypeManager;
 
   /**
    * The term storage handler.
@@ -55,21 +64,35 @@ class OverviewTerms extends FormBase {
   protected $renderer;
 
   /**
+   * The entity repository.
+   *
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface
+   */
+  protected $entityRepository;
+
+  /**
    * Constructs an OverviewTerms object.
    *
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler service.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager service.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    */
-  public function __construct(ModuleHandlerInterface $module_handler, EntityManagerInterface $entity_manager, RendererInterface $renderer = NULL) {
+  public function __construct(ModuleHandlerInterface $module_handler, EntityTypeManagerInterface $entity_type_manager, RendererInterface $renderer = NULL, EntityRepositoryInterface $entity_repository = NULL) {
     $this->moduleHandler = $module_handler;
-    $this->entityManager = $entity_manager;
-    $this->storageController = $entity_manager->getStorage('taxonomy_term');
-    $this->termListBuilder = $entity_manager->getListBuilder('taxonomy_term');
+    $this->entityTypeManager = $entity_type_manager;
+    $this->storageController = $entity_type_manager->getStorage('taxonomy_term');
+    $this->termListBuilder = $entity_type_manager->getListBuilder('taxonomy_term');
     $this->renderer = $renderer ?: \Drupal::service('renderer');
+    if (!$entity_repository) {
+      @trigger_error('Calling OverviewTerms::__construct() with the $entity_repository argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
+      $entity_repository = \Drupal::service('entity.repository');
+    }
+    $this->entityRepository = $entity_repository;
   }
 
   /**
@@ -78,8 +101,9 @@ class OverviewTerms extends FormBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('module_handler'),
-      $container->get('entity.manager'),
-      $container->get('renderer')
+      $container->get('entity_type.manager'),
+      $container->get('renderer'),
+      $container->get('entity.repository')
     );
   }
 
@@ -112,6 +136,7 @@ class OverviewTerms extends FormBase {
     global $pager_page_array, $pager_total, $pager_total_items;
 
     $form_state->set(['taxonomy', 'vocabulary'], $taxonomy_vocabulary);
+    $vocabulary_hierarchy = $this->storageController->getVocabularyHierarchyType($taxonomy_vocabulary->id());
     $parent_fields = FALSE;
 
     $page = $this->getRequest()->query->get('page') ?: 0;
@@ -227,10 +252,68 @@ class OverviewTerms extends FormBase {
       }
     }
 
+    $args = [
+      '%capital_name' => Unicode::ucfirst($taxonomy_vocabulary->label()),
+      '%name' => $taxonomy_vocabulary->label(),
+    ];
+    if ($this->currentUser()->hasPermission('administer taxonomy') || $this->currentUser()->hasPermission('edit terms in ' . $taxonomy_vocabulary->id())) {
+      switch ($vocabulary_hierarchy) {
+        case VocabularyInterface::HIERARCHY_DISABLED:
+          $help_message = $this->t('You can reorganize the terms in %capital_name using their drag-and-drop handles, and group terms under a parent term by sliding them under and to the right of the parent.', $args);
+          break;
+        case VocabularyInterface::HIERARCHY_SINGLE:
+          $help_message = $this->t('%capital_name contains terms grouped under parent terms. You can reorganize the terms in %capital_name using their drag-and-drop handles.', $args);
+          break;
+        case VocabularyInterface::HIERARCHY_MULTIPLE:
+          $help_message = $this->t('%capital_name contains terms with multiple parents. Drag and drop of terms with multiple parents is not supported, but you can re-enable drag-and-drop support by editing each term to include only a single parent.', $args);
+          break;
+      }
+    }
+    else {
+      switch ($vocabulary_hierarchy) {
+        case VocabularyInterface::HIERARCHY_DISABLED:
+          $help_message = $this->t('%capital_name contains the following terms.', $args);
+          break;
+        case VocabularyInterface::HIERARCHY_SINGLE:
+          $help_message = $this->t('%capital_name contains terms grouped under parent terms', $args);
+          break;
+        case VocabularyInterface::HIERARCHY_MULTIPLE:
+          $help_message = $this->t('%capital_name contains terms with multiple parents.', $args);
+          break;
+      }
+    }
+
+    // Get the IDs of the terms edited on the current page which have pending
+    // revisions.
+    $edited_term_ids = array_map(function ($item) {
+      return $item->id();
+    }, $current_page);
+    $pending_term_ids = array_intersect($this->storageController->getTermIdsWithPendingRevisions(), $edited_term_ids);
+    if ($pending_term_ids) {
+      $help_message = $this->formatPlural(
+        count($pending_term_ids),
+        '%capital_name contains 1 term with pending revisions. Drag and drop of terms with pending revisions is not supported, but you can re-enable drag-and-drop support by getting each term to a published state.',
+        '%capital_name contains @count terms with pending revisions. Drag and drop of terms with pending revisions is not supported, but you can re-enable drag-and-drop support by getting each term to a published state.',
+        $args
+      );
+    }
+
+    // Only allow access to change parents and reorder the tree if there are no
+    // pending revisions and there are no terms with multiple parents.
+    $update_tree_access = AccessResult::allowedIf(empty($pending_term_ids) && $vocabulary_hierarchy !== VocabularyInterface::HIERARCHY_MULTIPLE);
+
+    $form['help'] = [
+      '#type' => 'container',
+      'message' => ['#markup' => $help_message],
+    ];
+    if (!$update_tree_access->isAllowed()) {
+      $form['help']['#attributes']['class'] = ['messages', 'messages--warning'];
+    }
+
     $errors = $form_state->getErrors();
     $row_position = 0;
     // Build the actual form.
-    $access_control_handler = $this->entityManager->getAccessControlHandler('taxonomy_term');
+    $access_control_handler = $this->entityTypeManager->getAccessControlHandler('taxonomy_term');
     $create_access = $access_control_handler->createAccess($taxonomy_vocabulary->id(), NULL, [], TRUE);
     if ($create_access->isAllowed()) {
       $empty = $this->t('No terms available. <a href=":link">Add term</a>.', [':link' => Url::fromRoute('entity.taxonomy_term.add_form', ['taxonomy_vocabulary' => $taxonomy_vocabulary->id()])->toString()]);
@@ -244,7 +327,7 @@ class OverviewTerms extends FormBase {
       '#header' => [
         'term' => $this->t('Name'),
         'operations' => $this->t('Operations'),
-        'weight' => $this->t('Weight'),
+        'weight' => $update_tree_access->isAllowed() ? $this->t('Weight') : NULL,
       ],
       '#attributes' => [
         'id' => 'taxonomy',
@@ -252,17 +335,14 @@ class OverviewTerms extends FormBase {
     ];
     $this->renderer->addCacheableDependency($form['terms'], $create_access);
 
-    // Only allow access to changing weights if the user has update access for
-    // all terms.
-    $change_weight_access = AccessResult::allowed();
     foreach ($current_page as $key => $term) {
       $form['terms'][$key] = [
         'term' => [],
         'operations' => [],
-        'weight' => [],
+        'weight' => $update_tree_access->isAllowed() ? [] : NULL,
       ];
       /** @var $term \Drupal\Core\Entity\EntityInterface */
-      $term = $this->entityManager->getTranslationFromContext($term);
+      $term = $this->entityRepository->getTranslationFromContext($term);
       $form['terms'][$key]['#term'] = $term;
       $indentation = [];
       if (isset($term->depth) && $term->depth > 0) {
@@ -272,12 +352,21 @@ class OverviewTerms extends FormBase {
         ];
       }
       $form['terms'][$key]['term'] = [
-        '#prefix' => !empty($indentation) ? \Drupal::service('renderer')->render($indentation) : '',
+        '#prefix' => !empty($indentation) ? $this->renderer->render($indentation) : '',
         '#type' => 'link',
         '#title' => $term->getName(),
-        '#url' => $term->urlInfo(),
+        '#url' => $term->toUrl(),
       ];
-      if ($taxonomy_vocabulary->getHierarchy() != VocabularyInterface::HIERARCHY_MULTIPLE && count($tree) > 1) {
+
+      // Add a special class for terms with pending revision so we can highlight
+      // them in the form.
+      $form['terms'][$key]['#attributes']['class'] = [];
+      if (in_array($term->id(), $pending_term_ids)) {
+        $form['terms'][$key]['#attributes']['class'][] = 'color-warning';
+        $form['terms'][$key]['#attributes']['class'][] = 'taxonomy-term--pending-revision';
+      }
+
+      if ($update_tree_access->isAllowed() && count($tree) > 1) {
         $parent_fields = TRUE;
         $form['terms'][$key]['term']['tid'] = [
           '#type' => 'hidden',
@@ -306,9 +395,9 @@ class OverviewTerms extends FormBase {
         ];
       }
       $update_access = $term->access('update', NULL, TRUE);
-      $change_weight_access = $change_weight_access->andIf($update_access);
+      $update_tree_access = $update_tree_access->andIf($update_access);
 
-      if ($update_access->isAllowed()) {
+      if ($update_tree_access->isAllowed()) {
         $form['terms'][$key]['weight'] = [
           '#type' => 'weight',
           '#delta' => $delta,
@@ -326,7 +415,6 @@ class OverviewTerms extends FormBase {
         ];
       }
 
-      $form['terms'][$key]['#attributes']['class'] = [];
       if ($parent_fields) {
         $form['terms'][$key]['#attributes']['class'][] = 'draggable';
       }
@@ -354,8 +442,8 @@ class OverviewTerms extends FormBase {
       $row_position++;
     }
 
-    $this->renderer->addCacheableDependency($form['terms'], $change_weight_access);
-    if ($change_weight_access->isAllowed()) {
+    $this->renderer->addCacheableDependency($form['terms'], $update_tree_access);
+    if ($update_tree_access->isAllowed()) {
       if ($parent_fields) {
         $form['terms']['#tabledrag'][] = [
           'action' => 'match',
@@ -384,7 +472,7 @@ class OverviewTerms extends FormBase {
       ];
     }
 
-    if (($taxonomy_vocabulary->getHierarchy() !== VocabularyInterface::HIERARCHY_MULTIPLE && count($tree) > 1) && $change_weight_access->isAllowed()) {
+    if ($update_tree_access->isAllowed() && count($tree) > 1) {
       $form['actions'] = ['#type' => 'actions', '#tree' => FALSE];
       $form['actions']['submit'] = [
         '#type' => 'submit',
@@ -425,9 +513,6 @@ class OverviewTerms extends FormBase {
     uasort($form_state->getValue('terms'), ['Drupal\Component\Utility\SortArray', 'sortByWeightElement']);
 
     $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
-    // Update the current hierarchy type as we go.
-    $hierarchy = VocabularyInterface::HIERARCHY_DISABLED;
-
     $changed_terms = [];
     $tree = $this->storageController->loadTree($vocabulary->id(), 0, NULL, TRUE);
 
@@ -444,7 +529,6 @@ class OverviewTerms extends FormBase {
         $changed_terms[$term->id()] = $term;
       }
       $weight++;
-      $hierarchy = $term->parents[0] != 0 ? VocabularyInterface::HIERARCHY_SINGLE : $hierarchy;
       $term = $tree[$weight];
     }
 
@@ -471,7 +555,6 @@ class OverviewTerms extends FormBase {
           $term->parent->target_id = $values['term']['parent'];
           $changed_terms[$term->id()] = $term;
         }
-        $hierarchy = $term->parents[0] != 0 ? VocabularyInterface::HIERARCHY_SINGLE : $hierarchy;
         $weight++;
       }
     }
@@ -484,20 +567,27 @@ class OverviewTerms extends FormBase {
         $term->setWeight($weight);
         $changed_terms[$term->id()] = $term;
       }
-      $hierarchy = $term->parents[0] != 0 ? VocabularyInterface::HIERARCHY_SINGLE : $hierarchy;
     }
 
-    // Save all updated terms.
-    foreach ($changed_terms as $term) {
-      $term->save();
-    }
+    if (!empty($changed_terms)) {
+      $pending_term_ids = $this->storageController->getTermIdsWithPendingRevisions();
 
-    // Update the vocabulary hierarchy to flat or single hierarchy.
-    if ($vocabulary->getHierarchy() != $hierarchy) {
-      $vocabulary->setHierarchy($hierarchy);
-      $vocabulary->save();
+      // Force a form rebuild if any of the changed terms has a pending
+      // revision.
+      if (array_intersect_key(array_flip($pending_term_ids), $changed_terms)) {
+        $this->messenger()->addError($this->t('The terms with updated parents have been modified by another user, the changes could not be saved.'));
+        $form_state->setRebuild();
+
+        return;
+      }
+
+      // Save all updated terms.
+      foreach ($changed_terms as $term) {
+        $term->save();
+      }
+
+      $this->messenger()->addStatus($this->t('The configuration options have been saved.'));
     }
-    $this->messenger()->addStatus($this->t('The configuration options have been saved.'));
   }
 
   /**
@@ -506,7 +596,7 @@ class OverviewTerms extends FormBase {
   public function submitReset(array &$form, FormStateInterface $form_state) {
     /** @var $vocabulary \Drupal\taxonomy\VocabularyInterface */
     $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
-    $form_state->setRedirectUrl($vocabulary->urlInfo('reset-form'));
+    $form_state->setRedirectUrl($vocabulary->toUrl('reset-form'));
   }
 
 }

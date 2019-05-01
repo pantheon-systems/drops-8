@@ -169,8 +169,8 @@ class EntityReferenceFieldTranslatedReferenceViewTest extends BrowserTestBase {
    * Assert entity reference display.
    */
   protected function assertEntityReferenceDisplay() {
-    $url = $this->referrerEntity->urlInfo();
-    $translation_url = $this->referrerEntity->urlInfo('canonical', ['language' => ConfigurableLanguage::load($this->translateToLangcode)]);
+    $url = $this->referrerEntity->toUrl();
+    $translation_url = $this->referrerEntity->toUrl('canonical', ['language' => ConfigurableLanguage::load($this->translateToLangcode)]);
 
     $this->drupalGet($url);
     $this->assertText($this->labelOfNotTranslatedReference, 'The label of not translated reference is displayed.');
@@ -187,8 +187,8 @@ class EntityReferenceFieldTranslatedReferenceViewTest extends BrowserTestBase {
    */
   protected function assertEntityReferenceFormDisplay() {
     $this->drupalLogin($this->webUser);
-    $url = $this->referrerEntity->urlInfo('edit-form');
-    $translation_url = $this->referrerEntity->urlInfo('edit-form', ['language' => ConfigurableLanguage::load($this->translateToLangcode)]);
+    $url = $this->referrerEntity->toUrl('edit-form');
+    $translation_url = $this->referrerEntity->toUrl('edit-form', ['language' => ConfigurableLanguage::load($this->translateToLangcode)]);
 
     $this->drupalGet($url);
     $this->assertSession()->fieldValueEquals('test_reference_field[0][target_id]', $this->originalLabel . ' (1)');
@@ -222,10 +222,8 @@ class EntityReferenceFieldTranslatedReferenceViewTest extends BrowserTestBase {
     // up.
     \Drupal::service('content_translation.manager')->setEnabled($this->testEntityTypeName, $this->referrerType->id(), TRUE);
     \Drupal::service('content_translation.manager')->setEnabled($this->testEntityTypeName, $this->referencedType->id(), TRUE);
-    drupal_static_reset();
-    \Drupal::entityManager()->clearCachedDefinitions();
+
     \Drupal::service('router.builder')->rebuild();
-    \Drupal::service('entity.definition_update_manager')->applyUpdates();
   }
 
   /**

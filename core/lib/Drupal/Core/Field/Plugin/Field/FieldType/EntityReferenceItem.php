@@ -357,7 +357,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
     $element['target_type'] = [
       '#type' => 'select',
       '#title' => t('Type of item to reference'),
-      '#options' => \Drupal::entityManager()->getEntityTypeLabels(TRUE),
+      '#options' => \Drupal::service('entity_type.repository')->getEntityTypeLabels(TRUE),
       '#default_value' => $this->getSetting('target_type'),
       '#required' => TRUE,
       '#disabled' => $has_data,
@@ -473,7 +473,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
     if ($default_value = $field_definition->getDefaultValueLiteral()) {
       foreach ($default_value as $value) {
         if (is_array($value) && isset($value['target_uuid'])) {
-          $entity = \Drupal::entityManager()->loadEntityByUuid($target_entity_type->id(), $value['target_uuid']);
+          $entity = \Drupal::service('entity.repository')->loadEntityByUuid($target_entity_type->id(), $value['target_uuid']);
           // If the entity does not exist do not create the dependency.
           // @see \Drupal\Core\Field\EntityReferenceFieldItemList::processDefaultValue()
           if ($entity) {
@@ -522,7 +522,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
     if ($default_value = $field_definition->getDefaultValueLiteral()) {
       foreach ($default_value as $key => $value) {
         if (is_array($value) && isset($value['target_uuid'])) {
-          $entity = $entity_manager->loadEntityByUuid($target_entity_type->id(), $value['target_uuid']);
+          $entity = \Drupal::service('entity.repository')->loadEntityByUuid($target_entity_type->id(), $value['target_uuid']);
           // @see \Drupal\Core\Field\EntityReferenceFieldItemList::processDefaultValue()
           if ($entity && isset($dependencies[$entity->getConfigDependencyKey()][$entity->getConfigDependencyName()])) {
             unset($default_value[$key]);
@@ -603,7 +603,7 @@ class EntityReferenceItem extends FieldItemBase implements OptionsProviderInterf
 
     // Rebuild the array by changing the bundle key into the bundle label.
     $target_type = $field_definition->getSetting('target_type');
-    $bundles = \Drupal::entityManager()->getBundleInfo($target_type);
+    $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo($target_type);
 
     $return = [];
     foreach ($options as $bundle => $entity_ids) {

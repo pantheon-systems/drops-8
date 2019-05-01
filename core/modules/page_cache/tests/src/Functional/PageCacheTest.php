@@ -60,7 +60,7 @@ class PageCacheTest extends BrowserTestBase {
     // Verify a cache hit, but also the presence of the correct cache tags.
     $this->drupalGet($path);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT');
-    $cid_parts = [\Drupal::url('system_test.cache_tags_page', [], ['absolute' => TRUE]), 'html'];
+    $cid_parts = [Url::fromRoute('system_test.cache_tags_page', [], ['absolute' => TRUE])->toString(), ''];
     $cid = implode(':', $cid_parts);
     $cache_entry = \Drupal::cache('page')->get($cid);
     sort($cache_entry->tags);
@@ -95,7 +95,7 @@ class PageCacheTest extends BrowserTestBase {
     // Verify a cache hit, but also the presence of the correct cache tags.
     $this->drupalGet($path);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT');
-    $cid_parts = [\Drupal::url('system_test.cache_tags_page', [], ['absolute' => TRUE]), 'html'];
+    $cid_parts = [Url::fromRoute('system_test.cache_tags_page', [], ['absolute' => TRUE])->toString(), ''];
     $cid = implode(':', $cid_parts);
     $cache_entry = \Drupal::cache('page')->get($cid);
     sort($cache_entry->tags);
@@ -141,8 +141,8 @@ class PageCacheTest extends BrowserTestBase {
     \Drupal::service('module_installer')->install(['node', 'rest', 'hal', 'basic_auth']);
     $this->drupalCreateContentType(['type' => 'article']);
     $node = $this->drupalCreateNode(['type' => 'article']);
-    $node_uri = $node->urlInfo();
-    $node_url_with_hal_json_format = $node->urlInfo('canonical')->setRouteParameter('_format', 'hal_json');
+    $node_uri = $node->toUrl();
+    $node_url_with_hal_json_format = $node->toUrl('canonical')->setRouteParameter('_format', 'hal_json');
 
     $this->drupalGet($node_uri);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
@@ -189,7 +189,7 @@ class PageCacheTest extends BrowserTestBase {
     // Fill the cache.
     $this->drupalGet('');
     // Verify the page is not printed twice when the cache is cold.
-    $this->assertNoPattern('#<html.*<html#');
+    $this->assertSession()->responseNotMatches('#<html.*<html#');
 
     $this->drupalGet('');
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT', 'Page was cached.');
@@ -213,7 +213,7 @@ class PageCacheTest extends BrowserTestBase {
 
     $this->drupalGet('', [], ['If-Modified-Since' => $last_modified, 'If-None-Match' => NULL]);
     // Verify the page is not printed twice when the cache is warm.
-    $this->assertNoPattern('#<html.*<html#');
+    $this->assertSession()->responseNotMatches('#<html.*<html#');
     $this->assertResponse(200, 'Conditional request without If-None-Match returned 200 OK.');
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT', 'Page was cached.');
 
@@ -242,7 +242,7 @@ class PageCacheTest extends BrowserTestBase {
     // Fill the cache.
     $this->drupalGet('system-test/set-header', ['query' => ['name' => 'Foo', 'value' => 'bar']]);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS', 'Page was not cached.');
-    $this->assertEqual(strtolower($this->drupalGetHeader('Vary')), 'cookie,accept-encoding', 'Vary header was sent.');
+    $this->assertContains('cookie', explode(',', strtolower($this->drupalGetHeader('Vary'))), 'Vary header was sent.', TRUE);
     // Symfony's Response logic determines a specific order for the subvalues
     // of the Cache-Control header, even if they are explicitly passed in to
     // the response header bag in a different order.
@@ -253,7 +253,7 @@ class PageCacheTest extends BrowserTestBase {
     // Check cache.
     $this->drupalGet('system-test/set-header', ['query' => ['name' => 'Foo', 'value' => 'bar']]);
     $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT', 'Page was cached.');
-    $this->assertEqual(strtolower($this->drupalGetHeader('Vary')), 'cookie,accept-encoding', 'Vary: Cookie header was sent.');
+    $this->assertContains('cookie', explode(',', strtolower($this->drupalGetHeader('Vary'))), 'Vary header was sent.', TRUE);
     $this->assertEqual($this->drupalGetHeader('Cache-Control'), 'max-age=300, public', 'Cache-Control header was sent.');
     $this->assertEqual($this->drupalGetHeader('Expires'), 'Sun, 19 Nov 1978 05:00:00 GMT', 'Expires header was sent.');
     $this->assertEqual($this->drupalGetHeader('Foo'), 'bar', 'Custom header was sent.');
@@ -262,7 +262,7 @@ class PageCacheTest extends BrowserTestBase {
     $this->drupalGet('system-test/set-header', ['query' => ['name' => 'Expires', 'value' => 'Fri, 19 Nov 2008 05:00:00 GMT']]);
     $this->assertEqual($this->drupalGetHeader('Expires'), 'Fri, 19 Nov 2008 05:00:00 GMT', 'Default header was replaced.');
     $this->drupalGet('system-test/set-header', ['query' => ['name' => 'Vary', 'value' => 'User-Agent']]);
-    $this->assertEqual(strtolower($this->drupalGetHeader('Vary')), 'user-agent,accept-encoding', 'Default header was replaced.');
+    $this->assertContains('user-agent', explode(',', strtolower($this->drupalGetHeader('Vary'))), 'Default header was replaced.');
 
     // Check that authenticated users bypass the cache.
     $user = $this->drupalCreateUser();
@@ -389,7 +389,7 @@ class PageCacheTest extends BrowserTestBase {
       $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS');
 
       // Ensure the 'expire' field on the cache entry uses cache_ttl_4xx.
-      $cache_item = \Drupal::service('cache.page')->get($this->getUrl() . ':html');
+      $cache_item = \Drupal::service('cache.page')->get($this->getUrl() . ':');
       $difference = $cache_item->expire - (int) $cache_item->created;
       // Given that a second might have passed we cannot be sure that
       // $difference will exactly equal the default cache_ttl_4xx setting.
@@ -583,10 +583,6 @@ class PageCacheTest extends BrowserTestBase {
       [
         $url . '?z=z&a=a',
         $url . '?a=a&z=z',
-      ],
-      [
-        $url . '?',
-        $url . '',
       ],
       [
         $url . '?a=b+c',

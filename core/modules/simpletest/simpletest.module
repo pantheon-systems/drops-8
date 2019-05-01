@@ -5,8 +5,10 @@
  * Provides testing functionality.
  */
 
+use Drupal\Core\Url;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Database\Database;
+use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\simpletest\TestBase;
@@ -29,7 +31,7 @@ function simpletest_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Running tests') . '</dt>';
-      $output .= '<dd><p>' . t('Visit the <a href=":admin-simpletest">Testing page</a> to display a list of available tests. For comprehensive testing, select <em>all</em> tests, or individually select tests for more targeted testing. Note that it might take several minutes for all tests to complete.', [':admin-simpletest' => \Drupal::url('simpletest.test_form')]) . '</p>';
+      $output .= '<dd><p>' . t('Visit the <a href=":admin-simpletest">Testing page</a> to display a list of available tests. For comprehensive testing, select <em>all</em> tests, or individually select tests for more targeted testing. Note that it might take several minutes for all tests to complete.', [':admin-simpletest' => Url::fromRoute('simpletest.test_form')->toString()]) . '</p>';
       $output .= '<p>' . t('After the tests run, a message will be displayed next to each test group indicating whether tests within it passed, failed, or had exceptions. A pass means that the test returned the expected results, while fail means that it did not. An exception normally indicates an error outside of the test, such as a PHP warning or notice. If there were failures or exceptions, the results will be expanded to show details, and the tests that had failures or exceptions will be indicated in red or pink rows. You can then use these results to refine your code and tests, until all tests pass.') . '</p></dd>';
       $output .= '</dl>';
       return $output;
@@ -138,12 +140,17 @@ function simpletest_run_tests($test_list) {
     unset($test_list['phpunit']);
   }
 
-  $test_id = db_insert('simpletest_test_id')
+  $test_id = \Drupal::database()->insert('simpletest_test_id')
     ->useDefaults(['test_id'])
     ->execute();
 
   // Clear out the previous verbose files.
-  file_unmanaged_delete_recursive('public://simpletest/verbose');
+  try {
+    \Drupal::service('file_system')->deleteRecursive('public://simpletest/verbose');
+  }
+  catch (FileException $e) {
+    // Ignore failed deletes.
+  }
 
   // Get the info for the first test being run.
   $first_test = reset($test_list);
@@ -670,7 +677,7 @@ function simpletest_clean_environment() {
  */
 function simpletest_clean_database() {
   $schema = Database::getConnection()->schema();
-  $tables = db_find_tables('test%');
+  $tables = $schema->findTables('test%');
   $count = 0;
   foreach ($tables as $table) {
     // Only drop tables which begin wih 'test' followed by digits, for example,
@@ -699,9 +706,14 @@ function simpletest_clean_temporary_directories() {
     foreach ($files as $file) {
       if ($file[0] != '.') {
         $path = DRUPAL_ROOT . '/sites/simpletest/' . $file;
-        file_unmanaged_delete_recursive($path, function ($any_path) {
-          @chmod($any_path, 0700);
-        });
+        try {
+          \Drupal::service('file_system')->deleteRecursive($path, function ($any_path) {
+            @chmod($any_path, 0700);
+          });
+        }
+        catch (FileException $e) {
+          // Ignore failed deletes.
+        }
         $count++;
       }
     }

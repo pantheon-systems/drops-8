@@ -5,14 +5,15 @@ namespace Drupal\taxonomy;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityChangedInterface;
 use Drupal\Core\Entity\EntityPublishedInterface;
+use Drupal\Core\Entity\RevisionLogInterface;
 
 /**
  * Provides an interface defining a taxonomy term entity.
  */
-interface TermInterface extends ContentEntityInterface, EntityChangedInterface, EntityPublishedInterface {
+interface TermInterface extends ContentEntityInterface, EntityChangedInterface, EntityPublishedInterface, RevisionLogInterface {
 
   /**
-   * Gets the term's description.
+   * Gets the term description.
    *
    * @return string
    *   The term description.
@@ -20,17 +21,17 @@ interface TermInterface extends ContentEntityInterface, EntityChangedInterface, 
   public function getDescription();
 
   /**
-   * Sets the term's description.
+   * Sets the term description.
    *
    * @param string $description
-   *   The term's description.
+   *   The term description.
    *
    * @return $this
    */
   public function setDescription($description);
 
   /**
-   * Gets the text format name for the term's description.
+   * Gets the text format name for the term description.
    *
    * @return string
    *   The text format name.
@@ -38,56 +39,56 @@ interface TermInterface extends ContentEntityInterface, EntityChangedInterface, 
   public function getFormat();
 
   /**
-   * Sets the text format name for the term's description.
+   * Sets the text format name for the term description.
    *
    * @param string $format
-   *   The term's description text format.
+   *   The text format name.
    *
    * @return $this
    */
   public function setFormat($format);
 
   /**
-   * Gets the name of the term.
+   * Gets the term name.
    *
    * @return string
-   *   The name of the term.
+   *   The term name.
    */
   public function getName();
 
   /**
-   * Sets the name of the term.
+   * Sets the term name.
    *
    * @param string $name
-   *   The term's name.
+   *   The term name.
    *
    * @return $this
    */
   public function setName($name);
 
   /**
-   * Gets the weight of this term.
+   * Gets the term weight.
    *
    * @return int
-   *   The weight of the term.
+   *   The term weight.
    */
   public function getWeight();
 
   /**
-   * Gets the weight of this term.
+   * Sets the term weight.
    *
    * @param int $weight
-   *   The term's weight.
+   *   The term weight.
    *
    * @return $this
    */
   public function setWeight($weight);
 
   /**
-   * Get the taxonomy vocabulary id this term belongs to.
+   * Gets the ID of the vocabulary that owns the term.
    *
    * @return string
-   *   The id of the vocabulary.
+   *   The vocabulary ID.
    *
    * @deprecated Scheduled for removal before Drupal 9.0.0. Use
    *   TermInterface::bundle() instead.

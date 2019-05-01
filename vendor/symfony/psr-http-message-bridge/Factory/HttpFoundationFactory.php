@@ -140,6 +140,9 @@ class HttpFoundationFactory implements HttpFoundationFactoryInterface
      */
     public function createResponse(ResponseInterface $psrResponse)
     {
+        $cookies = $psrResponse->getHeader('Set-Cookie');
+        $psrResponse = $psrResponse->withoutHeader('Set-Cookie');
+
         $response = new Response(
             $psrResponse->getBody()->__toString(),
             $psrResponse->getStatusCode(),
@@ -147,7 +150,7 @@ class HttpFoundationFactory implements HttpFoundationFactoryInterface
         );
         $response->setProtocolVersion($psrResponse->getProtocolVersion());
 
-        foreach ($psrResponse->getHeader('Set-Cookie') as $cookie) {
+        foreach ($cookies as $cookie) {
             $response->headers->setCookie($this->createCookie($cookie));
         }
 
@@ -210,6 +213,12 @@ class HttpFoundationFactory implements HttpFoundationFactoryInterface
 
                 continue;
             }
+
+            if ('samesite' === strtolower($name) && null !== $value) {
+                $samesite = $value;
+
+                continue;
+            }
         }
 
         if (!isset($cookieName)) {
@@ -223,7 +232,9 @@ class HttpFoundationFactory implements HttpFoundationFactoryInterface
             isset($cookiePath) ? $cookiePath : '/',
             isset($cookieDomain) ? $cookieDomain : null,
             isset($cookieSecure),
-            isset($cookieHttpOnly)
+            isset($cookieHttpOnly),
+            false,
+            isset($samesite) ? $samesite : null
         );
     }
 }

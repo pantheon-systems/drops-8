@@ -19,15 +19,15 @@ function field_test_entity_type_alter(array &$entity_types) {
  * Helper function to enable entity translations.
  */
 function field_test_entity_info_translatable($entity_type_id = NULL, $translatable = NULL) {
-  $stored_value = &drupal_static(__FUNCTION__, []);
+  static $stored_value = [];
   if (isset($entity_type_id)) {
-    $entity_manager = \Drupal::entityManager();
-    $original = $entity_manager->getDefinition($entity_type_id);
+    $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+    $entity_type = $entity_definition_update_manager->getEntityType($entity_type_id);
     $stored_value[$entity_type_id] = $translatable;
-    if ($translatable != $original->isTranslatable()) {
-      $entity_manager->clearCachedDefinitions();
-      $entity_type = $entity_manager->getDefinition($entity_type_id);
-      $entity_manager->onEntityTypeUpdate($entity_type, $original);
+    if ($translatable != $entity_type->isTranslatable()) {
+      $entity_definition_update_manager->uninstallEntityType($entity_type);
+      $entity_type->set('translatable', $translatable);
+      $entity_definition_update_manager->installEntityType($entity_type);
     }
   }
   return $stored_value;

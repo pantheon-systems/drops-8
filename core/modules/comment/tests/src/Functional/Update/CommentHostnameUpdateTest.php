@@ -43,4 +43,23 @@ class CommentHostnameUpdateTest extends UpdatePathTestBase {
     $this->assertEquals(Comment::class . '::getDefaultHostname', $definition->getDefaultValueCallback());
   }
 
+  /**
+   * Tests comment_post_update_add_ip_address_setting().
+   *
+   * @see comment_post_update_add_ip_address_setting()
+   */
+  public function testCommentPostUpdateAddIpAddressSetting() {
+    /** @var \Drupal\Core\Config\ConfigFactoryInterface $factory */
+    $factory = $this->container->get('config.factory');
+
+    $settings = $factory->listAll('comment.settings');
+    $this->assertEmpty($settings);
+
+    $this->runUpdates();
+
+    $settings = $factory->get('comment.settings');
+    // Check that settings default value was set.
+    $this->assertEquals(TRUE, $settings->get('log_ip_addresses'));
+  }
+
 }

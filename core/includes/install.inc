@@ -5,7 +5,9 @@
  * API functions for installing modules and themes.
  */
 
+use Drupal\Core\Extension\Dependency;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\File\FileSystemInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\OpCodeCache;
@@ -510,7 +512,7 @@ function drupal_install_config_directories() {
   // public files directory, which has already been verified to be writable
   // itself. But if it somehow fails anyway, the installation cannot proceed.
   // Bail out using a similar error message as in system_requirements().
-  if (!file_prepare_directory($config_directories[CONFIG_SYNC_DIRECTORY], FILE_CREATE_DIRECTORY)
+  if (!\Drupal::service('file_system')->prepareDirectory($config_directories[CONFIG_SYNC_DIRECTORY], FileSystemInterface::CREATE_DIRECTORY)
     && !file_exists($config_directories[CONFIG_SYNC_DIRECTORY])) {
     throw new Exception(t('The directory %directory could not be created. To proceed with the installation, either create the directory or ensure that the installer has the permissions to create it automatically. For more information, see the <a href=":handbook_url">online handbook</a>.', [
       '%directory' => config_get_config_directory(CONFIG_SYNC_DIRECTORY),
@@ -523,7 +525,7 @@ function drupal_install_config_directories() {
     // have to write out the README rather than just adding it to the drupal core
     // repo.
     $text = 'This directory contains configuration to be imported into your Drupal site. To make this configuration active, visit admin/config/development/configuration/sync.' . ' For information about deploying configuration between servers, see https://www.drupal.org/documentation/administer/config';
-    file_put_contents(config_get_config_directory(CONFIG_SYNC_DIRECTORY) . '/README.txt', $text);
+    file_put_contents(config_get_config_directory(CONFIG_SYNC_DIRECTORY) . '/README.txt', "$text\n");
   }
 }
 
@@ -537,12 +539,13 @@ function drupal_install_config_directories() {
  *   TRUE if the config directory exists and is writable.
  *
  * @deprecated in Drupal 8.1.x, will be removed before Drupal 9.0.x. Use
- *   config_get_config_directory() and file_prepare_directory() instead.
+ *   config_get_config_directory() and
+ *  \Drupal\Core\File\FileSystemInterface::prepareDirectory() instead.
  *
  * @see https://www.drupal.org/node/2501187
  */
 function install_ensure_config_directory($type) {
-  @trigger_error('install_ensure_config_directory() is deprecated in Drupal 8.1.0 and will be removed before Drupal 9.0.0. Use config_get_config_directory() and file_prepare_directory() instead. See https://www.drupal.org/node/2501187.', E_USER_DEPRECATED);
+  @trigger_error('install_ensure_config_directory() is deprecated in Drupal 8.1.0 and will be removed before Drupal 9.0.0. Use config_get_config_directory() and \Drupal\Core\File\FileSystemInterface::prepareDirectory() instead. See https://www.drupal.org/node/2501187.', E_USER_DEPRECATED);
   // The config directory must be defined in settings.php.
   global $config_directories;
   if (!isset($config_directories[$type])) {
@@ -552,7 +555,7 @@ function install_ensure_config_directory($type) {
   // directories that the installer creates.
   else {
     $config_directory = config_get_config_directory($type);
-    return file_prepare_directory($config_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    return \Drupal::service('file_system')->prepareDirectory($config_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
   }
 }
 
@@ -778,7 +781,7 @@ function drupal_install_mkdir($file, $mask, $message = TRUE) {
     }
   }
 
-  if (@drupal_mkdir($file, $mod)) {
+  if (@\Drupal::service('file_system')->mkdir($file, $mod)) {
     return TRUE;
   }
   else {
@@ -1120,15 +1123,14 @@ function install_profile_info($profile, $langcode = 'en') {
     $info = \Drupal::service('info_parser')->parse("$profile_path/$profile.info.yml");
     $info += $defaults;
 
+    $dependency_name_function = function ($dependency) {
+      return Dependency::createFromString($dependency)->getName();
+    };
     // Convert dependencies in [project:module] format.
-    $info['dependencies'] = array_map(function ($dependency) {
-      return ModuleHandler::parseDependency($dependency)['name'];
-    }, $info['dependencies']);
+    $info['dependencies'] = array_map($dependency_name_function, $info['dependencies']);
 
     // Convert install key in [project:module] format.
-    $info['install'] = array_map(function ($dependency) {
-      return ModuleHandler::parseDependency($dependency)['name'];
-    }, $info['install']);
+    $info['install'] = array_map($dependency_name_function, $info['install']);
 
     // drupal_required_modules() includes the current profile as a dependency.
     // Remove that dependency, since a module cannot depend on itself.
