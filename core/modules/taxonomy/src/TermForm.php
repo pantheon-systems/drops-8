@@ -3,6 +3,7 @@
 namespace Drupal\taxonomy;
 
 use Drupal\Core\Entity\ContentEntityForm;
+use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
@@ -17,8 +18,9 @@ class TermForm extends ContentEntityForm {
    */
   public function form(array $form, FormStateInterface $form_state) {
     $term = $this->entity;
-    $vocab_storage = $this->entityManager->getStorage('taxonomy_vocabulary');
-    $taxonomy_storage = $this->entityManager->getStorage('taxonomy_term');
+    $vocab_storage = $this->entityTypeManager->getStorage('taxonomy_vocabulary');
+    /** @var \Drupal\taxonomy\TermStorageInterface $taxonomy_storage */
+    $taxonomy_storage = $this->entityTypeManager->getStorage('taxonomy_term');
     $vocabulary = $vocab_storage->load($term->bundle());
 
     $parent = array_keys($taxonomy_storage->loadParents($term->id()));
@@ -28,7 +30,7 @@ class TermForm extends ContentEntityForm {
     $form['relations'] = [
       '#type' => 'details',
       '#title' => $this->t('Relations'),
-      '#open' => $vocabulary->getHierarchy() == VocabularyInterface::HIERARCHY_MULTIPLE,
+      '#open' => $taxonomy_storage->getVocabularyHierarchyType($vocabulary->id()) == VocabularyInterface::HIERARCHY_MULTIPLE,
       '#weight' => 10,
     ];
 
@@ -123,13 +125,38 @@ class TermForm extends ContentEntityForm {
   /**
    * {@inheritdoc}
    */
+  protected function getEditedFieldNames(FormStateInterface $form_state) {
+    return array_merge(['parent', 'weight'], parent::getEditedFieldNames($form_state));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function flagViolations(EntityConstraintViolationListInterface $violations, array $form, FormStateInterface $form_state) {
+    // Manually flag violations of fields not handled by the form display. This
+    // is necessary as entity form displays only flag violations for fields
+    // contained in the display.
+    // @see ::form()
+    foreach ($violations->getByField('parent') as $violation) {
+      $form_state->setErrorByName('parent', $violation->getMessage());
+    }
+    foreach ($violations->getByField('weight') as $violation) {
+      $form_state->setErrorByName('weight', $violation->getMessage());
+    }
+
+    parent::flagViolations($violations, $form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function save(array $form, FormStateInterface $form_state) {
     $term = $this->entity;
 
     $result = $term->save();
 
-    $edit_link = $term->link($this->t('Edit'), 'edit-form');
-    $view_link = $term->link($term->getName());
+    $edit_link = $term->toLink($this->t('Edit'), 'edit-form')->toString();
+    $view_link = $term->toLink()->toString();
     switch ($result) {
       case SAVED_NEW:
         $this->messenger()->addStatus($this->t('Created new term %term.', ['%term' => $view_link]));
@@ -142,24 +169,9 @@ class TermForm extends ContentEntityForm {
     }
 
     $current_parent_count = count($form_state->getValue('parent'));
-    $previous_parent_count = count($form_state->get(['taxonomy', 'parent']));
     // Root doesn't count if it's the only parent.
     if ($current_parent_count == 1 && $form_state->hasValue(['parent', 0])) {
-      $current_parent_count = 0;
       $form_state->setValue('parent', []);
-    }
-
-    // If the number of parents has been reduced to one or none, do a check on the
-    // parents of every term in the vocabulary value.
-    $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
-    if ($current_parent_count < $previous_parent_count && $current_parent_count < 2) {
-      taxonomy_check_vocabulary_hierarchy($vocabulary, $form_state->getValues());
-    }
-    // If we've increased the number of parents and this is a single or flat
-    // hierarchy, update the vocabulary immediately.
-    elseif ($current_parent_count > $previous_parent_count && $vocabulary->getHierarchy() != VocabularyInterface::HIERARCHY_MULTIPLE) {
-      $vocabulary->setHierarchy($current_parent_count == 1 ? VocabularyInterface::HIERARCHY_SINGLE : VocabularyInterface::HIERARCHY_MULTIPLE);
-      $vocabulary->save();
     }
 
     $form_state->setValue('tid', $term->id());

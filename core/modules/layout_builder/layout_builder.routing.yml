@@ -2,8 +2,8 @@ layout_builder.choose_section:
   path: '/layout_builder/choose/section/{section_storage_type}/{section_storage}/{delta}'
   defaults:
    _controller: '\Drupal\layout_builder\Controller\ChooseSectionController::build'
+   _title: 'Choose a layout for this section'
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -16,7 +16,6 @@ layout_builder.add_section:
   defaults:
     _controller: '\Drupal\layout_builder\Controller\AddSectionController::build'
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -33,7 +32,6 @@ layout_builder.configure_section:
     # section does not.
     plugin_id: null
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -46,7 +44,6 @@ layout_builder.remove_section:
   defaults:
     _form: '\Drupal\layout_builder\Form\RemoveSectionForm'
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -58,8 +55,8 @@ layout_builder.choose_block:
   path: '/layout_builder/choose/block/{section_storage_type}/{section_storage}/{delta}/{region}'
   defaults:
     _controller: '\Drupal\layout_builder\Controller\ChooseBlockController::build'
+    _title: 'Choose a block'
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -71,8 +68,8 @@ layout_builder.add_block:
   path: '/layout_builder/add/block/{section_storage_type}/{section_storage}/{delta}/{region}/{plugin_id}'
   defaults:
     _form: '\Drupal\layout_builder\Form\AddBlockForm'
+    _title: 'Configure block'
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -86,7 +83,7 @@ layout_builder.choose_inline_block:
     _controller: '\Drupal\layout_builder\Controller\ChooseBlockController::inlineBlockList'
     _title: 'Add a new Inline Block'
   requirements:
-    _permission: 'configure any layout'
+    _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
     parameters:
@@ -97,8 +94,21 @@ layout_builder.update_block:
   path: '/layout_builder/update/block/{section_storage_type}/{section_storage}/{delta}/{region}/{uuid}'
   defaults:
     _form: '\Drupal\layout_builder\Form\UpdateBlockForm'
+    _title: 'Configure block'
   requirements:
-    _permission: 'configure any layout'
+    _layout_builder_access: 'view'
+  options:
+    _admin_route: TRUE
+    parameters:
+      section_storage:
+        layout_builder_tempstore: TRUE
+
+layout_builder.move_block_form:
+  path: '/layout_builder/move/block/{section_storage_type}/{section_storage}/{delta}/{region}/{uuid}'
+  defaults:
+    _title_callback: '\Drupal\layout_builder\Form\MoveBlockForm::title'
+    _form: '\Drupal\layout_builder\Form\MoveBlockForm'
+  requirements:
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -111,7 +121,6 @@ layout_builder.remove_block:
   defaults:
     _form: '\Drupal\layout_builder\Form\RemoveBlockForm'
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE
@@ -130,7 +139,6 @@ layout_builder.move_block:
     block_uuid: null
     preceding_block_uuid: null
   requirements:
-    _permission: 'configure any layout'
     _layout_builder_access: 'view'
   options:
     _admin_route: TRUE

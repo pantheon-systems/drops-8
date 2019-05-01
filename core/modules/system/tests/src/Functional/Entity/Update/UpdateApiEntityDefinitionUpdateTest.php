@@ -4,6 +4,7 @@ namespace Drupal\Tests\system\Functional\Entity\Update;
 
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\system\Functional\Entity\Traits\EntityDefinitionTestTrait;
 use Drupal\Tests\system\Functional\Update\DbUpdatesTrait;
 
 /**
@@ -14,6 +15,7 @@ use Drupal\Tests\system\Functional\Update\DbUpdatesTrait;
 class UpdateApiEntityDefinitionUpdateTest extends BrowserTestBase {
 
   use DbUpdatesTrait;
+  use EntityDefinitionTestTrait;
 
   /**
    * {@inheritdoc}
@@ -21,27 +23,10 @@ class UpdateApiEntityDefinitionUpdateTest extends BrowserTestBase {
   protected static $modules = ['entity_test'];
 
   /**
-   * The entity manager.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $entityManager;
-
-  /**
-   * The entity definition update manager.
-   *
-   * @var \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface
-   */
-  protected $updatesManager;
-
-  /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-
-    $this->entityManager = $this->container->get('entity.manager');
-    $this->updatesManager = $this->container->get('entity.definition_update_manager');
 
     $admin = $this->drupalCreateUser([], FALSE, TRUE);
     $this->drupalLogin($admin);
@@ -165,7 +150,7 @@ class UpdateApiEntityDefinitionUpdateTest extends BrowserTestBase {
 
     // Apply the entity updates and check that the entity update status report
     // item is no longer displayed.
-    $this->updatesManager->applyUpdates();
+    $this->applyEntityUpdates();
     $this->drupalGet('admin/reports/status');
     $this->assertNoRaw('Out of date');
     $this->assertNoRaw('Mismatched entity and/or field definitions');
@@ -181,8 +166,8 @@ class UpdateApiEntityDefinitionUpdateTest extends BrowserTestBase {
    *   The reloaded entity object.
    */
   protected function reloadEntity(EntityTest $entity) {
-    $this->entityManager->useCaches(FALSE);
-    $this->entityManager->getStorage('entity_test')->resetCache([$entity->id()]);
+    \Drupal::entityTypeManager()->useCaches(FALSE);
+    \Drupal::service('entity_field.manager')->useCaches(FALSE);
     return EntityTest::load($entity->id());
   }
 

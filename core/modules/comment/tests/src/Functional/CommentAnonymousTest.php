@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\comment\Functional;
 
+use Drupal\comment\CommentInterface;
 use Drupal\user\RoleInterface;
 
 /**
@@ -32,7 +33,7 @@ class CommentAnonymousTest extends CommentTestBase {
    */
   public function testAnonymous() {
     $this->drupalLogin($this->adminUser);
-    $this->setCommentAnonymous(COMMENT_ANONYMOUS_MAYNOT_CONTACT);
+    $this->setCommentAnonymous(CommentInterface::ANONYMOUS_MAYNOT_CONTACT);
     $this->drupalLogout();
 
     // Preview comments (with `skip comment approval` permission).
@@ -41,7 +42,7 @@ class CommentAnonymousTest extends CommentTestBase {
     $body = 'comment body with skip comment approval';
     $edit['subject[0][value]'] = $title;
     $edit['comment_body[0][value]'] = $body;
-    $this->drupalPostForm($this->node->urlInfo(), $edit, t('Preview'));
+    $this->drupalPostForm($this->node->toUrl(), $edit, t('Preview'));
     // Cannot use assertRaw here since both title and body are in the form.
     $preview = (string) $this->cssSelect('.preview')[0]->getHtml();
     $this->assertTrue(strpos($preview, $title) !== FALSE, 'Anonymous user can preview comment title.');
@@ -54,7 +55,7 @@ class CommentAnonymousTest extends CommentTestBase {
     $body = 'comment body without skip comment approval';
     $edit['subject[0][value]'] = $title;
     $edit['comment_body[0][value]'] = $body;
-    $this->drupalPostForm($this->node->urlInfo(), $edit, t('Preview'));
+    $this->drupalPostForm($this->node->toUrl(), $edit, t('Preview'));
     // Cannot use assertRaw here since both title and body are in the form.
     $preview = (string) $this->cssSelect('.preview')[0]->getHtml();
     $this->assertTrue(strpos($preview, $title) !== FALSE, 'Anonymous user can preview comment title.');
@@ -67,17 +68,17 @@ class CommentAnonymousTest extends CommentTestBase {
 
     // Ensure anonymous users cannot post in the name of registered users.
     $edit = [
-      'name' => $this->adminUser->getUsername(),
+      'name' => $this->adminUser->getAccountName(),
       'comment_body[0][value]' => $this->randomMachineName(),
     ];
     $this->drupalPostForm('comment/reply/node/' . $this->node->id() . '/comment', $edit, t('Save'));
     $this->assertRaw(t('The name you used (%name) belongs to a registered user.', [
-      '%name' => $this->adminUser->getUsername(),
+      '%name' => $this->adminUser->getAccountName(),
     ]));
 
     // Allow contact info.
     $this->drupalLogin($this->adminUser);
-    $this->setCommentAnonymous(COMMENT_ANONYMOUS_MAY_CONTACT);
+    $this->setCommentAnonymous(CommentInterface::ANONYMOUS_MAY_CONTACT);
 
     // Attempt to edit anonymous comment.
     $this->drupalGet('comment/' . $anonymous_comment1->id() . '/edit');
@@ -98,19 +99,19 @@ class CommentAnonymousTest extends CommentTestBase {
 
     // Ensure anonymous users cannot post in the name of registered users.
     $edit = [
-      'name' => $this->adminUser->getUsername(),
+      'name' => $this->adminUser->getAccountName(),
       'mail' => $this->randomMachineName() . '@example.com',
       'subject[0][value]' => $this->randomMachineName(),
       'comment_body[0][value]' => $this->randomMachineName(),
     ];
     $this->drupalPostForm('comment/reply/node/' . $this->node->id() . '/comment', $edit, t('Save'));
     $this->assertRaw(t('The name you used (%name) belongs to a registered user.', [
-      '%name' => $this->adminUser->getUsername(),
+      '%name' => $this->adminUser->getAccountName(),
     ]));
 
     // Require contact info.
     $this->drupalLogin($this->adminUser);
-    $this->setCommentAnonymous(COMMENT_ANONYMOUS_MUST_CONTACT);
+    $this->setCommentAnonymous(CommentInterface::ANONYMOUS_MUST_CONTACT);
     $this->drupalLogout();
 
     // Try to post comment with contact info (required).
@@ -169,7 +170,7 @@ class CommentAnonymousTest extends CommentTestBase {
     // NOTE: if authenticated user has permission to post comments, then a
     // "Login or register to post comments" type link may be shown.
     $this->drupalGet('node/' . $this->node->id());
-    $this->assertNoPattern('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
+    $this->assertSession()->responseNotMatches('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
     $this->assertNoLink('Add new comment', 'Link to add comment was found.');
 
     // Attempt to view node-comment form while disallowed.
@@ -192,7 +193,7 @@ class CommentAnonymousTest extends CommentTestBase {
       'skip comment approval' => TRUE,
     ]);
     $this->drupalGet('node/' . $this->node->id());
-    $this->assertNoPattern('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
+    $this->assertSession()->responseNotMatches('@<h2[^>]*>Comments</h2>@', 'Comments were not displayed.');
     $this->assertFieldByName('subject[0][value]', '', 'Subject field found.');
     $this->assertFieldByName('comment_body[0][value]', '', 'Comment field found.');
 

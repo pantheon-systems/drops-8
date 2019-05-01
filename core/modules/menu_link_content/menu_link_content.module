@@ -5,6 +5,7 @@
  * Allows administrators to create custom menu links.
  */
 
+use Drupal\Core\Url;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\system\MenuInterface;
@@ -19,7 +20,7 @@ function menu_link_content_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<h3>' . t('About') . '</h3>';
       $output .= '<p>' . t('The Custom Menu Links module allows users to create menu links. These links can be translated if multiple languages are used for the site.');
       if (\Drupal::moduleHandler()->moduleExists('menu_ui')) {
-        $output .= ' ' . t('It is required by the Menu UI module, which provides an interface for managing menus and menu links. For more information, see the <a href=":menu-help">Menu UI module help page</a> and the <a href=":drupal-org-help">online documentation for the Custom Menu Links module</a>.', [':menu-help' => \Drupal::url('help.page', ['name' => 'menu_ui']), ':drupal-org-help' => 'https://www.drupal.org/documentation/modules/menu_link']);
+        $output .= ' ' . t('It is required by the Menu UI module, which provides an interface for managing menus and menu links. For more information, see the <a href=":menu-help">Menu UI module help page</a> and the <a href=":drupal-org-help">online documentation for the Custom Menu Links module</a>.', [':menu-help' => Url::fromRoute('help.page', ['name' => 'menu_ui'])->toString(), ':drupal-org-help' => 'https://www.drupal.org/documentation/modules/menu_link']);
       }
       else {
         $output .= ' ' . t('For more information, see the <a href=":drupal-org-help">online documentation for the Custom Menu Links module</a>. If you enable the Menu UI module, it provides an interface for managing menus and menu links.', [':drupal-org-help' => 'https://www.drupal.org/documentation/modules/menu_link']);
@@ -27,6 +28,16 @@ function menu_link_content_help($route_name, RouteMatchInterface $route_match) {
       $output .= '</p>';
       return $output;
   }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function menu_link_content_entity_type_alter(array &$entity_types) {
+  // @todo Moderation is disabled for custom menu links until when we have an UI
+  //   for them.
+  //   @see https://www.drupal.org/project/drupal/issues/2350939
+  $entity_types['menu_link_content']->setHandlerClass('moderation', '');
 }
 
 /**

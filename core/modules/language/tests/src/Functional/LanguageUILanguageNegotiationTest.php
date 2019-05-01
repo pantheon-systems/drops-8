@@ -83,7 +83,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     $http_header_blah = ["Accept-Language" => "blah;q=1"];
 
     // Create a private file for testing accessible by the admin user.
-    drupal_mkdir($this->privateFilesDirectory . '/test');
+    \Drupal::service('file_system')->mkdir($this->privateFilesDirectory . '/test');
     $filepath = 'private://test/private-file-test.txt';
     $contents = "file_put_contents() doesn't seem to appreciate empty strings so let's put in some data.";
     file_put_contents($filepath, $contents);
@@ -446,7 +446,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
 
     // Check that the language switcher active link matches the given browser
     // language.
-    $args = [':id' => 'block-test-language-block', ':url' => \Drupal::url('<front>') . $langcode_browser_fallback];
+    $args = [':id' => 'block-test-language-block', ':url' => Url::fromRoute('<front>')->toString() . $langcode_browser_fallback];
     $fields = $this->xpath('//div[@id=:id]//a[@class="language-link is-active" and starts-with(@href, :url)]', $args);
     $this->assertSame($fields[0]->getText(), $languages[$langcode_browser_fallback]->getName(), 'The browser language is the URL active language');
 

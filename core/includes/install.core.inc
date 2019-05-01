@@ -15,6 +15,7 @@ use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Installer\Exception\AlreadyInstalledException;
 use Drupal\Core\Installer\Exception\InstallerException;
@@ -101,14 +102,6 @@ const INSTALL_TASK_RUN_IF_NOT_COMPLETED = 3;
  * @see install_state_defaults()
  */
 function install_drupal($class_loader, $settings = [], callable $callback = NULL) {
-  // Support the old way of calling this function with just a settings array.
-  // @todo Remove this when Drush is updated in the Drupal testing
-  //   infrastructure in https://www.drupal.org/node/2389243
-  if (is_array($class_loader) && $settings === []) {
-    $settings = $class_loader;
-    $class_loader = require __DIR__ . '/../../autoload.php';
-  }
-
   global $install_state;
   // Initialize the installation state with the settings that were passed in,
   // as well as a boolean indicating whether or not this is an interactive
@@ -153,8 +146,8 @@ function install_drupal($class_loader, $settings = [], callable $callback = NULL
   // next page.
   if ($state['interactive']) {
     // If a session has been initiated in this request, make sure to save it.
-    if ($session = \Drupal::request()->getSession()) {
-      $session->save();
+    if (\Drupal::request()->hasSession()) {
+      \Drupal::request()->getSession()->save();
     }
     if ($state['parameters_changed']) {
       // Redirect to the correct page if the URL parameters have changed.
@@ -665,8 +658,8 @@ function install_run_task($task, &$install_state) {
       $url = Url::fromUri('base:install.php', ['query' => $install_state['parameters'], 'script' => '']);
       $response = batch_process($url, clone $url);
       if ($response instanceof Response) {
-        if ($session = \Drupal::request()->getSession()) {
-          $session->save();
+        if (\Drupal::request()->hasSession()) {
+          \Drupal::request()->getSession()->save();
         }
         // Send the response.
         $response->send();
@@ -1114,7 +1107,7 @@ function install_base_system(&$install_state) {
     // configurable. The temporary directory needs to match what is set in each
     // test types ::prepareEnvironment() step.
     $temporary_directory = dirname(PublicStream::basePath()) . '/temp';
-    file_prepare_directory($temporary_directory, FILE_MODIFY_PERMISSIONS | FILE_CREATE_DIRECTORY);
+    \Drupal::service('file_system')->prepareDirectory($temporary_directory, FileSystemInterface::MODIFY_PERMISSIONS | FileSystemInterface::CREATE_DIRECTORY);
     \Drupal::configFactory()->getEditable('system.file')
       ->set('path.temporary', $temporary_directory)
       ->save();
@@ -1451,9 +1444,11 @@ function install_download_translation(&$install_state) {
  */
 function install_retrieve_file($uri, $destination) {
   $parsed_url = parse_url($uri);
-  if (is_dir(\Drupal::service('file_system')->realpath($destination))) {
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  if (is_dir($file_system->realpath($destination))) {
     // Prevent URIs with triple slashes when gluing parts together.
-    $path = str_replace('///', '//', "$destination/") . drupal_basename($parsed_url['path']);
+    $path = str_replace('///', '//', "$destination/") . $file_system->basename($parsed_url['path']);
   }
   else {
     $path = $destination;
@@ -1923,9 +1918,12 @@ function install_check_translations($langcode, $server_pattern) {
   $online = FALSE;
 
   // First attempt to create or make writable the files directory.
-  file_prepare_directory($files_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  $file_system->prepareDirectory($files_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+
   // Then, attempt to create or make writable the translations directory.
-  file_prepare_directory($translations_directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+  $file_system->prepareDirectory($translations_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
   // Get values so the requirements errors can be specific.
   if (drupal_verify_install_file($translations_directory, FILE_EXIST, 'dir')) {
@@ -2338,13 +2336,12 @@ function install_config_import_batch() {
   \Drupal::configFactory()->getEditable('system.site')->set('uuid', $system_site['uuid'])->save();
 
   // Create the storage comparer and the config importer.
-  $config_manager = \Drupal::service('config.manager');
-  $storage_comparer = new StorageComparer($sync, \Drupal::service('config.storage'), $config_manager);
+  $storage_comparer = new StorageComparer($sync, \Drupal::service('config.storage'));
   $storage_comparer->createChangelist();
   $config_importer = new ConfigImporter(
     $storage_comparer,
     \Drupal::service('event_dispatcher'),
-    $config_manager,
+    \Drupal::service('config.manager'),
     \Drupal::service('lock.persistent'),
     \Drupal::service('config.typed'),
     \Drupal::service('module_handler'),
@@ -2409,14 +2406,13 @@ function install_config_download_translations(&$install_state) {
 function install_config_revert_install_changes() {
   global $install_state;
 
-  $config_manager = \Drupal::service('config.manager');
-  $storage_comparer = new StorageComparer(\Drupal::service('config.storage.sync'), \Drupal::service('config.storage'), $config_manager);
+  $storage_comparer = new StorageComparer(\Drupal::service('config.storage.sync'), \Drupal::service('config.storage'));
   $storage_comparer->createChangelist();
   if ($storage_comparer->hasChanges()) {
     $config_importer = new ConfigImporter(
       $storage_comparer,
       \Drupal::service('event_dispatcher'),
-      $config_manager,
+      \Drupal::service('config.manager'),
       \Drupal::service('lock.persistent'),
       \Drupal::service('config.typed'),
       \Drupal::service('module_handler'),

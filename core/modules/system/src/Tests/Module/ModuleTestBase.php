@@ -2,6 +2,8 @@
 
 namespace Drupal\system\Tests\Module;
 
+@trigger_error(__NAMESPACE__ . '\ModuleTestBase is deprecated for removal before Drupal 9.0.0. Use \Drupal\Tests\system\Functional\Module\ModuleTestBase instead. See https://www.drupal.org/node/2999939', E_USER_DEPRECATED);
+
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Config\FileStorage;
@@ -13,6 +15,8 @@ use Drupal\simpletest\WebTestBase;
  *
  * @deprecated Scheduled for removal in Drupal 9.0.0.
  *   Use \Drupal\Tests\system\Functional\Module\ModuleTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2999939
  */
 abstract class ModuleTestBase extends WebTestBase {
 
@@ -42,7 +46,8 @@ abstract class ModuleTestBase extends WebTestBase {
    *   specified base table. Defaults to TRUE.
    */
   public function assertTableCount($base_table, $count = TRUE) {
-    $tables = db_find_tables(Database::getConnection()->prefixTables('{' . $base_table . '}') . '%');
+    $connection = Database::getConnection();
+    $tables = $connection->schema()->findTables($connection->prefixTables('{' . $base_table . '}') . '%');
 
     if ($count) {
       return $this->assertTrue($tables, format_string('Tables matching "@base_table" found.', ['@base_table' => $base_table]));
@@ -186,7 +191,7 @@ abstract class ModuleTestBase extends WebTestBase {
    *   A link to associate with the message.
    */
   public function assertLogMessage($type, $message, $variables = [], $severity = RfcLogLevel::NOTICE, $link = '') {
-    $count = db_select('watchdog', 'w')
+    $count = Database::getConnection()->select('watchdog', 'w')
       ->condition('type', $type)
       ->condition('message', $message)
       ->condition('variables', serialize($variables))

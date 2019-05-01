@@ -12,6 +12,10 @@ use Drupal\simpletest\WebTestBase;
  * installation when running tests.
  *
  * @group simpletest
+ * @group WebTestBase
+ * @group FunctionalTestSetupTrait
+ *
+ * @see \Drupal\FunctionalTests\Core\Test\ModuleInstallBatchTest
  */
 class SimpleTestInstallBatchTest extends WebTestBase {
 
@@ -20,10 +24,10 @@ class SimpleTestInstallBatchTest extends WebTestBase {
    *
    * @var array
    */
-  public static $modules = ['simpletest', 'simpletest_test', 'entity_test'];
+  public static $modules = ['test_batch_test', 'entity_test'];
 
   /**
-   * Tests loading entities created in a batch in simpletest_test_install().
+   * Tests loading entities created in a batch in test_batch_test_install().
    */
   public function testLoadingEntitiesCreatedInBatch() {
     $entity1 = EntityTest::load(1);

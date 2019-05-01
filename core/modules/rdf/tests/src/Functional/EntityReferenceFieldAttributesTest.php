@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\rdf\Functional;
 
+use Drupal\Core\Url;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Tests\taxonomy\Functional\TaxonomyTestBase;
 
@@ -86,8 +87,8 @@ class EntityReferenceFieldAttributesTest extends TaxonomyTestBase {
     // Create a term in each vocabulary.
     $term1 = $this->createTerm($this->vocabulary);
     $term2 = $this->createTerm($this->vocabulary);
-    $taxonomy_term_1_uri = $term1->url('canonical', ['absolute' => TRUE]);
-    $taxonomy_term_2_uri = $term2->url('canonical', ['absolute' => TRUE]);
+    $taxonomy_term_1_uri = $term1->toUrl('canonical', ['absolute' => TRUE])->toString();
+    $taxonomy_term_2_uri = $term2->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     // Create the node.
     $node = $this->drupalCreateNode(['type' => 'article']);
@@ -103,11 +104,11 @@ class EntityReferenceFieldAttributesTest extends TaxonomyTestBase {
     // Parse the teaser.
     $parser = new \EasyRdf_Parser_Rdfa();
     $graph = new \EasyRdf_Graph();
-    $base_uri = \Drupal::url('<front>', [], ['absolute' => TRUE]);
+    $base_uri = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
     $parser->parse($graph, $html, 'rdfa', $base_uri);
 
     // Node relations to taxonomy terms.
-    $node_uri = $node->url('canonical', ['absolute' => TRUE]);
+    $node_uri = $node->toUrl('canonical', ['absolute' => TRUE])->toString();
     $expected_value = [
       'type' => 'uri',
       'value' => $taxonomy_term_1_uri,

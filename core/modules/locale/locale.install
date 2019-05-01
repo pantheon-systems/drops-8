@@ -5,6 +5,8 @@
  * Install, update, and uninstall functions for the Locale module.
  */
 
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Url;
 
 /**
@@ -17,7 +19,7 @@ function locale_install() {
     $directory = $site_path . '/files/translations';
     \Drupal::configFactory()->getEditable('locale.settings')->set('translation.path', $directory)->save();
   }
-  file_prepare_directory($directory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+  \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 }
 
 /**
@@ -32,12 +34,17 @@ function locale_uninstall() {
     $locale_javascripts = \Drupal::state()->get('locale.translation.javascript') ?: [];
     foreach ($locale_javascripts as $langcode => $file_suffix) {
       if (!empty($file_suffix)) {
-        file_unmanaged_delete($locale_js_directory . '/' . $langcode . '_' . $file_suffix . '.js');
+        try {
+          \Drupal::service('file_system')->delete($locale_js_directory . '/' . $langcode . '_' . $file_suffix . '.js');
+        }
+        catch (FileException $e) {
+          // Ignore and continue.
+        }
       }
     }
     // Delete the JavaScript translations directory if empty.
     if (!file_scan_directory($locale_js_directory, '/.*/')) {
-      drupal_rmdir($locale_js_directory);
+      \Drupal::service('file_system')->rmdir($locale_js_directory);
     }
   }
 
@@ -263,7 +270,7 @@ function locale_requirements($phase) {
               'title' => t('Translation update status'),
               'value' => \Drupal::l(t('Updates available'), new Url('locale.translate_status')),
               'severity' => REQUIREMENT_WARNING,
-              'description' => t('Updates available for: @languages. See the <a href=":updates">Available translation updates</a> page for more information.', ['@languages' => implode(', ', $available_updates), ':updates' => \Drupal::url('locale.translate_status')]),
+              'description' => t('Updates available for: @languages. See the <a href=":updates">Available translation updates</a> page for more information.', ['@languages' => implode(', ', $available_updates), ':updates' => Url::fromRoute('locale.translate_status')->toString()]),
             ];
           }
           else {
@@ -271,7 +278,7 @@ function locale_requirements($phase) {
               'title' => t('Translation update status'),
               'value' => t('Missing translations'),
               'severity' => REQUIREMENT_INFO,
-              'description' => t('Missing translations for: @languages. See the <a href=":updates">Available translation updates</a> page for more information.', ['@languages' => implode(', ', $untranslated), ':updates' => \Drupal::url('locale.translate_status')]),
+              'description' => t('Missing translations for: @languages. See the <a href=":updates">Available translation updates</a> page for more information.', ['@languages' => implode(', ', $untranslated), ':updates' => Url::fromRoute('locale.translate_status')->toString()]),
             ];
           }
         }
@@ -288,7 +295,7 @@ function locale_requirements($phase) {
           'title' => t('Translation update status'),
           'value' => \Drupal::l(t('Can not determine status'), new Url('locale.translate_status')),
           'severity' => REQUIREMENT_WARNING,
-          'description' => t('No translation status is available. See the <a href=":updates">Available translation updates</a> page for more information.', [':updates' => \Drupal::url('locale.translate_status')]),
+          'description' => t('No translation status is available. See the <a href=":updates">Available translation updates</a> page for more information.', [':updates' => Url::fromRoute('locale.translate_status')->toString()]),
         ];
       }
     }

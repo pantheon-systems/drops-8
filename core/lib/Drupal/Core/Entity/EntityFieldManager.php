@@ -7,6 +7,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Cache\UseCacheBackendTrait;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Field\FieldDefinition;
 use Drupal\Core\KeyValueStore\KeyValueFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -53,6 +54,13 @@ class EntityFieldManager implements EntityFieldManagerInterface {
    * @var array
    */
   protected $fieldStorageDefinitions;
+
+  /**
+   * Static cache of active field storage definitions per entity type.
+   *
+   * @var array
+   */
+  protected $activeFieldStorageDefinitions;
 
   /**
    * An array keyed by entity type. Each value is an array whose keys are
@@ -405,6 +413,8 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       if ($field_definition instanceof BaseFieldDefinition) {
         $field_definition->setName($field_name);
         $field_definition->setTargetEntityTypeId($entity_type_id);
+      }
+      if ($field_definition instanceof BaseFieldDefinition || $field_definition instanceof FieldDefinition) {
         $field_definition->setTargetBundle($bundle);
       }
     }
@@ -440,6 +450,25 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       $this->fieldStorageDefinitions[$entity_type_id] += $field_storage_definitions;
     }
     return $this->fieldStorageDefinitions[$entity_type_id];
+  }
+
+  /**
+   * Gets the active field storage definitions for a content entity type.
+   *
+   * @param string $entity_type_id
+   *   The entity type ID. Only content entities are supported.
+   *
+   * @return \Drupal\Core\Field\FieldStorageDefinitionInterface[]
+   *   An array of field storage definitions that are active in the current
+   *   request, keyed by field name.
+   *
+   * @internal
+   */
+  public function getActiveFieldStorageDefinitions($entity_type_id) {
+    if (!isset($this->activeFieldStorageDefinitions[$entity_type_id])) {
+      $this->activeFieldStorageDefinitions[$entity_type_id] = $this->keyValueFactory->get('entity.definitions.installed')->get($entity_type_id . '.field_storage_definitions', []);
+    }
+    return $this->activeFieldStorageDefinitions[$entity_type_id] ?: $this->getFieldStorageDefinitions($entity_type_id);
   }
 
   /**
@@ -566,6 +595,7 @@ class EntityFieldManager implements EntityFieldManagerInterface {
     $this->baseFieldDefinitions = [];
     $this->fieldDefinitions = [];
     $this->fieldStorageDefinitions = [];
+    $this->activeFieldStorageDefinitions = [];
     $this->fieldMap = [];
     $this->fieldMapByFieldType = [];
     $this->entityDisplayRepository->clearDisplayModeInfo();
@@ -585,6 +615,7 @@ class EntityFieldManager implements EntityFieldManagerInterface {
       $this->fieldDefinitions = [];
       $this->baseFieldDefinitions = [];
       $this->fieldStorageDefinitions = [];
+      $this->activeFieldStorageDefinitions = [];
     }
   }
 

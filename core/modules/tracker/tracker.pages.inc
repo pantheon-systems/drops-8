@@ -22,13 +22,13 @@ use Drupal\node\Entity\Node;
  */
 function tracker_page($account = NULL) {
   if ($account) {
-    $query = db_select('tracker_user', 't')
+    $query = \Drupal::database()->select('tracker_user', 't')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
       ->addMetaData('base_table', 'tracker_user')
       ->condition('t.uid', $account->id());
   }
   else {
-    $query = db_select('tracker_node', 't', ['target' => 'replica'])
+    $query = \Drupal::service('database.replica')->select('tracker_node', 't')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
       ->addMetaData('base_table', 'tracker_node');
   }
@@ -89,7 +89,7 @@ function tracker_page($account = NULL) {
         'title' => [
           'data' => [
             '#type' => 'link',
-            '#url' => $node->urlInfo(),
+            '#url' => $node->toUrl(),
             '#title' => $node->getTitle(),
           ],
           'data-history-node-id' => $node->id(),

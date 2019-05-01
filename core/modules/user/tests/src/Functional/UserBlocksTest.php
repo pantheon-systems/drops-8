@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\user\Functional;
 
+use Drupal\Core\Url;
+use Drupal\Core\Database\Database;
 use Drupal\dynamic_page_cache\EventSubscriber\DynamicPageCacheSubscriber;
 use Drupal\Tests\BrowserTestBase;
 
@@ -68,13 +70,13 @@ class UserBlocksTest extends BrowserTestBase {
 
     // Log in using the block.
     $edit = [];
-    $edit['name'] = $user->getUsername();
+    $edit['name'] = $user->getAccountName();
     $edit['pass'] = $user->passRaw;
     $this->drupalPostForm('admin/people/permissions', $edit, t('Log in'));
     $this->assertNoText(t('User login'), 'Logged in.');
 
     // Check that we are still on the same page.
-    $this->assertUrl(\Drupal::url('user.admin_permissions', [], ['absolute' => TRUE]), [], 'Still on the same page after login for access denied page');
+    $this->assertUrl(Url::fromRoute('user.admin_permissions', [], ['absolute' => TRUE])->toString(), [], 'Still on the same page after login for access denied page');
 
     // Now, log out and repeat with a non-403 page.
     $this->drupalLogout();
@@ -107,7 +109,7 @@ class UserBlocksTest extends BrowserTestBase {
     $this->drupalLogout();
     $this->drupalPostForm('http://example.com/', $edit, t('Log in'), ['external' => FALSE]);
     // Check that we remain on the site after login.
-    $this->assertUrl($user->url('canonical', ['absolute' => TRUE]), [], 'Redirected to user profile page after login from the frontpage');
+    $this->assertUrl($user->toUrl('canonical', ['absolute' => TRUE])->toString(), [], 'Redirected to user profile page after login from the frontpage');
 
     // Verify that form validation errors are displayed immediately for forms
     // in blocks and not on subsequent page requests.
@@ -125,7 +127,7 @@ class UserBlocksTest extends BrowserTestBase {
    * Updates the access column for a user.
    */
   private function updateAccess($uid, $access = REQUEST_TIME) {
-    db_update('users_field_data')
+    Database::getConnection()->update('users_field_data')
       ->condition('uid', $uid)
       ->fields(['access' => $access])
       ->execute();

@@ -8,6 +8,7 @@
  * customized by user themes.
  */
 
+use Drupal\Core\Url;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
@@ -23,6 +24,7 @@ use Drupal\Core\Theme\ThemeSettings;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Utility\TableSort;
 
 /**
  * @defgroup content_flags Content markers
@@ -98,7 +100,7 @@ function theme_get_registry($complete = TRUE) {
 /**
  * Returns an array of default theme features.
  *
- * @see \Drupal\Core\Extension\ThemeHandler::$defaultFeatures
+ * @see \Drupal\Core\Extension\ThemeExtensionList::$defaults
  */
 function _system_default_theme_features() {
   return [
@@ -506,17 +508,19 @@ function theme_settings_convert_to_config(array $theme_settings, Config $config)
  *   - text:
  */
 function template_preprocess_time(&$variables) {
+  /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+  $date_formatter = \Drupal::service('date.formatter');
   // Format the 'datetime' attribute based on the timestamp.
   // @see http://www.w3.org/TR/html5-author/the-time-element.html#attr-time-datetime
   if (!isset($variables['attributes']['datetime']) && isset($variables['timestamp'])) {
-    $variables['attributes']['datetime'] = format_date($variables['timestamp'], 'html_datetime', '', 'UTC');
+    $variables['attributes']['datetime'] = $date_formatter->format($variables['timestamp'], 'html_datetime', '', 'UTC');
   }
 
   // If no text was provided, try to auto-generate it.
   if (!isset($variables['text'])) {
     // Format and use a human-readable version of the timestamp, if any.
     if (isset($variables['timestamp'])) {
-      $variables['text'] = format_date($variables['timestamp']);
+      $variables['text'] = $date_formatter->format($variables['timestamp']);
     }
     // Otherwise, use the literal datetime attribute.
     elseif (isset($variables['attributes']['datetime'])) {
@@ -944,7 +948,7 @@ function template_preprocess_table(&$variables) {
   $ts = [];
   $header_columns = 0;
   if (!empty($variables['header'])) {
-    $ts = tablesort_init($variables['header']);
+    $ts = TableSort::getContextFromRequest($variables['header'], \Drupal::request());
 
     // Use a separate index with responsive classes as headers
     // may be associative.
@@ -988,9 +992,9 @@ function template_preprocess_table(&$variables) {
           }
         }
 
-        tablesort_header($cell_content, $cell, $variables['header'], $ts);
+        TableSort::header($cell_content, $cell, $variables['header'], $ts);
 
-        // tablesort_header() removes the 'sort' and 'field' keys.
+        // TableSort::header() removes the 'sort' and 'field' keys.
         $cell_attributes = new Attribute($cell);
       }
       $variables['header'][$col_key] = [];
@@ -1372,7 +1376,7 @@ function template_preprocess_page(&$variables) {
   }
 
   $variables['base_path'] = base_path();
-  $variables['front_page'] = \Drupal::url('<front>');
+  $variables['front_page'] = Url::fromRoute('<front>')->toString();
   $variables['language'] = $language_interface;
 
   // An exception might be thrown.
@@ -1606,6 +1610,7 @@ function template_preprocess_field(&$variables, $hook) {
 function template_preprocess_field_multiple_value_form(&$variables) {
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
+  $variables['attributes'] = $element['#attributes'];
 
   if ($variables['multiple']) {
     $table_id = Html::getUniqueId($element['#field_name'] . '_values');

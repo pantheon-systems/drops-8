@@ -2,15 +2,16 @@
 
 namespace Drupal\comment\Plugin\Field\FieldType;
 
+use Drupal\comment\CommentInterface;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\comment\Entity\CommentType;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\Core\Field\FieldItemBase;
 use Drupal\Core\Session\AnonymousUserSession;
+use Drupal\Core\Url;
 
 /**
  * Plugin implementation of the 'comment' field type.
@@ -26,7 +27,6 @@ use Drupal\Core\Session\AnonymousUserSession;
  * )
  */
 class CommentItem extends FieldItemBase implements CommentItemInterface {
-  use UrlGeneratorTrait;
 
   /**
    * {@inheritdoc}
@@ -45,7 +45,7 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       'default_mode' => CommentManagerInterface::COMMENT_MODE_THREADED,
       'per_page' => 50,
       'form_location' => CommentItemInterface::FORM_BELOW,
-      'anonymous' => COMMENT_ANONYMOUS_MAYNOT_CONTACT,
+      'anonymous' => CommentInterface::ANONYMOUS_MAYNOT_CONTACT,
       'preview' => DRUPAL_OPTIONAL,
     ] + parent::defaultFieldSettings();
   }
@@ -125,9 +125,9 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       '#title' => t('Anonymous commenting'),
       '#default_value' => $settings['anonymous'],
       '#options' => [
-        COMMENT_ANONYMOUS_MAYNOT_CONTACT => t('Anonymous posters may not enter their contact information'),
-        COMMENT_ANONYMOUS_MAY_CONTACT => t('Anonymous posters may leave their contact information'),
-        COMMENT_ANONYMOUS_MUST_CONTACT => t('Anonymous posters must leave their contact information'),
+        CommentInterface::ANONYMOUS_MAYNOT_CONTACT => t('Anonymous posters may not enter their contact information'),
+        CommentInterface::ANONYMOUS_MAY_CONTACT => t('Anonymous posters may leave their contact information'),
+        CommentInterface::ANONYMOUS_MUST_CONTACT => t('Anonymous posters must leave their contact information'),
       ],
       '#access' => $anonymous_user->hasPermission('post comments'),
     ];
@@ -188,7 +188,7 @@ class CommentItem extends FieldItemBase implements CommentItemInterface {
       '#title' => t('Comment type'),
       '#options' => $options,
       '#required' => TRUE,
-      '#description' => $this->t('Select the Comment type to use for this comment field. Manage the comment types from the <a href=":url">administration overview page</a>.', [':url' => $this->url('entity.comment_type.collection')]),
+      '#description' => $this->t('Select the Comment type to use for this comment field. Manage the comment types from the <a href=":url">administration overview page</a>.', [':url' => Url::fromRoute('entity.comment_type.collection')->toString()]),
       '#default_value' => $this->getSetting('comment_type'),
       '#disabled' => $has_data,
     ];

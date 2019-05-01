@@ -75,9 +75,12 @@ class ControllerResolverTest extends UnitTestCase {
    * @expectedDeprecation Drupal\Core\Controller\ControllerResolver::doGetArguments is deprecated as of 8.6.0 and will be removed in 9.0. Inject the "http_kernel.controller.argument_resolver" service instead.
    */
   public function testGetArguments() {
+    if (!in_array('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface', class_implements('Symfony\Component\HttpKernel\Controller\ControllerResolver'))) {
+      $this->markTestSkipped("Do not test ::getArguments() method when it is not implemented by Symfony's ControllerResolver.");
+    }
     $controller = function (EntityInterface $entity, $user, RouteMatchInterface $route_match, ServerRequestInterface $psr_7) {
     };
-    $mock_entity = $this->getMockBuilder('Drupal\Core\Entity\Entity')
+    $mock_entity = $this->getMockBuilder('Drupal\Core\Entity\EntityBase')
       ->disableOriginalConstructor()
       ->getMock();
     $mock_account = $this->getMock('Drupal\Core\Session\AccountInterface');
@@ -171,6 +174,7 @@ class ControllerResolverTest extends UnitTestCase {
    * @dataProvider providerTestGetControllerFromDefinition
    */
   public function testGetControllerFromDefinition($definition, $output) {
+    $this->container->set('invoke_service', new MockInvokeController());
     $controller = $this->controllerResolver->getControllerFromDefinition($definition);
     $this->assertCallableController($controller, NULL, $output);
   }
@@ -188,6 +192,8 @@ class ControllerResolverTest extends UnitTestCase {
       [new MockInvokeController(), 'This used __invoke().'],
       // Tests a class using __invoke().
       ['Drupal\Tests\Core\Controller\MockInvokeController', 'This used __invoke().'],
+      // Tests a service from the container using __invoke().
+      ['invoke_service', 'This used __invoke().'],
     ];
   }
 
@@ -222,12 +228,14 @@ class ControllerResolverTest extends UnitTestCase {
   /**
    * Tests getArguments with a route match and a request.
    *
-   * @covers ::getArguments
    * @covers ::doGetArguments
    *
    * @group legacy
    */
   public function testGetArgumentsWithRouteMatchAndRequest() {
+    if (!in_array('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface', class_implements('Symfony\Component\HttpKernel\Controller\ControllerResolver'))) {
+      $this->markTestSkipped("Do not test ::getArguments() method when it is not implemented by Symfony's ControllerResolver.");
+    }
     $request = Request::create('/test');
     $mock_controller = new MockController();
     $arguments = $this->controllerResolver->getArguments($request, [$mock_controller, 'getControllerWithRequestAndRouteMatch']);
@@ -237,12 +245,14 @@ class ControllerResolverTest extends UnitTestCase {
   /**
    * Tests getArguments with a route match and a PSR-7 request.
    *
-   * @covers ::getArguments
    * @covers ::doGetArguments
    *
    * @group legacy
    */
   public function testGetArgumentsWithRouteMatchAndPsr7Request() {
+    if (!in_array('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface', class_implements('Symfony\Component\HttpKernel\Controller\ControllerResolver'))) {
+      $this->markTestSkipped("Do not test ::getArguments() method when it is not implemented by Symfony's ControllerResolver.");
+    }
     $request = Request::create('/test');
     $mock_controller = new MockControllerPsr7();
     $arguments = $this->controllerResolver->getArguments($request, [$mock_controller, 'getControllerWithRequestAndRouteMatch']);

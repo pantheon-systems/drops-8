@@ -337,6 +337,38 @@ class ModerationStateFieldItemListTest extends KernelTestBase {
   }
 
   /**
+   * Test customising the default moderation state.
+   */
+  public function testWorkflowCustomisedInitialState() {
+    $workflow = Workflow::load('editorial');
+    $configuration = $workflow->getTypePlugin()->getConfiguration();
+
+    // Test a node for a workflow that hasn't been updated to include the
+    // 'default_moderation_state' setting. We must be backwards compatible with
+    // configuration that was exported before this change was introduced.
+    $this->assertFalse(isset($configuration['default_moderation_state']));
+    $legacy_configuration_node = Node::create([
+      'title' => 'Test title',
+      'type' => 'example',
+    ]);
+    $this->assertEquals('draft', $legacy_configuration_node->moderation_state->value);
+    $legacy_configuration_node->save();
+    $this->assertEquals('draft', $legacy_configuration_node->moderation_state->value);
+
+    $configuration['default_moderation_state'] = 'published';
+    $workflow->getTypePlugin()->setConfiguration($configuration);
+    $workflow->save();
+
+    $updated_default_node = Node::create([
+      'title' => 'Test title',
+      'type' => 'example',
+    ]);
+    $this->assertEquals('published', $updated_default_node->moderation_state->value);
+    $legacy_configuration_node->save();
+    $this->assertEquals('published', $updated_default_node->moderation_state->value);
+  }
+
+  /**
    * Test the field item list when used with existing unmoderated content.
    */
   public function testWithExistingUnmoderatedContent() {

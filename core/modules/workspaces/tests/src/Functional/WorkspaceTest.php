@@ -117,7 +117,7 @@ class WorkspaceTest extends BrowserTestBase {
     $this->assertEquals($this->editor1->id(), $test_workspace->getOwnerId());
 
     $this->drupalPostForm('/admin/config/workflow/workspaces/manage/test_workspace/edit', [
-      'uid[0][target_id]' => $this->editor2->getUsername(),
+      'uid[0][target_id]' => $this->editor2->getAccountName(),
     ], 'Save');
 
     $test_workspace = $storage->loadUnchanged('test_workspace');
@@ -136,7 +136,7 @@ class WorkspaceTest extends BrowserTestBase {
     $this->assertEquals('1', $live_workspace->getRevisionId());
 
     // Re-save the live workspace via the UI to create revision 3.
-    $this->drupalPostForm($live_workspace->url('edit-form'), [], 'Save');
+    $this->drupalPostForm($live_workspace->toUrl('edit-form')->toString(), [], 'Save');
     $live_workspace = $storage->loadUnchanged('live');
     $this->assertEquals('3', $live_workspace->getRevisionId());
   }

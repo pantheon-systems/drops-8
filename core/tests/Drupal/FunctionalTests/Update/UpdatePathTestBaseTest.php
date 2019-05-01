@@ -4,6 +4,7 @@ namespace Drupal\FunctionalTests\Update;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Core\Database\Database;
 
 /**
  * Tests the update path base class.
@@ -80,11 +81,13 @@ class UpdatePathTestBaseTest extends UpdatePathTestBase {
    * Test that updates are properly run.
    */
   public function testUpdateHookN() {
+    $connection = Database::getConnection();
+
     // Increment the schema version.
     \Drupal::state()->set('update_test_schema_version', 8001);
     $this->runUpdates();
 
-    $select = \Drupal::database()->select('watchdog');
+    $select = $connection->select('watchdog');
     $select->orderBy('wid', 'DESC');
     $select->range(0, 5);
     $select->fields('watchdog', ['message']);
@@ -97,7 +100,40 @@ class UpdatePathTestBaseTest extends UpdatePathTestBase {
     // Ensure schema has changed.
     $this->assertEqual(drupal_get_installed_schema_version('update_test_schema', TRUE), 8001);
     // Ensure the index was added for column a.
-    $this->assertTrue(db_index_exists('update_test_schema_table', 'test'), 'Version 8001 of the update_test_schema module is installed.');
+    $this->assertTrue($connection->schema()->indexExists('update_test_schema_table', 'test'), 'Version 8001 of the update_test_schema module is installed.');
+  }
+
+  /**
+   * Tests that path aliases are not processed during database updates.
+   */
+  public function testPathAliasProcessing() {
+    // Add a path alias for the '/admin' system path.
+    $database = \Drupal::database();
+    $database->insert('url_alias')
+      ->fields(['source', 'alias', 'langcode'])
+      ->values([
+        'source' => '/admin/structure',
+        'alias' => '/admin-structure-alias',
+        'langcode' => 'und',
+      ])
+      ->execute();
+
+    // Increment the schema version.
+    \Drupal::state()->set('update_test_schema_version', 8002);
+    $this->runUpdates();
+
+    // Check that the alias defined earlier is not used during the update
+    // process.
+    $this->assertSession()->linkByHrefExists('/admin/structure');
+    $this->assertSession()->linkByHrefNotExists('/admin-structure-alias');
+
+    $account = $this->createUser(['administer site configuration', 'access administration pages', 'access site reports']);
+    $this->drupalLogin($account);
+
+    // Go to the status report page and check that the alias is used.
+    $this->drupalGet('admin/reports/status');
+    $this->assertSession()->linkByHrefNotExists('/admin/structure');
+    $this->assertSession()->linkByHrefExists('/admin-structure-alias');
   }
 
   /**

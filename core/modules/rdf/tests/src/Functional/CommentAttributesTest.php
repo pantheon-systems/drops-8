@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\rdf\Functional;
 
+use Drupal\Core\Url;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\CommentManagerInterface;
 use Drupal\Tests\comment\Functional\CommentTestBase;
@@ -46,15 +47,15 @@ class CommentAttributesTest extends CommentTestBase {
       'skip comment approval' => TRUE,
     ]);
     // Allows anonymous to leave their contact information.
-    $this->setCommentAnonymous(COMMENT_ANONYMOUS_MAY_CONTACT);
+    $this->setCommentAnonymous(CommentInterface::ANONYMOUS_MAY_CONTACT);
     $this->setCommentPreview(DRUPAL_OPTIONAL);
     $this->setCommentForm(TRUE);
     $this->setCommentSubject(TRUE);
     $this->setCommentSettings('comment_default_mode', CommentManagerInterface::COMMENT_MODE_THREADED, 'Comment paging changed.');
 
     // Prepares commonly used URIs.
-    $this->baseUri = \Drupal::url('<front>', [], ['absolute' => TRUE]);
-    $this->nodeUri = $this->node->url('canonical', ['absolute' => TRUE]);
+    $this->baseUri = Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString();
+    $this->nodeUri = $this->node->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     // Set relation between node and comment.
     $article_mapping = rdf_get_mapping('node', 'article');
@@ -154,7 +155,7 @@ class CommentAttributesTest extends CommentTestBase {
     // Ensure that the author link still works properly after the author output
     // is modified by the RDF module.
     $this->drupalGet('node/' . $this->node->id());
-    $this->assertLink($this->webUser->getUsername());
+    $this->assertLink($this->webUser->getAccountName());
     $this->assertLinkByHref('user/' . $this->webUser->id());
   }
 
@@ -211,11 +212,11 @@ class CommentAttributesTest extends CommentTestBase {
     $this->drupalLogin($this->webUser);
     $comment_1 = $this->saveComment($this->node->id(), $this->webUser->id());
 
-    $comment_1_uri = $comment_1->url('canonical', ['absolute' => TRUE]);
+    $comment_1_uri = $comment_1->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     // Posts a reply to the first comment.
     $comment_2 = $this->saveComment($this->node->id(), $this->webUser->id(), NULL, $comment_1->id());
-    $comment_2_uri = $comment_2->url('canonical', ['absolute' => TRUE]);
+    $comment_2_uri = $comment_2->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     $parser = new \EasyRdf_Parser_Rdfa();
     $graph = new \EasyRdf_Graph();
@@ -252,7 +253,7 @@ class CommentAttributesTest extends CommentTestBase {
    *   An array containing information about an anonymous user.
    */
   public function _testBasicCommentRdfaMarkup($graph, CommentInterface $comment, $account = []) {
-    $comment_uri = $comment->url('canonical', ['absolute' => TRUE]);
+    $comment_uri = $comment->toUrl('canonical', ['absolute' => TRUE])->toString();
 
     // Comment type.
     $expected_value = [
@@ -278,14 +279,14 @@ class CommentAttributesTest extends CommentTestBase {
     // Comment date.
     $expected_value = [
       'type' => 'literal',
-      'value' => format_date($comment->getCreatedTime(), 'custom', 'c', 'UTC'),
+      'value' => $this->container->get('date.formatter')->format($comment->getCreatedTime(), 'custom', 'c', 'UTC'),
       'datatype' => 'http://www.w3.org/2001/XMLSchema#dateTime',
     ];
     $this->assertTrue($graph->hasProperty($comment_uri, 'http://purl.org/dc/terms/date', $expected_value), 'Comment date found in RDF output (dc:date).');
     // Comment date.
     $expected_value = [
       'type' => 'literal',
-      'value' => format_date($comment->getCreatedTime(), 'custom', 'c', 'UTC'),
+      'value' => $this->container->get('date.formatter')->format($comment->getCreatedTime(), 'custom', 'c', 'UTC'),
       'datatype' => 'http://www.w3.org/2001/XMLSchema#dateTime',
     ];
     $this->assertTrue($graph->hasProperty($comment_uri, 'http://purl.org/dc/terms/created', $expected_value), 'Comment date found in RDF output (dc:created).');
@@ -300,7 +301,7 @@ class CommentAttributesTest extends CommentTestBase {
 
     // The comment author can be a registered user or an anonymous user.
     if ($comment->getOwnerId() > 0) {
-      $author_uri = \Drupal::url('entity.user.canonical', ['user' => $comment->getOwnerId()], ['absolute' => TRUE]);
+      $author_uri = Url::fromRoute('entity.user.canonical', ['user' => $comment->getOwnerId()], ['absolute' => TRUE])->toString();
       // Comment relation to author.
       $expected_value = [
         'type' => 'uri',
@@ -320,7 +321,7 @@ class CommentAttributesTest extends CommentTestBase {
     }
 
     // Author name.
-    $name = empty($account["name"]) ? $this->webUser->getUsername() : $account["name"] . " (not verified)";
+    $name = empty($account["name"]) ? $this->webUser->getAccountName() : $account["name"] . " (not verified)";
     $expected_value = [
       'type' => 'literal',
       'value' => $name,

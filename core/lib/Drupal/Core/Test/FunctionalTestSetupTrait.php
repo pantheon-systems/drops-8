@@ -4,10 +4,12 @@ namespace Drupal\Core\Test;
 
 use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\Environment;
 use Drupal\Core\Config\Development\ConfigSchemaChecker;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DrupalKernel;
 use Drupal\Core\Extension\MissingDependencyException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\Site\Settings;
@@ -318,7 +320,7 @@ trait FunctionalTestSetupTrait {
     $config = $container->get('config.factory');
 
     // Manually create the private directory.
-    file_prepare_directory($this->privateFilesDirectory, FILE_CREATE_DIRECTORY);
+    \Drupal::service('file_system')->prepareDirectory($this->privateFilesDirectory, FileSystemInterface::CREATE_DIRECTORY);
 
     // Manually configure the test mail collector implementation to prevent
     // tests from sending out emails and collect them in state instead.
@@ -381,10 +383,13 @@ trait FunctionalTestSetupTrait {
    */
   protected function initKernel(Request $request) {
     $this->kernel = DrupalKernel::createFromRequest($request, $this->classLoader, 'prod', TRUE);
-    $this->kernel->prepareLegacyRequest($request);
+
     // Force the container to be built from scratch instead of loaded from the
     // disk. This forces us to not accidentally load the parent site.
-    return $this->kernel->rebuildContainer();
+    $this->kernel->invalidateContainer();
+
+    $this->kernel->prepareLegacyRequest($request);
+    return \Drupal::getContainer();
   }
 
   /**
@@ -418,8 +423,8 @@ trait FunctionalTestSetupTrait {
         // The exception message has all the details.
         $this->fail($e->getMessage());
       }
-
-      $this->rebuildContainer();
+      // The container was already rebuilt by the ModuleInstaller.
+      $this->container = \Drupal::getContainer();
     }
   }
 
@@ -575,7 +580,7 @@ trait FunctionalTestSetupTrait {
 
     // Create test directory ahead of installation so fatal errors and debug
     // information can be logged during installation process.
-    file_prepare_directory($this->siteDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    \Drupal::service('file_system')->prepareDirectory($this->siteDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     // Prepare filesystem directory paths.
     $this->publicFilesDirectory = $this->siteDirectory . '/files';
@@ -619,7 +624,7 @@ trait FunctionalTestSetupTrait {
       'hash_salt' => $this->databasePrefix,
     ]);
 
-    drupal_set_time_limit($this->timeLimit);
+    Environment::setTimeLimit($this->timeLimit);
 
     // Save and clean the shutdown callbacks array because it is static cached
     // and will be changed by the test run. Otherwise it will contain callbacks

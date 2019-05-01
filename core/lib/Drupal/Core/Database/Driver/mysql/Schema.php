@@ -388,7 +388,7 @@ class Schema extends DatabaseSchema {
     }
 
     $info = $this->getPrefixInfo($new_name);
-    return $this->connection->query('ALTER TABLE {' . $table . '} RENAME TO `' . $info['table'] . '`');
+    $this->connection->query('ALTER TABLE {' . $table . '} RENAME TO `' . $info['table'] . '`');
   }
 
   /**
@@ -490,6 +490,7 @@ class Schema extends DatabaseSchema {
    * {@inheritdoc}
    */
   public function fieldSetDefault($table, $field, $default) {
+    @trigger_error('fieldSetDefault() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Instead, call ::changeField() passing a full field specification. See https://www.drupal.org/node/2999035', E_USER_DEPRECATED);
     if (!$this->fieldExists($table, $field)) {
       throw new SchemaObjectDoesNotExistException(t("Cannot set default value of field @table.@field: field doesn't exist.", ['@table' => $table, '@field' => $field]));
     }
@@ -501,6 +502,7 @@ class Schema extends DatabaseSchema {
    * {@inheritdoc}
    */
   public function fieldSetNoDefault($table, $field) {
+    @trigger_error('fieldSetNoDefault() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Instead, call ::changeField() passing a full field specification. See https://www.drupal.org/node/2999035', E_USER_DEPRECATED);
     if (!$this->fieldExists($table, $field)) {
       throw new SchemaObjectDoesNotExistException(t("Cannot remove default value of field @table.@field: field doesn't exist.", ['@table' => $table, '@field' => $field]));
     }
@@ -608,6 +610,36 @@ class Schema extends DatabaseSchema {
 
     $this->connection->query('ALTER TABLE {' . $table . '} DROP INDEX `' . $name . '`');
     return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function introspectIndexSchema($table) {
+    if (!$this->tableExists($table)) {
+      throw new SchemaObjectDoesNotExistException("The table $table doesn't exist.");
+    }
+
+    $index_schema = [
+      'primary key' => [],
+      'unique keys' => [],
+      'indexes' => [],
+    ];
+
+    $result = $this->connection->query('SHOW INDEX FROM {' . $table . '}')->fetchAll();
+    foreach ($result as $row) {
+      if ($row->Key_name === 'PRIMARY') {
+        $index_schema['primary key'][] = $row->Column_name;
+      }
+      elseif ($row->Non_unique == 0) {
+        $index_schema['unique keys'][$row->Key_name][] = $row->Column_name;
+      }
+      else {
+        $index_schema['indexes'][$row->Key_name][] = $row->Column_name;
+      }
+    }
+
+    return $index_schema;
   }
 
   /**

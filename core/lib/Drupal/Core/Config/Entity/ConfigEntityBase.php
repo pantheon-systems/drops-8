@@ -5,11 +5,12 @@ namespace Drupal\Core\Config\Entity;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Config\Schema\SchemaIncompleteException;
-use Drupal\Core\Entity\Entity;
+use Drupal\Core\Entity\EntityBase;
 use Drupal\Core\Config\ConfigDuplicateUUIDException;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
+use Drupal\Core\Entity\SynchronizableEntityTrait;
 use Drupal\Core\Plugin\PluginDependencyTrait;
 
 /**
@@ -17,11 +18,12 @@ use Drupal\Core\Plugin\PluginDependencyTrait;
  *
  * @ingroup entity_api
  */
-abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface {
+abstract class ConfigEntityBase extends EntityBase implements ConfigEntityInterface {
 
   use PluginDependencyTrait {
     addDependency as addDependencyTrait;
   }
+  use SynchronizableEntityTrait;
 
   /**
    * The original ID of the configuration entity.
@@ -47,14 +49,6 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    * @var string
    */
   protected $uuid;
-
-  /**
-   * Whether the config is being created, updated or deleted through the
-   * import process.
-   *
-   * @var bool
-   */
-  private $isSyncing = FALSE;
 
   /**
    * Whether the config is being deleted by the uninstall process.
@@ -202,22 +196,6 @@ abstract class ConfigEntityBase extends Entity implements ConfigEntityInterface 
    */
   public function status() {
     return !empty($this->status);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setSyncing($syncing) {
-    $this->isSyncing = $syncing;
-
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isSyncing() {
-    return $this->isSyncing;
   }
 
   /**

@@ -3,6 +3,8 @@
 namespace Drupal\KernelTests\Core\File;
 
 use Drupal\Component\PhpStorage\FileStorage;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 
 /**
  * Tests operations dealing with directories.
@@ -31,7 +33,9 @@ class DirectoryTest extends FileTestBase {
     // Create the directories.
     $parent_path = $directory . DIRECTORY_SEPARATOR . $parent;
     $child_path = $parent_path . DIRECTORY_SEPARATOR . $child;
-    $this->assertTrue(drupal_mkdir($child_path, 0775, TRUE), t('No error reported when creating new local directories.'), 'File');
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $this->assertTrue($file_system->mkdir($child_path, 0775, TRUE), t('No error reported when creating new local directories.'), 'File');
 
     // Ensure new directories also exist.
     $this->assertTrue(is_dir($parent_path), t('New parent directory actually exists.'), 'File');
@@ -45,8 +49,8 @@ class DirectoryTest extends FileTestBase {
     $this->assertDirectoryPermissions($directory, $old_mode);
 
     // Check creating a directory using an absolute path.
-    $absolute_path = \Drupal::service('file_system')->realpath($directory) . DIRECTORY_SEPARATOR . $this->randomMachineName() . DIRECTORY_SEPARATOR . $this->randomMachineName();
-    $this->assertTrue(drupal_mkdir($absolute_path, 0775, TRUE), 'No error reported when creating new absolute directories.', 'File');
+    $absolute_path = $file_system->realpath($directory) . DIRECTORY_SEPARATOR . $this->randomMachineName() . DIRECTORY_SEPARATOR . $this->randomMachineName();
+    $this->assertTrue($file_system->mkdir($absolute_path, 0775, TRUE), 'No error reported when creating new absolute directories.', 'File');
     $this->assertDirectoryPermissions($absolute_path, 0775);
   }
 
@@ -59,10 +63,12 @@ class DirectoryTest extends FileTestBase {
     $this->assertFalse(is_dir($directory), 'Directory does not exist prior to testing.');
 
     // Non-existent directory.
-    $this->assertFalse(file_prepare_directory($directory, 0), 'Error reported for non-existing directory.', 'File');
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $this->assertFalse($file_system->prepareDirectory($directory, 0), 'Error reported for non-existing directory.', 'File');
 
     // Make a directory.
-    $this->assertTrue(file_prepare_directory($directory, FILE_CREATE_DIRECTORY), 'No error reported when creating a new directory.', 'File');
+    $this->assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY), 'No error reported when creating a new directory.', 'File');
 
     // Make sure directory actually exists.
     $this->assertTrue(is_dir($directory), 'Directory actually exists.', 'File');
@@ -74,12 +80,12 @@ class DirectoryTest extends FileTestBase {
       // in the directory on any recent version of Windows.
 
       // Make directory read only.
-      @drupal_chmod($directory, 0444);
-      $this->assertFalse(file_prepare_directory($directory, 0), 'Error reported for a non-writeable directory.', 'File');
+      @$file_system->chmod($directory, 0444);
+      $this->assertFalse($file_system->prepareDirectory($directory, 0), 'Error reported for a non-writeable directory.', 'File');
 
       // Test directory permission modification.
       $this->setSetting('file_chmod_directory', 0777);
-      $this->assertTrue(file_prepare_directory($directory, FILE_MODIFY_PERMISSIONS), 'No error reported when making directory writeable.', 'File');
+      $this->assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::MODIFY_PERMISSIONS), 'No error reported when making directory writeable.', 'File');
     }
 
     // Test that the directory has the correct permissions.
@@ -105,14 +111,16 @@ class DirectoryTest extends FileTestBase {
     $basename = 'xyz.txt';
     $directory = 'core/misc';
     $original = $directory . '/' . $basename;
-    $path = file_create_filename($basename, $directory);
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $path = $file_system->createFilename($basename, $directory);
     $this->assertEqual($path, $original, format_string('New filepath %new equals %original.', ['%new' => $path, '%original' => $original]), 'File');
 
     // Then we test against a file that already exists within that directory.
     $basename = 'druplicon.png';
     $original = $directory . '/' . $basename;
     $expected = $directory . '/druplicon_0.png';
-    $path = file_create_filename($basename, $directory);
+    $path = $file_system->createFilename($basename, $directory);
     $this->assertEqual($path, $expected, format_string('Creating a new filepath from %original equals %new (expected %expected).', ['%new' => $path, '%original' => $original, '%expected' => $expected]), 'File');
 
     // @TODO: Finally we copy a file into a directory several times, to ensure a properly iterating filename suffix.
@@ -122,8 +130,8 @@ class DirectoryTest extends FileTestBase {
    * This will test the filepath for a destination based on passed flags and
    * whether or not the file exists.
    *
-   * If a file exists, file_destination($destination, $replace) will either
-   * return:
+   * If a file exists, ::getDestinationFilename($destination, $replace) will
+   * either return:
    * - the existing filepath, if $replace is FILE_EXISTS_REPLACE
    * - a new filepath if FILE_EXISTS_RENAME
    * - an error (returning FALSE) if FILE_EXISTS_ERROR.
@@ -133,24 +141,26 @@ class DirectoryTest extends FileTestBase {
   public function testFileDestination() {
     // First test for non-existent file.
     $destination = 'core/misc/xyz.txt';
-    $path = file_destination($destination, FILE_EXISTS_REPLACE);
-    $this->assertEqual($path, $destination, 'Non-existing filepath destination is correct with FILE_EXISTS_REPLACE.', 'File');
-    $path = file_destination($destination, FILE_EXISTS_RENAME);
-    $this->assertEqual($path, $destination, 'Non-existing filepath destination is correct with FILE_EXISTS_RENAME.', 'File');
-    $path = file_destination($destination, FILE_EXISTS_ERROR);
-    $this->assertEqual($path, $destination, 'Non-existing filepath destination is correct with FILE_EXISTS_ERROR.', 'File');
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $path = $file_system->getDestinationFilename($destination, FileSystemInterface::EXISTS_REPLACE);
+    $this->assertEqual($path, $destination, 'Non-existing filepath destination is correct with FileSystemInterface::EXISTS_REPLACE.', 'File');
+    $path = $file_system->getDestinationFilename($destination, FileSystemInterface::EXISTS_RENAME);
+    $this->assertEqual($path, $destination, 'Non-existing filepath destination is correct with FileSystemInterface::EXISTS_RENAME.', 'File');
+    $path = $file_system->getDestinationFilename($destination, FileSystemInterface::EXISTS_ERROR);
+    $this->assertEqual($path, $destination, 'Non-existing filepath destination is correct with FileSystemInterface::EXISTS_ERROR.', 'File');
 
     $destination = 'core/misc/druplicon.png';
-    $path = file_destination($destination, FILE_EXISTS_REPLACE);
-    $this->assertEqual($path, $destination, 'Existing filepath destination remains the same with FILE_EXISTS_REPLACE.', 'File');
-    $path = file_destination($destination, FILE_EXISTS_RENAME);
-    $this->assertNotEqual($path, $destination, 'A new filepath destination is created when filepath destination already exists with FILE_EXISTS_RENAME.', 'File');
-    $path = file_destination($destination, FILE_EXISTS_ERROR);
-    $this->assertEqual($path, FALSE, 'An error is returned when filepath destination already exists with FILE_EXISTS_ERROR.', 'File');
+    $path = $file_system->getDestinationFilename($destination, FileSystemInterface::EXISTS_REPLACE);
+    $this->assertEqual($path, $destination, 'Existing filepath destination remains the same with FileSystemInterface::EXISTS_REPLACE.', 'File');
+    $path = $file_system->getDestinationFilename($destination, FileSystemInterface::EXISTS_RENAME);
+    $this->assertNotEqual($path, $destination, 'A new filepath destination is created when filepath destination already exists with FileSystemInterface::EXISTS_RENAME.', 'File');
+    $path = $file_system->getDestinationFilename($destination, FileSystemInterface::EXISTS_ERROR);
+    $this->assertEqual($path, FALSE, 'An error is returned when filepath destination already exists with FileSystemInterface::EXISTS_ERROR.', 'File');
 
     // Invalid UTF-8 causes an exception.
-    $this->setExpectedException(\RuntimeException::class, "Invalid filename 'a\xFFtest\x80€.txt'");
-    file_destination("core/misc/a\xFFtest\x80€.txt", FILE_EXISTS_REPLACE);
+    $this->setExpectedException(FileException::class, "Invalid filename 'a\xFFtest\x80€.txt'");
+    $file_system->getDestinationFilename("core/misc/a\xFFtest\x80€.txt", FileSystemInterface::EXISTS_REPLACE);
   }
 
   /**

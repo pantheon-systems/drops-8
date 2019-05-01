@@ -97,7 +97,6 @@ class TwigSettingsTest extends BrowserTestBase {
     $info = $templates->get('theme_test_template_test');
     $template_filename = $info['path'] . '/' . $info['template'] . $extension;
 
-    /** @var \Drupal\Core\Template\TwigEnvironment $twig */
     $environment = $this->container->get('twig');
     $cache = $environment->getCache();
     $class = $environment->getTemplateClass($template_filename);

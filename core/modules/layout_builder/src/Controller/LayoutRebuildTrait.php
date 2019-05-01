@@ -9,17 +9,8 @@ use Drupal\layout_builder\SectionStorageInterface;
 
 /**
  * Provides AJAX responses to rebuild the Layout Builder.
- *
- * @internal
  */
 trait LayoutRebuildTrait {
-
-  /**
-   * The class resolver.
-   *
-   * @var \Drupal\Core\DependencyInjection\ClassResolverInterface
-   */
-  protected $classResolver;
 
   /**
    * Rebuilds the layout.
@@ -49,8 +40,10 @@ trait LayoutRebuildTrait {
    */
   protected function rebuildLayout(SectionStorageInterface $section_storage) {
     $response = new AjaxResponse();
-    $layout_controller = $this->classResolver->getInstanceFromDefinition(LayoutBuilderController::class);
-    $layout = $layout_controller->layout($section_storage, TRUE);
+    $layout = [
+      '#type' => 'layout_builder',
+      '#section_storage' => $section_storage,
+    ];
     $response->addCommand(new ReplaceCommand('#layout-builder', $layout));
     return $response;
   }
