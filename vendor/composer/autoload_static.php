@@ -108,6 +108,10 @@ class ComposerStaticInitDrupal8
             'Composer\\Semver\\' => 16,
             'Composer\\Installers\\' => 20,
         ),
+        'B' => 
+        array (
+            'Brumann\\Polyfill\\' => 17,
+        ),
         'A' => 
         array (
             'Asm89\\Stack\\' => 12,
@@ -367,6 +371,10 @@ class ComposerStaticInitDrupal8
         array (
             0 => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers',
         ),
+        'Brumann\\Polyfill\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/brumann/polyfill-unserialize/src',
+        ),
         'Asm89\\Stack\\' => 
         array (
             0 => __DIR__ . '/..' . '/asm89/stack-cors/src/Asm89/Stack',
@@ -425,6 +433,7 @@ class ComposerStaticInitDrupal8
         'Asm89\\Stack\\Cors' => __DIR__ . '/..' . '/asm89/stack-cors/src/Asm89/Stack/Cors.php',
         'Asm89\\Stack\\CorsService' => __DIR__ . '/..' . '/asm89/stack-cors/src/Asm89/Stack/CorsService.php',
         'AssertionError' => __DIR__ . '/..' . '/symfony/polyfill-php70/Resources/stubs/AssertionError.php',
+        'Brumann\\Polyfill\\Unserialize' => __DIR__ . '/..' . '/brumann/polyfill-unserialize/src/Unserialize.php',
         'Composer\\Installers\\AglInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/AglInstaller.php',
         'Composer\\Installers\\AimeosInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/AimeosInstaller.php',
         'Composer\\Installers\\AnnotateCmsInstaller' => __DIR__ . '/..' . '/composer/installers/src/Composer/Installers/AnnotateCmsInstaller.php',
@@ -3359,11 +3368,24 @@ class ComposerStaticInitDrupal8
         'Symfony\\Polyfill\\Php70\\Php70' => __DIR__ . '/..' . '/symfony/polyfill-php70/Php70.php',
         'TYPO3\\PharStreamWrapper\\Assertable' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Assertable.php',
         'TYPO3\\PharStreamWrapper\\Behavior' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Behavior.php',
+        'TYPO3\\PharStreamWrapper\\Collectable' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Collectable.php',
         'TYPO3\\PharStreamWrapper\\Exception' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Exception.php',
         'TYPO3\\PharStreamWrapper\\Helper' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Helper.php',
+        'TYPO3\\PharStreamWrapper\\Interceptor\\ConjunctionInterceptor' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Interceptor/ConjunctionInterceptor.php',
         'TYPO3\\PharStreamWrapper\\Interceptor\\PharExtensionInterceptor' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Interceptor/PharExtensionInterceptor.php',
+        'TYPO3\\PharStreamWrapper\\Interceptor\\PharMetaDataInterceptor' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Interceptor/PharMetaDataInterceptor.php',
         'TYPO3\\PharStreamWrapper\\Manager' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Manager.php',
         'TYPO3\\PharStreamWrapper\\PharStreamWrapper' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/PharStreamWrapper.php',
+        'TYPO3\\PharStreamWrapper\\Phar\\Container' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Phar/Container.php',
+        'TYPO3\\PharStreamWrapper\\Phar\\DeserializationException' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Phar/DeserializationException.php',
+        'TYPO3\\PharStreamWrapper\\Phar\\Manifest' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Phar/Manifest.php',
+        'TYPO3\\PharStreamWrapper\\Phar\\Reader' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Phar/Reader.php',
+        'TYPO3\\PharStreamWrapper\\Phar\\ReaderException' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Phar/ReaderException.php',
+        'TYPO3\\PharStreamWrapper\\Phar\\Stub' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Phar/Stub.php',
+        'TYPO3\\PharStreamWrapper\\Resolvable' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Resolvable.php',
+        'TYPO3\\PharStreamWrapper\\Resolver\\PharInvocation' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Resolver/PharInvocation.php',
+        'TYPO3\\PharStreamWrapper\\Resolver\\PharInvocationCollection' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Resolver/PharInvocationCollection.php',
+        'TYPO3\\PharStreamWrapper\\Resolver\\PharInvocationResolver' => __DIR__ . '/..' . '/typo3/phar-stream-wrapper/src/Resolver/PharInvocationResolver.php',
         'Twig\\Cache\\CacheInterface' => __DIR__ . '/..' . '/twig/twig/src/Cache/CacheInterface.php',
         'Twig\\Cache\\FilesystemCache' => __DIR__ . '/..' . '/twig/twig/src/Cache/FilesystemCache.php',
         'Twig\\Cache\\NullCache' => __DIR__ . '/..' . '/twig/twig/src/Cache/NullCache.php',
