@@ -100,21 +100,19 @@ class Reader
                 break;
             }
 
-            $stubPosition = strpos($line, '<?php');
-            $manifestPosition = strpos($line, '__HALT_COMPILER()');
+            $manifestPosition = strpos($line, '__HALT_COMPILER();');
 
-            // line contains both, start of (empty) stub and start of manifest
-            if ($stubContent === null && $stubPosition !== false
-                && $manifestContent === null && $manifestPosition !== false) {
-                $stubContent = substr($line, $stubPosition, $manifestPosition - $stubPosition - 1);
-                $manifestContent = preg_replace('#^.*__HALT_COMPILER\(\)[^>]*\?>(\r|\n)*#', '', $line);
+            // first line contains start of manifest
+            if ($stubContent === null && $manifestContent === null && $manifestPosition !== false) {
+                $stubContent = substr($line, 0, $manifestPosition - 1);
+                $manifestContent = preg_replace('#^.*__HALT_COMPILER\(\);(?>[ \n]\?>(?>\r\n|\n)?)?#', '', $line);
                 $manifestLength = $this->resolveManifestLength($manifestContent);
             // line contains start of stub
-            } elseif ($stubContent === null && $stubPosition !== false) {
-                $stubContent = substr($line, $stubPosition);
+            } elseif ($stubContent === null) {
+                $stubContent = $line;
             // line contains start of manifest
             } elseif ($manifestContent === null && $manifestPosition !== false) {
-                $manifestContent = preg_replace('#^.*__HALT_COMPILER\(\)[^>]*\?>(\r|\n)*#', '', $line);
+                $manifestContent = preg_replace('#^.*__HALT_COMPILER\(\);(?>[ \n]\?>(?>\r\n|\n)?)?#', '', $line);
                 $manifestLength = $this->resolveManifestLength($manifestContent);
             // manifest has been started (thus is cannot be stub anymore), add content
             } elseif ($manifestContent !== null) {
