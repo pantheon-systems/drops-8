@@ -2882,22 +2882,21 @@
     },
     {
         "name": "typo3/phar-stream-wrapper",
-        "version": "v2.1.1",
-        "version_normalized": "2.1.1.0",
+        "version": "v2.1.2",
+        "version_normalized": "2.1.2.0",
         "source": {
             "type": "git",
             "url": "https://github.com/TYPO3/phar-stream-wrapper.git",
-            "reference": "e438b0c78652b33407983eb29d215a1a3f68f6f3"
+            "reference": "057622f5a3b92a5ffbea0fbaadce573500a62870"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/TYPO3/phar-stream-wrapper/zipball/e438b0c78652b33407983eb29d215a1a3f68f6f3",
-            "reference": "e438b0c78652b33407983eb29d215a1a3f68f6f3",
+            "url": "https://api.github.com/repos/TYPO3/phar-stream-wrapper/zipball/057622f5a3b92a5ffbea0fbaadce573500a62870",
+            "reference": "057622f5a3b92a5ffbea0fbaadce573500a62870",
             "shasum": ""
         },
         "require": {
             "brumann/polyfill-unserialize": "^1.0",
-            "ext-fileinfo": "*",
             "ext-json": "*",
             "php": "^5.3.3|^7.0"
         },
@@ -2905,7 +2904,10 @@
             "ext-xdebug": "*",
             "phpunit/phpunit": "^4.8.36"
         },
-        "time": "2019-05-05T17:30:51+00:00",
+        "suggest": {
+            "ext-fileinfo": "For PHP builtin file type guessing, otherwise uses internal processing"
+        },
+        "time": "2019-05-14T13:14:31+00:00",
         "type": "library",
         "installation-source": "dist",
         "autoload": {

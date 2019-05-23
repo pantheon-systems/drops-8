@@ -19,6 +19,11 @@ class Reader
     private $fileName;
 
     /**
+     * Mime-type in order to use zlib, bzip2 or no compression.
+     * In case ext-fileinfo is not present only the relevant types
+     * 'application/x-gzip' and 'application/x-bzip2' are assigned
+     * to this class property.
+     *
      * @var string
      */
     private $fileType;
@@ -152,8 +157,37 @@ class Reader
      */
     private function determineFileType()
     {
-        $fileInfo = new \finfo();
-        return $fileInfo->file($this->fileName, FILEINFO_MIME_TYPE);
+        if (class_exists('\\finfo')) {
+            $fileInfo = new \finfo();
+            return $fileInfo->file($this->fileName, FILEINFO_MIME_TYPE);
+        }
+        return $this->determineFileTypeByHeader();
+    }
+
+    /**
+     * In case ext-fileinfo is not present only the relevant types
+     * 'application/x-gzip' and 'application/x-bzip2' are resolved.
+     *
+     * @return string
+     */
+    private function determineFileTypeByHeader()
+    {
+        $resource = fopen($this->fileName, 'r');
+        if (!is_resource($resource)) {
+            throw new ReaderException(
+                sprintf('Resource %s could not be opened', $this->fileName),
+                1557753055
+            );
+        }
+        $header = fgets($resource, 4);
+        fclose($resource);
+        $mimeType = '';
+        if (strpos($header, "\x42\x5a\x68") === 0) {
+            $mimeType = 'application/x-bzip2';
+        } elseif (strpos($header, "\x1f\x8b") === 0) {
+            $mimeType = 'application/x-gzip';
+        }
+        return $mimeType;
     }
 
     /**
