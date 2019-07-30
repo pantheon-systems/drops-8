@@ -1,0 +1,23 @@
+# Put overrides to your pantheon.upstream.yml file here.
+# For more information, see: https://pantheon.io/docs/pantheon-yml/
+api_version: 1
+# Now specify the workflows to which you want to hook operations.
+workflows:
+  deploy:
+    # Each workflow can have a before and after operation.
+    after:
+    # For now, the only "type" available is webphp.
+    - type: webphp
+      # This will show up in output to help you keep track of your operations.
+      description: Fetch branches from custom upstream
+      # This is (obviously) the path to the script.
+      script: private/scripts/git_branch_fetch/git_branch_fetch.php
+  clear_cache:
+    # Each workflow can have a before and after operation.
+    after:
+    # For now, the only "type" available is webphp.
+    - type: webphp
+      # This will show up in output to help you keep track of your operations.
+      description: Fetch branches from custom upstream
+      # This is (obviously) the path to the script.
+      script: private/scripts/git_branch_fetch/git_branch_fetch.php
