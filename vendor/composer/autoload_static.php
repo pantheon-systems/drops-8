@@ -2237,6 +2237,7 @@ class ComposerStaticInitDrupal8
         'Drupal\\Core\\Test\\HttpClientMiddleware\\TestHttpClientMiddleware' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/HttpClientMiddleware/TestHttpClientMiddleware.php',
         'Drupal\\Core\\Test\\ObjectSerialization' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/ObjectSerialization.php',
         'Drupal\\Core\\Test\\RefreshVariablesTrait' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/RefreshVariablesTrait.php',
+        'Drupal\\Core\\Test\\RunTests\\TestFileParser' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/RunTests/TestFileParser.php',
         'Drupal\\Core\\Test\\TestDatabase' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/TestDatabase.php',
         'Drupal\\Core\\Test\\TestKernel' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/TestKernel.php',
         'Drupal\\Core\\Test\\TestRunnerKernel' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Test/TestRunnerKernel.php',
