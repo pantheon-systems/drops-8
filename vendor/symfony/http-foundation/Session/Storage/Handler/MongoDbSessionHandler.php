@@ -17,7 +17,7 @@ namespace Symfony\Component\HttpFoundation\Session\Storage\Handler;
  * @author Markus Bachmann <markus.bachmann@bachi.biz>
  *
  * @see https://packagist.org/packages/mongodb/mongodb
- * @see http://php.net/manual/en/set.mongodb.php
+ * @see https://php.net/mongodb
  */
 class MongoDbSessionHandler extends AbstractSessionHandler
 {
@@ -56,7 +56,7 @@ class MongoDbSessionHandler extends AbstractSessionHandler
      *         { "expireAfterSeconds": 0 }
      *     )
      *
-     * More details on: http://docs.mongodb.org/manual/tutorial/expire-data/
+     * More details on: https://docs.mongodb.org/manual/tutorial/expire-data/
      *
      * If you use such an index, you can drop `gc_probability` to 0 since
      * no garbage-collection is required.
