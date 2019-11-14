@@ -32,7 +32,7 @@ namespace Symfony\Component\HttpFoundation\Session\Storage\Handler;
  * Saving it in a character column could corrupt the data. You can use createTable()
  * to initialize a correctly defined table.
  *
- * @see http://php.net/sessionhandlerinterface
+ * @see https://php.net/sessionhandlerinterface
  *
  * @author Fabien Potencier <fabien@symfony.com>
  * @author Michael Williams <michael.williams@funsational.com>
@@ -286,7 +286,7 @@ class PdoSessionHandler extends AbstractSessionHandler
     }
 
     /**
-     * {@inheritdoc}
+     * @return bool
      */
     public function gc($maxlifetime)
     {
@@ -538,7 +538,7 @@ class PdoSessionHandler extends AbstractSessionHandler
      * PDO::rollback or PDO::inTransaction for SQLite.
      *
      * Also MySQLs default isolation, REPEATABLE READ, causes deadlock for different sessions
-     * due to http://www.mysqlperformanceblog.com/2013/12/12/one-more-innodb-gap-lock-to-avoid/ .
+     * due to https://percona.com/blog/2013/12/12/one-more-innodb-gap-lock-to-avoid/ .
      * So we change it to READ COMMITTED.
      */
     private function beginTransaction()
@@ -683,7 +683,7 @@ class PdoSessionHandler extends AbstractSessionHandler
         switch ($this->driver) {
             case 'mysql':
                 // MySQL 5.7.5 and later enforces a maximum length on lock names of 64 characters. Previously, no limit was enforced.
-                $lockId = \substr($sessionId, 0, 64);
+                $lockId = substr($sessionId, 0, 64);
                 // should we handle the return value? 0 on timeout, null on error
                 // we use a timeout of 50 seconds which is also the default for innodb_lock_wait_timeout
                 $stmt = $this->pdo->prepare('SELECT GET_LOCK(:key, 50)');
@@ -864,7 +864,7 @@ class PdoSessionHandler extends AbstractSessionHandler
                 break;
             case 'sqlsrv' === $this->driver && version_compare($this->pdo->getAttribute(\PDO::ATTR_SERVER_VERSION), '10', '>='):
                 // MERGE is only available since SQL Server 2008 and must be terminated by semicolon
-                // It also requires HOLDLOCK according to http://weblogs.sqlteam.com/dang/archive/2009/01/31/UPSERT-Race-Condition-With-MERGE.aspx
+                // It also requires HOLDLOCK according to https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
                 $mergeSql = "MERGE INTO $this->table WITH (HOLDLOCK) USING (SELECT 1 AS dummy) AS src ON ($this->idCol = ?) ".
                     "WHEN NOT MATCHED THEN INSERT ($this->idCol, $this->dataCol, $this->lifetimeCol, $this->timeCol) VALUES (?, ?, ?, ?) ".
                     "WHEN MATCHED THEN UPDATE SET $this->dataCol = ?, $this->lifetimeCol = ?, $this->timeCol = ?;";
@@ -877,7 +877,7 @@ class PdoSessionHandler extends AbstractSessionHandler
                     "ON CONFLICT ($this->idCol) DO UPDATE SET ($this->dataCol, $this->lifetimeCol, $this->timeCol) = (EXCLUDED.$this->dataCol, EXCLUDED.$this->lifetimeCol, EXCLUDED.$this->timeCol)";
                 break;
             default:
-                // MERGE is not supported with LOBs: http://www.oracle.com/technetwork/articles/fuecks-lobs-095315.html
+                // MERGE is not supported with LOBs: https://oracle.com/technetwork/articles/fuecks-lobs-095315.html
                 return null;
         }
 

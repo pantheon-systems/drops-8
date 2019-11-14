@@ -227,13 +227,18 @@ class BinaryFileResponse extends Response
 
                         if (substr($path, 0, \strlen($pathPrefix)) === $pathPrefix) {
                             $path = $location.substr($path, \strlen($pathPrefix));
+                            // Only set X-Accel-Redirect header if a valid URI can be produced
+                            // as nginx does not serve arbitrary file paths.
+                            $this->headers->set($type, $path);
+                            $this->maxlen = 0;
                             break;
                         }
                     }
                 }
+            } else {
+                $this->headers->set($type, $path);
+                $this->maxlen = 0;
             }
-            $this->headers->set($type, $path);
-            $this->maxlen = 0;
         } elseif ($request->headers->has('Range')) {
             // Process the range headers.
             if (!$request->headers->has('If-Range') || $this->hasValidIfRangeHeader($request->headers->get('If-Range'))) {
@@ -322,12 +327,12 @@ class BinaryFileResponse extends Response
         if (null !== $content) {
             throw new \LogicException('The content cannot be set on a BinaryFileResponse instance.');
         }
+
+        return $this;
     }
 
     /**
      * {@inheritdoc}
-     *
-     * @return false
      */
     public function getContent()
     {
