@@ -2,8 +2,6 @@
 
 namespace Drupal\Core\Password;
 
-use Drupal\Component\Utility\Crypt;
-
 /**
  * Secure password hashing functions based on the Portable PHP password
  * hashing framework.
@@ -37,6 +35,8 @@ class PhpassHashedPassword implements PasswordInterface {
    * Specifies the number of times the hashing function will be applied when
    * generating new password hashes. The number of times is calculated by
    * raising 2 to the power of the given value.
+   *
+   * @var int
    */
   protected $countLog2;
 
@@ -108,7 +108,7 @@ class PhpassHashedPassword implements PasswordInterface {
     // We encode the final log2 iteration count in base 64.
     $output .= static::$ITOA64[$this->countLog2];
     // 6 bytes is the standard salt for a portable phpass hash.
-    $output .= $this->base64Encode(Crypt::randomBytes(6), 6);
+    $output .= $this->base64Encode(random_bytes(6), 6);
     return $output;
   }
 
@@ -182,7 +182,6 @@ class PhpassHashedPassword implements PasswordInterface {
     // Convert the base 2 logarithm into an integer.
     $count = 1 << $count_log2;
 
-    // We rely on the hash() function being available in PHP 5.2+.
     $hash = hash($algo, $salt . $password, TRUE);
     do {
       $hash = hash($algo, $hash . $password, TRUE);
@@ -249,8 +248,8 @@ class PhpassHashedPassword implements PasswordInterface {
         return FALSE;
     }
 
-    // Compare using hashEquals() instead of === to mitigate timing attacks.
-    return $computed_hash && Crypt::hashEquals($stored_hash, $computed_hash);
+    // Compare using hash_equals() instead of === to mitigate timing attacks.
+    return $computed_hash && hash_equals($stored_hash, $computed_hash);
   }
 
   /**

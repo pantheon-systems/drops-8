@@ -16,9 +16,14 @@ class MoveActionsToCoreTest extends UpdatePathTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setDatabaseDumpFiles() {
     $this->databaseDumpFiles = [
-      __DIR__ . '/../../../../tests/fixtures/update/drupal-8.bare.standard.php.gz',
+      __DIR__ . '/../../../../tests/fixtures/update/drupal-8.4.0.bare.standard.php.gz',
       __DIR__ . '/../../../../tests/fixtures/update/drupal-8.actions-2815379.php',
     ];
   }

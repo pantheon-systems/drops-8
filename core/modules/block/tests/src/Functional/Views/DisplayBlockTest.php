@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\block\Functional\Views;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Site\Settings;
@@ -31,6 +32,11 @@ class DisplayBlockTest extends ViewTestBase {
    * @var array
    */
   public static $modules = ['node', 'block_test_views', 'test_page_test', 'contextual', 'views_ui'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * Views used by this test.
@@ -156,10 +162,10 @@ class DisplayBlockTest extends ViewTestBase {
     $view->displayHandlers->remove('block_1');
     $view->storage->save();
 
-    $this->assertFalse($block_storage->load($block_1->id()), 'The block for this display was removed.');
-    $this->assertFalse($block_storage->load($block_2->id()), 'The block for this display was removed.');
-    $this->assertTrue($block_storage->load($block_3->id()), 'A block from another view was unaffected.');
-    $this->assertTrue($block_storage->load($block_4->id()), 'A block from another view was unaffected.');
+    $this->assertNull($block_storage->load($block_1->id()), 'The block for this display was removed.');
+    $this->assertNull($block_storage->load($block_2->id()), 'The block for this display was removed.');
+    $this->assertNotEmpty($block_storage->load($block_3->id()), 'A block from another view was unaffected.');
+    $this->assertNotEmpty($block_storage->load($block_4->id()), 'A block from another view was unaffected.');
     $this->drupalGet('test-page');
     $this->assertNoBlockAppears($block_1);
     $this->assertNoBlockAppears($block_2);
@@ -173,8 +179,8 @@ class DisplayBlockTest extends ViewTestBase {
     $view->displayHandlers->remove('block_1');
     $view->storage->save();
 
-    $this->assertFalse($block_storage->load($block_3->id()), 'The block for this display was removed.');
-    $this->assertTrue($block_storage->load($block_4->id()), 'A block from another display on the same view was unaffected.');
+    $this->assertNull($block_storage->load($block_3->id()), 'The block for this display was removed.');
+    $this->assertNotEmpty($block_storage->load($block_4->id()), 'A block from another display on the same view was unaffected.');
     $this->drupalGet('test-page');
     $this->assertNoBlockAppears($block_3);
     $this->assertBlockAppears($block_4);
@@ -366,8 +372,8 @@ class DisplayBlockTest extends ViewTestBase {
     $cached_id = 'block:block=' . $cached_block->id() . ':langcode=en|entity.view.edit_form:view=test_view_block:location=block&name=test_view_block&display_id=block_1&langcode=en';
     $cached_id_token = Crypt::hmacBase64($cached_id, Settings::getHashSalt() . $this->container->get('private_key')->get());
     // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:assertContextualLinkPlaceHolder()
-    $this->assertRaw('<div' . new Attribute(['data-contextual-id' => $id, 'data-contextual-token' => $id_token]) . '></div>', format_string('Contextual link placeholder with id @id exists.', ['@id' => $id]));
-    $this->assertRaw('<div' . new Attribute(['data-contextual-id' => $cached_id, 'data-contextual-token' => $cached_id_token]) . '></div>', format_string('Contextual link placeholder with id @id exists.', ['@id' => $cached_id]));
+    $this->assertRaw('<div' . new Attribute(['data-contextual-id' => $id, 'data-contextual-token' => $id_token]) . '></div>', new FormattableMarkup('Contextual link placeholder with id @id exists.', ['@id' => $id]));
+    $this->assertRaw('<div' . new Attribute(['data-contextual-id' => $cached_id, 'data-contextual-token' => $cached_id_token]) . '></div>', new FormattableMarkup('Contextual link placeholder with id @id exists.', ['@id' => $cached_id]));
 
     // Get server-rendered contextual links.
     // @see \Drupal\contextual\Tests\ContextualDynamicContextTest:renderContextualLinks()

@@ -3,7 +3,6 @@
 namespace Drupal\Tests\workspaces\Functional;
 
 use Drupal\Tests\BrowserTestBase;
-use Drupal\workspaces\Entity\Workspace;
 
 /**
  * Tests concurrent edits in different workspaces.
@@ -20,22 +19,28 @@ class WorkspaceConcurrentEditingTest extends BrowserTestBase {
   public static $modules = ['block', 'node', 'workspaces'];
 
   /**
-   * Test switching workspace via the switcher block and admin page.
+   * {@inheritdoc}
    */
-  public function testSwitchingWorkspaces() {
+  protected $defaultTheme = 'stark';
+
+  /**
+   * Test editing a node in multiple workspaces.
+   */
+  public function testConcurrentEditing() {
+    // Create a test node.
+    $this->createContentType(['type' => 'test', 'label' => 'Test']);
+    $this->setupWorkspaceSwitcherBlock();
+
     $permissions = [
       'create workspace',
       'edit own workspace',
       'view own workspace',
-      'bypass entity access own workspace',
+      'create test content',
+      'edit own test content',
     ];
-
     $mayer = $this->drupalCreateUser($permissions);
     $this->drupalLogin($mayer);
-    $this->setupWorkspaceSwitcherBlock();
 
-    // Create a test node.
-    $this->createContentType(['type' => 'test', 'label' => 'Test']);
     $test_node = $this->createNodeThroughUi('Test node', 'test');
 
     // Check that the user can edit the node.
@@ -64,21 +69,20 @@ class WorkspaceConcurrentEditingTest extends BrowserTestBase {
     $this->drupalGet('/node/' . $test_node->id() . '/edit');
     $page = $this->getSession()->getPage();
     $this->assertFalse($page->hasField('title[0][value]'));
-    $page->hasContent('The content is being edited in the Vultures workspace.');
+    $page->hasContent('The content is being edited in the Vultures workspace. As a result, your changes cannot be saved.');
 
     // Check that the node fails validation for API calls.
     $violations = $test_node->validate();
     $this->assertCount(1, $violations);
     $this->assertEquals('The content is being edited in the <em class="placeholder">Vultures</em> workspace. As a result, your changes cannot be saved.', $violations->get(0)->getMessage());
 
-    // Switch to the Live workspace and check that the user still can not edit
-    // the node.
-    $live = Workspace::load('live');
-    $this->switchToWorkspace($live);
+    // Switch to the Live version of the site and check that the user still can
+    // not edit the node.
+    $this->switchToLive();
     $this->drupalGet('/node/' . $test_node->id() . '/edit');
     $page = $this->getSession()->getPage();
     $this->assertFalse($page->hasField('title[0][value]'));
-    $page->hasContent('The content is being edited in the Vultures workspace.');
+    $page->hasContent('The content is being edited in the Vultures workspace. As a result, your changes cannot be saved.');
 
     // Check that the node fails validation for API calls.
     $violations = $test_node->validate();

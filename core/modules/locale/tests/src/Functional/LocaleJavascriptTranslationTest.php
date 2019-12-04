@@ -21,6 +21,11 @@ class LocaleJavascriptTranslationTest extends BrowserTestBase {
    */
   public static $modules = ['locale', 'locale_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   public function testFileParsing() {
 
     // This test is for ensuring that the regular expression in
@@ -147,7 +152,7 @@ class LocaleJavascriptTranslationTest extends BrowserTestBase {
     $string = $strings[0];
 
     $this->drupalPostForm(NULL, ['string' => 'Show description'], t('Filter'));
-    $edit = ['strings[' . $string->lid . '][translations][0]' => $this->randomString(16)];
+    $edit = ['strings[' . $string->lid . '][translations][0]' => 'Mostrar descripcion'];
     $this->drupalPostForm(NULL, $edit, t('Save translations'));
 
     // Calculate the filename of the JS including the translations.
@@ -155,6 +160,8 @@ class LocaleJavascriptTranslationTest extends BrowserTestBase {
     $js_filename = $prefix . '_' . $js_translation_files[$prefix] . '.js';
 
     $content = $this->getSession()->getPage()->getContent();
+    $this->assertRaw('core/misc/drupal.js');
+    $this->assertRaw($js_filename);
     // Assert translations JS is included before drupal.js.
     $this->assertTrue(strpos($content, $js_filename) < strpos($content, 'core/misc/drupal.js'), 'Translations are included before Drupal.t.');
   }

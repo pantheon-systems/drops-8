@@ -8,17 +8,17 @@
          convertWarningsToExceptions="true"
          processIsolation="false"
          stopOnFailure="false"
-         syntaxCheck="false"
          bootstrap="vendor/autoload.php"
 >
   <testsuites>
     <testsuite name="Twig Test Suite">
-      <directory>./test/Twig/</directory>
+      <directory>./tests/</directory>
     </testsuite>
   </testsuites>
 
   <php>
     <ini name="error_reporting" value="-1" />
+    <ini name="xdebug.overload_var_dump" value="0" />
   </php>
 
   <listeners>

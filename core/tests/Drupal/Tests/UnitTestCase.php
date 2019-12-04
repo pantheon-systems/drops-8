@@ -90,7 +90,7 @@ abstract class UnitTestCase extends TestCase {
   protected function assertArrayEquals(array $expected, array $actual, $message = NULL) {
     ksort($expected);
     ksort($actual);
-    $this->assertEquals($expected, $actual, $message);
+    $this->assertEquals($expected, $actual, !empty($message) ? $message : '');
   }
 
   /**
@@ -104,7 +104,7 @@ abstract class UnitTestCase extends TestCase {
    *   configuration object names and whose values are key => value arrays for
    *   the configuration object in question. Defaults to an empty array.
    *
-   * @return \PHPUnit_Framework_MockObject_MockBuilder
+   * @return \PHPUnit\Framework\MockObject\MockBuilder
    *   A MockBuilder object for the ConfigFactory with the desired return
    *   values.
    */
@@ -191,10 +191,10 @@ abstract class UnitTestCase extends TestCase {
    * @param string $machine_name
    *   The machine name of the block plugin.
    *
-   * @return \Drupal\block\BlockInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\block\BlockInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The mocked block.
    *
-   * @deprecated in Drupal 8.5.x, will be removed before Drupal 9.0.0. Unit test
+   * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Unit test
    *   base classes should not have dependencies on extensions. Set up mocks in
    *   individual tests.
    *
@@ -221,7 +221,7 @@ abstract class UnitTestCase extends TestCase {
   /**
    * Returns a stub translation manager that just returns the passed string.
    *
-   * @return \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\StringTranslation\TranslationInterface
+   * @return \PHPUnit\Framework\MockObject\MockObject|\Drupal\Core\StringTranslation\TranslationInterface
    *   A mock translation object.
    */
   public function getStringTranslationStub() {
@@ -251,7 +251,7 @@ abstract class UnitTestCase extends TestCase {
    * @param \Drupal\Core\Cache\CacheTagsInvalidatorInterface $cache_tags_validator
    *   The cache tags invalidator.
    *
-   * @return \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The container with the cache tags invalidator service.
    */
   protected function getContainerWithCacheTagsInvalidator(CacheTagsInvalidatorInterface $cache_tags_validator) {
@@ -268,7 +268,7 @@ abstract class UnitTestCase extends TestCase {
   /**
    * Returns a stub class resolver.
    *
-   * @return \Drupal\Core\DependencyInjection\ClassResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\Core\DependencyInjection\ClassResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The class resolver stub.
    */
   protected function getClassResolverStub() {

@@ -3,6 +3,7 @@
 namespace Drupal\Tests\config\Functional;
 
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Entity\EntityMalformedException;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Config\Entity\ConfigEntityStorage;
@@ -30,6 +31,11 @@ class ConfigEntityTest extends BrowserTestBase {
   public static $modules = ['config_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests CRUD operations.
    */
   public function testCRUD() {
@@ -37,7 +43,6 @@ class ConfigEntityTest extends BrowserTestBase {
     // Verify default properties on a newly created empty entity.
     $storage = \Drupal::entityTypeManager()->getStorage('config_test');
     $empty = $storage->create();
-    $this->assertTrue($empty->uuid());
     $this->assertIdentical($empty->label, NULL);
     $this->assertIdentical($empty->style, NULL);
     $this->assertIdentical($empty->language()->getId(), $default_langcode);
@@ -47,11 +52,11 @@ class ConfigEntityTest extends BrowserTestBase {
     $this->assertIdentical($empty->getOriginalId(), NULL);
     $this->assertIdentical($empty->bundle(), 'config_test');
     $this->assertIdentical($empty->id(), NULL);
-    $this->assertTrue($empty->uuid());
+    $this->assertTrue(Uuid::isValid($empty->uuid()));
     $this->assertIdentical($empty->label(), NULL);
 
     $this->assertIdentical($empty->get('id'), NULL);
-    $this->assertTrue($empty->get('uuid'));
+    $this->assertTrue(Uuid::isValid($empty->get('uuid')));
     $this->assertIdentical($empty->get('label'), NULL);
     $this->assertIdentical($empty->get('style'), NULL);
     $this->assertIdentical($empty->language()->getId(), $default_langcode);
@@ -95,7 +100,6 @@ class ConfigEntityTest extends BrowserTestBase {
       'label' => $this->randomString(),
       'style' => $this->randomMachineName(),
     ]);
-    $this->assertTrue($config_test->uuid());
     $this->assertNotEqual($config_test->uuid(), $empty->uuid());
     $this->assertIdentical($config_test->label, $expected['label']);
     $this->assertIdentical($config_test->style, $expected['style']);
@@ -105,7 +109,7 @@ class ConfigEntityTest extends BrowserTestBase {
     $this->assertIdentical($config_test->isNew(), TRUE);
     $this->assertIdentical($config_test->getOriginalId(), $expected['id']);
     $this->assertIdentical($config_test->id(), $expected['id']);
-    $this->assertTrue($config_test->uuid());
+    $this->assertTrue(Uuid::isValid($config_test->uuid()));
     $expected['uuid'] = $config_test->uuid();
     $this->assertIdentical($config_test->label(), $expected['label']);
 
@@ -225,7 +229,7 @@ class ConfigEntityTest extends BrowserTestBase {
     // Test config entity prepopulation.
     \Drupal::state()->set('config_test.prepopulate', TRUE);
     $config_test = $storage->create(['foo' => 'bar']);
-    $this->assertEqual($config_test->get('foo'), 'baz', 'Initial value correctly populated');
+    $this->assertEquals('baz', $config_test->get('foo'), 'Initial value correctly populated');
   }
 
   /**
@@ -238,9 +242,9 @@ class ConfigEntityTest extends BrowserTestBase {
     $label1 = $this->randomMachineName();
     $label2 = $this->randomMachineName();
     $label3 = $this->randomMachineName();
-    $message_insert = format_string('%label configuration has been created.', ['%label' => $label1]);
-    $message_update = format_string('%label configuration has been updated.', ['%label' => $label2]);
-    $message_delete = format_string('The test configuration %label has been deleted.', ['%label' => $label2]);
+    $message_insert = new FormattableMarkup('%label configuration has been created.', ['%label' => $label1]);
+    $message_update = new FormattableMarkup('%label configuration has been updated.', ['%label' => $label2]);
+    $message_delete = new FormattableMarkup('The test configuration %label has been deleted.', ['%label' => $label2]);
 
     // Create a configuration entity.
     $edit = [
@@ -311,7 +315,7 @@ class ConfigEntityTest extends BrowserTestBase {
     ];
     $this->drupalPostForm('admin/structure/config_test/add', $edit, 'Save');
     $this->assertResponse(200);
-    $message_insert = format_string('%label configuration has been created.', ['%label' => $edit['label']]);
+    $message_insert = new FormattableMarkup('%label configuration has been created.', ['%label' => $edit['label']]);
     $this->assertRaw($message_insert);
     $this->assertLinkByHref('admin/structure/config_test/manage/0');
     $this->assertLinkByHref('admin/structure/config_test/manage/0/delete');
@@ -345,8 +349,8 @@ class ConfigEntityTest extends BrowserTestBase {
     $this->drupalPostForm(NULL, $edit, 'Save');
 
     $entity = $storage->load($id);
-    $this->assertEqual($entity->get('size'), 'custom');
-    $this->assertEqual($entity->get('size_value'), 'medium');
+    $this->assertEquals('custom', $entity->get('size'));
+    $this->assertEquals('medium', $entity->get('size_value'));
   }
 
 }

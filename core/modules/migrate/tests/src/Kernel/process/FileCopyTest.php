@@ -50,7 +50,7 @@ class FileCopyTest extends FileTestBase {
     $data_sets = [
       // Test a local to local copy.
       [
-        $this->root . '/core/modules/simpletest/files/image-test.jpg',
+        $this->root . '/core/tests/fixtures/files/image-test.jpg',
         'public://file1.jpg',
       ],
       // Test a temporary file using an absolute path.
@@ -61,7 +61,7 @@ class FileCopyTest extends FileTestBase {
       // Test a temporary file using a relative path.
       [
         $file_absolute,
-        'temporary://core/modules/simpletest/files/test.jpg',
+        'temporary://core/tests/fixtures/files/test.jpg',
       ],
     ];
     foreach ($data_sets as $data) {
@@ -113,7 +113,7 @@ class FileCopyTest extends FileTestBase {
   public function providerSuccessfulReuse() {
     return [
       [
-        'local_source_path' => static::getDrupalRoot() . '/core/modules/simpletest/files/image-test.jpg',
+        'local_source_path' => static::getDrupalRoot() . '/core/tests/fixtures/files/image-test.jpg',
         'local_destination_path' => 'public://file1.jpg',
       ],
       [
@@ -146,7 +146,7 @@ class FileCopyTest extends FileTestBase {
       // Test a temporary file using a relative path.
       [
         $file_2_absolute,
-        'temporary://core/modules/simpletest/files/test.jpg',
+        'temporary://core/tests/fixtures/files/test.jpg',
       ],
     ];
     foreach ($data_sets as $data) {
@@ -165,7 +165,8 @@ class FileCopyTest extends FileTestBase {
    */
   public function testNonExistentSourceFile() {
     $source = '/non/existent/file';
-    $this->setExpectedException(MigrateException::class, "File '/non/existent/file' does not exist");
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage("File '/non/existent/file' does not exist");
     $this->doTransform($source, 'public://wontmatter.jpg');
   }
 
@@ -191,7 +192,8 @@ class FileCopyTest extends FileTestBase {
     $this->fileSystem->chmod('public://dir', 0);
 
     // Check that the proper exception is raised.
-    $this->setExpectedException(MigrateException::class, "Could not create or write to directory 'public://dir/subdir2'");
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage("Could not create or write to directory 'public://dir/subdir2'");
     $this->doTransform($source, 'public://dir/subdir2/file.txt');
   }
 
@@ -211,7 +213,7 @@ class FileCopyTest extends FileTestBase {
    * Tests that remote URIs are delegated to the download plugin.
    */
   public function testDownloadRemoteUri() {
-    $download_plugin = $this->getMock(MigrateProcessInterface::class);
+    $download_plugin = $this->createMock(MigrateProcessInterface::class);
     $download_plugin->expects($this->once())->method('transform');
 
     $plugin = new FileCopy(
@@ -225,7 +227,7 @@ class FileCopyTest extends FileTestBase {
 
     $plugin->transform(
       ['http://drupal.org/favicon.ico', '/destination/path'],
-      $this->getMock(MigrateExecutableInterface::class),
+      $this->createMock(MigrateExecutableInterface::class),
       new Row([], []),
       $this->randomMachineName()
     );

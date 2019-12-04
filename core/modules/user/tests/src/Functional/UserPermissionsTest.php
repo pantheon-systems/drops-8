@@ -28,6 +28,11 @@ class UserPermissionsTest extends BrowserTestBase {
    */
   protected $rid;
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -45,7 +50,7 @@ class UserPermissionsTest extends BrowserTestBase {
   public function testUserPermissionChanges() {
     $permissions_hash_generator = $this->container->get('user_permissions_hash_generator');
 
-    $storage = $this->container->get('entity.manager')->getStorage('user_role');
+    $storage = $this->container->get('entity_type.manager')->getStorage('user_role');
 
     // Create an additional role and mark it as admin role.
     Role::create(['is_admin' => TRUE, 'id' => 'administrator', 'label' => 'Administrator'])->save();
@@ -107,7 +112,7 @@ class UserPermissionsTest extends BrowserTestBase {
     $edit['user_admin_role'] = $this->rid;
     $this->drupalPostForm('admin/config/people/accounts', $edit, t('Save configuration'));
 
-    \Drupal::entityManager()->getStorage('user_role')->resetCache();
+    \Drupal::entityTypeManager()->getStorage('user_role')->resetCache();
     $this->assertTrue(Role::load($this->rid)->isAdmin());
 
     // Enable aggregator module and ensure the 'administer news feeds'
@@ -121,7 +126,7 @@ class UserPermissionsTest extends BrowserTestBase {
     $edit['user_admin_role'] = '';
     $this->drupalPostForm('admin/config/people/accounts', $edit, t('Save configuration'));
 
-    \Drupal::entityManager()->getStorage('user_role')->resetCache();
+    \Drupal::entityTypeManager()->getStorage('user_role')->resetCache();
     \Drupal::configFactory()->reset();
     $this->assertFalse(Role::load($this->rid)->isAdmin());
 

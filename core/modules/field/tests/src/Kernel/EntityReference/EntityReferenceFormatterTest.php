@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\field\Kernel\EntityReference;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -64,7 +65,7 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
     parent::setUp();
 
     // Use Classy theme for testing markup output.
-    \Drupal::service('theme_handler')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['classy']);
     $this->config('system.theme')->set('default', 'classy')->save();
     $this->installEntitySchema('entity_test');
     // Grant the 'view test entity' permission.
@@ -92,7 +93,8 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
       'field_name' => 'body',
       'label' => 'Body',
     ])->save();
-    entity_get_display($this->entityType, $this->bundle, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay($this->entityType, $this->bundle)
       ->setComponent('body', [
         'type' => 'text_default',
         'settings' => [],
@@ -149,17 +151,20 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
     // Get all the existing formatters.
     foreach ($formatter_manager->getOptions('entity_reference') as $formatter => $name) {
       // Set formatter type for the 'full' view mode.
-      entity_get_display($this->entityType, $this->bundle, 'default')
+      \Drupal::service('entity_display.repository')
+        ->getViewDisplay($this->entityType, $this->bundle)
         ->setComponent($field_name, [
           'type' => $formatter,
         ])
         ->save();
 
       // Invoke entity view.
-      entity_view($referencing_entity, 'default');
+      \Drupal::entityTypeManager()
+        ->getViewBuilder($referencing_entity->getEntityTypeId())
+        ->view($referencing_entity, 'default');
 
       // Verify the un-accessible item still exists.
-      $this->assertEqual($referencing_entity->{$field_name}->target_id, $this->referencedEntity->id(), format_string('The un-accessible item still exists after @name formatter was executed.', ['@name' => $name]));
+      $this->assertEqual($referencing_entity->{$field_name}->target_id, $this->referencedEntity->id(), new FormattableMarkup('The un-accessible item still exists after @name formatter was executed.', ['@name' => $name]));
     }
   }
 
@@ -209,9 +214,9 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
 ';
     $renderer->renderRoot($build[0]);
     $this->assertEqual($build[0]['#markup'], 'default | ' . $this->referencedEntity->label() . $expected_rendered_name_field_1 . $expected_rendered_body_field_1, sprintf('The markup returned by the %s formatter is correct for an item with a saved entity.', $formatter));
-    $expected_cache_tags = Cache::mergeTags(\Drupal::entityManager()->getViewBuilder($this->entityType)->getCacheTags(), $this->referencedEntity->getCacheTags());
+    $expected_cache_tags = Cache::mergeTags(\Drupal::entityTypeManager()->getViewBuilder($this->entityType)->getCacheTags(), $this->referencedEntity->getCacheTags());
     $expected_cache_tags = Cache::mergeTags($expected_cache_tags, FilterFormat::load('full_html')->getCacheTags());
-    $this->assertEqual($build[0]['#cache']['tags'], $expected_cache_tags, format_string('The @formatter formatter has the expected cache tags.', ['@formatter' => $formatter]));
+    $this->assertEqual($build[0]['#cache']['tags'], $expected_cache_tags, new FormattableMarkup('The @formatter formatter has the expected cache tags.', ['@formatter' => $formatter]));
 
     // Test the second field item.
     $expected_rendered_name_field_2 = '
@@ -235,17 +240,19 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = $this->container->get('renderer');
     $formatter = 'entity_reference_entity_view';
-    $view_builder = $this->entityManager->getViewBuilder($this->entityType);
+    $view_builder = $this->entityTypeManager->getViewBuilder($this->entityType);
 
     // Set the default view mode to use the 'entity_reference_entity_view'
     // formatter.
-    entity_get_display($this->entityType, $this->bundle, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay($this->entityType, $this->bundle)
       ->setComponent($this->fieldName, [
         'type' => $formatter,
       ])
       ->save();
 
-    $referencing_entity_1 = entity_create($this->entityType, ['name' => $this->randomMachineName()]);
+    $storage = \Drupal::entityTypeManager()->getStorage($this->entityType);
+    $referencing_entity_1 = $storage->create(['name' => $this->randomMachineName()]);
     $referencing_entity_1->save();
 
     // Create a self-reference.
@@ -268,7 +275,7 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
 
     // Repeat the process with another entity in order to check that the
     // 'recursive_render_id' counter is generated properly.
-    $referencing_entity_2 = entity_create($this->entityType, ['name' => $this->randomMachineName()]);
+    $referencing_entity_2 = $storage->create(['name' => $this->randomMachineName()]);
     $referencing_entity_2->save();
     $referencing_entity_2->{$this->fieldName}->entity = $referencing_entity_2;
     $referencing_entity_2->save();
@@ -295,17 +302,18 @@ class EntityReferenceFormatterTest extends EntityKernelTestBase {
    */
   public function testEntityReferenceRecursiveProtectionWithManyRenderedEntities() {
     $formatter = 'entity_reference_entity_view';
-    $view_builder = $this->entityManager->getViewBuilder($this->entityType);
+    $view_builder = $this->entityTypeManager->getViewBuilder($this->entityType);
 
     // Set the default view mode to use the 'entity_reference_entity_view'
     // formatter.
-    entity_get_display($this->entityType, $this->bundle, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay($this->entityType, $this->bundle)
       ->setComponent($this->fieldName, [
         'type' => $formatter,
       ])
       ->save();
 
-    $storage = $this->entityManager->getStorage($this->entityType);
+    $storage = $this->entityTypeManager->getStorage($this->entityType);
     /** @var \Drupal\Core\Entity\ContentEntityInterface $referenced_entity */
     $referenced_entity = $storage->create(['name' => $this->randomMachineName()]);
 

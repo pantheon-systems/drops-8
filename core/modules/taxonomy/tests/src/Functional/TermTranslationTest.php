@@ -41,6 +41,11 @@ class TermTranslationTest extends TaxonomyTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->setupLanguages();
@@ -91,7 +96,8 @@ class TermTranslationTest extends TaxonomyTestBase {
 
     // Set the display of the term reference field on the article content type
     // to "Check boxes/radio buttons".
-    entity_get_form_display('node', 'article', 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('node', 'article')
       ->setComponent($this->termFieldName, [
         'type' => 'options_buttons',
       ])

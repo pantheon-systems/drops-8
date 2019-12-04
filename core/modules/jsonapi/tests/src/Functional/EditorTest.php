@@ -40,6 +40,11 @@ class EditorTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUpAuthorization($method) {
     $this->grantPermissionsToTestedRole(['administer filters']);
   }
@@ -73,7 +78,7 @@ class EditorTest extends ResourceTestBase {
     $camelids
       ->setImageUploadSettings([
         'status' => FALSE,
-        'scheme' => file_default_scheme(),
+        'scheme' => 'public',
         'directory' => 'inline-images',
         'max_size' => '',
         'max_dimensions' => [
@@ -223,7 +228,7 @@ class EditorTest extends ResourceTestBase {
 
     $entity->setImageUploadSettings([
       'status' => FALSE,
-      'scheme' => file_default_scheme(),
+      'scheme' => 'public',
       'directory' => 'inline-images',
       'max_size' => '',
       'max_dimensions' => [

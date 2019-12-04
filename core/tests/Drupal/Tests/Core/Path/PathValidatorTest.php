@@ -20,27 +20,27 @@ class PathValidatorTest extends UnitTestCase {
   /**
    * The mocked access aware router.
    *
-   * @var \Drupal\Core\Routing\AccessAwareRouterInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Routing\AccessAwareRouterInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $accessAwareRouter;
 
   /**
    * The mocked access unaware router.
-   * @var \Symfony\Component\Routing\Matcher\UrlMatcherInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\Routing\Matcher\UrlMatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $accessUnawareRouter;
 
   /**
    * The mocked account.
    *
-   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $account;
 
   /**
    * The path processor.
    *
-   * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\PathProcessor\InboundPathProcessorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $pathProcessor;
 
@@ -57,10 +57,10 @@ class PathValidatorTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
 
-    $this->accessAwareRouter = $this->getMock('Drupal\Core\Routing\AccessAwareRouterInterface');
-    $this->accessUnawareRouter = $this->getMock('Symfony\Component\Routing\Matcher\UrlMatcherInterface');
-    $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
-    $this->pathProcessor = $this->getMock('Drupal\Core\PathProcessor\InboundPathProcessorInterface');
+    $this->accessAwareRouter = $this->createMock('Drupal\Core\Routing\AccessAwareRouterInterface');
+    $this->accessUnawareRouter = $this->createMock('Symfony\Component\Routing\Matcher\UrlMatcherInterface');
+    $this->account = $this->createMock('Drupal\Core\Session\AccountInterface');
+    $this->pathProcessor = $this->createMock('Drupal\Core\PathProcessor\InboundPathProcessorInterface');
     $this->pathValidator = new PathValidator($this->accessAwareRouter, $this->accessUnawareRouter, $this->account, $this->pathProcessor);
   }
 

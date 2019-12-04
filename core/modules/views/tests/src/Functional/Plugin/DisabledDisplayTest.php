@@ -26,6 +26,11 @@ class DisabledDisplayTest extends ViewTestBase {
    */
   public static $modules = ['block', 'node', 'views'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
   protected function setUp($import_test_views = TRUE) {
     parent::setUp($import_test_views);
 
@@ -52,7 +57,7 @@ class DisabledDisplayTest extends ViewTestBase {
     $this->drupalCreateNode();
 
     // Load the test view and initialize its displays.
-    $view = $this->container->get('entity.manager')->getStorage('view')->load('test_disabled_display');
+    $view = $this->container->get('entity_type.manager')->getStorage('view')->load('test_disabled_display');
     $view->getExecutable()->setDisplay();
 
     // Enabled page display should return content.

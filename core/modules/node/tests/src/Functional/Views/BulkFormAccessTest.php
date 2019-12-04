@@ -25,6 +25,11 @@ class BulkFormAccessTest extends NodeTestBase {
   public static $modules = ['node_test_views', 'node_access_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -47,7 +52,7 @@ class BulkFormAccessTest extends NodeTestBase {
     // Create Article node type.
     $this->drupalCreateContentType(['type' => 'article', 'name' => 'Article']);
 
-    $this->accessHandler = \Drupal::entityManager()->getAccessControlHandler('node');
+    $this->accessHandler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
 
     node_access_test_add_field(NodeType::load('article'));
 

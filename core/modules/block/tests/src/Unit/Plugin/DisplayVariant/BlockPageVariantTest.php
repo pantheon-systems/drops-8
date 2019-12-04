@@ -15,21 +15,21 @@ class BlockPageVariantTest extends UnitTestCase {
   /**
    * The block repository.
    *
-   * @var \Drupal\block\BlockRepositoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\block\BlockRepositoryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $blockRepository;
 
   /**
    * The block view builder.
    *
-   * @var \Drupal\Core\Entity\EntityViewBuilderInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityViewBuilderInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $blockViewBuilder;
 
   /**
    * The plugin context handler.
    *
-   * @var \Drupal\Core\Plugin\Context\ContextHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Plugin\Context\ContextHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $contextHandler;
 
@@ -41,7 +41,7 @@ class BlockPageVariantTest extends UnitTestCase {
    * @param array $definition
    *   The plugin definition array.
    *
-   * @return \Drupal\block\Plugin\DisplayVariant\BlockPageVariant|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\block\Plugin\DisplayVariant\BlockPageVariant|\PHPUnit\Framework\MockObject\MockObject
    *   A mocked display variant plugin.
    */
   public function setUpDisplayVariant($configuration = [], $definition = []) {
@@ -57,8 +57,8 @@ class BlockPageVariantTest extends UnitTestCase {
       ->willReturn(TRUE);
     \Drupal::setContainer($container);
 
-    $this->blockRepository = $this->getMock('Drupal\block\BlockRepositoryInterface');
-    $this->blockViewBuilder = $this->getMock('Drupal\Core\Entity\EntityViewBuilderInterface');
+    $this->blockRepository = $this->createMock('Drupal\block\BlockRepositoryInterface');
+    $this->blockViewBuilder = $this->createMock('Drupal\Core\Entity\EntityViewBuilderInterface');
 
     return $this->getMockBuilder('Drupal\block\Plugin\DisplayVariant\BlockPageVariant')
       ->setConstructorArgs([$configuration, 'test', $definition, $this->blockRepository, $this->blockViewBuilder, ['config:block_list']])
@@ -206,12 +206,12 @@ class BlockPageVariantTest extends UnitTestCase {
     $display_variant->setMainContent(['#markup' => 'Hello kittens!']);
 
     $blocks = ['top' => [], 'center' => [], 'bottom' => []];
-    $block_plugin = $this->getMock('Drupal\Core\Block\BlockPluginInterface');
-    $main_content_block_plugin = $this->getMock('Drupal\Core\Block\MainContentBlockPluginInterface');
-    $messages_block_plugin = $this->getMock('Drupal\Core\Block\MessagesBlockPluginInterface');
-    $title_block_plugin = $this->getMock('Drupal\Core\Block\TitleBlockPluginInterface');
+    $block_plugin = $this->createMock('Drupal\Core\Block\BlockPluginInterface');
+    $main_content_block_plugin = $this->createMock('Drupal\Core\Block\MainContentBlockPluginInterface');
+    $messages_block_plugin = $this->createMock('Drupal\Core\Block\MessagesBlockPluginInterface');
+    $title_block_plugin = $this->createMock('Drupal\Core\Block\TitleBlockPluginInterface');
     foreach ($blocks_config as $block_id => $block_config) {
-      $block = $this->getMock('Drupal\block\BlockInterface');
+      $block = $this->createMock('Drupal\block\BlockInterface');
       $block->expects($this->atLeastOnce())
         ->method('getPlugin')
         ->willReturn($block_config[1] ? $main_content_block_plugin : ($block_config[2] ? $messages_block_plugin : ($block_config[3] ? $title_block_plugin : $block_plugin)));

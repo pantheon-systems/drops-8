@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\taxonomy\Functional;
 
+use Drupal\Core\Database\Database;
 use Drupal\Tests\content_translation\Functional\ContentTranslationUITestBase;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\taxonomy\Entity\Vocabulary;
@@ -26,6 +27,11 @@ class TermTranslationUITest extends ContentTranslationUITestBase {
    * @var array
    */
   public static $modules = ['language', 'content_translation', 'taxonomy'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   protected function setUp() {
     $this->entityTypeId = 'taxonomy_term';
@@ -91,7 +97,7 @@ class TermTranslationUITest extends ContentTranslationUITestBase {
 
     // Make sure that no row was inserted for taxonomy vocabularies which do
     // not have translations enabled.
-    $rows = db_query('SELECT tid, count(tid) AS count FROM {taxonomy_term_field_data} WHERE vid <> :vid GROUP BY tid', [':vid' => $this->bundle])->fetchAll();
+    $rows = Database::getConnection()->query('SELECT tid, count(tid) AS count FROM {taxonomy_term_field_data} WHERE vid <> :vid GROUP BY tid', [':vid' => $this->bundle])->fetchAll();
     foreach ($rows as $row) {
       $this->assertTrue($row->count < 2, 'Term does not have translations.');
     }
@@ -157,6 +163,41 @@ class TermTranslationUITest extends ContentTranslationUITestBase {
           '%language' => $languages[$langcode]->getName(),
         ]);
         $this->assertRaw($title);
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function doTestPublishedStatus() {
+    $storage = $this->container->get('entity_type.manager')
+      ->getStorage($this->entityTypeId);
+    $storage->resetCache([$this->entityId]);
+    $entity = $storage->load($this->entityId);
+    $languages = $this->container->get('language_manager')->getLanguages();
+
+    $statuses = [
+      TRUE,
+      FALSE,
+    ];
+
+    foreach ($statuses as $index => $value) {
+      // (Un)publish the term translations and check that the translation
+      // statuses are (un)published accordingly.
+      foreach ($this->langcodes as $langcode) {
+        $options = ['language' => $languages[$langcode]];
+        $url = $entity->toUrl('edit-form', $options);
+        $this->drupalPostForm($url, ['status[value]' => $value], t('Save'), $options);
+      }
+      $storage->resetCache([$this->entityId]);
+      $entity = $storage->load($this->entityId);
+      foreach ($this->langcodes as $langcode) {
+        // The term is created as unpublished thus we switch to the published
+        // status first.
+        $status = !$index;
+        $translation = $entity->getTranslation($langcode);
+        $this->assertEquals($status, $this->manager->getTranslationMetadata($translation)->isPublished(), 'The translation has been correctly unpublished.');
       }
     }
   }

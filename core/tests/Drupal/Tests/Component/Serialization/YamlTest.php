@@ -16,7 +16,7 @@ use PHPUnit\Framework\TestCase;
 class YamlTest extends TestCase {
 
   /**
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $mockParser;
 
@@ -102,13 +102,8 @@ class YamlTest extends TestCase {
    * @see \Drupal\Tests\Component\Serialization\YamlTest::testObjectSupportDisabledPecl()
    */
   public function testObjectSupportDisabledSymfony() {
-    if (method_exists($this, 'setExpectedExceptionRegExp')) {
-      $this->setExpectedExceptionRegExp(InvalidDataTypeException::class, '/^Object support when parsing a YAML file has been disabled/');
-    }
-    else {
-      $this->expectException(InvalidDataTypeException::class);
-      $this->expectExceptionMessageRegExp('/^Object support when parsing a YAML file has been disabled/');
-    }
+    $this->expectException(InvalidDataTypeException::class);
+    $this->expectExceptionMessageRegExp('/^Object support when parsing a YAML file has been disabled/');
     $object = new \stdClass();
     $object->foo = 'bar';
     // In core all Yaml encoding is done via Symfony and it does not support

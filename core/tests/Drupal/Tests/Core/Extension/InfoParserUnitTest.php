@@ -32,8 +32,8 @@ class InfoParserUnitTest extends UnitTestCase {
    */
   protected function setUp() {
     parent::setUp();
-
-    $this->infoParser = new InfoParser();
+    // Use a fake DRUPAL_ROOT.
+    $this->infoParser = new InfoParser('vfs:/');
   }
 
   /**
@@ -72,7 +72,8 @@ BROKEN_INFO;
       ],
     ]);
     $filename = vfsStream::url('modules/fixtures/broken.info.txt');
-    $this->setExpectedException('\Drupal\Core\Extension\InfoParserException', 'broken.info.txt');
+    $this->expectException('\Drupal\Core\Extension\InfoParserException');
+    $this->expectExceptionMessage('broken.info.txt');
     $this->infoParser->parse($filename);
   }
 
@@ -97,7 +98,8 @@ MISSINGKEYS;
       ],
     ]);
     $filename = vfsStream::url('modules/fixtures/missing_keys.info.txt');
-    $this->setExpectedException(InfoParserException::class, 'Missing required keys (type, name) in vfs://modules/fixtures/missing_keys.info.txt');
+    $this->expectException('\Drupal\Core\Extension\InfoParserException');
+    $this->expectExceptionMessage('Missing required keys (type, name) in vfs://modules/fixtures/missing_keys.info.txt');
     $this->infoParser->parse($filename);
   }
 
@@ -126,7 +128,8 @@ MISSING_CORE_AND_CORE_VERSION_REQUIREMENT;
     ]);
     $exception_message = "The 'core' or the 'core_version_requirement' key must be present in vfs://modules/fixtures/missing_core_and_core_version_requirement";
     // Set the expected exception for the 2nd call to parse().
-    $this->setExpectedException(InfoParserException::class, "$exception_message-duplicate.info.txt");
+    $this->expectException('\Drupal\Core\Extension\InfoParserException');
+    $this->expectExceptionMessage("$exception_message-duplicate.info.txt");
 
     try {
       $this->infoParser->parse(vfsStream::url('modules/fixtures/missing_core_and_core_version_requirement.info.txt'));
@@ -195,7 +198,8 @@ BOTH_CORE_CORE_VERSION_REQUIREMENT_88;
     ]);
     $exception_message = "The 'core_version_requirement' constraint (^8.8) requires the 'core' key not be set in vfs://modules/fixtures/core_and_core_version_requirement_88";
     // Set the expected exception for the 2nd call to parse().
-    $this->setExpectedException(InfoParserException::class, "$exception_message-duplicate.info.txt");
+    $this->expectException('\Drupal\Core\Extension\InfoParserException');
+    $this->expectExceptionMessage("$exception_message-duplicate.info.txt");
     try {
       $this->infoParser->parse(vfsStream::url('modules/fixtures/core_and_core_version_requirement_88.info.txt'));
     }
@@ -234,7 +238,8 @@ INVALID_CORE;
     ]);
     $exception_message = "Invalid 'core' value \"^8\" in vfs://modules/fixtures/invalid_core";
     // Set the expected exception for the 2nd call to parse().
-    $this->setExpectedException(InfoParserException::class, "$exception_message-duplicate.info.txt");
+    $this->expectException('\Drupal\Core\Extension\InfoParserException');
+    $this->expectExceptionMessage("$exception_message-duplicate.info.txt");
 
     try {
       $this->infoParser->parse(vfsStream::url('modules/fixtures/invalid_core.info.txt'));
@@ -275,7 +280,8 @@ INVALID_CORE_VERSION_REQUIREMENT;
     ]);
     $exception_message = "The 'core_version_requirement' can not be used to specify compatibility for a specific version before 8.7.7 in vfs://modules/fixtures/invalid_core_version_requirement-$test_case";
     // Set the expected exception for the 2nd call to parse().
-    $this->setExpectedException(InfoParserException::class, "$exception_message-duplicate.info.txt");
+    $this->expectException('\Drupal\Core\Extension\InfoParserException');
+    $this->expectExceptionMessage("$exception_message-duplicate.info.txt");
     try {
       $this->infoParser->parse(vfsStream::url("modules/fixtures/invalid_core_version_requirement-$test_case.info.txt"));
     }
@@ -322,13 +328,15 @@ MISSINGKEY;
         'missing_key-duplicate.info.txt' => $missing_key,
       ],
     ]);
+    // Set the expected exception for the 2nd call to parse().
+    $this->expectException(InfoParserException::class);
+    $this->expectExceptionMessage('Missing required keys (type) in vfs://modules/fixtures/missing_key-duplicate.info.txt');
     try {
       $this->infoParser->parse(vfsStream::url('modules/fixtures/missing_key.info.txt'));
     }
     catch (InfoParserException $exception) {
       $this->assertSame('Missing required keys (type) in vfs://modules/fixtures/missing_key.info.txt', $exception->getMessage());
 
-      $this->setExpectedException(InfoParserException::class, 'Missing required keys (type) in vfs://modules/fixtures/missing_key-duplicate.info.txt');
       $this->infoParser->parse(vfsStream::url('modules/fixtures/missing_key-duplicate.info.txt'));
     }
 
@@ -341,7 +349,7 @@ MISSINGKEY;
    */
   public function testInfoParserCommonInfo() {
     $common = <<<COMMONTEST
-core: 8.x
+core_version_requirement: '*'
 name: common_test
 type: module
 description: 'testing info file parsing'
@@ -363,10 +371,35 @@ COMMONTEST;
       $this->assertEquals($info_values['simple_string'], 'A simple string', 'Simple string value was parsed correctly.');
       $this->assertEquals($info_values['version'], \Drupal::VERSION, 'Constant value was parsed correctly.');
       $this->assertEquals($info_values['double_colon'], 'dummyClassName::method', 'Value containing double-colon was parsed correctly.');
-      $this->assertSame('8.x', $info_values['core']);
-      $this->assertFalse(isset($info_values['core_version_requirement']));
       $this->assertFalse($info_values['core_incompatible']);
     }
+  }
+
+  /**
+   * Tests common info file.
+   *
+   * @covers ::parse
+   */
+  public function testInfoParserCoreInfo() {
+    $common = <<<CORETEST
+name: core_test
+type: module
+version: "VERSION"
+description: 'testing info file parsing'
+CORETEST;
+
+    vfsStream::setup('core');
+
+    $filename = "core_test.info.txt";
+    vfsStream::create([
+      'fixtures' => [
+        $filename => $common,
+      ],
+    ]);
+    $info_values = $this->infoParser->parse(vfsStream::url("core/fixtures/$filename"));
+    $this->assertEquals($info_values['version'], \Drupal::VERSION, 'Constant value was parsed correctly.');
+    $this->assertFalse($info_values['core_incompatible']);
+    $this->assertEquals(\Drupal::VERSION, $info_values['core_version_requirement']);
   }
 
   /**
@@ -422,16 +455,20 @@ CORE_INCOMPATIBILITY;
         "^1 || ^$next_major",
         TRUE,
       ],
+      'current_minor' => [
+        'current_minor',
+        "~$major.$minor",
+        FALSE,
+      ],
     ];
   }
 
   /**
-   * Test a profile info file with the 'core_version_requirement' key.
+   * Test a profile info file.
    */
-  public function testInvalidProfile() {
+  public function testProfile() {
     $profile = <<<PROFILE_TEST
-core: 8.x
-core_version_requirement: ^8
+core_version_requirement: '*'
 name: The Perfect Profile
 type: profile
 description: 'This profile makes Drupal perfect. You should have no complaints.'
@@ -443,8 +480,8 @@ PROFILE_TEST;
         'invalid_profile.info.txt' => $profile,
       ],
     ]);
-    $this->setExpectedException(InfoParserException::class, "The 'core_version_requirement' key is not supported in profiles in vfs://profiles/fixtures/invalid_profile.info.txt");
-    $this->infoParser->parse(vfsStream::url('profiles/fixtures/invalid_profile.info.txt'));
+    $info = $this->infoParser->parse(vfsStream::url('profiles/fixtures/invalid_profile.info.txt'));
+    $this->assertFalse($info['core_incompatible']);
   }
 
   /**
@@ -469,7 +506,8 @@ UNPARSABLE_CORE_VERSION_REQUIREMENT;
         'unparsable_core_version_requirement.info.txt' => $unparsable_core_version_requirement,
       ],
     ]);
-    $this->setExpectedException(\UnexpectedValueException::class, 'Could not parse version constraint not-this-version: Invalid version string "not-this-version"');
+    $this->expectException(\UnexpectedValueException::class);
+    $this->expectExceptionMessage('Could not parse version constraint not-this-version: Invalid version string "not-this-version"');
     $this->infoParser->parse(vfsStream::url('modules/fixtures/unparsable_core_version_requirement.info.txt'));
   }
 

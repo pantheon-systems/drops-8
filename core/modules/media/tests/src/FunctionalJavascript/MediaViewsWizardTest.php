@@ -15,6 +15,11 @@ use Drupal\views\Views;
 class MediaViewsWizardTest extends MediaJavascriptTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests adding a view of media.
    */
   public function testMediaWizard() {
@@ -43,7 +48,7 @@ class MediaViewsWizardTest extends MediaJavascriptTestBase {
     // Check for the default filters.
     $this->assertSame($view->filter['status']->table, 'media_field_data');
     $this->assertSame($view->filter['status']->field, 'status');
-    $this->assertTrue($view->filter['status']->value);
+    $this->assertSame($view->filter['status']->value, '1');
     // Check for the default fields.
     $this->assertSame($view->field['name']->table, 'media_field_data');
     $this->assertSame($view->field['name']->field, 'name');
@@ -77,7 +82,7 @@ class MediaViewsWizardTest extends MediaJavascriptTestBase {
     // Check for the default filters.
     $this->assertSame($view->filter['status']->table, 'media_field_revision');
     $this->assertSame($view->filter['status']->field, 'status');
-    $this->assertTrue($view->filter['status']->value);
+    $this->assertSame($view->filter['status']->value, '1');
 
     // Check for the default fields.
     $this->assertSame($view->field['name']->table, 'media_field_revision');

@@ -5,16 +5,16 @@
  * API functions for installing modules and themes.
  */
 
-use Drupal\Core\Extension\Dependency;
-use Drupal\Component\Utility\Unicode;
-use Drupal\Core\File\FileSystemInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\OpCodeCache;
+use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Extension\Dependency;
 use Drupal\Core\Extension\ExtensionDiscovery;
-use Drupal\Core\Extension\ModuleHandler;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Site\Settings;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Requirement severity -- Informational message only.
@@ -100,7 +100,7 @@ function drupal_install_profile_distribution_name() {
   // During installation, the profile information is stored in the global
   // installation state (it might not be saved anywhere yet).
   $info = [];
-  if (drupal_installation_attempted()) {
+  if (InstallerKernel::installationAttempted()) {
     global $install_state;
     if (isset($install_state['profile_info'])) {
       $info = $install_state['profile_info'];
@@ -108,8 +108,8 @@ function drupal_install_profile_distribution_name() {
   }
   // At all other times, we load the profile via standard methods.
   else {
-    $profile = drupal_get_profile();
-    $info = system_get_info('module', $profile);
+    $profile = \Drupal::installProfile();
+    $info = \Drupal::service('extension.list.profile')->getExtensionInfo($profile);
   }
   return isset($info['distribution']['name']) ? $info['distribution']['name'] : 'Drupal';
 }
@@ -127,14 +127,14 @@ function drupal_install_profile_distribution_name() {
 function drupal_install_profile_distribution_version() {
   // During installation, the profile information is stored in the global
   // installation state (it might not be saved anywhere yet).
-  if (drupal_installation_attempted()) {
+  if (InstallerKernel::installationAttempted()) {
     global $install_state;
     return isset($install_state['profile_info']['version']) ? $install_state['profile_info']['version'] : \Drupal::VERSION;
   }
   // At all other times, we load the profile via standard methods.
   else {
-    $profile = drupal_get_profile();
-    $info = system_get_info('module', $profile);
+    $profile = \Drupal::installProfile();
+    $info = \Drupal::service('extension.list.profile')->getExtensionInfo($profile);
     return $info['version'];
   }
 }
@@ -167,9 +167,11 @@ function drupal_get_database_types() {
 
   // The internal database driver name is any valid PHP identifier.
   $mask = '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '$/';
-  $files = file_scan_directory(DRUPAL_ROOT . '/core/lib/Drupal/Core/Database/Driver', $mask, ['recurse' => FALSE]);
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  $files = $file_system->scanDirectory(DRUPAL_ROOT . '/core/lib/Drupal/Core/Database/Driver', $mask, ['recurse' => FALSE]);
   if (is_dir(DRUPAL_ROOT . '/drivers/lib/Drupal/Driver/Database')) {
-    $files += file_scan_directory(DRUPAL_ROOT . '/drivers/lib/Drupal/Driver/Database/', $mask, ['recurse' => FALSE]);
+    $files += $file_system->scanDirectory(DRUPAL_ROOT . '/drivers/lib/Drupal/Driver/Database/', $mask, ['recurse' => FALSE]);
   }
   foreach ($files as $file) {
     if (file_exists($file->uri . '/Install/Tasks.php')) {
@@ -205,16 +207,14 @@ function drupal_get_database_types() {
  *   are dumped up to a stdClass object. The object can have value, required
  *   and comment properties.
  *   @code
- *   $settings['config_directories'] = array(
- *     CONFIG_SYNC_DIRECTORY => (object) array(
- *       'value' => 'config_hash/sync',
- *       'required' => TRUE,
- *     ),
+ *   $settings['settings']['config_sync_directory'] = (object) array(
+ *     'value' => 'config_hash/sync',
+ *     'required' => TRUE,
  *   );
  *   @endcode
  *   gets dumped as:
  *   @code
- *   $config_directories['sync'] = 'config_hash/sync'
+ *   $settings['config_sync_directory'] = 'config_hash/sync'
  *   @endcode
  */
 function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
@@ -480,10 +480,13 @@ function _drupal_rewrite_settings_dump_one(\stdClass $variable, $prefix = '', $s
 /**
  * Creates the config directory and ensures it is operational.
  *
- * @see install_settings_form_submit()
- * @see update_prepare_d8_bootstrap()
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. There is no
+ *   replacement.
+ *
+ * @see https://www.drupal.org/node/3018145
  */
 function drupal_install_config_directories() {
+  @trigger_error('drupal_install_config_directories() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. There is no replacement. See https://www.drupal.org/node/3018145.', E_USER_DEPRECATED);
   global $config_directories, $install_state;
 
   // If settings.php does not contain a config sync directory name we need to
@@ -538,7 +541,7 @@ function drupal_install_config_directories() {
  * @return bool
  *   TRUE if the config directory exists and is writable.
  *
- * @deprecated in Drupal 8.1.x, will be removed before Drupal 9.0.x. Use
+ * @deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use
  *   config_get_config_directory() and
  *  \Drupal\Core\File\FileSystemInterface::prepareDirectory() instead.
  *
@@ -625,6 +628,7 @@ function drupal_install_system($install_state) {
   // Add the normal installer service provider.
   $GLOBALS['conf']['container_service_providers']['InstallerServiceProvider'] = 'Drupal\Core\Installer\NormalInstallerServiceProvider';
 
+  // Get the existing request.
   $request = \Drupal::request();
   // Reboot into a full production environment to continue the installation.
   /** @var \Drupal\Core\Installer\InstallerKernel $kernel */
@@ -632,7 +636,13 @@ function drupal_install_system($install_state) {
   $kernel->shutdown();
   // Have installer rebuild from the disk, rather then building from scratch.
   $kernel->rebuildContainer(FALSE);
-  $kernel->prepareLegacyRequest($request);
+  // Reboot the kernel with new container.
+  $kernel->boot();
+  $kernel->preHandle($request);
+  // Ensure our request includes the session if appropriate.
+  if (PHP_SAPI !== 'cli') {
+    $request->setSession($kernel->getContainer()->get('session'));
+  }
 
   // Before having installed the system module and being able to do a module
   // rebuild, prime the \Drupal\Core\Extension\ModuleExtensionList static cache
@@ -986,7 +996,7 @@ function drupal_check_profile($profile) {
         require_once $install_file;
       }
 
-      drupal_classloader_register($module, $module_path);
+      \Drupal::service('class_loader')->addPsr4('Drupal\\' . $module . '\\', \Drupal::root() . "/$module_path/src");
 
       if (function_exists($function)) {
         $requirements = array_merge($requirements, $function('install'));
@@ -1085,7 +1095,8 @@ function drupal_check_module($module) {
  *
  * Note that this function does an expensive file system scan to get info file
  * information for dependencies. If you only need information from the info
- * file itself, use system_get_info().
+ * file itself, use
+ * \Drupal::service('extension.list.profile')->getExtensionInfo().
  *
  * Example of .info.yml file:
  * @code
@@ -1105,7 +1116,7 @@ function drupal_check_module($module) {
  *   The info array.
  */
 function install_profile_info($profile, $langcode = 'en') {
-  $cache = &drupal_static(__FUNCTION__, []);
+  static $cache = [];
 
   if (!isset($cache[$profile][$langcode])) {
     // Set defaults for module info.

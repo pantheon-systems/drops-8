@@ -7,7 +7,6 @@ use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\views\Tests\ViewResultAssertionTrait;
 use Drupal\views\Tests\ViewTestData;
-use Drupal\views\ViewsData;
 
 /**
  * Defines a base class for Views kernel testing.
@@ -29,7 +28,7 @@ abstract class ViewsKernelTestBase extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'views', 'views_test_config', 'views_test_data', 'user'];
+  public static $modules = ['path_alias', 'system', 'views', 'views_test_config', 'views_test_data', 'user'];
 
   /**
    * {@inheritdoc}

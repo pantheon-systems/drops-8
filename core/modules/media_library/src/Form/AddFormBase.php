@@ -9,8 +9,11 @@ use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\BaseFormIdInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Url;
 use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
@@ -21,13 +24,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a base class for creating media items from within the media library.
- *
- * @internal
- *   Media Library is an experimental module and its internal code may be
- *   subject to change in minor releases. External code should not instantiate
- *   or extend this class.
  */
-abstract class AddFormBase extends FormBase {
+abstract class AddFormBase extends FormBase implements BaseFormIdInterface, TrustedCallbackInterface {
 
   /**
    * The entity type manager.
@@ -99,7 +97,7 @@ abstract class AddFormBase extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getBaseFormId() {
     return 'media_library_add_form';
   }
 
@@ -137,9 +135,8 @@ abstract class AddFormBase extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     // @todo Remove the ID when we can use selectors to replace content via
     //   AJAX in https://www.drupal.org/project/drupal/issues/2821793.
-    $form['#prefix'] = '<div id="media-library-add-form-wrapper" class="media-library-add-form-wrapper">';
+    $form['#prefix'] = '<div id="media-library-add-form-wrapper">';
     $form['#suffix'] = '</div>';
-    $form['#attached']['library'][] = 'media_library/style';
 
     // The media library is loaded via AJAX, which means that the form action
     // URL defaults to the current URL. However, to add media, we always need to
@@ -157,26 +154,37 @@ abstract class AddFormBase extends FormBase {
     ];
 
     $form['#attributes']['class'] = [
-      'media-library-add-form',
       'js-media-library-add-form',
     ];
 
     $added_media = $this->getAddedMediaItems($form_state);
     if (empty($added_media)) {
-      $form['#attributes']['class'][] = 'media-library-add-form--without-input';
       $form = $this->buildInputElement($form, $form_state);
     }
     else {
-      $form['#attributes']['class'][] = 'media-library-add-form--with-input';
+      $form['#attributes']['data-input'] = 'true';
+
+      // This deserves to be themeable, but it doesn't need to be its own "real"
+      // template.
+      $form['description'] = [
+        '#type' => 'inline_template',
+        '#template' => '<p>{{ text }}</p>',
+        '#context' => [
+          'text' => $this->formatPlural(count($added_media), 'The media item has been created but has not yet been saved. Fill in any required fields and save to add it to the media library.', 'The media items have been created but have not yet been saved. Fill in any required fields and save to add them to the media library.'),
+        ],
+      ];
 
       $form['media'] = [
-        '#type' => 'container',
+        '#pre_render' => [
+          [$this, 'preRenderAddedMedia'],
+        ],
         '#attributes' => [
           'class' => [
-            'media-library-add-form__added-media',
+            // This needs to be focus-able by an AJAX response.
+            // @see ::updateFormCallback()
+            'js-media-library-add-form-added-media',
           ],
           'aria-label' => $this->t('Added media items'),
-          'role' => 'list',
           // Add the tabindex '-1' to allow the focus to be shifted to the added
           // media wrapper when items are added. We set focus to the container
           // because a media item does not necessarily have required fields and
@@ -185,18 +193,6 @@ abstract class AddFormBase extends FormBase {
           'tabindex' => '-1',
         ],
       ];
-
-      $form['media']['description'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->formatPlural(count($added_media), 'The media item has been created but has not yet been saved. Fill in any required fields and save to add it to the media library.', 'The media items have been created but have not yet been saved. Fill in any required fields and save to add them to the media library.'),
-        '#attributes' => [
-          'class' => [
-            'media-library-add-form__description',
-          ],
-        ],
-      ];
-
       foreach ($added_media as $delta => $media) {
         $form['media'][$delta] = $this->buildEntityFormElement($media, $form, $form_state, $delta);
       }
@@ -266,13 +262,8 @@ abstract class AddFormBase extends FormBase {
     $id_suffix = $parents ? '-' . implode('-', $parents) : '';
 
     $element = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => [
-          'media-library-add-form__media',
-        ],
+      '#wrapper_attributes' => [
         'aria-label' => $media->getName(),
-        'role' => 'listitem',
         // Add the tabindex '-1' to allow the focus to be shifted to the next
         // media item when an item is removed. We set focus to the container
         // because a media item does not necessarily have required fields and we
@@ -287,20 +278,10 @@ abstract class AddFormBase extends FormBase {
       'preview' => [
         '#type' => 'container',
         '#weight' => 10,
-        '#attributes' => [
-          'class' => [
-            'media-library-add-form__preview',
-          ],
-        ],
       ],
       'fields' => [
         '#type' => 'container',
         '#weight' => 20,
-        '#attributes' => [
-          'class' => [
-            'media-library-add-form__fields',
-          ],
-        ],
         // The '#parents' are set here because the entity form display needs it
         // to build the entity form fields.
         '#parents' => ['media', $delta, 'fields'],
@@ -311,7 +292,6 @@ abstract class AddFormBase extends FormBase {
         '#name' => 'media-' . $delta . '-remove-button' . $id_suffix,
         '#weight' => 30,
         '#attributes' => [
-          'class' => ['media-library-add-form__remove-button'],
           'aria-label' => $this->t('Remove @label', ['@label' => $media->getName()]),
         ],
         '#ajax' => [
@@ -348,19 +328,44 @@ abstract class AddFormBase extends FormBase {
     }
     $form_display->buildForm($media, $element['fields'], $form_state);
 
-    // We hide the preview of the uploaded file in the image widget with CSS.
-    // @todo Improve hiding file widget elements in
-    //   https://www.drupal.org/project/drupal/issues/2987921
-    $source_field_name = $this->getSourceFieldName($media->bundle->entity);
-    if (isset($element['fields'][$source_field_name])) {
-      $element['fields'][$source_field_name]['#attributes']['class'][] = 'media-library-add-form__source-field';
-    }
+    // Add source field name so that it can be identified in form alter and
+    // widget alter hooks.
+    $element['fields']['#source_field_name'] = $this->getSourceFieldName($media->bundle->entity);
+
     // The revision log field is currently not configurable from the form
     // display, so hide it by changing the access.
     // @todo Make the revision_log_message field configurable in
     //   https://www.drupal.org/project/drupal/issues/2696555
     if (isset($element['fields']['revision_log_message'])) {
       $element['fields']['revision_log_message']['#access'] = FALSE;
+    }
+    return $element;
+  }
+
+  /**
+   * {@inheritdodc}
+   */
+  public static function trustedCallbacks() {
+    return ['preRenderAddedMedia'];
+  }
+
+  /**
+   * Converts the set of newly added media into an item list for rendering.
+   *
+   * @param array $element
+   *   The render element to transform.
+   *
+   * @return array
+   *   The transformed render element.
+   */
+  public function preRenderAddedMedia(array $element) {
+    // Transform the element into an item list for rendering.
+    $element['#theme'] = 'item_list__media_library_add_form_media_list';
+    $element['#list_type'] = 'ul';
+
+    foreach (Element::children($element) as $delta) {
+      $element['#items'][$delta] = $element[$delta];
+      unset($element[$delta]);
     }
     return $element;
   }
@@ -379,19 +384,17 @@ abstract class AddFormBase extends FormBase {
   protected function buildCurrentSelectionArea(array $form, FormStateInterface $form_state) {
     $pre_selected_items = $this->getPreSelectedMediaItems($form_state);
 
-    if (!$pre_selected_items) {
+    if (!$pre_selected_items || !$this->isAdvancedUi()) {
       return [];
     }
 
     $selection = [
       '#type' => 'details',
+      '#theme_wrappers' => [
+        'details__media_library_add_form_selected_media',
+      ],
       '#open' => FALSE,
       '#title' => $this->t('Additional selected media'),
-      '#attributes' => [
-        'class' => [
-          'media-library-add-form__selected-media',
-        ],
-      ],
     ];
     foreach ($pre_selected_items as $media_id => $media) {
       $selection[$media_id] = $this->buildSelectedItemElement($media, $form, $form_state);
@@ -415,12 +418,9 @@ abstract class AddFormBase extends FormBase {
    */
   protected function buildSelectedItemElement(MediaInterface $media, array $form, FormStateInterface $form_state) {
     return [
-      '#type' => 'container',
+      '#theme' => 'media_library_item__small',
       '#attributes' => [
         'class' => [
-          'media-library-item',
-          'media-library-item--grid',
-          'media-library-item--small',
           'js-media-library-item',
           'js-click-to-select',
         ],
@@ -461,26 +461,32 @@ abstract class AddFormBase extends FormBase {
    *   An actions element containing the actions of the form.
    */
   protected function buildActions(array $form, FormStateInterface $form_state) {
-    return [
+    $actions = [
       '#type' => 'actions',
       'save_select' => [
         '#type' => 'submit',
         '#button_type' => 'primary',
-        '#value' => $this->t('Save and select'),
+        '#value' => $this->t('Save'),
         '#ajax' => [
           'callback' => '::updateLibrary',
           'wrapper' => 'media-library-add-form-wrapper',
         ],
       ],
-      'save_insert' => [
-        '#type' => 'submit',
-        '#value' => $this->t('Save and insert'),
-        '#ajax' => [
-          'callback' => '::updateWidget',
-          'wrapper' => 'media-library-add-form-wrapper',
-        ],
-      ],
     ];
+    if ($this->isAdvancedUi()) {
+      $actions['save_select']['#value'] = $this->t('Save and select');
+      $actions['save_insert'] = [
+        'save_insert' => [
+          '#type' => 'submit',
+          '#value' => $this->t('Save and insert'),
+          '#ajax' => [
+            'callback' => '::updateWidget',
+            'wrapper' => 'media-library-add-form-wrapper',
+          ],
+        ],
+      ];
+    }
+    return $actions;
   }
 
   /**
@@ -622,13 +628,13 @@ abstract class AddFormBase extends FormBase {
             break;
           }
         }
-        $response->addCommand(new InvokeCommand(".media-library-add-form__media[data-media-library-added-delta=$delta_to_focus]", 'focus'));
+        $response->addCommand(new InvokeCommand("[data-media-library-added-delta=$delta_to_focus]", 'focus'));
       }
     }
     // Update the form and shift focus to the added media items.
     else {
       $response->addCommand(new ReplaceCommand("#$wrapper_id", $form));
-      $response->addCommand(new InvokeCommand('.media-library-add-form__added-media', 'focus'));
+      $response->addCommand(new InvokeCommand('.js-media-library-add-form-added-media', 'focus'));
     }
 
     return $response;
@@ -696,7 +702,9 @@ abstract class AddFormBase extends FormBase {
 
     $response = new AjaxResponse();
     $response->addCommand(new UpdateSelectionCommand($media_ids));
+    $media_id_to_focus = array_pop($media_ids);
     $response->addCommand(new ReplaceCommand('#media-library-add-form-wrapper', $this->buildMediaLibraryUi($form_state)));
+    $response->addCommand(new InvokeCommand("#media-library-content [value=$media_id_to_focus]", 'focus'));
     return $response;
   }
 
@@ -836,6 +844,21 @@ abstract class AddFormBase extends FormBase {
     $added_media = $this->getAddedMediaItems($form_state);
     // Using array_merge will renumber the numeric keys.
     return array_merge($pre_selected_media, $added_media);
+  }
+
+  /**
+   * Determines if the "advanced UI" of the Media Library is enabled.
+   *
+   * This exposes additional features that are useful to power users.
+   *
+   * @return bool
+   *   TRUE if the advanced UI is enabled, FALSE otherwise.
+   *
+   * @see ::buildActions()
+   * @see ::buildCurrentSelectionArea()
+   */
+  protected function isAdvancedUi() {
+    return (bool) $this->config('media_library.settings')->get('advanced_ui');
   }
 
 }

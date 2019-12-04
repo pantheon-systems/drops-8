@@ -14,7 +14,9 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\Test\AssertMailTrait;
 use Drupal\Core\Test\FunctionalTestSetupTrait;
+use Drupal\Core\Test\TestDiscovery;
 use Drupal\Core\Url;
+use Drupal\KernelTests\AssertContentTrait as CoreAssertContentTrait;
 use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\EntityViewTrait;
 use Drupal\Tests\block\Traits\BlockCreationTrait as BaseBlockCreationTrait;
@@ -31,11 +33,14 @@ use Zend\Diactoros\Uri;
  * Test case for typical Drupal tests.
  *
  * @ingroup testing
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Instead,
+ *   use \Drupal\Tests\BrowserTestBase. See https://www.drupal.org/node/3030340.
  */
 abstract class WebTestBase extends TestBase {
 
   use FunctionalTestSetupTrait;
-  use AssertContentTrait;
+  use CoreAssertContentTrait;
   use TestFileCreationTrait {
     getTestFiles as drupalGetTestFiles;
     compareFiles as drupalCompareFiles;
@@ -176,6 +181,8 @@ abstract class WebTestBase extends TestBase {
 
   /**
    * The number of redirects followed during the handling of a request.
+   *
+   * @var int
    */
   protected $redirectCount;
 
@@ -225,7 +232,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertBlockAppears(Block $block) {
     $result = $this->findBlockInstance($block);
-    $this->assertTrue(!empty($result), format_string('Ensure the block @id appears on the page', ['@id' => $block->id()]));
+    $this->assertTrue(!empty($result), new FormattableMarkup('Ensure the block @id appears on the page', ['@id' => $block->id()]));
   }
 
   /**
@@ -236,7 +243,7 @@ abstract class WebTestBase extends TestBase {
    */
   protected function assertNoBlockAppears(Block $block) {
     $result = $this->findBlockInstance($block);
-    $this->assertFalse(!empty($result), format_string('Ensure the block @id does not appear on the page', ['@id' => $block->id()]));
+    $this->assertFalse(!empty($result), new FormattableMarkup('Ensure the block @id does not appear on the page', ['@id' => $block->id()]));
   }
 
   /**
@@ -294,7 +301,7 @@ abstract class WebTestBase extends TestBase {
     if (isset($this->sessionId)) {
       $account->session_id = $this->sessionId;
     }
-    $pass = $this->assert($this->drupalUserIsLoggedIn($account), format_string('User %name successfully logged in.', ['%name' => $account->getAccountName()]), 'User login');
+    $pass = $this->assert($this->drupalUserIsLoggedIn($account), new FormattableMarkup('User %name successfully logged in.', ['%name' => $account->getAccountName()]), 'User login');
     if ($pass) {
       $this->loggedInUser = $account;
       $this->container->get('current_user')->setAccount($account);
@@ -384,6 +391,8 @@ abstract class WebTestBase extends TestBase {
 
     // Initialize and override certain configurations.
     $this->initConfig($container);
+
+    $this->installDefaultThemeFromClassProperty($container);
 
     // Collect modules to install.
     $this->installModulesFromClassProperty($container);
@@ -699,7 +708,7 @@ abstract class WebTestBase extends TestBase {
         if (getenv('SYMFONY_DEPRECATIONS_HELPER') !== 'disabled') {
           $message = (string) $parameters[0];
           $test_info = TestDiscovery::getTestInfo(get_called_class());
-          if ($test_info['group'] !== 'legacy' && !in_array($message, DeprecationListenerTrait::getSkippedDeprecations())) {
+          if (!in_array('legacy', $test_info['groups']) && !in_array($message, DeprecationListenerTrait::getSkippedDeprecations())) {
             call_user_func_array([&$this, 'error'], $parameters);
           }
         }
@@ -1057,9 +1066,9 @@ abstract class WebTestBase extends TestBase {
         $this->fail(new FormattableMarkup('Failed to set field @name to @value', ['@name' => $name, '@value' => $value]));
       }
       if (!$ajax && isset($submit)) {
-        $this->assertTrue($submit_matches, format_string('Found the @submit button', ['@submit' => $submit]));
+        $this->assertTrue($submit_matches, new FormattableMarkup('Found the @submit button', ['@submit' => $submit]));
       }
-      $this->fail(format_string('Found the requested form fields at @path', ['@path' => ($path instanceof Url) ? $path->toString() : $path]));
+      $this->fail(new FormattableMarkup('Found the requested form fields at @path', ['@path' => ($path instanceof Url) ? $path->toString() : $path]));
     }
   }
 

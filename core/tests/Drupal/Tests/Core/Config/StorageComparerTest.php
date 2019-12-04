@@ -13,12 +13,12 @@ use Drupal\Tests\UnitTestCase;
 class StorageComparerTest extends UnitTestCase {
 
   /**
-   * @var \Drupal\Core\Config\StorageInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\StorageInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $sourceStorage;
 
   /**
-   * @var \Drupal\Core\Config\StorageInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\StorageInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $targetStorage;
 
@@ -37,8 +37,8 @@ class StorageComparerTest extends UnitTestCase {
   protected $configData;
 
   protected function setUp() {
-    $this->sourceStorage = $this->getMock('Drupal\Core\Config\StorageInterface');
-    $this->targetStorage = $this->getMock('Drupal\Core\Config\StorageInterface');
+    $this->sourceStorage = $this->createMock('Drupal\Core\Config\StorageInterface');
+    $this->targetStorage = $this->createMock('Drupal\Core\Config\StorageInterface');
     $this->storageComparer = new StorageComparer($this->sourceStorage, $this->targetStorage);
   }
 
@@ -243,7 +243,7 @@ class StorageComparerTest extends UnitTestCase {
    * @group legacy
    */
   public function testConfigManagerDeprecation() {
-    $configManager = $this->getMock('Drupal\Core\Config\ConfigManagerInterface');
+    $configManager = $this->createMock('Drupal\Core\Config\ConfigManagerInterface');
     new StorageComparer($this->sourceStorage, $this->targetStorage, $configManager);
   }
 

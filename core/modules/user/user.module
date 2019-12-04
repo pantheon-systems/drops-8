@@ -29,7 +29,7 @@ use Drupal\user\UserInterface;
  *
  * Keep this under 191 characters so we can use a unique constraint in MySQL.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::USERNAME_MAX_LENGTH instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -39,7 +39,7 @@ const USERNAME_MAX_LENGTH = 60;
 /**
  * Only administrators can create user accounts.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::REGISTER_ADMINISTRATORS_ONLY instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -49,7 +49,7 @@ const USER_REGISTER_ADMINISTRATORS_ONLY = 'admin_only';
 /**
  * Visitors can create their own accounts.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::REGISTER_VISITORS instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -60,7 +60,7 @@ const USER_REGISTER_VISITORS = 'visitors';
  * Visitors can create accounts, but they don't become active without
  * administrative approval.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL
  *   instead.
  *
@@ -149,7 +149,7 @@ function user_js_settings_alter(&$settings, AttachedAssetsInterface $assets) {
  * preprocess stage.
  */
 function user_picture_enabled() {
-  $field_definitions = \Drupal::entityManager()->getFieldDefinitions('user', 'user');
+  $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('user', 'user');
   return isset($field_definitions['user_picture']);
 }
 
@@ -200,7 +200,7 @@ function user_entity_extra_field_info() {
  * @return array
  *   An array of user objects, indexed by uid.
  *
- * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\user\Entity\User::loadMultiple().
  *
  * @see https://www.drupal.org/node/2266845
@@ -208,7 +208,7 @@ function user_entity_extra_field_info() {
 function user_load_multiple(array $uids = NULL, $reset = FALSE) {
   @trigger_error('user_load_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\user\Entity\User::loadMultiple(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if ($reset) {
-    \Drupal::entityManager()->getStorage('user')->resetCache($uids);
+    \Drupal::entityTypeManager()->getStorage('user')->resetCache($uids);
   }
   return User::loadMultiple($uids);
 }
@@ -226,7 +226,7 @@ function user_load_multiple(array $uids = NULL, $reset = FALSE) {
  *   A fully-loaded user object upon successful user load, or NULL if the user
  *   cannot be loaded.
  *
- * @deprecated iin Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   Drupal\user\Entity\User::load().
  *
  * @see https://www.drupal.org/node/2266845
@@ -234,7 +234,7 @@ function user_load_multiple(array $uids = NULL, $reset = FALSE) {
 function user_load($uid, $reset = FALSE) {
   @trigger_error('user_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\user\Entity\User::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if ($reset) {
-    \Drupal::entityManager()->getStorage('user')->resetCache([$uid]);
+    \Drupal::entityTypeManager()->getStorage('user')->resetCache([$uid]);
   }
   return User::load($uid);
 }
@@ -314,7 +314,7 @@ function user_password($length = 10) {
   for ($i = 0; $i < $length; $i++) {
     do {
       // Find a secure random number within the range needed.
-      $index = ord(Crypt::randomBytes(1));
+      $index = ord(random_bytes(1));
     } while ($index > $len);
 
     // Each iteration, pick a random character from the
@@ -436,12 +436,13 @@ function user_preprocess_block(&$variables) {
  * @return string
  *   An unsanitized string with the username to display.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
- *   Use \Drupal\Core\Session\AccountInterface::getDisplayName().
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
+ *   Use $account->label() or $account->getDisplayName() instead
  *
- * @todo Remove usage in https://www.drupal.org/node/2311219.
+ * @see https://www.drupal.org/node/3050794
  */
 function user_format_name(AccountInterface $account) {
+  @trigger_error('user_format_name() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use $account->label() or $account->getDisplayName() instead. See https://www.drupal.org/node/3050794', E_USER_DEPRECATED);
   return $account->getDisplayName();
 }
 
@@ -557,7 +558,7 @@ function user_login_finalize(UserInterface $account) {
   // Update the user table timestamp noting user has logged in.
   // This is also used to invalidate one-time login links.
   $account->setLastLoginTime(REQUEST_TIME);
-  \Drupal::entityManager()
+  \Drupal::entityTypeManager()
     ->getStorage('user')
     ->updateLastLoginTimestamp($account);
 
@@ -864,8 +865,17 @@ function user_cancel_methods() {
  *
  * @param int $uid
  *   A user ID.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use the user
+ *   entity's delete method to delete the user.
+ * @code
+ *   Drupal::entityTypeManager->getStorage('user')->load($uid)->delete();
+ * @endcode
+ *
+ * @see https://www.drupal.org/node/3051463
  */
 function user_delete($uid) {
+  @trigger_error("user_delete() is deprecated in drupal:8.8.0. Use the user entity's delete method to delete the user. See https://www.drupal.org/node/3051463", E_USER_DEPRECATED);
   user_delete_multiple([$uid]);
 }
 
@@ -875,10 +885,18 @@ function user_delete($uid) {
  * @param int[] $uids
  *   An array of user IDs.
  *
- * @see hook_ENTITY_TYPE_predelete()
- * @see hook_ENTITY_TYPE_delete()
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use the
+ *   entity storage system to delete the users.
+ * @code
+ *   $storage_handler = \Drupal::entityTypeManager()->getStorage('user');
+ *   $users = $storage_handler->loadMultiple($uids);
+ *   $storage_handler->delete($users);
+ * @endcode
+ *
+ * @see https://www.drupal.org/node/3051463
  */
 function user_delete_multiple(array $uids) {
+  @trigger_error("user_delete_multiple() is deprecated in drupal:8.8.0. Use the entity storage system to delete the users. See https://www.drupal.org/node/3051463", E_USER_DEPRECATED);
   entity_delete_multiple('user', $uids);
 }
 
@@ -905,9 +923,17 @@ function user_delete_multiple(array $uids) {
  *
  * @return array
  *   An array as expected by \Drupal\Core\Render\RendererInterface::render().
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getViewBuilder('user')->view() instead.
+ *
+ * @see https://www.drupal.org/node/3033656
  */
 function user_view($account, $view_mode = 'full', $langcode = NULL) {
-  return entity_view($account, $view_mode, $langcode);
+  @trigger_error("user_view() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('user')->view() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()
+    ->getViewBuilder('user')
+    ->view($account, $view_mode, $langcode);
 }
 
 /**
@@ -924,9 +950,18 @@ function user_view($account, $view_mode = 'full', $langcode = NULL) {
  * @return array
  *   An array in the format expected by
  *   \Drupal\Core\Render\RendererInterface::render().
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getViewBuilder('user')->viewMultiple()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3033656
  */
 function user_view_multiple($accounts, $view_mode = 'full', $langcode = NULL) {
-  return entity_view_multiple($accounts, $view_mode, $langcode);
+  @trigger_error("user_view_multiple() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('user')->viewMultiple() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()
+    ->getViewBuilder('user')
+    ->viewMultiple($accounts, $view_mode, $langcode);
 }
 
 /**
@@ -1041,7 +1076,7 @@ function user_user_role_insert(RoleInterface $role) {
  */
 function user_user_role_delete(RoleInterface $role) {
   // Delete role references for all users.
-  $user_storage = \Drupal::entityManager()->getStorage('user');
+  $user_storage = \Drupal::entityTypeManager()->getStorage('user');
   $user_storage->deleteRoleReferences([$role->id()]);
 
   // Ignore the authenticated and anonymous roles or the role is being synced.
@@ -1098,7 +1133,7 @@ function user_roles($membersonly = FALSE, $permission = NULL) {
  *   A fully-loaded role object if a role with the given ID exists, or NULL
  *   otherwise.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\Entity\Role::load().
  */
 function user_role_load($rid) {

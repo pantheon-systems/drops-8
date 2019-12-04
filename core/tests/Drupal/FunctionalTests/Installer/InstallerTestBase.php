@@ -171,9 +171,7 @@ abstract class InstallerTestBase extends BrowserTestBase {
       $request = Request::createFromGlobals();
       $class_loader = require $this->container->get('app.root') . '/autoload.php';
       Settings::initialize($this->container->get('app.root'), DrupalKernel::findSitePath($request), $class_loader);
-      foreach ($GLOBALS['config_directories'] as $type => $path) {
-        $this->configDirectories[$type] = $path;
-      }
+      $this->configDirectories['sync'] = Settings::get('config_sync_directory');
 
       // After writing settings.php, the installer removes write permissions
       // from the site directory. To allow drupal_generate_test_ua() to write
@@ -183,7 +181,8 @@ abstract class InstallerTestBase extends BrowserTestBase {
       // Not using File API; a potential error must trigger a PHP warning.
       chmod($this->container->get('app.root') . '/' . $this->siteDirectory, 0777);
       $this->kernel = DrupalKernel::createFromRequest($request, $class_loader, 'prod', FALSE);
-      $this->kernel->prepareLegacyRequest($request);
+      $this->kernel->boot();
+      $this->kernel->preHandle($request);
       $this->container = $this->kernel->getContainer();
 
       // Manually configure the test mail collector implementation to prevent
@@ -192,6 +191,8 @@ abstract class InstallerTestBase extends BrowserTestBase {
         ->getEditable('system.mail')
         ->set('interface.default', 'test_mail_collector')
         ->save();
+
+      $this->installDefaultThemeFromClassProperty($this->container);
     }
   }
 

@@ -17,6 +17,11 @@ class TemporaryQueryTest extends DatabaseTestBase {
   public static $modules = ['database_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Returns the number of rows of a table.
    */
   public function countTableRows($table_name) {
@@ -38,7 +43,7 @@ class TemporaryQueryTest extends DatabaseTestBase {
       $this->fail('The creation of the temporary table failed.');
     }
 
-    // Now try to run two db_query_temporary() in the same request.
+    // Now try to run two temporary queries in the same request.
     $table_name_test = $connection->queryTemporary('SELECT name FROM {test}', []);
     $table_name_task = $connection->queryTemporary('SELECT pid FROM {test_task}', []);
 

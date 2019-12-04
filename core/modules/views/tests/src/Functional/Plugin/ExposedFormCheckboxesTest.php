@@ -30,6 +30,11 @@ class ExposedFormCheckboxesTest extends ViewTestBase {
   public static $modules = ['node', 'views_ui', 'taxonomy'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Test terms.
    *
    * @var array
@@ -79,7 +84,7 @@ class ExposedFormCheckboxesTest extends ViewTestBase {
    */
   public function testExposedFormRenderCheckboxes() {
     // Use a test theme to convert multi-select elements into checkboxes.
-    \Drupal::service('theme_handler')->install(['views_test_checkboxes_theme']);
+    \Drupal::service('theme_installer')->install(['views_test_checkboxes_theme']);
     $this->config('system.theme')
       ->set('default', 'views_test_checkboxes_theme')
       ->save();
@@ -142,7 +147,7 @@ class ExposedFormCheckboxesTest extends ViewTestBase {
     ]);
 
     // Use a test theme to convert multi-select elements into checkboxes.
-    \Drupal::service('theme_handler')->install(['views_test_checkboxes_theme']);
+    \Drupal::service('theme_installer')->install(['views_test_checkboxes_theme']);
     $this->config('system.theme')
       ->set('default', 'views_test_checkboxes_theme')
       ->save();

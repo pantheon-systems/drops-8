@@ -24,6 +24,11 @@ class RelationshipUserFileDataTest extends ViewTestBase {
   public static $modules = ['file', 'file_test_views', 'user'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -67,7 +72,7 @@ class RelationshipUserFileDataTest extends ViewTestBase {
       'status' => FILE_STATUS_PERMANENT,
     ]);
     $file->enforceIsNew();
-    file_put_contents($file->getFileUri(), file_get_contents('core/modules/simpletest/files/image-1.png'));
+    file_put_contents($file->getFileUri(), file_get_contents('core/tests/fixtures/files/image-1.png'));
     $file->save();
 
     $account = $this->drupalCreateUser();

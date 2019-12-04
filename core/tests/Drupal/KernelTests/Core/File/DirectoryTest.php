@@ -2,7 +2,9 @@
 
 namespace Drupal\KernelTests\Core\File;
 
-use Drupal\Component\PhpStorage\FileStorage;
+use Drupal\Component\FileSecurity\FileSecurity;
+use Drupal\Component\FileSystem\FileSystem;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\File\FileSystemInterface;
 
@@ -12,6 +14,20 @@ use Drupal\Core\File\FileSystemInterface;
  * @group File
  */
 class DirectoryTest extends FileTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = ['system'];
+
+  protected function setUp() {
+    parent::setUp();
+
+    // These additional tables are necessary due to the call to system_cron().
+    $this->installSchema('system', ['key_value_expire']);
+  }
 
   /**
    * Test local directory handling functions.
@@ -59,7 +75,8 @@ class DirectoryTest extends FileTestBase {
    */
   public function testFileCheckDirectoryHandling() {
     // A directory to operate on.
-    $directory = file_default_scheme() . '://' . $this->randomMachineName() . '/' . $this->randomMachineName();
+    $default_scheme = 'public';
+    $directory = $default_scheme . '://' . $this->randomMachineName() . '/' . $this->randomMachineName();
     $this->assertFalse(is_dir($directory), 'Directory does not exist prior to testing.');
 
     // Non-existent directory.
@@ -72,7 +89,7 @@ class DirectoryTest extends FileTestBase {
 
     // Make sure directory actually exists.
     $this->assertTrue(is_dir($directory), 'Directory actually exists.', 'File');
-
+    $file_system = \Drupal::service('file_system');
     if (substr(PHP_OS, 0, 3) != 'WIN') {
       // PHP on Windows doesn't support any kind of useful read-only mode for
       // directories. When executing a chmod() on a directory, PHP only sets the
@@ -92,13 +109,20 @@ class DirectoryTest extends FileTestBase {
     $this->assertDirectoryPermissions($directory, 0777, 'file_chmod_directory setting is respected.');
 
     // Remove .htaccess file to then test that it gets re-created.
-    @drupal_unlink(file_default_scheme() . '://.htaccess');
-    $this->assertFalse(is_file(file_default_scheme() . '://.htaccess'), 'Successfully removed the .htaccess file in the files directory.', 'File');
-    file_ensure_htaccess();
-    $this->assertTrue(is_file(file_default_scheme() . '://.htaccess'), 'Successfully re-created the .htaccess file in the files directory.', 'File');
+    @$file_system->unlink($default_scheme . '://.htaccess');
+    $this->assertFalse(is_file($default_scheme . '://.htaccess'), 'Successfully removed the .htaccess file in the files directory.', 'File');
+    $this->container->get('file.htaccess_writer')->ensure();
+    $this->assertTrue(is_file($default_scheme . '://.htaccess'), 'Successfully re-created the .htaccess file in the files directory.', 'File');
+
+    // Remove .htaccess file again to test that it is re-created by a cron run.
+    @$file_system->unlink($default_scheme . '://.htaccess');
+    $this->assertFalse(is_file($default_scheme . '://.htaccess'), 'Successfully removed the .htaccess file in the files directory.', 'File');
+    system_cron();
+    $this->assertTrue(is_file($default_scheme . '://.htaccess'), 'Successfully re-created the .htaccess file in the files directory.', 'File');
+
     // Verify contents of .htaccess file.
-    $file = file_get_contents(file_default_scheme() . '://.htaccess');
-    $this->assertEqual($file, FileStorage::htaccessLines(FALSE), 'The .htaccess file contains the proper content.', 'File');
+    $file = file_get_contents($default_scheme . '://.htaccess');
+    $this->assertEqual($file, FileSecurity::htaccessLines(FALSE), 'The .htaccess file contains the proper content.', 'File');
   }
 
   /**
@@ -114,14 +138,14 @@ class DirectoryTest extends FileTestBase {
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
     $path = $file_system->createFilename($basename, $directory);
-    $this->assertEqual($path, $original, format_string('New filepath %new equals %original.', ['%new' => $path, '%original' => $original]), 'File');
+    $this->assertEqual($path, $original, new FormattableMarkup('New filepath %new equals %original.', ['%new' => $path, '%original' => $original]), 'File');
 
     // Then we test against a file that already exists within that directory.
     $basename = 'druplicon.png';
     $original = $directory . '/' . $basename;
     $expected = $directory . '/druplicon_0.png';
     $path = $file_system->createFilename($basename, $directory);
-    $this->assertEqual($path, $expected, format_string('Creating a new filepath from %original equals %new (expected %expected).', ['%new' => $path, '%original' => $original, '%expected' => $expected]), 'File');
+    $this->assertEqual($path, $expected, new FormattableMarkup('Creating a new filepath from %original equals %new (expected %expected).', ['%new' => $path, '%original' => $original, '%expected' => $expected]), 'File');
 
     // @TODO: Finally we copy a file into a directory several times, to ensure a properly iterating filename suffix.
   }
@@ -132,9 +156,9 @@ class DirectoryTest extends FileTestBase {
    *
    * If a file exists, ::getDestinationFilename($destination, $replace) will
    * either return:
-   * - the existing filepath, if $replace is FILE_EXISTS_REPLACE
-   * - a new filepath if FILE_EXISTS_RENAME
-   * - an error (returning FALSE) if FILE_EXISTS_ERROR.
+   * - the existing filepath, if $replace is FileSystemInterface::EXISTS_REPLACE
+   * - a new filepath if FileSystemInterface::EXISTS_RENAME
+   * - an error (returning FALSE) if FileSystemInterface::EXISTS_ERROR.
    * If the file doesn't currently exist, then it will simply return the
    * filepath.
    */
@@ -159,20 +183,18 @@ class DirectoryTest extends FileTestBase {
     $this->assertEqual($path, FALSE, 'An error is returned when filepath destination already exists with FileSystemInterface::EXISTS_ERROR.', 'File');
 
     // Invalid UTF-8 causes an exception.
-    $this->setExpectedException(FileException::class, "Invalid filename 'a\xFFtest\x80€.txt'");
+    $this->expectException(FileException::class);
+    $this->expectExceptionMessage("Invalid filename 'a\xFFtest\x80€.txt'");
     $file_system->getDestinationFilename("core/misc/a\xFFtest\x80€.txt", FileSystemInterface::EXISTS_REPLACE);
   }
 
   /**
-   * Ensure that the file_directory_temp() function always returns a value.
+   * Ensure that the getTempDirectory() method always returns a value.
    */
   public function testFileDirectoryTemp() {
-    // Start with an empty variable to ensure we have a clean slate.
-    $config = $this->config('system.file');
-    $config->set('path.temporary', '')->save();
-    $tmp_directory = file_directory_temp();
-    $this->assertEqual(empty($tmp_directory), FALSE, 'file_directory_temp() returned a non-empty value.');
-    $this->assertEqual($config->get('path.temporary'), $tmp_directory);
+    $tmp_directory = \Drupal::service('file_system')->getTempDirectory();
+    $this->assertNotEmpty($tmp_directory);
+    $this->assertEquals($tmp_directory, FileSystem::getOsTemporaryDirectory());
   }
 
   /**

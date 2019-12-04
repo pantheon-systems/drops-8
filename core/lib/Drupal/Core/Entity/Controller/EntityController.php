@@ -16,7 +16,9 @@ use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Provides the add-page and title callbacks for entities.
@@ -102,6 +104,27 @@ class EntityController implements ContainerInjectionInterface {
   }
 
   /**
+   * Returns a redirect response object for the specified route.
+   *
+   * @param string $route_name
+   *   The name of the route to which to redirect.
+   * @param array $route_parameters
+   *   (optional) Parameters for the route.
+   * @param array $options
+   *   (optional) An associative array of additional options.
+   * @param int $status
+   *   (optional) The HTTP redirect status code for the redirect. The default is
+   *   302 Found.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   A redirect response object that may be returned by the controller.
+   */
+  protected function redirect($route_name, array $route_parameters = [], array $options = [], $status = 302) {
+    $options['absolute'] = TRUE;
+    return new RedirectResponse(Url::fromRoute($route_name, $route_parameters, $options)->toString(), $status);
+  }
+
+  /**
    * Displays add links for the available bundles.
    *
    * Redirects to the add form if there's only one bundle available.
@@ -125,7 +148,7 @@ class EntityController implements ContainerInjectionInterface {
     if ($bundle_entity_type_id) {
       $bundle_argument = $bundle_entity_type_id;
       $bundle_entity_type = $this->entityTypeManager->getDefinition($bundle_entity_type_id);
-      $bundle_entity_type_label = $bundle_entity_type->getLowercaseLabel();
+      $bundle_entity_type_label = $bundle_entity_type->getSingularLabel();
       $build['#cache']['tags'] = $bundle_entity_type->getListCacheTags();
 
       // Build the message shown when there are no bundles.
@@ -181,7 +204,7 @@ class EntityController implements ContainerInjectionInterface {
    */
   public function addTitle($entity_type_id) {
     $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
-    return $this->t('Add @entity-type', ['@entity-type' => $entity_type->getLowercaseLabel()]);
+    return $this->t('Add @entity-type', ['@entity-type' => $entity_type->getSingularLabel()]);
   }
 
   /**

@@ -22,11 +22,14 @@ use Drupal\Tests\ConfigTestTrait;
 use Drupal\Tests\PhpunitCompatibilityTrait;
 use Drupal\Tests\RandomGeneratorTrait;
 use Drupal\Tests\TestRequirementsTrait;
+use PHPUnit\Framework\Exception;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\visitor\vfsStreamPrintVisitor;
+use Symfony\Cmf\Component\Routing\RouteObjectInterface;
+use Symfony\Component\Routing\Route;
 
 /**
  * Base class for functional integration tests.
@@ -161,12 +164,17 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * it extends, and so on up the class hierarchy. It is not necessary to
    * include modules in your list that a parent class has already declared.
    *
+   * The Path Alias module is always installed because the functionality has
+   * moved from core to a required module in Drupal 8.8.0. If a kernel test
+   * requires path alias functionality it is recommended to add the module to
+   * the test's own $modules property for Drupal 9 compatibility.
+   *
    * @see \Drupal\Tests\KernelTestBase::enableModules()
    * @see \Drupal\Tests\KernelTestBase::bootKernel()
    *
    * @var array
    */
-  protected static $modules = [];
+  protected static $modules = ['path_alias'];
 
   /**
    * The virtual filesystem root directory.
@@ -292,15 +300,12 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     $this->siteDirectory = vfsStream::url('root/' . $test_site_path);
 
     mkdir($this->siteDirectory . '/files', 0775);
-    mkdir($this->siteDirectory . '/files/config/' . CONFIG_SYNC_DIRECTORY, 0775, TRUE);
+    mkdir($this->siteDirectory . '/files/config/sync', 0775, TRUE);
 
     $settings = Settings::getInstance() ? Settings::getAll() : [];
     $settings['file_public_path'] = $this->siteDirectory . '/files';
+    $settings['config_sync_directory'] = $this->siteDirectory . '/files/config/sync';
     new Settings($settings);
-
-    $GLOBALS['config_directories'] = [
-      CONFIG_SYNC_DIRECTORY => $this->siteDirectory . '/files/config/sync',
-    ];
   }
 
   /**
@@ -344,9 +349,11 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     // DrupalKernel::boot() is not sufficient as it does not invoke preHandle(),
     // which is required to initialize legacy global variables.
     $request = Request::create('/');
-    $kernel->prepareLegacyRequest($request);
+    $kernel->boot();
+    $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, new Route('<none>'));
+    $request->attributes->set(RouteObjectInterface::ROUTE_NAME, '<none>');
+    $kernel->preHandle($request);
 
-    // register() is only called if a new container was built/compiled.
     $this->container = $kernel->getContainer();
 
     // Ensure database tasks have been run.
@@ -360,8 +367,6 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     if ($modules) {
       $this->container->get('module_handler')->loadAll();
     }
-
-    $this->container->get('request_stack')->push($request);
 
     // Setup the destion to the be frontpage by default.
     \Drupal::destination()->set('/');
@@ -478,7 +483,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * @return \Drupal\Core\Extension\Extension[]
    *   Extension objects for $modules, keyed by module name.
    *
-   * @throws \PHPUnit_Framework_Exception
+   * @throws \PHPUnit\Framework\Exception
    *   If a module is not available.
    *
    * @see \Drupal\Tests\KernelTestBase::enableModules()
@@ -491,7 +496,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     $list = $discovery->scan('module');
     foreach ($modules as $name) {
       if (!isset($list[$name])) {
-        throw new \PHPUnit_Framework_Exception("Unavailable module: '$name'. If this module needs to be downloaded separately, annotate the test class with '@requires module $name'.");
+        throw new Exception("Unavailable module: '$name'. If this module needs to be downloaded separately, annotate the test class with '@requires module $name'.");
       }
       $extensions[$name] = $list[$name];
     }
@@ -532,18 +537,18 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
 
     if ($this->strictConfigSchema) {
       $container
-        ->register('simpletest.config_schema_checker', ConfigSchemaChecker::class)
+        ->register('testing.config_schema_checker', ConfigSchemaChecker::class)
         ->addArgument(new Reference('config.typed'))
         ->addArgument($this->getConfigSchemaExclusions())
         ->addTag('event_subscriber');
     }
 
-    if ($container->hasDefinition('path_processor_alias')) {
-      // Prevent the alias-based path processor, which requires a url_alias db
-      // table, from being registered to the path processor manager. We do this
-      // by removing the tags that the compiler pass looks for. This means the
-      // url generator can safely be used within tests.
-      $container->getDefinition('path_processor_alias')
+    if ($container->hasDefinition('path_alias.path_processor')) {
+      // The alias-based processor requires the path_alias entity schema to be
+      // installed, so we prevent it from being registered to the path processor
+      // manager. We do this by removing the tags that the compiler pass looks
+      // for. This means that the URL generator can safely be used within tests.
+      $container->getDefinition('path_alias.path_processor')
         ->clearTag('path_processor_inbound')
         ->clearTag('path_processor_outbound');
     }
@@ -590,9 +595,6 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     if ($this->container) {
       $this->container->get('kernel')->shutdown();
     }
-
-    // Fail in case any (new) shutdown functions exist.
-    $this->assertCount(0, drupal_register_shutdown_function(), 'Unexpected Drupal shutdown callbacks exist after running shutdown functions.');
 
     parent::assertPostConditions();
   }
@@ -1010,7 +1012,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * @see \Drupal\KernelTests\KernelTestBase::$runTestInSeparateProcess
    * @see https://github.com/sebastianbergmann/phpunit/pull/1350
    *
-   * @deprecated in Drupal 8.4.x, for removal before the Drupal 9.0.0 release.
+   * @deprecated in drupal:8.4.0 and is removed from drupal:9.0.0.
    *   KernelTestBase tests are always run in isolated processes.
    */
   protected function isTestInIsolation() {
@@ -1024,7 +1026,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    * Test authors should follow the provided instructions and adjust their tests
    * accordingly.
    *
-   * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
    */
   public function __get($name) {
     if (in_array($name, [
@@ -1043,7 +1045,7 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
           return Settings::get('file_private_path');
 
         case 'temp_files_directory':
-          return file_directory_temp();
+          return \Drupal::service('file_system')->getTempDirectory();
 
         case 'translation_files_directory':
           return Settings::get('file_public_path', \Drupal::service('site.path') . '/translations');
@@ -1051,9 +1053,9 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     }
 
     if ($name === 'configDirectories') {
-      trigger_error(sprintf("KernelTestBase::\$%s no longer exists. Use config_get_config_directory() directly instead.", $name), E_USER_DEPRECATED);
+      trigger_error(sprintf("KernelTestBase::\$%s no longer exists. Use Settings::get('config_sync_directory') directly instead.", $name), E_USER_DEPRECATED);
       return [
-        CONFIG_SYNC_DIRECTORY => config_get_config_directory(CONFIG_SYNC_DIRECTORY),
+        CONFIG_SYNC_DIRECTORY => Settings::get('config_sync_directory'),
       ];
     }
 
@@ -1097,18 +1099,6 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
    */
   public function __sleep() {
     return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function assertEquals($expected, $actual, $message = '', $delta = 0.0, $maxDepth = 10, $canonicalize = FALSE, $ignoreCase = FALSE) {
-    // Cast objects implementing MarkupInterface to string instead of
-    // relying on PHP casting them to string depending on what they are being
-    // comparing with.
-    $expected = static::castSafeStrings($expected);
-    $actual = static::castSafeStrings($actual);
-    parent::assertEquals($expected, $actual, $message, $delta, $maxDepth, $canonicalize, $ignoreCase);
   }
 
 }

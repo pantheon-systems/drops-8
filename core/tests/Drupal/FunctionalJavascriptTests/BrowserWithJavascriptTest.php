@@ -3,6 +3,7 @@
 namespace Drupal\FunctionalJavascriptTests;
 
 use Behat\Mink\Driver\GoutteDriver;
+use PHPUnit\Framework\AssertionFailedError;
 
 /**
  * Tests if we can execute JavaScript in the browser.
@@ -17,6 +18,11 @@ class BrowserWithJavascriptTest extends WebDriverTestBase {
    * @var array
    */
   public static $modules = ['test_page_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   public function testJavascript() {
     $this->drupalGet('<front>');
@@ -56,7 +62,7 @@ JS;
 
     // We expected the following assertion to fail because the window has been
     // re-sized to have a width of 500 not 400.
-    $this->setExpectedException(\PHPUnit_Framework_AssertionFailedError::class);
+    $this->expectException(AssertionFailedError::class);
     $this->assertJsCondition($javascript, 100);
   }
 

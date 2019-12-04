@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\taxonomy\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 
@@ -27,6 +28,11 @@ class TokenReplaceTest extends TaxonomyTestBase {
    */
   protected $fieldName;
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer taxonomy', 'bypass node access']));
@@ -41,12 +47,14 @@ class TokenReplaceTest extends TaxonomyTestBase {
     ];
     $this->createEntityReferenceField('node', 'article', $this->fieldName, NULL, 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
-    entity_get_form_display('node', 'article', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('node', 'article')
       ->setComponent($this->fieldName, [
         'type' => 'options_select',
       ])
       ->save();
-    entity_get_display('node', 'article', 'default')
+    $display_repository->getViewDisplay('node', 'article')
       ->setComponent($this->fieldName, [
         'type' => 'entity_reference_label',
       ])
@@ -103,7 +111,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
     foreach ($tests as $input => $expected) {
       $bubbleable_metadata = new BubbleableMetadata();
       $output = $token_service->replace($input, ['term' => $term1], ['langcode' => $language_interface->getId()], $bubbleable_metadata);
-      $this->assertEqual($output, $expected, format_string('Sanitized taxonomy term token %token replaced.', ['%token' => $input]));
+      $this->assertEqual($output, $expected, new FormattableMarkup('Sanitized taxonomy term token %token replaced.', ['%token' => $input]));
       $this->assertEqual($bubbleable_metadata, $metadata_tests[$input]);
     }
 
@@ -124,7 +132,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
 
     foreach ($tests as $input => $expected) {
       $output = $token_service->replace($input, ['term' => $term2], ['langcode' => $language_interface->getId()]);
-      $this->assertEqual($output, $expected, format_string('Sanitized taxonomy term token %token replaced.', ['%token' => $input]));
+      $this->assertEqual($output, $expected, new FormattableMarkup('Sanitized taxonomy term token %token replaced.', ['%token' => $input]));
     }
 
     // Generate and test sanitized tokens.
@@ -140,7 +148,7 @@ class TokenReplaceTest extends TaxonomyTestBase {
 
     foreach ($tests as $input => $expected) {
       $output = $token_service->replace($input, ['vocabulary' => $this->vocabulary], ['langcode' => $language_interface->getId()]);
-      $this->assertEqual($output, $expected, format_string('Sanitized taxonomy vocabulary token %token replaced.', ['%token' => $input]));
+      $this->assertEqual($output, $expected, new FormattableMarkup('Sanitized taxonomy vocabulary token %token replaced.', ['%token' => $input]));
     }
   }
 

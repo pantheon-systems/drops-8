@@ -3,7 +3,6 @@
 namespace Drupal\user;
 
 use Drupal\Component\Datetime\TimeInterface;
-use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityConstraintViolationListInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
@@ -11,6 +10,8 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Security\TrustedCallbackInterface;
+use Drupal\Core\Url;
 use Drupal\language\ConfigurableLanguageManagerInterface;
 use Drupal\user\Plugin\LanguageNegotiation\LanguageNegotiationUser;
 use Drupal\user\Plugin\LanguageNegotiation\LanguageNegotiationUserAdmin;
@@ -19,7 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Form controller for the user account forms.
  */
-abstract class AccountForm extends ContentEntityForm {
+abstract class AccountForm extends ContentEntityForm implements TrustedCallbackInterface {
 
   /**
    * The language manager.
@@ -131,7 +132,7 @@ abstract class AccountForm extends ContentEntityForm {
       // so it persists even on subsequent Ajax requests.
       if (!$form_state->get('user_pass_reset') && ($token = $this->getRequest()->get('pass-reset-token'))) {
         $session_key = 'pass_reset_' . $account->id();
-        $user_pass_reset = isset($_SESSION[$session_key]) && Crypt::hashEquals($_SESSION[$session_key], $token);
+        $user_pass_reset = isset($_SESSION[$session_key]) && hash_equals($_SESSION[$session_key], $token);
         $form_state->set('user_pass_reset', $user_pass_reset);
       }
 
@@ -156,7 +157,7 @@ abstract class AccountForm extends ContentEntityForm {
           $form['account']['current_pass']['#description'] = $this->t('Required if you want to change the %mail or %pass below. <a href=":request_new_url" title="Send password reset instructions via email.">Reset your password</a>.', [
             '%mail' => $form['account']['mail']['#title'],
             '%pass' => $this->t('Password'),
-            ':request_new_url' => $this->url('user.pass'),
+            ':request_new_url' => Url::fromRoute('user.pass')->toString(),
           ]);
         }
       }
@@ -275,6 +276,13 @@ abstract class AccountForm extends ContentEntityForm {
     $form['#entity_builders']['sync_user_langcode'] = '::syncUserLangcode';
 
     return parent::form($form, $form_state, $account);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function trustedCallbacks() {
+    return ['alterPreferredLangcodeDescription'];
   }
 
   /**

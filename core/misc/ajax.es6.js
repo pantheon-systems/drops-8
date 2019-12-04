@@ -655,9 +655,7 @@
       // the complete response.
       this.ajaxing = false;
       window.alert(
-        `An error occurred while attempting to process ${this.options.url}: ${
-          e.message
-        }`,
+        `An error occurred while attempting to process ${this.options.url}: ${e.message}`,
       );
       // For consistency, return a rejected Deferred (i.e., jqXHR's superclass)
       // so that calling code can take appropriate action.
@@ -750,9 +748,7 @@
       // the complete response.
       ajax.ajaxing = false;
       window.alert(
-        `An error occurred while attempting to process ${ajax.options.url}: ${
-          e.message
-        }`,
+        `An error occurred while attempting to process ${ajax.options.url}: ${e.message}`,
       );
     }
   };
@@ -908,6 +904,17 @@
     `<div class="message">${message}</div>`;
 
   /**
+   * Provide a wrapper for the AJAX progress bar element.
+   *
+   * @param {jQuery} $element
+   *   Progress bar element.
+   * @return {string}
+   *   The HTML markup for the progress bar.
+   */
+  Drupal.theme.ajaxProgressBar = $element =>
+    $('<div class="ajax-progress ajax-progress-bar"></div>').append($element);
+
+  /**
    * Sets the progress bar progress indicator.
    */
   Drupal.Ajax.prototype.setProgressIndicatorBar = function() {
@@ -926,8 +933,8 @@
         this.progress.interval || 1500,
       );
     }
-    this.progress.element = $(progressBar.element).addClass(
-      'ajax-progress ajax-progress-bar',
+    this.progress.element = $(
+      Drupal.theme('ajaxProgressBar', progressBar.element),
     );
     this.progress.object = progressBar;
     $(this.element).after(this.progress.element);
@@ -948,7 +955,7 @@
    */
   Drupal.Ajax.prototype.setProgressIndicatorFullscreen = function() {
     this.progress.element = $(Drupal.theme('ajaxProgressIndicatorFullscreen'));
-    $('body').after(this.progress.element);
+    $('body').append(this.progress.element);
   };
 
   /**
@@ -1554,6 +1561,32 @@
           document.styleSheets[0].addImport(match[1]);
         } while (match);
       }
+    },
+
+    /**
+     * Command to add a message to the message area.
+     *
+     * @param {Drupal.Ajax} [ajax]
+     *   {@link Drupal.Ajax} object created by {@link Drupal.ajax}.
+     * @param {object} response
+     *   The response from the Ajax request.
+     * @param {string} response.messageWrapperQuerySelector
+     *   The zone where to add the message. If null, the default will be used.
+     * @param {string} response.message
+     *   The message text.
+     * @param {string} response.messageOptions
+     *   The options argument for Drupal.Message().add().
+     * @param {bool} response.clearPrevious
+     *   If true, clear previous messages.
+     */
+    message(ajax, response) {
+      const messages = new Drupal.Message(
+        document.querySelector(response.messageWrapperQuerySelector),
+      );
+      if (response.clearPrevious) {
+        messages.clear();
+      }
+      messages.add(response.message, response.messageOptions);
     },
   };
 })(jQuery, window, Drupal, drupalSettings);

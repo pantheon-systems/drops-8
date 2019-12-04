@@ -24,6 +24,11 @@ class UninstallTest extends BrowserTestBase {
   public static $modules = ['module_test', 'user', 'views', 'node'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests the hook_modules_uninstalled() of the user module.
    */
   public function testUserPermsUninstalled() {
@@ -32,7 +37,7 @@ class UninstallTest extends BrowserTestBase {
     $this->container->get('module_installer')->uninstall(['module_test']);
 
     // Are the perms defined by module_test removed?
-    $this->assertFalse(user_roles(FALSE, 'module_test perm'), 'Permissions were all removed.');
+    $this->assertEmpty(user_roles(FALSE, 'module_test perm'), 'Permissions were all removed.');
   }
 
   /**
@@ -104,7 +109,7 @@ class UninstallTest extends BrowserTestBase {
     }
     $entity_types = array_unique($entity_types);
     foreach ($entity_types as $entity_type_id) {
-      $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+      $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
       // Add h3's since the entity type label is often repeated in the entity
       // labels.
       $this->assertRaw('<h3>' . $entity_type->getLabel() . '</h3>');

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\field\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
@@ -19,6 +20,11 @@ class TranslationWebTest extends FieldTestBase {
    * @var array
    */
   public static $modules = ['language', 'field_test', 'entity_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * The name of the field to use in this test.
@@ -69,7 +75,8 @@ class TranslationWebTest extends FieldTestBase {
     FieldConfig::create($field)->save();
     $this->field = FieldConfig::load($this->entityTypeId . '.' . $field['bundle'] . '.' . $this->fieldName);
 
-    entity_get_form_display($this->entityTypeId, $this->entityTypeId, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay($this->entityTypeId, $this->entityTypeId)
       ->setComponent($this->fieldName)
       ->save();
 
@@ -128,7 +135,7 @@ class TranslationWebTest extends FieldTestBase {
       ->loadRevision($revision_id);
     foreach ($available_langcodes as $langcode => $value) {
       $passed = $entity->getTranslation($langcode)->{$field_name}->value == $value + 1;
-      $this->assertTrue($passed, format_string('The @language translation for revision @revision was correctly stored', ['@language' => $langcode, '@revision' => $entity->getRevisionId()]));
+      $this->assertTrue($passed, new FormattableMarkup('The @language translation for revision @revision was correctly stored', ['@language' => $langcode, '@revision' => $entity->getRevisionId()]));
     }
   }
 

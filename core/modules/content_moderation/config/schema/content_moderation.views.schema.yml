@@ -1,11 +1,3 @@
-views.filter.latest_revision:
-  type: views_filter
-  label: 'Latest revision'
-  mapping:
-    value:
-      type: string
-      label: 'Value'
-
 views.filter.moderation_state_filter:
   type: views.filter.in_operator
   label: 'Moderation state filter'
@@ -16,3 +8,11 @@ views.filter.moderation_state_filter:
       sequence:
         type: string
         label: 'Workflow'
+
+views.sort.moderation_state_sort:
+  type: views_sort
+  label: 'Moderation state sort'
+
+views.field.moderation_state_field:
+  type: views.field.field
+  label: 'Moderation state field'

@@ -21,6 +21,11 @@ class EntityListBuilderTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -58,7 +63,7 @@ class EntityListBuilderTest extends BrowserTestBase {
    */
   public function testCacheContexts() {
     /** @var \Drupal\Core\Entity\EntityListBuilderInterface $list_builder */
-    $list_builder = $this->container->get('entity.manager')->getListBuilder('entity_test');
+    $list_builder = $this->container->get('entity_type.manager')->getListBuilder('entity_test');
 
     $build = $list_builder->render();
     $this->container->get('renderer')->renderRoot($build);

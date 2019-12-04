@@ -54,9 +54,10 @@ abstract class MediaSourceTestBase extends MediaJavascriptTestBase {
     $component = \Drupal::service('plugin.manager.field.widget')
       ->prepareConfiguration($field_type, []);
 
-    // @todo Replace entity_get_form_display() when #2367933 is done.
-    // https://www.drupal.org/node/2872159.
-    $entity_form_display = entity_get_form_display('media', $media_type_id, 'default');
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $entity_form_display = $display_repository->getFormDisplay('media', $media_type_id, 'default');
     $entity_form_display->setComponent($field_name, $component)
       ->save();
 
@@ -64,9 +65,7 @@ abstract class MediaSourceTestBase extends MediaJavascriptTestBase {
     $component = \Drupal::service('plugin.manager.field.formatter')
       ->prepareConfiguration($field_type, []);
 
-    // @todo Replace entity_get_display() when #2367933 is done.
-    // https://www.drupal.org/node/2872159.
-    $entity_display = entity_get_display('media', $media_type_id, 'default');
+    $entity_display = $display_repository->getViewDisplay('media', $media_type_id);
     $entity_display->setComponent($field_name, $component)
       ->save();
   }
@@ -94,8 +93,12 @@ abstract class MediaSourceTestBase extends MediaJavascriptTestBase {
    *   The media type config entity ID.
    */
   protected function hideMediaTypeFieldWidget($field_name, $media_type_id) {
+
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
     /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $entity_form_display */
-    $entity_form_display = entity_get_form_display('media', $media_type_id, 'default');
+    $entity_form_display = $display_repository->getFormDisplay('media', $media_type_id, 'default');
     if ($entity_form_display->getComponent($field_name)) {
       $entity_form_display->removeComponent($field_name)->save();
     }
@@ -110,11 +113,14 @@ abstract class MediaSourceTestBase extends MediaJavascriptTestBase {
    *   The media source ID.
    * @param array $provided_fields
    *   (optional) An array of field machine names this type provides.
+   * @param string $source_label_visibility
+   *   (optional) The visibility that the source field label is expected to
+   *   have. Defaults to 'visually_hidden'.
    *
    * @return \Drupal\media\MediaTypeInterface
    *   The created media type.
    */
-  public function doTestCreateMediaType($media_type_id, $source_id, array $provided_fields = []) {
+  public function doTestCreateMediaType($media_type_id, $source_id, array $provided_fields = [], $source_label_visibility = 'visually_hidden') {
     $session = $this->getSession();
     $page = $session->getPage();
     $assert_session = $this->assertSession();
@@ -143,12 +149,27 @@ abstract class MediaSourceTestBase extends MediaJavascriptTestBase {
     $this->drupalGet('admin/structure/media');
     $assert_session->pageTextContains($media_type_id);
 
+    $media_type = MediaType::load($media_type_id);
+
+    // Assert that the default display of the media type only shows the source
+    // field.
+    $this->drupalGet("/admin/structure/media/manage/$media_type_id/display");
+    // There should be only one field with editable settings, and it should be
+    // the source field.
+    $assert_session->elementsCount('css', 'input[name$="_settings_edit"]', 1);
+    $source_field_name = $media_type->getSource()
+      ->getSourceFieldDefinition($media_type)
+      ->getName();
+    $assert_session->buttonExists("{$source_field_name}_settings_edit");
+    // Ensure the source field label is configured as expected.
+    $assert_session->fieldValueEquals("fields[$source_field_name][label]", $source_label_visibility);
+
     // Bundle definitions are statically cached in the context of the test, we
     // need to make sure we have updated information before proceeding with the
     // actions on the UI.
     \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
 
-    return MediaType::load($media_type_id);
+    return $media_type;
   }
 
 }

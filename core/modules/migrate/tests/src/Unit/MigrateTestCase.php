@@ -22,7 +22,7 @@ abstract class MigrateTestCase extends UnitTestCase {
   /**
    * The migration ID map.
    *
-   * @var \Drupal\migrate\Plugin\MigrateIdMapInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\migrate\Plugin\MigrateIdMapInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $idMap;
 
@@ -36,12 +36,12 @@ abstract class MigrateTestCase extends UnitTestCase {
   /**
    * Retrieves a mocked migration.
    *
-   * @return \Drupal\migrate\Plugin\MigrationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\migrate\Plugin\MigrationInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The mocked migration.
    */
   protected function getMigration() {
     $this->migrationConfiguration += ['migrationClass' => 'Drupal\migrate\Plugin\Migration'];
-    $this->idMap = $this->getMock('Drupal\migrate\Plugin\MigrateIdMapInterface');
+    $this->idMap = $this->createMock('Drupal\migrate\Plugin\MigrateIdMapInterface');
 
     $this->idMap
       ->method('getQualifiedMapTableName')
@@ -114,7 +114,7 @@ abstract class MigrateTestCase extends UnitTestCase {
 
     // Initialize the DIC with a fake module handler for alterable queries.
     $container = new ContainerBuilder();
-    $container->set('module_handler', $this->getMock('\Drupal\Core\Extension\ModuleHandlerInterface'));
+    $container->set('module_handler', $this->createMock('\Drupal\Core\Extension\ModuleHandlerInterface'));
     \Drupal::setContainer($container);
 
     // Create the tables and load them up with data, skipping empty ones.

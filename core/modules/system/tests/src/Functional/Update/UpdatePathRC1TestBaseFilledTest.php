@@ -17,6 +17,11 @@ class UpdatePathRC1TestBaseFilledTest extends UpdatePathRC1TestBaseTest {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setDatabaseDumpFiles() {
     parent::setDatabaseDumpFiles();
     $this->databaseDumpFiles[0] = __DIR__ . '/../../../../tests/fixtures/update/drupal-8-rc1.filled.standard.php.gz';
@@ -379,7 +384,6 @@ class UpdatePathRC1TestBaseFilledTest extends UpdatePathRC1TestBaseTest {
       'search',
       'serialization',
       'shortcut',
-      'simpletest',
       'statistics',
       'syslog',
       'system',

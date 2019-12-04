@@ -3,6 +3,7 @@
 namespace Drupal\Tests\comment\Unit;
 
 use Drupal\comment\CommentManager;
+use Drupal\Core\Entity\EntityDisplayRepositoryInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
@@ -22,7 +23,7 @@ class CommentManagerTest extends UnitTestCase {
    */
   public function testGetFields() {
     // Set up a content entity type.
-    $entity_type = $this->getMock('Drupal\Core\Entity\ContentEntityTypeInterface');
+    $entity_type = $this->createMock('Drupal\Core\Entity\ContentEntityTypeInterface');
     $entity_type->expects($this->any())
       ->method('getClass')
       ->will($this->returnValue('Node'));
@@ -50,11 +51,12 @@ class CommentManagerTest extends UnitTestCase {
 
     $comment_manager = new CommentManager(
       $entity_type_manager,
-      $this->getMock('Drupal\Core\Config\ConfigFactoryInterface'),
-      $this->getMock('Drupal\Core\StringTranslation\TranslationInterface'),
-      $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface'),
+      $this->createMock('Drupal\Core\Config\ConfigFactoryInterface'),
+      $this->createMock('Drupal\Core\StringTranslation\TranslationInterface'),
+      $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface'),
       $this->createMock(AccountInterface::class),
-      $entity_field_manager
+      $entity_field_manager,
+      $this->prophesize(EntityDisplayRepositoryInterface::class)->reveal()
     );
     $comment_fields = $comment_manager->getFields('node');
     $this->assertArrayHasKey('field_foobar', $comment_fields);

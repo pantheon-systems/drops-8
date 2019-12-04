@@ -15,6 +15,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\TypedData\DataReferenceTargetDefinition;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpKernel\Exception\PreconditionFailedHttpException;
 
 /**
@@ -61,18 +62,33 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
   protected $entityFieldManager;
 
   /**
-   * The static cache backend.
+   * The cache backend.
    *
    * @var \Drupal\Core\Cache\CacheBackendInterface
    */
-  protected $staticCache;
+  protected $cache;
 
   /**
-   * Instance data cache.
+   * The event dispatcher.
    *
-   * @var array
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
-  protected $cache = [];
+  protected $eventDispatcher;
+
+  /**
+   * Cache tags used for caching the repository.
+   *
+   * @var string[]
+   */
+  protected $cacheTags = [
+    'jsonapi_resource_types',
+    // Invalidate whenever field definitions are modified.
+    'entity_field_info',
+    // Invalidate whenever the set of bundles changes.
+    'entity_bundles',
+    // Invalidate whenever the set of entity types changes.
+    'entity_types',
+  ];
 
   /**
    * Instantiates a ResourceTypeRepository object.
@@ -83,33 +99,40 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
    *   The entity type bundle info service.
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    *   The entity field manager.
-   * @param \Drupal\Core\Cache\CacheBackendInterface $static_cache
-   *   The static cache backend.
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache
+   *   The cache backend.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $dispatcher
+   *   The event dispatcher.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_bundle_info, EntityFieldManagerInterface $entity_field_manager, CacheBackendInterface $static_cache) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_bundle_info, EntityFieldManagerInterface $entity_field_manager, CacheBackendInterface $cache, EventDispatcherInterface $dispatcher) {
     $this->entityTypeManager = $entity_type_manager;
     $this->entityTypeBundleInfo = $entity_bundle_info;
     $this->entityFieldManager = $entity_field_manager;
-    $this->staticCache = $static_cache;
+    $this->cache = $cache;
+    $this->eventDispatcher = $dispatcher;
   }
 
   /**
    * {@inheritdoc}
    */
   public function all() {
-    $cached = $this->staticCache->get('jsonapi.resource_types', FALSE);
+    $cached = $this->cache->get('jsonapi.resource_types', FALSE);
     if ($cached === FALSE) {
       $resource_types = [];
       foreach ($this->entityTypeManager->getDefinitions() as $entity_type) {
-        $resource_types = array_merge($resource_types, array_map(function ($bundle) use ($entity_type) {
-          return $this->createResourceType($entity_type, (string) $bundle);
-        }, array_keys($this->entityTypeBundleInfo->getBundleInfo($entity_type->id()))));
+        $bundles = array_keys($this->entityTypeBundleInfo->getBundleInfo($entity_type->id()));
+        $resource_types = array_reduce($bundles, function ($resource_types, $bundle) use ($entity_type) {
+          $resource_type = $this->createResourceType($entity_type, (string) $bundle);
+          return array_merge($resource_types, [
+            $resource_type->getTypeName() => $resource_type,
+          ]);
+        }, $resource_types);
       }
       foreach ($resource_types as $resource_type) {
         $relatable_resource_types = $this->calculateRelatableResourceTypes($resource_type, $resource_types);
         $resource_type->setRelatableResourceTypes($relatable_resource_types);
       }
-      $this->staticCache->set('jsonapi.resource_types', $resource_types, Cache::PERMANENT, ['jsonapi_resource_types']);
+      $this->cache->set('jsonapi.resource_types', $resource_types, Cache::PERMANENT, $this->cacheTags);
     }
     return $cached ? $cached->data : $resource_types;
   }
@@ -127,15 +150,23 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
    */
   protected function createResourceType(EntityTypeInterface $entity_type, $bundle) {
     $raw_fields = $this->getAllFieldNames($entity_type, $bundle);
+    $internalize_resource_type = $entity_type->isInternal();
+    $fields = static::getFields($raw_fields, $entity_type, $bundle);
+    if (!$internalize_resource_type) {
+      $event = ResourceTypeBuildEvent::createFromEntityTypeAndBundle($entity_type, $bundle, $fields);
+      $this->eventDispatcher->dispatch(ResourceTypeBuildEvents::BUILD, $event);
+      $internalize_resource_type = $event->resourceTypeShouldBeDisabled();
+      $fields = $event->getFields();
+    }
     return new ResourceType(
       $entity_type->id(),
       $bundle,
       $entity_type->getClass(),
-      $entity_type->isInternal(),
+      $internalize_resource_type,
       static::isLocatableResourceType($entity_type, $bundle),
       static::isMutableResourceType($entity_type, $bundle),
       static::isVersionableResourceType($entity_type),
-      static::getFieldMapping($raw_fields, $entity_type, $bundle)
+      $fields
     );
   }
 
@@ -148,31 +179,114 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
       throw new PreconditionFailedHttpException('Server error. The current route is malformed.');
     }
 
-    $cid = "jsonapi:resource_type:$entity_type_id:$bundle";
-    if (!array_key_exists($cid, $this->cache)) {
-      $result = NULL;
-      foreach ($this->all() as $resource) {
-        if ($resource->getEntityTypeId() == $entity_type_id && $resource->getBundle() == $bundle) {
-          $result = $resource;
-          break;
-        }
-      }
-      $this->cache[$cid] = $result;
-    }
-
-    return $this->cache[$cid];
+    return $this->getByTypeName("$entity_type_id--$bundle");
   }
 
   /**
    * {@inheritdoc}
    */
   public function getByTypeName($type_name) {
-    foreach ($this->all() as $resource) {
-      if ($resource->getTypeName() == $type_name) {
-        return $resource;
+    $resource_types = $this->all();
+    return isset($resource_types[$type_name]) ? $resource_types[$type_name] : NULL;
+  }
+
+  /**
+   * Gets the field mapping for the given field names and entity type + bundle.
+   *
+   * @param string[] $field_names
+   *   All field names on a bundle of the given entity type.
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type for which to get the field mapping.
+   * @param string $bundle
+   *   The bundle to assess.
+   *
+   * @return \Drupal\jsonapi\ResourceType\ResourceTypeField[]
+   *   An array of JSON:API resource type fields keyed by internal field names.
+   */
+  protected function getFields(array $field_names, EntityTypeInterface $entity_type, $bundle) {
+    assert(Inspector::assertAllStrings($field_names));
+    assert($entity_type instanceof ContentEntityTypeInterface || $entity_type instanceof ConfigEntityTypeInterface);
+    assert(is_string($bundle) && !empty($bundle), 'A bundle ID is required. Bundleless entity types should pass the entity type ID again.');
+
+    // JSON:API resource identifier objects are sufficient to identify
+    // entities. By exposing all fields as attributes, we expose unwanted,
+    // confusing or duplicate information:
+    // - exposing an entity's ID (which is not a UUID) is bad, but it's
+    //   necessary for certain Drupal-coupled clients, so we alias it by
+    //   prefixing it with `drupal_internal__`.
+    // - exposing an entity's UUID as an attribute is useless (it's already part
+    //   of the mandatory "id" attribute in JSON:API), so we disable it in most
+    //   cases.
+    // - exposing its revision ID as an attribute will compete with any profile
+    //   defined meta members used for resource object versioning.
+    // @see http://jsonapi.org/format/#document-resource-identifier-objects
+    $id_field_name = $entity_type->getKey('id');
+    $uuid_field_name = $entity_type->getKey('uuid');
+    if ($uuid_field_name && $uuid_field_name !== 'id') {
+      $fields[$uuid_field_name] = new ResourceTypeAttribute($uuid_field_name, NULL, FALSE);
+    }
+    $fields[$id_field_name] = new ResourceTypeAttribute($id_field_name, "drupal_internal__$id_field_name");
+    if ($entity_type->isRevisionable() && ($revision_id_field_name = $entity_type->getKey('revision'))) {
+      $fields[$revision_id_field_name] = new ResourceTypeAttribute($revision_id_field_name, "drupal_internal__$revision_id_field_name");
+    }
+    if ($entity_type instanceof ConfigEntityTypeInterface) {
+      // The '_core' key is reserved by Drupal core to handle complex edge cases
+      // correctly. Data in the '_core' key is irrelevant to clients reading
+      // configuration, and is not allowed to be set by clients writing
+      // configuration: it is for Drupal core only, and managed by Drupal core.
+      // @see https://www.drupal.org/node/2653358
+      $fields['_core'] = new ResourceTypeAttribute('_core', NULL, FALSE);
+    }
+
+    $is_fieldable = $entity_type->entityClassImplements(FieldableEntityInterface::class);
+    if ($is_fieldable) {
+      $field_definitions = $this->entityFieldManager->getFieldDefinitions($entity_type->id(), $bundle);
+    }
+
+    // For all other fields,  use their internal field name also as their public
+    // field name.  Unless they're called "id" or "type": those names are
+    // reserved by the JSON:API spec.
+    // @see http://jsonapi.org/format/#document-resource-object-fields
+    $reserved_field_names = ['id', 'type'];
+    foreach (array_diff($field_names, array_keys($fields)) as $field_name) {
+      $alias = $field_name;
+      // Alias the fields reserved by the JSON:API spec with `{entity_type}_`.
+      if (in_array($field_name, $reserved_field_names, TRUE)) {
+        $alias = $entity_type->id() . '_' . $field_name;
+      }
+
+      // The default, which applies to most fields: expose as-is.
+      $field_definition = $is_fieldable && !empty($field_definitions[$field_name]) ? $field_definitions[$field_name] : NULL;
+      $is_relationship_field = $field_definition && static::isReferenceFieldDefinition($field_definition);
+      $has_one = !$field_definition || $field_definition->getFieldStorageDefinition()->getCardinality() === 1;
+      $fields[$field_name] = $is_relationship_field
+        ? new ResourceTypeRelationship($field_name, $alias, TRUE, $has_one)
+        : new ResourceTypeAttribute($field_name, $alias, TRUE, $has_one);
+    }
+
+    // With all fields now aliased, detect any conflicts caused by the
+    // automatically generated aliases above.
+    foreach (array_intersect($reserved_field_names, array_keys($fields)) as $reserved_field_name) {
+      /* @var \Drupal\jsonapi\ResourceType\ResourceTypeField $aliased_reserved_field */
+      $aliased_reserved_field = $fields[$reserved_field_name];
+      /* @var \Drupal\jsonapi\ResourceType\ResourceTypeField $field */
+      foreach (array_diff_key($fields, array_flip([$reserved_field_name])) as $field) {
+        if ($aliased_reserved_field->getPublicName() === $field->getPublicName()) {
+          throw new \LogicException("The generated alias '{$aliased_reserved_field->getPublicName()}' for field name '{$aliased_reserved_field->getInternalName()}' conflicts with an existing field. Please report this in the JSON:API issue queue!");
+        }
       }
     }
-    return NULL;
+
+    // Special handling for user entities that allows a JSON:API user agent to
+    // access the display name of a user. This is useful when displaying the
+    // name of a node's author.
+    // @see \Drupal\jsonapi\JsonApiResource\ResourceObject::extractContentEntityFields()
+    // @todo: eliminate this special casing in https://www.drupal.org/project/drupal/issues/3079254.
+    if ($entity_type->id() === 'user') {
+      $fields['display_name'] = new ResourceTypeAttribute('display_name');
+    }
+
+    return $fields;
   }
 
   /**
@@ -192,63 +306,24 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
    *     not being internal), TRUE (indicating the field should be exposed under
    *     its internal name) or a string (indicating the field should not be
    *     exposed using its internal name, but the name specified in the string)
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   self::getFields() instead.
+   *
+   * @see https://www.drupal.org/project/drupal/issues/3014277
    */
-  protected static function getFieldMapping(array $field_names, EntityTypeInterface $entity_type, $bundle) {
-    assert(Inspector::assertAllStrings($field_names));
-    assert($entity_type instanceof ContentEntityTypeInterface || $entity_type instanceof ConfigEntityTypeInterface);
-    assert(is_string($bundle) && !empty($bundle), 'A bundle ID is required. Bundleless entity types should pass the entity type ID again.');
-
-    $mapping = [];
-
-    // JSON:API resource identifier objects are sufficient to identify
-    // entities. By exposing all fields as attributes, we expose unwanted,
-    // confusing or duplicate information:
-    // - exposing an entity's ID (which is not a UUID) is bad, but it's
-    //   necessary for certain Drupal-coupled clients, so we alias it by
-    //   prefixing it with `drupal_internal__`.
-    // - exposing an entity's UUID as an attribute is useless (it's already part
-    //   of the mandatory "id" attribute in JSON:API), so we disable it in most
-    //   cases.
-    // - exposing its revision ID as an attribute will compete with any profile
-    //   defined meta members used for resource object versioning.
-    // @see http://jsonapi.org/format/#document-resource-identifier-objects
-    $id_field_name = $entity_type->getKey('id');
-    $uuid_field_name = $entity_type->getKey('uuid');
-    if ($uuid_field_name !== 'id') {
-      $mapping[$uuid_field_name] = FALSE;
-    }
-    $mapping[$id_field_name] = "drupal_internal__$id_field_name";
-    if ($entity_type->isRevisionable() && ($revision_id_field_name = $entity_type->getKey('revision'))) {
-      $mapping[$revision_id_field_name] = "drupal_internal__$revision_id_field_name";
-    }
-    if ($entity_type instanceof ConfigEntityTypeInterface) {
-      // The '_core' key is reserved by Drupal core to handle complex edge cases
-      // correctly. Data in the '_core' key is irrelevant to clients reading
-      // configuration, and is not allowed to be set by clients writing
-      // configuration: it is for Drupal core only, and managed by Drupal core.
-      // @see https://www.drupal.org/node/2653358
-      $mapping['_core'] = FALSE;
-    }
-
-    // For all other fields,  use their internal field name also as their public
-    // field name.  Unless they're called "id" or "type": those names are
-    // reserved by the JSON:API spec.
-    // @see http://jsonapi.org/format/#document-resource-object-fields
-    foreach (array_diff($field_names, array_keys($mapping)) as $field_name) {
-      if ($field_name === 'id' || $field_name === 'type') {
-        $alias = $entity_type->id() . '_' . $field_name;
-        if (isset($field_name[$alias])) {
-          throw new \LogicException('The generated alias conflicts with an existing field. Please report this in the JSON:API issue queue!');
-        }
-        $mapping[$field_name] = $alias;
-        continue;
+  protected function getFieldMapping(array $field_names, EntityTypeInterface $entity_type, $bundle) {
+    $class_name = self::class;
+    @trigger_error("{$class_name}::getFieldMapping() is deprecated in Drupal 8.8.0 and will not be allowed in Drupal 9.0.0. Use {$class_name}::getFields() instead. See https://www.drupal.org/project/drupal/issues/3014277.", E_USER_DEPRECATED);
+    $fields = $this->getFields($field_names, $entity_type, $bundle);
+    return array_map(function (ResourceTypeField $field) {
+      if ($field->isFieldEnabled()) {
+        return $field->getInternalName() !== $field->getPublicName()
+          ? $field->getPublicName()
+          : TRUE;
       }
-
-      // The default, which applies to most fields: expose as-is.
-      $mapping[$field_name] = TRUE;
-    }
-
-    return $mapping;
+      return FALSE;
+    }, $fields);
   }
 
   /**
@@ -395,11 +470,8 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
       : $this->getAllBundlesForEntityType($entity_type_id);
 
     return array_map(function ($target_bundle) use ($entity_type_id, $resource_types) {
-      foreach ($resource_types as $resource_type) {
-        if ($resource_type->getEntityTypeId() === $entity_type_id && $resource_type->getBundle() === $target_bundle) {
-          return $resource_type;
-        }
-      }
+      $type_name = "$entity_type_id--$target_bundle";
+      return isset($resource_types[$type_name]) ? $resource_types[$type_name] : NULL;
     }, $target_bundles);
   }
 
@@ -414,11 +486,18 @@ class ResourceTypeRepository implements ResourceTypeRepositoryInterface {
    *   otherwise.
    */
   protected function isReferenceFieldDefinition(FieldDefinitionInterface $field_definition) {
+    static $field_type_is_reference = [];
+
+    if (isset($field_type_is_reference[$field_definition->getType()])) {
+      return $field_type_is_reference[$field_definition->getType()];
+    }
+
     /* @var \Drupal\Core\Field\TypedData\FieldItemDataDefinition $item_definition */
     $item_definition = $field_definition->getItemDefinition();
     $main_property = $item_definition->getMainPropertyName();
     $property_definition = $item_definition->getPropertyDefinition($main_property);
-    return $property_definition instanceof DataReferenceTargetDefinition;
+
+    return $field_type_is_reference[$field_definition->getType()] = $property_definition instanceof DataReferenceTargetDefinition;
   }
 
   /**

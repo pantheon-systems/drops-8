@@ -104,7 +104,7 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
     $this->assertEntity('node.page.body', 'Body', 'text_with_summary', FALSE, FALSE);
     $this->assertEntity('comment.comment_node_article.comment_body', 'Comment', 'text_long', TRUE, FALSE);
     $this->assertEntity('node.article.body', 'Body', 'text_with_summary', FALSE, TRUE);
-    $this->assertEntity('node.article.field_tags', 'Tags', 'entity_reference', FALSE, TRUE);
+    $this->assertEntity('node.article.field_tags', 'Tags', 'entity_reference', FALSE, FALSE);
     $this->assertEntity('node.article.field_image', 'Image', 'image', FALSE, TRUE);
     $this->assertEntity('comment.comment_node_blog.comment_body', 'Comment', 'text_long', TRUE, FALSE);
     $this->assertEntity('node.blog.body', 'Body', 'text_with_summary', FALSE, TRUE);
@@ -157,6 +157,16 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
       'off_label' => 'Off',
     ];
     $this->assertSame($expected_settings, $boolean_field->get('settings'));
+
+    // Test a synchronized field is not translatable.
+    $field = FieldConfig::load('node.article.field_text_plain');
+    $this->assertInstanceOf(FieldConfig::class, $field);
+    $this->assertFalse($field->isTranslatable());
+
+    // Test the translation settings for taxonomy fields.
+    $this->assertEntity('node.article.field_vocab_fixed', 'vocab_fixed', 'entity_reference', FALSE, TRUE);
+    $this->assertEntity('node.article.field_vocab_localize', 'vocab_localize', 'entity_reference', FALSE, FALSE);
+    $this->assertEntity('node.article.field_vocab_translate', 'vocab_translate', 'entity_reference', FALSE, TRUE);
   }
 
   /**
@@ -169,7 +179,7 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
     // plain text instances should not have been migrated since there's no such
     // thing as a string_with_summary field.
     $this->assertEntity('node.page.field_text_plain', 'Text plain', 'string', FALSE, FALSE);
-    $this->assertEntity('node.article.field_text_plain', 'Text plain', 'string', FALSE, TRUE);
+    $this->assertEntity('node.article.field_text_plain', 'Text plain', 'string', FALSE, FALSE);
     $this->assertEntity('node.page.field_text_long_plain', 'Text long plain', 'string_long', FALSE, FALSE);
     $this->assertEntity('node.article.field_text_long_plain', 'Text long plain', 'string_long', FALSE, TRUE);
     $this->assertNull(FieldConfig::load('node.page.field_text_sum_plain'));
@@ -198,10 +208,9 @@ class MigrateFieldInstanceTest extends MigrateDrupal7TestBase {
     // For each text field instances that were skipped, there should be a log
     // message with the required steps to fix this.
     $migration = $this->getMigration('d7_field_instance');
-    $messages = $migration->getIdMap()->getMessageIterator()->fetchAll();
     $errors = array_map(function ($message) {
       return $message->message;
-    }, $messages);
+    }, iterator_to_array($migration->getIdMap()->getMessages()));
     $this->assertCount(8, $errors);
     sort($errors);
     $message = 'Can\'t migrate source field field_text_long_plain_filtered configured with both plain text and filtered text processing. See https://www.drupal.org/docs/8/upgrade/known-issues-when-upgrading-from-drupal-6-or-7-to-drupal-8#plain-text';

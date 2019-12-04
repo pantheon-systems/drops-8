@@ -19,6 +19,11 @@ class HtaccessTest extends BrowserTestBase {
   public static $modules = ['node', 'path'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Get an array of file paths for access testing.
    *
    * @return int[]
@@ -85,6 +90,10 @@ class HtaccessTest extends BrowserTestBase {
     // Ensure composer.json and composer.lock cannot be accessed.
     $file_paths["$path/composer.json"] = 403;
     $file_paths["$path/composer.lock"] = 403;
+
+    // Ensure web server configuration files cannot be accessed.
+    $file_paths["$path/.htaccess"] = 403;
+    $file_paths["$path/web.config"] = 403;
 
     return $file_paths;
   }

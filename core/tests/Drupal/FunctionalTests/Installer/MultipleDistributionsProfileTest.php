@@ -21,13 +21,18 @@ class MultipleDistributionsProfileTest extends InstallerTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function prepareEnvironment() {
     parent::prepareEnvironment();
     // Create two distributions.
     foreach (['distribution_one', 'distribution_two'] as $name) {
       $info = [
         'type' => 'profile',
-        'core' => \Drupal::CORE_COMPATIBILITY,
+        'core_version_requirement' => '*',
         'name' => $name . ' profile',
         'distribution' => [
           'name' => $name,

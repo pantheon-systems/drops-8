@@ -35,7 +35,7 @@ class SqlBaseTest extends MigrateTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->migration = $this->getMock(MigrationInterface::class);
+    $this->migration = $this->createMock(MigrationInterface::class);
     $this->migration->method('id')->willReturn('fubar');
   }
 
@@ -123,8 +123,8 @@ class SqlBaseTest extends MigrateTestBase {
     \Drupal::state()->delete('migrate.fallback_state_key');
     $sql_base->setConfiguration([]);
     Database::renameConnection('migrate', 'fallback_connection');
-    $this->setExpectedException(RequirementsException::class,
-      'No database connection configured for source plugin');
+    $this->expectException(RequirementsException::class);
+    $this->expectExceptionMessage('No database connection configured for source plugin');
     $sql_base->getDatabase();
   }
 
@@ -156,7 +156,7 @@ class SqlBaseTest extends MigrateTestBase {
     $query->method('execute')->willReturn($statement);
     $query->expects($this->atLeastOnce())->method('orderBy')->with('order', 'ASC');
 
-    $condition_group = $this->getMock(ConditionInterface::class);
+    $condition_group = $this->createMock(ConditionInterface::class);
     $query->method('orConditionGroup')->willReturn($condition_group);
 
     $source->setQuery($query);

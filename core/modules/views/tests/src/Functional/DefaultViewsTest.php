@@ -2,10 +2,12 @@
 
 namespace Drupal\Tests\views\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\views\Views;
 use Drupal\comment\Entity\Comment;
@@ -29,6 +31,11 @@ class DefaultViewsTest extends ViewTestBase {
    * @var array
    */
   public static $modules = ['views', 'node', 'search', 'comment', 'taxonomy', 'block', 'user'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * An array of argument arrays to use for default views.
@@ -87,7 +94,7 @@ class DefaultViewsTest extends ViewTestBase {
       if ($i % 2) {
         $values['promote'] = TRUE;
       }
-      $values['body'][]['value'] = \Drupal::l('Node ' . 1, new Url('entity.node.canonical', ['node' => 1]));
+      $values['body'][]['value'] = Link::fromTextAndUrl('Node ' . 1, Url::fromRoute('entity.node.canonical', ['node' => 1]))->toString();
 
       $node = $this->drupalCreateNode($values);
 
@@ -121,7 +128,7 @@ class DefaultViewsTest extends ViewTestBase {
    */
   public function testDefaultViews() {
     // Get all default views.
-    $controller = $this->container->get('entity.manager')->getStorage('view');
+    $controller = $this->container->get('entity_type.manager')->getStorage('view');
     $views = $controller->loadMultiple();
 
     foreach ($views as $name => $view_storage) {
@@ -135,14 +142,14 @@ class DefaultViewsTest extends ViewTestBase {
           $view->preExecute($this->viewArgMap[$name]);
         }
 
-        $this->assert(TRUE, format_string('View @view will be executed.', ['@view' => $view->storage->id()]));
+        $this->assert(TRUE, new FormattableMarkup('View @view will be executed.', ['@view' => $view->storage->id()]));
         $view->execute();
 
         $tokens = ['@name' => $name, '@display_id' => $display_id];
-        $this->assertTrue($view->executed, format_string('@name:@display_id has been executed.', $tokens));
+        $this->assertTrue($view->executed, new FormattableMarkup('@name:@display_id has been executed.', $tokens));
 
         $count = count($view->result);
-        $this->assertTrue($count > 0, format_string('@count results returned', ['@count' => $count]));
+        $this->assertTrue($count > 0, new FormattableMarkup('@count results returned', ['@count' => $count]));
         $view->destroy();
       }
     }

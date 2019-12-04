@@ -13,7 +13,6 @@ description: ''
 tag: ''
 base_table: taxonomy_term_field_data
 base_field: tid
-core: 8.x
 display:
   default:
     display_plugin: default
@@ -123,16 +122,19 @@ display:
           entity_type: taxonomy_term
           entity_field: vid
           plugin_id: bundle
-        langcode:
-          id: langcode
+          expose:
+            operator_limit_selection: false
+            operator_list: {  }
+          group: 1
+        default_langcode:
+          id: default_langcode
           table: taxonomy_term_field_data
-          field: langcode
+          field: default_langcode
           relationship: none
           group_type: group
           admin_label: ''
-          operator: in
-          value:
-            '***LANGUAGE_language_content***': '***LANGUAGE_language_content***'
+          operator: '='
+          value: '1'
           group: 1
           exposed: false
           expose:
@@ -141,13 +143,14 @@ display:
             description: ''
             use_operator: false
             operator: ''
+            operator_limit_selection: false
+            operator_list: {  }
             identifier: ''
             required: false
             remember: false
             multiple: false
             remember_roles:
               authenticated: authenticated
-            reduce: false
           is_grouped: false
           group_info:
             label: ''
@@ -161,8 +164,8 @@ display:
             default_group_multiple: {  }
             group_items: {  }
           entity_type: taxonomy_term
-          entity_field: langcode
-          plugin_id: language
+          entity_field: default_langcode
+          plugin_id: boolean
       sorts:
         name:
           id: name
@@ -185,6 +188,10 @@ display:
       relationships: {  }
       arguments: {  }
       display_extenders: {  }
+      filter_groups:
+        operator: AND
+        groups:
+          1: AND
     cache_metadata:
       max-age: -1
       contexts:
@@ -200,10 +207,10 @@ display:
     display_options:
       display_extenders: {  }
       block_hide_empty: true
+      rendering_language: '***LANGUAGE_language_interface***'
     cache_metadata:
       max-age: -1
       contexts:
-        - 'languages:language_content'
         - 'languages:language_interface'
         - user.permissions
       tags: {  }

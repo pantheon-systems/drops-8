@@ -46,6 +46,7 @@ class Connection extends DatabaseConnection {
     'LIKE BINARY' => ['operator' => 'LIKE'],
     'NOT LIKE' => ['operator' => 'NOT ILIKE'],
     'REGEXP' => ['operator' => '~*'],
+    'NOT REGEXP' => ['operator' => '!~*'],
   ];
 
   /**
@@ -65,9 +66,9 @@ class Connection extends DatabaseConnection {
     'localtime', 'localtimestamp', 'natural', 'not', 'notnull', 'null', 'offset',
     'on', 'only', 'or', 'order', 'outer', 'over', 'overlaps', 'placing',
     'primary', 'references', 'returning', 'right', 'select', 'session_user',
-    'similar', 'some', 'symmetric', 'table', 'then', 'to', 'trailing', 'true',
-    'union', 'unique', 'user', 'using', 'variadic', 'verbose', 'when', 'where',
-    'window', 'with',
+    'similar', 'some', 'symmetric', 'table', 'tablesample', 'then', 'to',
+    'trailing', 'true', 'union', 'unique', 'user', 'using', 'variadic', 'verbose',
+    'when', 'where', 'window', 'with',
   ];
 
   /**
@@ -209,7 +210,7 @@ class Connection extends DatabaseConnection {
     // PostgreSQL equivalents (ILIKE, ~*, etc.). However PostgreSQL doesn't
     // automatically cast the fields to the right type for these operators,
     // so we need to alter the query and add the type-cast.
-    return parent::prepareQuery(preg_replace('/ ([^ ]+) +(I*LIKE|NOT +I*LIKE|~\*) /i', ' ${1}::text ${2} ', $query));
+    return parent::prepareQuery(preg_replace('/ ([^ ]+) +(I*LIKE|NOT +I*LIKE|~\*|!~\*) /i', ' ${1}::text ${2} ', $query));
   }
 
   public function queryRange($query, $from, $count, array $args = [], array $options = []) {

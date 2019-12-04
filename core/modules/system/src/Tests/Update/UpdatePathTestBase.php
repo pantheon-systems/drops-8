@@ -36,7 +36,7 @@ use Symfony\Component\HttpFoundation\Request;
  *
  * @ingroup update_api
  *
- * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.4.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\FunctionalTests\Update\UpdatePathTestBase.
  * @see https://www.drupal.org/node/2896640
  *
@@ -186,9 +186,6 @@ abstract class UpdatePathTestBase extends WebTestBase {
     $request = Request::createFromGlobals();
     $container = $this->initKernel($request);
     $this->initConfig($container);
-
-    // Add the config directories to settings.php.
-    drupal_install_config_directories();
 
     // Restore the original Simpletest batch.
     $this->restoreBatch();

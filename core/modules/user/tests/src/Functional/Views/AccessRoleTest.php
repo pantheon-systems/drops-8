@@ -26,11 +26,16 @@ class AccessRoleTest extends AccessTestBase {
   public static $testViews = ['test_access_role'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests role access plugin.
    */
   public function testAccessRole() {
     /** @var \Drupal\views\ViewEntityInterface $view */
-    $view = \Drupal::entityManager()->getStorage('view')->load('test_access_role');
+    $view = \Drupal::entityTypeManager()->getStorage('view')->load('test_access_role');
     $display = &$view->getDisplay('default');
     $display['display_options']['access']['options']['role'] = [
       $this->normalRole => $this->normalRole,

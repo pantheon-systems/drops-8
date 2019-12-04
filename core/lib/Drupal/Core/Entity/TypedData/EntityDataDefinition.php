@@ -70,7 +70,7 @@ class EntityDataDefinition extends ComplexDataDefinitionBase implements EntityDa
     if (!isset($this->propertyDefinitions)) {
       if ($entity_type_id = $this->getEntityTypeId()) {
         // Return an empty array for entities that are not content entities.
-        $entity_type_class = \Drupal::entityManager()->getDefinition($entity_type_id)->getClass();
+        $entity_type_class = \Drupal::entityTypeManager()->getDefinition($entity_type_id)->getClass();
         if (!in_array('Drupal\Core\Entity\FieldableEntityInterface', class_implements($entity_type_class))) {
           $this->propertyDefinitions = [];
         }
@@ -79,10 +79,10 @@ class EntityDataDefinition extends ComplexDataDefinitionBase implements EntityDa
           // See https://www.drupal.org/node/2169813.
           $bundles = $this->getBundles();
           if (is_array($bundles) && count($bundles) == 1) {
-            $this->propertyDefinitions = \Drupal::entityManager()->getFieldDefinitions($entity_type_id, reset($bundles));
+            $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, reset($bundles));
           }
           else {
-            $this->propertyDefinitions = \Drupal::entityManager()->getBaseFieldDefinitions($entity_type_id);
+            $this->propertyDefinitions = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions($entity_type_id);
           }
         }
       }

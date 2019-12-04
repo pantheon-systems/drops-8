@@ -2,6 +2,8 @@
 
 namespace Drupal\layout_builder\Plugin\SectionStorage;
 
+use Drupal\Core\Plugin\Context\Context;
+use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\ContextAwarePluginBase;
 use Drupal\layout_builder\Routing\LayoutBuilderRoutesTrait;
 use Drupal\layout_builder\Section;
@@ -28,7 +30,7 @@ abstract class SectionStorageBase extends ContextAwarePluginBase implements Sect
    *
    * @throws \Exception
    *
-   * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. This
+   * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. This
    *   method should no longer be used. The section list should be derived from
    *   context. See https://www.drupal.org/node/3016262.
    */
@@ -109,7 +111,16 @@ abstract class SectionStorageBase extends ContextAwarePluginBase implements Sect
    * {@inheritdoc}
    */
   public function getContextsDuringPreview() {
-    return $this->getContexts();
+    $contexts = $this->getContexts();
+
+    // view_mode is a required context, but SectionStorage plugins are not
+    // required to return it (for example, the layout_library plugin provided
+    // in the Layout Library module. In these instances, explicitly create a
+    // view_mode context with the value "default".
+    if (!isset($contexts['view_mode']) || $contexts['view_mode']->validate()->count() || !$contexts['view_mode']->getContextValue()) {
+      $contexts['view_mode'] = new Context(new ContextDefinition('string'), 'default');
+    }
+    return $contexts;
   }
 
   /**
