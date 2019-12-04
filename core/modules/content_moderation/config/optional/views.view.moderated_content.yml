@@ -1,8 +1,10 @@
 langcode: en
 status: true
 dependencies:
+  enforced:
+    module:
+      - content_moderation
   module:
-    - content_moderation
     - node
     - user
 id: moderated_content
@@ -12,7 +14,6 @@ description: 'Find and moderate content.'
 tag: ''
 base_table: node_field_revision
 base_field: vid
-core: 8.x
 display:
   default:
     display_plugin: default
@@ -524,6 +525,8 @@ display:
             multiple: false
             remember_roles:
               authenticated: authenticated
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -563,6 +566,8 @@ display:
               authenticated: authenticated
               anonymous: '0'
               administrator: '0'
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -604,6 +609,8 @@ display:
               anonymous: '0'
               administrator: '0'
             reduce: false
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -647,6 +654,8 @@ display:
               anonymous: '0'
               administrator: '0'
             reduce: true
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -687,6 +696,8 @@ display:
               anonymous: '0'
               administrator: '0'
             reduce: false
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -727,6 +738,8 @@ display:
             remember_roles:
               authenticated: authenticated
             reduce: false
+            operator_limit_selection: false
+            operator_list: {  }
           is_grouped: false
           group_info:
             label: ''
@@ -787,7 +800,7 @@ display:
         groups:
           1: AND
     cache_metadata:
-      max-age: 0
+      max-age: -1
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'
@@ -806,7 +819,7 @@ display:
       path: admin/content/moderated
       display_description: ''
     cache_metadata:
-      max-age: 0
+      max-age: -1
       contexts:
         - 'languages:language_content'
         - 'languages:language_interface'

@@ -19,6 +19,11 @@ class ViewsNoResultsBehaviorTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp($import_test_views = TRUE) {
     parent::setUp();
     $this->enableViewsTestModule();
@@ -26,9 +31,9 @@ class ViewsNoResultsBehaviorTest extends ViewTestBase {
     $this->drupalLogin($user);
 
     // Set the Stark theme and use the default templates from views module.
-    /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
-    $theme_handler = \Drupal::service('theme_handler');
-    $theme_handler->install(['stark']);
+    /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
+    $theme_installer = \Drupal::service('theme_installer');
+    $theme_installer->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
   }
 

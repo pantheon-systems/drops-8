@@ -21,6 +21,11 @@ class BlockContentListViewsTest extends BlockContentTestBase {
   public static $modules = ['block', 'block_content', 'config_translation', 'views'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests the custom block listing page.
    */
   public function testListing() {
@@ -36,7 +41,7 @@ class BlockContentListViewsTest extends BlockContentTestBase {
 
     // Test for the table.
     $element = $this->xpath('//div[@class="layout-content"]//table');
-    $this->assertTrue($element, 'Views table found.');
+    $this->assertNotEmpty($element, 'Views table found.');
 
     // Test the table header.
     $elements = $this->xpath('//div[@class="layout-content"]//table/thead/tr/th');
@@ -79,7 +84,7 @@ class BlockContentListViewsTest extends BlockContentTestBase {
 
     // Edit the entity using the operations link.
     $blocks = $this->container
-      ->get('entity.manager')
+      ->get('entity_type.manager')
       ->getStorage('block_content')
       ->loadByProperties(['info' => $label]);
     $block = reset($blocks);

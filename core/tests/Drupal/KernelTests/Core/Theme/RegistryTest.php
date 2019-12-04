@@ -4,6 +4,7 @@ namespace Drupal\KernelTests\Core\Theme;
 
 use Drupal\Core\Path\CurrentPathStack;
 use Drupal\Core\Path\PathMatcherInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Theme\Registry;
 use Drupal\Core\Utility\ThemeRegistry;
 use Drupal\KernelTests\KernelTestBase;
@@ -39,10 +40,10 @@ class RegistryTest extends KernelTestBase {
     $lock_backend = \Drupal::lock();
     $registry = new ThemeRegistry($cid, $cache, $lock_backend, ['theme_registry'], $this->container->get('module_handler')->isLoaded());
 
-    $this->assertTrue(\Drupal::cache()->get($cid), 'Cache entry was created.');
+    $this->assertNotEmpty(\Drupal::cache()->get($cid), 'Cache entry was created.');
 
     // Trigger a cache miss for an offset.
-    $this->assertTrue($registry->get('theme_test_template_test'), 'Offset was returned correctly from the theme registry.');
+    $this->assertNotEmpty($registry->get('theme_test_template_test'), 'Offset was returned correctly from the theme registry.');
     // This will cause the ThemeRegistry class to write an updated version of
     // the cache entry when it is destroyed, usually at the end of the request.
     // Before that happens, manually delete the cache entry we created earlier
@@ -52,14 +53,14 @@ class RegistryTest extends KernelTestBase {
     // Destroy the class so that it triggers a cache write for the offset.
     $registry->destruct();
 
-    $this->assertTrue(\Drupal::cache()->get($cid), 'Cache entry was created.');
+    $this->assertNotEmpty(\Drupal::cache()->get($cid), 'Cache entry was created.');
 
     // Create a new instance of the class. Confirm that both the offset
     // requested previously, and one that has not yet been requested are both
     // available.
     $registry = new ThemeRegistry($cid, $cache, $lock_backend, ['theme_registry'], $this->container->get('module_handler')->isLoaded());
-    $this->assertTrue($registry->get('theme_test_template_test'), 'Offset was returned correctly from the theme registry');
-    $this->assertTrue($registry->get('theme_test_template_test_2'), 'Offset was returned correctly from the theme registry');
+    $this->assertNotEmpty($registry->get('theme_test_template_test'), 'Offset was returned correctly from the theme registry');
+    $this->assertNotEmpty($registry->get('theme_test_template_test_2'), 'Offset was returned correctly from the theme registry');
   }
 
   /**
@@ -67,7 +68,7 @@ class RegistryTest extends KernelTestBase {
    */
   public function testMultipleSubThemes() {
     $theme_handler = \Drupal::service('theme_handler');
-    $theme_handler->install(['test_basetheme', 'test_subtheme', 'test_subsubtheme']);
+    \Drupal::service('theme_installer')->install(['test_basetheme', 'test_subtheme', 'test_subsubtheme']);
 
     $registry_subsub_theme = new Registry($this->root, \Drupal::cache(), \Drupal::lock(), \Drupal::moduleHandler(), $theme_handler, \Drupal::service('theme.initialization'), 'test_subsubtheme');
     $registry_subsub_theme->setThemeManager(\Drupal::theme());
@@ -109,7 +110,7 @@ class RegistryTest extends KernelTestBase {
    */
   public function testSuggestionPreprocessFunctions() {
     $theme_handler = \Drupal::service('theme_handler');
-    $theme_handler->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
 
     $registry_theme = new Registry($this->root, \Drupal::cache(), \Drupal::lock(), \Drupal::moduleHandler(), $theme_handler, \Drupal::service('theme.initialization'), 'test_theme');
     $registry_theme->setThemeManager(\Drupal::theme());
@@ -151,7 +152,7 @@ class RegistryTest extends KernelTestBase {
 
     /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
     $theme_handler = \Drupal::service('theme_handler');
-    $theme_handler->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
     $this->config('system.theme')->set('default', 'test_theme')->save();
 
     $registry = new Registry($this->root, \Drupal::cache(), \Drupal::lock(), \Drupal::moduleHandler(), $theme_handler, \Drupal::service('theme.initialization'), 'test_theme');
@@ -193,11 +194,54 @@ class RegistryTest extends KernelTestBase {
   }
 
   /**
+   * Data provider for test40xThemeSuggestions().
+   *
+   * @return array
+   *   An associative array of 40x theme suggestions.
+   */
+  public function provider40xThemeSuggestions() {
+    return [
+      ['system.401', 'page__401'],
+      ['system.403', 'page__403'],
+      ['system.404', 'page__404'],
+    ];
+  }
+
+  /**
+   * Tests page theme suggestions for 40x responses.
+   *
+   * @dataProvider provider40xThemeSuggestions
+   */
+  public function test40xThemeSuggestions($route, $suggestion) {
+    /** @var \Drupal\Core\Path\PathMatcherInterface $path_matcher */
+    $path_matcher = $this->prophesize(PathMatcherInterface::class);
+    $path_matcher->isFrontPage()->willReturn(FALSE);
+    \Drupal::getContainer()->set('path.matcher', $path_matcher->reveal());
+    /** @var \Drupal\Core\Path\CurrentPathStack $path_current */
+    $path_current = $this->prophesize(CurrentPathStack::class);
+    $path_current->getPath()->willReturn('/node/123');
+    \Drupal::getContainer()->set('path.current', $path_current->reveal());
+    /** @var \Drupal\Core\Routing\RouteMatchInterface $route_matcher */
+    $route_matcher = $this->prophesize(RouteMatchInterface::class);
+    $route_matcher->getRouteName()->willReturn($route);
+    \Drupal::getContainer()->set('current_route_match', $route_matcher->reveal());
+
+    $suggestions = \Drupal::moduleHandler()->invokeAll('theme_suggestions_page', [[]]);
+    $this->assertSame([
+      'page__node',
+      'page__node__%',
+      'page__node__123',
+      'page__4xx',
+      $suggestion,
+    ], $suggestions);
+  }
+
+  /**
    * Tests theme-provided templates that are registered by modules.
    */
   public function testThemeTemplatesRegisteredByModules() {
     $theme_handler = \Drupal::service('theme_handler');
-    $theme_handler->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
 
     $registry_theme = new Registry($this->root, \Drupal::cache(), \Drupal::lock(), \Drupal::moduleHandler(), $theme_handler, \Drupal::service('theme.initialization'), 'test_theme');
     $registry_theme->setThemeManager(\Drupal::theme());

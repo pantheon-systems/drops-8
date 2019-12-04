@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\editor\Plugin\EditorBase;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\editor\Entity\Editor;
@@ -58,6 +59,13 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   protected $renderer;
 
   /**
+   * The state key/value store.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
+
+  /**
    * Constructs a \Drupal\ckeditor\Plugin\Editor\CKEditor object.
    *
    * @param array $configuration
@@ -74,13 +82,20 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
    *   The language manager.
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state key/value store.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager, RendererInterface $renderer) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, CKEditorPluginManager $ckeditor_plugin_manager, ModuleHandlerInterface $module_handler, LanguageManagerInterface $language_manager, RendererInterface $renderer, StateInterface $state = NULL) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->ckeditorPluginManager = $ckeditor_plugin_manager;
     $this->moduleHandler = $module_handler;
     $this->languageManager = $language_manager;
     $this->renderer = $renderer;
+    if ($state === NULL) {
+      @trigger_error('Calling CKEditor::__construct() without the $state argument is deprecated in drupal:8.8.0. The $state argument is required in drupal:9.0.0. See https://www.drupal.org/node/3075102.', E_USER_DEPRECATED);
+      $state = \Drupal::service('state');
+    }
+    $this->state = $state;
   }
 
   /**
@@ -94,7 +109,8 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       $container->get('plugin.manager.ckeditor.plugin'),
       $container->get('module_handler'),
       $container->get('language_manager'),
-      $container->get('renderer')
+      $container->get('renderer'),
+      $container->get('state')
     );
   }
 
@@ -137,7 +153,8 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array $form, FormStateInterface $form_state, Editor $editor) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    $editor = $form_state->get('editor');
     $settings = $editor->getSettings();
 
     $ckeditor_settings_toolbar = [
@@ -205,14 +222,14 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
       'settings' => [
         // Single toolbar row, single button group, all existing buttons.
         'toolbar' => [
-         'rows' => [
-           0 => [
-             0 => [
-               'name' => 'All existing buttons',
-               'items' => $all_buttons,
-             ],
-           ],
-         ],
+          'rows' => [
+            0 => [
+              0 => [
+                'name' => 'All existing buttons',
+                'items' => $all_buttons,
+              ],
+            ],
+          ],
         ],
         'plugins' => $settings['plugins'],
       ],
@@ -234,20 +251,21 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
   /**
    * {@inheritdoc}
    */
-  public function settingsFormSubmit(array $form, FormStateInterface $form_state) {
-    // Modify the toolbar settings by reference. The values in
-    // $form_state->getValue(array('editor', 'settings')) will be saved directly
-    // by editor_form_filter_admin_format_submit().
-    $toolbar_settings = &$form_state->getValue(['editor', 'settings', 'toolbar']);
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
+  }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     // The rows key is not built into the form structure, so decode the button
     // groups data into this new key and remove the button_groups key.
-    $toolbar_settings['rows'] = json_decode($toolbar_settings['button_groups'], TRUE);
-    unset($toolbar_settings['button_groups']);
+    $form_state->setValue(['toolbar', 'rows'], json_decode($form_state->getValue(['toolbar', 'button_groups']), TRUE));
+    $form_state->unsetValue(['toolbar', 'button_groups']);
 
     // Remove the plugin settings' vertical tabs state; no need to save that.
-    if ($form_state->hasValue(['editor', 'settings', 'plugins'])) {
-      $form_state->unsetValue(['editor', 'settings', 'plugin_settings']);
+    if ($form_state->hasValue('plugins')) {
+      $form_state->unsetValue('plugin_settings');
     }
   }
 
@@ -423,6 +441,11 @@ class CKEditor extends EditorBase implements ContainerFactoryPluginInterface {
     }, []);
     $css = array_merge($css, $plugins_css);
     $css = array_merge($css, _ckeditor_theme_css());
+    $query_string = $this->state->get('system.css_js_query_string', '0');
+    $css = array_map(function ($item) use ($query_string) {
+      $query_string_separator = (strpos($item, '?') !== FALSE) ? '&' : '?';
+      return $item . $query_string_separator . $query_string;
+    }, $css);
     $css = array_map('file_create_url', $css);
     $css = array_map('file_url_transform_relative', $css);
 

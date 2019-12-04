@@ -2,6 +2,8 @@
 
 namespace Drupal\KernelTests\Core\Database;
 
+use Drupal\Component\Render\FormattableMarkup;
+
 /**
  * Tests the Insert query builder with LOB fields.
  *
@@ -18,8 +20,8 @@ class InsertLobTest extends DatabaseTestBase {
     $id = $this->connection->insert('test_one_blob')
       ->fields(['blob1' => $data])
       ->execute();
-    $r = db_query('SELECT * FROM {test_one_blob} WHERE id = :id', [':id' => $id])->fetchAssoc();
-    $this->assertTrue($r['blob1'] === $data, format_string('Can insert a blob: id @id, @data.', ['@id' => $id, '@data' => serialize($r)]));
+    $r = $this->connection->query('SELECT * FROM {test_one_blob} WHERE id = :id', [':id' => $id])->fetchAssoc();
+    $this->assertTrue($r['blob1'] === $data, new FormattableMarkup('Can insert a blob: id @id, @data.', ['@id' => $id, '@data' => serialize($r)]));
   }
 
   /**
@@ -32,7 +34,7 @@ class InsertLobTest extends DatabaseTestBase {
         'blob2' => 'a test',
       ])
       ->execute();
-    $r = db_query('SELECT * FROM {test_two_blobs} WHERE id = :id', [':id' => $id])->fetchAssoc();
+    $r = $this->connection->query('SELECT * FROM {test_two_blobs} WHERE id = :id', [':id' => $id])->fetchAssoc();
     $this->assertTrue($r['blob1'] === 'This is' && $r['blob2'] === 'a test', 'Can insert multiple blobs per row.');
   }
 

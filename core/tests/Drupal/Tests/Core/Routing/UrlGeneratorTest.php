@@ -5,12 +5,12 @@ namespace Drupal\Tests\Core\Routing;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Core\PathProcessor\OutboundPathProcessorInterface;
-use Drupal\Core\PathProcessor\PathProcessorAlias;
 use Drupal\Core\PathProcessor\PathProcessorManager;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Routing\RequestContext;
 use Drupal\Core\Routing\RouteProviderInterface;
 use Drupal\Core\Routing\UrlGenerator;
+use Drupal\path_alias\PathProcessor\AliasPathProcessor;
 use Drupal\Tests\UnitTestCase;
 use Prophecy\Argument;
 use Symfony\Component\HttpFoundation\Request;
@@ -43,14 +43,14 @@ class UrlGeneratorTest extends UnitTestCase {
   /**
    * The alias manager.
    *
-   * @var \Drupal\Core\Path\AliasManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\path_alias\AliasManager|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $aliasManager;
 
   /**
    * The mock route processor manager.
    *
-   * @var \Drupal\Core\RouteProcessor\RouteProcessorManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\RouteProcessor\RouteProcessorManager|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $routeProcessorManager;
 
@@ -143,7 +143,7 @@ class UrlGeneratorTest extends UnitTestCase {
       ->will($this->returnValueMap($routes_names_return_map));
 
     // Create an alias manager stub.
-    $alias_manager = $this->getMockBuilder('Drupal\Core\Path\AliasManager')
+    $alias_manager = $this->getMockBuilder('Drupal\path_alias\AliasManager')
       ->disableOriginalConstructor()
       ->getMock();
 
@@ -160,7 +160,7 @@ class UrlGeneratorTest extends UnitTestCase {
     $this->context = new RequestContext();
     $this->context->fromRequestStack($this->requestStack);
 
-    $processor = new PathProcessorAlias($this->aliasManager);
+    $processor = new AliasPathProcessor($this->aliasManager);
     $processor_manager = new PathProcessorManager();
     $processor_manager->addOutbound($processor, 1000);
     $this->processorManager = $processor_manager;
@@ -509,7 +509,7 @@ class UrlGeneratorTest extends UnitTestCase {
    * \Drupal\Tests\Core\Render\MetadataBubblingUrlGeneratorTest work.
    */
   public function testGenerateWithPathProcessorChangingQueryParameter() {
-    $path_processor = $this->getMock(OutboundPathProcessorInterface::CLASS);
+    $path_processor = $this->createMock(OutboundPathProcessorInterface::CLASS);
     $path_processor->expects($this->atLeastOnce())
       ->method('processOutbound')
       ->willReturnCallback(function ($path, &$options = [], Request $request = NULL, BubbleableMetadata $bubbleable_metadata = NULL) {

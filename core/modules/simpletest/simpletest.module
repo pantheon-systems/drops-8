@@ -5,19 +5,22 @@
  * Provides testing functionality.
  */
 
-use Drupal\Core\Url;
+use Drupal\Component\Uuid\Php;
+use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Database\Database;
 use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\simpletest\TestBase;
+use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\Test\JUnitConverter;
+use Drupal\Core\Test\PhpUnitTestRunner;
 use Drupal\Core\Test\TestDatabase;
+use Drupal\Core\Url;
+use Drupal\simpletest\Form\SimpletestResultsForm;
 use Drupal\simpletest\TestDiscovery;
-use Drupal\Tests\Listeners\SimpletestUiPrinter;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Process\PhpExecutableFinder;
-use Drupal\Core\Test\TestStatus;
 
 /**
  * Implements hook_help().
@@ -120,8 +123,9 @@ function _simpletest_format_summary_line($summary) {
 /**
  * Runs tests.
  *
- * @param $test_list
- *   List of tests to run.
+ * @param array[] $test_list
+ *   List of tests to run. The top level is keyed by type of test, either
+ *   'simpletest' or 'phpunit'. Under that is an array of class names to run.
  *
  * @return string
  *   The test ID.
@@ -168,7 +172,7 @@ function simpletest_run_tests($test_list) {
   ];
   batch_set($batch);
 
-  \Drupal::moduleHandler()->invokeAll('test_group_started');
+  \Drupal::moduleHandler()->invokeAllDeprecated('Convert your test to a PHPUnit-based one and implement test listeners. See https://www.drupal.org/node/2934242', 'test_group_started');
 
   return $test_id;
 }
@@ -188,28 +192,16 @@ function simpletest_run_tests($test_list) {
  * @return array
  *   The parsed results of PHPUnit's JUnit XML output, in the format of
  *   {simpletest}'s schema.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\PhpUnitTestRunner::runTests() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_run_phpunit_tests($test_id, array $unescaped_test_classnames, &$status = NULL) {
-  $phpunit_file = simpletest_phpunit_xml_filepath($test_id);
-  simpletest_phpunit_run_command($unescaped_test_classnames, $phpunit_file, $status, $output);
-
-  $rows = [];
-  if ($status == TestStatus::PASS) {
-    $rows = simpletest_phpunit_xml_to_rows($test_id, $phpunit_file);
-  }
-  else {
-    $rows[] = [
-      'test_id' => $test_id,
-      'test_class' => implode(",", $unescaped_test_classnames),
-      'status' => TestStatus::label($status),
-      'message' => 'PHPunit Test failed to complete; Error: ' . implode("\n", $output),
-      'message_group' => 'Other',
-      'function' => implode(",", $unescaped_test_classnames),
-      'line' => '0',
-      'file' => $phpunit_file,
-    ];
-  }
-  return $rows;
+  $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\PhpUnitTestRunner::runTests() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return $runner->runTests($test_id, $unescaped_test_classnames, $status);
 }
 
 /**
@@ -217,19 +209,15 @@ function simpletest_run_phpunit_tests($test_id, array $unescaped_test_classnames
  *
  * @param array[] $phpunit_results
  *   An array of test results returned from simpletest_phpunit_xml_to_rows().
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\TestDatabase::processPhpUnitResults() instead.
+ *
+ * @see https://www.drupal.org/node/3075252
  */
 function simpletest_process_phpunit_results($phpunit_results) {
-  // Insert the results of the PHPUnit test run into the database so the results
-  // are displayed along with Simpletest's results.
-  if (!empty($phpunit_results)) {
-    $query = TestDatabase::getConnection()
-      ->insert('simpletest')
-      ->fields(array_keys($phpunit_results[0]));
-    foreach ($phpunit_results as $result) {
-      $query->values($result);
-    }
-    $query->execute();
-  }
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\TestDatabase::processPhpUnitResults() instead. See https://www.drupal.org/node/3075252', E_USER_DEPRECATED);
+  TestDatabase::processPhpUnitResults($phpunit_results);
 }
 
 /**
@@ -240,38 +228,16 @@ function simpletest_process_phpunit_results($phpunit_results) {
  *
  * @return array
  *   The test result summary. A row per test class.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\PhpUnitTestRunner::summarizeResults() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_summarize_phpunit_result($results) {
-  $summaries = [];
-  foreach ($results as $result) {
-    if (!isset($summaries[$result['test_class']])) {
-      $summaries[$result['test_class']] = [
-        '#pass' => 0,
-        '#fail' => 0,
-        '#exception' => 0,
-        '#debug' => 0,
-      ];
-    }
-
-    switch ($result['status']) {
-      case 'pass':
-        $summaries[$result['test_class']]['#pass']++;
-        break;
-
-      case 'fail':
-        $summaries[$result['test_class']]['#fail']++;
-        break;
-
-      case 'exception':
-        $summaries[$result['test_class']]['#exception']++;
-        break;
-
-      case 'debug':
-        $summaries[$result['test_class']]['#debug']++;
-        break;
-    }
-  }
-  return $summaries;
+  $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\PhpUnitTestRunner::summarizeResults() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return $runner->summarizeResults($results);
 }
 
 /**
@@ -282,9 +248,16 @@ function simpletest_summarize_phpunit_result($results) {
  *
  * @return string
  *   Path to the PHPUnit XML file to use for the current $test_id.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\PhpUnitTestRunner::xmlLogFilepath() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_phpunit_xml_filepath($test_id) {
-  return \Drupal::service('file_system')->realpath('public://simpletest') . '/phpunit-' . $test_id . '.xml';
+  $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\PhpUnitTestRunner::xmlLogFilepath() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return $runner->xmlLogFilePath($test_id);
 }
 
 /**
@@ -293,7 +266,7 @@ function simpletest_phpunit_xml_filepath($test_id) {
  * @return string
  *   The path to core's phpunit.xml.dist configuration file.
  *
- * @deprecated in Drupal 8.4.x for removal before Drupal 9.0.0. PHPUnit test
+ * @deprecated in drupal:8.4.0 and is removed from drupal:9.0.0. PHPUnit test
  *   runners should change directory into core/ and then run the phpunit tool.
  *   See simpletest_phpunit_run_command() for an example.
  *
@@ -320,65 +293,16 @@ function simpletest_phpunit_configuration_filepath() {
  *
  * @return string
  *   The results as returned by exec().
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\PhpUnitTestRunner::runCommand() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_phpunit_run_command(array $unescaped_test_classnames, $phpunit_file, &$status = NULL, &$output = NULL) {
-  global $base_url;
-  // Setup an environment variable containing the database connection so that
-  // functional tests can connect to the database.
-  putenv('SIMPLETEST_DB=' . Database::getConnectionInfoAsUrl());
-
-  // Setup an environment variable containing the base URL, if it is available.
-  // This allows functional tests to browse the site under test. When running
-  // tests via CLI, core/phpunit.xml.dist or core/scripts/run-tests.sh can set
-  // this variable.
-  if ($base_url) {
-    putenv('SIMPLETEST_BASE_URL=' . $base_url);
-    putenv('BROWSERTEST_OUTPUT_DIRECTORY=' . \Drupal::service('file_system')->realpath('public://simpletest'));
-  }
-  $phpunit_bin = simpletest_phpunit_command();
-
-  $command = [
-    $phpunit_bin,
-    '--log-junit',
-    escapeshellarg($phpunit_file),
-    '--printer',
-    escapeshellarg(SimpletestUiPrinter::class),
-  ];
-
-  // Optimized for running a single test.
-  if (count($unescaped_test_classnames) == 1) {
-    $class = new \ReflectionClass($unescaped_test_classnames[0]);
-    $command[] = escapeshellarg($class->getFileName());
-  }
-  else {
-    // Double escape namespaces so they'll work in a regexp.
-    $escaped_test_classnames = array_map(function ($class) {
-      return addslashes($class);
-    }, $unescaped_test_classnames);
-
-    $filter_string = implode("|", $escaped_test_classnames);
-    $command = array_merge($command, [
-      '--filter',
-      escapeshellarg($filter_string),
-    ]);
-  }
-
-  // Need to change directories before running the command so that we can use
-  // relative paths in the configuration file's exclusions.
-  $old_cwd = getcwd();
-  chdir(\Drupal::root() . "/core");
-
-  // exec in a subshell so that the environment is isolated when running tests
-  // via the simpletest UI.
-  $ret = exec(implode(" ", $command), $output, $status);
-
-  chdir($old_cwd);
-  putenv('SIMPLETEST_DB=');
-  if ($base_url) {
-    putenv('SIMPLETEST_BASE_URL=');
-    putenv('BROWSERTEST_OUTPUT_DIRECTORY=');
-  }
-  return $ret;
+  $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\PhpUnitTestRunner::runCommand() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return $runner->runCommand($unescaped_test_classnames, $phpunit_file, $status, $output);
 }
 
 /**
@@ -386,24 +310,16 @@ function simpletest_phpunit_run_command(array $unescaped_test_classnames, $phpun
  *
  * @return string
  *   The command that can be run through exec().
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\PhpUnitTestRunner::phpUnitCommand() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_phpunit_command() {
-  // Load the actual autoloader being used and determine its filename using
-  // reflection. We can determine the vendor directory based on that filename.
-  $autoloader = require \Drupal::root() . '/autoload.php';
-  $reflector = new ReflectionClass($autoloader);
-  $vendor_dir = dirname(dirname($reflector->getFileName()));
-
-  // The file in Composer's bin dir is a *nix link, which does not work when
-  // extracted from a tarball and generally not on Windows.
-  $command = escapeshellarg($vendor_dir . '/phpunit/phpunit/phpunit');
-  if (substr(PHP_OS, 0, 3) == 'WIN') {
-    // On Windows it is necessary to run the script using the PHP executable.
-    $php_executable_finder = new PhpExecutableFinder();
-    $php = $php_executable_finder->find();
-    $command = $php . ' -f ' . $command . ' --';
-  }
-  return $command;
+  $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\PhpUnitTestRunner::phpUnitCommand() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return $runner->phpUnitCommand();
 }
 
 /**
@@ -428,14 +344,15 @@ function _simpletest_batch_operation($test_list_init, $test_id, &$context) {
   // Perform the next test.
   $test_class = array_shift($test_list);
   if (is_subclass_of($test_class, TestCase::class)) {
-    $phpunit_results = simpletest_run_phpunit_tests($test_id, [$test_class]);
-    simpletest_process_phpunit_results($phpunit_results);
+    $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+    $phpunit_results = $runner->runTests($test_id, [$test_class]);
+    TestDatabase::processPhpUnitResults($phpunit_results);
     $test_results[$test_class] = simpletest_summarize_phpunit_result($phpunit_results)[$test_class];
   }
   else {
     $test = new $test_class($test_id);
     $test->run();
-    \Drupal::moduleHandler()->invokeAll('test_finished', [$test->results]);
+    \Drupal::moduleHandler()->invokeAllDeprecated('Convert your test to a PHPUnit-based one and implement test listeners. See https://www.drupal.org/node/2934242', 'test_finished', [$test->results]);
     $test_results[$test_class] = $test->results;
   }
   $size = count($test_list);
@@ -491,13 +408,13 @@ function _simpletest_batch_finished($success, $results, $operations, $elapsed) {
     // Retrieve the last database prefix used for testing and the last test
     // class that was run from. Use the information to read the lgo file
     // in case any fatal errors caused the test to crash.
-    list($last_prefix, $last_test_class) = simpletest_last_test_get($test_id);
-    simpletest_log_read($test_id, $last_prefix, $last_test_class);
+    $last_test = TestDatabase::lastTestGet($test_id);
+    (new TestDatabase($last_test['last_prefix']))->logRead($test_id, $last_test['test_class']);
 
     \Drupal::messenger()->addError(t('The test run did not successfully finish.'));
     \Drupal::messenger()->addWarning(t('Use the <em>Clean environment</em> button to clean-up temporary files and tables.'));
   }
-  \Drupal::moduleHandler()->invokeAll('test_group_finished');
+  \Drupal::moduleHandler()->invokeAllDeprecated('Convert your test to a PHPUnit-based one and implement test listeners. See https://www.drupal.org/node/2934242', 'test_group_finished');
 }
 
 /**
@@ -508,19 +425,15 @@ function _simpletest_batch_finished($success, $results, $operations, $elapsed) {
  * @return array
  *   Array containing the last database prefix used and the last test class
  *   that ran.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\TestDatabase::lastTestGet() instead.
+ *
+ * @see https://www.drupal.org/node/3075252
  */
 function simpletest_last_test_get($test_id) {
-  $last_prefix = TestDatabase::getConnection()
-    ->queryRange('SELECT last_prefix FROM {simpletest_test_id} WHERE test_id = :test_id', 0, 1, [
-      ':test_id' => $test_id,
-    ])
-    ->fetchField();
-  $last_test_class = TestDatabase::getConnection()
-    ->queryRange('SELECT test_class FROM {simpletest} WHERE test_id = :test_id ORDER BY message_id DESC', 0, 1, [
-      ':test_id' => $test_id,
-    ])
-    ->fetchField();
-  return [$last_prefix, $last_test_class];
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\TestDatabase::lastTestGet() instead. See https://www.drupal.org/node/3075252', E_USER_DEPRECATED);
+  return array_values(TestDatabase::lastTestGet($test_id));
 }
 
 /**
@@ -538,30 +451,53 @@ function simpletest_last_test_get($test_id) {
  *
  * @return bool
  *   Whether any fatal errors were found.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\TestDatabase::logRead() instead.
+ *
+ * @see https://www.drupal.org/node/3075252
  */
 function simpletest_log_read($test_id, $database_prefix, $test_class) {
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\TestDatabase::logRead() instead. See https://www.drupal.org/node/3075252', E_USER_DEPRECATED);
   $test_db = new TestDatabase($database_prefix);
-  $log = DRUPAL_ROOT . '/' . $test_db->getTestSitePath() . '/error.log';
-  $found = FALSE;
-  if (file_exists($log)) {
-    foreach (file($log) as $line) {
-      if (preg_match('/\[.*?\] (.*?): (.*?) in (.*) on line (\d+)/', $line, $match)) {
-        // Parse PHP fatal errors for example: PHP Fatal error: Call to
-        // undefined function break_me() in /path/to/file.php on line 17
-        $caller = [
-          'line' => $match[4],
-          'file' => $match[3],
-        ];
-        TestBase::insertAssert($test_id, $test_class, FALSE, $match[2], $match[1], $caller);
-      }
-      else {
-        // Unknown format, place the entire message in the log.
-        TestBase::insertAssert($test_id, $test_class, FALSE, $line, 'Fatal error');
-      }
-      $found = TRUE;
-    }
-  }
-  return $found;
+  return $test_db->logRead($test_id, $test_class);
+}
+
+/**
+ * Store an assertion from outside the testing context.
+ *
+ * This is useful for inserting assertions that can only be recorded after
+ * the test case has been destroyed, such as PHP fatal errors. The caller
+ * information is not automatically gathered since the caller is most likely
+ * inserting the assertion on behalf of other code. In all other respects
+ * the method behaves just like \Drupal\simpletest\TestBase::assert() in terms
+ * of storing the assertion.
+ *
+ * @param string $test_id
+ *   The test ID to which the assertion relates.
+ * @param string $test_class
+ *   The test class to store an assertion for.
+ * @param bool|string $status
+ *   A boolean or a string of 'pass' or 'fail'. TRUE means 'pass'.
+ * @param string $message
+ *   The assertion message.
+ * @param string $group
+ *   The assertion message group.
+ * @param array $caller
+ *   The an array containing the keys 'file' and 'line' that represent the file
+ *   and line number of that file that is responsible for the assertion.
+ *
+ * @return
+ *   Message ID of the stored assertion.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\TestDatabase::insertAssert() instead.
+ *
+ * @see https://www.drupal.org/node/3075252
+ */
+function simpletest_insert_assert($test_id, $test_class, $status, $message = '', $group = 'Other', array $caller = []) {
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\TestDatabase::insertAssert() instead. See https://www.drupal.org/node/3075252', E_USER_DEPRECATED);
+  TestDatabase::insertAssert($test_id, $test_class, $status, $message, $group, $caller);
 }
 
 /**
@@ -589,7 +525,7 @@ function simpletest_log_read($test_id, $database_prefix, $test_class) {
  *     );
  *   @endcode
  *
- * @deprecated in Drupal 8.3.x, for removal before 9.0.0 release. Use
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use
  *   \Drupal::service('test_discovery')->getTestClasses($extension, $types)
  *   instead.
  */
@@ -601,7 +537,7 @@ function simpletest_test_get_all($extension = NULL, array $types = []) {
 /**
  * Registers test namespaces of all extensions and core test classes.
  *
- * @deprecated in Drupal 8.3.x for removal before 9.0.0 release. Use
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use
  *   \Drupal::service('test_discovery')->registerTestNamespaces() instead.
  */
 function simpletest_classloader_register() {
@@ -630,8 +566,14 @@ function simpletest_classloader_register() {
  *
  * @return string
  *   The name of the file, including the path.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Tests\TestFileCreationTrait::generateFile() instead.
+ *
+ * @see https://www.drupal.org/node/3077768
  */
 function simpletest_generate_file($filename, $width, $lines, $type = 'binary-text') {
+  @trigger_error(__FUNCTION__ . '() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Tests\TestFileCreationTrait::generateFile() instead. See https://www.drupal.org/node/3077768', E_USER_DEPRECATED);
   $text = '';
   for ($i = 0; $i < $lines; $i++) {
     // Generate $width - 1 characters to leave space for the "\n" character.
@@ -659,72 +601,51 @@ function simpletest_generate_file($filename, $width, $lines, $type = 'binary-tex
 
 /**
  * Removes all temporary database tables and directories.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the
+ *   environment_cleaner service and call its cleanEnvironment() method, or use
+ *   \Drupal\Core\Test\EnvironmentCleaner::cleanEnvironment() instead.
+ *
+ * @see https://www.drupal.org/node/3076634
  */
 function simpletest_clean_environment() {
-  simpletest_clean_database();
-  simpletest_clean_temporary_directories();
-  if (\Drupal::config('simpletest.settings')->get('clear_results')) {
-    $count = simpletest_clean_results_table();
-    \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural($count, 'Removed 1 test result.', 'Removed @count test results.'));
-  }
-  else {
-    \Drupal::messenger()->addWarning(t('Clear results is disabled and the test results table will not be cleared.'), 'warning');
-  }
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the environment_cleaner service and call its cleanEnvironment() method, or use \Drupal\Core\Test\EnvironmentCleaner::cleanEnvironment() instead.. See https://www.drupal.org/node/3076634', E_USER_DEPRECATED);
+  /* @var $cleaner \Drupal\simpletest\EnvironmentCleanerService */
+  $cleaner = \Drupal::service('environment_cleaner');
+  $cleaner->cleanEnvironment();
 }
 
 /**
  * Removes prefixed tables from the database from crashed tests.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the
+ *   environment_cleaner service and call its cleanDatabase() method, or use
+ *   \Drupal\Core\Test\EnvironmentCleaner::cleanDatabase() instead.
+ *
+ * @see https://www.drupal.org/node/3076634
  */
 function simpletest_clean_database() {
-  $schema = Database::getConnection()->schema();
-  $tables = $schema->findTables('test%');
-  $count = 0;
-  foreach ($tables as $table) {
-    // Only drop tables which begin wih 'test' followed by digits, for example,
-    // {test12345678node__body}.
-    if (preg_match('/^test\d+.*/', $table, $matches)) {
-      $schema->dropTable($matches[0]);
-      $count++;
-    }
-  }
-
-  if ($count > 0) {
-    \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural($count, 'Removed 1 leftover table.', 'Removed @count leftover tables.'));
-  }
-  else {
-    \Drupal::messenger()->addStatus(t('No leftover tables to remove.'));
-  }
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the environment_cleaner service and call its cleanDatabase() method, or use \Drupal\Core\Test\EnvironmentCleaner::cleanDatabase() instead. See https://www.drupal.org/node/3076634', E_USER_DEPRECATED);
+  /* @var $cleaner \Drupal\simpletest\EnvironmentCleanerService */
+  $cleaner = \Drupal::service('environment_cleaner');
+  $cleaner->cleanDatabase();
 }
 
 /**
  * Finds all leftover temporary directories and removes them.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the
+ *   environment_cleaner service and call its cleanTemporaryDirectories()
+ *   method, or use
+ *   \Drupal\Core\Test\EnvironmentCleaner::cleanTemporaryDirectories() instead.
+ *
+ * @see https://www.drupal.org/node/3076634
  */
 function simpletest_clean_temporary_directories() {
-  $count = 0;
-  if (is_dir(DRUPAL_ROOT . '/sites/simpletest')) {
-    $files = scandir(DRUPAL_ROOT . '/sites/simpletest');
-    foreach ($files as $file) {
-      if ($file[0] != '.') {
-        $path = DRUPAL_ROOT . '/sites/simpletest/' . $file;
-        try {
-          \Drupal::service('file_system')->deleteRecursive($path, function ($any_path) {
-            @chmod($any_path, 0700);
-          });
-        }
-        catch (FileException $e) {
-          // Ignore failed deletes.
-        }
-        $count++;
-      }
-    }
-  }
-
-  if ($count > 0) {
-    \Drupal::messenger()->addStatus(\Drupal::translation()->formatPlural($count, 'Removed 1 temporary directory.', 'Removed @count temporary directories.'));
-  }
-  else {
-    \Drupal::messenger()->addStatus(t('No temporary directories to remove.'));
-  }
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the environment_cleaner service and call its cleanTemporaryDirectories() method, or use \Drupal\Core\Test\EnvironmentCleaner::cleanTemporaryDirectories() instead. See https://www.drupal.org/node/3076634', E_USER_DEPRECATED);
+  /* @var $cleaner \Drupal\simpletest\EnvironmentCleanerService */
+  $cleaner = \Drupal::service('environment_cleaner');
+  $cleaner->cleanTemporaryDirectories();
 }
 
 /**
@@ -735,44 +656,22 @@ function simpletest_clean_temporary_directories() {
  *
  * @return int
  *   The number of results that were removed.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the
+ *   environment_cleaner service and call its cleanResultsTable() method, or use
+ *   \Drupal\Core\Test\EnvironmentCleaner::cleanResultsTable() instead.
+ *
+ * @see https://www.drupal.org/node/3076634
  */
 function simpletest_clean_results_table($test_id = NULL) {
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Access the environment_cleaner service and call its cleanResultsTable() method, or use \Drupal\Core\Test\EnvironmentCleaner::cleanResultsTable() instead. See https://www.drupal.org/node/3076634', E_USER_DEPRECATED);
+  $count = 0;
   if (\Drupal::config('simpletest.settings')->get('clear_results')) {
-    $connection = TestDatabase::getConnection();
-    if ($test_id) {
-      $count = $connection->query('SELECT COUNT(test_id) FROM {simpletest_test_id} WHERE test_id = :test_id', [':test_id' => $test_id])->fetchField();
-
-      $connection->delete('simpletest')
-        ->condition('test_id', $test_id)
-        ->execute();
-      $connection->delete('simpletest_test_id')
-        ->condition('test_id', $test_id)
-        ->execute();
-    }
-    else {
-      $count = $connection->query('SELECT COUNT(test_id) FROM {simpletest_test_id}')->fetchField();
-
-      // Clear test results.
-      $connection->delete('simpletest')->execute();
-      $connection->delete('simpletest_test_id')->execute();
-    }
-
-    return $count;
+    /* @var $cleaner \Drupal\simpletest\EnvironmentCleanerService */
+    $cleaner = \Drupal::service('environment_cleaner');
+    $count = $cleaner->cleanResultsTable($test_id);
   }
-  return 0;
-}
-
-/**
- * Implements hook_mail_alter().
- *
- * Aborts sending of messages with ID 'simpletest_cancel_test'.
- *
- * @see MailTestCase::testCancelMessage()
- */
-function simpletest_mail_alter(&$message) {
-  if ($message['id'] == 'simpletest_cancel_test') {
-    $message['send'] = FALSE;
-  }
+  return $count;
 }
 
 /**
@@ -787,18 +686,15 @@ function simpletest_mail_alter(&$message) {
  *   The results as array of rows in a format that can be inserted into
  *   {simpletest}. If the phpunit_xml_file does not have any contents then the
  *   function will return NULL.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\JUnitConverter::xmlToRows() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_phpunit_xml_to_rows($test_id, $phpunit_xml_file) {
-  $contents = @file_get_contents($phpunit_xml_file);
-  if (!$contents) {
-    return;
-  }
-  $records = [];
-  $testcases = simpletest_phpunit_find_testcases(new SimpleXMLElement($contents));
-  foreach ($testcases as $testcase) {
-    $records[] = simpletest_phpunit_testcase_to_row($test_id, $testcase);
-  }
-  return $records;
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\JUnitConverter::xmlToRows() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return JUnitConverter::xmlToRows($test_id, $phpunit_xml_file) ?: NULL;
 }
 
 /**
@@ -811,34 +707,15 @@ function simpletest_phpunit_xml_to_rows($test_id, $phpunit_xml_file) {
  *
  * @return array
  *   A list of all test cases.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Test\JUnitConverter::findTestCases() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
 function simpletest_phpunit_find_testcases(\SimpleXMLElement $element, \SimpleXMLElement $parent = NULL) {
-  $testcases = [];
-
-  if (!isset($parent)) {
-    $parent = $element;
-  }
-
-  if ($element->getName() === 'testcase' && (int) $parent->attributes()->tests > 0) {
-    // Add the class attribute if the testcase does not have one. This is the
-    // case for tests using a data provider. The name of the parent testsuite
-    // will be in the format class::method.
-    if (!$element->attributes()->class) {
-      $name = explode('::', $parent->attributes()->name, 2);
-      $element->addAttribute('class', $name[0]);
-    }
-    $testcases[] = $element;
-  }
-  else {
-    foreach ($element as $child) {
-      $file = (string) $parent->attributes()->file;
-      if ($file && !$child->attributes()->file) {
-        $child->addAttribute('file', $file);
-      }
-      $testcases = array_merge($testcases, simpletest_phpunit_find_testcases($child, $element));
-    }
-  }
-  return $testcases;
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\JUnitConverter::findTestCases() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return JUnitConverter::findTestCases($element, $parent);
 }
 
 /**
@@ -846,40 +723,106 @@ function simpletest_phpunit_find_testcases(\SimpleXMLElement $element, \SimpleXM
  *
  * @param int $test_id
  *   The current test ID.
- * @param \SimpleXMLElement $testcase
+ * @param \SimpleXMLElement $test_case
  *   The PHPUnit test case represented as XML element.
  *
  * @return array
  *   An array containing the {simpletest} result row.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *  \Drupal\Core\Test\JUnitConverter::convertTestCaseToSimpletestRow() instead.
+ *
+ * @see https://www.drupal.org/node/2948547
  */
-function simpletest_phpunit_testcase_to_row($test_id, \SimpleXMLElement $testcase) {
-  $message = '';
-  $pass = TRUE;
-  if ($testcase->failure) {
-    $lines = explode("\n", $testcase->failure);
-    $message = $lines[2];
-    $pass = FALSE;
+function simpletest_phpunit_testcase_to_row($test_id, \SimpleXMLElement $test_case) {
+  @trigger_error(__FUNCTION__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Test\JUnitConverter::convertTestCaseToSimpletestRow() instead. See https://www.drupal.org/node/2948547', E_USER_DEPRECATED);
+  return JUnitConverter::convertTestCaseToSimpletestRow($test_id, $test_case);
+}
+
+/**
+ * Display test results from run-tests.sh in a browser.
+ *
+ * @internal
+ *   This function is only used by run-tests.sh
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. This function
+ *   supports the --browser option in this script. Use the --verbose option
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3083549
+ */
+function _simpletest_run_tests_script_open_browser() {
+  global $test_ids;
+
+  try {
+    $connection = Database::getConnection('default', 'test-runner');
+    $results = $connection->select('simpletest')
+      ->fields('simpletest')
+      ->condition('test_id', $test_ids, 'IN')
+      ->orderBy('test_class')
+      ->orderBy('message_id')
+      ->execute()
+      ->fetchAll();
   }
-  if ($testcase->error) {
-    $message = $testcase->error;
-    $pass = FALSE;
+  catch (Exception $e) {
+    echo (string) $e;
+    exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
   }
 
-  $attributes = $testcase->attributes();
+  // Get the results form.
+  $form = [];
+  SimpletestResultsForm::addResultForm($form, $results);
 
-  $function = $attributes->class . '->' . $attributes->name . '()';
-  $record = [
-    'test_id' => $test_id,
-    'test_class' => (string) $attributes->class,
-    'status' => $pass ? 'pass' : 'fail',
-    'message' => $message,
-    // @todo: Check on the proper values for this.
-    'message_group' => 'Other',
-    'function' => $function,
-    'line' => $attributes->line ?: 0,
-    // There are situations when the file will not be present because a PHPUnit
-    // @requires has caused a test to be skipped.
-    'file' => $attributes->file ?: $function,
-  ];
-  return $record;
+  // Get the assets to make the details element collapsible and theme the result
+  // form.
+  $assets = new AttachedAssets();
+  $assets->setLibraries([
+    'core/drupal.collapse',
+    'system/admin',
+    'simpletest/drupal.simpletest',
+  ]);
+  $resolver = \Drupal::service('asset.resolver');
+  list($js_assets_header, $js_assets_footer) = $resolver->getJsAssets($assets, FALSE);
+  $js_collection_renderer = \Drupal::service('asset.js.collection_renderer');
+  $js_assets_header = $js_collection_renderer->render($js_assets_header);
+  $js_assets_footer = $js_collection_renderer->render($js_assets_footer);
+  $css_assets = \Drupal::service('asset.css.collection_renderer')->render($resolver->getCssAssets($assets, FALSE));
+
+  // Make the html page to write to disk.
+  $render_service = \Drupal::service('renderer');
+  $html = '<head>' . $render_service->renderPlain($js_assets_header) . $render_service->renderPlain($css_assets) . '</head><body>' . $render_service->renderPlain($form) . $render_service->renderPlain($js_assets_footer) . '</body>';
+
+  // Ensure we have assets verbose directory - tests with no verbose output will
+  // not have created one.
+  $directory = PublicStream::basePath() . '/simpletest/verbose';
+  \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+  $php = new Php();
+  $uuid = $php->generate();
+  $filename = $directory . '/results-' . $uuid . '.html';
+  $base_url = getenv('SIMPLETEST_BASE_URL');
+  if (empty($base_url)) {
+    simpletest_script_print_error("--browser needs argument --url.");
+  }
+  $url = $base_url . '/' . PublicStream::basePath() . '/simpletest/verbose/results-' . $uuid . '.html';
+  file_put_contents($filename, $html);
+
+  // See if we can find an OS helper to open URLs in default browser.
+  $browser = FALSE;
+  if (shell_exec('which xdg-open')) {
+    $browser = 'xdg-open';
+  }
+  elseif (shell_exec('which open')) {
+    $browser = 'open';
+  }
+  elseif (substr(PHP_OS, 0, 3) == 'WIN') {
+    $browser = 'start';
+  }
+
+  if ($browser) {
+    shell_exec($browser . ' ' . escapeshellarg($url));
+  }
+  else {
+    // Can't find assets valid browser.
+    print 'Open file://' . realpath($filename) . ' in your browser to see the verbose output.';
+  }
 }

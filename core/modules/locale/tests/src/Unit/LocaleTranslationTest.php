@@ -15,14 +15,14 @@ class LocaleTranslationTest extends UnitTestCase {
   /**
    * A mocked storage to use when instantiating LocaleTranslation objects.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $storage;
 
   /**
    * A mocked language manager built from LanguageManagerInterface.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
@@ -37,10 +37,10 @@ class LocaleTranslationTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->storage = $this->getMock('Drupal\locale\StringStorageInterface');
-    $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
-    $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $this->storage = $this->createMock('Drupal\locale\StringStorageInterface');
+    $this->cache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
+    $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
     $this->requestStack = new RequestStack();
   }
 

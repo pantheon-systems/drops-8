@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\entity_test\Entity\EntityTestMul;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -46,7 +47,7 @@ class QueryGroupByTest extends ViewsKernelTestBase {
     $this->installEntitySchema('entity_test');
     $this->installEntitySchema('entity_test_mul');
 
-    $this->storage = $this->container->get('entity.manager')->getStorage('entity_test');
+    $this->storage = $this->container->get('entity_type.manager')->getStorage('entity_test');
 
     ConfigurableLanguage::createFromLangcode('it')->save();
   }
@@ -104,8 +105,8 @@ class QueryGroupByTest extends ViewsKernelTestBase {
     foreach ($view->result as $item) {
       $results[$item->entity_test_name] = $item->id;
     }
-    $this->assertEqual($results['name1'], $values[0], format_string('Aggregation with @aggregation_function and groupby name: name1 returned the expected amount of results', ['@aggregation_function' => $aggregation_function]));
-    $this->assertEqual($results['name2'], $values[1], format_string('Aggregation with @aggregation_function and groupby name: name2 returned the expected amount of results', ['@aggregation_function' => $aggregation_function]));
+    $this->assertEqual($results['name1'], $values[0], new FormattableMarkup('Aggregation with @aggregation_function and groupby name: name1 returned the expected amount of results', ['@aggregation_function' => $aggregation_function]));
+    $this->assertEqual($results['name2'], $values[1], new FormattableMarkup('Aggregation with @aggregation_function and groupby name: name2 returned the expected amount of results', ['@aggregation_function' => $aggregation_function]));
   }
 
   /**
@@ -186,8 +187,8 @@ class QueryGroupByTest extends ViewsKernelTestBase {
     $view = Views::getView('test_group_by_in_filters');
     $this->executeView($view);
 
-    $this->assertTrue(strpos($view->build_info['query'], 'GROUP BY'), 'Make sure that GROUP BY is in the query');
-    $this->assertTrue(strpos($view->build_info['query'], 'HAVING'), 'Make sure that HAVING is in the query');
+    $this->assertContains('GROUP BY', (string) $view->build_info['query'], 'Make sure that GROUP BY is in the query');
+    $this->assertContains('HAVING', (string) $view->build_info['query'], 'Make sure that HAVING is in the query');
   }
 
   /**
@@ -203,7 +204,7 @@ class QueryGroupByTest extends ViewsKernelTestBase {
     $view->displayHandlers->get('default')->options['fields']['name']['group_type'] = 'min';
     unset($view->displayHandlers->get('default')->options['fields']['id']['group_type']);
     $this->executeView($view);
-    $this->assertTrue(strpos($view->build_info['query'], 'GROUP BY entity_test.id'), 'GROUP BY field includes the base table name when grouping on the base field.');
+    $this->assertContains('GROUP BY entity_test.id', (string) $view->build_info['query'], 'GROUP BY field includes the base table name when grouping on the base field.');
   }
 
   /**

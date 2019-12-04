@@ -32,6 +32,11 @@ class LayoutBuilderTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -109,11 +114,11 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->fieldNotExists('title[0][value]');
     $assert_session->elementTextContains('css', '.layout-builder__message.layout-builder__message--overrides', 'You are editing the layout for this Bundle with section field content item. Edit the template for all Bundle with section field content items instead.');
     $assert_session->linkExists('Edit the template for all Bundle with section field content items instead.');
-    $page->clickLink('Add Block');
+    $page->clickLink('Add block');
     $page->clickLink('Powered by Drupal');
     $page->fillField('settings[label]', 'This is an override');
     $page->checkField('settings[label_display]');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $page->pressButton('Save layout');
     $assert_session->pageTextContains('This is an override');
 
@@ -189,9 +194,9 @@ class LayoutBuilderTest extends BrowserTestBase {
     // Create a layout override which will store the current node in the
     // tempstore.
     $page->clickLink('Layout');
-    $page->clickLink('Add Block');
+    $page->clickLink('Add block');
     $page->clickLink('Powered by Drupal');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
 
     // Update the node to make a change that is not in the tempstore version.
     $node = Node::load(1);
@@ -264,13 +269,13 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->pageTextContainsOnce('Placeholder for the "Extra label" field');
 
     // Add a new block.
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->linkExists('Powered by Drupal');
     $this->clickLink('Powered by Drupal');
     $page->fillField('settings[label]', 'This is the label');
     $page->checkField('settings[label_display]');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->pageTextContains('Powered by Drupal');
     $assert_session->pageTextContains('This is the label');
     $assert_session->addressEquals("$field_ui_prefix/display/default/layout");
@@ -296,12 +301,12 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->linkExists('Layout');
     $this->clickLink('Layout');
     $assert_session->pageTextContains('Placeholder for the "Extra label" field');
-    $assert_session->linkExists('Remove section');
-    $this->clickLink('Remove section');
+    $assert_session->linkExists('Remove Section 1');
+    $this->clickLink('Remove Section 1');
     $page->pressButton('Remove');
 
     // Add a new section.
-    $this->clickLink('Add Section');
+    $this->clickLink('Add section');
     $this->assertCorrectLayouts();
     $assert_session->linkExists('Two column');
     $this->clickLink('Two column');
@@ -320,11 +325,11 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     // Alter the defaults.
     $this->drupalGet("$field_ui_prefix/display/default/layout");
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->linkExists('Title');
     $this->clickLink('Title');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     // The title field is present.
     $assert_session->elementExists('css', '.field--name-title');
     $page->pressButton('Save layout');
@@ -348,11 +353,11 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     // Reverting the override returns it to the defaults.
     $this->clickLink('Layout');
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->linkExists('ID');
     $this->clickLink('ID');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     // The title field is present.
     $assert_session->elementExists('css', '.field--name-nid');
     $assert_session->pageTextContains('ID');
@@ -391,9 +396,16 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->pageTextNotContains('My text field');
     $assert_session->elementNotExists('css', '.field--name-field-my-text');
 
+    $this->clickLink('Add section');
+    $this->clickLink('One column');
+    $page->fillField('layout_settings[label]', 'My Cool Section');
+    $page->pressButton('Add section');
+
     $expected_labels = [
-      'Section 1',
-      'Content region in section 1',
+      'My Cool Section',
+      'Content region in My Cool Section',
+      'Section 2',
+      'Content region in Section 2',
     ];
     $labels = [];
     foreach ($page->findAll('css', '[role="group"]') as $element) {
@@ -525,10 +537,11 @@ class LayoutBuilderTest extends BrowserTestBase {
     $this->drupalPostForm('admin/structure/types/manage/bundle_with_section_field/display', ['layout[enabled]' => TRUE], 'Save');
     $assert_session->linkExists('Manage layout');
     $this->clickLink('Manage layout');
-    $assert_session->linkExists('Add Section');
-    $this->clickLink('Add Section');
+    $assert_session->linkExists('Add section');
+    $this->clickLink('Add section');
     $assert_session->linkExists('Layout plugin (with dependencies)');
     $this->clickLink('Layout plugin (with dependencies)');
+    $page->pressButton('Add section');
     $assert_session->elementExists('css', '.layout--layout-test-dependencies-plugin');
     $assert_session->elementExists('css', '.field--name-body');
     $page->pressButton('Save layout');
@@ -538,18 +551,18 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->elementExists('css', '.field--name-body');
 
     // Add a menu block.
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->linkExists('My Menu');
     $this->clickLink('My Menu');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
 
     // Add another block alongside the menu.
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->linkExists('Powered by Drupal');
     $this->clickLink('Powered by Drupal');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
 
     // Assert that the blocks are visible, and save the layout.
     $assert_session->pageTextContains('Powered by Drupal');
@@ -595,11 +608,11 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     // Customize the default view mode.
     $this->drupalGet("$field_ui_prefix/display/default/layout");
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
     $this->clickLink('Powered by Drupal');
     $page->fillField('settings[label]', 'This is the default view mode');
     $page->checkField('settings[label_display]');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->pageTextContains('This is the default view mode');
     $page->pressButton('Save layout');
 
@@ -618,11 +631,11 @@ class LayoutBuilderTest extends BrowserTestBase {
     $this->drupalPostForm("$field_ui_prefix/display/full", ['layout[enabled]' => TRUE], 'Save');
     $this->drupalPostForm("$field_ui_prefix/display/full", ['layout[allow_custom]' => TRUE], 'Save');
     $this->drupalGet("$field_ui_prefix/display/full/layout");
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
     $this->clickLink('Powered by Drupal');
     $page->fillField('settings[label]', 'This is the full view mode');
     $page->checkField('settings[label_display]');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->pageTextContains('This is the full view mode');
     $page->pressButton('Save layout');
 
@@ -657,11 +670,11 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->pageTextNotContains('This is the default view mode');
 
     // Create an override of the full view mode.
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
     $this->clickLink('Powered by Drupal');
     $page->fillField('settings[label]', 'This is an override of the full view mode');
     $page->checkField('settings[label_display]');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->pageTextContains('This is an override of the full view mode');
     $page->pressButton('Save layout');
 
@@ -695,11 +708,11 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->pageTextNotContains('This is the default view mode');
 
     // Recreate an override of the full view mode.
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
     $this->clickLink('Powered by Drupal');
     $page->fillField('settings[label]', 'This is an override of the full view mode');
     $page->checkField('settings[label_display]');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->pageTextContains('This is an override of the full view mode');
     $page->pressButton('Save layout');
 
@@ -784,7 +797,7 @@ class LayoutBuilderTest extends BrowserTestBase {
     $this->clickLink('Manage layout');
 
     // Add a new block.
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
 
     // Verify that blocks not modified are present.
     $assert_session->linkExists('Powered by Drupal');
@@ -803,13 +816,13 @@ class LayoutBuilderTest extends BrowserTestBase {
     $this->clickLink('Manage layout');
 
     // Add a new section.
-    $this->clickLink('Add Section', 1);
+    $this->clickLink('Add section', 1);
     $assert_session->linkExists('Two column');
     $this->clickLink('Two column');
     $assert_session->buttonExists('Add section');
     $this->getSession()->getPage()->pressButton('Add section');
     // Add a new block to second section.
-    $this->clickLink('Add Block', 1);
+    $this->clickLink('Add block', 1);
 
     // Verify that Changed block is present on second section.
     $assert_session->linkExists('Changed');
@@ -821,12 +834,23 @@ class LayoutBuilderTest extends BrowserTestBase {
   public function testExtraFields() {
     $assert_session = $this->assertSession();
 
-    $this->drupalLogin($this->drupalCreateUser(['administer node display']));
+    $this->drupalLogin($this->drupalCreateUser([
+      'configure any layout',
+      'administer node display',
+    ]));
 
     $this->drupalGet('node');
     $assert_session->linkExists('Read more');
 
     $this->drupalPostForm('admin/structure/types/manage/bundle_with_section_field/display/default', ['layout[enabled]' => TRUE], 'Save');
+
+    // Extra fields display under "Content fields".
+    $this->drupalGet("admin/structure/types/manage/bundle_with_section_field/display/default/layout");
+    $this->clickLink('Add block');
+    $page = $this->getSession()->getPage();
+    $content_fields_category = $page->find('xpath', '//details/summary[contains(text(),"Content fields")]/parent::details');
+    $extra_field = strpos($content_fields_category->getText(), 'Extra label');
+    $this->assertTrue($extra_field !== FALSE);
 
     $this->drupalGet('node');
     $assert_session->linkExists('Read more');
@@ -885,9 +909,9 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     $assert_session->linkExists('Layout');
     $this->clickLink('Layout');
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
     $this->clickLink('Test Block View');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
 
     $assert_session->pageTextContains('Test Block View');
     $assert_session->elementExists('css', '.block-views-blocktest-block-view-block-1');
@@ -921,11 +945,39 @@ class LayoutBuilderTest extends BrowserTestBase {
     $page->pressButton('Save');
 
     $page->clickLink('Manage layout');
-    $page->clickLink('Add Block');
+    $page->clickLink('Add block');
     $page->clickLink('Powered by Drupal');
     $assert_session->pageTextContains('Layout Builder Storage: node.bundle_with_section_field.default');
     $assert_session->pageTextContains('Layout Builder Section: layout_onecol');
     $assert_session->pageTextContains('Layout Builder Component: system_powered_by_block');
+  }
+
+  /**
+   * Tests the functionality of custom section labels.
+   */
+  public function testSectionLabels() {
+    $assert_session = $this->assertSession();
+    $page = $this->getSession()->getPage();
+
+    $this->drupalLogin($this->drupalCreateUser([
+      'configure any layout',
+      'administer node display',
+    ]));
+
+    $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default');
+    $page->checkField('layout[enabled]');
+    $page->pressButton('Save');
+    $page->checkField('layout[allow_custom]');
+    $page->pressButton('Save');
+
+    $this->drupalGet('node/1/layout');
+    $page->clickLink('Add section');
+    $page->clickLink('One column');
+    $page->fillField('layout_settings[label]', 'My Cool Section');
+    $page->pressButton('Add section');
+    $assert_session->pageTextContains('My Cool Section');
+    $page->pressButton('Save layout');
+    $assert_session->pageTextNotContains('My Cool Section');
   }
 
   /**
@@ -942,8 +994,9 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     $this->drupalPostForm('admin/structure/types/manage/bundle_with_section_field/display/default', ['layout[enabled]' => TRUE], 'Save');
     $page->clickLink('Manage layout');
-    $page->clickLink('Add Section');
+    $page->clickLink('Add section');
     $page->clickLink('Layout Builder Test Plugin');
+    $page->pressButton('Add section');
     // See \Drupal\layout_builder_test\Plugin\Layout\LayoutBuilderTestPlugin::build().
     $assert_session->elementExists('css', '.go-birds');
   }
@@ -970,10 +1023,10 @@ class LayoutBuilderTest extends BrowserTestBase {
     $this->drupalGet("$field_ui_prefix/display/default/layout");
 
     // Add a block whose content is controlled by state and is empty by default.
-    $this->clickLink('Add Block');
+    $this->clickLink('Add block');
     $this->clickLink('Test block caching');
     $page->fillField('settings[label]', 'The block label');
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
 
     $block_content = 'I am content';
     $placeholder_content = 'Placeholder for the "The block label" block';
@@ -1115,9 +1168,12 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
 
+    // Install Quick Edit as well.
+    $this->container->get('module_installer')->install(['quickedit']);
     $this->drupalLogin($this->drupalCreateUser([
       'configure any layout',
       'administer node display',
+      'access in-place editing',
     ]));
 
     $field_ui_prefix = 'admin/structure/types/manage/bundle_with_section_field';
@@ -1136,7 +1192,7 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->elementsCount('css', '.layout-builder__add-section', 2);
 
     // Remove the only section from the override.
-    $page->clickLink('Remove section');
+    $page->clickLink('Remove Section 1');
     $page->pressButton('Remove');
     $assert_session->elementsCount('css', '.layout', 0);
     $assert_session->elementsCount('css', '.layout-builder__add-block', 0);
@@ -1153,8 +1209,9 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->elementsCount('css', '.layout-builder__add-section', 1);
 
     // Add one section to the override.
-    $page->clickLink('Add Section');
+    $page->clickLink('Add section');
     $page->clickLink('One column');
+    $page->pressButton('Add section');
     $assert_session->elementsCount('css', '.layout', 1);
     $assert_session->elementsCount('css', '.layout-builder__add-block', 1);
     $assert_session->elementsCount('css', '.layout-builder__add-section', 2);
@@ -1170,7 +1227,7 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->elementsCount('css', '.layout-builder__add-section', 2);
 
     // Remove the only section from the default.
-    $page->clickLink('Remove section');
+    $page->clickLink('Remove Section 1');
     $page->pressButton('Remove');
     $assert_session->elementsCount('css', '.layout', 0);
     $assert_session->elementsCount('css', '.layout-builder__add-block', 0);
@@ -1205,10 +1262,10 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session = $this->assertSession();
     // Ensure the layouts provided by layout_builder are available.
     $expected_layouts_hrefs = [
-      'layout_builder/add/section/overrides/node.1/0/layout_onecol',
+      'layout_builder/configure/section/overrides/node.1/0/layout_onecol',
       'layout_builder/configure/section/overrides/node.1/0/layout_twocol_section',
       'layout_builder/configure/section/overrides/node.1/0/layout_threecol_section',
-      'layout_builder/add/section/overrides/node.1/0/layout_fourcol_section',
+      'layout_builder/configure/section/overrides/node.1/0/layout_fourcol_section',
     ];
     foreach ($expected_layouts_hrefs as $expected_layouts_href) {
       $assert_session->linkByHrefExists($expected_layouts_href);
@@ -1222,6 +1279,7 @@ class LayoutBuilderTest extends BrowserTestBase {
     ];
     foreach ($unexpected_layouts as $unexpected_layout) {
       $assert_session->linkByHrefNotExists("layout_builder/add/section/overrides/node.1/0/$unexpected_layout");
+      $assert_session->linkByHrefNotExists("layout_builder/configure/section/overrides/node.1/0/$unexpected_layout");
     }
   }
 

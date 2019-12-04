@@ -55,7 +55,7 @@ class MigrateEntityContentBaseTest extends KernelTestBase {
     ConfigurableLanguage::createFromLangcode('en')->save();
     ConfigurableLanguage::createFromLangcode('fr')->save();
 
-    $this->storage = $this->container->get('entity.manager')->getStorage('entity_test_mul');
+    $this->storage = $this->container->get('entity_type.manager')->getStorage('entity_test_mul');
   }
 
   /**
@@ -70,7 +70,7 @@ class MigrateEntityContentBaseTest extends KernelTestBase {
    */
   protected function assertTranslations($id, $default, $others = []) {
     $entity = $this->storage->load($id);
-    $this->assertTrue($entity, "Entity exists");
+    $this->assertNotEmpty($entity, "Entity exists");
     $this->assertEquals($default, $entity->language()->getId(), "Entity default translation");
     $translations = array_keys($entity->getTranslationLanguages(FALSE));
     sort($others);
@@ -89,10 +89,10 @@ class MigrateEntityContentBaseTest extends KernelTestBase {
       $configuration,
       'fake_plugin_id',
       [],
-      $this->getMock(MigrationInterface::class),
+      $this->createMock(MigrationInterface::class),
       $this->storage,
       [],
-      $this->container->get('entity.manager'),
+      $this->container->get('entity_field.manager'),
       $this->container->get('plugin.manager.field.field_type')
     );
   }
@@ -115,7 +115,7 @@ class MigrateEntityContentBaseTest extends KernelTestBase {
     $this->assertTranslations(1, 'en');
     $this->assertTranslations(2, 'fr');
     $this->assertTranslations(3, 'en', ['fr']);
-    $this->assertFalse($this->storage->load(4));
+    $this->assertNull($this->storage->load(4));
 
     $destination_rows = [
       // Existing default translation.

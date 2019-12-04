@@ -545,6 +545,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
    * {@inheritdoc}
    */
   public function lookupDestinationId(array $source_id_values) {
+    @trigger_error(__NAMESPACE__ . '\Sql::lookupDestinationId() is deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use Sql::lookupDestinationIds() instead. See https://www.drupal.org/node/2725809', E_USER_DEPRECATED);
     $results = $this->lookupDestinationIds($source_id_values);
     return $results ? reset($results) : [];
   }
@@ -675,17 +676,34 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
   /**
    * {@inheritdoc}
    */
-  public function getMessageIterator(array $source_id_values = [], $level = NULL) {
-    $query = $this->getDatabase()->select($this->messageTableName(), 'msg')
-      ->fields('msg');
-    if ($source_id_values) {
-      $query->condition($this::SOURCE_IDS_HASH, $this->getSourceIdsHash($source_id_values));
+  public function getMessages(array $source_id_values = [], $level = NULL) {
+    $query = $this->getDatabase()->select($this->messageTableName(), 'msg');
+    $condition = sprintf('msg.%s = map.%s', $this::SOURCE_IDS_HASH, $this::SOURCE_IDS_HASH);
+    $query->addJoin('LEFT', $this->mapTableName(), 'map', $condition);
+    // Explicitly define the fields we want. The order will be preserved: source
+    // IDs, destination IDs (if possible), and then the rest.
+    foreach ($this->sourceIdFields() as $id => $column_name) {
+      $query->addField('map', $column_name, "src_$id");
     }
-
+    foreach ($this->destinationIdFields() as $id => $column_name) {
+      $query->addField('map', $column_name, "dest_$id");
+    }
+    $query->fields('msg', ['msgid', $this::SOURCE_IDS_HASH, 'level', 'message']);
+    if ($source_id_values) {
+      $query->condition('msg.' . $this::SOURCE_IDS_HASH, $this->getSourceIdsHash($source_id_values));
+    }
     if ($level) {
-      $query->condition('level', $level);
+      $query->condition('msg.level', $level);
     }
     return $query->execute();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getMessageIterator(array $source_id_values = [], $level = NULL) {
+    @trigger_error('getMessageIterator() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use getMessages() instead. See https://www.drupal.org/node/3060969', E_USER_DEPRECATED);
+    return $this->getMessages($source_id_values, $level);
   }
 
   /**

@@ -36,8 +36,27 @@ class MigrationTest extends KernelTestBase {
    */
   public function testGetProcessPluginsException() {
     $migration = \Drupal::service('plugin.manager.migration')->createStubMigration([]);
-    $this->setExpectedException(MigrateException::class, 'Invalid process configuration for foobar');
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage('Invalid process configuration for foobar');
     $migration->getProcessPlugins(['foobar' => ['plugin' => 'get']]);
+  }
+
+  /**
+   * Tests Migration::getDestinationPlugin()
+   *
+   * @covers ::getDestinationPlugin
+   */
+  public function testGetProcessPluginsExceptionMessage() {
+    // Test with an invalid process pipeline.
+    $plugin_definition = [
+      'process' => [
+        'dest1' => 123,
+      ],
+    ];
+    $migration = \Drupal::service('plugin.manager.migration')->createStubMigration($plugin_definition);
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage("Process configuration for 'dest1' must be an array");
+    $migration->getProcessPlugins();
   }
 
   /**
@@ -123,7 +142,8 @@ class MigrationTest extends KernelTestBase {
    */
   public function testGetDestinationPlugin() {
     $migration = \Drupal::service('plugin.manager.migration')->createStubMigration(['destination' => ['no_stub' => TRUE]]);
-    $this->setExpectedException(MigrateSkipRowException::class, "Stub requested but not made because no_stub configuration is set.");
+    $this->expectException(MigrateSkipRowException::class);
+    $this->expectExceptionMessage("Stub requested but not made because no_stub configuration is set.");
     $migration->getDestinationPlugin(TRUE);
   }
 

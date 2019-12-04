@@ -5,6 +5,7 @@
  * Defines a "managed_file" Form API field and a "file" field for Field module.
  */
 
+use Drupal\Component\Utility\Environment;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\File\Exception\FileException;
@@ -14,6 +15,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\file\Entity\File;
 use Drupal\file\FileInterface;
@@ -79,7 +81,7 @@ function file_field_widget_info_alter(array &$info) {
  * @return array
  *   An array of file entities, indexed by fid.
  *
- * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\file\Entity\File::loadMultiple().
  *
  * @see https://www.drupal.org/node/2266845
@@ -87,7 +89,7 @@ function file_field_widget_info_alter(array &$info) {
 function file_load_multiple(array $fids = NULL, $reset = FALSE) {
   @trigger_error('file_load_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\file\Entity\File::loadMultiple(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if ($reset) {
-    \Drupal::entityManager()->getStorage('file')->resetCache($fids);
+    \Drupal::entityTypeManager()->getStorage('file')->resetCache($fids);
   }
   return File::loadMultiple($fids);
 }
@@ -104,7 +106,7 @@ function file_load_multiple(array $fids = NULL, $reset = FALSE) {
  * @return \Drupal\file\FileInterface|null
  *   A file entity or NULL if the file was not found.
  *
- * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\file\Entity\File::load().
  *
  * @see https://www.drupal.org/node/2266845
@@ -112,7 +114,7 @@ function file_load_multiple(array $fids = NULL, $reset = FALSE) {
 function file_load($fid, $reset = FALSE) {
   @trigger_error('file_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\file\Entity\File::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if ($reset) {
-    \Drupal::entityManager()->getStorage('file')->resetCache([$fid]);
+    \Drupal::entityTypeManager()->getStorage('file')->resetCache([$fid]);
   }
   return File::load($fid);
 }
@@ -127,8 +129,9 @@ function file_load($fid, $reset = FALSE) {
  * - If file already exists in $destination either the call will error out,
  *   replace the file or rename the file based on the $replace parameter.
  * - If the $source and $destination are equal, the behavior depends on the
- *   $replace parameter. FILE_EXISTS_REPLACE will error out. FILE_EXISTS_RENAME
- *   will rename the file until the $destination is unique.
+ *   $replace parameter. FileSystemInterface::EXISTS_REPLACE will error out.
+ *   FileSystemInterface::EXISTS_RENAME will rename the file until the
+ *   $destination is unique.
  * - Adds the new file to the files database. If the source file is a
  *   temporary file, the resulting file will also be a temporary file. See
  *   file_save_upload() for details on temporary files.
@@ -141,23 +144,27 @@ function file_load($fid, $reset = FALSE) {
  * @param int $replace
  *   (optional) Replace behavior when the destination file already exists.
  *   Possible values include:
- *   - FILE_EXISTS_REPLACE: Replace the existing file. If a managed file with
- *     the destination name exists, then its database entry will be updated. If
- *     no database entry is found, then a new one will be created.
- *   - FILE_EXISTS_RENAME: (default) Append _{incrementing number} until the
- *     filename is unique.
- *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *   - FileSystemInterface::EXISTS_REPLACE: Replace the existing file. If a
+ *     managed file with the destination name exists, then its database entry
+ *     will be updated. If no database entry is found, then a new one will be
+ *     created.
+ *   - FileSystemInterface::EXISTS_RENAME: (default) Append
+ *     _{incrementing number} until the filename is unique.
+ *   - FileSystemInterface::EXISTS_ERROR: Do nothing and return FALSE.
  *
  * @return \Drupal\file\FileInterface|false
  *   File entity if the copy is successful, or FALSE in the event of an error.
  *
- * @see file_unmanaged_copy()
+ * @see \Drupal\Core\File\FileSystemInterface::copy()
  * @see hook_file_copy()
  */
-function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
+function file_copy(FileInterface $source, $destination = NULL, $replace = FileSystemInterface::EXISTS_RENAME) {
   /** @var \Drupal\Core\File\FileSystemInterface $file_system */
   $file_system = \Drupal::service('file_system');
-  if (!file_valid_uri($destination)) {
+  /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
+  $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
+
+  if (!$stream_wrapper_manager->isValidUri($destination)) {
     if (($realpath = $file_system->realpath($source->getFileUri())) !== FALSE) {
       \Drupal::logger('file')->notice('File %file (%realpath) could not be copied because the destination %destination is invalid. This is often caused by improper use of file_copy() or a missing stream wrapper.', ['%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination]);
     }
@@ -176,8 +183,8 @@ function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_E
     // If we are replacing an existing file re-use its database record.
     // @todo Do not create a new entity in order to update it. See
     //   https://www.drupal.org/node/2241865.
-    if ($replace == FILE_EXISTS_REPLACE) {
-      $existing_files = entity_load_multiple_by_properties('file', ['uri' => $uri]);
+    if ($replace == FileSystemInterface::EXISTS_REPLACE) {
+      $existing_files = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $file->fid = $existing->id();
@@ -187,7 +194,7 @@ function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_E
     }
     // If we are renaming around an existing file (rather than a directory),
     // use its basename for the filename.
-    elseif ($replace == FILE_EXISTS_RENAME && is_file($destination)) {
+    elseif ($replace == FileSystemInterface::EXISTS_RENAME && is_file($destination)) {
       $file->setFilename($file_system->basename($destination));
     }
 
@@ -220,13 +227,14 @@ function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_E
  * @param int $replace
  *   (optional) The replace behavior when the destination file already exists.
  *   Possible values include:
- *   - FILE_EXISTS_REPLACE: Replace the existing file. If a managed file with
- *     the destination name exists then its database entry will be updated and
- *     $source->delete() called after invoking hook_file_move(). If no database
- *     entry is found, then the source files record will be updated.
- *   - FILE_EXISTS_RENAME: (default) Append _{incrementing number} until the
- *     filename is unique.
- *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *   - FileSystemInterface::EXISTS_REPLACE: Replace the existing file. If a
+ *     managed file with the destination name exists then its database entry
+ *     will be updated and $source->delete() called after invoking
+ *     hook_file_move(). If no database entry is found, then the source files
+ *     record will be updated.
+ *   - FileSystemInterface::EXISTS_RENAME: (default) Append
+ *     _{incrementing number} until the filename is unique.
+ *   - FileSystemInterface::EXISTS_ERROR: Do nothing and return FALSE.
  *
  * @return \Drupal\file\FileInterface|false
  *   Resulting file entity for success, or FALSE in the event of an error.
@@ -234,10 +242,13 @@ function file_copy(FileInterface $source, $destination = NULL, $replace = FILE_E
  * @see \Drupal\Core\File\FileSystemInterface::move()
  * @see hook_file_move()
  */
-function file_move(FileInterface $source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
+function file_move(FileInterface $source, $destination = NULL, $replace = FileSystemInterface::EXISTS_RENAME) {
   /** @var \Drupal\Core\File\FileSystemInterface $file_system */
   $file_system = \Drupal::service('file_system');
-  if (!file_valid_uri($destination)) {
+  /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
+  $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
+
+  if (!$stream_wrapper_manager->isValidUri($destination)) {
     if (($realpath = $file_system->realpath($source->getFileUri())) !== FALSE) {
       \Drupal::logger('file')->notice('File %file (%realpath) could not be moved because the destination %destination is invalid. This may be caused by improper use of file_move() or a missing stream wrapper.', ['%file' => $source->getFileUri(), '%realpath' => $realpath, '%destination' => $destination]);
     }
@@ -255,8 +266,8 @@ function file_move(FileInterface $source, $destination = NULL, $replace = FILE_E
     $file = clone $source;
     $file->setFileUri($uri);
     // If we are replacing an existing file re-use its database record.
-    if ($replace == FILE_EXISTS_REPLACE) {
-      $existing_files = entity_load_multiple_by_properties('file', ['uri' => $uri]);
+    if ($replace == FileSystemInterface::EXISTS_REPLACE) {
+      $existing_files = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $delete_source = TRUE;
@@ -266,7 +277,7 @@ function file_move(FileInterface $source, $destination = NULL, $replace = FILE_E
     }
     // If we are renaming around an existing file (rather than a directory),
     // use its basename for the filename.
-    elseif ($replace == FILE_EXISTS_RENAME && is_file($destination)) {
+    elseif ($replace == FileSystemInterface::EXISTS_RENAME && is_file($destination)) {
       $file->setFilename(\Drupal::service('file_system')->basename($destination));
     }
 
@@ -396,7 +407,7 @@ function file_validate_size(FileInterface $file, $file_limit = 0, $user_limit = 
   }
 
   // Save a query by only calling spaceUsed() when a limit is provided.
-  if ($user_limit && (\Drupal::entityManager()->getStorage('file')->spaceUsed($user->id()) + $file->getSize()) > $user_limit) {
+  if ($user_limit && (\Drupal::entityTypeManager()->getStorage('file')->spaceUsed($user->id()) + $file->getSize()) > $user_limit) {
     $errors[] = t('The file is %filesize which would exceed your disk quota of %quota.', ['%filesize' => format_size($file->getSize()), '%quota' => format_size($user_limit)]);
   }
 
@@ -543,25 +554,29 @@ function file_validate_image_resolution(FileInterface $file, $maximum_dimensions
  * @param int $replace
  *   (optional) The replace behavior when the destination file already exists.
  *   Possible values include:
- *   - FILE_EXISTS_REPLACE: Replace the existing file. If a managed file with
- *     the destination name exists, then its database entry will be updated. If
- *     no database entry is found, then a new one will be created.
- *   - FILE_EXISTS_RENAME: (default) Append _{incrementing number} until the
- *     filename is unique.
- *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *   - FileSystemInterface::EXISTS_REPLACE: Replace the existing file. If a
+ *     managed file with the destination name exists, then its database entry
+ *     will be updated. If no database entry is found, then a new one will be
+ *     created.
+ *   - FileSystemInterface::EXISTS_RENAME: (default) Append
+ *     _{incrementing number} until the filename is unique.
+ *   - FileSystemInterface::EXISTS_ERROR: Do nothing and return FALSE.
  *
  * @return \Drupal\file\FileInterface|false
  *   A file entity, or FALSE on error.
  *
- * @see file_unmanaged_save_data()
+ * @see \Drupal\Core\File\FileSystemInterface::saveData()
  */
-function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
+function file_save_data($data, $destination = NULL, $replace = FileSystemInterface::EXISTS_RENAME) {
   $user = \Drupal::currentUser();
 
   if (empty($destination)) {
-    $destination = file_default_scheme() . '://';
+    $destination = \Drupal::config('system.file')->get('default_scheme') . '://';
   }
-  if (!file_valid_uri($destination)) {
+
+  /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
+  $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
+  if (!$stream_wrapper_manager->isValidUri($destination)) {
     \Drupal::logger('file')->notice('The data could not be saved because the destination %destination is invalid. This may be caused by improper use of file_save_data() or a missing stream wrapper.', ['%destination' => $destination]);
     \Drupal::messenger()->addError(t('The data could not be saved because the destination is invalid. More information is available in the system log.'));
     return FALSE;
@@ -578,8 +593,8 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
     // If we are replacing an existing file re-use its database record.
     // @todo Do not create a new entity in order to update it. See
     //   https://www.drupal.org/node/2241865.
-    if ($replace == FILE_EXISTS_REPLACE) {
-      $existing_files = entity_load_multiple_by_properties('file', ['uri' => $uri]);
+    if ($replace == FileSystemInterface::EXISTS_REPLACE) {
+      $existing_files = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
       if (count($existing_files)) {
         $existing = reset($existing_files);
         $file->fid = $existing->id();
@@ -589,7 +604,7 @@ function file_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAM
     }
     // If we are renaming around an existing file (rather than a directory),
     // use its basename for the filename.
-    elseif ($replace == FILE_EXISTS_RENAME && is_file($destination)) {
+    elseif ($replace == FileSystemInterface::EXISTS_RENAME && is_file($destination)) {
       $file->setFilename(\Drupal::service('file_system')->basename($destination));
     }
 
@@ -659,7 +674,7 @@ function file_theme() {
 function file_file_download($uri) {
   // Get the file record based on the URI. If not in the database just return.
   /** @var \Drupal\file\FileInterface[] $files */
-  $files = entity_load_multiple_by_properties('file', ['uri' => $uri]);
+  $files = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $uri]);
   if (count($files)) {
     foreach ($files as $item) {
       // Since some database servers sometimes use a case-insensitive comparison
@@ -714,7 +729,10 @@ function file_file_download($uri) {
  */
 function file_cron() {
   $age = \Drupal::config('system.file')->get('temporary_maximum_age');
-  $file_storage = \Drupal::entityManager()->getStorage('file');
+  $file_storage = \Drupal::entityTypeManager()->getStorage('file');
+
+  /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
+  $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
 
   // Only delete temporary files if older than $age. Note that automatic cleanup
   // is disabled if $age set to 0.
@@ -729,7 +747,7 @@ function file_cron() {
       $references = \Drupal::service('file.usage')->listUsage($file);
       if (empty($references)) {
         if (!file_exists($file->getFileUri())) {
-          if (!file_valid_uri($file->getFileUri())) {
+          if (!$stream_wrapper_manager->isValidUri($file->getFileUri())) {
             \Drupal::logger('file system')->warning('Temporary file "%path" that was deleted during garbage collection did not exist on the filesystem. This could be caused by a missing stream wrapper.', ['%path' => $file->getFileUri()]);
           }
           else {
@@ -764,26 +782,26 @@ function file_cron() {
  * @param int $replace
  *   (optional) The replace behavior when the destination file already exists.
  *   Possible values include:
- *   - FILE_EXISTS_REPLACE: Replace the existing file.
- *   - FILE_EXISTS_RENAME: (default) Append _{incrementing number} until the
- *     filename is unique.
- *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *   - FileSystemInterface::EXISTS_REPLACE: Replace the existing file.
+ *   - FileSystemInterface::EXISTS_RENAME: (default) Append
+ *     _{incrementing number} until the filename is unique.
+ *   - FileSystemInterface::EXISTS_ERROR: Do nothing and return FALSE.
  *
  * @return array|\Drupal\file\FileInterface|null|false
  *   An array of file entities or a single file entity if $delta != NULL. Each
  *   array element contains the file entity if the upload succeeded or FALSE if
  *   there was an error. Function returns NULL if no file was uploaded.
  *
- * @deprecated in Drupal 8.4.x, will be removed before Drupal 9.0.0.
- *   For backwards compatibility use core file upload widgets in forms.
- *
  * @internal
- *   This function wraps file_save_upload() to allow correct error handling in
- *   forms.
+ *   This function is internal, and may be removed in a minor version release.
+ *   It wraps file_save_upload() to allow correct error handling in forms.
+ *   Contrib and custom code should not call this function, they should use the
+ *   managed file upload widgets in core.
  *
- * @todo Revisit after https://www.drupal.org/node/2244513.
+ * @see https://www.drupal.org/project/drupal/issues/3069020
+ * @see https://www.drupal.org/project/drupal/issues/2482783
  */
-function _file_save_upload_from_form(array $element, FormStateInterface $form_state, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
+function _file_save_upload_from_form(array $element, FormStateInterface $form_state, $delta = NULL, $replace = FileSystemInterface::EXISTS_RENAME) {
   // Get all errors set before calling this method. This will also clear them
   // from $_SESSION.
   $errors_before = \Drupal::messenger()->deleteByType(MessengerInterface::TYPE_ERROR);
@@ -863,10 +881,10 @@ function _file_save_upload_from_form(array $element, FormStateInterface $form_st
  * @param int $replace
  *   (optional) The replace behavior when the destination file already exists.
  *   Possible values include:
- *   - FILE_EXISTS_REPLACE: Replace the existing file.
- *   - FILE_EXISTS_RENAME: (default) Append _{incrementing number} until the
- *     filename is unique.
- *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *   - FileSystemInterface::EXISTS_REPLACE: Replace the existing file.
+ *   - FileSystemInterface::EXISTS_RENAME: (default) Append
+ *     _{incrementing number} until the filename is unique.
+ *   - FileSystemInterface::EXISTS_ERROR: Do nothing and return FALSE.
  *
  * @return array|\Drupal\file\FileInterface|null|false
  *   An array of file entities or a single file entity if $delta != NULL. Each
@@ -877,7 +895,7 @@ function _file_save_upload_from_form(array $element, FormStateInterface $form_st
  *
  * @todo: move this logic to a service in https://www.drupal.org/node/2244513.
  */
-function file_save_upload($form_field_name, $validators = [], $destination = FALSE, $delta = NULL, $replace = FILE_EXISTS_RENAME) {
+function file_save_upload($form_field_name, $validators = [], $destination = FALSE, $delta = NULL, $replace = FileSystemInterface::EXISTS_RENAME) {
   static $upload_cache;
 
   $all_files = \Drupal::request()->files->get('files', []);
@@ -949,7 +967,7 @@ function _file_save_upload_single(\SplFileInfo $file_info, $form_field_name, $va
   switch ($file_info->getError()) {
     case UPLOAD_ERR_INI_SIZE:
     case UPLOAD_ERR_FORM_SIZE:
-      \Drupal::messenger()->addError(t('The file %file could not be saved because it exceeds %maxsize, the maximum allowed size for uploads.', ['%file' => $file_info->getFilename(), '%maxsize' => format_size(file_upload_max_size())]));
+      \Drupal::messenger()->addError(t('The file %file could not be saved because it exceeds %maxsize, the maximum allowed size for uploads.', ['%file' => $file_info->getFilename(), '%maxsize' => format_size(Environment::getUploadMaxSize())]));
       return FALSE;
 
     case UPLOAD_ERR_PARTIAL:
@@ -1029,9 +1047,12 @@ function _file_save_upload_single(\SplFileInfo $file_info, $form_field_name, $va
     $destination = 'temporary://';
   }
 
+  /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
+  $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
+
   // Assert that the destination contains a valid stream.
-  $destination_scheme = file_uri_scheme($destination);
-  if (!file_stream_wrapper_valid_scheme($destination_scheme)) {
+  $destination_scheme = $stream_wrapper_manager::getScheme($destination);
+  if (!$stream_wrapper_manager->isValidScheme($destination_scheme)) {
     \Drupal::messenger()->addError(t('The file could not be uploaded because the destination %destination is invalid.', ['%destination' => $destination]));
     return FALSE;
   }
@@ -1095,7 +1116,7 @@ function _file_save_upload_single(\SplFileInfo $file_info, $form_field_name, $va
   // @todo Do not create a new entity in order to update it. See
   //   https://www.drupal.org/node/2241865.
   if ($replace == FileSystemInterface::EXISTS_REPLACE) {
-    $existing_files = entity_load_multiple_by_properties('file', ['uri' => $file->getFileUri()]);
+    $existing_files = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $file->getFileUri()]);
     if (count($existing_files)) {
       $existing = reset($existing_files);
       $file->fid = $existing->id();
@@ -1106,6 +1127,28 @@ function _file_save_upload_single(\SplFileInfo $file_info, $form_field_name, $va
   // Update the filename with any changes as a result of security or renaming
   // due to an existing file.
   $file->setFilename(\Drupal::service('file_system')->basename($file->destination));
+
+  // We can now validate the file object itself before it's saved.
+  $violations = $file->validate();
+  foreach ($violations as $violation) {
+    $errors[] = $violation->getMessage();
+  }
+  if (!empty($errors)) {
+    $message = [
+      'error' => [
+        '#markup' => t('The specified file %name could not be uploaded.', ['%name' => $file->getFilename()]),
+      ],
+      'item_list' => [
+        '#theme' => 'item_list',
+        '#items' => $errors,
+      ],
+    ];
+    // @todo Add support for render arrays in
+    // \Drupal\Core\Messenger\MessengerInterface::addMessage()?
+    // @see https://www.drupal.org/node/2505497.
+    \Drupal::messenger()->addError(\Drupal::service('renderer')->renderPlain($message));
+    return FALSE;
+  }
 
   // If we made it this far it's safe to record this file in the database.
   $file->save();
@@ -1137,9 +1180,6 @@ function file_progress_implementation() {
     // simultaneous uploads. APCu only supports one at a time.
     if (extension_loaded('uploadprogress')) {
       $implementation = 'uploadprogress';
-    }
-    elseif (version_compare(PHP_VERSION, '7', '<') && extension_loaded('apc') && ini_get('apc.rfc1867')) {
-      $implementation = 'apc';
     }
   }
   return $implementation;
@@ -1490,8 +1530,9 @@ function template_preprocess_file_link(&$variables) {
   // Set file classes to the options array.
   $variables['attributes'] = new Attribute($variables['attributes']);
   $variables['attributes']->addClass($classes);
+  $variables['file_size'] = format_size($file->getSize());
 
-  $variables['link'] = \Drupal::l($link_text, Url::fromUri($url, $options));
+  $variables['link'] = Link::fromTextAndUrl($link_text, Url::fromUri($url, $options))->toRenderable();
 }
 
 /**
@@ -1733,10 +1774,11 @@ function file_get_file_references(FileInterface $file, FieldDefinitionInterface 
   $return = $references[$file->id()][$age];
   // Filter the static cache down to the requested entries. The usual static
   // cache is very small so this will be very fast.
+  $entity_field_manager = \Drupal::service('entity_field.manager');
   if ($field || $field_type) {
     foreach ($return as $field_name => $data) {
       foreach (array_keys($data) as $entity_type_id) {
-        $field_storage_definitions = \Drupal::entityManager()->getFieldStorageDefinitions($entity_type_id);
+        $field_storage_definitions = $entity_field_manager->getFieldStorageDefinitions($entity_type_id);
         $current_field = $field_storage_definitions[$field_name];
         if (($field_type && $current_field->getType() != $field_type) || ($field && $field->uuid() != $current_field->uuid())) {
           unset($return[$field_name][$entity_type_id]);

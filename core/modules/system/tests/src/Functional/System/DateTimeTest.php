@@ -21,6 +21,11 @@ class DateTimeTest extends BrowserTestBase {
    */
   public static $modules = ['block', 'node', 'language', 'field', 'field_ui', 'datetime', 'options'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -64,7 +69,7 @@ class DateTimeTest extends BrowserTestBase {
 
     // Set time zone to Los Angeles time.
     $config->set('timezone.default', 'America/Los_Angeles')->save();
-    \Drupal::entityManager()->getViewBuilder('node')->resetCache([$node1, $node2]);
+    \Drupal::entityTypeManager()->getViewBuilder('node')->resetCache([$node1, $node2]);
 
     // Confirm date format and time zone.
     $this->drupalGet('node/' . $node1->id());
@@ -121,7 +126,7 @@ class DateTimeTest extends BrowserTestBase {
 
     // Make sure the date does not exist in config.
     $date_format = DateFormat::load($date_format_id);
-    $this->assertFalse($date_format);
+    $this->assertNull($date_format);
 
     // Add a new date format with an existing format.
     $date_format_id = strtolower($this->randomMachineName(8));

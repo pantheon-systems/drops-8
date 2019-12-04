@@ -6,10 +6,10 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Test\EnvironmentCleanerInterface;
 use Drupal\Core\Url;
 use Drupal\simpletest\TestDiscovery;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Test results form for $test_id.
@@ -39,11 +39,19 @@ class SimpletestResultsForm extends FormBase {
   protected $database;
 
   /**
+   * The environment cleaner service.
+   *
+   * @var \Drupal\Core\Test\EnvironmentCleanerInterface
+   */
+  protected $cleaner;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('database')
+      $container->get('database'),
+      $container->get('environment_cleaner')
     );
   }
 
@@ -53,8 +61,9 @@ class SimpletestResultsForm extends FormBase {
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection service.
    */
-  public function __construct(Connection $database) {
+  public function __construct(Connection $database, EnvironmentCleanerInterface $cleaner) {
     $this->database = $database;
+    $this->cleaner = $cleaner;
   }
 
   /**
@@ -113,7 +122,7 @@ class SimpletestResultsForm extends FormBase {
     $results = [];
     if (is_numeric($test_id) && !$results = $this->getResults($test_id)) {
       $this->messenger()->addError($this->t('No test results to display.'));
-      return new RedirectResponse($this->url('simpletest.test_form', [], ['absolute' => TRUE]));
+      return $this->redirect('simpletest.test_form');
     }
 
     // Load all classes and include CSS.
@@ -122,7 +131,7 @@ class SimpletestResultsForm extends FormBase {
     $filter = static::addResultForm($form, $results, $this->getStringTranslation());
 
     // Actions.
-    $form['#action'] = $this->url('simpletest.result_form', ['test_id' => 're-run']);
+    $form['#action'] = Url::fromRoute('simpletest.result_form', ['test_id' => 're-run'])->toString();
     $form['action'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Actions'),
@@ -163,7 +172,7 @@ class SimpletestResultsForm extends FormBase {
     ];
 
     if (is_numeric($test_id)) {
-      simpletest_clean_results_table($test_id);
+      $this->cleaner->cleanResultsTable($test_id);
     }
 
     return $form;

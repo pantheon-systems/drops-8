@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\search\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\Traits\Core\CronRunTrait;
@@ -19,6 +20,11 @@ class SearchNumberMatchingTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected static $modules = ['dblog', 'node', 'search'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * A user with permission to administer nodes.
@@ -89,7 +95,7 @@ class SearchNumberMatchingTest extends BrowserTestBase {
       $this->drupalPostForm('search/node',
         ['keys' => 'foo'],
         t('Search'));
-      $this->assertNoText($node->label(), format_string('%number: node title not shown in dummy search', ['%number' => $i]));
+      $this->assertNoText($node->label(), new FormattableMarkup('%number: node title not shown in dummy search', ['%number' => $i]));
 
       // Now verify that we can find node i by searching for any of the
       // numbers.
@@ -102,7 +108,7 @@ class SearchNumberMatchingTest extends BrowserTestBase {
         $this->drupalPostForm('search/node',
           ['keys' => $number],
           t('Search'));
-        $this->assertText($node->label(), format_string('%i: node title shown (search found the node) in search for number %number', ['%i' => $i, '%number' => $number]));
+        $this->assertText($node->label(), new FormattableMarkup('%i: node title shown (search found the node) in search for number %number', ['%i' => $i, '%number' => $number]));
       }
     }
 

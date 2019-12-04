@@ -21,14 +21,14 @@ class FormSubmitterTest extends UnitTestCase {
   /**
    * The mocked URL generator.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Routing\UrlGeneratorInterface
+   * @var \PHPUnit\Framework\MockObject\MockObject|\Drupal\Core\Routing\UrlGeneratorInterface
    */
   protected $urlGenerator;
 
   /**
    * The mocked unrouted URL assembler.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Utility\UnroutedUrlAssemblerInterface
+   * @var \PHPUnit\Framework\MockObject\MockObject|\Drupal\Core\Utility\UnroutedUrlAssemblerInterface
    */
   protected $unroutedUrlAssembler;
 
@@ -37,8 +37,8 @@ class FormSubmitterTest extends UnitTestCase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->urlGenerator = $this->getMock(UrlGeneratorInterface::class);
-    $this->unroutedUrlAssembler = $this->getMock(UnroutedUrlAssemblerInterface::class);
+    $this->urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+    $this->unroutedUrlAssembler = $this->createMock(UnroutedUrlAssemblerInterface::class);
   }
 
   /**
@@ -108,7 +108,7 @@ class FormSubmitterTest extends UnitTestCase {
   public function testRedirectWithNull() {
     $form_submitter = $this->getFormSubmitter();
 
-    $form_state = $this->getMock('Drupal\Core\Form\FormStateInterface');
+    $form_state = $this->createMock('Drupal\Core\Form\FormStateInterface');
     $form_state->expects($this->once())
       ->method('getRedirect')
       ->willReturn(NULL);
@@ -144,7 +144,7 @@ class FormSubmitterTest extends UnitTestCase {
         ])
       );
 
-    $form_state = $this->getMock('Drupal\Core\Form\FormStateInterface');
+    $form_state = $this->createMock('Drupal\Core\Form\FormStateInterface');
     $form_state->expects($this->once())
       ->method('getRedirect')
       ->willReturn($redirect_value);
@@ -174,7 +174,7 @@ class FormSubmitterTest extends UnitTestCase {
   public function testRedirectWithResponseObject() {
     $form_submitter = $this->getFormSubmitter();
     $redirect = new RedirectResponse('/example');
-    $form_state = $this->getMock('Drupal\Core\Form\FormStateInterface');
+    $form_state = $this->createMock('Drupal\Core\Form\FormStateInterface');
     $form_state->expects($this->once())
       ->method('getRedirect')
       ->willReturn($redirect);
@@ -199,7 +199,7 @@ class FormSubmitterTest extends UnitTestCase {
     $container->set('url_generator', $this->urlGenerator);
     $container->set('unrouted_url_assembler', $this->unroutedUrlAssembler);
     \Drupal::setContainer($container);
-    $form_state = $this->getMock('Drupal\Core\Form\FormStateInterface');
+    $form_state = $this->createMock('Drupal\Core\Form\FormStateInterface');
     $form_state->expects($this->once())
       ->method('getRedirect')
       ->willReturn(FALSE);

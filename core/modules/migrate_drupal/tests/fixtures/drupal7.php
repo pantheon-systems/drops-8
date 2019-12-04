@@ -4201,7 +4201,7 @@ $connection->insert('field_config')
   'storage_module' => 'field_sql_storage',
   'storage_active' => '1',
   'locked' => '0',
-  'data' => 'a:7:{s:12:"translatable";i:0;s:12:"entity_types";a:0:{}s:8:"settings";a:3:{s:14:"allowed_values";a:1:{i:0;a:2:{s:10:"vocabulary";s:14:"vocablocalized";s:6:"parent";s:1:"0";}}s:21:"options_list_callback";s:29:"title_taxonomy_allowed_values";s:23:"entity_translation_sync";b:0;}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:31:"field_data_field_vocab_localize";a:1:{s:3:"tid";s:24:"field_vocab_localize_tid";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:35:"field_revision_field_vocab_localize";a:1:{s:3:"tid";s:24:"field_vocab_localize_tid";}}}}}s:12:"foreign keys";a:1:{s:3:"tid";a:2:{s:5:"table";s:18:"taxonomy_term_data";s:7:"columns";a:1:{s:3:"tid";s:3:"tid";}}}s:7:"indexes";a:1:{s:3:"tid";a:1:{i:0;s:3:"tid";}}s:2:"id";s:2:"44";}',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:3:{s:14:"allowed_values";a:1:{i:0;a:2:{s:10:"vocabulary";s:14:"vocablocalized";s:6:"parent";s:1:"0";}}s:21:"options_list_callback";s:28:"i18n_taxonomy_allowed_values";s:23:"entity_translation_sync";b:0;}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:31:"field_data_field_vocab_localize";a:1:{s:3:"tid";s:24:"field_vocab_localize_tid";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:35:"field_revision_field_vocab_localize";a:1:{s:3:"tid";s:24:"field_vocab_localize_tid";}}}}}s:12:"foreign keys";a:1:{s:3:"tid";a:2:{s:5:"table";s:18:"taxonomy_term_data";s:7:"columns";a:1:{s:3:"tid";s:3:"tid";}}}s:7:"indexes";a:1:{s:3:"tid";a:1:{i:0;s:3:"tid";}}s:2:"id";s:2:"44";}',
   'cardinality' => '1',
   'translatable' => '0',
   'deleted' => '0',
@@ -4216,7 +4216,7 @@ $connection->insert('field_config')
   'storage_module' => 'field_sql_storage',
   'storage_active' => '1',
   'locked' => '0',
-  'data' => 'a:7:{s:12:"translatable";i:0;s:12:"entity_types";a:0:{}s:8:"settings";a:3:{s:14:"allowed_values";a:1:{i:0;a:2:{s:10:"vocabulary";s:14:"vocabtranslate";s:6:"parent";s:1:"0";}}s:21:"options_list_callback";s:29:"title_taxonomy_allowed_values";s:23:"entity_translation_sync";b:0;}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:32:"field_data_field_vocab_translate";a:1:{s:3:"tid";s:25:"field_vocab_translate_tid";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:36:"field_revision_field_vocab_translate";a:1:{s:3:"tid";s:25:"field_vocab_translate_tid";}}}}}s:12:"foreign keys";a:1:{s:3:"tid";a:2:{s:5:"table";s:18:"taxonomy_term_data";s:7:"columns";a:1:{s:3:"tid";s:3:"tid";}}}s:7:"indexes";a:1:{s:3:"tid";a:1:{i:0;s:3:"tid";}}s:2:"id";s:2:"45";}',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:3:{s:14:"allowed_values";a:1:{i:0;a:2:{s:10:"vocabulary";s:14:"vocabtranslate";s:6:"parent";s:1:"0";}}s:21:"options_list_callback";s:28:"i18n_taxonomy_allowed_values";s:23:"entity_translation_sync";b:0;}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:32:"field_data_field_vocab_translate";a:1:{s:3:"tid";s:25:"field_vocab_translate_tid";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:36:"field_revision_field_vocab_translate";a:1:{s:3:"tid";s:25:"field_vocab_translate_tid";}}}}}s:12:"foreign keys";a:1:{s:3:"tid";a:2:{s:5:"table";s:18:"taxonomy_term_data";s:7:"columns";a:1:{s:3:"tid";s:3:"tid";}}}s:7:"indexes";a:1:{s:3:"tid";a:1:{i:0;s:3:"tid";}}s:2:"id";s:2:"45";}',
   'cardinality' => '1',
   'translatable' => '0',
   'deleted' => '0',
@@ -4231,7 +4231,7 @@ $connection->insert('field_config')
   'storage_module' => 'field_sql_storage',
   'storage_active' => '1',
   'locked' => '0',
-  'data' => 'a:7:{s:12:"translatable";i:0;s:12:"entity_types";a:0:{}s:8:"settings";a:3:{s:14:"allowed_values";a:1:{i:0;a:2:{s:10:"vocabulary";s:10:"vocabfixed";s:6:"parent";s:1:"0";}}s:21:"options_list_callback";s:29:"title_taxonomy_allowed_values";s:23:"entity_translation_sync";b:0;}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:28:"field_data_field_vocab_fixed";a:1:{s:3:"tid";s:21:"field_vocab_fixed_tid";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:32:"field_revision_field_vocab_fixed";a:1:{s:3:"tid";s:21:"field_vocab_fixed_tid";}}}}}s:12:"foreign keys";a:1:{s:3:"tid";a:2:{s:5:"table";s:18:"taxonomy_term_data";s:7:"columns";a:1:{s:3:"tid";s:3:"tid";}}}s:7:"indexes";a:1:{s:3:"tid";a:1:{i:0;s:3:"tid";}}s:2:"id";s:2:"46";}',
+  'data' => 'a:7:{s:12:"translatable";s:1:"0";s:12:"entity_types";a:0:{}s:8:"settings";a:3:{s:14:"allowed_values";a:1:{i:0;a:2:{s:10:"vocabulary";s:10:"vocabfixed";s:6:"parent";s:1:"0";}}s:21:"options_list_callback";s:28:"i18n_taxonomy_allowed_values";s:23:"entity_translation_sync";b:0;}s:7:"storage";a:5:{s:4:"type";s:17:"field_sql_storage";s:8:"settings";a:0:{}s:6:"module";s:17:"field_sql_storage";s:6:"active";s:1:"1";s:7:"details";a:1:{s:3:"sql";a:2:{s:18:"FIELD_LOAD_CURRENT";a:1:{s:28:"field_data_field_vocab_fixed";a:1:{s:3:"tid";s:21:"field_vocab_fixed_tid";}}s:19:"FIELD_LOAD_REVISION";a:1:{s:32:"field_revision_field_vocab_fixed";a:1:{s:3:"tid";s:21:"field_vocab_fixed_tid";}}}}}s:12:"foreign keys";a:1:{s:3:"tid";a:2:{s:5:"table";s:18:"taxonomy_term_data";s:7:"columns";a:1:{s:3:"tid";s:3:"tid";}}}s:7:"indexes";a:1:{s:3:"tid";a:1:{i:0;s:3:"tid";}}s:2:"id";s:2:"46";}',
   'cardinality' => '1',
   'translatable' => '0',
   'deleted' => '0',
@@ -4991,6 +4991,15 @@ $connection->insert('field_config_instance')
   'data' => 'a:7:{s:5:"label";s:6:"Rating";s:6:"widget";a:5:{s:6:"weight";s:2:"12";s:4:"type";s:15:"options_buttons";s:6:"module";s:7:"options";s:6:"active";i:1;s:8:"settings";a:0:{}}s:8:"settings";a:2:{s:18:"user_register_form";b:0;s:23:"entity_translation_sync";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"list_default";s:8:"settings";a:0:{}s:6:"module";s:4:"list";s:6:"weight";i:11;}}s:8:"required";i:0;s:11:"description";s:0:"";s:13:"default_value";N;}',
   'deleted' => '0',
 ))
+->values(array(
+  'id' => '78',
+  'field_id' => '6',
+  'field_name' => 'field_boolean',
+  'entity_type' => 'node',
+  'bundle' => 'blog',
+  'data' => 'a:6:{s:5:"label";s:7:"Boolean";s:6:"widget";a:4:{s:4:"type";s:13:"options_onoff";s:6:"weight";s:2:"14";s:8:"settings";a:1:{s:13:"display_label";i:0;}s:6:"module";s:7:"options";}s:8:"settings";a:2:{s:18:"user_register_form";b:0;s:23:"entity_translation_sync";b:0;}s:7:"display";a:1:{s:7:"default";a:5:{s:5:"label";s:5:"above";s:4:"type";s:12:"list_default";s:8:"settings";a:0:{}s:6:"module";s:4:"list";s:6:"weight";i:12;}}s:8:"required";b:0;s:11:"description";s:0:"";}',
+  'deleted' => '0',
+))
 ->execute();
 $connection->schema()->createTable('field_data_body', array(
   'fields' => array(
@@ -5494,7 +5503,17 @@ $connection->insert('field_data_field_boolean')
   'deleted' => '0',
   'entity_id' => '1',
   'revision_id' => '1',
-  'language' => 'und',
+  'language' => 'fr',
+  'delta' => '0',
+  'field_boolean_value' => '1',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'test_content_type',
+  'deleted' => '0',
+  'entity_id' => '1',
+  'revision_id' => '1',
+  'language' => 'is',
   'delta' => '0',
   'field_boolean_value' => '1',
 ))
@@ -8694,6 +8713,41 @@ $connection->schema()->createTable('field_data_field_text_plain', array(
   'mysql_character_set' => 'utf8',
 ));
 
+$connection->insert('field_data_field_text_plain')
+  ->fields(array(
+    'entity_type',
+    'bundle',
+    'deleted',
+    'entity_id',
+    'revision_id',
+    'language',
+    'delta',
+    'field_text_plain_value',
+    'field_text_plain_format',
+  ))
+  ->values(array(
+    'entity_type' => 'node',
+    'bundle' => 'article',
+    'deleted' => '0',
+    'entity_id' => '2',
+    'revision_id' => '2',
+    'language' => 'und',
+    'delta' => '0',
+    'field_text_plain_value' => 'Kai Opaka',
+    'field_text_plain_format' => NULL,
+  ))
+  ->values(array(
+    'entity_type' => 'node',
+    'bundle' => 'article',
+    'deleted' => '0',
+    'entity_id' => '3',
+    'revision_id' => '3',
+    'language' => 'und',
+    'delta' => '0',
+    'field_text_plain_value' => 'Kai Opaka',
+    'field_text_plain_format' => NULL,
+  ))
+  ->execute();
 $connection->schema()->createTable('field_data_field_text_plain_filtered', array(
   'fields' => array(
     'entity_type' => array(
@@ -10595,7 +10649,27 @@ $connection->insert('field_revision_field_boolean')
   'deleted' => '0',
   'entity_id' => '1',
   'revision_id' => '1',
-  'language' => 'und',
+  'language' => 'en',
+  'delta' => '0',
+  'field_boolean_value' => '1',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'test_content_type',
+  'deleted' => '0',
+  'entity_id' => '1',
+  'revision_id' => '1',
+  'language' => 'fr',
+  'delta' => '0',
+  'field_boolean_value' => '1',
+))
+->values(array(
+  'entity_type' => 'node',
+  'bundle' => 'test_content_type',
+  'deleted' => '0',
+  'entity_id' => '1',
+  'revision_id' => '1',
+  'language' => 'is',
   'delta' => '0',
   'field_boolean_value' => '1',
 ))
@@ -13815,7 +13889,41 @@ $connection->schema()->createTable('field_revision_field_text_plain', array(
   ),
   'mysql_character_set' => 'utf8',
 ));
-
+$connection->insert('field_revision_field_text_plain')
+  ->fields(array(
+    'entity_type',
+    'bundle',
+    'deleted',
+    'entity_id',
+    'revision_id',
+    'language',
+    'delta',
+    'field_text_plain_value',
+    'field_text_plain_format',
+  ))
+  ->values(array(
+    'entity_type' => 'node',
+    'bundle' => 'article',
+    'deleted' => '0',
+    'entity_id' => '2',
+    'revision_id' => '2',
+    'language' => 'und',
+    'delta' => '0',
+    'field_text_plain_value' => 'Kai Opaka',
+    'field_text_plain_format' => NULL,
+  ))
+  ->values(array(
+    'entity_type' => 'node',
+    'bundle' => 'article',
+    'deleted' => '0',
+    'entity_id' => '3',
+    'revision_id' => '3',
+    'language' => 'und',
+    'delta' => '0',
+    'field_text_plain_value' => 'Kai Opaka',
+    'field_text_plain_format' => NULL,
+  ))
+  ->execute();
 $connection->schema()->createTable('field_revision_field_text_plain_filtered', array(
   'fields' => array(
     'entity_type' => array(
@@ -15704,7 +15812,7 @@ $connection->insert('filter_format')
   'format' => 'php_code',
   'name' => 'PHP code',
   'cache' => '0',
-  'status' => '1',
+  'status' => '0',
   'weight' => '11',
 ))
 ->values(array(
@@ -16199,166 +16307,6 @@ $connection->insert('i18n_string')
 ))
 ->values(array(
   'lid' => '77',
-  'textgroup' => 'field',
-  'context' => 'comment_body:comment_node_article:label',
-  'objectid' => 'comment_node_article',
-  'type' => 'comment_body',
-  'property' => 'label',
-  'objectindex' => '0',
-  'format' => '',
-))
-->values(array(
-  'lid' => '78',
-  'textgroup' => 'field',
-  'context' => 'comment_body:comment_node_blog:label',
-  'objectid' => 'comment_node_blog',
-  'type' => 'comment_body',
-  'property' => 'label',
-  'objectindex' => '0',
-  'format' => '',
-))
-->values(array(
-  'lid' => '79',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:1:name',
-  'objectid' => '1',
-  'type' => 'vocabulary',
-  'property' => 'name',
-  'objectindex' => '1',
-  'format' => '',
-))
-->values(array(
-  'lid' => '80',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:1:description',
-  'objectid' => '1',
-  'type' => 'vocabulary',
-  'property' => 'description',
-  'objectindex' => '1',
-  'format' => '',
-))
-->values(array(
-  'lid' => '81',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:3:name',
-  'objectid' => '3',
-  'type' => 'vocabulary',
-  'property' => 'name',
-  'objectindex' => '3',
-  'format' => '',
-))
-->values(array(
-  'lid' => '82',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:3:description',
-  'objectid' => '3',
-  'type' => 'vocabulary',
-  'property' => 'description',
-  'objectindex' => '3',
-  'format' => '',
-))
-->values(array(
-  'lid' => '83',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:4:name',
-  'objectid' => '4',
-  'type' => 'vocabulary',
-  'property' => 'name',
-  'objectindex' => '4',
-  'format' => '',
-))
-->values(array(
-  'lid' => '84',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:4:description',
-  'objectid' => '4',
-  'type' => 'vocabulary',
-  'property' => 'description',
-  'objectindex' => '4',
-  'format' => '',
-))
-->values(array(
-  'lid' => '85',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:5:name',
-  'objectid' => '5',
-  'type' => 'vocabulary',
-  'property' => 'name',
-  'objectindex' => '5',
-  'format' => '',
-))
-->values(array(
-  'lid' => '86',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:5:description',
-  'objectid' => '5',
-  'type' => 'vocabulary',
-  'property' => 'description',
-  'objectindex' => '5',
-  'format' => '',
-))
-->values(array(
-  'lid' => '87',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:6:name',
-  'objectid' => '6',
-  'type' => 'vocabulary',
-  'property' => 'name',
-  'objectindex' => '6',
-  'format' => '',
-))
-->values(array(
-  'lid' => '88',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:6:description',
-  'objectid' => '6',
-  'type' => 'vocabulary',
-  'property' => 'description',
-  'objectindex' => '6',
-  'format' => '',
-))
-->values(array(
-  'lid' => '89',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:7:name',
-  'objectid' => '7',
-  'type' => 'vocabulary',
-  'property' => 'name',
-  'objectindex' => '7',
-  'format' => '',
-))
-->values(array(
-  'lid' => '90',
-  'textgroup' => 'taxonomy',
-  'context' => 'vocabulary:7:description',
-  'objectid' => '7',
-  'type' => 'vocabulary',
-  'property' => 'description',
-  'objectindex' => '7',
-  'format' => '',
-))
-->values(array(
-  'lid' => '91',
-  'textgroup' => 'taxonomy',
-  'context' => 'term:19:name',
-  'objectid' => '19',
-  'type' => 'term',
-  'property' => 'name',
-  'objectindex' => '19',
-  'format' => '',
-))
-->values(array(
-  'lid' => '92',
-  'textgroup' => 'taxonomy',
-  'context' => 'term:19:description',
-  'objectid' => '19',
-  'type' => 'term',
-  'property' => 'description',
-  'objectindex' => '19',
-  'format' => 'filtered_html',
-))
-->values(array(
-  'lid' => '93',
   'textgroup' => 'taxonomy',
   'context' => 'term:20:name',
   'objectid' => '20',
@@ -16368,7 +16316,7 @@ $connection->insert('i18n_string')
   'format' => '',
 ))
 ->values(array(
-  'lid' => '94',
+  'lid' => '78',
   'textgroup' => 'taxonomy',
   'context' => 'term:20:description',
   'objectid' => '20',
@@ -16376,6 +16324,166 @@ $connection->insert('i18n_string')
   'property' => 'description',
   'objectindex' => '20',
   'format' => 'filtered_html',
+))
+->values(array(
+  'lid' => '79',
+  'textgroup' => 'taxonomy',
+  'context' => 'term:19:name',
+  'objectid' => '19',
+  'type' => 'term',
+  'property' => 'name',
+  'objectindex' => '19',
+  'format' => '',
+))
+->values(array(
+  'lid' => '80',
+  'textgroup' => 'taxonomy',
+  'context' => 'term:19:description',
+  'objectid' => '19',
+  'type' => 'term',
+  'property' => 'description',
+  'objectindex' => '19',
+  'format' => 'filtered_html',
+))
+->values(array(
+  'lid' => '81',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:2:name',
+  'objectid' => '2',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '2',
+  'format' => '',
+))
+->values(array(
+  'lid' => '82',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:2:description',
+  'objectid' => '2',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '2',
+  'format' => '',
+))
+->values(array(
+  'lid' => '83',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:1:name',
+  'objectid' => '1',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '1',
+  'format' => '',
+))
+->values(array(
+  'lid' => '84',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:1:description',
+  'objectid' => '1',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '1',
+  'format' => '',
+))
+->values(array(
+  'lid' => '85',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:3:name',
+  'objectid' => '3',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '3',
+  'format' => '',
+))
+->values(array(
+  'lid' => '86',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:3:description',
+  'objectid' => '3',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '3',
+  'format' => '',
+))
+->values(array(
+  'lid' => '87',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:7:name',
+  'objectid' => '7',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '7',
+  'format' => '',
+))
+->values(array(
+  'lid' => '88',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:7:description',
+  'objectid' => '7',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '7',
+  'format' => '',
+))
+->values(array(
+  'lid' => '89',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:5:name',
+  'objectid' => '5',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '5',
+  'format' => '',
+))
+->values(array(
+  'lid' => '90',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:5:description',
+  'objectid' => '5',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '5',
+  'format' => '',
+))
+->values(array(
+  'lid' => '91',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:6:name',
+  'objectid' => '6',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '6',
+  'format' => '',
+))
+->values(array(
+  'lid' => '92',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:6:description',
+  'objectid' => '6',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '6',
+  'format' => '',
+))
+->values(array(
+  'lid' => '93',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:4:name',
+  'objectid' => '4',
+  'type' => 'vocabulary',
+  'property' => 'name',
+  'objectindex' => '4',
+  'format' => '',
+))
+->values(array(
+  'lid' => '94',
+  'textgroup' => 'taxonomy',
+  'context' => 'vocabulary:4:description',
+  'objectid' => '4',
+  'type' => 'vocabulary',
+  'property' => 'description',
+  'objectindex' => '4',
+  'format' => '',
 ))
 ->values(array(
   'lid' => '95',
@@ -17393,6 +17501,26 @@ $connection->insert('i18n_string')
   'context' => 'taxonomy_forums:forum:label',
   'objectid' => 'forum',
   'type' => 'taxonomy_forums',
+  'property' => 'label',
+  'objectindex' => '0',
+  'format' => '',
+))
+->values(array(
+  'lid' => '795',
+  'textgroup' => 'field',
+  'context' => 'comment_body:comment_node_article:label',
+  'objectid' => 'comment_node_article',
+  'type' => 'comment_body',
+  'property' => 'label',
+  'objectindex' => '0',
+  'format' => '',
+))
+->values(array(
+  'lid' => '796',
+  'textgroup' => 'field',
+  'context' => 'comment_body:comment_node_blog:label',
+  'objectid' => 'comment_node_blog',
+  'type' => 'comment_body',
   'property' => 'label',
   'objectindex' => '0',
   'format' => '',
@@ -18421,6 +18549,150 @@ $connection->insert('locales_source')
   'context' => 'user:login:title',
   'version' => '1',
 ))
+->values(array(
+  'lid' => '77',
+  'location' => 'taxonomy:term:20:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'DS9',
+  'context' => 'term:20:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '78',
+  'location' => 'taxonomy:term:20:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Terok Nor',
+  'context' => 'term:20:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '79',
+  'location' => 'taxonomy:term:19:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'Jupiter Station',
+  'context' => 'term:19:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '80',
+  'location' => 'taxonomy:term:19:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Holographic research.',
+  'context' => 'term:19:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '81',
+  'location' => 'taxonomy:vocabulary:2:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'Sujet de discussion',
+  'context' => 'vocabulary:2:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '82',
+  'location' => 'taxonomy:vocabulary:2:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Forum navigation vocabulary',
+  'context' => 'vocabulary:2:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '83',
+  'location' => 'taxonomy:vocabulary:1:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'Tags',
+  'context' => 'vocabulary:1:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '84',
+  'location' => 'taxonomy:vocabulary:1:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Use tags to group articles on similar topics into categories.',
+  'context' => 'vocabulary:1:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '85',
+  'location' => 'taxonomy:vocabulary:3:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'Test Vocabulary',
+  'context' => 'vocabulary:3:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '86',
+  'location' => 'taxonomy:vocabulary:3:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'This is the vocabulary description',
+  'context' => 'vocabulary:3:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '87',
+  'location' => 'taxonomy:vocabulary:7:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'VocabFixed',
+  'context' => 'vocabulary:7:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '88',
+  'location' => 'taxonomy:vocabulary:7:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Vocabulary fixed option',
+  'context' => 'vocabulary:7:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '89',
+  'location' => 'taxonomy:vocabulary:5:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'VocabLocalized',
+  'context' => 'vocabulary:5:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '90',
+  'location' => 'taxonomy:vocabulary:5:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Vocabulary localize option',
+  'context' => 'vocabulary:5:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '91',
+  'location' => 'taxonomy:vocabulary:6:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'VocabTranslate',
+  'context' => 'vocabulary:6:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '92',
+  'location' => 'taxonomy:vocabulary:6:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'Vocabulary translate option',
+  'context' => 'vocabulary:6:description',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '93',
+  'location' => 'taxonomy:vocabulary:4:name',
+  'textgroup' => 'taxonomy',
+  'source' => 'vocabulary name clearly different than machine name and much longer than thirty two characters',
+  'context' => 'vocabulary:4:name',
+  'version' => '1',
+))
+->values(array(
+  'lid' => '94',
+  'location' => 'taxonomy:vocabulary:4:description',
+  'textgroup' => 'taxonomy',
+  'source' => 'description of vocabulary name much longer than thirty two characters',
+  'context' => 'vocabulary:4:description',
+  'version' => '1',
+))
 ->execute();
 $connection->schema()->createTable('locales_target', array(
   'fields' => array(
@@ -18502,23 +18774,23 @@ $connection->insert('locales_target')
   'i18n_status' => '0',
 ))
 ->values(array(
-  'lid' => '85',
-  'translation' => 'fr - VocabLocalized',
+  'lid' => '77',
+  'translation' => 'fr - DS9 (localized)',
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
   'i18n_status' => '0',
 ))
 ->values(array(
-  'lid' => '86',
-  'translation' => 'fr - Vocabulary localize option',
+  'lid' => '78',
+  'translation' => 'fr - Terok Nor (localized)',
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
   'i18n_status' => '0',
 ))
 ->values(array(
-  'lid' => '89',
+  'lid' => '87',
   'translation' => 'fr - VocabFixed',
   'language' => 'fr',
   'plid' => '0',
@@ -18526,40 +18798,16 @@ $connection->insert('locales_target')
   'i18n_status' => '0',
 ))
 ->values(array(
+  'lid' => '89',
+  'translation' => 'fr - VocabLocalized',
+  'language' => 'fr',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
   'lid' => '90',
-  'translation' => 'fr - Vocabulary fixed option',
-  'language' => 'fr',
-  'plid' => '0',
-  'plural' => '0',
-  'i18n_status' => '0',
-))
-->values(array(
-  'lid' => '91',
-  'translation' => 'fr - Jupiter Station',
-  'language' => 'fr',
-  'plid' => '0',
-  'plural' => '0',
-  'i18n_status' => '0',
-))
-->values(array(
-  'lid' => '92',
-  'translation' => 'fr - Holographic research.',
-  'language' => 'fr',
-  'plid' => '0',
-  'plural' => '0',
-  'i18n_status' => '0',
-))
-->values(array(
-  'lid' => '93',
-  'translation' => 'fr - DS9',
-  'language' => 'fr',
-  'plid' => '0',
-  'plural' => '0',
-  'i18n_status' => '0',
-))
-->values(array(
-  'lid' => '94',
-  'translation' => 'Terok Nor',
+  'translation' => 'fr - Vocabulary localize option',
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
@@ -18579,7 +18827,7 @@ $connection->insert('locales_target')
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
-  'i18n_status' => '0',
+  'i18n_status' => '1',
 ))
 ->values(array(
   'lid' => '163',
@@ -18595,7 +18843,7 @@ $connection->insert('locales_target')
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
-  'i18n_status' => '0',
+  'i18n_status' => '1',
 ))
 ->values(array(
   'lid' => '684',
@@ -18603,7 +18851,7 @@ $connection->insert('locales_target')
   'language' => 'fr',
   'plid' => '0',
   'plural' => '0',
-  'i18n_status' => '0',
+  'i18n_status' => '1',
 ))
 ->values(array(
   'lid' => '761',
@@ -18678,7 +18926,39 @@ $connection->insert('locales_target')
   'i18n_status' => '0',
 ))
 ->values(array(
-  'lid' => '87',
+  'lid' => '79',
+  'translation' => 'Jupiter Station',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '80',
+  'translation' => 'is - Holographic research. (localized)',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '89',
+  'translation' => 'is - VocabLocalized',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '90',
+  'translation' => 'is - Vocabulary localize option',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '91',
   'translation' => 'is - VocabTranslate',
   'language' => 'is',
   'plid' => '0',
@@ -18686,24 +18966,8 @@ $connection->insert('locales_target')
   'i18n_status' => '0',
 ))
 ->values(array(
-  'lid' => '88',
+  'lid' => '92',
   'translation' => 'is - Vocabulary translate option',
-  'language' => 'is',
-  'plid' => '0',
-  'plural' => '0',
-  'i18n_status' => '0',
-))
-->values(array(
-  'lid' => '93',
-  'translation' => 'is - DS9',
-  'language' => 'is',
-  'plid' => '0',
-  'plural' => '0',
-  'i18n_status' => '0',
-))
-->values(array(
-  'lid' => '94',
-  'translation' => 'is - Terok Nor',
   'language' => 'is',
   'plid' => '0',
   'plural' => '0',
@@ -18736,6 +19000,30 @@ $connection->insert('locales_target')
 ->values(array(
   'lid' => '128',
   'translation' => 'is - Term Reference',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '687',
+  'translation' => 'is - Off',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '688',
+  'translation' => 'is - 1',
+  'language' => 'is',
+  'plid' => '0',
+  'plural' => '0',
+  'i18n_status' => '0',
+))
+->values(array(
+  'lid' => '758',
+  'translation' => 'is field - vocab_localize',
   'language' => 'is',
   'plid' => '0',
   'plural' => '0',
@@ -52528,33 +52816,33 @@ $connection->insert('system')
   'name' => 'i18n_sync',
   'type' => 'module',
   'owner' => '',
-  'status' => '0',
+  'status' => '1',
   'bootstrap' => '0',
   'schema_version' => '-1',
   'weight' => '0',
-  'info' => 'a:12:{s:4:"name";s:24:"Synchronize translations";s:11:"description";s:73:"Synchronizes taxonomy and fields across translations of the same content.";s:12:"dependencies";a:2:{i:0;s:4:"i18n";i:1;s:11:"translation";}s:7:"package";s:35:"Multilingual - Internationalization";s:4:"core";s:3:"7.x";s:5:"files";a:5:{i:0;s:16:"i18n_sync.module";i:1;s:17:"i18n_sync.install";i:2;s:20:"i18n_sync.module.inc";i:3;s:18:"i18n_sync.node.inc";i:4;s:14:"i18n_sync.test";}s:7:"version";s:8:"7.x-1.26";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1534531985";s:5:"mtime";i:1534531985;s:3:"php";s:5:"5.2.4";s:9:"bootstrap";i:0;}',
+  'info' => 'a:12:{s:4:"name";s:24:"Synchronize translations";s:11:"description";s:73:"Synchronizes taxonomy and fields across translations of the same content.";s:12:"dependencies";a:2:{i:0;s:4:"i18n";i:1;s:11:"translation";}s:7:"package";s:35:"Multilingual - Internationalization";s:4:"core";s:3:"7.x";s:5:"files";a:5:{i:0;s:16:"i18n_sync.module";i:1;s:17:"i18n_sync.install";i:2;s:20:"i18n_sync.module.inc";i:3;s:18:"i18n_sync.node.inc";i:4;s:14:"i18n_sync.test";}s:7:"version";s:8:"7.x-1.25";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1531342125";s:5:"mtime";i:1537747251;s:3:"php";s:5:"5.2.4";s:9:"bootstrap";i:0;}',
 ))
 ->values(array(
   'filename' => 'sites/all/modules/i18n/i18n_taxonomy/i18n_taxonomy.module',
   'name' => 'i18n_taxonomy',
   'type' => 'module',
   'owner' => '',
-  'status' => '0',
+  'status' => '1',
   'bootstrap' => '0',
-  'schema_version' => '-1',
-  'weight' => '0',
-  'info' => 'a:12:{s:4:"name";s:20:"Taxonomy translation";s:11:"description";s:30:"Enables multilingual taxonomy.";s:12:"dependencies";a:3:{i:0;s:8:"taxonomy";i:1;s:11:"i18n_string";i:2;s:16:"i18n_translation";}s:7:"package";s:35:"Multilingual - Internationalization";s:4:"core";s:3:"7.x";s:5:"files";a:4:{i:0;s:17:"i18n_taxonomy.inc";i:1;s:23:"i18n_taxonomy.pages.inc";i:2;s:23:"i18n_taxonomy.admin.inc";i:3;s:18:"i18n_taxonomy.test";}s:7:"version";s:8:"7.x-1.26";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1534531985";s:5:"mtime";i:1534531985;s:3:"php";s:5:"5.2.4";s:9:"bootstrap";i:0;}',
+  'schema_version' => '7004',
+  'weight' => '5',
+  'info' => 'a:12:{s:4:"name";s:20:"Taxonomy translation";s:11:"description";s:30:"Enables multilingual taxonomy.";s:12:"dependencies";a:3:{i:0;s:8:"taxonomy";i:1;s:11:"i18n_string";i:2;s:16:"i18n_translation";}s:7:"package";s:35:"Multilingual - Internationalization";s:4:"core";s:3:"7.x";s:5:"files";a:4:{i:0;s:17:"i18n_taxonomy.inc";i:1;s:23:"i18n_taxonomy.pages.inc";i:2;s:23:"i18n_taxonomy.admin.inc";i:3;s:18:"i18n_taxonomy.test";}s:7:"version";s:8:"7.x-1.25";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1531342125";s:5:"mtime";i:1537747251;s:3:"php";s:5:"5.2.4";s:9:"bootstrap";i:0;}',
 ))
 ->values(array(
   'filename' => 'sites/all/modules/i18n/i18n_translation/i18n_translation.module',
   'name' => 'i18n_translation',
   'type' => 'module',
   'owner' => '',
-  'status' => '0',
+  'status' => '1',
   'bootstrap' => '0',
   'schema_version' => '-1',
   'weight' => '0',
-  'info' => 'a:12:{s:4:"name";s:16:"Translation sets";s:11:"description";s:47:"Simple translation sets API for generic objects";s:12:"dependencies";a:1:{i:0;s:4:"i18n";}s:7:"package";s:35:"Multilingual - Internationalization";s:4:"core";s:3:"7.x";s:5:"files";a:1:{i:0;s:20:"i18n_translation.inc";}s:7:"version";s:8:"7.x-1.26";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1534531985";s:5:"mtime";i:1534531985;s:3:"php";s:5:"5.2.4";s:9:"bootstrap";i:0;}',
+  'info' => 'a:12:{s:4:"name";s:16:"Translation sets";s:11:"description";s:47:"Simple translation sets API for generic objects";s:12:"dependencies";a:1:{i:0;s:4:"i18n";}s:7:"package";s:35:"Multilingual - Internationalization";s:4:"core";s:3:"7.x";s:5:"files";a:1:{i:0;s:20:"i18n_translation.inc";}s:7:"version";s:8:"7.x-1.25";s:7:"project";s:4:"i18n";s:9:"datestamp";s:10:"1531342125";s:5:"mtime";i:1537747251;s:3:"php";s:5:"5.2.4";s:9:"bootstrap";i:0;}',
 ))
 ->values(array(
   'filename' => 'sites/all/modules/i18n/i18n_user/i18n_user.module',
@@ -54567,6 +54855,14 @@ $connection->insert('variable')
   'value' => 's:29:"i18n_string_textgroup_default";',
 ))
 ->values(array(
+  'name' => 'i18n_sync_node_type_article',
+  'value' => 'a:1:{i:0;s:16:"field_text_plain";}',
+))
+->values(array(
+  'name' => 'i18n_sync_source_article',
+  'value' => 'i:0;',
+))
+->values(array(
   'name' => 'image_jpeg_quality',
   'value' => 'i:80;',
 ))
@@ -55072,7 +55368,7 @@ $connection->insert('variable')
 ))
 ->values(array(
   'name' => 'user_mail_register_admin_created_body',
-  'value' => 's:30:"...and she could take it away.";',
+  'value' => 's:30:"...and it could be taken away.";',
 ))
 ->values(array(
   'name' => 'user_mail_register_admin_created_subject',
@@ -55359,7 +55655,7 @@ $connection->insert('variable_store')
   'realm' => 'language',
   'realm_key' => 'is',
   'name' => 'user_mail_register_admin_created_body',
-  'value' => "is - ...and she could take it away.\r\n[site:name], [site:url]",
+  'value' => "is - ...and it could be taken away.\r\n[site:name], [site:url]",
   'serialized' => '0',
 ))
 ->values(array(

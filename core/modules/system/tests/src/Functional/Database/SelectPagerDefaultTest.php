@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\system\Functional\Database;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -11,6 +12,11 @@ use Symfony\Component\HttpFoundation\Request;
  * @group Database
  */
 class SelectPagerDefaultTest extends DatabaseTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Confirms that a pager query returns the correct results.
@@ -24,7 +30,7 @@ class SelectPagerDefaultTest extends DatabaseTestBase {
     // information forward to the actual query on the other side of the
     // HTTP request.
     $limit = 2;
-    $count = db_query('SELECT COUNT(*) FROM {test}')->fetchField();
+    $count = Database::getConnection()->query('SELECT COUNT(*) FROM {test}')->fetchField();
 
     $correct_number = $limit;
     $num_pages = floor($count / $limit);
@@ -42,7 +48,7 @@ class SelectPagerDefaultTest extends DatabaseTestBase {
         $correct_number = $count - ($limit * $page);
       }
 
-      $this->assertCount($correct_number, $data->names, format_string('Correct number of records returned by pager: @number', ['@number' => $correct_number]));
+      $this->assertCount($correct_number, $data->names, new FormattableMarkup('Correct number of records returned by pager: @number', ['@number' => $correct_number]));
     }
   }
 
@@ -58,7 +64,7 @@ class SelectPagerDefaultTest extends DatabaseTestBase {
     // information forward to the actual query on the other side of the
     // HTTP request.
     $limit = 2;
-    $count = db_query('SELECT COUNT(*) FROM {test_task}')->fetchField();
+    $count = Database::getConnection()->query('SELECT COUNT(*) FROM {test_task}')->fetchField();
 
     $correct_number = $limit;
     $num_pages = floor($count / $limit);
@@ -76,7 +82,7 @@ class SelectPagerDefaultTest extends DatabaseTestBase {
         $correct_number = $count - ($limit * $page);
       }
 
-      $this->assertCount($correct_number, $data->names, format_string('Correct number of records returned by pager: @number', ['@number' => $correct_number]));
+      $this->assertCount($correct_number, $data->names, new FormattableMarkup('Correct number of records returned by pager: @number', ['@number' => $correct_number]));
     }
   }
 

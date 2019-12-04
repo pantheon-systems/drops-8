@@ -25,6 +25,11 @@ class EntityReferenceFieldDefaultValueTest extends BrowserTestBase {
   public static $modules = ['field_ui', 'node'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user with permission to administer content types, node fields, etc.
    *
    * @var \Drupal\user\UserInterface
@@ -90,7 +95,7 @@ class EntityReferenceFieldDefaultValueTest extends BrowserTestBase {
     $this->assertEqual([$referenced_node->getConfigDependencyName()], $config_entity['dependencies']['content']);
 
     // Clear field definitions cache in order to avoid stale cache values.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     // Create a new node to check that UUID has been converted to numeric ID.
     $new_node = Node::create(['type' => 'reference_content']);

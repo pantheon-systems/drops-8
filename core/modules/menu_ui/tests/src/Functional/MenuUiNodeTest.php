@@ -28,6 +28,11 @@ class MenuUiNodeTest extends BrowserTestBase {
    */
   public static $modules = ['menu_ui', 'test_page_test', 'node', 'block', 'locale', 'language', 'content_translation'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -63,12 +68,12 @@ class MenuUiNodeTest extends BrowserTestBase {
     $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Contexts', 'user.roles:authenticated');
 
     // Verify that the menu link title has the correct maxlength.
-    $title_max_length = \Drupal::entityManager()->getBaseFieldDefinitions('menu_link_content')['title']->getSetting('max_length');
+    $title_max_length = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions('menu_link_content')['title']->getSetting('max_length');
     $this->drupalGet('node/add/page');
     $this->assertPattern('/<input .* id="edit-menu-title" .* maxlength="' . $title_max_length . '" .* \/>/', 'Menu link title field has correct maxlength in node add form.');
 
     // Verify that the menu link description has the correct maxlength.
-    $description_max_length = \Drupal::entityManager()->getBaseFieldDefinitions('menu_link_content')['description']->getSetting('max_length');
+    $description_max_length = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions('menu_link_content')['description']->getSetting('max_length');
     $this->drupalGet('node/add/page');
     $this->assertPattern('/<input .* id="edit-menu-description" .* maxlength="' . $description_max_length . '" .* \/>/', 'Menu link description field has correct maxlength in node add form.');
 
@@ -217,7 +222,7 @@ class MenuUiNodeTest extends BrowserTestBase {
     // Assert that the link is still in the Administration menu after save.
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
     $link = MenuLinkContent::load($item->id());
-    $this->assertTrue($link, 'Link in not allowed menu still exists after saving node');
+    $this->assertInstanceOf(MenuLinkContent::class, $link, 'Link in not allowed menu still exists after saving node');
 
     // Move the menu link back to the Tools menu.
     $item->menu_name->value = 'tools';

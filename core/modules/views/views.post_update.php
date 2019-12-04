@@ -17,7 +17,7 @@ use Drupal\views\Views;
  */
 function views_post_update_update_cacheability_metadata() {
   // Load all views.
-  $views = \Drupal::entityManager()->getStorage('view')->loadMultiple();
+  $views = \Drupal::entityTypeManager()->getStorage('view')->loadMultiple();
 
   /* @var \Drupal\views\Entity\View[] $views */
   foreach ($views as $view) {
@@ -393,4 +393,46 @@ function views_post_update_exposed_filter_blocks_label_display(&$sandbox = NULL)
 function views_post_update_make_placeholders_translatable() {
   // Empty update to cause a cache rebuild to allow placeholder texts to be
   // translatable.
+}
+
+/**
+ * Define default values for limit operators settings in all filters.
+ */
+function views_post_update_limit_operator_defaults(&$sandbox = NULL) {
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'view', function ($view) {
+    /** @var \Drupal\views\ViewEntityInterface $view */
+    $displays = $view->get('display');
+
+    $update = FALSE;
+    foreach ($displays as $display_name => &$display) {
+      if (!isset($display['display_options']['filters'])) {
+        continue;
+      }
+
+      foreach ($display['display_options']['filters'] as $filter_name => $filter) {
+        if (!isset($filter['expose']['operator_limit_selection'])) {
+          $filter['expose']['operator_limit_selection'] = FALSE;
+          $update = TRUE;
+        }
+        if (!isset($filter['expose']['operator_list'])) {
+          $filter['expose']['operator_list'] = [];
+          $update = TRUE;
+        }
+        if ($update) {
+          $view->set("display.$display_name.display_options.filters.$filter_name", $filter);
+        }
+      }
+    }
+    return $update;
+  });
+}
+
+/**
+ * Remove core key from views configuration.
+ */
+function views_post_update_remove_core_key(&$sandbox = NULL) {
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'view', function () {
+    // Re-save all views.
+    return TRUE;
+  });
 }

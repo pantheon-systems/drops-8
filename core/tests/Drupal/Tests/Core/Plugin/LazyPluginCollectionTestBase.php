@@ -4,6 +4,7 @@ namespace Drupal\Tests\Core\Plugin;
 
 use Drupal\Core\Plugin\DefaultLazyPluginCollection;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\MockObject\Matcher\InvokedRecorder;
 
 /**
  * Provides a base class for plugin collection tests.
@@ -13,14 +14,14 @@ abstract class LazyPluginCollectionTestBase extends UnitTestCase {
   /**
    * The mocked plugin manager.
    *
-   * @var \Drupal\Component\Plugin\PluginManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Component\Plugin\PluginManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $pluginManager;
 
   /**
    * The tested plugin collection.
    *
-   * @var \Drupal\Core\Plugin\DefaultLazyPluginCollection|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Plugin\DefaultLazyPluginCollection|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $defaultPluginCollection;
 
@@ -43,7 +44,7 @@ abstract class LazyPluginCollectionTestBase extends UnitTestCase {
   ];
 
   protected function setUp() {
-    $this->pluginManager = $this->getMock('Drupal\Component\Plugin\PluginManagerInterface');
+    $this->pluginManager = $this->createMock('Drupal\Component\Plugin\PluginManagerInterface');
     $this->pluginManager->expects($this->any())
       ->method('getDefinitions')
       ->will($this->returnValue($this->getPluginDefinitions()));
@@ -53,12 +54,12 @@ abstract class LazyPluginCollectionTestBase extends UnitTestCase {
   /**
    * Sets up the default plugin collection.
    *
-   * @param \PHPUnit_Framework_MockObject_Matcher_InvokedRecorder|null $create_count
+   * @param \PHPUnit\Framework\MockObject\Matcher\InvokedRecorder|null $create_count
    *   (optional) The number of times that createInstance() is expected to be
    *   called. For example, $this->any(), $this->once(), $this->exactly(6).
    *   Defaults to $this->never().
    */
-  protected function setupPluginCollection(\PHPUnit_Framework_MockObject_Matcher_InvokedRecorder $create_count = NULL) {
+  protected function setupPluginCollection(InvokedRecorder $create_count = NULL) {
     $this->pluginInstances = [];
     $map = [];
     foreach ($this->getPluginDefinitions() as $plugin_id => $definition) {
@@ -81,7 +82,7 @@ abstract class LazyPluginCollectionTestBase extends UnitTestCase {
    * @param string $plugin_id
    *   The plugin ID to return the mock plugin for.
    *
-   * @return \Drupal\Component\Plugin\PluginInspectionInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\Component\Plugin\PluginInspectionInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The mock plugin object.
    */
   public function returnPluginMap($plugin_id) {
@@ -98,11 +99,11 @@ abstract class LazyPluginCollectionTestBase extends UnitTestCase {
    * @param array $definition
    *   The plugin definition.
    *
-   * @return \Drupal\Component\Plugin\PluginInspectionInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\Component\Plugin\PluginInspectionInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected function getPluginMock($plugin_id, array $definition) {
     // Create a mock plugin instance.
-    $mock = $this->getMock('Drupal\Component\Plugin\PluginInspectionInterface');
+    $mock = $this->createMock('Drupal\Component\Plugin\PluginInspectionInterface');
     $mock->expects($this->any())
       ->method('getPluginId')
       ->will($this->returnValue($plugin_id));

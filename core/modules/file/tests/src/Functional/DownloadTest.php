@@ -11,6 +11,11 @@ use Drupal\Core\File\FileSystemInterface;
  */
 class DownloadTest extends FileManagedTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
     // Clear out any hook calls.
@@ -70,7 +75,7 @@ class DownloadTest extends FileManagedTestBase {
     file_test_set_return('download', ['x-foo' => 'Bar']);
     $this->drupalGet($url);
     $this->assertEqual($this->drupalGetHeader('x-foo'), 'Bar', 'Found header set by file_test module on private download.');
-    $this->assertFalse($this->drupalGetHeader('x-drupal-cache'), 'Page cache is disabled on private file download.');
+    $this->assertNull($this->drupalGetHeader('x-drupal-cache'), 'Page cache is disabled on private file download.');
     $this->assertResponse(200, 'Correctly allowed access to a file when file_test provides headers.');
 
     // Test that the file transferred correctly.
@@ -92,17 +97,13 @@ class DownloadTest extends FileManagedTestBase {
    * Test file_create_url().
    */
   public function testFileCreateUrl() {
-
-    // Tilde (~) is excluded from this test because it is encoded by
-    // rawurlencode() in PHP 5.2 but not in PHP 5.3, as per RFC 3986.
-    // @see http://php.net/manual/function.rawurlencode.php#86506
     // "Special" ASCII characters.
-    $basename = " -._!$'\"()*@[]?&+%#,;=:\n\x00" .
+    $basename = " -._~!$'\"()*@[]?&+%#,;=:\n\x00" .
       // Characters that look like a percent-escaped string.
       "%23%25%26%2B%2F%3F" .
       // Characters from various non-ASCII alphabets.
       "éøïвβ中國書۞";
-    $basename_encoded = '%20-._%21%24%27%22%28%29%2A%40%5B%5D%3F%26%2B%25%23%2C%3B%3D%3A__' .
+    $basename_encoded = '%20-._~%21%24%27%22%28%29%2A%40%5B%5D%3F%26%2B%25%23%2C%3B%3D%3A__' .
       '%2523%2525%2526%252B%252F%253F' .
       '%C3%A9%C3%B8%C3%AF%D0%B2%CE%B2%E4%B8%AD%E5%9C%8B%E6%9B%B8%DB%9E';
 

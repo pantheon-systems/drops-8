@@ -6,7 +6,10 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\PreExistingConfigException;
 use Drupal\Core\Config\UnmetDependenciesException;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Extension\ThemeExtensionList;
 use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Extension\ThemeInstallerInterface;
+use Drupal\system\Form\ThemeExperimentalConfirmForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -24,16 +27,36 @@ class ThemeController extends ControllerBase {
   protected $themeHandler;
 
   /**
+   * An extension discovery instance.
+   *
+   * @var \Drupal\Core\Extension\ThemeExtensionList
+   */
+  protected $themeList;
+
+  /**
+   * The theme installer service.
+   *
+   * @var \Drupal\Core\Extension\ThemeInstallerInterface
+   */
+  protected $themeInstaller;
+
+  /**
    * Constructs a new ThemeController.
    *
    * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
    *   The theme handler.
+   * @param \Drupal\Core\Extension\ThemeExtensionList $theme_list
+   *   The theme extension list.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
+   * @param \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer
+   *   The theme installer.
    */
-  public function __construct(ThemeHandlerInterface $theme_handler, ConfigFactoryInterface $config_factory) {
+  public function __construct(ThemeHandlerInterface $theme_handler, ThemeExtensionList $theme_list, ConfigFactoryInterface $config_factory, ThemeInstallerInterface $theme_installer) {
     $this->themeHandler = $theme_handler;
+    $this->themeList = $theme_list;
     $this->configFactory = $config_factory;
+    $this->themeInstaller = $theme_installer;
   }
 
   /**
@@ -42,7 +65,9 @@ class ThemeController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('theme_handler'),
-      $container->get('config.factory')
+      $container->get('extension.list.theme'),
+      $container->get('config.factory'),
+      $container->get('theme_installer')
     );
   }
 
@@ -74,7 +99,7 @@ class ThemeController extends ControllerBase {
           $this->messenger()->addError($this->t('%theme is the default theme and cannot be uninstalled.', ['%theme' => $themes[$theme]->info['name']]));
         }
         else {
-          $this->themeHandler->uninstall([$theme]);
+          $this->themeInstaller->uninstall([$theme]);
           $this->messenger()->addStatus($this->t('The %theme theme has been uninstalled.', ['%theme' => $themes[$theme]->info['name']]));
         }
       }
@@ -94,8 +119,9 @@ class ThemeController extends ControllerBase {
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   A request object containing a theme name and a valid token.
    *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirects back to the appearance admin page.
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
+   *   Redirects back to the appearance admin page or the confirmation form
+   *   if an experimental theme will be installed.
    *
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    *   Throws access denied when no theme or token is set in the request or when
@@ -105,8 +131,13 @@ class ThemeController extends ControllerBase {
     $theme = $request->query->get('theme');
 
     if (isset($theme)) {
+      // Display confirmation form in case of experimental theme.
+      if ($this->willInstallExperimentalTheme($theme)) {
+        return $this->formBuilder()->getForm(ThemeExperimentalConfirmForm::class, $theme);
+      }
+
       try {
-        if ($this->themeHandler->install([$theme])) {
+        if ($this->themeInstaller->install([$theme])) {
           $themes = $this->themeHandler->listInfo();
           $this->messenger()->addStatus($this->t('The %theme theme has been installed.', ['%theme' => $themes[$theme]->info['name']]));
         }
@@ -138,13 +169,37 @@ class ThemeController extends ControllerBase {
   }
 
   /**
+   * Checks if the given theme requires the installation of experimental themes.
+   *
+   * @param string $theme
+   *   The name of the theme to check.
+   *
+   * @return bool
+   *   Whether experimental themes will be installed.
+   */
+  protected function willInstallExperimentalTheme($theme) {
+    $all_themes = $this->themeList->getList();
+    $dependencies = array_keys($all_themes[$theme]->requires);
+    $themes_to_enable = array_merge([$theme], $dependencies);
+
+    foreach ($themes_to_enable as $name) {
+      if (!empty($all_themes[$name]->info['experimental']) && $all_themes[$name]->status === 0) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Set the default theme.
    *
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   A request object containing a theme name.
    *
-   * @return \Symfony\Component\HttpFoundation\RedirectResponse
-   *   Redirects back to the appearance admin page.
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse|array
+   *   Redirects back to the appearance admin page or the confirmation form
+   *   if an experimental theme will be installed.
    *
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    *   Throws access denied when no theme is set in the request.
@@ -156,10 +211,14 @@ class ThemeController extends ControllerBase {
     if (isset($theme)) {
       // Get current list of themes.
       $themes = $this->themeHandler->listInfo();
+      // Display confirmation form if an experimental theme is being installed.
+      if ($this->willInstallExperimentalTheme($theme)) {
+        return $this->formBuilder()->getForm(ThemeExperimentalConfirmForm::class, $theme, TRUE);
+      }
 
       // Check if the specified theme is one recognized by the system.
       // Or try to install the theme.
-      if (isset($themes[$theme]) || $this->themeHandler->install([$theme])) {
+      if (isset($themes[$theme]) || $this->themeInstaller->install([$theme])) {
         $themes = $this->themeHandler->listInfo();
 
         // Set the default theme.
@@ -169,7 +228,7 @@ class ThemeController extends ControllerBase {
         // use: a value of 0 means the admin theme is set to be the default
         // theme.
         $admin_theme = $config->get('admin');
-        if ($admin_theme != 0 && $admin_theme != $theme) {
+        if (!empty($admin_theme) && $admin_theme != $theme) {
           $this->messenger()
             ->addStatus($this->t('Please note that the administration theme is still set to the %admin_theme theme; consequently, the theme on this page remains unchanged. All non-administrative sections of the site, however, will show the selected %selected_theme theme by default.', [
               '%admin_theme' => $themes[$admin_theme]->info['name'],

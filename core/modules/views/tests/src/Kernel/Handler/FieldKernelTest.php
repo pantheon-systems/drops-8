@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel\Handler;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
@@ -237,7 +238,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
     $renderer = \Drupal::service('renderer');
 
     $view = Views::getView('test_field_argument_tokens');
-    $this->executeView($view, ['{{ { "#pre_render": ["views_test_data_test_pre_render_function"]} }}']);
+    $this->executeView($view, ['{{ { "#pre_render": ["\Drupal\views_test_data\Controller\ViewsTestDataController::preRender"]} }}']);
 
     $name_field_0 = $view->field['name'];
 
@@ -250,7 +251,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       return $name_field_0->advancedRender($row);
     });
 
-    $this->assertFalse(strpos((string) $output, 'views_test_data_test_pre_render_function executed') !== FALSE, 'Ensure that the pre_render function was not executed');
+    $this->assertFalse(strpos((string) $output, '\Drupal\views_test_data\Controller\ViewsTestDataController::preRender executed') !== FALSE, 'Ensure that the pre_render function was not executed');
     $this->assertEqual('%1 !1', (string) $output, "Ensure that old style placeholders aren't replaced");
 
     // This time use new style tokens but ensure that we still don't allow
@@ -263,8 +264,8 @@ class FieldKernelTest extends ViewsKernelTestBase {
       return $name_field_0->advancedRender($row);
     });
 
-    $this->assertFalse(strpos((string) $output, 'views_test_data_test_pre_render_function executed') !== FALSE, 'Ensure that the pre_render function was not executed');
-    $this->assertEqual('{{ { &quot;#pre_render&quot;: [&quot;views_test_data_test_pre_render_function&quot;]} }} {{ { &quot;#pre_render&quot;: [&quot;views_test_data_test_pre_render_function&quot;]} }}', (string) $output, 'Ensure that new style placeholders are replaced');
+    $this->assertFalse(strpos((string) $output, '\Drupal\views_test_data\Controller\ViewsTestDataController::preRender executed') !== FALSE, 'Ensure that the pre_render function was not executed');
+    $this->assertEqual('{{ { &quot;#pre_render&quot;: [&quot;\Drupal\views_test_data\Controller\ViewsTestDataController::preRender&quot;]} }} {{ { &quot;#pre_render&quot;: [&quot;\Drupal\views_test_data\Controller\ViewsTestDataController::preRender&quot;]} }}', (string) $output, 'Ensure that new style placeholders are replaced');
   }
 
   /**
@@ -298,7 +299,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_0, $row) {
         return $name_field_0->advancedRender($row);
       });
-      $this->assertEqual($output, $expected_output_0, format_string('Test token replacement: "@token" gave "@output"', [
+      $this->assertEqual($output, $expected_output_0, new FormattableMarkup('Test token replacement: "@token" gave "@output"', [
         '@token' => $name_field_0->options['alter']['text'],
         '@output' => $output,
       ]));
@@ -306,7 +307,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_1, $row) {
         return $name_field_1->advancedRender($row);
       });
-      $this->assertEqual($output, $expected_output_1, format_string('Test token replacement: "@token" gave "@output"', [
+      $this->assertEqual($output, $expected_output_1, new FormattableMarkup('Test token replacement: "@token" gave "@output"', [
         '@token' => $name_field_1->options['alter']['text'],
         '@output' => $output,
       ]));
@@ -314,7 +315,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
       $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($name_field_2, $row) {
         return $name_field_2->advancedRender($row);
       });
-      $this->assertEqual($output, $expected_output_2, format_string('Test token replacement: "@token" gave "@output"', [
+      $this->assertEqual($output, $expected_output_2, new FormattableMarkup('Test token replacement: "@token" gave "@output"', [
         '@token' => $name_field_2->options['alter']['text'],
         '@output' => $output,
       ]));
@@ -329,7 +330,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
     $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($job_field, $row) {
       return $job_field->advancedRender($row);
     });
-    $this->assertSubString($output, $random_text, format_string('Make sure the self token (@token => @value) appears in the output (@output)', [
+    $this->assertSubString($output, $random_text, new FormattableMarkup('Make sure the self token (@token => @value) appears in the output (@output)', [
       '@value' => $random_text,
       '@output' => $output,
       '@token' => $job_field->options['alter']['text'],
@@ -343,7 +344,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
     $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($job_field, $row) {
       return $job_field->advancedRender($row);
     });
-    $this->assertEqual($output, $old_token, format_string('Make sure the old token style (@token => @value) is not changed in the output (@output)', [
+    $this->assertEqual($output, $old_token, new FormattableMarkup('Make sure the old token style (@token => @value) is not changed in the output (@output)', [
       '@value' => $random_text,
       '@output' => $output,
       '@token' => $job_field->options['alter']['text'],
@@ -376,7 +377,7 @@ class FieldKernelTest extends ViewsKernelTestBase {
     $output = $renderer->executeInRenderContext(new RenderContext(), function () use ($job_field, $row) {
       return $job_field->advancedRender($row);
     });
-    $this->assertEqual($output, $random_text, format_string('Make sure a script tag in the template (@template) is removed, leaving only the replaced token in the output (@output)', [
+    $this->assertEqual($output, $random_text, new FormattableMarkup('Make sure a script tag in the template (@template) is removed, leaving only the replaced token in the output (@output)', [
       '@output' => $output,
       '@template' => $rewrite_template,
     ]));

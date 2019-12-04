@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\UrlGeneratorTrait;
+use Drupal\Core\Url;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
 use Drupal\views_ui\ViewUI;
@@ -139,7 +140,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     $this->bundleInfoService = $bundle_info_service;
     $this->base_table = $this->definition['base_table'];
 
-    $entity_types = \Drupal::entityManager()->getDefinitions();
+    $entity_types = \Drupal::entityTypeManager()->getDefinitions();
     foreach ($entity_types as $entity_type_id => $entity_type) {
       if (in_array($this->base_table, [$entity_type->getBaseTable(), $entity_type->getDataTable(), $entity_type->getRevisionTable(), $entity_type->getRevisionDataTable()], TRUE)) {
         $this->entityType = $entity_type;
@@ -215,7 +216,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $style_options = Views::fetchPluginNames('style', 'normal', [$this->base_table]);
     $feed_row_options = Views::fetchPluginNames('row', 'feed', [$this->base_table]);
-    $path_prefix = $this->url('<none>', [], ['absolute' => TRUE]);
+    $path_prefix = Url::fromRoute('<none>', [], ['absolute' => TRUE])->toString();
 
     // Add filters and sorts which apply to the view as a whole.
     $this->buildFilters($form, $form_state);

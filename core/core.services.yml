@@ -106,7 +106,7 @@ services:
       - { name: cache.context }
   cache_context.url.query_args.pagers:
     class: Drupal\Core\Cache\Context\PagersCacheContext
-    arguments: ['@request_stack']
+    arguments: ['@pager.parameters']
     tags:
       - { name: cache.context }
 
@@ -315,6 +315,16 @@ services:
     public: false
     tags:
       - { name: backend_overridable }
+  config.import_transformer:
+    class: Drupal\Core\Config\ImportStorageTransformer
+    arguments: ['@event_dispatcher', '@database', '@lock', '@lock.persistent']
+  config.storage.export:
+    class: Drupal\Core\Config\ManagedStorage
+    arguments: ['@config.storage.export.manager']
+  config.storage.export.manager:
+    class: Drupal\Core\Config\ExportStorageManager
+    arguments: ['@config.storage', '@database', '@event_dispatcher', '@lock']
+    public: false
   # @deprecated in Drupal 8.0.x and will be removed before 9.0.0. Use
   #   config.storage.sync instead.
   # @see https://www.drupal.org/node/2574957
@@ -424,6 +434,9 @@ services:
   logger.channel.form:
     parent: logger.channel_base
     arguments: ['form']
+  logger.channel.security:
+    parent: logger.channel_base
+    arguments: ['security']
   logger.log_message_parser:
     class: Drupal\Core\Logger\LogMessageParser
 
@@ -449,13 +462,12 @@ services:
     class: Drupal\Core\Queue\QueueDatabaseFactory
     arguments: ['@database']
   path.alias_whitelist:
-    class: Drupal\Core\Path\AliasWhitelist
-    tags:
-      - { name: needs_destruction }
-    arguments: [path_alias_whitelist, '@cache.bootstrap', '@lock', '@state', '@path.alias_storage']
+    alias: path_alias.whitelist
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.whitelist" instead. See https://drupal.org/node/3092086'
   path.alias_manager:
     class: Drupal\Core\Path\AliasManager
-    arguments: ['@path.alias_storage', '@path.alias_whitelist', '@language_manager', '@cache.data']
+    arguments: ['@path_alias.repository', '@path_alias.whitelist', '@language_manager', '@cache.data']
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.manager" instead. See https://drupal.org/node/3092086'
   path.current:
     class: Drupal\Core\Path\CurrentPathStack
     arguments: ['@request_stack']
@@ -533,7 +545,7 @@ services:
     class: Drupal\Core\Extension\RequiredModuleUninstallValidator
     tags:
       - { name: module_install.uninstall_validator }
-    arguments: ['@string_translation']
+    arguments: ['@string_translation', '@extension.list.module']
     lazy: true
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
@@ -544,10 +556,9 @@ services:
   # @deprecated in Drupal 8.0.x and will be removed before 9.0.0. Use the other
   #   entity* services instead.
   entity.manager:
-    # We cannot set the deprecated property here because many test cases still
-    # rely on this service and they would fail with deprecation warnings.
     class: Drupal\Core\Entity\EntityManager
     parent: container.trait
+    deprecated: The "%service_id%" service is deprecated. You should use the 'entity_type.manager' service instead.
   entity.memory_cache:
     class: Drupal\Core\Cache\MemoryCache\MemoryCache
   entity_type.manager:
@@ -728,15 +739,12 @@ services:
     arguments: ['@event_dispatcher', '@controller_resolver', '@request_stack', '@http_kernel.controller.argument_resolver']
   http_kernel.controller.argument_resolver:
     class: Symfony\Component\HttpKernel\Controller\ArgumentResolver
-    arguments: ['@http_kernel.controller.argument_metadata_factory', ['@argument_resolver.request_attribute', '@argument_resolver.raw_parameter', '@argument_resolver.request', '@argument_resolver.psr7_request', '@argument_resolver.route_match', '@argument_resolver.default']]
+    arguments: ['@http_kernel.controller.argument_metadata_factory', ['@argument_resolver.request_attribute', '@argument_resolver.request', '@argument_resolver.psr7_request', '@argument_resolver.route_match', '@argument_resolver.default']]
   http_kernel.controller.argument_metadata_factory:
     class: Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadataFactory
     public: false
   argument_resolver.request_attribute:
     class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestAttributeValueResolver
-    public: false
-  argument_resolver.raw_parameter:
-    class: Drupal\Core\Controller\ArgumentResolver\RawParameterValueResolver
     public: false
   argument_resolver.request:
     class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestValueResolver
@@ -950,9 +958,10 @@ services:
       - { name: event_subscriber }
   path.alias_storage:
     class: Drupal\Core\Path\AliasStorage
-    arguments: ['@database', '@module_handler']
+    arguments: ['@database', '@module_handler', '@entity_type.manager']
     tags:
       - { name: backend_overridable }
+    deprecated: The "%service_id%" service is deprecated. Use the "path_alias.repository" service instead, or the entity storage handler for the "path_alias" entity type for CRUD methods. See https://www.drupal.org/node/3013865
   path.matcher:
     class: Drupal\Core\Path\PathMatcher
     arguments: ['@config.factory', '@current_route_match']
@@ -1090,13 +1099,13 @@ services:
       - { name: render.main_content_renderer, format: html }
   main_content_renderer.ajax:
     class: Drupal\Core\Render\MainContent\AjaxRenderer
-    arguments: ['@element_info']
+    arguments: ['@element_info', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_ajax }
       - { name: render.main_content_renderer, format: iframeupload }
   main_content_renderer.dialog:
     class: Drupal\Core\Render\MainContent\DialogRenderer
-    arguments: ['@title_resolver']
+    arguments: ['@title_resolver', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_dialog }
   main_content_renderer.off_canvas:
@@ -1111,7 +1120,7 @@ services:
       - { name: render.main_content_renderer, format: drupal_dialog.off_canvas_top }
   main_content_renderer.modal:
     class: Drupal\Core\Render\MainContent\ModalRenderer
-    arguments: ['@title_resolver']
+    arguments: ['@title_resolver', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_modal }
   controller.form:
@@ -1206,9 +1215,8 @@ services:
       - { name: event_subscriber }
   path_subscriber:
     class: Drupal\Core\EventSubscriber\PathSubscriber
-    tags:
-      - { name: event_subscriber }
-    arguments: ['@path.alias_manager', '@path.current']
+    arguments: ['@path_alias.manager', '@path.current']
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.subscriber" instead. See https://drupal.org/node/3092086'
   route_access_response_subscriber:
     class: Drupal\Core\EventSubscriber\RouteAccessResponseSubscriber
     tags:
@@ -1262,12 +1270,17 @@ services:
     class: Drupal\Core\EventSubscriber\ConfigImportSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@theme_handler']
+    arguments: ['@theme_handler', '@extension.list.module']
   config_snapshot_subscriber:
     class: Drupal\Core\EventSubscriber\ConfigSnapshotSubscriber
     tags:
       - { name: event_subscriber }
     arguments: ['@config.manager', '@config.storage', '@config.storage.snapshot']
+  config_exclude_modules_subscriber:
+    class: Drupal\Core\EventSubscriber\ExcludedModulesEventSubscriber
+    arguments: ['@config.storage', '@settings', '@config.manager']
+    tags:
+      - { name: event_subscriber }
   exception.needs_installer:
     class: Drupal\Core\EventSubscriber\ExceptionDetectNeedsInstallSubscriber
     arguments: ['@database']
@@ -1336,10 +1349,8 @@ services:
       - { name: route_processor_outbound, priority: 200 }
   path_processor_alias:
     class: Drupal\Core\PathProcessor\PathProcessorAlias
-    tags:
-      - { name: path_processor_inbound, priority: 100 }
-      - { name: path_processor_outbound, priority: 300 }
-    arguments: ['@path.alias_manager']
+    arguments: ['@path_alias.manager']
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.path_processor" instead. See https://drupal.org/node/3092086'
   route_processor_csrf:
     class: Drupal\Core\Access\RouteProcessorCsrf
     tags:
@@ -1527,6 +1538,7 @@ services:
     arguments: ['@private_key', '@cache.bootstrap', '@cache.static']
   current_user:
     class: Drupal\Core\Session\AccountProxy
+    arguments: ['@event_dispatcher']
   session_configuration:
     class: Drupal\Core\Session\SessionConfiguration
     arguments: ['%session.storage.options%']
@@ -1596,7 +1608,7 @@ services:
       - { name: needs_destruction }
   library.discovery.parser:
     class: Drupal\Core\Asset\LibraryDiscoveryParser
-    arguments: ['@app.root', '@module_handler', '@theme.manager']
+    arguments: ['@app.root', '@module_handler', '@theme.manager', '@stream_wrapper_manager']
   library.dependency_resolver:
     class: Drupal\Core\Asset\LibraryDependencyResolver
     arguments: ['@library.discovery']
@@ -1605,6 +1617,7 @@ services:
     arguments: ['@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data']
   info_parser:
     class: Drupal\Core\Extension\InfoParser
+    arguments: ['@app.root']
   twig:
     class: Drupal\Core\Template\TwigEnvironment
     arguments: ['@app.root', '@cache.default', '%twig_extension_hash%', '@state', '@twig.loader', '%twig.config%']
@@ -1645,6 +1658,9 @@ services:
       - { name: twig.loader, priority: -100 }
   element_info:
     alias: plugin.manager.element_info
+  file.htaccess_writer:
+    class: Drupal\Core\File\HtaccessWriter
+    arguments: ['@logger.channel.security', '@stream_wrapper_manager']
   file.mime_type.guesser:
     class: Drupal\Core\File\MimeType\MimeTypeGuesser
     arguments: ['@stream_wrapper_manager']
@@ -1721,3 +1737,9 @@ services:
     arguments: ['@keyvalue.expirable', '@lock', '@request_stack', '%tempstore.expire%']
     tags:
       - { name: backend_overridable }
+  pager.manager:
+    class: Drupal\Core\Pager\PagerManager
+    arguments: ['@pager.parameters']
+  pager.parameters:
+    class: Drupal\Core\Pager\PagerParameters
+    arguments: ['@request_stack']

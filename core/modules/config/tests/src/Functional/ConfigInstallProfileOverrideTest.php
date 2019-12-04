@@ -3,11 +3,13 @@
 namespace Drupal\Tests\config\Functional;
 
 use Drupal\Component\Utility\Crypt;
+use Drupal\Component\Uuid\Uuid;
 use Drupal\Core\Config\InstallStorage;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Core\Config\FileStorage;
 use Drupal\system\Entity\Action;
 use Drupal\tour\Entity\Tour;
+use Drupal\user\Entity\Role;
 
 /**
  * Tests installation and removal of configuration objects in install, disable
@@ -23,6 +25,11 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
    * @var string
    */
   protected $profile = 'testing_config_overrides';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Tests install profile config changes.
@@ -61,22 +68,32 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
     $config = $this->config($config_name);
     $this->assertIdentical($config->get(), $expected_profile_data);
 
+    $config = $this->config('system.site');
+    // Verify the system.site config has a valid UUID.
+    $site_uuid = $config->get('uuid');
+    $this->assertTrue(Uuid::isValid($site_uuid) && strlen($site_uuid) > 0, "Site UUID '$site_uuid' is valid");
+    // Verify the profile overrides have been used.
+    $this->assertEquals(91, $config->get('weight_select_max'));
+    // Ensure the site configure form is used.
+    $this->assertEquals('Drupal', $config->get('name'));
+    $this->assertEquals('simpletest@example.com', $config->get('mail'));
+
     // Ensure that the configuration entity has the expected dependencies and
     // overrides.
     $action = Action::load('user_block_user_action');
-    $this->assertEqual($action->label(), 'Overridden block the selected user(s)');
+    $this->assertEquals('Overridden block the selected user(s)', $action->label());
     $action = Action::load('user_cancel_user_action');
-    $this->assertEqual($action->label(), 'Cancel the selected user account(s)', 'Default configuration that is not overridden is not affected.');
+    $this->assertEquals('Cancel the selected user account(s)', $action->label(), 'Default configuration that is not overridden is not affected.');
 
     // Ensure that optional configuration can be overridden.
     $tour = Tour::load('language');
-    $this->assertEqual(count($tour->getTips()), 1, 'Optional configuration can be overridden. The language tour only has one tip');
+    $this->assertCount(1, $tour->getTips(), 'Optional configuration can be overridden. The language tour only has one tip');
     $tour = Tour::load('language-add');
-    $this->assertEqual(count($tour->getTips()), 3, 'Optional configuration that is not overridden is not affected.');
+    $this->assertCount(3, $tour->getTips(), 'Optional configuration that is not overridden is not affected.');
 
     // Ensure that optional configuration from a profile is created if
     // dependencies are met.
-    $this->assertEqual(Tour::load('testing_config_overrides')->label(), 'Config override test');
+    $this->assertEquals('Config override test', Tour::load('testing_config_overrides')->label());
 
     // Ensure that optional configuration from a profile is not created if
     // dependencies are not met. Cannot use the entity system since the entity
@@ -94,10 +111,10 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
     // configuration in a modules config/install directory.
     $this->container->get('module_installer')->install(['config_test']);
     $this->rebuildContainer();
-    $config_test_storage = \Drupal::entityManager()->getStorage('config_test');
-    $this->assertEqual($config_test_storage->load('dotted.default')->label(), 'Default install profile override', 'The config_test entity is overridden by the profile optional configuration.');
+    $config_test_storage = \Drupal::entityTypeManager()->getStorage('config_test');
+    $this->assertEquals('Default install profile override', $config_test_storage->load('dotted.default')->label(), 'The config_test entity is overridden by the profile optional configuration.');
     // Test that override of optional configuration does work.
-    $this->assertEqual($config_test_storage->load('override')->label(), 'Override', 'The optional config_test entity is overridden by the profile optional configuration.');
+    $this->assertEquals('Override', $config_test_storage->load('override')->label(), 'The optional config_test entity is overridden by the profile optional configuration.');
     // Test that override of optional configuration which introduces an unmet
     // dependency does not get created.
     $this->assertNull($config_test_storage->load('override_unmet'), 'The optional config_test entity with unmet dependencies is not created.');
@@ -106,17 +123,21 @@ class ConfigInstallProfileOverrideTest extends BrowserTestBase {
     // Installing dblog creates the optional configuration.
     $this->container->get('module_installer')->install(['dblog']);
     $this->rebuildContainer();
-    $this->assertEqual($config_test_storage->load('override_unmet')->label(), 'Override', 'The optional config_test entity is overridden by the profile optional configuration and is installed when its dependencies are met.');
+    $this->assertEquals('Override', $config_test_storage->load('override_unmet')->label(), 'The optional config_test entity is overridden by the profile optional configuration and is installed when its dependencies are met.');
     $config_test_new = $config_test_storage->load('completely_new');
-    $this->assertEqual($config_test_new->label(), 'Completely new optional configuration', 'The optional config_test entity is provided by the profile optional configuration and is installed when its dependencies are met.');
+    $this->assertEquals('Completely new optional configuration', $config_test_new->label(), 'The optional config_test entity is provided by the profile optional configuration and is installed when its dependencies are met.');
     $config_test_new->delete();
 
     // Install another module that provides optional configuration and ensure
     // that deleted profile configuration is not re-created.
     $this->container->get('module_installer')->install(['config_other_module_config_test']);
     $this->rebuildContainer();
-    $config_test_storage = \Drupal::entityManager()->getStorage('config_test');
+    $config_test_storage = \Drupal::entityTypeManager()->getStorage('config_test');
     $this->assertNull($config_test_storage->load('completely_new'));
+
+    // Ensure the authenticated role has the access tour permission.
+    $role = Role::load(Role::AUTHENTICATED_ID);
+    $this->assertTrue($role->hasPermission('access tour'), 'The Authenticated role has the "access tour" permission.');
   }
 
 }

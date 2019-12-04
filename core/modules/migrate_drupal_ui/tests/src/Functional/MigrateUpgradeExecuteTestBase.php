@@ -106,7 +106,16 @@ abstract class MigrateUpgradeExecuteTestBase extends MigrateUpgradeTestBase {
     $session->fieldExists('mysql[host]');
 
     $this->drupalPostForm(NULL, $edits, t('Review upgrade'));
-    $this->assertIdConflict($session);
+    $entity_types = [
+      'block_content',
+      'menu_link_content',
+      'file',
+      'taxonomy_term',
+      'user',
+      'comment',
+      'node',
+    ];
+    $this->assertIdConflict($session, $entity_types);
 
     $this->drupalPostForm(NULL, [], t('I acknowledge I may lose data. Continue anyway.'));
     $session->statusCodeEquals(200);
@@ -117,7 +126,7 @@ abstract class MigrateUpgradeExecuteTestBase extends MigrateUpgradeTestBase {
     // Ensure there are no errors about any other missing migration providers.
     $session->pageTextNotContains(t('module not found'));
 
-    // Test the upgrade paths.
+    // Test the review page.
     $available_paths = $this->getAvailablePaths();
     $missing_paths = $this->getMissingPaths();
     $this->assertReviewPage($session, $available_paths, $missing_paths);
@@ -146,12 +155,7 @@ abstract class MigrateUpgradeExecuteTestBase extends MigrateUpgradeTestBase {
     $this->drupalPostForm(NULL, [], t('I acknowledge I may lose data. Continue anyway.'));
     $session->statusCodeEquals(200);
 
-    // Need to update available and missing path lists.
-    $all_available = $this->getAvailablePaths();
-    $all_available[] = 'aggregator';
-    $all_missing = $this->getMissingPaths();
-    $all_missing = array_diff($all_missing, ['aggregator']);
-    $this->assertReviewPage($session, $all_available, $all_missing);
+    // Run the incremental migration and check the results.
     $this->drupalPostForm(NULL, [], t('Perform upgrade'));
     $session->pageTextContains(t('Congratulations, you upgraded Drupal!'));
     $this->assertMigrationResults($this->getEntityCountsIncremental(), $version);

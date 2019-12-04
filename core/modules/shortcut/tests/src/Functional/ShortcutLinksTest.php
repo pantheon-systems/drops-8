@@ -8,6 +8,7 @@ use Drupal\Core\Url;
 use Drupal\shortcut\Entity\Shortcut;
 use Drupal\shortcut\Entity\ShortcutSet;
 use Drupal\Tests\block\Functional\AssertBlockAppearsTrait;
+use Drupal\Tests\Traits\Core\PathAliasTestTrait;
 use Drupal\views\Entity\View;
 
 /**
@@ -18,6 +19,7 @@ use Drupal\views\Entity\View;
 class ShortcutLinksTest extends ShortcutTestBase {
 
   use AssertBlockAppearsTrait;
+  use PathAliasTestTrait;
 
   /**
    * Modules to enable.
@@ -25,6 +27,11 @@ class ShortcutLinksTest extends ShortcutTestBase {
    * @var array
    */
   public static $modules = ['router_test', 'views', 'block'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -42,11 +49,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $set = $this->set;
 
     // Create an alias for the node so we can test aliases.
-    $path = [
-      'source' => '/node/' . $this->node->id(),
-      'alias' => '/' . $this->randomMachineName(8),
-    ];
-    $this->container->get('path.alias_storage')->save($path['source'], $path['alias']);
+    $path_alias = $this->createPathAlias('/node/' . $this->node->id(), '/' . $this->randomMachineName(8));
 
     // Create some paths to test.
     $test_cases = [
@@ -54,7 +57,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
       '/admin',
       '/admin/config/system/site-information',
       '/node/' . $this->node->id() . '/edit',
-      $path['alias'],
+      $path_alias->getAlias(),
       '/router_test/test2',
       '/router_test/test3/value',
     ];
@@ -140,7 +143,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
    * Tests that the "add to shortcut" and "remove from shortcut" links work.
    */
   public function testShortcutQuickLink() {
-    \Drupal::service('theme_handler')->install(['seven']);
+    \Drupal::service('theme_installer')->install(['seven']);
     $this->config('system.theme')->set('admin', 'seven')->save();
     $this->config('node.settings')->set('use_admin_theme', '1')->save();
     $this->container->get('router.builder')->rebuild();
@@ -290,7 +293,8 @@ class ShortcutLinksTest extends ShortcutTestBase {
     $this->assertFalse(in_array($shortcut->id(), $ids), 'Successfully deleted a shortcut.');
 
     // Delete all the remaining shortcut links.
-    entity_delete_multiple('shortcut', array_filter($ids));
+    $storage = \Drupal::entityTypeManager()->getStorage('shortcut');
+    $storage->delete($storage->loadMultiple(array_filter($ids)));
 
     // Get the front page to check that no exceptions occur.
     $this->drupalGet('');
@@ -304,7 +308,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
    */
   public function testNoShortcutLink() {
     // Change to a theme that displays shortcuts.
-    \Drupal::service('theme_handler')->install(['seven']);
+    \Drupal::service('theme_installer')->install(['seven']);
     $this->config('system.theme')
       ->set('default', 'seven')
       ->save();
@@ -335,7 +339,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
    */
   public function testAccessShortcutsPermission() {
     // Change to a theme that displays shortcuts.
-    \Drupal::service('theme_handler')->install(['seven']);
+    \Drupal::service('theme_installer')->install(['seven']);
     $this->config('system.theme')
       ->set('default', 'seven')
       ->save();
@@ -410,7 +414,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
 
     foreach ($edit_paths as $path) {
       $this->drupalGet($path);
-      $message = format_string('Access is denied on %s', ['%s' => $path]);
+      $message = new FormattableMarkup('Access is denied on %s', ['%s' => $path]);
       $this->assertResponse(403, $message);
     }
   }
@@ -449,7 +453,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
    *   Link position counting from zero.
    * @param string $message
    *   (optional) A message to display with the assertion. Do not translate
-   *   messages: use format_string() to embed variables in the message text, not
+   *   messages: use new FormattableMarkup() to embed variables in the message text, not
    *   t(). If left blank, a default message will be displayed.
    * @param string $group
    *   (optional) The group this message is in, which is displayed in a column

@@ -33,28 +33,28 @@ class RouteBuilderTest extends UnitTestCase {
   /**
    * The mocked matcher dumper.
    *
-   * @var \Drupal\Core\Routing\MatcherDumperInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Routing\MatcherDumperInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $dumper;
 
   /**
    * The mocked lock backend.
    *
-   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $lock;
 
   /**
    * The mocked event dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $dispatcher;
 
   /**
    * The mocked YAML discovery.
    *
-   * @var \Drupal\Core\Discovery\YamlDiscovery|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Discovery\YamlDiscovery|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $yamlDiscovery;
 
@@ -68,25 +68,25 @@ class RouteBuilderTest extends UnitTestCase {
   /**
    * The controller resolver.
    *
-   * @var \Drupal\Core\Controller\ControllerResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Controller\ControllerResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $controllerResolver;
 
   /**
-   * @var \Drupal\Core\Access\CheckProviderInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\CheckProviderInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $checkProvider;
 
   protected function setUp() {
-    $this->dumper = $this->getMock('Drupal\Core\Routing\MatcherDumperInterface');
-    $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
-    $this->dispatcher = $this->getMock('\Symfony\Component\EventDispatcher\EventDispatcherInterface');
-    $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->controllerResolver = $this->getMock('Drupal\Core\Controller\ControllerResolverInterface');
+    $this->dumper = $this->createMock('Drupal\Core\Routing\MatcherDumperInterface');
+    $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
+    $this->dispatcher = $this->createMock('\Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->controllerResolver = $this->createMock('Drupal\Core\Controller\ControllerResolverInterface');
     $this->yamlDiscovery = $this->getMockBuilder('\Drupal\Core\Discovery\YamlDiscovery')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->checkProvider = $this->getMock('\Drupal\Core\Access\CheckProviderInterface');
+    $this->checkProvider = $this->createMock('\Drupal\Core\Access\CheckProviderInterface');
 
     $this->routeBuilder = new TestRouteBuilder($this->dumper, $this->lock, $this->dispatcher, $this->moduleHandler, $this->controllerResolver, $this->checkProvider);
     $this->routeBuilder->setYamlDiscovery($this->yamlDiscovery);
@@ -329,7 +329,7 @@ class TestRouteBuilder extends RouteBuilder {
   /**
    * The mocked YAML discovery.
    *
-   * @var \Drupal\Core\Discovery\YamlDiscovery|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Discovery\YamlDiscovery|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $yamlDiscovery;
 

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\file\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\Entity\Comment;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Component\Serialization\Json;
@@ -28,6 +29,11 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    * {@inheritdoc}
    */
   protected static $modules = ['comment', 'block'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * {@inheritdoc}
@@ -83,7 +89,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = $node_storage->loadUnchanged($nid);
     $node_file = File::load($node->{$field_name}->target_id);
-    $this->assertFileExists($node_file, 'New file saved to disk on node creation.');
+    $this->assertFileExists($node_file->getFileUri(), 'New file saved to disk on node creation.');
 
     // Ensure the file can be downloaded.
     $this->drupalGet($node_file->createFileUrl());
@@ -113,7 +119,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    * Tests upload and remove buttons for multiple multi-valued File fields.
    */
   public function testMultiValuedWidget() {
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     $type_name = 'article';
     // Use explicit names instead of random names for those fields, because of a
     // bug in drupalPostForm() with multiple file uploads in one form, where the
@@ -160,7 +166,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
         // Ensure we have the expected number of Remove buttons, and that they
         // are numbered sequentially.
         $buttons = $this->xpath('//input[@type="submit" and @value="Remove"]');
-        $this->assertTrue(is_array($buttons) && count($buttons) === $num_expected_remove_buttons, format_string('There are %n "Remove" buttons displayed.', ['%n' => $num_expected_remove_buttons]));
+        $this->assertTrue(is_array($buttons) && count($buttons) === $num_expected_remove_buttons, new FormattableMarkup('There are %n "Remove" buttons displayed.', ['%n' => $num_expected_remove_buttons]));
         foreach ($buttons as $i => $button) {
           $key = $i >= $remaining ? $i - $remaining : $i;
           $check_field_name = $field_name2;
@@ -239,7 +245,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
    * Tests a file field with a "Private files" upload destination setting.
    */
   public function testPrivateFileSetting() {
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     // Grant the admin user required permissions.
     user_role_grant_permissions($this->adminUser->roles[0]->target_id, ['administer node fields']);
 
@@ -257,7 +263,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = $node_storage->loadUnchanged($nid);
     $node_file = File::load($node->{$field_name}->target_id);
-    $this->assertFileExists($node_file, 'New file saved to disk on node creation.');
+    $this->assertFileExists($node_file->getFileUri(), 'New file saved to disk on node creation.');
 
     // Ensure the private file is available to the user who uploaded it.
     $this->drupalGet($node_file->createFileUrl());
@@ -298,7 +304,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $this->fieldUIAddNewField('admin/structure/comment/manage/comment', $name, $label, 'file', $storage_edit);
 
     // Manually clear cache on the tester side.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     // Create node.
     $edit = [
@@ -324,7 +330,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     $comment = Comment::load($cid);
     $comment_file = $comment->{'field_' . $name}->entity;
-    $this->assertFileExists($comment_file, 'New file saved to disk on node creation.');
+    $this->assertFileExists($comment_file->getFileUri(), 'New file saved to disk on node creation.');
     // Test authenticated file download.
     $url = $comment_file->createFileUrl();
     $this->assertNotEqual($url, NULL, 'Confirmed that the URL is valid');
@@ -501,7 +507,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     /** @var \Drupal\file\FileInterface $node_file */
     $node_file = File::load($node->{$field_name}->target_id);
-    $this->assertFileExists($node_file, 'A file was saved to disk on node creation');
+    $this->assertFileExists($node_file->getFileUri(), 'A file was saved to disk on node creation');
     $this->assertEqual($attacker_user->id(), $node_file->getOwnerId(), 'New file belongs to the attacker.');
 
     // Ensure the file can be downloaded.
@@ -519,7 +525,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // The victim's temporary file should not be removed by the attacker's
     // POST request.
-    $this->assertFileExists($victim_tmp_file);
+    $this->assertFileExists($victim_tmp_file->getFileUri());
   }
 
 }

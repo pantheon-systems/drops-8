@@ -3,9 +3,10 @@
 namespace Drupal\Tests\user\Functional;
 
 use Drupal\Core\Database\Database;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
+use Drupal\file\Entity\File;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\file\Entity\File;
 use Drupal\Tests\TestFileCreationTrait;
 
 /**
@@ -28,6 +29,11 @@ class UserPictureTest extends BrowserTestBase {
    * @var string
    */
   protected $profile = 'standard';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * A regular user.
@@ -65,7 +71,7 @@ class UserPictureTest extends BrowserTestBase {
 
     // Verify that the image is displayed on the user account page.
     $this->drupalGet('user');
-    $this->assertRaw(file_uri_target($file->getFileUri()), 'User picture found on user account page.');
+    $this->assertRaw(StreamWrapperManager::getTarget($file->getFileUri()), 'User picture found on user account page.');
 
     // Delete the picture.
     $edit = [];
@@ -85,7 +91,7 @@ class UserPictureTest extends BrowserTestBase {
     \Drupal::service('cron')->run();
 
     // Verify that the image has been deleted.
-    $this->assertFalse(File::load($file->id()), 'File was removed from the database.');
+    $this->assertNull(File::load($file->id()), 'File was removed from the database.');
     // Clear out PHP's file stat cache so we see the current value.
     clearstatcache(TRUE, $file->getFileUri());
     $this->assertFalse(is_file($file->getFileUri()), 'File was removed from the file system.');
@@ -136,7 +142,7 @@ class UserPictureTest extends BrowserTestBase {
       ->save();
 
     $this->drupalGet('node/' . $node->id());
-    $this->assertNoRaw(file_uri_target($file->getFileUri()), 'User picture not found on node and comment.');
+    $this->assertNoRaw(StreamWrapperManager::getTarget($file->getFileUri()), 'User picture not found on node and comment.');
   }
 
   /**
@@ -147,7 +153,7 @@ class UserPictureTest extends BrowserTestBase {
     $this->drupalPostForm('user/' . $this->webUser->id() . '/edit', $edit, t('Save'));
 
     // Load actual user data from database.
-    $user_storage = $this->container->get('entity.manager')->getStorage('user');
+    $user_storage = $this->container->get('entity_type.manager')->getStorage('user');
     $user_storage->resetCache([$this->webUser->id()]);
     $account = $user_storage->load($this->webUser->id());
     return File::load($account->user_picture->target_id);

@@ -13,6 +13,11 @@ use Drupal\file\Entity\File;
 class FileFieldRevisionTest extends FileFieldTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests creating multiple revisions of a node and managing attached files.
    *
    * Expected behaviors:
@@ -29,7 +34,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     $this->config('file.settings')
       ->set('make_unused_managed_files_temporary', TRUE)
       ->save();
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     $type_name = 'article';
     $field_name = strtolower($this->randomMachineName());
     $this->createFileField($field_name, 'node', $type_name);
@@ -46,7 +51,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     $node = $node_storage->load($nid);
     $node_file_r1 = File::load($node->{$field_name}->target_id);
     $node_vid_r1 = $node->getRevisionId();
-    $this->assertFileExists($node_file_r1, 'New file saved to disk on node creation.');
+    $this->assertFileExists($node_file_r1->getFileUri(), 'New file saved to disk on node creation.');
     $this->assertFileEntryExists($node_file_r1, 'File entry exists in database on node creation.');
     $this->assertFileIsPermanent($node_file_r1, 'File is permanent.');
 
@@ -56,7 +61,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     $node = $node_storage->load($nid);
     $node_file_r2 = File::load($node->{$field_name}->target_id);
     $node_vid_r2 = $node->getRevisionId();
-    $this->assertFileExists($node_file_r2, 'Replacement file exists on disk after creating new revision.');
+    $this->assertFileExists($node_file_r2->getFileUri(), 'Replacement file exists on disk after creating new revision.');
     $this->assertFileEntryExists($node_file_r2, 'Replacement file entry exists in database after creating new revision.');
     $this->assertFileIsPermanent($node_file_r2, 'Replacement file is permanent.');
 
@@ -64,7 +69,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     $node = node_revision_load($node_vid_r1);
     $current_file = File::load($node->{$field_name}->target_id);
     $this->assertEqual($node_file_r1->id(), $current_file->id(), 'Original file still in place after replacing file in new revision.');
-    $this->assertFileExists($node_file_r1, 'Original file still in place after replacing file in new revision.');
+    $this->assertFileExists($node_file_r1->getFileUri(), 'Original file still in place after replacing file in new revision.');
     $this->assertFileEntryExists($node_file_r1, 'Original file entry still in place after replacing file in new revision');
     $this->assertFileIsPermanent($node_file_r1, 'Original file is still permanent.');
 
@@ -89,7 +94,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
     // Delete the second revision and check that the file is kept (since it is
     // still being used by the third revision).
     $this->drupalPostForm('node/' . $nid . '/revisions/' . $node_vid_r2 . '/delete', [], t('Delete'));
-    $this->assertFileExists($node_file_r3, 'Second file is still available after deleting second revision, since it is being used by the third revision.');
+    $this->assertFileExists($node_file_r3->getFileUri(), 'Second file is still available after deleting second revision, since it is being used by the third revision.');
     $this->assertFileEntryExists($node_file_r3, 'Second file entry is still available after deleting second revision, since it is being used by the third revision.');
     $this->assertFileIsPermanent($node_file_r3, 'Second file entry is still permanent after deleting second revision, since it is being used by the third revision.');
 
@@ -102,7 +107,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
 
     // Delete the third revision and check that the file is not deleted yet.
     $this->drupalPostForm('node/' . $nid . '/revisions/' . $node_vid_r3 . '/delete', [], t('Delete'));
-    $this->assertFileExists($node_file_r3, 'Second file is still available after deleting third revision, since it is being used by the user.');
+    $this->assertFileExists($node_file_r3->getFileUri(), 'Second file is still available after deleting third revision, since it is being used by the user.');
     $this->assertFileEntryExists($node_file_r3, 'Second file entry is still available after deleting third revision, since it is being used by the user.');
     $this->assertFileIsPermanent($node_file_r3, 'Second file entry is still permanent after deleting third revision, since it is being used by the user.');
 
@@ -129,7 +134,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
       ->execute();
     \Drupal::service('cron')->run();
 
-    $this->assertFileNotExists($node_file_r3, 'Second file is now deleted after deleting third revision, since it is no longer being used by any other nodes.');
+    $this->assertFileNotExists($node_file_r3->getFileUri(), 'Second file is now deleted after deleting third revision, since it is no longer being used by any other nodes.');
     $this->assertFileEntryNotExists($node_file_r3, 'Second file entry is now deleted after deleting third revision, since it is no longer being used by any other nodes.');
 
     // Delete the entire node and check that the original file is deleted.
@@ -145,7 +150,7 @@ class FileFieldRevisionTest extends FileFieldTestBase {
       ->condition('fid', $node_file_r1->id())
       ->execute();
     \Drupal::service('cron')->run();
-    $this->assertFileNotExists($node_file_r1, 'Original file is deleted after deleting the entire node with two revisions remaining.');
+    $this->assertFileNotExists($node_file_r1->getFileUri(), 'Original file is deleted after deleting the entire node with two revisions remaining.');
     $this->assertFileEntryNotExists($node_file_r1, 'Original file entry is deleted after deleting the entire node with two revisions remaining.');
   }
 

@@ -28,21 +28,21 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * The entity under test.
    *
-   * @var \Drupal\Core\Config\Entity\ConfigEntityBase|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\Entity\ConfigEntityBase|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entity;
 
   /**
    * The entity type used for testing.
    *
-   * @var \Drupal\Core\Config\Entity\ConfigEntityTypeInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\Entity\ConfigEntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityType;
 
   /**
    * The entity type manager used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
@@ -56,7 +56,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * The UUID generator used for testing.
    *
-   * @var \Drupal\Component\Uuid\UuidInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Component\Uuid\UuidInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $uuid;
 
@@ -70,7 +70,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * The language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
@@ -84,14 +84,14 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   /**
    * The mocked cache backend.
    *
-   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheTagsInvalidator;
 
   /**
    * The mocked typed config manager.
    *
-   * @var \Drupal\Core\Config\TypedConfigManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $typedConfigManager;
 
@@ -120,7 +120,7 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
       'uuid' => '3bb9ee60-bea5-4622-b89b-a63319d10b3a',
     ];
     $this->entityTypeId = $this->randomMachineName();
-    $this->entityType = $this->getMock('\Drupal\Core\Config\Entity\ConfigEntityTypeInterface');
+    $this->entityType = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue($this->provider));
@@ -128,23 +128,23 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
       ->method('getConfigPrefix')
       ->willReturn('test_provider.' . $this->entityTypeId);
 
-    $this->entityTypeManager = $this->getMock(EntityTypeManagerInterface::class);
+    $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with($this->entityTypeId)
       ->will($this->returnValue($this->entityType));
 
-    $this->uuid = $this->getMock('\Drupal\Component\Uuid\UuidInterface');
+    $this->uuid = $this->createMock('\Drupal\Component\Uuid\UuidInterface');
 
-    $this->languageManager = $this->getMock('\Drupal\Core\Language\LanguageManagerInterface');
+    $this->languageManager = $this->createMock('\Drupal\Core\Language\LanguageManagerInterface');
     $this->languageManager->expects($this->any())
       ->method('getLanguage')
       ->with('en')
       ->will($this->returnValue(new Language(['id' => 'en'])));
 
-    $this->cacheTagsInvalidator = $this->getMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
+    $this->cacheTagsInvalidator = $this->createMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
 
-    $this->typedConfigManager = $this->getMock('Drupal\Core\Config\TypedConfigManagerInterface');
+    $this->typedConfigManager = $this->createMock('Drupal\Core\Config\TypedConfigManagerInterface');
 
     $this->moduleHandler = $this->prophesize(ModuleHandlerInterface::class);
     $this->themeHandler = $this->prophesize(ThemeHandlerInterface::class);
@@ -185,8 +185,8 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
   public function testPreSaveDuringSync() {
     $this->moduleHandler->moduleExists('node')->willReturn(TRUE);
 
-    $query = $this->getMock('\Drupal\Core\Entity\Query\QueryInterface');
-    $storage = $this->getMock('\Drupal\Core\Config\Entity\ConfigEntityStorageInterface');
+    $query = $this->createMock('\Drupal\Core\Entity\Query\QueryInterface');
+    $storage = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityStorageInterface');
 
     $query->expects($this->any())
       ->method('execute')
@@ -520,11 +520,11 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
         ],
       ]));
 
-    $entity_a = $this->getMock('\Drupal\Core\Config\Entity\ConfigEntityInterface');
+    $entity_a = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityInterface');
     $entity_a->expects($this->atLeastOnce())
       ->method('label')
       ->willReturn('foo');
-    $entity_b = $this->getMock('\Drupal\Core\Config\Entity\ConfigEntityInterface');
+    $entity_b = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityInterface');
     $entity_b->expects($this->atLeastOnce())
       ->method('label')
       ->willReturn('bar');
@@ -635,7 +635,8 @@ class ConfigEntityBaseUnitTest extends UnitTestCase {
     $this->entityType->expects($this->any())
       ->method('getPropertiesToExport')
       ->willReturn(NULL);
-    $this->setExpectedException(SchemaIncompleteException::class, 'Incomplete or missing schema for test_provider.');
+    $this->expectException(SchemaIncompleteException::class);
+    $this->expectExceptionMessage('Incomplete or missing schema for test_provider.');
     $this->entity->toArray();
   }
 

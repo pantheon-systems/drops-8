@@ -12,7 +12,6 @@ use Drupal\Tests\rest\Functional\ResourceTestBase;
  * Ensures that the 'api_json' format is not supported by the REST module.
  *
  * @group jsonapi
- * @group legacy
  *
  * @internal
  */
@@ -24,6 +23,11 @@ class RestJsonApiUnsupported extends ResourceTestBase {
    * {@inheritdoc}
    */
   public static $modules = ['jsonapi', 'node'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}

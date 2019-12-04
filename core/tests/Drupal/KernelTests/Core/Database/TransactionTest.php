@@ -2,6 +2,7 @@
 
 namespace Drupal\KernelTests\Core\Database;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\TransactionOutOfOrderException;
 use Drupal\Core\Database\TransactionNoActiveException;
 
@@ -154,9 +155,9 @@ class TransactionTest extends DatabaseTestBase {
 
       // Neither of the rows we inserted in the two transaction layers
       // should be present in the tables post-rollback.
-      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DavidB'])->fetchField();
+      $saved_age = $this->connection->query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DavidB'])->fetchField();
       $this->assertNotIdentical($saved_age, '24', 'Cannot retrieve DavidB row after commit.');
-      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DanielB'])->fetchField();
+      $saved_age = $this->connection->query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DanielB'])->fetchField();
       $this->assertNotIdentical($saved_age, '19', 'Cannot retrieve DanielB row after commit.');
     }
     catch (\Exception $e) {
@@ -181,9 +182,9 @@ class TransactionTest extends DatabaseTestBase {
 
       // Because our current database claims to not support transactions,
       // the inserted rows should be present despite the attempt to roll back.
-      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DavidB'])->fetchField();
+      $saved_age = $this->connection->query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DavidB'])->fetchField();
       $this->assertIdentical($saved_age, '24', 'DavidB not rolled back, since transactions are not supported.');
-      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DanielB'])->fetchField();
+      $saved_age = $this->connection->query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DanielB'])->fetchField();
       $this->assertIdentical($saved_age, '19', 'DanielB not rolled back, since transactions are not supported.');
     }
     catch (\Exception $e) {
@@ -203,9 +204,9 @@ class TransactionTest extends DatabaseTestBase {
       $this->transactionOuterLayer('A');
 
       // Because we committed, both of the inserted rows should be present.
-      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DavidA'])->fetchField();
+      $saved_age = $this->connection->query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DavidA'])->fetchField();
       $this->assertIdentical($saved_age, '24', 'Can retrieve DavidA row after commit.');
-      $saved_age = db_query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DanielA'])->fetchField();
+      $saved_age = $this->connection->query('SELECT age FROM {test} WHERE name = :name', [':name' => 'DanielA'])->fetchField();
       $this->assertIdentical($saved_age, '19', 'Can retrieve DanielA row after commit.');
     }
     catch (\Exception $e) {
@@ -293,9 +294,10 @@ class TransactionTest extends DatabaseTestBase {
       try {
         $transaction->rollBack();
         unset($transaction);
-        // @TODO: an exception should be triggered here, but is not, because
+        // @todo An exception should be triggered here, but is not because
         // "ROLLBACK" fails silently in MySQL if there is no transaction active.
-        // $this->fail(t('Rolling back a transaction containing DDL should fail.'));
+        // @see https://www.drupal.org/project/drupal/issues/2736777
+        // $this->fail('Rolling back a transaction containing DDL should fail.');
       }
       catch (TransactionNoActiveException $e) {
         $this->pass('Rolling back a transaction containing DDL should fail.');
@@ -351,9 +353,9 @@ class TransactionTest extends DatabaseTestBase {
    */
   public function assertRowPresent($name, $message = NULL) {
     if (!isset($message)) {
-      $message = format_string('Row %name is present.', ['%name' => $name]);
+      $message = new FormattableMarkup('Row %name is present.', ['%name' => $name]);
     }
-    $present = (boolean) db_query('SELECT 1 FROM {test} WHERE name = :name', [':name' => $name])->fetchField();
+    $present = (boolean) $this->connection->query('SELECT 1 FROM {test} WHERE name = :name', [':name' => $name])->fetchField();
     return $this->assertTrue($present, $message);
   }
 
@@ -367,9 +369,9 @@ class TransactionTest extends DatabaseTestBase {
    */
   public function assertRowAbsent($name, $message = NULL) {
     if (!isset($message)) {
-      $message = format_string('Row %name is absent.', ['%name' => $name]);
+      $message = new FormattableMarkup('Row %name is absent.', ['%name' => $name]);
     }
-    $present = (boolean) db_query('SELECT 1 FROM {test} WHERE name = :name', [':name' => $name])->fetchField();
+    $present = (boolean) $this->connection->query('SELECT 1 FROM {test} WHERE name = :name', [':name' => $name])->fetchField();
     return $this->assertFalse($present, $message);
   }
 

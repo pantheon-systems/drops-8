@@ -23,7 +23,7 @@ class DrupalTest extends UnitTestCase {
   /**
    * The mock container.
    *
-   * @var \Symfony\Component\DependencyInjection\ContainerBuilder|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\DependencyInjection\ContainerBuilder|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $container;
 
@@ -51,7 +51,8 @@ class DrupalTest extends UnitTestCase {
    * @covers ::getContainer
    */
   public function testGetContainerException() {
-    $this->setExpectedException(ContainerNotInitializedException::class, '\Drupal::$container is not initialized yet. \Drupal::setContainer() must be called with a real container.');
+    $this->expectException(ContainerNotInitializedException::class);
+    $this->expectExceptionMessage('\Drupal::$container is not initialized yet. \Drupal::setContainer() must be called with a real container.');
     \Drupal::getContainer();
   }
 
@@ -79,6 +80,8 @@ class DrupalTest extends UnitTestCase {
    * Tests the entityManager() method.
    *
    * @covers ::entityManager
+   * @group legacy
+   * @expectedDeprecation \Drupal::entityManager() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager() instead in most cases. If the needed method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the deprecated \Drupal\Core\Entity\EntityManager to find the correct interface or service. See https://www.drupal.org/node/2549139
    */
   public function testEntityManager() {
     $this->setMockContainerService('entity.manager');
@@ -172,7 +175,7 @@ class DrupalTest extends UnitTestCase {
    * @covers ::config
    */
   public function testConfig() {
-    $config = $this->getMock('Drupal\Core\Config\ConfigFactoryInterface');
+    $config = $this->createMock('Drupal\Core\Config\ConfigFactoryInterface');
     $config->expects($this->once())
       ->method('get')
       ->with('test_config')
@@ -257,15 +260,15 @@ class DrupalTest extends UnitTestCase {
    * @covers ::entityQuery
    */
   public function testEntityQuery() {
-    $query = $this->getMock(QueryInterface::class);
-    $storage = $this->getMock(EntityStorageInterface::class);
+    $query = $this->createMock(QueryInterface::class);
+    $storage = $this->createMock(EntityStorageInterface::class);
     $storage
       ->expects($this->once())
       ->method('getQuery')
       ->with('OR')
       ->willReturn($query);
 
-    $entity_type_manager = $this->getMock(EntityTypeManagerInterface::class);
+    $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $entity_type_manager
       ->expects($this->once())
       ->method('getStorage')
@@ -283,15 +286,15 @@ class DrupalTest extends UnitTestCase {
    * @covers ::entityQueryAggregate
    */
   public function testEntityQueryAggregate() {
-    $query = $this->getMock(QueryAggregateInterface::class);
-    $storage = $this->getMock(EntityStorageInterface::class);
+    $query = $this->createMock(QueryAggregateInterface::class);
+    $storage = $this->createMock(EntityStorageInterface::class);
     $storage
       ->expects($this->once())
       ->method('getAggregateQuery')
       ->with('OR')
       ->willReturn($query);
 
-    $entity_type_manager = $this->getMock(EntityTypeManagerInterface::class);
+    $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $entity_type_manager
       ->expects($this->once())
       ->method('getStorage')
@@ -365,7 +368,7 @@ class DrupalTest extends UnitTestCase {
   public function testUrl() {
     $route_parameters = ['test_parameter' => 'test'];
     $options = ['test_option' => 'test'];
-    $generator = $this->getMock('Drupal\Core\Routing\UrlGeneratorInterface');
+    $generator = $this->createMock('Drupal\Core\Routing\UrlGeneratorInterface');
     $generator->expects($this->once())
       ->method('generateFromRoute')
       ->with('test_route', $route_parameters, $options)
@@ -389,12 +392,17 @@ class DrupalTest extends UnitTestCase {
    * Tests the l() method.
    *
    * @covers ::l
+   *
+   * @group legacy
+   *
+   * @expectedDeprecation \Drupal::l() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Link::fromTextAndUrl() instead. See https://www.drupal.org/node/2614344
+   *
    * @see \Drupal\Core\Utility\LinkGeneratorInterface::generate()
    */
   public function testL() {
     $route_parameters = ['test_parameter' => 'test'];
     $options = ['test_option' => 'test'];
-    $generator = $this->getMock('Drupal\Core\Utility\LinkGeneratorInterface');
+    $generator = $this->createMock('Drupal\Core\Utility\LinkGeneratorInterface');
     $url = new Url('test_route', $route_parameters, $options);
     $generator->expects($this->once())
       ->method('generate')

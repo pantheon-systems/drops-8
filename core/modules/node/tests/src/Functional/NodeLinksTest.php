@@ -19,6 +19,11 @@ class NodeLinksTest extends NodeTestBase {
   public static $modules = ['views'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests that the links can be hidden in the view display settings.
    */
   public function testHideLinks() {
@@ -33,7 +38,8 @@ class NodeLinksTest extends NodeTestBase {
     $this->assertLink('Read more');
 
     // Hide links.
-    entity_get_display('node', 'article', 'teaser')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'article', 'teaser')
       ->removeComponent('links')
       ->save();
 

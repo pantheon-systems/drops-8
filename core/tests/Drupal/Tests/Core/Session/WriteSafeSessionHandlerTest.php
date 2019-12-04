@@ -16,7 +16,7 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
   /**
    * The wrapped session handler.
    *
-   * @var \SessionHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \SessionHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $wrappedSessionHandler;
 
@@ -28,7 +28,7 @@ class WriteSafeSessionHandlerTest extends UnitTestCase {
   protected $sessionHandler;
 
   protected function setUp() {
-    $this->wrappedSessionHandler = $this->getMock('SessionHandlerInterface');
+    $this->wrappedSessionHandler = $this->createMock('SessionHandlerInterface');
     $this->sessionHandler = new WriteSafeSessionHandler($this->wrappedSessionHandler);
   }
 

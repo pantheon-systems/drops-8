@@ -5,34 +5,37 @@
  * Configuration system that lets administrators modify the workings of the site.
  */
 
+use Drupal\Component\FileSecurity\FileSecurity;
 use Drupal\Component\Gettext\PoItem;
-use Drupal\Core\Extension\Dependency;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AttachedAssetsInterface;
+use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Extension\Dependency;
+use Drupal\Core\Extension\Extension;
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
 use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\Queue\QueueGarbageCollectionInterface;
-use Drupal\Core\Database\Query\AlterableInterface;
-use Drupal\Core\Extension\Extension;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\KeyValueStore\KeyValueDatabaseExpirableFactory;
-use Drupal\Core\PageCache\RequestPolicyInterface;
-use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\Core\Routing\StackedRouteMatchInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Menu\MenuTreeParameters;
+use Drupal\Core\PageCache\RequestPolicyInterface;
+use Drupal\Core\Queue\QueueGarbageCollectionInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Routing\StackedRouteMatchInterface;
 use Drupal\Core\Url;
-use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\user\UserInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use GuzzleHttp\Exception\RequestException;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * New users will be set to the default time zone at registration.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::TIMEZONE_DEFAULT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -42,7 +45,7 @@ const DRUPAL_USER_TIMEZONE_DEFAULT = 0;
 /**
  * New users will get an empty time zone at registration.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::TIMEZONE_EMPTY instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -52,7 +55,7 @@ const DRUPAL_USER_TIMEZONE_EMPTY = 1;
 /**
  * New users will select their own timezone at registration.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\user\UserInterface::TIMEZONE_SELECT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -77,7 +80,7 @@ const DRUPAL_REQUIRED = 2;
 /**
  * Return only visible regions.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\block\BlockRepositoryInterface::REGIONS_VISIBLE instead.
  *
  * @see system_region_list()
@@ -88,7 +91,7 @@ const REGIONS_VISIBLE = 'visible';
 /**
  * Return all regions.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\block\BlockRepositoryInterface::REGIONS_ALL instead.
  *
  * @see system_region_list()
@@ -316,7 +319,20 @@ function system_theme_suggestions_html(array $variables) {
  */
 function system_theme_suggestions_page(array $variables) {
   $path_args = explode('/', trim(\Drupal::service('path.current')->getPath(), '/'));
-  return theme_get_suggestions($path_args, 'page');
+  $suggestions = theme_get_suggestions($path_args, 'page');
+
+  $http_error_suggestions = [
+    'system.401' => 'page__401',
+    'system.403' => 'page__403',
+    'system.404' => 'page__404',
+  ];
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if (isset($http_error_suggestions[$route_name])) {
+    $suggestions[] = 'page__4xx';
+    $suggestions[] = $http_error_suggestions[$route_name];
+  }
+
+  return $suggestions;
 }
 
 /**
@@ -935,11 +951,11 @@ function system_check_directory($form_element, FormStateInterface $form_state) {
   elseif (is_dir($directory)) {
     if ($form_element['#name'] == 'file_public_path') {
       // Create public .htaccess file.
-      file_save_htaccess($directory, FALSE);
+      FileSecurity::writeHtaccess($directory, FALSE);
     }
     else {
       // Create private .htaccess file.
-      file_save_htaccess($directory);
+      FileSecurity::writeHtaccess($directory);
     }
   }
 
@@ -965,10 +981,16 @@ function system_check_directory($form_element, FormStateInterface $form_state) {
  *   information for $name, if given. If no records are available, an empty
  *   array is returned.
  *
- * @see system_rebuild_module_data()
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::service('extension.list.$type')->getExtensionInfo() or
+ *   \Drupal::service('extension.list.$type')->getAllInstalledInfo() instead.
+ *
+ * @see https://www.drupal.org/node/2709919
+ * @see \Drupal\Core\Extension\ModuleExtensionList::getList()
  * @see \Drupal\Core\Extension\ThemeExtensionList
  */
 function system_get_info($type, $name = NULL) {
+  @trigger_error("system_get_info() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal::service('extension.list.$type')->getExtensionInfo() or \Drupal::service('extension.list.$type')->getAllInstalledInfo() instead. See https://www.drupal.org/node/2709919", E_USER_DEPRECATED);
   /** @var \Drupal\Core\Extension\ExtensionList $extension_list */
   $extension_list = \Drupal::service('extension.list.' . $type);
   if (isset($name)) {
@@ -990,7 +1012,7 @@ function system_get_info($type, $name = NULL) {
  * @param \Drupal\Core\Extension\Extension[] $modules
  *   The array of all module info.
  *
- * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. This
+ * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. This
  *   function is no longer used in Drupal core.
  *
  * @see https://www.drupal.org/node/2709919
@@ -1016,7 +1038,7 @@ function _system_rebuild_module_data_ensure_required($module, &$modules) {
  * @return \Drupal\Core\Extension\Extension[]
  *   An associative array of module information.
  *
- * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0.
  *   Use \Drupal::service('extension.list.module')->reset()->getList()
  *   instead. Note: You probably don't need the reset() method.
  *
@@ -1032,8 +1054,15 @@ function _system_rebuild_module_data() {
  *
  * @return \Drupal\Core\Extension\Extension[]
  *   Array of all available modules and their data.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal::service('extension.list.module')->getList() instead.
+ *   Note: use reset() only when you really need to rescan and rebuild the list.
+ *
+ * @see https://www.drupal.org/node/2709919
  */
 function system_rebuild_module_data() {
+  @trigger_error('system_rebuild_module_data() is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. Instead, you should use \Drupal::service("extension.list.module")->getList(). See https://www.drupal.org/node/2709919', E_USER_DEPRECATED);
   return \Drupal::service('extension.list.module')->reset()->getList();
 }
 
@@ -1147,7 +1176,8 @@ function system_admin_compact_mode() {
  * @param string $module
  *   Module name.
  * @param array $info
- *   The module's information, as provided by system_get_info().
+ *   The module's information, as provided by
+ *   \Drupal::service('extension.list.module')->getExtensionInfo().
  *
  * @return array
  *   An array of task links.
@@ -1213,7 +1243,8 @@ function system_get_module_admin_tasks($module, array $info) {
 /**
  * Implements hook_cron().
  *
- * Remove older rows from flood, batch cache and expirable keyvalue tables.
+ * Remove older rows from flood, batch cache and expirable keyvalue tables. Also
+ * ensure files directories have .htaccess files.
  */
 function system_cron() {
   // Clean up the flood.
@@ -1239,6 +1270,10 @@ function system_cron() {
       $queue->garbageCollection();
     }
   }
+
+  // Ensure that all of Drupal's standard directories (e.g., the public files
+  // directory and config directory) have appropriate .htaccess files.
+  \Drupal::service('file.htaccess_writer')->ensure();
 }
 
 /**
@@ -1321,10 +1356,10 @@ function system_time_zones($blank = NULL, $grouped = FALSE) {
  *   registered in the database.
  * @param int $replace
  *   Replace behavior when the destination file already exists:
- *   - FILE_EXISTS_REPLACE: Replace the existing file.
- *   - FILE_EXISTS_RENAME: Append _{incrementing number} until the filename is
- *     unique.
- *   - FILE_EXISTS_ERROR: Do nothing and return FALSE.
+ *   - FileSystemInterface::EXISTS_REPLACE: Replace the existing file.
+ *   - FileSystemInterface::EXISTS_RENAME: Append _{incrementing number} until
+ *     the filename is unique.
+ *   - FileSystemInterface::EXISTS_ERROR: Do nothing and return FALSE.
  *
  * @return mixed
  *   One of these possibilities:
@@ -1396,29 +1431,6 @@ function system_block_view_system_main_block_alter(array &$build, BlockPluginInt
 }
 
 /**
- * Implements hook_path_update().
- */
-function system_path_update($path) {
-  $alias_manager = \Drupal::service('path.alias_manager');
-  $alias_manager->cacheClear($path['source']);
-  $alias_manager->cacheClear($path['original']['source']);
-}
-
-/**
- * Implements hook_path_insert().
- */
-function system_path_insert($path) {
-  \Drupal::service('path.alias_manager')->cacheClear($path['source']);
-}
-
-/**
- * Implements hook_path_delete().
- */
-function system_path_delete($path) {
-  \Drupal::service('path.alias_manager')->cacheClear($path['source']);
-}
-
-/**
  * Implements hook_query_TAG_alter() for entity reference selection handlers.
  */
 function system_query_entity_reference_alter(AlterableInterface $query) {
@@ -1432,5 +1444,56 @@ function system_query_entity_reference_alter(AlterableInterface $query) {
 function system_element_info_alter(&$type) {
   if (isset($type['page'])) {
     $type['page']['#theme_wrappers']['off_canvas_page_wrapper'] = ['#weight' => -1000];
+  }
+}
+
+/**
+ * Implements hook_modules_uninstalled().
+ */
+function system_modules_uninstalled($modules) {
+  // @todo Remove this when modules are able to maintain their revision metadata
+  //   keys.
+  //   @see https://www.drupal.org/project/drupal/issues/3074333
+  if (!in_array('workspaces', $modules, TRUE)) {
+    return;
+  }
+
+  $entity_definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  foreach ($entity_definition_update_manager->getEntityTypes() as $entity_type) {
+    $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
+    if ($revision_metadata_keys && array_key_exists('workspace', $revision_metadata_keys)) {
+      unset($revision_metadata_keys['workspace']);
+      $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+      $entity_definition_update_manager->updateEntityType($entity_type);
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave() for entity_form_display entities.
+ *
+ * Provides a BC layer for modules providing old configurations.
+ *
+ * @todo Remove this hook in Drupal 9.0.x https://www.drupal.org/project/drupal/issues/3086388
+ */
+function system_entity_form_display_presave(EntityFormDisplayInterface $display) {
+  /** @var \Drupal\Core\Field\WidgetPluginManager $field_widget_manager */
+  $field_widget_manager = \Drupal::service('plugin.manager.field.widget');
+
+  foreach ($display->getComponents() as $field_name => $component) {
+    if (empty($component['type'])) {
+      continue;
+    }
+
+    $plugin_definition = $field_widget_manager->getDefinition($component['type'], FALSE);
+    if (!is_a($plugin_definition['class'], EntityReferenceAutocompleteWidget::class, TRUE)) {
+      continue;
+    }
+
+    if (!isset($component['settings']['match_limit'])) {
+      @trigger_error(sprintf('Any entity_reference_autocomplete component of an entity_form_display must have a match_limit setting. The %s field on the %s form display is missing it. This BC layer will be removed before 9.0.0. See https://www.drupal.org/node/2863188', $field_name, $display->id()), E_USER_DEPRECATED);
+      $component['settings']['match_limit'] = 10;
+      $display->setComponent($field_name, $component);
+    }
   }
 }

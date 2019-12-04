@@ -21,6 +21,11 @@ class RssTest extends TaxonomyTestBase {
   public static $modules = ['node', 'field_ui', 'views'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Vocabulary for testing.
    *
    * @var \Drupal\taxonomy\VocabularyInterface
@@ -49,12 +54,15 @@ class RssTest extends TaxonomyTestBase {
     ];
     $this->createEntityReferenceField('node', 'article', $this->fieldName, NULL, 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
-    entity_get_form_display('node', 'article', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $display_repository->getFormDisplay('node', 'article')
       ->setComponent($this->fieldName, [
         'type' => 'options_select',
       ])
       ->save();
-    entity_get_display('node', 'article', 'default')
+    $display_repository->getViewDisplay('node', 'article')
       ->setComponent($this->fieldName, [
         'type' => 'entity_reference_label',
       ])

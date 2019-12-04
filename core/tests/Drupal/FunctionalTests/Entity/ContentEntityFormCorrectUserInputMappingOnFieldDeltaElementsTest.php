@@ -36,6 +36,11 @@ class ContentEntityFormCorrectUserInputMappingOnFieldDeltaElementsTest extends B
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $web_user = $this->drupalCreateUser(['administer entity_test content']);
@@ -62,7 +67,8 @@ class ContentEntityFormCorrectUserInputMappingOnFieldDeltaElementsTest extends B
     ])
       ->save();
 
-    entity_get_form_display($this->entityTypeId, $this->entityTypeId, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay($this->entityTypeId, $this->entityTypeId)
       ->setComponent($this->fieldName, ['type' => 'shape_only_color_editable_widget'])
       ->save();
   }

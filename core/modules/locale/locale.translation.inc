@@ -5,6 +5,8 @@
  * Common API for interface translation.
  */
 
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
+
 /**
  * Comparison result of source files timestamps.
  *
@@ -173,11 +175,13 @@ function locale_translation_source_check_file($source) {
     $directory = $source_file->directory;
     $filename = '/' . preg_quote($source_file->filename) . '$/';
 
-    if ($files = file_scan_directory($directory, $filename, ['key' => 'name', 'recurse' => FALSE])) {
-      $file = current($files);
-      $source_file->uri = $file->uri;
-      $source_file->timestamp = filemtime($file->uri);
-      return $source_file;
+    if (is_dir($directory)) {
+      if ($files = \Drupal::service('file_system')->scanDirectory($directory, $filename, ['key' => 'name', 'recurse' => FALSE])) {
+        $file = current($files);
+        $source_file->uri = $file->uri;
+        $source_file->timestamp = filemtime($file->uri);
+        return $source_file;
+      }
     }
   }
   return FALSE;
@@ -376,7 +380,7 @@ function locale_cron_fill_queue() {
  *   TRUE if the $uri is a remote file.
  */
 function _locale_translation_file_is_remote($uri) {
-  $scheme = file_uri_scheme($uri);
+  $scheme = StreamWrapperManager::getScheme($uri);
   if ($scheme) {
     return !\Drupal::service('file_system')->realpath($scheme . '://');
   }

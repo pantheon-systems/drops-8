@@ -174,8 +174,8 @@ function hook_node_access_records(\Drupal\node\NodeInterface $node) {
     }
     // For the example_author array, the GID is equivalent to a UID, which
     // means there are many groups of just 1 user.
-    // Note that an author can always view his or her nodes, even if they
-    // have status unpublished.
+    // Note that an author can always view nodes they own, even if they have
+    // status unpublished.
     if ($node->getOwnerId()) {
       $grants[] = [
         'realm' => 'example_author',
@@ -380,7 +380,7 @@ function hook_node_access(\Drupal\node\NodeInterface $node, $op, \Drupal\Core\Se
  * @ingroup entity_crud
  */
 function hook_node_search_result(\Drupal\node\NodeInterface $node) {
-  $rating = db_query('SELECT SUM(points) FROM {my_rating} WHERE nid = :nid', ['nid' => $node->id()])->fetchField();
+  $rating = \Drupal::database()->query('SELECT SUM(points) FROM {my_rating} WHERE nid = :nid', ['nid' => $node->id()])->fetchField();
   return ['rating' => \Drupal::translation()->formatPlural($rating, '1 point', '@count points')];
 }
 
@@ -400,7 +400,7 @@ function hook_node_search_result(\Drupal\node\NodeInterface $node) {
  */
 function hook_node_update_index(\Drupal\node\NodeInterface $node) {
   $text = '';
-  $ratings = db_query('SELECT title, description FROM {my_ratings} WHERE nid = :nid', [':nid' => $node->id()]);
+  $ratings = \Drupal::database()->query('SELECT title, description FROM {my_ratings} WHERE nid = :nid', [':nid' => $node->id()]);
   foreach ($ratings as $rating) {
     $text .= '<h2>' . Html::escape($rating->title) . '</h2>' . Xss::filter($rating->description);
   }

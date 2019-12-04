@@ -14,12 +14,17 @@ use Drupal\views\Views;
 class NodeRevisionWizardTest extends WizardTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests creating a node revision view.
    */
   public function testViewAdd() {
     $this->drupalCreateContentType(['type' => 'article']);
     // Create two nodes with two revision.
-    $node_storage = \Drupal::entityManager()->getStorage('node');
+    $node_storage = \Drupal::entityTypeManager()->getStorage('node');
     /** @var \Drupal\node\NodeInterface $node */
     $node = $node_storage->create(['title' => $this->randomString(), 'type' => 'article', 'changed' => REQUEST_TIME + 40]);
     $node->save();
@@ -68,7 +73,7 @@ class NodeRevisionWizardTest extends WizardTestBase {
     // Check for the default filters.
     $this->assertEqual($view->filter['status']->table, 'node_field_revision');
     $this->assertEqual($view->filter['status']->field, 'status');
-    $this->assertTrue($view->filter['status']->value);
+    $this->assertEquals('1', $view->filter['status']->value);
     $this->assertEquals('node_field_data', $view->filter['type']->table);
 
     $this->executeView($view);
@@ -102,8 +107,8 @@ class NodeRevisionWizardTest extends WizardTestBase {
     // Check for the default filters.
     $this->assertEqual($view->filter['status']->table, 'node_field_revision');
     $this->assertEqual($view->filter['status']->field, 'status');
-    $this->assertTrue($view->filter['status']->value);
-    $this->assertTrue(empty($view->filter['type']));
+    $this->assertEquals('1', $view->filter['status']->value);
+    $this->assertArrayNotHasKey('type', $view->filter);
 
     $this->executeView($view);
 

@@ -17,6 +17,11 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
   public static $modules = ['taxonomy'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Vocabulary for testing.
    *
    * @var \Drupal\taxonomy\VocabularyInterface
@@ -40,7 +45,7 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
     $term3 = $this->createTerm($this->vocabulary);
 
     // Get the taxonomy storage.
-    $taxonomy_storage = $this->container->get('entity.manager')->getStorage('taxonomy_term');
+    $taxonomy_storage = $this->container->get('entity_type.manager')->getStorage('taxonomy_term');
 
     // Indent the second term under the first one.
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->get('vid') . '/overview');
@@ -87,7 +92,7 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
     $this->assertSession()->responseNotMatches('|<div class="js-indentation indentation">&nbsp;</div>|');
 
     // Check explicitly that term 2 has no parents.
-    \Drupal::entityManager()->getStorage('taxonomy_term')->resetCache();
+    \Drupal::entityTypeManager()->getStorage('taxonomy_term')->resetCache();
     $parents = $taxonomy_storage->loadParents($term2->id());
     $this->assertTrue(empty($parents), 'Term 2 has no parents now');
   }

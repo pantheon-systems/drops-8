@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\tracker\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\CommentInterface;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Cache\Cache;
@@ -29,6 +30,11 @@ class TrackerTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['block', 'comment', 'tracker', 'history', 'node_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * The main user for testing.
@@ -388,7 +394,7 @@ class TrackerTest extends BrowserTestBase {
 
     // Assert that all node titles are displayed.
     foreach ($nodes as $i => $node) {
-      $this->assertText($node->label(), format_string('Node @i is displayed on the tracker listing pages.', ['@i' => $i]));
+      $this->assertText($node->label(), new FormattableMarkup('Node @i is displayed on the tracker listing pages.', ['@i' => $i]));
     }
 
     // Fetch the site-wide tracker.
@@ -396,7 +402,7 @@ class TrackerTest extends BrowserTestBase {
 
     // Assert that all node titles are displayed.
     foreach ($nodes as $i => $node) {
-      $this->assertText($node->label(), format_string('Node @i is displayed on the tracker listing pages.', ['@i' => $i]));
+      $this->assertText($node->label(), new FormattableMarkup('Node @i is displayed on the tracker listing pages.', ['@i' => $i]));
     }
   }
 

@@ -19,20 +19,18 @@ class WorkspaceAccessControlHandler extends EntityAccessControlHandler {
    */
   protected function checkAccess(EntityInterface $entity, $operation, AccountInterface $account) {
     /** @var \Drupal\workspaces\WorkspaceInterface $entity */
-    if ($operation === 'delete' && $entity->isDefaultWorkspace()) {
-      return AccessResult::forbidden()->addCacheableDependency($entity);
+    if ($operation === 'publish' && $entity->hasParent()) {
+      $message = $this->t('Only top-level workspaces can be published.');
+      return AccessResult::forbidden((string) $message)->addCacheableDependency($entity);
     }
 
     if ($account->hasPermission('administer workspaces')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // The default workspace is always viewable, no matter what.
-    if ($operation == 'view' && $entity->isDefaultWorkspace()) {
-      return AccessResult::allowed()->addCacheableDependency($entity);
-    }
-
-    $permission_operation = $operation === 'update' ? 'edit' : $operation;
+    // @todo Consider adding explicit "publish any|own workspace" permissions in
+    //   https://www.drupal.org/project/drupal/issues/3084260.
+    $permission_operation = ($operation === 'update' || $operation === 'publish') ? 'edit' : $operation;
 
     // Check if the user has permission to access all workspaces.
     $access_result = AccessResult::allowedIfHasPermission($account, $permission_operation . ' any workspace');

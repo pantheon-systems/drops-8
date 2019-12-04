@@ -17,21 +17,21 @@ class ResponsiveImageStyleConfigEntityUnitTest extends UnitTestCase {
   /**
    * The entity type used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityType;
 
   /**
    * The entity type manager used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The breakpoint manager used for testing.
    *
-   * @var \Drupal\breakpoint\BreakpointManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\breakpoint\BreakpointManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $breakpointManager;
 
@@ -39,18 +39,18 @@ class ResponsiveImageStyleConfigEntityUnitTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
+    $this->entityType = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue('responsive_image'));
 
-    $this->entityTypeManager = $this->getMock(EntityTypeManagerInterface::class);
+    $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
     $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with('responsive_image_style')
       ->will($this->returnValue($this->entityType));
 
-    $this->breakpointManager = $this->getMock('\Drupal\breakpoint\BreakpointManagerInterface');
+    $this->breakpointManager = $this->createMock('\Drupal\breakpoint\BreakpointManagerInterface');
 
     $container = new ContainerBuilder();
     $container->set('entity_type.manager', $this->entityTypeManager);
@@ -65,13 +65,13 @@ class ResponsiveImageStyleConfigEntityUnitTest extends UnitTestCase {
     // Set up image style loading mock.
     $styles = [];
     foreach (['fallback', 'small', 'medium', 'large'] as $style) {
-      $mock = $this->getMock('Drupal\Core\Config\Entity\ConfigEntityInterface');
+      $mock = $this->createMock('Drupal\Core\Config\Entity\ConfigEntityInterface');
       $mock->expects($this->any())
         ->method('getConfigDependencyName')
         ->willReturn('image.style.' . $style);
       $styles[$style] = $mock;
     }
-    $storage = $this->getMock('\Drupal\Core\Config\Entity\ConfigEntityStorageInterface');
+    $storage = $this->createMock('\Drupal\Core\Config\Entity\ConfigEntityStorageInterface');
     $storage->expects($this->any())
       ->method('loadMultiple')
       ->with(array_keys($styles))

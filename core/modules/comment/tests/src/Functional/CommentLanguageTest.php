@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\comment\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\Entity\Comment;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\comment\Tests\CommentTestTrait;
@@ -27,6 +28,11 @@ class CommentLanguageTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['node', 'language', 'language_test', 'comment_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   protected function setUp() {
     parent::setUp();
@@ -97,7 +103,7 @@ class CommentLanguageTest extends BrowserTestBase {
       $this->drupalPostForm("node/add/article", $edit, t('Save'));
       $node = $this->drupalGetNodeByTitle($title);
 
-      $prefixes = language_negotiation_url_prefixes();
+      $prefixes = $this->config('language.negotiation')->get('url.prefixes');
       foreach ($this->container->get('language_manager')->getLanguages() as $langcode => $language) {
         // Post a comment with content language $langcode.
         $prefix = empty($prefixes[$langcode]) ? '' : $prefixes[$langcode] . '/';
@@ -119,7 +125,7 @@ class CommentLanguageTest extends BrowserTestBase {
           ->execute();
         $comment = Comment::load(reset($cids));
         $args = ['%node_language' => $node_langcode, '%comment_language' => $comment->langcode->value, '%langcode' => $langcode];
-        $this->assertEqual($comment->langcode->value, $langcode, format_string('The comment posted with content language %langcode and belonging to the node with language %node_language has language %comment_language', $args));
+        $this->assertEqual($comment->langcode->value, $langcode, new FormattableMarkup('The comment posted with content language %langcode and belonging to the node with language %node_language has language %comment_language', $args));
         $this->assertEqual($comment->comment_body->value, $comment_values[$node_langcode][$langcode], 'Comment body correctly stored.');
       }
     }

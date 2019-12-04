@@ -20,42 +20,42 @@ class TokenTest extends UnitTestCase {
   /**
    * The cache used for testing.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cache;
 
   /**
    * The language manager used for testing.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
   /**
    * The module handler service used for testing.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The language interface used for testing.
    *
-   * @var \Drupal\Core\Language\LanguageInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $language;
 
   /**
    * The token service under test.
    *
-   * @var \Drupal\Core\Utility\Token|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Utility\Token|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $token;
 
   /**
    * The cache tags invalidator.
    *
-   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheTagsInvalidator;
 
@@ -69,7 +69,7 @@ class TokenTest extends UnitTestCase {
   /**
    * The renderer.
    *
-   * @var \Drupal\Core\Render\RendererInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Render\RendererInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $renderer;
 
@@ -77,17 +77,17 @@ class TokenTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->cache = $this->getMock('\Drupal\Core\Cache\CacheBackendInterface');
+    $this->cache = $this->createMock('\Drupal\Core\Cache\CacheBackendInterface');
 
-    $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
 
-    $this->moduleHandler = $this->getMock('\Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->moduleHandler = $this->createMock('\Drupal\Core\Extension\ModuleHandlerInterface');
 
-    $this->language = $this->getMock('\Drupal\Core\Language\LanguageInterface');
+    $this->language = $this->createMock('\Drupal\Core\Language\LanguageInterface');
 
-    $this->cacheTagsInvalidator = $this->getMock('\Drupal\Core\Cache\CacheTagsInvalidatorInterface');
+    $this->cacheTagsInvalidator = $this->createMock('\Drupal\Core\Cache\CacheTagsInvalidatorInterface');
 
-    $this->renderer = $this->getMock('Drupal\Core\Render\RendererInterface');
+    $this->renderer = $this->createMock('Drupal\Core\Render\RendererInterface');
 
     $this->token = new Token($this->moduleHandler, $this->cache, $this->languageManager, $this->cacheTagsInvalidator, $this->renderer);
 

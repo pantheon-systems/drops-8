@@ -31,7 +31,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * @coversDefaultClass \Drupal\jsonapi\Normalizer\JsonApiDocumentTopLevelNormalizer
  * @group jsonapi
- * @group legacy
  *
  * @internal
  */
@@ -231,7 +230,7 @@ class JsonApiDocumentTopLevelNormalizerTest extends JsonapiKernelTestBase {
               'field_image',
             ],
             'user--user' => [
-              'name',
+              'display_name',
             ],
           ],
           'include' => [
@@ -255,8 +254,8 @@ class JsonApiDocumentTopLevelNormalizerTest extends JsonapiKernelTestBase {
         'id' => NodeType::load('article')->uuid(),
       ],
       'links' => [
-        'self' => ['href' => Url::fromUri('internal:/jsonapi/node/article/' . $this->node->uuid() . '/relationships/node_type', ['query' => ['resourceVersion' => 'id:' . $this->node->getRevisionId()]])->setAbsolute()->toString(TRUE)->getGeneratedUrl()],
         'related' => ['href' => Url::fromUri('internal:/jsonapi/node/article/' . $this->node->uuid() . '/node_type', ['query' => ['resourceVersion' => 'id:' . $this->node->getRevisionId()]])->setAbsolute()->toString(TRUE)->getGeneratedUrl()],
+        'self' => ['href' => Url::fromUri('internal:/jsonapi/node/article/' . $this->node->uuid() . '/relationships/node_type', ['query' => ['resourceVersion' => 'id:' . $this->node->getRevisionId()]])->setAbsolute()->toString(TRUE)->getGeneratedUrl()],
       ],
     ], $normalized['data']['relationships']['node_type']);
     $this->assertTrue(!isset($normalized['data']['attributes']['created']));
@@ -280,7 +279,7 @@ class JsonApiDocumentTopLevelNormalizerTest extends JsonapiKernelTestBase {
     $this->assertTrue(empty($normalized['meta']['omitted']));
     $this->assertSame($this->user->uuid(), $normalized['included'][0]['id']);
     $this->assertSame('user--user', $normalized['included'][0]['type']);
-    $this->assertSame('user1', $normalized['included'][0]['attributes']['name']);
+    $this->assertSame('user1', $normalized['included'][0]['attributes']['display_name']);
     $this->assertCount(1, $normalized['included'][0]['attributes']);
     $this->assertSame($this->term1->uuid(), $normalized['included'][1]['id']);
     $this->assertSame('taxonomy_term--tags', $normalized['included'][1]['type']);

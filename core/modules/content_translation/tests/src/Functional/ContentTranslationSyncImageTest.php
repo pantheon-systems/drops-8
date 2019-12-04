@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\content_translation\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -18,6 +19,11 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
   use TestFileCreationTrait {
     getTestFiles as drupalGetTestFiles;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * The cardinality of the image field.
@@ -111,7 +117,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
     ];
     $this->drupalPostForm('admin/config/regional/content-language', $edit, t('Save configuration'));
     $errors = $this->xpath('//div[contains(@class, "messages--error")]');
-    $this->assertFalse($errors, 'Settings correctly stored.');
+    $this->assertEmpty($errors, 'Settings correctly stored.');
     $this->assertFieldChecked('edit-settings-entity-test-mul-entity-test-mul-columns-field-test-et-ui-image-alt');
     $this->assertFieldChecked('edit-settings-entity-test-mul-entity-test-mul-columns-field-test-et-ui-image-title');
     $this->drupalLogin($this->translator);
@@ -125,7 +131,9 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       'user_id' => mt_rand(1, 128),
       'langcode' => $default_langcode,
     ];
-    $entity = entity_create($this->entityTypeId, $values);
+    $entity = \Drupal::entityTypeManager()
+      ->getStorage($this->entityTypeId)
+      ->create($values);
 
     // Create some file entities from the generated test files and store them.
     $values = [];
@@ -201,13 +209,13 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       $value = $values[$default_langcode][$item->target_id];
       $source_item = $translation->{$this->fieldName}->get($delta);
       $assert = $item->target_id == $source_item->target_id && $item->alt == $value['alt'] && $item->title == $value['title'];
-      $this->assertTrue($assert, format_string('Field item @fid has been successfully synchronized.', ['@fid' => $item->target_id]));
+      $this->assertTrue($assert, new FormattableMarkup('Field item @fid has been successfully synchronized.', ['@fid' => $item->target_id]));
       $fids[$item->target_id] = TRUE;
     }
 
     // Check that the dropped value is the right one.
     $removed_fid = $this->files[0]->fid;
-    $this->assertTrue(!isset($fids[$removed_fid]), format_string('Field item @fid has been correctly removed.', ['@fid' => $removed_fid]));
+    $this->assertTrue(!isset($fids[$removed_fid]), new FormattableMarkup('Field item @fid has been correctly removed.', ['@fid' => $removed_fid]));
 
     // Add back an item for the dropped value and perform synchronization again.
     $values[$langcode][$removed_fid] = [
@@ -231,7 +239,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
       $value = $values[$fid_langcode][$item->target_id];
       $source_item = $translation->{$this->fieldName}->get($delta);
       $assert = $item->target_id == $source_item->target_id && $item->alt == $value['alt'] && $item->title == $value['title'];
-      $this->assertTrue($assert, format_string('Field item @fid has been successfully synchronized.', ['@fid' => $item->target_id]));
+      $this->assertTrue($assert, new FormattableMarkup('Field item @fid has been successfully synchronized.', ['@fid' => $item->target_id]));
     }
   }
 

@@ -4,7 +4,8 @@
  * To re-create this build:
  * 1. Clone the development repo of CKEditor to your machine
  * 2. Check out the version you'd like to build
- * 3. Run ./dev/builder/build.sh -s /path/to/build-config.js
+ * 3. Copy PATH/TO/DRUPAL/core/assets/vendor/ckeditor/build-config.js ./dev/builder/
+ * 4. Run ./dev/builder/build.sh -s
  *
  * Then, replace this directory (core/assets/vendor/ckeditor) with your build.
  *
@@ -78,6 +79,7 @@ var CKBUILDER_CONFIG = {
 		list: 1,
 		magicline: 1,
 		maximize: 1,
+    pastefromgdocs: 1,
 		pastefromword: 1,
 		pastetext: 1,
 		removeformat: 1,

@@ -6,23 +6,22 @@
  */
 
 use Drupal\Component\FileSystem\FileSystem;
+use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Timer;
-use Drupal\Component\Uuid\Php;
 use Drupal\Core\Composer\Composer;
-use Drupal\Core\Asset\AttachedAssets;
 use Drupal\Core\Database\Database;
 use Drupal\Core\File\Exception\FileException;
-use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\Test\EnvironmentCleaner;
+use Drupal\Core\Test\PhpUnitTestRunner;
 use Drupal\Core\Test\RunTests\TestFileParser;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Test\TestRunnerKernel;
-use Drupal\simpletest\Form\SimpletestResultsForm;
-use Drupal\simpletest\TestBase;
-use Drupal\simpletest\TestDiscovery;
+use Drupal\Core\Test\TestDiscovery;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Runner\Version;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Filesystem\Filesystem as SymfonyFilesystem;
 use Symfony\Component\HttpFoundation\Request;
 
 // Define some colors for display.
@@ -67,6 +66,8 @@ if ($args['list']) {
   echo "\nAvailable test groups & classes\n";
   echo "-------------------------------\n\n";
   try {
+    // @todo Use \Drupal\Core\Test\TestDiscovery when we no longer need BC for
+    //   hook_simpletest_alter().
     $groups = \Drupal::service('test_discovery')->getTestClasses($args['module']);
   }
   catch (Exception $e) {
@@ -97,6 +98,8 @@ if ($args['list-files'] || $args['list-files-json']) {
   // List all files which could be run as tests.
   $test_discovery = NULL;
   try {
+    // @todo Use \Drupal\Core\Test\TestDiscovery when we no longer need BC for
+    //   hook_simpletest_alter().
     $test_discovery = \Drupal::service('test_discovery');
   }
   catch (Exception $e) {
@@ -125,8 +128,15 @@ simpletest_script_setup_database(TRUE);
 
 if ($args['clean']) {
   // Clean up left-over tables and directories.
+  $cleaner = new EnvironmentCleaner(
+    DRUPAL_ROOT,
+    Database::getConnection(),
+    TestDatabase::getConnection(),
+    new ConsoleOutput(),
+    \Drupal::service('file_system')
+  );
   try {
-    simpletest_clean_environment();
+    $cleaner->cleanEnvironment();
   }
   catch (Exception $e) {
     echo (string) $e;
@@ -142,22 +152,15 @@ if ($args['clean']) {
   exit(SIMPLETEST_SCRIPT_EXIT_SUCCESS);
 }
 
-// Ensure we have the correct PHPUnit version for the version of PHP.
-if (class_exists('\PHPUnit_Runner_Version')) {
-  $phpunit_version = \PHPUnit_Runner_Version::id();
-}
-else {
-  $phpunit_version = Version::id();
-}
-if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
-  simpletest_script_print_error("PHPUnit testing framework version 6 or greater is required when running on PHP 7.0 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
+if (!Composer::upgradePHPUnitCheck(Version::id())) {
+  simpletest_script_print_error("PHPUnit testing framework version 7 or greater is required when running on PHP 7.3 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.");
   exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
 }
 
 $test_list = simpletest_script_get_test_list();
 
 // Try to allocate unlimited time to run the tests.
-drupal_set_time_limit(0);
+Environment::setTimeLimit(0);
 simpletest_script_reporter_init();
 
 $tests_to_run = [];
@@ -192,7 +195,14 @@ if ($args['xml']) {
 // Clean up all test results.
 if (!$args['keep-results']) {
   try {
-    simpletest_clean_results_table();
+    $cleaner = new EnvironmentCleaner(
+      DRUPAL_ROOT,
+      Database::getConnection(),
+      TestDatabase::getConnection(),
+      new ConsoleOutput(),
+      \Drupal::service('file_system')
+    );
+    $cleaner->cleanResultsTable();
   }
   catch (Exception $e) {
     echo (string) $e;
@@ -311,7 +321,7 @@ All arguments are long options.
               test database and configuration directories. Use in combination
               with --repeat for debugging random test failures.
 
-  --browser   Opens the results in the browser. This enforces --keep-results and
+  --browser   Deprecated, use --verbose instead. This enforces --keep-results and
               if you want to also view any pages rendered in the simpletest
               browser you need to add --verbose to the command line.
 
@@ -444,6 +454,7 @@ function simpletest_script_parse_args() {
   }
 
   if ($args['browser']) {
+    simpletest_script_print_error('The --browser option is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use --verbose instead. See https://www.drupal.org/node/3083549');
     $args['keep-results'] = TRUE;
   }
   return [$args, $count];
@@ -482,11 +493,9 @@ function simpletest_script_init() {
 
   // Detect if we're in the top-level process using the private 'execute-test'
   // argument. Determine if being run on drupal.org's testing infrastructure
-  // using the presence of 'drupaltestbot' in the database url.
+  // using the presence of 'drupalci' in the sqlite argument.
   // @todo https://www.drupal.org/project/drupalci_testbot/issues/2860941 Use
   //   better environment variable to detect DrupalCI.
-  // @todo https://www.drupal.org/project/drupal/issues/2942473 Remove when
-  //   dropping PHPUnit 4 and PHP 5 support.
   if (!$args['execute-test'] && preg_match('/drupalci/', $args['sqlite'])) {
     // Update PHPUnit if needed and possible. There is a later check once the
     // autoloader is in place to ensure we're on the correct version. We need to
@@ -498,6 +507,8 @@ function simpletest_script_init() {
   }
 
   $autoloader = require_once __DIR__ . '/../../autoload.php';
+  // The PHPUnit compatibility layer needs to be available to autoload tests.
+  $autoloader->add('Drupal\\TestTools', __DIR__ . '/../tests');
 
   // Get URL from arguments.
   if (!empty($args['url'])) {
@@ -562,7 +573,8 @@ function simpletest_script_init() {
   try {
     $request = Request::createFromGlobals();
     $kernel = TestRunnerKernel::createFromRequest($request, $autoloader);
-    $kernel->prepareLegacyRequest($request);
+    $kernel->boot();
+    $kernel->preHandle($request);
   }
   catch (Exception $e) {
     echo (string) $e;
@@ -673,8 +685,7 @@ function simpletest_script_setup_database($new = FALSE) {
     exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
   }
   if ($new && $sqlite) {
-    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'simpletest') . '/simpletest.install';
-    foreach (simpletest_schema() as $name => $table_spec) {
+    foreach (TestDatabase::testingSchema() as $name => $table_spec) {
       try {
         $table_exists = $schema->tableExists($name);
         if (empty($args['keep-results-table']) && $table_exists) {
@@ -770,14 +781,14 @@ function simpletest_script_execute_batch($test_classes) {
           // @see https://www.drupal.org/node/2780087
           $total_status = max(SIMPLETEST_SCRIPT_EXIT_FAILURE, $total_status);
           // Insert a fail for xml results.
-          TestBase::insertAssert($child['test_id'], $child['class'], FALSE, $message, 'run-tests.sh check');
+          TestDatabase::insertAssert($child['test_id'], $child['class'], FALSE, $message, 'run-tests.sh check');
           // Ensure that an error line is displayed for the class.
           simpletest_script_reporter_display_summary(
             $child['class'],
             ['#pass' => 0, '#fail' => 1, '#exception' => 0, '#debug' => 0]
           );
           if ($args['die-on-fail']) {
-            list($db_prefix) = simpletest_last_test_get($child['test_id']);
+            $db_prefix = TestDatabase::lastTestGet($child['test_id'])['last_prefix'];
             $test_db = new TestDatabase($db_prefix);
             $test_directory = $test_db->getTestSitePath();
             echo 'Simpletest database and files kept and test exited immediately on fail so should be reproducible if you change settings.php to use the database prefix ' . $db_prefix . ' and config directories in ' . $test_directory . "\n";
@@ -808,12 +819,11 @@ function simpletest_script_run_phpunit($test_id, $class) {
     set_time_limit($reflection->getStaticPropertyValue('runLimit'));
   }
 
-  $results = simpletest_run_phpunit_tests($test_id, [$class], $status);
-  simpletest_process_phpunit_results($results);
+  $runner = PhpUnitTestRunner::create(\Drupal::getContainer());
+  $results = $runner->runTests($test_id, [$class], $status);
+  TestDatabase::processPhpUnitResults($results);
 
-  // Map phpunit results to a data structure we can pass to
-  // _simpletest_format_summary_line.
-  $summaries = simpletest_summarize_phpunit_result($results);
+  $summaries = $runner->summarizeResults($results);
   foreach ($summaries as $class => $summary) {
     simpletest_script_reporter_display_summary($class, $summary);
   }
@@ -827,6 +837,9 @@ function simpletest_script_run_one_test($test_id, $test_class) {
   global $args;
 
   try {
+    // Default to status = success. This could mean that we didn't discover any
+    // tests and that none ran.
+    $status = SIMPLETEST_SCRIPT_EXIT_SUCCESS;
     if (strpos($test_class, '::') > 0) {
       list($class_name, $method) = explode('::', $test_class, 2);
       $methods = [$method];
@@ -843,7 +856,10 @@ function simpletest_script_run_one_test($test_id, $test_class) {
     if (is_subclass_of($test_class, TestCase::class)) {
       $status = simpletest_script_run_phpunit($test_id, $test_class);
     }
-    else {
+    // If we aren't running a PHPUnit-based test, then we might have a
+    // Simpletest-based one. Ensure that: 1) The simpletest framework exists,
+    // and 2) that our test belongs to that framework.
+    elseif (class_exists('Drupal\simpletest\TestBase') && is_subclass_of($test_class, 'Drupal\simpletest\TestBase')) {
       $test->dieOnFail = (bool) $args['die-on-fail'];
       $test->verbose = (bool) $args['verbose'];
       $test->run($methods);
@@ -854,6 +870,12 @@ function simpletest_script_run_one_test($test_id, $test_class) {
       if ($test->results['#fail'] || $test->results['#exception']) {
         $status = SIMPLETEST_SCRIPT_EXIT_FAILURE;
       }
+    }
+    // If the test is not a PHPUnit test, and either we don't have the
+    // Simpletest module or the \Drupal\simpletest\TestBase class available.
+    else {
+      simpletest_script_print_error(sprintf('Can not run %s. If this is a WebTestBase test the simpletest module must be installed. See https://www.drupal.org/node/3030340', $test_class));
+      $status = SIMPLETEST_SCRIPT_EXIT_FAILURE;
     }
 
     exit($status);
@@ -928,7 +950,8 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
   }
   // Retrieve the last database prefix used for testing.
   try {
-    list($db_prefix) = simpletest_last_test_get($test_id);
+    $last_test = TestDatabase::lastTestGet($test_id);
+    $db_prefix = $last_test['last_prefix'];
   }
   catch (Exception $e) {
     echo (string) $e;
@@ -949,7 +972,7 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
 
   // Read the log file in case any fatal errors caused the test to crash.
   try {
-    simpletest_log_read($test_id, $db_prefix, $test_class);
+    (new TestDatabase($db_prefix))->logRead($test_id, $last_test['test_class']);
   }
   catch (Exception $e) {
     echo (string) $e;
@@ -973,7 +996,7 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
     // would also delete file directories of other tests that are potentially
     // running concurrently.
     try {
-      \Drupal::service('file_system')->deleteRecursive($test_directory, ['Drupal\simpletest\TestBase', 'filePreDeleteCallback']);
+      \Drupal::service('file_system')->deleteRecursive($test_directory, ['\Drupal\Tests\BrowserTestBase', 'filePreDeleteCallback']);
       $messages[] = "- Removed test site directory.";
     }
     catch (FileException $e) {
@@ -1017,6 +1040,8 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
 function simpletest_script_get_test_list() {
   global $args;
 
+  // @todo Use \Drupal\Core\Test\TestDiscovery when we no longer need BC for
+  //   hook_simpletest_alter().
   /** $test_discovery \Drupal\simpletest\TestDiscovery */
   $test_discovery = \Drupal::service('test_discovery');
   $types_processed = empty($args['types']);
@@ -1089,7 +1114,7 @@ function simpletest_script_get_test_list() {
       else {
         $directory = DRUPAL_ROOT . "/" . $args['directory'];
       }
-      foreach (file_scan_directory($directory, '/\.php$/', $ignore) as $file) {
+      foreach (\Drupal::service('file_system')->scanDirectory($directory, '/\.php$/', $ignore) as $file) {
         // '/Tests/' can be contained anywhere in the file's path (there can be
         // sub-directories below /Tests), but must be contained literally.
         // Case-insensitive to match all Simpletest and PHPUnit tests:
@@ -1503,79 +1528,21 @@ function simpletest_script_load_messages_by_test_id($test_ids) {
 
 /**
  * Display test results.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. This function
+ *   supports the --browser option in this script. Use the --verbose option
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3083549
+ *
+ * @todo Remove this in https://www.drupal.org/project/drupal/issues/3075490.
  */
 function simpletest_script_open_browser() {
-  global $test_ids;
-
-  try {
-    $connection = Database::getConnection('default', 'test-runner');
-    $results = $connection->select('simpletest')
-      ->fields('simpletest')
-      ->condition('test_id', $test_ids, 'IN')
-      ->orderBy('test_class')
-      ->orderBy('message_id')
-      ->execute()
-      ->fetchAll();
+  // Note: the user already has received a message about the deprecation in CLI
+  // so we trigger an error just in case this method has been used as API.
+  @trigger_error('The --browser option is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use --verbose instead. See https://www.drupal.org/node/3083549', E_USER_DEPRECATED);
+  if (function_exists('_simpletest_run_tests_script_open_browser')) {
+    return _simpletest_run_tests_script_open_browser();
   }
-  catch (Exception $e) {
-    echo (string) $e;
-    exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
-  }
-
-  // Get the results form.
-  $form = [];
-  SimpletestResultsForm::addResultForm($form, $results);
-
-  // Get the assets to make the details element collapsible and theme the result
-  // form.
-  $assets = new AttachedAssets();
-  $assets->setLibraries([
-    'core/drupal.collapse',
-    'system/admin',
-    'simpletest/drupal.simpletest',
-  ]);
-  $resolver = \Drupal::service('asset.resolver');
-  list($js_assets_header, $js_assets_footer) = $resolver->getJsAssets($assets, FALSE);
-  $js_collection_renderer = \Drupal::service('asset.js.collection_renderer');
-  $js_assets_header = $js_collection_renderer->render($js_assets_header);
-  $js_assets_footer = $js_collection_renderer->render($js_assets_footer);
-  $css_assets = \Drupal::service('asset.css.collection_renderer')->render($resolver->getCssAssets($assets, FALSE));
-
-  // Make the html page to write to disk.
-  $render_service = \Drupal::service('renderer');
-  $html = '<head>' . $render_service->renderPlain($js_assets_header) . $render_service->renderPlain($css_assets) . '</head><body>' . $render_service->renderPlain($form) . $render_service->renderPlain($js_assets_footer) . '</body>';
-
-  // Ensure we have assets verbose directory - tests with no verbose output will
-  // not have created one.
-  $directory = PublicStream::basePath() . '/simpletest/verbose';
-  \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
-  $php = new Php();
-  $uuid = $php->generate();
-  $filename = $directory . '/results-' . $uuid . '.html';
-  $base_url = getenv('SIMPLETEST_BASE_URL');
-  if (empty($base_url)) {
-    simpletest_script_print_error("--browser needs argument --url.");
-  }
-  $url = $base_url . '/' . PublicStream::basePath() . '/simpletest/verbose/results-' . $uuid . '.html';
-  file_put_contents($filename, $html);
-
-  // See if we can find an OS helper to open URLs in default browser.
-  $browser = FALSE;
-  if (shell_exec('which xdg-open')) {
-    $browser = 'xdg-open';
-  }
-  elseif (shell_exec('which open')) {
-    $browser = 'open';
-  }
-  elseif (substr(PHP_OS, 0, 3) == 'WIN') {
-    $browser = 'start';
-  }
-
-  if ($browser) {
-    shell_exec($browser . ' ' . escapeshellarg($url));
-  }
-  else {
-    // Can't find assets valid browser.
-    print 'Open file://' . realpath($filename) . ' in your browser to see the verbose output.';
-  }
+  simpletest_script_print_error('In order to use the --browser option the Simpletest module must be available. See https://www.drupal.org/node/3083549.');
 }

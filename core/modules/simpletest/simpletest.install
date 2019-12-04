@@ -5,8 +5,10 @@
  * Install, update and uninstall functions for the simpletest module.
  */
 
+use Drupal\Component\FileSecurity\FileSecurity;
 use Drupal\Component\Utility\Environment;
 use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\Test\TestDatabase;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,9 +22,14 @@ const SIMPLETEST_MINIMUM_PHP_MEMORY_LIMIT = '128M';
 function simpletest_requirements($phase) {
   $requirements = [];
 
+  $requirements['deprecation'] = [
+    'title' => t('Testing (SimpleTest)'),
+    'value' => t('The <em>Testing</em> (SimpleTest) module is deprecated for removal in Drupal 9. It should not be enabled on production sites. Read <a href="https://www.drupal.org/node/3091784">The Drupal core SimpleTest module is deprecated</a> for alternative ways to run tests during development.'),
+    'severity' => $phase === 'runtime' ? REQUIREMENT_WARNING : REQUIREMENT_INFO,
+  ];
+
   $has_phpunit = class_exists(TestCase::class);
   $has_curl = function_exists('curl_init');
-  $open_basedir = ini_get('open_basedir');
 
   $requirements['phpunit'] = [
     'title' => t('PHPUnit dependency'),
@@ -40,18 +47,6 @@ function simpletest_requirements($phase) {
   if (!$has_curl) {
     $requirements['curl']['severity'] = REQUIREMENT_ERROR;
     $requirements['curl']['description'] = t('The testing framework requires the <a href="https://secure.php.net/manual/en/curl.setup.php">PHP cURL library</a>. For more information, see the <a href="https://www.drupal.org/requirements/php/curl">online information on installing the PHP cURL extension</a>.');
-  }
-
-  // SimpleTest currently needs 2 cURL options which are incompatible with
-  // having PHP's open_basedir restriction set.
-  // See https://www.drupal.org/node/674304.
-  $requirements['php_open_basedir'] = [
-    'title' => t('PHP open_basedir restriction'),
-    'value' => $open_basedir ? t('Enabled') : t('Disabled'),
-  ];
-  if ($open_basedir) {
-    $requirements['php_open_basedir']['severity'] = REQUIREMENT_ERROR;
-    $requirements['php_open_basedir']['description'] = t('The testing framework requires the PHP <a href="http://php.net/manual/ini.core.php#ini.open-basedir">open_basedir</a> restriction to be disabled. Check your webserver configuration or contact your web host.');
   }
 
   // Check the current memory limit. If it is set too low, SimpleTest will fail
@@ -73,7 +68,7 @@ function simpletest_requirements($phase) {
       ]),
     ];
   }
-  elseif (!file_save_htaccess(\Drupal::root() . '/' . $site_directory, FALSE)) {
+  elseif (!FileSecurity::writeHtaccess(\Drupal::root() . '/' . $site_directory, FALSE)) {
     $requirements['simpletest_site_directory'] = [
       'title' => t('Simpletest site directory'),
       'value' => t('Not protected'),
@@ -91,92 +86,7 @@ function simpletest_requirements($phase) {
  * Implements hook_schema().
  */
 function simpletest_schema() {
-  $schema['simpletest'] = [
-    'description' => 'Stores simpletest messages',
-    'fields' => [
-      'message_id'  => [
-        'type' => 'serial',
-        'not null' => TRUE,
-        'description' => 'Primary Key: Unique simpletest message ID.',
-      ],
-      'test_id' => [
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Test ID, messages belonging to the same ID are reported together',
-      ],
-      'test_class' => [
-        'type' => 'varchar_ascii',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'The name of the class that created this message.',
-      ],
-      'status' => [
-        'type' => 'varchar',
-        'length' => 9,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Message status. Core understands pass, fail, exception.',
-      ],
-      'message' => [
-        'type' => 'text',
-        'not null' => TRUE,
-        'description' => 'The message itself.',
-      ],
-      'message_group' => [
-        'type' => 'varchar_ascii',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'The message group this message belongs to. For example: warning, browser, user.',
-      ],
-      'function' => [
-        'type' => 'varchar_ascii',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Name of the assertion function or method that created this message.',
-      ],
-      'line' => [
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Line number on which the function is called.',
-      ],
-      'file' => [
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'Name of the file where the function is called.',
-      ],
-    ],
-    'primary key' => ['message_id'],
-    'indexes' => [
-      'reporter' => ['test_class', 'message_id'],
-    ],
-  ];
-  $schema['simpletest_test_id'] = [
-    'description' => 'Stores simpletest test IDs, used to auto-increment the test ID so that a fresh test ID is used.',
-    'fields' => [
-      'test_id'  => [
-        'type' => 'serial',
-        'not null' => TRUE,
-        'description' => 'Primary Key: Unique simpletest ID used to group test results together. Each time a set of tests
-                            are run a new test ID is used.',
-      ],
-      'last_prefix' => [
-        'type' => 'varchar',
-        'length' => 60,
-        'not null' => FALSE,
-        'default' => '',
-        'description' => 'The last database prefix used during testing.',
-      ],
-    ],
-    'primary key' => ['test_id'],
-  ];
-  return $schema;
+  return TestDatabase::testingSchema();
 }
 
 /**
@@ -187,7 +97,7 @@ function simpletest_uninstall() {
   // in a (recursive) test for itself, since simpletest_clean_environment()
   // would also delete the test site of the parent test process.
   if (!drupal_valid_test_ua()) {
-    simpletest_clean_environment();
+    \Drupal::service('environment_cleaner')->cleanEnvironment();
   }
   // Delete verbose test output and any other testing framework files.
   try {

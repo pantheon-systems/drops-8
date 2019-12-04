@@ -13,6 +13,7 @@ namespace Symfony\Component\Validator\Constraints;
 
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
+use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
 
 /**
@@ -48,14 +49,28 @@ class RangeValidator extends ConstraintValidator
         // Convert strings to DateTimes if comparing another DateTime
         // This allows to compare with any date/time value supported by
         // the DateTime constructor:
-        // http://php.net/manual/en/datetime.formats.php
+        // https://php.net/datetime.formats
         if ($value instanceof \DateTimeInterface) {
+            $dateTimeClass = null;
+
             if (\is_string($min)) {
-                $min = new \DateTime($min);
+                $dateTimeClass = $value instanceof \DateTimeImmutable ? \DateTimeImmutable::class : \DateTime::class;
+
+                try {
+                    $min = new $dateTimeClass($min);
+                } catch (\Exception $e) {
+                    throw new ConstraintDefinitionException(sprintf('The min value "%s" could not be converted to a "%s" instance in the "%s" constraint.', $min, $dateTimeClass, \get_class($constraint)));
+                }
             }
 
             if (\is_string($max)) {
-                $max = new \DateTime($max);
+                $dateTimeClass = $dateTimeClass ?: ($value instanceof \DateTimeImmutable ? \DateTimeImmutable::class : \DateTime::class);
+
+                try {
+                    $max = new $dateTimeClass($max);
+                } catch (\Exception $e) {
+                    throw new ConstraintDefinitionException(sprintf('The max value "%s" could not be converted to a "%s" instance in the "%s" constraint.', $max, $dateTimeClass, \get_class($constraint)));
+                }
             }
         }
 

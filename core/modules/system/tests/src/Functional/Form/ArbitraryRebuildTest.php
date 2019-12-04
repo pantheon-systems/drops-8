@@ -20,6 +20,11 @@ class ArbitraryRebuildTest extends BrowserTestBase {
    */
   public static $modules = ['text', 'form_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -37,7 +42,8 @@ class ArbitraryRebuildTest extends BrowserTestBase {
       'bundle' => 'user',
       'label' => 'Test a multiple valued field',
     ])->save();
-    entity_get_form_display('user', 'user', 'register')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('user', 'user', 'register')
       ->setComponent('test_multiple', [
         'type' => 'text_textfield',
         'weight' => 0,

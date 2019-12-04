@@ -20,6 +20,11 @@ class NumberFieldTest extends BrowserTestBase {
    */
   public static $modules = ['node', 'entity_test', 'field_ui'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser([
@@ -51,7 +56,10 @@ class NumberFieldTest extends BrowserTestBase {
       'bundle' => 'entity_test',
     ])->save();
 
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number',
         'settings' => [
@@ -59,7 +67,7 @@ class NumberFieldTest extends BrowserTestBase {
         ],
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'default')
+    $display_repository->getViewDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number_decimal',
       ])
@@ -145,7 +153,10 @@ class NumberFieldTest extends BrowserTestBase {
       ],
     ])->save();
 
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number',
         'settings' => [
@@ -153,7 +164,7 @@ class NumberFieldTest extends BrowserTestBase {
         ],
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'default')
+    $display_repository->getViewDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number_integer',
         'settings' => [
@@ -245,7 +256,7 @@ class NumberFieldTest extends BrowserTestBase {
     }
 
     // Test for the content attribute when a Prefix is displayed. Presumably this also tests for the attribute when a Suffix is displayed.
-    entity_get_display('entity_test', 'entity_test', 'default')
+    $display_repository->getViewDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number_integer',
         'settings' => [
@@ -284,7 +295,10 @@ class NumberFieldTest extends BrowserTestBase {
       'bundle' => 'entity_test',
     ])->save();
 
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number',
         'settings' => [
@@ -293,7 +307,7 @@ class NumberFieldTest extends BrowserTestBase {
       ])
       ->save();
 
-    entity_get_display('entity_test', 'entity_test', 'default')
+    $display_repository->getViewDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'number_decimal',
       ])

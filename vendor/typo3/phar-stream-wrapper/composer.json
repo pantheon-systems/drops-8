@@ -6,13 +6,12 @@
     "homepage": "https://typo3.org/",
     "keywords": ["php", "phar", "stream-wrapper", "security"],
     "require": {
-        "php": "^5.3.3|^7.0",
-        "ext-json": "*",
-        "brumann/polyfill-unserialize": "^1.0"
+        "php": "^7.0",
+        "ext-json": "*"
     },
     "require-dev": {
         "ext-xdebug": "*",
-        "phpunit/phpunit": "^4.8.36"
+        "phpunit/phpunit": "^6.5"
     },
     "suggest": {
         "ext-fileinfo": "For PHP builtin file type guessing, otherwise uses internal processing"
@@ -25,6 +24,11 @@
     "autoload-dev": {
         "psr-4": {
             "TYPO3\\PharStreamWrapper\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "v3.x-dev"
         }
     }
 }

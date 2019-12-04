@@ -82,7 +82,7 @@ class AbstractRenderer
      */
     public function saveXml()
     {
-        return $this->getDomDocument()->saveXml();
+        return $this->getDomDocument()->saveXML();
     }
 
     /**
@@ -146,8 +146,10 @@ class AbstractRenderer
      */
     public function ignoreExceptions($bool = true)
     {
-        if (!is_bool($bool)) {
-            throw new Writer\Exception\InvalidArgumentException('Invalid parameter: $bool. Should be TRUE or FALSE (defaults to TRUE if null)');
+        if (! is_bool($bool)) {
+            throw new Writer\Exception\InvalidArgumentException(
+                'Invalid parameter: $bool. Should be TRUE or FALSE (defaults to TRUE if null)'
+            );
         }
         $this->ignoreExceptions = $bool;
         return $this;
@@ -213,16 +215,16 @@ class AbstractRenderer
      *
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _loadExtensions()
     {
+        // @codingStandardsIgnoreEnd
         Writer\Writer::registerCoreExtensions();
         $manager = Writer\Writer::getExtensionManager();
         $all = Writer\Writer::getExtensions();
-        if (stripos(get_class($this), 'entry')) {
-            $exts = $all['entryRenderer'];
-        } else {
-            $exts = $all['feedRenderer'];
-        }
+        $exts = stripos(get_class($this), 'entry')
+            ? $all['entryRenderer']
+            : $all['feedRenderer'];
         foreach ($exts as $extension) {
             $plugin = $manager->get($extension);
             $plugin->setDataContainer($this->getDataContainer());

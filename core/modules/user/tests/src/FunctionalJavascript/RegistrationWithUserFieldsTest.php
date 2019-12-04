@@ -36,6 +36,11 @@ class RegistrationWithUserFieldsTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->page = $this->getSession()->getPage();
@@ -62,10 +67,10 @@ class RegistrationWithUserFieldsTest extends WebDriverTestBase {
     ]);
     $field->save();
 
-    entity_get_form_display('user', 'user', 'default')
+    \Drupal::service('entity_display.repository')->getFormDisplay('user', 'user', 'default')
       ->setComponent('test_user_field', ['type' => 'test_field_widget'])
       ->save();
-    $user_registration_form = entity_get_form_display('user', 'user', 'register');
+    $user_registration_form = \Drupal::service('entity_display.repository')->getFormDisplay('user', 'user', 'register');
     $user_registration_form->save();
 
     // Check that the field does not appear on the registration form.

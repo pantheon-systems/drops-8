@@ -19,28 +19,28 @@ class DateTest extends UnitTestCase {
   /**
    * The mocked entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The mocked language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
   /**
    * The mocked string translation.
    *
-   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $stringTranslation;
 
   /**
    * The mocked string translation.
    *
-   * @var \Symfony\Component\HttpFoundation\RequestStack|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpFoundation\RequestStack|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $requestStack;
 
@@ -54,21 +54,21 @@ class DateTest extends UnitTestCase {
   /**
    * The date formatter class where methods can be stubbed.
    *
-   * @var \Drupal\Core\Datetime\DateFormatter|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Datetime\DateFormatter|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $dateFormatterStub;
 
   protected function setUp() {
     parent::setUp();
 
-    $entity_storage = $this->getMock('Drupal\Core\Entity\EntityStorageInterface');
+    $entity_storage = $this->createMock('Drupal\Core\Entity\EntityStorageInterface');
 
-    $this->entityTypeManager = $this->getMock('Drupal\Core\Entity\EntityTypeManagerInterface');
+    $this->entityTypeManager = $this->createMock('Drupal\Core\Entity\EntityTypeManagerInterface');
     $this->entityTypeManager->expects($this->any())->method('getStorage')->with('date_format')->willReturn($entity_storage);
 
-    $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
-    $this->stringTranslation = $this->getMock('Drupal\Core\StringTranslation\TranslationInterface');
-    $this->requestStack = $this->getMock('Symfony\Component\HttpFoundation\RequestStack');
+    $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
+    $this->stringTranslation = $this->createMock('Drupal\Core\StringTranslation\TranslationInterface');
+    $this->requestStack = $this->createMock('Symfony\Component\HttpFoundation\RequestStack');
 
     $config_factory = $this->getConfigFactoryStub(['system.date' => ['country' => ['default' => 'GB']]]);
     $container = new ContainerBuilder();
@@ -421,7 +421,19 @@ class DateTest extends UnitTestCase {
     $build = [];
     CacheableMetadata::createFromObject($object)->applyTo($build);
     $this->assertEquals($max_age, $build['#cache']['max-age']);
-    // Test the BC layer.
+  }
+
+  /**
+   * Tests FormattedDateDiff.
+   *
+   * @covers \Drupal\Core\Datetime\FormattedDateDiff::getMaxAge
+   * @group legacy
+   * @expectedDeprecation Drupal\Core\Datetime\FormattedDateDiff::getMaxAge() is deprecated in drupal:8.1.9 and is removed from drupal:9.0.0. Use \Drupal\Core\Datetime\FormattedDateDiff::getCacheMaxAge() instead. See https://www.drupal.org/node/2783545
+   */
+  public function testLegacyMaxAgeFormattedDateDiff() {
+    $string = '10 minutes';
+    $max_age = 60;
+    $object = new FormattedDateDiff($string, $max_age);
     $this->assertSame($object->getCacheMaxAge(), $object->getMaxAge());
   }
 

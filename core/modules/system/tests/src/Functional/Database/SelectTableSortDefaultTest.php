@@ -2,12 +2,19 @@
 
 namespace Drupal\Tests\system\Functional\Database;
 
+use Drupal\Component\Render\FormattableMarkup;
+
 /**
  * Tests the tablesort query extender.
  *
  * @group Database
  */
 class SelectTableSortDefaultTest extends DatabaseTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Confirms that a tablesort query returns the correct results.
@@ -60,8 +67,8 @@ class SelectTableSortDefaultTest extends DatabaseTestBase {
       $first = array_shift($data->tasks);
       $last = array_pop($data->tasks);
 
-      $this->assertEqual($first->task, $sort['first'], format_string('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
-      $this->assertEqual($last->task, $sort['last'], format_string('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
+      $this->assertEqual($first->task, $sort['first'], new FormattableMarkup('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
+      $this->assertEqual($last->task, $sort['last'], new FormattableMarkup('Items appear in the correct order sorting by @field @sort.', ['@field' => $sort['field'], '@sort' => $sort['sort']]));
     }
   }
 

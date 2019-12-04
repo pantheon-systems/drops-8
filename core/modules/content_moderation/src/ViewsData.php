@@ -67,7 +67,8 @@ class ViewsData {
         'title' => t('Moderation state'),
         'relationship' => [
           'id' => 'standard',
-          'label' => $this->t('@label moderation state', ['@label' => $entity_type->getLabel()]),
+          'title' => $this->t('Deprecated: @label moderation state', ['@label' => $entity_type->getLabel()]),
+          'help' => $this->t('Using a relationship to the Content Moderation State entity type has been deprecated and will be removed before 9.0.0. See <a target="_blank" href=":url">this change record</a> for alternatives.', [':url' => 'https://www.drupal.org/node/3061099']),
           'base' => $content_moderation_state_entity_base_table,
           'base field' => 'content_entity_id',
           'relationship field' => $entity_type->getKey('id'),
@@ -77,13 +78,15 @@ class ViewsData {
               'value' => $entity_type_id,
             ],
           ],
+          'deprecated' => 'Moderation state relationships are deprecated in drupal:8.8.0 and is removed in drupal:9.0.0. See https://www.drupal.org/node/3061099',
         ],
         'field' => [
-          'id' => 'field',
+          'id' => 'moderation_state_field',
           'default_formatter' => 'content_moderation_state',
           'field_name' => 'moderation_state',
         ],
         'filter' => ['id' => 'moderation_state_filter', 'allow empty' => TRUE],
+        'sort' => ['id' => 'moderation_state_sort'],
       ];
 
       $revision_table = $entity_type->getRevisionDataTable() ?: $entity_type->getRevisionTable();
@@ -91,7 +94,8 @@ class ViewsData {
         'title' => t('Moderation state'),
         'relationship' => [
           'id' => 'standard',
-          'label' => $this->t('@label moderation state', ['@label' => $entity_type->getLabel()]),
+          'title' => $this->t('Deprecated: @label moderation state', ['@label' => $entity_type->getLabel()]),
+          'help' => $this->t('Using a relationship to the Content Moderation State entity type has been deprecated and will be removed before 9.0.0. See <a target="_blank" href=":url">this change record</a> for alternatives.', [':url' => 'https://www.drupal.org/node/3061099']),
           'base' => $content_moderation_state_entity_revision_base_table,
           'base field' => 'content_entity_revision_id',
           'relationship field' => $entity_type->getKey('revision'),
@@ -101,13 +105,15 @@ class ViewsData {
               'value' => $entity_type_id,
             ],
           ],
+          'deprecated' => 'Moderation state relationships are deprecated in drupal:8.8.0 and is removed in drupal:9.0.0. See https://www.drupal.org/node/3061099',
         ],
         'field' => [
-          'id' => 'field',
+          'id' => 'moderation_state_field',
           'default_formatter' => 'content_moderation_state',
           'field_name' => 'moderation_state',
         ],
         'filter' => ['id' => 'moderation_state_filter', 'allow empty' => TRUE],
+        'sort' => ['id' => 'moderation_state_sort'],
       ];
     }
 

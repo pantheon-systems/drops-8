@@ -5,8 +5,10 @@ namespace Drupal\Tests\Core\EventSubscriber;
 use Drupal\Core\EventSubscriber\SpecialAttributesRouteSubscriber;
 use Drupal\Core\Routing\RouteBuildEvent;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Error\Warning;
 use Symfony\Cmf\Component\Routing\RouteObjectInterface;
 use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
 
 /**
  * @coversDefaultClass \Drupal\Core\EventSubscriber\SpecialAttributesRouteSubscriber
@@ -74,7 +76,7 @@ class SpecialAttributesRouteSubscriberTest extends UnitTestCase {
    * @covers ::onAlterRoutes
    */
   public function testOnRouteBuildingValidVariables(Route $route) {
-    $route_collection = $this->getMock('Symfony\Component\Routing\RouteCollection', NULL);
+    $route_collection = new RouteCollection();
     $route_collection->add('test', $route);
 
     $event = new RouteBuildEvent($route_collection, 'test');
@@ -92,12 +94,13 @@ class SpecialAttributesRouteSubscriberTest extends UnitTestCase {
    * @covers ::onAlterRoutes
    */
   public function testOnRouteBuildingInvalidVariables(Route $route) {
-    $route_collection = $this->getMock('Symfony\Component\Routing\RouteCollection', NULL);
+    $route_collection = new RouteCollection();
     $route_collection->add('test', $route);
 
     $event = new RouteBuildEvent($route_collection, 'test');
     $subscriber = new SpecialAttributesRouteSubscriber();
-    $this->setExpectedException(\PHPUnit_Framework_Error_Warning::class, 'uses reserved variable names');
+    $this->expectException(Warning::class);
+    $this->expectExceptionMessage('uses reserved variable names');
     $subscriber->onAlterRoutes($event);
   }
 

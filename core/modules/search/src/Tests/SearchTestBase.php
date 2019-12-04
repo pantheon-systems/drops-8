@@ -10,7 +10,7 @@ use Drupal\Component\Render\FormattableMarkup;
 /**
  * Defines the common search test code.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\search\Functional\SearchTestBase instead.
  *
  * @see https://www.drupal.org/node/2999939
@@ -91,8 +91,8 @@ abstract class SearchTestBase extends WebTestBase {
       foreach ($edit as $name => $value) {
         $this->fail(new FormattableMarkup('Failed to set field @name to @value', ['@name' => $name, '@value' => $value]));
       }
-      $this->assertTrue($submit_matches, format_string('Found the @submit button', ['@submit' => $submit]));
-      $this->fail(format_string('Found the requested form fields at @path', ['@path' => $path]));
+      $this->assertTrue($submit_matches, new FormattableMarkup('Found the @submit button', ['@submit' => $submit]));
+      $this->fail(new FormattableMarkup('Found the requested form fields at @path', ['@path' => $path]));
     }
   }
 

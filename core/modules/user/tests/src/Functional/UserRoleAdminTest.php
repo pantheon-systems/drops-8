@@ -30,6 +30,11 @@ class UserRoleAdminTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->adminUser = $this->drupalCreateUser(['administer permissions', 'administer users']);
@@ -72,7 +77,7 @@ class UserRoleAdminTest extends BrowserTestBase {
     $edit = ['label' => $role_name];
     $this->drupalPostForm("admin/people/roles/manage/{$role->id()}", $edit, t('Save'));
     $this->assertRaw(t('Role %label has been updated.', ['%label' => $role_name]));
-    \Drupal::entityManager()->getStorage('user_role')->resetCache([$role->id()]);
+    \Drupal::entityTypeManager()->getStorage('user_role')->resetCache([$role->id()]);
     $new_role = Role::load($role->id());
     $this->assertEqual($new_role->label(), $role_name, 'The role name has been successfully changed.');
 
@@ -82,8 +87,8 @@ class UserRoleAdminTest extends BrowserTestBase {
     $this->drupalPostForm(NULL, [], t('Delete'));
     $this->assertRaw(t('The role %label has been deleted.', ['%label' => $role_name]));
     $this->assertNoLinkByHref("admin/people/roles/manage/{$role->id()}", 'Role edit link removed.');
-    \Drupal::entityManager()->getStorage('user_role')->resetCache([$role->id()]);
-    $this->assertFalse(Role::load($role->id()), 'A deleted role can no longer be loaded.');
+    \Drupal::entityTypeManager()->getStorage('user_role')->resetCache([$role->id()]);
+    $this->assertNull(Role::load($role->id()), 'A deleted role can no longer be loaded.');
 
     // Make sure that the system-defined roles can be edited via the user
     // interface.

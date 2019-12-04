@@ -20,6 +20,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\field\FieldConfigInterface;
 use Drupal\field\FieldStorageConfigInterface;
@@ -30,7 +31,7 @@ use Drupal\user\UserInterface;
 /**
  * Anonymous posters cannot enter their contact information.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\comment\CommentInterface::ANONYMOUS_MAYNOT_CONTACT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -40,7 +41,7 @@ const COMMENT_ANONYMOUS_MAYNOT_CONTACT = 0;
 /**
  * Anonymous posters may leave their contact information.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\comment\CommentInterface::ANONYMOUS_MAY_CONTACT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -50,7 +51,7 @@ const COMMENT_ANONYMOUS_MAY_CONTACT = 1;
 /**
  * Anonymous posters are required to leave their contact information.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\comment\CommentInterface::ANONYMOUS_MUST_CONTACT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -177,7 +178,7 @@ function comment_field_config_update(FieldConfigInterface $field) {
   if ($field->getType() == 'comment') {
     // Comment field settings also affects the rendering of *comment* entities,
     // not only the *commented* entities.
-    \Drupal::entityManager()->getViewBuilder('comment')->resetCache();
+    \Drupal::entityTypeManager()->getViewBuilder('comment')->resetCache();
   }
 }
 
@@ -204,7 +205,9 @@ function comment_field_config_delete(FieldConfigInterface $field) {
     $entity_query->condition('entity_type', $field->getEntityTypeId());
     $entity_query->condition('field_name', $field->getName());
     $cids = $entity_query->execute();
-    entity_delete_multiple('comment', $cids);
+    $comment_storage = \Drupal::entityTypeManager()->getStorage('comment');
+    $comments = $comment_storage->loadMultiple($cids);
+    $comment_storage->delete($comments);
   }
 }
 
@@ -271,11 +274,16 @@ function comment_node_view_alter(array &$build, EntityInterface $node, EntityVie
  * @return array
  *   An array as expected by \Drupal\Core\Render\RendererInterface::render().
  *
- * @deprecated in Drupal 8.x and will be removed before Drupal 9.0.
- *   Use \Drupal::entityManager()->getViewBuilder('comment')->view().
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal::entityTypeManager()->getViewBuilder('comment')->view().
+ *
+ * @see https://www.drupal.org/node/3033656
  */
 function comment_view(CommentInterface $comment, $view_mode = 'full', $langcode = NULL) {
-  return entity_view($comment, $view_mode, $langcode);
+  @trigger_error("comment_view() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('comment')->view() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()
+    ->getViewBuilder('comment')
+    ->view($comment, $view_mode, $langcode);
 }
 
 /**
@@ -295,13 +303,17 @@ function comment_view(CommentInterface $comment, $view_mode = 'full', $langcode 
  *   An array in the format expected by
  *   \Drupal\Core\Render\RendererInterface::render().
  *
- * @deprecated in Drupal 8.x and will be removed before Drupal 9.0.
- *   Use \Drupal::entityManager()->getViewBuilder('comment')->viewMultiple().
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal::entityTypeManager()->getViewBuilder('comment')->viewMultiple().
  *
+ * @see https://www.drupal.org/node/3033656
  * @see \Drupal\Core\Render\RendererInterface::render()
  */
 function comment_view_multiple($comments, $view_mode = 'full', $langcode = NULL) {
-  return entity_view_multiple($comments, $view_mode, $langcode);
+  @trigger_error("comment_view_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('comment')->viewMultiple() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()
+    ->getViewBuilder('comment')
+    ->viewMultiple($comments, $view_mode, $langcode);
 }
 
 /**
@@ -346,7 +358,7 @@ function comment_form_field_ui_display_overview_form_alter(&$form, FormStateInte
  */
 function comment_entity_storage_load($entities, $entity_type) {
   // Comments can only be attached to content entities, so skip others.
-  if (!\Drupal::entityManager()->getDefinition($entity_type)->entityClassImplements(FieldableEntityInterface::class)) {
+  if (!\Drupal::entityTypeManager()->getDefinition($entity_type)->entityClassImplements(FieldableEntityInterface::class)) {
     return;
   }
   if (!\Drupal::service('comment.manager')->getFields($entity_type)) {
@@ -397,7 +409,9 @@ function comment_entity_predelete(EntityInterface $entity) {
     $entity_query->condition('entity_id', (int) $entity->id());
     $entity_query->condition('entity_type', $entity->getEntityTypeId());
     $cids = $entity_query->execute();
-    entity_delete_multiple('comment', $cids);
+    $comment_storage = \Drupal::entityTypeManager()->getStorage('comment');
+    $comments = $comment_storage->loadMultiple($cids);
+    $comment_storage->delete($comments);
     \Drupal::service('comment.statistics')->delete($entity);
   }
 }
@@ -413,12 +427,12 @@ function comment_entity_predelete(EntityInterface $entity) {
  *   FALSE otherwise.
  */
 function _comment_entity_uses_integer_id($entity_type_id) {
-  $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
   $entity_type_id_key = $entity_type->getKey('id');
   if ($entity_type_id_key === FALSE) {
     return FALSE;
   }
-  $field_definitions = \Drupal::entityManager()->getBaseFieldDefinitions($entity_type->id());
+  $field_definitions = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions($entity_type->id());
   $entity_type_id_definition = $field_definitions[$entity_type_id_key];
   return $entity_type_id_definition->getType() === 'integer';
 }
@@ -440,7 +454,7 @@ function comment_node_update_index(EntityInterface $node) {
     // edit could change the security situation so it is not safe to index the
     // comments.
     $index_comments = TRUE;
-    $roles = \Drupal::entityManager()->getStorage('user_role')->loadMultiple();
+    $roles = \Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple();
     $authenticated_can_access = $roles[RoleInterface::AUTHENTICATED_ID]->hasPermission('access comments');
     foreach ($roles as $rid => $role) {
       if ($role->hasPermission('search content') && !$role->hasPermission('access comments')) {
@@ -464,10 +478,10 @@ function comment_node_update_index(EntityInterface $node) {
       $mode = $field_definition->getSetting('default_mode');
       $comments_per_page = $field_definition->getSetting('per_page');
       if ($node->get($field_name)->status) {
-        $comments = \Drupal::entityManager()->getStorage('comment')
+        $comments = \Drupal::entityTypeManager()->getStorage('comment')
           ->loadThread($node, $field_name, $mode, $comments_per_page);
         if ($comments) {
-          $build[] = \Drupal::entityManager()->getViewBuilder('comment')->viewMultiple($comments);
+          $build[] = \Drupal::entityTypeManager()->getViewBuilder('comment')->viewMultiple($comments);
         }
       }
     }
@@ -522,7 +536,7 @@ function comment_node_search_result(EntityInterface $node) {
 function comment_user_cancel($edit, UserInterface $account, $method) {
   switch ($method) {
     case 'user_cancel_block_unpublish':
-      $comments = entity_load_multiple_by_properties('comment', ['uid' => $account->id()]);
+      $comments = \Drupal::entityTypeManager()->getStorage('comment')->loadByProperties(['uid' => $account->id()]);
       foreach ($comments as $comment) {
         $comment->setUnpublished();
         $comment->save();
@@ -531,7 +545,7 @@ function comment_user_cancel($edit, UserInterface $account, $method) {
 
     case 'user_cancel_reassign':
       /** @var \Drupal\comment\CommentInterface[] $comments */
-      $comments = entity_load_multiple_by_properties('comment', ['uid' => $account->id()]);
+      $comments = \Drupal::entityTypeManager()->getStorage('comment')->loadByProperties(['uid' => $account->id()]);
       foreach ($comments as $comment) {
         $comment->setOwnerId(0);
         $comment->setAuthorName(\Drupal::config('user.settings')->get('anonymous'));
@@ -548,7 +562,9 @@ function comment_user_predelete($account) {
   $entity_query = \Drupal::entityQuery('comment');
   $entity_query->condition('uid', $account->id());
   $cids = $entity_query->execute();
-  entity_delete_multiple('comment', $cids);
+  $comment_storage = \Drupal::entityTypeManager()->getStorage('comment');
+  $comments = $comment_storage->loadMultiple($cids);
+  $comment_storage->delete($comments);
 }
 
 /**
@@ -594,7 +610,9 @@ function comment_preview(CommentInterface $comment, FormStateInterface $form_sta
     $field_name = $comment->getFieldName();
     $entity = clone $entity;
     $entity->$field_name->status = CommentItemInterface::HIDDEN;
-    $build = entity_view($entity, 'full');
+    $build = \Drupal::entityTypeManager()
+      ->getViewBuilder($entity->getEntityTypeId())
+      ->view($entity, 'full');
   }
 
   $preview_build['comment_output_below'] = $build;
@@ -652,24 +670,26 @@ function template_preprocess_comment(&$variables) {
   if (theme_get_setting('features.comment_user_picture')) {
     // To change user picture settings (for instance, image style), edit the
     // 'compact' view mode on the User entity.
-    $variables['user_picture'] = user_view($account, 'compact');
+    $variables['user_picture'] = \Drupal::entityTypeManager()
+      ->getViewBuilder('user')
+      ->view($account, 'compact');
   }
   else {
     $variables['user_picture'] = [];
   }
 
   if (isset($comment->in_preview)) {
-    $variables['title'] = \Drupal::l($comment->getSubject(), new Url('<front>'));
-    $variables['permalink'] = \Drupal::l(t('Permalink'), new Url('<front>'));
+    $variables['title'] = Link::fromTextAndUrl($comment->getSubject(), Url::fromRoute('<front>'))->toString();
+    $variables['permalink'] = Link::fromTextAndUrl(t('Permalink'), Url::fromRoute('<front>'))->toString();
   }
   else {
     $uri = $comment->permalink();
     $attributes = $uri->getOption('attributes') ?: [];
     $attributes += ['class' => ['permalink'], 'rel' => 'bookmark'];
     $uri->setOption('attributes', $attributes);
-    $variables['title'] = \Drupal::l($comment->getSubject(), $uri);
+    $variables['title'] = Link::fromTextAndUrl($comment->getSubject(), $uri)->toString();
 
-    $variables['permalink'] = \Drupal::l(t('Permalink'), $comment->permalink());
+    $variables['permalink'] = Link::fromTextAndUrl(t('Permalink'), $comment->permalink())->toString();
   }
 
   $variables['submitted'] = t('Submitted by @username on @datetime', ['@username' => $variables['author'], '@datetime' => $variables['created']]);
@@ -696,8 +716,8 @@ function template_preprocess_comment(&$variables) {
     $attributes = $permalink_uri_parent->getOption('attributes') ?: [];
     $attributes += ['class' => ['permalink'], 'rel' => 'bookmark'];
     $permalink_uri_parent->setOption('attributes', $attributes);
-    $variables['parent_title'] = \Drupal::l($comment_parent->getSubject(), $permalink_uri_parent);
-    $variables['parent_permalink'] = \Drupal::l(t('Parent permalink'), $permalink_uri_parent);
+    $variables['parent_title'] = Link::fromTextAndUrl($comment_parent->getSubject(), $permalink_uri_parent)->toString();
+    $variables['parent_permalink'] = Link::fromTextAndUrl(t('Parent permalink'), $permalink_uri_parent)->toString();
     $variables['parent'] = t('In reply to @parent_title by @parent_username',
         ['@parent_username' => $variables['parent_author'], '@parent_title' => $variables['parent_title']]);
   }

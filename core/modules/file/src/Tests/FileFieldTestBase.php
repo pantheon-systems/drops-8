@@ -4,6 +4,7 @@ namespace Drupal\file\Tests;
 
 @trigger_error('The ' . __NAMESPACE__ . '\FileFieldTestBase is deprecated in Drupal 8.5.x and will be removed before Drupal 9.0.0. Instead, use \Drupal\Tests\file\Functional\FileFieldTestBase. See https://www.drupal.org/node/2969361.', E_USER_DEPRECATED);
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\file\FileInterface;
@@ -13,7 +14,7 @@ use Drupal\file\Entity\File;
 /**
  * Provides methods specifically for testing File module's field handling.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\file\Functional\FileFieldTestBase instead.
  */
 abstract class FileFieldTestBase extends WebTestBase {
@@ -117,14 +118,17 @@ abstract class FileFieldTestBase extends WebTestBase {
     ];
     FieldConfig::create($field)->save();
 
-    entity_get_form_display($entity_type, $bundle, 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    $display_repository->getFormDisplay($entity_type, $bundle)
       ->setComponent($name, [
         'type' => 'file_generic',
         'settings' => $widget_settings,
       ])
       ->save();
     // Assign display settings.
-    entity_get_display($entity_type, $bundle, 'default')
+    $display_repository->getViewDisplay($entity_type, $bundle)
       ->setComponent($name, [
         'label' => 'hidden',
         'type' => 'file_default',
@@ -140,7 +144,8 @@ abstract class FileFieldTestBase extends WebTestBase {
     $field->setSettings(array_merge($field->getSettings(), $field_settings));
     $field->save();
 
-    entity_get_form_display('node', $type_name, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('node', $type_name)
       ->setComponent($name, [
         'settings' => $widget_settings,
       ])
@@ -193,7 +198,7 @@ abstract class FileFieldTestBase extends WebTestBase {
       'revision' => (string) (int) $new_revision,
     ];
 
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     if (is_numeric($nid_or_type)) {
       $nid = $nid_or_type;
       $node_storage->resetCache([$nid]);
@@ -265,7 +270,7 @@ abstract class FileFieldTestBase extends WebTestBase {
    * Asserts that a file exists physically on disk.
    */
   public function assertFileExists($file, $message = NULL) {
-    $message = isset($message) ? $message : format_string('File %file exists on the disk.', ['%file' => $file->getFileUri()]);
+    $message = isset($message) ? $message : new FormattableMarkup('File %file exists on the disk.', ['%file' => $file->getFileUri()]);
     $this->assertTrue(is_file($file->getFileUri()), $message);
   }
 
@@ -273,9 +278,9 @@ abstract class FileFieldTestBase extends WebTestBase {
    * Asserts that a file exists in the database.
    */
   public function assertFileEntryExists($file, $message = NULL) {
-    $this->container->get('entity.manager')->getStorage('file')->resetCache();
+    $this->container->get('entity_type.manager')->getStorage('file')->resetCache();
     $db_file = File::load($file->id());
-    $message = isset($message) ? $message : format_string('File %file exists in database at the correct path.', ['%file' => $file->getFileUri()]);
+    $message = isset($message) ? $message : new FormattableMarkup('File %file exists in database at the correct path.', ['%file' => $file->getFileUri()]);
     $this->assertEqual($db_file->getFileUri(), $file->getFileUri(), $message);
   }
 
@@ -283,7 +288,7 @@ abstract class FileFieldTestBase extends WebTestBase {
    * Asserts that a file does not exist on disk.
    */
   public function assertFileNotExists($file, $message = NULL) {
-    $message = isset($message) ? $message : format_string('File %file exists on the disk.', ['%file' => $file->getFileUri()]);
+    $message = isset($message) ? $message : new FormattableMarkup('File %file exists on the disk.', ['%file' => $file->getFileUri()]);
     $this->assertFalse(is_file($file->getFileUri()), $message);
   }
 
@@ -291,8 +296,8 @@ abstract class FileFieldTestBase extends WebTestBase {
    * Asserts that a file does not exist in the database.
    */
   public function assertFileEntryNotExists($file, $message) {
-    $this->container->get('entity.manager')->getStorage('file')->resetCache();
-    $message = isset($message) ? $message : format_string('File %file exists in database at the correct path.', ['%file' => $file->getFileUri()]);
+    $this->container->get('entity_type.manager')->getStorage('file')->resetCache();
+    $message = isset($message) ? $message : new FormattableMarkup('File %file exists in database at the correct path.', ['%file' => $file->getFileUri()]);
     $this->assertFalse(File::load($file->id()), $message);
   }
 
@@ -300,7 +305,7 @@ abstract class FileFieldTestBase extends WebTestBase {
    * Asserts that a file's status is set to permanent in the database.
    */
   public function assertFileIsPermanent(FileInterface $file, $message = NULL) {
-    $message = isset($message) ? $message : format_string('File %file is permanent.', ['%file' => $file->getFileUri()]);
+    $message = isset($message) ? $message : new FormattableMarkup('File %file is permanent.', ['%file' => $file->getFileUri()]);
     $this->assertTrue($file->isPermanent(), $message);
   }
 

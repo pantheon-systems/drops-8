@@ -12,12 +12,17 @@ use Drupal\node\Entity\Node;
 class PageViewTest extends NodeTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests an anonymous and unpermissioned user attempting to edit the node.
    */
   public function testPageView() {
     // Create a node to view.
     $node = $this->drupalCreateNode();
-    $this->assertTrue(Node::load($node->id()), 'Node created.');
+    $this->assertNotEmpty(Node::load($node->id()), 'Node created.');
 
     // Try to edit with anonymous user.
     $this->drupalGet("node/" . $node->id() . "/edit");

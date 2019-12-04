@@ -10,7 +10,6 @@ description: ''
 tag: ''
 base_table: watchdog
 base_field: wid
-core: 8.x
 display:
   default:
     display_plugin: default
@@ -37,7 +36,7 @@ display:
           id: wid
           table: watchdog
           field: wid
-          plugin_id: numeric
+          plugin_id: standard
         message:
           id: message
           table: watchdog

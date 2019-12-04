@@ -24,7 +24,7 @@ trait TestFileCreationTrait {
    * The first time this method is called, it will call
    * $this->generateFile() to generate binary and ASCII text files in the
    * public:// directory. It will also copy all files in
-   * core/modules/simpletest/files to public://. These contain image, SQL, PHP,
+   * core/tests/fixtures/files to public://. These contain image, SQL, PHP,
    * JavaScript, and HTML files.
    *
    * All filenames are prefixed with their type and have appropriate extensions:
@@ -52,6 +52,8 @@ trait TestFileCreationTrait {
    *   List of files in public:// that match the filter(s).
    */
   protected function getTestFiles($type, $size = NULL) {
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
     if (empty($this->generatedTestFiles)) {
       // Generate binary test files.
       $lines = [64, 1024];
@@ -67,11 +69,11 @@ trait TestFileCreationTrait {
         $this->generateFile('text-' . $count++, 64, $line, 'text');
       }
 
-      // Copy other test files from simpletest.
-      $original = drupal_get_path('module', 'simpletest') . '/files';
-      $files = file_scan_directory($original, '/(html|image|javascript|php|sql)-.*/');
+      // Copy other test files from fixtures.
+      $original = \Drupal::service('app.root') . '/core/tests/fixtures/files';
+      $files = $file_system->scanDirectory($original, '/(html|image|javascript|php|sql)-.*/');
       foreach ($files as $file) {
-        \Drupal::service('file_system')->copy($file->uri, PublicStream::basePath());
+        $file_system->copy($file->uri, PublicStream::basePath());
       }
 
       $this->generatedTestFiles = TRUE;
@@ -80,7 +82,7 @@ trait TestFileCreationTrait {
     $files = [];
     // Make sure type is valid.
     if (in_array($type, ['binary', 'html', 'image', 'javascript', 'php', 'sql', 'text'])) {
-      $files = file_scan_directory('public://', '/' . $type . '\-.*/');
+      $files = $file_system->scanDirectory('public://', '/' . $type . '\-.*/');
 
       // If size is set then remove any files that are not of that size.
       if ($size !== NULL) {
@@ -101,9 +103,9 @@ trait TestFileCreationTrait {
    *
    * Callback for uasort() within \TestFileCreationTrait::getTestFiles().
    *
-   * @param \stdClass $file1
+   * @param object $file1
    *   The first file.
-   * @param \stdClass $file2
+   * @param object $file2
    *   The second class.
    *
    * @return int

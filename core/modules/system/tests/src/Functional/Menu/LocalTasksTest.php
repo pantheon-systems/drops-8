@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\system\Functional\Menu;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
@@ -19,6 +20,11 @@ class LocalTasksTest extends BrowserTestBase {
    * @var string[]
    */
   public static $modules = ['block', 'menu_test', 'entity_test', 'node'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * The local tasks block under testing.
@@ -51,12 +57,12 @@ class LocalTasksTest extends BrowserTestBase {
     $elements = $this->xpath('//*[contains(@class, :class)]//a', [
       ':class' => $level == 0 ? 'tabs primary' : 'tabs secondary',
     ]);
-    $this->assertTrue(count($elements), 'Local tasks found.');
+    $this->assertGreaterThan(0, count($elements), 'Local tasks found.');
     foreach ($routes as $index => $route_info) {
       list($route_name, $route_parameters) = $route_info;
       $expected = Url::fromRoute($route_name, $route_parameters)->toString();
       $method = ($elements[$index]->getAttribute('href') == $expected ? 'pass' : 'fail');
-      $this->{$method}(format_string('Task @number href @value equals @expected.', [
+      $this->{$method}(new FormattableMarkup('Task @number href @value equals @expected.', [
         '@number' => $index + 1,
         '@value' => $elements[$index]->getAttribute('href'),
         '@expected' => $expected,
@@ -92,7 +98,7 @@ class LocalTasksTest extends BrowserTestBase {
     $elements = $this->xpath('//*[contains(@class, :class)]//a', [
       ':class' => $level == 0 ? 'tabs primary' : 'tabs secondary',
     ]);
-    $this->assertFalse(count($elements), 'Local tasks not found.');
+    $this->assertEmpty($elements, 'Local tasks not found.');
   }
 
   /**
@@ -176,7 +182,7 @@ class LocalTasksTest extends BrowserTestBase {
 
     // Test that we we correctly apply the active class to tabs where one of the
     // request attributes is upcast to an entity object.
-    $entity = \Drupal::entityManager()->getStorage('entity_test')->create(['bundle' => 'test']);
+    $entity = \Drupal::entityTypeManager()->getStorage('entity_test')->create(['bundle' => 'test']);
     $entity->save();
 
     $this->drupalGet(Url::fromRoute('menu_test.local_task_test_upcasting_sub1', ['entity_test' => '1']));

@@ -35,6 +35,11 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -144,8 +149,8 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
     $page = $this->getSession()->getPage();
 
     // Add a new block.
-    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#layout-builder a:contains(\'Add Block\')'));
-    $this->clickLink('Add Block');
+    $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#layout-builder a:contains(\'Add block\')'));
+    $this->clickLink('Add block');
     $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas'));
     $assert_session->assertWaitOnAjaxRequest();
 
@@ -155,7 +160,7 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
     // Wait for off-canvas dialog to reopen with block form.
     $this->assertNotEmpty($assert_session->waitForElementVisible('css', ".layout-builder-add-block"));
     $assert_session->assertWaitOnAjaxRequest();
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
 
     // Wait for block form to be rendered in the Layout Builder.
     $this->assertNotEmpty($assert_session->waitForElement('css', $rendered_locator));

@@ -31,6 +31,11 @@ class ContextualLinksTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -98,20 +103,20 @@ class ContextualLinksTest extends WebDriverTestBase {
    * Adds block to the layout via Layout Builder's UI.
    *
    * @param string $block_name
-   *   The block name as it appears in the Add Block form.
+   *   The block name as it appears in the Add block form.
    */
   protected function addBlock($block_name) {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
 
-    $assert_session->linkExists('Add Block');
-    $page->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $page->clickLink('Add block');
     $assert_session->assertWaitOnAjaxRequest();
     $this->assertNotEmpty($assert_session->waitForElementVisible('css', "#drupal-off-canvas a:contains('$block_name')"));
     $page->clickLink($block_name);
     $this->assertNotEmpty($assert_session->waitForElementVisible('css', '[data-drupal-selector=\'edit-actions-submit\']'));
 
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->assertNoElementAfterWait('css', '#drupal-off-canvas');
     $assert_session->assertWaitOnAjaxRequest();
   }

@@ -5,7 +5,7 @@ namespace Drupal\Tests\taxonomy\Kernel;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\taxonomy\TermInterface;
 use Drupal\taxonomy\VocabularyInterface;
-use Drupal\Tests\taxonomy\Functional\TaxonomyTestTrait;
+use Drupal\Tests\taxonomy\Traits\TaxonomyTestTrait;
 
 /**
  * Tests legacy user functionality.
@@ -54,6 +54,20 @@ class TaxonomyLegacyTest extends KernelTestBase {
     $this->assertInstanceOf(TermInterface::class, taxonomy_term_load(1));
     $this->assertNull(taxonomy_vocabulary_load('not_a_vocab'));
     $this->assertInstanceOf(VocabularyInterface::class, taxonomy_vocabulary_load($vocab->id()));
+  }
+
+  /**
+   * @expectedDeprecation taxonomy_term_view() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('taxonomy_term')->view() instead. See https://www.drupal.org/node/3033656
+   * @expectedDeprecation taxonomy_term_view_multiple() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('taxonomy_term')->viewMultiple() instead. See https://www.drupal.org/node/3033656
+   */
+  public function testTaxonomyTermView() {
+    $entity = $this->createTerm($this->createVocabulary());
+    $this->assertNotEmpty(taxonomy_term_view($entity));
+    $entities = [
+      $this->createTerm($this->createVocabulary()),
+      $this->createTerm($this->createVocabulary()),
+    ];
+    $this->assertEquals(4, count(taxonomy_term_view_multiple($entities)));
   }
 
 }

@@ -44,8 +44,15 @@ services:
       - { name: jsonapi_normalizer }
   serializer.normalizer.resource_object.jsonapi:
     class: Drupal\jsonapi\Normalizer\ResourceObjectNormalizer
+    arguments: ['@jsonapi.normalization_cacher']
     tags:
       - { name: jsonapi_normalizer }
+  jsonapi.normalization_cacher:
+    class: Drupal\jsonapi\EventSubscriber\ResourceObjectNormalizationCacher
+    calls:
+      - ['setRenderCache', ['@render_cache']]
+    tags:
+      - { name: event_subscriber }
   serializer.normalizer.content_entity.jsonapi:
     class: Drupal\jsonapi\Normalizer\ContentEntityDenormalizer
     arguments: ['@entity_type.manager', '@entity_field.manager', '@plugin.manager.field.field_type']
@@ -65,18 +72,17 @@ services:
     class: Drupal\jsonapi\Normalizer\LinkCollectionNormalizer
     tags:
       - { name: jsonapi_normalizer }
-  serializer.normalizer.entity_reference_field.jsonapi:
-    class: Drupal\jsonapi\Normalizer\EntityReferenceFieldNormalizer
+  serializer.normalizer.relationship.jsonapi:
+    class: Drupal\jsonapi\Normalizer\RelationshipNormalizer
     tags:
-      # This must have a higher priority than the 'serializer.normalizer.field.jsonapi' to take effect.
-      - { name: jsonapi_normalizer, priority: 1 }
+      - { name: jsonapi_normalizer }
   serializer.encoder.jsonapi:
     class: Drupal\jsonapi\Encoder\JsonEncoder
     tags:
       - { name: jsonapi_encoder, format: 'api_json' }
   jsonapi.resource_type.repository:
     class: Drupal\jsonapi\ResourceType\ResourceTypeRepository
-    arguments: ['@entity_type.manager', '@entity_type.bundle.info', '@entity_field.manager', '@cache.jsonapi_resource_types']
+    arguments: ['@entity_type.manager', '@entity_type.bundle.info', '@entity_field.manager', '@cache.jsonapi_resource_types', '@event_dispatcher']
   jsonapi.route_enhancer:
     class: Drupal\jsonapi\Routing\RouteEnhancer
     tags:
@@ -113,11 +119,27 @@ services:
     arguments: ['jsonapi']
 
   # Cache.
-  cache.jsonapi_resource_types:
+  cache.jsonapi_memory:
     class: Drupal\Core\Cache\MemoryCache\MemoryCache
-    # We need this to add this to the Drupal's cache_tags.invalidator service.
-    # This way it can invalidate the data in here based on tags.
+    public: false
+
+  # A chained cache with an in-memory cache as the first layer and a database-
+  # backed cache as the fallback is used. The first layer (memory) is necessary
+  # because ResourceType value objects are retrieved many times during a
+  # request. The second layer (by default a database) is necessary to avoid
+  # recomputing the ResourceType value objects on every request.
+  cache.jsonapi_resource_types:
+    class: Drupal\Core\Cache\BackendChain
+    calls:
+      - [appendBackend, ['@cache.jsonapi_memory']]
+      - [appendBackend, ['@cache.default']]
     tags: [{ name: cache.bin }]
+  cache.jsonapi_normalizations:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory: cache_factory:get
+    arguments: [jsonapi_normalizations]
 
   # Route filter.
   jsonapi.route_filter.format_setter:
@@ -185,7 +207,7 @@ services:
       - { name: event_subscriber }
   jsonapi.resource_response_validator.subscriber:
     class: Drupal\jsonapi\EventSubscriber\ResourceResponseValidator
-    arguments: ['@jsonapi.serializer', '@logger.channel.jsonapi', '@module_handler', '@app.root']
+    arguments: ['@logger.channel.jsonapi', '@module_handler', '@app.root']
     calls:
       - [setValidator, []]
     tags:

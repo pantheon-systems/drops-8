@@ -21,6 +21,11 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
    */
   public static $modules = ['media_test_oembed'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
   use OEmbedTestTrait;
 
   /**
@@ -93,7 +98,7 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
 
     // Configure the iframe to be narrower than the actual video, so we can
     // verify that the video scales correctly.
-    $display = entity_get_display('media', $media_type_id, 'default');
+    $display = \Drupal::service('entity_display.repository')->getViewDisplay('media', $media_type_id);
     $this->assertFalse($display->isNew());
     $component = $display->getComponent('field_media_oembed_video');
     $this->assertInternalType('array', $component);
@@ -141,8 +146,10 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
     $this->assertSame('480', $session->evaluateScript("$inner_frame.getAttribute('width')"));
     $this->assertLessThanOrEqual(240, $session->evaluateScript("$inner_frame.clientWidth"));
 
-    // Make sure the thumbnail is displayed from uploaded image.
-    $assert_session->elementAttributeContains('css', '.image-style-thumbnail', 'src', '/oembed_thumbnails/' . basename($thumbnail));
+    // The oEmbed content iFrame should be visible.
+    $assert_session->elementExists('css', 'iframe.media-oembed-content');
+    // The thumbnail should not be displayed.
+    $assert_session->elementNotExists('css', '.image-style-thumbnail');
 
     // Load the media and check that all fields are properly populated.
     $media = Media::load(1);
@@ -174,7 +181,7 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
     $this->assertNoRaw('core/modules/media/templates/media-oembed-iframe.html.twig');
 
     // Test themes not inheriting from stable.
-    \Drupal::service('theme_handler')->install(['stark']);
+    \Drupal::service('theme_installer')->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
     $this->drupalGet('media/oembed', ['query' => $query]);
     $assert_session->pageTextContains('By the power of Greyskull, Vimeo works!');

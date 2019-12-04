@@ -10,6 +10,11 @@ namespace Drupal\Tests\node\Functional;
 class NodeTemplateSuggestionsTest extends NodeTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests if template_preprocess_node() generates the correct suggestions.
    */
   public function testNodeThemeHookSuggestions() {
@@ -18,7 +23,7 @@ class NodeTemplateSuggestionsTest extends NodeTestBase {
     $view_mode = 'full';
 
     // Simulate theming of the node.
-    $build = \Drupal::entityManager()->getViewBuilder('node')->view($node, $view_mode);
+    $build = \Drupal::entityTypeManager()->getViewBuilder('node')->view($node, $view_mode);
 
     $variables['elements'] = $build;
     $suggestions = \Drupal::moduleHandler()->invokeAll('theme_suggestions_node', [$variables]);
@@ -27,7 +32,7 @@ class NodeTemplateSuggestionsTest extends NodeTestBase {
 
     // Change the view mode.
     $view_mode = 'node.my_custom_view_mode';
-    $build = \Drupal::entityManager()->getViewBuilder('node')->view($node, $view_mode);
+    $build = \Drupal::entityTypeManager()->getViewBuilder('node')->view($node, $view_mode);
 
     $variables['elements'] = $build;
     $suggestions = \Drupal::moduleHandler()->invokeAll('theme_suggestions_node', [$variables]);

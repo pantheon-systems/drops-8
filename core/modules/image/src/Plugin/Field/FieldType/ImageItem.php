@@ -209,8 +209,6 @@ class ImageItem extends FileItem {
       '#title' => t('Maximum image resolution'),
       '#element_validate' => [[get_class($this), 'validateResolution']],
       '#weight' => 4.1,
-      '#field_prefix' => '<div class="container-inline">',
-      '#field_suffix' => '</div>',
       '#description' => t('The maximum allowed image size expressed as WIDTH×HEIGHT (e.g. 640×480). Leave blank for no restriction. If a larger image is uploaded, it will be resized to reflect the given width and height. Resizing images on upload will cause the loss of <a href="http://wikipedia.org/wiki/Exchangeable_image_file_format">EXIF data</a> in the image.'),
     ];
     $element['max_resolution']['x'] = [
@@ -220,6 +218,7 @@ class ImageItem extends FileItem {
       '#default_value' => $max_resolution[0],
       '#min' => 1,
       '#field_suffix' => ' × ',
+      '#prefix' => '<div class="form--inline clearfix">',
     ];
     $element['max_resolution']['y'] = [
       '#type' => 'number',
@@ -228,6 +227,7 @@ class ImageItem extends FileItem {
       '#default_value' => $max_resolution[1],
       '#min' => 1,
       '#field_suffix' => ' ' . t('pixels'),
+      '#suffix' => '</div>',
     ];
 
     $min_resolution = explode('x', $settings['min_resolution']) + ['', ''];
@@ -236,8 +236,6 @@ class ImageItem extends FileItem {
       '#title' => t('Minimum image resolution'),
       '#element_validate' => [[get_class($this), 'validateResolution']],
       '#weight' => 4.2,
-      '#field_prefix' => '<div class="container-inline">',
-      '#field_suffix' => '</div>',
       '#description' => t('The minimum allowed image size expressed as WIDTH×HEIGHT (e.g. 640×480). Leave blank for no restriction. If a smaller image is uploaded, it will be rejected.'),
     ];
     $element['min_resolution']['x'] = [
@@ -247,6 +245,7 @@ class ImageItem extends FileItem {
       '#default_value' => $min_resolution[0],
       '#min' => 1,
       '#field_suffix' => ' × ',
+      '#prefix' => '<div class="form--inline clearfix">',
     ];
     $element['min_resolution']['y'] = [
       '#type' => 'number',
@@ -255,6 +254,7 @@ class ImageItem extends FileItem {
       '#default_value' => $min_resolution[1],
       '#min' => 1,
       '#field_suffix' => ' ' . t('pixels'),
+      '#suffix' => '</div>',
     ];
 
     // Remove the description option.
@@ -481,7 +481,7 @@ class ImageItem extends FileItem {
     if (isset($element['fids']['#value'][0])) {
       $value = $element['fids']['#value'][0];
       // Convert the file ID to a uuid.
-      if ($file = \Drupal::entityManager()->getStorage('file')->load($value)) {
+      if ($file = \Drupal::entityTypeManager()->getStorage('file')->load($value)) {
         $value = $file->uuid();
       }
     }
@@ -503,8 +503,17 @@ class ImageItem extends FileItem {
    * Gets the entity manager.
    *
    * @return \Drupal\Core\Entity\EntityManagerInterface
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   \Drupal::entityTypeManager() instead in most cases. If the needed method
+   *   is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the
+   *   deprecated \Drupal\Core\Entity\EntityManager to find the correct
+   *   interface or service.
+   *
+   * @see https://www.drupal.org/node/2549139
    */
   protected function getEntityManager() {
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.8.0 and is removed in drupal:9.0.0. Use \Drupal::entityTypeManager() instead in most cases. If the needed method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the deprecated \Drupal\Core\Entity\EntityManager to find the correct interface or service. See https://www.drupal.org/node/2549139', E_USER_DEPRECATED);
     if (!isset($this->entityManager)) {
       $this->entityManager = \Drupal::entityManager();
     }

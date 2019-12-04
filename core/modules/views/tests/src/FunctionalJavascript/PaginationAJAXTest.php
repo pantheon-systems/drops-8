@@ -23,6 +23,11 @@ class PaginationAJAXTest extends WebDriverTestBase {
   public static $modules = ['node', 'views', 'views_test_config'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * @var array
    * Test Views to enable.
    */
@@ -63,6 +68,12 @@ class PaginationAJAXTest extends WebDriverTestBase {
     $session_assert = $this->assertSession();
 
     $page = $this->getSession()->getPage();
+
+    $settings = $this->getDrupalSettings();
+
+    // Make sure the the view_path is set correctly.
+    $expected_view_path = '/test-content-ajax';
+    $this->assertEquals($expected_view_path, current($settings['views']['ajaxViews'])['view_path']);
 
     // Set the number of items displayed per page to 5 using the exposed pager.
     $page->selectFieldOption('edit-items-per-page', 5);
@@ -117,6 +128,10 @@ class PaginationAJAXTest extends WebDriverTestBase {
     $rows = $page->findAll('css', 'tbody tr');
     $this->assertCount(1, $rows);
     $this->assertContains('Node 11 content', $rows[0]->getHtml());
+
+    // Make sure the AJAX calls don't change the view_path.
+    $settings = $this->getDrupalSettings();
+    $this->assertEquals($expected_view_path, current($settings['views']['ajaxViews'])['view_path']);
   }
 
   /**

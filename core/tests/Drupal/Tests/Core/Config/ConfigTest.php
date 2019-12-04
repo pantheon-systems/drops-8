@@ -7,6 +7,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Config\ConfigValueException;
+use PHPUnit\Framework\Error\Warning;
 
 /**
  * Tests the Config.
@@ -29,37 +30,37 @@ class ConfigTest extends UnitTestCase {
   /**
    * Storage.
    *
-   * @var \Drupal\Core\Config\StorageInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\StorageInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $storage;
 
   /**
    * Event Dispatcher.
    *
-   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $eventDispatcher;
 
   /**
    * Typed Config.
    *
-   * @var \Drupal\Core\Config\TypedConfigManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\TypedConfigManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $typedConfig;
 
   /**
    * The mocked cache tags invalidator.
    *
-   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheTagsInvalidatorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheTagsInvalidator;
 
   protected function setUp() {
-    $this->storage = $this->getMock('Drupal\Core\Config\StorageInterface');
-    $this->eventDispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
-    $this->typedConfig = $this->getMock('\Drupal\Core\Config\TypedConfigManagerInterface');
+    $this->storage = $this->createMock('Drupal\Core\Config\StorageInterface');
+    $this->eventDispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $this->typedConfig = $this->createMock('\Drupal\Core\Config\TypedConfigManagerInterface');
     $this->config = new Config('config.test', $this->storage, $this->eventDispatcher, $this->typedConfig);
-    $this->cacheTagsInvalidator = $this->getMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
+    $this->cacheTagsInvalidator = $this->createMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
 
     $container = new ContainerBuilder();
     $container->set('cache_tags.invalidator', $this->cacheTagsInvalidator);
@@ -257,7 +258,7 @@ class ConfigTest extends UnitTestCase {
    * @covers ::set
    */
   public function testSetValidation() {
-    $this->setExpectedException(ConfigValueException::class);
+    $this->expectException(ConfigValueException::class);
     $this->config->set('testData', ['dot.key' => 1]);
   }
 
@@ -269,7 +270,7 @@ class ConfigTest extends UnitTestCase {
     $this->config->set('testData', 1);
 
     // Attempt to treat the single value as a nested item.
-    $this->setExpectedException(\PHPUnit_Framework_Error_Warning::class);
+    $this->expectException(Warning::class);
     $this->config->set('testData.illegalOffset', 1);
   }
 
@@ -411,7 +412,8 @@ class ConfigTest extends UnitTestCase {
    * @dataProvider validateNameProvider
    */
   public function testValidateNameException($name, $exception_message) {
-    $this->setExpectedException('\Drupal\Core\Config\ConfigNameException', $exception_message);
+    $this->expectException('\Drupal\Core\Config\ConfigNameException');
+    $this->expectExceptionMessage($exception_message);
     $this->config->validateName($name);
   }
 

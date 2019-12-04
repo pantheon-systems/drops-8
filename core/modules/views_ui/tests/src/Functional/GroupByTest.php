@@ -17,6 +17,11 @@ class GroupByTest extends UITestBase {
   public static $testViews = ['test_views_groupby_save'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests whether basic saving works.
    *
    * @todo This should check the change of the settings as well.
@@ -41,7 +46,7 @@ class GroupByTest extends UITestBase {
 
     $this->drupalPostForm(NULL, [], t('Save'));
 
-    $view = $this->container->get('entity.manager')->getStorage('view')->load('test_views_groupby_save');
+    $view = $this->container->get('entity_type.manager')->getStorage('view')->load('test_views_groupby_save');
     $display = $view->getDisplay('default');
     $this->assertTrue($display['display_options']['group_by'], 'The groupby setting was saved on the view.');
     $this->assertEqual($display['display_options']['fields']['id']['group_type'], 'count', 'Count groupby_type was saved on the view.');

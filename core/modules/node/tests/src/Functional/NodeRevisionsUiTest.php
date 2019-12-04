@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\node\Functional;
 
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -12,6 +13,11 @@ use Drupal\node\Entity\NodeType;
  * @group node
  */
 class NodeRevisionsUiTest extends NodeTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * @var \Drupal\user\Entity\User
@@ -38,7 +44,7 @@ class NodeRevisionsUiTest extends NodeTestBase {
    */
   public function testNodeFormSaveWithoutRevision() {
     $this->drupalLogin($this->editor);
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
 
     // Set page revision setting 'create new revision'. This will mean new
     // revisions are created by default when the node is edited.
@@ -114,7 +120,7 @@ class NodeRevisionsUiTest extends NodeTestBase {
     // Assert the old revision message.
     $date = $this->container->get('date.formatter')->format($nodes[0]->revision_timestamp->value, 'short');
     $url = new Url('entity.node.revision', ['node' => $nodes[0]->id(), 'node_revision' => $nodes[0]->getRevisionId()]);
-    $this->assertRaw(\Drupal::l($date, $url) . ' by ' . $editor);
+    $this->assertRaw(Link::fromTextAndUrl($date, $url)->toString() . ' by ' . $editor);
 
     // Assert the current revision message.
     $date = $this->container->get('date.formatter')->format($nodes[1]->revision_timestamp->value, 'short');

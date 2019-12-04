@@ -416,7 +416,7 @@ class Container implements ContainerInterface {
   /**
    * Resolves arguments that represent services or variables to the real values.
    *
-   * @param array|\stdClass $arguments
+   * @param array|object $arguments
    *   The arguments to resolve.
    *
    * @return array
@@ -517,6 +517,11 @@ class Container implements ContainerInterface {
           else {
             $arguments[$key] = $value;
           }
+
+          continue;
+        }
+        elseif ($type == 'raw') {
+          $arguments[$key] = $argument->value;
 
           continue;
         }
