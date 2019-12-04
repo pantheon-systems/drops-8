@@ -20,6 +20,11 @@ class NodeAccessFieldTest extends NodeTestBase {
   public static $modules = ['node_access_test', 'field_ui'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user with permission to bypass access content.
    *
    * @var \Drupal\user\UserInterface
@@ -61,10 +66,12 @@ class NodeAccessFieldTest extends NodeTestBase {
       'entity_type' => 'node',
       'bundle' => 'page',
     ])->save();
-    entity_get_display('node', 'page', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getViewDisplay('node', 'page')
       ->setComponent($this->fieldName)
       ->save();
-    entity_get_form_display('node', 'page', 'default')
+    $display_repository->getFormDisplay('node', 'page')
       ->setComponent($this->fieldName)
       ->save();
   }

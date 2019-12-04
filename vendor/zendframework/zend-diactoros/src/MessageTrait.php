@@ -1,9 +1,7 @@
 <?php
 /**
- * Zend Framework (http://framework.zend.com/)
- *
- * @see       http://github.com/zendframework/zend-diactoros for the canonical source repository
- * @copyright Copyright (c) 2015-2016 Zend Technologies USA Inc. (http://www.zend.com)
+ * @see       https://github.com/zendframework/zend-diactoros for the canonical source repository
+ * @copyright Copyright (c) 2015-2017 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
  */
 
@@ -11,6 +9,19 @@ namespace Zend\Diactoros;
 
 use InvalidArgumentException;
 use Psr\Http\Message\StreamInterface;
+
+use function array_map;
+use function array_merge;
+use function get_class;
+use function gettype;
+use function implode;
+use function is_array;
+use function is_object;
+use function is_resource;
+use function is_string;
+use function preg_match;
+use function sprintf;
+use function strtolower;
 
 /**
  * Trait implementing the various methods defined in MessageInterface.
@@ -343,9 +354,9 @@ trait MessageTrait
     private function validateProtocolVersion($version)
     {
         if (empty($version)) {
-            throw new InvalidArgumentException(sprintf(
+            throw new InvalidArgumentException(
                 'HTTP protocol version can not be empty'
-            ));
+            );
         }
         if (! is_string($version)) {
             throw new InvalidArgumentException(sprintf(
@@ -374,11 +385,18 @@ trait MessageTrait
             $values = [$values];
         }
 
+        if ([] === $values) {
+            throw new InvalidArgumentException(
+                'Invalid header value: must be a string or array of strings; '
+                . 'cannot be an empty array'
+            );
+        }
+
         return array_map(function ($value) {
             HeaderSecurity::assertValid($value);
 
             return (string) $value;
-        }, $values);
+        }, array_values($values));
     }
 
     /**

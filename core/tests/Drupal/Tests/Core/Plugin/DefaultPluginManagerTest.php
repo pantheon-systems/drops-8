@@ -77,7 +77,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
       'provider' => 'plugin_test',
     ];
 
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $plugin_manager = new TestPluginManager($this->namespaces, $definitions, $module_handler, 'test_alter_hook', '\Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface');
     $plugin_manager->getDefinition('plugin_test', FALSE);
     $this->assertTrue(TRUE, 'No PHP fatal error occurred when retrieving the definitions of a module with plugins that depend on a non-installed module class should not cause a PHP fatal.');
@@ -96,7 +96,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
       'provider' => 'disabled_module',
     ];
 
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $module_handler->expects($this->once())
       ->method('moduleExists')
@@ -121,7 +121,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
       'provider' => 'disabled_module',
     ];
 
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $module_handler->expects($this->once())
       ->method('moduleExists')
@@ -139,7 +139,8 @@ class DefaultPluginManagerTest extends UnitTestCase {
   public function testGetDefinitionPluginNotFoundException() {
     $plugin_manager = new TestPluginManager($this->namespaces, $this->expectedDefinitions);
 
-    $this->setExpectedException(PluginNotFoundException::class, 'The "missing" plugin does not exist. Valid plugin IDs for Drupal\Tests\Core\Plugin\TestPluginManager are: apple, banana');
+    $this->expectException(PluginNotFoundException::class);
+    $this->expectExceptionMessage('The "missing" plugin does not exist. Valid plugin IDs for Drupal\Tests\Core\Plugin\TestPluginManager are: apple, banana');
     $plugin_manager->getDefinition('missing');
   }
 
@@ -249,8 +250,8 @@ class DefaultPluginManagerTest extends UnitTestCase {
    */
   public function testCacheClearWithTags() {
     $cid = $this->randomMachineName();
-    $cache_backend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $cache_tags_invalidator = $this->getMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
+    $cache_backend = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $cache_tags_invalidator = $this->createMock('Drupal\Core\Cache\CacheTagsInvalidatorInterface');
     $cache_tags_invalidator
       ->expects($this->once())
       ->method('invalidateTags')
@@ -286,7 +287,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
    * @covers ::createInstance
    */
   public function testCreateInstanceWithInvalidInterfaces() {
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $module_handler->expects($this->any())
       ->method('moduleExists')
@@ -304,7 +305,8 @@ class DefaultPluginManagerTest extends UnitTestCase {
     $this->expectedDefinitions['banana']['provider'] = 'plugin_test';
 
     $plugin_manager = new TestPluginManager($this->namespaces, $this->expectedDefinitions, $module_handler, NULL, '\Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface');
-    $this->setExpectedException(PluginException::class, 'Plugin "kale" (Drupal\plugin_test\Plugin\plugin_test\fruit\Kale) must implement interface \Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface');
+    $this->expectException(PluginException::class);
+    $this->expectExceptionMessage('Plugin "kale" (Drupal\plugin_test\Plugin\plugin_test\fruit\Kale) must implement interface \Drupal\plugin_test\Plugin\plugin_test\fruit\FruitInterface');
     $plugin_manager->createInstance('kale');
   }
 
@@ -314,7 +316,7 @@ class DefaultPluginManagerTest extends UnitTestCase {
    * @covers ::getDefinitions
    */
   public function testGetDefinitionsWithoutRequiredInterface() {
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
     $module_handler->expects($this->any())
       ->method('moduleExists')

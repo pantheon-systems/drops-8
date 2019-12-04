@@ -4,20 +4,34 @@ namespace Drupal\Core\Path;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\CacheDecorator\CacheDecoratorInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Symfony\Component\DependencyInjection\Exception\ServiceCircularReferenceException;
 
 /**
  * The default alias manager implementation.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\path_alias\AliasManager instead.
+ *
+ * @see https://www.drupal.org/node/3092086
  */
 class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
 
+  use DeprecatedServicePropertyTrait;
+
   /**
-   * The alias storage service.
-   *
-   * @var \Drupal\Core\Path\AliasStorageInterface
+   * {@inheritdoc}
    */
-  protected $storage;
+  protected $deprecatedProperties = ['storage' => 'path.alias_storage'];
+
+  /**
+   * The path alias repository.
+   *
+   * @var \Drupal\Core\Path\AliasRepositoryInterface
+   */
+  protected $pathAliasRepository;
 
   /**
    * Cache backend service.
@@ -95,8 +109,8 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
   /**
    * Constructs an AliasManager.
    *
-   * @param \Drupal\Core\Path\AliasStorageInterface $storage
-   *   The alias storage service.
+   * @param \Drupal\Core\Path\AliasRepositoryInterface $alias_repository
+   *   The path alias repository.
    * @param \Drupal\Core\Path\AliasWhitelistInterface $whitelist
    *   The whitelist implementation to use.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
@@ -104,11 +118,40 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   Cache backend.
    */
-  public function __construct(AliasStorageInterface $storage, AliasWhitelistInterface $whitelist, LanguageManagerInterface $language_manager, CacheBackendInterface $cache) {
-    $this->storage = $storage;
+  public function __construct($alias_repository, AliasWhitelistInterface $whitelist, LanguageManagerInterface $language_manager, CacheBackendInterface $cache) {
+    if (!$alias_repository instanceof AliasRepositoryInterface) {
+      @trigger_error('Passing the path.alias_storage service to AliasManager::__construct() is deprecated in drupal:8.8.0 and will be removed before drupal:9.0.0. Pass the new dependencies instead. See https://www.drupal.org/node/3013865.', E_USER_DEPRECATED);
+      $alias_repository = \Drupal::service('path_alias.repository');
+    }
+    $this->pathAliasRepository = $alias_repository;
     $this->languageManager = $language_manager;
     $this->whitelist = $whitelist;
     $this->cache = $cache;
+
+    // This is used as base class by the new class, so we do not trigger
+    // deprecation notices when that or any child class is instantiated.
+    $new_class = 'Drupal\path_alias\AliasManager';
+    if (!is_a($this, $new_class) && class_exists($new_class)) {
+      @trigger_error('The \\' . __CLASS__ . ' class is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Instead, use \\' . $new_class . '. See https://drupal.org/node/3092086', E_USER_DEPRECATED);
+
+      // Despite being two different services, hence two different class
+      // instances, both the new and the legacy alias managers need to share the
+      // same internal state to keep the path/alias lookup optimizations
+      // working.
+      try {
+        $alias_manager = \Drupal::service('path_alias.manager');
+        if ($alias_manager instanceof $new_class) {
+          $synced_properties = ['cacheKey', 'langcodePreloaded', 'lookupMap', 'noAlias', 'noPath', 'preloadedPathLookups'];
+          foreach ($synced_properties as $property) {
+            $this->{$property} = &$alias_manager->{$property};
+          }
+        }
+      }
+      catch (ServiceCircularReferenceException $e) {
+        // This may happen during installation when the "path_alias" module has
+        // not been installed yet. Nothing to do in this case.
+      }
+    }
   }
 
   /**
@@ -166,9 +209,9 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
     }
 
     // Look for path in storage.
-    if ($path = $this->storage->lookupPathSource($alias, $langcode)) {
-      $this->lookupMap[$langcode][$path] = $alias;
-      return $path;
+    if ($path_alias = $this->pathAliasRepository->lookupByAlias($alias, $langcode)) {
+      $this->lookupMap[$langcode][$path_alias['path']] = $alias;
+      return $path_alias['path'];
     }
 
     // We can't record anything into $this->lookupMap because we didn't find any
@@ -220,7 +263,7 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
 
       // Load paths from cache.
       if (!empty($this->preloadedPathLookups[$langcode])) {
-        $this->lookupMap[$langcode] = $this->storage->preloadPathAlias($this->preloadedPathLookups[$langcode], $langcode);
+        $this->lookupMap[$langcode] = $this->pathAliasRepository->preloadPathAlias($this->preloadedPathLookups[$langcode], $langcode);
         // Keep a record of paths with no alias to avoid querying twice.
         $this->noAlias[$langcode] = array_flip(array_diff_key($this->preloadedPathLookups[$langcode], array_keys($this->lookupMap[$langcode])));
       }
@@ -237,9 +280,9 @@ class AliasManager implements AliasManagerInterface, CacheDecoratorInterface {
     }
 
     // Try to load alias from storage.
-    if ($alias = $this->storage->lookupPathAlias($path, $langcode)) {
-      $this->lookupMap[$langcode][$path] = $alias;
-      return $alias;
+    if ($path_alias = $this->pathAliasRepository->lookupBySystemPath($path, $langcode)) {
+      $this->lookupMap[$langcode][$path] = $path_alias['alias'];
+      return $path_alias['alias'];
     }
 
     // We can't record anything into $this->lookupMap because we didn't find any

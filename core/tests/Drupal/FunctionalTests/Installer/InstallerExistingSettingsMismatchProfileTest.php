@@ -17,6 +17,11 @@ class InstallerExistingSettingsMismatchProfileTest extends InstallerTestBase {
 
   /**
    * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
    *
    * Configures a preexisting settings.php file without an install_profile
    * setting before invoking the interactive installer.
@@ -48,13 +53,11 @@ class InstallerExistingSettingsMismatchProfileTest extends InstallerTestBase {
     ];
 
     // Pre-configure config directories.
-    $this->settings['config_directories'] = [
-      CONFIG_SYNC_DIRECTORY => (object) [
-        'value' => DrupalKernel::findSitePath(Request::createFromGlobals()) . '/files/config_sync',
-        'required' => TRUE,
-      ],
+    $this->settings['settings']['config_sync_directory'] = (object) [
+      'value' => DrupalKernel::findSitePath(Request::createFromGlobals()) . '/files/config_sync',
+      'required' => TRUE,
     ];
-    mkdir($this->settings['config_directories'][CONFIG_SYNC_DIRECTORY]->value, 0777, TRUE);
+    mkdir($this->settings['settings']['config_sync_directory']->value, 0777, TRUE);
   }
 
   /**

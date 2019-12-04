@@ -14,7 +14,7 @@ class ChainEntityResolverTest extends UnitTestCase {
   /**
    * A mocked normalizer.
    *
-   * @var \Symfony\Component\Serializer\Normalizer\NormalizerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\Serializer\Normalizer\NormalizerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $testNormalizer;
 
@@ -36,7 +36,7 @@ class ChainEntityResolverTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->testNormalizer = $this->getMock('Symfony\Component\Serializer\Normalizer\NormalizerInterface');
+    $this->testNormalizer = $this->createMock('Symfony\Component\Serializer\Normalizer\NormalizerInterface');
     $this->testData = new \stdClass();
   }
 
@@ -130,11 +130,11 @@ class ChainEntityResolverTest extends UnitTestCase {
    * @param bool $called
    *   Whether or not the resolve method is expected to be called.
    *
-   * @return \Drupal\serialization\EntityResolver\EntityResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\serialization\EntityResolver\EntityResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    *   The mocked entity resolver.
    */
   protected function createEntityResolverMock($return = NULL, $called = TRUE) {
-    $mock = $this->getMock('Drupal\serialization\EntityResolver\EntityResolverInterface');
+    $mock = $this->createMock('Drupal\serialization\EntityResolver\EntityResolverInterface');
 
     if ($called) {
       $mock->expects($this->once())

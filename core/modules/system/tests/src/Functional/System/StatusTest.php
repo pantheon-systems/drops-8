@@ -4,7 +4,6 @@ namespace Drupal\Tests\system\Functional\System;
 
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
-use Drupal\system\SystemRequirements;
 use Symfony\Component\CssSelector\CssSelectorConverter;
 
 /**
@@ -22,16 +21,18 @@ class StatusTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
-    // Unset the sync directory in settings.php to trigger $config_directories
-    // error.
-    $settings['config_directories'] = [
-      CONFIG_SYNC_DIRECTORY => (object) [
-        'value' => '',
-        'required' => TRUE,
-      ],
+    // Unset the sync directory in settings.php to trigger the error.
+    $settings['settings']['config_sync_directory'] = (object) [
+      'value' => '',
+      'required' => TRUE,
     ];
     $this->writeSettings($settings);
 
@@ -52,15 +53,6 @@ class StatusTest extends BrowserTestBase {
     $phpversion = phpversion();
     $this->assertText($phpversion, 'Php version is shown on the page.');
 
-    // Checks if the suggestion to update to php 5.5.21 or 5.6.5 for disabling
-    // multiple statements is present when necessary.
-    if (\Drupal::database()->driver() === 'mysql' && !SystemRequirements::phpVersionWithPdoDisallowMultipleStatements($phpversion)) {
-      $this->assertText(t('PHP (multiple statement disabling)'));
-    }
-    else {
-      $this->assertNoText(t('PHP (multiple statement disabling)'));
-    }
-
     if (function_exists('phpinfo')) {
       $this->assertLinkByHref(Url::fromRoute('system.php')->toString());
     }
@@ -72,7 +64,7 @@ class StatusTest extends BrowserTestBase {
     $this->assertNoText(t('Out of date'));
 
     // The global $config_directories is not properly formed.
-    $this->assertRaw(t('Your %file file must define the $config_directories variable as an array containing the names of directories in which configuration files can be found. It must contain a %sync_key key.', ['%file' => $this->siteDirectory . '/settings.php', '%sync_key' => CONFIG_SYNC_DIRECTORY]));
+    $this->assertRaw(t("Your %file file must define the %setting setting", ['%file' => $this->siteDirectory . '/settings.php', '%setting' => "\$settings['config_sync_directory']"]));
 
     // Set the schema version of update_test_postupdate to a lower version, so
     // update_test_postupdate_update_8001() needs to be executed.

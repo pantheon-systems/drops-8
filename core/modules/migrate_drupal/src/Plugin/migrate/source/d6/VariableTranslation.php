@@ -2,8 +2,9 @@
 
 namespace Drupal\migrate_drupal\Plugin\migrate\source\d6;
 
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\State\StateInterface;
+use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 
@@ -12,7 +13,7 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
  *
  * @MigrateSource(
  *   id = "d6_variable_translation",
- *   source_module = "system",
+ *   source_module = "i18n",
  * )
  */
 class VariableTranslation extends DrupalSqlBase {
@@ -27,8 +28,8 @@ class VariableTranslation extends DrupalSqlBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, StateInterface $state, EntityManagerInterface $entity_manager) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $state, $entity_manager);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, StateInterface $state, EntityTypeManagerInterface $entity_type_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $state, $entity_type_manager);
     $this->variables = $this->configuration['variables'];
   }
 
@@ -96,6 +97,16 @@ class VariableTranslation extends DrupalSqlBase {
   public function getIds() {
     $ids['language']['type'] = 'string';
     return $ids;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function checkRequirements() {
+    if (!$this->getDatabase()->schema()->tableExists('i18n_variable')) {
+      throw new RequirementsException("Source database table 'i18n_variable' does not exist");
+    }
+    parent::checkRequirements();
   }
 
 }

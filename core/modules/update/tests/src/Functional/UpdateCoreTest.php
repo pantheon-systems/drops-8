@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\update\Functional;
 
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Tests\Traits\Core\CronRunTrait;
 
@@ -21,6 +22,11 @@ class UpdateCoreTest extends UpdateTestBase {
    * @var array
    */
   public static $modules = ['update_test', 'update', 'language', 'block'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   protected function setUp() {
     parent::setUp();
@@ -81,9 +87,9 @@ class UpdateCoreTest extends UpdateTestBase {
         $this->clickLink(t('Check manually'));
         $this->checkForMetaRefresh();
         $this->assertNoText(t('Security update required!'));
-        $this->assertRaw(\Drupal::l("8.$minor_version.1" . $extra_version, Url::fromUri("http://example.com/drupal-8-$minor_version-1$extra_version-release")), 'Link to release appears.');
-        $this->assertRaw(\Drupal::l(t('Download'), Url::fromUri("http://example.com/drupal-8-$minor_version-1$extra_version.tar.gz")), 'Link to download appears.');
-        $this->assertRaw(\Drupal::l(t('Release notes'), Url::fromUri("http://example.com/drupal-8-$minor_version-1$extra_version-release")), 'Link to release notes appears.');
+        $this->assertRaw(Link::fromTextAndUrl("8.$minor_version.1" . $extra_version, Url::fromUri("http://example.com/drupal-8-$minor_version-1$extra_version-release"))->toString(), 'Link to release appears.');
+        $this->assertRaw(Link::fromTextAndUrl(t('Download'), Url::fromUri("http://example.com/drupal-8-$minor_version-1$extra_version.tar.gz"))->toString(), 'Link to download appears.');
+        $this->assertRaw(Link::fromTextAndUrl(t('Release notes'), Url::fromUri("http://example.com/drupal-8-$minor_version-1$extra_version-release"))->toString(), 'Link to release notes appears.');
 
         switch ($minor_version) {
           case 0:
@@ -145,9 +151,9 @@ class UpdateCoreTest extends UpdateTestBase {
           $this->clickLink(t('Check manually'));
           $this->checkForMetaRefresh();
           $this->assertNoText(t('Security update required!'));
-          $this->assertRaw(\Drupal::l('9.0.0', Url::fromUri("http://example.com/drupal-9-0-0-release")), 'Link to release appears.');
-          $this->assertRaw(\Drupal::l(t('Download'), Url::fromUri("http://example.com/drupal-9-0-0.tar.gz")), 'Link to download appears.');
-          $this->assertRaw(\Drupal::l(t('Release notes'), Url::fromUri("http://example.com/drupal-9-0-0-release")), 'Link to release notes appears.');
+          $this->assertRaw(Link::fromTextAndUrl('9.0.0', Url::fromUri("http://example.com/drupal-9-0-0-release"))->toString(), 'Link to release appears.');
+          $this->assertRaw(Link::fromTextAndUrl(t('Download'), Url::fromUri("http://example.com/drupal-9-0-0.tar.gz"))->toString(), 'Link to download appears.');
+          $this->assertRaw(Link::fromTextAndUrl(t('Release notes'), Url::fromUri("http://example.com/drupal-9-0-0-release"))->toString(), 'Link to release notes appears.');
           $this->assertNoText(t('Up to date'));
           $this->assertText(t('Not supported!'));
           $this->assertText(t('Recommended version:'));
@@ -382,6 +388,23 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->cronRun();
     $this->drupalGet('admin/modules');
     $this->assertNoText(t('No update information available.'));
+  }
+
+  /**
+   * Checks that clearing the disk cache works.
+   */
+  public function testClearDiskCache() {
+    $directories = [
+      _update_manager_cache_directory(FALSE),
+      _update_manager_extract_directory(FALSE),
+    ];
+    // Check that update directories does not exists.
+    foreach ($directories as $directory) {
+      $this->assertDirectoryNotExists($directory);
+    }
+
+    // Method must not fail if update directories do not exists.
+    update_clear_update_disk_cache();
   }
 
   /**

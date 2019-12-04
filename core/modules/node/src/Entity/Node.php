@@ -144,7 +144,7 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
     // is new.
     if ($this->isDefaultRevision()) {
       /** @var \Drupal\node\NodeAccessControlHandlerInterface $access_control_handler */
-      $access_control_handler = \Drupal::entityManager()->getAccessControlHandler('node');
+      $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
       $grants = $access_control_handler->acquireGrants($this);
       \Drupal::service('node.grant_storage')->write($this, $grants, NULL, $update);
     }
@@ -163,9 +163,11 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
     parent::preDelete($storage, $entities);
 
     // Ensure that all nodes deleted are removed from the search index.
-    if (\Drupal::moduleHandler()->moduleExists('search')) {
+    if (\Drupal::hasService('search.index')) {
+      /** @var \Drupal\search\SearchIndexInterface $search_index */
+      $search_index = \Drupal::service('search.index');
       foreach ($entities as $entity) {
-        search_index_clear('node_search', $entity->nid->value);
+        $search_index->clear('node_search', $entity->nid->value);
       }
     }
   }
@@ -257,6 +259,7 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
    * {@inheritdoc}
    */
   public function getRevisionAuthor() {
+    @trigger_error(__NAMESPACE__ . '\Node::getRevisionAuthor is deprecated in drupal:8.2.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Entity\RevisionLogInterface::getRevisionUser() instead. See https://www.drupal.org/node/3069750', E_USER_DEPRECATED);
     return $this->getRevisionUser();
   }
 
@@ -264,8 +267,8 @@ class Node extends EditorialContentEntityBase implements NodeInterface {
    * {@inheritdoc}
    */
   public function setRevisionAuthorId($uid) {
-    $this->setRevisionUserId($uid);
-    return $this;
+    @trigger_error(__NAMESPACE__ . '\Node::setRevisionAuthorId is deprecated in drupal:8.2.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Entity\RevisionLogInterface::setRevisionUserId() instead. See https://www.drupal.org/node/3069750', E_USER_DEPRECATED);
+    return $this->setRevisionUserId($uid);
   }
 
   /**

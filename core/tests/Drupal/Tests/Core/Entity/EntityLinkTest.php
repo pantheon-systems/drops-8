@@ -17,21 +17,21 @@ class EntityLinkTest extends UnitTestCase {
   /**
    * The mocked entity type manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The tested link generator.
    *
-   * @var \Drupal\Core\Utility\LinkGeneratorInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Utility\LinkGeneratorInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $linkGenerator;
 
   /**
    * The mocked language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
@@ -41,9 +41,9 @@ class EntityLinkTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
 
-    $this->entityTypeManager = $this->getMock(EntityTypeManagerInterface::class);
-    $this->linkGenerator = $this->getMock('Drupal\Core\Utility\LinkGeneratorInterface');
-    $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $this->linkGenerator = $this->createMock('Drupal\Core\Utility\LinkGeneratorInterface');
+    $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
 
     $container = new ContainerBuilder();
     $container->set('entity_type.manager', $this->entityTypeManager);
@@ -83,7 +83,7 @@ class EntityLinkTest extends UnitTestCase {
     $entity_type_id = 'test_entity_type';
     $expected = '<a href="/test_entity_type/test_entity_id">' . $expected_text . '</a>';
 
-    $entity_type = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $entity_type = $this->createMock('Drupal\Core\Entity\EntityTypeInterface');
     $entity_type->expects($this->once())
       ->method('getLinkTemplates')
       ->willReturn($route_name_map);
@@ -152,7 +152,7 @@ class EntityLinkTest extends UnitTestCase {
     $entity_type_id = 'test_entity_type';
     $expected = '<a href="/test_entity_type/test_entity_id">' . $expected_text . '</a>';
 
-    $entity_type = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $entity_type = $this->createMock('Drupal\Core\Entity\EntityTypeInterface');
     $entity_type->expects($this->once())
       ->method('getLinkTemplates')
       ->willReturn($route_name_map);

@@ -26,9 +26,6 @@ class UrlHelper {
    * RFC3986 and as a consequence non compliant to RFC3987 and as a consequence
    * not valid as a "URL" in HTML5.
    *
-   * @todo Remove this function once PHP 5.4 is required as we can use just
-   *   http_build_query() directly.
-   *
    * @param array $query
    *   The query parameter array to be processed; for instance,
    *   \Drupal::request()->query->all().
@@ -154,7 +151,7 @@ class UrlHelper {
       }
 
       // Split off everything before the query string into 'path'.
-      $parts = explode('?', $url);
+      $parts = explode('?', $url, 2);
 
       // Don't support URLs without a path, like 'http://'.
       list(, $path) = explode('://', $parts[0], 2);

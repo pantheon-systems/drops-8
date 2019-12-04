@@ -82,7 +82,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.7.10';
+  const VERSION = '8.8.0';
 
   /**
    * Core API compatibility.
@@ -251,6 +251,13 @@ class Drupal {
   /**
    * Gets the current active user.
    *
+   * This method will return the \Drupal\Core\Session\AccountProxy object of the
+   * current user. You can use the \Drupal\user\Entity\User::load() method to
+   * load the full user entity object. For example:
+   * @code
+   *   $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+   * @endcode
+   *
    * @return \Drupal\Core\Session\AccountProxyInterface
    */
   public static function currentUser() {
@@ -263,13 +270,14 @@ class Drupal {
    * @return \Drupal\Core\Entity\EntityManagerInterface
    *   The entity manager service.
    *
-   * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
    *   Use \Drupal::entityTypeManager() instead in most cases. If the needed
    *   method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the
    *   deprecated \Drupal\Core\Entity\EntityManager to find the
    *   correct interface or service.
    */
   public static function entityManager() {
+    @trigger_error("\Drupal::entityManager() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager() instead in most cases. If the needed method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the deprecated \Drupal\Core\Entity\EntityManager to find the correct interface or service. See https://www.drupal.org/node/2549139", E_USER_DEPRECATED);
     return static::getContainer()->get('entity.manager');
   }
 
@@ -365,12 +373,14 @@ class Drupal {
    *
    * This is the main entry point to the configuration API. Calling
    * @code \Drupal::config('book.admin') @endcode will return a configuration
-   * object in which the book module can store its administrative settings.
+   * object the Book module can use to read its administrative settings.
    *
    * @param string $name
-   *   The name of the configuration object to retrieve. The name corresponds to
-   *   a configuration file. For @code \Drupal::config('book.admin') @endcode, the config
-   *   object returned will contain the contents of book.admin configuration file.
+   *   The name of the configuration object to retrieve, which typically
+   *   corresponds to a configuration file. For
+   *   @code \Drupal::config('book.admin') @endcode, the configuration
+   *   object returned will contain the content of the book.admin
+   *   configuration file.
    *
    * @return \Drupal\Core\Config\ImmutableConfig
    *   An immutable configuration object.
@@ -572,7 +582,7 @@ class Drupal {
    * @see \Drupal\Core\Url::fromRoute()
    * @see \Drupal\Core\Url::fromUri()
    *
-   * @deprecated as of Drupal 8.0.x, will be removed before Drupal 9.0.0.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
    *   Instead create a \Drupal\Core\Url object directly, for example using
    *   Url::fromRoute().
    */
@@ -605,17 +615,15 @@ class Drupal {
    *   A GeneratedLink object containing a link to the given route and
    *   parameters and bubbleable metadata.
    *
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+   * \Drupal\Core\Link::fromTextAndUrl() instead.
+   *
+   * @see https://www.drupal.org/node/2614344
    * @see \Drupal\Core\Utility\LinkGeneratorInterface::generate()
    * @see \Drupal\Core\Url
-   *
-   * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0.
-   *   Use \Drupal\Core\Link instead.
-   *   Example:
-   *   @code
-   *     $link = Link::fromTextAndUrl($text, $url);
-   *   @endcode
    */
   public static function l($text, Url $url) {
+    @trigger_error('\Drupal::l() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Link::fromTextAndUrl() instead. See https://www.drupal.org/node/2614344', E_USER_DEPRECATED);
     return static::getContainer()->get('link_generator')->generate($text, $url);
   }
 

@@ -7,6 +7,9 @@ use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\Core\Test\TestDatabase
+ *
+ * @group Test
+ * @group simpletest
  * @group Template
  */
 class TestDatabaseTest extends UnitTestCase {
@@ -15,7 +18,8 @@ class TestDatabaseTest extends UnitTestCase {
    * @covers ::__construct
    */
   public function testConstructorException() {
-    $this->setExpectedException(\InvalidArgumentException::class, "Invalid database prefix: blah1253");
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessage("Invalid database prefix: blah1253");
     new TestDatabase('blah1253');
   }
 
@@ -40,6 +44,31 @@ class TestDatabaseTest extends UnitTestCase {
       ['test1234', 'test1234', 'sites/simpletest/1234'],
       ['test123456test234567', 'test123456test234567', 'sites/simpletest/234567'],
     ];
+  }
+
+  /**
+   * Verify that a test lock is generated if there is no provided prefix.
+   *
+   * @covers ::__construct
+   */
+  public function testConstructorNullPrefix() {
+    // We use a stub class here because we can't mock getTestLock() so that it's
+    // available before the constructor is called.
+    $test_db = new TestTestDatabase(NULL);
+
+    $this->assertEquals('test23', $test_db->getDatabasePrefix());
+    $this->assertEquals('sites/simpletest/23', $test_db->getTestSitePath());
+  }
+
+}
+
+/**
+ * Stub class supports TestDatabaseTest::testConstructorNullPrefix().
+ */
+class TestTestDatabase extends TestDatabase {
+
+  protected function getTestLock($create_lock = FALSE) {
+    return 23;
   }
 
 }

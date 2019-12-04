@@ -7,6 +7,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Url;
 use Drupal\node\NodeStorageInterface;
@@ -120,8 +121,13 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
    *
    * @return array
    *   A node submission form.
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Define
+   *   entity form routes through the _entity_form instead through the
+   *   _controller directive.
    */
   public function add(NodeTypeInterface $node_type) {
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Define entity form routes through the _entity_form instead through the _controller directive. See https://www.drupal.org/node/3084856', E_USER_DEPRECATED);
     $node = $this->entityTypeManager()->getStorage('node')->create([
       'type' => $node_type->id(),
     ]);
@@ -211,7 +217,7 @@ class NodeController extends ControllerBase implements ContainerInjectionInterfa
         // this case.
         $is_current_revision = $vid == $default_revision || (!$current_revision_displayed && $revision->wasDefaultRevision());
         if (!$is_current_revision) {
-          $link = $this->l($date, new Url('entity.node.revision', ['node' => $node->id(), 'node_revision' => $vid]));
+          $link = Link::fromTextAndUrl($date, new Url('entity.node.revision', ['node' => $node->id(), 'node_revision' => $vid]))->toString();
         }
         else {
           $link = $node->toLink($date)->toString();

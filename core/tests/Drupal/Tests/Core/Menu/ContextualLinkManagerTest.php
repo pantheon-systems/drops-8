@@ -7,6 +7,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Menu\ContextualLinkDefault;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Constraint\Count;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -25,49 +26,49 @@ class ContextualLinkManagerTest extends UnitTestCase {
   /**
    * The mocked controller resolver.
    *
-   * @var \Symfony\Component\HttpKernel\Controller\ControllerResolverInterface|\Drupal\Core\\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpKernel\Controller\ControllerResolverInterface|\Drupal\Core\\PHPUnit\Framework\MockObject\MockObject
    */
   protected $controllerResolver;
 
   /**
    * The mocked plugin discovery.
    *
-   * @var \Drupal\Component\Plugin\Discovery\DiscoveryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Component\Plugin\Discovery\DiscoveryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $pluginDiscovery;
 
   /**
    * The plugin factory used in the test.
    *
-   * @var \Drupal\Component\Plugin\Factory\FactoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Component\Plugin\Factory\FactoryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $factory;
 
   /**
    * The cache backend used in the test.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheBackend;
 
   /**
    * The mocked module handler.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The mocked access manager.
    *
-   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $accessManager;
 
   /**
    * The mocked account.
    *
-   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $account;
 
@@ -78,13 +79,13 @@ class ContextualLinkManagerTest extends UnitTestCase {
       ->setMethods(NULL)
       ->getMock();
 
-    $this->controllerResolver = $this->getMock('Symfony\Component\HttpKernel\Controller\ControllerResolverInterface');
-    $this->pluginDiscovery = $this->getMock('Drupal\Component\Plugin\Discovery\DiscoveryInterface');
-    $this->factory = $this->getMock('Drupal\Component\Plugin\Factory\FactoryInterface');
-    $this->cacheBackend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $this->moduleHandler = $this->getMock('\Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
-    $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $this->controllerResolver = $this->createMock('Symfony\Component\HttpKernel\Controller\ControllerResolverInterface');
+    $this->pluginDiscovery = $this->createMock('Drupal\Component\Plugin\Discovery\DiscoveryInterface');
+    $this->factory = $this->createMock('Drupal\Component\Plugin\Factory\FactoryInterface');
+    $this->cacheBackend = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->moduleHandler = $this->createMock('\Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->accessManager = $this->createMock('Drupal\Core\Access\AccessManagerInterface');
+    $this->account = $this->createMock('Drupal\Core\Session\AccountInterface');
 
     $property = new \ReflectionProperty('Drupal\Core\Menu\ContextualLinkManager', 'controllerResolver');
     $property->setAccessible(TRUE);
@@ -110,7 +111,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
     $property->setAccessible(TRUE);
     $property->setValue($this->contextualLinkManager, $this->moduleHandler);
 
-    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $language_manager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
     $language_manager->expects($this->any())
       ->method('getCurrentLanguage')
       ->will($this->returnValue(new Language(['id' => 'en'])));
@@ -212,7 +213,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
       'group' => 'example',
       'id' => 'test_plugin',
     ];
-    $this->setExpectedException(PluginException::class);
+    $this->expectException(PluginException::class);
     $this->contextualLinkManager->processDefinition($definition, 'test_plugin');
   }
 
@@ -227,7 +228,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
       'route_name' => 'example',
       'id' => 'test_plugin',
     ];
-    $this->setExpectedException(PluginException::class);
+    $this->expectException(PluginException::class);
     $this->contextualLinkManager->processDefinition($definition, 'test_plugin');
   }
 
@@ -286,7 +287,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
 
     $this->moduleHandler->expects($this->at(1))
       ->method('alter')
-      ->with($this->equalTo('contextual_links'), new \PHPUnit_Framework_Constraint_Count(2), $this->equalTo('group1'), $this->equalTo(['key' => 'value']));
+      ->with($this->equalTo('contextual_links'), new Count(2), $this->equalTo('group1'), $this->equalTo(['key' => 'value']));
 
     $result = $this->contextualLinkManager->getContextualLinksArrayByGroup('group1', ['key' => 'value']);
     $this->assertCount(2, $result);
@@ -340,7 +341,7 @@ class ContextualLinkManagerTest extends UnitTestCase {
     // Set up mocking of the plugin factory.
     $map = [];
     foreach ($definitions as $plugin_id => $definition) {
-      $plugin = $this->getMock('Drupal\Core\Menu\ContextualLinkInterface');
+      $plugin = $this->createMock('Drupal\Core\Menu\ContextualLinkInterface');
       $plugin->expects($this->any())
         ->method('getRouteName')
         ->will($this->returnValue($definition['route_name']));

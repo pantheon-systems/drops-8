@@ -95,7 +95,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
   protected function getIdMap() {
     $migration = $this->getMigration();
 
-    $plugin = $this->getMock('Drupal\migrate\Plugin\MigrateSourceInterface');
+    $plugin = $this->createMock('Drupal\migrate\Plugin\MigrateSourceInterface');
     $plugin
       ->method('getIds')
       ->willReturn($this->sourceIds);
@@ -103,14 +103,14 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       ->method('getSourcePlugin')
       ->willReturn($plugin);
 
-    $plugin = $this->getMock('Drupal\migrate\Plugin\MigrateDestinationInterface');
+    $plugin = $this->createMock('Drupal\migrate\Plugin\MigrateDestinationInterface');
     $plugin
       ->method('getIds')
       ->willReturn($this->destinationIds);
     $migration
       ->method('getDestinationPlugin')
       ->willReturn($plugin);
-    $event_dispatcher = $this->getMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
+    $event_dispatcher = $this->createMock('Symfony\Component\EventDispatcher\EventDispatcherInterface');
 
     $id_map = new TestSqlIdMap($this->database, [], 'sql', [], $migration, $event_dispatcher);
     $migration
@@ -191,7 +191,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
    * Tests the SQL ID map set message method.
    */
   public function testSetMessage() {
-    $message = $this->getMock('Drupal\migrate\MigrateMessageInterface');
+    $message = $this->createMock('Drupal\migrate\MigrateMessageInterface');
     $id_map = $this->getIdMap();
     $id_map->setMessage($message);
     $this->assertAttributeEquals($message, 'message', $id_map);
@@ -312,7 +312,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $id_map->saveMessage(['source_id_property' => $key], $message, $original_value['level']);
     }
 
-    foreach ($id_map->getMessageIterator() as $message_row) {
+    foreach ($id_map->getMessages() as $message_row) {
       $key = $message_row->source_ids_hash;
       $this->assertEquals($expected_results[$key]['message'], $message_row->message);
       $this->assertEquals($expected_results[$key]['level'], $message_row->level);
@@ -321,7 +321,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     // Insert with default level.
     $message_default = 'Hello world default.';
     $id_map->saveMessage(['source_id_property' => 5], $message_default);
-    $messages = $id_map->getMessageIterator(['source_id_property' => 5]);
+    $messages = $id_map->getMessages(['source_id_property' => 5]);
     $count = 0;
     foreach ($messages as $key => $message_row) {
       $count = 1;
@@ -331,13 +331,24 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $this->assertEquals($count, 1);
 
     // Retrieve messages with a specific level.
-    $messages = $id_map->getMessageIterator([], MigrationInterface::MESSAGE_WARNING);
+    $messages = $id_map->getMessages([], MigrationInterface::MESSAGE_WARNING);
     $count = 0;
     foreach ($messages as $key => $message_row) {
       $count = 1;
       $this->assertEquals(MigrationInterface::MESSAGE_WARNING, $message_row->level);
     }
     $this->assertEquals($count, 1);
+  }
+
+  /**
+   * Tests the SQL ID map get message iterator method.
+   *
+   * @group legacy
+   *
+   * @expectedDeprecation getMessageIterator() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use getMessages() instead. See https://www.drupal.org/node/3060969
+   */
+  public function testGetMessageIterator() {
+    $this->getIdMap()->getMessageIterator();
   }
 
   /**
@@ -423,11 +434,11 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $this->saveMap($row);
     $id_map = $this->getIdMap();
     // Test for a valid hit.
-    $destination_id = $id_map->lookupDestinationId($source_id_values);
-    $this->assertSame($expected_result, $destination_id);
+    $destination_ids = $id_map->lookupDestinationIds($source_id_values);
+    $this->assertSame([$expected_result], $destination_ids);
     // Test for a miss.
-    $destination_id = $id_map->lookupDestinationId($nonexistent_id_values);
-    $this->assertSame(0, count($destination_id));
+    $destination_ids = $id_map->lookupDestinationIds($nonexistent_id_values);
+    $this->assertSame(0, count($destination_ids));
   }
 
   /**
@@ -547,6 +558,31 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       ->fields([TestSqlIdMap::SOURCE_IDS_HASH => uniqid()])
       ->execute();
     $this->assertNotEquals([[101, 'en']], $id_map->lookupDestinationIds([1, 'en']));
+  }
+
+  /**
+   * Tests lookupDestinationId().
+   *
+   * @group legacy
+   * @expectedDeprecation Drupal\migrate\Plugin\migrate\id_map\Sql::lookupDestinationId() is deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use Sql::lookupDestinationIds() instead. See https://www.drupal.org/node/2725809
+   */
+  public function testLookupDestinationId() {
+    // Simple map with one source and one destination ID.
+    $id_map = $this->setupRows(['nid'], ['nid'], [
+      [1, 101],
+      [2, 102],
+      [3, 103],
+    ]);
+
+    // Lookup nothing, gives nothing.
+    $this->assertEquals([], $id_map->lookupDestinationId([]));
+
+    // Lookup by complete non-associative list.
+    $this->assertEquals([101], $id_map->lookupDestinationId([1]));
+    $this->assertEquals([], $id_map->lookupDestinationId([99]));
+
+    // Lookup by complete associative list.
+    $this->assertEquals([101], $id_map->lookupDestinationId(['nid' => 1]));
   }
 
   /**

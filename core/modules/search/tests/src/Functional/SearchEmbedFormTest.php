@@ -17,6 +17,11 @@ class SearchEmbedFormTest extends BrowserTestBase {
   protected static $modules = ['node', 'search', 'search_embedded_form'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Node used for testing.
    *
    * @var \Drupal\node\NodeInterface
@@ -42,7 +47,6 @@ class SearchEmbedFormTest extends BrowserTestBase {
     $this->node = $this->drupalCreateNode();
 
     $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
-    search_update_totals();
 
     // Set up a dummy initial count of times the form has been submitted.
     $this->submitCount = \Drupal::state()->get('search_embedded_form.submit_count');

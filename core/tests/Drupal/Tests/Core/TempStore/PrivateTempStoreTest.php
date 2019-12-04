@@ -18,14 +18,14 @@ class PrivateTempStoreTest extends UnitTestCase {
   /**
    * The mock key value expirable backend.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $keyValue;
 
   /**
    * The mock lock backend.
    *
-   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $lock;
 
@@ -39,7 +39,7 @@ class PrivateTempStoreTest extends UnitTestCase {
   /**
    * The current user.
    *
-   * @var \Drupal\Core\Session\AccountProxyInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Session\AccountProxyInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $currentUser;
 
@@ -70,9 +70,9 @@ class PrivateTempStoreTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
 
-    $this->keyValue = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
-    $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
-    $this->currentUser = $this->getMock('Drupal\Core\Session\AccountProxyInterface');
+    $this->keyValue = $this->createMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
+    $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
+    $this->currentUser = $this->createMock('Drupal\Core\Session\AccountProxyInterface');
     $this->currentUser->expects($this->any())
       ->method('id')
       ->willReturn(1);
@@ -139,7 +139,7 @@ class PrivateTempStoreTest extends UnitTestCase {
     $this->keyValue->expects($this->once())
       ->method('getCollectionName');
 
-    $this->setExpectedException(TempStoreException::class);
+    $this->expectException(TempStoreException::class);
     $this->tempStore->set('test', 'value');
   }
 
@@ -274,7 +274,7 @@ class PrivateTempStoreTest extends UnitTestCase {
     $this->keyValue->expects($this->once())
       ->method('getCollectionName');
 
-    $this->setExpectedException(TempStoreException::class);
+    $this->expectException(TempStoreException::class);
     $this->tempStore->delete('test');
   }
 

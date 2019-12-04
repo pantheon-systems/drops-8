@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Functional\Plugin;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Tests\views\Functional\ViewTestBase;
 use Drupal\views\Views;
 use Drupal\views_test_data\Plugin\views\filter\FilterTest as FilterPlugin;
@@ -27,6 +28,11 @@ class FilterTest extends ViewTestBase {
    * @var array
    */
   public static $modules = ['views_ui', 'node'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   protected function setUp($import_test_views = TRUE) {
     parent::setUp($import_test_views);
@@ -91,7 +97,7 @@ class FilterTest extends ViewTestBase {
 
     // Check that we have a single element, as a result of applying the '= John'
     // filter.
-    $this->assertEqual(count($view->result), 1, format_string('Results were returned. @count results.', ['@count' => count($view->result)]));
+    $this->assertEqual(count($view->result), 1, new FormattableMarkup('Results were returned. @count results.', ['@count' => count($view->result)]));
 
     $view->destroy();
 
@@ -117,7 +123,7 @@ class FilterTest extends ViewTestBase {
 
     // Check if we have the other elements in the dataset, as a result of
     // applying the '<> John' filter.
-    $this->assertEqual(count($view->result), 4, format_string('Results were returned. @count results.', ['@count' => count($view->result)]));
+    $this->assertEqual(count($view->result), 4, new FormattableMarkup('Results were returned. @count results.', ['@count' => count($view->result)]));
 
     $view->destroy();
     $view->initDisplay();
@@ -141,7 +147,7 @@ class FilterTest extends ViewTestBase {
     $this->executeView($view);
 
     // Check if we have all 5 results.
-    $this->assertEqual(count($view->result), 5, format_string('All @count results returned', ['@count' => count($view->displayHandlers)]));
+    $this->assertEqual(count($view->result), 5, new FormattableMarkup('All @count results returned', ['@count' => count($view->displayHandlers)]));
   }
 
   /**
@@ -162,6 +168,51 @@ class FilterTest extends ViewTestBase {
     $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], t('Save'));
     $this->drupalPostForm(NULL, [], t('Update preview'));
     $this->assertNoText('An illegal choice has been detected.');
+  }
+
+  /**
+   * Tests the limit of the expose operator functionality.
+   */
+  public function testLimitExposedOperators() {
+
+    $this->drupalGet('test_filter_in_operator_ui');
+    $this->assertResponse(200);
+    $this->assertOption('edit-nid-op', '<');
+    $this->assertOption('edit-nid-op', '<=');
+    $this->assertOption('edit-nid-op', '=');
+    $this->assertNoOption('edit-nid-op', '>');
+    $this->assertNoOption('edit-nid-op', '>=');
+
+    // Because there are not operators that use the min and max fields, those
+    // fields should not be in the exposed form.
+    $this->assertFieldById('edit-nid-value');
+    $this->assertNoFieldById('edit-nid-min');
+    $this->assertNoFieldById('edit-nid-max');
+
+    $edit = [];
+    $edit['options[operator]'] = '>';
+    $edit['options[expose][operator_list][]'] = ['>', '>=', 'between'];
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/view/test_filter_in_operator_ui/edit/default', [], t('Save'));
+
+    $this->drupalGet('test_filter_in_operator_ui');
+    $this->assertResponse(200);
+    $this->assertNoOption('edit-nid-op', '<');
+    $this->assertNoOption('edit-nid-op', '<=');
+    $this->assertNoOption('edit-nid-op', '=');
+    $this->assertOption('edit-nid-op', '>');
+    $this->assertOption('edit-nid-op', '>=');
+
+    $this->assertFieldById('edit-nid-value');
+    $this->assertFieldById('edit-nid-min');
+    $this->assertFieldById('edit-nid-max');
+
+    // Set the default to an excluded operator.
+    $edit = [];
+    $edit['options[operator]'] = '=';
+    $edit['options[expose][operator_list][]'] = ['<', '>'];
+    $this->drupalPostForm('admin/structure/views/nojs/handler/test_filter_in_operator_ui/default/filter/nid', $edit, t('Apply'));
+    $this->assertText('You selected the "Is equal to" operator as the default value but is not included in the list of limited operators.');
   }
 
 }

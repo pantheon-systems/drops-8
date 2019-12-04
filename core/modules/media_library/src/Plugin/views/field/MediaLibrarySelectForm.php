@@ -18,9 +18,7 @@ use Symfony\Component\HttpFoundation\Request;
  * @ViewsField("media_library_select_form")
  *
  * @internal
- *   Media Library is an experimental module and its internal code may be
- *   subject to change in minor releases. External code should not instantiate
- *   or extend this class.
+ *   Plugin classes are internal.
  */
 class MediaLibrarySelectForm extends FieldPluginBase {
 
@@ -47,9 +45,12 @@ class MediaLibrarySelectForm extends FieldPluginBase {
    *   The current state of the form.
    */
   public function viewsForm(array &$form, FormStateInterface $form_state) {
-    $form['#attributes'] = [
-      'class' => ['media-library-views-form', 'js-media-library-views-form'],
-    ];
+    $form['#attributes']['class'] = ['js-media-library-views-form'];
+
+    // Add an attribute that identifies the media type displayed in the form.
+    if (isset($this->view->args[0])) {
+      $form['#attributes']['data-drupal-media-type'] = $this->view->args[0];
+    }
 
     // Render checkboxes for all rows.
     $form[$this->options['id']]['#tree'] = TRUE;
@@ -82,6 +83,7 @@ class MediaLibrarySelectForm extends FieldPluginBase {
     // AJAX path like /views/ajax, which cannot process AJAX form submits.
     $query = $this->view->getRequest()->query->all();
     $query[FormBuilderInterface::AJAX_FORM_REQUEST] = TRUE;
+    $query['views_display_id'] = $this->view->getDisplay()->display['id'];
     $form['actions']['submit']['#ajax'] = [
       'url' => Url::fromRoute('media_library.ui'),
       'options' => [
@@ -101,10 +103,7 @@ class MediaLibrarySelectForm extends FieldPluginBase {
     // the opener, and the opener should be responsible for moving the focus. An
     // example of this can be seen in MediaLibraryWidget::updateWidget().
     // @see \Drupal\media_library\Plugin\Field\FieldWidget\MediaLibraryWidget::updateWidget()
-    $form['actions']['submit']['#attributes'] = [
-      'class' => ['media-library-select'],
-      'data-disable-refocus' => 'true',
-    ];
+    $form['actions']['submit']['#attributes']['data-disable-refocus'] = 'true';
   }
 
   /**

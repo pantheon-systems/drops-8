@@ -99,7 +99,7 @@ class Feed extends AbstractFeed implements Iterator, Countable
      */
     public function removeEntry($index)
     {
-        if (!isset($this->entries[$index])) {
+        if (! isset($this->entries[$index])) {
             throw new Exception\InvalidArgumentException('Undefined index: ' . $index . '. Entry does not exist.');
         }
         unset($this->entries[$index]);
@@ -112,6 +112,7 @@ class Feed extends AbstractFeed implements Iterator, Countable
      * added to a feed container in order to be indexed.
      *
      * @param int $index
+     * @return Entry
      * @throws Exception\InvalidArgumentException
      */
     public function getEntry($index = 0)

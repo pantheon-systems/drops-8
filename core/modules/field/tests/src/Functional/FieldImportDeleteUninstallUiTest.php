@@ -24,6 +24,11 @@ class FieldImportDeleteUninstallUiTest extends FieldTestBase {
    */
   public static $modules = ['entity_test', 'telephone', 'config', 'filter', 'datetime'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -86,9 +91,10 @@ class FieldImportDeleteUninstallUiTest extends FieldTestBase {
     unset($core_extension['module']['telephone']);
     $sync->write('core.extension', $core_extension);
 
-    // Stage the field deletion
+    // Stage the field deletion including its dependencies.
     $sync->delete('field.storage.entity_test.field_tel');
     $sync->delete('field.field.entity_test.entity_test.field_tel');
+    $sync->delete('core.entity_form_display.entity_test.entity_test.default');
     $this->drupalGet('admin/config/development/configuration');
     // Test that the message for one field being purged during a configuration
     // synchronization is correct.
@@ -108,7 +114,7 @@ class FieldImportDeleteUninstallUiTest extends FieldTestBase {
     $this->assertNoText('Field data will be deleted by this synchronization.');
     $this->rebuildContainer();
     $this->assertFalse(\Drupal::moduleHandler()->moduleExists('telephone'));
-    $this->assertFalse(\Drupal::service('entity.repository')->loadEntityByUuid('field_storage_config', $field_storage->uuid()), 'The telephone field has been deleted by the configuration synchronization');
+    $this->assertNull(\Drupal::service('entity.repository')->loadEntityByUuid('field_storage_config', $field_storage->uuid()), 'The telephone field has been deleted by the configuration synchronization');
     $deleted_storages = \Drupal::state()->get('field.storage.deleted') ?: [];
     $this->assertFalse(isset($deleted_storages[$field_storage->uuid()]), 'Telephone field has been completed removed from the system.');
     $this->assertFalse(isset($deleted_storages[$field_storage->uuid()]), 'Text field has been completed removed from the system.');

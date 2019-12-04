@@ -19,11 +19,16 @@ class ThemeInfoTest extends BrowserTestBase {
   public static $modules = ['theme_test'];
 
   /**
-   * The theme handler used in this test for enabling themes.
-   *
-   * @var \Drupal\Core\Extension\ThemeHandler
+   * {@inheritdoc}
    */
-  protected $themeHandler;
+  protected $defaultTheme = 'stark';
+
+  /**
+   * The theme installer used in this test for enabling themes.
+   *
+   * @var \Drupal\Core\Extension\ThemeInstallerInterface
+   */
+  protected $themeInstaller;
 
   /**
    * The theme manager used in this test.
@@ -45,7 +50,7 @@ class ThemeInfoTest extends BrowserTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->themeHandler = $this->container->get('theme_handler');
+    $this->themeInstaller = $this->container->get('theme_installer');
     $this->themeManager = $this->container->get('theme.manager');
     $this->state = $this->container->get('state');
   }
@@ -54,7 +59,7 @@ class ThemeInfoTest extends BrowserTestBase {
    * Tests stylesheets-remove.
    */
   public function testStylesheets() {
-    $this->themeHandler->install(['test_basetheme', 'test_subtheme']);
+    $this->themeInstaller->install(['test_basetheme', 'test_subtheme']);
     $this->config('system.theme')
       ->set('default', 'test_subtheme')
       ->save();
@@ -83,7 +88,7 @@ class ThemeInfoTest extends BrowserTestBase {
    * Tests that changes to the info file are picked up.
    */
   public function testChanges() {
-    $this->themeHandler->install(['test_theme']);
+    $this->themeInstaller->install(['test_theme']);
     $this->config('system.theme')->set('default', 'test_theme')->save();
     $this->themeManager->resetActiveTheme();
 

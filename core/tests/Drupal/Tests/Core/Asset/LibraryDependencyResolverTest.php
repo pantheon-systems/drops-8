@@ -21,14 +21,14 @@ class LibraryDependencyResolverTest extends UnitTestCase {
   /**
    * The mocked library discovery service.
    *
-   * @var \Drupal\Core\Asset\LibraryDiscoveryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Asset\LibraryDiscoveryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $libraryDiscovery;
 
   /**
    * The mocked module handler.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
@@ -172,7 +172,8 @@ class LibraryDependencyResolverTest extends UnitTestCase {
    * @covers ::getMinimalRepresentativeSubset
    */
   public function testGetMinimalRepresentativeSubsetInvalidInput() {
-    $this->setExpectedException(\AssertionError::class, '$libraries can\'t contain duplicate items.');
+    $this->expectException(\AssertionError::class);
+    $this->expectExceptionMessage('$libraries can\'t contain duplicate items.');
     $this->libraryDependencyResolver->getMinimalRepresentativeSubset(['test/no_deps_a', 'test/no_deps_a']);
   }
 

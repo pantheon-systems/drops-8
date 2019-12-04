@@ -34,6 +34,11 @@ class TaxonomyImageTest extends TaxonomyTestBase {
    */
   public static $modules = ['image'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -58,13 +63,15 @@ class TaxonomyImageTest extends TaxonomyTestBase {
       'bundle' => $this->vocabulary->id(),
       'settings' => [],
     ])->save();
-    entity_get_display($entity_type, $this->vocabulary->id(), 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getViewDisplay($entity_type, $this->vocabulary->id())
       ->setComponent($name, [
         'type' => 'image',
         'settings' => [],
       ])
       ->save();
-    entity_get_form_display($entity_type, $this->vocabulary->id(), 'default')
+    $display_repository->getFormDisplay($entity_type, $this->vocabulary->id())
       ->setComponent($name, [
         'type' => 'image_image',
         'settings' => [],
@@ -83,7 +90,7 @@ class TaxonomyImageTest extends TaxonomyTestBase {
     $edit['files[field_test_0]'] = \Drupal::service('file_system')->realpath($image->uri);
     $this->drupalPostForm('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/add', $edit, t('Save'));
     $this->drupalPostForm(NULL, ['field_test[0][alt]' => $this->randomMachineName()], t('Save'));
-    $terms = entity_load_multiple_by_properties('taxonomy_term', ['name' => $edit['name[0][value]']]);
+    $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['name' => $edit['name[0][value]']]);
     $term = reset($terms);
     $this->assertText(t('Created new term @name.', ['@name' => $term->getName()]));
 

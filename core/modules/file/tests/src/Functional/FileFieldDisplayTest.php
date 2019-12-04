@@ -15,6 +15,11 @@ use Drupal\node\Entity\Node;
 class FileFieldDisplayTest extends FileFieldTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests normal formatter display on node display.
    */
   public function testNodeDisplay() {
@@ -51,7 +56,7 @@ class FileFieldDisplayTest extends FileFieldTestBase {
       }
       $this->drupalPostForm("admin/structure/types/manage/$type_name/display", $edit, t('Save'));
       $this->drupalGet('node/' . $node->id());
-      $this->assertNoText($field_name, format_string('Field label is hidden when no file attached for formatter %formatter', ['%formatter' => $formatter]));
+      $this->assertNoText($field_name, new FormattableMarkup('Field label is hidden when no file attached for formatter %formatter', ['%formatter' => $formatter]));
     }
 
     $this->generateFile('escaped-&-text', 64, 10, 'text');
@@ -65,7 +70,7 @@ class FileFieldDisplayTest extends FileFieldTestBase {
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
 
     // Check that the default formatter is displaying with the file name.
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     $node_storage->resetCache([$nid]);
     $node = $node_storage->load($nid);
     $node_file = File::load($node->{$field_name}->target_id);

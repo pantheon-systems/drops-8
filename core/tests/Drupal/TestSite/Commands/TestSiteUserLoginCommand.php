@@ -52,9 +52,9 @@ class TestSiteUserLoginCommand extends Command {
     Settings::initialize($kernel->getAppRoot(), $kernel->getSitePath(), $this->classLoader);
 
     $request = Request::createFromGlobals();
-    $kernel->prepareLegacyRequest($request);
 
     $kernel->boot();
+    $kernel->preHandle($request);
 
     $container = $kernel->getContainer();
     $uid = $input->getArgument('uid');
@@ -66,6 +66,8 @@ class TestSiteUserLoginCommand extends Command {
       ->load($uid);
     $url = user_pass_reset_url($userEntity) . '/login';
     $output->writeln($url);
+
+    return 0;
   }
 
 }

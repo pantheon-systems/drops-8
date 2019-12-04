@@ -9,14 +9,13 @@
  */
 
 use Drupal\Component\Gettext\PoItem;
-use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Bytes;
 use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\SortArray;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Form\FormHelper;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Element\Link;
 use Drupal\Core\Render\HtmlResponseAttachmentsProcessor;
@@ -127,7 +126,7 @@ const JS_THEME = 100;
 /**
  * The delimiter used to split plural strings.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use Drupal\Component\Gettext\PoItem::DELIMITER instead.
  */
 const LOCALE_PLURAL_DELIMITER = PoItem::DELIMITER;
@@ -150,7 +149,7 @@ const LOCALE_PLURAL_DELIMITER = PoItem::DELIMITER;
  *
  * @ingroup form_api
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use the redirect.destination service.
  *
  * @see \Drupal\Core\EventSubscriber\RedirectResponseSubscriber::checkRedirectUrl()
@@ -175,7 +174,7 @@ function drupal_get_destination() {
  * @return bool
  *   TRUE if the address is in a valid format.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal::service('email.validator')->isValid().
  *
  * @see https://www.drupal.org/node/2912661
@@ -212,7 +211,7 @@ function valid_email_address($mail) {
  *   Drupal\Core\Template\Attribute, call
  *   \Drupal\Component\Utility\UrlHelper::stripDangerousProtocols() instead.
  *
- * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use UrlHelper::stripDangerousProtocols() or UrlHelper::filterBadProtocol()
  *   instead. UrlHelper::stripDangerousProtocols() can be used in conjunction
  *   with \Drupal\Component\Render\FormattableMarkup and an @variable
@@ -324,7 +323,7 @@ function format_size($size, $langcode = NULL) {
  * @return
  *   A translated date string in the requested format.
  *
- * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal::service('date.formatter')->format().
  *
  * @see \Drupal\Core\Datetime\DateFormatter::format()
@@ -344,7 +343,7 @@ function format_date($timestamp, $type = 'medium', $format = '', $timezone = NUL
  * @return string
  *   An ISO8601 formatted date.
  *
- * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
  *   date('c', $date) instead.
  *
  * @see https://www.drupal.org/node/2999991
@@ -370,7 +369,7 @@ function date_iso8601($date) {
  *   A ; separated string ready for insertion in a HTTP header. No escaping is
  *   performed for HTML entities, so this string is not safe to be printed.
  *
- * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\Core\Render\HtmlResponseAttachmentsProcessor::formatHttpHeaderAttributes()
  *   instead.
  *
@@ -409,13 +408,13 @@ function drupal_http_header_attributes(array $attributes = []) {
  *
  * @ingroup php_wrappers
  *
- * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use
- *   \Drupal\Core\Environment::setTimeLimit() instead.
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Component\Utility\Environment::setTimeLimit() instead.
  *
  * @see https://www.drupal.org/node/3000058
  */
 function drupal_set_time_limit($time_limit) {
-  @trigger_error('drupal_set_time_limit() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Environment::setTimeLimit() instead. See https://www.drupal.org/node/3000058.', E_USER_DEPRECATED);
+  @trigger_error('drupal_set_time_limit() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Component\Utility\Environment::setTimeLimit() instead. See https://www.drupal.org/node/3000058.', E_USER_DEPRECATED);
   Environment::setTimeLimit($time_limit);
 }
 
@@ -436,7 +435,7 @@ function base_path() {
 /**
  * Deletes old cached CSS files.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\Asset\AssetCollectionOptimizerInterface::deleteAll().
  *
  * @see https://www.drupal.org/node/2317841
@@ -589,16 +588,15 @@ function drupal_js_defaults($data = NULL) {
  * @param $elements
  *   A renderable array element having a #states property as described above.
  *
- * @see form_example_states_form()
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Form\FormHelper::processStates() instead.
+ *
+ * @see https://www.drupal.org/node/3000069
+ * @see \Drupal\Core\Form\FormHelper::processStates()
  */
 function drupal_process_states(&$elements) {
-  $elements['#attached']['library'][] = 'core/drupal.states';
-  // Elements of '#type' => 'item' are not actual form input elements, but we
-  // still want to be able to show/hide them. Since there's no actual HTML input
-  // element available, setting #attributes does not make sense, but a wrapper
-  // is available, so setting #wrapper_attributes makes it work.
-  $key = ($elements['#type'] == 'item') ? '#wrapper_attributes' : '#attributes';
-  $elements[$key]['data-drupal-states'] = Json::encode($elements['#states']);
+  @trigger_error('drupal_process_states() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Form\FormHelper::processStates() instead. See https://www.drupal.org/node/3000069', E_USER_DEPRECATED);
+  FormHelper::processStates($elements);
 }
 
 /**
@@ -755,7 +753,7 @@ function drupal_attach_tabledrag(&$element, array $options) {
 /**
  * Deletes old cached JavaScript files and variables.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\Asset\AssetCollectionOptimizerInterface::deleteAll().
  *
  * @see https://www.drupal.org/node/2317841
@@ -767,7 +765,7 @@ function drupal_clear_js_cache() {
 /**
  * Pre-render callback: Renders a link into #markup.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\Render\Element\Link::preRenderLink().
  */
 function drupal_pre_render_link($element) {
@@ -777,115 +775,34 @@ function drupal_pre_render_link($element) {
 /**
  * Pre-render callback: Collects child links into a single array.
  *
- * This function can be added as a pre_render callback for a renderable array,
- * usually one which will be themed by links.html.twig. It iterates through all
- * unrendered children of the element, collects any #links properties it finds,
- * merges them into the parent element's #links array, and prevents those
- * children from being rendered separately.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Render\Element\Link::preRenderLinks() instead.
  *
- * The purpose of this is to allow links to be logically grouped into related
- * categories, so that each child group can be rendered as its own list of
- * links if drupal_render() is called on it, but calling drupal_render() on the
- * parent element will still produce a single list containing all the remaining
- * links, regardless of what group they were in.
- *
- * A typical example comes from node links, which are stored in a renderable
- * array similar to this:
- * @code
- * $build['links'] = array(
- *   '#theme' => 'links__node',
- *   '#pre_render' => array('drupal_pre_render_links'),
- *   'comment' => array(
- *     '#theme' => 'links__node__comment',
- *     '#links' => array(
- *       // An array of links associated with node comments, suitable for
- *       // passing in to links.html.twig.
- *     ),
- *   ),
- *   'statistics' => array(
- *     '#theme' => 'links__node__statistics',
- *     '#links' => array(
- *       // An array of links associated with node statistics, suitable for
- *       // passing in to links.html.twig.
- *     ),
- *   ),
- *   'translation' => array(
- *     '#theme' => 'links__node__translation',
- *     '#links' => array(
- *       // An array of links associated with node translation, suitable for
- *       // passing in to links.html.twig.
- *     ),
- *   ),
- * );
- * @endcode
- *
- * In this example, the links are grouped by functionality, which can be
- * helpful to themers who want to display certain kinds of links independently.
- * For example, adding this code to node.html.twig will result in the comment
- * links being rendered as a single list:
- * @code
- * {{ content.links.comment }}
- * @endcode
- *
- * (where a node's content has been transformed into $content before handing
- * control to the node.html.twig template).
- *
- * The pre_render function defined here allows the above flexibility, but also
- * allows the following code to be used to render all remaining links into a
- * single list, regardless of their group:
- * @code
- * {{ content.links }}
- * @endcode
- *
- * In the above example, this will result in the statistics and translation
- * links being rendered together in a single list (but not the comment links,
- * which were rendered previously on their own).
- *
- * Because of the way this function works, the individual properties of each
- * group (for example, a group-specific #theme property such as
- * 'links__node__comment' in the example above, or any other property such as
- * #attributes or #pre_render that is attached to it) are only used when that
- * group is rendered on its own. When the group is rendered together with other
- * children, these child-specific properties are ignored, and only the overall
- * properties of the parent are used.
+ * @see https://www.drupal.org/node/2966725
  */
 function drupal_pre_render_links($element) {
-  $element += ['#links' => [], '#attached' => []];
-  foreach (Element::children($element) as $key) {
-    $child = &$element[$key];
-    // If the child has links which have not been printed yet and the user has
-    // access to it, merge its links in to the parent.
-    if (isset($child['#links']) && empty($child['#printed']) && Element::isVisibleElement($child)) {
-      $element['#links'] += $child['#links'];
-      // Mark the child as having been printed already (so that its links
-      // cannot be mistakenly rendered twice).
-      $child['#printed'] = TRUE;
-    }
-    // Merge attachments.
-    if (isset($child['#attached'])) {
-      $element['#attached'] = BubbleableMetadata::mergeAttachments($element['#attached'], $child['#attached']);
-    }
-  }
-  return $element;
+  @trigger_error('drupal_pre_render_links() is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Render\Element\Link::preRenderLinks() instead. See https://www.drupal.org/node/2966725', E_USER_DEPRECATED);
+  return Link::preRenderLinks($element);
 }
 
 /**
  * Renders final HTML given a structured array tree.
  *
- * @deprecated as of Drupal 8.0.x, will be removed before Drupal 9.0.0. Use the
- *   'renderer' service instead.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Render\RendererInterface::renderRoot() instead.
  *
  * @see \Drupal\Core\Render\RendererInterface::renderRoot()
  * @see https://www.drupal.org/node/2912696
  */
 function drupal_render_root(&$elements) {
+  @trigger_error('drupal_render_root() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Render\RendererInterface::renderRoot() instead. See https://www.drupal.org/node/2912696', E_USER_DEPRECATED);
   return \Drupal::service('renderer')->renderRoot($elements);
 }
 
 /**
  * Renders HTML given a structured array tree.
  *
- * @deprecated as of Drupal 8.0.x, will be removed before Drupal 9.0.0. Use the
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use the
  *   'renderer' service instead.
  *
  * @see \Drupal\Core\Render\RendererInterface::render()
@@ -908,7 +825,7 @@ function drupal_render(&$elements, $is_recursive_call = FALSE) {
  * @return string|\Drupal\Component\Render\MarkupInterface
  *   The rendered HTML of all children of the element.
  *
- * @deprecated in Drupal 8.0.x and will be removed before 9.0.0. Avoid early
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Avoid early
  *   rendering when possible or loop through the elements and render them as
  *   they are available.
  *
@@ -1025,7 +942,7 @@ function show(&$element) {
  * @param $type
  *   An element type as defined by an element plugin.
  *
- * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal::service('element_info')->getInfo() instead.
  *
  * @see https://www.drupal.org/node/2235461
@@ -1045,7 +962,7 @@ function element_info($type) {
  *   (Optional) The value to return if the element type does not specify a
  *   value for the property. Defaults to NULL.
  *
- * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal::service('element_info')->getInfoProperty() instead.
  *
  * @see https://www.drupal.org/node/2235461
@@ -1133,7 +1050,7 @@ function drupal_flush_all_caches() {
   \Drupal::service('twig')->invalidate();
 
   // Rebuild module and theme data.
-  $module_data = system_rebuild_module_data();
+  $module_data = \Drupal::service('extension.list.module')->reset()->getList();
   /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
   $theme_handler = \Drupal::service('theme_handler');
   $theme_handler->refreshInfo();
@@ -1226,7 +1143,7 @@ function debug($data, $label = NULL, $print_r = TRUE) {
  *   NULL if compatible, otherwise the original dependency version string that
  *   caused the incompatibility.
  *
- * @deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\Core\Extension\Dependency::isCompatible() instead.
  *
  * @see https://www.drupal.org/node/2756875
@@ -1245,37 +1162,43 @@ function drupal_check_incompatibility($v, $current_version) {
 /**
  * Returns a string of supported archive extensions.
  *
- * @return
+ * @return string
  *   A space-separated string of extensions suitable for use by the file
  *   validation system.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\Archiver\ArchiverManager::getExtensions() instead.
+ *
+ * @see https://www.drupal.org/node/2999951
  */
 function archiver_get_extensions() {
-  $valid_extensions = [];
-  foreach (\Drupal::service('plugin.manager.archiver')->getDefinitions() as $archive) {
-    foreach ($archive['extensions'] as $extension) {
-      foreach (explode('.', $extension) as $part) {
-        if (!in_array($part, $valid_extensions)) {
-          $valid_extensions[] = $part;
-        }
-      }
-    }
-  }
-  return implode(' ', $valid_extensions);
+  @trigger_error('archiver_get_extensions() is deprecated in Drupal 8.8.0 and will be removed in Drupal 9.0.0. Use \Drupal\Core\Archiver\ArchiverManager::getExtensions() instead. See https://www.drupal.org/node/2999951', E_USER_DEPRECATED);
+  return \Drupal::service('plugin.manager.archiver')->getExtensions();
 }
 
 /**
  * Creates the appropriate archiver for the specified file.
  *
- * @param $file
+ * @param string $file
  *   The full path of the archive file. Note that stream wrapper paths are
  *   supported, but not remote ones.
  *
- * @return
- *   A newly created instance of the archiver class appropriate
- *   for the specified file, already bound to that file.
- *   If no appropriate archiver class was found, will return FALSE.
+ * @return \Drupal\Core\Archiver\ArchiverInterface|false
+ *   A newly created instance of the archiver class appropriate for the
+ *   specified file, already bound to that file. If no appropriate archiver
+ *   class was found, will return FALSE.
+ *
+ * @throws \Exception
+ *   If a remote stream wrapper path was passed.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Instead,
+ *   get plugin.manager.archiver service from container and call getInstance()
+ *   method on it. For example $archiver->getInstance(['filepath' => $file]);
+ *
+ * @see https://www.drupal.org/node/2999951
  */
 function archiver_get_archiver($file) {
+  @trigger_error('archiver_get_archiver() is deprecated in Drupal 8.8.0 and will be removed in Drupal 9.0.x. Instead, get plugin.manager.archiver service from container and call getInstance() method on it. For example $archiver->getInstance(["filepath" => $file]); See https://www.drupal.org/node/2999951', E_USER_DEPRECATED);
   // Archivers can only work on local paths
   $filepath = \Drupal::service('file_system')->realpath($file);
   if (!is_file($filepath)) {

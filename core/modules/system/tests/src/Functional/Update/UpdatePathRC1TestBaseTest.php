@@ -21,6 +21,11 @@ class UpdatePathRC1TestBaseTest extends UpdatePathTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setDatabaseDumpFiles() {
     $this->databaseDumpFiles = [
       __DIR__ . '/../../../../tests/fixtures/update/drupal-8-rc1.bare.standard.php.gz',
@@ -62,7 +67,7 @@ class UpdatePathRC1TestBaseTest extends UpdatePathTestBase {
     $this->assertText('Site-Install');
     $extensions = \Drupal::service('config.storage')->read('core.extension');
     $this->assertTrue(isset($extensions['theme']['stable']), 'Stable is installed after updating.');
-    $blocks = \Drupal::entityManager()->getStorage('block')->loadByProperties(['theme' => 'stable']);
+    $blocks = \Drupal::entityTypeManager()->getStorage('block')->loadByProperties(['theme' => 'stable']);
     $this->assertTrue(empty($blocks), 'No blocks have been placed for Stable.');
   }
 

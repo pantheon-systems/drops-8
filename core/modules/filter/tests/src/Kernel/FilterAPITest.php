@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\filter\Kernel;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Session\AnonymousUserSession;
 use Drupal\Core\TypedData\OptionsProviderInterface;
@@ -291,7 +292,7 @@ class FilterAPITest extends EntityKernelTestBase {
       '#text' => '<p>Hello, world!</p>',
       '#format' => 'element_test',
     ];
-    drupal_render_root($build);
+    \Drupal::service('renderer')->renderRoot($build);
 
     // Verify the attachments and cacheability metadata.
     $expected_attachments = [
@@ -455,7 +456,7 @@ class FilterAPITest extends EntityKernelTestBase {
         break;
       }
     }
-    $this->assertTrue($filter_format_violation_found, format_string('Validation violation for invalid value "%invalid_value" found', ['%invalid_value' => $invalid_value]));
+    $this->assertTrue($filter_format_violation_found, new FormattableMarkup('Validation violation for invalid value "%invalid_value" found', ['%invalid_value' => $invalid_value]));
   }
 
   /**
@@ -487,8 +488,8 @@ class FilterAPITest extends EntityKernelTestBase {
     $this->assertTrue(isset($filters['filter_test_restrict_tags_and_attributes']), 'The filter plugin filter_test_restrict_tags_and_attributes is configured by the filtered_html filter format.');
 
     drupal_static_reset('filter_formats');
-    \Drupal::entityManager()->getStorage('filter_format')->resetCache();
-    $module_data = \Drupal::service('extension.list.module')->reset()->getList();
+    \Drupal::entityTypeManager()->getStorage('filter_format')->resetCache();
+    $module_data = \Drupal::service('extension.list.module')->getList();
     $this->assertFalse(isset($module_data['filter_test']->info['required']), 'The filter_test module is required.');
 
     // Verify that a dependency exists on the module that provides the filter
@@ -500,7 +501,7 @@ class FilterAPITest extends EntityKernelTestBase {
 
     // Verify the filter format still exists but the dependency and filter is
     // gone.
-    \Drupal::entityManager()->getStorage('filter_format')->resetCache();
+    \Drupal::entityTypeManager()->getStorage('filter_format')->resetCache();
     $filter_format = FilterFormat::load('filtered_html');
     $this->assertEqual([], $filter_format->getDependencies());
     // Use the get method since the FilterFormat::filters() method only returns

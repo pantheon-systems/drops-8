@@ -2,7 +2,10 @@
 
 namespace Drupal\Tests\locale\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Url;
+use Drupal\Core\Database\Database;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Core\Language\LanguageInterface;
 
@@ -19,6 +22,11 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['locale', 'dblog'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * A user able to create languages and import translations.
@@ -44,8 +52,8 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
     // Copy test po files to the translations directory.
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
-    $file_system->copy(__DIR__ . '/../../../tests/test.de.po', 'translations://', FILE_EXISTS_REPLACE);
-    $file_system->copy(__DIR__ . '/../../../tests/test.xx.po', 'translations://', FILE_EXISTS_REPLACE);
+    $file_system->copy(__DIR__ . '/../../../tests/test.de.po', 'translations://', FileSystemInterface::EXISTS_REPLACE);
+    $file_system->copy(__DIR__ . '/../../../tests/test.xx.po', 'translations://', FileSystemInterface::EXISTS_REPLACE);
 
     $this->adminUser = $this->drupalCreateUser(['administer languages', 'translate interface', 'access administration pages']);
     $this->adminUserAccessSiteReports = $this->drupalCreateUser(['administer languages', 'translate interface', 'access administration pages', 'access site reports']);
@@ -185,7 +193,7 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
 
     // The database should now contain 6 customized strings (two imported
     // strings are not translated).
-    $count = db_query('SELECT COUNT(*) FROM {locales_target} WHERE customized = :custom', [':custom' => 1])->fetchField();
+    $count = Database::getConnection()->query('SELECT COUNT(*) FROM {locales_target} WHERE customized = :custom', [':custom' => 1])->fetchField();
     $this->assertEqual($count, 6, 'Customized translations successfully imported.');
 
     // Try importing a .po file with overriding strings, and ensure existing
@@ -309,7 +317,7 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
     $locale_storage = $this->container->get('locale.storage');
     foreach ($config_strings as $config_string) {
       $string = $locale_storage->findString(['source' => $config_string[0], 'context' => '', 'type' => 'configuration']);
-      $this->assertTrue($string, 'Configuration strings have been created upon installation.');
+      $this->assertNotEmpty($string, 'Configuration strings have been created upon installation.');
     }
 
     // Import a .po file to translate.
@@ -325,7 +333,7 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
         'translation' => 'all',
       ];
       $this->drupalPostForm('admin/config/regional/translate', $search, t('Filter'));
-      $this->assertText($config_string[1], format_string('Translation of @string found.', ['@string' => $config_string[0]]));
+      $this->assertText($config_string[1], new FormattableMarkup('Translation of @string found.', ['@string' => $config_string[0]]));
     }
 
     // Test that translations got recorded in the config system.
@@ -374,11 +382,12 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
    *   (optional) Additional options to pass to the translation import form.
    */
   public function importPoFile($contents, array $options = []) {
-    $name = \Drupal::service('file_system')->tempnam('temporary://', "po_") . '.po';
+    $file_system = \Drupal::service('file_system');
+    $name = $file_system->tempnam('temporary://', "po_") . '.po';
     file_put_contents($name, $contents);
     $options['files[file]'] = $name;
     $this->drupalPostForm('admin/config/regional/translate/import', $options, t('Import'));
-    drupal_unlink($name);
+    $file_system->unlink($name);
   }
 
   /**

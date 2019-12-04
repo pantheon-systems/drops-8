@@ -23,14 +23,14 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is not created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__items") and @content]');
-    $this->assertFalse($result);
+    $this->assertEmpty($result);
   }
 
   /**
    * Tests the integer formatter with settings.
    */
   public function testIntegerFormatterWithSettings() {
-    \Drupal::service('theme_handler')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['classy']);
     $this->config('system.theme')->set('default', 'classy')->save();
     $this->fieldType = 'integer';
     $formatter = [
@@ -51,7 +51,7 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__item") and @content=:testValue]', [':testValue' => $testValue]);
-    $this->assertTrue($result);
+    $this->assertNotEmpty($result);
   }
 
   /**
@@ -66,14 +66,14 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is not created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__items") and @content]');
-    $this->assertFalse($result);
+    $this->assertEmpty($result);
   }
 
   /**
    * Tests the float formatter with settings.
    */
   public function testFloatFormatterWithSettings() {
-    \Drupal::service('theme_handler')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['classy']);
     $this->config('system.theme')->set('default', 'classy')->save();
     $this->fieldType = 'float';
     $formatter = [
@@ -95,7 +95,7 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__item") and @content=:testValue]', [':testValue' => $testValue]);
-    $this->assertTrue($result);
+    $this->assertNotEmpty($result);
   }
 
   /**
@@ -116,14 +116,14 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is not created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__items") and @content]');
-    $this->assertFalse($result);
+    $this->assertEmpty($result);
   }
 
   /**
    * Tests the float formatter with a scale. Scale is exercised.
    */
   public function testFloatFormatterWithScaleExercised() {
-    \Drupal::service('theme_handler')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['classy']);
     $this->config('system.theme')->set('default', 'classy')->save();
     $this->fieldType = 'float';
     $formatter = [
@@ -139,7 +139,7 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__item") and @content=:testValue]', [':testValue' => $testValue]);
-    $this->assertTrue($result);
+    $this->assertNotEmpty($result);
   }
 
   /**
@@ -154,14 +154,14 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is not created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__items") and @content]');
-    $this->assertFalse($result);
+    $this->assertEmpty($result);
   }
 
   /**
    * Tests the decimal formatter with settings.
    */
   public function testDecimalFormatterWithSettings() {
-    \Drupal::service('theme_handler')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['classy']);
     $this->config('system.theme')->set('default', 'classy')->save();
     $this->fieldType = 'decimal';
     $formatter = [
@@ -183,7 +183,7 @@ class NumberFieldRdfaTest extends FieldRdfaTestBase {
 
     // Test that the content attribute is created.
     $result = $this->xpathContent($this->getRawContent(), '//div[contains(@class, "field__item") and @content=:testValue]', [':testValue' => $testValue]);
-    $this->assertTrue($result);
+    $this->assertNotEmpty($result);
   }
 
   /**

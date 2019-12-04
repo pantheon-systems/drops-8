@@ -22,7 +22,12 @@ class UserTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['user'];
+  public static $modules = ['user', 'jsonapi_test_user'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -56,7 +61,7 @@ class UserTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $labelFieldName = 'name';
+  protected static $labelFieldName = 'display_name';
 
   /**
    * {@inheritdoc}
@@ -138,6 +143,7 @@ class UserTest extends ResourceTestBase {
           'self' => ['href' => $self_url],
         ],
         'attributes' => [
+          'display_name' => 'Llama',
           'created' => '1973-11-29T21:33:09+00:00',
           'changed' => (new \DateTime())->setTimestamp($this->entity->getChangedTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
           'default_langcode' => TRUE,
@@ -201,19 +207,15 @@ class UserTest extends ResourceTestBase {
     $url = Url::fromRoute(sprintf('jsonapi.user--user.individual'), ['entity' => $this->account->uuid()]);
     /* $url = $this->account->toUrl('jsonapi'); */
 
-    $original_normalization = $this->normalize($this->account, $url);
-    // @todo Remove the array_diff_key() call in https://www.drupal.org/node/2821077.
-    $original_normalization['data']['attributes'] = array_diff_key(
-      $original_normalization['data']['attributes'],
-      ['created' => TRUE, 'changed' => TRUE, 'name' => TRUE]
-    );
-
     // Since this test must be performed by the user that is being modified,
     // we must use $this->account, not $this->entity.
     $request_options = [];
     $request_options[RequestOptions::HEADERS]['Accept'] = 'application/vnd.api+json';
     $request_options[RequestOptions::HEADERS]['Content-Type'] = 'application/vnd.api+json';
     $request_options = NestedArray::mergeDeep($request_options, $this->getAuthenticationRequestOptions());
+
+    $response = $this->request('GET', $url, $request_options);
+    $original_normalization = Json::decode((string) $response->getBody());
 
     // Test case 1: changing email.
     $normalization = $original_normalization;
@@ -246,7 +248,7 @@ class UserTest extends ResourceTestBase {
     $this->assertResourceResponse(200, FALSE, $response);
 
     // Test case 2: changing password.
-    $normalization = $original_normalization;
+    $normalization = Json::decode((string) $response->getBody());
     $normalization['data']['attributes']['mail'] = 'new-email@example.com';
     $new_password = $this->randomString();
     $normalization['data']['attributes']['pass']['value'] = $new_password;
@@ -274,7 +276,7 @@ class UserTest extends ResourceTestBase {
     $request_options = NestedArray::mergeDeep($request_options, $this->getAuthenticationRequestOptions());
 
     // Test case 3: changing name.
-    $normalization = $original_normalization;
+    $normalization = Json::decode((string) $response->getBody());
     $normalization['data']['attributes']['mail'] = 'new-email@example.com';
     $normalization['data']['attributes']['pass']['existing'] = $new_password;
     $normalization['data']['attributes']['name'] = 'Cooler Llama';
@@ -445,7 +447,7 @@ class UserTest extends ResourceTestBase {
 
     $this->assertCount(4, $doc['data']);
     $this->assertSame(User::load(0)->uuid(), $doc['data'][0]['id']);
-    $this->assertSame('Anonymous', $doc['data'][0]['attributes']['name']);
+    $this->assertSame('User 0', $doc['data'][0]['attributes']['display_name']);
   }
 
   /**
@@ -553,6 +555,57 @@ class UserTest extends ResourceTestBase {
     $doc = Json::decode((string) $response->getBody());
     $this->assertCount(1, $doc['data']);
     $this->assertSame($user_b->uuid(), $doc['data'][0]['id']);
+  }
+
+  /**
+   * Tests users with altered display names.
+   */
+  public function testResaveAccountName() {
+    $this->config('jsonapi.settings')->set('read_only', FALSE)->save(TRUE);
+    $this->setUpAuthorization('PATCH');
+
+    $original_name = $this->entity->get('name')->value;
+
+    $url = Url::fromRoute('jsonapi.user--user.individual', ['entity' => $this->entity->uuid()]);
+    $request_options = [];
+    $request_options[RequestOptions::HEADERS]['Accept'] = 'application/vnd.api+json';
+    $request_options = NestedArray::mergeDeep($request_options, $this->getAuthenticationRequestOptions());
+
+    $response = $this->request('GET', $url, $request_options);
+
+    // Send the unchanged data back.
+    $request_options[RequestOptions::BODY] = (string) $response->getBody();
+    $request_options[RequestOptions::HEADERS]['Content-Type'] = 'application/vnd.api+json';
+    $response = $this->request('PATCH', $url, $request_options);
+    $this->assertEquals(200, $response->getStatusCode());
+
+    // Load the user entity again, make sure the name was not changed.
+    $this->entityStorage->resetCache();
+    $updated_user = $this->entityStorage->load($this->entity->id());
+    $this->assertEquals($original_name, $updated_user->get('name')->value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getModifiedEntityForPostTesting() {
+    $modified = parent::getModifiedEntityForPostTesting();
+    $modified['data']['attributes']['name'] = $this->randomMachineName();
+    return $modified;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function makeNormalizationInvalid(array $document, $entity_key) {
+    if ($entity_key === 'label') {
+      $document['data']['attributes']['name'] = [
+        0 => $document['data']['attributes']['name'],
+        1 => 'Second Title',
+      ];
+      return $document;
+    }
+    return parent::makeNormalizationInvalid($document, $entity_key);
   }
 
 }

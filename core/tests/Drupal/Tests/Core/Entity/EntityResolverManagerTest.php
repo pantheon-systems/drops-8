@@ -32,21 +32,21 @@ class EntityResolverManagerTest extends UnitTestCase {
   /**
    * The mocked entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The mocked class resolver.
    *
-   * @var \Drupal\Core\DependencyInjection\ClassResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\DependencyInjection\ClassResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $classResolver;
 
   /**
    * The mocked dependency injection container.
    *
-   * @var \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $container;
 
@@ -56,8 +56,8 @@ class EntityResolverManagerTest extends UnitTestCase {
    * @covers ::__construct
    */
   protected function setUp() {
-    $this->entityTypeManager = $this->getMock('Drupal\Core\Entity\EntityTypeManagerInterface');
-    $this->container = $this->getMock('Symfony\Component\DependencyInjection\ContainerInterface');
+    $this->entityTypeManager = $this->createMock('Drupal\Core\Entity\EntityTypeManagerInterface');
+    $this->container = $this->createMock('Symfony\Component\DependencyInjection\ContainerInterface');
     $this->classResolver = $this->getClassResolverStub();
 
     $this->entityResolverManager = new EntityResolverManager($this->entityTypeManager, $this->classResolver);
@@ -441,14 +441,14 @@ class EntityResolverManagerTest extends UnitTestCase {
    * Creates the entity manager mock returning entity type objects.
    */
   protected function setupEntityTypes() {
-    $definition = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $definition = $this->createMock('Drupal\Core\Entity\EntityTypeInterface');
     $definition->expects($this->any())
       ->method('getClass')
       ->will($this->returnValue('Drupal\Tests\Core\Entity\SimpleTestEntity'));
     $definition->expects($this->any())
       ->method('isRevisionable')
       ->willReturn(FALSE);
-    $revisionable_definition = $this->getMock('Drupal\Core\Entity\EntityTypeInterface');
+    $revisionable_definition = $this->createMock('Drupal\Core\Entity\EntityTypeInterface');
     $revisionable_definition->expects($this->any())
       ->method('getClass')
       ->will($this->returnValue('Drupal\Tests\Core\Entity\SimpleTestEntity'));

@@ -31,7 +31,7 @@ class Subscription extends AbstractModel implements SubscriptionPersistenceInter
      */
     public function setSubscription(array $data)
     {
-        if (!isset($data['id'])) {
+        if (! isset($data['id'])) {
             throw new PubSubHubbub\Exception\InvalidArgumentException(
                 'ID must be set before attempting a save'
             );
@@ -66,12 +66,12 @@ class Subscription extends AbstractModel implements SubscriptionPersistenceInter
      */
     public function getSubscription($key)
     {
-        if (empty($key) || !is_string($key)) {
+        if (empty($key) || ! is_string($key)) {
             throw new PubSubHubbub\Exception\InvalidArgumentException('Invalid parameter "key"'
                 .' of "' . $key . '" must be a non-empty string');
         }
         $result = $this->db->select(['id' => $key]);
-        if (count($result)) {
+        if ($result && count($result)) {
             return $result->current()->getArrayCopy();
         }
         return false;
@@ -86,12 +86,12 @@ class Subscription extends AbstractModel implements SubscriptionPersistenceInter
      */
     public function hasSubscription($key)
     {
-        if (empty($key) || !is_string($key)) {
+        if (empty($key) || ! is_string($key)) {
             throw new PubSubHubbub\Exception\InvalidArgumentException('Invalid parameter "key"'
                 .' of "' . $key . '" must be a non-empty string');
         }
         $result = $this->db->select(['id' => $key]);
-        if (count($result)) {
+        if ($result && count($result)) {
             return true;
         }
         return false;
@@ -106,7 +106,7 @@ class Subscription extends AbstractModel implements SubscriptionPersistenceInter
     public function deleteSubscription($key)
     {
         $result = $this->db->select(['id' => $key]);
-        if (count($result)) {
+        if ($result && count($result)) {
             $this->db->delete(
                 ['id' => $key]
             );

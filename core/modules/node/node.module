@@ -17,6 +17,7 @@ use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Database\StatementInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -34,7 +35,7 @@ use Drupal\user\UserInterface;
 /**
  * Denotes that the node is not published.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.x.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\node\NodeInterface::NOT_PUBLISHED instead.
  *
  * @see https://www.drupal.org/node/2316145
@@ -44,7 +45,7 @@ const NODE_NOT_PUBLISHED = 0;
 /**
  * Denotes that the node is published.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.x.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\node\NodeInterface::PUBLISHED instead.
  *
  * @see https://www.drupal.org/node/2316145
@@ -54,7 +55,7 @@ const NODE_PUBLISHED = 1;
 /**
  * Denotes that the node is not promoted to the front page.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.x.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\node\NodeInterface::NOT_PROMOTED instead.
  *
  * @see https://www.drupal.org/node/2316145
@@ -64,7 +65,7 @@ const NODE_NOT_PROMOTED = 0;
 /**
  * Denotes that the node is promoted to the front page.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.x.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\node\NodeInterface::PROMOTED instead.
  *
  * @see https://www.drupal.org/node/2316145
@@ -74,7 +75,7 @@ const NODE_PROMOTED = 1;
 /**
  * Denotes that the node is not sticky at the top of the page.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.x.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\node\NodeInterface::NOT_STICKY instead.
  *
  * @see https://www.drupal.org/node/2316145
@@ -84,7 +85,7 @@ const NODE_NOT_STICKY = 0;
 /**
  * Denotes that the node is sticky at the top of the page.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.x.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\node\NodeInterface::STICKY instead.
  *
  * @see https://www.drupal.org/node/2316145
@@ -226,7 +227,7 @@ function node_title_list(StatementInterface $result, $title = NULL) {
     // database rows, not actual nodes.
     $nids[] = $row->nid;
     $options = !empty($row->comment_count) ? ['attributes' => ['title' => \Drupal::translation()->formatPlural($row->comment_count, '1 comment', '@count comments')]] : [];
-    $items[] = \Drupal::l($row->title, new Url('entity.node.canonical', ['node' => $row->nid], $options));
+    $items[] = Link::fromTextAndUrl($row->title, Url::fromRoute('entity.node.canonical', ['node' => $row->nid], $options))->toString();
     $num_rows = TRUE;
   }
 
@@ -271,7 +272,7 @@ function node_mark($nid, $timestamp) {
  * @return \Drupal\node\NodeTypeInterface[]
  *   An array of node type entities, keyed by ID.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\node\Entity\NodeType::loadMultiple().
  *
  * @see \Drupal\node\Entity\NodeType::load()
@@ -333,7 +334,7 @@ function node_type_get_description(NodeTypeInterface $node_type) {
  * @return \Drupal\node\NodeTypeInterface
  *   A node type object or NULL if $name does not exist.
  *
- * @deprecated iin Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\node\Entity\NodeType::load().
  *
  * @see https://www.drupal.org/node/2266845
@@ -367,15 +368,18 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
     ]);
     $field->save();
 
-    // Assign widget settings for the 'default' form mode.
-    entity_get_form_display('node', $type->id(), 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
+    // Assign widget settings for the default form mode.
+    $display_repository->getFormDisplay('node', $type->id())
       ->setComponent('body', [
         'type' => 'text_textarea_with_summary',
       ])
       ->save();
 
     // Assign display settings for the 'default' and 'teaser' view modes.
-    entity_get_display('node', $type->id(), 'default')
+    $display_repository->getViewDisplay('node', $type->id())
       ->setComponent('body', [
         'label' => 'hidden',
         'type' => 'text_default',
@@ -386,7 +390,7 @@ function node_add_body_field(NodeTypeInterface $type, $label = 'Body') {
     // might not exist.
     $view_modes = \Drupal::service('entity_display.repository')->getViewModes('node');
     if (isset($view_modes['teaser'])) {
-      entity_get_display('node', $type->id(), 'teaser')
+      $display_repository->getViewDisplay('node', $type->id(), 'teaser')
         ->setComponent('body', [
           'label' => 'hidden',
           'type' => 'text_summary_or_trimmed',
@@ -428,7 +432,7 @@ function node_entity_extra_field_info() {
  *   The number of nodes whose node type field was modified.
  */
 function node_type_update_nodes($old_id, $new_id) {
-  return \Drupal::entityManager()->getStorage('node')->updateType($old_id, $new_id);
+  return \Drupal::entityTypeManager()->getStorage('node')->updateType($old_id, $new_id);
 }
 
 /**
@@ -447,7 +451,7 @@ function node_type_update_nodes($old_id, $new_id) {
  * @return \Drupal\node\NodeInterface[]
  *   An array of node entities indexed by nid.
  *
- * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\node\Entity\Node::loadMultiple().
  *
  * @see https://www.drupal.org/node/2266845
@@ -455,7 +459,7 @@ function node_type_update_nodes($old_id, $new_id) {
 function node_load_multiple(array $nids = NULL, $reset = FALSE) {
   @trigger_error('node_load_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\node\Entity\Node::loadMultiple(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if ($reset) {
-    \Drupal::entityManager()->getStorage('node')->resetCache($nids);
+    \Drupal::entityTypeManager()->getStorage('node')->resetCache($nids);
   }
   return Node::loadMultiple($nids);
 }
@@ -472,7 +476,7 @@ function node_load_multiple(array $nids = NULL, $reset = FALSE) {
  * @return \Drupal\node\NodeInterface|null
  *   A fully-populated node entity, or NULL if the node is not found.
  *
- * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\node\Entity\Node::load().
  *
  * @see https://www.drupal.org/node/2266845
@@ -480,7 +484,7 @@ function node_load_multiple(array $nids = NULL, $reset = FALSE) {
 function node_load($nid = NULL, $reset = FALSE) {
   @trigger_error('node_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\node\Entity\Node::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   if ($reset) {
-    \Drupal::entityManager()->getStorage('node')->resetCache([$nid]);
+    \Drupal::entityTypeManager()->getStorage('node')->resetCache([$nid]);
   }
   return Node::load($nid);
 }
@@ -542,7 +546,7 @@ function template_preprocess_node_add_list(&$variables) {
     foreach ($variables['content'] as $type) {
       $variables['types'][$type->id()] = [
         'type' => $type->id(),
-        'add_link' => \Drupal::l($type->label(), new Url('node.add', ['node_type' => $type->id()])),
+        'add_link' => Link::fromTextAndUrl($type->label(), Url::fromRoute('node.add', ['node_type' => $type->id()]))->toString(),
         'description' => [
           '#markup' => $type->getDescription(),
         ],
@@ -634,7 +638,7 @@ function template_preprocess_node(&$variables) {
   // preprocessing if the field display is configurable and skipping has been
   // enabled.
   // @todo https://www.drupal.org/project/drupal/issues/3015623
-  //   In D9 delete this code and matching template lines. Using
+  //   Eventually delete this code and matching template lines. Using
   //   $variables['content'] is more flexible and consistent.
   $submitted_configurable = $node->getFieldDefinition('created')->isDisplayConfigurable('view') || $node->getFieldDefinition('uid')->isDisplayConfigurable('view');
   if (!$skip_custom_preprocessing || !$submitted_configurable) {
@@ -666,7 +670,7 @@ function template_preprocess_node(&$variables) {
     // Display post information on certain node types. This only occurs if
     // custom preprocessing occurred for both of the created and uid fields.
     // @todo https://www.drupal.org/project/drupal/issues/3015623
-    //   In D9 delete this code and matching template lines. Using a field
+    //   Eventually delete this code and matching template lines. Using a field
     //   formatter is more flexible and consistent.
     $node_type = $node->type->entity;
     // Used by RDF to add attributes around the author and date submitted.
@@ -678,7 +682,9 @@ function template_preprocess_node(&$variables) {
         // 'compact' view mode on the User entity. Note that the 'compact'
         // view mode might not be configured, so remember to always check the
         // theme setting first.
-        $variables['author_picture'] = user_view($node->getOwner(), 'compact');
+        $variables['author_picture'] = \Drupal::entityTypeManager()
+          ->getViewBuilder('user')
+          ->view($node->getOwner(), 'compact');
       }
     }
   }
@@ -767,7 +773,7 @@ function node_user_cancel($edit, UserInterface $account, $method) {
     case 'user_cancel_reassign':
       // Anonymize all of the nodes for this old account.
       module_load_include('inc', 'node', 'node.admin');
-      $vids = \Drupal::entityManager()->getStorage('node')->userRevisionIds($account);
+      $vids = \Drupal::entityTypeManager()->getStorage('node')->userRevisionIds($account);
       node_mass_update($vids, [
         'uid' => 0,
         'revision_uid' => 0,
@@ -786,9 +792,10 @@ function node_user_predelete($account) {
     ->condition('uid', $account->id())
     ->accessCheck(FALSE)
     ->execute();
-  entity_delete_multiple('node', $nids);
   // Delete old revisions.
-  $storage_controller = \Drupal::entityManager()->getStorage('node');
+  $storage_controller = \Drupal::entityTypeManager()->getStorage('node');
+  $nodes = $storage_controller->loadMultiple($nids);
+  $storage_controller->delete($nodes);
   $revisions = $storage_controller->userRevisionIds($account);
   foreach ($revisions as $revision) {
     node_revision_delete($revision);
@@ -850,9 +857,17 @@ function node_get_recent($number = 10) {
  *
  * @return array
  *   An array as expected by \Drupal\Core\Render\RendererInterface::render().
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal::entityTypeManager()->getViewBuilder('node')->view() instead.
+ *
+ * @see https://www.drupal.org/node/3033656
  */
 function node_view(NodeInterface $node, $view_mode = 'full', $langcode = NULL) {
-  return entity_view($node, $view_mode, $langcode);
+  @trigger_error("node_view() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('node')->view() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()
+    ->getViewBuilder('node')
+    ->view($node, $view_mode, $langcode);
 }
 
 /**
@@ -869,9 +884,18 @@ function node_view(NodeInterface $node, $view_mode = 'full', $langcode = NULL) {
  * @return array
  *   An array in the format expected by
  *   \Drupal\Core\Render\RendererInterface::render().
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getViewBuilder('node')->viewMultiple()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3033656
  */
 function node_view_multiple($nodes, $view_mode = 'teaser', $langcode = NULL) {
-  return entity_view_multiple($nodes, $view_mode, $langcode);
+  @trigger_error("node_view_multiple() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('node')->viewMultiple() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
+  return \Drupal::entityTypeManager()
+    ->getViewBuilder('node')
+    ->viewMultiple($nodes, $view_mode, $langcode);
 }
 
 /**
@@ -1068,7 +1092,7 @@ function node_access_view_all_nodes($account = NULL) {
     $access[$account->id()] = TRUE;
   }
   else {
-    $access[$account->id()] = \Drupal::entityManager()->getAccessControlHandler('node')->checkAllGrants($account);
+    $access[$account->id()] = \Drupal::entityTypeManager()->getAccessControlHandler('node')->checkAllGrants($account);
   }
 
   return $access[$account->id()];
@@ -1195,8 +1219,8 @@ function node_access_needs_rebuild($rebuild = NULL) {
  * This rebuild is occasionally needed by modules that make system-wide changes
  * to access levels. When the rebuild is required by an admin-triggered action
  * (e.g module settings form), calling node_access_needs_rebuild(TRUE) instead
- * of node_access_rebuild() lets the user perform his changes and actually
- * rebuild only once he is done.
+ * of node_access_rebuild() lets the user perform changes and actually rebuild
+ * only once done.
  *
  * Note : As of Drupal 6, node access modules are not required to (and actually
  * should not) call node_access_rebuild() in hook_install/uninstall anymore.
@@ -1212,9 +1236,9 @@ function node_access_needs_rebuild($rebuild = NULL) {
  * @see node_access_needs_rebuild()
  */
 function node_access_rebuild($batch_mode = FALSE) {
-  $node_storage = \Drupal::entityManager()->getStorage('node');
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
   /** @var \Drupal\node\NodeAccessControlHandlerInterface $access_control_handler */
-  $access_control_handler = \Drupal::entityManager()->getAccessControlHandler('node');
+  $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
   $access_control_handler->deleteGrants();
   // Only recalculate if the site is using a node_access module.
   if (count(\Drupal::moduleHandler()->getImplementations('node_grants'))) {
@@ -1278,7 +1302,7 @@ function node_access_rebuild($batch_mode = FALSE) {
  *   An array of contextual key/value information for rebuild batch process.
  */
 function _node_access_rebuild_batch_operation(&$context) {
-  $node_storage = \Drupal::entityManager()->getStorage('node');
+  $node_storage = \Drupal::entityTypeManager()->getStorage('node');
   if (empty($context['sandbox'])) {
     // Initiate multistep processing.
     $context['sandbox']['progress'] = 0;
@@ -1305,7 +1329,7 @@ function _node_access_rebuild_batch_operation(&$context) {
     // loads successfully.
     if (!empty($node)) {
       /** @var \Drupal\node\NodeAccessControlHandlerInterface $access_control_handler */
-      $access_control_handler = \Drupal::entityManager()->getAccessControlHandler('node');
+      $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
       $grants = $access_control_handler->acquireGrants($node);
       \Drupal::service('node.grant_storage')->write($node, $grants);
     }
@@ -1385,7 +1409,7 @@ function node_modules_uninstalled($modules) {
  */
 function node_configurable_language_delete(ConfigurableLanguageInterface $language) {
   // On nodes with this language, unset the language.
-  \Drupal::entityManager()->getStorage('node')->clearRevisionsLanguage($language);
+  \Drupal::entityTypeManager()->getStorage('node')->clearRevisionsLanguage($language);
 }
 
 /**
@@ -1397,7 +1421,7 @@ function node_configurable_language_delete(ConfigurableLanguageInterface $langua
 function node_reindex_node_search($nid) {
   if (\Drupal::moduleHandler()->moduleExists('search')) {
     // Reindex node context indexed by the node module search plugin.
-    search_mark_for_reindex('node_search', $nid);
+    \Drupal::service('search.index')->markForReindex('node_search', $nid);
   }
 }
 

@@ -19,6 +19,11 @@ class BlockDemoTest extends BrowserTestBase {
   public static $modules = ['block'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * Check for the accessibility of the admin block demo page.
    */
   public function testBlockDemo() {
@@ -47,7 +52,7 @@ class BlockDemoTest extends BrowserTestBase {
 
     foreach ($themes as $theme) {
       // Install theme.
-      $this->container->get('theme_handler')->install([$theme]);
+      $this->container->get('theme_installer')->install([$theme]);
       // Confirm access to the block demo page for the theme.
       $this->drupalGet('admin/structure/block/demo/' . $theme);
       $this->assertResponse(200);

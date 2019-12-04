@@ -24,6 +24,11 @@ class LanguageUrlRewritingTest extends BrowserTestBase {
   public static $modules = ['language', 'language_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * An user with permissions to administer languages.
    *
    * @var \Drupal\user\UserInterface
@@ -88,7 +93,7 @@ class LanguageUrlRewritingTest extends BrowserTestBase {
 
     // If the rewritten URL has not a language prefix we pick a random prefix so
     // we can always check the prefixed URL.
-    $prefixes = language_negotiation_url_prefixes();
+    $prefixes = $this->config('language.negotiation')->get('url.prefixes');
     $stored_prefix = isset($prefixes[$language->getId()]) ? $prefixes[$language->getId()] : $this->randomMachineName();
     $this->assertNotEqual($stored_prefix, $prefix, $message1);
     $prefix = $stored_prefix;

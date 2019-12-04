@@ -28,6 +28,11 @@ class ImageFieldAttributesTest extends ImageFieldTestBase {
   public static $modules = ['rdf', 'image'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * The name of the image field used in the test.
    *
    * @var string
@@ -83,12 +88,15 @@ class ImageFieldAttributesTest extends ImageFieldTestBase {
       'type' => 'image',
       'settings' => ['image_style' => 'medium', 'image_link' => 'content'],
     ];
-    $display = entity_get_display('node', 'article', 'teaser');
+    $display = \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'article', 'teaser');
     $display->setComponent($this->fieldName, $display_options)
       ->save();
 
     // Render the teaser.
-    $node_render_array = node_view($this->node, 'teaser');
+    $node_render_array = \Drupal::entityTypeManager()
+      ->getViewBuilder('node')
+      ->view($this->node, 'teaser');
     $html = \Drupal::service('renderer')->renderRoot($node_render_array);
 
     // Parse the teaser.

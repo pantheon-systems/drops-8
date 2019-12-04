@@ -17,21 +17,21 @@ class EntityOperationsUnitTest extends UnitTestCase {
   /**
    * The entity type manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The entity repository.
    *
-   * @var \Drupal\Core\Entity\EntityRepositoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityRepository;
 
   /**
    * The language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
@@ -50,7 +50,7 @@ class EntityOperationsUnitTest extends UnitTestCase {
   protected function setUp() {
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
     $this->entityRepository = $this->createMock(EntityRepositoryInterface::class);
-    $this->languageManager = $this->getMock('\Drupal\Core\Language\LanguageManagerInterface');
+    $this->languageManager = $this->createMock('\Drupal\Core\Language\LanguageManagerInterface');
 
     $configuration = [];
     $plugin_id = $this->randomMachineName();
@@ -59,7 +59,7 @@ class EntityOperationsUnitTest extends UnitTestCase {
     ];
     $this->plugin = new EntityOperations($configuration, $plugin_id, $plugin_definition, $this->entityTypeManager, $this->languageManager, $this->entityRepository);
 
-    $redirect_service = $this->getMock('Drupal\Core\Routing\RedirectDestinationInterface');
+    $redirect_service = $this->createMock('Drupal\Core\Routing\RedirectDestinationInterface');
     $redirect_service->expects($this->any())
       ->method('getAsArray')
       ->willReturn(['destination' => 'foobar']);
@@ -108,7 +108,7 @@ class EntityOperationsUnitTest extends UnitTestCase {
         'title' => $this->randomMachineName(),
       ],
     ];
-    $list_builder = $this->getMock('\Drupal\Core\Entity\EntityListBuilderInterface');
+    $list_builder = $this->createMock('\Drupal\Core\Entity\EntityListBuilderInterface');
     $list_builder->expects($this->once())
       ->method('getOperations')
       ->with($entity)
@@ -150,7 +150,7 @@ class EntityOperationsUnitTest extends UnitTestCase {
         'title' => $this->randomMachineName(),
       ],
     ];
-    $list_builder = $this->getMock('\Drupal\Core\Entity\EntityListBuilderInterface');
+    $list_builder = $this->createMock('\Drupal\Core\Entity\EntityListBuilderInterface');
     $list_builder->expects($this->once())
       ->method('getOperations')
       ->with($entity)

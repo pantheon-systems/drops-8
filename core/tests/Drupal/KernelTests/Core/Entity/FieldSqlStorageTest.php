@@ -93,7 +93,7 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     $this->field->save();
 
     /** @var \Drupal\Core\Entity\Sql\DefaultTableMapping $table_mapping */
-    $table_mapping = \Drupal::entityManager()->getStorage($entity_type)->getTableMapping();
+    $table_mapping = \Drupal::entityTypeManager()->getStorage($entity_type)->getTableMapping();
     $this->tableMapping = $table_mapping;
     $this->table = $table_mapping->getDedicatedDataTableName($this->fieldStorage);
     $this->revisionTable = $table_mapping->getDedicatedRevisionTableName($this->fieldStorage);
@@ -104,7 +104,7 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
    */
   public function testFieldLoad() {
     $entity_type = $bundle = 'entity_test_rev';
-    $storage = $this->container->get('entity.manager')->getStorage($entity_type);
+    $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
 
     $columns = ['bundle', 'deleted', 'entity_id', 'revision_id', 'delta', 'langcode', $this->tableMapping->getFieldColumnName($this->fieldStorage, 'value')];
 
@@ -276,7 +276,7 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     // Use one of the longest entity_type names in core.
     $entity_type = $bundle = 'entity_test_label_callback';
     $this->installEntitySchema('entity_test_label_callback');
-    $storage = $this->container->get('entity.manager')->getStorage($entity_type);
+    $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
 
     // Create two fields and generate random values.
     $name_base = mb_strtolower($this->randomMachineName(FieldStorageConfig::NAME_MAX_LENGTH - 1));
@@ -341,10 +341,10 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     $field_storage->setSetting('scale', 3);
     try {
       $field_storage->save();
-      $this->fail(t('Cannot update field schema with data.'));
+      $this->fail('Cannot update field schema with data.');
     }
     catch (FieldStorageDefinitionUpdateForbiddenException $e) {
-      $this->pass(t('Cannot update field schema with data.'));
+      $this->pass('Cannot update field schema with data.');
     }
   }
 
@@ -370,10 +370,10 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     $field_storage->setSetting('max_length', '-1)');
     try {
       $field_storage->save();
-      $this->fail(t('Update succeeded.'));
+      $this->fail('Update succeeded.');
     }
     catch (\Exception $e) {
-      $this->pass(t('Update properly failed.'));
+      $this->pass('Update properly failed.');
     }
 
     // Ensure that the field tables are still there.
@@ -440,7 +440,7 @@ class FieldSqlStorageTest extends EntityKernelTestBase {
     }
 
     // Verify that the tables were not dropped in the process.
-    $entity = $this->container->get('entity.manager')->getStorage($entity_type)->load(1);
+    $entity = $this->container->get('entity_type.manager')->getStorage($entity_type)->load(1);
     $this->assertEqual($entity->$field_name->value, 'field data', t("Index changes performed without dropping the tables"));
   }
 

@@ -4,6 +4,7 @@ namespace Drupal\KernelTests\Core\Routing;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\Tests\Traits\Core\PathAliasTestTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -14,10 +15,21 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ContentNegotiationRoutingTest extends KernelTestBase {
 
+  use PathAliasTestTrait;
+
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['conneg_test'];
+  public static $modules = ['conneg_test', 'path_alias'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+
+    $this->installEntitySchema('path_alias');
+  }
 
   /**
    * {@inheritdoc}
@@ -27,8 +39,8 @@ class ContentNegotiationRoutingTest extends KernelTestBase {
 
     // \Drupal\KernelTests\KernelTestBase::register() removes the alias path
     // processor.
-    if ($container->hasDefinition('path_processor_alias')) {
-      $definition = $container->getDefinition('path_processor_alias');
+    if ($container->hasDefinition('path_alias.path_processor')) {
+      $definition = $container->getDefinition('path_alias.path_processor');
       $definition->addTag('path_processor_inbound', ['priority' => 100])->addTag('path_processor_outbound', ['priority' => 300]);
     }
   }
@@ -37,13 +49,11 @@ class ContentNegotiationRoutingTest extends KernelTestBase {
    * Tests the content negotiation aspect of routing.
    */
   public function testContentRouting() {
-    /** @var \Drupal\Core\Path\AliasStorageInterface $path_alias_storage */
-    $path_alias_storage = $this->container->get('path.alias_storage');
     // Alias with extension pointing to no extension/constant content-type.
-    $path_alias_storage->save('/conneg/html', '/alias.html');
+    $this->createPathAlias('/conneg/html', '/alias.html');
 
     // Alias with extension pointing to dynamic extension/linked content-type.
-    $path_alias_storage->save('/conneg/html?_format=json', '/alias.json');
+    $this->createPathAlias('/conneg/html?_format=json', '/alias.json');
 
     $tests = [
       // ['path', 'accept', 'content-type'],

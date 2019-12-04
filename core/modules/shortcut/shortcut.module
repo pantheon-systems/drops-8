@@ -122,11 +122,11 @@ function shortcut_set_switch_access($account = NULL) {
  * @param $account
  *   A user account that will be assigned to use the set.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal::entityManager()->getStorage('shortcut_set')->assignUser().
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal::entityTypeManager()->getStorage('shortcut_set')->assignUser().
  */
 function shortcut_set_assign_user($shortcut_set, $account) {
-  \Drupal::entityManager()
+  \Drupal::entityTypeManager()
     ->getStorage('shortcut_set')
     ->assignUser($shortcut_set, $account);
 }
@@ -144,11 +144,11 @@ function shortcut_set_assign_user($shortcut_set, $account) {
  *   successfully removed from it. FALSE if the user was already not assigned
  *   to any set.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
- *   Use \Drupal::entityManager()->getStorage('shortcut_set')->unassignUser().
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal::entityTypeManager()->getStorage('shortcut_set')->unassignUser().
  */
 function shortcut_set_unassign_user($account) {
-  return (bool) \Drupal::entityManager()
+  return (bool) \Drupal::entityTypeManager()
     ->getStorage('shortcut_set')
     ->unassignUser($account);
 }
@@ -177,7 +177,7 @@ function shortcut_current_displayed_set($account = NULL) {
   }
   // If none was found, try to find a shortcut set that is explicitly assigned
   // to this user.
-  $shortcut_set_name = \Drupal::entityManager()
+  $shortcut_set_name = \Drupal::entityTypeManager()
     ->getStorage('shortcut_set')
     ->getAssignedToUser($account);
   if ($shortcut_set_name) {
@@ -233,7 +233,7 @@ function shortcut_default_set($account = NULL) {
  * @return
  *   TRUE if a shortcut set with that title exists; FALSE otherwise.
  *
- * @deprecated in Drupal 8.x, will be removed before Drupal 9.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  */
 function shortcut_set_title_exists($title) {
   $sets = ShortcutSet::loadMultiple();
@@ -325,7 +325,7 @@ function shortcut_preprocess_page_title(&$variables) {
     $shortcut_set = shortcut_current_displayed_set();
 
     // Check if $link is already a shortcut and set $link_mode accordingly.
-    $shortcuts = \Drupal::entityManager()->getStorage('shortcut')->loadByProperties(['shortcut_set' => $shortcut_set->id()]);
+    $shortcuts = \Drupal::entityTypeManager()->getStorage('shortcut')->loadByProperties(['shortcut_set' => $shortcut_set->id()]);
     /** @var \Drupal\shortcut\ShortcutInterface $shortcut */
     foreach ($shortcuts as $shortcut) {
       if (($shortcut_url = $shortcut->getUrl()) && $shortcut_url->isRouted() && $shortcut_url->getRouteName() == $route_match->getRouteName() && $shortcut_url->getRouteParameters() == $route_match->getRawParameters()->all()) {
@@ -435,11 +435,13 @@ function shortcut_toolbar() {
  * Implements hook_themes_installed().
  */
 function shortcut_themes_installed($theme_list) {
-  if (in_array('seven', $theme_list)) {
-    // Theme settings are not configuration entities and cannot depend on modules
-    // so to set a module-specific setting, we need to set it with logic.
-    if (\Drupal::moduleHandler()->moduleExists('shortcut')) {
-      \Drupal::configFactory()->getEditable('seven.settings')->set('third_party_settings.shortcut.module_link', TRUE)->save(TRUE);
+  // Theme settings are not configuration entities and cannot depend on modules
+  // so to set a module-specific setting, we need to set it with logic.
+  foreach (['seven', 'claro'] as $theme) {
+    if (in_array($theme, $theme_list, TRUE)) {
+      \Drupal::configFactory()->getEditable("$theme.settings")
+        ->set('third_party_settings.shortcut.module_link', TRUE)
+        ->save(TRUE);
     }
   }
 }

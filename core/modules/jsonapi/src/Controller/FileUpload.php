@@ -128,7 +128,7 @@ class FileUpload {
       throw new UnprocessableEntityHttpException($message);
     }
 
-    if ($field_definition->getFieldStorageDefinition()->getCardinality() === 1) {
+    if ($resource_type->getFieldByInternalName($file_field_name)->hasOne()) {
       $entity->{$file_field_name} = $file;
     }
     else {
@@ -178,7 +178,7 @@ class FileUpload {
     }
 
     // @todo Remove line below in favor of commented line in https://www.drupal.org/project/jsonapi/issues/2878463.
-    $self_link = new Link(new CacheableMetadata(), Url::fromRoute('jsonapi.file--file.individual', ['entity' => $file->uuid()]), ['self']);
+    $self_link = new Link(new CacheableMetadata(), Url::fromRoute('jsonapi.file--file.individual', ['entity' => $file->uuid()]), 'self');
     /* $self_link = new Link(new CacheableMetadata(), $this->entity->toUrl('jsonapi'), ['self']); */
     $links = new LinkCollection(['self' => $self_link]);
 

@@ -8,6 +8,10 @@
     "node": ">= 8.11"
   },
   "scripts": {
+    "build": "yarn build:css & yarn build:js",
+    "watch": "yarn watch:css & yarn watch:js",
+    "build:css": "cross-env BABEL_ENV=legacy node ./scripts/css/postcss-build.js",
+    "watch:css": "cross-env BABEL_ENV=legacy node ./scripts/css/postcss-watch.js",
     "build:js": "cross-env BABEL_ENV=legacy node ./scripts/js/babel-es6-build.js",
     "build:js-dev": "cross-env NODE_ENV=development BABEL_ENV=legacy node ./scripts/js/babel-es6-build.js",
     "watch:js": "cross-env BABEL_ENV=legacy node ./scripts/js/babel-es6-watch.js",
@@ -21,6 +25,7 @@
     "prettier": "prettier --write \"./**/*.es6.js\" \"./tests/Drupal/Nightwatch/**/*.js\""
   },
   "devDependencies": {
+    "autoprefixer": "^9.6.1",
     "babel-core": "^6.26.0",
     "babel-plugin-add-header-comment": "^1.0.3",
     "babel-preset-env": "^1.4.0",
@@ -40,11 +45,17 @@
     "minimist": "^1.2.0",
     "mkdirp": "^0.5.1",
     "nightwatch": "^1.2.1",
+    "postcss": "^7.0.18",
+    "postcss-calc": "^7.0.1",
+    "postcss-custom-properties": "^9.0.2",
+    "postcss-header": "^1.0.0",
+    "postcss-import": "^12.0.1",
     "prettier": "^1.14.0",
     "stylelint": "^9.10.1",
     "stylelint-checkstyle-formatter": "^0.1.1",
     "stylelint-config-standard": "^18.2.0",
-    "stylelint-no-browser-hacks": "^1.2.1"
+    "stylelint-no-browser-hacks": "^1.2.1",
+    "stylelint-order": "^2.1.0"
   },
   "//": "'development is the default environment, and legacy is for transpiling the old jQuery codebase",
   "babel": {
@@ -67,21 +78,25 @@
           [
             "env",
             {
-              "modules": false,
-              "targets": {
-                "browsers": [
-                  "ie >= 9",
-                  "edge >= 13",
-                  "firefox >= 5",
-                  "opera >= 12",
-                  "safari >= 5",
-                  "chrome >= 56"
-                ]
-              }
+              "modules": false
             }
           ]
         ]
       }
     }
-  }
+  },
+  "browserslist": [
+    "last 2 Chrome major versions",
+    "last 2 Firefox major versions",
+    "last 2 Safari major versions",
+    "last 2 Edge major versions",
+    "last 2 Opera versions",
+    "last 2 iOS major versions",
+    "last 1 Explorer major version",
+    "last 1 ChromeAndroid version",
+    "last 1 UCAndroid version",
+    "last 1 Samsung version",
+    "last 1 OperaMini version",
+    "Firefox ESR"
+  ]
 }

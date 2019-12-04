@@ -43,7 +43,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
   public function testDependencyManagement() {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
     $config_manager = \Drupal::service('config.manager');
-    $storage = $this->container->get('entity.manager')->getStorage('config_test');
+    $storage = $this->container->get('entity_type.manager')->getStorage('config_test');
     // Test dependencies between modules.
     $entity1 = $storage->create(
       [
@@ -126,7 +126,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
 
     // Create a configuration entity of a different type with the same ID as one
     // of the entities already created.
-    $alt_storage = $this->container->get('entity.manager')->getStorage('config_query_test');
+    $alt_storage = $this->container->get('entity_type.manager')->getStorage('config_query_test');
     $alt_storage->create(['id' => 'entity1', 'dependencies' => ['enforced' => ['config' => [$entity1->getConfigDependencyName()]]]])->save();
     $alt_storage->create(['id' => 'entity2', 'dependencies' => ['enforced' => ['module' => ['views']]]])->save();
 
@@ -192,7 +192,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
     $config_manager = \Drupal::service('config.manager');
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorage $storage */
-    $storage = $this->container->get('entity.manager')
+    $storage = $this->container->get('entity_type.manager')
       ->getStorage('config_test');
     // Test dependencies between modules.
     $entity1 = $storage->create(
@@ -217,15 +217,11 @@ class ConfigDependencyTest extends EntityKernelTestBase {
       ]
     );
     $entity2->save();
-    // Perform a module rebuild so we can know where the node module is located
-    // and uninstall it.
-    // @todo Remove as part of https://www.drupal.org/node/2186491
-    system_rebuild_module_data();
     // Test that doing a config uninstall of the node module deletes entity2
     // since it is dependent on entity1 which is dependent on the node module.
     $config_manager->uninstall('module', 'node');
-    $this->assertFalse($storage->load('entity1'), 'Entity 1 deleted');
-    $this->assertFalse($storage->load('entity2'), 'Entity 2 deleted');
+    $this->assertNull($storage->load('entity1'), 'Entity 1 deleted');
+    $this->assertNull($storage->load('entity2'), 'Entity 2 deleted');
   }
 
   /**
@@ -256,7 +252,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
     $config_manager = \Drupal::service('config.manager');
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorage $storage */
-    $storage = $this->container->get('entity.manager')
+    $storage = $this->container->get('entity_type.manager')
       ->getStorage('config_test');
     // Entity 1 will be deleted because it depends on node.
     $entity_1 = $storage->create(
@@ -359,22 +355,18 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     $this->assertEqual($entity_4->uuid(), $config_entities['delete'][0]->uuid(), 'Entity 4 will be deleted.');
     $this->assertEqual($entity_5->uuid(), $config_entities['update'][1]->uuid(), 'Entity 5 is updated.');
 
-    // Perform a module rebuild so we can know where the node module is located
-    // and uninstall it.
-    // @todo Remove as part of https://www.drupal.org/node/2186491
-    system_rebuild_module_data();
     // Perform the uninstall.
     $config_manager->uninstall('module', 'node');
 
     // Test that expected actions have been performed.
-    $this->assertFalse($storage->load($entity_1->id()), 'Entity 1 deleted');
+    $this->assertNull($storage->load($entity_1->id()), 'Entity 1 deleted');
     $entity_2 = $storage->load($entity_2->id());
-    $this->assertTrue($entity_2, 'Entity 2 not deleted');
+    $this->assertNotEmpty($entity_2, 'Entity 2 not deleted');
     $this->assertEqual($entity_2->calculateDependencies()->getDependencies()['config'], [], 'Entity 2 dependencies updated to remove dependency on entity 1.');
     $entity_3 = $storage->load($entity_3->id());
-    $this->assertTrue($entity_3, 'Entity 3 not deleted');
+    $this->assertNotEmpty($entity_3, 'Entity 3 not deleted');
     $this->assertEqual($entity_3->calculateDependencies()->getDependencies()['config'], [$entity_2->getConfigDependencyName()], 'Entity 3 still depends on entity 2.');
-    $this->assertFalse($storage->load($entity_4->id()), 'Entity 4 deleted');
+    $this->assertNull($storage->load($entity_4->id()), 'Entity 4 deleted');
   }
 
   /**
@@ -476,25 +468,21 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     $this->assertSame(['config' => [], 'content' => [], 'module' => ['node'], 'theme' => []], $called[$entity_2->id()]);
     $this->assertSame(['config' => [], 'content' => [], 'module' => ['node'], 'theme' => []], $called[$entity_4->id()]);
 
-    // Perform a module rebuild so we can know where the node module is located
-    // and uninstall it.
-    // @todo Remove as part of https://www.drupal.org/node/2186491
-    system_rebuild_module_data();
     // Perform the uninstall.
     $config_manager->uninstall('module', 'node');
 
     // Test that expected actions have been performed.
     $entity_1 = $storage->load($entity_1->id());
-    $this->assertTrue($entity_1, 'Entity 1 not deleted');
+    $this->assertNotEmpty($entity_1, 'Entity 1 not deleted');
     $this->assertSame($entity_1->getThirdPartySettings('node'), [], 'Entity 1 third party settings updated.');
     $entity_2 = $storage->load($entity_2->id());
-    $this->assertTrue($entity_2, 'Entity 2 not deleted');
+    $this->assertNotEmpty($entity_2, 'Entity 2 not deleted');
     $this->assertSame($entity_2->getThirdPartySettings('node'), [], 'Entity 2 third party settings updated.');
     $this->assertSame($entity_2->calculateDependencies()->getDependencies()['config'], [$entity_1->getConfigDependencyName()], 'Entity 2 still depends on entity 1.');
     $entity_3 = $storage->load($entity_3->id());
-    $this->assertTrue($entity_3, 'Entity 3 not deleted');
+    $this->assertNotEmpty($entity_3, 'Entity 3 not deleted');
     $this->assertSame($entity_3->calculateDependencies()->getDependencies()['config'], [$entity_2->getConfigDependencyName()], 'Entity 3 still depends on entity 2.');
-    $this->assertFalse($storage->load($entity_4->id()), 'Entity 4 deleted');
+    $this->assertNull($storage->load($entity_4->id()), 'Entity 4 deleted');
   }
 
   /**
@@ -504,7 +492,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     /** @var \Drupal\Core\Config\ConfigManagerInterface $config_manager */
     $config_manager = \Drupal::service('config.manager');
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorage $storage */
-    $storage = $this->container->get('entity.manager')->getStorage('config_test');
+    $storage = $this->container->get('entity_type.manager')->getStorage('config_test');
     // Test dependencies between configuration entities.
     $entity1 = $storage->create(
       [
@@ -534,8 +522,8 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     // Test that doing a delete of entity1 deletes entity2 since it is dependent
     // on entity1.
     $entity1->delete();
-    $this->assertFalse($storage->load('entity1'), 'Entity 1 deleted');
-    $this->assertFalse($storage->load('entity2'), 'Entity 2 deleted');
+    $this->assertNull($storage->load('entity1'), 'Entity 1 deleted');
+    $this->assertNull($storage->load('entity2'), 'Entity 2 deleted');
 
     // Set a more complicated test where dependencies will be fixed.
     \Drupal::state()->set('config_test.fix_dependencies', [$entity1->getConfigDependencyName()]);
@@ -588,12 +576,12 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     $entity1->delete();
 
     // Test that expected actions have been performed.
-    $this->assertFalse($storage->load('entity1'), 'Entity 1 deleted');
+    $this->assertNull($storage->load('entity1'), 'Entity 1 deleted');
     $entity2 = $storage->load('entity2');
-    $this->assertTrue($entity2, 'Entity 2 not deleted');
+    $this->assertNotEmpty($entity2, 'Entity 2 not deleted');
     $this->assertEqual($entity2->calculateDependencies()->getDependencies()['config'], [], 'Entity 2 dependencies updated to remove dependency on Entity1.');
     $entity3 = $storage->load('entity3');
-    $this->assertTrue($entity3, 'Entity 3 not deleted');
+    $this->assertNotEmpty($entity3, 'Entity 3 not deleted');
     $this->assertEqual($entity3->calculateDependencies()->getDependencies()['config'], [$entity2->getConfigDependencyName()], 'Entity 3 still depends on Entity 2.');
   }
 
@@ -615,7 +603,7 @@ class ConfigDependencyTest extends EntityKernelTestBase {
     $content_entity = EntityTest::create();
     $content_entity->save();
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorage $storage */
-    $storage = $this->container->get('entity.manager')->getStorage('config_test');
+    $storage = $this->container->get('entity_type.manager')->getStorage('config_test');
     $entity1 = $storage->create(
       [
         'id' => 'entity1',

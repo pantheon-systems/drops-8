@@ -68,6 +68,12 @@ indented:
     component:
       css/components/indented.css: {}
 
+media_library:
+  version: VERSION
+  css:
+    layout:
+      css/layout/media-library.css: {}
+
 messages:
   version: VERSION
   css:
@@ -97,3 +103,14 @@ user:
   css:
     component:
       css/components/user.css: { weight: -10 }
+
+media_embed_error:
+  version: VERSION
+  css:
+    component:
+      css/components/media-embed-error.css: {}
+
+media_embed_ckeditor_theme:
+  version: VERSION
+  js:
+    js/media_embed_ckeditor.theme.js: {}

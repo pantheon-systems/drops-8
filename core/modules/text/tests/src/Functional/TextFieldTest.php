@@ -28,6 +28,11 @@ class TextFieldTest extends StringFieldTest {
    */
   protected $adminUser;
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -104,7 +109,9 @@ class TextFieldTest extends StringFieldTest {
       'label' => $this->randomMachineName() . '_label',
     ])->save();
 
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($text_field_name, [
         'type' => 'text_textarea_with_summary',
       ])
@@ -112,7 +119,7 @@ class TextFieldTest extends StringFieldTest {
         'type' => 'file_generic',
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($text_field_name)
       ->setComponent($file_field_name)
       ->save();
@@ -166,12 +173,14 @@ class TextFieldTest extends StringFieldTest {
       'bundle' => 'entity_test',
       'label' => $this->randomMachineName() . '_label',
     ])->save();
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => $widget_type,
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($field_name)
       ->save();
 
@@ -202,7 +211,7 @@ class TextFieldTest extends StringFieldTest {
 
     // Display the entity.
     $entity = EntityTest::load($id);
-    $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
+    $display = $display_repository->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $rendered_entity = \Drupal::service('renderer')->renderRoot($content);
     $this->assertNotContains($value, (string) $rendered_entity);
@@ -239,9 +248,9 @@ class TextFieldTest extends StringFieldTest {
     $this->assertText(t('entity_test @id has been updated.', ['@id' => $id]), 'Entity was updated');
 
     // Display the entity.
-    $this->container->get('entity.manager')->getStorage('entity_test')->resetCache([$id]);
+    $this->container->get('entity_type.manager')->getStorage('entity_test')->resetCache([$id]);
     $entity = EntityTest::load($id);
-    $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
+    $display = $display_repository->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $rendered_entity = \Drupal::service('renderer')->renderRoot($content);
     $this->assertContains($value, (string) $rendered_entity);

@@ -12,6 +12,11 @@ use Drupal\Component\Utility\Crypt;
 class InstallerConfigDirectorySetNoDirectoryErrorTest extends InstallerTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * The directory where the sync directory should be created during install.
    *
    * @var string
@@ -24,7 +29,7 @@ class InstallerConfigDirectorySetNoDirectoryErrorTest extends InstallerTestBase 
   protected function prepareEnvironment() {
     parent::prepareEnvironment();
     $this->configDirectory = $this->publicFilesDirectory . '/config_' . Crypt::randomBytesBase64();
-    $this->settings['config_directories'][CONFIG_SYNC_DIRECTORY] = (object) [
+    $this->settings['settings']['config_sync_directory'] = (object) [
       'value' => $this->configDirectory . '/sync',
       'required' => TRUE,
     ];

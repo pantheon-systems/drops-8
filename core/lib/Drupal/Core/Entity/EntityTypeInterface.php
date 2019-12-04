@@ -364,7 +364,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @return bool
    *   TRUE if the entity type is a subclass of the class or interface.
    *
-   * @deprecated in Drupal 8.3.0 and will be removed before Drupal 9.0.0.
+   * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
    *   Use Drupal\Core\Entity\EntityTypeInterface::entityClassImplements()
    *   instead.
    */
@@ -488,15 +488,12 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @return callable|null
    *   The callback, or NULL if none exists.
    *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
-   *   Use Drupal\Core\Entity\EntityInterface::label() for complex label
-   *   generation as needed.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the
+   *   EntityInterface::label() method instead for dynamic labels.
    *
    * @see \Drupal\Core\Entity\EntityInterface::label()
    * @see \Drupal\Core\Entity\EntityTypeInterface::setLabelCallback()
    * @see \Drupal\Core\Entity\EntityTypeInterface::hasLabelCallback()
-   *
-   * @todo Remove usages of label_callback https://www.drupal.org/node/2450793.
    */
   public function getLabelCallback();
 
@@ -508,8 +505,8 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *
    * @return $this
    *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
-   *   Use EntityInterface::label() for complex label generation as needed.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the
+   *   EntityInterface::label() method instead for dynamic labels.
    *
    * @see \Drupal\Core\Entity\EntityInterface::label()
    * @see \Drupal\Core\Entity\EntityTypeInterface::getLabelCallback()
@@ -522,8 +519,8 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *
    * @return bool
    *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
-   *   Use EntityInterface::label() for complex label generation as needed.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the
+   *   EntityInterface::label() method instead for dynamic labels.
    *
    * @see \Drupal\Core\Entity\EntityInterface::label()
    * @see \Drupal\Core\Entity\EntityTypeInterface::getLabelCallback()
@@ -662,6 +659,10 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @return string
    *   The lowercase form of the human-readable entity type name.
    *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
+   *   Instead, you should call getSingularLabel().
+   *   See https://www.drupal.org/node/3075567
+   *
    * @see \Drupal\Core\Entity\EntityTypeInterface::getLabel()
    */
   public function getLowercaseLabel();
@@ -686,6 +687,9 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * the entity type. For example: "opportunity" (with the plural as
    * "opportunities"), "child" (with the plural as "children"), or "content
    * item" (with the plural as "content items").
+   *
+   * Think of it as an "in a full sentence, this is what we call this" label. As
+   * a consequence, the English version is lowercase.
    *
    * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The singular label.

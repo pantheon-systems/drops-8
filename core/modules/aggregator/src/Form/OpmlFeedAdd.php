@@ -6,6 +6,7 @@ use Drupal\aggregator\FeedStorageInterface;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\ClientInterface;
@@ -49,7 +50,7 @@ class OpmlFeedAdd extends FormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorage('aggregator_feed'),
+      $container->get('entity_type.manager')->getStorage('aggregator_feed'),
       $container->get('http_client')
     );
   }
@@ -84,7 +85,7 @@ class OpmlFeedAdd extends FormBase {
       '#title' => $this->t('Update interval'),
       '#default_value' => 3600,
       '#options' => $period,
-      '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href=":cron">cron maintenance task</a>.', [':cron' => $this->url('system.status')]),
+      '#description' => $this->t('The length of time between feed updates. Requires a correctly configured <a href=":cron">cron maintenance task</a>.', [':cron' => Url::fromRoute('system.status')->toString()]),
     ];
 
     $form['actions'] = ['#type' => 'actions'];

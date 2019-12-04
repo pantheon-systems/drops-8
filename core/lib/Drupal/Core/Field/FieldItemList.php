@@ -150,7 +150,7 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
    * {@inheritdoc}
    */
   public function access($operation = 'view', AccountInterface $account = NULL, $return_as_object = FALSE) {
-    $access_control_handler = \Drupal::entityManager()->getAccessControlHandler($this->getEntity()->getEntityTypeId());
+    $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler($this->getEntity()->getEntityTypeId());
     return $access_control_handler->fieldAccess($operation, $this->getFieldDefinition(), $account, $this, $return_as_object);
   }
 
@@ -239,7 +239,7 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
    * {@inheritdoc}
    */
   public function view($display_options = []) {
-    $view_builder = \Drupal::entityManager()->getViewBuilder($this->getEntity()->getEntityTypeId());
+    $view_builder = \Drupal::entityTypeManager()->getViewBuilder($this->getEntity()->getEntityTypeId());
     return $view_builder->viewField($this, $display_options);
   }
 
@@ -322,6 +322,7 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
       $widget->extractFormValues($this, $element, $form_state);
       return $this->getValue();
     }
+    return [];
   }
 
   /**
@@ -351,7 +352,8 @@ class FieldItemList extends ItemList implements FieldItemListInterface {
 
       // Use the widget currently configured for the 'default' form mode, or
       // fallback to the default widget for the field type.
-      $entity_form_display = entity_get_form_display($entity->getEntityTypeId(), $entity->bundle(), 'default');
+      $entity_form_display = \Drupal::service('entity_display.repository')
+        ->getFormDisplay($entity->getEntityTypeId(), $entity->bundle());
       $widget = $entity_form_display->getRenderer($this->getFieldDefinition()->getName());
       if (!$widget) {
         $widget = \Drupal::service('plugin.manager.field.widget')->getInstance(['field_definition' => $this->getFieldDefinition()]);

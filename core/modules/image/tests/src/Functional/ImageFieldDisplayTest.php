@@ -2,13 +2,15 @@
 
 namespace Drupal\Tests\image\Functional;
 
-use Drupal\Core\Url;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
+use Drupal\Core\Url;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\Tests\TestFileCreationTrait;
-use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
-use Drupal\user\RoleInterface;
 use Drupal\image\Entity\ImageStyle;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
+use Drupal\Tests\TestFileCreationTrait;
+use Drupal\user\RoleInterface;
 
 /**
  * Tests the display of image fields.
@@ -33,6 +35,11 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
   public static $modules = ['field_ui'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * Test image formatters on node display for public files.
    */
   public function testImageFieldFormattersPublic() {
@@ -54,7 +61,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
   public function _testImageFieldFormatters($scheme) {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = $this->container->get('renderer');
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     $field_name = strtolower($this->randomMachineName());
     $field_settings = ['alt_field_required' => 0];
     $instance = $this->createImageField($field_name, 'article', ['uri_scheme' => $scheme], $field_settings);
@@ -117,7 +124,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       'type' => 'image',
       'settings' => ['image_link' => 'file'],
     ];
-    $display = entity_get_display('node', $node->getType(), 'default');
+    $display = \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', $node->getType());
     $display->setComponent($field_name, $display_options)
       ->save();
 
@@ -229,7 +237,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
   public function testImageFieldSettings() {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = $this->container->get('renderer');
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     $test_image = current($this->drupalGetTestFiles('image'));
     list(, $test_image_extension) = explode('.', $test_image->filename);
     $field_name = strtolower($this->randomMachineName());
@@ -279,7 +287,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $file = $node->{$field_name}->entity;
 
     $url = file_url_transform_relative(ImageStyle::load('medium')->buildUrl($file->getFileUri()));
-    $this->assertTrue($this->cssSelect('img[width=40][height=20][class=image-style-medium][src="' . $url . '"]'));
+    $this->assertSession()->elementExists('css', 'img[width=40][height=20][class=image-style-medium][src="' . $url . '"]');
 
     // Add alt/title fields to the image and verify that they are displayed.
     $image = [
@@ -329,7 +337,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
     // Add the required alt text.
     $this->drupalPostForm(NULL, [$field_name . '[1][alt]' => $alt], t('Save'));
-    $this->assertText(format_string('Article @title has been updated.', ['@title' => $node->getTitle()]));
+    $this->assertText(new FormattableMarkup('Article @title has been updated.', ['@title' => $node->getTitle()]));
 
     // Assert ImageWidget::process() calls FieldWidget::process().
     $this->drupalGet('node/' . $node->id() . '/edit');
@@ -348,7 +356,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     /** @var \Drupal\Core\Render\RendererInterface $renderer */
     $renderer = $this->container->get('renderer');
 
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     // Create a new image field.
     $field_name = strtolower($this->randomMachineName());
     $this->createImageField($field_name, 'article');
@@ -375,7 +383,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     ];
     $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/storage", $edit, t('Save field settings'));
     // Clear field definition cache so the new default image is detected.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
     $default_image = $field_storage->getSetting('default_image');
     $file = \Drupal::service('entity.repository')->loadEntityByUuid('file', $default_image['uuid']);
@@ -428,10 +436,10 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->getSession()->getPage()->pressButton(t('Save field settings'));
 
     // Clear field definition cache so the new default image is detected.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
     $default_image = $field_storage->getSetting('default_image');
-    $this->assertFalse($default_image['uuid'], 'Default image removed from field.');
+    $this->assertEmpty($default_image['uuid'], 'Default image removed from field.');
     // Create an image field that uses the private:// scheme and test that the
     // default image works as expected.
     $private_field_name = strtolower($this->randomMachineName());
@@ -445,12 +453,13 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     ];
     $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $private_field_name . '/storage', $edit, t('Save field settings'));
     // Clear field definition cache so the new default image is detected.
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     $private_field_storage = FieldStorageConfig::loadByName('node', $private_field_name);
     $default_image = $private_field_storage->getSetting('default_image');
     $file = \Drupal::service('entity.repository')->loadEntityByUuid('file', $default_image['uuid']);
-    $this->assertEqual('private', file_uri_scheme($file->getFileUri()), 'Default image uses private:// scheme.');
+
+    $this->assertEqual('private', StreamWrapperManager::getScheme($file->getFileUri()), 'Default image uses private:// scheme.');
     $this->assertTrue($file->isPermanent(), 'The default image status is permanent.');
     // Create a new node with no image attached and ensure that default private
     // image is displayed.

@@ -7,6 +7,7 @@
 
 use Drupal\Core\Database\Database;
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\UpdateException;
 
@@ -226,7 +227,7 @@ function hook_modules_installed($modules) {
  */
 function hook_install() {
   // Create the styles directory and ensure it's writable.
-  $directory = file_default_scheme() . '://styles';
+  $directory = \Drupal::config('system.file')->get('default_scheme') . '://styles';
   \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 }
 
@@ -283,7 +284,7 @@ function hook_modules_uninstalled($modules) {
  */
 function hook_uninstall() {
   // Remove the styles directory and generated images.
-  \Drupal::service('file_system')->deleteRecursive(file_default_scheme() . '://styles');
+  \Drupal::service('file_system')->deleteRecursive(\Drupal::config('system.file')->get('default_scheme') . '://styles');
 }
 
 /**
@@ -729,7 +730,7 @@ function hook_post_update_NAME(&$sandbox) {
   $block_update_8001 = \Drupal::keyValue('update_backup')->get('block_update_8001', []);
 
   $block_ids = array_keys($block_update_8001);
-  $block_storage = \Drupal::entityManager()->getStorage('block');
+  $block_storage = \Drupal::entityTypeManager()->getStorage('block');
   $blocks = $block_storage->loadMultiple($block_ids);
   /** @var $blocks \Drupal\block\BlockInterface[] */
   foreach ($blocks as $block) {
@@ -952,7 +953,7 @@ function hook_requirements($phase) {
   // Test PHP version
   $requirements['php'] = [
     'title' => t('PHP'),
-    'value' => ($phase == 'runtime') ? \Drupal::l(phpversion(), new Url('system.php')) : phpversion(),
+    'value' => ($phase == 'runtime') ? Link::fromTextAndUrl(phpversion(), Url::fromRoute('system.php'))->toString() : phpversion(),
   ];
   if (version_compare(phpversion(), DRUPAL_MINIMUM_PHP) < 0) {
     $requirements['php']['description'] = t('Your PHP installation is too old. Drupal requires at least PHP %version.', ['%version' => DRUPAL_MINIMUM_PHP]);

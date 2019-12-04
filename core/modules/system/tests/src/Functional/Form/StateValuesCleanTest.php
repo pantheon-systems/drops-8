@@ -22,6 +22,11 @@ class StateValuesCleanTest extends BrowserTestBase {
   public static $modules = ['form_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests \Drupal\Core\Form\FormState::cleanValues().
    */
   public function testFormStateValuesClean() {
@@ -35,16 +40,16 @@ class StateValuesCleanTest extends BrowserTestBase {
     ];
 
     // Verify that all internal Form API elements were removed.
-    $this->assertFalse(isset($values['form_id']), format_string('%element was removed.', ['%element' => 'form_id']));
-    $this->assertFalse(isset($values['form_token']), format_string('%element was removed.', ['%element' => 'form_token']));
-    $this->assertFalse(isset($values['form_build_id']), format_string('%element was removed.', ['%element' => 'form_build_id']));
-    $this->assertFalse(isset($values['op']), format_string('%element was removed.', ['%element' => 'op']));
+    $this->assertFalse(isset($values['form_id']), new FormattableMarkup('%element was removed.', ['%element' => 'form_id']));
+    $this->assertFalse(isset($values['form_token']), new FormattableMarkup('%element was removed.', ['%element' => 'form_token']));
+    $this->assertFalse(isset($values['form_build_id']), new FormattableMarkup('%element was removed.', ['%element' => 'form_build_id']));
+    $this->assertFalse(isset($values['op']), new FormattableMarkup('%element was removed.', ['%element' => 'op']));
 
     // Verify that all buttons were removed.
-    $this->assertFalse(isset($values['foo']), format_string('%element was removed.', ['%element' => 'foo']));
-    $this->assertFalse(isset($values['bar']), format_string('%element was removed.', ['%element' => 'bar']));
-    $this->assertFalse(isset($values['baz']['foo']), format_string('%element was removed.', ['%element' => 'foo']));
-    $this->assertFalse(isset($values['baz']['baz']), format_string('%element was removed.', ['%element' => 'baz']));
+    $this->assertFalse(isset($values['foo']), new FormattableMarkup('%element was removed.', ['%element' => 'foo']));
+    $this->assertFalse(isset($values['bar']), new FormattableMarkup('%element was removed.', ['%element' => 'bar']));
+    $this->assertFalse(isset($values['baz']['foo']), new FormattableMarkup('%element was removed.', ['%element' => 'foo']));
+    $this->assertFalse(isset($values['baz']['baz']), new FormattableMarkup('%element was removed.', ['%element' => 'baz']));
 
     // Verify values manually added for cleaning were removed.
     $this->assertFalse(isset($values['wine']), new FormattableMarkup('%element was removed.', ['%element' => 'wine']));

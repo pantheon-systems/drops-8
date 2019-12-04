@@ -30,12 +30,12 @@ class RegressionTest extends DatabaseTestBase {
         'job' => $job,
       ])->execute();
 
-    $from_database = db_query('SELECT job FROM {test} WHERE job = :job', [':job' => $job])->fetchField();
+    $from_database = $this->connection->query('SELECT job FROM {test} WHERE job = :job', [':job' => $job])->fetchField();
     $this->assertSame($job, $from_database, 'The database handles UTF-8 characters cleanly.');
   }
 
   /**
-   * Tests the db_table_exists() function.
+   * Tests the Schema::tableExists() method.
    */
   public function testDBTableExists() {
     $this->assertSame(TRUE, $this->connection->schema()->tableExists('test'), 'Returns true for existent table.');

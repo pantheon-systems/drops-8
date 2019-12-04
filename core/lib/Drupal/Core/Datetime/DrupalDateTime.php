@@ -24,6 +24,8 @@ class DrupalDateTime extends DateTimePlus {
 
   /**
    * Format string translation cache.
+   *
+   * @var string
    */
   protected $formatTranslationCache;
 
@@ -71,7 +73,7 @@ class DrupalDateTime extends DateTimePlus {
   protected function prepareTimezone($timezone) {
     if (empty($timezone)) {
       // Fallback to user or system default timezone.
-      $timezone = drupal_get_user_timezone();
+      $timezone = date_default_timezone_get();
     }
     return parent::prepareTimezone($timezone);
   }

@@ -6,8 +6,8 @@ use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\comment\CommentInterface;
-use Drupal\Tests\taxonomy\Functional\TaxonomyTestTrait;
 use Drupal\comment\Entity\Comment;
+use Drupal\Tests\taxonomy\Traits\TaxonomyTestTrait;
 
 /**
  * Tests comments with other entities.
@@ -16,6 +16,8 @@ use Drupal\comment\Entity\Comment;
  */
 class CommentEntityTest extends CommentTestBase {
 
+  use TaxonomyTestTrait;
+
   /**
    * Modules to install.
    *
@@ -23,7 +25,10 @@ class CommentEntityTest extends CommentTestBase {
    */
   public static $modules = ['block', 'comment', 'node', 'history', 'field_ui', 'datetime', 'taxonomy'];
 
-  use TaxonomyTestTrait;
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   protected $vocab;
   protected $commentType;

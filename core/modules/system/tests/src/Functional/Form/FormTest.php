@@ -12,6 +12,7 @@ use Drupal\form_test\Form\FormTestDisabledElementsForm;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\RoleInterface;
 use Drupal\filter\Entity\FilterFormat;
+use Behat\Mink\Element\NodeElement;
 
 /**
  * Tests various form element validation mechanisms.
@@ -26,6 +27,11 @@ class FormTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['filter', 'form_test', 'file', 'datetime'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   protected function setUp() {
     parent::setUp();
@@ -128,13 +134,13 @@ class FormTest extends BrowserTestBase {
             $this->assertTrue(isset($errors[$element]), "Check empty($key) '$type' field '$element'");
             if (!empty($form_output)) {
               // Make sure the form element is marked as required.
-              $this->assertTrue(preg_match($required_marker_preg, $form_output), "Required '$type' field is marked as required");
+              $this->assertRegExp($required_marker_preg, (string) $form_output, "Required '$type' field is marked as required");
             }
           }
           else {
             if (!empty($form_output)) {
               // Make sure the form element is *not* marked as required.
-              $this->assertFalse(preg_match($required_marker_preg, $form_output), "Optional '$type' field is not marked as required");
+              $this->assertNotRegExp($required_marker_preg, (string) $form_output, "Optional '$type' field is not marked as required");
             }
             if ($type == 'select') {
               // Select elements are going to have validation errors with empty
@@ -143,7 +149,8 @@ class FormTest extends BrowserTestBase {
               $this->assertTrue((empty($errors[$element]) || strpos('field is required', (string) $errors[$element]) === FALSE), "Optional '$type' field '$element' is not treated as a required element");
             }
             else {
-              // Make sure there is *no* form error for this element.
+              // Make sure there is *no* form error for this element. We're
+              // not using assertEmpty() because the array key might not exist.
               $this->assertTrue(empty($errors[$element]), "Optional '$type' field '$element' has no errors with empty input");
             }
           }
@@ -191,7 +198,7 @@ class FormTest extends BrowserTestBase {
       $expected_key = array_search($error->getText(), $expected);
       // If the error message is not one of the expected messages, fail.
       if ($expected_key === FALSE) {
-        $this->fail(format_string("Unexpected error message: @error", ['@error' => $error[0]]));
+        $this->fail(new FormattableMarkup("Unexpected error message: @error", ['@error' => $error[0]]));
       }
       // Remove the expected message from the list once it is found.
       else {
@@ -201,7 +208,7 @@ class FormTest extends BrowserTestBase {
 
     // Fail if any expected messages were not found.
     foreach ($expected as $not_found) {
-      $this->fail(format_string("Found error message: @error", ['@error' => $not_found]));
+      $this->fail(new FormattableMarkup("Found error message: @error", ['@error' => $not_found]));
     }
 
     // Verify that input elements are still empty.
@@ -369,7 +376,7 @@ class FormTest extends BrowserTestBase {
       'zero_checkbox_off' => 0,
     ];
     foreach ($expected_values as $widget => $expected_value) {
-      $this->assertSame($values[$widget], $expected_value, format_string('Checkbox %widget returns expected value (expected: %expected, got: %value)', [
+      $this->assertSame($values[$widget], $expected_value, new FormattableMarkup('Checkbox %widget returns expected value (expected: %expected, got: %value)', [
         '%widget' => var_export($widget, TRUE),
         '%expected' => var_export($expected_value, TRUE),
         '%value' => var_export($values[$widget], TRUE),
@@ -446,7 +453,7 @@ class FormTest extends BrowserTestBase {
       'multiple_no_default_required' => ['three' => 'three'],
     ];
     foreach ($expected as $key => $value) {
-      $this->assertIdentical($values[$key], $value, format_string('@name: @actual is equal to @expected.', [
+      $this->assertIdentical($values[$key], $value, new FormattableMarkup('@name: @actual is equal to @expected.', [
         '@name' => $key,
         '@actual' => var_export($values[$key], TRUE),
         '@expected' => var_export($value, TRUE),
@@ -461,6 +468,126 @@ class FormTest extends BrowserTestBase {
     $this->drupalGet('form-test/empty-select');
     $this->assertFieldByXPath("//select[1]", NULL, 'Select element found.');
     $this->assertNoFieldByXPath("//select[1]/option", NULL, 'No option element found.');
+  }
+
+  /**
+   * Tests sorting and not sorting of options in a select element.
+   */
+  public function testSelectSorting() {
+    $this->drupalGet('form-test/select');
+
+    // Verify the order of the select options.
+    $this->validateSelectSorting('unsorted', [
+      'uso_first_element',
+      'uso_second',
+      'uso_zzgroup',
+      'uso_gc',
+      'uso_ga',
+      'uso_gb',
+      'uso_yygroup',
+      'uso_ge',
+      'uso_gd',
+      'uso_gf',
+      'uso_xxgroup',
+      'uso_gz',
+      'uso_gi',
+      'uso_gh',
+      'uso_d',
+      'uso_c',
+      'uso_b',
+      'uso_a',
+    ]);
+
+    $this->validateSelectSorting('sorted', [
+      'sso_a',
+      'sso_d',
+      'sso_first_element',
+      'sso_b',
+      'sso_c',
+      'sso_second',
+      'sso_xxgroup',
+      'sso_gz',
+      'sso_gh',
+      'sso_gi',
+      'sso_yygroup',
+      'sso_ge',
+      'sso_gd',
+      'sso_gf',
+      'sso_zzgroup',
+      'sso_ga',
+      'sso_gb',
+      'sso_gc',
+    ]);
+
+    $this->validateSelectSorting('sorted_none', [
+      'sno_empty',
+      'sno_first_element',
+      'sno_second',
+      'sno_zzgroup',
+      'sno_ga',
+      'sno_gb',
+      'sno_gc',
+      'sno_a',
+      'sno_d',
+      'sno_b',
+      'sno_c',
+      'sno_xxgroup',
+      'sno_gz',
+      'sno_gi',
+      'sno_gh',
+      'sno_yygroup',
+      'sno_ge',
+      'sno_gd',
+      'sno_gf',
+    ]);
+
+    $this->validateSelectSorting('sorted_none_nostart', [
+      'snn_empty',
+      'snn_a',
+      'snn_d',
+      'snn_first_element',
+      'snn_b',
+      'snn_c',
+      'snn_second',
+      'snn_xxgroup',
+      'snn_gz',
+      'snn_gi',
+      'snn_gh',
+      'snn_yygroup',
+      'snn_ge',
+      'snn_gd',
+      'snn_gf',
+      'snn_zzgroup',
+      'snn_ga',
+      'snn_gb',
+      'snn_gc',
+    ]);
+
+    // Verify that #sort_order and #sort_start are not in the page.
+    $this->assertSession()->responseNotContains('#sort_order');
+    $this->assertSession()->responseNotContains('#sort_start');
+  }
+
+  /**
+   * Validates that the options are in the right order in a select.
+   *
+   * @param string $select
+   *   Name of the select to verify.
+   * @param string[] $order
+   *   Expected order of its options.
+   */
+  protected function validateSelectSorting($select, array $order) {
+    $option_map_function = function (NodeElement $node) {
+      return ($node->getTagName() === 'optgroup') ?
+        $node->getAttribute('label') : $node->getValue();
+    };
+    $option_nodes = $this->getSession()
+      ->getPage()
+      ->findField($select)
+      ->findAll('css', 'option, optgroup');
+
+    $options = array_map($option_map_function, $option_nodes);
+    $this->assertIdentical($order, $options);
   }
 
   /**
@@ -517,10 +644,10 @@ class FormTest extends BrowserTestBase {
           // Check if the error exists on the page, if the current message ID is
           // expected. Otherwise ensure that the error message is not present.
           if ($id === $error) {
-            $this->assertRaw(format_string($message, $placeholders));
+            $this->assertRaw(new FormattableMarkup($message, $placeholders));
           }
           else {
-            $this->assertNoRaw(format_string($message, $placeholders));
+            $this->assertNoRaw(new FormattableMarkup($message, $placeholders));
           }
         }
       }
@@ -660,7 +787,7 @@ class FormTest extends BrowserTestBase {
           // Checkboxes values are not filtered out.
           $values[$key] = array_filter($values[$key]);
         }
-        $this->assertIdentical($expected_value, $values[$key], format_string('Default value for %type: expected %expected, returned %returned.', ['%type' => $key, '%expected' => var_export($expected_value, TRUE), '%returned' => var_export($values[$key], TRUE)]));
+        $this->assertIdentical($expected_value, $values[$key], new FormattableMarkup('Default value for %type: expected %expected, returned %returned.', ['%type' => $key, '%expected' => var_export($expected_value, TRUE), '%returned' => var_export($values[$key], TRUE)]));
       }
 
       // Recurse children.
@@ -717,7 +844,7 @@ class FormTest extends BrowserTestBase {
         ':div-class' => $class,
         ':value' => isset($item['#value']) ? $item['#value'] : '',
       ]);
-      $this->assertTrue(isset($element[0]), format_string('Disabled form element class found for #type %type.', ['%type' => $item['#type']]));
+      $this->assertTrue(isset($element[0]), new FormattableMarkup('Disabled form element class found for #type %type.', ['%type' => $item['#type']]));
     }
 
     // Verify special element #type text-format.
@@ -725,12 +852,12 @@ class FormTest extends BrowserTestBase {
       ':name' => 'text_format[value]',
       ':div-class' => 'form-disabled',
     ]);
-    $this->assertTrue(isset($element[0]), format_string('Disabled form element class found for #type %type.', ['%type' => 'text_format[value]']));
+    $this->assertTrue(isset($element[0]), new FormattableMarkup('Disabled form element class found for #type %type.', ['%type' => 'text_format[value]']));
     $element = $this->xpath('//div[contains(@class, :div-class)]/descendant::select[@name=:name]', [
       ':name' => 'text_format[format]',
       ':div-class' => 'form-disabled',
     ]);
-    $this->assertTrue(isset($element[0]), format_string('Disabled form element class found for #type %type.', ['%type' => 'text_format[format]']));
+    $this->assertTrue(isset($element[0]), new FormattableMarkup('Disabled form element class found for #type %type.', ['%type' => 'text_format[format]']));
   }
 
   /**
@@ -759,7 +886,7 @@ class FormTest extends BrowserTestBase {
         ':id' => 'edit-' . $type,
         ':expected' => $expected,
       ]);
-      $this->assertTrue(!empty($element), format_string('The @type has the proper required attribute.', ['@type' => $type]));
+      $this->assertTrue(!empty($element), new FormattableMarkup('The @type has the proper required attribute.', ['@type' => $type]));
     }
 
     // Test to make sure textarea has the proper required attribute.

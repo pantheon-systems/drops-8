@@ -3,6 +3,7 @@
 namespace Drupal\KernelTests\Core\Config;
 
 use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -55,7 +56,7 @@ class ConfigFileContentTest extends KernelTestBase {
 
     // Verify a configuration object is returned.
     $this->assertEqual($config->getName(), $name);
-    $this->assertTrue($config, 'Config object created.');
+    $this->assertNotEmpty($config, 'Config object created.');
 
     // Verify the configuration object is empty.
     $this->assertEqual($config->get(), [], 'New config object is empty.');
@@ -92,12 +93,12 @@ class ConfigFileContentTest extends KernelTestBase {
 
     // Verify the database entry exists.
     $data = $storage->read($name);
-    $this->assertTrue($data);
+    $this->assertNotEmpty($data);
 
     // Read top level value.
     $config = $this->config($name);
     $this->assertEqual($config->getName(), $name);
-    $this->assertTrue($config, 'Config object created.');
+    $this->assertNotEmpty($config, 'Config object created.');
     $this->assertEqual($config->get($key), 'bar', 'Top level configuration value found.');
 
     // Read nested value.
@@ -205,7 +206,7 @@ class ConfigFileContentTest extends KernelTestBase {
     ];
 
     // Encode and write, and reload and decode the configuration data.
-    $filestorage = new FileStorage(config_get_config_directory(CONFIG_SYNC_DIRECTORY));
+    $filestorage = new FileStorage(Settings::get('config_sync_directory'));
     $filestorage->write($name, $config_data);
     $config_parsed = $filestorage->read($name);
 

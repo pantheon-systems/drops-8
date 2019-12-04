@@ -30,42 +30,42 @@ class SqlContentEntityStorageTest extends UnitTestCase {
   /**
    * The content entity database storage used in this test.
    *
-   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityStorage;
 
   /**
    * The mocked entity type used in this test.
    *
-   * @var \Drupal\Core\Entity\ContentEntityTypeInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\ContentEntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityType;
 
   /**
    * An array of field definitions used for this test, keyed by field name.
    *
-   * @var \Drupal\Core\Field\BaseFieldDefinition[]|\PHPUnit_Framework_MockObject_MockObject[]
+   * @var \Drupal\Core\Field\BaseFieldDefinition[]|\PHPUnit\Framework\MockObject\MockObject[]
    */
   protected $fieldDefinitions = [];
 
   /**
    * The mocked entity type manager used in this test.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The mocked entity type bundle info used in this test.
    *
-   * @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeBundleInfo;
 
   /**
    * The mocked entity field manager used in this test.
    *
-   * @var \Drupal\Core\Entity\EntityFieldManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityFieldManager;
 
@@ -86,28 +86,28 @@ class SqlContentEntityStorageTest extends UnitTestCase {
   /**
    * The module handler.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The cache backend to use.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cache;
 
   /**
    * The language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
   /**
    * The database connection to use.
    *
-   * @var \Drupal\Core\Database\Connection|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Database\Connection|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $connection;
 
@@ -115,7 +115,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->entityType = $this->getMock('Drupal\Core\Entity\ContentEntityTypeInterface');
+    $this->entityType = $this->createMock('Drupal\Core\Entity\ContentEntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('id')
       ->will($this->returnValue($this->entityTypeId));
@@ -126,9 +126,9 @@ class SqlContentEntityStorageTest extends UnitTestCase {
     $this->entityTypeManager = $this->createMock(EntityTypeManager::class);
     $this->entityTypeBundleInfo = $this->createMock(EntityTypeBundleInfoInterface::class);
     $this->entityFieldManager = $this->createMock(EntityFieldManager::class);
-    $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->cache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
     $this->languageManager->expects($this->any())
       ->method('getDefaultLanguage')
       ->will($this->returnValue(new Language(['langcode' => 'en'])));
@@ -433,7 +433,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       ->setMethods(['getStorageSchema'])
       ->getMock();
 
-    $key_value = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreInterface');
+    $key_value = $this->createMock('Drupal\Core\KeyValueStore\KeyValueStoreInterface');
     $schema_handler = $this->getMockBuilder('Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema')
       ->setConstructorArgs([$this->entityTypeManager, $this->entityType, $storage, $this->connection, $this->entityFieldManager])
       ->setMethods(['installedStorageSchema', 'createSharedTableSchema'])
@@ -1066,7 +1066,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
    * @covers ::create
    */
   public function testCreate() {
-    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $language_manager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
 
     $language = new Language(['id' => 'en']);
     $language_manager->expects($this->any())
@@ -1123,12 +1123,12 @@ class SqlContentEntityStorageTest extends UnitTestCase {
    *   (optional) An associative array of mock method return values keyed by
    *   method name.
    *
-   * @return \Drupal\Tests\Core\Field\TestBaseFieldDefinitionInterface[]|\PHPUnit_Framework_MockObject_MockObject[]
+   * @return \Drupal\Tests\Core\Field\TestBaseFieldDefinitionInterface[]|\PHPUnit\Framework\MockObject\MockObject[]
    *   An array of mock base field definitions.
    */
   protected function mockFieldDefinitions(array $field_names, $methods = []) {
     $field_definitions = [];
-    $definition = $this->getMock('Drupal\Tests\Core\Field\TestBaseFieldDefinitionInterface');
+    $definition = $this->createMock('Drupal\Tests\Core\Field\TestBaseFieldDefinitionInterface');
 
     // Assign common method return values.
     $methods += [
@@ -1335,7 +1335,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
    * @covers ::hasData
    */
   public function testHasData() {
-    $query = $this->getMock('Drupal\Core\Entity\Query\QueryInterface');
+    $query = $this->createMock('Drupal\Core\Entity\Query\QueryInterface');
     $query->expects(($this->once()))
       ->method('accessCheck')
       ->with(FALSE)
@@ -1348,7 +1348,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       ->method('execute')
       ->willReturn([5]);
 
-    $factory = $this->getMock(QueryFactoryInterface::class);
+    $factory = $this->createMock(QueryFactoryInterface::class);
     $factory->expects($this->once())
       ->method('get')
       ->with($this->entityType, 'AND')

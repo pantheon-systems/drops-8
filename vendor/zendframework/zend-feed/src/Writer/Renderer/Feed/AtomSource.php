@@ -31,11 +31,11 @@ class AtomSource extends AbstractAtom implements Renderer\RendererInterface
     /**
      * Render Atom Feed Metadata (Source element)
      *
-     * @return \Zend\Feed\Writer\Renderer\Feed\Atom
+     * @return \Zend\Feed\Writer\Renderer\Feed\AbstractAtom
      */
     public function render()
     {
-        if (!$this->container->getEncoding()) {
+        if (! $this->container->getEncoding()) {
             $this->container->setEncoding('UTF-8');
         }
         $this->dom = new DOMDocument('1.0', $this->container->getEncoding());
@@ -60,7 +60,7 @@ class AtomSource extends AbstractAtom implements Renderer\RendererInterface
         foreach ($this->extensions as $ext) {
             $ext->setType($this->getType());
             $ext->setRootElement($this->getRootElement());
-            $ext->setDOMDocument($this->getDOMDocument(), $root);
+            $ext->setDomDocument($this->getDomDocument(), $root);
             $ext->render();
         }
         return $this;
@@ -73,9 +73,11 @@ class AtomSource extends AbstractAtom implements Renderer\RendererInterface
      * @param  DOMElement $root
      * @return void
      */
+    // @codingStandardsIgnoreStart
     protected function _setGenerator(DOMDocument $dom, DOMElement $root)
     {
-        if (!$this->getDataContainer()->getGenerator()) {
+        // @codingStandardsIgnoreEnd
+        if (! $this->getDataContainer()->getGenerator()) {
             return;
         }
 

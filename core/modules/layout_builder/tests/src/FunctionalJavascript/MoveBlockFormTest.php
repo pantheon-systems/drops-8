@@ -34,6 +34,11 @@ class MoveBlockFormTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $page = $this->getSession()->getPage();
@@ -64,7 +69,7 @@ class MoveBlockFormTest extends WebDriverTestBase {
     $this->assertRegionBlocksOrder(0, 'content', $expected_block_order);
 
     // Add a top section using the Two column layout.
-    $page->clickLink('Add Section');
+    $page->clickLink('Add section');
     $assert_session->waitForElementVisible('css', '#drupal-off-canvas');
     $assert_session->assertWaitOnAjaxRequest();
     $page->clickLink('Two column');
@@ -80,9 +85,9 @@ class MoveBlockFormTest extends WebDriverTestBase {
     $this->assertNotEmpty($assert_session->waitForElementVisible('css', '#drupal-off-canvas a:contains("Powered by Drupal")'));
     $assert_session->assertWaitOnAjaxRequest();
     $page->clickLink('Powered by Drupal');
-    $this->assertNotEmpty($assert_session->waitForElementVisible('css', 'input[value="Add Block"]'));
+    $this->assertNotEmpty($assert_session->waitForElementVisible('css', 'input[value="Add block"]'));
     $assert_session->assertWaitOnAjaxRequest();
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->assertNoElementAfterWait('css', '#drupal-off-canvas');
     $this->assertNotEmpty($assert_session->waitForElementVisible('css', $first_region_block_locator));
 

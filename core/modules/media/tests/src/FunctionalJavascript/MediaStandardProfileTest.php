@@ -31,6 +31,11 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->lockHttpClientToFixtures();
@@ -62,11 +67,11 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
       'settings' => [
         'handler_settings' => [
           'target_bundles' => [
-            'image' => 'image',
-            'video' => 'video',
-            'remote_video' => 'remote_video',
             'audio' => 'audio',
-            'file' => 'file',
+            'document' => 'document',
+            'image' => 'image',
+            'remote_video' => 'remote_video',
+            'video' => 'video',
           ],
         ],
       ],
@@ -81,7 +86,7 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
     ])->save();
 
     $this->audioTest();
-    $this->fileTest();
+    $this->documentTest();
     $this->imageTest();
     $this->remoteVideoTest();
     $this->videoTest();
@@ -230,10 +235,13 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
     $assert_session->elementsCount('css', 'article.media--type-image > *', 1);
 
     // Assert the image element is present inside the media element and that its
-    // src attribute matches the image.
+    // src attribute uses the large image style, the label is visually hidden,
+    // and there is no link to the image file.
     $image_element = $assert_session->elementExists('css', 'article.media--type-image img');
-    $expected_image_src = file_url_transform_relative(file_create_url(\Drupal::token()->replace('public://[date:custom:Y]-[date:custom:m]/' . $image_media_name)));
-    $this->assertSame($expected_image_src, $image_element->getAttribute('src'));
+    $expected_image_src = file_url_transform_relative(file_create_url(\Drupal::token()->replace('public://styles/large/public/[date:custom:Y]-[date:custom:m]/' . $image_media_name)));
+    $this->assertContains($expected_image_src, $image_element->getAttribute('src'));
+    $assert_session->elementExists('css', '.field--name-field-media-image .field__label.visually-hidden');
+    $assert_session->elementNotExists('css', '.field--name-field-media-image a');
 
     // Assert the media name is updated through the field mapping when changing
     // the source field.
@@ -259,19 +267,22 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
     $assert_session->elementsCount('css', 'article.media--type-image > *', 1);
 
     // Assert the image element is present inside the media element and that its
-    // src attribute matches the updated image.
+    // src attribute uses the large image style, the label is visually hidden,
+    // and there is no link to the image file.
     $image_element = $assert_session->elementExists('css', 'article.media--type-image img');
-    $expected_image_src = file_url_transform_relative(file_create_url(\Drupal::token()->replace('public://[date:custom:Y]-[date:custom:m]/' . $image_media_name_updated)));
-    $this->assertSame($expected_image_src, $image_element->getAttribute('src'));
+    $expected_image_src = file_url_transform_relative(file_create_url(\Drupal::token()->replace('public://styles/large/public/[date:custom:Y]-[date:custom:m]/' . $image_media_name_updated)));
+    $this->assertContains($expected_image_src, $image_element->getAttribute('src'));
+    $assert_session->elementExists('css', '.field--name-field-media-image .field__label.visually-hidden');
+    $assert_session->elementNotExists('css', '.field--name-field-media-image a');
   }
 
   /**
-   * Test the standard profile configuration for media type 'file'.
+   * Test the standard profile configuration for media type 'document'.
    */
-  protected function fileTest() {
+  protected function documentTest() {
     $assert_session = $this->assertSession();
     $page = $this->getSession()->getPage();
-    $source_field_id = 'field_media_file';
+    $source_field_id = 'field_media_document';
 
     // Create 2 test files.
     $test_filename = $this->randomMachineName() . '.txt';
@@ -282,7 +293,7 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
     file_put_contents($test_filepath_updated, $this->randomMachineName());
 
     // Check if the name field is properly hidden on the media form.
-    $this->drupalGet('media/add/file');
+    $this->drupalGet('media/add/document');
     $assert_session->fieldNotExists('name');
 
     // Check if the source field is available.
@@ -320,11 +331,11 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
 
     // Here we expect to see only the linked filename. Assert only one element
     // in the content region.
-    $assert_session->elementsCount('css', 'article.media--type-file > *', 1);
+    $assert_session->elementsCount('css', 'article.media--type-document > *', 1);
 
     // Assert the file link is present in the media element and its text matches
     // the filename.
-    $link_element = $assert_session->elementExists('css', 'article.media--type-file .field--name-field-media-file a');
+    $link_element = $assert_session->elementExists('css', 'article.media--type-document .field--name-field-media-document a');
     $this->assertSame($test_filename, $link_element->getText());
 
     // Assert the media name is updated through the field mapping when changing
@@ -346,11 +357,11 @@ class MediaStandardProfileTest extends MediaJavascriptTestBase {
 
     // Again we expect to see only the linked filename. Assert only one element
     // in the content region.
-    $assert_session->elementsCount('css', 'article.media--type-file > *', 1);
+    $assert_session->elementsCount('css', 'article.media--type-document > *', 1);
 
     // Assert the file link is present in the media element and its text matches
     // the updated filename.
-    $link_element = $assert_session->elementExists('css', 'article.media--type-file .field--name-field-media-file a');
+    $link_element = $assert_session->elementExists('css', 'article.media--type-document .field--name-field-media-document a');
     $this->assertSame($test_filename_updated, $link_element->getText());
   }
 

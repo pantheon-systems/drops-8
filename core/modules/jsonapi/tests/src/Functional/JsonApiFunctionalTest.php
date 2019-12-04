@@ -11,7 +11,6 @@ use Drupal\node\Entity\Node;
  * General functional test class.
  *
  * @group jsonapi
- * @group legacy
  *
  * @internal
  */
@@ -23,6 +22,11 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
   public static $modules = [
     'basic_auth',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Test the GET method.
@@ -191,7 +195,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     })));
     $link_keys = array_keys($single_output['meta']['omitted']['links']);
     $this->assertSame('help', reset($link_keys));
-    $this->assertRegExp('/^item:[a-zA-Z0-9]{7}$/', next($link_keys));
+    $this->assertRegExp('/^item--[a-zA-Z0-9]{7}$/', next($link_keys));
     $this->nodes[1]->set('status', TRUE);
     $this->nodes[1]->save();
     // 13. Test filtering when using short syntax.
@@ -271,7 +275,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ]);
     $response = $this->request('GET', $user_url, [
       'auth' => [
-        $this->userCanViewProfiles->getUsername(),
+        $this->userCanViewProfiles->getAccountName(),
         $this->userCanViewProfiles->pass_raw,
       ],
     ]);
@@ -564,7 +568,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ];
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $created_response = Json::decode($response->getBody()->__toString());
@@ -587,7 +591,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     // 2.1 Authorization error with a user without create permissions.
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->userCanViewProfiles->getUsername(), $this->userCanViewProfiles->pass_raw],
+      'auth' => [$this->userCanViewProfiles->getAccountName(), $this->userCanViewProfiles->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $created_response = Json::decode($response->getBody()->__toString());
@@ -598,7 +602,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     // 3. Missing Content-Type error.
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Accept' => 'application/vnd.api+json'],
     ]);
     $created_response = Json::decode($response->getBody()->__toString());
@@ -609,7 +613,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     $invalid_body['data']['id'] = Node::load(1)->uuid();
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($invalid_body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Accept' => 'application/vnd.api+json',
         'Content-Type' => 'application/vnd.api+json',
@@ -625,7 +629,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     $body_invalid_tags['data']['relationships']['field_tags']['data'][1]['id'] = 'ipsum';
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($body_invalid_tags),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $created_response = Json::decode($response->getBody()->__toString());
@@ -633,7 +637,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     // 6. Decoding error.
     $response = $this->request('POST', $collection_url, [
       'body' => '{"bad json",,,}',
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Content-Type' => 'application/vnd.api+json',
         'Accept' => 'application/vnd.api+json',
@@ -646,7 +650,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     // 6.1 Denormalizing error.
     $response = $this->request('POST', $collection_url, [
       'body' => '{"data":{"type":"something"},"valid yet nonsensical json":[]}',
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Content-Type' => 'application/vnd.api+json',
         'Accept' => 'application/vnd.api+json',
@@ -662,7 +666,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     $malformed_body['relationships'] = $body['data']['relationships'];
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($malformed_body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Accept' => 'application/vnd.api+json',
         'Content-Type' => 'application/vnd.api+json',
@@ -678,7 +682,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     unset($missing_type['data']['type']);
     $response = $this->request('POST', $collection_url, [
       'body' => Json::encode($missing_type),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Accept' => 'application/vnd.api+json',
         'Content-Type' => 'application/vnd.api+json',
@@ -702,7 +706,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ]);
     $response = $this->request('PATCH', $individual_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $updated_response = Json::decode($response->getBody()->__toString());
@@ -722,7 +726,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ]);
     $response = $this->request('PATCH', $individual_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->userCanViewProfiles->getUsername(), $this->userCanViewProfiles->pass_raw],
+      'auth' => [$this->userCanViewProfiles->getAccountName(), $this->userCanViewProfiles->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $this->assertEquals(403, $response->getStatusCode());
@@ -740,7 +744,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ];
     $response = $this->request('PATCH', $individual_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $updated_response = Json::decode($response->getBody()->__toString());
@@ -748,7 +752,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     $this->assertEquals("The current user is not allowed to PATCH the selected field (status). The 'administer nodes' permission is required.",
       $updated_response['errors'][0]['detail']);
 
-    $node = \Drupal::entityManager()->loadEntityByUuid('node', $uuid);
+    $node = \Drupal::service('entity.repository')->loadEntityByUuid('node', $uuid);
     $this->assertEquals(1, $node->get('status')->value, 'Node status was not changed.');
     // 9. Successful POST to related endpoint.
     $body = [
@@ -764,7 +768,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ]);
     $response = $this->request('POST', $relationship_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $updated_response = Json::decode($response->getBody()->__toString());
@@ -783,7 +787,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ];
     $response = $this->request('PATCH', $relationship_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $this->assertEquals(204, $response->getStatusCode());
@@ -791,7 +795,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     // 11. Successful DELETE to related endpoint.
     $response = $this->request('DELETE', $relationship_url, [
       // Send a request with no body.
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Content-Type' => 'application/vnd.api+json',
         'Accept' => 'application/vnd.api+json',
@@ -812,7 +816,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     $response = $this->request('DELETE', $relationship_url, [
       // Remove the existing relationship item.
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => ['Content-Type' => 'application/vnd.api+json'],
     ]);
     $this->assertEquals(204, $response->getStatusCode());
@@ -834,7 +838,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ];
     $response = $this->request('PATCH', $individual_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Content-Type' => 'application/vnd.api+json',
         'Accept' => 'application/vnd.api+json',
@@ -863,7 +867,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
     ];
     $response = $this->request('PATCH', $individual_url, [
       'body' => Json::encode($body),
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
       'headers' => [
         'Content-Type' => 'application/vnd.api+json',
         'Accept' => 'application/vnd.api+json',
@@ -875,7 +879,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
       $updated_response['errors']['0']['detail']);
     // 14. Successful DELETE.
     $response = $this->request('DELETE', $individual_url, [
-      'auth' => [$this->user->getUsername(), $this->user->pass_raw],
+      'auth' => [$this->user->getAccountName(), $this->user->pass_raw],
     ]);
     $this->assertEquals(204, $response->getStatusCode());
     $response = $this->request('GET', $individual_url, []);

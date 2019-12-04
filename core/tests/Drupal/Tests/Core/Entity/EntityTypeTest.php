@@ -272,7 +272,8 @@ class EntityTypeTest extends UnitTestCase {
   public function testIdExceedsMaxLength() {
     $id = $this->randomMachineName(33);
     $message = 'Attempt to create an entity type with an ID longer than 32 characters: ' . $id;
-    $this->setExpectedException('Drupal\Core\Entity\Exception\EntityTypeIdLengthException', $message);
+    $this->expectException('Drupal\Core\Entity\Exception\EntityTypeIdLengthException');
+    $this->expectExceptionMessage($message);
     $this->setUpEntityType(['id' => $id]);
   }
 
@@ -442,7 +443,7 @@ class EntityTypeTest extends UnitTestCase {
    */
   public function testSetLinkTemplateWithInvalidPath() {
     $entity_type = $this->setUpEntityType(['id' => $this->randomMachineName()]);
-    $this->setExpectedException(\InvalidArgumentException::class);
+    $this->expectException(\InvalidArgumentException::class);
     $entity_type->setLinkTemplate('test', 'invalid-path');
   }
 
@@ -493,6 +494,49 @@ class EntityTypeTest extends UnitTestCase {
     $entity_type = unserialize(serialize($entity_type));
 
     $this->assertEquals('example_entity_type', $entity_type->id());
+  }
+
+  /**
+   * @covers ::getLabelCallback
+   *
+   * @group legacy
+   *
+   * @deprecatedMessage EntityType::getLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
+   */
+  public function testGetLabelCallack() {
+    $entity_type = $this->setUpEntityType(['label_callback' => 'label_function']);
+    $this->assertSame('label_function', $entity_type->getLabelCallback());
+
+    $entity_type = $this->setUpEntityType([]);
+    $this->assertNull($entity_type->getLabelCallback());
+  }
+
+  /**
+   * @covers ::setLabelCallback
+   *
+   * @group legacy
+   *
+   * @deprecatedMessage EntityType::setLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
+   */
+  public function testSetLabelCallack() {
+    $entity_type = $this->setUpEntityType([]);
+    $entity_type->setLabelCallback('label_function');
+    $this->assertSame('label_function', $entity_type->get('label_callback'));
+  }
+
+  /**
+   * @covers ::hasLabelCallback
+   *
+   * @group legacy
+   *
+   * @deprecatedMessage EntityType::hasLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
+   */
+  public function testHasLabelCallack() {
+    $entity_type = $this->setUpEntityType(['label_callback' => 'label_function']);
+    $this->assertTrue($entity_type->hasLabelCallback());
+
+    $entity_type = $this->setUpEntityType([]);
+    $this->assertFalse($entity_type->hasLabelCallback());
   }
 
 }

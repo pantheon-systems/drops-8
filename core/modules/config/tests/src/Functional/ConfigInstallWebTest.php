@@ -2,9 +2,11 @@
 
 namespace Drupal\Tests\config\Functional;
 
+use Drupal\config_test\Entity\ConfigTest;
 use Drupal\Core\Config\PreExistingConfigException;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\Site\Settings;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 
@@ -20,6 +22,11 @@ class ConfigInstallWebTest extends BrowserTestBase {
    * The admin user used in this test.
    */
   protected $adminUser;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -92,9 +99,9 @@ class ConfigInstallWebTest extends BrowserTestBase {
       $this->fail('Expected PreExistingConfigException not thrown.');
     }
     catch (PreExistingConfigException $e) {
-      $this->assertEqual($e->getExtension(), 'config_integration_test');
-      $this->assertEqual($e->getConfigObjects(), [StorageInterface::DEFAULT_COLLECTION => ['config_test.dynamic.config_integration_test']]);
-      $this->assertEqual($e->getMessage(), 'Configuration objects (config_test.dynamic.config_integration_test) provided by config_integration_test already exist in active configuration');
+      $this->assertEquals('config_integration_test', $e->getExtension());
+      $this->assertEquals([StorageInterface::DEFAULT_COLLECTION => ['config_test.dynamic.config_integration_test']], $e->getConfigObjects());
+      $this->assertEquals('Configuration objects (config_test.dynamic.config_integration_test) provided by config_integration_test already exist in active configuration', $e->getMessage());
     }
 
     // Delete the configuration entity so that the install will work.
@@ -163,13 +170,13 @@ class ConfigInstallWebTest extends BrowserTestBase {
 
     // Test installing a theme through the API that has existing configuration.
     try {
-      \Drupal::service('theme_handler')->install(['config_clash_test_theme']);
+      \Drupal::service('theme_installer')->install(['config_clash_test_theme']);
       $this->fail('Expected PreExistingConfigException not thrown.');
     }
     catch (PreExistingConfigException $e) {
-      $this->assertEqual($e->getExtension(), 'config_clash_test_theme');
-      $this->assertEqual($e->getConfigObjects(), [StorageInterface::DEFAULT_COLLECTION => ['config_test.dynamic.dotted.default'], 'language.fr' => ['config_test.dynamic.dotted.default']]);
-      $this->assertEqual($e->getMessage(), 'Configuration objects (config_test.dynamic.dotted.default, language/fr/config_test.dynamic.dotted.default) provided by config_clash_test_theme already exist in active configuration');
+      $this->assertEquals('config_clash_test_theme', $e->getExtension());
+      $this->assertEquals([StorageInterface::DEFAULT_COLLECTION => ['config_test.dynamic.dotted.default'], 'language.fr' => ['config_test.dynamic.dotted.default']], $e->getConfigObjects());
+      $this->assertEquals('Configuration objects (config_test.dynamic.dotted.default, language/fr/config_test.dynamic.dotted.default) provided by config_clash_test_theme already exist in active configuration', $e->getMessage());
     }
   }
 
@@ -191,7 +198,7 @@ class ConfigInstallWebTest extends BrowserTestBase {
     $this->drupalPostForm('admin/modules', ['modules[config_other_module_config_test][enable]' => TRUE], t('Install'));
     $this->drupalPostForm('admin/modules', ['modules[config_install_dependency_test][enable]' => TRUE], t('Install'));
     $this->rebuildContainer();
-    $this->assertTrue(\Drupal::entityTypeManager()->getStorage('config_test')->load('other_module_test_with_dependency'), 'The config_test.dynamic.other_module_test_with_dependency configuration has been created during install.');
+    $this->assertInstanceOf(ConfigTest::class, \Drupal::entityTypeManager()->getStorage('config_test')->load('other_module_test_with_dependency'), 'The config_test.dynamic.other_module_test_with_dependency configuration has been created during install.');
   }
 
   /**
@@ -201,7 +208,7 @@ class ConfigInstallWebTest extends BrowserTestBase {
     $this->drupalLogin($this->adminUser);
     $this->drupalPostForm('admin/modules', ['modules[config][enable]' => TRUE], t('Install'));
 
-    $directory = config_get_config_directory(CONFIG_SYNC_DIRECTORY);
+    $directory = Settings::get('config_sync_directory');
     try {
       \Drupal::service('file_system')->deleteRecursive($directory);
     }

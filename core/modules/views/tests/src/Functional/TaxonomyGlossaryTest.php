@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\views\Functional;
 
-use Drupal\Tests\taxonomy\Functional\TaxonomyTestTrait;
+use Drupal\Tests\taxonomy\Traits\TaxonomyTestTrait;
 
 /**
  * Tests glossary functionality of taxonomy views.
@@ -19,6 +19,11 @@ class TaxonomyGlossaryTest extends ViewTestBase {
    * @var array
    */
   public static $modules = ['taxonomy'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Views used by this test.

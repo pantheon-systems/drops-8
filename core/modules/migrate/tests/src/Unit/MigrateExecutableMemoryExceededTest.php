@@ -12,14 +12,14 @@ class MigrateExecutableMemoryExceededTest extends MigrateTestCase {
   /**
    * The mocked migration entity.
    *
-   * @var \Drupal\migrate\Plugin\MigrationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\migrate\Plugin\MigrationInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $migration;
 
   /**
    * The mocked migrate message.
    *
-   * @var \Drupal\migrate\MigrateMessageInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\migrate\MigrateMessageInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $message;
 
@@ -52,7 +52,7 @@ class MigrateExecutableMemoryExceededTest extends MigrateTestCase {
   protected function setUp() {
     parent::setUp();
     $this->migration = $this->getMigration();
-    $this->message = $this->getMock('Drupal\migrate\MigrateMessageInterface');
+    $this->message = $this->createMock('Drupal\migrate\MigrateMessageInterface');
 
     $this->executable = new TestMigrateExecutable($this->migration, $this->message);
     $this->executable->setStringTranslation($this->getStringTranslationStub());

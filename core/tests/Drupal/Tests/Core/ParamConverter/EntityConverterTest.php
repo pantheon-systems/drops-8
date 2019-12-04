@@ -32,14 +32,14 @@ class EntityConverterTest extends UnitTestCase {
   /**
    * The mocked entity type manager.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
   /**
    * The mocked entities repository.
    *
-   * @var \Drupal\Core\Entity\EntityRepositoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityRepository;
 
@@ -136,7 +136,7 @@ class EntityConverterTest extends UnitTestCase {
       'typed_data_manager' => $typed_data_manager,
     ];
 
-    /** @var \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit_Framework_MockObject_MockObject $container */
+    /** @var \Symfony\Component\DependencyInjection\ContainerInterface|\PHPUnit\Framework\MockObject\MockObject $container */
     $container = $this->createMock(ContainerInterface::class);
     $return_map = [];
     foreach ($service_map as $name => $service) {
@@ -209,7 +209,7 @@ class EntityConverterTest extends UnitTestCase {
   public function testDeprecatedGetLatestTranslationAffectedRevision() {
     $this->setUpMocks();
 
-    /** @var \Drupal\Core\Entity\ContentEntityInterface|\PHPUnit_Framework_MockObject_MockObject $revision */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface|\PHPUnit\Framework\MockObject\MockObject $revision */
     $revision = $this->createMock(ContentEntityInterface::class);
     $revision->expects($this->any())
       ->method('getEntityTypeId')
@@ -333,7 +333,7 @@ class EntityConverterTest extends UnitTestCase {
       ->with($plugin_id, 'id', $contexts)
       ->willThrowException(new PluginNotFoundException($plugin_id));
 
-    $this->setExpectedException(PluginNotFoundException::class);
+    $this->expectException(PluginNotFoundException::class);
 
     $this->entityConverter->convert('id', ['type' => 'entity:' . $plugin_id], 'foo', ['foo' => 'id']);
   }
@@ -342,7 +342,8 @@ class EntityConverterTest extends UnitTestCase {
    * Tests the convert() method with an invalid dynamic entity type.
    */
   public function testConvertWithInvalidDynamicEntityType() {
-    $this->setExpectedException(ParamNotConvertedException::class, 'The "foo" parameter was not converted because the "invalid_id" parameter is missing.');
+    $this->expectException(ParamNotConvertedException::class);
+    $this->expectExceptionMessage('The "foo" parameter was not converted because the "invalid_id" parameter is missing.');
     $this->entityConverter->convert('id', ['type' => 'entity:{invalid_id}'], 'foo', ['foo' => 'id']);
   }
 

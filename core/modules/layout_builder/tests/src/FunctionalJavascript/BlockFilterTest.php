@@ -26,6 +26,11 @@ class BlockFilterTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $user = $this->drupalCreateUser([
@@ -53,8 +58,8 @@ class BlockFilterTest extends WebDriverTestBase {
     $assert_session->addressEquals("$field_ui_prefix/display/default/layout");
 
     // Open the block listing.
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->assertWaitOnAjaxRequest();
 
     // Get all blocks, for assertions later.
