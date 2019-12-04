@@ -24,7 +24,7 @@ class FilterIdTest extends KernelTestBase {
   /**
    * The mocked MigrateExecutable.
    *
-   * @var \Drupal\migrate\MigrateExecutableInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\migrate\MigrateExecutableInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $executable;
 
@@ -33,7 +33,7 @@ class FilterIdTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->executable = $this->getMock(MigrateExecutableInterface::class);
+    $this->executable = $this->createMock(MigrateExecutableInterface::class);
   }
 
   /**

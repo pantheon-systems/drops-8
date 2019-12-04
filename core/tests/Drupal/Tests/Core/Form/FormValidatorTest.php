@@ -16,21 +16,21 @@ class FormValidatorTest extends UnitTestCase {
   /**
    * A logger instance.
    *
-   * @var \Psr\Log\LoggerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Psr\Log\LoggerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $logger;
 
   /**
    * The CSRF token generator to validate the form token.
    *
-   * @var \Drupal\Core\Access\CsrfTokenGenerator|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\CsrfTokenGenerator|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $csrfToken;
 
   /**
    * The form error handler.
    *
-   * @var \Drupal\Core\Form\FormErrorHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Form\FormErrorHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $formErrorHandler;
 
@@ -39,11 +39,11 @@ class FormValidatorTest extends UnitTestCase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->logger = $this->getMock('Psr\Log\LoggerInterface');
+    $this->logger = $this->createMock('Psr\Log\LoggerInterface');
     $this->csrfToken = $this->getMockBuilder('Drupal\Core\Access\CsrfTokenGenerator')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->formErrorHandler = $this->getMock('Drupal\Core\Form\FormErrorHandlerInterface');
+    $this->formErrorHandler = $this->createMock('Drupal\Core\Form\FormErrorHandlerInterface');
   }
 
   /**
@@ -270,7 +270,9 @@ class FormValidatorTest extends UnitTestCase {
       ->setConstructorArgs([new RequestStack(), $this->getStringTranslationStub(), $this->csrfToken, $this->logger, $this->formErrorHandler])
       ->setMethods(NULL)
       ->getMock();
-    $mock = $this->getMock('stdClass', ['validate_handler', 'hash_validate']);
+    $mock = $this->getMockBuilder('stdClass')
+      ->setMethods(['validate_handler', 'hash_validate'])
+      ->getMock();
     $mock->expects($this->once())
       ->method('validate_handler')
       ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'));
@@ -351,7 +353,9 @@ class FormValidatorTest extends UnitTestCase {
       ->getMock();
     $form_validator->expects($this->once())
       ->method('executeValidateHandlers');
-    $mock = $this->getMock('stdClass', ['element_validate']);
+    $mock = $this->getMockBuilder('stdClass')
+      ->setMethods(['element_validate'])
+      ->getMock();
     $mock->expects($this->once())
       ->method('element_validate')
       ->with($this->isType('array'), $this->isInstanceOf('Drupal\Core\Form\FormStateInterface'), NULL);

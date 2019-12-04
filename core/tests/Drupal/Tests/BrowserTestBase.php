@@ -115,6 +115,15 @@ abstract class BrowserTestBase extends TestCase {
   protected $profile = 'testing';
 
   /**
+   * The theme to install as the default for testing.
+   *
+   * Defaults to the install profile's default theme, if it specifies any.
+   *
+   * @var string
+   */
+  protected $defaultTheme;
+
+  /**
    * An array of custom translations suitable for drupal_rewrite_settings().
    *
    * @var array
@@ -380,15 +389,6 @@ abstract class BrowserTestBase extends TestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    // Installing Drupal creates 1000s of objects. Garbage collection of these
-    // objects is expensive. This appears to be causing random segmentation
-    // faults in PHP 5.x due to https://bugs.php.net/bug.php?id=72286. Once
-    // Drupal is installed is rebuilt, garbage collection is re-enabled.
-    $disable_gc = version_compare(PHP_VERSION, '7', '<') && gc_enabled();
-    if ($disable_gc) {
-      gc_collect_cycles();
-      gc_disable();
-    }
     parent::setUp();
 
     $this->setupBaseUrl();
@@ -402,11 +402,6 @@ abstract class BrowserTestBase extends TestCase {
 
     // Set up the browser test output file.
     $this->initBrowserOutputFile();
-    // If garbage collection was disabled prior to rebuilding container,
-    // re-enable it.
-    if ($disable_gc) {
-      gc_enable();
-    }
 
     // Ensure that the test is not marked as risky because of no assertions. In
     // PHPUnit 6 tests that only make assertions using $this->assertSession()
@@ -571,6 +566,7 @@ abstract class BrowserTestBase extends TestCase {
     $this->initSettings();
     $container = $this->initKernel(\Drupal::request());
     $this->initConfig($container);
+    $this->installDefaultThemeFromClassProperty($container);
     $this->installModulesFromClassProperty($container);
     $this->rebuildAll();
   }
@@ -651,10 +647,13 @@ abstract class BrowserTestBase extends TestCase {
    * @return array
    *   The HTTP headers values.
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0.
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
    *   Use $this->getSession()->getResponseHeaders() instead.
+   *
+   * @see https://www.drupal.org/node/3067207
    */
   protected function drupalGetHeaders() {
+    @trigger_error('Drupal\Tests\BrowserTestBase::drupalGetHeaders() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use $this->getSession()->getResponseHeaders() instead. See https://www.drupal.org/node/3067207', E_USER_DEPRECATED);
     return $this->getSession()->getResponseHeaders();
   }
 
@@ -690,18 +689,6 @@ abstract class BrowserTestBase extends TestCase {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  public static function assertEquals($expected, $actual, $message = '', $delta = 0.0, $maxDepth = 10, $canonicalize = FALSE, $ignoreCase = FALSE) {
-    // Cast objects implementing MarkupInterface to string instead of
-    // relying on PHP casting them to string depending on what they are being
-    // comparing with.
-    $expected = static::castSafeStrings($expected);
-    $actual = static::castSafeStrings($actual);
-    parent::assertEquals($expected, $actual, $message, $delta, $maxDepth, $canonicalize, $ignoreCase);
-  }
-
-  /**
    * Retrieves the current calling line in the class under test.
    *
    * @return array
@@ -711,9 +698,14 @@ abstract class BrowserTestBase extends TestCase {
     $backtrace = debug_backtrace();
     // Find the test class that has the test method.
     while ($caller = Error::getLastCaller($backtrace)) {
-      if (isset($caller['class']) && $caller['class'] === get_class($this)) {
+      // If we match PHPUnit's TestCase::runTest, then the previously processed
+      // caller entry is where our test method sits.
+      if (isset($last_caller) && isset($caller['function']) && $caller['function'] === 'PHPUnit\Framework\TestCase->runTest()') {
+        // Return the last caller since that has to be the test class.
+        $caller = $last_caller;
         break;
       }
+
       // If the test method is implemented by a test class's parent then the
       // class name of $this will not be part of the backtrace.
       // In that case we process the backtrace until the caller is not a
@@ -723,6 +715,11 @@ abstract class BrowserTestBase extends TestCase {
         $caller = $last_caller;
         break;
       }
+
+      if (isset($caller['class']) && $caller['class'] === get_class($this)) {
+        break;
+      }
+
       // Otherwise we have not reached our test class yet: save the last caller
       // and remove an element from to backtrace to process the next call.
       $last_caller = $caller;

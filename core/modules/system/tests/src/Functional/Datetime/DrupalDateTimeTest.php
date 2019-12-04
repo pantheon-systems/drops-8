@@ -19,6 +19,11 @@ class DrupalDateTimeTest extends BrowserTestBase {
   public static $modules = [];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Test setup.
    */
   protected function setUp() {
@@ -88,7 +93,7 @@ class DrupalDateTimeTest extends BrowserTestBase {
     $this->drupalPostForm('user/' . $test_user->id() . '/edit', $edit, t('Save'));
 
     // Reload the user and reset the timezone in AccountProxy::setAccount().
-    \Drupal::entityManager()->getStorage('user')->resetCache();
+    \Drupal::entityTypeManager()->getStorage('user')->resetCache();
     $this->container->get('current_user')->setAccount(User::load($test_user->id()));
 
     // Create a date object with an unspecified timezone, which should

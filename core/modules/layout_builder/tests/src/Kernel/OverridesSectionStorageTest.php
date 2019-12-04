@@ -120,7 +120,7 @@ class OverridesSectionStorageTest extends KernelTestBase {
    */
   public function providerTestAccess() {
     $section_data = [
-      new Section('layout_default', [], [
+      new Section('layout_onecol', [], [
         'first-uuid' => new SectionComponent('first-uuid', 'content', ['id' => 'foo']),
       ]),
     ];
@@ -216,7 +216,8 @@ class OverridesSectionStorageTest extends KernelTestBase {
    */
   public function testSetSectionList() {
     $section_list = $this->prophesize(SectionListInterface::class);
-    $this->setExpectedException(\Exception::class, '\Drupal\layout_builder\SectionStorageInterface::setSectionList() must no longer be called. The section list should be derived from context. See https://www.drupal.org/node/3016262.');
+    $this->expectException(\Exception::class);
+    $this->expectExceptionMessage('\Drupal\layout_builder\SectionStorageInterface::setSectionList() must no longer be called. The section list should be derived from context. See https://www.drupal.org/node/3016262.');
     $this->plugin->setSectionList($section_list->reveal());
   }
 
@@ -285,7 +286,7 @@ class OverridesSectionStorageTest extends KernelTestBase {
       ->save();
 
     $entity = EntityTest::create();
-    $entity->set(OverridesSectionStorage::FIELD_NAME, [new Section('layout_default')]);
+    $entity->set(OverridesSectionStorage::FIELD_NAME, [new Section('layout_onecol')]);
     $entity->save();
     $entity = EntityTest::load($entity->id());
 

@@ -19,6 +19,11 @@ class MultipleFileUploadTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -31,7 +36,7 @@ class MultipleFileUploadTest extends BrowserTestBase {
    */
   public function testMultipleFileFieldWithAllFileExtensions() {
     $theme = 'test_theme_settings';
-    \Drupal::service('theme_handler')->install([$theme]);
+    \Drupal::service('theme_installer')->install([$theme]);
     $this->drupalGet("admin/appearance/settings/$theme");
 
     $edit = [];

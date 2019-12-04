@@ -13,7 +13,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 /**
  * Base class for content translation tests.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\content_translation\Functional\ContentTranslationTestBase instead.
  *
  * @see https://www.drupal.org/node/2999939
@@ -127,7 +127,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
    * Returns the translate permissions for the current entity and bundle.
    */
   protected function getTranslatePermission() {
-    $entity_type = \Drupal::entityManager()->getDefinition($this->entityTypeId);
+    $entity_type = \Drupal::entityTypeManager()->getDefinition($this->entityTypeId);
     if ($permission_granularity = $entity_type->getPermissionGranularity()) {
       return $permission_granularity == 'bundle' ? "translate {$this->bundle} {$this->entityTypeId}" : "translate {$this->entityTypeId}";
     }
@@ -175,7 +175,7 @@ abstract class ContentTranslationTestBase extends WebTestBase {
     // picked up.
     \Drupal::service('content_translation.manager')->setEnabled($this->entityTypeId, $this->bundle, TRUE);
 
-    \Drupal::entityManager()->clearCachedDefinitions();
+    \Drupal::entityTypeManager()->clearCachedDefinitions();
     \Drupal::service('router.builder')->rebuild();
   }
 
@@ -198,7 +198,8 @@ abstract class ContentTranslationTestBase extends WebTestBase {
       'bundle' => $this->bundle,
       'label' => 'Test translatable text-field',
     ])->save();
-    entity_get_form_display($this->entityTypeId, $this->bundle, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay($this->entityTypeId, $this->bundle)
       ->setComponent($this->fieldName, [
         'type' => 'string_textfield',
         'weight' => 0,
@@ -223,11 +224,11 @@ abstract class ContentTranslationTestBase extends WebTestBase {
   protected function createEntity($values, $langcode, $bundle_name = NULL) {
     $entity_values = $values;
     $entity_values['langcode'] = $langcode;
-    $entity_type = \Drupal::entityManager()->getDefinition($this->entityTypeId);
+    $entity_type = \Drupal::entityTypeManager()->getDefinition($this->entityTypeId);
     if ($bundle_key = $entity_type->getKey('bundle')) {
       $entity_values[$bundle_key] = $bundle_name ?: $this->bundle;
     }
-    $controller = $this->container->get('entity.manager')->getStorage($this->entityTypeId);
+    $controller = $this->container->get('entity_type.manager')->getStorage($this->entityTypeId);
     if (!($controller instanceof SqlContentEntityStorage)) {
       foreach ($values as $property => $value) {
         if (is_array($value)) {

@@ -8,8 +8,17 @@
  */
 
 use Drupal\Component\Assertion\Handle;
-use Drupal\Core\Composer\Composer;
-use PHPUnit\Runner\Version;
+use PHPUnit\Framework\AssertionFailedError;
+use PHPUnit\Framework\Constraint\Count;
+use PHPUnit\Framework\Error\Error;
+use PHPUnit\Framework\Error\Warning;
+use PHPUnit\Framework\ExpectationFailedException;
+use PHPUnit\Framework\Exception;
+use PHPUnit\Framework\MockObject\Matcher\InvokedRecorder;
+use PHPUnit\Framework\SkippedTestError;
+use PHPUnit\Framework\TestCase;
+use PHPUnit\Util\Test;
+use PHPUnit\Util\Xml;
 
 /**
  * Finds all valid extension directories recursively within a given directory.
@@ -79,7 +88,7 @@ function drupal_phpunit_contrib_extension_directory_roots($root = NULL) {
  *   An associative array of extension directories, keyed by their namespace.
  */
 function drupal_phpunit_get_extension_namespaces($dirs) {
-  $suite_names = ['Unit', 'Kernel', 'Functional', 'FunctionalJavascript'];
+  $suite_names = ['Unit', 'Kernel', 'Functional', 'Build', 'FunctionalJavascript'];
   $namespaces = [];
   foreach ($dirs as $extension => $dir) {
     if (is_dir($dir . '/src')) {
@@ -128,11 +137,13 @@ function drupal_phpunit_populate_class_loader() {
   $loader = require __DIR__ . '/../../autoload.php';
 
   // Start with classes in known locations.
+  $loader->add('Drupal\\BuildTests', __DIR__);
   $loader->add('Drupal\\Tests', __DIR__);
   $loader->add('Drupal\\TestSite', __DIR__);
   $loader->add('Drupal\\KernelTests', __DIR__);
   $loader->add('Drupal\\FunctionalTests', __DIR__);
   $loader->add('Drupal\\FunctionalJavascriptTests', __DIR__);
+  $loader->add('Drupal\\TestTools', __DIR__);
 
   if (!isset($GLOBALS['namespaces'])) {
     // Scan for arbitrary extension namespaces from core and contrib.
@@ -152,19 +163,6 @@ function drupal_phpunit_populate_class_loader() {
 // Do class loader population.
 drupal_phpunit_populate_class_loader();
 
-// Ensure we have the correct PHPUnit version for the version of PHP.
-if (class_exists('\PHPUnit_Runner_Version')) {
-  $phpunit_version = \PHPUnit_Runner_Version::id();
-}
-else {
-  $phpunit_version = Version::id();
-}
-if (!Composer::upgradePHPUnitCheck($phpunit_version)) {
-  $message = "PHPUnit testing framework version 6 or greater is required when running on PHP 7.0 or greater. Run the command 'composer run-script drupal-phpunit-upgrade' in order to fix this.";
-  echo "\033[31m" . $message . "\n\033[0m";
-  exit(1);
-}
-
 // Set sane locale settings, to ensure consistent string, dates, times and
 // numbers handling.
 // @see \Drupal\Core\DrupalKernel::bootEnvironment()
@@ -182,23 +180,22 @@ mb_language('uni');
 date_default_timezone_set('Australia/Sydney');
 
 // Runtime assertions. PHPUnit follows the php.ini assert.active setting for
-// runtime assertions. By default this setting is on. Here we make a call to
-// make PHP 5 and 7 handle assertion failures the same way, but this call does
-// not turn runtime assertions on if they weren't on already.
+// runtime assertions. By default this setting is on. Ensure exceptions are
+// thrown if an assert fails, but this call does not turn runtime assertions on
+// if they weren't on already.
 Handle::register();
 
 // PHPUnit 4 to PHPUnit 6 bridge. Tests written for PHPUnit 4 need to work on
 // PHPUnit 6 with a minimum of fuss.
-if (version_compare($phpunit_version, '6.1', '>=')) {
-  class_alias('\PHPUnit\Framework\AssertionFailedError', '\PHPUnit_Framework_AssertionFailedError');
-  class_alias('\PHPUnit\Framework\Constraint\Count', '\PHPUnit_Framework_Constraint_Count');
-  class_alias('\PHPUnit\Framework\Error\Error', '\PHPUnit_Framework_Error');
-  class_alias('\PHPUnit\Framework\Error\Warning', '\PHPUnit_Framework_Error_Warning');
-  class_alias('\PHPUnit\Framework\ExpectationFailedException', '\PHPUnit_Framework_ExpectationFailedException');
-  class_alias('\PHPUnit\Framework\Exception', '\PHPUnit_Framework_Exception');
-  class_alias('\PHPUnit\Framework\MockObject\Matcher\InvokedRecorder', '\PHPUnit_Framework_MockObject_Matcher_InvokedRecorder');
-  class_alias('\PHPUnit\Framework\SkippedTestError', '\PHPUnit_Framework_SkippedTestError');
-  class_alias('\PHPUnit\Framework\TestCase', '\PHPUnit_Framework_TestCase');
-  class_alias('\PHPUnit\Util\Test', '\PHPUnit_Util_Test');
-  class_alias('\PHPUnit\Util\Xml', '\PHPUnit_Util_XML');
-}
+// @todo provided for BC; remove in Drupal 9.
+class_alias(AssertionFailedError::class, '\PHPUnit_Framework_AssertionFailedError');
+class_alias(Count::class, '\PHPUnit_Framework_Constraint_Count');
+class_alias(Error::class, '\PHPUnit_Framework_Error');
+class_alias(Warning::class, '\PHPUnit_Framework_Error_Warning');
+class_alias(ExpectationFailedException::class, '\PHPUnit_Framework_ExpectationFailedException');
+class_alias(Exception::class, '\PHPUnit_Framework_Exception');
+class_alias(InvokedRecorder::class, '\PHPUnit_Framework_MockObject_Matcher_InvokedRecorder');
+class_alias(SkippedTestError::class, '\PHPUnit_Framework_SkippedTestError');
+class_alias(TestCase::class, '\PHPUnit_Framework_TestCase');
+class_alias(Test::class, '\PHPUnit_Util_Test');
+class_alias(Xml::class, '\PHPUnit_Util_XML');

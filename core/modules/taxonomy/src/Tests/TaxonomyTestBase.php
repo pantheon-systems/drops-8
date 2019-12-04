@@ -6,12 +6,12 @@ namespace Drupal\taxonomy\Tests;
 
 use Drupal\simpletest\WebTestBase;
 use Drupal\Tests\field\Traits\EntityReferenceTestTrait;
-use Drupal\Tests\taxonomy\Functional\TaxonomyTestTrait;
+use Drupal\Tests\taxonomy\Traits\TaxonomyTestTrait;
 
 /**
  * Provides common helper methods for Taxonomy module tests.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\taxonomy\Functional\TaxonomyTestBase instead.
  */
 abstract class TaxonomyTestBase extends WebTestBase {

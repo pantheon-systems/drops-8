@@ -28,6 +28,11 @@ class FieldEntityOperationsTest extends ViewTestBase {
    */
   public static $modules = ['node', 'language', 'views_ui'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp($import_test_views = TRUE) {
     parent::setUp($import_test_views);
 
@@ -69,7 +74,7 @@ class FieldEntityOperationsTest extends ViewTestBase {
       /** @var \Drupal\Core\Language\LanguageInterface $language */
       foreach ($entity->getTranslationLanguages() as $language) {
         $entity = $entity->getTranslation($language->getId());
-        $operations = \Drupal::entityManager()->getListBuilder('node')->getOperations($entity);
+        $operations = \Drupal::service('entity_type.manager')->getListBuilder('node')->getOperations($entity);
         $this->assertTrue(count($operations) > 0, 'There are operations.');
         foreach ($operations as $operation) {
           $expected_destination = Url::fromUri('internal:/test-entity-operations')->toString();

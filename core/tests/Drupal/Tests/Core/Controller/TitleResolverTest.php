@@ -23,21 +23,21 @@ class TitleResolverTest extends UnitTestCase {
   /**
    * The mocked controller resolver.
    *
-   * @var \Drupal\Core\Controller\ControllerResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Controller\ControllerResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $controllerResolver;
 
   /**
    * The mocked translation manager.
    *
-   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $translationManager;
 
   /**
    * The mocked argument resolver.
    *
-   * @var \Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $argumentResolver;
 
@@ -49,9 +49,9 @@ class TitleResolverTest extends UnitTestCase {
   protected $titleResolver;
 
   protected function setUp() {
-    $this->controllerResolver = $this->getMock('\Drupal\Core\Controller\ControllerResolverInterface');
-    $this->translationManager = $this->getMock('\Drupal\Core\StringTranslation\TranslationInterface');
-    $this->argumentResolver = $this->getMock('\Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface');
+    $this->controllerResolver = $this->createMock('\Drupal\Core\Controller\ControllerResolverInterface');
+    $this->translationManager = $this->createMock('\Drupal\Core\StringTranslation\TranslationInterface');
+    $this->argumentResolver = $this->createMock('\Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface');
 
     $this->titleResolver = new TitleResolver($this->controllerResolver, $this->translationManager, $this->argumentResolver);
   }
@@ -95,7 +95,7 @@ class TitleResolverTest extends UnitTestCase {
   }
 
   public function providerTestStaticTitleWithParameter() {
-    $translation_manager = $this->getMock('\Drupal\Core\StringTranslation\TranslationInterface');
+    $translation_manager = $this->createMock('\Drupal\Core\StringTranslation\TranslationInterface');
     return [
       ['static title @test', new TranslatableMarkup('static title @test', ['@test' => 'value', '%test' => 'value', '@test2' => 'value2', '%test2' => 'value2'], [], $translation_manager)],
       ['static title %test', new TranslatableMarkup('static title %test', ['@test' => 'value', '%test' => 'value', '@test2' => 'value2', '%test2' => 'value2'], [], $translation_manager)],

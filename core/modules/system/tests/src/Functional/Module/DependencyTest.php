@@ -12,6 +12,11 @@ use Drupal\Component\Utility\Unicode;
 class DependencyTest extends ModuleTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Checks functionality of project namespaces for dependencies.
    */
   public function testProjectNamespaceForDependencies() {
@@ -48,7 +53,7 @@ class DependencyTest extends ModuleTestBase {
 
     // Assert that the language YAML files were created.
     $storage = $this->container->get('config.storage');
-    $this->assertTrue(count($storage->listAll('language.entity.')) > 0, 'Language config entity files exist.');
+    $this->assertNotEmpty($storage->listAll('language.entity.'), 'Language config entity files exist.');
   }
 
   /**
@@ -205,10 +210,10 @@ class DependencyTest extends ModuleTestBase {
     // Ensure taxonomy has been loaded into the test-runner after forum was
     // enabled.
     \Drupal::moduleHandler()->load('taxonomy');
-    $terms = entity_load_multiple_by_properties('taxonomy_term', ['vid' => $vid]);
-    foreach ($terms as $term) {
-      $term->delete();
-    }
+    $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+    $terms = $storage->loadByProperties(['vid' => $vid]);
+    $storage->delete($terms);
+
     // Uninstall the forum module, and check that taxonomy now can also be
     // uninstalled.
     $edit = ['uninstall[forum]' => 'forum'];

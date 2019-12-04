@@ -20,6 +20,11 @@ class SearchLanguageTest extends BrowserTestBase {
   protected static $modules = ['language', 'node', 'search'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Array of nodes available to search.
    *
    * @var \Drupal\node\NodeInterface[]
@@ -85,7 +90,6 @@ class SearchLanguageTest extends BrowserTestBase {
     // Update the index and then run the shutdown method.
     $plugin = $this->container->get('plugin.manager.search')->createInstance('node_search');
     $plugin->updateIndex();
-    search_update_totals();
   }
 
   public function testLanguages() {

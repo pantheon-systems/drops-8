@@ -25,6 +25,11 @@ class NodeSaveTest extends NodeTestBase {
    */
   public static $modules = ['node_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -44,7 +49,7 @@ class NodeSaveTest extends NodeTestBase {
    */
   public function testImport() {
     // Node ID must be a number that is not in the database.
-    $nids = \Drupal::entityManager()->getStorage('node')->getQuery()
+    $nids = \Drupal::entityTypeManager()->getStorage('node')->getQuery()
       ->sort('nid', 'DESC')
       ->range(0, 1)
       ->execute();
@@ -67,10 +72,10 @@ class NodeSaveTest extends NodeTestBase {
     $node->save();
     // Test the import.
     $node_by_nid = Node::load($test_nid);
-    $this->assertTrue($node_by_nid, 'Node load by node ID.');
+    $this->assertNotEmpty($node_by_nid, 'Node load by node ID.');
 
     $node_by_title = $this->drupalGetNodeByTitle($title);
-    $this->assertTrue($node_by_title, 'Node load by node title.');
+    $this->assertNotEmpty($node_by_title, 'Node load by node title.');
   }
 
   /**

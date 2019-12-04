@@ -111,7 +111,7 @@ class ManagedFile extends FormElement {
                 elseif (\Drupal::currentUser()->isAnonymous()) {
                   $token = NestedArray::getValue($form_state->getUserInput(), array_merge($element['#parents'], ['file_' . $file->id(), 'fid_token']));
                   $file_hmac = Crypt::hmacBase64('file-' . $file->id(), \Drupal::service('private_key')->get() . Settings::getHashSalt());
-                  if ($token === NULL || !Crypt::hashEquals($file_hmac, $token)) {
+                  if ($token === NULL || !hash_equals($file_hmac, $token)) {
                     $force_default = TRUE;
                     break;
                   }
@@ -279,16 +279,6 @@ class ManagedFile extends FormElement {
 
       if ($implementation == 'uploadprogress') {
         $element['UPLOAD_IDENTIFIER'] = [
-          '#type' => 'hidden',
-          '#value' => $upload_progress_key,
-          '#attributes' => ['class' => ['file-progress']],
-          // Uploadprogress extension requires this field to be at the top of
-          // the form.
-          '#weight' => -20,
-        ];
-      }
-      elseif ($implementation == 'apc') {
-        $element['APC_UPLOAD_PROGRESS'] = [
           '#type' => 'hidden',
           '#value' => $upload_progress_key,
           '#attributes' => ['class' => ['file-progress']],

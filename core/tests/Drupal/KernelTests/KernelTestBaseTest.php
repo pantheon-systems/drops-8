@@ -6,6 +6,7 @@ use Drupal\Component\FileCache\FileCacheFactory;
 use Drupal\Core\Database\Database;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\visitor\vfsStreamStructureVisitor;
+use PHPUnit\Framework\SkippedTestError;
 
 /**
  * @coversDefaultClass \Drupal\KernelTests\KernelTestBase
@@ -214,8 +215,8 @@ class KernelTestBaseTest extends KernelTestBase {
   /**
    * @covers ::bootKernel
    */
-  public function testFileDefaultScheme() {
-    $this->assertEquals('public', file_default_scheme());
+  public function testBootKernel() {
+    $this->assertNull($this->container->get('request_stack')->getParentRequest(), 'There should only be one request on the stack');
     $this->assertEquals('public', \Drupal::config('system.file')->get('default_scheme'));
   }
 
@@ -249,7 +250,7 @@ class KernelTestBaseTest extends KernelTestBase {
       $stub_test->publicCheckRequirements();
       $this->fail('Missing required module throws skipped test exception.');
     }
-    catch (\PHPUnit_Framework_SkippedTestError $e) {
+    catch (SkippedTestError $e) {
       $this->assertEqual('Required modules: module_does_not_exist', $e->getMessage());
     }
   }
@@ -276,7 +277,7 @@ class KernelTestBaseTest extends KernelTestBase {
       $stub_test->publicCheckRequirements();
       $this->fail('Missing required module throws skipped test exception.');
     }
-    catch (\PHPUnit_Framework_SkippedTestError $e) {
+    catch (SkippedTestError $e) {
       $this->assertEqual('Required modules: module_does_not_exist', $e->getMessage());
     }
   }

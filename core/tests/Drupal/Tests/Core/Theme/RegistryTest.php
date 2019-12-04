@@ -27,42 +27,42 @@ class RegistryTest extends UnitTestCase {
   /**
    * The mocked cache backend.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cache;
 
   /**
    * The mocked lock backend.
    *
-   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $lock;
 
   /**
    * The mocked module handler.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The mocked theme handler.
    *
-   * @var \Drupal\Core\Extension\ThemeHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ThemeHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $themeHandler;
 
   /**
    * The mocked theme initialization.
    *
-   * @var \Drupal\Core\Theme\ThemeInitializationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Theme\ThemeInitializationInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $themeInitialization;
 
   /**
    * The theme manager.
    *
-   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $themeManager;
 
@@ -79,12 +79,12 @@ class RegistryTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
 
-    $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
-    $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->themeHandler = $this->getMock('Drupal\Core\Extension\ThemeHandlerInterface');
-    $this->themeInitialization = $this->getMock('Drupal\Core\Theme\ThemeInitializationInterface');
-    $this->themeManager = $this->getMock('Drupal\Core\Theme\ThemeManagerInterface');
+    $this->cache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
+    $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->themeHandler = $this->createMock('Drupal\Core\Extension\ThemeHandlerInterface');
+    $this->themeInitialization = $this->createMock('Drupal\Core\Theme\ThemeInitializationInterface');
+    $this->themeManager = $this->createMock('Drupal\Core\Theme\ThemeManagerInterface');
 
     $this->setupTheme();
   }
@@ -116,7 +116,7 @@ class RegistryTest extends UnitTestCase {
 
     $test_stable = new ActiveTheme([
       'name' => 'test_stable',
-      'path' => 'core/modules/system/tests/themes/test_stable/test_stable.info.yml',
+      'path' => 'core/tests/fixtures/test_stable/test_stable.info.yml',
       'engine' => 'twig',
       'owner' => 'twig',
       'stylesheets_remove' => [],
@@ -133,7 +133,7 @@ class RegistryTest extends UnitTestCase {
 
     // Include the module and theme files so that hook_theme can be called.
     include_once $this->root . '/core/modules/system/tests/modules/theme_test/theme_test.module';
-    include_once $this->root . '/core/modules/system/tests/themes/test_stable/test_stable.theme';
+    include_once $this->root . '/core/tests/fixtures/test_stable/test_stable.theme';
     $this->moduleHandler->expects($this->exactly(2))
       ->method('getImplementations')
       ->with('theme')

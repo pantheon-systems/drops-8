@@ -4,6 +4,8 @@ namespace Drupal\Tests\link\Functional;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
+use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\entity_test\Entity\EntityTest;
 use Drupal\field\Entity\FieldConfig;
@@ -11,6 +13,7 @@ use Drupal\link\LinkItemInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Tests\Traits\Core\PathAliasTestTrait;
 
 /**
  * Tests link field widgets and formatters.
@@ -18,6 +21,8 @@ use Drupal\field\Entity\FieldStorageConfig;
  * @group link
  */
 class LinkFieldTest extends BrowserTestBase {
+
+  use PathAliasTestTrait;
 
   /**
    * Modules to enable.
@@ -30,6 +35,11 @@ class LinkFieldTest extends BrowserTestBase {
     'node',
     'link_test_base_field',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * A field to use in this test class.
@@ -76,7 +86,9 @@ class LinkFieldTest extends BrowserTestBase {
       ],
     ]);
     $this->field->save();
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'link_default',
         'settings' => [
@@ -84,7 +96,7 @@ class LinkFieldTest extends BrowserTestBase {
         ],
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($field_name, [
         'type' => 'link',
       ])
@@ -96,7 +108,7 @@ class LinkFieldTest extends BrowserTestBase {
     $this->assertRaw('placeholder="http://example.com"');
 
     // Create a path alias.
-    \Drupal::service('path.alias_storage')->save('/admin', '/a/path/alias');
+    $this->createPathAlias('/admin', '/a/path/alias');
 
     // Create a node to test the link widget.
     $node = $this->drupalCreateNode();
@@ -130,6 +142,11 @@ class LinkFieldTest extends BrowserTestBase {
       '<front>' => '&lt;front&gt;',
       '<front>#example' => '&lt;front&gt;#example',
       '<front>?example=llama' => '&lt;front&gt;?example=llama',
+
+      // Text-only links.
+      '<nolink>' => '&lt;nolink&gt;',
+      'route:<nolink>' => '&lt;nolink&gt;',
+      '<none>' => '&lt;none&gt;',
 
       // Query string and fragment.
       '?example=llama' => '?example=llama',
@@ -248,7 +265,9 @@ class LinkFieldTest extends BrowserTestBase {
       ],
     ]);
     $this->field->save();
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'link_default',
         'settings' => [
@@ -257,7 +276,7 @@ class LinkFieldTest extends BrowserTestBase {
         ],
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($field_name, [
         'type' => 'link',
         'label' => 'hidden',
@@ -332,7 +351,7 @@ class LinkFieldTest extends BrowserTestBase {
     $this->assertText(t('entity_test @id has been created.', ['@id' => $id]));
 
     $output = $this->renderTestEntity($id);
-    $expected_link = (string) \Drupal::l($value, Url::fromUri($value));
+    $expected_link = (string) Link::fromTextAndUrl($value, Url::fromUri($value))->toString();
     $this->assertContains($expected_link, $output);
 
     // Verify that a link with text is rendered using the link text.
@@ -344,7 +363,7 @@ class LinkFieldTest extends BrowserTestBase {
     $this->assertText(t('entity_test @id has been updated.', ['@id' => $id]));
 
     $output = $this->renderTestEntity($id);
-    $expected_link = (string) \Drupal::l($title, Url::fromUri($value));
+    $expected_link = (string) Link::fromTextAndUrl($title, Url::fromUri($value))->toString();
     $this->assertContains($expected_link, $output);
   }
 
@@ -370,7 +389,9 @@ class LinkFieldTest extends BrowserTestBase {
         'link_type' => LinkItemInterface::LINK_GENERIC,
       ],
     ])->save();
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'link_default',
       ])
@@ -379,7 +400,7 @@ class LinkFieldTest extends BrowserTestBase {
       'type' => 'link',
       'label' => 'hidden',
     ];
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($field_name, $display_options)
       ->save();
 
@@ -438,7 +459,7 @@ class LinkFieldTest extends BrowserTestBase {
         else {
           $display_options['settings'] = $new_value;
         }
-        entity_get_display('entity_test', 'entity_test', 'full')
+        $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
           ->setComponent($field_name, $display_options)
           ->save();
 
@@ -528,12 +549,14 @@ class LinkFieldTest extends BrowserTestBase {
       'type' => 'link_separate',
       'label' => 'hidden',
     ];
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'link_default',
       ])
       ->save();
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($field_name, $display_options)
       ->save();
 
@@ -572,7 +595,7 @@ class LinkFieldTest extends BrowserTestBase {
       foreach ($values as $new_value) {
         // Update the field formatter settings.
         $display_options['settings'] = [$setting => $new_value];
-        entity_get_display('entity_test', 'entity_test', 'full')
+        $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
           ->setComponent($field_name, $display_options)
           ->save();
 
@@ -654,7 +677,7 @@ class LinkFieldTest extends BrowserTestBase {
       ],
     ])->save();
 
-    $this->container->get('entity.manager')
+    $this->container->get('entity_type.manager')
       ->getStorage('entity_form_display')
       ->load('entity_test.entity_test.default')
       ->setComponent($field_name, [
@@ -727,6 +750,73 @@ class LinkFieldTest extends BrowserTestBase {
   }
 
   /**
+   * Test <nolink> and <none> as link uri.
+   */
+  public function testNoLinkUri() {
+    $field_name = mb_strtolower($this->randomMachineName());
+    $this->fieldStorage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => 'entity_test',
+      'type' => 'link',
+      'cardinality' => 1,
+    ]);
+    $this->fieldStorage->save();
+    FieldConfig::create([
+      'field_storage' => $this->fieldStorage,
+      'label' => 'Read more about this entity',
+      'bundle' => 'entity_test',
+      'settings' => [
+        'title' => DRUPAL_OPTIONAL,
+        'link_type' => LinkItemInterface::LINK_INTERNAL,
+      ],
+    ])->save();
+
+    $this->container->get('entity_type.manager')
+      ->getStorage('entity_form_display')
+      ->load('entity_test.entity_test.default')
+      ->setComponent($field_name, [
+        'type' => 'link_default',
+      ])
+      ->save();
+
+    EntityViewDisplay::create([
+      'targetEntityType' => 'entity_test',
+      'bundle' => 'entity_test',
+      'mode' => 'full',
+      'status' => TRUE,
+    ])->setComponent($field_name, [
+      'type' => 'link',
+    ])
+      ->save();
+
+    // Test a link with <nolink> uri.
+    $edit = [
+      "{$field_name}[0][title]" => 'Title, no link',
+      "{$field_name}[0][uri]" => '<nolink>',
+    ];
+
+    $this->drupalPostForm('/entity_test/add', $edit, t('Save'));
+    preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
+    $id = $match[1];
+    $output = $this->renderTestEntity($id);
+    $expected_link = (string) $this->container->get('link_generator')->generate('Title, no link', Url::fromUri('route:<nolink>'));
+    $this->assertContains($expected_link, $output);
+
+    // Test a link with <none> uri.
+    $edit = [
+      "{$field_name}[0][title]" => 'Title, none',
+      "{$field_name}[0][uri]" => '<none>',
+    ];
+
+    $this->drupalPostForm('/entity_test/add', $edit, t('Save'));
+    preg_match('|entity_test/manage/(\d+)|', $this->getUrl(), $match);
+    $id = $match[1];
+    $output = $this->renderTestEntity($id);
+    $expected_link = (string) $this->container->get('link_generator')->generate('Title, none', Url::fromUri('route:<none>'));
+    $this->assertContains($expected_link, $output);
+  }
+
+  /**
    * Renders a test_entity and returns the output.
    *
    * @param int $id
@@ -742,10 +832,11 @@ class LinkFieldTest extends BrowserTestBase {
    */
   protected function renderTestEntity($id, $view_mode = 'full', $reset = TRUE) {
     if ($reset) {
-      $this->container->get('entity.manager')->getStorage('entity_test')->resetCache([$id]);
+      $this->container->get('entity_type.manager')->getStorage('entity_test')->resetCache([$id]);
     }
     $entity = EntityTest::load($id);
-    $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), $view_mode);
+    $display = \Drupal::service('entity_display.repository')
+      ->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), $view_mode);
     $content = $display->build($entity);
     $output = \Drupal::service('renderer')->renderRoot($content);
     $output = (string) $output;

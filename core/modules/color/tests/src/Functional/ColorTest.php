@@ -20,6 +20,11 @@ class ColorTest extends BrowserTestBase {
   public static $modules = ['color', 'color_test', 'block', 'file'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user with administrative permissions.
    *
    * @var \Drupal\user\UserInterface
@@ -65,7 +70,7 @@ class ColorTest extends BrowserTestBase {
         'scheme_color' => '#3b3b3b',
       ],
     ];
-    \Drupal::service('theme_handler')->install(array_keys($this->themes));
+    \Drupal::service('theme_installer')->install(array_keys($this->themes));
 
     // Array filled with valid and not valid color values.
     $this->colorTests = [

@@ -54,7 +54,7 @@ class ParamConverterManagerTest extends UnitTestCase {
    * @covers ::getConverter
    */
   public function testGetConverterException() {
-    $this->setExpectedException(\InvalidArgumentException::class);
+    $this->expectException(\InvalidArgumentException::class);
     $this->manager->getConverter('undefined.converter');
   }
 
@@ -128,7 +128,7 @@ class ParamConverterManagerTest extends UnitTestCase {
    * @dataProvider providerTestSetRouteParameterConverters
    */
   public function testSetRouteParameterConverters($path, $parameters = NULL, $expected = NULL) {
-    $converter = $this->getMock('Drupal\Core\ParamConverter\ParamConverterInterface');
+    $converter = $this->createMock('Drupal\Core\ParamConverter\ParamConverterInterface');
     $converter->expects($this->any())
       ->method('applies')
       ->with($this->anything(), 'id', $this->anything())
@@ -190,7 +190,7 @@ class ParamConverterManagerTest extends UnitTestCase {
     $expected = $defaults;
     $expected['id'] = 'something_better!';
 
-    $converter = $this->getMock('Drupal\Core\ParamConverter\ParamConverterInterface');
+    $converter = $this->createMock('Drupal\Core\ParamConverter\ParamConverterInterface');
     $converter->expects($this->any())
       ->method('convert')
       ->with(1, $this->isType('array'), 'id', $this->isType('array'))
@@ -236,14 +236,15 @@ class ParamConverterManagerTest extends UnitTestCase {
       'id' => 1,
     ];
 
-    $converter = $this->getMock('Drupal\Core\ParamConverter\ParamConverterInterface');
+    $converter = $this->createMock('Drupal\Core\ParamConverter\ParamConverterInterface');
     $converter->expects($this->any())
       ->method('convert')
       ->with(1, $this->isType('array'), 'id', $this->isType('array'))
       ->will($this->returnValue(NULL));
     $this->manager->addConverter($converter, 'test_convert');
 
-    $this->setExpectedException(ParamNotConvertedException::class, 'The "id" parameter was not converted for the path "/test/{id}" (route name: "test_route")');
+    $this->expectException(ParamNotConvertedException::class);
+    $this->expectExceptionMessage('The "id" parameter was not converted for the path "/test/{id}" (route name: "test_route")');
     $this->manager->convert($defaults);
   }
 

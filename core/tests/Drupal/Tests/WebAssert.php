@@ -74,7 +74,7 @@ class WebAssert extends MinkWebAssert {
     $node = $container->findButton($button);
 
     if ($node === NULL) {
-      throw new ElementNotFoundException($this->session, 'button', 'id|name|label|value', $button);
+      throw new ElementNotFoundException($this->session->getDriver(), 'button', 'id|name|label|value', $button);
     }
 
     return $node;
@@ -120,7 +120,7 @@ class WebAssert extends MinkWebAssert {
     ]);
 
     if ($node === NULL) {
-      throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
+      throw new ElementNotFoundException($this->session->getDriver(), 'select', 'id|name|label|value', $select);
     }
 
     return $node;
@@ -150,7 +150,7 @@ class WebAssert extends MinkWebAssert {
     ]);
 
     if ($select_field === NULL) {
-      throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
+      throw new ElementNotFoundException($this->session->getDriver(), 'select', 'id|name|label|value', $select);
     }
 
     $option_field = $select_field->find('named', ['option', $option]);
@@ -183,7 +183,7 @@ class WebAssert extends MinkWebAssert {
     ]);
 
     if ($select_field === NULL) {
-      throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
+      throw new ElementNotFoundException($this->session->getDriver(), 'select', 'id|name|label|value', $select);
     }
 
     $option_field = $select_field->find('named', ['option', $option]);
@@ -423,7 +423,7 @@ class WebAssert extends MinkWebAssert {
    * @param string|object $text
    *   Text value. Any non-string value will be cast to string.
    *
-   * @throws ExpectationException
+   * @throws \Behat\Mink\Exception\ExpectationException
    */
   public function responseContains($text) {
     parent::responseContains((string) $text);
@@ -435,7 +435,7 @@ class WebAssert extends MinkWebAssert {
    * @param string|object $text
    *   Text value. Any non-string value will be cast to string.
    *
-   * @throws ExpectationException
+   * @throws \Behat\Mink\Exception\ExpectationException
    */
   public function responseNotContains($text) {
     parent::responseNotContains((string) $text);

@@ -103,7 +103,8 @@ class EntityUrlTest extends UnitTestCase {
   public function testToUrlNoId() {
     $entity = $this->getEntity(EntityBase::class, []);
 
-    $this->setExpectedException(EntityMalformedException::class, 'The "' . $this->entityTypeId . '" entity cannot have a URI as it does not have an ID');
+    $this->expectException(EntityMalformedException::class);
+    $this->expectExceptionMessage('The "' . $this->entityTypeId . '" entity cannot have a URI as it does not have an ID');
     $entity->toUrl();
   }
 
@@ -314,7 +315,8 @@ class EntityUrlTest extends UnitTestCase {
     $this->entityType->getUriCallback()->willReturn($uri_callback);
 
     $link_template = 'canonical';
-    $this->setExpectedException(UndefinedLinkTemplateException::class, "No link template '$link_template' found for the '$this->entityTypeId' entity type");
+    $this->expectException(UndefinedLinkTemplateException::class);
+    $this->expectExceptionMessage("No link template '$link_template' found for the '$this->entityTypeId' entity type");
     $entity->toUrl($link_template);
   }
 
@@ -576,12 +578,12 @@ class EntityUrlTest extends UnitTestCase {
    *   An array of entity values to construct the mock entity with.
    * @param array $methods
    *   (optional) An array of additional methods to mock on the entity object.
-   *   The getEntityType() and entityManager() methods are always mocked.
+   *   The getEntityType() and entityTypeBundleInfo() methods are always mocked.
    *
-   * @return \Drupal\Core\Entity\Entity|\PHPUnit_Framework_MockObject_MockObject
+   * @return \Drupal\Core\Entity\Entity|\PHPUnit\Framework\MockObject\MockObject
    */
   protected function getEntity($class, array $values, array $methods = []) {
-    $methods = array_merge($methods, ['getEntityType', 'entityManager', 'entityTypeBundleInfo']);
+    $methods = array_merge($methods, ['getEntityType', 'entityTypeBundleInfo']);
 
     // Prophecy does not allow prophesizing abstract classes while actually
     // calling their code. We use Prophecy below because that allows us to
@@ -609,7 +611,7 @@ class EntityUrlTest extends UnitTestCase {
    *   The expected route name of the generated URL.
    * @param array $expected_route_parameters
    *   The expected route parameters of the generated URL.
-   * @param \Drupal\Core\Entity\Entity|\PHPUnit_Framework_MockObject_MockObject $entity
+   * @param \Drupal\Core\Entity\Entity|\PHPUnit\Framework\MockObject\MockObject $entity
    *   The entity that is expected to be set as a URL option.
    * @param bool $has_language
    *   Whether or not the URL is expected to have a language option.

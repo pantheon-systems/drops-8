@@ -1,10 +1,8 @@
 <?php
 /**
- * Zend Framework (http://framework.zend.com/)
- *
- * @link      http://github.com/zendframework/zf2 for the canonical source repository
- * @copyright Copyright (c) 2005-2015 Zend Technologies USA Inc. (http://www.zend.com)
- * @license   http://framework.zend.com/license/new-bsd New BSD License
+ * @see       https://github.com/zendframework/zend-feed for the canonical source repository
+ * @copyright Copyright (c) 2005-2018 Zend Technologies USA Inc. (https://www.zend.com)
+ * @license   https://github.com/zendframework/zend-feed/blob/master/LICENSE.md New BSD License
  */
 
 namespace Zend\Feed\Reader\Extension\Podcast;
@@ -12,8 +10,6 @@ namespace Zend\Feed\Reader\Extension\Podcast;
 use DOMText;
 use Zend\Feed\Reader\Extension;
 
-/**
-*/
 class Feed extends Extension\AbstractFeed
 {
     /**
@@ -29,7 +25,7 @@ class Feed extends Extension\AbstractFeed
 
         $author = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:author)');
 
-        if (!$author) {
+        if (! $author) {
             $author = null;
         }
 
@@ -51,7 +47,7 @@ class Feed extends Extension\AbstractFeed
 
         $block = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:block)');
 
-        if (!$block) {
+        if (! $block) {
             $block = null;
         }
 
@@ -83,7 +79,7 @@ class Feed extends Extension\AbstractFeed
                     $children = [];
 
                     foreach ($node->childNodes as $childNode) {
-                        if (!($childNode instanceof DOMText)) {
+                        if (! ($childNode instanceof DOMText)) {
                             $children[$childNode->getAttribute('text')] = null;
                         }
                     }
@@ -93,7 +89,7 @@ class Feed extends Extension\AbstractFeed
             }
         }
 
-        if (!$categories) {
+        if (! $categories) {
             $categories = null;
         }
 
@@ -115,7 +111,7 @@ class Feed extends Extension\AbstractFeed
 
         $explicit = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:explicit)');
 
-        if (!$explicit) {
+        if (! $explicit) {
             $explicit = null;
         }
 
@@ -125,7 +121,7 @@ class Feed extends Extension\AbstractFeed
     }
 
     /**
-     * Get the entry image
+     * Get the feed/podcast image
      *
      * @return string
      */
@@ -137,7 +133,7 @@ class Feed extends Extension\AbstractFeed
 
         $image = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:image/@href)');
 
-        if (!$image) {
+        if (! $image) {
             $image = null;
         }
 
@@ -149,17 +145,25 @@ class Feed extends Extension\AbstractFeed
     /**
      * Get the entry keywords
      *
+     * @deprecated since 2.10.0; itunes:keywords is no longer part of the
+     *     iTunes podcast RSS specification.
      * @return string
      */
     public function getKeywords()
     {
+        trigger_error(
+            'itunes:keywords has been deprecated in the iTunes podcast RSS specification,'
+            . ' and should not be relied on.',
+            \E_USER_DEPRECATED
+        );
+
         if (isset($this->data['keywords'])) {
             return $this->data['keywords'];
         }
 
         $keywords = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:keywords)');
 
-        if (!$keywords) {
+        if (! $keywords) {
             $keywords = null;
         }
 
@@ -181,7 +185,7 @@ class Feed extends Extension\AbstractFeed
 
         $newFeedUrl = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:new-feed-url)');
 
-        if (!$newFeedUrl) {
+        if (! $newFeedUrl) {
             $newFeedUrl = null;
         }
 
@@ -206,13 +210,13 @@ class Feed extends Extension\AbstractFeed
         $email = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:owner/itunes:email)');
         $name  = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:owner/itunes:name)');
 
-        if (!empty($email)) {
+        if (! empty($email)) {
             $owner = $email . (empty($name) ? '' : ' (' . $name . ')');
-        } elseif (!empty($name)) {
+        } elseif (! empty($name)) {
             $owner = $name;
         }
 
-        if (!$owner) {
+        if (! $owner) {
             $owner = null;
         }
 
@@ -234,7 +238,7 @@ class Feed extends Extension\AbstractFeed
 
         $subtitle = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:subtitle)');
 
-        if (!$subtitle) {
+        if (! $subtitle) {
             $subtitle = null;
         }
 
@@ -256,13 +260,58 @@ class Feed extends Extension\AbstractFeed
 
         $summary = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:summary)');
 
-        if (!$summary) {
+        if (! $summary) {
             $summary = null;
         }
 
         $this->data['summary'] = $summary;
 
         return $this->data['summary'];
+    }
+
+    /**
+     * Get the type of podcast
+     *
+     * @return string One of "episodic" or "serial". Defaults to "episodic"
+     *     if no itunes:type tag is encountered.
+     */
+    public function getPodcastType()
+    {
+        if (isset($this->data['podcastType'])) {
+            return $this->data['podcastType'];
+        }
+
+        $type = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:type)');
+
+        if (! $type) {
+            $type = 'episodic';
+        }
+
+        $this->data['podcastType'] = (string) $type;
+
+        return $this->data['podcastType'];
+    }
+
+    /**
+     * Is the podcast complete (no more episodes will post)?
+     *
+     * @return bool
+     */
+    public function isComplete()
+    {
+        if (isset($this->data['complete'])) {
+            return $this->data['complete'];
+        }
+
+        $complete = $this->xpath->evaluate('string(' . $this->getXpathPrefix() . '/itunes:complete)');
+
+        if (! $complete) {
+            $complete = false;
+        }
+
+        $this->data['complete'] = $complete === 'Yes';
+
+        return $this->data['complete'];
     }
 
     /**

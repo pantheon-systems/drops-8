@@ -7,6 +7,7 @@ use Drupal\Core\Url;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\RoleInterface;
+use PHPUnit\Framework\ExpectationFailedException;
 
 /**
  * Tests breadcrumbs functionality.
@@ -206,7 +207,7 @@ class BreadcrumbTest extends BrowserTestBase {
       'link[0][uri]' => '/node',
     ];
     $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
-    $menu_links = entity_load_multiple_by_properties('menu_link_content', ['title' => 'Root']);
+    $menu_links = \Drupal::entityTypeManager()->getStorage('menu_link_content')->loadByProperties(['title' => 'Root']);
     $link = reset($menu_links);
 
     $edit = [
@@ -240,7 +241,7 @@ class BreadcrumbTest extends BrowserTestBase {
     // the breadcrumb based on taxonomy term hierarchy.
     $parent_tid = 0;
     foreach ($tags as $name => $null) {
-      $terms = entity_load_multiple_by_properties('taxonomy_term', ['name' => $name]);
+      $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['name' => $name]);
       $term = reset($terms);
       $tags[$name]['term'] = $term;
       if ($parent_tid) {
@@ -261,7 +262,7 @@ class BreadcrumbTest extends BrowserTestBase {
         'enabled[value]' => 1,
       ];
       $this->drupalPostForm("admin/structure/menu/manage/$menu/add", $edit, t('Save'));
-      $menu_links = entity_load_multiple_by_properties('menu_link_content', [
+      $menu_links = \Drupal::entityTypeManager()->getStorage('menu_link_content')->loadByProperties([
         'title' => $edit['title[0][value]'],
         'link.uri' => 'internal:/taxonomy/term/' . $term->id(),
       ]);
@@ -399,7 +400,7 @@ class BreadcrumbTest extends BrowserTestBase {
       $this->assertBreadcrumb('menu-test/breadcrumb1', []);
       $this->fail($message);
     }
-    catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+    catch (ExpectationFailedException $e) {
       $this->assertTrue(TRUE, $message);
     }
 
@@ -409,7 +410,7 @@ class BreadcrumbTest extends BrowserTestBase {
       $this->assertBreadcrumb('menu-test/breadcrumb1', $home);
       $this->fail($message);
     }
-    catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+    catch (ExpectationFailedException $e) {
       $this->assertTrue(TRUE, $message);
     }
 
@@ -426,7 +427,7 @@ class BreadcrumbTest extends BrowserTestBase {
       $this->assertBreadcrumb('menu-test/breadcrumb1', $trail);
       $this->fail($message);
     }
-    catch (\PHPUnit_Framework_ExpectationFailedException $e) {
+    catch (ExpectationFailedException $e) {
       $this->assertTrue(TRUE, $message);
     }
   }

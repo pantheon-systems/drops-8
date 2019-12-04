@@ -91,7 +91,7 @@ function dblog_cron() {
  *   List of uniquely defined database log message types.
  */
 function _dblog_get_message_types() {
-  return db_query('SELECT DISTINCT(type) FROM {watchdog} ORDER BY type')
+  return \Drupal::database()->query('SELECT DISTINCT(type) FROM {watchdog} ORDER BY type')
     ->fetchAllKeyed(0, 0);
 }
 
@@ -126,7 +126,7 @@ function dblog_logging_settings_submit($form, FormStateInterface $form_state) {
  * This hook ensures there are no views based that are using a wrong plugin for
  * wid and uid fields on views that use watchdog as base table.
  *
- * @deprecated in Drupal 8.4.x and will be removed before 9.0.0.
+ * @deprecated in drupal:8.4.0 and is removed from drupal:9.0.0.
  *
  * @see https://www.drupal.org/node/2876378
  */

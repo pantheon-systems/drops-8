@@ -25,10 +25,14 @@ class BlockLanguageTest extends BrowserTestBase {
    */
   public static $modules = ['language', 'block', 'content_translation'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
-    // Create a new user, allow him to manage the blocks and the languages.
     $this->adminUser = $this->drupalCreateUser(['administer blocks', 'administer languages']);
     $this->drupalLogin($this->adminUser);
 

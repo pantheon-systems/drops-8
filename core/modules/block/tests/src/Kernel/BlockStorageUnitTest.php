@@ -117,7 +117,7 @@ class BlockStorageUnitTest extends KernelTestBase {
     $this->assertSame('content', $entity->getRegion());
     $this->assertTrue($entity->status());
     $this->assertEqual($entity->getTheme(), 'stark');
-    $this->assertTrue($entity->uuid());
+    $this->assertNotEmpty($entity->uuid());
   }
 
   /**
@@ -143,7 +143,7 @@ class BlockStorageUnitTest extends KernelTestBase {
    * Tests the installation of default blocks.
    */
   public function testDefaultBlocks() {
-    \Drupal::service('theme_handler')->install(['classy']);
+    \Drupal::service('theme_installer')->install(['classy']);
     $entities = $this->controller->loadMultiple();
     $this->assertTrue(empty($entities), 'There are no blocks initially.');
 

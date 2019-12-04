@@ -39,6 +39,8 @@ Release managers
 - Chris McCafferty 'cilefen' https://www.drupal.org/u/cilefen
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 
+Committer team facilitators
+- (provisional) Pamela Barone 'pameeela' https://www.drupal.org/u/pameeela
 
 Subsystem maintainers
 ---------------------
@@ -231,6 +233,10 @@ Hypertext Application Language (HAL)
 Help
 - ?
 
+Help Topics
+- Amber Matz 'Amber Himes Matz' https://www.drupal.org/u/amber-himes-matz
+- Andrey Postnikov 'andypost' https://www.drupal.org/u/andypost
+
 Image
 - Claudiu Cristea 'claudiu.cristea' https://www.drupal.org/u/claudiu.cristea
 
@@ -245,7 +251,6 @@ Interface Translation (locale)
 
 JavaScript
 - Théodore Biadala 'nod_' https://www.drupal.org/u/nod_
-- Matthew Grill 'alwaysworking' https://www.drupal.org/u/alwaysworking
 - Sally Young 'justafish' https://www.drupal.org/u/justafish
 
 JSON:API
@@ -280,6 +285,10 @@ Media
 - Christian Fritsch 'chr.fritsch' https://www.drupal.org/u/chr.fritsch
 - Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
 
+  Media Library
+  - Sean Blommaert 'seanB' https://www.drupal.org/u/seanb
+  - Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
+
 Menu
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
 - Peter Wolanin 'pwolanin' https://www.drupal.org/u/pwolanin
@@ -313,6 +322,9 @@ Page Cache
 - Fabian Franz 'Fabianx' https://www.drupal.org/u/fabianx
 
 Path
+- Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
+
+Path Alias
 - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
 
 Plugin
@@ -445,6 +457,7 @@ Topic maintainers
 -----------------
 
 Accessibility
+- Rain Breaw Michaels 'rainbreaw' https://www.drupal.org/u/rainbreaw
 - Mike Gifford 'mgifford' https://www.drupal.org/u/mgifford
 - Andrew Macpherson 'andrewmacpherson' https://www.drupal.org/u/andrewmacpherson
 
@@ -495,7 +508,6 @@ API-first Initiative
 Admin UI & JavaScript Modernisation Initiative
 - Angela Byron 'webchick' https://www.drupal.org/u/webchick
 - Cristina Chumillas 'ckrina' https://www.drupal.org/u/ckrina
-- Matthew Grill 'alwaysworking' https://www.drupal.org/u/alwaysworking
 - Sally Young 'justafish' https://www.drupal.org/u/justafish
 
 Layout Initiative

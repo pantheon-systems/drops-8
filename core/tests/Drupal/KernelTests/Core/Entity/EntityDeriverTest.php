@@ -60,7 +60,7 @@ class EntityDeriverTest extends KernelTestBase {
    */
   public function testDerivatives($data_type, $expect_exception) {
     if ($expect_exception) {
-      $this->setExpectedException(PluginNotFoundException::class);
+      $this->expectException(PluginNotFoundException::class);
     }
     $this->typedDataManager->createDataDefinition($data_type);
   }

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\field\Kernel;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\entity_test\Entity\EntityTest;
@@ -39,9 +40,9 @@ class FieldDataCountTest extends FieldKernelTestBase {
   protected function setUp() {
     parent::setUp();
     $this->installEntitySchema('entity_test_rev');
-    $this->storage = \Drupal::entityManager()->getStorage('entity_test');
-    $this->storageRev = \Drupal::entityManager()->getStorage('entity_test_rev');
-    $this->storageUser = \Drupal::entityManager()->getStorage('user');
+    $this->storage = \Drupal::entityTypeManager()->getStorage('entity_test');
+    $this->storageRev = \Drupal::entityTypeManager()->getStorage('entity_test_rev');
+    $this->storageUser = \Drupal::entityTypeManager()->getStorage('user');
   }
 
   /**
@@ -83,7 +84,7 @@ class FieldDataCountTest extends FieldKernelTestBase {
       $entity->save();
     }
 
-    $storage = \Drupal::entityManager()->getStorage('entity_test');
+    $storage = \Drupal::entityTypeManager()->getStorage('entity_test');
     if ($storage instanceof SqlContentEntityStorage) {
       // Count the actual number of rows in the field table.
       $table_mapping = $storage->getTableMapping();
@@ -136,9 +137,9 @@ class FieldDataCountTest extends FieldKernelTestBase {
 
     $this->assertIdentical($this->fieldTestData->field_storage_2->hasData(), TRUE, 'There are entities with field data.');
 
-    $storage = $this->container->get('entity.manager')->getStorage($entity_type);
+    $storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
     $entity = $storage->loadRevision($first_revision);
-    $this->assertEqual(count($entity->{$this->fieldTestData->field_name_2}), $cardinality, format_string('Revision %revision_id: expected number of values.', ['%revision_id' => $first_revision]));
+    $this->assertEqual(count($entity->{$this->fieldTestData->field_name_2}), $cardinality, new FormattableMarkup('Revision %revision_id: expected number of values.', ['%revision_id' => $first_revision]));
   }
 
   /**

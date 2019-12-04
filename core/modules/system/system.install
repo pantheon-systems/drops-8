@@ -5,25 +5,27 @@
  * Install, update and uninstall functions for the system module.
  */
 
+use Drupal\Component\FileSystem\FileSystem as FileSystemComponent;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Environment;
-use Drupal\Component\FileSystem\FileSystem;
 use Drupal\Component\Utility\OpCodeCache;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\Path\AliasStorage;
-use Drupal\Core\Url;
 use Drupal\Core\Database\Database;
+use Drupal\Core\DrupalKernel;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\DrupalKernel;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\path_alias\Entity\PathAlias;
+use Drupal\path_alias\PathAliasStorage;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PrivateStream;
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -44,9 +46,9 @@ function system_requirements($phase) {
 
     // Display the currently active installation profile, if the site
     // is not running the default installation profile.
-    $profile = drupal_get_profile();
+    $profile = \Drupal::installProfile();
     if ($profile != 'standard') {
-      $info = system_get_info('module', $profile);
+      $info = \Drupal::service('extension.list.module')->getExtensionInfo($profile);
       $requirements['install_profile'] = [
         'title' => t('Installation profile'),
         'value' => t('%profile_name (%profile-%version)', [
@@ -60,18 +62,33 @@ function system_requirements($phase) {
     }
 
     // Warn if any experimental modules are installed.
-    $experimental = [];
+    $experimental_modules = [];
     $enabled_modules = \Drupal::moduleHandler()->getModuleList();
     foreach ($enabled_modules as $module => $data) {
-      $info = system_get_info('module', $module);
+      $info = \Drupal::service('extension.list.module')->getExtensionInfo($module);
       if (isset($info['package']) && $info['package'] === 'Core (Experimental)') {
-        $experimental[$module] = $info['name'];
+        $experimental_modules[$module] = $info['name'];
       }
     }
-    if (!empty($experimental)) {
-      $requirements['experimental'] = [
+    if (!empty($experimental_modules)) {
+      $requirements['experimental_modules'] = [
         'title' => t('Experimental modules enabled'),
-        'value' => t('Experimental modules found: %module_list. <a href=":url">Experimental modules</a> are provided for testing purposes only. Use at your own risk.', ['%module_list' => implode(', ', $experimental), ':url' => 'https://www.drupal.org/core/experimental']),
+        'value' => t('Experimental modules found: %module_list. <a href=":url">Experimental modules</a> are provided for testing purposes only. Use at your own risk.', ['%module_list' => implode(', ', $experimental_modules), ':url' => 'https://www.drupal.org/core/experimental']),
+        'severity' => REQUIREMENT_WARNING,
+      ];
+    }
+    // Warn if any experimental themes are installed.
+    $experimental_themes = [];
+    $installed_themes = \Drupal::service('theme_handler')->listInfo();
+    foreach ($installed_themes as $theme => $data) {
+      if (isset($data->info['experimental']) && $data->info['experimental']) {
+        $experimental_themes[$theme] = $data->info['name'];
+      }
+    }
+    if (!empty($experimental_themes)) {
+      $requirements['experimental_themes'] = [
+        'title' => t('Experimental themes enabled'),
+        'value' => t('Experimental themes found: %theme_list. Experimental themes are provided for testing purposes only. Use at your own risk.', ['%theme_list' => implode(', ', $experimental_themes)]),
         'severity' => REQUIREMENT_WARNING,
       ];
     }
@@ -498,33 +515,53 @@ function system_requirements($phase) {
   if ($phase == 'runtime') {
     // Try to write the .htaccess files first, to prevent false alarms in case
     // (for example) the /tmp directory was wiped.
-    file_ensure_htaccess();
-    $file_system = \Drupal::service('file_system');
-    $htaccess_files['public://.htaccess'] = [
-      'title' => t('Public files directory'),
-      'directory' => $file_system->realpath('public://'),
-    ];
-    if (PrivateStream::basePath()) {
-      $htaccess_files['private://.htaccess'] = [
-        'title' => t('Private files directory'),
-        'directory' => $file_system->realpath('private://'),
-      ];
-    }
-    $htaccess_files['temporary://.htaccess'] = [
-      'title' => t('Temporary files directory'),
-      'directory' => $file_system->realpath('temporary://'),
-    ];
-    foreach ($htaccess_files as $htaccess_file => $info) {
+    /** @var \Drupal\Core\File\HtaccessWriterInterface $htaccessWriter */
+    $htaccessWriter = \Drupal::service("file.htaccess_writer");
+    $htaccessWriter->ensure();
+    foreach ($htaccessWriter->defaultProtectedDirs() as $protected_dir) {
+      $htaccess_file = $protected_dir->getPath() . '/.htaccess';
       // Check for the string which was added to the recommended .htaccess file
       // in the latest security update.
       if (!file_exists($htaccess_file) || !($contents = @file_get_contents($htaccess_file)) || strpos($contents, 'Drupal_Security_Do_Not_Remove_See_SA_2013_003') === FALSE) {
         $url = 'https://www.drupal.org/SA-CORE-2013-003';
         $requirements[$htaccess_file] = [
-          'title' => $info['title'],
+          'title' => new TranslatableMarkup($protected_dir->getTitle()),
           'value' => t('Not fully protected'),
           'severity' => REQUIREMENT_ERROR,
-          'description' => t('See <a href=":url">@url</a> for information about the recommended .htaccess file which should be added to the %directory directory to help protect against arbitrary code execution.', [':url' => $url, '@url' => $url, '%directory' => $info['directory']]),
+          'description' => t('See <a href=":url">@url</a> for information about the recommended .htaccess file which should be added to the %directory directory to help protect against arbitrary code execution.', [':url' => $url, '@url' => $url, '%directory' => $protected_dir->getPath()]),
         ];
+      }
+    }
+  }
+
+  // Test that path.temporary config is not set.
+  if ($phase == 'runtime') {
+    if (!Settings::get('file_temp_path')) {
+      $filesystem_config = \Drupal::config('system.file');
+      if ($temp_path = $filesystem_config->get('path.temporary')) {
+        $requirements['temp_directory'] = [
+          'title' => t('Temporary Directory'),
+          'severity' => REQUIREMENT_WARNING,
+          'value' => 'Deprecated configuration',
+          'description' => [
+            [
+              '#markup' => t('You are using deprecated configuration for the temporary files path.'),
+              '#suffix' => ' ',
+            ],
+          ],
+        ];
+        if ($temp_path === FileSystemComponent::getOsTemporaryDirectory()) {
+          $requirements['temp_directory']['description'][] = [
+            '#markup' => t('Your temporary directory configuration matches the OS default and can be safely removed.'),
+            '#suffix' => ' ',
+          ];
+        }
+        else {
+          $requirements['temp_directory']['description'][] = [
+            '#markup' => t('Remove the configuration and add the following to <code>settings.php</code>. <code>$settings["file_temp_path"] = "%temp_path"</code>', ['%temp_path' => $temp_path]),
+            '#suffix' => ' ',
+          ];
+        }
       }
     }
   }
@@ -596,7 +633,7 @@ function system_requirements($phase) {
       // By default no private files directory is configured. For private files
       // to be secure the admin needs to provide a path outside the webroot.
       PrivateStream::basePath(),
-      file_directory_temp(),
+      \Drupal::service('file_system')->getTempDirectory(),
     ];
   }
 
@@ -617,48 +654,72 @@ function system_requirements($phase) {
     if ($file_private_path = Settings::get('file_private_path')) {
       $directories[] = $file_private_path;
     }
-    if (!empty($GLOBALS['config']['system.file']['path']['temporary'])) {
-      $directories[] = $GLOBALS['config']['system.file']['path']['temporary'];
+    if (Settings::get('file_temp_path')) {
+      $directories[] = Settings::get('file_temp_path');
     }
     else {
       // If the temporary directory is not overridden use an appropriate
       // temporary path for the system.
-      $directories[] = FileSystem::getOsTemporaryDirectory();
+      $directories[] = FileSystemComponent::getOsTemporaryDirectory();
     }
   }
 
   // Check the config directory if it is defined in settings.php. If it isn't
   // defined, the installer will create a valid config directory later, but
   // during runtime we must always display an error.
-  if (!empty($GLOBALS['config_directories'])) {
-    foreach (array_keys(array_filter($GLOBALS['config_directories'])) as $type) {
-      $directory = config_get_config_directory($type);
-      // If we're installing Drupal try and create the config sync directory.
-      if (!is_dir($directory) && $phase == 'install') {
-        \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+  $config_sync_directory = Settings::get('config_sync_directory');
+  if (!empty($config_sync_directory)) {
+    // If we're installing Drupal try and create the config sync directory.
+    if (!is_dir($config_sync_directory) && $phase == 'install') {
+      \Drupal::service('file_system')->prepareDirectory($config_sync_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+    }
+    if (!is_dir($config_sync_directory)) {
+      if ($phase == 'install') {
+        $description = t('An automated attempt to create the directory %directory failed, possibly due to a permissions problem. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see INSTALL.txt or the <a href=":handbook_url">online handbook</a>.', ['%directory' => $config_sync_directory, ':handbook_url' => 'https://www.drupal.org/server-permissions']);
       }
-      if (!is_dir($directory)) {
-        if ($phase == 'install') {
-          $description = t('An automated attempt to create the directory %directory failed, possibly due to a permissions problem. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see INSTALL.txt or the <a href=":handbook_url">online handbook</a>.', ['%directory' => $directory, ':handbook_url' => 'https://www.drupal.org/server-permissions']);
-        }
-        else {
-          $description = t('The directory %directory does not exist.', ['%directory' => $directory]);
-        }
-        $requirements['config directory ' . $type] = [
-          'title' => t('Configuration directory: %type', ['%type' => $type]),
-          'description' => $description,
-          'severity' => REQUIREMENT_ERROR,
-        ];
+      else {
+        $description = t('The directory %directory does not exist.', ['%directory' => $config_sync_directory]);
       }
+      $requirements['config sync directory'] = [
+        'title' => t('Configuration sync directory'),
+        'description' => $description,
+        'severity' => REQUIREMENT_ERROR,
+      ];
     }
   }
-  if ($phase != 'install' && (empty($GLOBALS['config_directories']) || empty($GLOBALS['config_directories'][CONFIG_SYNC_DIRECTORY]))) {
-    $requirements['config directories'] = [
-      'title' => t('Configuration directories'),
+  if ($phase != 'install' && empty($config_sync_directory)) {
+    $requirements['config sync directory'] = [
+      'title' => t('Configuration sync directory'),
       'value' => t('Not present'),
-      'description' => t('Your %file file must define the $config_directories variable as an array containing the names of directories in which configuration files can be found. It must contain a %sync_key key.', ['%file' => $site_path . '/settings.php', '%sync_key' => CONFIG_SYNC_DIRECTORY]),
+      'description' => t("Your %file file must define the %setting setting as a string containing the directory in which configuration files can be found.", ['%file' => $site_path . '/settings.php', '%setting' => "\$settings['config_sync_directory']"]),
       'severity' => REQUIREMENT_ERROR,
     ];
+  }
+
+  // Handle other configuration directories. This will be removed in Drupal 9.
+  // See https://www.drupal.org/node/3018145.
+  $bc_config_directories = isset($GLOBALS['config_directories']) ? $GLOBALS['config_directories'] : [];
+  unset($bc_config_directories['sync']);
+  foreach (array_keys(array_filter($bc_config_directories)) as $type) {
+    @trigger_error("Automatic creation of '$type' configuration directory will be removed from drupal:9.0.0. See https://www.drupal.org/node/3018145.", E_USER_DEPRECATED);
+    $directory = config_get_config_directory($type);
+    // If we're installing Drupal try and create the config sync directory.
+    if (!is_dir($directory) && $phase == 'install') {
+      \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+    }
+    if (!is_dir($directory)) {
+      if ($phase == 'install') {
+        $description = t('An automated attempt to create the directory %directory failed, possibly due to a permissions problem. To proceed with the installation, either create the directory and modify its permissions manually or ensure that the installer has the permissions to create it automatically. For more information, see INSTALL.txt or the <a href=":handbook_url">online handbook</a>.', ['%directory' => $directory, ':handbook_url' => 'https://www.drupal.org/server-permissions']);
+      }
+      else {
+        $description = t('The directory %directory does not exist.', ['%directory' => $directory]);
+      }
+      $requirements['config directory ' . $type] = [
+        'title' => t('Configuration directory: %type', ['%type' => $type]),
+        'description' => $description,
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
   }
 
   $requirements['file system'] = [
@@ -711,7 +772,7 @@ function system_requirements($phase) {
     else {
       // This function can be called before the config_cache table has been
       // created.
-      if ($phase == 'install' || file_default_scheme() == 'public') {
+      if ($phase == 'install' || \Drupal::config('system.file')->get('default_scheme') == 'public') {
         $requirements['file system']['value'] = t('Writable (<em>public</em> download method)');
       }
       else {
@@ -762,7 +823,7 @@ function system_requirements($phase) {
     if ($change_list = \Drupal::entityDefinitionUpdateManager()->getChangeSummary()) {
       $build = [];
       foreach ($change_list as $entity_type_id => $changes) {
-        $entity_type = \Drupal::entityManager()->getDefinition($entity_type_id);
+        $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
         $build[] = [
           '#theme' => 'item_list',
           '#title' => $entity_type->getLabel(),
@@ -796,8 +857,8 @@ function system_requirements($phase) {
 
   // Display an error if a newly introduced dependency in a module is not resolved.
   if ($phase == 'update') {
-    $profile = drupal_get_profile();
-    $files = system_rebuild_module_data();
+    $profile = \Drupal::installProfile();
+    $files = \Drupal::service('extension.list.module')->getList();
     foreach ($files as $module => $file) {
       // Ignore disabled modules and installation profiles.
       if (!$file->status || $module == $profile) {
@@ -952,12 +1013,7 @@ function system_requirements($phase) {
 
   // Warning for httpoxy on IIS with affected PHP versions
   // @see https://www.drupal.org/node/2783079
-  if (strpos($software, 'Microsoft-IIS') !== FALSE
-    && (
-    version_compare(PHP_VERSION, '5.5.38', '<')
-    || (version_compare(PHP_VERSION, '5.6.0', '>=') && version_compare(PHP_VERSION, '5.6.24', '<'))
-    || (version_compare(PHP_VERSION, '7.0.0', '>=') && version_compare(PHP_VERSION, '7.0.9', '<'))
-    )) {
+  if (strpos($software, 'Microsoft-IIS') !== FALSE && version_compare(PHP_VERSION, '7.0.9', '<')) {
     $dom = new \DOMDocument('1.0', 'UTF-8');
     $webconfig = file_get_contents('web.config');
     // If you are here the web.config file must - of course - be well formed.
@@ -1034,6 +1090,23 @@ function system_requirements($phase) {
         'value' => t("Drupal 8 no longer uses the \$settings['install_profile'] value in settings.php and it can be removed."),
         'severity' => REQUIREMENT_INFO,
       ];
+    }
+  }
+
+  // Prevent installation or update if the Pathauto module is installed and its
+  // version is less than 1.6.
+  if ($phase === 'install' || $phase === 'update') {
+    if (\Drupal::moduleHandler()->moduleExists('pathauto')) {
+      $info = \Drupal::service('extension.list.module')->getExtensionInfo('pathauto');
+      if (version_compare($info['version'], '8.x-1.5') <= 0) {
+        $requirements['pathauto_module_incompatibility'] = [
+          'title' => t('Pathauto'),
+          'description' => t('The Pathauto module is not compatible with the current version of Drupal core. Update the <a href=":url">Pathauto</a> module to 8.x-1.6 or later.', [
+            ':url' => 'https://drupal.org/project/pathauto',
+          ]),
+          'severity' => REQUIREMENT_ERROR,
+        ];
+      }
     }
   }
 
@@ -1189,11 +1262,6 @@ function system_schema() {
     ],
   ];
 
-  // Create the url_alias table. The alias_storage service can auto-create its
-  // table, but this relies on exceptions being thrown. These exceptions will be
-  // thrown every request until an alias is created.
-  $schema['url_alias'] = AliasStorage::schemaDefinition();
-
   return $schema;
 }
 
@@ -1330,7 +1398,7 @@ function system_update_8004() {
   // https://www.drupal.org/node/2542748. Regenerate the related schemas to
   // ensure they match the currently expected status.
   $manager = \Drupal::entityDefinitionUpdateManager();
-  foreach (array_keys(\Drupal::entityManager()
+  foreach (array_keys(\Drupal::entityTypeManager()
     ->getDefinitions()) as $entity_type_id) {
     // Only update the entity type if it already exists. This condition is
     // needed in case new entity types are introduced after this update.
@@ -1591,7 +1659,7 @@ function _system_update_create_block($name, $theme_name, array $values) {
 function system_update_8007() {
   $database = \Drupal::database();
   $database_schema = $database->schema();
-  $entity_types = \Drupal::entityManager()->getDefinitions();
+  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
 
   $schema = \Drupal::keyValue('entity.storage_schema.sql')->getAll();
   $schema_copy = $schema;
@@ -1649,7 +1717,7 @@ function system_update_8007() {
  * Purge field schema data for uninstalled entity types.
  */
 function system_update_8008() {
-  $entity_types = \Drupal::entityManager()->getDefinitions();
+  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
   /** @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface $schema */
   $schema = \Drupal::keyValue('entity.storage_schema.sql');
   foreach ($schema->getAll() as $key => $item) {
@@ -1808,20 +1876,20 @@ function system_update_8011() {
  * Enable automated cron module and move the config into it.
  */
 function system_update_8013() {
-  $config_factory = \Drupal::configFactory();
-  $system_cron_config = $config_factory->getEditable('system.cron');
-  if ($autorun = $system_cron_config->get('threshold.autorun')) {
+  $autorun = \Drupal::configFactory()->getEditable('system.cron')->get('threshold.autorun');
+  if ($autorun) {
     // Install 'automated_cron' module.
     \Drupal::service('module_installer')->install(['automated_cron'], FALSE);
 
     // Copy 'autorun' value into the new module's 'interval' setting.
-    $config_factory->getEditable('automated_cron.settings')
+    \Drupal::configFactory()->getEditable('automated_cron.settings')
       ->set('interval', $autorun)
       ->save(TRUE);
   }
 
   // Remove the 'autorun' key in system module config.
-  $system_cron_config
+  \Drupal::configFactory()
+    ->getEditable('system.cron')
     ->clear('threshold.autorun')
     ->save(TRUE);
 }
@@ -1835,12 +1903,13 @@ function system_update_8014() {
     return;
   }
   $theme_handler->refreshInfo();
+  $theme_installer = \Drupal::service('theme_installer');
   foreach ($theme_handler->listInfo() as $theme) {
     // We first check that a base theme is set because if it's set to false then
     // it's unset in
     // \Drupal\Core\Extension\ThemeExtensionList::createExtensionInfo().
     if (isset($theme->info['base theme']) && $theme->info['base theme'] == 'stable') {
-      $theme_handler->install(['stable']);
+      $theme_installer->install(['stable']);
       return;
     }
   }
@@ -2291,4 +2360,164 @@ function system_update_8702() {
     }
   }
   \Drupal::entityTypeManager()->useCaches(TRUE);
+}
+
+/**
+ * Remove 'path.temporary' config if redundant.
+ */
+function system_update_8801() {
+  // If settings is already being used, or the config is set to the OS default,
+  // clear the config value.
+  $config = Drupal::configFactory()->getEditable('system.file');
+  if (Settings::get('file_temp_path') || $config->get('path.temporary') === FileSystemComponent::getOsTemporaryDirectory()) {
+    $config->clear('path.temporary')
+      ->save(TRUE);
+  }
+}
+
+/**
+ * Fix system.theme:admin when the default theme is used as the admin theme.
+ */
+function system_update_8802() {
+  $config = Drupal::configFactory()->getEditable('system.theme');
+  // Replace '0' with an empty string as '0' is not a valid value.
+  if ($config->get('admin') == '0') {
+    $config
+      ->set('admin', '')
+      ->save(TRUE);
+  }
+}
+
+/**
+ * Install the 'path_alias' entity type.
+ */
+function system_update_8803() {
+  // Enable the Path Alias module if needed.
+  if (!\Drupal::moduleHandler()->moduleExists('path_alias')) {
+    \Drupal::service('module_installer')->install(['path_alias'], FALSE);
+    return t('The "path_alias" entity type has been installed.');
+  }
+}
+
+/**
+ * Convert path aliases to entities.
+ */
+function system_update_8804(&$sandbox = NULL) {
+  // Bail out early if the entity type is not using the default storage class.
+  $storage = \Drupal::entityTypeManager()->getStorage('path_alias');
+  if (!$storage instanceof PathAliasStorage) {
+    return;
+  }
+
+  if (!isset($sandbox['current_id'])) {
+    // This must be the first run. Initialize the sandbox.
+    $sandbox['progress'] = 0;
+    $sandbox['current_id'] = 0;
+  }
+
+  $database = \Drupal::database();
+  $step_size = 200;
+  $url_aliases = $database->select('url_alias', 't')
+    ->condition('t.pid', $sandbox['current_id'], '>')
+    ->fields('t')
+    ->orderBy('pid', 'ASC')
+    ->range(0, $step_size)
+    ->execute()
+    ->fetchAll();
+
+  if ($url_aliases) {
+    /** @var \Drupal\Component\Uuid\UuidInterface $uuid */
+    $uuid = \Drupal::service('uuid');
+
+    $base_table_insert = $database->insert('path_alias');
+    $base_table_insert->fields(['id', 'revision_id', 'uuid', 'path', 'alias', 'langcode', 'status']);
+    $revision_table_insert = $database->insert('path_alias_revision');
+    $revision_table_insert->fields(['id', 'revision_id', 'path', 'alias', 'langcode', 'status', 'revision_default']);
+    foreach ($url_aliases as $url_alias) {
+      $values = [
+        'id' => $url_alias->pid,
+        'revision_id' => $url_alias->pid,
+        'uuid' => $uuid->generate(),
+        'path' => $url_alias->source,
+        'alias' => $url_alias->alias,
+        'langcode' => $url_alias->langcode,
+        'status' => 1,
+      ];
+      $base_table_insert->values($values);
+
+      unset($values['uuid']);
+      $values['revision_default'] = 1;
+      $revision_table_insert->values($values);
+    }
+    $base_table_insert->execute();
+    $revision_table_insert->execute();
+
+    $sandbox['progress'] += count($url_aliases);
+    $last_url_alias = end($url_aliases);
+    $sandbox['current_id'] = $last_url_alias->pid;
+
+    // If we're not in maintenance mode, the number of path aliases could change
+    // at any time so make sure that we always use the latest record count.
+    $missing = $database->select('url_alias', 't')
+      ->condition('t.pid', $sandbox['current_id'], '>')
+      ->orderBy('pid', 'ASC')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $sandbox['#finished'] = $missing ? $sandbox['progress'] / ($sandbox['progress'] + (int) $missing) : 1;
+  }
+  else {
+    $sandbox['#finished'] = 1;
+  }
+
+  if ($sandbox['#finished'] >= 1) {
+    // Keep a backup of the old 'url_alias' table if requested.
+    if (Settings::get('entity_update_backup', TRUE)) {
+      $old_table_name = 'old_' . substr(uniqid(), 0, 6) . '_url_alias';
+      if (!$database->schema()->tableExists($old_table_name)) {
+        $database->schema()->renameTable('url_alias', $old_table_name);
+      }
+    }
+    else {
+      $database->schema()->dropTable('url_alias');
+    }
+
+    return t('Path aliases have been converted to entities.');
+  }
+}
+
+/**
+ * Change the provider of the 'path_alias' entity type and its base fields.
+ */
+function system_update_8805() {
+  // If the path alias module is not installed, it means that
+  // system_update_8803() ran as part of Drupal 8.8.0-alpha1, in which case we
+  // need to enable the module and change the provider of the 'path_alias'
+  // entity type.
+  if (!\Drupal::moduleHandler()->moduleExists('path_alias')) {
+    \Drupal::service('module_installer')->install(['path_alias'], FALSE);
+
+    /** @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface $last_installed_schema_repository */
+    $last_installed_schema_repository = \Drupal::service('entity.last_installed_schema.repository');
+    $entity_type = $last_installed_schema_repository->getLastInstalledDefinition('path_alias');
+
+    // Set the new class for the entity type.
+    $entity_type->setClass(PathAlias::class);
+
+    // Set the new provider for the entity type.
+    $reflection = new ReflectionClass($entity_type);
+    $property = $reflection->getProperty('provider');
+    $property->setAccessible(TRUE);
+    $property->setValue($entity_type, 'path_alias');
+
+    $last_installed_schema_repository->setLastInstalledDefinition($entity_type);
+
+    $field_storage_definitions = $last_installed_schema_repository->getLastInstalledFieldStorageDefinitions('path_alias');
+    foreach ($field_storage_definitions as $field_storage_definition) {
+      if ($field_storage_definition->isBaseField()) {
+        $field_storage_definition->setProvider('path_alias');
+        $last_installed_schema_repository->setLastInstalledFieldStorageDefinition($field_storage_definition);
+      }
+    }
+  }
 }

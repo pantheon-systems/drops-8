@@ -9,6 +9,7 @@ use Drupal\comment\CommentInterface;
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -335,8 +336,6 @@ function forum_form_node_form_alter(&$form, FormStateInterface $form_state, $for
 
   if (isset($form['taxonomy_forums'])) {
     $widget =& $form['taxonomy_forums']['widget'];
-    // Make the vocabulary required for 'real' forum-nodes.
-    $widget['#required'] = TRUE;
     $widget['#multiple'] = FALSE;
     if (empty($widget['#default_value'])) {
       // If there is no default forum already selected, try to get the forum
@@ -448,11 +447,11 @@ function template_preprocess_forums(&$variables) {
         if ($variables['tid'] != $topic->forum_tid) {
           $variables['topics'][$id]->moved = TRUE;
           $variables['topics'][$id]->title = $topic->getTitle();
-          $variables['topics'][$id]->message = \Drupal::l(t('This topic has been moved'), new Url('forum.page', ['taxonomy_term' => $topic->forum_tid]));
+          $variables['topics'][$id]->message = Link::fromTextAndUrl(t('This topic has been moved'), Url::fromRoute('forum.page', ['taxonomy_term' => $topic->forum_tid]))->toString();
         }
         else {
           $variables['topics'][$id]->moved = FALSE;
-          $variables['topics'][$id]->title_link = \Drupal::l($topic->getTitle(), $topic->toUrl());
+          $variables['topics'][$id]->title_link = Link::fromTextAndUrl($topic->getTitle(), $topic->toUrl())->toString();
           $variables['topics'][$id]->message = '';
         }
         $forum_submitted = [
@@ -474,7 +473,7 @@ function template_preprocess_forums(&$variables) {
         $variables['topics'][$id]->new_url = '';
 
         if ($topic->new_replies) {
-          $page_number = \Drupal::entityManager()->getStorage('comment')
+          $page_number = \Drupal::entityTypeManager()->getStorage('comment')
             ->getNewCommentPageNumber($topic->comment_count, $topic->new_replies, $topic, 'comment_forum');
           $query = $page_number ? ['page' => $page_number] : NULL;
           $variables['topics'][$id]->new_text = \Drupal::translation()->formatPlural($topic->new_replies, '1 new post<span class="visually-hidden"> in topic %title</span>', '@count new posts<span class="visually-hidden"> in topic %title</span>', ['%title' => $variables['topics'][$id]->label()]);

@@ -86,7 +86,7 @@ class ResolvedLibraryDefinitionsFilesMatchTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'user'];
+  public static $modules = ['system', 'user', 'path_alias'];
 
   /**
    * {@inheritdoc}
@@ -99,7 +99,7 @@ class ResolvedLibraryDefinitionsFilesMatchTest extends KernelTestBase {
     $this->container->get('theme_installer')->install($this->allThemes);
 
     // Enable all core modules.
-    $all_modules = system_rebuild_module_data();
+    $all_modules = $this->container->get('extension.list.module')->getList();
     $all_modules = array_filter($all_modules, function ($module) {
       // Filter contrib, hidden, already enabled modules and modules in the
       // Testing package.
@@ -124,6 +124,7 @@ class ResolvedLibraryDefinitionsFilesMatchTest extends KernelTestBase {
     $this->allModules = array_keys($all_modules);
     $this->allModules[] = 'system';
     $this->allModules[] = 'user';
+    $this->allModules[] = 'path_alias';
     sort($this->allModules);
     $this->container->get('module_installer')->install($this->allModules);
 

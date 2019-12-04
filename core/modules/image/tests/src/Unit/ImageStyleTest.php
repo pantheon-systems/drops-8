@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\image\Unit;
 
-use Drupal\Tests\UnitTestCase;
 use Drupal\Component\Utility\Crypt;
+use Drupal\Tests\UnitTestCase;
 
 /**
  * @coversDefaultClass \Drupal\image\Entity\ImageStyle
@@ -15,16 +15,16 @@ class ImageStyleTest extends UnitTestCase {
   /**
    * The entity type used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityType;
 
   /**
-   * The entity manager used for testing.
+   * The entity type manager used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
-  protected $entityManager;
+  protected $entityTypeManager;
 
   /**
    * The ID of the type of the entity under test.
@@ -38,7 +38,7 @@ class ImageStyleTest extends UnitTestCase {
    *
    * @param string $image_effect_id
    *   The image effect ID.
-   * @param \Drupal\image\ImageEffectInterface|\PHPUnit_Framework_MockObject_MockObject $image_effect
+   * @param \Drupal\image\ImageEffectInterface|\PHPUnit\Framework\MockObject\MockObject $image_effect
    *   The image effect used for testing.
    *
    * @return \Drupal\image\ImageStyleInterface
@@ -70,12 +70,6 @@ class ImageStyleTest extends UnitTestCase {
       ->method('getImageEffectPluginManager')
       ->will($this->returnValue($effectManager));
     $image_style->expects($this->any())
-      ->method('fileUriScheme')
-      ->will($this->returnCallback([$this, 'fileUriScheme']));
-    $image_style->expects($this->any())
-      ->method('fileUriTarget')
-      ->will($this->returnCallback([$this, 'fileUriTarget']));
-    $image_style->expects($this->any())
       ->method('fileDefaultScheme')
       ->will($this->returnCallback([$this, 'fileDefaultScheme']));
 
@@ -88,12 +82,12 @@ class ImageStyleTest extends UnitTestCase {
   protected function setUp() {
     $this->entityTypeId = $this->randomMachineName();
     $this->provider = $this->randomMachineName();
-    $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
+    $this->entityType = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue($this->provider));
-    $this->entityManager = $this->getMock('\Drupal\Core\Entity\EntityManagerInterface');
-    $this->entityManager->expects($this->any())
+    $this->entityTypeManager = $this->createMock('\Drupal\Core\Entity\EntityTypeManagerInterface');
+    $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->with($this->entityTypeId)
       ->will($this->returnValue($this->entityType));
@@ -201,30 +195,6 @@ class ImageStyleTest extends UnitTestCase {
     $this->assertNotEquals($image_style->getPathToken('public://test.jpeg.png'), $image_style->getPathToken('public://test.jpeg'));
     $this->assertNotEquals(substr(Crypt::hmacBase64($image_style->id() . ':' . 'public://test.jpeg.png', $private_key . $hash_salt), 0, 8), $image_style->getPathToken('public://test.jpeg'));
     $this->assertEquals(substr(Crypt::hmacBase64($image_style->id() . ':' . 'public://test.jpeg', $private_key . $hash_salt), 0, 8), $image_style->getPathToken('public://test.jpeg'));
-  }
-
-  /**
-   * Mock function for ImageStyle::fileUriScheme().
-   */
-  public function fileUriScheme($uri) {
-    if (preg_match('/^([\w\-]+):\/\/|^(data):/', $uri, $matches)) {
-      // The scheme will always be the last element in the matches array.
-      return array_pop($matches);
-    }
-
-    return FALSE;
-  }
-
-  /**
-   * Mock function for ImageStyle::fileUriTarget().
-   */
-  public function fileUriTarget($uri) {
-    // Remove the scheme from the URI and remove erroneous leading or trailing,
-    // forward-slashes and backslashes.
-    $target = trim(preg_replace('/^[\w\-]+:\/\/|^data:/', '', $uri), '\/');
-
-    // If nothing was replaced, the URI doesn't have a valid scheme.
-    return $target !== $uri ? $target : FALSE;
   }
 
   /**

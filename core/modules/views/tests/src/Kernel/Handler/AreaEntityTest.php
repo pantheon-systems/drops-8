@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel\Handler;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormState;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
@@ -62,7 +63,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
    */
   public function testEntityAreaData() {
     $data = $this->container->get('views.views_data')->get('views');
-    $entity_types = $this->container->get('entity.manager')->getDefinitions();
+    $entity_types = $this->container->get('entity_type.manager')->getDefinitions();
 
     $expected_entities = array_filter($entity_types, function (EntityTypeInterface $entity_type) {
       return $entity_type->hasViewBuilderClass();
@@ -70,9 +71,9 @@ class AreaEntityTest extends ViewsKernelTestBase {
 
     // Test that all expected entity types have data.
     foreach (array_keys($expected_entities) as $entity) {
-      $this->assertTrue(!empty($data['entity_' . $entity]), format_string('Views entity area data found for @entity', ['@entity' => $entity]));
+      $this->assertTrue(!empty($data['entity_' . $entity]), new FormattableMarkup('Views entity area data found for @entity', ['@entity' => $entity]));
       // Test that entity_type is set correctly in the area data.
-      $this->assertEqual($entity, $data['entity_' . $entity]['area']['entity_type'], format_string('Correct entity_type set for @entity', ['@entity' => $entity]));
+      $this->assertEqual($entity, $data['entity_' . $entity]['area']['entity_type'], new FormattableMarkup('Correct entity_type set for @entity', ['@entity' => $entity]));
     }
 
     $expected_entities = array_filter($entity_types, function (EntityTypeInterface $type) {
@@ -81,7 +82,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
 
     // Test that no configuration entity types have data.
     foreach (array_keys($expected_entities) as $entity) {
-      $this->assertTrue(empty($data['entity_' . $entity]), format_string('Views config entity area data not found for @entity', ['@entity' => $entity]));
+      $this->assertTrue(empty($data['entity_' . $entity]), new FormattableMarkup('Views config entity area data not found for @entity', ['@entity' => $entity]));
     }
   }
 
@@ -94,7 +95,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
     for ($i = 0; $i < 3; $i++) {
       $random_label = $this->randomMachineName();
       $data = ['bundle' => 'entity_test', 'name' => $random_label];
-      $entity_test = $this->container->get('entity.manager')
+      $entity_test = $this->container->get('entity_type.manager')
         ->getStorage('entity_test')
         ->create($data);
 
@@ -149,7 +150,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
     $this->assertTrue(strpos(trim((string) $result[0]), 'full') !== FALSE, 'The rendered entity appeared in the right view mode.');
 
     // Mark entity_test test view_mode as customizable.
-    $entity_view_mode = \Drupal::entityManager()->getStorage('entity_view_mode')->load('entity_test.test');
+    $entity_view_mode = \Drupal::entityTypeManager()->getStorage('entity_view_mode')->load('entity_test.test');
     $entity_view_mode->enable();
     $entity_view_mode->save();
 

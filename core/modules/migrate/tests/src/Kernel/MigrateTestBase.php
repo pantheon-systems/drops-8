@@ -3,11 +3,11 @@
 namespace Drupal\Tests\migrate\Kernel;
 
 use Drupal\Core\Database\Database;
+use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\migrate\MigrateExecutable;
 use Drupal\migrate\MigrateMessageInterface;
 use Drupal\migrate\Plugin\MigrateIdMapInterface;
-use Drupal\migrate\Plugin\Migration;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Row;
 
@@ -46,6 +46,17 @@ abstract class MigrateTestBase extends KernelTestBase implements MigrateMessageI
    * @var \Drupal\Core\Database\Connection
    */
   protected $sourceDatabase;
+
+  /**
+   * A logger prophecy object.
+   *
+   * Using ::setTestLogger(), this prophecy will be configured and injected into
+   * the container. Using $this->logger->function(args)->shouldHaveBeenCalled()
+   * you can assert that the logger was called.
+   *
+   * @var \Prophecy\Prophecy\ObjectProphecy
+   */
+  protected $logger;
 
   public static $modules = ['migrate'];
 
@@ -173,7 +184,8 @@ abstract class MigrateTestBase extends KernelTestBase implements MigrateMessageI
    * Executes a set of migrations in dependency order.
    *
    * @param string[] $ids
-   *   Array of migration IDs, in any order.
+   *   Array of migration IDs, in any order. If any of these migrations use a
+   *   deriver, the derivatives will be made before execution.
    */
   protected function executeMigrations(array $ids) {
     $manager = $this->container->get('plugin.manager.migration');
@@ -249,6 +261,15 @@ abstract class MigrateTestBase extends KernelTestBase implements MigrateMessageI
    */
   protected function getMigration($plugin_id) {
     return $this->container->get('plugin.manager.migration')->createInstance($plugin_id);
+  }
+
+  /**
+   * Injects the test logger into the container.
+   */
+  protected function setTestLogger() {
+    $this->logger = $this->prophesize(LoggerChannelInterface::class);
+    $this->container->set('logger.channel.migrate', $this->logger->reveal());
+    \Drupal::setContainer($this->container);
   }
 
 }

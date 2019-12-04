@@ -20,6 +20,11 @@ class DownloadFunctionalTest extends BrowserTestBase {
   public static $modules = ['migrate', 'file'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests that an exception is thrown bu migration continues with the next row.
    */
   public function testExceptionThrow() {
@@ -65,7 +70,7 @@ class DownloadFunctionalTest extends BrowserTestBase {
     $this->assertNull($map_row['destid1']);
 
     // Check that a message with the thrown exception has been logged.
-    $messages = $id_map_plugin->getMessageIterator(['url' => $invalid_url])->fetchAll();
+    $messages = $id_map_plugin->getMessages(['url' => $invalid_url])->fetchAll();
     $this->assertCount(1, $messages);
     $message = reset($messages);
     $this->assertEquals("Cannot read from non-readable stream ($invalid_url)", $message->message);

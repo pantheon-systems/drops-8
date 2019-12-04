@@ -29,42 +29,42 @@ class AssetResolverTest extends UnitTestCase {
   /**
    * The mocked library discovery service.
    *
-   * @var \Drupal\Core\Asset\LibraryDiscoveryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Asset\LibraryDiscoveryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $libraryDiscovery;
 
   /**
    * The mocked library dependency resolver.
    *
-   * @var \Drupal\Core\Asset\LibraryDependencyResolverInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Asset\LibraryDependencyResolverInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $libraryDependencyResolver;
 
   /**
    * The mocked module handler.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The mocked theme manager.
    *
-   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Theme\ThemeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $themeManager;
 
   /**
    * The mocked language manager.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
   /**
    * The cache backend to use.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cache;
 
@@ -77,12 +77,12 @@ class AssetResolverTest extends UnitTestCase {
     $this->libraryDiscovery = $this->getMockBuilder('Drupal\Core\Asset\LibraryDiscovery')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->libraryDependencyResolver = $this->getMock('\Drupal\Core\Asset\LibraryDependencyResolverInterface');
+    $this->libraryDependencyResolver = $this->createMock('\Drupal\Core\Asset\LibraryDependencyResolverInterface');
     $this->libraryDependencyResolver->expects($this->any())
       ->method('getLibrariesWithDependencies')
       ->willReturnArgument(0);
-    $this->moduleHandler = $this->getMock('\Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->themeManager = $this->getMock('\Drupal\Core\Theme\ThemeManagerInterface');
+    $this->moduleHandler = $this->createMock('\Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->themeManager = $this->createMock('\Drupal\Core\Theme\ThemeManagerInterface');
     $active_theme = $this->getMockBuilder('\Drupal\Core\Theme\ActiveTheme')
       ->disableOriginalConstructor()
       ->getMock();
@@ -93,16 +93,16 @@ class AssetResolverTest extends UnitTestCase {
       ->method('getActiveTheme')
       ->willReturn($active_theme);
 
-    $this->languageManager = $this->getMock('\Drupal\Core\Language\LanguageManagerInterface');
-    $english = $this->getMock('\Drupal\Core\Language\LanguageInterface');
+    $this->languageManager = $this->createMock('\Drupal\Core\Language\LanguageManagerInterface');
+    $english = $this->createMock('\Drupal\Core\Language\LanguageInterface');
     $english->expects($this->any())
       ->method('getId')
       ->willReturn('en');
-    $japanese = $this->getMock('\Drupal\Core\Language\LanguageInterface');
+    $japanese = $this->createMock('\Drupal\Core\Language\LanguageInterface');
     $japanese->expects($this->any())
       ->method('getId')
       ->willReturn('jp');
-    $this->languageManager = $this->getMock('\Drupal\Core\Language\LanguageManagerInterface');
+    $this->languageManager = $this->createMock('\Drupal\Core\Language\LanguageManagerInterface');
     $this->languageManager->expects($this->any())
       ->method('getCurrentLanguage')
       ->will($this->onConsecutiveCalls($english, $english, $japanese, $japanese));

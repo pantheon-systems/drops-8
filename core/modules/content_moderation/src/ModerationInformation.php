@@ -86,26 +86,20 @@ class ModerationInformation implements ModerationInformationInterface {
    * {@inheritdoc}
    */
   public function getLatestRevision($entity_type_id, $entity_id) {
-    if ($latest_revision_id = $this->getLatestRevisionId($entity_type_id, $entity_id)) {
-      return $this->entityTypeManager->getStorage($entity_type_id)->loadRevision($latest_revision_id);
-    }
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use RevisionableStorageInterface::getLatestRevisionId() and RevisionableStorageInterface::loadRevision() instead. See https://www.drupal.org/node/3087295', E_USER_DEPRECATED);
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager->getStorage($entity_type_id);
+    return $storage->loadRevision($storage->getLatestRevisionId($entity_id));
   }
 
   /**
    * {@inheritdoc}
    */
   public function getLatestRevisionId($entity_type_id, $entity_id) {
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use RevisionableStorageInterface::getLatestRevisionId() instead. See https://www.drupal.org/node/3087295', E_USER_DEPRECATED);
+    /** @var \Drupal\Core\Entity\ContentEntityStorageInterface $storage */
     if ($storage = $this->entityTypeManager->getStorage($entity_type_id)) {
-      $result = $storage->getQuery()
-        ->latestRevision()
-        ->condition($this->entityTypeManager->getDefinition($entity_type_id)->getKey('id'), $entity_id)
-        // No access check is performed here since this is an API function and
-        // should return the same ID regardless of the current user.
-        ->accessCheck(FALSE)
-        ->execute();
-      if ($result) {
-        return key($result);
-      }
+      return $storage->getLatestRevisionId($entity_id);
     }
   }
 
@@ -143,7 +137,8 @@ class ModerationInformation implements ModerationInformationInterface {
    * {@inheritdoc}
    */
   public function isLatestRevision(ContentEntityInterface $entity) {
-    return $entity->getRevisionId() == $this->getLatestRevisionId($entity->getEntityTypeId(), $entity->id());
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use RevisionableInterface::isLatestRevision() instead. See https://www.drupal.org/node/3087295', E_USER_DEPRECATED);
+    return $entity->isLatestRevision();
   }
 
   /**
@@ -171,7 +166,7 @@ class ModerationInformation implements ModerationInformationInterface {
    */
   public function isLiveRevision(ContentEntityInterface $entity) {
     $workflow = $this->getWorkflowForEntity($entity);
-    return $this->isLatestRevision($entity)
+    return $entity->isLatestRevision()
       && $entity->isDefaultRevision()
       && $entity->moderation_state->value
       && $workflow->getTypePlugin()->getState($entity->moderation_state->value)->isPublishedState();
@@ -182,7 +177,7 @@ class ModerationInformation implements ModerationInformationInterface {
    */
   public function isDefaultRevisionPublished(ContentEntityInterface $entity) {
     $workflow = $this->getWorkflowForEntity($entity);
-    $default_revision = \Drupal::entityTypeManager()->getStorage($entity->getEntityTypeId())->load($entity->id());
+    $default_revision = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->load($entity->id());
     // If no default revision could be loaded, the entity has not yet been
     // saved. In this case the moderation_state of the unsaved entity can be
     // used, since once saved it will become the default.
@@ -238,6 +233,48 @@ class ModerationInformation implements ModerationInformationInterface {
       $features['publishing'] = $this->t("@entity_type_plural_label do not support publishing statuses. For example, even after transitioning from a published workflow state to an unpublished workflow state they will still be visible to site visitors.", ['@entity_type_plural_label' => $entity_type->getCollectionLabel()]);
     }
     return $features;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOriginalState(ContentEntityInterface $entity) {
+    $state = NULL;
+    $workflow_type = $this->getWorkflowForEntity($entity)->getTypePlugin();
+    if (!$entity->isNew() && !$this->isFirstTimeModeration($entity)) {
+      /** @var \Drupal\Core\Entity\ContentEntityInterface $original_entity */
+      $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())->loadRevision($entity->getLoadedRevisionId());
+      if (!$entity->isDefaultTranslation() && $original_entity->hasTranslation($entity->language()->getId())) {
+        $original_entity = $original_entity->getTranslation($entity->language()->getId());
+      }
+      if ($workflow_type->hasState($original_entity->moderation_state->value)) {
+        $state = $workflow_type->getState($original_entity->moderation_state->value);
+      }
+    }
+    return $state ?: $workflow_type->getInitialState($entity);
+  }
+
+  /**
+   * Determines if this entity is being moderated for the first time.
+   *
+   * If the previous version of the entity has no moderation state, we assume
+   * that means it predates the presence of moderation states.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity being moderated.
+   *
+   * @return bool
+   *   TRUE if this is the entity's first time being moderated, FALSE otherwise.
+   */
+  protected function isFirstTimeModeration(ContentEntityInterface $entity) {
+    $storage = $this->entityTypeManager->getStorage($entity->getEntityTypeId());
+    $original_entity = $storage->loadRevision($storage->getLatestRevisionId($entity->id()));
+
+    if ($original_entity) {
+      $original_id = $original_entity->moderation_state;
+    }
+
+    return !($entity->moderation_state && $original_entity && $original_id);
   }
 
 }

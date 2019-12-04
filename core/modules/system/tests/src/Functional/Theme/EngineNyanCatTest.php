@@ -18,9 +18,14 @@ class EngineNyanCatTest extends BrowserTestBase {
    */
   public static $modules = ['theme_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(['test_theme_nyan_cat_engine']);
+    \Drupal::service('theme_installer')->install(['test_theme_nyan_cat_engine']);
   }
 
   /**

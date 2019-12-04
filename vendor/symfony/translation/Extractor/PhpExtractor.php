@@ -103,7 +103,7 @@ class PhpExtractor extends AbstractFileExtractor implements ExtractorInterface
      *
      * @param mixed $token
      *
-     * @return string
+     * @return string|null
      */
     protected function normalizeToken($token)
     {
@@ -198,8 +198,7 @@ class PhpExtractor extends AbstractFileExtractor implements ExtractorInterface
     /**
      * Extracts trans message from PHP tokens.
      *
-     * @param array            $tokens
-     * @param MessageCatalogue $catalog
+     * @param array $tokens
      */
     protected function parseTokens($tokens, MessageCatalogue $catalog)
     {
@@ -226,7 +225,10 @@ class PhpExtractor extends AbstractFileExtractor implements ExtractorInterface
                     } elseif (self::METHOD_ARGUMENTS_TOKEN === $item) {
                         $this->skipMethodArgument($tokenIterator);
                     } elseif (self::DOMAIN_TOKEN === $item) {
-                        $domain = $this->getValue($tokenIterator);
+                        $domainToken = $this->getValue($tokenIterator);
+                        if ('' !== $domainToken) {
+                            $domain = $domainToken;
+                        }
 
                         break;
                     } else {
@@ -255,9 +257,7 @@ class PhpExtractor extends AbstractFileExtractor implements ExtractorInterface
     }
 
     /**
-     * @param string|array $directory
-     *
-     * @return array
+     * {@inheritdoc}
      */
     protected function extractFromDirectory($directory)
     {

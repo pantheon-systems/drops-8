@@ -32,8 +32,7 @@ class LuhnValidator extends ConstraintValidator
     /**
      * Validates a credit card number with the Luhn algorithm.
      *
-     * @param mixed      $value
-     * @param Constraint $constraint
+     * @param mixed $value
      *
      * @throws UnexpectedTypeException when the given credit card number is no string
      */
@@ -83,7 +82,7 @@ class LuhnValidator extends ConstraintValidator
         //         ^     ^     ^     ^     ^
         //    =    1+8 + 4  +  6  +  1+6 + 2
         for ($i = $length - 2; $i >= 0; $i -= 2) {
-            $checkSum += array_sum(str_split($value[$i] * 2));
+            $checkSum += array_sum(str_split((int) $value[$i] * 2));
         }
 
         if (0 === $checkSum || 0 !== $checkSum % 10) {

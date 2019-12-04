@@ -347,7 +347,7 @@ class ForumManager implements ForumManagerInterface {
    * @param int $tid
    *   The forum tid.
    *
-   * @return \stdClass
+   * @return object
    *   The last post for the given forum.
    */
   protected function getLastPost($tid) {
@@ -388,7 +388,7 @@ class ForumManager implements ForumManagerInterface {
    * @param int $tid
    *   The forum tid.
    *
-   * @return \stdClass|null
+   * @return object|null
    *   Statistics for the given forum if statistics exist, else NULL.
    */
   protected function getForumStatistics($tid) {
@@ -480,6 +480,7 @@ class ForumManager implements ForumManagerInterface {
    * {@inheritdoc}
    */
   public function getParents($tid) {
+    @trigger_error(__NAMESPACE__ . '\ForumManager::getParents() is deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Call loadAllParents() on taxonomy term storage directly. See https://www.drupal.org/node/3069599', E_USER_DEPRECATED);
     return $this->entityTypeManager->getStorage('taxonomy_term')->loadAllParents($tid);
   }
 

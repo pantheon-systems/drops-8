@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\locale\Functional;
 
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -19,6 +20,11 @@ class LocaleExportTest extends BrowserTestBase {
   public static $modules = ['locale'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user able to create languages and export translations.
    */
   protected $adminUser = NULL;
@@ -33,23 +39,24 @@ class LocaleExportTest extends BrowserTestBase {
     $this->drupalLogin($this->adminUser);
 
     // Copy test po files to the translations directory.
-    \Drupal::service('file_system')->copy(__DIR__ . '/../../../tests/test.de.po', 'translations://', FILE_EXISTS_REPLACE);
-    \Drupal::service('file_system')->copy(__DIR__ . '/../../../tests/test.xx.po', 'translations://', FILE_EXISTS_REPLACE);
+    \Drupal::service('file_system')->copy(__DIR__ . '/../../../tests/test.de.po', 'translations://', FileSystemInterface::EXISTS_REPLACE);
+    \Drupal::service('file_system')->copy(__DIR__ . '/../../../tests/test.xx.po', 'translations://', FileSystemInterface::EXISTS_REPLACE);
   }
 
   /**
    * Test exportation of translations.
    */
   public function testExportTranslation() {
+    $file_system = \Drupal::service('file_system');
     // First import some known translations.
     // This will also automatically add the 'fr' language.
-    $name = \Drupal::service('file_system')->tempnam('temporary://', "po_") . '.po';
+    $name = $file_system->tempnam('temporary://', "po_") . '.po';
     file_put_contents($name, $this->getPoFile());
     $this->drupalPostForm('admin/config/regional/translate/import', [
       'langcode' => 'fr',
       'files[file]' => $name,
     ], t('Import'));
-    drupal_unlink($name);
+    $file_system->unlink($name);
 
     // Get the French translations.
     $this->drupalPostForm('admin/config/regional/translate/export', [
@@ -62,14 +69,14 @@ class LocaleExportTest extends BrowserTestBase {
     $this->assertRaw('msgstr "lundi"', 'French translations present in exported file.');
 
     // Import some more French translations which will be marked as customized.
-    $name = \Drupal::service('file_system')->tempnam('temporary://', "po2_") . '.po';
+    $name = $file_system->tempnam('temporary://', "po2_") . '.po';
     file_put_contents($name, $this->getCustomPoFile());
     $this->drupalPostForm('admin/config/regional/translate/import', [
       'langcode' => 'fr',
       'files[file]' => $name,
       'customized' => 1,
     ], t('Import'));
-    drupal_unlink($name);
+    $file_system->unlink($name);
 
     // Create string without translation in the locales_source table.
     $this->container

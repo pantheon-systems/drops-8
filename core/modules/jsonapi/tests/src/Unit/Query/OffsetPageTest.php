@@ -12,7 +12,6 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 /**
  * @coversDefaultClass \Drupal\jsonapi\Query\OffsetPage
  * @group jsonapi
- * @group legacy
  *
  * @internal
  */
@@ -59,7 +58,7 @@ class OffsetPageTest extends UnitTestCase {
    * @covers ::createFromQueryParameter
    */
   public function testCreateFromQueryParameterFail() {
-    $this->setExpectedException(BadRequestHttpException::class);
+    $this->expectException(BadRequestHttpException::class);
     OffsetPage::createFromQueryParameter('lorem');
   }
 

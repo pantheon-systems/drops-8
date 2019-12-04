@@ -30,7 +30,7 @@ interface ConditionInterface {
    * Drupal considers LIKE case insensitive and the following is often used
    * to tell the database that case insensitive equivalence is desired:
    * @code
-   * db_select('users')
+   * \Drupal::database()->select('users')
    *  ->condition('name', $injected_connection->escapeLike($name), 'LIKE')
    * @endcode
    * Use 'LIKE BINARY' instead of 'LIKE' for case sensitive queries.
@@ -58,7 +58,7 @@ interface ConditionInterface {
    *   - The operators (NOT) BETWEEN, (NOT) IN, (NOT) EXISTS, (NOT) LIKE.
    *   Other operators (e.g. LIKE, BINARY) may or may not work. Defaults to =.
    *
-   * @return \Drupal\Core\Database\Query\ConditionInterface
+   * @return $this
    *   The called object.
    *
    * @throws \Drupal\Core\Database\InvalidQueryException
@@ -83,7 +83,7 @@ interface ConditionInterface {
    * @param array $args
    *   An associative array of arguments keyed by the named placeholders.
    *
-   * @return \Drupal\Core\Database\Query\ConditionInterface
+   * @return $this
    *   The called object.
    */
   public function where($snippet, $args = []);
@@ -94,7 +94,7 @@ interface ConditionInterface {
    * @param string|\Drupal\Core\Database\Query\SelectInterface $field
    *   The name of the field or a subquery to check.
    *
-   * @return \Drupal\Core\Database\Query\ConditionInterface
+   * @return $this
    *   The called object.
    */
   public function isNull($field);
@@ -105,7 +105,7 @@ interface ConditionInterface {
    * @param string|\Drupal\Core\Database\Query\SelectInterface $field
    *   The name of the field or a subquery to check.
    *
-   * @return \Drupal\Core\Database\Query\ConditionInterface
+   * @return $this
    *   The called object.
    */
   public function isNotNull($field);
@@ -116,7 +116,7 @@ interface ConditionInterface {
    * @param \Drupal\Core\Database\Query\SelectInterface $select
    *   The subquery that must contain results.
    *
-   * @return \Drupal\Core\Database\Query\ConditionInterface
+   * @return $this
    *   The called object.
    */
   public function exists(SelectInterface $select);
@@ -127,7 +127,7 @@ interface ConditionInterface {
    * @param \Drupal\Core\Database\Query\SelectInterface $select
    *   The subquery that must not contain results.
    *
-   * @return \Drupal\Core\Database\Query\ConditionInterface
+   * @return $this
    *   The called object.
    */
   public function notExists(SelectInterface $select);

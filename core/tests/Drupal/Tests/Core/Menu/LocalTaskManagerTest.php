@@ -34,7 +34,7 @@ class LocalTaskManagerTest extends UnitTestCase {
   /**
    * The mocked argument resolver.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $argumentResolver;
 
@@ -48,49 +48,49 @@ class LocalTaskManagerTest extends UnitTestCase {
   /**
    * The mocked route provider.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $routeProvider;
 
   /**
    * The mocked plugin discovery.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $pluginDiscovery;
 
   /**
    * The plugin factory used in the test.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $factory;
 
   /**
    * The cache backend used in the test.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheBackend;
 
   /**
    * The mocked access manager.
    *
-   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\AccessManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $accessManager;
 
   /**
    * The route match.
    *
-   * @var \Drupal\Core\Routing\RouteMatchInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Routing\RouteMatchInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $routeMatch;
 
   /**
    * The mocked account.
    *
-   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $account;
 
@@ -100,15 +100,15 @@ class LocalTaskManagerTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
 
-    $this->argumentResolver = $this->getMock('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface');
+    $this->argumentResolver = $this->createMock('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface');
     $this->request = new Request();
-    $this->routeProvider = $this->getMock('Drupal\Core\Routing\RouteProviderInterface');
-    $this->pluginDiscovery = $this->getMock('Drupal\Component\Plugin\Discovery\DiscoveryInterface');
-    $this->factory = $this->getMock('Drupal\Component\Plugin\Factory\FactoryInterface');
-    $this->cacheBackend = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
-    $this->routeMatch = $this->getMock('Drupal\Core\Routing\RouteMatchInterface');
-    $this->account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $this->routeProvider = $this->createMock('Drupal\Core\Routing\RouteProviderInterface');
+    $this->pluginDiscovery = $this->createMock('Drupal\Component\Plugin\Discovery\DiscoveryInterface');
+    $this->factory = $this->createMock('Drupal\Component\Plugin\Factory\FactoryInterface');
+    $this->cacheBackend = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->accessManager = $this->createMock('Drupal\Core\Access\AccessManagerInterface');
+    $this->routeMatch = $this->createMock('Drupal\Core\Routing\RouteMatchInterface');
+    $this->account = $this->createMock('Drupal\Core\Session\AccountInterface');
 
     $this->setupLocalTaskManager();
     $this->setupNullCacheabilityMetadataValidation();
@@ -126,7 +126,7 @@ class LocalTaskManagerTest extends UnitTestCase {
       ->method('getDefinitions')
       ->will($this->returnValue($definitions));
 
-    $mock_plugin = $this->getMock('Drupal\Core\Menu\LocalTaskInterface');
+    $mock_plugin = $this->createMock('Drupal\Core\Menu\LocalTaskInterface');
 
     $this->setupFactory($mock_plugin);
     $this->setupLocalTaskManager();
@@ -150,7 +150,7 @@ class LocalTaskManagerTest extends UnitTestCase {
       ->method('getDefinitions')
       ->will($this->returnValue($definitions));
 
-    $mock_plugin = $this->getMock('Drupal\Core\Menu\LocalTaskInterface');
+    $mock_plugin = $this->createMock('Drupal\Core\Menu\LocalTaskInterface');
 
     $this->setupFactory($mock_plugin);
     $this->setupLocalTaskManager();
@@ -172,7 +172,7 @@ class LocalTaskManagerTest extends UnitTestCase {
       ->method('getDefinitions')
       ->will($this->returnValue($definitions));
 
-    $mock_plugin = $this->getMock('Drupal\Core\Menu\LocalTaskInterface');
+    $mock_plugin = $this->createMock('Drupal\Core\Menu\LocalTaskInterface');
     $this->setupFactory($mock_plugin);
 
     $this->setupLocalTaskManager();
@@ -208,7 +208,7 @@ class LocalTaskManagerTest extends UnitTestCase {
     $this->pluginDiscovery->expects($this->never())
       ->method('getDefinitions');
 
-    $mock_plugin = $this->getMock('Drupal\Core\Menu\LocalTaskInterface');
+    $mock_plugin = $this->createMock('Drupal\Core\Menu\LocalTaskInterface');
     $this->setupFactory($mock_plugin);
 
     $this->setupLocalTaskManager();
@@ -234,7 +234,7 @@ class LocalTaskManagerTest extends UnitTestCase {
    * @see \Drupal\system\Plugin\Type\MenuLocalTaskManager::getTitle()
    */
   public function testGetTitle() {
-    $menu_local_task = $this->getMock('Drupal\Core\Menu\LocalTaskInterface');
+    $menu_local_task = $this->createMock('Drupal\Core\Menu\LocalTaskInterface');
     $menu_local_task->expects($this->once())
       ->method('getTitle');
 
@@ -258,11 +258,11 @@ class LocalTaskManagerTest extends UnitTestCase {
     $controller_resolver = $this->getMockBuilder(ControllerResolver::class)->disableOriginalConstructor()->getMock();
     $request_stack = new RequestStack();
     $request_stack->push($this->request);
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $module_handler->expects($this->any())
       ->method('getModuleDirectories')
       ->willReturn([]);
-    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $language_manager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
     $language_manager->expects($this->any())
       ->method('getCurrentLanguage')
       ->will($this->returnValue(new Language(['id' => 'en'])));
@@ -276,11 +276,11 @@ class LocalTaskManagerTest extends UnitTestCase {
   protected function setupLocalTaskManager() {
     $request_stack = new RequestStack();
     $request_stack->push($this->request);
-    $module_handler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $module_handler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
     $module_handler->expects($this->any())
       ->method('getModuleDirectories')
       ->willReturn([]);
-    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $language_manager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
     $language_manager->expects($this->any())
       ->method('getCurrentLanguage')
       ->will($this->returnValue(new Language(['id' => 'en'])));
@@ -356,7 +356,7 @@ class LocalTaskManagerTest extends UnitTestCase {
   /**
    * Setups the plugin factory with some local task plugins.
    *
-   * @param \PHPUnit_Framework_MockObject_MockObject $mock_plugin
+   * @param \PHPUnit\Framework\MockObject\MockObject $mock_plugin
    *   The mock plugin.
    */
   protected function setupFactory($mock_plugin) {
@@ -372,7 +372,7 @@ class LocalTaskManagerTest extends UnitTestCase {
   /**
    * Returns an expected result for getLocalTasksForRoute.
    *
-   * @param \PHPUnit_Framework_MockObject_MockObject $mock_plugin
+   * @param \PHPUnit\Framework\MockObject\MockObject $mock_plugin
    *   The mock plugin.
    *
    * @return array

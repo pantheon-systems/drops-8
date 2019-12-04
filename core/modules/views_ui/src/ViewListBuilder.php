@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotAcceptableHttpException;
@@ -200,7 +201,7 @@ class ViewListBuilder extends ConfigEntityListBuilder {
     $list['#attached']['library'][] = 'core/drupal.ajax';
     $list['#attached']['library'][] = 'views_ui/views_ui.listing';
 
-    $form['filters'] = [
+    $list['filters'] = [
       '#type' => 'container',
       '#attributes' => [
         'class' => ['table-filter', 'js-show'],
@@ -268,7 +269,7 @@ class ViewListBuilder extends ConfigEntityListBuilder {
             try {
               // @todo Views should expect and store a leading /. See:
               //   https://www.drupal.org/node/2423913
-              $rendered_path = \Drupal::l('/' . $path, Url::fromUserInput('/' . $path));
+              $rendered_path = Link::fromTextAndUrl('/' . $path, Url::fromUserInput('/' . $path))->toString();
             }
             catch (NotAcceptableHttpException $e) {
               $rendered_path = '/' . $path;

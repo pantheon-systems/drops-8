@@ -5,6 +5,7 @@
  * Interface translation summary, editing and deletion user interfaces.
  */
 
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -13,7 +14,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  *
  * Manually checks the translation status without the use of cron.
  *
- * @deprecated in Drupal 8.5.0 and will be removed before 9.0.0. It is unused by
+ * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. It is unused by
  *   Drupal core. Duplicate this function in your own extension if you need its
  *   behavior.
  *
@@ -77,5 +78,5 @@ function template_preprocess_locale_translation_last_check(array &$variables) {
   $last = $variables['last'];
   $variables['last_checked'] = ($last != NULL);
   $variables['time'] = \Drupal::service('date.formatter')->formatTimeDiffSince($last);
-  $variables['link'] = \Drupal::l(t('Check manually'), new Url('locale.check_translation', [], ['query' => \Drupal::destination()->getAsArray()]));
+  $variables['link'] = Link::fromTextAndUrl(t('Check manually'), Url::fromRoute('locale.check_translation', [], ['query' => \Drupal::destination()->getAsArray()]))->toString();
 }

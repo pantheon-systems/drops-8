@@ -17,7 +17,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
   use ExpectDeprecationTrait;
 
   /**
-   * @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $mockHttpKernel;
 
@@ -25,7 +25,7 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->mockHttpKernel = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
+    $this->mockHttpKernel = $this->createMock('Symfony\Component\HttpKernel\HttpKernelInterface');
   }
 
   /**
@@ -37,7 +37,9 @@ class ReverseProxyMiddlewareTest extends UnitTestCase {
 
     $middleware = new ReverseProxyMiddleware($this->mockHttpKernel, $settings);
     // Mock a request object.
-    $request = $this->getMock('Symfony\Component\HttpFoundation\Request', ['setTrustedProxies']);
+    $request = $this->getMockBuilder('Symfony\Component\HttpFoundation\Request')
+      ->setMethods(['setTrustedProxies'])
+      ->getMock();
     // setTrustedProxies() should never fire.
     $request->expects($this->never())
       ->method('setTrustedProxies');

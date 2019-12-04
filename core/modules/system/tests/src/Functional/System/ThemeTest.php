@@ -3,6 +3,7 @@
 namespace Drupal\Tests\system\Functional\System;
 
 use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\TestFileCreationTrait;
 
@@ -31,6 +32,11 @@ class ThemeTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['node', 'block', 'file'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   protected function setUp() {
     parent::setUp();
@@ -64,12 +70,12 @@ class ThemeTest extends BrowserTestBase {
     $supported_paths = [
       // Raw stream wrapper URI.
       $file->uri => [
-        'form' => file_uri_target($file->uri),
+        'form' => StreamWrapperManager::getTarget($file->uri),
         'src' => file_url_transform_relative(file_create_url($file->uri)),
       ],
       // Relative path within the public filesystem.
-      file_uri_target($file->uri) => [
-        'form' => file_uri_target($file->uri),
+      StreamWrapperManager::getTarget($file->uri) => [
+        'form' => StreamWrapperManager::getTarget($file->uri),
         'src' => file_url_transform_relative(file_create_url($file->uri)),
       ],
       // Relative path to a public file.
@@ -107,17 +113,17 @@ class ThemeTest extends BrowserTestBase {
       $explicit_file = 'public://logo.svg';
       $local_file = $default_theme_path . '/logo.svg';
       // Adjust for fully qualified stream wrapper URI in public filesystem.
-      if (file_uri_scheme($input) == 'public') {
-        $implicit_public_file = file_uri_target($input);
+      if (StreamWrapperManager::getScheme($input) == 'public') {
+        $implicit_public_file = StreamWrapperManager::getTarget($input);
         $explicit_file = $input;
         $local_file = strtr($input, ['public:/' => PublicStream::basePath()]);
       }
       // Adjust for fully qualified stream wrapper URI elsewhere.
-      elseif (file_uri_scheme($input) !== FALSE) {
+      elseif (StreamWrapperManager::getScheme($input) !== FALSE) {
         $explicit_file = $input;
       }
       // Adjust for relative path within public filesystem.
-      elseif ($input == file_uri_target($file->uri)) {
+      elseif ($input == StreamWrapperManager::getTarget($file->uri)) {
         $implicit_public_file = $input;
         $explicit_file = 'public://' . $input;
         $local_file = PublicStream::basePath() . '/' . $input;
@@ -188,7 +194,7 @@ class ThemeTest extends BrowserTestBase {
     );
     $this->assertEqual($elements[0]->getAttribute('src'), file_url_transform_relative(file_create_url($uploaded_filename)));
 
-    $this->container->get('theme_handler')->install(['bartik']);
+    $this->container->get('theme_installer')->install(['bartik']);
 
     // Ensure only valid themes are listed in the local tasks.
     $this->drupalPlaceBlock('local_tasks_block', ['region' => 'header']);
@@ -225,7 +231,7 @@ class ThemeTest extends BrowserTestBase {
    */
   public function testThemeSettingsLogo() {
     // Visit Bartik's theme settings page to replace the logo.
-    $this->container->get('theme_handler')->install(['bartik']);
+    $this->container->get('theme_installer')->install(['bartik']);
     $this->drupalGet('admin/appearance/settings/bartik');
     $edit = [
       'default_logo' => FALSE,
@@ -247,7 +253,7 @@ class ThemeTest extends BrowserTestBase {
    * Tests the 'rendered' cache tag is cleared when saving theme settings.
    */
   public function testThemeSettingsRenderCacheClear() {
-    $this->container->get('theme_handler')->install(['bartik']);
+    $this->container->get('theme_installer')->install(['bartik']);
     // Ensure the frontpage is cached for anonymous users. The render cache will
     // cleared by installing a theme.
     $this->drupalLogout();
@@ -269,7 +275,7 @@ class ThemeTest extends BrowserTestBase {
    * Test the administration theme functionality.
    */
   public function testAdministrationTheme() {
-    $this->container->get('theme_handler')->install(['seven']);
+    $this->container->get('theme_installer')->install(['seven']);
 
     // Install an administration theme and show it on the node admin pages.
     $edit = [
@@ -312,7 +318,7 @@ class ThemeTest extends BrowserTestBase {
 
     // Reset to the default theme settings.
     $edit = [
-      'admin_theme' => '0',
+      'admin_theme' => '',
       'use_admin_theme' => FALSE,
     ];
     $this->drupalPostForm('admin/appearance', $edit, t('Save configuration'));
@@ -328,14 +334,15 @@ class ThemeTest extends BrowserTestBase {
    * Test switching the default theme.
    */
   public function testSwitchDefaultTheme() {
-    /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
-    $theme_handler = \Drupal::service('theme_handler');
+    /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
+    $theme_installer = \Drupal::service('theme_installer');
     // First, install Stark and set it as the default theme programmatically.
-    $theme_handler->install(['stark']);
+    $theme_installer->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
+    $this->drupalPlaceBlock('local_tasks_block');
 
     // Install Bartik and set it as the default theme.
-    $theme_handler->install(['bartik']);
+    $theme_installer->install(['bartik']);
     $this->drupalGet('admin/appearance');
     $this->clickLink(t('Set as default'));
     $this->assertEqual($this->config('system.theme')->get('default'), 'bartik');
@@ -380,9 +387,9 @@ class ThemeTest extends BrowserTestBase {
    */
   public function testUninstallingThemes() {
     // Install Bartik and set it as the default theme.
-    \Drupal::service('theme_handler')->install(['bartik']);
+    \Drupal::service('theme_installer')->install(['bartik']);
     // Set up seven as the admin theme.
-    \Drupal::service('theme_handler')->install(['seven']);
+    \Drupal::service('theme_installer')->install(['seven']);
     $edit = [
       'admin_theme' => 'seven',
       'use_admin_theme' => TRUE,
@@ -400,7 +407,7 @@ class ThemeTest extends BrowserTestBase {
     $this->assertNoRaw('Uninstall Classy theme', 'A link to uninstall the Classy theme does not appear on the theme settings page.');
 
     // Install Stark and set it as the default theme.
-    \Drupal::service('theme_handler')->install(['stark']);
+    \Drupal::service('theme_installer')->install(['stark']);
 
     $edit = [
       'admin_theme' => 'stark',
@@ -457,9 +464,10 @@ class ThemeTest extends BrowserTestBase {
       $themes = \Drupal::service('theme_handler')->rebuildThemeData();
       $version = $themes[$theme_machine_name]->info['version'];
 
-      // Confirm the theme is indicated as the default theme.
+      // Confirm the theme is indicated as the default theme and administration
+      // theme because the admin theme is the default theme.
       $out = $this->getSession()->getPage()->getContent();
-      $this->assertTrue((bool) preg_match("/$theme_name " . preg_quote($version) . '\s{2,}\(default theme\)/', $out));
+      $this->assertTrue((bool) preg_match("/$theme_name " . preg_quote($version) . '\s{2,}\(default theme, administration theme\)/', $out));
     }
   }
 
@@ -468,7 +476,7 @@ class ThemeTest extends BrowserTestBase {
    */
   public function testThemeSettingsNoLogoNoFavicon() {
     // Install theme with no logo and no favicon feature.
-    $this->container->get('theme_handler')->install(['test_theme_settings_features']);
+    $this->container->get('theme_installer')->install(['test_theme_settings_features']);
     // Visit this theme's settings page.
     $this->drupalGet('admin/appearance/settings/test_theme_settings_features');
     $edit = [];

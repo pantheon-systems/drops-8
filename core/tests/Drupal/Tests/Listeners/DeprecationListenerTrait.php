@@ -4,6 +4,7 @@ namespace Drupal\Tests\Listeners;
 
 use Drupal\Tests\Traits\ExpectDeprecationTrait;
 use PHPUnit\Framework\TestCase;
+use PHPUnit\Util\Test;
 
 /**
  * Removes deprecations that we are yet to fix.
@@ -24,7 +25,7 @@ trait DeprecationListenerTrait {
   private $previousHandler;
 
   protected function deprecationStartTest($test) {
-    if ($test instanceof \PHPUnit_Framework_TestCase || $test instanceof TestCase) {
+    if ($test instanceof TestCase) {
       if ('disabled' !== getenv('SYMFONY_DEPRECATIONS_HELPER')) {
         $this->registerErrorHandler($test);
       }
@@ -37,7 +38,7 @@ trait DeprecationListenerTrait {
   /**
    * Reacts to the end of a test.
    *
-   * @param \PHPUnit\Framework\Test|\PHPUnit_Framework_Test $test
+   * @param \PHPUnit\Framework\Test $test
    *   The test object that has ended its test run.
    * @param float $time
    *   The time the test took.
@@ -52,13 +53,12 @@ trait DeprecationListenerTrait {
       }
     }
     if ($file = getenv('SYMFONY_DEPRECATIONS_SERIALIZE')) {
-      $util_test_class = class_exists('PHPUnit_Util_Test') ? 'PHPUnit_Util_Test' : 'PHPUnit\Util\Test';
       $method = $test->getName(FALSE);
       if (strpos($method, 'testLegacy') === 0
         || strpos($method, 'provideLegacy') === 0
         || strpos($method, 'getLegacy') === 0
         || strpos(get_class($test), '\Legacy')
-        || in_array('legacy', $util_test_class::getGroups(get_class($test), $method), TRUE)) {
+        || in_array('legacy', Test::getGroups(get_class($test), $method), TRUE)) {
         // This is a legacy test don't skip deprecations.
         return;
       }
@@ -83,7 +83,7 @@ trait DeprecationListenerTrait {
   /**
    * Determines if a test is isolated.
    *
-   * @param \PHPUnit_Framework_TestCase|\PHPUnit\Framework\TestCase $test
+   * @param \PHPUnit\Framework\TestCase $test
    *   The test to check.
    *
    * @return bool
@@ -118,19 +118,11 @@ trait DeprecationListenerTrait {
    */
   public static function getSkippedDeprecations() {
     return [
-      'Install profile will be a mandatory parameter in Drupal 9.0.',
       'MigrateCckField is deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.x. Use \Drupal\migrate_drupal\Annotation\MigrateField instead.',
       'MigrateCckFieldPluginManager is deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.x. Use \Drupal\migrate_drupal\Annotation\MigrateFieldPluginManager instead.',
       'MigrateCckFieldPluginManagerInterface is deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.x. Use \Drupal\migrate_drupal\Annotation\MigrateFieldPluginManagerInterface instead.',
       'The "plugin.manager.migrate.cckfield" service is deprecated. You should use the \'plugin.manager.migrate.field\' service instead. See https://www.drupal.org/node/2751897',
-      'Drupal\system\Tests\Update\DbUpdatesTrait is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use \Drupal\FunctionalTests\Update\DbUpdatesTrait instead. See https://www.drupal.org/node/2896640.',
-      'Providing settings under \'handler_settings\' is deprecated and will be removed before 9.0.0. Move the settings in the root of the configuration array. See https://www.drupal.org/node/2870971.',
-      'The Drupal\editor\Plugin\EditorBase::settingsFormValidate method is deprecated since version 8.3.x and will be removed in 9.0.0.',
-      'The Drupal\migrate\Plugin\migrate\process\Migration is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Instead, use Drupal\migrate\Plugin\migrate\process\MigrationLookup',
-      'Drupal\system\Plugin\views\field\BulkForm is deprecated in Drupal 8.5.x, will be removed before Drupal 9.0.0. Use \Drupal\views\Plugin\views\field\BulkForm instead. See https://www.drupal.org/node/2916716.',
-      'The numeric plugin for watchdog.wid field is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Must use standard plugin instead. See https://www.drupal.org/node/2876378.',
       'Passing in arguments the legacy way is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Provide the right parameter names in the method, similar to controllers. See https://www.drupal.org/node/2894819',
-      'The Drupal\editor\Plugin\EditorBase::settingsFormSubmit method is deprecated since version 8.3.x and will be removed in 9.0.0.',
       'The "serializer.normalizer.file_entity.hal" normalizer service is deprecated: it is obsolete, it only remains available for backwards compatibility.',
       'The Symfony\Component\ClassLoader\ApcClassLoader class is deprecated since Symfony 3.3 and will be removed in 4.0. Use `composer install --apcu-autoloader` instead.',
       // The following deprecation is not triggered by DrupalCI testing since it
@@ -147,6 +139,14 @@ trait DeprecationListenerTrait {
       // This deprecation comes from behat/mink-browserkit-driver when updating
       // symfony/browser-kit to 4.3+.
       'The "Symfony\Component\BrowserKit\Response::getStatus()" method is deprecated since Symfony 4.3, use getStatusCode() instead.',
+      'The "core/jquery.ui.checkboxradio" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3067969',
+      'The "core/jquery.ui.controlgroup" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3067969',
+      'The "core/html5shiv" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3086383',
+      'The "core/matchmedia" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3086653',
+      'The "core/matchmedia.addListener" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3086653',
+      'The "core/classList" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use the the native browser implementation instead. See https://www.drupal.org/node/3089511',
+      'The "core/jquery.ui.datepicker" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3081864',
+      'The "locale/drupal.locale.datepicker" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3081864',
     ];
   }
 

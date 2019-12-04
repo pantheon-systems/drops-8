@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\book\Functional;
 
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Entity\EntityInterface;
@@ -94,10 +95,10 @@ trait BookTestTrait {
 
     // Check outline structure.
     if ($nodes !== NULL) {
-      $this->assertPattern($this->generateOutlinePattern($nodes), format_string('Node @number outline confirmed.', ['@number' => $number]));
+      $this->assertPattern($this->generateOutlinePattern($nodes), new FormattableMarkup('Node @number outline confirmed.', ['@number' => $number]));
     }
     else {
-      $this->pass(format_string('Node %number does not have outline.', ['%number' => $number]));
+      $this->pass(new FormattableMarkup('Node %number does not have outline.', ['%number' => $number]));
     }
 
     // Check previous, up, and next links.
@@ -106,14 +107,14 @@ trait BookTestTrait {
       $url = $previous->toUrl();
       $url->setOptions(['attributes' => ['rel' => ['prev'], 'title' => t('Go to previous page')]]);
       $text = new FormattableMarkup('<b>‹</b> @label', ['@label' => $previous->label()]);
-      $this->assertRaw(\Drupal::l($text, $url), 'Previous page link found.');
+      $this->assertRaw(Link::fromTextAndUrl($text, $url)->toString(), 'Previous page link found.');
     }
 
     if ($up) {
       /** @var \Drupal\Core\Url $url */
       $url = $up->toUrl();
       $url->setOptions(['attributes' => ['title' => t('Go to parent page')]]);
-      $this->assertRaw(\Drupal::l('Up', $url), 'Up page link found.');
+      $this->assertRaw(Link::fromTextAndUrl('Up', $url)->toString(), 'Up page link found.');
     }
 
     if ($next) {
@@ -121,7 +122,7 @@ trait BookTestTrait {
       $url = $next->toUrl();
       $url->setOptions(['attributes' => ['rel' => ['next'], 'title' => t('Go to next page')]]);
       $text = new FormattableMarkup('@label <b>›</b>', ['@label' => $next->label()]);
-      $this->assertRaw(\Drupal::l($text, $url), 'Next page link found.');
+      $this->assertRaw(Link::fromTextAndUrl($text, $url)->toString(), 'Next page link found.');
     }
 
     // Compute the expected breadcrumb.
@@ -198,7 +199,7 @@ trait BookTestTrait {
       $edit['book[pid]'] = $parent;
       $this->drupalPostForm(NULL, $edit, t('Save'));
       // Make sure the parent was flagged as having children.
-      $parent_node = \Drupal::entityManager()->getStorage('node')->loadUnchanged($parent);
+      $parent_node = \Drupal::entityTypeManager()->getStorage('node')->loadUnchanged($parent);
       $this->assertFalse(empty($parent_node->book['has_children']), 'Parent node is marked as having children');
     }
     else {

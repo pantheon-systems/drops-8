@@ -15,7 +15,6 @@ use GuzzleHttp\RequestOptions;
  * Tests JSON:API multilingual support.
  *
  * @group jsonapi
- * @group legacy
  *
  * @internal
  */
@@ -28,6 +27,11 @@ class JsonApiFunctionalMultilingualTest extends JsonApiFunctionalTestBase {
     'language',
     'content_translation',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -315,7 +319,7 @@ class JsonApiFunctionalMultilingualTest extends JsonApiFunctionalTestBase {
 
     $response = $this->request('DELETE', Url::fromUri('base:/jsonapi/node/article/' . $this->nodes[0]->uuid()), []);
     $this->assertSame(204, $response->getStatusCode());
-    $this->assertFalse(Node::load($this->nodes[0]->id()));
+    $this->assertNull(Node::load($this->nodes[0]->id()));
   }
 
 }

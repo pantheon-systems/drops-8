@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\system\Functional\Entity;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
 
@@ -18,6 +19,11 @@ class EntityFormTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['entity_test', 'language'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   protected function setUp() {
     parent::setUp();
@@ -76,21 +82,21 @@ class EntityFormTest extends BrowserTestBase {
 
     $this->drupalPostForm($entity_type . '/add', $edit, t('Save'));
     $entity = $this->loadEntityByName($entity_type, $name1);
-    $this->assertTrue($entity, format_string('%entity_type: Entity found in the database.', ['%entity_type' => $entity_type]));
+    $this->assertNotNull($entity, new FormattableMarkup('%entity_type: Entity found in the database.', ['%entity_type' => $entity_type]));
 
     $edit['name[0][value]'] = $name2;
     $this->drupalPostForm($entity_type . '/manage/' . $entity->id() . '/edit', $edit, t('Save'));
     $entity = $this->loadEntityByName($entity_type, $name1);
-    $this->assertFalse($entity, format_string('%entity_type: The entity has been modified.', ['%entity_type' => $entity_type]));
+    $this->assertNull($entity, new FormattableMarkup('%entity_type: The entity has been modified.', ['%entity_type' => $entity_type]));
     $entity = $this->loadEntityByName($entity_type, $name2);
-    $this->assertTrue($entity, format_string('%entity_type: Modified entity found in the database.', ['%entity_type' => $entity_type]));
-    $this->assertNotEqual($entity->name->value, $name1, format_string('%entity_type: The entity name has been modified.', ['%entity_type' => $entity_type]));
+    $this->assertNotNull($entity, new FormattableMarkup('%entity_type: Modified entity found in the database.', ['%entity_type' => $entity_type]));
+    $this->assertNotEqual($entity->name->value, $name1, new FormattableMarkup('%entity_type: The entity name has been modified.', ['%entity_type' => $entity_type]));
 
     $this->drupalGet($entity_type . '/manage/' . $entity->id() . '/edit');
     $this->clickLink(t('Delete'));
     $this->drupalPostForm(NULL, [], t('Delete'));
     $entity = $this->loadEntityByName($entity_type, $name2);
-    $this->assertFalse($entity, format_string('%entity_type: Entity not found in the database.', ['%entity_type' => $entity_type]));
+    $this->assertNull($entity, new FormattableMarkup('%entity_type: Entity not found in the database.', ['%entity_type' => $entity_type]));
   }
 
   /**
@@ -111,26 +117,26 @@ class EntityFormTest extends BrowserTestBase {
 
     $this->drupalPostForm($entity_type_id . '/add', $edit, t('Save'));
     $entity = $this->loadEntityByName($entity_type_id, $name1);
-    $this->assertTrue($entity, format_string('%entity_type: Entity found in the database.', ['%entity_type' => $entity_type_id]));
+    $this->assertNotNull($entity, new FormattableMarkup('%entity_type: Entity found in the database.', ['%entity_type' => $entity_type_id]));
 
     // Add a translation to the newly created entity without using the Content
     // translation module.
     $entity->addTranslation('ro', ['name' => $name1_ro])->save();
     $translated_entity = $this->loadEntityByName($entity_type_id, $name1)->getTranslation('ro');
-    $this->assertEqual($translated_entity->name->value, $name1_ro, format_string('%entity_type: The translation has been added.', ['%entity_type' => $entity_type_id]));
+    $this->assertEqual($translated_entity->name->value, $name1_ro, new FormattableMarkup('%entity_type: The translation has been added.', ['%entity_type' => $entity_type_id]));
 
     $edit['name[0][value]'] = $name2_ro;
     $this->drupalPostForm('ro/' . $entity_type_id . '/manage/' . $entity->id() . '/edit', $edit, t('Save'));
     $translated_entity = $this->loadEntityByName($entity_type_id, $name1)->getTranslation('ro');
-    $this->assertTrue($translated_entity, format_string('%entity_type: Modified translation found in the database.', ['%entity_type' => $entity_type_id]));
-    $this->assertEqual($translated_entity->name->value, $name2_ro, format_string('%entity_type: The name of the translation has been modified.', ['%entity_type' => $entity_type_id]));
+    $this->assertNotNull($translated_entity, new FormattableMarkup('%entity_type: Modified translation found in the database.', ['%entity_type' => $entity_type_id]));
+    $this->assertEqual($translated_entity->name->value, $name2_ro, new FormattableMarkup('%entity_type: The name of the translation has been modified.', ['%entity_type' => $entity_type_id]));
 
     $this->drupalGet('ro/' . $entity_type_id . '/manage/' . $entity->id() . '/edit');
     $this->clickLink(t('Delete'));
     $this->drupalPostForm(NULL, [], t('Delete Romanian translation'));
     $entity = $this->loadEntityByName($entity_type_id, $name1);
-    $this->assertNotNull($entity, format_string('%entity_type: The original entity still exists.', ['%entity_type' => $entity_type_id]));
-    $this->assertFalse($entity->hasTranslation('ro'), format_string('%entity_type: Entity translation does not exist anymore.', ['%entity_type' => $entity_type_id]));
+    $this->assertNotNull($entity, new FormattableMarkup('%entity_type: The original entity still exists.', ['%entity_type' => $entity_type_id]));
+    $this->assertFalse($entity->hasTranslation('ro'), new FormattableMarkup('%entity_type: Entity translation does not exist anymore.', ['%entity_type' => $entity_type_id]));
   }
 
   /**
@@ -139,7 +145,7 @@ class EntityFormTest extends BrowserTestBase {
   protected function loadEntityByName($entity_type, $name) {
     // Always load the entity from the database to ensure that changes are
     // correctly picked up.
-    $entity_storage = $this->container->get('entity.manager')->getStorage($entity_type);
+    $entity_storage = $this->container->get('entity_type.manager')->getStorage($entity_type);
     $entity_storage->resetCache();
     $entities = $entity_storage->loadByProperties(['name' => $name]);
     return $entities ? current($entities) : NULL;

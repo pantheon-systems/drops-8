@@ -183,11 +183,13 @@ class EntityReferenceEntityFormatter extends EntityReferenceFormatterBase implem
 
       // Protect ourselves from recursive rendering.
       if (static::$recursiveRenderDepth[$recursive_render_id] > static::RECURSIVE_RENDER_LIMIT) {
-        $this->loggerFactory->get('entity')->error('Recursive rendering detected when rendering entity %entity_type: %entity_id, using the %field_name field on the %bundle_name bundle. Aborting rendering.', [
+        $this->loggerFactory->get('entity')->error('Recursive rendering detected when rendering entity %entity_type: %entity_id, using the %field_name field on the %parent_entity_type:%parent_bundle %parent_entity_id entity. Aborting rendering.', [
           '%entity_type' => $entity->getEntityTypeId(),
           '%entity_id' => $entity->id(),
           '%field_name' => $items->getName(),
-          '%bundle_name' => $items->getFieldDefinition()->getTargetBundle(),
+          '%parent_entity_type' => $items->getFieldDefinition()->getTargetEntityTypeId(),
+          '%parent_bundle' => $items->getFieldDefinition()->getTargetBundle(),
+          '%parent_entity_id' => $items->getEntity()->id(),
         ]);
         return $elements;
       }
@@ -213,7 +215,7 @@ class EntityReferenceEntityFormatter extends EntityReferenceFormatterBase implem
     // This formatter is only available for entity types that have a view
     // builder.
     $target_type = $field_definition->getFieldStorageDefinition()->getSetting('target_type');
-    return \Drupal::entityManager()->getDefinition($target_type)->hasViewBuilderClass();
+    return \Drupal::entityTypeManager()->getDefinition($target_type)->hasViewBuilderClass();
   }
 
 }

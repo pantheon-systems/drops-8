@@ -44,10 +44,13 @@ class CacheTest extends UnitTestCase {
    * @covers ::validateTags
    *
    * @dataProvider validateTagsProvider
+   * @expectedDeprecation Drupal\Core\Cache\Cache::validateTags() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use assert(\Drupal\Component\Assertion\Inspector::assertAllStrings($tags)) instead.
+   * @group legacy
    */
   public function testValidateTags(array $tags, $expected_exception_message) {
     if ($expected_exception_message !== FALSE) {
-      $this->setExpectedException('LogicException', $expected_exception_message);
+      $this->expectException('LogicException');
+      $this->expectExceptionMessage($expected_exception_message);
     }
     // If it doesn't throw an exception, validateTags() returns NULL.
     $this->assertNull(Cache::validateTags($tags));

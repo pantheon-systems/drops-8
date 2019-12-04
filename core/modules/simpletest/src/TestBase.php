@@ -12,6 +12,7 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Test\TestDatabase;
+use Drupal\Core\Test\TestDiscovery;
 use Drupal\Core\Test\TestSetupTrait;
 use Drupal\Core\Utility\Error;
 use Drupal\Tests\AssertHelperTrait as BaseAssertHelperTrait;
@@ -23,6 +24,10 @@ use Drupal\Tests\Traits\Core\GeneratePermutationsTrait;
  * Base class for Drupal tests.
  *
  * Do not extend this class directly; use \Drupal\simpletest\WebTestBase.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Instead,
+ *   use one of the phpunit base test classes like
+ *   Drupal\Tests\BrowserTestBase. See https://www.drupal.org/node/3030340.
  */
 abstract class TestBase {
 
@@ -380,6 +385,10 @@ abstract class TestBase {
    * @return
    *   Message ID of the stored assertion.
    *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   simpletest_insert_assert() instead.
+   *
+   * @see https://www.drupal.org/node/3030340
    * @see \Drupal\simpletest\TestBase::assert()
    * @see \Drupal\simpletest\TestBase::deleteAssert()
    */
@@ -919,8 +928,7 @@ abstract class TestBase {
       $this->httpAuthCredentials = $username . ':' . $password;
     }
 
-    // Force assertion failures to be thrown as AssertionError for PHP 5 & 7
-    // compatibility.
+    // Force assertion failures to be thrown as exceptions.
     Handle::register();
 
     set_error_handler([$this, 'errorHandler']);
@@ -1096,13 +1104,11 @@ abstract class TestBase {
     // Backup statics and globals.
     $this->originalContainer = \Drupal::getContainer();
     $this->originalLanguage = $language_interface;
-    $this->originalConfigDirectories = $GLOBALS['config_directories'];
 
     // Save further contextual information.
     // Use the original files directory to avoid nesting it within an existing
     // simpletest directory if a test is executed within a test.
     $this->originalFileDirectory = Settings::get('file_public_path', $site_path . '/files');
-    $this->originalProfile = drupal_get_profile();
     $this->originalUser = isset($user) ? clone $user : NULL;
 
     // Prevent that session data is leaked into the UI test runner by closing
@@ -1245,7 +1251,7 @@ abstract class TestBase {
 
     // In case a fatal error occurred that was not in the test process read the
     // log to pick up any fatal errors.
-    simpletest_log_read($this->testId, $this->databasePrefix, get_class($this));
+    (new TestDatabase($this->databasePrefix))->logRead($this->testId, get_class($this));
 
     // Restore original dependency injection container.
     $this->container = $this->originalContainer;
@@ -1267,9 +1273,6 @@ abstract class TestBase {
     $GLOBALS['config'] = $this->originalConfig;
     $GLOBALS['conf'] = $this->originalConf;
     new Settings($this->originalSettings);
-
-    // Restore original statics and globals.
-    $GLOBALS['config_directories'] = $this->originalConfigDirectories;
 
     // Re-initialize original stream wrappers of the parent site.
     // This must happen after static variables have been reset and the original

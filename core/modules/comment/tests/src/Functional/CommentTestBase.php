@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\comment\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Entity\Comment;
 use Drupal\comment\CommentInterface;
@@ -125,7 +126,8 @@ abstract class CommentTestBase extends BrowserTestBase {
     }
 
     // Determine the visibility of subject form field.
-    if (entity_get_form_display('comment', 'comment', 'default')->getComponent('subject')) {
+    $display_repository = $this->container->get('entity_display.repository');
+    if ($display_repository->getFormDisplay('comment', 'comment')->getComponent('subject')) {
       // Subject input allowed.
       $edit['subject[0][value]'] = $subject;
     }
@@ -170,7 +172,7 @@ abstract class CommentTestBase extends BrowserTestBase {
     }
 
     if (isset($match[1])) {
-      \Drupal::entityManager()->getStorage('comment')->resetCache([$match[1]]);
+      \Drupal::entityTypeManager()->getStorage('comment')->resetCache([$match[1]]);
       return Comment::load($match[1]);
     }
   }
@@ -228,7 +230,9 @@ abstract class CommentTestBase extends BrowserTestBase {
    *   Boolean specifying whether the subject field should be enabled.
    */
   public function setCommentSubject($enabled) {
-    $form_display = entity_get_form_display('comment', 'comment', 'default');
+    $form_display = $this->container->get('entity_display.repository')
+      ->getFormDisplay('comment', 'comment');
+
     if ($enabled) {
       $form_display->setComponent('subject', [
         'type' => 'string_textfield',
@@ -265,7 +269,7 @@ abstract class CommentTestBase extends BrowserTestBase {
         $mode_text = 'required';
         break;
     }
-    $this->setCommentSettings('preview', $mode, format_string('Comment preview @mode_text.', ['@mode_text' => $mode_text]), $field_name);
+    $this->setCommentSettings('preview', $mode, new FormattableMarkup('Comment preview @mode_text.', ['@mode_text' => $mode_text]), $field_name);
   }
 
   /**
@@ -292,7 +296,7 @@ abstract class CommentTestBase extends BrowserTestBase {
    *   - 2: Contact information required.
    */
   public function setCommentAnonymous($level) {
-    $this->setCommentSettings('anonymous', $level, format_string('Anonymous commenting set to level @level.', ['@level' => $level]));
+    $this->setCommentSettings('anonymous', $level, new FormattableMarkup('Anonymous commenting set to level @level.', ['@level' => $level]));
   }
 
   /**
@@ -305,7 +309,7 @@ abstract class CommentTestBase extends BrowserTestBase {
    *   Defaults to 'comment'.
    */
   public function setCommentsPerPage($number, $field_name = 'comment') {
-    $this->setCommentSettings('per_page', $number, format_string('Number of comments per page set to @number.', ['@number' => $number]), $field_name);
+    $this->setCommentSettings('per_page', $number, new FormattableMarkup('Number of comments per page set to @number.', ['@number' => $number]), $field_name);
   }
 
   /**
@@ -336,7 +340,7 @@ abstract class CommentTestBase extends BrowserTestBase {
    *   Contact info is available.
    */
   public function commentContactInfoAvailable() {
-    return preg_match('/(input).*?(name="name").*?(input).*?(name="mail").*?(input).*?(name="homepage")/s', $this->getSession()->getPage()->getContent());
+    return (bool) preg_match('/(input).*?(name="name").*?(input).*?(name="mail").*?(input).*?(name="homepage")/s', $this->getSession()->getPage()->getContent());
   }
 
   /**
@@ -357,10 +361,10 @@ abstract class CommentTestBase extends BrowserTestBase {
 
     if ($operation == 'delete') {
       $this->drupalPostForm(NULL, [], t('Delete'));
-      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), format_string('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
+      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
     }
     else {
-      $this->assertText(t('The update has been performed.'), format_string('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
+      $this->assertText(t('The update has been performed.'), new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
     }
   }
 

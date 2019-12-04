@@ -42,6 +42,11 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   ];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * An user with permissions to create and edit articles.
    *
    * @var \Drupal\user\UserInterface
@@ -138,7 +143,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $nid = $this->testNode->id();
     // There should be only one revision so far.
     $node = Node::load($nid);
-    $vids = \Drupal::entityManager()->getStorage('node')->revisionIds($node);
+    $vids = \Drupal::entityTypeManager()->getStorage('node')->revisionIds($node);
     $this->assertCount(1, $vids, 'The node has only one revision.');
     $original_log = $node->revision_log->value;
 
@@ -164,7 +169,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     $assert->assertWaitOnAjaxRequest();
 
     $node = Node::load($nid);
-    $vids = \Drupal::entityManager()->getStorage('node')->revisionIds($node);
+    $vids = \Drupal::entityTypeManager()->getStorage('node')->revisionIds($node);
     $this->assertCount(1, $vids, 'The node has only one revision.');
     $this->assertSame($original_log, $node->revision_log->value, 'The revision log message is unchanged.');
 
@@ -354,7 +359,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
       'entity_type' => 'node',
       'bundle' => 'article',
     ])->save();
-    entity_get_form_display('node', 'article', 'default')
+    \Drupal::service('entity_display.repository')->getFormDisplay('node', 'article', 'default')
       ->setComponent('field_image', [
         'type' => 'image_image',
       ])

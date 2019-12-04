@@ -1,6 +1,6 @@
-[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/TYPO3/phar-stream-wrapper/badges/quality-score.png?b=v2)](https://scrutinizer-ci.com/g/TYPO3/phar-stream-wrapper/?branch=v2)
-[![Travis CI Build Status](https://travis-ci.org/TYPO3/phar-stream-wrapper.svg?branch=v2)](https://travis-ci.org/TYPO3/phar-stream-wrapper)
-[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/q4ls5tg4w1d6sf4i/branch/v2?svg=true)](https://ci.appveyor.com/project/ohader/phar-stream-wrapper)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/TYPO3/phar-stream-wrapper/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/TYPO3/phar-stream-wrapper/?branch=master)
+[![Travis CI Build Status](https://travis-ci.org/TYPO3/phar-stream-wrapper.svg?branch=master)](https://travis-ci.org/TYPO3/phar-stream-wrapper)
+[![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/q4ls5tg4w1d6sf4i/branch/master?svg=true)](https://ci.appveyor.com/project/ohader/phar-stream-wrapper)
 
 # PHP Phar Stream Wrapper
 
@@ -65,14 +65,14 @@ not having the `.phar` suffix. Interceptor logic has to be individual and
 adjusted to according requirements.
 
 ```
-$behavior = new \TYPO3\PharStreamWrapper\Behavior();
 \TYPO3\PharStreamWrapper\Manager::initialize(
-    $behavior->withAssertion(new PharExtensionInterceptor())
+    (new \TYPO3\PharStreamWrapper\Behavior())
+        ->withAssertion(new \TYPO3\PharStreamWrapper\Interceptor\PharExtensionInterceptor())
 );
 
 if (in_array('phar', stream_get_wrappers())) {
     stream_wrapper_unregister('phar');
-    stream_wrapper_register('phar', 'TYPO3\\PharStreamWrapper\\PharStreamWrapper');
+    stream_wrapper_register('phar', \TYPO3\PharStreamWrapper\PharStreamWrapper::class);
 }
 ```
 
@@ -110,7 +110,7 @@ class PharExtensionInterceptor implements Assertable
      * @return bool
      * @throws Exception
      */
-    public function assert($path, $command)
+    public function assert(string $path, string $command): bool
     {
         if ($this->baseFileContainsPharExtension($path)) {
             return true;
@@ -128,7 +128,7 @@ class PharExtensionInterceptor implements Assertable
      * @param string $path
      * @return bool
      */
-    private function baseFileContainsPharExtension($path)
+    private function baseFileContainsPharExtension(string $path): bool
     {
         $baseFile = Helper::determineBaseFile($path);
         if ($baseFile === null) {
@@ -146,12 +146,12 @@ This interceptor combines multiple interceptors implementing `Assertable`.
 It succeeds when all nested interceptors succeed as well (logical `AND`).
 
 ```
-$behavior = new \TYPO3\PharStreamWrapper\Behavior();
 \TYPO3\PharStreamWrapper\Manager::initialize(
-    $behavior->withAssertion(new ConjunctionInterceptor(array(
-        new PharExtensionInterceptor(),
-        new PharMetaDataInterceptor()
-    )))
+    (new \TYPO3\PharStreamWrapper\Behavior())
+        ->withAssertion(new ConjunctionInterceptor([
+            new PharExtensionInterceptor(),
+            new PharMetaDataInterceptor(),
+        ]))
 );
 ```
 
@@ -162,9 +162,9 @@ an according `.phar` file extension. Resolving symbolic links as well as
 Phar internal alias resolving are considered as well.
 
 ```
-$behavior = new \TYPO3\PharStreamWrapper\Behavior();
 \TYPO3\PharStreamWrapper\Manager::initialize(
-    $behavior->withAssertion(new PharExtensionInterceptor())
+    (new \TYPO3\PharStreamWrapper\Behavior())
+        ->withAssertion(new PharExtensionInterceptor())
 );
 ```
 
@@ -176,9 +176,9 @@ scalar values are found. A custom low-level `Phar\Reader` is used in order to
 avoid using PHP's `Phar` object which would trigger the initial vulnerability.
 
 ```
-$behavior = new \TYPO3\PharStreamWrapper\Behavior();
 \TYPO3\PharStreamWrapper\Manager::initialize(
-    $behavior->withAssertion(new PharMetaDataInterceptor())
+    (new \TYPO3\PharStreamWrapper\Behavior())
+        ->withAssertion(new PharMetaDataInterceptor())
 );
 ```
 

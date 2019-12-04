@@ -21,6 +21,11 @@ class FilterFormTest extends BrowserTestBase {
   protected static $modules = ['filter', 'filter_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * An administrative user account that can administer text formats.
    *
    * @var \Drupal\user\Entity\User
@@ -71,8 +76,6 @@ class FilterFormTest extends BrowserTestBase {
     // correctly.
     // @see https://www.drupal.org/node/2387983
     \Drupal::service('module_installer')->install(['filter_test_plugin']);
-    // Force rebuild module data.
-    \Drupal::service('extension.list.module')->reset();
   }
 
   /**

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Component\Utility\Xss;
 use Drupal\node\Entity\NodeType;
@@ -19,6 +20,7 @@ use Drupal\views\Plugin\views\query\Sql;
 use Drupal\views\Plugin\views\pager\PagerPluginBase;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views_test_data\Plugin\views\display\DisplayTest;
+use PHPUnit\Framework\Error\Warning;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -123,7 +125,7 @@ class ViewExecutableTest extends ViewsKernelTestBase {
       if ($type == 'relationship') {
         continue;
       }
-      $this->assertTrue(count($view->$type), format_string('Make sure a %type instance got instantiated.', ['%type' => $type]));
+      $this->assertGreaterThan(0, count($view->$type), new FormattableMarkup('Make sure a %type instance got instantiated.', ['%type' => $type]));
     }
 
     // initHandlers() should create display handlers automatically as well.
@@ -200,7 +202,7 @@ class ViewExecutableTest extends ViewsKernelTestBase {
       $view->setDisplay('invalid');
       $this->fail('Expected error, when setDisplay() called with invalid display ID');
     }
-    catch (\PHPUnit_Framework_Error_Warning $e) {
+    catch (Warning $e) {
       $this->assertEquals('setDisplay() called with invalid display ID "invalid".', $e->getMessage());
     }
 
@@ -261,7 +263,7 @@ class ViewExecutableTest extends ViewsKernelTestBase {
     $this->assertTrue($view->rowPlugin instanceof Fields);
 
     // Test the newDisplay() method.
-    $view = $this->container->get('entity.manager')->getStorage('view')->create(['id' => 'test_executable_displays']);
+    $view = $this->container->get('entity_type.manager')->getStorage('view')->create(['id' => 'test_executable_displays']);
     $executable = $view->getExecutable();
 
     $executable->newDisplay('page');
@@ -435,7 +437,7 @@ class ViewExecutableTest extends ViewsKernelTestBase {
       $match = function ($value) use ($display) {
         return strpos($value, $display->display['display_title']) !== FALSE;
       };
-      $this->assertTrue(array_filter($validate[$id], $match), format_string('Error message found for @id display', ['@id' => $id]));
+      $this->assertNotEmpty(array_filter($validate[$id], $match), new FormattableMarkup('Error message found for @id display', ['@id' => $id]));
       $count++;
     }
 

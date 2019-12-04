@@ -12,6 +12,7 @@
  */
 
 use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -22,7 +23,7 @@ use Drupal\Core\Site\Settings;
 /**
  * Project is missing security update(s).
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateManagerInterface::NOT_SECURE instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -32,7 +33,7 @@ const UPDATE_NOT_SECURE = 1;
 /**
  * Current release has been unpublished and is no longer available.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateManagerInterface::REVOKED instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -42,7 +43,7 @@ const UPDATE_REVOKED = 2;
 /**
  * Current release is no longer supported by the project maintainer.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateManagerInterface::NOT_SUPPORTED instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -52,7 +53,7 @@ const UPDATE_NOT_SUPPORTED = 3;
 /**
  * Project has a new release available, but it is not a security release.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateManagerInterface::NOT_CURRENT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -62,7 +63,7 @@ const UPDATE_NOT_CURRENT = 4;
 /**
  * Project is up to date.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateManagerInterface::CURRENT instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -72,7 +73,7 @@ const UPDATE_CURRENT = 5;
 /**
  * Project's status cannot be checked.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateFetcherInterface::NOT_CHECKED instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -82,7 +83,7 @@ const UPDATE_NOT_CHECKED = -1;
 /**
  * No available update data was found for project.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateFetcherInterface::UNKNOWN instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -92,7 +93,7 @@ const UPDATE_UNKNOWN = -2;
 /**
  * There was a failure fetching available update data for this project.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateFetcherInterface::NOT_FETCHED instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -102,7 +103,7 @@ const UPDATE_NOT_FETCHED = -3;
 /**
  * We need to (re)fetch available update data for this project.
  *
- * @deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\update\UpdateFetcherInterface::FETCH_PENDING instead.
  *
  * @see https://www.drupal.org/node/2831620
@@ -424,7 +425,7 @@ function update_get_available($refresh = FALSE) {
  *
  * @internal
  *
- * @deprecated in Drupal 8.6.0 and will be removed before Drupal 9.0.0. Use the
+ * @deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use the
  *   'Insecure' release type tag in update XML provided by Drupal.org to
  *   determine if releases are insecure.
  */
@@ -652,7 +653,7 @@ function _update_project_status_sort($a, $b) {
  */
 function template_preprocess_update_last_check(&$variables) {
   $variables['time'] = \Drupal::service('date.formatter')->formatTimeDiffSince($variables['last']);
-  $variables['link'] = \Drupal::l(t('Check manually'), new Url('update.manual_status', [], ['query' => \Drupal::destination()->getAsArray()]));
+  $variables['link'] = Link::fromTextAndUrl(t('Check manually'), Url::fromRoute('update.manual_status', [], ['query' => \Drupal::destination()->getAsArray()]))->toString();
 }
 
 /**
@@ -690,7 +691,9 @@ function update_verify_update_archive($project, $archive_file, $directory) {
   // functionality).
   $compatible_project = FALSE;
   $incompatible = [];
-  $files = file_scan_directory("$directory/$project", '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info.yml$/', ['key' => 'name', 'min_depth' => 0]);
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+  $file_system = \Drupal::service('file_system');
+  $files = $file_system->scanDirectory("$directory/$project", '/^' . DRUPAL_PHP_FUNCTION_PATTERN . '\.info.yml$/', ['key' => 'name', 'min_depth' => 0]);
   foreach ($files as $file) {
     // Get the .info.yml file for the module or theme this file belongs to.
     $info = \Drupal::service('info_parser')->parse($file->uri);
@@ -705,8 +708,6 @@ function update_verify_update_archive($project, $archive_file, $directory) {
     }
   }
 
-  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-  $file_system = \Drupal::service('file_system');
   if (empty($files)) {
     $errors[] = t('%archive_file does not contain any .info.yml files.', ['%archive_file' => $file_system->basename($archive_file)]);
   }
@@ -805,7 +806,9 @@ function update_clear_update_disk_cache() {
 
   // Search for files and directories in base folder only without recursion.
   foreach ($directories as $directory) {
-    file_scan_directory($directory, '/.*/', ['callback' => 'update_delete_file_if_stale', 'recurse' => FALSE]);
+    if (is_dir($directory)) {
+      \Drupal::service('file_system')->scanDirectory($directory, '/.*/', ['callback' => 'update_delete_file_if_stale', 'recurse' => FALSE]);
+    }
   }
 }
 

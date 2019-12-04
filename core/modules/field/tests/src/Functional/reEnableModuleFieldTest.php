@@ -29,6 +29,11 @@ class reEnableModuleFieldTest extends BrowserTestBase {
     'telephone',
   ];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -45,7 +50,6 @@ class reEnableModuleFieldTest extends BrowserTestBase {
    * @see field_system_info_alter()
    */
   public function testReEnabledField() {
-
     // Add a telephone field to the article content type.
     $field_storage = FieldStorageConfig::create([
       'field_name' => 'field_telephone',
@@ -59,7 +63,9 @@ class reEnableModuleFieldTest extends BrowserTestBase {
       'label' => 'Telephone Number',
     ])->save();
 
-    entity_get_form_display('node', 'article', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('node', 'article')
       ->setComponent('field_telephone', [
         'type' => 'telephone_default',
         'settings' => [
@@ -68,7 +74,7 @@ class reEnableModuleFieldTest extends BrowserTestBase {
       ])
       ->save();
 
-    entity_get_display('node', 'article', 'default')
+    $display_repository->getViewDisplay('node', 'article')
       ->setComponent('field_telephone', [
         'type' => 'telephone_link',
         'weight' => 1,
@@ -98,7 +104,7 @@ class reEnableModuleFieldTest extends BrowserTestBase {
     // Add another telephone field to a different entity type in order to test
     // the message for the case when multiple fields are blocking the
     // uninstallation of a module.
-    $field_storage2 = entity_create('field_storage_config', [
+    $field_storage2 = FieldStorageConfig::create([
       'field_name' => 'field_telephone_2',
       'entity_type' => 'user',
       'type' => 'telephone',

@@ -17,7 +17,7 @@ class CsrfAccessCheckTest extends UnitTestCase {
   /**
    * The mock CSRF token generator.
    *
-   * @var \Drupal\Core\Access\CsrfTokenGenerator|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Access\CsrfTokenGenerator|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $csrfToken;
 
@@ -31,7 +31,7 @@ class CsrfAccessCheckTest extends UnitTestCase {
   /**
    * The mock route match.
    *
-   * @var \Drupal\Core\RouteMatch\RouteMatchInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\RouteMatch\RouteMatchInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $routeMatch;
 
@@ -40,7 +40,7 @@ class CsrfAccessCheckTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
 
-    $this->routeMatch = $this->getMock('Drupal\Core\Routing\RouteMatchInterface');
+    $this->routeMatch = $this->createMock('Drupal\Core\Routing\RouteMatchInterface');
 
     $this->accessCheck = new CsrfAccessCheck($this->csrfToken);
   }

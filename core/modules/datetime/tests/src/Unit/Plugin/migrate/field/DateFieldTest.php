@@ -83,7 +83,8 @@ class DateFieldTest extends UnitTestCase {
 
     $plugin = new DateField([], '', []);
 
-    $this->setExpectedException(MigrateException::class, "Field field_date of type 'totoro' is an unknown date field type.");
+    $this->expectException(MigrateException::class);
+
     $plugin->defineValueProcessPipeline($migration, 'field_date', ['type' => 'totoro']);
   }
 

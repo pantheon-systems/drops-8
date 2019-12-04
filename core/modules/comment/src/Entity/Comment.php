@@ -189,7 +189,9 @@ class Comment extends ContentEntityBase implements CommentInterface {
     parent::postDelete($storage, $entities);
 
     $child_cids = $storage->getChildCids($entities);
-    entity_delete_multiple('comment', $child_cids);
+    $comment_storage = \Drupal::entityTypeManager()->getStorage('comment');
+    $comments = $comment_storage->loadMultiple($child_cids);
+    $comment_storage->delete($comments);
 
     foreach ($entities as $id => $entity) {
       \Drupal::service('comment.statistics')->update($entity);
@@ -319,13 +321,6 @@ class Comment extends ContentEntityBase implements CommentInterface {
       ->setSetting('max_length', FieldStorageConfig::NAME_MAX_LENGTH);
 
     return $fields;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getDefaultEntityOwner() {
-    return 0;
   }
 
   /**
@@ -488,6 +483,7 @@ class Comment extends ContentEntityBase implements CommentInterface {
    * {@inheritdoc}
    */
   public function getStatus() {
+    @trigger_error(__NAMESPACE__ . '\Comment::getStatus() is deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Entity\EntityPublishedInterface::isPublished() instead. See https://www.drupal.org/node/2830201', E_USER_DEPRECATED);
     return $this->get('status')->value;
   }
 

@@ -64,7 +64,7 @@ class QuickEditFieldForm extends FormBase {
     return new static(
       $container->get('tempstore.private'),
       $container->get('module_handler'),
-      $container->get('entity.manager')->getStorage('node_type')
+      $container->get('entity_type.manager')->getStorage('node_type')
     );
   }
 
@@ -122,7 +122,7 @@ class QuickEditFieldForm extends FormBase {
     //   once https://www.drupal.org/node/1863258 lands.
     if ($entity->getEntityTypeId() == 'node') {
       $node_type = $this->nodeTypeStorage->load($entity->bundle());
-      $entity->setNewRevision($node_type->isNewRevision());
+      $entity->setNewRevision($node_type->shouldCreateNewRevision());
       $entity->revision_log = NULL;
     }
 

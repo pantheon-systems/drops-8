@@ -32,12 +32,12 @@ class MigrateTaxonomyVocabularyTest extends MigrateDrupal6TestBase {
     for ($i = 0; $i < 3; $i++) {
       $j = $i + 1;
       $vocabulary = Vocabulary::load("vocabulary_{$j}_i_{$i}_");
-      $this->assertSame($this->getMigration('d6_taxonomy_vocabulary')->getIdMap()->lookupDestinationId([$j]), [$vocabulary->id()]);
+      $this->assertSame($this->getMigration('d6_taxonomy_vocabulary')->getIdMap()->lookupDestinationIds([$j]), [[$vocabulary->id()]]);
       $this->assertSame("vocabulary $j (i=$i)", $vocabulary->label());
       $this->assertSame("description of vocabulary $j (i=$i)", $vocabulary->getDescription());
       $this->assertSame(4 + $i, $vocabulary->get('weight'));
     }
-    $vocabulary = Vocabulary::load('vocabulary_name_much_longer_than');
+    $vocabulary = Vocabulary::load('vocabulary_name_much_longer_th');
     $this->assertSame('vocabulary name much longer than thirty two characters', $vocabulary->label());
     $this->assertSame('description of vocabulary name much longer than thirty two characters', $vocabulary->getDescription());
     $this->assertSame(7, $vocabulary->get('weight'));

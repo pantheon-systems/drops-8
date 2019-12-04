@@ -13,6 +13,11 @@ use Drupal\Tests\BrowserTestBase;
 class UserEditTest extends BrowserTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Test user edit page.
    */
   public function testUserEdit() {
@@ -149,6 +154,24 @@ class UserEditTest extends BrowserTestBase {
     $user1->save();
     $this->drupalPostForm("user/" . $user1->id() . "/edit", ['mail' => ''], t('Save'));
     $this->assertRaw(t("The changes have been saved."));
+  }
+
+  /**
+   * Tests well known change password route redirects to user edit form.
+   */
+  public function testUserWellKnownChangePasswordAuth() {
+    $account = $this->drupalCreateUser([]);
+    $this->drupalLogin($account);
+    $this->drupalGet('.well-known/change-password');
+    $this->assertSession()->addressEquals("user/" . $account->id() . "/edit");
+  }
+
+  /**
+   * Tests well known change password route returns 403 to anonymous user.
+   */
+  public function testUserWellKnownChangePasswordAnon() {
+    $this->drupalGet('.well-known/change-password');
+    $this->assertSession()->statusCodeEquals(403);
   }
 
 }

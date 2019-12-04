@@ -18,42 +18,42 @@ class LocaleLookupTest extends UnitTestCase {
   /**
    * A mocked storage to use when instantiating LocaleTranslation objects.
    *
-   * @var \Drupal\locale\StringStorageInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\locale\StringStorageInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $storage;
 
   /**
    * A mocked cache object.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cache;
 
   /**
    * A mocked lock object.
    *
-   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $lock;
 
   /**
    * A mocked user object built from AccountInterface.
    *
-   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Session\AccountInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $user;
 
   /**
    * A mocked config factory built with UnitTestCase::getConfigFactoryStub().
    *
-   * @var \Drupal\Core\Config\ConfigFactory|\PHPUnit_Framework_MockObject_MockBuilder
+   * @var \Drupal\Core\Config\ConfigFactory|\PHPUnit\Framework\MockObject\MockBuilder
    */
   protected $configFactory;
 
   /**
    * A mocked language manager built from LanguageManagerInterface.
    *
-   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Language\LanguageManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $languageManager;
 
@@ -68,20 +68,20 @@ class LocaleLookupTest extends UnitTestCase {
    * {@inheritdoc}
    */
   protected function setUp() {
-    $this->storage = $this->getMock('Drupal\locale\StringStorageInterface');
-    $this->cache = $this->getMock('Drupal\Core\Cache\CacheBackendInterface');
-    $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
+    $this->storage = $this->createMock('Drupal\locale\StringStorageInterface');
+    $this->cache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
+    $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
     $this->lock->expects($this->never())
       ->method($this->anything());
 
-    $this->user = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $this->user = $this->createMock('Drupal\Core\Session\AccountInterface');
     $this->user->expects($this->any())
       ->method('getRoles')
       ->will($this->returnValue(['anonymous']));
 
     $this->configFactory = $this->getConfigFactoryStub(['locale.settings' => ['cache_strings' => FALSE]]);
 
-    $this->languageManager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $this->languageManager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
     $this->requestStack = new RequestStack();
 
     $container = new ContainerBuilder();
@@ -243,7 +243,7 @@ class LocaleLookupTest extends UnitTestCase {
    * @covers ::resolveCacheMiss
    */
   public function testResolveCacheMissNoTranslation() {
-    $string = $this->getMock('Drupal\locale\StringInterface');
+    $string = $this->createMock('Drupal\locale\StringInterface');
     $string->expects($this->once())
       ->method('addLocation')
       ->will($this->returnSelf());

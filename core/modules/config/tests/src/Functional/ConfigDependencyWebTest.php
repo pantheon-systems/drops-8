@@ -25,6 +25,11 @@ class ConfigDependencyWebTest extends BrowserTestBase {
   public static $modules = ['config_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests ConfigDependencyDeleteFormTrait.
    *
    * @see \Drupal\Core\Config\Entity\ConfigDependencyDeleteFormTrait
@@ -33,7 +38,7 @@ class ConfigDependencyWebTest extends BrowserTestBase {
     $this->drupalLogin($this->drupalCreateUser(['administer site configuration']));
 
     /** @var \Drupal\Core\Config\Entity\ConfigEntityStorage $storage */
-    $storage = $this->container->get('entity.manager')->getStorage('config_test');
+    $storage = $this->container->get('entity_type.manager')->getStorage('config_test');
     // Entity1 will be deleted by the test.
     $entity1 = $storage->create(
       [
@@ -67,7 +72,7 @@ class ConfigDependencyWebTest extends BrowserTestBase {
     $this->assertText($entity2->id(), 'Entity2 id found');
     $this->drupalPostForm($entity1->toUrl('delete-form'), [], 'Delete');
     $storage->resetCache();
-    $this->assertFalse($storage->loadMultiple([$entity1->id(), $entity2->id()]), 'Test entities deleted');
+    $this->assertEmpty($storage->loadMultiple([$entity1->id(), $entity2->id()]), 'Test entities deleted');
 
     // Set a more complicated test where dependencies will be fixed.
     // Entity1 will be deleted by the test.
@@ -117,13 +122,13 @@ class ConfigDependencyWebTest extends BrowserTestBase {
     $this->assertNoText($entity3->id(), 'Entity3 id not found');
     $this->drupalPostForm($entity1->toUrl('delete-form'), [], 'Delete');
     $storage->resetCache();
-    $this->assertFalse($storage->load('entity1'), 'Test entity 1 deleted');
+    $this->assertNull($storage->load('entity1'), 'Test entity 1 deleted');
     $entity2 = $storage->load('entity2');
-    $this->assertTrue($entity2, 'Entity 2 not deleted');
-    $this->assertEqual($entity2->calculateDependencies()->getDependencies()['config'], [], 'Entity 2 dependencies updated to remove dependency on Entity1.');
+    $this->assertNotEmpty($entity2, 'Entity 2 not deleted');
+    $this->assertEquals([], $entity2->calculateDependencies()->getDependencies()['config'], 'Entity 2 dependencies updated to remove dependency on Entity1.');
     $entity3 = $storage->load('entity3');
-    $this->assertTrue($entity3, 'Entity 3 not deleted');
-    $this->assertEqual($entity3->calculateDependencies()->getDependencies()['config'], [$entity2->getConfigDependencyName()], 'Entity 3 still depends on Entity 2.');
+    $this->assertNotEmpty($entity3, 'Entity 3 not deleted');
+    $this->assertEquals([$entity2->getConfigDependencyName()], $entity3->calculateDependencies()->getDependencies()['config'], 'Entity 3 still depends on Entity 2.');
 
   }
 

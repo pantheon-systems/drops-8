@@ -17,6 +17,11 @@ class NodeFieldFilterTest extends NodeTestBase {
   public static $modules = ['language'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -95,7 +100,10 @@ class NodeFieldFilterTest extends NodeTestBase {
    */
   protected function assertPageCounts($path, $counts, $message) {
     // Disable read more links.
-    entity_get_display('node', 'page', 'teaser')->removeComponent('links')->save();
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'page', 'teaser')
+      ->removeComponent('links')
+      ->save();
 
     // Get the text of the page.
     $this->drupalGet($path);

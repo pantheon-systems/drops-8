@@ -69,6 +69,12 @@ interface ModerationInformationInterface {
    * @return \Drupal\Core\Entity\ContentEntityInterface|null
    *   The latest entity revision or NULL, if the entity type / entity doesn't
    *   exist.
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   RevisionableStorageInterface::getLatestRevisionId and
+   *   RevisionableStorageInterface::loadRevision instead.
+   *
+   * @see https://www.drupal.org/node/3087295
    */
   public function getLatestRevision($entity_type_id, $entity_id);
 
@@ -83,6 +89,11 @@ interface ModerationInformationInterface {
    * @return int
    *   The revision ID of the latest revision for the specified entity, or
    *   NULL if there is no such entity.
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   RevisionableStorageInterface::getLatestRevisionId instead.
+   *
+   * @see https://www.drupal.org/node/3087295
    */
   public function getLatestRevisionId($entity_type_id, $entity_id);
 
@@ -120,6 +131,11 @@ interface ModerationInformationInterface {
    * @return bool
    *   TRUE if the specified object is the latest revision of its entity,
    *   FALSE otherwise.
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   RevisionableInterface::isLatestRevision instead.
+   *
+   * @see https://www.drupal.org/node/3087295
    */
   public function isLatestRevision(ContentEntityInterface $entity);
 
@@ -197,5 +213,27 @@ interface ModerationInformationInterface {
    *   An array of unsupported features for this entity type.
    */
   public function getUnsupportedFeatures(EntityTypeInterface $entity_type);
+
+  /**
+   * Gets the original or initial state of the given entity.
+   *
+   * When a state is being validated, the original state is used to validate
+   * that a valid transition exists for target state and the user has access
+   * to the transition between those two states. If the entity has been
+   * moderated before, we can load the original unmodified revision and
+   * translation for this state.
+   *
+   * If the entity is new we need to load the initial state from the workflow.
+   * Even if a value was assigned to the moderation_state field, the initial
+   * state is used to compute an appropriate transition for the purposes of
+   * validation.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The content entity to get the workflow for.
+   *
+   * @return \Drupal\content_moderation\ContentModerationState
+   *   The original or default moderation state.
+   */
+  public function getOriginalState(ContentEntityInterface $entity);
 
 }

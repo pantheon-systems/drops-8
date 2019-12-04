@@ -62,7 +62,7 @@ use Symfony\Component\HttpFoundation\Request;
  * @see \Drupal\Tests\KernelTestBase::installSchema()
  * @see \Drupal\Tests\BrowserTestBase
  *
- * @deprecated in Drupal 8.0.x, will be removed before Drupal 9.0.0. Use
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
  *   \Drupal\KernelTests\KernelTestBase instead.
  *
  * @ingroup testing
@@ -138,23 +138,26 @@ abstract class KernelTestBase extends TestBase {
   /**
    * Create and set new configuration directories.
    *
-   * @see config_get_config_directory()
+   * @see \Drupal\Core\Site\Settings::getConfigDirectory()
    *
    * @throws \RuntimeException
-   *   Thrown when CONFIG_SYNC_DIRECTORY cannot be created or made writable.
+   *   Thrown when the configuration sync directory cannot be created or made
+   *   writable.
+   *
+   * @return string
+   *   The config sync directory path.
    */
   protected function prepareConfigDirectories() {
     $this->configDirectories = [];
-    include_once DRUPAL_ROOT . '/core/includes/install.inc';
     // Assign the relative path to the global variable.
     $path = $this->siteDirectory . '/config_' . CONFIG_SYNC_DIRECTORY;
-    $GLOBALS['config_directories'][CONFIG_SYNC_DIRECTORY] = $path;
     // Ensure the directory can be created and is writeable.
     if (!\Drupal::service('file_system')->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
       throw new \RuntimeException("Failed to create '" . CONFIG_SYNC_DIRECTORY . "' config directory $path");
     }
     // Provide the already resolved path for tests.
     $this->configDirectories[CONFIG_SYNC_DIRECTORY] = $path;
+    return $path;
   }
 
   /**
@@ -236,13 +239,13 @@ EOD;
     // @see \Drupal\Core\Extension\ExtensionDiscovery::scan()
     $settings['test_parent_site'] = $this->originalSite;
 
+    // Create and set new configuration directories.
+    $settings['config_sync_directory'] = $this->prepareConfigDirectories();
+
     // Restore and merge settings.
     // DrupalKernel::boot() initializes new Settings, and the containerBuild()
     // method sets additional settings.
     new Settings($settings + Settings::getAll());
-
-    // Create and set new configuration directories.
-    $this->prepareConfigDirectories();
 
     // Set the request scope.
     $this->container = $this->kernel->getContainer();
@@ -348,7 +351,7 @@ EOD;
 
     if ($this->strictConfigSchema) {
       $container
-        ->register('simpletest.config_schema_checker', ConfigSchemaChecker::class)
+        ->register('testing.config_schema_checker', ConfigSchemaChecker::class)
         ->addArgument(new Reference('config.typed'))
         ->addArgument($this->getConfigSchemaExclusions())
         ->addTag('event_subscriber');
@@ -382,12 +385,12 @@ EOD;
         ->addArgument(new Reference('keyvalue'));
     }
 
-    if ($container->hasDefinition('path_processor_alias')) {
-      // Prevent the alias-based path processor, which requires a url_alias db
-      // table, from being registered to the path processor manager. We do this
-      // by removing the tags that the compiler pass looks for. This means the
-      // url generator can safely be used within tests.
-      $definition = $container->getDefinition('path_processor_alias');
+    if ($container->hasDefinition('path_alias.path_processor')) {
+      // The alias-based processor requires the path_alias entity schema to be
+      // installed, so we prevent it from being registered to the path processor
+      // manager. We do this by removing the tags that the compiler pass looks
+      // for. This means that the URL generator can safely be used within tests.
+      $definition = $container->getDefinition('path_alias.path_processor');
       $definition->clearTag('path_processor_inbound')->clearTag('path_processor_outbound');
     }
 
@@ -431,7 +434,7 @@ EOD;
       }
       \Drupal::service('config.installer')->installDefaultConfig('module', $module);
     }
-    $this->pass(format_string('Installed default config: %modules.', [
+    $this->pass(new FormattableMarkup('Installed default config: %modules.', [
       '%modules' => implode(', ', $modules),
     ]));
   }
@@ -473,7 +476,7 @@ EOD;
       }
       $this->container->get('database')->schema()->createTable($table, $schema);
     }
-    $this->pass(format_string('Installed %module tables: %tables.', [
+    $this->pass(new FormattableMarkup('Installed %module tables: %tables.', [
       '%tables' => '{' . implode('}, {', $tables) . '}',
       '%module' => $module,
     ]));
@@ -563,7 +566,7 @@ EOD;
     // Note that the kernel has rebuilt the container; this $module_handler is
     // no longer the $module_handler instance from above.
     $this->container->get('module_handler')->reload();
-    $this->pass(format_string('Enabled modules: %modules.', [
+    $this->pass(new FormattableMarkup('Enabled modules: %modules.', [
       '%modules' => implode(', ', $modules),
     ]));
   }
@@ -598,7 +601,7 @@ EOD;
     // no longer the $module_handler instance from above.
     $module_handler = $this->container->get('module_handler');
     $module_handler->reload();
-    $this->pass(format_string('Disabled modules: %modules.', [
+    $this->pass(new FormattableMarkup('Disabled modules: %modules.', [
       '%modules' => implode(', ', $modules),
     ]));
   }

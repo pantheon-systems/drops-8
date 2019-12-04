@@ -13,6 +13,7 @@ use Drupal\Core\Access\AccessResultNeutral;
 use Drupal\Core\Access\AccessResultReasonInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\Config\Config;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\Tests\UnitTestCase;
 
@@ -25,7 +26,7 @@ class AccessResultTest extends UnitTestCase {
   /**
    * The cache contexts manager.
    *
-   * @var \Drupal\Core\Cache\Context\CacheContextsManager|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\Context\CacheContextsManager|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheContextsManager;
 
@@ -180,7 +181,7 @@ class AccessResultTest extends UnitTestCase {
     $neutral = AccessResult::neutral('neutral message');
     $allowed = AccessResult::allowed();
     $forbidden = AccessResult::forbidden('forbidden message');
-    $unused_access_result_due_to_lazy_evaluation = $this->getMock('\Drupal\Core\Access\AccessResultInterface');
+    $unused_access_result_due_to_lazy_evaluation = $this->createMock('\Drupal\Core\Access\AccessResultInterface');
     $unused_access_result_due_to_lazy_evaluation->expects($this->never())
       ->method($this->anything());
 
@@ -275,7 +276,7 @@ class AccessResultTest extends UnitTestCase {
     $forbidden = AccessResult::forbidden('forbidden message');
     $forbidden_other = AccessResult::forbidden('other forbidden message');
     $forbidden_reasonless = AccessResult::forbidden();
-    $unused_access_result_due_to_lazy_evaluation = $this->getMock('\Drupal\Core\Access\AccessResultInterface');
+    $unused_access_result_due_to_lazy_evaluation = $this->createMock('\Drupal\Core\Access\AccessResultInterface');
     $unused_access_result_due_to_lazy_evaluation->expects($this->never())
       ->method($this->anything());
 
@@ -455,7 +456,7 @@ class AccessResultTest extends UnitTestCase {
     $this->assertEquals($a, $c);
 
     // ::allowIfHasPermission and ::allowedIfHasPermission convenience methods.
-    $account = $this->getMock('\Drupal\Core\Session\AccountInterface');
+    $account = $this->createMock('\Drupal\Core\Session\AccountInterface');
     $account->expects($this->any())
       ->method('hasPermission')
       ->with('may herd llamas')
@@ -508,7 +509,7 @@ class AccessResultTest extends UnitTestCase {
     $verify($access, ['bar:baz', 'bar:qux', 'foo:bar', 'foo:baz']);
 
     // ::addCacheableDependency() convenience method.
-    $node = $this->getMock('\Drupal\node\NodeInterface');
+    $node = $this->createMock('\Drupal\node\NodeInterface');
     $node->expects($this->any())
       ->method('getCacheTags')
       ->will($this->returnValue(['node:20011988']));
@@ -919,7 +920,7 @@ class AccessResultTest extends UnitTestCase {
    *   The expected access check result.
    */
   public function testAllowedIfHasPermissions($permissions, $conjunction, AccessResult $expected_access) {
-    $account = $this->getMock('\Drupal\Core\Session\AccountInterface');
+    $account = $this->createMock('\Drupal\Core\Session\AccountInterface');
     $account->expects($this->any())
       ->method('hasPermission')
       ->willReturnMap([
@@ -966,6 +967,21 @@ class AccessResultTest extends UnitTestCase {
     $data[] = [['allowed', 'denied'], 'AND', $access_result];
 
     return $data;
+  }
+
+  /**
+   * @expectedDeprecation Drupal\Core\Access\AccessResult::cacheUntilConfigurationChanges is deprecated in drupal:8.0.0 and is removed in drupal:9.0.0. Use \Drupal\Core\Access\AccessResult::addCacheableDependency() instead.
+   * @group legacy
+   */
+  public function testCacheUntilConfigurationChanges() {
+    $config = $this->prophesize(Config::class);
+    $config->getCacheContexts()->willReturn(['context']);
+    $config->getCacheTags()->willReturn(['tag']);
+    $config->getCacheMaxAge()->willReturn(10);
+    $access_result = AccessResult::neutral()->cacheUntilConfigurationChanges($config->reveal());
+    $this->assertSame(['context'], $access_result->getCacheContexts());
+    $this->assertSame(['tag'], $access_result->getCacheTags());
+    $this->assertSame(10, $access_result->getCacheMaxAge());
   }
 
 }

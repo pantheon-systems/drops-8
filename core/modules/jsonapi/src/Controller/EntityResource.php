@@ -30,16 +30,16 @@ use Drupal\jsonapi\Context\FieldResolver;
 use Drupal\jsonapi\Entity\EntityValidationTrait;
 use Drupal\jsonapi\Access\TemporaryQueryGuard;
 use Drupal\jsonapi\Exception\EntityAccessDeniedHttpException;
-use Drupal\jsonapi\Exception\UnprocessableHttpEntityException;
 use Drupal\jsonapi\IncludeResolver;
 use Drupal\jsonapi\JsonApiResource\IncludedData;
 use Drupal\jsonapi\JsonApiResource\LinkCollection;
 use Drupal\jsonapi\JsonApiResource\NullIncludedData;
+use Drupal\jsonapi\JsonApiResource\Relationship;
 use Drupal\jsonapi\JsonApiResource\ResourceIdentifier;
 use Drupal\jsonapi\JsonApiResource\Link;
 use Drupal\jsonapi\JsonApiResource\ResourceObject;
 use Drupal\jsonapi\JsonApiResource\ResourceObjectData;
-use Drupal\jsonapi\Normalizer\EntityReferenceFieldNormalizer;
+use Drupal\jsonapi\JsonApiResource\TopLevelDataInterface;
 use Drupal\jsonapi\Query\Filter;
 use Drupal\jsonapi\Query\Sort;
 use Drupal\jsonapi\Query\OffsetPage;
@@ -47,12 +47,14 @@ use Drupal\jsonapi\JsonApiResource\Data;
 use Drupal\jsonapi\JsonApiResource\JsonApiDocumentTopLevel;
 use Drupal\jsonapi\ResourceResponse;
 use Drupal\jsonapi\ResourceType\ResourceType;
+use Drupal\jsonapi\ResourceType\ResourceTypeField;
 use Drupal\jsonapi\ResourceType\ResourceTypeRepositoryInterface;
 use Drupal\jsonapi\Revisions\ResourceVersionRouteEnhancer;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Drupal\Core\Http\Exception\CacheableBadRequestHttpException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 use Symfony\Component\Serializer\SerializerInterface;
@@ -235,17 +237,22 @@ class EntityResource {
       // by the user. Field access makes no distinction between 'create' and
       // 'update', so the 'edit' operation is used here.
       $document = Json::decode($request->getContent());
+      $field_mapping = array_map(function (ResourceTypeField $field) {
+        return $field->getPublicName();
+      }, $resource_type->getFields());
+      // User resource objects contain a read-only attribute that is not a
+      // real field on the user entity type.
+      // @see \Drupal\jsonapi\JsonApiResource\ResourceObject::extractContentEntityFields()
+      // @todo: eliminate this special casing in https://www.drupal.org/project/drupal/issues/3079254.
+      if ($resource_type->getEntityTypeId() === 'user') {
+        $field_mapping = array_diff($field_mapping, [$resource_type->getPublicName('display_name')]);
+      }
       foreach (['attributes', 'relationships'] as $data_member_name) {
         if (isset($document['data'][$data_member_name])) {
-          $valid_names = array_filter(array_map(function ($public_field_name) use ($resource_type) {
-            return $resource_type->getInternalName($public_field_name);
-          }, array_keys($document['data'][$data_member_name])), function ($internal_field_name) use ($resource_type) {
-            return $resource_type->hasField($internal_field_name);
-          });
-          foreach ($valid_names as $field_name) {
-            $field_access = $parsed_entity->get($field_name)->access('edit', NULL, TRUE);
+          foreach (array_intersect_key(array_flip($field_mapping), $document['data'][$data_member_name]) as $internal_field_name) {
+            $field_access = $parsed_entity->get($internal_field_name)->access('edit', NULL, TRUE);
             if (!$field_access->isAllowed()) {
-              $public_field_name = $resource_type->getPublicName($field_name);
+              $public_field_name = $field_mapping[$internal_field_name];
               throw new EntityAccessDeniedHttpException(NULL, $field_access, "/data/$data_member_name/$public_field_name", sprintf('The current user is not allowed to POST the selected field (%s).', $public_field_name));
             }
           }
@@ -316,6 +323,14 @@ class EntityResource {
     }
     $data += ['attributes' => [], 'relationships' => []];
     $field_names = array_merge(array_keys($data['attributes']), array_keys($data['relationships']));
+
+    // User resource objects contain a read-only attribute that is not a real
+    // field on the user entity type.
+    // @see \Drupal\jsonapi\JsonApiResource\ResourceObject::extractContentEntityFields()
+    // @todo: eliminate this special casing in https://www.drupal.org/project/drupal/issues/3079254.
+    if ($entity->getEntityTypeId() === 'user') {
+      $field_names = array_diff($field_names, [$resource_type->getPublicName('display_name')]);
+    }
 
     array_reduce($field_names, function (EntityInterface $destination, $field_name) use ($resource_type, $parsed_entity) {
       $this->updateEntityField($resource_type, $parsed_entity, $destination, $field_name);
@@ -496,7 +511,8 @@ class EntityResource {
    */
   public function getRelated(ResourceType $resource_type, FieldableEntityInterface $entity, $related, Request $request) {
     /* @var \Drupal\Core\Field\EntityReferenceFieldItemListInterface $field_list */
-    $field_list = $entity->get($resource_type->getInternalName($related));
+    $resource_relationship = $resource_type->getFieldByPublicName($related);
+    $field_list = $entity->get($resource_relationship->getInternalName());
 
     // Remove the entities pointing to a resource that may be disabled. Even
     // though the normalizer skips disabled references, we can avoid unnecessary
@@ -515,7 +531,7 @@ class EntityResource {
     foreach ($referenced_entities as $referenced_entity) {
       $collection_data[] = $this->entityAccessChecker->getAccessCheckedResourceObject($referenced_entity);
     }
-    $primary_data = new ResourceObjectData($collection_data, $field_list->getFieldDefinition()->getFieldStorageDefinition()->getCardinality());
+    $primary_data = new ResourceObjectData($collection_data, $resource_relationship->hasOne() ? 1 : -1);
     $response = $this->buildWrappedResponse($primary_data, $request, $this->getIncludes($request, $primary_data));
 
     // $response does not contain the entity list cache tag. We add the
@@ -548,10 +564,8 @@ class EntityResource {
     // Access will have already been checked by the RelationshipFieldAccess
     // service, so we don't need to call ::getAccessCheckedResourceObject().
     $resource_object = ResourceObject::createFromEntity($resource_type, $entity);
-    $relationship_object_urls = EntityReferenceFieldNormalizer::getRelationshipLinks($resource_object, $related);
-    $response = $this->buildWrappedResponse($field_list, $request, $this->getIncludes($request, $resource_object), $response_code, [], array_reduce(array_keys($relationship_object_urls), function (LinkCollection $links, $key) use ($relationship_object_urls) {
-      return $links->withLink($key, new Link(new CacheableMetadata(), $relationship_object_urls[$key], [$key]));
-    }, new LinkCollection([])));
+    $relationship = Relationship::createFromEntityReferenceField($resource_object, $field_list);
+    $response = $this->buildWrappedResponse($relationship, $request, $this->getIncludes($request, $resource_object), $response_code);
     // Add the host entity as a cacheable dependency.
     $response->addCacheableDependency($entity);
     return $response;
@@ -584,11 +598,11 @@ class EntityResource {
    */
   public function addToRelationshipData(ResourceType $resource_type, FieldableEntityInterface $entity, $related, Request $request) {
     $resource_identifiers = $this->deserialize($resource_type, $request, ResourceIdentifier::class, $related);
-    $related = $resource_type->getInternalName($related);
+    $internal_relationship_field_name = $resource_type->getInternalName($related);
     // According to the specification, you are only allowed to POST to a
     // relationship if it is a to-many relationship.
     /* @var \Drupal\Core\Field\EntityReferenceFieldItemListInterface $field_list */
-    $field_list = $entity->{$related};
+    $field_list = $entity->{$internal_relationship_field_name};
     /* @var \Drupal\field\Entity\FieldConfig $field_definition */
     $field_definition = $field_list->getFieldDefinition();
     $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
@@ -648,12 +662,12 @@ class EntityResource {
    */
   public function replaceRelationshipData(ResourceType $resource_type, EntityInterface $entity, $related, Request $request) {
     $resource_identifiers = $this->deserialize($resource_type, $request, ResourceIdentifier::class, $related);
-    $related = $resource_type->getInternalName($related);
+    $internal_relationship_field_name = $resource_type->getInternalName($related);
     /* @var \Drupal\Core\Field\EntityReferenceFieldItemListInterface $resource_identifiers */
     // According to the specification, PATCH works a little bit different if the
     // relationship is to-one or to-many.
     /* @var \Drupal\Core\Field\EntityReferenceFieldItemListInterface $field_list */
-    $field_list = $entity->{$related};
+    $field_list = $entity->{$internal_relationship_field_name};
     $field_definition = $field_list->getFieldDefinition();
     $is_multiple = $field_definition->getFieldStorageDefinition()->isMultiple();
     $method = $is_multiple ? 'doPatchMultipleRelationship' : 'doPatchIndividualRelationship';
@@ -731,8 +745,9 @@ class EntityResource {
    */
   public function removeFromRelationshipData(ResourceType $resource_type, EntityInterface $entity, $related, Request $request) {
     $resource_identifiers = $this->deserialize($resource_type, $request, ResourceIdentifier::class, $related);
+    $internal_relationship_field_name = $resource_type->getInternalName($related);
     /* @var \Drupal\Core\Field\EntityReferenceFieldItemListInterface $field_list */
-    $field_list = $entity->{$related};
+    $field_list = $entity->{$internal_relationship_field_name};
     $is_multiple = $field_list->getFieldDefinition()
       ->getFieldStorageDefinition()
       ->isMultiple();
@@ -822,10 +837,10 @@ class EntityResource {
     // These two serialization exception types mean there was a problem with
     // the structure of the decoded data and it's not valid.
     catch (UnexpectedValueException $e) {
-      throw new UnprocessableHttpEntityException($e->getMessage());
+      throw new UnprocessableEntityHttpException($e->getMessage());
     }
     catch (InvalidArgumentException $e) {
-      throw new UnprocessableHttpEntityException($e->getMessage());
+      throw new UnprocessableEntityHttpException($e->getMessage());
     }
   }
 
@@ -862,7 +877,7 @@ class EntityResource {
     // Apply any sorts to the entity query.
     if (isset($params[Sort::KEY_NAME]) && $sort = $params[Sort::KEY_NAME]) {
       foreach ($sort->fields() as $field) {
-        $path = $this->fieldResolver->resolveInternalEntityQueryPath($resource_type->getEntityTypeId(), $resource_type->getBundle(), $field[Sort::PATH_KEY]);
+        $path = $this->fieldResolver->resolveInternalEntityQueryPath($resource_type, $field[Sort::PATH_KEY]);
         $direction = isset($field[Sort::DIRECTION_KEY]) ? $field[Sort::DIRECTION_KEY] : 'ASC';
         $langcode = isset($field[Sort::LANGUAGE_KEY]) ? $field[Sort::LANGUAGE_KEY] : NULL;
         $query->sort($path, $direction, $langcode);
@@ -954,7 +969,7 @@ class EntityResource {
   /**
    * Builds a response with the appropriate wrapped document.
    *
-   * @param mixed $data
+   * @param \Drupal\jsonapi\JsonApiResource\TopLevelDataInterface $data
    *   The data to wrap.
    * @param \Symfony\Component\HttpFoundation\Request $request
    *   The request object.
@@ -973,11 +988,10 @@ class EntityResource {
    * @return \Drupal\jsonapi\ResourceResponse
    *   The response.
    */
-  protected function buildWrappedResponse($data, Request $request, IncludedData $includes, $response_code = 200, array $headers = [], LinkCollection $links = NULL, array $meta = []) {
-    assert($data instanceof Data || $data instanceof FieldItemListInterface);
+  protected function buildWrappedResponse(TopLevelDataInterface $data, Request $request, IncludedData $includes, $response_code = 200, array $headers = [], LinkCollection $links = NULL, array $meta = []) {
     $links = ($links ?: new LinkCollection([]));
     if (!$links->hasLinkWithKey('self')) {
-      $self_link = new Link(new CacheableMetadata(), self::getRequestLink($request), ['self']);
+      $self_link = new Link(new CacheableMetadata(), self::getRequestLink($request), 'self');
       $links = $links->withLink('self', $self_link);
     }
     $response = new ResourceResponse(new JsonApiDocumentTopLevel($data, $includes, $links, $meta), $response_code, $headers);
@@ -1260,20 +1274,20 @@ class EntityResource {
     // Check if this is not the last page.
     if ($link_context['has_next_page']) {
       $next_url = static::getRequestLink($request, static::getPagerQueries('next', $offset, $size, $query));
-      $pager_links = $pager_links->withLink('next', new Link(new CacheableMetadata(), $next_url, ['next']));
+      $pager_links = $pager_links->withLink('next', new Link(new CacheableMetadata(), $next_url, 'next'));
 
       if (!empty($total)) {
         $last_url = static::getRequestLink($request, static::getPagerQueries('last', $offset, $size, $query, $total));
-        $pager_links = $pager_links->withLink('last', new Link(new CacheableMetadata(), $last_url, ['last']));
+        $pager_links = $pager_links->withLink('last', new Link(new CacheableMetadata(), $last_url, 'last'));
       }
     }
 
     // Check if this is not the first page.
     if ($offset > 0) {
       $first_url = static::getRequestLink($request, static::getPagerQueries('first', $offset, $size, $query));
-      $pager_links = $pager_links->withLink('first', new Link(new CacheableMetadata(), $first_url, ['first']));
+      $pager_links = $pager_links->withLink('first', new Link(new CacheableMetadata(), $first_url, 'first'));
       $prev_url = static::getRequestLink($request, static::getPagerQueries('prev', $offset, $size, $query));
-      $pager_links = $pager_links->withLink('prev', new Link(new CacheableMetadata(), $prev_url, ['prev']));
+      $pager_links = $pager_links->withLink('prev', new Link(new CacheableMetadata(), $prev_url, 'prev'));
     }
 
     return $pager_links;

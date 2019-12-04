@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\taxonomy\Functional;
 
+use Drupal\Core\Link;
+use Drupal\Core\Database\Database;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 
 /**
@@ -17,6 +19,11 @@ class TermIndexTest extends TaxonomyTestBase {
    * @var array
    */
   public static $modules = ['views'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Vocabulary for testing.
@@ -57,12 +64,14 @@ class TermIndexTest extends TaxonomyTestBase {
     ];
     $this->createEntityReferenceField('node', 'article', $this->fieldName1, NULL, 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
-    entity_get_form_display('node', 'article', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('node', 'article')
       ->setComponent($this->fieldName1, [
         'type' => 'options_select',
       ])
       ->save();
-    entity_get_display('node', 'article', 'default')
+    $display_repository->getViewDisplay('node', 'article')
       ->setComponent($this->fieldName1, [
         'type' => 'entity_reference_label',
       ])
@@ -71,12 +80,14 @@ class TermIndexTest extends TaxonomyTestBase {
     $this->fieldName2 = mb_strtolower($this->randomMachineName());
     $this->createEntityReferenceField('node', 'article', $this->fieldName2, NULL, 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
-    entity_get_form_display('node', 'article', 'default')
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getFormDisplay('node', 'article')
       ->setComponent($this->fieldName2, [
         'type' => 'options_select',
       ])
       ->save();
-    entity_get_display('node', 'article', 'default')
+    $display_repository->getViewDisplay('node', 'article')
       ->setComponent($this->fieldName2, [
         'type' => 'entity_reference_label',
       ])
@@ -87,7 +98,7 @@ class TermIndexTest extends TaxonomyTestBase {
    * Tests that the taxonomy index is maintained properly.
    */
   public function testTaxonomyIndex() {
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     // Create terms in the vocabulary.
     $term_1 = $this->createTerm($this->vocabulary);
     $term_2 = $this->createTerm($this->vocabulary);
@@ -102,7 +113,8 @@ class TermIndexTest extends TaxonomyTestBase {
 
     // Check that the term is indexed, and only once.
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $connection = Database::getConnection();
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_1->id(),
     ])->fetchField();
@@ -113,12 +125,12 @@ class TermIndexTest extends TaxonomyTestBase {
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
 
     // Check that both terms are indexed.
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_1->id(),
     ])->fetchField();
     $this->assertEqual(1, $index_count, 'Term 1 is indexed.');
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_2->id(),
     ])->fetchField();
@@ -129,12 +141,12 @@ class TermIndexTest extends TaxonomyTestBase {
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
 
     // Check that only one term is indexed.
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_1->id(),
     ])->fetchField();
     $this->assertEqual(0, $index_count, 'Term 1 is not indexed.');
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_2->id(),
     ])->fetchField();
@@ -149,12 +161,12 @@ class TermIndexTest extends TaxonomyTestBase {
     $node->save();
 
     // Check that the index was not changed.
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_1->id(),
     ])->fetchField();
     $this->assertEqual(0, $index_count, 'Term 1 is not indexed.');
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_2->id(),
     ])->fetchField();
@@ -165,12 +177,12 @@ class TermIndexTest extends TaxonomyTestBase {
     $node->save();
 
     // Check that both terms are indexed.
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_1->id(),
     ])->fetchField();
     $this->assertEqual(1, $index_count, 'Term 1 is indexed.');
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_2->id(),
     ])->fetchField();
@@ -181,12 +193,12 @@ class TermIndexTest extends TaxonomyTestBase {
     $node->save();
 
     // Check that only one term is indexed.
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_1->id(),
     ])->fetchField();
     $this->assertEqual(1, $index_count, 'Term 1 is indexed once.');
-    $index_count = db_query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
+    $index_count = $connection->query('SELECT COUNT(*) FROM {taxonomy_index} WHERE nid = :nid AND tid = :tid', [
       ':nid' => $node->id(),
       ':tid' => $term_2->id(),
     ])->fetchField();
@@ -207,7 +219,7 @@ class TermIndexTest extends TaxonomyTestBase {
     $this->drupalGet('taxonomy/term/' . $term1->id());
     // Breadcrumbs are not rendered with a language, prevent the term
     // language from being added to the options.
-    $this->assertRaw(\Drupal::l($term2->getName(), $term2->toUrl('canonical', ['language' => NULL])), 'Parent term link is displayed when viewing the node.');
+    $this->assertRaw(Link::fromTextAndUrl($term2->getName(), $term2->toUrl('canonical', ['language' => NULL]))->toString(), 'Parent term link is displayed when viewing the node.');
   }
 
 }

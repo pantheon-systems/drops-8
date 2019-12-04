@@ -69,7 +69,7 @@ abstract class EntityBase implements EntityInterface {
    *
    * @return \Drupal\Core\Entity\EntityManagerInterface
    *
-   * @deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
    *   Use \Drupal::entityTypeManager() instead in most cases. If the needed
    *   method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the
    *   deprecated \Drupal\Core\Entity\EntityManager to find the
@@ -166,7 +166,8 @@ abstract class EntityBase implements EntityInterface {
   public function label() {
     $label = NULL;
     $entity_type = $this->getEntityType();
-    if (($label_callback = $entity_type->getLabelCallback()) && is_callable($label_callback)) {
+    if (($label_callback = $entity_type->get('label_callback')) && is_callable($label_callback)) {
+      @trigger_error('Entity type ' . $this->getEntityTypeId() . ' defines a label callback. Support for that is deprecated in drupal:8.0.0 and will be removed in drupal:9.0.0. Override the EntityInterface::label() method instead. See https://www.drupal.org/node/3050794', E_USER_DEPRECATED);
       $label = call_user_func($label_callback, $this);
     }
     elseif (($label_key = $entity_type->getKey('label')) && isset($this->{$label_key})) {

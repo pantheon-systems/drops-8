@@ -1,9 +1,7 @@
 <?php
 /**
- * Zend Framework (http://framework.zend.com/)
- *
- * @see       http://github.com/zendframework/zend-diactoros for the canonical source repository
- * @copyright Copyright (c) 2015-2016 Zend Technologies USA Inc. (http://www.zend.com)
+ * @see       https://github.com/zendframework/zend-diactoros for the canonical source repository
+ * @copyright Copyright (c) 2015-2017 Zend Technologies USA Inc. (http://www.zend.com)
  * @license   https://github.com/zendframework/zend-diactoros/blob/master/LICENSE.md New BSD License
  */
 
@@ -14,6 +12,9 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileInterface;
 use Psr\Http\Message\UriInterface;
+
+use function array_key_exists;
+use function is_array;
 
 /**
  * Server-side HTTP request
@@ -179,6 +180,14 @@ class ServerRequest implements ServerRequestInterface
      */
     public function withParsedBody($data)
     {
+        if (! is_array($data) && ! is_object($data) && null !== $data) {
+            throw new InvalidArgumentException(sprintf(
+                '%s expects a null, array, or object argument; received %s',
+                __METHOD__,
+                gettype($data)
+            ));
+        }
+
         $new = clone $this;
         $new->parsedBody = $data;
         return $new;

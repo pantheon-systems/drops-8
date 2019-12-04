@@ -100,7 +100,7 @@ class Tasks extends InstallTasks {
       else {
         // Database connection failed for some other reason than the database
         // not existing.
-        $this->fail(t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname?</li></ul>', ['%error' => $e->getMessage()]));
+        $this->fail(t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname and port number?</li></ul>', ['%error' => $e->getMessage()]));
         return FALSE;
       }
     }
@@ -112,7 +112,7 @@ class Tasks extends InstallTasks {
    */
   protected function checkEncoding() {
     try {
-      if (db_query('SHOW server_encoding')->fetchField() == 'UTF8') {
+      if (Database::getConnection()->query('SHOW server_encoding')->fetchField() == 'UTF8') {
         $this->pass(t('Database is encoded in UTF-8'));
       }
       else {
@@ -147,7 +147,7 @@ class Tasks extends InstallTasks {
         // value.
         $query = "ALTER DATABASE \"" . $connection_options['database'] . "\" SET bytea_output = 'escape';";
         try {
-          db_query($query);
+          $database_connection->query($query);
         }
         catch (\Exception $e) {
           // Ignore possible errors when the user doesn't have the necessary
@@ -177,7 +177,7 @@ class Tasks extends InstallTasks {
    * Verify that a binary data roundtrip returns the original string.
    */
   protected function checkBinaryOutputSuccess() {
-    $bytea_output = db_query("SHOW bytea_output")->fetchField();
+    $bytea_output = Database::getConnection()->query("SHOW bytea_output")->fetchField();
     return ($bytea_output == 'escape');
   }
 

@@ -86,7 +86,7 @@ class SummaryLengthTest extends KernelTestBase {
       'promote' => 1,
     ];
     $node = $this->drupalCreateNode($settings);
-    $this->assertTrue(Node::load($node->id()), 'Node created.');
+    $this->assertNotEmpty(Node::load($node->id()), 'Node created.');
 
     // Render the node as a teaser.
     $content = $this->drupalBuildEntityView($node, 'teaser');
@@ -99,7 +99,8 @@ class SummaryLengthTest extends KernelTestBase {
     $this->assertRaw($expected);
 
     // Change the teaser length for "Basic page" content type.
-    $display = entity_get_display('node', $node->getType(), 'teaser');
+    $display = \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', $node->getType(), 'teaser');
     $display_options = $display->getComponent('body');
     $display_options['settings']['trim_length'] = 200;
     $display->setComponent('body', $display_options)

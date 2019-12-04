@@ -29,8 +29,9 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * of an iframe.
  *
  * @internal
- *   This is an internal part of the oEmbed system and should only be used by
- *   oEmbed-related code in Drupal core.
+ *   This is an internal part of the media system in Drupal core and may be
+ *   subject to change in minor releases. This class should not be
+ *   instantiated or extended by external code.
  */
 class OEmbedIframeController implements ContainerInjectionInterface {
 
@@ -125,7 +126,7 @@ class OEmbedIframeController implements ContainerInjectionInterface {
     // Hash the URL and max dimensions, and ensure it is equal to the hash
     // parameter passed in the query string.
     $hash = $this->iFrameUrlHelper->getHash($url, $max_width, $max_height);
-    if (!Crypt::hashEquals($hash, $request->query->get('hash', ''))) {
+    if (!hash_equals($hash, $request->query->get('hash', ''))) {
       throw new AccessDeniedHttpException('This resource is not available');
     }
 
