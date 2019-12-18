@@ -660,12 +660,18 @@
     },
     {
         "name": "drupal/core",
-        "version": "8.8.x-dev",
-        "version_normalized": "8.8.9999999.9999999-dev",
+        "version": "8.8.1",
+        "version_normalized": "8.8.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/drupal/core.git",
+            "reference": "d339279f4c4b89477e0f4a8b775eb5dcb86b3087"
+        },
         "dist": {
-            "type": "path",
-            "url": "core",
-            "reference": "6b3cd6ac644f517213b17a9b359b0c9071b8a69e"
+            "type": "zip",
+            "url": "https://api.github.com/repos/drupal/core/zipball/d339279f4c4b89477e0f4a8b775eb5dcb86b3087",
+            "reference": "d339279f4c4b89477e0f4a8b775eb5dcb86b3087",
+            "shasum": ""
         },
         "require": {
             "asm89/stack-cors": "^1.1",
@@ -689,7 +695,7 @@
             "ext-xml": "*",
             "guzzlehttp/guzzle": "^6.3",
             "masterminds/html5": "^2.1",
-            "pear/archive_tar": "^1.4.8",
+            "pear/archive_tar": "^1.4.9",
             "php": ">=7.0.8",
             "stack/builder": "^1.0",
             "symfony-cmf/routing": "^1.4",
@@ -830,6 +836,7 @@
             "drupal/workflows": "self.version",
             "drupal/workspaces": "self.version"
         },
+        "time": "2019-12-18T10:34:03+00:00",
         "type": "drupal-core",
         "extra": {
             "drupal-scaffold": {
@@ -877,32 +884,81 @@
                 "lib/Drupal/Core/Site/Settings.php"
             ]
         },
-        "scripts": {
-            "pre-autoload-dump": [
-                "Drupal\\Core\\Composer\\Composer::preAutoloadDump"
-            ],
-            "post-autoload-dump": [
-                "Drupal\\Core\\Composer\\Composer::ensureHtaccess"
-            ]
-        },
+        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
         "description": "Drupal is an open source content management platform powering millions of websites and applications."
     },
     {
-        "name": "drupal/core-project-message",
-        "version": "8.8.x-dev",
-        "version_normalized": "8.8.9999999.9999999-dev",
+        "name": "drupal/core-composer-scaffold",
+        "version": "8.8.1",
+        "version_normalized": "8.8.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/drupal/core-composer-scaffold.git",
+            "reference": "dca4b123a638d78bf77719632993e920de6cc426"
+        },
         "dist": {
-            "type": "path",
-            "url": "composer/Plugin/ProjectMessage",
-            "reference": "3b795f469441eb27854798f70cb38e717d80bbfc"
+            "type": "zip",
+            "url": "https://api.github.com/repos/drupal/core-composer-scaffold/zipball/dca4b123a638d78bf77719632993e920de6cc426",
+            "reference": "dca4b123a638d78bf77719632993e920de6cc426",
+            "shasum": ""
+        },
+        "require": {
+            "composer-plugin-api": "^1.0.0",
+            "php": ">=7.0.8"
+        },
+        "conflict": {
+            "drupal-composer/drupal-scaffold": "*"
+        },
+        "require-dev": {
+            "composer/composer": "^1.8@stable"
+        },
+        "time": "2019-10-09T02:55:24+00:00",
+        "type": "composer-plugin",
+        "extra": {
+            "class": "Drupal\\Composer\\Plugin\\Scaffold\\Plugin",
+            "branch-alias": {
+                "dev-master": "1.0.x-dev"
+            }
+        },
+        "installation-source": "dist",
+        "autoload": {
+            "psr-4": {
+                "Drupal\\Composer\\Plugin\\Scaffold\\": ""
+            }
+        },
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "GPL-2.0-or-later"
+        ],
+        "description": "A flexible Composer project scaffold builder.",
+        "homepage": "https://www.drupal.org/project/drupal",
+        "keywords": [
+            "drupal"
+        ]
+    },
+    {
+        "name": "drupal/core-project-message",
+        "version": "8.8.1",
+        "version_normalized": "8.8.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/drupal/core-project-message.git",
+            "reference": "418988513bafe533d6731650b0067b839eb61fc2"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/drupal/core-project-message/zipball/418988513bafe533d6731650b0067b839eb61fc2",
+            "reference": "418988513bafe533d6731650b0067b839eb61fc2",
+            "shasum": ""
         },
         "require": {
             "composer-plugin-api": "^1.1",
             "php": ">=7.0.8"
         },
+        "time": "2019-11-04T11:12:32+00:00",
         "type": "composer-plugin",
         "extra": {
             "class": "Drupal\\Composer\\Plugin\\ProjectMessage\\MessagePlugin"
@@ -913,6 +969,7 @@
                 "Drupal\\Composer\\Plugin\\ProjectMessage\\": "."
             }
         },
+        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
@@ -923,18 +980,106 @@
         ]
     },
     {
-        "name": "drupal/core-vendor-hardening",
-        "version": "8.8.x-dev",
-        "version_normalized": "8.8.9999999.9999999-dev",
+        "name": "drupal/core-recommended",
+        "version": "8.8.1",
+        "version_normalized": "8.8.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/drupal/core-recommended.git",
+            "reference": "a2215237489ccb456219bd30b26649e6899b6f35"
+        },
         "dist": {
-            "type": "path",
-            "url": "composer/Plugin/VendorHardening",
-            "reference": "2db54f089065dedbe4a040b01f7b527f2bad68f6"
+            "type": "zip",
+            "url": "https://api.github.com/repos/drupal/core-recommended/zipball/a2215237489ccb456219bd30b26649e6899b6f35",
+            "reference": "a2215237489ccb456219bd30b26649e6899b6f35",
+            "shasum": ""
+        },
+        "require": {
+            "asm89/stack-cors": "1.2.0",
+            "composer/installers": "v1.7.0",
+            "composer/semver": "1.5.0",
+            "doctrine/annotations": "v1.4.0",
+            "doctrine/cache": "v1.6.2",
+            "doctrine/collections": "v1.4.0",
+            "doctrine/common": "v2.7.3",
+            "doctrine/inflector": "v1.2.0",
+            "doctrine/lexer": "1.0.2",
+            "drupal/core": "8.8.1",
+            "easyrdf/easyrdf": "0.9.1",
+            "egulias/email-validator": "2.1.11",
+            "guzzlehttp/guzzle": "6.3.3",
+            "guzzlehttp/promises": "v1.3.1",
+            "guzzlehttp/psr7": "1.6.1",
+            "masterminds/html5": "2.3.0",
+            "paragonie/random_compat": "v9.99.99",
+            "pear/archive_tar": "1.4.9",
+            "pear/console_getopt": "v1.4.2",
+            "pear/pear-core-minimal": "v1.10.9",
+            "pear/pear_exception": "v1.0.0",
+            "psr/container": "1.0.0",
+            "psr/http-message": "1.0.1",
+            "psr/log": "1.1.0",
+            "ralouphie/getallheaders": "3.0.3",
+            "stack/builder": "v1.0.5",
+            "symfony-cmf/routing": "1.4.1",
+            "symfony/class-loader": "v3.4.35",
+            "symfony/console": "v3.4.35",
+            "symfony/debug": "v3.4.35",
+            "symfony/dependency-injection": "v3.4.35",
+            "symfony/event-dispatcher": "v3.4.35",
+            "symfony/http-foundation": "v3.4.35",
+            "symfony/http-kernel": "v3.4.35",
+            "symfony/polyfill-ctype": "v1.12.0",
+            "symfony/polyfill-iconv": "v1.12.0",
+            "symfony/polyfill-mbstring": "v1.12.0",
+            "symfony/polyfill-php56": "v1.12.0",
+            "symfony/polyfill-php70": "v1.12.0",
+            "symfony/polyfill-util": "v1.12.0",
+            "symfony/process": "v3.4.35",
+            "symfony/psr-http-message-bridge": "v1.1.2",
+            "symfony/routing": "v3.4.35",
+            "symfony/serializer": "v3.4.35",
+            "symfony/translation": "v3.4.35",
+            "symfony/validator": "v3.4.35",
+            "symfony/yaml": "v3.4.35",
+            "twig/twig": "v1.42.3",
+            "typo3/phar-stream-wrapper": "v3.1.3",
+            "zendframework/zend-diactoros": "1.8.7",
+            "zendframework/zend-escaper": "2.6.1",
+            "zendframework/zend-feed": "2.12.0",
+            "zendframework/zend-stdlib": "3.2.1"
+        },
+        "conflict": {
+            "webflo/drupal-core-strict": "*"
+        },
+        "time": "2019-12-18T10:34:03+00:00",
+        "type": "metapackage",
+        "notification-url": "https://packagist.org/downloads/",
+        "license": [
+            "GPL-2.0-or-later"
+        ],
+        "description": "Locked core dependencies; require this project INSTEAD OF drupal/core."
+    },
+    {
+        "name": "drupal/core-vendor-hardening",
+        "version": "8.8.1",
+        "version_normalized": "8.8.1.0",
+        "source": {
+            "type": "git",
+            "url": "https://github.com/drupal/core-vendor-hardening.git",
+            "reference": "f08bdad7de04c369b7cf18e642f6d344f4b2dc07"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://api.github.com/repos/drupal/core-vendor-hardening/zipball/f08bdad7de04c369b7cf18e642f6d344f4b2dc07",
+            "reference": "f08bdad7de04c369b7cf18e642f6d344f4b2dc07",
+            "shasum": ""
         },
         "require": {
             "composer-plugin-api": "^1.1",
             "php": ">=7.0.8"
         },
+        "time": "2019-11-04T10:55:17+00:00",
         "type": "composer-plugin",
         "extra": {
             "class": "Drupal\\Composer\\Plugin\\VendorHardening\\VendorHardeningPlugin"
@@ -945,6 +1090,7 @@
                 "Drupal\\Composer\\Plugin\\VendorHardening\\": "."
             }
         },
+        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
@@ -1387,17 +1533,17 @@
     },
     {
         "name": "pear/archive_tar",
-        "version": "1.4.8",
-        "version_normalized": "1.4.8.0",
+        "version": "1.4.9",
+        "version_normalized": "1.4.9.0",
         "source": {
             "type": "git",
             "url": "https://github.com/pear/Archive_Tar.git",
-            "reference": "442bdffb7edb84c898cfd94f7ac8500e49d5bbb5"
+            "reference": "c5b00053770e1d72128252c62c2c1a12c26639f0"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/pear/Archive_Tar/zipball/442bdffb7edb84c898cfd94f7ac8500e49d5bbb5",
-            "reference": "442bdffb7edb84c898cfd94f7ac8500e49d5bbb5",
+            "url": "https://api.github.com/repos/pear/Archive_Tar/zipball/c5b00053770e1d72128252c62c2c1a12c26639f0",
+            "reference": "c5b00053770e1d72128252c62c2c1a12c26639f0",
             "shasum": ""
         },
         "require": {
@@ -1412,7 +1558,7 @@
             "ext-xz": "Lzma2 compression support.",
             "ext-zlib": "Gzip compression support."
         },
-        "time": "2019-10-21T13:31:24+00:00",
+        "time": "2019-12-04T10:17:28+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
@@ -3357,57 +3503,6 @@
             "security",
             "stream-wrapper"
         ]
-    },
-    {
-        "name": "wikimedia/composer-merge-plugin",
-        "version": "v1.4.1",
-        "version_normalized": "1.4.1.0",
-        "source": {
-            "type": "git",
-            "url": "https://github.com/wikimedia/composer-merge-plugin.git",
-            "reference": "81c6ac72a24a67383419c7eb9aa2b3437f2ab100"
-        },
-        "dist": {
-            "type": "zip",
-            "url": "https://api.github.com/repos/wikimedia/composer-merge-plugin/zipball/81c6ac72a24a67383419c7eb9aa2b3437f2ab100",
-            "reference": "81c6ac72a24a67383419c7eb9aa2b3437f2ab100",
-            "shasum": ""
-        },
-        "require": {
-            "composer-plugin-api": "^1.0",
-            "php": ">=5.3.2"
-        },
-        "require-dev": {
-            "composer/composer": "~1.0.0",
-            "jakub-onderka/php-parallel-lint": "~0.8",
-            "phpunit/phpunit": "~4.8|~5.0",
-            "squizlabs/php_codesniffer": "~2.1.0"
-        },
-        "time": "2017-04-25T02:31:25+00:00",
-        "type": "composer-plugin",
-        "extra": {
-            "branch-alias": {
-                "dev-master": "1.3.x-dev"
-            },
-            "class": "Wikimedia\\Composer\\MergePlugin"
-        },
-        "installation-source": "dist",
-        "autoload": {
-            "psr-4": {
-                "Wikimedia\\Composer\\": "src/"
-            }
-        },
-        "notification-url": "https://packagist.org/downloads/",
-        "license": [
-            "MIT"
-        ],
-        "authors": [
-            {
-                "name": "Bryan Davis",
-                "email": "bd808@wikimedia.org"
-            }
-        ],
-        "description": "Composer plugin to merge multiple composer.json files"
     },
     {
         "name": "zendframework/zend-diactoros",
