@@ -4,3 +4,8 @@ core: 8.x
 hidden: true
 dependencies:
   - drupal:menu_link_content
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903

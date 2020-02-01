@@ -2,6 +2,11 @@ name: 'Automated Cron'
 type: module
 description: 'Provides an automated way to run cron jobs, by executing them at the end of a server response.'
 package: Core
-version: VERSION
+# version: VERSION
 core: 8.x
 configure: system.cron_settings
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903
