@@ -2,8 +2,13 @@ name: Text
 type: module
 description: 'Defines simple text field types.'
 package: Field types
-version: VERSION
+# version: VERSION
 core: 8.x
 dependencies:
   - drupal:field
   - drupal:filter
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903

@@ -123,7 +123,6 @@ trait DeprecationListenerTrait {
       'MigrateCckFieldPluginManagerInterface is deprecated in Drupal 8.3.x and will be removed before Drupal 9.0.x. Use \Drupal\migrate_drupal\Annotation\MigrateFieldPluginManagerInterface instead.',
       'The "plugin.manager.migrate.cckfield" service is deprecated. You should use the \'plugin.manager.migrate.field\' service instead. See https://www.drupal.org/node/2751897',
       'Passing in arguments the legacy way is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Provide the right parameter names in the method, similar to controllers. See https://www.drupal.org/node/2894819',
-      'The "serializer.normalizer.file_entity.hal" normalizer service is deprecated: it is obsolete, it only remains available for backwards compatibility.',
       'The Symfony\Component\ClassLoader\ApcClassLoader class is deprecated since Symfony 3.3 and will be removed in 4.0. Use `composer install --apcu-autoloader` instead.',
       // The following deprecation is not triggered by DrupalCI testing since it
       // is a Windows only deprecation. Remove when core no longer uses
@@ -147,6 +146,7 @@ trait DeprecationListenerTrait {
       'The "core/classList" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use the the native browser implementation instead. See https://www.drupal.org/node/3089511',
       'The "core/jquery.ui.datepicker" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3081864',
       'The "locale/drupal.locale.datepicker" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3081864',
+      'The "https://www.drupal.org/link-relations/create" string as a RestResource plugin annotation URI path key is deprecated in Drupal 8.4.0, now a valid link relation type name must be specified, so "create" must be specified instead before Drupal 9.0.0. See https://www.drupal.org/node/2737401.',
     ];
   }
 

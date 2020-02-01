@@ -2,8 +2,13 @@ name: Place Blocks
 type: module
 description: 'Allow administrators to place blocks from any Drupal page. This module is deprecated in Drupal 8.8.0 and will be removed in Drupal 9.0.0. See the change record for a list of alternatives. See https://www.drupal.org/node/3081957.'
 package: Core (Experimental)
-version: VERSION
+# version: VERSION
 core: 8.x
 hidden: true
 dependencies:
   - drupal:block
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903

@@ -2,6 +2,11 @@ name: Actions
 type: module
 description: 'Perform tasks on specific events triggered within the system.'
 package: Core
-version: VERSION
+# version: VERSION
 core: 8.x
 configure: entity.action.collection
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903

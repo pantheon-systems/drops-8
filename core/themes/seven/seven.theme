@@ -89,10 +89,10 @@ function seven_preprocess_block_content_add_list(&$variables) {
 /**
  * Implements hook_preprocess_block() for block content.
  *
- * Disables contextual links for all blocks.
+ * Disables contextual links for all blocks except for layout builder blocks.
  */
 function seven_preprocess_block(&$variables) {
-  if (isset($variables['title_suffix']['contextual_links'])) {
+  if (isset($variables['title_suffix']['contextual_links']) && !isset($variables['elements']['#contextual_links']['layout_builder_block'])) {
     unset($variables['title_suffix']['contextual_links']);
     unset($variables['elements']['#contextual_links']);
 
@@ -257,7 +257,7 @@ function seven_form_media_library_add_form_upload_alter(array &$form, FormStateI
  * Implements hook_form_FORM_ID_alter().
  */
 function seven_form_media_library_add_form_oembed_alter(array &$form, FormStateInterface $form_state) {
-  $form['attributes']['class'][] = 'media-library-add-form--oembed';
+  $form['#attributes']['class'][] = 'media-library-add-form--oembed';
 
   // If no media items have been added yet, add a couple of styling classes
   // to the initial URL form.

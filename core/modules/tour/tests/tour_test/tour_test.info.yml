@@ -2,7 +2,12 @@ name: Tour module tests
 type: module
 description: Tests module for tour module.
 package: Testing
-version: VERSION
+# version: VERSION
 core: 8.x
 dependencies:
   - drupal:tour
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903

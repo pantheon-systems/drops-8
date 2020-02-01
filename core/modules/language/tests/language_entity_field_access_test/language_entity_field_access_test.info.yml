@@ -3,10 +3,15 @@ type: module
 description: 'Support module for verifying entity field access and the language selector.'
 core: 8.x
 package: Testing
-version: VERSION
+# version: VERSION
 dependencies:
   - drupal:node
   - drupal:text
   - drupal:field
   - drupal:filter
   - drupal:language
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903

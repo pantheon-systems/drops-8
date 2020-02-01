@@ -7,3 +7,8 @@ dependencies:
   - drupal:image
   - drupal:media_library
   - drupal:media_test_source
+
+# Information added by Drupal.org packaging script on 2020-02-01
+version: '8.8.2'
+project: 'drupal'
+datestamp: 1580598903
