@@ -266,6 +266,10 @@ class UpdateContribTest extends UpdateTestBase {
         $this->clickLink('Check manually');
         $this->checkForMetaRefresh();
         $assert_session->pageTextNotContains('Security update required!');
+        // The XML test fixtures for this method all contain the '8.x-3.0'
+        // release but because '8.x-3.0' is not in a supported branch it will
+        // not be in the available updates.
+        $this->assertNoRaw('8.x-3.0');
         // Set a CSS selector in order for assertions to target the 'Modules'
         // table and not Drupal core updates.
         $this->updateTableLocator = 'table.update:nth-of-type(2)';
@@ -547,6 +551,46 @@ class UpdateContribTest extends UpdateTestBase {
   }
 
   /**
+   * Tests that core compatibility messages are displayed.
+   */
+  public function testCoreCompatibilityMessage() {
+    $system_info = [
+      '#all' => [
+        'version' => '8.0.0',
+      ],
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.0',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+
+    // Confirm that messages are displayed for recommended and latest updates.
+    // @todo In https://www.drupal.org/project/drupal/issues/3112962:
+    //   Change the calls to 'refreshUpdateStatus()' to use:
+    //   - '1.1' instead of '1.1-core_compatibility'.
+    //   - '1.1-alpha1' instead of '1.1-alpha1-core_compatibility'.
+    //   Delete the files:
+    //   - core/modules/update/tests/modules/update_test/drupal.1.1-alpha1-core_compatibility.xml
+    //   - core/modules/update/tests/modules/update_test/drupal.1.1-core_compatibility.xml
+    $this->refreshUpdateStatus(['drupal' => '1.1-core_compatibility', 'aaa_update_test' => '8.x-1.2']);
+    $this->assertCoreCompatibilityMessage('8.x-1.2', '8.0.0 to 8.1.1', 'Recommended version:');
+    $this->assertCoreCompatibilityMessage('8.x-1.3-beta1', '8.0.0, 8.1.1', 'Latest version:');
+
+    // Change the available core releases and confirm that the messages change.
+    $this->refreshUpdateStatus(['drupal' => '1.1-alpha1-core_compatibility', 'aaa_update_test' => '8.x-1.2']);
+    $this->assertCoreCompatibilityMessage('8.x-1.2', '8.0.0 to 8.1.0', 'Recommended version:');
+    $this->assertCoreCompatibilityMessage('8.x-1.3-beta1', '8.0.0', 'Latest version:');
+
+    // Confirm that messages are displayed for security and 'Also available'
+    // updates.
+    $this->refreshUpdateStatus(['drupal' => '1.1-core_compatibility', 'aaa_update_test' => 'core_compatibility.8.x-1.2_8.x-2.2']);
+    $this->assertCoreCompatibilityMessage('8.x-1.2', '8.1.0 to 8.1.1', 'Security update:', FALSE);
+    $this->assertCoreCompatibilityMessage('8.x-2.2', '8.1.1', 'Also available:', FALSE);
+  }
+
+  /**
    * Tests update status of security releases.
    *
    * @param string $module_version
@@ -670,6 +714,123 @@ class UpdateContribTest extends UpdateTestBase {
       //   - 8.x-3.0-beta1 using fixture 'sec.8.x-1.2_8.x-2.2' to ensure that
       //     8.x-2.2 is the  only security update.
     ];
+  }
+
+  /**
+   * Tests messages when a project release is unpublished.
+   *
+   * This test confirms that revoked messages are displayed regardless of
+   * whether the installed version is in a supported branch or not. This test
+   * relies on 2 test XML fixtures that are identical except for the
+   * 'supported_branches' value:
+   * - aaa_update_test.1_0-supported.xml
+   *    'supported_branches' is '8.x-1.,8.x-2.'.
+   * - aaa_update_test.1_0-unsupported.xml
+   *    'supported_branches' is '8.x-2.'.
+   * They both have an '8.x-1.0' release that is unpublished and an '8.x-2.0'
+   * release that is published and is the expected update.
+   */
+  public function testRevokedRelease() {
+    $system_info = [
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.0',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-supported',
+    ]);
+    // @todo Change the version label to 'Recommended version:' in
+    // https://www.drupal.org/node/3114408.
+    $this->confirmRevokedStatus('8.x-1.0', '8.x-2.0', 'Also available:');
+
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-unsupported',
+    ]);
+    $this->confirmRevokedStatus('8.x-1.0', '8.x-2.0', 'Recommended version:');
+  }
+
+  /**
+   * Tests messages when a project release is marked unsupported.
+   *
+   * This test confirms unsupported messages are displayed regardless of whether
+   * the installed version is in a supported branch or not. This test relies on
+   * 2 test XML fixtures that are identical except for the 'supported_branches'
+   * value:
+   * - aaa_update_test.1_0-supported.xml
+   *    'supported_branches' is '8.x-1.,8.x-2.'.
+   * - aaa_update_test.1_0-unsupported.xml
+   *    'supported_branches' is '8.x-2.'.
+   * They both have an '8.x-1.1' release that has the 'Release type' value of
+   * 'unsupported' and an '8.x-2.0' release that has the 'Release type' value of
+   * 'supported' and is the expected update.
+   */
+  public function testUnsupportedRelease() {
+    $system_info = [
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.1',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-supported',
+    ]);
+    // @todo Change the version label to 'Recommended version:' in
+    // https://www.drupal.org/node/3114408.
+    $this->confirmUnsupportedStatus('8.x-1.1', '8.x-2.0', 'Also available:');
+
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-unsupported',
+    ]);
+    $this->confirmUnsupportedStatus('8.x-1.1', '8.x-2.0', 'Recommended version:');
+  }
+
+  /**
+   * Asserts that a core compatibility message is correct for an update.
+   *
+   * @param string $version
+   *   The version of the update.
+   * @param string $expected_range
+   *   The expected core compatibility range.
+   * @param string $expected_release_title
+   *   The expected release title.
+   * @param bool $is_compatible
+   *   If the update is compatible with the installed version of Drupal.
+   */
+  protected function assertCoreCompatibilityMessage($version, $expected_range, $expected_release_title, $is_compatible = TRUE) {
+    $update_element = $this->findUpdateElementByLabel($expected_release_title);
+    $this->assertTrue($update_element->hasLink($version));
+    $compatibility_details = $update_element->find('css', '.project-update__compatibility-details details');
+    $this->assertContains("Requires Drupal core: $expected_range", $compatibility_details->getText());
+    $details_summary_element = $compatibility_details->find('css', 'summary');
+    if ($is_compatible) {
+      $download_version = str_replace('.', '-', $version);
+      // If an update is compatible with the installed version of Drupal core,
+      // it should have a download link and the details element should be closed
+      // by default.
+      $this->assertFalse($compatibility_details->hasAttribute('open'));
+      $this->assertSame('Compatible', $details_summary_element->getText());
+      $this->assertEquals(
+        $update_element->findLink('Download')->getAttribute('href'),
+        "http://example.com/{$this->updateProject}-$download_version.tar.gz"
+      );
+    }
+    else {
+      // If an update is not compatible with the installed version of Drupal
+      // core, it should not have a download link and the details element should
+      // be open by default.
+      $this->assertTrue($compatibility_details->hasAttribute('open'));
+      $this->assertSame('Not compatible', $details_summary_element->getText());
+      $this->assertFalse($update_element->hasLink('Download'));
+    }
   }
 
 }

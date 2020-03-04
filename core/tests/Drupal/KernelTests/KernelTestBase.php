@@ -274,6 +274,9 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
     $settings = [
       'hash_salt' => get_class($this),
       'file_public_path' => $this->siteDirectory . '/files',
+      // Skip the "path_alias" schema check for kernel tests, since they do not
+      // rely on the full schema being installed.
+      'system.path_alias_schema_check' => FALSE,
       // Disable Twig template caching/dumping.
       'twig_cache' => FALSE,
       // @see \Drupal\KernelTests\KernelTestBase::register()
@@ -610,9 +613,9 @@ abstract class KernelTestBase extends TestCase implements ServiceProviderInterfa
 
     // Remove all prefixed tables.
     $original_connection_info = Database::getConnectionInfo('simpletest_original_default');
-    $original_prefix = $original_connection_info['default']['prefix']['default'];
+    $original_prefix = $original_connection_info['default']['prefix']['default'] ?? NULL;
     $test_connection_info = Database::getConnectionInfo('default');
-    $test_prefix = $test_connection_info['default']['prefix']['default'];
+    $test_prefix = $test_connection_info['default']['prefix']['default'] ?? NULL;
     if ($original_prefix != $test_prefix) {
       $tables = Database::getConnection()->schema()->findTables('%');
       foreach ($tables as $table) {

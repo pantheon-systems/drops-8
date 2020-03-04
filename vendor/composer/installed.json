@@ -660,17 +660,17 @@
     },
     {
         "name": "drupal/core",
-        "version": "8.8.2",
-        "version_normalized": "8.8.2.0",
+        "version": "8.8.3",
+        "version_normalized": "8.8.3.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core.git",
-            "reference": "f997857003276c2ae6d27db30f0eab9c7dd10e62"
+            "reference": "77971de6d6ade7366cdd3fadfc16c5d02e531446"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core/zipball/f997857003276c2ae6d27db30f0eab9c7dd10e62",
-            "reference": "f997857003276c2ae6d27db30f0eab9c7dd10e62",
+            "url": "https://api.github.com/repos/drupal/core/zipball/77971de6d6ade7366cdd3fadfc16c5d02e531446",
+            "reference": "77971de6d6ade7366cdd3fadfc16c5d02e531446",
             "shasum": ""
         },
         "require": {
@@ -836,7 +836,6 @@
             "drupal/workflows": "self.version",
             "drupal/workspaces": "self.version"
         },
-        "time": "2020-02-01T19:51:15+00:00",
         "type": "drupal-core",
         "extra": {
             "drupal-scaffold": {
@@ -884,7 +883,14 @@
                 "lib/Drupal/Core/Site/Settings.php"
             ]
         },
-        "notification-url": "https://packagist.org/downloads/",
+        "scripts": {
+            "pre-autoload-dump": [
+                "Drupal\\Core\\Composer\\Composer::preAutoloadDump"
+            ],
+            "post-autoload-dump": [
+                "Drupal\\Core\\Composer\\Composer::ensureHtaccess"
+            ]
+        },
         "license": [
             "GPL-2.0-or-later"
         ],
@@ -892,17 +898,17 @@
     },
     {
         "name": "drupal/core-composer-scaffold",
-        "version": "8.8.2",
-        "version_normalized": "8.8.2.0",
+        "version": "8.8.3",
+        "version_normalized": "8.8.3.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-composer-scaffold.git",
-            "reference": "dca4b123a638d78bf77719632993e920de6cc426"
+            "reference": "984129ae3152d570c9448e52869f04a22fc75269"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core-composer-scaffold/zipball/dca4b123a638d78bf77719632993e920de6cc426",
-            "reference": "dca4b123a638d78bf77719632993e920de6cc426",
+            "url": "https://api.github.com/repos/drupal/core-composer-scaffold/zipball/984129ae3152d570c9448e52869f04a22fc75269",
+            "reference": "984129ae3152d570c9448e52869f04a22fc75269",
             "shasum": ""
         },
         "require": {
@@ -915,7 +921,6 @@
         "require-dev": {
             "composer/composer": "^1.8@stable"
         },
-        "time": "2019-10-09T02:55:24+00:00",
         "type": "composer-plugin",
         "extra": {
             "class": "Drupal\\Composer\\Plugin\\Scaffold\\Plugin",
@@ -929,7 +934,6 @@
                 "Drupal\\Composer\\Plugin\\Scaffold\\": ""
             }
         },
-        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
@@ -941,24 +945,23 @@
     },
     {
         "name": "drupal/core-project-message",
-        "version": "8.8.2",
-        "version_normalized": "8.8.2.0",
+        "version": "8.8.3",
+        "version_normalized": "8.8.3.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-project-message.git",
-            "reference": "418988513bafe533d6731650b0067b839eb61fc2"
+            "reference": "10be18c6a401de8e243777de6a74cb45a7ecacad"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core-project-message/zipball/418988513bafe533d6731650b0067b839eb61fc2",
-            "reference": "418988513bafe533d6731650b0067b839eb61fc2",
+            "url": "https://api.github.com/repos/drupal/core-project-message/zipball/10be18c6a401de8e243777de6a74cb45a7ecacad",
+            "reference": "10be18c6a401de8e243777de6a74cb45a7ecacad",
             "shasum": ""
         },
         "require": {
             "composer-plugin-api": "^1.1",
             "php": ">=7.0.8"
         },
-        "time": "2019-11-04T11:12:32+00:00",
         "type": "composer-plugin",
         "extra": {
             "class": "Drupal\\Composer\\Plugin\\ProjectMessage\\MessagePlugin"
@@ -969,7 +972,6 @@
                 "Drupal\\Composer\\Plugin\\ProjectMessage\\": "."
             }
         },
-        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
@@ -981,17 +983,17 @@
     },
     {
         "name": "drupal/core-recommended",
-        "version": "8.8.2",
-        "version_normalized": "8.8.2.0",
+        "version": "8.8.3",
+        "version_normalized": "8.8.3.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-recommended.git",
-            "reference": "67ed5b68da2784ead5a55330c6c0fde6bb3cb9f3"
+            "reference": "c43bf9881a299de9189440e0772579775b1f93f1"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core-recommended/zipball/67ed5b68da2784ead5a55330c6c0fde6bb3cb9f3",
-            "reference": "67ed5b68da2784ead5a55330c6c0fde6bb3cb9f3",
+            "url": "https://api.github.com/repos/drupal/core-recommended/zipball/c43bf9881a299de9189440e0772579775b1f93f1",
+            "reference": "c43bf9881a299de9189440e0772579775b1f93f1",
             "shasum": ""
         },
         "require": {
@@ -1004,7 +1006,7 @@
             "doctrine/common": "v2.7.3",
             "doctrine/inflector": "v1.2.0",
             "doctrine/lexer": "1.0.2",
-            "drupal/core": "8.8.2",
+            "drupal/core": "8.8.3",
             "easyrdf/easyrdf": "0.9.1",
             "egulias/email-validator": "2.1.11",
             "guzzlehttp/guzzle": "6.3.3",
@@ -1052,9 +1054,7 @@
         "conflict": {
             "webflo/drupal-core-strict": "*"
         },
-        "time": "2020-02-01T19:51:15+00:00",
         "type": "metapackage",
-        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
@@ -1062,24 +1062,23 @@
     },
     {
         "name": "drupal/core-vendor-hardening",
-        "version": "8.8.2",
-        "version_normalized": "8.8.2.0",
+        "version": "8.8.3",
+        "version_normalized": "8.8.3.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-vendor-hardening.git",
-            "reference": "f08bdad7de04c369b7cf18e642f6d344f4b2dc07"
+            "reference": "1b41da0867c3c9b870db95e94a5adaf4dbbc909b"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core-vendor-hardening/zipball/f08bdad7de04c369b7cf18e642f6d344f4b2dc07",
-            "reference": "f08bdad7de04c369b7cf18e642f6d344f4b2dc07",
+            "url": "https://api.github.com/repos/drupal/core-vendor-hardening/zipball/1b41da0867c3c9b870db95e94a5adaf4dbbc909b",
+            "reference": "1b41da0867c3c9b870db95e94a5adaf4dbbc909b",
             "shasum": ""
         },
         "require": {
             "composer-plugin-api": "^1.1",
             "php": ">=7.0.8"
         },
-        "time": "2019-11-04T10:55:17+00:00",
         "type": "composer-plugin",
         "extra": {
             "class": "Drupal\\Composer\\Plugin\\VendorHardening\\VendorHardeningPlugin"
@@ -1090,7 +1089,6 @@
                 "Drupal\\Composer\\Plugin\\VendorHardening\\": "."
             }
         },
-        "notification-url": "https://packagist.org/downloads/",
         "license": [
             "GPL-2.0-or-later"
         ],
