@@ -495,7 +495,7 @@ function rdf_preprocess_comment(&$variables) {
   }
   // Adds RDFa markup for the date of the comment.
   $created_mapping = $mapping->getPreparedFieldMapping('created');
-  if (!empty($created_mapping)) {
+  if (!empty($created_mapping) && isset($comment->rdf_data)) {
     // The comment date is precomputed as part of the rdf_data so that it can be
     // cached as part of the entity.
     $date_attributes = $comment->rdf_data['date'];
@@ -567,7 +567,7 @@ function rdf_preprocess_taxonomy_term(&$variables) {
   $term = $variables['term'];
   $mapping = rdf_get_mapping('taxonomy_term', $term->bundle());
   $bundle_mapping = $mapping->getPreparedBundleMapping();
-  $variables['attributes']['about'] = $term->toUrl()->toString();
+  $variables['attributes']['about'] = $variables['url'];
   $variables['attributes']['typeof'] = empty($bundle_mapping['types']) ? NULL : $bundle_mapping['types'];
 
   // Add RDFa markup for the taxonomy term name as metadata, if present.
