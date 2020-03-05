@@ -1,0 +1,9 @@
+services:
+  pathauto.commands:
+    class: \Drupal\pathauto\Commands\PathautoCommands
+    arguments:
+      - '@config.factory'
+      - '@plugin.manager.alias_type'
+      - '@pathauto.alias_storage_helper'
+    tags:
+      - { name: drush.command }

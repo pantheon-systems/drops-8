@@ -1,0 +1,23 @@
+id: d7_pathauto_patterns
+label: Pathauto patterns
+migration_tags:
+  - Drupal 7
+  - Configuration
+source:
+  plugin: pathauto_pattern
+  constants:
+    status: true
+    selection_logic: 'and'
+process:
+  status: constants/status
+  id: id
+  label: label
+  type: type
+  pattern: pattern
+  selection_criteria: selection_criteria
+  selection_logic: constants/selection_logic
+destination:
+  plugin: 'entity:pathauto_pattern'
+migration_dependencies:
+  optional:
+    - d7_node_type

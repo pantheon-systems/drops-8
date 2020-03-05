@@ -1,0 +1,63 @@
+entity.pathauto_pattern.collection:
+  path: '/admin/config/search/path/patterns'
+  defaults:
+    _entity_list: 'pathauto_pattern'
+    _title: 'Patterns'
+  requirements:
+    _permission: 'administer pathauto'
+
+entity.pathauto_pattern.add_form:
+  path: '/admin/config/search/path/patterns/add'
+  defaults:
+    _entity_form: 'pathauto_pattern.default'
+    _title: 'Add Pathauto pattern'
+    tempstore_id: 'pathauto.pattern'
+  requirements:
+    _permission: 'administer pathauto'
+
+entity.pathauto_pattern.duplicate_form:
+  path: '/admin/config/search/path/patterns/{pathauto_pattern}/duplicate'
+  defaults:
+    _entity_form: 'pathauto_pattern.duplicate'
+    _title: 'Duplicate Pathauto pattern'
+    tempstore_id: 'pathauto.pattern'
+  requirements:
+    _permission: 'administer pathauto'
+
+pathauto.settings.form:
+  path: '/admin/config/search/path/settings'
+  defaults:
+    _form: '\Drupal\pathauto\Form\PathautoSettingsForm'
+    _title: 'Settings'
+  requirements:
+    _permission: 'administer pathauto'
+
+entity.pathauto_pattern.enable:
+  path: '/admin/config/search/path/patterns/{pathauto_pattern}/enable'
+  defaults:
+    _entity_form: 'pathauto_pattern.enable'
+  requirements:
+    _entity_access: 'pathauto_pattern.update'
+
+entity.pathauto_pattern.disable:
+  path: '/admin/config/search/path/patterns/{pathauto_pattern}/disable'
+  defaults:
+    _entity_form: 'pathauto_pattern.disable'
+  requirements:
+    _entity_access: 'pathauto_pattern.update'
+
+pathauto.bulk.update.form:
+  path: '/admin/config/search/path/update_bulk'
+  defaults:
+    _form: '\Drupal\pathauto\Form\PathautoBulkUpdateForm'
+    _title: 'Bulk generate'
+  requirements:
+    _permission: 'administer url aliases'
+
+pathauto.admin.delete:
+  path: '/admin/config/search/path/delete_bulk'
+  defaults:
+    _form: '\Drupal\pathauto\Form\PathautoAdminDelete'
+    _title: 'Delete aliases'
+  requirements:
+    _permission: 'administer url aliases'

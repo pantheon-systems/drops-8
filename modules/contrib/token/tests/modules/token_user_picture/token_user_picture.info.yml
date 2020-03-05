@@ -1,0 +1,13 @@
+type: module
+name: Token User picture
+description: Testing module that provides user pictures field.
+package: Testing
+core_version_requirement: ^8.7.7 || ^9
+hidden: TRUE
+dependencies:
+  - drupal:image
+
+# Information added by Drupal.org packaging script on 2019-12-30
+version: '8.x-1.6'
+project: 'token'
+datestamp: 1577708590

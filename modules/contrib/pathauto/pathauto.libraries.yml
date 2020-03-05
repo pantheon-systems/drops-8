@@ -1,0 +1,9 @@
+widget:
+  version: 1.0
+  js:
+    pathauto.js: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    - core/drupal.form

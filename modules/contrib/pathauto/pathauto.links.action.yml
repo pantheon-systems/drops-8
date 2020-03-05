@@ -1,0 +1,5 @@
+entity.pathauto_pattern.add_form:
+  route_name: 'entity.pathauto_pattern.add_form'
+  title: 'Add Pathauto pattern'
+  appears_on:
+    - entity.pathauto_pattern.collection

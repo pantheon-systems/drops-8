@@ -1,0 +1,187 @@
+<?php
+
+/**
+ * @file
+ * @defgroup pathauto Pathauto: Automatically generates aliases for content
+ *
+ * The Pathauto module automatically generates path aliases for various kinds of
+ * content (nodes, categories, users) without requiring the user to manually
+ * specify the path alias. This allows you to get aliases like
+ * /category/my-node-title.html instead of /node/123. The aliases are based upon
+ * a "pattern" system which the administrator can control.
+ */
+
+/**
+ * @file
+ * Main file for the Pathauto module, which automatically generates aliases for content.
+ *
+ * @ingroup pathauto
+ */
+
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\pathauto\PathautoFieldItemList;
+use Drupal\pathauto\PathautoItem;
+
+/**
+ * Implements hook_hook_info().
+ */
+function pathauto_hook_info() {
+  $hooks = [
+    'pathauto_pattern_alter',
+    'pathauto_alias_alter',
+    'pathauto_is_alias_reserved',
+  ];
+  return array_fill_keys($hooks, ['group' => 'pathauto']);
+}
+
+/**
+ * Implements hook_help().
+ */
+function pathauto_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.pathauto':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The Pathauto module provides a mechanism to automate the creation of <a href="path">path</a> aliases. This makes URLs more readable and helps search engines index content more effectively.  For more information, see the <a href=":online">online documentation for Pathauto</a>.', [':online' => 'https://www.drupal.org/documentation/modules/pathauto']) . '</p>';
+      $output .= '<dl>';
+      $output .= '<h3>' . t('Uses') . '</h3>';
+      $output .= '<dd>' . t('Pathauto is accessed from the tabs it adds to the list of <a href=":aliases">URL aliases</a>.', [':aliases' => Url::fromRoute('path.admin_overview')->toString()]) . '</dd>';
+      $output .= '<dt>' . t('Creating Pathauto Patterns') . '</dt>';
+      $output .= '<dd>' . t('The <a href=":pathauto_pattern">"Patterns"</a> page is used to configure automatic path aliasing.  New patterns are created here using the <a href=":add_form">Add Pathauto pattern</a> button which presents a form to simplify pattern creation thru the use of <a href="token">available tokens</a>. The patterns page provides a list of all patterns on the site and allows you to edit and reorder them. An alias is generated for the first pattern that applies.', [':pathauto_pattern' => Url::fromRoute('entity.pathauto_pattern.collection')->toString(), ':add_form' => Url::fromRoute('entity.pathauto_pattern.add_form')->toString()]) . '</dd>';
+      $output .= '<dt>' . t('Pathauto Settings') . '</dt>';
+      $output .= '<dd>' . t('The <a href=":settings">"Settings"</a> page is used to customize global Pathauto settings for automated pattern creation.', [':settings' => Url::fromRoute('pathauto.settings.form')->toString()]) . '</dd>';
+      $output .= '<dd>' . t('The <strong>maximum alias length</strong> and <strong>maximum component length</strong> values default to 100 and have a limit of @max from Pathauto. You should enter a value that is the length of the "alias" column of the path_alias database table minus the length of any strings that might get added to the end of the URL. The recommended and default value is 100.', ['@max' => \Drupal::service('pathauto.alias_storage_helper')->getAliasSchemaMaxlength()]) . '</dd>';
+      $output .= '<dt>' . t('Bulk Generation') . '</dt>';
+      $output .= '<dd>' . t('The <a href=":pathauto_bulk">"Bulk Generate"</a> page allows you to create URL aliases for items that currently have no aliases. This is typically used when installing Pathauto on a site that has existing un-aliased content that needs to be aliased in bulk.', [':pathauto_bulk' => Url::fromRoute('pathauto.bulk.update.form')->toString()]) . '</dd>';
+      $output .= '<dt>' . t('Delete Aliases') . '</dt>';
+      $output .= '<dd>' . t('The <a href=":pathauto_delete">"Delete Aliases"</a> page allows you to remove URL aliases from items that have previously been assigned aliases using pathauto.', [':pathauto_delete' => Url::fromRoute('pathauto.admin.delete')->toString()]) . '</dd>';
+      $output .= '</dl>';
+      return $output;
+
+    case 'entity.pathauto_pattern.collection':
+      $output = '<p>' . t('This page provides a list of all patterns on the site and allows you to edit and reorder them.') . '</p>';
+      return $output;
+
+    case 'entity.pathauto_pattern.add_form':
+      $output = '<p>' . t('You need to select a pattern type, then a pattern and filter, and a label. Additional types can be enabled on the <a href=":settings">Settings</a> page.', [':settings' => Url::fromRoute('pathauto.settings.form')->toString()]) . '</p>';
+      return $output;
+
+    case 'pathauto.bulk.update.form':
+      $output = '<p>' . t('Bulk generation can be used to generate URL aliases for items that currently have no aliases. This is typically used when installing Pathauto on a site that has existing un-aliased content that needs to be aliased in bulk.') . '<br>';
+      $output .= t('It can also be used to regenerate URL aliases for items that have an old alias and for which the Pathauto pattern has been changed.') . '</p>';
+      $output .= '<p>' . t('Note that this will only affect items which are configured to have their URL alias automatically set. Items whose URL alias is manually set are not affected.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function pathauto_entity_insert(EntityInterface $entity) {
+  \Drupal::service('pathauto.generator')->updateEntityAlias($entity, 'insert');
+}
+
+/**
+ * Implements hook_entity_update().
+ */
+function pathauto_entity_update(EntityInterface $entity) {
+  \Drupal::service('pathauto.generator')->updateEntityAlias($entity, 'update');
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function pathauto_entity_delete(EntityInterface $entity) {
+  if ($entity->hasLinkTemplate('canonical') && $entity instanceof ContentEntityInterface && $entity->hasField('path') && $entity->getFieldDefinition('path')->getType() == 'path') {
+    \Drupal::service('pathauto.alias_storage_helper')->deleteEntityPathAll($entity);
+    $entity->get('path')->first()->get('pathauto')->purge();
+  }
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function pathauto_field_info_alter(&$info) {
+  $info['path']['class'] = PathautoItem::class;
+  $info['path']['list_class'] = PathautoFieldItemList::class;
+}
+
+/**
+ * Implements hook_field_widget_info_alter().
+ */
+function pathauto_field_widget_info_alter(&$widgets) {
+  $widgets['path']['class'] = 'Drupal\pathauto\PathautoWidget';
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function pathauto_entity_base_field_info(EntityTypeInterface $entity_type) {
+  $config = \Drupal::config('pathauto.settings');
+  // Verify that the configuration data isn't null (as is the case before the
+  // module's initialization, in tests), so that in_array() won't fail.
+  if ($enabled_entity_types = $config->get('enabled_entity_types')) {
+    if (in_array($entity_type->id(), $enabled_entity_types)) {
+      $fields['path'] = BaseFieldDefinition::create('path')
+        ->setCustomStorage(TRUE)
+        ->setLabel(t('URL alias'))
+        ->setTranslatable(TRUE)
+        ->setComputed(TRUE)
+        ->setDisplayOptions('form', [
+          'type' => 'path',
+          'weight' => 30,
+        ])
+        ->setDisplayConfigurable('form', TRUE);
+
+      return $fields;
+    }
+  }
+}
+
+/**
+ * Validate the pattern field, to ensure it doesn't contain any characters that
+ * are invalid in URLs.
+ */
+function pathauto_pattern_validate($element, FormStateInterface $form_state) {
+
+  if (isset($element['#value'])) {
+    $title = empty($element['#title']) ? $element['#parents'][0] : $element['#title'];
+    $invalid_characters = ['#', '?', '&'];
+    $invalid_characters_used = [];
+
+    foreach ($invalid_characters as $invalid_character) {
+      if (strpos($element['#value'], $invalid_character) !== FALSE) {
+        $invalid_characters_used[] = $invalid_character;
+      }
+    }
+
+    if (!empty($invalid_characters_used)) {
+      $form_state->setError($element, t('The %element-title is using the following invalid characters: @invalid-characters.', ['%element-title' => $title, '@invalid-characters' => implode(', ', $invalid_characters_used)]));
+    }
+
+    if (preg_match('/(\s$)+/', $element['#value'])) {
+      $form_state->setError($element, t('The %element-title doesn\'t allow the patterns ending with whitespace.', ['%element-title' => $title]));
+    }
+  }
+
+  return $element;
+
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ */
+function pathauto_local_tasks_alter(&$local_tasks) {
+  if (version_compare(\Drupal::VERSION, '8.8', '<')) {
+    foreach ($local_tasks as &$local_task) {
+      if (isset($local_task['provider']) && $local_task['provider'] === 'pathauto') {
+        $local_task['base_route'] = 'path.admin_overview';
+      }
+    }
+  }
+}

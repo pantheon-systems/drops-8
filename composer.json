@@ -20,7 +20,8 @@
         "drupal/core-project-message": "^8.8",
         "drupal/core-recommended": "^8.8",
         "drupal/core-vendor-hardening": "^8.8",
-        "drupal/ctools": "^3.2"
+        "drupal/ctools": "^3.2",
+        "drupal/pathauto": "^1.6"
     },
     "require-dev": {
     },
