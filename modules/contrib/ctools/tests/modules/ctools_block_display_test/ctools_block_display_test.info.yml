@@ -1,0 +1,14 @@
+name: Block Display Variant Test
+type: module
+description: 'Testing infrastructure for CTools block display variants.'
+package: Testing
+# version: 3.x
+# core: 8.x
+dependencies:
+  - ctools:ctools
+
+# Information added by Drupal.org packaging script on 2019-02-21
+version: '8.x-3.2'
+core: '8.x'
+project: 'ctools'
+datestamp: 1550728390

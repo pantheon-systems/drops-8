@@ -1099,6 +1099,101 @@
         ]
     },
     {
+        "name": "drupal/ctools",
+        "version": "3.2.0",
+        "version_normalized": "3.2.0.0",
+        "source": {
+            "type": "git",
+            "url": "https://git.drupalcode.org/project/ctools.git",
+            "reference": "8.x-3.2"
+        },
+        "dist": {
+            "type": "zip",
+            "url": "https://ftp.drupal.org/files/projects/ctools-8.x-3.2.zip",
+            "reference": "8.x-3.2",
+            "shasum": "d6da87239b64ba708a5977e7b33b1e009e36b091"
+        },
+        "require": {
+            "drupal/core": "^8.5"
+        },
+        "type": "drupal-module",
+        "extra": {
+            "branch-alias": {
+                "dev-3.x": "3.x-dev"
+            },
+            "drupal": {
+                "version": "8.x-3.2",
+                "datestamp": "1550728386",
+                "security-coverage": {
+                    "status": "covered",
+                    "message": "Covered by Drupal's security advisory policy"
+                }
+            }
+        },
+        "installation-source": "dist",
+        "notification-url": "https://packages.drupal.org/8/downloads",
+        "license": [
+            "GPL-2.0+"
+        ],
+        "authors": [
+            {
+                "name": "Kris Vanderwater (EclipseGc)",
+                "homepage": "https://www.drupal.org/u/eclipsegc",
+                "role": "Maintainer"
+            },
+            {
+                "name": "Jakob Perry (japerry)",
+                "homepage": "https://www.drupal.org/u/japerry",
+                "role": "Maintainer"
+            },
+            {
+                "name": "Tim Plunkett (tim.plunkett)",
+                "homepage": "https://www.drupal.org/u/timplunkett",
+                "role": "Maintainer"
+            },
+            {
+                "name": "James Gilliland (neclimdul)",
+                "homepage": "https://www.drupal.org/u/neclimdul",
+                "role": "Maintainer"
+            },
+            {
+                "name": "Daniel Wehner (dawehner)",
+                "homepage": "https://www.drupal.org/u/dawehner",
+                "role": "Maintainer"
+            },
+            {
+                "name": "joelpittet",
+                "homepage": "https://www.drupal.org/user/160302"
+            },
+            {
+                "name": "merlinofchaos",
+                "homepage": "https://www.drupal.org/user/26979"
+            },
+            {
+                "name": "neclimdul",
+                "homepage": "https://www.drupal.org/user/48673"
+            },
+            {
+                "name": "sdboyer",
+                "homepage": "https://www.drupal.org/user/146719"
+            },
+            {
+                "name": "sun",
+                "homepage": "https://www.drupal.org/user/54136"
+            },
+            {
+                "name": "tim.plunkett",
+                "homepage": "https://www.drupal.org/user/241634"
+            }
+        ],
+        "description": "Provides a number of utility and helper APIs for Drupal developers and site builders.",
+        "homepage": "https://www.drupal.org/project/ctools",
+        "support": {
+            "source": "http://cgit.drupalcode.org/ctools",
+            "issues": "https://www.drupal.org/project/issues/ctools"
+        }
+    },
+    {
         "name": "easyrdf/easyrdf",
         "version": "0.9.1",
         "version_normalized": "0.9.1.0",

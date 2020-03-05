@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * Remove ctools block from appearing on viewable block types.
+ * In general, users should be using the core block types instead.
+ */
+function ctools_block_plugin_filter_block_alter(array &$definitions, array $extra, $consumer) {
+  $moduleHandler = \Drupal::service('module_handler');
+  if ($moduleHandler->moduleExists('layout_builder')){
+    foreach ($definitions AS $label => $definition) {
+      if($definition['provider'] == 'ctools_block') {
+        unset($definitions[$label]);
+      }
+    }
+  }
+}
