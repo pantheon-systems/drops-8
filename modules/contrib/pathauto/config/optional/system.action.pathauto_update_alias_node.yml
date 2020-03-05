@@ -1,0 +1,12 @@
+id: pathauto_update_alias_node
+label: 'Update URL alias'
+status: true
+langcode: en
+type: node
+plugin: pathauto_update_alias
+dependencies:
+  enforced:
+    module:
+      - node
+  module:
+    - pathauto
