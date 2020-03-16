@@ -1,0 +1,32 @@
+# A default migration mapping for Metatag-D7 field instances.
+#
+# @see Drupal\metatag\Plugin\migrate\source\d7\MetatagFieldInstance
+
+id: d7_metatag_field_instance
+label: Metatag field instance
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_metatag_field_instance
+  source_module: metatag
+  ignore_map: true
+  constants:
+    field_name: field_metatag
+    label: Meta tags
+process:
+  bundle: bundle
+  entity_type: entity_type
+  field_name: 'constants/field_name'
+  label: 'constants/label'
+destination:
+  plugin: entity:field_config
+migration_dependencies:
+  required:
+    # The base field migration is required before this migration can run.
+    - d7_metatag_field
+
+    # @todo Is this accurate? Does it really need the vocabulary migration, or
+    # is it more precautionary, that it *might* be needed so it might as well be
+    # executed first?
+    - d7_node_type
+    - d7_taxonomy_vocabulary

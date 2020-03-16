@@ -1,0 +1,72 @@
+# @file
+# Detail the upgrade support for Drupal 6 and 7 modules to Metatag-D8.
+
+# This file will be kept current as changes are made.
+
+
+# These changes are finished, excluding bug reports.
+finished:
+  7:
+    # All of the meta tags from these submodules have breen ported and should
+    # work correctly.
+    metatag_app_links: metatag
+    metatag_dc: metatag
+    metatag_dc_advanced: metatag
+    metatag_facebook: metatag
+    metatag_favicons: metatag
+    metatag_google_cse: metatag
+    metatag_twitter_cards: metatag
+    metatag_verification: metatag
+
+    # These won't be migrated.
+    metatag_devel: metatag_devel
+    metatag_importer: metatag_importer
+    metatag_google_plus: metatag_google_plus
+
+
+# These are not finished yet; see the issues listed below for full details.
+not_finished:
+  6:
+    # Nodewords.
+    # @todo Entity data: https://www.drupal.org/project/metatag/issues/3045641
+    # @todo Configuration: https://www.drupal.org/project/metatag/issues/3045640
+    nodewords: metatag
+
+    # Page title.
+    # @todo https://www.drupal.org/project/metatag/issues/3077729
+    page_title: metatag
+
+  7:
+    # Metatag.
+    # @todo Configuration: https://www.drupal.org/project/metatag/issues/2563651
+    metatag: metatag
+    # @todo Missings tags: https://www.drupal.org/project/metatag/issues/3077778
+    metatag_hreflang: metatag
+    metatag_mobile: metatag
+    # @todo Missings tags: https://www.drupal.org/project/metatag/issues/3077782
+    metatag_opengraph: metatag
+    # @todo Missings tags: https://www.drupal.org/project/metatag/issues/2835925
+    metatag_opengraph_products: metatag
+
+    # These will need custom work.
+    # @todo https://www.drupal.org/project/metatag/issues/2563653
+    metatag_context: metatag_context
+    # @todo https://www.drupal.org/project/metatag/issues/2563659
+    metatag_panels: metatag_panels
+    # @todo https://www.drupal.org/project/metatag/issues/2563661
+    metatag_views: metatag_views
+
+    # Page title.
+    # @todo Entity data: https://www.drupal.org/project/metatag/issues/3077729
+    # @todo Configuration: https://www.drupal.org/project/metatag/issues/3077730
+    page_title: metatag
+
+    # Easy meta.
+    # @todo https://www.drupal.org/project/metatag/issues/2847536
+    easy_meta: metatag
+
+    # Metatags Quick
+    # @todo Entity data: https://www.drupal.org/project/metatag/issues/2618898
+    # @todo Configuration: https://www.drupal.org/project/metatag/issues/3082398
+    # @todo Path-based: https://www.drupal.org/project/metatag/issues/3082401
+    metatags_quick: metatag

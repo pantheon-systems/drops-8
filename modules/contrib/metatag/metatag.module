@@ -1,0 +1,798 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag.module.
+ */
+
+use Drupal\Component\Plugin\Factory\DefaultFactory;
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
+use Drupal\migrate\Plugin\migrate\destination\EntityContentBase;
+use Drupal\migrate\Plugin\MigrateSourceInterface;
+use Drupal\migrate\Plugin\MigrationInterface;
+use Drupal\migrate\Row;
+use Drupal\node\Plugin\migrate\source\d7\Node;
+use Drupal\taxonomy\Plugin\migrate\source\d7\Term;
+use Drupal\taxonomy\TermInterface;
+use Drupal\user\Plugin\migrate\source\d7\User;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the Metatag module.
+    case 'help.page.metatag':
+      $output = '<h2>' . t('About') . '</h2>';
+      $output .= '<p>' . t('This module allows a site to automatically provide structured metadata, aka "meta tags", about the site and individual pages.');
+      $output .= '<p>' . t('In the context of search engine optimization, providing an extensive set of meta tags may help improve the site\'s and pages\' rankings, thus may aid with achieving a more prominent display of the content within search engine results. They can also be used to tailor how content is displayed when shared on social networks. For additional information, see the <a href=":online">online documentation for Metatag</a>.', [':online' => 'https://www.drupal.org/node/1774342']) . '</p>';
+      $output .= '<h3>' . t('Intended worflow') . '</h3>';
+      $output .= '<p>' . t('The module uses <a href=":tokens">"tokens"</a> to automatically fill in values for different meta tags. Specific values may also be filled in.', [':tokens' => Url::fromRoute('help.page', ['name' => 'token'])->toString()]) . '</p>';
+      $output .= '<p>' . t('The best way of using Metatag is as follows:') . '</p>';
+      $output .= '<ol>';
+      $output .= '<li>' . t('Customize the <a href=":defaults">global defaults</a>, fill in the specific values and tokens that every page should have.', [':defaults' => Url::fromRoute('entity.metatag_defaults.edit_form', ['metatag_defaults' => 'global'])->toString()]) . '</li>';
+      $output .= '<li>' . t('Override each of the <a href=":defaults">other defaults</a>, fill in specific values and tokens that each item should have by default. This allows e.g. for all nodes to have different values than taxonomy terms.', [':defaults' => Url::fromRoute('entity.metatag_defaults.collection')->toString()]) . '</li>';
+      $output .= '<li>' . t('<a href=":add">Add more default configurations</a> as necessary for different entity types and entity bundles, e.g. for different content types or different vocabularies.', [':add' => Url::fromRoute('entity.metatag_defaults.add_form')->toString()]) . '</li>';
+      $output .= '<li>' . t('To override the meta tags for individual entities, e.g. for individual nodes, add the "Metatag" field via the field settings for that entity or bundle type.') . '</li>';
+      $output .= '</ol>';
+      return $output;
+
+    // The main configuration page.
+    case 'entity.metatag_defaults.collection':
+      $output = '<p>' . t('Configure global meta tag default values below. Meta tags may be left as the default.') . '</p>';
+      $output .= '<p>' . t('Meta tag patterns are passed down from one level to the next unless they are overridden. To view a summary of the individual meta tags and the pattern for a specific configuration, click on its name below.') . '</p>';
+      $output .= '<p>' . t('If the top-level configuration is not specific enough, additional default meta tag configurations can be added for a specific entity type or entity bundle, e.g. for a specific content type.') . '</p>';
+      $output .= '<p>' . t('Meta tags can be further refined on a per-entity basis, e.g. for individual nodes, by adding the "Metatag" field to that entity type through its normal field settings pages.') . '</p>';
+      return $output;
+
+    // The 'add default meta tags' configuration page.
+    case 'entity.metatag_defaults.add_form':
+      $output = '<p>' . t('Use the following form to override the global default meta tags for a specific entity type or entity bundle. In practical terms, this allows the meta tags to be customized for a specific content type or taxonomy vocabulary, so that its content will have different meta tags <em>default values</em> than others.') . '</p>';
+      $output .= '<p>' . t('As a reminder, if the "Metatag" field is added to the entity type through its normal field settings, the meta tags can be further refined on a per entity basis; this allows each node to have its meta tags  customized on an individual basis.') . '</p>';
+      return $output;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for 'field_storage_config_edit_form'.
+ */
+function metatag_form_field_storage_config_edit_form_alter(&$form, FormStateInterface $form_state) {
+  if ($form_state->getFormObject()->getEntity()->getType() == 'metatag') {
+    // Hide the cardinality field.
+    $form['cardinality_container']['#access'] = FALSE;
+    $form['cardinality_container']['#disabled'] = TRUE;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter() for 'field_config_edit_form'.
+ *
+ * Configuration defaults are handled via a different mechanism, so do not allow
+ * any values to be saved.
+ */
+function metatag_form_field_config_edit_form_alter(&$form, FormStateInterface $form_state) {
+  if ($form_state->getFormObject()->getEntity()->getType() == 'metatag') {
+    // Hide the required and default value fields.
+    $form['required']['#access'] = FALSE;
+    $form['required']['#disabled'] = TRUE;
+    $form['default_value']['#access'] = FALSE;
+    $form['default_value']['#disabled'] = TRUE;
+
+    // Step through the default value structure and erase any '#default_value'
+    // items that are found.
+    foreach ($form['default_value']['widget'][0] as &$outer) {
+      if (is_array($outer)) {
+        foreach ($outer as &$inner) {
+          if (is_array($inner) && isset($inner['#default_value'])) {
+            if (is_array($inner['#default_value'])) {
+              $inner['#default_value'] = [];
+            }
+            else {
+              $inner['#default_value'] = NULL;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_page_attachments().
+ *
+ * Load all meta tags for this page.
+ */
+function metatag_page_attachments(array &$attachments) {
+  if (!metatag_is_current_route_supported()) {
+    return NULL;
+  }
+
+  $metatag_attachments = &drupal_static('metatag_attachments');
+
+  if (is_null($metatag_attachments)) {
+    // Load the meta tags from the route.
+    $metatag_attachments = metatag_get_tags_from_route();
+  }
+  if (!$metatag_attachments) {
+    return NULL;
+  }
+
+  // Trigger hook_metatags_attachments_alter().
+  // Allow modules to rendered metatags prior to attaching.
+  \Drupal::service('module_handler')->alter('metatags_attachments', $metatag_attachments);
+
+  // If any Metatag items were found, append them.
+  if (!empty($metatag_attachments['#attached']['html_head'])) {
+    if (empty($attachments['#attached'])) {
+      $attachments['#attached'] = [];
+    }
+    if (empty($attachments['#attached']['html_head'])) {
+      $attachments['#attached']['html_head'] = [];
+    }
+
+    $head_links = [];
+    foreach ($metatag_attachments['#attached']['html_head'] as $item) {
+      $attachments['#attached']['html_head'][] = $item;
+
+      // Also add a HTTP header "Link:" for canonical URLs and shortlinks.
+      // See HtmlResponseAttachmentsProcessor::processHtmlHeadLink() for the
+      // implementation of the functionality in core.
+      if (in_array($item[1], ['canonical_url', 'shortlink'])) {
+        $attributes = $item[0]['#attributes'];
+
+        $href = '<' . Html::escape($attributes['href']) . '>';
+        unset($attributes['href']);
+        if ($param = drupal_http_header_attributes($attributes)) {
+          $href .= ';' . $param;
+        }
+        $head_links[] = $href;
+      }
+    }
+
+    // If any HTTP Header items were found, add them too.
+    if (!empty($head_links)) {
+      $attachments['#attached']['http_header'][] = [
+        'Link',
+        implode(', ', $head_links),
+        FALSE,
+      ];
+    }
+  }
+
+  // Remove the erroneous "title" meta tag as the page title has already been
+  // overridden.
+  // @see metatag_preprocess_html()
+  if (!empty($attachments['#attached']['html_head'])) {
+    foreach ($attachments['#attached']['html_head'] as $ctr => $data) {
+      if (!empty($data[1]) && $data[1] == 'title') {
+        unset($attachments['#attached']['html_head'][$ctr]);
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function metatag_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'page_attachments_alter') {
+    // Move metatag_page_attachments_alter() to the end of the list. This is so
+    // the canonical and shortlink tags can be removed that are added by
+    // taxonomy_page_attachments_alter().
+    // @todo Remove once https://www.drupal.org/node/2282029 is fixed.
+    $group = $implementations['metatag'];
+    unset($implementations['metatag']);
+    $implementations['metatag'] = $group;
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function metatag_page_attachments_alter(array &$attachments) {
+  $route_match = \Drupal::routeMatch();
+  // Can be removed once https://www.drupal.org/node/2282029 is fixed.
+  if ($route_match->getRouteName() == 'entity.taxonomy_term.canonical' && ($term = $route_match->getParameter('taxonomy_term')) && $term instanceof TermInterface) {
+    _metatag_remove_duplicate_entity_tags($attachments);
+  }
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function metatag_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  // If this is a 403 or 404 page then don't output these meta tags.
+  // @todo Make the default meta tags load properly so this is unnecessary.
+  if ($display->getOriginalId() == 'node.403.default' || $display->getOriginalId() == 'node.404.default') {
+    $build['#attached']['html_head_link'] = [];
+    return;
+  }
+
+  // Panelized entities still use the original entity's controller, but with
+  // custom built entities. In those cases hook_entity_view_alter might be
+  // called too early, where meta links are not yet set.
+  // @see \Drupal\node\Controller\NodeController::view
+  if ($display->getThirdPartySetting('panelizer', 'enable', FALSE)) {
+    $build['#pre_render'][] = '_metatag_panelizer_pre_render';
+    return;
+  }
+
+  _metatag_remove_duplicate_entity_tags($build);
+}
+
+/**
+ * Pre render callback for entities processed by Panelizer.
+ *
+ * @param array $element
+ *   The render array being processed.
+ *
+ * @return array
+ *   The filtered render array.
+ */
+function _metatag_panelizer_pre_render(array $element) {
+  _metatag_remove_duplicate_entity_tags($element);
+  return $element;
+}
+
+/**
+ * Remove duplicate entity tags from a build.
+ *
+ * @param array $build
+ *   The build.
+ */
+function _metatag_remove_duplicate_entity_tags(array &$build) {
+  // Some entities are built with a link rel="canonical" and/or link
+  // rel="shortlink" tag attached.
+  // If metatag provides them, remove the ones built with the entity.
+  if (isset($build['#attached']['html_head_link'])) {
+    $metatag_attachments = &drupal_static('metatag_attachments');
+    if (is_null($metatag_attachments)) {
+      // Load the meta tags from the route.
+      $metatag_attachments = metatag_get_tags_from_route();
+    }
+
+    // Check to see if the page currently outputs a canonical and/or shortlink
+    // tag.
+    if (isset($metatag_attachments['#attached']['html_head'])) {
+      foreach ($metatag_attachments['#attached']['html_head'] as $metatag_item) {
+        if (in_array($metatag_item[1], ['canonical_url', 'shortlink'])) {
+          // Metatag provides rel="canonical" and/or rel="shortlink" tags.
+          foreach ($build['#attached']['html_head_link'] as $key => $item) {
+            if (isset($item[0]['rel']) && in_array($item[0]['rel'], ['canonical', 'shortlink'])) {
+              // Remove the link rel="canonical" or link rel="shortlink" tag
+              // from the entity's build array.
+              unset($build['#attached']['html_head_link'][$key]);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Identify whether the current route is supported by the module.
+ *
+ * @return bool
+ *   TRUE if the current route is supported.
+ */
+function metatag_is_current_route_supported() {
+  // If upgrading, we need to wait for database updates to complete.
+  $is_ready = \Drupal::service('entity_type.manager')
+    ->getDefinition('metatag_defaults', FALSE);
+  if (!$is_ready) {
+    return FALSE;
+  }
+
+  // Ignore admin paths.
+  if (\Drupal::service('router.admin_context')->isAdminRoute()) {
+    return FALSE;
+  }
+
+  // Skip everything if the site is in maintenance mode.
+  $route_match = \Drupal::routeMatch();
+  if (\Drupal::service('maintenance_mode')->applies($route_match)) {
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+/**
+ * Returns the entity of the current route.
+ *
+ * @return Drupal\Core\Entity\EntityInterface
+ *   The entity or NULL if this is not an entity route.
+ */
+function metatag_get_route_entity() {
+  $route_match = \Drupal::routeMatch();
+  $route_name = $route_match->getRouteName();
+
+  // Look for a canonical entity view page, e.g. node/{nid}, user/{uid}, etc.
+  $matches = [];
+  preg_match('/entity\.(.*)\.(latest[_-]version|canonical)/', $route_name, $matches);
+  if (!empty($matches[1])) {
+    $entity_type = $matches[1];
+    return $route_match->getParameter($entity_type);
+  }
+
+  // Look for a rest entity view page, e.g. "node/{nid}?_format=json", etc.
+  $matches = [];
+  // Matches e.g. "rest.entity.node.GET.json".
+  preg_match('/rest\.entity\.(.*)\.(.*)\.(.*)/', $route_name, $matches);
+  if (!empty($matches[1])) {
+    $entity_type = $matches[1];
+    return $route_match->getParameter($entity_type);
+  }
+
+  // Look for entity object 'add' pages, e.g. "node/add/{bundle}".
+  $route_name_matches = [];
+  preg_match('/(entity\.)?(.*)\.add(_form)?/', $route_name, $route_name_matches);
+  if (!empty($route_name_matches[2])) {
+    $entity_type = $route_name_matches[2];
+    $definition = Drupal::entityTypeManager()->getDefinition($entity_type, FALSE);
+    if (!empty($definition)) {
+      $type = $route_match->getRawParameter($definition->get('bundle_entity_type'));
+      if (!empty($type)) {
+        return \Drupal::entityTypeManager()
+          ->getStorage($entity_type)
+          ->create([
+            $definition->get('entity_keys')['bundle'] => $type,
+          ]);
+      }
+    }
+  }
+
+  // Look for entity object 'edit' pages, e.g. "node/{entity_id}/edit".
+  $route_name_matches = [];
+  preg_match('/entity\.(.*)\.edit_form/', $route_name, $route_name_matches);
+  if (!empty($route_name_matches[1])) {
+    $entity_type = $route_name_matches[1];
+    $entity_id = $route_match->getRawParameter($entity_type);
+
+    if (!empty($entity_id)) {
+      return \Drupal::entityTypeManager()
+        ->getStorage($entity_type)
+        ->load($entity_id);
+    }
+  }
+
+  // Look for entity object 'add content translation' pages, e.g.
+  // "node/{nid}/translations/add/{source_lang}/{translation_lang}".
+  $route_name_matches = [];
+  preg_match('/(entity\.)?(.*)\.content_translation_add/', $route_name, $route_name_matches);
+  if (!empty($route_name_matches[2])) {
+    $entity_type = $route_name_matches[2];
+    $definition = Drupal::entityTypeManager()->getDefinition($entity_type, FALSE);
+    if (!empty($definition)) {
+      $node = $route_match->getParameter($entity_type);
+      $type = $node->bundle();
+      if (!empty($type)) {
+        return \Drupal::entityTypeManager()
+          ->getStorage($entity_type)
+          ->create([
+            $definition->get('entity_keys')['bundle'] => $type,
+          ]);
+      }
+    }
+  }
+
+  // Special handling for the admin user_create page. In this case, there's only
+  // one bundle and it's named the same as the entity type, so some shortcuts
+  // can be used.
+  if ($route_name == 'user.admin_create') {
+    $entity_type = $type = 'user';
+    $definition = Drupal::entityTypeManager()->getDefinition($entity_type);
+    if (!empty($type)) {
+      return \Drupal::entityTypeManager()
+        ->getStorage($entity_type)
+        ->create([
+          $definition->get('entity_keys')['bundle'] => $type,
+        ]);
+    }
+  }
+
+  // Trigger hook_metatag_route_entity().
+  if ($entities = \Drupal::moduleHandler()->invokeAll('metatag_route_entity', [$route_match])) {
+    return reset($entities);
+  }
+
+  return NULL;
+}
+
+/**
+ * Implements template_preprocess_html().
+ */
+function metatag_preprocess_html(&$variables) {
+  if (!metatag_is_current_route_supported()) {
+    return NULL;
+  }
+
+  $attachments = &drupal_static('metatag_attachments');
+  if (is_null($attachments)) {
+    $attachments = metatag_get_tags_from_route();
+  }
+
+  if (!$attachments) {
+    return NULL;
+  }
+
+  // Copy the "title" meta tag into the regular <title> tag. The redundant meta
+  // tag will be removed elsewhere.
+  // @see metatag_page_attachments()
+  if (!empty($attachments['#attached']['html_head'])) {
+    foreach ($attachments['#attached']['html_head'] as $attachment) {
+      if (!empty($attachment[1]) && $attachment[1] == 'title') {
+        // Empty head_title to avoid the site name and slogan to be appended to
+        // the meta title.
+        $variables['head_title'] = [];
+        $variables['head_title']['title'] = html_entity_decode($attachment[0]['#attributes']['content'], ENT_QUOTES);
+
+        // No need to do anything else after this.
+        break;
+      }
+    }
+  }
+}
+
+/**
+ * Load the meta tags by processing the route parameters.
+ *
+ * @return mixed
+ *   Array of meta tags or NULL.
+ */
+function metatag_get_tags_from_route($entity = NULL) {
+  $metatag_manager = \Drupal::service('metatag.manager');
+
+  // First, get defaults.
+  $metatags = metatag_get_default_tags($entity);
+  if (!$metatags) {
+    return NULL;
+  }
+
+  // Then, set tag overrides for this particular entity.
+  if (!$entity) {
+    $entity = metatag_get_route_entity();
+  }
+
+  if (!empty($entity) && $entity instanceof ContentEntityInterface) {
+    // If content entity does not have an ID the page is likely an "Add" page,
+    // so do not generate meta tags for entity which has not been created yet.
+    if (!$entity->id()) {
+      return NULL;
+    }
+
+    foreach ($metatag_manager->tagsFromEntity($entity) as $tag => $data) {
+      $metatags[$tag] = $data;
+    }
+  }
+
+  // Trigger hook_metatags_alter().
+  // Allow modules to override tags or the entity used for token replacements.
+  $context = [
+    'entity' => &$entity,
+  ];
+  \Drupal::service('module_handler')->alter('metatags', $metatags, $context);
+
+  // If the entity was changed above, use that for generating the meta tags.
+  if (isset($context['entity'])) {
+    $entity = $context['entity'];
+  }
+
+  return $metatag_manager->generateElements($metatags, $entity);
+}
+
+/**
+ * Returns default tags for the current route.
+ *
+ * @return mixed
+ *   Array of tags or NULL;
+ */
+function metatag_get_default_tags($entity = NULL) {
+  /** @var \Drupal\Core\Entity\EntityStorageInterface $global_metatag_manager */
+  $global_metatag_manager = \Drupal::entityTypeManager()->getStorage('metatag_defaults');
+  /** @var \Drupal\metatag\MetatagManager $metatag_manager */
+  $metatag_manager = \Drupal::service('metatag.manager');
+
+  // Load config based on language.
+  if ($entity !== NULL) {
+    /** @var \Drupal\Core\Language\LanguageManagerInterface $language_manager */
+    $language_manager = \Drupal::languageManager();
+    $language_manager->setConfigOverrideLanguage($entity->language());
+  }
+
+  // First we load global defaults.
+  $metatags = $metatag_manager->getGlobalMetatags();
+  if (!$metatags) {
+    return NULL;
+  }
+
+  // Check if this is a special page.
+  $special_metatags = $metatag_manager->getSpecialMetatags();
+  if (isset($special_metatags)) {
+    $metatags->overwriteTags($special_metatags->get('tags'));
+  }
+
+  // Next check if there is this page is an entity that has meta tags.
+  else {
+    if (!$entity) {
+      $entity = metatag_get_route_entity();
+    }
+
+    if (!empty($entity) && $entity instanceof ContentEntityInterface) {
+      /** @var \Drupal\metatag\Entity\MetatagDefaults|null $entity_metatags */
+      $entity_metatags = $global_metatag_manager->load($entity->getEntityTypeId());
+      if ($entity_metatags != NULL && $entity_metatags->status()) {
+        // Merge with global defaults.
+        $metatags->overwriteTags($entity_metatags->get('tags'));
+      }
+
+      // Finally, check if bundle overrides should be added.
+      /** @var \Drupal\metatag\Entity\MetatagDefaults|null $bundle_metatags */
+      $bundle_metatags = $global_metatag_manager->load($entity->getEntityTypeId() . '__' . $entity->bundle());
+      if ($bundle_metatags != NULL && $bundle_metatags->status()) {
+        // Merge with existing defaults.
+        $metatags->overwriteTags($bundle_metatags->get('tags'));
+      }
+    }
+  }
+
+  return $metatags->get('tags');
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function metatag_entity_base_field_info(EntityTypeInterface $entity_type) {
+  $fields = [];
+  $base_table = $entity_type->getBaseTable();
+  $canonical_template_exists = $entity_type->hasLinkTemplate('canonical');
+  // Certain classes are just not supported.
+  $original_class = $entity_type->getOriginalClass();
+  $classes_to_skip = [
+    'Drupal\comment\Entity\Comment',
+  ];
+
+  // If the entity type doesn't have a base table, has no link template then
+  // there's no point in supporting it.
+  if (!empty($base_table) && $canonical_template_exists && !in_array($original_class, $classes_to_skip)) {
+    $fields['metatag'] = BaseFieldDefinition::create('map')
+      ->setLabel(t('Metatags'))
+      ->setDescription(t('The meta tags for the entity.'))
+      ->setClass('\Drupal\metatag\Plugin\Field\MetatagEntityFieldItemList')
+      ->setComputed(TRUE)
+      ->setTranslatable(TRUE)
+      ->setTargetEntityTypeId($entity_type->id());
+  }
+
+  return $fields;
+}
+
+/**
+ * Implements hook_entity_diff_options().
+ */
+function metatag_entity_diff_options($entity_type) {
+  if (metatag_entity_supports_metatags($entity_type)) {
+    $options = [
+      'metatag' => t('Metatags'),
+    ];
+    return $options;
+  }
+}
+
+/**
+ * Implements hook_entity_diff().
+ */
+function metatag_entity_diff($old_entity, $new_entity, $context) {
+  $result = [];
+  $entity_type = $context['entity_type'];
+  $options = variable_get('diff_additional_options_' . $entity_type, []);
+  if (!empty($options['metatag']) && metatag_entity_supports_metatags($entity_type)) {
+    // Find meta tags that are set on either the new or old entity.
+    $tags = [];
+    foreach (['old' => $old_entity, 'new' => $new_entity] as $entity_key => $entity) {
+      $language = metatag_entity_get_language($entity_type, $entity);
+      if (isset($entity->metatags[$language])) {
+        foreach ($entity->metatags[$language] as $key => $value) {
+          $tags[$key][$entity_key] = $value['value'];
+        }
+      }
+    }
+
+    $init_weight = 100;
+    foreach ($tags as $key => $values) {
+      $id = ucwords('Meta ' . $key);
+      // @todo Find the default values and show these if not set.
+      $result[$id] = [
+        '#name' => $id,
+        '#old' => [empty($values['old']) ? '' : $values['old']],
+        '#new' => [empty($values['new']) ? '' : $values['new']],
+        '#weight' => $init_weight++,
+        '#settings' => [
+          'show_header' => TRUE,
+        ],
+      ];
+    }
+  }
+  return $result;
+}
+
+/**
+ * Turn the meta tags for an entity into a human readable structure.
+ *
+ * @param object $entity
+ *   The entity object.
+ *
+ * @return array
+ *   All of the meta tags in a nested structure.
+ */
+function metatag_generate_entity_metatags($entity) {
+  $values = [];
+  $raw = metatag_get_tags_from_route($entity);
+  if (!empty($raw['#attached']['html_head'])) {
+    foreach ($raw['#attached']['html_head'] as $tag) {
+      $values[$tag[1]] = $tag[0];
+    }
+  }
+  return $values;
+}
+
+/**
+ * Implements hook_migrate_prepare_row().
+ */
+function metatag_migrate_prepare_row(Row $row, MigrateSourceInterface $source, MigrationInterface $migration) {
+  // If there's no 'metatag' table in the source, there's no point in
+  // continuing.
+  if (!method_exists($source, 'getDatabase')
+      || !$source->getDatabase()->schema()->tableExists('metatag')) {
+    return;
+  }
+
+  // @todo Write a more general version rather than hard-coded.
+  // Support a know subset of D7 sources.
+  if (is_a($source, Node::class)) {
+    // E.g. d7_node, d7_node_revision.
+    $source_type = 'node';
+  }
+  elseif (is_a($source, Term::class)) {
+    // E.g. d7_taxonomy_term.
+    $source_type = 'taxonomy';
+  }
+  elseif (is_a($source, User::class)) {
+    // E.g. d7_user.
+    $source_type = 'user';
+  }
+  else {
+    // Not supported now, nothing to do.
+    return;
+  }
+
+  if ($migration->getDestinationPlugin() instanceof EntityContentBase) {
+    $entity_type = NULL;
+    $entity_id = NULL;
+    $revision_id = NULL;
+
+    // @todo Write a more general version rather than a switch statement.
+    switch ($source_type) {
+      case 'node':
+        $entity_type = 'node';
+        $entity_id = $row->getSourceProperty('nid');
+        $revision_id = $row->getSourceProperty('vid');
+        break;
+
+      case 'taxonomy':
+        $entity_type = 'taxonomy_term';
+        $entity_id = $row->getSourceProperty('tid');
+        break;
+
+      case 'user':
+        $entity_type = 'user';
+        $entity_id = $row->getSourceProperty('uid');
+        break;
+    }
+
+    /** @var \Drupal\migrate\Plugin\migrate\source\SqlBase $source */
+    /** @var \Drupal\Core\Database\Query\SelectInterface $query */
+    $query = $source->getDatabase()->select('metatag', 'm')
+      ->fields('m', ['data'])
+      ->condition('entity_type', $entity_type)
+      ->condition('entity_id', $entity_id);
+    if (!is_null($revision_id)) {
+      if ($source->getDatabase()->schema()->fieldExists('metatag', 'revision_id')) {
+        $query->condition('revision_id', $revision_id);
+      }
+    }
+    $value = $query->execute()->fetchCol();
+    if (!empty($value) && is_array($value)) {
+      $value = array_pop($value);
+    }
+
+    $row->setSourceProperty('pseudo_d7_metatag_entities', $value);
+  }
+}
+
+/**
+ * Implements hook_migration_plugins_alter().
+ */
+function metatag_migration_plugins_alter(array &$migrations) {
+  // This is used for guided migrations from Drupal 7 using either core's
+  // Migrate Drupal UI or the Migrate Upgrade contributed module. It will
+  // automatically create a field named "field_metatag" with the per-entity
+  // meta tag overrides for each entity.
+  //
+  // @todo Consider loading the relevant variables to determine which entities
+  //   should be given the Metatag field.
+  // @todo Document how to change the field name.
+  //
+  // @see metatag_migrate_prepare_row()
+  // @see Drupal\metatag\Plugin\migrate\process\d7\MetatagD7
+  foreach ($migrations as &$migration) {
+    if (isset($migration['destination']['plugin'])) {
+      // Follow logic on hook_entity_base_field_info() and exclude the metatag
+      // entity itself, plus some others.
+      $destinations_to_ignore = [
+        'entity:metatag',
+        'color',
+        'component_entity_display',
+        'component_entity_form_display',
+        'config',
+        'd7_theme_settings',
+        'entity:base_field_override',
+        'entity:block',
+        'entity:block_content',
+        'entity:block_content_type',
+        'entity:comment',
+        'entity:comment_type',
+        'entity:contact_form',
+        'entity:date_format',
+        'entity:entity_view_mode',
+        'entity:field_config',
+        'entity:field_storage_config',
+        'entity:filter_format',
+        'entity:image_style',
+        'entity:menu',
+        'entity:menu_link_content',
+        'entity:node_type',
+        'entity:rdf_mapping',
+        'entity:shortcut',
+        'entity:shortcut_set',
+        'entity:taxonomy_vocabulary',
+        'entity:user_role',
+        'shortcut_set_users',
+        'url_alias',
+        'user_data',
+      ];
+      if (in_array($migration['destination']['plugin'], $destinations_to_ignore)) {
+        continue;
+      }
+
+      // Load the destination plugin.
+      $plugin_definition = \Drupal::service('plugin.manager.migrate.destination')
+        ->getDefinition($migration['destination']['plugin']);
+      $destination_plugin = DefaultFactory::getPluginClass($migration['destination']['plugin'], $plugin_definition);
+
+      if (is_subclass_of($destination_plugin, EntityContentBase::class) || $destination_plugin == EntityContentBase::class) {
+        // Metatag-D7's data is handled via a custom process plugin that does
+        // the data conversion.
+        $migration['process']['field_metatag'] = [
+          'plugin' => 'd7_metatag_entities',
+          'source' => 'pseudo_d7_metatag_entities',
+        ];
+
+        // List dependencies here so that they are processed first, otherwise
+        // the destination field won't be available for the data to go into.
+        $migration['migration_dependencies']['optional'][] = 'd7_metatag_field';
+        $migration['migration_dependencies']['optional'][] = 'd7_metatag_field_instance';
+      }
+    }
+  }
+}

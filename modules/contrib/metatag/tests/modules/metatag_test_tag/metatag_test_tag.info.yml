@@ -1,0 +1,12 @@
+name: 'Metatag Tests: Tag'
+type: module
+description: 'Support module for testing handling of a custom meta tag.'
+core: 8.x
+package: Testing
+dependencies:
+  - metatag:metatag
+
+# Information added by Drupal.org packaging script on 2019-12-20
+version: '8.x-1.11'
+project: 'metatag'
+datestamp: 1576870688

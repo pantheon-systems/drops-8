@@ -1,0 +1,12 @@
+name: 'Metatag: Verification'
+type: module
+description: Verifies ownership of a site for search engines and other services.
+core: 8.x
+package: SEO
+dependencies:
+  - metatag:metatag
+
+# Information added by Drupal.org packaging script on 2019-12-20
+version: '8.x-1.11'
+project: 'metatag'
+datestamp: 1576870688

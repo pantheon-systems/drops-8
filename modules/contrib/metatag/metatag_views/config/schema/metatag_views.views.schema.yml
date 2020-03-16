@@ -1,0 +1,8 @@
+views.display_extender.metatag_display_extender:
+  type: views_display_extender
+  mapping:
+    metatags:
+      type: sequence
+      label: 'Metatags'
+      sequence:
+        type: metatag.metatag_tag.[%key]

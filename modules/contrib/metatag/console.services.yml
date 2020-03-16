@@ -1,0 +1,24 @@
+services:
+  metatag.generate_tag:
+    class: Drupal\metatag\Command\GenerateTagCommand
+    arguments: ['@metatag.manager', '@metatag.tag_generator', '@?console.extension_manager', '@?console.string_converter', '@?console.chain_queue']
+    tags:
+      - { name: drupal.command }
+
+  metatag.generate_group:
+    class: Drupal\metatag\Command\GenerateGroupCommand
+    arguments: ['@metatag.group_generator', '@?console.extension_manager', '@?console.chain_queue']
+    tags:
+      - { name: drupal.command }
+
+  metatag.tag_generator:
+    class: Drupal\metatag\Generator\MetatagTagGenerator
+    arguments: ['@?console.extension_manager', '@?console.renderer']
+    tags:
+      - { name: drupal.generator }
+
+  metatag.group_generator:
+    class: Drupal\metatag\Generator\MetatagGroupGenerator
+    arguments: ['@?console.extension_manager', '@?console.renderer']
+    tags:
+      - { name: drupal.generator }

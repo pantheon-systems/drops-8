@@ -1,0 +1,7 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.hreflang_xdefault:
+  type: label
+  label: 'Default locale (x-default)'

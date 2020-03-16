@@ -1,0 +1,16 @@
+# Metatag defaults menu items definition
+entity.metatag_defaults.collection:
+  title: 'Metatag'
+  route_name: entity.metatag_defaults.collection
+  description: 'Configure Metatag defaults.'
+  parent: system.admin_config_search
+metatag.settings:
+  title: 'Settings'
+  route_name: metatag.settings
+  description: 'Configure Metatag defaults.'
+  parent: entity.metatag_defaults.collection
+metatag.reports_plugins:
+  title: 'Metatag plugins'
+  parent: system.admin_reports
+  description: 'Overview of plugins used in metatag.'
+  route_name: metatag.reports_plugins

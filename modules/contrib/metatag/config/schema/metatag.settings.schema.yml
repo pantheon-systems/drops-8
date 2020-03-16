@@ -1,0 +1,16 @@
+metatag.settings:
+  type: config_object
+  label: 'Metatag settings'
+  mapping:
+    entity_type_groups:
+      type: sequence
+      label: 'Metatag groups that apply to each entity type'
+      sequence:
+        type: sequence
+        label: 'Entity type'
+        sequence:
+          type: sequence
+          label: 'Bundle'
+          sequence:
+            type: string
+            label: 'Group'

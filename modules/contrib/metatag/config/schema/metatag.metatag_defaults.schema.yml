@@ -1,0 +1,15 @@
+metatag.metatag_defaults.*:
+  type: config_entity
+  label: 'Metatag defaults'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Type'
+    tags:
+      type: sequence
+      label: 'Tags'
+      sequence:
+        type: metatag.metatag_tag.[%key]

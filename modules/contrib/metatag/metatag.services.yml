@@ -1,0 +1,16 @@
+services:
+  plugin.manager.metatag.tag:
+    class: Drupal\metatag\MetatagTagPluginManager
+    parent: default_plugin_manager
+
+  plugin.manager.metatag.group:
+    class: Drupal\metatag\MetatagGroupPluginManager
+    parent: default_plugin_manager
+
+  metatag.token:
+    class: Drupal\metatag\MetatagToken
+    arguments: ['@token']
+
+  metatag.manager:
+    class: Drupal\metatag\MetatagManager
+    arguments: ['@plugin.manager.metatag.group', '@plugin.manager.metatag.tag', '@metatag.token', '@logger.factory', '@entity_type.manager']

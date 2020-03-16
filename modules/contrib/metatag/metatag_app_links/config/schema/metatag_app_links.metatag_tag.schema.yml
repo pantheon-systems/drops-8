@@ -1,0 +1,76 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.al_android_app_name:
+  type: label
+  label: 'Android app name'
+metatag.metatag_tag.al_android_class:
+  type: label
+  label: 'Android app Activity Class'
+metatag.metatag_tag.al_android_package:
+  type: label
+  label: 'Android app package ID'
+metatag.metatag_tag.al_android_url:
+  type: label
+  label: 'Android app URL scheme'
+metatag.metatag_tag.al_ios_url:
+  type: label
+  label: 'iOS app URL scheme'
+metatag.metatag_tag.al_ios_app_store_id:
+  type: label
+  label: 'iOS app store ID'
+metatag.metatag_tag.al_ios_app_name:
+  type: label
+  label: 'iOS app name'
+metatag.metatag_tag.al_ipad_url:
+  type: label
+  label: 'iPad app URL scheme'
+metatag.metatag_tag.al_ipad_app_store_id:
+  type: label
+  label: 'iPad app store ID'
+metatag.metatag_tag.al_ipad_app_name:
+  type: label
+  label: 'iPad app name'
+metatag.metatag_tag.al_iphone_url:
+  type: label
+  label: 'iPhone app URL scheme'
+metatag.metatag_tag.al_iphone_app_store_id:
+  type: label
+  label: 'iPhone app store ID'
+metatag.metatag_tag.al_iphone_app_name:
+  type: label
+  label: 'iPhone app URL scheme'
+metatag.metatag_tag.al_windows_app_id:
+  type: label
+  label: 'Windows app GUID'
+metatag.metatag_tag.al_windows_app_name:
+  type: label
+  label: 'Windows app name'
+metatag.metatag_tag.al_windows_url:
+  type: label
+  label: 'Windows app URL scheme'
+metatag.metatag_tag.al_windows_phone_url:
+  type: label
+  label: 'Windows Phone app URL scheme'
+metatag.metatag_tag.al_windows_phone_app_id:
+  type: label
+  label: 'Windows Phone app GUID'
+metatag.metatag_tag.al_windows_phone_app_name:
+  type: label
+  label: 'Windows Phone app name'
+metatag.metatag_tag.al_windows_universal_url:
+  type: label
+  label: 'Windows Universal app URL scheme'
+metatag.metatag_tag.al_windows_universal_app_id:
+  type: label
+  label: 'Windows Universal app GUID'
+metatag.metatag_tag.al_windows_universal_app_name:
+  type: label
+  label: 'Windows Universal app name'
+metatag.metatag_tag.al_web_url:
+  type: label
+  label: 'Web URL'
+metatag.metatag_tag.al_web_should_fallback:
+  type: label
+  label: 'Should fallback'

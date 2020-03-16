@@ -1,0 +1,25 @@
+# A default migration mapping for Metatag-D7 base fields.
+#
+# @see Drupal\metatag\Plugin\migrate\source\d7\MetatagField
+
+id: d7_metatag_field
+label: Metatag field
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_metatag_field
+  source_module: metatag
+  ignore_map: true
+  constants:
+    field_name: field_metatag
+    langcode: und
+    type: metatag
+    status: true
+process:
+  entity_type: entity_type
+  field_name: 'constants/field_name'
+  langcode: 'constants/langcode'
+  status: 'constants/status'
+  type: 'constants/type'
+destination:
+  plugin: entity:field_storage_config

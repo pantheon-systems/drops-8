@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ * Custom hook implementations for Metatag Favicons.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_favicons_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_favicons module.
+    case 'help.page.metatag_favicons':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides support for many different favicons.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function metatag_favicons_page_attachments_alter(array &$attachments) {
+  // Check html_head_link on attached tags in head.
+  if (!isset($attachments['#attached']['html_head_link'])) {
+    return;
+  }
+
+  // Remove the default shortcut icon if one was set by Metatag.
+  foreach ($attachments['#attached']['html_head'] as $element) {
+    if (isset($element[1]) && $element[1] == 'shortcut_icon') {
+      foreach ($attachments['#attached']['html_head_link'] as $key => $value) {
+        if (isset($value[0]['rel']) && $value[0]['rel'] == 'shortcut icon') {
+          unset($attachments['#attached']['html_head_link'][$key]);
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+metatag.metatag_tag.og_price_amount:
+  type: label
+  label: 'Open Graph Product: Price amount'
+metatag.metatag_tag.og_price_currency:
+  type: label
+  label: 'Open Graph Product: Price currency'

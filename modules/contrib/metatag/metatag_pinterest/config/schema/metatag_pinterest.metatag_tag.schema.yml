@@ -1,0 +1,25 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.pinterest_description:
+  type: text
+  label: 'Pinterest: Description'
+metatag.metatag_tag.pinterest_id:
+  type: label
+  label: 'Pinterest: ID'
+metatag.metatag_tag.pinterest_media:
+  type: label
+  label: 'Pinterest: Media'
+metatag.metatag_tag.pinterest_nohover:
+  type: label
+  label: 'Pinterest: No hover'
+metatag.metatag_tag.pinterest_nopin:
+  type: label
+  label: 'Pinterest: No pin'
+metatag.metatag_tag.pinterest_nosearch:
+  type: label
+  label: 'Pinterest: No search'
+metatag.metatag_tag.pinterest_url:
+  type: label
+  label: 'Pinterest: URL'

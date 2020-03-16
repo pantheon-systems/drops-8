@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_hreflang.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_hreflang_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_hreflang module.
+    case 'help.page.metatag_hreflang':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides support for the hreflang meta tag with some extra logic to simplify it.') . '</p>';
+      return $output;
+
+    default:
+  }
+}

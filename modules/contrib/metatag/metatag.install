@@ -1,0 +1,387 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the metatag module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function metatag_install() {
+  // Don't display the message during site installation, it looks funny.
+  if (!drupal_installation_attempted()) {
+    \Drupal::messenger()->addMessage(t("To adjust global defaults, go to admin/config/search/metatag. If you need to set meta tags for a specific entity, edit its bundle and add the Metatag field."));
+  }
+}
+
+/**
+ * Implements hook_requirements().
+ */
+function metatag_requirements($phase) {
+  $requirements = [];
+
+  if ($phase == 'runtime') {
+    // Note that no meta tags will be output while the site is in maintenance
+    // mode.
+    if (\Drupal::state()->get('system.maintenance_mode')) {
+      $requirements['metatag_maintenance_mode'] = [
+        'severity' => REQUIREMENT_WARNING,
+        'title' => 'Metatag',
+        'value' => t('Not enabled while in maintenance mode'),
+        'description' => t('Please note that while the site is in maintenance mode none of the usual meta tags will be output.'),
+      ];
+    }
+
+    // Recommend the Schema.org Metatag module.
+    if (!\Drupal::moduleHandler()->moduleExists('schema_metatag')) {
+      $requirements['metatag_schema'] = [
+        'severity' => REQUIREMENT_INFO,
+        'title' => 'Metatag',
+        'value' => t('Schema.org Metatag is recommended'),
+        'description' => t('The <a href="@module">Schema.org Metatag</a> module is highly recommended to add <a href="@jsonld">JSON-LD</a> -formatted <a href="@schema">schema.org</a> compatible data structures to the site.', [
+          '@module' => 'https://www.drupal.org/project/schema_metatag',
+          '@jsonld' => 'https://json-ld.org',
+          '@schema' => 'http://schema.org',
+        ]),
+      ];
+    }
+    else {
+      $requirements['metatag_schema'] = [
+        'severity' => REQUIREMENT_OK,
+        'title' => 'Metatag',
+        'value' => t('Schema.org Metatag is installed'),
+        'description' => t('The <a href="@module">Schema.org Metatag</a> module is installed.', [
+          '@module' => 'https://www.drupal.org/project/schema_metatag',
+        ]),
+      ];
+    }
+  }
+
+  return $requirements;
+}
+
+/**
+ * Remove tags in field storage that match default or are empty.
+ */
+function metatag_update_8101() {
+  // Get all of the field storage entities of type metatag.
+  $field_storage_configs = \Drupal::entityTypeManager()
+    ->getStorage('field_storage_config')
+    ->loadByProperties(['type' => 'metatag']);
+
+  foreach ($field_storage_configs as $field_storage) {
+    $field_name = $field_storage->getName();
+
+    // Get the individual fields (field instances) associated with bundles.
+    $fields = \Drupal::entityTypeManager()
+      ->getStorage('field_config')
+      ->loadByProperties(['field_name' => $field_name]);
+
+    // For each of the fields, delete all records that match the defaults.
+    foreach ($fields as $field) {
+      // Get the bundle this field is attached to.
+      $bundle = $field->getTargetBundle();
+
+      // Get the default value for this field on this bundle.
+      $field_default_tags_value = $field->getDefaultValueLiteral();
+      $field_default_tags_value = $field_default_tags_value[0]['value'];
+
+      // Determine the table and "value" field names.
+      $field_table = "node__" . $field_name;
+      $field_value_field = $field_name . "_value";
+
+      // Delete all records where the field value and default are identical.
+      \Drupal::database()->delete($field_table)
+        ->condition('bundle', $bundle, '=')
+        ->condition($field_value_field, $field_default_tags_value, '=')
+        ->execute();
+    }
+  }
+
+  return t('Removed all default meta tag records so they can be automatically inherited when the page is loaded.');
+}
+
+/**
+ * Remove tags in field storage that match default or are empty.
+ */
+function metatag_update_8102(&$sandbox) {
+  // This whole top section only needs to be done the first time.
+  if (!isset($sandbox['records_processed'])) {
+    $sandbox['records_processed'] = 0;
+    $sandbox['total_records'] = 0;
+    $sandbox['current_field'] = 0;
+    $sandbox['current_record'] = 0;
+
+    // Counter to enumerate the fields so we can access them in the array
+    // by number rather than name.
+    $field_counter = 0;
+
+    // Get all of the field storage entities of type metatag.
+    $field_storage_configs = \Drupal::entityTypeManager()
+      ->getStorage('field_storage_config')
+      ->loadByProperties(['type' => 'metatag']);
+
+    foreach ($field_storage_configs as $field_storage) {
+      $field_name = $field_storage->getName();
+
+      // Get the individual fields (field instances) associated with bundles.
+      $fields = \Drupal::entityTypeManager()
+        ->getStorage('field_config')
+        ->loadByProperties(['field_name' => $field_name]);
+
+      // For each of the fields, do the mass delete of exact matches but
+      // store the overridden records in the sandbox to be batch processed.
+      foreach ($fields as $field) {
+        // Get the bundle this field is attached to.
+        $bundle = $field->getTargetBundle();
+
+        // Get the default value for this field on this bundle.
+        $field_default_tags_value = $field->getDefaultValueLiteral();
+        $field_default_tags_value = $field_default_tags_value[0]['value'];
+        $field_default_tags = unserialize($field_default_tags_value);
+
+        // Determine the table and "value" field names.
+        $field_table = "node__" . $field_name;
+        $field_value_field = $field_name . "_value";
+
+        // Get all records where the field data does not match the default.
+        $query = \Drupal::database()->select($field_table);
+        $query->addField($field_table, 'entity_id');
+        $query->addField($field_table, 'revision_id');
+        $query->addField($field_table, 'langcode');
+        $query->addField($field_table, $field_value_field);
+        $query->condition('bundle', $bundle, '=');
+        $result = $query->execute();
+        $records = $result->fetchAll();
+
+        // Fill in all the sandbox information so we can batch the individual
+        // record comparing and updating.
+        $sandbox['fields'][$field_counter]['field_table'] = $field_table;
+        $sandbox['fields'][$field_counter]['field_value_field'] = $field_value_field;
+        $sandbox['fields'][$field_counter]['field_default_tags'] = $field_default_tags;
+        $sandbox['fields'][$field_counter]['records'] = $records;
+
+        $sandbox['total_records'] += count($sandbox['fields'][$field_counter]['records'] = $records);
+        $field_counter++;
+      }
+    }
+  }
+
+  if ($sandbox['total_records'] == 0) {
+    // No partially overridden fields so we can skip the whole batch process.
+    $sandbox['#finished'] = 1;
+  }
+  else {
+    // Begin the batch processing of individual field records.
+    $max_per_batch = 10;
+    $counter = 1;
+
+    $current_field = $sandbox['current_field'];
+    $current_field_records = $sandbox['fields'][$current_field]['records'];
+    $current_record = $sandbox['current_record'];
+
+    $field_table = $sandbox['fields'][$current_field]['field_table'];
+    $field_value_field = $sandbox['fields'][$current_field]['field_value_field'];
+    $field_default_tags = $sandbox['fields'][$current_field]['field_default_tags'];
+
+    // Loop through the field(s) and remove any field data that matches the
+    // field default for that bundle. Because the ability to override a default
+    // with "nothing" didn't exist prior to this and because any tag that had
+    // a default of "nothing" would have that also in the field data, we are
+    // removing those as well.
+    while ($counter <= $max_per_batch && $record = $current_field_records[$current_record]) {
+      // Strip any empty tags or ones matching the field's defaults and leave
+      // only the overridden tags in $new_tags.
+      $current_tags = unserialize($record->$field_value_field);
+      $new_tags = [];
+      foreach ($current_tags as $key => $tag) {
+        if (!empty($tag) && $field_default_tags[$key] != $tag) {
+          $new_tags[$key] = $tag;
+        }
+      }
+
+      if (empty($new_tags)) {
+        // All tags were either empty or matched the default so the record can
+        // be deleted.
+        \Drupal::database()->delete($field_table)
+          ->condition('entity_id', $record->entity_id)
+          ->condition('revision_id', $record->revision_id)
+          ->condition('langcode', $record->langcode)
+          ->execute();
+      }
+      else {
+        // There are some overridden tags so update the record with just those.
+        $tags_string = serialize($new_tags);
+        \Drupal::database()->update($field_table)
+          ->fields([
+            $field_value_field => $tags_string,
+          ])
+          ->condition('entity_id', $record->entity_id)
+          ->condition('revision_id', $record->revision_id)
+          ->condition('langcode', $record->langcode)
+          ->execute();
+      }
+
+      $counter++;
+      $current_record++;
+    }
+
+    // We ran out of records for the field so start the next batch out with the
+    // next field.
+    if (!isset($current_field_records[$current_record])) {
+      $current_field++;
+      $current_record = 0;
+    }
+
+    // We have finished all the fields. All done.
+    if (!isset($sandbox['fields'][$current_field])) {
+      $sandbox['records_processed'] += $counter - 1;
+      $sandbox['#finished'] = 1;
+    }
+    // Update the sandbox values to prepare for the next round.
+    else {
+      $sandbox['current_field'] = $current_field;
+      $sandbox['current_record'] = $current_record;
+      $sandbox['records_processed'] += $counter - 1;
+      $sandbox['#finished'] = $sandbox['records_processed'] / $sandbox['total_records'];
+    }
+  }
+
+  if ($sandbox['total_records'] > 0) {
+    return (string) t('Processed @processed of @total overridden Metatag records.', [
+      '@processed' => $sandbox['records_processed'],
+      '@total' => $sandbox['total_records'],
+    ]);
+  }
+  else {
+    return (string) t("There were no overridden Metatag records.");
+  }
+}
+
+/**
+ * Move field defaults to Metatag Defaults.
+ */
+function metatag_update_8103() {
+  $config_installer = \Drupal::service('config.installer');
+  $entity_manager = \Drupal::entityTypeManager();
+
+  // 1. Install cofiguration.
+  $sync_status = $config_installer->isSyncing();
+  if ($sync_status) {
+    $source_storage = $config_installer->getSourceStorage();
+  }
+
+  // Clear plugin manager caches.
+  \Drupal::getContainer()->get('plugin.cache_clearer')->clearCachedDefinitions();
+  // Install default configuration of the module.
+  if ($sync_status) {
+    $config_installer
+      ->setSyncing(TRUE)
+      ->setSourceStorage($source_storage);
+  }
+
+  // Install new configuration for Metatag.
+  $config_installer->installDefaultConfig('module', 'metatag');
+
+  // Apply all entity definition changes.
+  \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+
+  // 2. Extract Metatag field defaults.
+  $entity_info = $entity_manager->getDefinitions();
+  $tags = [];
+
+  // Get all of the field storage entities of type metatag.
+  $field_storage_configs = $entity_manager
+    ->getStorage('field_storage_config')
+    ->loadByProperties(['type' => 'metatag']);
+
+  foreach ($field_storage_configs as $field_storage) {
+    $field_name = $field_storage->getName();
+
+    // Get the individual fields (field instances) associated with bundles.
+    $fields = $entity_manager->getStorage('field_config')
+      ->loadByProperties(['field_name' => $field_name]);
+    foreach ($fields as $field) {
+      // Adjust the config id depending on whether these are entity defaults
+      // or bundle defaults.
+      $entity_type = $field->getTargetEntityTypeId();
+      $bundle = $field->getTargetBundle();
+      $metatag_defaults_id = $entity_type;
+      if ($entity_type != $bundle) {
+        // This is a bundle override.
+        $metatag_defaults_id = $entity_type . '__' . $bundle;
+      }
+      // Extract field default values.
+      $field_default_tags_value = $field->getDefaultValueLiteral();
+      $field_default_tags_value = unserialize($field_default_tags_value[0]['value']);
+      $field_default_tags_value = array_filter($field_default_tags_value);
+      // Don't bother copying empty values.
+      if (!empty($field_default_tags_value)) {
+        $tags[$metatag_defaults_id] = $field_default_tags_value;
+      }
+    }
+  }
+
+  // 3. Create Config entities with field default values.
+  if (!empty($tags)) {
+    $bundleInfoManager = \Drupal::service('entity_type.bundle.info');
+    foreach ($tags as $metatag_defaults_id => $values) {
+      list($entity_type, $entity_bundle) = explode('__', $metatag_defaults_id);
+      $entity_label = (string) $entity_info[$entity_type]->get('label');
+      $bundle_info = $bundleInfoManager->getBundleInfo($entity_type);
+      $bundle_label = $bundle_info[$entity_bundle]['label'];
+      $label = $entity_label . ': ' . $bundle_label;
+
+      $metatags_global_manager = $entity_manager->getStorage('metatag_defaults');
+
+      $entity = $metatags_global_manager->load($metatag_defaults_id);
+      if ($entity) {
+        // These are defaults for an existing config entity, such as User.
+        $entity->set('tags', $values);
+      }
+      else {
+        // These are bundle overrides.
+        $entity = $metatags_global_manager->create([
+          'id' => $metatag_defaults_id,
+          'label' => $label,
+          'tags' => $values,
+        ]);
+      }
+      $entity->save();
+    }
+    return (string) t("@count Metatag field defaults have been converted to using global entity defaults.", ['@count' => count($tags)]);
+  }
+  else {
+    return (string) t("There were Metatag field configurations that needed to be converted.");
+  }
+}
+
+/**
+ * Rebuild routes after moving Metatag admin from Structure to Config.
+ */
+function metatag_update_8104() {
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}
+
+/**
+ * Rebuild routes after renaming.
+ */
+function metatag_update_8105() {
+  \Drupal::service('router.builder')->setRebuildNeeded();
+}
+
+/**
+ * Add the metatag_defaults config entity to the site.
+ */
+function metatag_update_8106() {
+  \Drupal::entityDefinitionUpdateManager()->applyUpdates();
+}
+
+/**
+ * Enable the new metatag_open_graph module.
+ */
+function metatag_update_8107() {
+  \Drupal::service('module_installer')->install(['metatag_open_graph']);
+  return (string) t("The new Metatag: Open Graph module has been enabled.");
+}

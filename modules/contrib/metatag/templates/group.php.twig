@@ -1,0 +1,25 @@
+{% extends "generator.php.twig" %}
+
+{% block prefix %}{{ prefix }}
+{% endblock %}
+
+{% block namespace_class %}
+namespace Drupal\{{ module }}\Plugin\metatag\Group;
+{% endblock %}
+
+{% block use_class %}
+use Drupal\metatag\Plugin\metatag\Group\{{ base_class }};
+{% endblock %}
+
+{% block class_declaration %}
+/**
+ * Provides a plugin for the '{{ label }}' meta tag group.
+ *
+ * @MetatagGroup(
+ *   id = "{{ plugin_id }}",
+ *   label = @Translation("{{ label }}"),
+ *   description = @Translation("{{ description }}"),
+ *   weight = {{ weight }},
+ * )
+ */
+class {{ class_name }} extends {{ base_class }} {% endblock %}

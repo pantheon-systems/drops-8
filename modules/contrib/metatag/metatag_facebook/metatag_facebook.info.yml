@@ -1,0 +1,12 @@
+name: 'Metatag: Facebook'
+type: module
+description: A set of meta tags specially for controlling advanced functionality with Facebook.
+core: 8.x
+package: SEO
+dependencies:
+  - metatag:metatag
+
+# Information added by Drupal.org packaging script on 2019-12-20
+version: '8.x-1.11'
+project: 'metatag'
+datestamp: 1576870688

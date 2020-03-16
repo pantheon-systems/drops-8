@@ -1,0 +1,12 @@
+name: 'Metatag: Google Custom Search Engine (CSE)'
+type: module
+description: Provides support for meta tags used for Google Custom Search Engine.
+core: 8.x
+package: SEO
+dependencies:
+  - metatag:metatag
+
+# Information added by Drupal.org packaging script on 2019-12-20
+version: '8.x-1.11'
+project: 'metatag'
+datestamp: 1576870688

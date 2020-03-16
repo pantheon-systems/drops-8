@@ -1,0 +1,31 @@
+description: Generate a meta tag.
+help: The <info>generate:plugin:metatag:tag</info> command helps generate a new meta tag for use with the Metatag module.
+welcome: Welcome to the Metatag tag generator
+options:
+  base_class: The base meta tag class to use.
+  module: common.options.module
+  name: Meta tag's HTML "name".
+  label: The user-friendly name for this meta tag.
+  description: A long explanation of this meta tag.
+  plugin_id: Internal (machine) name for the meta tag.
+  class_name: Internal camel-case version of the meta tag's name.
+  group: The meta tag's group.
+  weight: The sort order for this meta tag.
+  type: Type of the data included in this meta tag value.
+  secure: Whether this meta tag requires URLs be secure.
+  multiple: Whether this meta tag allows multiple values.
+  absolute_url: Whether this meta tag requires absolute URLs.
+questions:
+  base_class: Enter the base class to use
+  module: common.questions.module
+  name: Enter the meta tag's formal name, e.g. for the Open Graph "Title" tag use "og:title"
+  label: Enter a user-friendly version of the meta tag's name
+  description: Enter a longer explanation of what the meta tag is and how to use it
+  plugin_id: Enter the internal (machine) name for the meta tag plugin
+  class_name: Enter a camel-case version of the meta tag's name
+  group: Select the group the meta tag will use
+  weight: Enter the sort order for the meta tag
+  type: Which value type does this meta tag allow?
+  secure: Must this meta tag for URLs be secure?
+  multiple: Does this meta tag will allow multiple values?
+  absolute_url: Does this meta tag require absolute URLs to work?

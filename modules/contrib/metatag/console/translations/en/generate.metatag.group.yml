@@ -1,0 +1,17 @@
+description: Generate a meta tag group.
+help: The <info>generate:plugin:metatag:group</info> command helps generate a new metatag group for use with the Metatag module.
+welcome: Welcome to the Metatag group generator
+options:
+  label: The user-friendly name for this meta tag group.
+  description: A long explanation of this meta tag group.
+  plugin_id: Internal (machine) name for the meta tag group.
+  class_name: Internal camel-case version of the meta tag group's name.
+  weight: The sort order for this meta tag group.
+questions:
+  base_class: Enter the base class to use
+  class_name: Enter the class name for the meta tag group class
+  module: common.questions.module
+  weight: Enter the sort order for the meta tag group
+  label: Enter the label for the meta tag group
+  description: Enter a longer explanation of what the meta tag group is and how to use it
+  plugin_id: Enter the internal (machine) name for the meta tag group plugin

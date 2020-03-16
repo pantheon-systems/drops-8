@@ -1,0 +1,27 @@
+# A default migration mapping for Metatag-D7 field instance widget settings.
+#
+# @see Drupal\metatag\Plugin\migrate\source\d7\MetatagFieldInstance
+
+id: d7_metatag_field_instance_widget_settings
+label: Metatag field instance widget settings
+migration_tags:
+  - Drupal 7
+source:
+  plugin: d7_metatag_field_instance
+  source_module: metatag
+  ignore_map: true
+  constants:
+    field_name: field_metatag
+    form_mode: default
+process:
+  bundle: bundle
+  entity_type: entity_type
+  field_name: 'constants/field_name'
+  form_mode: 'constants/form_mode'
+destination:
+  plugin: component_entity_form_display
+migration_dependencies:
+  required:
+    # In order to know what field widgets need to be created the field instances
+    # have to be migrated.
+    - d7_metatag_field_instance
