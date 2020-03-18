@@ -3144,7 +3144,8 @@
             "http",
             "psr",
             "psr-7"
-        ]
+        ],
+        "abandoned": "laminas/laminas-diactoros"
     },
     {
         "name": "zendframework/zend-escaper",
@@ -3190,7 +3191,8 @@
         "keywords": [
             "escaper",
             "zf2"
-        ]
+        ],
+        "abandoned": "laminas/laminas-escaper"
     },
     {
         "name": "zendframework/zend-feed",
@@ -3253,7 +3255,8 @@
         "keywords": [
             "feed",
             "zf2"
-        ]
+        ],
+        "abandoned": "laminas/laminas-feed"
     },
     {
         "name": "zendframework/zend-stdlib",
@@ -3300,6 +3303,7 @@
         "keywords": [
             "stdlib",
             "zf2"
-        ]
+        ],
+        "abandoned": "laminas/laminas-stdlib"
     }
 ]
