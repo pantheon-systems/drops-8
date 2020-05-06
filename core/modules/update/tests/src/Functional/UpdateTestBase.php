@@ -3,6 +3,7 @@
 namespace Drupal\Tests\update\Functional;
 
 use Drupal\Core\DrupalKernel;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 
@@ -39,6 +40,20 @@ abstract class UpdateTestBase extends BrowserTestBase {
    * Denotes no update will be available in the test case.
    */
   const UPDATE_NONE = 'UPDATE_NONE';
+
+  /**
+   * The CSS locator for the update table run asserts on.
+   *
+   * @var string
+   */
+  protected $updateTableLocator;
+
+  /**
+   * The project that is being tested.
+   *
+   * @var string
+   */
+  protected $updateProject;
 
   protected function setUp() {
     parent::setUp();
@@ -92,7 +107,7 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected function standardTests() {
     $this->assertRaw('<h3>' . t('Drupal core') . '</h3>');
-    $this->assertRaw(\Drupal::l(t('Drupal'), Url::fromUri('http://example.com/project/drupal')), 'Link to the Drupal project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('Drupal'), Url::fromUri('http://example.com/project/drupal'))->toString(), 'Link to the Drupal project appears.');
     $this->assertNoText(t('No available releases found'));
   }
 
@@ -165,6 +180,115 @@ abstract class UpdateTestBase extends BrowserTestBase {
         $this->fail('Unexpected value for $expected_update_message_type: ' . $expected_update_message_type);
       }
     }
+  }
+
+  /**
+   * Asserts that an update version has the correct links.
+   *
+   * @param string $label
+   *   The label for the update.
+   * @param string $version
+   *   The project version.
+   * @param string|null $download_version
+   *   (optional) The version number as it appears in the download link. If
+   *   $download_version is not provided then $version will be used.
+   */
+  protected function assertVersionUpdateLinks($label, $version, $download_version = NULL) {
+    $download_version = $download_version ?? $version;
+    $update_element = $this->findUpdateElementByLabel($label);
+    // In the release notes URL the periods are replaced with dashes.
+    $url_version = str_replace('.', '-', $version);
+
+    $this->assertEquals($update_element->findLink($version)->getAttribute('href'), "http://example.com/{$this->updateProject}-$url_version-release");
+    $this->assertEquals($update_element->findLink('Download')->getAttribute('href'), "http://example.com/{$this->updateProject}-$download_version.tar.gz");
+    $this->assertEquals($update_element->findLink('Release notes')->getAttribute('href'), "http://example.com/{$this->updateProject}-$url_version-release");
+  }
+
+  /**
+   * Confirms messages are correct when a release has been unpublished/revoked.
+   *
+   * @param string $revoked_version
+   *   The revoked version that is currently installed.
+   * @param string $newer_version
+   *   The expected newer version to recommend.
+   * @param string $new_version_label
+   *   The expected label for the newer version (for example 'Recommended
+   *   version:' or 'Also available:').
+   */
+  protected function confirmRevokedStatus($revoked_version, $newer_version, $new_version_label) {
+    $this->drupalGet('admin/reports/updates');
+    $this->clickLink(t('Check manually'));
+    $this->checkForMetaRefresh();
+    $this->assertUpdateTableTextContains('Revoked!');
+    $this->assertUpdateTableTextContains($revoked_version);
+    $this->assertUpdateTableElementContains('error.svg');
+    $this->assertUpdateTableTextContains('Release revoked: Your currently installed release has been revoked, and is no longer available for download. Disabling everything included in this release or upgrading is strongly recommended!');
+    $this->assertVersionUpdateLinks($new_version_label, $newer_version);
+  }
+
+  /**
+   * Confirms messages are correct when a release has been marked unsupported.
+   *
+   * @param string $unsupported_version
+   *   The unsupported version that is currently installed.
+   * @param string $newer_version
+   *   The expected newer version to recommend.
+   * @param string $new_version_label
+   *   The expected label for the newer version (for example 'Recommended
+   *   version:' or 'Also available:').
+   */
+  protected function confirmUnsupportedStatus($unsupported_version, $newer_version, $new_version_label) {
+    $this->drupalGet('admin/reports/updates');
+    $this->clickLink(t('Check manually'));
+    $this->checkForMetaRefresh();
+    $this->assertUpdateTableTextContains('Not supported!');
+    $this->assertUpdateTableTextContains($unsupported_version);
+    $this->assertUpdateTableElementContains('error.svg');
+    $this->assertUpdateTableTextContains('Release not supported: Your currently installed release is now unsupported, and is no longer available for download. Disabling everything included in this release or upgrading is strongly recommended!');
+    $this->assertVersionUpdateLinks($new_version_label, $newer_version);
+  }
+
+  /**
+   * Asserts that the update table text contains the specified text.
+   *
+   * @param string $text
+   *   The expected text.
+   *
+   * @see \Behat\Mink\WebAssert::elementTextContains()
+   */
+  protected function assertUpdateTableTextContains($text) {
+    $this->assertSession()
+      ->elementTextContains('css', $this->updateTableLocator, $text);
+  }
+
+  /**
+   * Asserts that the update table element HTML contains the specified text.
+   *
+   * @param string $text
+   *   The expected text.
+   *
+   * @see \Behat\Mink\WebAssert::elementContains()
+   */
+  protected function assertUpdateTableElementContains($text) {
+    $this->assertSession()
+      ->elementContains('css', $this->updateTableLocator, $text);
+  }
+
+  /**
+   * Finds an update page element by label.
+   *
+   * @param string $label
+   *   The label for the update, for example "Recommended version:" or
+   *   "Latest version:".
+   *
+   * @return \Behat\Mink\Element\NodeElement
+   *   The update element.
+   */
+  protected function findUpdateElementByLabel($label) {
+    $update_elements = $this->getSession()->getPage()
+      ->findAll('css', $this->updateTableLocator . " .project-update__version:contains(\"$label\")");
+    $this->assertCount(1, $update_elements);
+    return $update_elements[0];
   }
 
 }

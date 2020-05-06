@@ -66,6 +66,13 @@ trait BrowserHtmlDebugTrait {
   protected $htmlOutputTestId;
 
   /**
+   * The Base URI to use for links to the output files.
+   *
+   * @var string
+   */
+  protected $htmlOutputBaseUrl;
+
+  /**
    * Formats HTTP headers as string for HTML output logging.
    *
    * @param array[] $headers
@@ -118,7 +125,7 @@ trait BrowserHtmlDebugTrait {
     file_put_contents($this->htmlOutputCounterStorage, $this->htmlOutputCounter++);
     // Do not use file_create_url() as the module_handler service might not be
     // available.
-    $uri = $GLOBALS['base_url'] . '/sites/simpletest/browser_output/' . $html_output_filename;
+    $uri = $this->htmlOutputBaseUrl . '/sites/simpletest/browser_output/' . $html_output_filename;
     file_put_contents($this->htmlOutputFile, $uri . "\n", FILE_APPEND);
   }
 
@@ -131,14 +138,18 @@ trait BrowserHtmlDebugTrait {
   protected function initBrowserOutputFile() {
     $browser_output_file = getenv('BROWSERTEST_OUTPUT_FILE');
     $this->htmlOutputEnabled = is_file($browser_output_file);
+    $this->htmlOutputBaseUrl = getenv('BROWSERTEST_OUTPUT_BASE_URL') ?: $GLOBALS['base_url'];
     if ($this->htmlOutputEnabled) {
       $this->htmlOutputFile = $browser_output_file;
       $this->htmlOutputClassName = str_replace("\\", "_", get_called_class());
       $this->htmlOutputDirectory = DRUPAL_ROOT . '/sites/simpletest/browser_output';
       // Do not use the file_system service so this method can be called before
-      // it is available.
-      if (!is_dir($this->htmlOutputDirectory)) {
-        mkdir($this->htmlOutputDirectory, 0775, TRUE);
+      // it is available. Checks !is_dir() twice around mkdir() because a
+      // concurrent test might have made the directory and caused mkdir() to
+      // fail. In this case we can still use the directory even though we failed
+      // to make it.
+      if (!is_dir($this->htmlOutputDirectory) && !@mkdir($this->htmlOutputDirectory, 0775, TRUE) && !is_dir($this->htmlOutputDirectory)) {
+        throw new \RuntimeException(sprintf('Unable to create directory: %s', $this->htmlOutputDirectory));
       }
       if (!file_exists($this->htmlOutputDirectory . '/.htaccess')) {
         file_put_contents($this->htmlOutputDirectory . '/.htaccess', "<IfModule mod_expires.c>\nExpiresActive Off\n</IfModule>\n");

@@ -15,4 +15,17 @@ namespace Drupal\webform\Plugin\WebformElement;
  */
 class Search extends TextBase {
 
+  /**
+   * {@inheritdoc}
+   */
+  protected function defineDefaultProperties() {
+    $properties = parent::defineDefaultProperties();
+    unset(
+      $properties['format_items'],
+      $properties['format_items_html'],
+      $properties['format_items_text']
+    );
+    return $properties;
+  }
+
 }

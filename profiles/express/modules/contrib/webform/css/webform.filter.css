@@ -1,0 +1,65 @@
+/**
+ * @file
+ * Filter styles
+ * @see /admin/structure/webform
+ * @see /admin/structure/webform/templates
+ */
+
+/**
+ * Server-side filter.
+ *
+ * @see \Drupal\webform\Form\WebformEntityFilterForm
+ * @see \Drupal\webform\Form\WebformOptionsFilterForm
+ * @see \Drupal\webform\Form\WebformSubmissionFilterForm
+ */
+.webform-filter-form .form-submit {
+  margin-right: 5px;
+  margin-left: 0;
+}
+
+.webform-filter-form .form-item {
+  margin-right: 5px;
+}
+
+.webform-filter-form .form-item input {
+  max-width: 300px;
+}
+
+.webform-filter-form .form-item select {
+  max-width: 200px;
+}
+
+@media screen and (max-width: 600px) {
+  .webform-filter-form .form-item {
+    display: block;
+    margin-right: 0;
+  }
+  .webform-filter-form .form-item input,
+  .webform-filter-form .form-item select {
+    max-width: initial;
+  }
+}
+
+/**
+ * Client-side filter.
+ *
+ * @see webform.filter.js
+ */
+.webform-form-filter {
+  position: relative;
+  display: inline-block;
+}
+
+.webform-form-filter input.webform-form-filter-reset {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.5em;
+  border: none;
+  background-color: transparent;
+  line-height: 1;
+}
+
+.webform-form-filter input.webform-form-filter-text {
+  padding-right: 1.5em;
+}

@@ -75,8 +75,27 @@ class BrowserTestBaseTest extends UnitTestCase {
     $ref_gethttpclient = new \ReflectionMethod($btb, 'getHttpClient');
     $ref_gethttpclient->setAccessible(TRUE);
 
-    $this->setExpectedException(\RuntimeException::class, 'The Mink client type stdClass does not support getHttpClient().');
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('The Mink client type stdClass does not support getHttpClient().');
     $ref_gethttpclient->invoke($btb);
+  }
+
+  /**
+   * Test that tearDown doesn't call cleanupEnvironment if setUp is not called.
+   *
+   * @covers ::tearDown
+   */
+  public function testTearDownWithoutSetUp() {
+    $method = 'cleanupEnvironment';
+    $this->assertTrue(method_exists(BrowserTestBase::class, $method));
+    $btb = $this->getMockBuilder(BrowserTestBase::class)
+      ->disableOriginalConstructor()
+      ->setMethods([$method])
+      ->getMockForAbstractClass();
+    $btb->expects($this->never())->method($method);
+    $ref_tearDown = new \ReflectionMethod($btb, 'tearDown');
+    $ref_tearDown->setAccessible(TRUE);
+    $ref_tearDown->invoke($btb);
   }
 
 }

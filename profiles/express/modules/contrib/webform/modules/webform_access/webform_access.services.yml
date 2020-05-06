@@ -1,0 +1,6 @@
+services:
+  webform_access.breadcrumb:
+    class: Drupal\webform_access\Breadcrumb\WebformAccessBreadcrumbBuilder
+    arguments: ['@string_translation']
+    tags:
+      - { name: breadcrumb_builder, priority: 1003 }

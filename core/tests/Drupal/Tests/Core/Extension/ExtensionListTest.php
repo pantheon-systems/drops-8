@@ -26,13 +26,13 @@ class ExtensionListTest extends UnitTestCase {
    */
   public function testGetNameWithNonExistingExtension() {
     list($cache, $info_parser, $module_handler, $state) = $this->getMocks();
-    $test_extension_list = new TestExtension($this->root, 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
+    $test_extension_list = new TestExtension($this->randomMachineName(), 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
 
     $extension_discovery = $this->prophesize(ExtensionDiscovery::class);
     $extension_discovery->scan('test_extension')->willReturn([]);
     $test_extension_list->setExtensionDiscovery($extension_discovery->reveal());
 
-    $this->setExpectedException(UnknownExtensionException::class);
+    $this->expectException(UnknownExtensionException::class);
     $test_extension_list->getName('test_name');
   }
 
@@ -50,13 +50,13 @@ class ExtensionListTest extends UnitTestCase {
    */
   public function testGetWithNonExistingExtension() {
     list($cache, $info_parser, $module_handler, $state) = $this->getMocks();
-    $test_extension_list = new TestExtension($this->root, 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
+    $test_extension_list = new TestExtension($this->randomMachineName(), 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
 
     $extension_discovery = $this->prophesize(ExtensionDiscovery::class);
     $extension_discovery->scan('test_extension')->willReturn([]);
     $test_extension_list->setExtensionDiscovery($extension_discovery->reveal());
 
-    $this->setExpectedException(UnknownExtensionException::class);
+    $this->expectException(UnknownExtensionException::class);
     $test_extension_list->get('test_name');
   }
 
@@ -142,7 +142,7 @@ class ExtensionListTest extends UnitTestCase {
 
     $filenames = $test_extension_list->getPathnames();
     $this->assertEquals([
-      'test_name' => 'vfs://drupal_root/example/test_name/test_name.info.yml',
+      'test_name' => 'example/test_name/test_name.info.yml',
     ], $filenames);
   }
 
@@ -153,7 +153,7 @@ class ExtensionListTest extends UnitTestCase {
     $test_extension_list = $this->setupTestExtensionList();
 
     $pathname = $test_extension_list->getPathname('test_name');
-    $this->assertEquals('vfs://drupal_root/example/test_name/test_name.info.yml', $pathname);
+    $this->assertEquals('example/test_name/test_name.info.yml', $pathname);
   }
 
   /**
@@ -174,7 +174,7 @@ class ExtensionListTest extends UnitTestCase {
     $test_extension_list = $this->setupTestExtensionList();
 
     $path = $test_extension_list->getPath('test_name');
-    $this->assertEquals('vfs://drupal_root/example/test_name', $path);
+    $this->assertEquals('example/test_name', $path);
   }
 
   /**
@@ -184,31 +184,99 @@ class ExtensionListTest extends UnitTestCase {
     $test_extension_list = $this->setupTestExtensionList();
 
     $path = $test_extension_list->getPath('test_name');
-    $this->assertEquals('vfs://drupal_root/example/test_name', $path);
+    $this->assertEquals('example/test_name', $path);
     $pathname = $test_extension_list->getPathname('test_name');
-    $this->assertEquals('vfs://drupal_root/example/test_name/test_name.info.yml', $pathname);
+    $this->assertEquals('example/test_name/test_name.info.yml', $pathname);
     $filenames = $test_extension_list->getPathnames();
     $this->assertEquals([
-      'test_name' => 'vfs://drupal_root/example/test_name/test_name.info.yml',
+      'test_name' => 'example/test_name/test_name.info.yml',
     ], $filenames);
 
     $test_extension_list->reset();
 
     // Ensure that everything is still usable after the resetting.
     $path = $test_extension_list->getPath('test_name');
-    $this->assertEquals('vfs://drupal_root/example/test_name', $path);
+    $this->assertEquals('example/test_name', $path);
     $pathname = $test_extension_list->getPathname('test_name');
-    $this->assertEquals('vfs://drupal_root/example/test_name/test_name.info.yml', $pathname);
+    $this->assertEquals('example/test_name/test_name.info.yml', $pathname);
     $filenames = $test_extension_list->getPathnames();
     $this->assertEquals([
-      'test_name' => 'vfs://drupal_root/example/test_name/test_name.info.yml',
+      'test_name' => 'example/test_name/test_name.info.yml',
     ], $filenames);
   }
 
   /**
-   * @return \Drupal\Tests\Core\Extension\TestExtension
+   * @covers ::checkIncompatibility
+   *
+   * @dataProvider providerCheckIncompatibility
    */
-  protected function setupTestExtensionList($extension_names = ['test_name']) {
+  public function testCheckIncompatibility($additional_settings, $expected) {
+    $test_extension_list = $this->setupTestExtensionList(['test_name'], $additional_settings);
+    $this->assertSame($expected, $test_extension_list->checkIncompatibility('test_name'));
+  }
+
+  /**
+   * DataProvider for testCheckIncompatibility().
+   */
+  public function providerCheckIncompatibility() {
+    return [
+      'core_incompatible true' => [
+        [
+          'core_incompatible' => TRUE,
+        ],
+        TRUE,
+      ],
+      'core_incompatible false' => [
+        [
+          'core_incompatible' => FALSE,
+        ],
+        FALSE,
+      ],
+      'PHP 1, core_incompatible FALSE' => [
+        [
+          'core_incompatible' => FALSE,
+          'php' => 1,
+        ],
+        FALSE,
+      ],
+      'PHP 1000000000000, core_incompatible FALSE' => [
+        [
+          'core_incompatible' => FALSE,
+          'php' => 1000000000000,
+        ],
+        TRUE,
+      ],
+      'PHP 1, core_incompatible TRUE' => [
+        [
+          'core_incompatible' => TRUE,
+          'php' => 1,
+        ],
+        TRUE,
+      ],
+      'PHP 1000000000000, core_incompatible TRUE' => [
+        [
+          'core_incompatible' => TRUE,
+          'php' => 1000000000000,
+        ],
+        TRUE,
+      ],
+    ];
+  }
+
+  /**
+   * Sets up an a test extension list.
+   *
+   * @param string[] $extension_names
+   *   The names of the extensions to create.
+   * @param mixed[] $additional_info_values
+   *   The additional values to add to extensions info.yml files. These values
+   *   will be encoded using '\Drupal\Component\Serialization\Yaml::encode()'.
+   *   The array keys should be valid top level yaml file keys.
+   *
+   * @return \Drupal\Tests\Core\Extension\TestExtension
+   *   The test extension list.
+   */
+  protected function setupTestExtensionList(array $extension_names = ['test_name'], array $additional_info_values = []) {
     vfsStream::setup('drupal_root');
 
     $folders = ['example' => []];
@@ -217,7 +285,7 @@ class ExtensionListTest extends UnitTestCase {
         'name' => 'test name',
         'type' => 'test_extension',
         'core' => '8.x',
-      ]);
+      ] + $additional_info_values);
     }
     vfsStream::create($folders);
     foreach ($extension_names as $extension_name) {
@@ -226,7 +294,7 @@ class ExtensionListTest extends UnitTestCase {
 
     list($cache, $info_parser, $module_handler, $state) = $this->getMocks();
     $info_parser->parse(Argument::any())->will(function ($args) {
-      return Yaml::decode(file_get_contents($args[0]));
+      return Yaml::decode(file_get_contents('vfs://drupal_root/' . $args[0]));
     });
 
     $test_extension_list = new TestExtension('vfs://drupal_root', 'test_extension', $cache->reveal(), $info_parser->reveal(), $module_handler->reveal(), $state->reveal(), 'testing');
@@ -234,7 +302,7 @@ class ExtensionListTest extends UnitTestCase {
     $extension_discovery = $this->prophesize(ExtensionDiscovery::class);
     $extension_scan_result = [];
     foreach ($extension_names as $extension_name) {
-      $extension_scan_result[$extension_name] = new Extension($this->root, 'test_extension', "vfs://drupal_root/example/$extension_name/$extension_name.info.yml");
+      $extension_scan_result[$extension_name] = new Extension('vfs://drupal_root', 'test_extension', "example/$extension_name/$extension_name.info.yml");
     }
     $extension_discovery->scan('test_extension')->willReturn($extension_scan_result);
     $test_extension_list->setExtensionDiscovery($extension_discovery->reveal());

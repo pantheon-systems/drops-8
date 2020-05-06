@@ -1,0 +1,23 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform that provides custom options element working examples.
+ */
+
+use Drupal\node\Entity\Node;
+
+/**
+ * Implements hook_install().
+ */
+function webform_options_custom_entity_test_install() {
+  $rooms = [
+    'Room 1 -- This is room number #1.',
+    'Room 2 -- This is room number #2.',
+    'Room 3 -- This is room number #3.',
+  ];
+  foreach ($rooms as $room) {
+    $node = Node::create(['type' => 'page', 'title' => $room, 'status' => TRUE]);
+    $node->save();
+  }
+}

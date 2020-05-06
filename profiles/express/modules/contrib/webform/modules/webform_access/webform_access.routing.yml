@@ -1,0 +1,75 @@
+# Access group.
+
+entity.webform_access_group.collection:
+  path: '/admin/structure/webform/access/group/manage'
+  defaults:
+    _entity_list: 'webform_access_group'
+    _title: 'Webforms: Access Group'
+  requirements:
+    _custom_access: '\Drupal\webform_access\Access\WebformAccessGroupAccess::checkAdminAccess'
+
+entity.webform_access_group.add_form:
+  path: '/admin/structure/webform/access/group/manage/add'
+  defaults:
+    _entity_form: 'webform_access_group.add'
+    _title: 'Add webform access group'
+  requirements:
+    _entity_create_access: 'webform_access_group'
+
+entity.webform_access_group.edit_form:
+  path: '/admin/structure/webform/access/group/manage/{webform_access_group}'
+  defaults:
+    _entity_form: 'webform_access_group.edit'
+    _title: 'Edit webform access group'
+  requirements:
+    _entity_access: 'webform_access_group.update'
+
+entity.webform_access_group.duplicate_form:
+  path: '/admin/structure/webform/access/group/{webform_access_group}/duplicate'
+  defaults:
+    _entity_form: 'webform_access_group.duplicate'
+    _title: 'Duplicate webform access group'
+  requirements:
+    _entity_access: 'webform_access_group.duplicate'
+
+entity.webform_access_group.delete_form:
+  path: '/admin/structure/webform/access/group/{webform_access_group}/delete'
+  defaults:
+    _entity_form: 'webform_access_group.delete'
+    _title: 'Delete webform access group'
+  requirements:
+    _entity_access: 'webform_access_group.delete'
+
+# Access type.
+
+entity.webform_access_type.collection:
+  path: '/admin/structure/webform/access/type/manage'
+  defaults:
+    _entity_list: 'webform_access_type'
+    _title: 'Webforms: Access Group'
+  requirements:
+    _permission: 'administer webform'
+
+entity.webform_access_type.add_form:
+  path: '/admin/structure/webform/access/type/manage/add'
+  defaults:
+    _entity_form: 'webform_access_type.add'
+    _title: 'Add webform access type'
+  requirements:
+    _entity_create_access: 'webform_access_type'
+
+entity.webform_access_type.edit_form:
+  path: '/admin/structure/webform/access/type/manage/{webform_access_type}'
+  defaults:
+    _entity_form: 'webform_access_type.edit'
+    _title: 'Edit webform access type'
+  requirements:
+    _entity_access: 'webform_access_type.update'
+
+entity.webform_access_type.delete_form:
+  path: '/admin/structure/webform/access/type/{webform_access_type}/delete'
+  defaults:
+    _entity_form: 'webform_access_type.delete'
+    _title: 'Delete webform access type'
+  requirements:
+    _entity_access: 'webform_access_type.delete'

@@ -58,7 +58,7 @@ function hook_user_cancel($edit, UserInterface $account, $method) {
         ->execute();
       node_mass_update($nodes, ['uid' => 0], NULL, TRUE);
       // Anonymize old revisions.
-      db_update('node_field_revision')
+      \Drupal::database()->update('node_field_revision')
         ->fields(['uid' => 0])
         ->condition('uid', $account->id())
         ->execute();
@@ -150,11 +150,11 @@ function hook_user_login(UserInterface $account) {
   if (!$account->getTimezone() && $config->get('timezone.user.configurable') && $config->get('timezone.user.warn')) {
     \Drupal::messenger()
       ->addStatus(t('Configure your <a href=":user-edit">account time zone setting</a>.', [
-        ':user-edit' => $account->url('edit-form', [
+        ':user-edit' => $account->toUrl('edit-form', [
           'query' => \Drupal::destination()
             ->getAsArray(),
           'fragment' => 'edit-timezone',
-        ]),
+        ])->toString(),
       ]));
   }
 }
@@ -166,7 +166,7 @@ function hook_user_login(UserInterface $account) {
  *   The user object on which the operation was just performed.
  */
 function hook_user_logout(AccountInterface $account) {
-  db_insert('logouts')
+  \Drupal::database()->insert('logouts')
     ->fields([
       'uid' => $account->id(),
       'time' => time(),

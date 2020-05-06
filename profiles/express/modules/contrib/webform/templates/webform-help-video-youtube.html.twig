@@ -12,6 +12,6 @@
 {{ attach_library('webform/webform.help') }}
 <div class="webform-help-video-youtube">
   <div class="webform-help-video-youtube--container">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/{{ youtube_id }}{{ autoplay ? '?autoplay=1' : '' }}" frameborder="0" allowfullscreen></iframe>
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/{{ youtube_id }}?rel=0&modestbranding=1{{ autoplay ? '&autoplay=1' : '' }}"{{ autoplay ? 'allow="autoplay"' : '' }} frameborder="0" allowfullscreen></iframe>
   </div>
 </div>

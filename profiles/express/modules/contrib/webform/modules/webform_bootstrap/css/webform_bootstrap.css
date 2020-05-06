@@ -10,3 +10,76 @@
 .webform-flex--container .form-inline .form-control {
   width: 100%;
 }
+
+/**
+  * Form composite title. (applies to radios and checkboxes)
+ */
+.form-composite legend {
+  font-size: 1em;
+  font-weight: bold;
+  border: none;
+  margin: 0;
+}
+
+/**
+ * Element title inline.
+ */
+.webform-element--title-inline > div {
+  display: inline;
+}
+
+.webform-element--title-inline .form-control,
+.webform-element--title-inline .select-wrapper {
+  display: inline;
+  width: inherit;
+}
+
+/**
+ * Form composite title inline. (applies to radios and checkboxes)
+ */
+.form-composite.webform-fieldset--title-inline legend {
+  float: left;
+  width: auto;
+  font-size: 1em;
+  font-weight: bold;
+  border: none;
+  margin: 10px 0.5em 10px 0;
+}
+
+/**
+ * Likert.
+ */
+@media (max-width: 768px) {
+  .webform-likert-help.hidden {
+    display: inline !important;
+  }
+  .webform-likert-description.hidden {
+    display: block !important;
+  }
+}
+
+/**
+ * Image select.
+ */
+html.js .form-type-webform-image-select .select-wrapper:after {
+  display: none;
+}
+
+/**
+ * Issue #3010798: Responsive confirmation modal.
+ */
+@media only screen and (max-width: 650px) {
+  .webform-confirmation-modal {
+    width: 90% !important;
+  }
+}
+
+/**
+ * Messages.
+ */
+.alert a.btn,
+.alert a.btn:hover,
+.alert a.btn:focus,
+.ui-widget-content a.btn {
+  color: #fff;
+}

@@ -1,0 +1,7 @@
+webform.admin_settings.third_party.webform_icheck:
+  type: mapping
+  label: 'iCheck'
+  mapping:
+    default_icheck:
+      type: string
+      label: 'Default iCheck style'

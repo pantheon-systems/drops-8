@@ -21,6 +21,11 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
   public static $modules = ['field', 'field_ui', 'text', 'node', 'user'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * The name of the entity bundle that is created in the test.
    *
    * @var string
@@ -64,12 +69,13 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
     ]);
     $instance->save();
 
-    $display = entity_get_display('node', $this->bundle, 'default')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', $this->bundle)
       ->setComponent($this->fieldName, [
         'type' => 'boolean',
         'settings' => [],
-      ]);
-    $display->save();
+      ])
+      ->save();
   }
 
   /**

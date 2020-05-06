@@ -2,25 +2,28 @@
 
 namespace Drupal\node\Plugin\Search;
 
+use Drupal\Core\Access\AccessibleInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\Config;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\Query\SelectExtender;
 use Drupal\Core\Database\StatementInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
-use Drupal\Core\Session\AccountInterface;
-use Drupal\Core\Access\AccessibleInterface;
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Security\TrustedCallbackInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 use Drupal\search\Plugin\ConfigurableSearchPluginBase;
 use Drupal\search\Plugin\SearchIndexingInterface;
+use Drupal\search\SearchIndexInterface;
 use Drupal\Search\SearchQuery;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -32,21 +35,34 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   title = @Translation("Content")
  * )
  */
-class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInterface, SearchIndexingInterface {
+class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInterface, SearchIndexingInterface, TrustedCallbackInterface {
+  use DeprecatedServicePropertyTrait;
 
   /**
-   * A database connection object.
+   * {@inheritdoc}
+   */
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
+
+  /**
+   * The current database connection.
    *
    * @var \Drupal\Core\Database\Connection
    */
   protected $database;
 
   /**
-   * An entity manager object.
+   * The replica database connection.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Database\Connection
    */
-  protected $entityManager;
+  protected $databaseReplica;
+
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
 
   /**
    * A module manager object.
@@ -82,6 +98,13 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    * @var \Drupal\Core\Render\RendererInterface
    */
   protected $renderer;
+
+  /**
+   * The search index.
+   *
+   * @var \Drupal\search\SearchIndexInterface
+   */
+  protected $searchIndex;
 
   /**
    * An array of additional rankings from hook_ranking().
@@ -131,13 +154,15 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       $plugin_id,
       $plugin_definition,
       $container->get('database'),
-      $container->get('entity.manager'),
+      $container->get('entity_type.manager'),
       $container->get('module_handler'),
       $container->get('config.factory')->get('search.settings'),
       $container->get('language_manager'),
       $container->get('renderer'),
       $container->get('messenger'),
-      $container->get('current_user')
+      $container->get('current_user'),
+      $container->get('database.replica'),
+      $container->get('search.index')
     );
   }
 
@@ -151,9 +176,9 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
    * @param \Drupal\Core\Database\Connection $database
-   *   A database connection object.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   An entity manager object.
+   *   The current database connection.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   A module manager object.
    * @param \Drupal\Core\Config\Config $search_settings
@@ -166,10 +191,15 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *   The messenger.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The $account object to use for checking for access to advanced search.
+   * @param \Drupal\Core\Database\Connection|null $database_replica
+   *   (Optional) the replica database connection.
+   * @param \Drupal\search\SearchIndexInterface $search_index
+   *   The search index.
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, Connection $database, EntityManagerInterface $entity_manager, ModuleHandlerInterface $module_handler, Config $search_settings, LanguageManagerInterface $language_manager, RendererInterface $renderer, MessengerInterface $messenger, AccountInterface $account = NULL) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, Connection $database, EntityTypeManagerInterface $entity_type_manager, ModuleHandlerInterface $module_handler, Config $search_settings, LanguageManagerInterface $language_manager, RendererInterface $renderer, MessengerInterface $messenger, AccountInterface $account = NULL, Connection $database_replica = NULL, SearchIndexInterface $search_index = NULL) {
     $this->database = $database;
-    $this->entityManager = $entity_manager;
+    $this->databaseReplica = $database_replica ?: $database;
+    $this->entityTypeManager = $entity_type_manager;
     $this->moduleHandler = $module_handler;
     $this->searchSettings = $search_settings;
     $this->languageManager = $language_manager;
@@ -179,6 +209,11 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
     $this->addCacheTags(['node_list']);
+    if (!$search_index) {
+      @trigger_error('Calling NodeSearch::__construct() without the $search_index argument is deprecated in drupal:8.8.0 and is required in drupal:9.0.0. See https://www.drupal.org/node/3075696', E_USER_DEPRECATED);
+      $search_index = \Drupal::service('search.index');
+    }
+    $this->searchIndex = $search_index;
   }
 
   /**
@@ -236,8 +271,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     $keys = $this->keywords;
 
     // Build matching conditions.
-    $query = $this->database
-      ->select('search_index', 'i', ['target' => 'replica'])
+    $query = $this->databaseReplica
+      ->select('search_index', 'i')
       ->extend('Drupal\search\SearchQuery')
       ->extend('Drupal\Core\Database\Query\PagerSelectExtender');
     $query->join('node_field_data', 'n', 'n.nid = i.sid AND n.langcode = i.langcode');
@@ -327,8 +362,8 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   protected function prepareResults(StatementInterface $found) {
     $results = [];
 
-    $node_storage = $this->entityManager->getStorage('node');
-    $node_render = $this->entityManager->getViewBuilder('node');
+    $node_storage = $this->entityTypeManager->getStorage('node');
+    $node_render = $this->entityTypeManager->getViewBuilder('node');
     $keys = $this->keywords;
 
     foreach ($found as $item) {
@@ -338,7 +373,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       $build = $node_render->view($node, 'search_result', $item->langcode);
 
       /** @var \Drupal\node\NodeTypeInterface $type*/
-      $type = $this->entityManager->getStorage('node_type')->load($node->bundle());
+      $type = $this->entityTypeManager->getStorage('node_type')->load($node->bundle());
 
       unset($build['#theme']);
       $build['#pre_render'][] = [$this, 'removeSubmittedInfo'];
@@ -350,14 +385,13 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
 
       $extra = $this->moduleHandler->invokeAll('node_search_result', [$node]);
 
-      $language = $this->languageManager->getLanguage($item->langcode);
       $username = [
         '#theme' => 'username',
         '#account' => $node->getOwner(),
       ];
 
       $result = [
-        'link' => $node->url('canonical', ['absolute' => TRUE, 'language' => $language]),
+        'link' => $node->toUrl('canonical', ['absolute' => TRUE])->toString(),
         'type' => $type->label(),
         'title' => $node->label(),
         'node' => $node,
@@ -438,7 +472,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
     // per cron run.
     $limit = (int) $this->searchSettings->get('index.cron_limit');
 
-    $query = db_select('node', 'n', ['target' => 'replica']);
+    $query = $this->databaseReplica->select('node', 'n');
     $query->addField('n', 'nid');
     $query->leftJoin('search_dataset', 'sd', 'sd.sid = n.nid AND sd.type = :type', [':type' => $this->getPluginId()]);
     $query->addExpression('CASE MAX(sd.reindex) WHEN NULL THEN 0 ELSE 1 END', 'ex');
@@ -459,9 +493,15 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       return;
     }
 
-    $node_storage = $this->entityManager->getStorage('node');
-    foreach ($node_storage->loadMultiple($nids) as $node) {
-      $this->indexNode($node);
+    $node_storage = $this->entityTypeManager->getStorage('node');
+    $words = [];
+    try {
+      foreach ($node_storage->loadMultiple($nids) as $node) {
+        $words += $this->indexNode($node);
+      }
+    }
+    finally {
+      $this->searchIndex->updateWordWeights($words);
     }
   }
 
@@ -470,10 +510,14 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
    *
    * @param \Drupal\node\NodeInterface $node
    *   The node to index.
+   *
+   * @return array
+   *   An array of words to update after indexing.
    */
   protected function indexNode(NodeInterface $node) {
+    $words = [];
     $languages = $node->getTranslationLanguages();
-    $node_render = $this->entityManager->getViewBuilder('node');
+    $node_render = $this->entityTypeManager->getViewBuilder('node');
 
     foreach ($languages as $language) {
       $node = $node->getTranslation($language->getId());
@@ -498,8 +542,9 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
       }
 
       // Update index, using search index "type" equal to the plugin ID.
-      search_index($this->getPluginId(), $node->id(), $language->getId(), $text);
+      $words += $this->searchIndex->index($this->getPluginId(), $node->id(), $language->getId(), $text, FALSE);
     }
+    return $words;
   }
 
   /**
@@ -508,7 +553,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   public function indexClear() {
     // All NodeSearch pages share a common search index "type" equal to
     // the plugin ID.
-    search_index_clear($this->getPluginId());
+    $this->searchIndex->clear($this->getPluginId());
   }
 
   /**
@@ -517,7 +562,7 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
   public function markForReindex() {
     // All NodeSearch pages share a common search index "type" equal to
     // the plugin ID.
-    search_mark_for_reindex($this->getPluginId());
+    $this->searchIndex->markForReindex($this->getPluginId());
   }
 
   /**
@@ -831,6 +876,13 @@ class NodeSearch extends ConfigurableSearchPluginBase implements AccessibleInter
         unset($this->configuration['rankings'][$var]);
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function trustedCallbacks() {
+    return ['removeSubmittedInfo'];
   }
 
 }

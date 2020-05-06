@@ -25,6 +25,11 @@ class BookContentModerationTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -65,7 +70,7 @@ class BookContentModerationTest extends BrowserTestBase {
     ];
     $this->drupalPostForm('node/add/book', $edit, t('Save'));
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
-    $this->assertTrue($node);
+    $this->assertNotEmpty($node);
 
     $edit = [
       'moderation_state[0][state]' => 'draft',

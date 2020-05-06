@@ -30,23 +30,12 @@ class WebformTermsOfService extends Checkbox {
    * {@inheritdoc}
    */
   public function getInfo() {
-    return parent::getInfo() + [
+    return [
+      '#return_value' => TRUE,
       '#terms_type' => static::TERMS_MODAL,
       '#terms_title' => '',
       '#terms_content' => '',
-    ];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function valueCallback(&$element, $input, FormStateInterface $form_state) {
-    if ($input === FALSE) {
-      return isset($element['#default_value']) ? $element['#default_value'] : FALSE;
-    }
-    else {
-      return isset($input) ? TRUE : FALSE;
-    }
+    ] + parent::getInfo();
   }
 
   /**
@@ -54,11 +43,13 @@ class WebformTermsOfService extends Checkbox {
    */
   public static function preRenderCheckbox($element) {
     $element = parent::preRenderCheckbox($element);
+    $id = 'webform-terms-of-service-' . implode('_', $element['#parents']);
 
     if (empty($element['#title'])) {
       $element['#title'] = (string) t('I agree to the {terms of service}.');
     }
-    $element['#title'] = str_replace('{', '<a>', $element['#title']);
+
+    $element['#title'] = str_replace('{', '<a role="button" href="#terms">', $element['#title']);
     $element['#title'] = str_replace('}', '</a>', $element['#title']);
 
     // Change description to render array.
@@ -72,21 +63,33 @@ class WebformTermsOfService extends Checkbox {
     // Add terms to #description.
     $element['#description']['terms'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['webform-terms-of-service-details', 'js-hide']],
+      '#attributes' => [
+        'id' => $id . '--description',
+        'class' => ['webform-terms-of-service-details', 'js-hide'],
+      ],
     ];
     if (!empty($element['#terms_title'])) {
       $element['#description']['terms']['title'] = [
+        '#type' => 'container',
         '#markup' => $element['#terms_title'],
-        '#prefix' => '<div class="webform-terms-of-service-details--title">',
-        '#suffix' => '</div>',
+        '#attributes' => [
+          'class' => ['webform-terms-of-service-details--title'],
+        ],
       ];
     }
     if (!empty($element['#terms_content'])) {
       $element['#description']['terms']['content'] = (is_array($element['#terms_content'])) ? $element['#terms_content'] : ['#markup' => $element['#terms_content']];
       $element['#description']['terms']['content'] += [
-        '#prefix' => '<div class="webform-terms-of-service-details--content">',
-        '#suffix' => '</div>',
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['webform-terms-of-service-details--content'],
+        ],
       ];
+    }
+
+    // Add accessibility attributes to title and content.
+    if ($element['#type'] === static::TERMS_SLIDEOUT) {
+
     }
 
     // Set type to data attribute.
@@ -96,10 +99,21 @@ class WebformTermsOfService extends Checkbox {
 
     // Change #type to checkbox so that element is rendered correctly.
     $element['#type'] = 'checkbox';
-    $element['#wrapper_attributes']['class'] = 'form-type-webform-terms-of-service';
-    $element['#wrapper_attributes']['class'] = 'js-form-type-webform-terms-of-service';
+    $element['#wrapper_attributes']['class'][] = 'form-type-webform-terms-of-service';
+    $element['#wrapper_attributes']['class'][] = 'js-form-type-webform-terms-of-service';
+
+    $element['#element_validate'][] = [get_called_class(), 'validateWebformTermsOfService'];
 
     return $element;
+  }
+
+  /**
+   * Webform element validation handler for webform terms of service element.
+   */
+  public static function validateWebformTermsOfService(&$element, FormStateInterface $form_state, &$complete_form) {
+    $value = (bool) $form_state->getValue($element['#parents'], []);
+    $element['#value'] = $value;
+    $form_state->setValueForElement($element, $value);
   }
 
 }

@@ -1,0 +1,5 @@
+handlers:
+  yesterday:
+    settings:
+      subject: 'Spanish Subject'
+      body: 'Spanish Body'

@@ -72,4 +72,71 @@ class CommentUpdateTest extends UpdatePathTestBase {
     $this->assertTrue(\Drupal::database()->schema()->indexExists('comment_field_data', 'comment__status_comment_type'));
   }
 
+  /**
+   * Tests that the comment entity type has an 'owner' entity key.
+   *
+   * @see comment_update_8700()
+   */
+  public function testOwnerEntityKey() {
+    // Check that the 'owner' entity key does not exist prior to the update.
+    $entity_type = \Drupal::entityDefinitionUpdateManager()->getEntityType('comment');
+    $this->assertFalse($entity_type->getKey('owner'));
+
+    // Run updates.
+    $this->runUpdates();
+
+    // Check that the entity key exists and it has the correct value.
+    $entity_type = \Drupal::entityDefinitionUpdateManager()->getEntityType('comment');
+    $this->assertEquals('uid', $entity_type->getKey('owner'));
+  }
+
+  /**
+   * Tests whether the 'entity_type' and 'field_name' columns are required.
+   *
+   * @see comment_update_8701()
+   */
+  public function testCommentEntityTypeAndFieldNameRequired() {
+    $database = \Drupal::database();
+    $this->assertEquals(2, $database->query('SELECT count(*) FROM {comment_field_data}')->fetchField());
+    if ($database->driver() === 'mysql') {
+      $table_description = $database
+        ->query('DESCRIBE {comment_field_data}')
+        ->fetchAllAssoc('Field');
+      $this->assertEquals('YES', $table_description['entity_type']->Null);
+      $this->assertEquals('YES', $table_description['field_name']->Null);
+    }
+
+    $this->runUpdates();
+
+    $this->assertEquals(2, $database->query('SELECT count(*) FROM {comment_field_data}')->fetchField());
+    if ($database->driver() === 'mysql') {
+      $table_description = $database
+        ->query('DESCRIBE {comment_field_data}')
+        ->fetchAllAssoc('Field');
+      $this->assertEquals('NO', $table_description['entity_type']->Null);
+      $this->assertEquals('NO', $table_description['field_name']->Null);
+    }
+  }
+
+  /**
+   * Test the update hook requirements check for 8701.
+   *
+   * @see comment_update_8701()
+   * @see comment_requirements()
+   */
+  public function testCommentEntityTypeAndFieldUpdateRequirementsCheck() {
+    require_once __DIR__ . '/../../../fixtures/update/drupal-8.empty-comment-fields.3052147.php';
+    $this->writeSettings([
+      'settings' => [
+        'update_free_access' => (object) [
+          'value' => TRUE,
+          'required' => TRUE,
+        ],
+      ],
+    ]);
+    $this->drupalGet($this->updateUrl);
+    $this->assertSession()->pageTextContains('Errors found');
+    $this->assertSession()->elementContains('css', '.system-status-report__entry--error', 'The comment_update_8701() function requires that the <em class="placeholder">entity_type</em> and <em class="placeholder">field_name</em> fields have values for all comment entities.');
+  }
+
 }

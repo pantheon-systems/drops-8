@@ -20,15 +20,24 @@ class Radios extends OptionsBase {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    return [
+  protected function defineDefaultProperties() {
+    $properties = [
       // Form display.
       'options_display' => 'one_column',
       'options_description_display' => 'description',
-      // iCheck settings.
-      'icheck' => '',
-    ] + parent::getDefaultProperties();
+      'options__properties' => [],
+      // Wrapper.
+      'wrapper_type' => 'fieldset',
+    ] + parent::defineDefaultProperties();
+    unset(
+      $properties['format_items'],
+      $properties['format_items_html'],
+      $properties['format_items_text']
+    );
+    return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
@@ -40,6 +49,19 @@ class Radios extends OptionsBase {
     // nevertheless submitted.
     // Issue #2856315: Conditional Logic - Requiring Radios in a Fieldset.
     $element['#attached']['library'][] = 'webform/webform.element.radios';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setDefaultValue(array &$element) {
+    // Unset empty string as default option to prevent '' === '0' issue.
+    // @see \Drupal\Core\Render\Element\Radio::preRenderRadio
+    if (isset($element['#default_value'])
+      && $element['#default_value'] == ''
+      && !isset($element['#options'][$element['#default_value']])) {
+      unset($element['#default_value']);
+    }
   }
 
 }

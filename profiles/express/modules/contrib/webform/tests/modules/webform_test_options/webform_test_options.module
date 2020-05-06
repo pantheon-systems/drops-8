@@ -20,7 +20,7 @@ function webform_test_options_webform_options_test_alter(array &$options, array 
  * Implements hook_webform_options_alter().
  */
 function webform_test_options_webform_options_alter(array &$options, array &$element, $id) {
-  if ($id == 'custom') {
+  if ($id === 'custom') {
     $options = [
       'one' => t('One'),
       'two' => t('Two'),

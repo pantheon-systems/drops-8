@@ -59,7 +59,7 @@ class WebformTestElement extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function preCreate(array &$element, array $values) {
+  public function preCreate(array &$element, array &$values) {
     $this->displayMessage(__FUNCTION__);
   }
 
@@ -123,7 +123,7 @@ class WebformTestElement extends WebformElementBase {
   protected function displayMessage($method_name, $context1 = NULL) {
     if (PHP_SAPI != 'cli') {
       $t_args = ['@class_name' => get_class($this), '@method_name' => $method_name, '@context1' => $context1];
-      drupal_set_message($this->t('Invoked: @class_name:@method_name @context1', $t_args));
+      $this->messenger()->addStatus($this->t('Invoked: @class_name:@method_name @context1', $t_args));
     }
   }
 
@@ -131,7 +131,7 @@ class WebformTestElement extends WebformElementBase {
    * Form API callback. Convert password confirm array to single value.
    */
   public static function validate(array &$element, FormStateInterface $form_state) {
-    drupal_set_message(t('Invoked: Drupal\webform_test_element\Plugin\WebformElement\WebformTestElement::validate'));
+    \Drupal::messenger()->addStatus(t('Invoked: Drupal\webform_test_element\Plugin\WebformElement\WebformTestElement::validate'));
   }
 
 }

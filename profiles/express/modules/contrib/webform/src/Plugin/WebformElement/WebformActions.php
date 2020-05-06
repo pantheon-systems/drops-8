@@ -23,15 +23,13 @@ class WebformActions extends ContainerBase {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
+  protected function defineDefaultProperties() {
     $properties = [
       // Title.
       'title' => '',
       // Attributes.
       'attributes' => [],
-      // Conditional logic.
-      'states' => [],
-    ];
+    ] + $this->defineDefaultBaseProperties();
     foreach (WebformActionsElement::$buttons as $button) {
       $properties[$button . '_hide'] = FALSE;
       $properties[$button . '__label'] = '';
@@ -39,6 +37,8 @@ class WebformActions extends ContainerBase {
     }
     return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
@@ -58,7 +58,7 @@ class WebformActions extends ContainerBase {
    * {@inheritdoc}
    */
   public function isRoot() {
-    return TRUE;
+    return FALSE;
   }
 
   /**
@@ -132,6 +132,12 @@ class WebformActions extends ContainerBase {
         'label' => $this->t('draft'),
         'access' => $draft_enabled,
       ],
+      'update' => [
+        'title' => $this->t('Update'),
+        'label' => $this->t('Update'),
+        'description' => $this->t('This is used after a submission has been saved and finalized to the database.'),
+        'access' => !$webform->isResultsDisabled(),
+      ],
       'wizard_prev' => [
         'title' => $this->t('Wizard previous'),
         'label' => $this->t('wizard previous'),
@@ -147,13 +153,13 @@ class WebformActions extends ContainerBase {
       'preview_prev' => [
         'title' => $this->t('Preview previous'),
         'label' => $this->t('preview previous'),
-        'description' => $this->t('The text for the button that will proceed to the preview page.'),
+        'description' => $this->t('The text for the button to go backwards from the preview page.'),
         'access' => $preview_enabled,
       ],
       'preview_next' => [
         'title' => $this->t('Preview next'),
         'label' => $this->t('preview next'),
-        'description' => $this->t('The text for the button to go backwards from the preview page.'),
+        'description' => $this->t('The text for the button that will proceed to the preview page.'),
         'access' => $preview_enabled,
       ],
     ];
@@ -226,11 +232,17 @@ class WebformActions extends ContainerBase {
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
 
-    /** @var \Drupal\webform\WebformInterface $webform */
-    $webform = $form_state->getFormObject()->getWebform();
+    /** @var \Drupal\webform_ui\Form\WebformUiElementEditForm $form_object */
+    $form_object = $form_state->getFormObject();
 
-    if (!$webform->hasActions()) {
-      $form['element']['title']['#default_value'] = $this->t('Submit button(s)');
+    if (!$form_object->getWebform()->hasActions()) {
+      $form['element']['title']['#default_value'] = (string) $this->t('Submit button(s)');
+    }
+
+    // Hide element settings for default 'actions' to prevent UX confusion.
+    $key = $form_object->getKey() ?: $form_object->getDefaultKey();
+    if ($key === 'actions') {
+      $form['element']['#access'] = FALSE;
     }
 
     return $form;

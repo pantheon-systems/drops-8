@@ -37,11 +37,14 @@ class WebformRoles extends Checkboxes {
   }
 
   /**
-   * Webform element validation handler for webform roles (checkboxes) element..
+   * Webform element validation handler for webform roles (checkboxes) element.
    */
   public static function validateWebformRoles(&$element, FormStateInterface $form_state, &$complete_form) {
     $value = $form_state->getValue($element['#parents'], []);
-    $form_state->setValueForElement($element, array_values(array_filter($value)));
+    $value = array_values(array_filter($value));
+
+    $element['#value'] = $value;
+    $form_state->setValueForElement($element, $value);
   }
 
 }

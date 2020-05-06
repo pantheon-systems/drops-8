@@ -27,7 +27,8 @@ class WebformExcludedColumns extends WebformExcludedBase {
    */
   public static function getWebformExcludedOptions(array $element) {
     /** @var \Drupal\webform\WebformInterface $webform */
-    $webform = WebformEntity::load($element['#webform_id']);
+    $webform = WebformEntity::load($element['#webform_id'])
+      ?: \Drupal::service('webform.request')->getCurrentWebform();
 
     $options = [];
 
@@ -43,6 +44,12 @@ class WebformExcludedColumns extends WebformExcludedBase {
       ];
     }
     $elements = $webform->getElementsInitializedFlattenedAndHasValue('view');
+
+    // Replace tokens which can be used in an element's #title.
+    /** @var \Drupal\webform\WebformTokenManagerInterface $token_manager */
+    $token_manager = \Drupal::service('webform.token_manager');
+    $elements = $token_manager->replace($elements, $webform);
+
     foreach ($elements as $key => $element) {
       $options[$key] = [
         'title' => $element['#admin_title'] ?:$element['#title'] ?: $key,

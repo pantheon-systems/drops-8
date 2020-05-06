@@ -11,6 +11,9 @@
 
 namespace Symfony\Bridge\PhpUnit;
 
+use PHPUnit\Framework\TestResult;
+use PHPUnit\Util\ErrorHandler;
+
 /**
  * Catch deprecation notices and print a summary report at the end of the test suite.
  *
@@ -23,6 +26,7 @@ class DeprecationErrorHandler
     const MODE_DISABLED = 'disabled';
 
     private static $isRegistered = false;
+    private static $isAtLeastPhpUnit83;
 
     /**
      * Registers and configures the deprecation handler.
@@ -105,11 +109,8 @@ class DeprecationErrorHandler
             'remaining vendor' => array(),
         );
         $deprecationHandler = function ($type, $msg, $file, $line, $context = array()) use (&$deprecations, $getMode, $UtilPrefix, $inVendors) {
-            $mode = $getMode();
-            if ((E_USER_DEPRECATED !== $type && E_DEPRECATED !== $type) || DeprecationErrorHandler::MODE_DISABLED === $mode) {
-                $ErrorHandler = $UtilPrefix.'ErrorHandler';
-
-                return $ErrorHandler::handleError($type, $msg, $file, $line, $context);
+            if ((E_USER_DEPRECATED !== $type && E_DEPRECATED !== $type && (E_WARNING !== $type || false === strpos($msg, '" targeting switch is equivalent to "break'))) || DeprecationErrorHandler::MODE_DISABLED === $mode = $getMode()) {
+                return \call_user_func(DeprecationErrorHandler::getPhpUnitErrorHandler(), $type, $msg, $file, $line, $context);
             }
 
             $trace = debug_backtrace();
@@ -179,12 +180,14 @@ class DeprecationErrorHandler
                 ++$ref;
             }
             ++$deprecations[$group.'Count'];
+
+            return null;
         };
         $oldErrorHandler = set_error_handler($deprecationHandler);
 
         if (null !== $oldErrorHandler) {
             restore_error_handler();
-            if (array($UtilPrefix.'ErrorHandler', 'handleError') === $oldErrorHandler) {
+            if ($oldErrorHandler instanceof ErrorHandler || array($UtilPrefix.'ErrorHandler', 'handleError') === $oldErrorHandler) {
                 restore_error_handler();
                 self::register($mode);
             }
@@ -282,23 +285,47 @@ class DeprecationErrorHandler
     {
         $deprecations = array();
         $previousErrorHandler = set_error_handler(function ($type, $msg, $file, $line, $context = array()) use (&$deprecations, &$previousErrorHandler) {
-            if (E_USER_DEPRECATED !== $type && E_DEPRECATED !== $type) {
+            if (E_USER_DEPRECATED !== $type && E_DEPRECATED !== $type && (E_WARNING !== $type || false === strpos($msg, '" targeting switch is equivalent to "break'))) {
                 if ($previousErrorHandler) {
                     return $previousErrorHandler($type, $msg, $file, $line, $context);
                 }
-                static $autoload = true;
 
-                $ErrorHandler = class_exists('PHPUnit_Util_ErrorHandler', $autoload) ? 'PHPUnit_Util_ErrorHandler' : 'PHPUnit\Util\ErrorHandler';
-                $autoload = false;
-
-                return $ErrorHandler::handleError($type, $msg, $file, $line, $context);
+                return \call_user_func(DeprecationErrorHandler::getPhpUnitErrorHandler(), $type, $msg, $file, $line, $context);
             }
             $deprecations[] = array(error_reporting(), $msg, $file);
+
+            return null;
         });
 
         register_shutdown_function(function () use ($outputFile, &$deprecations) {
             file_put_contents($outputFile, serialize($deprecations));
         });
+    }
+
+    /**
+     * @internal
+     */
+    public static function getPhpUnitErrorHandler()
+    {
+        if (!isset(self::$isAtLeastPhpUnit83)) {
+            self::$isAtLeastPhpUnit83 = class_exists('PHPUnit\Util\ErrorHandler') && method_exists('PHPUnit\Util\ErrorHandler', '__invoke');
+        }
+        if (!self::$isAtLeastPhpUnit83) {
+            return (class_exists('PHPUnit_Util_ErrorHandler', false) ? 'PHPUnit_Util_' : 'PHPUnit\Util\\').'ErrorHandler::handleError';
+        }
+
+        foreach (debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT | DEBUG_BACKTRACE_IGNORE_ARGS) as $frame) {
+            if (isset($frame['object']) && $frame['object'] instanceof TestResult) {
+                return new ErrorHandler(
+                    $frame['object']->getConvertDeprecationsToExceptions(),
+                    $frame['object']->getConvertErrorsToExceptions(),
+                    $frame['object']->getConvertNoticesToExceptions(),
+                    $frame['object']->getConvertWarningsToExceptions()
+                );
+            }
+        }
+
+        return function () { return false; };
     }
 
     /**

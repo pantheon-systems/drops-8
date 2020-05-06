@@ -7,6 +7,7 @@ dependencies:
 id: likert_satisfaction
 label: 'Likert: Satisfaction'
 category: Likert
+likert: true
 options: |
   1: Very Unsatisfied
   2: Unsatisfied

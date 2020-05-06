@@ -43,7 +43,7 @@ function _batch_page(Request $request) {
     $batch = \Drupal::service('batch.storage')->load($request_id);
     if (!$batch) {
       \Drupal::messenger()->addError(t('No active batch.'));
-      return new RedirectResponse(\Drupal::url('<front>', [], ['absolute' => TRUE]));
+      return new RedirectResponse(Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString());
     }
   }
 
@@ -253,6 +253,7 @@ function _batch_process() {
   $current_set = &_batch_current_set();
   // Indicate that this batch set needs to be initialized.
   $set_changed = TRUE;
+  $task_message = '';
 
   // If this batch was marked for progressive execution (e.g. forms submitted by
   // \Drupal::formBuilder()->submitForm(), initialize a timer to determine
@@ -276,7 +277,7 @@ function _batch_process() {
       include_once \Drupal::root() . '/' . $current_set['file'];
     }
 
-    $task_message = $label = '';
+    $task_message = '';
     // Assume a single pass operation and set the completion level to 1 by
     // default.
     $finished = 1;
@@ -363,12 +364,9 @@ function _batch_process() {
       // If possible, estimate remaining processing time.
       '@estimate'   => ($current > 0) ? \Drupal::service('date.formatter')->formatInterval(($elapsed * ($total - $current) / $current) / 1000) : '-',
     ];
-    $message = strtr($progress_message, $values);
-    if (!empty($task_message)) {
-      $label = $task_message;
-    }
+    $message    = strtr($progress_message, $values);
 
-    return [$percentage, $message, $label];
+    return [$percentage, $message, $task_message];
   }
   else {
     // If we are not in progressive mode, the entire batch has been processed.
@@ -420,8 +418,10 @@ function &_batch_current_set() {
  */
 function _batch_next_set() {
   $batch = &batch_get();
-  if (isset($batch['sets'][$batch['current_set'] + 1])) {
-    $batch['current_set']++;
+  $set_indexes = array_keys($batch['sets']);
+  $current_set_index_key = array_search($batch['current_set'], $set_indexes);
+  if (isset($set_indexes[$current_set_index_key + 1])) {
+    $batch['current_set'] = $set_indexes[$current_set_index_key + 1];
     $current_set = &_batch_current_set();
     if (isset($current_set['form_submit']) && ($callback = $current_set['form_submit']) && is_callable($callback)) {
       // We use our stored copies of $form and $form_state to account for

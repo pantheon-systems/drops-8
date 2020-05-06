@@ -37,11 +37,11 @@ class ReorderDisplays extends ViewsFormBase {
 
     $form['#title'] = $this->t('Reorder displays');
     $form['#section'] = 'reorder';
-    $form['#action'] = $this->url('views_ui.form_reorder_displays', [
+    $form['#action'] = Url::fromRoute('views_ui.form_reorder_displays', [
       'js' => 'nojs',
       'view' => $view->id(),
       'display_id' => $display_id,
-    ]);
+    ])->toString();
     $form['view'] = [
       '#type' => 'value',
       '#value' => $view,
@@ -193,7 +193,7 @@ class ReorderDisplays extends ViewsFormBase {
 
     // Store in cache.
     $view->cacheSet();
-    $url = $view->urlInfo('edit-form')
+    $url = $view->toUrl('edit-form')
       ->setOption('fragment', 'views-tab-default');
     $form_state->setRedirectUrl($url);
   }

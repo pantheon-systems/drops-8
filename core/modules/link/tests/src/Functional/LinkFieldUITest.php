@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\link\Functional;
 
+use Drupal\Core\Url;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\field\Entity\FieldConfig;
@@ -25,6 +26,11 @@ class LinkFieldUITest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['node', 'link', 'field_ui', 'block'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * A user that can edit content types.
@@ -196,8 +202,8 @@ class LinkFieldUITest extends BrowserTestBase {
 
     $expected_help_texts = [
       LinkItemInterface::LINK_EXTERNAL => 'This must be an external URL such as <em class="placeholder">http://example.com</em>.',
-      LinkItemInterface::LINK_GENERIC => 'You can also enter an internal path such as <em class="placeholder">/node/add</em> or an external URL such as <em class="placeholder">http://example.com</em>. Enter <em class="placeholder">&lt;front&gt;</em> to link to the front page.',
-      LinkItemInterface::LINK_INTERNAL => rtrim(\Drupal::url('<front>', [], ['absolute' => TRUE]), '/'),
+      LinkItemInterface::LINK_GENERIC => 'You can also enter an internal path such as <em class="placeholder">/node/add</em> or an external URL such as <em class="placeholder">http://example.com</em>. Enter <em class="placeholder">&lt;front&gt;</em> to link to the front page. Enter <em class="placeholder">&lt;nolink&gt;</em> to display link text only',
+      LinkItemInterface::LINK_INTERNAL => rtrim(Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString(), '/'),
     ];
 
     // Check that the help texts we assume should be there, is there.

@@ -1,0 +1,7 @@
+webform_example_custom_form.settings:
+  path: /admin/config/webform_example_custom_form
+  defaults:
+    _form: \Drupal\webform_example_custom_form\Form\WebformExampleCustomFormSettingsForm
+    _title: 'Example: Webform Custom (Configuration) Form'
+  requirements:
+    _permission: 'administer configuration'

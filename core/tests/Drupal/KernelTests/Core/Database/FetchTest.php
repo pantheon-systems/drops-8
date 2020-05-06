@@ -20,7 +20,7 @@ class FetchTest extends DatabaseTestBase {
    */
   public function testQueryFetchDefault() {
     $records = [];
-    $result = db_query('SELECT name FROM {test} WHERE age = :age', [':age' => 25]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age = :age', [':age' => 25]);
     $this->assertTrue($result instanceof StatementInterface, 'Result set is a Drupal statement object.');
     foreach ($result as $record) {
       $records[] = $record;
@@ -36,7 +36,7 @@ class FetchTest extends DatabaseTestBase {
    */
   public function testQueryFetchObject() {
     $records = [];
-    $result = db_query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_OBJ]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_OBJ]);
     foreach ($result as $record) {
       $records[] = $record;
       $this->assertTrue(is_object($record), 'Record is an object.');
@@ -51,7 +51,7 @@ class FetchTest extends DatabaseTestBase {
    */
   public function testQueryFetchArray() {
     $records = [];
-    $result = db_query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_ASSOC]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_ASSOC]);
     foreach ($result as $record) {
       $records[] = $record;
       if ($this->assertTrue(is_array($record), 'Record is an array.')) {
@@ -69,7 +69,7 @@ class FetchTest extends DatabaseTestBase {
    */
   public function testQueryFetchClass() {
     $records = [];
-    $result = db_query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => FakeRecord::class]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => FakeRecord::class]);
     foreach ($result as $record) {
       $records[] = $record;
       if ($this->assertTrue($record instanceof FakeRecord, 'Record is an object of class FakeRecord.')) {
@@ -81,11 +81,32 @@ class FetchTest extends DatabaseTestBase {
   }
 
   /**
+   * Confirms that we can fetch a record into a new instance of a custom class.
+   * The name of the class is determined from a value of the first column.
+   *
+   * @see \Drupal\Tests\system\Functional\Database\FakeRecord
+   */
+  public function testQueryFetchClasstype() {
+    $records = [];
+    $result = $this->connection->query('SELECT classname, name, job FROM {test_classtype} WHERE age = :age', [':age' => 26], ['fetch' => \PDO::FETCH_CLASS | \PDO::FETCH_CLASSTYPE]);
+    foreach ($result as $record) {
+      $records[] = $record;
+      if ($this->assertTrue($record instanceof FakeRecord, 'Record is an object of class FakeRecord.')) {
+        $this->assertSame('Kay', $record->name, 'Kay is found.');
+        $this->assertSame('Web Developer', $record->job, 'A 26 year old Web Developer.');
+      }
+      $this->assertFalse(isset($record->classname), 'Classname field not found, as intended.');
+    }
+
+    $this->assertCount(1, $records, 'There is only one record.');
+  }
+
+  /**
    * Confirms that we can fetch a record into an indexed array explicitly.
    */
   public function testQueryFetchNum() {
     $records = [];
-    $result = db_query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_NUM]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_NUM]);
     foreach ($result as $record) {
       $records[] = $record;
       if ($this->assertTrue(is_array($record), 'Record is an array.')) {
@@ -101,7 +122,7 @@ class FetchTest extends DatabaseTestBase {
    */
   public function testQueryFetchBoth() {
     $records = [];
-    $result = db_query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_BOTH]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age = :age', [':age' => 25], ['fetch' => \PDO::FETCH_BOTH]);
     foreach ($result as $record) {
       $records[] = $record;
       if ($this->assertTrue(is_array($record), 'Record is an array.')) {
@@ -117,7 +138,7 @@ class FetchTest extends DatabaseTestBase {
    * Confirms that we can fetch all records into an array explicitly.
    */
   public function testQueryFetchAllColumn() {
-    $query = db_select('test');
+    $query = $this->connection->select('test');
     $query->addField('test', 'name');
     $query->orderBy('name');
     $query_result = $query->execute()->fetchAll(\PDO::FETCH_COLUMN);
@@ -130,11 +151,11 @@ class FetchTest extends DatabaseTestBase {
    * Confirms that we can fetch an entire column of a result set at once.
    */
   public function testQueryFetchCol() {
-    $result = db_query('SELECT name FROM {test} WHERE age > :age', [':age' => 25]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age > :age', [':age' => 25]);
     $column = $result->fetchCol();
     $this->assertIdentical(count($column), 3, 'fetchCol() returns the right number of records.');
 
-    $result = db_query('SELECT name FROM {test} WHERE age > :age', [':age' => 25]);
+    $result = $this->connection->query('SELECT name FROM {test} WHERE age > :age', [':age' => 25]);
     $i = 0;
     foreach ($result as $record) {
       $this->assertIdentical($record->name, $column[$i++], 'Column matches direct access.');
@@ -145,7 +166,7 @@ class FetchTest extends DatabaseTestBase {
    * Tests that rowCount() throws exception on SELECT query.
    */
   public function testRowCount() {
-    $result = db_query('SELECT name FROM {test}');
+    $result = $this->connection->query('SELECT name FROM {test}');
     try {
       $result->rowCount();
       $exception = FALSE;

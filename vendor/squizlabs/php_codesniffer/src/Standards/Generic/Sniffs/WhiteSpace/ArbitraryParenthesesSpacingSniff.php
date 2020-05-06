@@ -12,8 +12,8 @@
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\WhiteSpace;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class ArbitraryParenthesesSpacingSniff implements Sniff
@@ -57,9 +57,7 @@ class ArbitraryParenthesesSpacingSniff implements Sniff
         $this->ignoreTokens[T_CLOSE_SQUARE_BRACKET] = T_CLOSE_SQUARE_BRACKET;
         $this->ignoreTokens[T_CLOSE_SHORT_ARRAY]    = T_CLOSE_SHORT_ARRAY;
 
-        $this->ignoreTokens[T_ANON_CLASS] = T_ANON_CLASS;
         $this->ignoreTokens[T_USE]        = T_USE;
-        $this->ignoreTokens[T_LIST]       = T_LIST;
         $this->ignoreTokens[T_DECLARE]    = T_DECLARE;
         $this->ignoreTokens[T_THROW]      = T_THROW;
         $this->ignoreTokens[T_YIELD]      = T_YIELD;
@@ -104,7 +102,10 @@ class ArbitraryParenthesesSpacingSniff implements Sniff
         }
 
         $preOpener = $phpcsFile->findPrevious(Tokens::$emptyTokens, ($opener - 1), null, true);
-        if ($preOpener !== false && isset($this->ignoreTokens[$tokens[$preOpener]['code']]) === true) {
+        if ($preOpener !== false
+            && isset($this->ignoreTokens[$tokens[$preOpener]['code']]) === true
+            && isset($tokens[$preOpener]['scope_condition']) === false
+        ) {
             // Function or language construct call.
             return;
         }

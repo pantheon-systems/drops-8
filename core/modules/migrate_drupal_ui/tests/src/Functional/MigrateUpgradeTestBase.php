@@ -169,13 +169,13 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
    * Helper method to assert the text on the 'Upgrade analysis report' page.
    *
    * @param \Drupal\Tests\WebAssert $session
-   *   The current session.
-   * @param array $all_available
-   *   Array of modules that will be upgraded.
-   * @param array $all_missing
-   *   Array of modules that will not be upgraded.
+   *   The web-assert session.
+   * @param array $available_paths
+   *   An array of modules that will be upgraded.
+   * @param array $missing_paths
+   *   An array of modules that will not be upgraded.
    */
-  protected function assertReviewPage(WebAssert $session, array $all_available, array $all_missing) {
+  protected function assertReviewPage(WebAssert $session, array $available_paths, array $missing_paths) {
     $this->assertText('What will be upgraded?');
 
     // Ensure there are no errors about the missing modules from the test module.
@@ -185,17 +185,7 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
     // Ensure there are no errors about any other missing migration providers.
     $session->pageTextNotContains(t('module not found'));
 
-    // Test the available migration paths.
-    foreach ($all_available as $available) {
-      $session->elementExists('xpath', "//span[contains(@class, 'checked') and text() = '$available']");
-      $session->elementNotExists('xpath', "//span[contains(@class, 'error') and text() = '$available']");
-    }
-
-    // Test the missing migration paths.
-    foreach ($all_missing as $missing) {
-      $session->elementExists('xpath', "//span[contains(@class, 'error') and text() = '$missing']");
-      $session->elementNotExists('xpath', "//span[contains(@class, 'checked') and text() = '$missing']");
-    }
+    $this->assertUpgradePaths($session, $available_paths, $missing_paths);
   }
 
   /**
@@ -203,20 +193,20 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
    *
    * @param \Drupal\Tests\WebAssert $session
    *   The current session.
-   * @param $session
-   *   The current session.
+   * @param array $entity_types
+   *   An array of entity types
    */
-  protected function assertIdConflict(WebAssert $session) {
+  protected function assertIdConflict(WebAssert $session, $entity_types) {
+    /** @var \Drupal\ $entity_type_manager */
+    $entity_type_manager = \Drupal::service('entity_type.manager');
+
     $session->pageTextContains('WARNING: Content may be overwritten on your new site.');
     $session->pageTextContains('There is conflicting content of these types:');
-    $session->pageTextContains('custom blocks');
-    $session->pageTextContains('custom menu links');
-    $session->pageTextContains('files');
-    $session->pageTextContains('taxonomy terms');
-    $session->pageTextContains('users');
-    $session->pageTextContains('comments');
+    foreach ($entity_types as $entity_type) {
+      $label = $entity_type_manager->getDefinition($entity_type)->getPluralLabel();
+      $session->pageTextContains($label);
+    }
     $session->pageTextContains('content item revisions');
-    $session->pageTextContains('content items');
     $session->pageTextContains('There is translated content of these types:');
   }
 
@@ -232,9 +222,18 @@ abstract class MigrateUpgradeTestBase extends BrowserTestBase {
     // Have to reset all the statics after migration to ensure entities are
     // loadable.
     $this->resetAll();
-    foreach (array_keys(\Drupal::entityTypeManager()->getDefinitions()) as $entity_type) {
+    // Check that the expected number of entities is the same as the actual
+    // number of entities.
+    $entity_definitions = array_keys(\Drupal::entityTypeManager()->getDefinitions());
+    $expected_count_keys = array_keys($expected_counts);
+    sort($entity_definitions);
+    sort($expected_count_keys);
+    $this->assertSame($expected_count_keys, $entity_definitions);
+
+    // Assert the correct number of entities exist.
+    foreach ($entity_definitions as $entity_type) {
       $real_count = (int) \Drupal::entityQuery($entity_type)->count()->execute();
-      $expected_count = isset($expected_counts[$entity_type]) ? $expected_counts[$entity_type] : 0;
+      $expected_count = $expected_counts[$entity_type];
       $this->assertSame($expected_count, $real_count, "Found $real_count $entity_type entities, expected $expected_count.");
     }
 

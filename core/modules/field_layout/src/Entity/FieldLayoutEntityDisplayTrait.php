@@ -148,6 +148,14 @@ trait FieldLayoutEntityDisplayTrait {
     if ($this->getLayoutId()) {
       $this->calculatePluginDependencies($this->getLayout());
     }
+    return $this;
+  }
+
+  /**
+   * Implements \Drupal\field_layout\Display\EntityDisplayWithLayoutInterface::getDefaultRegion().
+   */
+  public function getDefaultRegion() {
+    return $this->getLayoutDefinition($this->getLayoutId())->getDefaultRegion();
   }
 
 }

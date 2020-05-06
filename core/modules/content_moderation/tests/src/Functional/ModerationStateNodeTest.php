@@ -15,6 +15,11 @@ class ModerationStateNodeTest extends ModerationStateTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->drupalLogin($this->adminUser);
@@ -56,7 +61,7 @@ class ModerationStateNodeTest extends ModerationStateTestBase {
 
     // Disable content moderation.
     $edit['bundles[moderated_content]'] = FALSE;
-    $this->drupalPostForm('admin/config/workflow/workflows/manage/editorial/type/node', $edit, t('Save'));;
+    $this->drupalPostForm('admin/config/workflow/workflows/manage/editorial/type/node', $edit, t('Save'));
     // Ensure the parent environment is up-to-date.
     // @see content_moderation_workflow_insert()
     \Drupal::service('entity_type.bundle.info')->clearCachedBundles();
@@ -71,7 +76,7 @@ class ModerationStateNodeTest extends ModerationStateTestBase {
     if (!$node) {
       $this->fail('Non-moderated test node was not saved correctly.');
     }
-    $this->assertEqual(NULL, $node->moderation_state->value);
+    $this->assertFalse($node->hasField('moderation_state'));
   }
 
   /**

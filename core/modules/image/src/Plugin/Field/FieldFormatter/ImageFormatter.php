@@ -85,7 +85,7 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
       $configuration['view_mode'],
       $configuration['third_party_settings'],
       $container->get('current_user'),
-      $container->get('entity.manager')->getStorage('image_style')
+      $container->get('entity_type.manager')->getStorage('image_style')
     );
   }
 
@@ -183,7 +183,7 @@ class ImageFormatter extends ImageFormatterBase implements ContainerFactoryPlugi
     if ($image_link_setting == 'content') {
       $entity = $items->getEntity();
       if (!$entity->isNew()) {
-        $url = $entity->urlInfo();
+        $url = $entity->toUrl();
       }
     }
     elseif ($image_link_setting == 'file') {

@@ -16,9 +16,9 @@ class MergeTest extends DatabaseTestBase {
    * Confirms that we can merge-insert a record successfully.
    */
   public function testMergeInsert() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    $result = db_merge('test_people')
+    $result = $this->connection->merge('test_people')
       ->key('job', 'Presenter')
       ->fields([
         'age' => 31,
@@ -28,10 +28,10 @@ class MergeTest extends DatabaseTestBase {
 
     $this->assertEqual($result, Merge::STATUS_INSERT, 'Insert status returned.');
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before + 1, $num_records_after, 'Merge inserted properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Presenter'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Presenter'])->fetch();
     $this->assertEqual($person->name, 'Tiffany', 'Name set correctly.');
     $this->assertEqual($person->age, 31, 'Age set correctly.');
     $this->assertEqual($person->job, 'Presenter', 'Job set correctly.');
@@ -41,9 +41,9 @@ class MergeTest extends DatabaseTestBase {
    * Confirms that we can merge-update a record successfully.
    */
   public function testMergeUpdate() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    $result = db_merge('test_people')
+    $result = $this->connection->merge('test_people')
       ->key('job', 'Speaker')
       ->fields([
         'age' => 31,
@@ -53,10 +53,10 @@ class MergeTest extends DatabaseTestBase {
 
     $this->assertEqual($result, Merge::STATUS_UPDATE, 'Update status returned.');
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before, $num_records_after, 'Merge updated properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
     $this->assertEqual($person->name, 'Tiffany', 'Name set correctly.');
     $this->assertEqual($person->age, 31, 'Age set correctly.');
     $this->assertEqual($person->job, 'Speaker', 'Job set correctly.');
@@ -69,18 +69,18 @@ class MergeTest extends DatabaseTestBase {
    * fields are inserted, and which fields are updated.
    */
   public function testMergeUpdateExcept() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    db_merge('test_people')
+    $this->connection->merge('test_people')
       ->key('job', 'Speaker')
       ->insertFields(['age' => 31])
       ->updateFields(['name' => 'Tiffany'])
       ->execute();
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before, $num_records_after, 'Merge updated properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
     $this->assertEqual($person->name, 'Tiffany', 'Name set correctly.');
     $this->assertEqual($person->age, 30, 'Age skipped correctly.');
     $this->assertEqual($person->job, 'Speaker', 'Job set correctly.');
@@ -90,9 +90,9 @@ class MergeTest extends DatabaseTestBase {
    * Confirms that we can merge-update a record, with alternate replacement.
    */
   public function testMergeUpdateExplicit() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    db_merge('test_people')
+    $this->connection->merge('test_people')
       ->key('job', 'Speaker')
       ->insertFields([
         'age' => 31,
@@ -103,10 +103,10 @@ class MergeTest extends DatabaseTestBase {
       ])
       ->execute();
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before, $num_records_after, 'Merge updated properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
     $this->assertEqual($person->name, 'Joe', 'Name set correctly.');
     $this->assertEqual($person->age, 30, 'Age skipped correctly.');
     $this->assertEqual($person->job, 'Speaker', 'Job set correctly.');
@@ -116,26 +116,26 @@ class MergeTest extends DatabaseTestBase {
    * Confirms that we can merge-update a record successfully, with expressions.
    */
   public function testMergeUpdateExpression() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    $age_before = db_query('SELECT age FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetchField();
+    $age_before = $this->connection->query('SELECT age FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetchField();
 
     // This is a very contrived example, as I have no idea why you'd want to
     // change age this way, but that's beside the point.
     // Note that we are also double-setting age here, once as a literal and
     // once as an expression. This test will only pass if the expression wins,
     // which is what is supposed to happen.
-    db_merge('test_people')
+    $this->connection->merge('test_people')
       ->key('job', 'Speaker')
       ->fields(['name' => 'Tiffany'])
       ->insertFields(['age' => 31])
       ->expression('age', 'age + :age', [':age' => 4])
       ->execute();
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before, $num_records_after, 'Merge updated properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
     $this->assertEqual($person->name, 'Tiffany', 'Name set correctly.');
     $this->assertEqual($person->age, $age_before + 4, 'Age updated correctly.');
     $this->assertEqual($person->job, 'Speaker', 'Job set correctly.');
@@ -145,16 +145,16 @@ class MergeTest extends DatabaseTestBase {
    * Tests that we can merge-insert without any update fields.
    */
   public function testMergeInsertWithoutUpdate() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    db_merge('test_people')
+    $this->connection->merge('test_people')
       ->key('job', 'Presenter')
       ->execute();
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before + 1, $num_records_after, 'Merge inserted properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Presenter'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Presenter'])->fetch();
     $this->assertEqual($person->name, '', 'Name set correctly.');
     $this->assertEqual($person->age, 0, 'Age set correctly.');
     $this->assertEqual($person->job, 'Presenter', 'Job set correctly.');
@@ -164,29 +164,29 @@ class MergeTest extends DatabaseTestBase {
    * Confirms that we can merge-update without any update fields.
    */
   public function testMergeUpdateWithoutUpdate() {
-    $num_records_before = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_before = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
 
-    db_merge('test_people')
+    $this->connection->merge('test_people')
       ->key('job', 'Speaker')
       ->execute();
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before, $num_records_after, 'Merge skipped properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
     $this->assertEqual($person->name, 'Meredith', 'Name skipped correctly.');
     $this->assertEqual($person->age, 30, 'Age skipped correctly.');
     $this->assertEqual($person->job, 'Speaker', 'Job skipped correctly.');
 
-    db_merge('test_people')
+    $this->connection->merge('test_people')
       ->key('job', 'Speaker')
       ->insertFields(['age' => 31])
       ->execute();
 
-    $num_records_after = db_query('SELECT COUNT(*) FROM {test_people}')->fetchField();
+    $num_records_after = $this->connection->query('SELECT COUNT(*) FROM {test_people}')->fetchField();
     $this->assertEqual($num_records_before, $num_records_after, 'Merge skipped properly.');
 
-    $person = db_query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
+    $person = $this->connection->query('SELECT * FROM {test_people} WHERE job = :job', [':job' => 'Speaker'])->fetch();
     $this->assertEqual($person->name, 'Meredith', 'Name skipped correctly.');
     $this->assertEqual($person->age, 30, 'Age skipped correctly.');
     $this->assertEqual($person->job, 'Speaker', 'Job skipped correctly.');
@@ -201,7 +201,7 @@ class MergeTest extends DatabaseTestBase {
       // Normally it would throw an exception but we are suppressing it with
       // the throw_exception option.
       $options['throw_exception'] = FALSE;
-      db_merge('test_people', $options)
+      $this->connection->merge('test_people', $options)
         ->fields([
           'age' => 31,
           'name' => 'Tiffany',
@@ -216,7 +216,7 @@ class MergeTest extends DatabaseTestBase {
 
     try {
       // This query will fail because there is no key field specified.
-      db_merge('test_people')
+      $this->connection->merge('test_people')
         ->fields([
           'age' => 31,
           'name' => 'Tiffany',

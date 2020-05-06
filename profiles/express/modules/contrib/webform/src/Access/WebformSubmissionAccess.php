@@ -4,7 +4,6 @@ namespace Drupal\webform\Access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\webform\Plugin\WebformHandlerMessageInterface;
 use Drupal\webform\WebformSubmissionInterface;
 
 /**
@@ -12,23 +11,22 @@ use Drupal\webform\WebformSubmissionInterface;
  */
 class WebformSubmissionAccess {
 
-
   /**
    * Check whether a webform submissions' webform has wizard pages.
    *
    * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
-   *   A webform submisison.
+   *   A webform submission.
    *
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result.
    */
   public static function checkWizardPagesAccess(WebformSubmissionInterface $webform_submission) {
-    return AccessResult::allowedIf($webform_submission->getWebform()
-      ->hasWizardPages());
+    $condition = $webform_submission->getWebform()->hasWizardPages();
+    return AccessResult::allowedIf($condition);
   }
 
   /**
-   * Check that webform submission has email and the user can update any webform submission.
+   * Check that webform submission has (email) messages and the user can update any webform submission.
    *
    * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
    *   A webform submission.
@@ -38,17 +36,13 @@ class WebformSubmissionAccess {
    * @return \Drupal\Core\Access\AccessResultInterface
    *   The access result.
    */
-  public static function checkEmailAccess(WebformSubmissionInterface $webform_submission, AccountInterface $account) {
-    $webform = $webform_submission->getWebform();
-    if ($webform->access('submission_update_any', $account)) {
-      $handlers = $webform->getHandlers();
-      foreach ($handlers as $handler) {
-        if ($handler instanceof WebformHandlerMessageInterface) {
-          return AccessResult::allowed();
-        }
-      }
+  public static function checkResendAccess(WebformSubmissionInterface $webform_submission, AccountInterface $account) {
+    if ($webform_submission->getWebform()->hasMessageHandler()) {
+      return AccessResult::allowed();
     }
-    return AccessResult::forbidden();
+    else {
+      return AccessResult::forbidden();
+    }
   }
-}
 
+}

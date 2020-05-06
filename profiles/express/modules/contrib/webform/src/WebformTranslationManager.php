@@ -2,18 +2,28 @@
 
 namespace Drupal\webform;
 
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\webform\Plugin\WebformElement\WebformCompositeBase;
 use Drupal\webform\Plugin\WebformElementManagerInterface;
 use Drupal\webform\Utility\WebformArrayHelper;
 use Drupal\webform\Utility\WebformElementHelper;
 use Drupal\webform\Utility\WebformYaml;
+use Drupal\Core\Routing\RouteMatchInterface;
 
 /**
  * Defines a class to translate webform elements.
  */
 class WebformTranslationManager implements WebformTranslationManagerInterface {
+
+  /**
+   * The current route match.
+   *
+   * @var \Drupal\Core\Routing\RouteMatchInterface
+   */
+  protected $routeMatch;
 
   /**
    * The language manager.
@@ -44,19 +54,51 @@ class WebformTranslationManager implements WebformTranslationManagerInterface {
   protected $translatableProperties;
 
   /**
+   * The messenger.
+   *
+   * @var \Drupal\Core\Messenger\MessengerInterface
+   */
+  protected $messenger;
+
+  /**
    * Constructs a WebformTranslationManager object.
    *
+   * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
+   *   The current route match.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The configuration object factory.
+   * @param \Drupal\Core\Messenger\MessengerInterface $messenger
+   *   The messenger.
    * @param \Drupal\webform\Plugin\WebformElementManagerInterface $element_manager
    *   The webform element manager.
    */
-  public function __construct(LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, WebformElementManagerInterface $element_manager) {
+  public function __construct(RouteMatchInterface $route_match, LanguageManagerInterface $language_manager, ConfigFactoryInterface $config_factory, MessengerInterface $messenger, WebformElementManagerInterface $element_manager) {
+    $this->routeMatch = $route_match;
     $this->languageManager = $language_manager;
     $this->configFactory = $config_factory;
+    $this->messenger = $messenger;
     $this->elementManager = $element_manager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isAdminRoute() {
+    $route_name = $this->routeMatch->getRouteName();
+
+    // Don't initialize translation on webform CRUD routes.
+    if (preg_match('/^entity\.webform\.(?:edit_form|duplicate_form|delete_form)$/', $route_name)) {
+      return TRUE;
+    }
+
+    // Don't initialize translation on webform UI routes.
+    if (strpos($route_name, 'entity.webform_ui.') === 0) {
+      return TRUE;
+    }
+
+    return FALSE;
   }
 
   /**
@@ -86,7 +128,7 @@ class WebformTranslationManager implements WebformTranslationManagerInterface {
       return [];
     }
     elseif ($error = WebformYaml::validate($elements)) {
-      drupal_set_message($error, 'error');
+      $this->messenger->addError($error);
       return [];
     }
     else {
@@ -102,6 +144,18 @@ class WebformTranslationManager implements WebformTranslationManagerInterface {
     $config_elements = $this->getElements($webform, $default_langcode);
     $elements = WebformElementHelper::getFlattened($config_elements);
     foreach ($elements as $element_key => &$element) {
+      // Always include composite element's default '#{element}__title'.
+      $element_plugin = $this->elementManager->getElementInstance($element);
+      if ($element_plugin instanceof WebformCompositeBase) {
+        $composite_elements = $element_plugin->getCompositeElements();
+        foreach ($composite_elements as $composite_key => $composite_element) {
+          $property_key = $composite_key . '__title';
+          if (empty($element["#$property_key"])) {
+            $element["#$property_key"] = $element_plugin->getDefaultProperty($property_key);
+          }
+        }
+      }
+
       $this->removeUnTranslatablePropertiesFromElement($element);
       if (empty($element)) {
         unset($elements[$element_key]);
@@ -153,7 +207,7 @@ class WebformTranslationManager implements WebformTranslationManagerInterface {
    *   An element.
    */
   protected function removeUnTranslatablePropertiesFromElement(array &$element) {
-    $translatable_properties = $this->getTranslatableProperies();
+    $translatable_properties = $this->getTranslatableProperties();
 
     $element_type = (isset($element['#type'])) ? $element['#type'] : NULL;
     foreach ($element as $property_key => $property_value) {
@@ -169,7 +223,7 @@ class WebformTranslationManager implements WebformTranslationManagerInterface {
         // Unset options and answers that are webform option ids.
         unset($element[$property_key]);
       }
-      elseif ($translatable_property_key === '#element' && $element_type === 'webform_composite') {
+      elseif ($translatable_property_key === '#element' && $element_type === 'webform_custom_composite') {
         foreach ($element[$property_key] as &$composite_element_value) {
           $this->removeUnTranslatablePropertiesFromElement($composite_element_value);
         }
@@ -187,7 +241,7 @@ class WebformTranslationManager implements WebformTranslationManagerInterface {
    * @return array
    *   An array of translated properties prefixed with a hashes (#).
    */
-  protected function getTranslatableProperies() {
+  protected function getTranslatableProperties() {
     if ($this->translatableProperties) {
       return $this->translatableProperties;
     }

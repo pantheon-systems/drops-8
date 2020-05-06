@@ -3,6 +3,7 @@
 namespace Drupal\Tests\node\Functional;
 
 use Drupal\block\Entity\Block;
+use Drupal\Core\Database\Database;
 use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\RoleInterface;
@@ -15,6 +16,11 @@ use Drupal\user\RoleInterface;
 class NodeBlockFunctionalTest extends NodeTestBase {
 
   use AssertPageCacheContextsAndTagsTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * An administrative user for testing.
@@ -69,14 +75,15 @@ class NodeBlockFunctionalTest extends NodeTestBase {
     $node2 = $this->drupalCreateNode($default_settings);
     $node3 = $this->drupalCreateNode($default_settings);
 
+    $connection = Database::getConnection();
     // Change the changed time for node so that we can test ordering.
-    db_update('node_field_data')
+    $connection->update('node_field_data')
       ->fields([
         'changed' => $node1->getChangedTime() + 100,
       ])
       ->condition('nid', $node2->id())
       ->execute();
-    db_update('node_field_data')
+    $connection->update('node_field_data')
       ->fields([
         'changed' => $node1->getChangedTime() + 200,
       ])
@@ -96,7 +103,7 @@ class NodeBlockFunctionalTest extends NodeTestBase {
     $this->assertText($node3->label(), 'Node found in block.');
 
     // Check to make sure nodes are in the right order.
-    $this->assertTrue($this->xpath('//div[@id="block-test-block"]//div[@class="item-list"]/ul/li[1]/div/span/a[text() = "' . $node3->label() . '"]'), 'Nodes were ordered correctly in block.');
+    $this->assertNotEmpty($this->xpath('//div[@id="block-test-block"]//div[@class="item-list"]/ul/li[1]/div/span/a[text() = "' . $node3->label() . '"]'), 'Nodes were ordered correctly in block.');
 
     $this->drupalLogout();
     $this->drupalLogin($this->adminUser);
@@ -156,14 +163,14 @@ class NodeBlockFunctionalTest extends NodeTestBase {
 
     $this->drupalGet('node/' . $node1->id());
     $this->assertText($label, 'Block was displayed on the node/N when node is of type article.');
-    $this->assertCacheContexts(['languages:language_content', 'languages:language_interface', 'theme', 'url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT, 'user', 'route', 'timezone']);
+    $this->assertCacheContexts(['languages:language_content', 'languages:language_interface', 'theme', 'url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT, 'url.site', 'user', 'route', 'timezone']);
     $this->assertSame('MISS', $this->getSession()->getResponseHeader('X-Drupal-Dynamic-Cache'));
     $this->drupalGet('node/' . $node1->id());
     $this->assertSame('HIT', $this->getSession()->getResponseHeader('X-Drupal-Dynamic-Cache'));
 
     $this->drupalGet('node/' . $node5->id());
     $this->assertNoText($label, 'Block was not displayed on nodes of type page.');
-    $this->assertCacheContexts(['languages:language_content', 'languages:language_interface', 'theme', 'url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT, 'user', 'route', 'timezone']);
+    $this->assertCacheContexts(['languages:language_content', 'languages:language_interface', 'theme', 'url.query_args:' . MainContentViewSubscriber::WRAPPER_FORMAT, 'url.site', 'user', 'route', 'timezone']);
     $this->assertSame('MISS', $this->getSession()->getResponseHeader('X-Drupal-Dynamic-Cache'));
     $this->drupalGet('node/' . $node5->id());
     $this->assertSame('HIT', $this->getSession()->getResponseHeader('X-Drupal-Dynamic-Cache'));
@@ -171,7 +178,7 @@ class NodeBlockFunctionalTest extends NodeTestBase {
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/structure/block');
     $this->assertText($label, 'Block was displayed on the admin/structure/block page.');
-    $this->assertLinkByHref($block->url());
+    $this->assertLinkByHref($block->toUrl()->toString());
   }
 
 }

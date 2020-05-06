@@ -3,7 +3,6 @@
 namespace Drupal\webform\Controller;
 
 use Drupal\Component\Render\FormattableMarkup;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Controller\ControllerBase;
@@ -17,13 +16,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Controller for all webform elements.
  */
 class WebformPluginElementController extends ControllerBase implements ContainerInjectionInterface {
-
-  /**
-   * The config factory.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
-  protected $configFactory;
 
   /**
    * The module handler.
@@ -49,8 +41,6 @@ class WebformPluginElementController extends ControllerBase implements Container
   /**
    * Constructs a WebformPluginElementController object.
    *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
-   *   The factory for configuration objects.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
    *   The module handler.
    * @param \Drupal\Core\Render\ElementInfoManagerInterface $element_info
@@ -58,8 +48,7 @@ class WebformPluginElementController extends ControllerBase implements Container
    * @param \Drupal\webform\Plugin\WebformElementManagerInterface $element_manager
    *   A webform element plugin manager.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, ElementInfoManagerInterface $element_info, WebformElementManagerInterface $element_manager) {
-    $this->configFactory = $config_factory;
+  public function __construct(ModuleHandlerInterface $module_handler, ElementInfoManagerInterface $element_info, WebformElementManagerInterface $element_manager) {
     $this->moduleHandler = $module_handler;
     $this->elementInfo = $element_info;
     $this->elementManager = $element_manager;
@@ -70,7 +59,6 @@ class WebformPluginElementController extends ControllerBase implements Container
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('config.factory'),
       $container->get('module_handler'),
       $container->get('plugin.manager.element_info'),
       $container->get('plugin.manager.webform.element')
@@ -144,7 +132,7 @@ class WebformPluginElementController extends ControllerBase implements Container
             'data' => [
               '#type' => 'link',
               '#title' => $element_plugin_id,
-              '#url' => new Url('webform.element_plugins.test', ['type' => $element_plugin_id]),
+              '#url' => new Url('webform.reports_plugins.elements.test', ['type' => $element_plugin_id]),
               '#attributes' => ['class' => ['webform-form-filter-text-source']],
             ],
           ];
@@ -154,7 +142,19 @@ class WebformPluginElementController extends ControllerBase implements Container
         }
 
         // Description.
-        $description = new FormattableMarkup('<strong>@label</strong><br />@description', ['@label' => $webform_element->getPluginLabel(), '@description' => $webform_element->getPluginDescription()]);
+        $description = [
+          'data' => [
+            'title_description' => ['#markup' => new FormattableMarkup('<strong>@label</strong><br />@description', ['@label' => $webform_element->getPluginLabel(), '@description' => $webform_element->getPluginDescription()])],
+          ],
+        ];
+        // Add deprecated warning.
+        if (!empty($webform_element_plugin_definition['deprecated'])) {
+          $description['data']['deprecated'] = [
+            '#type' => 'webform_message',
+            '#message_message' => $webform_element_plugin_definition['deprecated_message'],
+            '#message_type' => 'warning',
+          ];
+        }
 
         // Parent classes.
         $parent_classes = WebformReflectionHelper::getParentClasses($webform_element, 'WebformElementBase');
@@ -180,17 +180,19 @@ class WebformPluginElementController extends ControllerBase implements Container
           'container' => $webform_element->isContainer($element),
           'root' => $webform_element->isRoot(),
           'hidden' => $webform_element->isHidden(),
+          'composite' => $webform_element->isComposite(),
           'multiple' => $webform_element->supportsMultipleValues(),
           'multiline' => $webform_element->isMultiline($element),
           'default_key' => $webform_element_plugin_definition['default_key'],
           'states_wrapper' => $webform_element_plugin_definition['states_wrapper'],
+          'deprecated' => $webform_element_plugin_definition['deprecated'],
         ];
         $webform_info = [];
         foreach ($webform_info_definitions as $key => $value) {
           $webform_info[] = '<b>' . $key . '</b>: ' . ($value ? $this->t('Yes') : $this->t('No'));
         }
 
-        // Wlement info.
+        // Element info.
         $element_info_definitions = [
           'input' => (empty($webform_element_info['#input'])) ? $this->t('No') : $this->t('Yes'),
           'theme' => (isset($webform_element_info['#theme'])) ? $webform_element_info['#theme'] : 'N/A',
@@ -203,27 +205,37 @@ class WebformPluginElementController extends ControllerBase implements Container
 
         // Properties.
         $properties = [];
-        $element_default_properties = array_keys($webform_element->getDefaultProperties());
-        foreach ($element_default_properties as $key => $value) {
-          if (!isset($default_properties[$value])) {
-            $properties[$key] = '<b>#' . $value . '</b>';
+        $element_default_properties = $webform_element->getDefaultProperties();
+        foreach ($element_default_properties as $key => $default_value) {
+          if (is_bool($default_value)) {
+            $data_type = 'boolean';
+          }
+          elseif (is_array($default_value)) {
+            $data_type = 'array';
+          }
+          elseif (is_numeric($default_value) || is_null($default_value)) {
+            $data_type = 'number';
+          }
+          else {
+            $data_type = 'string';
+          }
+          $default_value = ($default_value ? ' ⇒ ' . json_encode($default_value) : '');
+          if (!isset($default_properties[$key])) {
+            $properties[$key] = '<b>#' . $key . '</b> [' . $data_type . ']' . $default_value;
             unset($element_default_properties[$key]);
           }
           else {
-            $element_default_properties[$key] = '#' . $value;
+            $element_default_properties[$key] = '#' . $key . ' [' . $data_type . ']' . $default_value;
           }
         }
         $properties += $element_default_properties;
-        if (count($properties) >= 20) {
-          $properties = array_slice($properties, 0, 20) + ['...' => '...'];
-        }
 
         // Operations.
         $operations = [];
         if ($test_element_enabled) {
           $operations['test'] = [
             'title' => $this->t('Test'),
-            'url' => new Url('webform.element_plugins.test', ['type' => $element_plugin_id]),
+            'url' => new Url('webform.reports_plugins.elements.test', ['type' => $element_plugin_id]),
           ];
         }
         if ($api_url = $webform_element->getPluginApiUrl()) {
@@ -240,18 +252,20 @@ class WebformPluginElementController extends ControllerBase implements Container
             ['data' => ['#markup' => implode('<br /> → ', $parent_classes)], 'nowrap' => 'nowrap'],
             ['data' => ['#markup' => implode('<br />', $webform_info)], 'nowrap' => 'nowrap'],
             ['data' => ['#markup' => implode('<br />', $element_info)], 'nowrap' => 'nowrap'],
-            ['data' => ['#markup' => implode('<br />', $properties)]],
+            ['data' => ['#markup' => implode('<br />' . PHP_EOL, $properties)], 'nowrap' => 'nowrap'],
             $formats ? ['data' => ['#markup' => '• ' . implode('<br />• ', $formats)], 'nowrap' => 'nowrap'] : '',
             $related_types ? ['data' => ['#markup' => '• ' . implode('<br />• ', $related_types)], 'nowrap' => 'nowrap'] : '<' . $this->t('none') . '>',
             $dependencies ? ['data' => ['#markup' => '• ' . implode('<br />• ', $dependencies)], 'nowrap' => 'nowrap'] : '',
             $element_plugin_definition['provider'],
             $webform_element_plugin_definition['provider'],
-            $operations ? ['data' => [
-              '#type' => 'operations',
-              '#links' => $operations,
-              '#prefix' => '<div class="webform-dropbutton">',
-              '#suffix' => '</div>',
-            ]] : '',
+            $operations ? [
+              'data' => [
+                '#type' => 'operations',
+                '#links' => $operations,
+                '#prefix' => '<div class="webform-dropbutton">',
+                '#suffix' => '</div>',
+              ],
+            ] : '',
           ],
         ];
         if (isset($excluded_elements[$element_plugin_id])) {
@@ -276,13 +290,16 @@ class WebformPluginElementController extends ControllerBase implements Container
       '#placeholder' => $this->t('Filter by element name'),
       '#attributes' => [
         'class' => ['webform-form-filter-text'],
-        'data-element' => '.webform-element-plugin',
+        'data-element' => '.webform-element-plugin-table',
+        'data-summary' => '.webform-element-plugin-summary',
+        'data-item-singlular' => $this->t('element'),
+        'data-item-plural' => $this->t('elements'),
         'title' => $this->t('Enter a part of the element type to filter by.'),
         'autofocus' => 'autofocus',
       ],
     ];
 
-    // Settings
+    // Settings.
     $build['settings'] = [
       '#type' => 'link',
       '#title' => $this->t('Edit configuration'),
@@ -292,11 +309,11 @@ class WebformPluginElementController extends ControllerBase implements Container
 
     // Display info.
     $build['info'] = [
-      '#markup' => $this->t('@total exporters', ['@total' => count($webform_form_element_rows)]),
-      '#prefix' => '<p>',
+      '#markup' => $this->t('@total elements', ['@total' => count($webform_form_element_rows)]),
+      '#prefix' => '<p class="webform-element-plugin-summary">',
       '#suffix' => '</p>',
     ];
-    
+
     ksort($webform_form_element_rows);
     $build['webform_elements'] = [
       '#type' => 'table',
@@ -315,8 +332,9 @@ class WebformPluginElementController extends ControllerBase implements Container
         $this->t('Operations'),
       ],
       '#rows' => $webform_form_element_rows,
+      '#sticky' => TRUE,
       '#attributes' => [
-        'class' => ['webform-element-plugin'],
+        'class' => ['webform-element-plugin-table'],
       ],
     ];
 

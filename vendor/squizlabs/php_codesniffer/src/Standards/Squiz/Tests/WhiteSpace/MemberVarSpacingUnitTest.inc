@@ -4,7 +4,7 @@ class MyClass
     public $var1 = 'value';
 
 
-    public $var2 = 'value';
+    public ?int $var2 = 'value';
 
     public $var3 = 'value';
 
@@ -17,7 +17,7 @@ interface MyInterface
     public $var1 = 'value';
 
 
-    public $var2 = 'value';
+    public ?Folder\ClassName $var2 = 'value';
 
     protected $var3 = 'value';
 }//end interface
@@ -27,9 +27,9 @@ class MyClass
 {
 
 
-    public $var1 = 'value';
+    public string $var1 = 'value';
 
-    private $var2 = 'value';
+    private string $var2 = 'value';
 
 
     protected $var3 = 'value';
@@ -303,4 +303,32 @@ class Foo
 
     /* no error here because after function */
     private $bar = false;
+}
+
+class CommentedOutCodeAtStartOfClass {
+
+    /**
+     * Description.
+     *
+     * @var bool
+     */
+    //public $commented_out_property = true;
+
+    /**
+     * Description.
+     *
+     * @var bool
+     */
+    public $property = true;
+}
+
+class CommentedOutCodeAtStartOfClassNoBlankLine {
+
+    // phpcs:disable Stnd.Cat.Sniff -- For reasons.
+    /**
+     * Description.
+     *
+     * @var bool
+     */
+    public $property = true;
 }

@@ -1,0 +1,22 @@
+# Schema for the configuration files of the Webform schedule email module.
+# Note: webform.handler.email mapping is append to this handler's mapping.
+# @see webform_scheduled_email_schema_info_alter()
+webform.handler.scheduled_email:
+  type: mapping
+  label: 'Scheduled email'
+  mapping:
+    send:
+      type: string
+      label: 'Send on (YYYY-MM-DD or [token])'
+    days:
+      type: integer
+      label: 'After/before days'
+    ignore_past:
+      type: boolean
+      label: 'Prevent scheduling past actions'
+    unschedule:
+      type: boolean
+      label: 'Unschedule email when draft or submission is saved'
+    test_send:
+      type: boolean
+      label: 'Immediately send email when testing this webform'

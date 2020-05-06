@@ -5,6 +5,7 @@ namespace Drupal\Tests\user\Functional;
 use Drupal\Core\Test\AssertMailTrait;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\RoleInterface;
+use Drupal\user\UserInterface;
 
 /**
  * Tests user administration page functionality.
@@ -25,6 +26,11 @@ class UserAdminTest extends BrowserTestBase {
   public static $modules = ['taxonomy', 'views'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Registers a user and deletes it.
    */
   public function testUserAdmin() {
@@ -40,7 +46,7 @@ class UserAdminTest extends BrowserTestBase {
     $user_c->name = 'User C';
     $user_c->save();
 
-    $user_storage = $this->container->get('entity.manager')->getStorage('user');
+    $user_storage = $this->container->get('entity_type.manager')->getStorage('user');
 
     // Create admin user to delete registered user.
     $admin_user = $this->drupalCreateUser(['administer users']);
@@ -50,13 +56,13 @@ class UserAdminTest extends BrowserTestBase {
     $admin_user->save();
     $this->drupalLogin($admin_user);
     $this->drupalGet('admin/people');
-    $this->assertText($user_a->getUsername(), 'Found user A on admin users page');
-    $this->assertText($user_b->getUsername(), 'Found user B on admin users page');
-    $this->assertText($user_c->getUsername(), 'Found user C on admin users page');
-    $this->assertText($admin_user->getUsername(), 'Found Admin user on admin users page');
+    $this->assertText($user_a->getAccountName(), 'Found user A on admin users page');
+    $this->assertText($user_b->getAccountName(), 'Found user B on admin users page');
+    $this->assertText($user_c->getAccountName(), 'Found user C on admin users page');
+    $this->assertText($admin_user->getAccountName(), 'Found Admin user on admin users page');
 
     // Test for existence of edit link in table.
-    $link = $user_a->link(t('Edit'), 'edit-form', ['query' => ['destination' => $user_a->url('collection')]]);
+    $link = $user_a->toLink(t('Edit'), 'edit-form', ['query' => ['destination' => $user_a->toUrl('collection')->toString()]])->toString();
     $this->assertRaw($link, 'Found user A edit link on admin users page');
 
     // Test exposed filter elements.
@@ -68,23 +74,23 @@ class UserAdminTest extends BrowserTestBase {
     $this->assertNoField('edit-reduce-duplicates', 'Reduce duplicates form element not found in exposed filters.');
 
     // Filter the users by name/email.
-    $this->drupalGet('admin/people', ['query' => ['user' => $user_a->getUsername()]]);
+    $this->drupalGet('admin/people', ['query' => ['user' => $user_a->getAccountName()]]);
     $result = $this->xpath('//table/tbody/tr');
     $this->assertEqual(1, count($result), 'Filter by username returned the right amount.');
-    $this->assertEqual($user_a->getUsername(), $result[0]->find('xpath', '/td[2]/span')->getText(), 'Filter by username returned the right user.');
+    $this->assertEqual($user_a->getAccountName(), $result[0]->find('xpath', '/td[2]/a')->getText(), 'Filter by username returned the right user.');
 
     $this->drupalGet('admin/people', ['query' => ['user' => $user_a->getEmail()]]);
     $result = $this->xpath('//table/tbody/tr');
     $this->assertEqual(1, count($result), 'Filter by username returned the right amount.');
-    $this->assertEqual($user_a->getUsername(), $result[0]->find('xpath', '/td[2]/span')->getText(), 'Filter by username returned the right user.');
+    $this->assertEqual($user_a->getAccountName(), $result[0]->find('xpath', '/td[2]/a')->getText(), 'Filter by username returned the right user.');
 
     // Filter the users by permission 'administer taxonomy'.
     $this->drupalGet('admin/people', ['query' => ['permission' => 'administer taxonomy']]);
 
     // Check if the correct users show up.
-    $this->assertNoText($user_a->getUsername(), 'User A not on filtered by perm admin users page');
-    $this->assertText($user_b->getUsername(), 'Found user B on filtered by perm admin users page');
-    $this->assertText($user_c->getUsername(), 'Found user C on filtered by perm admin users page');
+    $this->assertNoText($user_a->getAccountName(), 'User A not on filtered by perm admin users page');
+    $this->assertText($user_b->getAccountName(), 'Found user B on filtered by perm admin users page');
+    $this->assertText($user_c->getAccountName(), 'Found user C on filtered by perm admin users page');
 
     // Filter the users by role. Grab the system-generated role name for User C.
     $roles = $user_c->getRoles();
@@ -92,9 +98,9 @@ class UserAdminTest extends BrowserTestBase {
     $this->drupalGet('admin/people', ['query' => ['role' => reset($roles)]]);
 
     // Check if the correct users show up when filtered by role.
-    $this->assertNoText($user_a->getUsername(), 'User A not on filtered by role on admin users page');
-    $this->assertNoText($user_b->getUsername(), 'User B not on filtered by role on admin users page');
-    $this->assertText($user_c->getUsername(), 'User C on filtered by role on admin users page');
+    $this->assertNoText($user_a->getAccountName(), 'User A not on filtered by role on admin users page');
+    $this->assertNoText($user_b->getAccountName(), 'User B not on filtered by role on admin users page');
+    $this->assertText($user_c->getAccountName(), 'User C on filtered by role on admin users page');
 
     // Test blocking of a user.
     $account = $user_storage->load($user_c->id());
@@ -118,9 +124,9 @@ class UserAdminTest extends BrowserTestBase {
 
     // Test filtering on admin page for blocked users
     $this->drupalGet('admin/people', ['query' => ['status' => 2]]);
-    $this->assertNoText($user_a->getUsername(), 'User A not on filtered by status on admin users page');
-    $this->assertNoText($user_b->getUsername(), 'User B not on filtered by status on admin users page');
-    $this->assertText($user_c->getUsername(), 'User C on filtered by status on admin users page');
+    $this->assertNoText($user_a->getAccountName(), 'User A not on filtered by status on admin users page');
+    $this->assertNoText($user_b->getAccountName(), 'User B not on filtered by status on admin users page');
+    $this->assertText($user_c->getAccountName(), 'User C on filtered by status on admin users page');
 
     // Test unblocking of a user from /admin/people page and sending of activation mail
     $editunblock = [];
@@ -167,7 +173,7 @@ class UserAdminTest extends BrowserTestBase {
     // Allow users to register with admin approval.
     $config
       ->set('verify_mail', TRUE)
-      ->set('register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)
+      ->set('register', UserInterface::REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)
       ->save();
     // Set the site and notification email addresses.
     $system = $this->config('system.site');
@@ -190,7 +196,7 @@ class UserAdminTest extends BrowserTestBase {
       'from' => $server_address,
       'subject' => $subject,
     ]);
-    $this->assertTrue(count($admin_mail), 'New user mail to admin is sent to configured Notification Email address');
+    $this->assertCount(1, $admin_mail, 'New user mail to admin is sent to configured Notification Email address');
     // Ensure that user notification mail is sent from the configured
     // Notification Email address.
     $user_mail = $this->drupalGetMails([
@@ -199,7 +205,7 @@ class UserAdminTest extends BrowserTestBase {
       'reply-to' => $notify_address,
       'subject' => $subject,
     ]);
-    $this->assertTrue(count($user_mail), 'New user mail to user is sent from configured Notification Email address');
+    $this->assertCount(1, $user_mail, 'New user mail to user is sent from configured Notification Email address');
   }
 
 }

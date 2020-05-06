@@ -12,7 +12,6 @@ use Drupal\webform\WebformInterface;
  *   label = @Translation("Table sort"),
  *   description = @Translation("Provides a form element for a table of values that can be sorted."),
  *   category = @Translation("Options elements"),
- *   states_wrapper = TRUE,
  * )
  */
 class WebformTableSort extends OptionsBase {
@@ -27,11 +26,13 @@ class WebformTableSort extends OptionsBase {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    $properties = parent::getDefaultProperties();
+  protected function defineDefaultProperties() {
+    $properties = parent::defineDefaultProperties();
     unset($properties['options_randomize']);
     return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}

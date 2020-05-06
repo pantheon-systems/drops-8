@@ -7,4 +7,5 @@ dependencies:
 id: languages
 label: Languages
 category: Language
+likert: false
 options: ''

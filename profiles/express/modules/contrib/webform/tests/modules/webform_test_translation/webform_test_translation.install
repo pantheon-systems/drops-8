@@ -1,0 +1,60 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform test translation module.
+ *
+ * drush php-eval 'module_load_include('install', 'webform_test_translation');webform_test_translation_install()'; drush cr;
+ */
+
+use Drupal\Core\Serialization\Yaml;
+
+/**
+ * Implements hook_install().
+ */
+function webform_test_translation_install() {
+  // Skip simpletest runner which has no issue importing
+  // translated configuration.
+  if (isset($GLOBALS['conf']) && array_key_exists('simpletest.settings', $GLOBALS['conf'])) {
+    return;
+  }
+
+  _webform_test_translation_install_config('config');
+  _webform_test_translation_install_config('config_snapshot');
+}
+
+/**
+ * Fixes Issue #2845437: Process translation config files for custom modules.
+ *
+ * @param string $table_name
+ *   Config table name.
+ */
+function _webform_test_translation_install_config($table_name) {
+  if (!\Drupal::database()->schema()->tableExists($table_name)) {
+    return;
+  }
+
+  $query = \Drupal::database()->select($table_name, 'c')
+    ->fields('c', ['name', 'collection', 'data'])
+    ->condition('collection', 'language.es');
+  $result = $query->execute();
+  while ($record = $result->fetchAssoc()) {
+    $data = unserialize($record['data']);
+
+    $filename = drupal_get_path('module', 'webform_test_translation') . '/config/install/language/es/' . $record['name'] . '.yml';
+    if (!file_exists($filename)) {
+      continue;
+    }
+
+    $translated_data = Yaml::decode(file_get_contents($filename));
+    foreach ($translated_data as $key => $value) {
+      $data[$key] = $value;
+    }
+
+    \Drupal::database()->update($table_name)
+      ->fields(['data' => serialize($data)])
+      ->condition('collection', $record['collection'])
+      ->condition('name', $record['name'])
+      ->execute();
+  }
+}

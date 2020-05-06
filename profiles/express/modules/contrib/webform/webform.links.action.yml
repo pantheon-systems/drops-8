@@ -1,5 +1,37 @@
+entity.webform.add_form:
+  route_name: entity.webform.add_form
+  title: 'Add webform'
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  dialog: narrow
+  appears_on:
+    - entity.webform.collection
+
 entity.webform_options.add_form:
   route_name: entity.webform_options.add_form
   title: 'Add options'
   appears_on:
     - entity.webform_options.collection
+
+entity.webform.handler.add_email:
+  route_name: entity.webform.handler.add_email
+  title: 'Add email'
+  off_canvas: normal
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  appears_on:
+    - entity.webform.handlers
+
+entity.webform.handler:
+  route_name: entity.webform.handler
+  title: 'Add handler'
+  dialog: normal
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  appears_on:
+    - entity.webform.handlers
+
+entity.webform.variant:
+  route_name: entity.webform.variant
+  title: 'Add variant'
+  dialog: normal
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  appears_on:
+    - entity.webform.variants

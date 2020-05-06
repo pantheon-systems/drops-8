@@ -8,6 +8,7 @@ dependencies:
 id: test_translation
 label: 'Test: Translation'
 category: null
+likert: false
 options: |
   1: One
   2: Two

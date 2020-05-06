@@ -14,14 +14,25 @@ class DefaultFormatTest extends BrowserTestBase {
    */
   public static $modules = ['system', 'default_format_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   public function testFoo() {
     $this->drupalGet('/default_format_test/human');
     $this->assertSame('format:html', $this->getSession()->getPage()->getContent());
     $this->assertSame('MISS', $this->drupalGetHeader('X-Drupal-Cache'));
+    $this->drupalGet('/default_format_test/human');
+    $this->assertSame('format:html', $this->getSession()->getPage()->getContent());
+    $this->assertSame('HIT', $this->drupalGetHeader('X-Drupal-Cache'));
 
     $this->drupalGet('/default_format_test/machine');
     $this->assertSame('format:json', $this->getSession()->getPage()->getContent());
     $this->assertSame('MISS', $this->drupalGetHeader('X-Drupal-Cache'));
+    $this->drupalGet('/default_format_test/machine');
+    $this->assertSame('format:json', $this->getSession()->getPage()->getContent());
+    $this->assertSame('HIT', $this->drupalGetHeader('X-Drupal-Cache'));
   }
 
   public function testMultipleRoutesWithSameSingleFormat() {

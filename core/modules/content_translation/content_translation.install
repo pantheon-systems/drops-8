@@ -6,6 +6,7 @@
  */
 
 use Drupal\Core\Entity\Sql\SqlEntityStorageInterface;
+use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Url;
 
@@ -16,6 +17,12 @@ function content_translation_install() {
   // Assign a fairly low weight to ensure our implementation of
   // hook_module_implements_alter() is run among the last ones.
   module_set_weight('content_translation', 10);
+
+  // Skip the guidance messages about enabling translation features if the
+  // module was installed in the Drupal installation process.
+  if (InstallerKernel::installationAttempted()) {
+    return;
+  }
 
   // Translation works when at least two languages are added.
   if (count(\Drupal::languageManager()->getLanguages()) < 2) {

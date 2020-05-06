@@ -1,0 +1,33 @@
+entity.webform.results_log:
+  title: 'Log'
+  route_name: entity.webform.results_log
+  parent_id: entity.webform.results
+  weight: 30
+
+entity.webform_submission.collection_log:
+  title: 'Log'
+  route_name: entity.webform_submission.collection_log
+  parent_id: entity.webform_submission.collection
+  weight: 20
+
+entity.webform_submission.log:
+  title: 'Log'
+  route_name: entity.webform_submission.log
+  base_route: entity.webform_submission.canonical
+  weight: 40
+
+# Webform node task.
+# This task will be removed if the webform_node.module is not installed.
+# @see webform_submission_log_local_tasks_alter()
+
+entity.node.webform.results_log:
+  title: 'Log'
+  route_name: entity.node.webform.results_log
+  parent_id: entity.node.webform.results
+  weight: 30
+
+entity.node.webform_submission.log:
+  title: 'Log'
+  route_name: entity.node.webform_submission.log
+  base_route: entity.node.webform_submission.canonical
+  weight: 40

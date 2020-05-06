@@ -8,12 +8,12 @@
 }
 
 .webform-element-more--link:before {
-  content: '► ';
-  font-size: .8em;
+  content: "► ";
+  font-size: 0.8em;
 }
 
 .webform-element-more.is-open .webform-element-more--link:before {
-  content: '▼ ';
+  content: "▼ ";
 }
 
 html.js .webform-element-more--link {

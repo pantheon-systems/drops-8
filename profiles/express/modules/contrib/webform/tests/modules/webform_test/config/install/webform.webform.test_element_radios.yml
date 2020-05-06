@@ -6,8 +6,10 @@ dependencies:
       - webform_test
 open: null
 close: null
+weight: 0
 uid: null
 template: false
+archive: false
 id: test_element_radios
 title: 'Test: Element: Radios'
 description: 'Test the radios.'
@@ -20,6 +22,7 @@ elements: |
     radios_required:
       '#type': radios
       '#title': radios_required
+      '#description': 'This is a description'
       '#required': true
       '#options': yes_no
   radios_required_conditional_example:
@@ -28,11 +31,19 @@ elements: |
     '#open': true
     radios_required_conditional_trigger:
       '#type': checkbox
-      '#title': 'Required the below radio button'
+      '#title': 'Require the below radio button'
       '#default_value': true
     radios_required_conditions:
       '#type': radios
       '#title': radios_required
+      '#options': yes_no
+      '#states':
+        required:
+          ':input[name="radios_required_conditional_trigger"]':
+            checked: true
+    radios_other_required_conditions:
+      '#type': webform_radios_other
+      '#title': radios_other_required
       '#options': yes_no
       '#states':
         required:
@@ -74,14 +85,144 @@ elements: |
         one: 'One -- This is a description'
         two: 'Two -- This is a description'
         three: 'Three -- This is a description'
+  radios_inline_title_example:
+    '#type': details
+    '#title': 'Radios inline title'
+    '#open': true
+    radios_inline_title:
+      '#type': radios
+      '#title': radios_inline_title
+      '#title_display': inline
+      '#options': yes_no
+      '#options_display': side_by_side
+    radios_other_inline_title:
+      '#type': webform_radios_other
+      '#title': radios_other_inline_title
+      '#title_display': inline
+      '#options': yes_no
+      '#options_display': side_by_side
+  radios_buttons_example:
+    '#type': details
+    '#title': 'Radios CSS buttons'
+    '#open': true
+    '#required': true
+    radios_buttons:
+      '#type': radios
+      '#title': radios_buttons
+      '#options': yes_no
+      '#options_display': buttons
+    radios_buttons_inline:
+      '#type': radios
+      '#title': radios_buttons_inline
+      '#title_display': inline
+      '#options': yes_no
+      '#options_display': buttons
+    radios_buttons_description:
+      '#type': radios
+      '#title': radios_buttons_description
+      '#options_display': buttons
+      '#options_description_display': description
+      '#options':
+        one: 'One -- This is a description'
+        two: 'Two -- This is a description'
+        three: 'Three -- This is a description'
+    radios_buttons_help:
+      '#type': radios
+      '#title': radios_buttons_help
+      '#options_display': buttons
+      '#options_description_display': help
+      '#options':
+        one: 'One -- This is a description'
+        two: 'Two -- This is a description'
+        three: 'Three -- This is a description'
+    radios_buttons_wrapping:
+      '#type': radios
+      '#title': radios_buttons_wrapping
+      '#options':
+        one: 'OneOneOneOneOneOneOne'
+        two: Two
+        three: Three
+        four: Four
+        five: Five
+        six: 'Six Six Six Six Six Six'
+      '#options_display': buttons
+  radios_options_properties_example:
+    '#type': details
+    '#title': 'radios custom options properties'
+    '#open': true
+    radios_options_properties:
+      '#type': radios
+      '#title': radios_options_properties
+      '#options_description_display': description
+      '#options':
+        one: 'One -- This is a description'
+        two: 'Two -- This is a description'
+        three: 'Three -- This is a description'
+      '#options__properties':
+        two:
+          '#wrapper_attributes':
+            'data-custom': 'custom wrapper data'
+            style: 'border: red 1px solid'
+            class:
+              - one-custom-wrapper-class
+          '#label_attributes':
+            'data-custom': 'custom label data'
+            style: 'border: blue 1px solid'
+            class:
+              - one-custom-label-class
+          '#attributes':
+            'data-custom': 'custom input data'
+            style: 'border: yellow 1px solid'
+            class:
+              - one-custom-class
+        three:
+          '#disabled': true
+    radios_buttons_options_properties:
+      '#type': radios
+      '#title': radios_buttons_options_properties
+      '#options_display': buttons
+      '#options_description_display': description
+      '#options':
+        one: 'One -- This is a description'
+        two: 'Two -- This is a description'
+        three: 'Three -- This is a description'
+      '#options__properties':
+        one:
+          '#label_attributes':
+            style: 'background-color: #ffcccb; color: darkred'
+        two:
+          '#label_attributes':
+            style: 'background-color: lightblue; color: darkblue'
+        three:
+          '#disabled': true
+    radios_other_options_properties:
+      '#type': webform_radios_other
+      '#title':   radios_other_options_properties
+      '#options':
+        one: 'One'
+        two: 'Two'
+        three: 'Three'
+      '#options__properties':
+        one:
+          '#disabled': true
+        two:
+          '#disabled': true
+        three:
+          '#disabled': true
+  
 css: ''
 javascript: ''
 settings:
   ajax: false
   ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
   page: true
   page_submit_path: ''
   page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
   form_submit_once: false
   form_exception_message: ''
   form_open_message: ''
@@ -89,6 +230,7 @@ settings:
   form_previous_submissions: true
   form_confidential: false
   form_confidential_message: ''
+  form_remote_addr: true
   form_convert_anonymous: false
   form_prepopulate: false
   form_prepopulate_source_entity: false
@@ -97,19 +239,48 @@ settings:
   form_reset: false
   form_disable_autocomplete: false
   form_novalidate: false
+  form_disable_inline_errors: false
+  form_required: false
   form_unsaved: false
   form_disable_back: false
+  form_submit_back: false
   form_autofocus: false
   form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
   submission_label: ''
   submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
   submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
   wizard_progress_bar: true
   wizard_progress_pages: false
   wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
   wizard_start_label: ''
+  wizard_preview_link: false
   wizard_confirmation: true
   wizard_confirmation_label: ''
+  wizard_track: ''
   preview: 1
   preview_label: ''
   preview_title: ''
@@ -117,11 +288,14 @@ settings:
   preview_attributes: {  }
   preview_excluded_elements: {  }
   preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
   draft: none
   draft_multiple: false
   draft_auto_save: false
   draft_saved_message: ''
   draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
   confirmation_type: message
   confirmation_title: ''
   confirmation_message: ''
@@ -130,16 +304,27 @@ settings:
   confirmation_back: true
   confirmation_back_label: ''
   confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
   limit_total: null
+  limit_total_interval: null
   limit_total_message: ''
+  limit_total_unique: false
   limit_user: null
+  limit_user_interval: null
   limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
   purge: none
   purge_days: null
-  entity_limit_total: null
-  entity_limit_user: null
   results_disabled: false
   results_disabled_ignore: false
+  results_customize: false
+  token_view: false
   token_update: false
 access:
   create:
@@ -176,6 +361,18 @@ access:
     roles: {  }
     users: {  }
     permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
 handlers:
   debug:
     id: debug
@@ -185,3 +382,4 @@ handlers:
     conditions: {  }
     weight: 1
     settings: {  }
+variants: {  }

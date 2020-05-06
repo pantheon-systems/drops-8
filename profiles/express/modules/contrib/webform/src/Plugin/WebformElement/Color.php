@@ -3,6 +3,7 @@
 namespace Drupal\webform\Plugin\WebformElement;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\Element\WebformHtmlEditor;
 use Drupal\webform\Plugin\WebformElementBase;
 use Drupal\webform\WebformSubmissionInterface;
 
@@ -22,12 +23,20 @@ class Color extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    return [
+  protected function defineDefaultProperties() {
+    $properties = [
       // Color settings.
       'color_size' => 'medium',
-    ] + parent::getDefaultProperties();
+    ] + parent::defineDefaultProperties();
+    unset(
+      $properties['format_items'],
+      $properties['format_items_html'],
+      $properties['format_items_text']
+    );
+    return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
@@ -53,7 +62,7 @@ class Color extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function formatHtmlItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
+  protected function formatHtmlItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
     $value = $this->getValue($element, $webform_submission, $options);
 
     if (empty($value)) {
@@ -63,12 +72,16 @@ class Color extends WebformElementBase {
     $format = $this->getItemFormat($element);
     switch ($format) {
       case 'swatch':
-        return [
-          '#theme' => 'webform_element_color_value_swatch',
-          '#element' => $element,
-          '#value' => $value,
-          '#options' => $options,
-        ];
+        if (!in_array('font', WebformHtmlEditor::getAllowedTags())) {
+          return $value;
+        }
+        else {
+          return [
+            '#type' => 'inline_template',
+            '#template' => '<font color="{{ value }}">█</font> {{ value }}',
+            '#context' => ['value' => $value],
+          ];
+        }
 
       default:
         return parent::formatHtmlItem($element, $webform_submission, $options);

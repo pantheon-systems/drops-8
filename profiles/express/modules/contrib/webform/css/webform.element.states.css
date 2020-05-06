@@ -43,17 +43,24 @@ tr.webform-states-table--state td select {
   vertical-align: middle;
 }
 
-.webform-states-table td.webform-states-table--operations input {
-  margin: 0 2px;
-}
-
-.webform-states-table td.webform-states-table--operations input {
+.webform-states-table td.webform-states-table--operations input[type="image"] {
+  box-sizing: border-box;
+  width: 20px;
+  min-width: initial;
+  max-width: initial;
+  padding: 2px;
   opacity: 0.4;
+  border: 2px solid #333;
+  border-radius: 50%;
 }
 
-.webform-states-table td.webform-states-table--operations input:hover,
-.webform-states-table td.webform-states-table--operations input:focus,
-.webform-states-table td.webform-states-table--operations input:active {
+.webform-states-table td.webform-states-table--operations input[type="image"] + input[type="image"] {
+  margin-left: 2px;
+}
+
+.webform-states-table td.webform-states-table--operations input[type="image"]:hover,
+.webform-states-table td.webform-states-table--operations input[type="image"]:focus,
+.webform-states-table td.webform-states-table--operations input[type="image"]:active {
   opacity: 1;
   background: none;
 }
@@ -64,4 +71,15 @@ tr.webform-states-table--state td select {
 .webform-states-table .tabledrag-changed-warning,
 .webform-states-table .tabledrag-changed {
   display: none !important; /* Must use !important because .tabledrag-changed 'display' is set via JavaScript */
+}
+
+/**
+ * Limit results in jQuery UI Autocomplete
+ *
+ * https://stackoverflow.com/questions/7617373/limit-results-in-jquery-ui-autocomplete
+ */
+.ui-autocomplete {
+  overflow-x: hidden;
+  overflow-y: auto;
+  max-height: 200px;
 }

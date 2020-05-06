@@ -3,7 +3,7 @@
 namespace Drupal\KernelTests\Core\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\TypedData\EntityDataDefinition;
 use Drupal\Core\Entity\TypedData\EntityDataDefinitionInterface;
@@ -104,7 +104,7 @@ class EntityTypedDataDefinitionTest extends KernelTestBase {
     $field_definitions = $entity_definition->getPropertyDefinitions();
     // Comparison should ignore the internal static cache, so compare the
     // serialized objects instead.
-    $this->assertEqual(serialize($field_definitions), serialize(\Drupal::entityManager()->getBaseFieldDefinitions('node')));
+    $this->assertEqual(serialize($field_definitions), serialize(\Drupal::service('entity_field.manager')->getBaseFieldDefinitions('node')));
     $this->assertEqual($entity_definition->getPropertyDefinition('title')->getItemDefinition()->getDataType(), 'field_item:string');
     $this->assertNull($entity_definition->getMainPropertyName());
     $this->assertNull($entity_definition->getPropertyDefinition('invalid'));
@@ -151,13 +151,15 @@ class EntityTypedDataDefinitionTest extends KernelTestBase {
 
     $entity_type = $this->prophesize(EntityTypeInterface::class);
     $entity_type->entityClassImplements(ConfigEntityInterface::class)->willReturn(FALSE);
+    $entity_type->getKey('bundle')->willReturn(FALSE);
     $entity_type->getLabel()->willReturn($this->randomString());
     $entity_type->getConstraints()->willReturn([]);
     $entity_type->isInternal()->willReturn($internal);
+    $entity_type->getBundleEntityType()->willReturn(NULL);
 
-    $entity_manager = $this->prophesize(EntityManagerInterface::class);
-    $entity_manager->getDefinitions()->willReturn([$entity_type_id => $entity_type->reveal()]);
-    $this->container->set('entity.manager', $entity_manager->reveal());
+    $entity_type_manager = $this->prophesize(EntityTypeManagerInterface::class);
+    $entity_type_manager->getDefinitions()->willReturn([$entity_type_id => $entity_type->reveal()]);
+    $this->container->set('entity_type.manager', $entity_type_manager->reveal());
 
     $entity_data_definition = EntityDataDefinition::create($entity_type_id);
     $this->assertSame($expected, $entity_data_definition->isInternal());

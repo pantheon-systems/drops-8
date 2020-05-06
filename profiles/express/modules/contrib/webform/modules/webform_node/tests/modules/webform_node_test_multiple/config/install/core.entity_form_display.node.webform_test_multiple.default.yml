@@ -31,13 +31,6 @@ content:
     third_party_settings: {  }
     type: webform_entity_reference_select
     region: content
-  langcode:
-    type: language_select
-    weight: 2
-    region: content
-    settings:
-      include_locked: true
-    third_party_settings: {  }
   path:
     type: path
     weight: 30

@@ -100,7 +100,7 @@ class SystemController extends ControllerBase {
   public function overview($link_id) {
     // Check for status report errors.
     if ($this->systemManager->checkRequirements() && $this->currentUser()->hasPermission('administer site configuration')) {
-      $this->messenger()->addError($this->t('One or more problems were detected with your Drupal installation. Check the <a href=":status">status report</a> for more information.', [':status' => $this->url('system.status')]));
+      $this->messenger()->addError($this->t('One or more problems were detected with your Drupal installation. Check the <a href=":status">status report</a> for more information.', [':status' => Url::fromRoute('system.status')->toString()]));
     }
     // Load all menu links below it.
     $parameters = new MenuTreeParameters();
@@ -196,7 +196,8 @@ class SystemController extends ControllerBase {
         continue;
       }
       $theme->is_default = ($theme->getName() == $theme_default);
-      $theme->is_admin = ($theme->getName() == $admin_theme || ($theme->is_default && $admin_theme == '0'));
+      $theme->is_admin = ($theme->getName() == $admin_theme || ($theme->is_default && empty($admin_theme)));
+      $theme->is_experimental = isset($theme->info['experimental']) && $theme->info['experimental'];
 
       // Identify theme screenshot.
       $theme->screenshot = NULL;
@@ -222,8 +223,6 @@ class SystemController extends ControllerBase {
       }
 
       if (empty($theme->status)) {
-        // Ensure this theme is compatible with this version of core.
-        $theme->incompatible_core = !isset($theme->info['core']) || ($theme->info['core'] != \DRUPAL::CORE_COMPATIBILITY);
         // Require the 'content' region to make sure the main page
         // content has a common place in all themes.
         $theme->incompatible_region = !isset($theme->info['regions']['content']);
@@ -234,7 +233,7 @@ class SystemController extends ControllerBase {
         $theme->incompatible_engine = isset($theme->info['engine']) && !isset($theme->owner);
       }
       $theme->operations = [];
-      if (!empty($theme->status) || !$theme->incompatible_core && !$theme->incompatible_php && !$theme->incompatible_base && !$theme->incompatible_engine) {
+      if (!empty($theme->status) || !$theme->info['core_incompatible'] && !$theme->incompatible_php && !$theme->incompatible_base && !$theme->incompatible_engine) {
         // Create the operations links.
         $query['theme'] = $theme->getName();
         if ($this->themeAccess->checkAccess($theme->getName())) {
@@ -271,7 +270,7 @@ class SystemController extends ControllerBase {
               'attributes' => ['title' => $this->t('Set @theme as default theme', ['@theme' => $theme->info['name']])],
             ];
           }
-          $admin_theme_options[$theme->getName()] = $theme->info['name'];
+          $admin_theme_options[$theme->getName()] = $theme->info['name'] . ($theme->is_experimental ? ' (' . t('Experimental') . ')' : '');
         }
         else {
           $theme->operations[] = [
@@ -289,13 +288,17 @@ class SystemController extends ControllerBase {
         }
       }
 
-      // Add notes to default and administration theme.
+      // Add notes to default theme, administration theme and experimental
+      // themes.
       $theme->notes = [];
       if ($theme->is_default) {
         $theme->notes[] = $this->t('default theme');
       }
       if ($theme->is_admin) {
         $theme->notes[] = $this->t('administration theme');
+      }
+      if ($theme->is_experimental) {
+        $theme->notes[] = $this->t('experimental theme');
       }
 
       // Sort installed and uninstalled themes into their own groups.

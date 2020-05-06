@@ -1,0 +1,6 @@
+entity.webform.user.submission.attachment:
+  path: '/webform/{webform}/submissions/{webform_submission}/attachment/{element}/{filename}'
+  defaults:
+    _controller: '\Drupal\webform_attachment\Controller\WebformAttachmentController::download'
+  requirements:
+    _entity_access: 'webform_submission.view'

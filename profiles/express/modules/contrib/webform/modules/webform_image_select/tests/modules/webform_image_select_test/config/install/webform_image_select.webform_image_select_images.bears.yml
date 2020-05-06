@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - webform_image_select_test
+id: bears
+label: 'Cute Bears'
+category: Animals
+images: |
+  bear_1:
+    text: 'Cute Bear 1'
+    src: 'http://placebear.com/220/200'
+  bear_2:
+    text: 'Cute Bear 2'
+    src: 'http://placebear.com/180/200'
+  bear_3:
+    text: 'Cute Bear 3'
+    src: 'http://placebear.com/130/200'
+  bear_4:
+    text: 'Cute Bear 4'
+    src: 'http://placebear.com/270/200'

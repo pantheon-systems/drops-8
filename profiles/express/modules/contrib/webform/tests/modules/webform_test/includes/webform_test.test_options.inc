@@ -74,7 +74,7 @@ function webform_test_test_options() {
       elseif (preg_match('/(months|days)/', $id)) {
         $group = 'date_options';
       }
-      elseif (preg_match('/(time_zones|creditcard|yes_no|days|size)/', $id)) {
+      elseif (preg_match('/(time_zones|yes_no|days|size)/', $id)) {
         $group = 'general_options';
       }
       elseif ($id == 'test') {

@@ -23,7 +23,8 @@ class FormatDateTest extends MigrateProcessTestCase {
       'to_format' => 'Y-m-d',
     ];
 
-    $this->setExpectedException(MigrateException::class, 'Format date plugin is missing from_format configuration.');
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage('Format date plugin is missing from_format configuration.');
     $this->plugin = new FormatDate($configuration, 'test_format_date', []);
     $this->plugin->transform('01/05/1955', $this->migrateExecutable, $this->row, 'field_date');
   }
@@ -37,7 +38,8 @@ class FormatDateTest extends MigrateProcessTestCase {
       'to_format' => '',
     ];
 
-    $this->setExpectedException(MigrateException::class, 'Format date plugin is missing to_format configuration.');
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage('Format date plugin is missing to_format configuration.');
     $this->plugin = new FormatDate($configuration, 'test_format_date', []);
     $this->plugin->transform('01/05/1955', $this->migrateExecutable, $this->row, 'field_date');
   }
@@ -51,9 +53,25 @@ class FormatDateTest extends MigrateProcessTestCase {
       'to_format' => 'Y-m-d',
     ];
 
-    $this->setExpectedException(MigrateException::class, 'Format date plugin could not transform "January 5, 1955" using the format "m/d/Y". Error: The date cannot be created from a format.');
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage("Format date plugin could not transform 'January 5, 1955' using the format 'm/d/Y' for destination 'field_date'. Error: The date cannot be created from a format.");
     $this->plugin = new FormatDate($configuration, 'test_format_date', []);
     $this->plugin->transform('January 5, 1955', $this->migrateExecutable, $this->row, 'field_date');
+  }
+
+  /**
+   * Tests that an unexpected date value will throw an exception.
+   */
+  public function testMigrateExceptionUnexpectedValue() {
+    $configuration = [
+      'from_format' => 'm/d/Y',
+      'to_format' => 'Y-m-d',
+    ];
+
+    $this->expectException(MigrateException::class);
+    $this->expectExceptionMessage("Format date plugin could not transform '01/05/55' using the format 'm/d/Y' for destination 'field_date'. Error: The created date does not match the input value.");
+    $this->plugin = new FormatDate($configuration, 'test_format_date', []);
+    $this->plugin->transform('01/05/55', $this->migrateExecutable, $this->row, 'field_date');
   }
 
   /**
@@ -210,6 +228,22 @@ class FormatDateTest extends MigrateProcessTestCase {
         ],
         'value' => '0000-00-00 00:00:00',
         'expected' => '-0001-11-30 00:00:00',
+      ],
+      'collected_date_attributes_day' => [
+        'configuration' => [
+          'from_format' => 'Y-m-d\TH:i:s',
+          'to_format' => 'Y-m-d\TH:i:s',
+        ],
+        'value' => '2012-01-00T00:00:00',
+        'expected' => '2012-01-01T00:00:00',
+      ],
+      'collected_date_attributes_month' => [
+        'configuration' => [
+          'from_format' => 'Y-m-d\TH:i:s',
+          'to_format' => 'Y-m-d\TH:i:s',
+        ],
+        'value' => '2012-00-00T00:00:00',
+        'expected' => '2012-01-01T00:00:00',
       ],
     ];
   }

@@ -2,9 +2,11 @@
 
 namespace Drupal\Tests\system\Functional\Update;
 
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Core\Url;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\RequirementsPageTrait;
 
 /**
  * Tests the update script access and functionality.
@@ -12,6 +14,10 @@ use Drupal\Tests\BrowserTestBase;
  * @group Update
  */
 class UpdateScriptTest extends BrowserTestBase {
+
+  use RequirementsPageTrait;
+
+  const HANDBOOK_MESSAGE = 'Review the suggestions for resolving this incompatibility to repair your installation, and then re-run update.php.';
 
   /**
    * Modules to enable.
@@ -23,7 +29,19 @@ class UpdateScriptTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected $dumpHeaders = TRUE;
+
+  /**
+   * The URL to the status report page.
+   *
+   * @var \Drupal\Core\Url
+   */
+  protected $statusReportUrl;
 
   /**
    * URL to the update.php script.
@@ -42,8 +60,8 @@ class UpdateScriptTest extends BrowserTestBase {
   protected function setUp() {
     parent::setUp();
     $this->updateUrl = Url::fromRoute('system.db_update');
+    $this->statusReportUrl = Url::fromRoute('system.status');
     $this->updateUser = $this->drupalCreateUser(['administer software updates', 'access site in maintenance mode']);
-    \Drupal::service('entity.definition_update_manager')->applyUpdates();
   }
 
   /**
@@ -100,6 +118,7 @@ class UpdateScriptTest extends BrowserTestBase {
     // If there are no requirements warnings or errors, we expect to be able to
     // go through the update process uninterrupted.
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->updateRequirementsProblem();
     $this->clickLink(t('Continue'));
     $this->assertText(t('No pending updates.'), 'End of update process was reached.');
     // Confirm that all caches were cleared.
@@ -111,6 +130,7 @@ class UpdateScriptTest extends BrowserTestBase {
 
     // First, run this test with pending updates to make sure they can be run
     // successfully.
+    $this->drupalLogin($this->updateUser);
     $update_script_test_config->set('requirement_type', REQUIREMENT_WARNING)->save();
     drupal_set_installed_schema_version('update_script_test', drupal_get_installed_schema_version('update_script_test') - 1);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
@@ -142,6 +162,240 @@ class UpdateScriptTest extends BrowserTestBase {
     $this->assertText('This is a requirements error provided by the update_script_test module.');
     $this->clickLink('try again');
     $this->assertText('This is a requirements error provided by the update_script_test module.');
+
+    // Ensure that changes to a module's requirements that would cause errors
+    // are displayed correctly.
+    $update_script_test_config->set('requirement_type', REQUIREMENT_OK)->save();
+    \Drupal::state()->set('update_script_test.system_info_alter', ['dependencies' => ['a_module_that_does_not_exist']]);
+    $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->assertSession()->responseContains('a_module_that_does_not_exist (Missing)');
+    $this->assertSession()->responseContains('Update script test requires this module.');
+
+    \Drupal::state()->set('update_script_test.system_info_alter', ['dependencies' => ['node (<7.x-0.0-dev)']]);
+    $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->assertSession()->assertEscaped('Node (Version <7.x-0.0-dev required)');
+    $this->assertSession()->responseContains('Update script test requires this module and version. Currently using Node version ' . \Drupal::VERSION);
+  }
+
+  /**
+   * Tests that extension compatibility changes are handled correctly.
+   *
+   * @param array $correct_info
+   *   The initial values for info.yml fail. These should compatible with core.
+   * @param array $breaking_info
+   *   The values to the info.yml that are not compatible with core.
+   * @param string $expected_error
+   *   The expected error.
+   *
+   * @dataProvider providerExtensionCompatibilityChange
+   */
+  public function testExtensionCompatibilityChange(array $correct_info, array $breaking_info, $expected_error) {
+    $extension_type = $correct_info['type'];
+    $this->drupalLogin(
+      $this->drupalCreateUser(
+        [
+          'administer software updates',
+          'administer site configuration',
+          $extension_type === 'module' ? 'administer modules' : 'administer themes',
+        ]
+      )
+    );
+
+    $extension_machine_name = "changing_extension";
+    $extension_name = "$extension_machine_name name";
+
+    $test_error_text = "Incompatible $extension_type "
+      . $expected_error
+      . $extension_name
+      . static::HANDBOOK_MESSAGE;
+    $base_info = ['name' => $extension_name];
+    if ($extension_type === 'theme') {
+      $base_info['base theme'] = FALSE;
+    }
+    $folder_path = \Drupal::service('site.path') . "/{$extension_type}s/$extension_machine_name";
+    $file_path = "$folder_path/$extension_machine_name.info.yml";
+    mkdir($folder_path, 0777, TRUE);
+    file_put_contents($file_path, Yaml::encode($base_info + $correct_info));
+    $this->enableExtension($extension_type, $extension_machine_name, $extension_name);
+    $this->assertInstalledExtensionConfig($extension_type, $extension_machine_name);
+
+    // If there are no requirements warnings or errors, we expect to be able to
+    // go through the update process uninterrupted.
+    $this->assertUpdateWithNoError($test_error_text, $extension_type, $extension_machine_name);
+
+    // Change the values in the info.yml and confirm updating is not possible.
+    file_put_contents($file_path, Yaml::encode($base_info + $breaking_info));
+    $this->assertErrorOnUpdate($test_error_text, $extension_type, $extension_machine_name);
+
+    // Fix the values in the info.yml file and confirm updating is possible
+    // again.
+    file_put_contents($file_path, Yaml::encode($base_info + $correct_info));
+    $this->assertUpdateWithNoError($test_error_text, $extension_type, $extension_machine_name);
+  }
+
+  /**
+   * Date provider for testExtensionCompatibilityChange().
+   */
+  public function providerExtensionCompatibilityChange() {
+    $incompatible_module_message = "The following module is installed, but it is incompatible with Drupal " . \Drupal::VERSION . ":";
+    $incompatible_theme_message = "The following theme is installed, but it is incompatible with Drupal " . \Drupal::VERSION . ":";
+    return [
+      'module: core key incompatible' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'module',
+        ],
+        [
+          'core' => '7.x',
+          'type' => 'module',
+        ],
+        $incompatible_module_message,
+      ],
+      'module: core_version_requirement key incompatible' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'module',
+        ],
+        [
+          'core_version_requirement' => '8.7.7',
+          'type' => 'module',
+        ],
+        $incompatible_module_message,
+      ],
+      'theme: core key incompatible' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'theme',
+        ],
+        [
+          'core' => '7.x',
+          'type' => 'theme',
+        ],
+        $incompatible_theme_message,
+      ],
+      'theme: core_version_requirement key incompatible' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'theme',
+        ],
+        [
+          'core_version_requirement' => '8.7.7',
+          'type' => 'theme',
+        ],
+        $incompatible_theme_message,
+      ],
+      'module: php requirement' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'module',
+          'php' => 1,
+        ],
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'module',
+          'php' => 1000000000,
+        ],
+        'The following module is installed, but it is incompatible with PHP ' . phpversion() . ":",
+      ],
+      'theme: php requirement' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'theme',
+          'php' => 1,
+        ],
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'theme',
+          'php' => 1000000000,
+        ],
+        'The following theme is installed, but it is incompatible with PHP ' . phpversion() . ":",
+      ],
+    ];
+  }
+
+  /**
+   * Tests that a missing extension prevents updates.
+   *
+   * @param string $extension_type
+   *   The extension type, either 'module' or 'theme'.
+   *
+   * @dataProvider providerMissingExtension
+   */
+  public function testMissingExtension($extension_type) {
+    $this->drupalLogin(
+      $this->drupalCreateUser(
+        [
+          'administer software updates',
+          'administer site configuration',
+          $extension_type === 'module' ? 'administer modules' : 'administer themes',
+        ]
+      )
+    );
+    $extension_machine_name = "disappearing_$extension_type";
+    $extension_name = 'The magically disappearing extension';
+    $test_error_text = "Missing or invalid $extension_type "
+      . "The following $extension_type is marked as installed in the core.extension configuration, but it is missing:"
+      . $extension_machine_name
+      . static::HANDBOOK_MESSAGE;
+    $extension_info = [
+      'name' => $extension_name,
+      'type' => $extension_type,
+      'core_version_requirement' => '^8 || ^9',
+    ];
+    if ($extension_type === 'theme') {
+      $extension_info['base theme'] = FALSE;
+    }
+    $folder_path = \Drupal::service('site.path') . "/{$extension_type}s/$extension_machine_name";
+    $file_path = "$folder_path/$extension_machine_name.info.yml";
+    mkdir($folder_path, 0777, TRUE);
+    file_put_contents($file_path, Yaml::encode($extension_info));
+    $this->enableExtension($extension_type, $extension_machine_name, $extension_name);
+
+    // If there are no requirements warnings or errors, we expect to be able to
+    // go through the update process uninterrupted.
+    $this->assertUpdateWithNoError($test_error_text, $extension_type, $extension_machine_name);
+
+    // Delete the info.yml and confirm updates are prevented.
+    unlink($file_path);
+    $this->assertErrorOnUpdate($test_error_text, $extension_type, $extension_machine_name);
+
+    // Add the info.yml file back and confirm we are able to go through the
+    // update process uninterrupted.
+    file_put_contents($file_path, Yaml::encode($extension_info));
+    $this->assertUpdateWithNoError($test_error_text, $extension_type, $extension_machine_name);
+  }
+
+  /**
+   * Data provider for testMissingExtension().
+   */
+  public function providerMissingExtension() {
+    return [
+      'module' => ['module'],
+      'theme' => ['theme'],
+    ];
+  }
+
+  /**
+   * Enables an extension using the UI.
+   *
+   * @param string $extension_type
+   *   The extension type.
+   * @param string $extension_machine_name
+   *   The extension machine name.
+   * @param string $extension_name
+   *   The extension name.
+   */
+  protected function enableExtension($extension_type, $extension_machine_name, $extension_name) {
+    if ($extension_type === 'module') {
+      $edit = [
+        "modules[$extension_machine_name][enable]" => $extension_machine_name,
+      ];
+      $this->drupalPostForm('admin/modules', $edit, t('Install'));
+    }
+    elseif ($extension_type === 'theme') {
+      $this->drupalGet('admin/appearance');
+      $this->click("a[title~=\"$extension_name\"]");
+    }
   }
 
   /**
@@ -165,6 +419,7 @@ class UpdateScriptTest extends BrowserTestBase {
     // Click through update.php with 'administer software updates' permission.
     $this->drupalLogin($this->updateUser);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->updateRequirementsProblem();
     $this->clickLink(t('Continue'));
     $this->assertText(t('No pending updates.'));
     $this->assertNoLink('Administration pages');
@@ -176,6 +431,7 @@ class UpdateScriptTest extends BrowserTestBase {
     $admin_user = $this->drupalCreateUser(['administer software updates', 'access administration pages']);
     $this->drupalLogin($admin_user);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->updateRequirementsProblem();
     $this->clickLink(t('Continue'));
     $this->assertText(t('No pending updates.'));
     $this->assertLink('Administration pages');
@@ -189,7 +445,7 @@ class UpdateScriptTest extends BrowserTestBase {
    */
   public function testSuccessfulUpdateFunctionality() {
     $initial_maintenance_mode = $this->container->get('state')->get('system.maintenance_mode');
-    $this->assertFalse($initial_maintenance_mode, 'Site is not in maintenance mode.');
+    $this->assertNull($initial_maintenance_mode, 'Site is not in maintenance mode.');
     $this->runUpdates($initial_maintenance_mode);
     $final_maintenance_mode = $this->container->get('state')->get('system.maintenance_mode');
     $this->assertEqual($final_maintenance_mode, $initial_maintenance_mode, 'Maintenance mode should not have changed after database updates.');
@@ -208,6 +464,7 @@ class UpdateScriptTest extends BrowserTestBase {
     $admin_user = $this->drupalCreateUser(['administer software updates', 'access administration pages', 'access site reports', 'access site in maintenance mode']);
     $this->drupalLogin($admin_user);
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->updateRequirementsProblem();
     $this->clickLink(t('Continue'));
     $this->clickLink(t('Apply pending updates'));
     $this->checkForMetaRefresh();
@@ -275,6 +532,7 @@ class UpdateScriptTest extends BrowserTestBase {
     // Click through update.php with 'access administration pages' and
     // 'access site reports' permissions.
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->updateRequirementsProblem();
     $this->clickLink(t('Continue'));
     $this->clickLink(t('Apply pending updates'));
     $this->checkForMetaRefresh();
@@ -307,6 +565,7 @@ class UpdateScriptTest extends BrowserTestBase {
       $this->assertNoText('Operating in maintenance mode.');
     }
     $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->updateRequirementsProblem();
     $this->clickLink(t('Continue'));
     $this->clickLink(t('Apply pending updates'));
     $this->checkForMetaRefresh();
@@ -402,6 +661,71 @@ class UpdateScriptTest extends BrowserTestBase {
         'type_name' => ['type', 'name'],
       ],
     ];
+  }
+
+  /**
+   * Asserts that an installed extension's config setting is correct.
+   *
+   * @param string $extension_type
+   *   The extension type, either 'module' or 'theme'.
+   * @param string $extension_machine_name
+   *   The extension machine name.
+   */
+  protected function assertInstalledExtensionConfig($extension_type, $extension_machine_name) {
+    $extension_config = $this->container->get('config.factory')->getEditable('core.extension');
+    $this->assertSame(0, $extension_config->get("$extension_type.$extension_machine_name"));
+  }
+
+  /**
+   * Asserts a particular error is not shown on update and status report pages.
+   *
+   * @param string $unexpected_error_text
+   *   The error text that should not be shown.
+   * @param string $extension_type
+   *   The extension type, either 'module' or 'theme'.
+   * @param string $extension_machine_name
+   *   The extension machine name.
+   *
+   * @throws \Behat\Mink\Exception\ResponseTextException
+   */
+  protected function assertUpdateWithNoError($unexpected_error_text, $extension_type, $extension_machine_name) {
+    $assert_session = $this->assertSession();
+    $this->drupalGet($this->statusReportUrl);
+    $this->assertSession()->pageTextNotContains($unexpected_error_text);
+    $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+    $this->assertSession()->pageTextNotContains($unexpected_error_text);
+    $this->updateRequirementsProblem();
+    $this->clickLink(t('Continue'));
+    $assert_session->pageTextContains('No pending updates.');
+    $this->assertInstalledExtensionConfig($extension_type, $extension_machine_name);
+  }
+
+  /**
+   * Asserts an error is shown on the update and status report pages.
+   *
+   * @param string $expected_error_text
+   *   The expected error text.
+   * @param string $extension_type
+   *   The extension type, either 'module' or 'theme'.
+   * @param string $extension_machine_name
+   *   The extension machine name.
+   *
+   * @throws \Behat\Mink\Exception\ExpectationException
+   * @throws \Behat\Mink\Exception\ResponseTextException
+   */
+  protected function assertErrorOnUpdate($expected_error_text, $extension_type, $extension_machine_name) {
+    $assert_session = $this->assertSession();
+    $this->drupalGet($this->statusReportUrl);
+    $this->assertSession()->pageTextContains($expected_error_text);
+
+    // Reload the update page to ensure the extension with the breaking values
+    // has not been uninstalled or otherwise affected.
+    for ($reload = 0; $reload <= 1; $reload++) {
+      $this->drupalGet($this->updateUrl, ['external' => TRUE]);
+      $this->assertSession()->pageTextContains($expected_error_text);
+      $assert_session->linkNotExists('Continue');
+    }
+    $this->assertInstalledExtensionConfig($extension_type, $extension_machine_name);
   }
 
 }

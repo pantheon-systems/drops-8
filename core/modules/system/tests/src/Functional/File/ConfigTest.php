@@ -11,6 +11,11 @@ use Drupal\Tests\BrowserTestBase;
  */
 class ConfigTest extends BrowserTestBase {
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer site configuration']));
@@ -27,7 +32,6 @@ class ConfigTest extends BrowserTestBase {
     // upon form submission.
     $file_path = $this->publicFilesDirectory;
     $fields = [
-      'file_temporary_path' => $file_path . '/file_config_page_test/temporary',
       'file_default_scheme' => 'private',
     ];
 

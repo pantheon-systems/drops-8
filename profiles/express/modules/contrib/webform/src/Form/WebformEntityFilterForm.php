@@ -5,10 +5,11 @@ namespace Drupal\webform\Form;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\WebformInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Provides the webform filter webform.
+ * Provides the webform filter form.
  */
 class WebformEntityFilterForm extends FormBase {
 
@@ -58,12 +59,13 @@ class WebformEntityFilterForm extends FormBase {
     ];
     $form['filter']['search'] = [
       '#type' => 'search',
-      '#title' => $this->t('Filter by title, description, or elements'),
+      '#title' => $this->t('Keyword'),
       '#title_display' => 'invisible',
-      '#autocomplete_route_name' => 'entity.webform.autocomplete',
-      '#placeholder' => $this->t('Filter by title, description, or elements'),
-      '#maxlength' => 128,
-      '#size' => 40,
+      '#autocomplete_route_name' => 'entity.webform.autocomplete' . ($state === WebformInterface::STATUS_ARCHIVED ? '.archived' : ''),
+      '#placeholder' => $this->t('Filter by title, description, elements, user name, or role'),
+      // Allow autocomplete to use long webform titles.
+      '#maxlength' => 500,
+      '#size' => 45,
       '#default_value' => $search,
     ];
     $form['filter']['category'] = [
@@ -74,6 +76,9 @@ class WebformEntityFilterForm extends FormBase {
       '#empty_option' => ($category) ? $this->t('Show all webforms') : $this->t('Filter by category'),
       '#default_value' => $category,
     ];
+    if (empty($form['filter']['category']['#options'])) {
+      $form['filter']['category']['#access'] = FALSE;
+    }
     $form['filter']['state'] = [
       '#type' => 'select',
       '#title' => $this->t('State'),

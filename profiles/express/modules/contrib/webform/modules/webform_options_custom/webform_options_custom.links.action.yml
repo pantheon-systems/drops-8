@@ -1,0 +1,5 @@
+entity.webform_options_custom.add_form:
+  route_name: entity.webform_options_custom.add_form
+  title: 'Add custom options'
+  appears_on:
+    - entity.webform_options_custom.collection

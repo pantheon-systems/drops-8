@@ -3,9 +3,14 @@
 namespace Drupal\migrate_drupal_ui\Form;
 
 use Drupal\Component\Utility\UrlHelper;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
+use Drupal\migrate\Exception\RequirementsException;
+use Drupal\migrate\Plugin\Exception\BadPluginDefinitionException;
+use Drupal\migrate\Plugin\MigrationPluginManagerInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\TransferException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -16,13 +21,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @internal
  */
 class CredentialForm extends MigrateUpgradeFormBase {
-
-  /**
-   * The renderer service.
-   *
-   * @var \Drupal\Core\Render\RendererInterface
-   */
-  protected $renderer;
 
   /**
    * The HTTP client to fetch the files with.
@@ -41,16 +39,19 @@ class CredentialForm extends MigrateUpgradeFormBase {
   /**
    * CredentialForm constructor.
    *
-   * @param \Drupal\Core\Render\RendererInterface $renderer
-   *   The renderer service.
    * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $tempstore_private
-   *   The private tempstore factory.
+   *   The private tempstore factory service.
    * @param \GuzzleHttp\ClientInterface $http_client
    *   A Guzzle client object.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
+   *   The config factory service.
+   * @param \Drupal\migrate\Plugin\MigrationPluginManagerInterface $migration_plugin_manager
+   *   The migration plugin manager service.
+   * @param \Drupal\Core\State\StateInterface $state
+   *   The state service.
    */
-  public function __construct(RendererInterface $renderer, PrivateTempStoreFactory $tempstore_private, ClientInterface $http_client) {
-    parent::__construct($tempstore_private);
-    $this->renderer = $renderer;
+  public function __construct(PrivateTempStoreFactory $tempstore_private, ClientInterface $http_client, ConfigFactoryInterface $config_factory, MigrationPluginManagerInterface $migration_plugin_manager, StateInterface $state) {
+    parent::__construct($config_factory, $migration_plugin_manager, $state, $tempstore_private);
     $this->httpClient = $http_client;
   }
 
@@ -59,9 +60,11 @@ class CredentialForm extends MigrateUpgradeFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('renderer'),
       $container->get('tempstore.private'),
-      $container->get('http_client')
+      $container->get('http_client'),
+      $container->get('config.factory'),
+      $container->get('plugin.manager.migration'),
+      $container->get('state')
     );
   }
 
@@ -220,32 +223,52 @@ class CredentialForm extends MigrateUpgradeFormBase {
     $database['driver'] = $driver;
 
     // Validate the driver settings and just end here if we have any issues.
+    $connection = NULL;
+    $error_key = $database['driver'] . '][database';
     if ($errors = $drivers[$driver]->validateDatabaseSettings($database)) {
       foreach ($errors as $name => $message) {
         $this->errors[$name] = $message;
       }
     }
-    else {
+
+    // Get the Drupal version of the source database so it can be validated.
+    if (!$this->errors) {
       try {
         $connection = $this->getConnection($database);
-        $version = (string) $this->getLegacyDrupalVersion($connection);
-        if (!$version) {
-          $this->errors[$database['driver'] . '][database'] = $this->t('Source database does not contain a recognizable Drupal version.');
-        }
-        elseif ($version !== (string) $form_state->getValue('version')) {
-          $this->errors['version'] = $this->t('Source database is Drupal version @version but version @selected was selected.',
-            [
-              '@version' => $version,
-              '@selected' => $form_state->getValue('version'),
-            ]);
-        }
-        else {
-          // Setup migrations and save form data to private store.
-          $this->setupMigrations($database, $form_state);
-        }
       }
       catch (\Exception $e) {
-        $this->errors[$database['driver'] . '][database'] = $e->getMessage();
+        $msg = $this->t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname?</li></ul>', ['%error' => $e->getMessage()]);
+        $this->errors[$error_key] = $msg;
+      }
+    }
+
+    // Get the Drupal version of the source database so it can be validated.
+    if (!$this->errors) {
+      $version = (string) $this->getLegacyDrupalVersion($connection);
+      if (!$version) {
+        $this->errors[$error_key] = $this->t('Source database does not contain a recognizable Drupal version.');
+      }
+      elseif ($version !== (string) $form_state->getValue('version')) {
+        $this->errors['version'] = $this->t('Source database is Drupal version @version but version @selected was selected.',
+          [
+            '@version' => $version,
+            '@selected' => $form_state->getValue('version'),
+          ]);
+      }
+    }
+
+    // Setup migrations and save form data to private store.
+    if (!$this->errors) {
+      try {
+        $this->setupMigrations($connection, $version, $database, $form_state);
+      }
+      catch (BadPluginDefinitionException $e) {
+        // BadPluginDefinitionException occurs if the source_module is not
+        // defined, which happens during testing.
+        $this->errors[$error_key] = $e->getMessage();
+      }
+      catch (RequirementsException $e) {
+        $this->errors[$error_key] = $e->getMessage();
       }
     }
 
@@ -265,13 +288,14 @@ class CredentialForm extends MigrateUpgradeFormBase {
    */
   public function validatePaths($element, FormStateInterface $form_state) {
     if ($source = $element['#value']) {
-      $msg = $this->t('Unable to read from @title.', ['@title' => $element['#title']]);
+      $msg = $this->t('Failed to read from @title.', ['@title' => $element['#title']]);
       if (UrlHelper::isExternal($source)) {
         try {
           $this->httpClient->head($source);
         }
         catch (TransferException $e) {
-          $this->errors[$element['#name']] = $msg . ' ' . $e->getMessage();
+          $msg .= ' ' . $this->t('The server reports the following message: %error.', ['%error' => $e->getMessage()]);
+          $this->errors[$element['#name']] = $msg;
         }
       }
       elseif (!file_exists($source) || (!is_dir($source)) || (!is_readable($source))) {
@@ -305,6 +329,53 @@ class CredentialForm extends MigrateUpgradeFormBase {
     // Make sure the install API is available.
     include_once DRUPAL_ROOT . '/core/includes/install.inc';
     return drupal_get_database_types();
+  }
+
+  /**
+   * Gets and stores information for this migration in temporary store.
+   *
+   * Gets all the migrations, converts each to an array and stores it in the
+   * form state. The source base path for public and private files is also
+   * put into form state.
+   *
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection used.
+   * @param string $version
+   *   The Drupal version.
+   * @param array $database
+   *   Database array representing the source Drupal database.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   *
+   * @throws \Drupal\Core\TempStore\TempStoreException
+   *   Thrown when a lock for the backend storage could not be acquired.
+   */
+  protected function setupMigrations(Connection $connection, $version, array $database, FormStateInterface $form_state) {
+    $this->createDatabaseStateSettings($database, $version);
+    $migrations = $this->getMigrations('migrate_drupal_' . $version, $version);
+
+    // Get the system data from source database.
+    $system_data = $this->getSystemData($connection);
+
+    // Convert the migration object into array
+    // so that it can be stored in form storage.
+    $migration_array = [];
+    foreach ($migrations as $migration) {
+      $migration_array[$migration->id()] = $migration->label();
+    }
+
+    // Store information in the private store.
+    $this->store->set('version', $version);
+    $this->store->set('migrations', $migration_array);
+    if ($version == 6) {
+      $this->store->set('source_base_path', $form_state->getValue('d6_source_base_path'));
+    }
+    else {
+      $this->store->set('source_base_path', $form_state->getValue('source_base_path'));
+    }
+    $this->store->set('source_private_file_path', $form_state->getValue('source_private_file_path'));
+    // Store the retrieved system data in the private store.
+    $this->store->set('system_data', $system_data);
   }
 
 }

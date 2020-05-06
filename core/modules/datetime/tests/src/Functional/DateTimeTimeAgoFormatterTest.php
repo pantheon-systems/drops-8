@@ -16,7 +16,7 @@ use Drupal\Tests\BrowserTestBase;
 class DateTimeTimeAgoFormatterTest extends BrowserTestBase {
 
   /**
-   * An array of display options to pass to entity_get_display().
+   * An array of field formatter display options.
    *
    * @var array
    */
@@ -40,6 +40,11 @@ class DateTimeTimeAgoFormatterTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   public static $modules = ['datetime', 'entity_test', 'field_ui'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -110,13 +115,13 @@ class DateTimeTimeAgoFormatterTest extends BrowserTestBase {
     $edit = [
       'fields[field_datetime][settings_edit_form][settings][future_format]' => 'ends in @interval',
       'fields[field_datetime][settings_edit_form][settings][past_format]' => 'started @interval ago',
-      'fields[field_datetime][settings_edit_form][settings][granularity]' => 3,
+      'fields[field_datetime][settings_edit_form][settings][granularity]' => 1,
     ];
     $this->drupalPostForm(NULL, $edit, 'Update');
     $this->drupalPostForm(NULL, [], 'Save');
 
-    $this->assertSession()->pageTextContains('ends in 1 year 1 month 1 week');
-    $this->assertSession()->pageTextContains('started 1 year 1 month 1 week ago');
+    $this->assertSession()->pageTextContains('ends in 1 year');
+    $this->assertSession()->pageTextContains('started 1 year ago');
   }
 
 }

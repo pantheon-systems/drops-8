@@ -2,19 +2,24 @@
 
 namespace Drupal\Tests\language\Functional\Rest;
 
-use Drupal\Tests\rest\Functional\BasicAuthResourceWithInterfaceTranslationTestTrait;
+use Drupal\Tests\rest\Functional\BasicAuthResourceTestTrait;
 
 /**
  * @group rest
  */
 class ConfigurableLanguageJsonBasicAuthTest extends ConfigurableLanguageResourceTestBase {
 
-  use BasicAuthResourceWithInterfaceTranslationTestTrait;
+  use BasicAuthResourceTestTrait;
 
   /**
    * {@inheritdoc}
    */
   public static $modules = ['basic_auth'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}

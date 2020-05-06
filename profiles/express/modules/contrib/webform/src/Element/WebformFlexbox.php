@@ -22,6 +22,7 @@ class WebformFlexbox extends Container {
     if (isset($element['#align_items'])) {
       $element['#attributes']['class'][] = 'webform-flexbox--' . $element['#align_items'];
     }
+    $element['#attributes']['class'][] = 'js-form-wrapper';
     $element['#attached']['library'][] = 'webform/webform.element.flexbox';
     return $element;
   }

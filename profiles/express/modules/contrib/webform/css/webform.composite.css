@@ -1,0 +1,24 @@
+/**
+ * @file
+ * Composite element styles.
+ */
+
+/**
+ * Remove extra margin are composite element which already contain form elements with margins
+ */
+fieldset.webform-composite-hidden-title {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+fieldset.webform-composite-hidden-title .fieldset-wrapper > .form-item:first-child,
+fieldset.webform-composite-hidden-title .fieldset-wrapper > .form-wrapper > .form-item:first-child,
+fieldset.webform-composite-hidden-title .fieldset-wrapper > .webform-flexbox:first-child {
+  margin-top: 0;
+}
+
+fieldset.webform-composite-hidden-title .fieldset-wrapper > .form-item:last-child,
+fieldset.webform-composite-hidden-title .fieldset-wrapper > .form-wrapper > .form-item:last-child,
+fieldset.webform-composite-hidden-title .fieldset-wrapper > .webform-flexbox:last-child {
+  margin-bottom: 0;
+}

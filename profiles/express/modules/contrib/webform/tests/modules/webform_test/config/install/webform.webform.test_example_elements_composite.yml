@@ -6,31 +6,56 @@ dependencies:
       - webform_test
 open: null
 close: null
+weight: 0
 uid: null
 template: false
+archive: false
 id: test_example_elements_composite
 title: 'Test: Example: Elements: Composite'
-description: 'Examples of composite elements, includes address, contact, and credit card.'
+description: 'Examples of composite elements, includes address, and contact.'
 category: 'Test: Example'
 elements: |
   webform_address_example:
     '#type': details
-    '#title': Address
+    '#title': 'Basic address'
     '#open': true
     webform_address:
       '#type': webform_address
-      '#title': Address
+      '#title': 'Basic address'
     webform_address_multiple:
       '#type': webform_address
-      '#title': 'Address multiple'
+      '#title': 'Basic address multiple'
       '#multiple': true
-  webform_composite_example:
+      '#multiple__header': true
+  address_example:
     '#type': details
-    '#title': 'Composite custom'
+    '#title': 'Advanced address'
     '#open': true
-    webform_composite:
-      '#type': webform_composite
-      '#title': 'Composite custom'
+    address:
+      '#type': address
+      '#title': 'Advanced address'
+    address_multiple:
+      '#type': address
+      '#title': 'Advanced address multiple'
+      '#multiple': true
+  webform_contact_example:
+    '#type': details
+    '#title': Contact
+    '#open': true
+    webform_contact:
+      '#type': webform_contact
+      '#title': Contact
+    webform_contact_multiple:
+      '#type': webform_contact
+      '#title': 'Contact multiple'
+      '#multiple': true
+  webform_custom_composite_example:
+    '#type': details
+    '#title': 'Custom composite'
+    '#open': true
+    webform_custom_composite:
+      '#type': webform_custom_composite
+      '#title': 'Custom composite'
       '#element':
         name:
           '#type': textfield
@@ -43,9 +68,9 @@ elements: |
           '#options':
             Male: Male
             Female: Female
-    webform_composite_multiple:
-      '#type': webform_composite
-      '#title': 'Composite custom multiple'
+    webform_custom_composite_multiple:
+      '#type': webform_custom_composite
+      '#title': 'Custom composite multiple'
       '#element':
         name:
           '#type': textfield
@@ -60,24 +85,6 @@ elements: |
             Female: Female
       '#multiple': true
       '#multiple__header': true
-  webform_contact_example:
-    '#type': details
-    '#title': Contact
-    '#open': true
-    webform_contact:
-      '#type': webform_contact
-      '#title': Contact
-    webform_contact_multiple:
-      '#type': webform_contact
-      '#title': 'Contact multiple'
-      '#multiple': true
-  webform_creditcard_example:
-    '#type': details
-    '#title': 'Credit card'
-    '#open': true
-    webform_creditcard:
-      '#type': webform_creditcard
-      '#title': 'Credit card'
   webform_likert_example:
     '#type': details
     '#title': Likert
@@ -104,22 +111,17 @@ elements: |
       '#type': webform_link
       '#title': 'Link multiple'
       '#multiple': true
-  webform_location_example:
+      '#multiple__header': true
+  webform_location_places_example:
     '#type': details
-    '#title': Location
+    '#title': 'Location (Algolia Places)'
     '#open': true
-    webform_location:
-      '#type': webform_location
-      '#title': Location
-      '#map': true
-      '#geolocation': true
-      '#format': map
-    webform_location_multiple:
-      '#type': webform_location
-      '#title': 'Location multiple'
-      '#map': true
-      '#geolocation': true
-      '#format': map
+    webform_location_places:
+      '#type': webform_location_places
+      '#title': 'Location (Algolia Places)'
+    webform_location_places_multiple:
+      '#type': webform_location_places
+      '#title': 'Location (Algolia Places) multiple'
       '#multiple': true
   webform_mapping_example:
     '#type': details
@@ -147,6 +149,7 @@ elements: |
       '#type': webform_name
       '#title': 'Name multiple'
       '#multiple': true
+      '#multiple__header': true
   webform_telephone_example:
     '#type': details
     '#title': 'Telephone advanced'
@@ -158,6 +161,7 @@ elements: |
       '#type': webform_telephone
       '#title': 'Telephone advanced multiple'
       '#multiple': true
+      '#multiple__header': true
   text_format_example:
     '#type': details
     '#title': 'Text format'
@@ -166,14 +170,20 @@ elements: |
       '#type': text_format
       '#title': 'Text format'
       '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/997826">Issue #997826: #states doesn''t work correctly with type text_format</a><br /><a href="https://www.drupal.org/node/2625128">Issue #2625128: Text format selection stays visible when using editor and a hidden webform state</a><br /><a href="https://www.drupal.org/node/1954968">Issue #1954968: Required CKEditor fields always fail HTML5 validation</a>'
+  
 css: ''
 javascript: ''
 settings:
   ajax: false
   ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
   page: true
   page_submit_path: ''
   page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
   form_submit_once: false
   form_exception_message: ''
   form_open_message: ''
@@ -181,6 +191,7 @@ settings:
   form_previous_submissions: true
   form_confidential: false
   form_confidential_message: ''
+  form_remote_addr: true
   form_convert_anonymous: false
   form_prepopulate: false
   form_prepopulate_source_entity: false
@@ -189,19 +200,48 @@ settings:
   form_reset: false
   form_disable_autocomplete: false
   form_novalidate: false
+  form_disable_inline_errors: false
+  form_required: false
   form_unsaved: false
   form_disable_back: false
+  form_submit_back: false
   form_autofocus: false
   form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
   submission_label: ''
   submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
   submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
   wizard_progress_bar: true
   wizard_progress_pages: false
   wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
   wizard_start_label: ''
+  wizard_preview_link: false
   wizard_confirmation: true
   wizard_confirmation_label: ''
+  wizard_track: ''
   preview: 0
   preview_label: ''
   preview_title: ''
@@ -209,11 +249,14 @@ settings:
   preview_attributes: {  }
   preview_excluded_elements: {  }
   preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
   draft: none
   draft_multiple: false
   draft_auto_save: false
   draft_saved_message: ''
   draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
   confirmation_type: page
   confirmation_title: ''
   confirmation_message: ''
@@ -222,16 +265,27 @@ settings:
   confirmation_back: true
   confirmation_back_label: ''
   confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
   limit_total: null
+  limit_total_interval: null
   limit_total_message: ''
+  limit_total_unique: false
   limit_user: null
+  limit_user_interval: null
   limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
   purge: none
   purge_days: null
-  entity_limit_total: null
-  entity_limit_user: null
   results_disabled: false
   results_disabled_ignore: false
+  results_customize: false
+  token_view: false
   token_update: false
 access:
   create:
@@ -268,4 +322,17 @@ access:
     roles: {  }
     users: {  }
     permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
 handlers: {  }
+variants: {  }

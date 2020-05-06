@@ -22,6 +22,11 @@ class BulkFormTest extends NodeTestBase {
   public static $modules = ['node_test_views', 'language'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -271,7 +276,7 @@ class BulkFormTest extends NodeTestBase {
     $node = $this->loadNode(4);
     $this->assertNull($node, '4: Node has been deleted');
     $node = $this->loadNode(5);
-    $this->assertTrue($node, '5: Node has not been deleted');
+    $this->assertNotEmpty($node, '5: Node has not been deleted');
 
     $this->assertText('Deleted 8 content items.');
   }
@@ -287,7 +292,7 @@ class BulkFormTest extends NodeTestBase {
    */
   protected function loadNode($id) {
     /** @var \Drupal\node\NodeStorage $storage */
-    $storage = $this->container->get('entity.manager')->getStorage('node');
+    $storage = $this->container->get('entity_type.manager')->getStorage('node');
     $storage->resetCache([$id]);
     return $storage->load($id);
   }

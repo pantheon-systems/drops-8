@@ -19,7 +19,7 @@ class ModuleHandlerTest extends UnitTestCase {
   /**
    * The mocked cache backend.
    *
-   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheBackend;
 
@@ -31,7 +31,7 @@ class ModuleHandlerTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
     // We can mock the cache handler here, but not the module handler.
-    $this->cacheBackend = $this->getMock(CacheBackendInterface::class);
+    $this->cacheBackend = $this->createMock(CacheBackendInterface::class);
   }
 
   /**
@@ -165,7 +165,7 @@ class ModuleHandlerTest extends UnitTestCase {
    * @covers ::getModule
    */
   public function testGetModuleWithNonExistingModule() {
-    $this->setExpectedException(UnknownExtensionException::class);
+    $this->expectException(UnknownExtensionException::class);
     $this->getModuleHandler()->getModule('claire_alice_watch_my_little_pony_module_that_does_not_exist');
   }
 
@@ -318,7 +318,7 @@ class ModuleHandlerTest extends UnitTestCase {
     $module_handler->addModule('module_handler_test_added', 'core/tests/Drupal/Tests/Core/Extension/modules/module_handler_test_added');
     $this->assertTrue($module_handler->implementsHook('module_handler_test_added', 'hook'), 'Runtime added module with implementation in include found.');
 
-    $module_handler->addModule('module_handler_test_no_hook', 'core/tests/Drupal/Tests/Core/Extension/modules/module_handler_test_added');
+    $module_handler->addModule('module_handler_test_no_hook', 'core/tests/Drupal/Tests/Core/Extension/modules/module_handler_test_no_hook');
     $this->assertFalse($module_handler->implementsHook('module_handler_test_no_hook', 'hook', [TRUE]), 'Missing implementation not found.');
   }
 
@@ -497,46 +497,13 @@ class ModuleHandlerTest extends UnitTestCase {
   }
 
   /**
-   * @dataProvider dependencyProvider
-   * @covers ::parseDependency
-   */
-  public function testDependencyParsing($dependency, $expected) {
-    $version = ModuleHandler::parseDependency($dependency);
-    $this->assertEquals($expected, $version);
-  }
-
-  /**
-   * Provider for testing dependency parsing.
-   */
-  public function dependencyProvider() {
-    return [
-      ['system', ['name' => 'system']],
-      ['taxonomy', ['name' => 'taxonomy']],
-      ['views', ['name' => 'views']],
-      ['views_ui(8.x-1.0)', ['name' => 'views_ui', 'original_version' => ' (8.x-1.0)', 'versions' => [['op' => '=', 'version' => '1.0']]]],
-      // Not supported?.
-      // array('views_ui(8.x-1.1-beta)', array('name' => 'views_ui', 'original_version' => ' (8.x-1.1-beta)', 'versions' => array(array('op' => '=', 'version' => '1.1-beta')))),
-      ['views_ui(8.x-1.1-alpha12)', ['name' => 'views_ui', 'original_version' => ' (8.x-1.1-alpha12)', 'versions' => [['op' => '=', 'version' => '1.1-alpha12']]]],
-      ['views_ui(8.x-1.1-beta8)', ['name' => 'views_ui', 'original_version' => ' (8.x-1.1-beta8)', 'versions' => [['op' => '=', 'version' => '1.1-beta8']]]],
-      ['views_ui(8.x-1.1-rc11)', ['name' => 'views_ui', 'original_version' => ' (8.x-1.1-rc11)', 'versions' => [['op' => '=', 'version' => '1.1-rc11']]]],
-      ['views_ui(8.x-1.12)', ['name' => 'views_ui', 'original_version' => ' (8.x-1.12)', 'versions' => [['op' => '=', 'version' => '1.12']]]],
-      ['views_ui(8.x-1.x)', ['name' => 'views_ui', 'original_version' => ' (8.x-1.x)', 'versions' => [['op' => '<', 'version' => '2.x'], ['op' => '>=', 'version' => '1.x']]]],
-      ['views_ui( <= 8.x-1.x)', ['name' => 'views_ui', 'original_version' => ' ( <= 8.x-1.x)', 'versions' => [['op' => '<=', 'version' => '2.x']]]],
-      ['views_ui(<= 8.x-1.x)', ['name' => 'views_ui', 'original_version' => ' (<= 8.x-1.x)', 'versions' => [['op' => '<=', 'version' => '2.x']]]],
-      ['views_ui( <=8.x-1.x)', ['name' => 'views_ui', 'original_version' => ' ( <=8.x-1.x)', 'versions' => [['op' => '<=', 'version' => '2.x']]]],
-      ['views_ui(>8.x-1.x)', ['name' => 'views_ui', 'original_version' => ' (>8.x-1.x)', 'versions' => [['op' => '>', 'version' => '2.x']]]],
-      ['drupal:views_ui(>8.x-1.x)', ['project' => 'drupal', 'name' => 'views_ui', 'original_version' => ' (>8.x-1.x)', 'versions' => [['op' => '>', 'version' => '2.x']]]],
-    ];
-  }
-
-  /**
    * @covers ::getModuleDirectories
    */
   public function testGetModuleDirectories() {
     $module_handler = $this->getModuleHandler();
     $module_handler->setModuleList([]);
-    $module_handler->addModule('module', 'place');
-    $this->assertEquals(['module' => $this->root . '/place'], $module_handler->getModuleDirectories());
+    $module_handler->addModule('node', 'core/modules/node');
+    $this->assertEquals(['node' => $this->root . '/core/modules/node'], $module_handler->getModuleDirectories());
   }
 
 }

@@ -1,0 +1,18 @@
+/**
+ * @file
+ * Admin composite element styles.
+ */
+
+.webform-admin-composite-elements table tr .form-item {
+  margin-bottom: 5px;
+}
+
+.webform-admin-composite-elements table .form-text,
+.webform-admin-composite-elements table .form-textarea,
+.webform-admin-composite-elements table .form-select {
+  width: 100%;
+}
+
+.webform-admin-composite-elements table .form-type-checkbox.form-no-label {
+  text-align: center;
+}

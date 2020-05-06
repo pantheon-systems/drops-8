@@ -1,0 +1,5 @@
+entity.webform_image_select_images.add_form:
+  route_name: entity.webform_image_select_images.add_form
+  title: 'Add images'
+  appears_on:
+    - entity.webform_image_select_images.collection

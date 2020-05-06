@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.webform_group_b
+    - node.type.webform
+  module:
+    - gnode
+    - node
+  enforced:
+    module:
+      - webform_demo_group
+id: group_content_type_d8026ddd4b6db
+label: 'Webform Group B: Group node (Webform)'
+description: 'Adds <em class="placeholder">Webform</em> content to groups both publicly and privately.'
+group_type: webform_group_b
+content_plugin: 'group_node:webform'
+plugin_config:
+  group_cardinality: 0
+  entity_cardinality: 1
+  use_creation_wizard: false

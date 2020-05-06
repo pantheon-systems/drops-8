@@ -1,0 +1,36 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.webform_demo_region.body
+    - field.field.node.webform_demo_region.webform
+    - node.type.webform_demo_region
+  module:
+    - text
+    - user
+    - webform
+id: node.webform_demo_region.default
+targetEntityType: node
+bundle: webform_demo_region
+mode: default
+content:
+  body:
+    label: hidden
+    type: text_default
+    weight: 1
+    settings: {  }
+    third_party_settings: {  }
+    region: content
+  links:
+    weight: 4
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+  webform:
+    weight: 3
+    label: hidden
+    settings: {  }
+    third_party_settings: {  }
+    type: webform_entity_reference_entity_view
+    region: content
+hidden: {  }

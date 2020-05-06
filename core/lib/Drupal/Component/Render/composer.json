@@ -5,8 +5,8 @@
   "homepage": "https://www.drupal.org/project/drupal",
   "license": "GPL-2.0-or-later",
   "require": {
-    "php": ">=5.5.9",
-    "drupal/core-utility": "^8.2"
+    "php": ">=7.0.8",
+    "drupal/core-utility": "^8.8"
   },
   "autoload": {
     "psr-4": {

@@ -8,11 +8,6 @@ use Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase;
 /**
  * Drupal 7 field instances source from database.
  *
- * @internal
- *
- * This class is marked as internal and should not be extended. Use
- * Drupal\migrate_drupal\Plugin\migrate\source\DrupalSqlBase instead.
- *
  * @MigrateSource(
  *   id = "d7_field_instance",
  *   source_module = "field"
@@ -113,6 +108,7 @@ class FieldInstance extends DrupalSqlBase {
       ->fetch();
     $row->setSourceProperty('field_definition', $field_definition);
 
+    // Determine the translatable setting.
     $translatable = FALSE;
     if ($row->getSourceProperty('entity_type') == 'node') {
       $language_content_type_bundle = (int) $this->variableGet('language_content_type_' . $row->getSourceProperty('bundle'), 0);
@@ -131,7 +127,58 @@ class FieldInstance extends DrupalSqlBase {
       $field_data = unserialize($field_definition['data']);
       $translatable = $field_data['translatable'];
     }
+
+    // Check if this is an i18n synchronized field.
+    $synchronized_fields = $this->variableGet('i18n_sync_node_type_' . $row->getSourceProperty('bundle'), NULL);
+    if ($synchronized_fields) {
+      if (in_array($row->getSourceProperty('field_name'), $synchronized_fields)) {
+        $translatable = FALSE;
+      }
+    }
     $row->setSourceProperty('translatable', $translatable);
+
+    // Get the vid for each allowed value for taxonomy term reference fields
+    // which is used in a migration_lookup in the process pipeline.
+    if ($row->getSourceProperty('type') == 'taxonomy_term_reference') {
+      $vocabulary = [];
+      $data = unserialize($field_definition['data']);
+      foreach ($data['settings']['allowed_values'] as $allowed_value) {
+        $vocabulary[] = $allowed_value['vocabulary'];
+      }
+      $query = $this->select('taxonomy_vocabulary', 'v')
+        ->fields('v', ['vid'])
+        ->condition('machine_name', $vocabulary, 'IN');
+      $allowed_vid = $query->execute()->fetchAllAssoc('vid');
+      $row->setSourceProperty('allowed_vid', $allowed_vid);
+
+      // If there is an i18n_mode use it to determine if this field is
+      // translatable. It is TRUE for i18n_modes 'Vocab Fixed' and  'Translate',
+      // for all others it is FALSE. When there is a term reference field with
+      // two vocabularies where one vocabulary is translatable and other is not
+      // the field itself is set to not translatable. Note mode '5' is not used
+      // for taxonomy but is listed here for completeness.
+      // - 0: No multilingual options.
+      // - 1: Localize. Localizable object.
+      // - 2: Fixed Language.
+      // - 4: Translate. Multilingual objects.
+      // - 5: Objects are translatable, if they have language or localizable
+      // if not)
+      if ($this->getDatabase()
+        ->schema()
+        ->fieldExists('taxonomy_vocabulary', 'i18n_mode')) {
+        $query = $this->select('taxonomy_vocabulary', 'v')
+          ->fields('v', ['i18n_mode'])
+          ->condition('machine_name', $vocabulary, 'IN');
+        $results = $query->execute()->fetchAllAssoc('i18n_mode');
+        $translatable = FALSE;
+        foreach ($results as $result) {
+          if ($result['i18n_mode'] == '2' || $result['i18n_mode'] == '4') {
+            $translatable = TRUE;
+          }
+        }
+        $row->setSourceProperty('translatable', $translatable);
+      }
+    }
 
     return parent::prepareRow($row);
   }

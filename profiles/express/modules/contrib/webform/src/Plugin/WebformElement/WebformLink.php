@@ -22,6 +22,21 @@ class WebformLink extends WebformCompositeBase {
   /**
    * {@inheritdoc}
    */
+  protected function defineDefaultProperties() {
+    $properties = parent::defineDefaultProperties();
+    // Link does not have select menus.
+    unset(
+      $properties['select2'],
+      $properties['chosed']
+    );
+    return $properties;
+  }
+
+  /****************************************************************************/
+
+  /**
+   * {@inheritdoc}
+   */
   protected function formatHtmlItemValue(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
     $value = $this->getValue($element, $webform_submission, $options);
 

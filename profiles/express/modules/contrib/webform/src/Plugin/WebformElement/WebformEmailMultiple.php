@@ -19,16 +19,23 @@ class WebformEmailMultiple extends Email {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    $properties = parent::getDefaultProperties();
-    unset($properties['multiple']);
+  protected function defineDefaultProperties() {
+    $properties = parent::defineDefaultProperties();
+    unset(
+      $properties['multiple'],
+      $properties['format_items'],
+      $properties['format_items_html'],
+      $properties['format_items_text']
+    );
     return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
    */
-  public function formatHtmlItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
+  protected function formatHtmlItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
     $value = $this->getValue($element, $webform_submission, $options);
 
     if (empty($value)) {

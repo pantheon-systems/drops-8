@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.webform_demo_region.body
+    - field.field.node.webform_demo_region.webform
+    - node.type.webform_demo_region
+  module:
+    - text
+    - user
+id: node.webform_demo_region.teaser
+targetEntityType: node
+bundle: webform_demo_region
+mode: teaser
+content:
+  body:
+    label: hidden
+    type: text_summary_or_trimmed
+    weight: 1
+    settings:
+      trim_length: 600
+    third_party_settings: {  }
+    region: content
+  links:
+    weight: 2
+    region: content
+    settings: {  }
+    third_party_settings: {  }
+hidden:
+  webform: true

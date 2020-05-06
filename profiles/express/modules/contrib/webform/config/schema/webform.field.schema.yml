@@ -1,0 +1,91 @@
+# @see field.storage_settings.entity_reference
+field.storage_settings.webform:
+  type: mapping
+  label: 'Webform field storage settings'
+  mapping:
+    target_type:
+      type: string
+      label: 'Type of item to reference'
+
+# @see field.field_settings.entity_reference
+field.field_settings.webform:
+  type: mapping
+  label: 'Entity reference field settings'
+  mapping:
+    handler:
+      type: string
+      label: 'Reference method'
+    handler_settings:
+      type: entity_reference_selection.[%parent.handler]
+      label: 'Entity reference selection plugin settings'
+
+# @see field.value.entity_reference
+field.value.webform:
+  type: field.value.entity_reference
+  label: 'Default value'
+  mapping:
+    default_data:
+      type: text
+      label: 'Default webform submission data'
+    status:
+      type: string
+      label: 'Webform status'
+    open:
+      type: string
+      label: 'Webform open date/time'
+    close:
+      type: string
+      label: 'Webform close date/time'
+    # @todo Figure how and if this can be moved to webform_access.schema.yml.
+    webform_access_group:
+      type: sequence
+      label: 'Access groups'
+      sequence:
+        type: string
+        label: 'Access group'
+
+field.widget.settings.webform_entity_reference_autocomplete:
+  type: mapping
+  label: 'Webform autocomplete display format settings'
+  mapping:
+    match_operator:
+      type: string
+      label: 'Autocomplete matching'
+    size:
+      type: integer
+      label: 'Size of textfield'
+    placeholder:
+      type: label
+      label: Placeholder
+    default_data:
+      type: boolean
+      label: 'Default submission data'
+
+field.widget.settings.webform_entity_reference_select:
+  type: mapping
+  label: 'Webform select display format settings'
+  mapping:
+    default_data:
+      type: boolean
+      label: 'Default submission data'
+field.formatter.settings.webform_entity_reference_entity_view:
+  type: mapping
+  label: 'Display the referenced webform with default submission data.'
+  mapping:
+    source_entity:
+      type: boolean
+      label: 'Source entity'
+
+field.formatter.settings.webform_entity_reference_link:
+  type: mapping
+  label: 'Display the referenced webform as a link.'
+  mapping:
+    label:
+      type: label
+      label: 'Link label to the referenced webform'
+    dialog:
+      type: string
+      label: 'Open referenced webform in modal dialog'
+    attributes:
+      type: ignore
+      label: 'Link attributes'

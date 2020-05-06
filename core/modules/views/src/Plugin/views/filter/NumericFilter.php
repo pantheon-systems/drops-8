@@ -258,7 +258,23 @@ class NumericFilter extends FilterPluginBase {
       }
     }
 
-    if ($which == 'all' || $which == 'minmax') {
+    // Minimum and maximum form fields are associated to some specific operators
+    // like 'between'. Ensure that min and max fields are only visible if
+    // the associated operator is not excluded from the operator list.
+    $two_value_operators_available = ($which == 'all' || $which == 'minmax');
+
+    if (!empty($this->options['expose']['operator_limit_selection']) &&
+        !empty($this->options['expose']['operator_list'])) {
+      $two_value_operators_available = FALSE;
+      foreach ($this->options['expose']['operator_list'] as $operator) {
+        if (in_array($operator, $this->operatorValues(2), TRUE)) {
+          $two_value_operators_available = TRUE;
+          break;
+        }
+      }
+    }
+
+    if ($two_value_operators_available) {
       $form['value']['min'] = [
         '#type' => 'textfield',
         '#title' => !$exposed ? $this->t('Min') : $this->exposedInfo()['label'],
@@ -316,12 +332,24 @@ class NumericFilter extends FilterPluginBase {
     }
   }
 
+  /**
+   * Filters by operator between.
+   *
+   * @param object $field
+   *   The views field.
+   */
   protected function opBetween($field) {
-    if ($this->operator == 'between') {
-      $this->query->addWhere($this->options['group'], $field, [$this->value['min'], $this->value['max']], 'BETWEEN');
+    if (is_numeric($this->value['min']) && is_numeric($this->value['max'])) {
+      $operator = $this->operator == 'between' ? 'BETWEEN' : 'NOT BETWEEN';
+      $this->query->addWhere($this->options['group'], $field, [$this->value['min'], $this->value['max']], $operator);
     }
-    else {
-      $this->query->addWhere($this->options['group'], $field, [$this->value['min'], $this->value['max']], 'NOT BETWEEN');
+    elseif (is_numeric($this->value['min'])) {
+      $operator = $this->operator == 'between' ? '>=' : '<';
+      $this->query->addWhere($this->options['group'], $field, $this->value['min'], $operator);
+    }
+    elseif (is_numeric($this->value['max'])) {
+      $operator = $this->operator == 'between' ? '<=' : '>';
+      $this->query->addWhere($this->options['group'], $field, $this->value['max'], $operator);
     }
   }
 

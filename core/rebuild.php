@@ -40,7 +40,7 @@ catch (HttpExceptionInterface $e) {
 if (Settings::get('rebuild_access', FALSE) ||
   ($request->query->get('token') && $request->query->get('timestamp') &&
     ((REQUEST_TIME - $request->query->get('timestamp')) < 300) &&
-    Crypt::hashEquals(Crypt::hmacBase64($request->query->get('timestamp'), Settings::get('hash_salt')), $request->query->get('token'))
+    hash_equals(Crypt::hmacBase64($request->query->get('timestamp'), Settings::get('hash_salt')), $request->query->get('token'))
   )) {
   // Clear user cache for all major platforms.
   $user_caches = [
@@ -54,4 +54,4 @@ if (Settings::get('rebuild_access', FALSE) ||
   \Drupal::messenger()->addStatus('Cache rebuild complete.');
 }
 $base_path = dirname(dirname($request->getBaseUrl()));
-header('Location: ' . $base_path);
+header('Location: ' . $request->getSchemeAndHttpHost() . $base_path);

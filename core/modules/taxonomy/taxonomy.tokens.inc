@@ -95,7 +95,7 @@ function taxonomy_tokens($type, $tokens, array $data, array $options, Bubbleable
   $token_service = \Drupal::token();
 
   $replacements = [];
-  $taxonomy_storage = \Drupal::entityManager()->getStorage('taxonomy_term');
+  $taxonomy_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
   if ($type == 'term' && !empty($data['term'])) {
     $term = $data['term'];
 
@@ -116,11 +116,11 @@ function taxonomy_tokens($type, $tokens, array $data, array $options, Bubbleable
           break;
 
         case 'url':
-          $replacements[$original] = $term->url('canonical', ['absolute' => TRUE]);
+          $replacements[$original] = $term->toUrl('canonical', ['absolute' => TRUE])->toString();
           break;
 
         case 'node-count':
-          $query = db_select('taxonomy_index');
+          $query = \Drupal::database()->select('taxonomy_index');
           $query->condition('tid', $term->id());
           $query->addTag('term_node_count');
           $count = $query->countQuery()->execute()->fetchField();

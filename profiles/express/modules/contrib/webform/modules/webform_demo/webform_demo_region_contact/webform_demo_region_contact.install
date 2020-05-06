@@ -1,0 +1,172 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the webform demo region contact module.
+ */
+
+use Drupal\node\Entity\Node;
+use Drupal\user\Entity\Role;
+use Drupal\user\Entity\User;
+use Drupal\webform\WebformInterface;
+use Drupal\webform_access\Entity\WebformAccessGroup;
+use Drupal\webform_access\Entity\WebformAccessType;
+
+/**
+ * Implements hook_install().
+ */
+function webform_demo_region_contact_install() {
+  // User types.
+  $types = [
+    'manager' => [
+      'label' => t('Manager'),
+      'permissions' => [
+        'administer',
+      ],
+    ],
+    'employee' => [
+      'label' => t('Employee'),
+      'permissions' => [
+        'view_any',
+        'update_any',
+      ],
+    ],
+  ];
+
+  // U.S. regions.
+  $regions = [
+    'us_neast' => [
+      'label' => t('United States: Northeast'),
+    ],
+    'us_midwest' => [
+      'label' => t('United States: Midwest'),
+    ],
+    'us_south' => [
+      'label' => t('United States: South'),
+    ],
+    'us_west' => [
+      'label' => t('United States: West'),
+    ],
+  ];
+
+  // Create admin role.
+  $admin_role = Role::create(['id' => 'demo_region_admin', 'label' => 'Demo region admin']);
+  $admin_role->grantPermission('access toolbar');
+  $admin_role->grantPermission('view the administration theme');
+  $admin_role->grantPermission('access webform overview');
+  $admin_role->save();
+
+  // Create user role.
+  $user_role = Role::create(['id' => 'demo_region_user', 'label' => 'Demo region user']);
+  $user_role->grantPermission('access toolbar');
+  $user_role->grantPermission('view the administration theme');
+  $user_role->save();
+
+  // Create webform access types.
+  foreach ($types as $type_name => $type) {
+    $type += [
+      'id' => 'demo_region_' . $type_name,
+    ];
+    WebformAccessType::create($type)
+      ->save();
+  }
+
+  // Create webform access groups, nodes, and users by region.
+  foreach ($regions as $region_name => $region) {
+    // Create webform node.
+    $webform_node = Node::create([
+      'type' => 'webform_demo_region',
+      'title' => $region['label'] . ': ' . t('Contact'),
+      'status' => 1,
+    ]);
+    $webform_node->webform->target_id = 'demo_region_contact';
+    $webform_node->webform->status = WebformInterface::STATUS_OPEN;
+    $webform_node->webform->open = '';
+    $webform_node->webform->close = '';
+    $webform_node->save();
+
+    // Create region type admin user.
+    $webform_access_group_admin_id = 'demo_region_' . $region_name . '_admin';
+    $admin = User::create([
+      'name' => $webform_access_group_admin_id,
+      'mail' => "$webform_access_group_admin_id@test.com",
+      'status' => 1,
+    ]);
+    $admin->setPassword($webform_access_group_admin_id);
+    $admin->addRole('demo_region_admin');
+    $admin->save();
+
+    foreach ($types as $type_name => $type) {
+      $webform_access_group_id = 'demo_region_' . $region_name . '_' . $type_name;
+      $webform_access_type_id = 'demo_region_' . $type_name;
+
+      // Create region webform access group.
+      $values = [
+        'label' => $region['label'] . ': ' . $type['label'],
+        'id' => $webform_access_group_id,
+        'type' => $webform_access_type_id,
+        'permissions' => $type['permissions'],
+        'emails' => ["$webform_access_type_id@test.com"],
+      ];
+      $webform_access_group = WebformAccessGroup::create($values);
+
+      // Add webform node to webform access group.
+      $webform_access_group->addEntityId('node', $webform_node->id(), 'webform', 'demo_region_contact');
+
+      // Create region type user.
+      $user = User::create([
+        'name' => $webform_access_group_id,
+        'mail' => "$webform_access_group_id@test.com",
+        'status' => 1,
+      ]);
+      $user->setPassword($webform_access_group_id);
+      $user->addRole('demo_region_user');
+      $user->save();
+
+      // Add user to webform access group.
+      $webform_access_group->addUserId($user->id());
+
+      // Add admin user to webform's access group.
+      $webform_access_group->addAdminId($admin->id());
+
+      // Save webform access group.
+      $webform_access_group->save();
+    }
+  }
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_demo_region_contact_uninstall() {
+  // Delete all 'webform:demo_region_contact' nodes.
+  $entity_ids = \Drupal::entityQuery('node')
+    ->condition('type', 'webform_demo_region')
+    ->condition('webform.target_id', 'demo_region_contact')
+    ->execute();
+  if ($entity_ids) {
+    /** @var \Drupal\node\Entity\Node[] $nodes */
+    $nodes = Node::loadMultiple($entity_ids);
+    foreach ($nodes as $node) {
+      $node->delete();
+    }
+  }
+
+  $entity_types = [
+    'user' => 'name',
+    'user_role' => 'id',
+    'webform_access_group' => 'id',
+    'webform_access_type' => 'id',
+  ];
+  foreach ($entity_types as $entity_type => $entity_key) {
+    $entity_ids = \Drupal::entityQuery($entity_type)
+      ->condition($entity_key, 'demo_region', 'STARTS_WITH')
+      ->execute();
+    if ($entity_ids) {
+      $entities = \Drupal::entityTypeManager()->getStorage($entity_type)->loadMultiple($entity_ids);
+      foreach ($entities as $entity) {
+        $entity->delete();
+      }
+    }
+  }
+}

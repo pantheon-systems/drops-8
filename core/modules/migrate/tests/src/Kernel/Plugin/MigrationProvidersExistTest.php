@@ -5,6 +5,7 @@ namespace Drupal\Tests\migrate\Kernel\Plugin;
 use Drupal\KernelTests\FileSystemModuleDiscoveryDataProviderTrait;
 use Drupal\migrate\Plugin\Exception\BadPluginDefinitionException;
 use Drupal\migrate_drupal\Plugin\MigrateFieldPluginManager;
+use Drupal\Tests\DeprecatedModulesTestTrait;
 use Drupal\Tests\migrate_drupal\Kernel\MigrateDrupalTestBase;
 
 /**
@@ -14,6 +15,7 @@ use Drupal\Tests\migrate_drupal\Kernel\MigrateDrupalTestBase;
  */
 class MigrationProvidersExistTest extends MigrateDrupalTestBase {
 
+  use DeprecatedModulesTestTrait;
   use FileSystemModuleDiscoveryDataProviderTrait;
 
   /**
@@ -21,7 +23,8 @@ class MigrationProvidersExistTest extends MigrateDrupalTestBase {
    */
   public function testSourceProvider() {
     $this->enableModules(['migration_provider_test']);
-    $this->setExpectedException(BadPluginDefinitionException::class, 'The no_source_module plugin must define the source_module property.');
+    $this->expectException(BadPluginDefinitionException::class);
+    $this->expectExceptionMessage('The no_source_module plugin must define the source_module property.');
     $this->container->get('plugin.manager.migration')->getDefinition('migration_provider_no_annotation');
   }
 
@@ -173,7 +176,8 @@ class MigrationProvidersExistTest extends MigrateDrupalTestBase {
     $plugin_manager->method('getDiscovery')
       ->willReturn($discovery);
 
-    $this->setExpectedException(BadPluginDefinitionException::class, "The missing_{$missing_property} plugin must define the $missing_property property.");
+    $this->expectException(BadPluginDefinitionException::class);
+    $this->expectExceptionMessage("The missing_{$missing_property} plugin must define the $missing_property property.");
     $plugin_manager->getDefinitions();
   }
 

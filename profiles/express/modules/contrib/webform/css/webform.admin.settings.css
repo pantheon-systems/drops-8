@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Admin settings styles
+ */
+
+/**
+ * Dialog test button.
+ * @see /admin/structure/webform/manage/{webform}/settings
+ */
+.webform-settings-form .webform-dialog.button {
+  width: 100%;
+  white-space: nowrap;
+}

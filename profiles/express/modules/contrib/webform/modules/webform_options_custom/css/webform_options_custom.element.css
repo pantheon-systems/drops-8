@@ -1,0 +1,80 @@
+/**
+ * @file
+ * Custom options styles.
+ */
+
+/**
+ * Visually hidden select menu.
+ */
+html.js .webform-options-custom[data-select-hidden] .js-form-type-select {
+  position: absolute !important;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  width: 1px;
+  height: 1px;
+  word-wrap: normal;
+}
+
+/**
+ * Responsive SVG.
+ */
+.webform-options-custom-template > svg {
+  width: 100%;
+  height: auto;
+}
+
+[data-zoom] .webform-options-custom-template > svg {
+  border: 1px solid #000;
+}
+
+/**
+ * Option styles/behaviors
+ */
+[data-fill] [data-option-value] {
+  cursor: pointer;
+  background-color: #ffffe0;
+  fill: #ffffe0;
+}
+
+[data-fill] [data-option-value]:hover {
+  background-color: #add8e6;
+  fill: #ffffe0;
+}
+
+[data-fill] [data-option-value]:focus {
+  box-shadow: 0 0 5px #999;
+  background-color: #add8e6;
+  fill: #add8e6;
+}
+
+[data-fill] [data-option-value][aria-checked=true],
+[data-fill] [data-option-value][aria-checked=true]:focus {
+  background-color: #90ee90;
+  fill: #90ee90;
+}
+
+[data-fill] [data-option-value][aria-disabled=true],
+[data-fill] [data-option-value][aria-disabled=true]:hover,
+[data-fill] [data-option-value][aria-disabled=true]:focus {
+  cursor: not-allowed;
+  background-color: #eee;
+  fill: #eee;
+}
+
+/**
+ * Tooltip.
+ */
+.ui-tooltip.webform-options-custom-tooltip {
+  max-width: 400px;
+  cursor: pointer;
+  user-select: none;
+}
+.webform-options-custom-tooltip--text {
+  font-weight: bold;
+}
+
+@media only screen and (max-width : 400px) {
+  .ui-tooltip.webform-options-custom-tooltip {
+    max-width: 300px;
+  }
+}

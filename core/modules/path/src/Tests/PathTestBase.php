@@ -2,13 +2,17 @@
 
 namespace Drupal\path\Tests;
 
+@trigger_error(__NAMESPACE__ . '\PathTestBase is deprecated for removal before Drupal 9.0.0. Use Drupal\Tests\path\Functional\PathTestBase instead. See https://www.drupal.org/node/2999939', E_USER_DEPRECATED);
+
 use Drupal\simpletest\WebTestBase;
 
 /**
  * Provides a base class for testing the Path module.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\path\Functional\PathTestBase instead.
+ *
+ * @see https://www.drupal.org/node/2999939
  */
 abstract class PathTestBase extends WebTestBase {
 

@@ -1,0 +1,32 @@
+langcode: en
+status: true
+dependencies: {  }
+id: test_twig
+label: 'Test: Twig'
+description: 'A Twig based custom options element.'
+help: 'A Twig based custom options element.'
+category: Test
+type: template
+template: |
+  <table border="1" cellpadding="2" cellspacing="2" width="100%">
+  <tr>
+  {% for value, text in options %}
+  <td data-option-value="{{ value }}" style="text-align:center">{{ text }}</td>
+  {% endfor %}
+  </tr>
+  </table>
+url: ''
+css: ''
+javascript: ''
+options: |
+  1: '1 -- One'
+  2: '2 -- Two'
+  3: '3 -- Three'
+value_attributes: ''
+text_attributes: ''
+fill: true
+zoom: false
+tooltip: true
+show_select: true
+element: true
+entity_reference: false

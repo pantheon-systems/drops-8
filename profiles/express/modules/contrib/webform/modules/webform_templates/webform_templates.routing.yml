@@ -4,7 +4,17 @@ entity.webform.templates:
     _controller: '\Drupal\webform_templates\Controller\WebformTemplatesController::index'
     _title: 'Webforms: Templates'
   requirements:
-    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkOverviewAccess'
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkTemplatesAccess'
+
+entity.webform.templates.manage:
+  path: '/admin/structure/webform/templates/manage'
+  defaults:
+    _controller: '\Drupal\webform_templates\Controller\WebformTemplatesController::index'
+    _title: 'Webforms: Templates'
+    manage: true
+  requirements:
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkTemplatesAccess'
+    _permission: 'administer webform templates'
 
 entity.webform.preview:
   path: '/webform/{webform}/preview'
@@ -20,4 +30,4 @@ entity.webform.templates.autocomplete:
     _controller: '\Drupal\webform\Controller\WebformEntityController::autocomplete'
     templates: TRUE
   requirements:
-    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkOverviewAccess'
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkTemplatesAccess'

@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * @file
+ * Dedicated logging for webform submissions.
+ */
+
+use Drupal\webform\WebformInterface;
+use Drupal\webform\WebformSubmissionInterface;
+
+/**
+ * Implements hook_webform_help_info().
+ */
+function webform_submission_log_webform_help_info() {
+  $help = [];
+  $help['submissions_log'] = [
+    'group' => 'submissions',
+    'title' => t('Submissions: Log'),
+    'content' => t('The <strong>Submissions log</strong> page tracks all submission events for all webforms that have submission logging enabled. Submission logging can be enabled globally or on a per webform basis.'),
+    'routes' => [
+      // @see /admin/structure/webform/results/log
+      'entity.webform_submission.collection_log',
+    ],
+  ];
+  $help['submission_log'] = [
+    'group' => 'submission',
+    'title' => t('Submission: Log'),
+    'content' => t("The <strong>Log</strong> page shows all events and transactions for a submission."),
+    'video_id' => 'submission',
+    'routes' => [
+      // @see /admin/structure/webform/manage/{webform}/submission/{webform_submisssion}/log
+      'entity.webform_submission.log',
+      // @see /node/{node}/webform/submission/{webform_submission}/log
+      'entity.node.webform_submission.log',
+    ],
+  ];
+  $help['results_log'] = [
+    'group' => 'submissions',
+    'title' => t('Results: Log'),
+    'content' => t('The <strong>Results Log</strong> lists all webform submission events for the current webform.'),
+    'routes' => [
+      // @see /admin/structure/webform/manage/{webform}/results/log
+      'entity.webform.results_log',
+    ],
+  ];
+  $help['webform_node_results_log'] = [
+    'group' => 'webform_nodes',
+    'title' => t('Webform Node: Results: Log'),
+    'content' => t('The <strong>Results Log</strong> lists all webform submission events for the current webform.'),
+    'routes' => [
+      // @see /node/{node}/webform/results/log
+      'entity.node.webform.results_log',
+    ],
+  ];
+  return $help;
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ */
+function webform_submission_log_local_tasks_alter(&$local_tasks) {
+  // Remove webform node log if the webform_node.module is not installed.
+  if (!\Drupal::moduleHandler()->moduleExists('webform_node')) {
+    unset(
+      $local_tasks['entity.node.webform.results_log'],
+      $local_tasks['entity.node.webform_submission.log']
+    );
+  }
+}
+
+/**
+ * Implements hook_webform_delete().
+ */
+function webform_submission_log_webform_delete(WebformInterface $webform) {
+  \Drupal::database()->delete('webform_submission_log')
+    ->condition('webform_id', $webform->id())
+    ->execute();
+}
+
+/**
+ * Implements hook_webform_submission_delete().
+ */
+function webform_submission_log_webform_submission_delete(WebformSubmissionInterface $webform_submission) {
+  \Drupal::database()->delete('webform_submission_log')
+    ->condition('sid', $webform_submission->id())
+    ->execute();
+}

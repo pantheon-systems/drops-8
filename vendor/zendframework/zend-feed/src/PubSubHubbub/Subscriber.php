@@ -564,10 +564,7 @@ class Subscriber
      */
     public function isSuccess()
     {
-        if (count($this->errors) > 0) {
-            return false;
-        }
-        return true;
+        return ! $this->errors;
     }
 
     /**
@@ -667,7 +664,7 @@ class Subscriber
      *
      * @param  string $hubUrl
      * @param  string $mode
-     * @return string
+     * @return array
      * @throws Exception\InvalidArgumentException
      */
     // @codingStandardsIgnoreStart

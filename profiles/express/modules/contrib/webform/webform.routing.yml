@@ -32,6 +32,14 @@ webform.config.handlers:
   requirements:
     _permission: 'administer webform'
 
+webform.config.variants:
+  path: '/admin/structure/webform/config/variants'
+  defaults:
+    _form: '\Drupal\webform\Form\AdminConfig\WebformAdminConfigVariantsForm'
+    _title: 'Webforms: Variants configuration'
+  requirements:
+    _permission: 'administer webform'
+
 webform.config.exporters:
   path: '/admin/structure/webform/config/exporters'
   defaults:
@@ -56,15 +64,6 @@ webform.config.advanced:
   requirements:
     _permission: 'administer webform'
 
-# Help
-
-webform.help.video:
-  path: '/admin/help/webform/video/{id}'
-  defaults:
-    _form: '\Drupal\webform\Form\WebformHelpVideoForm'
-  requirements:
-    _permission: 'access administration pages'
-
 # Add-ons
 
 webform.addons:
@@ -75,23 +74,24 @@ webform.addons:
   requirements:
     _permission: 'administer webform'
 
-# About
+# Help
 
-webform.about:
-  path: '/admin/structure/webform/about'
+# webform.help is dynamically added.
+# @see \Drupal\webform\Routing\WebformRouteSubscriber
+webform.help:
+  path: '/admin/structure/webform/help'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformAboutController::webform'
-    _title: 'Webforms: About Webform'
+    _controller: '\Drupal\webform\Controller\WebformHelpController::index'
+    _title: 'Webforms: Help'
   requirements:
-    _permission: 'access webform overview'
+    _permission: 'access content'
 
-webform.about.drupal:
-  path: '/admin/structure/webform/about/drupal'
+webform.help.video:
+  path: '/admin/help/webform/video/{id}'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformAboutController::drupal'
-    _title: 'Webforms: About Drupal'
+    _form: '\Drupal\webform\Form\WebformHelpVideoForm'
   requirements:
-    _permission: 'access webform overview'
+    _permission: 'access content'
 
 # Forms
 
@@ -110,6 +110,14 @@ entity.webform.autocomplete:
   requirements:
     _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkOverviewAccess'
 
+entity.webform.autocomplete.archived:
+  path: '/admin/structure/webform/autocomplete/archived'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformEntityController::autocomplete'
+    archived: TRUE
+  requirements:
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkOverviewAccess'
+
 entity.webform.canonical:
   path: '/webform/{webform}'
   defaults:
@@ -117,6 +125,15 @@ entity.webform.canonical:
     _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   requirements:
     _entity_access: 'webform.submission_page'
+
+entity.webform.access_denied:
+  path: '/webform/{webform}/access-denied'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformEntityController::accessDenied'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::accessDeniedTitle'
+  requirements:
+    # Access denied is available to all users.
+    _access: 'TRUE'
 
 entity.webform.assets.javascript:
   path: '/webform/javascript/{webform}'
@@ -138,13 +155,14 @@ entity.webform.confirmation:
     _controller: '\Drupal\webform\Controller\WebformEntityController::confirmation'
     _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   requirements:
-    _entity_access: 'webform.submission_create'
+    _entity_access: 'webform.view'
 
 entity.webform.user.submissions:
-  path: '/webform/{webform}/submissions'
+  path: '/webform/{webform}/submissions/{submission_view}'
   defaults:
     _entity_list: 'webform_submission'
     _title: 'Submissions'
+    submission_view: ''
   options:
     parameters:
       webform:
@@ -153,23 +171,25 @@ entity.webform.user.submissions:
     _entity_access: 'webform.submission_view_own'
 
 entity.webform.user.drafts:
-  path: '/webform/{webform}/drafts'
+  path: '/webform/{webform}/drafts/{submission_view}'
   defaults:
     _entity_list: 'webform_submission'
     _title: 'Drafts'
+    submission_view: ''
   options:
     parameters:
       webform:
         type: 'entity:webform'
   requirements:
-    _entity_access: 'webform.view'
+    _entity_access: 'webform.submission_create'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess::checkDraftsAccess'
 
 entity.webform.user.submission:
   path: '/webform/{webform}/submissions/{webform_submission}'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
-    type: 'default'
+    _controller: '\Drupal\webform\Controller\WebformSubmissionViewController::view'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    view_mode: 'html'
   requirements:
     _entity_access: 'webform_submission.view'
 
@@ -177,7 +197,7 @@ entity.webform.user.submission.edit:
   path: '/webform/{webform}/submissions/{webform_submission}/edit'
   defaults:
     _entity_form: 'webform_submission.edit'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
   requirements:
     _entity_access: 'webform_submission.update'
 
@@ -189,6 +209,22 @@ entity.webform.user.submission.delete:
   requirements:
     _entity_access: 'webform_submission.delete'
 
+entity.webform.user.submission.duplicate:
+  path: '/webform/{webform}/submissions/{webform_submission}/duplicate'
+  defaults:
+    _entity_form: 'webform_submission.duplicate'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    duplicate: TRUE
+    setting: 'submission_user_duplicate'
+    value: TRUE
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _entity_access: 'webform_submission.duplicate'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess::checkWebformSettingValue'
+
 entity.webform.test_form:
   path: '/webform/{webform}/test'
   defaults:
@@ -199,7 +235,15 @@ entity.webform.test_form:
       webform:
         type: 'entity:webform'
   requirements:
-    _entity_access: 'webform.update'
+    _entity_access: 'webform.test'
+
+entity.webform.export_form:
+  path: '/admin/structure/webform/manage/{webform}/export'
+  defaults:
+    _entity_form: 'webform.export'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  requirements:
+    _permission: 'export configuration'
 
 entity.webform.add_form:
   path: '/admin/structure/webform/add'
@@ -273,8 +317,8 @@ entity.webform.settings_assets:
     _entity_form: 'webform.settings_assets'
     _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   requirements:
-    _entity_access: 'webform.update'
     _permission: 'edit webform assets'
+    _entity_access: 'webform.update'
 
 entity.webform.settings_access:
   path: '/admin/structure/webform/manage/{webform}/access'
@@ -286,24 +330,24 @@ entity.webform.settings_access:
 
 # Webform submission results
 
-entity.webform.results_user:
-  path: '/admin/structure/webform/manage/{webform}/results/user'
+entity.webform.results_submissions:
+  path: '/admin/structure/webform/manage/{webform}/results/submissions/{submission_view}'
   defaults:
     _entity_list: 'webform_submission'
-    _title: 'Webform results'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+    submission_view: ''
   options:
     parameters:
       webform:
         type: 'entity:webform'
   requirements:
-    _entity_access: 'webform.submission_view_own'
+    _entity_access: 'webform.submission_view_any'
     _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
 
-entity.webform.results_submissions:
-  path: '/admin/structure/webform/manage/{webform}/results/submissions'
+entity.webform.results.source_entity.autocomplete:
+  path: '/admin/structure/webform/manage/{webform}/results/source-entity/autocomplete'
   defaults:
-    _entity_list: 'webform_submission'
-    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+    _controller: '\Drupal\webform\Controller\WebformSubmissionsController::sourceEntityAutocomplete'
   options:
     parameters:
       webform:
@@ -322,6 +366,20 @@ entity.webform.results_submissions.custom:
       webform:
         type: 'entity:webform'
   requirements:
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
+
+entity.webform.results_submissions.custom.user:
+  path: '/admin/structure/webform/manage/{webform}/results/submissions/custom/user'
+  defaults:
+    _form: 'Drupal\webform\Form\WebformResultsCustomForm'
+    _title: 'Customize my table'
+    type: 'user'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
     _entity_access: 'webform.submission_view_any'
     _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
 
@@ -329,7 +387,7 @@ entity.webform.results_export:
   path: '/admin/structure/webform/manage/{webform}/results/download'
   defaults:
     _controller: '\Drupal\webform\Controller\WebformResultsExportController::index'
-    _title_callback: 'Drupal\webform\Controller\WebformEntityController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
@@ -342,7 +400,7 @@ entity.webform.results_export_file:
   path: '/admin/structure/webform/manage/{webform}/results/download/file/{filename}'
   defaults:
     _controller: '\Drupal\webform\Controller\WebformResultsExportController::file'
-    _title_callback: 'Drupal\webform\Controller\WebformEntityController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
@@ -355,7 +413,7 @@ entity.webform.results_clear:
   path: '/admin/structure/webform/manage/{webform}/results/clear'
   defaults:
     _form: 'Drupal\webform\Form\WebformResultsClearForm'
-    _title_callback: 'Drupal\webform\Controller\WebformEntityController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
   options:
     parameters:
       webform:
@@ -364,20 +422,6 @@ entity.webform.results_clear:
     _entity_access: 'webform.submission_purge_any'
     _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
 
-entity.webform.results_log:
-  path: '/admin/structure/webform/manage/{webform}/results/log'
-  defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionLogController::overview'
-    _title_callback: 'Drupal\webform\Controller\WebformEntityController::title'
-  options:
-    parameters:
-      webform:
-        type: 'entity:webform'
-  requirements:
-    _permission: 'access webform submission log'
-    _entity_access: 'webform.submission_view_any'
-    _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkLogAccess'
-
 # Webform options
 
 entity.webform_options.collection:
@@ -385,6 +429,13 @@ entity.webform_options.collection:
   defaults:
     _entity_list: 'webform_options'
     _title: 'Webforms: Options'
+  requirements:
+    _permission: 'administer webform'
+
+entity.webform_options.autocomplete:
+  path: '/admin/structure/webform/config/options/autocomplete'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformOptionsController::autocomplete'
   requirements:
     _permission: 'administer webform'
 
@@ -400,7 +451,7 @@ entity.webform_options.edit_form:
   path: '/admin/structure/webform/config/options/manage/{webform_options}/edit'
   defaults:
     _entity_form: 'webform_options.edit'
-    _title_callback: '\Drupal\webform\Controller\WebformOptionsController::title'
+    _title: 'Edit webform options'
   requirements:
     _entity_access: 'webform_options.update'
 
@@ -423,10 +474,11 @@ entity.webform_options.delete_form:
 # Webform results (submissions)
 
 entity.webform_submission.collection:
-  path: '/admin/structure/webform/submissions/manage'
+  path: '/admin/structure/webform/submissions/manage/{submission_view}'
   defaults:
     _entity_list: 'webform_submission'
     _title: 'Webforms: Submissions'
+    submission_view: ''
   requirements:
     _custom_access: '\Drupal\webform\Access\WebformAccountAccess:checkSubmissionAccess'
 
@@ -438,70 +490,74 @@ entity.webform_submission.collection_purge:
   requirements:
     _permission: 'administer webform'
 
-# Webform log (submissions)
+# Webform user (submissions)
 
-entity.webform_submission.collection_log:
-  path: '/admin/structure/webform/submissions/log'
+entity.webform_submission.user:
+  path: '/user/{user}/submissions/{submission_view}'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionLogController::overview'
-    _title: 'Webforms: Submissions log'
+    _entity_list: 'webform_submission'
+    _title: 'Submissions'
+    submission_view: ''
   requirements:
-    _permission: 'access webform submission log'
-    _custom_access: '\Drupal\webform\Access\WebformAccountAccess:checkSubmissionAccess'
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess::checkUserSubmissionsAccess'
+  options:
+    parameters:
+      user:
+        type: entity:user
 
 # Webform submissions
 
 entity.webform_submission.canonical:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
-    type: 'default'
+    _controller: '\Drupal\webform\Controller\WebformSubmissionViewController::view'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    view_mode: 'html'
   requirements:
     _entity_access: 'webform_submission.view'
+
+entity.webform_submission.access_denied:
+  path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/access-denied'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::accessDenied'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionController::accessDeniedTitle'
+  requirements:
+    # Access denied is available to all users.
+    _access: 'TRUE'
 
 entity.webform_submission.table:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/table'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
-    type: 'table'
+    _controller: '\Drupal\webform\Controller\WebformSubmissionViewController::view'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    view_mode: 'table'
   requirements:
     _entity_access: 'webform_submission.view'
 
 entity.webform_submission.text:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/text'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
-    type: 'text'
+    _controller: '\Drupal\webform\Controller\WebformSubmissionViewController::view'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    view_mode: 'text'
   requirements:
     _entity_access: 'webform_submission.view_any'
 
 entity.webform_submission.yaml:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/yaml'
   defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionController::index'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
-    type: 'yaml'
+    _controller: '\Drupal\webform\Controller\WebformSubmissionViewController::view'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    view_mode: 'yaml'
   requirements:
+    _permission: 'edit webform source'
     _entity_access: 'webform_submission.view_any'
-
-entity.webform_submission.log:
-  path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/log'
-  defaults:
-    _controller: '\Drupal\webform\Controller\WebformSubmissionLogController::overview'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
-  requirements:
-    _permission: 'access webform submission log'
-    _entity_access: 'webform_submission.view_any'
-    _custom_access: '\Drupal\webform\Access\WebformEntityAccess::checkLogAccess'
 
 entity.webform_submission.edit_form:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/edit'
   defaults:
     _entity_form: 'webform_submission.edit'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
   requirements:
     _entity_access: 'webform_submission.update'
 
@@ -509,7 +565,7 @@ entity.webform_submission.edit_form.all:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/edit/all'
   defaults:
     _entity_form: 'webform_submission.edit_all'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
   requirements:
     _entity_access: 'webform_submission.update'
     _custom_access: '\Drupal\webform\Access\WebformSubmissionAccess::checkWizardPagesAccess'
@@ -518,23 +574,24 @@ entity.webform_submission.notes_form:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/notes'
   defaults:
     _entity_form: 'webform_submission.notes'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
   requirements:
-    _entity_access: 'webform_submission.update_any'
+    _entity_access: 'webform_submission.notes'
 
 entity.webform_submission.resend_form:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/resend'
   defaults:
     _form: 'Drupal\webform\Form\WebformSubmissionResendForm'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
   requirements:
-    _custom_access: '\Drupal\webform\Access\WebformSubmissionAccess::checkEmailAccess'
+    _entity_access: 'webform_submission.resend'
+    _custom_access: '\Drupal\webform\Access\WebformSubmissionAccess::checkResendAccess'
 
 entity.webform_submission.duplicate_form:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/duplicate'
   defaults:
     _entity_form: 'webform_submission.duplicate'
-    _title_callback: 'Drupal\webform\Controller\WebformSubmissionController::title'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
     duplicate: TRUE
   requirements:
     _entity_access: 'webform_submission.update_any'
@@ -546,6 +603,14 @@ entity.webform_submission.delete_form:
     _title: 'Delete webform submission'
   requirements:
     _entity_access: 'webform_submission.delete'
+
+entity.webform_submission.locked_toggle:
+  path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/locked'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformSubmissionController::locked'
+  requirements:
+    _entity_access: 'webform_submission.update'
+    _csrf_token: 'TRUE'
 
 entity.webform_submission.sticky_toggle:
   path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/sticky'
@@ -579,6 +644,7 @@ entity.webform.handler:
     _title: 'Select a handler'
   requirements:
     _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformHandlerAccess::checkHandlerAccess'
 
 entity.webform.handler.add_form:
   path: '/admin/structure/webform/manage/{webform}/handlers/add/{webform_handler}'
@@ -587,6 +653,17 @@ entity.webform.handler.add_form:
     _title: 'Add webform handler'
   requirements:
     _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformHandlerAccess::checkHandlerAccess'
+
+entity.webform.handler.add_email:
+  path: '/admin/structure/webform/manage/{webform}/handlers/add/email'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformHandlerAddForm'
+    _title: 'Add email'
+    webform_handler: email
+  requirements:
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformHandlerAccess::checkHandlerAccess'
 
 entity.webform.handler.edit_form:
   path: '/admin/structure/webform/manage/{webform}/handlers/{webform_handler}/edit'
@@ -612,29 +689,171 @@ entity.webform.handler.delete_form:
   requirements:
     _entity_access: 'webform.update'
 
+entity.webform.handler.enable:
+  path: '/admin/structure/webform/manage/{webform}/handlers/{webform_handler}/enable'
+  defaults:
+    _controller: '\Drupal\webform\WebformEntityHandlersForm::ajaxOperation'
+    operation: enable
+  requirements:
+    _entity_access: 'webform.update'
+    _csrf_token: 'TRUE'
+
+entity.webform.handler.disable:
+  path: '/admin/structure/webform/manage/{webform}/handlers/{webform_handler}/disable'
+  defaults:
+    _controller: '\Drupal\webform\WebformEntityHandlersForm::ajaxOperation'
+    operation: disable
+  requirements:
+    _entity_access: 'webform.update'
+    _csrf_token: 'TRUE'
+
+# Variants.
+
+entity.webform.variants:
+  path: '/admin/structure/webform/manage/{webform}/variants'
+  defaults:
+    _entity_form: 'webform.variants'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant:
+  path: '/admin/structure/webform/manage/{webform}/variants/add'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformPluginVariantController::listVariants'
+    _title: 'Select a variant'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant.add_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/add/{webform_variant}'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantAddForm'
+    _title: 'Add webform variant'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantCreateAccess'
+
+entity.webform.variant.edit_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/{webform_variant}/edit'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantEditForm'
+    _title: 'Edit webform variant'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant.duplicate_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/{webform_variant}/duplicate'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantDuplicateForm'
+    _title: 'Duplicate webform variant'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant.delete_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/{webform_variant}/delete'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantDeleteForm'
+    _title: 'Delete webform variant'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant.enable:
+  path: '/admin/structure/webform/manage/{webform}/variants/{webform_variant}/enable'
+  defaults:
+    _controller: '\Drupal\webform\WebformEntityVariantsForm::ajaxOperation'
+    operation: enable
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+    _csrf_token: 'TRUE'
+
+entity.webform.variant.disable:
+  path: '/admin/structure/webform/manage/{webform}/variants/{webform_variant}/disable'
+  defaults:
+    _controller: '\Drupal\webform\WebformEntityVariantsForm::ajaxOperation'
+    operation: disable
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+    _csrf_token: 'TRUE'
+
+entity.webform.variant.apply_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/apply'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantApplyForm'
+    _title: 'Apply webform variant'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant.view_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/view'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantViewForm'
+    _title: 'View webform variants'
+    operation: 'view'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
+entity.webform.variant.test_form:
+  path: '/admin/structure/webform/manage/{webform}/variants/test'
+  defaults:
+    _form: '\Drupal\webform\Form\WebformVariantViewForm'
+    _title: 'Test webform variants'
+    operation: 'test'
+  requirements:
+    _permission: 'edit webform variants'
+    _entity_access: 'webform.update'
+    _custom_access: '\Drupal\webform\Access\WebformVariantAccess::checkVariantSettingsAccess'
+
 # Plugins.
 
-webform.element_plugins:
-  path: '/admin/structure/webform/plugins/elements'
+webform.reports_plugins.elements:
+  path: '/admin/reports/webform-plugins/elements'
   defaults:
     _controller: '\Drupal\webform\Controller\WebformPluginElementController::index'
-    _title: 'Webforms: Element plugins'
+    _title: 'Webform plugins: Elements'
   requirements:
     _permission: 'administer webform'
 
-webform.handler_plugins:
-  path: '/admin/structure/webform/plugins/handlers'
+webform.reports_plugins.handlers:
+  path: '/admin/reports/webform-plugins/handlers'
   defaults:
     _controller: '\Drupal\webform\Controller\WebformPluginHandlerController::index'
-    _title: 'Webforms: Handler plugins'
+    _title: 'Webform plugins: Handlers'
   requirements:
     _permission: 'administer webform'
 
-webform.exporter_plugins:
-  path: '/admin/structure/webform/plugins/exporters'
+webform.reports_plugins.variants:
+  path: '/admin/reports/webform-plugins/variants'
+  defaults:
+    _controller: '\Drupal\webform\Controller\WebformPluginVariantController::index'
+    _title: 'Webform plugins: Variants'
+  requirements:
+    _permission: 'administer webform'
+
+webform.reports_plugins.exporters:
+  path: '/admin/reports/webform-plugins/exporters'
   defaults:
     _controller: '\Drupal\webform\Controller\WebformPluginExporterController::index'
-    _title: 'Webforms: Export plugins'
+    _title: 'Webform plugins: Exporters'
   requirements:
     _permission: 'administer webform'
 

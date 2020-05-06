@@ -3,8 +3,8 @@
 namespace Drupal\Tests\views\FunctionalJavascript;
 
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
-use Drupal\simpletest\ContentTypeCreationTrait;
-use Drupal\simpletest\NodeCreationTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\node\Traits\NodeCreationTrait;
 
 /**
  * Tests the basic AJAX functionality of Views exposed forms.
@@ -20,6 +20,11 @@ class ExposedFilterAJAXTest extends WebDriverTestBase {
    * {@inheritdoc}
    */
   public static $modules = ['node', 'views', 'views_test_modal'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}

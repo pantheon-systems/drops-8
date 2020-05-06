@@ -14,6 +14,11 @@ use Drupal\user\Entity\User;
 class UserAdminListingTest extends BrowserTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * Tests the listing.
    */
   public function testUserListing() {
@@ -64,7 +69,7 @@ class UserAdminListingTest extends BrowserTestBase {
     $result_accounts = [];
     foreach ($result as $account) {
       $account_columns = $account->findAll('css', 'td');
-      $name = $account_columns[0]->getText();
+      $name = $account_columns[0]->find('css', 'a')->getText();
       $roles = [];
       $account_roles = $account_columns[2]->findAll('css', 'td div ul li');
       if (!empty($account_roles)) {
@@ -82,7 +87,7 @@ class UserAdminListingTest extends BrowserTestBase {
       ];
     }
 
-    $this->assertFalse(array_keys(array_diff_key($result_accounts, $accounts)), 'Ensure all accounts are listed.');
+    $this->assertEmpty(array_keys(array_diff_key($result_accounts, $accounts)), 'Ensure all accounts are listed.');
     foreach ($result_accounts as $name => $values) {
       $this->assertEqual($values['status'] == t('active'), $accounts[$name]->status->value, 'Ensure the status is displayed properly.');
     }

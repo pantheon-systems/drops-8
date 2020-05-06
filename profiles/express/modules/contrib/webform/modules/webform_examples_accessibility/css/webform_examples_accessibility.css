@@ -1,0 +1,52 @@
+/**
+ * @file
+ * Webform examples accessibility styles.
+ */
+
+/**
+ * Show fieldsets.
+ */
+[role=main] fieldset {
+  border: 2px dashed red !important;
+  padding: 4px !important;
+}
+
+/**
+ * Show visually hidden (labels).
+ */
+[role=main] .visually-hidden {
+  border: 2px dashed blue !important;
+  color: blue !important;
+  padding: 4px !important;
+  position: relative !important;
+  clip: auto !important;
+  overflow: visible !important;
+  height: auto !important;
+  width: auto !important;
+}
+
+/**
+ * Show aria-labels.
+ */
+[role=main] [aria-label]:after {
+  content: "[aria-label]: " attr(aria-label);
+  border: 2px dashed green !important;
+  padding: 4px !important;
+  position: relative !important;
+  font-size: 0.8em;
+  font-weight: normal;
+  color: green;
+}
+
+/**
+ * Show titles.
+ */
+[role=main] [title]:after {
+  content: "[title]: " attr(title);
+  border: 2px dashed green !important;
+  padding: 4px !important;
+  position: relative !important;
+  font-size: 0.8em;
+  font-weight: normal;
+  color: green;
+}

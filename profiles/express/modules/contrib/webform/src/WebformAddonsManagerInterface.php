@@ -8,14 +8,6 @@ namespace Drupal\webform;
 interface WebformAddonsManagerInterface {
 
   /**
-   * Get add-on promotions.
-   *
-   * @return array
-   *   An associative array of add-on promotions.
-   */
-  public function getPromotions();
-
-  /**
    * Get add-on project information.
    *
    * @param string $name

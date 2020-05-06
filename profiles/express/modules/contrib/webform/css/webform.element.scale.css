@@ -1,0 +1,226 @@
+/**
+ * @file
+ * Element scale styles.
+ */
+
+.webform-scale {
+  display: inline-block;
+}
+
+/**
+ * Options.
+ */
+.webform-scale-options {
+  white-space: nowrap;
+  margin: 0 -4px;
+}
+
+.webform-scale-options .form-item {
+  display: inline-block;
+  margin: 0 4px;
+}
+
+/**
+ * Option.
+ */
+.webform-scale-option {
+  display: inline-block;
+}
+
+.webform-scale-options input + label,
+.webform-scale-options input + label.option {
+  display: inline-block;
+}
+
+.webform-scale-options input + label {
+  text-align: center;
+  color: #666;
+  border: 3px solid #ccc;
+  border-radius: 50%;
+  background-color: #fff;
+  margin: 0;
+  /* Default. */
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  font-size: 1.2em;
+}
+
+/**
+ * Text.
+ */
+.webform-scale-text {
+  position: relative;
+  height: 1em;
+  line-height: 1em;
+  margin: 4px 2px;
+}
+
+.webform-scale-text-min,
+.webform-scale-text-max {
+  position: absolute;
+}
+
+[dir="ltr"] .webform-scale-text-min {
+  left: 0;
+  text-align: left;
+}
+
+[dir="ltr"] .webform-scale-text-max {
+  right: 0;
+  text-align: right;
+}
+
+[dir="rtl"] .webform-scale-text-min {
+  right: 0;
+  text-align: right;
+}
+
+[dir="rtl"] .webform-scale-text-max {
+  left: 0;
+  text-align: left;
+}
+
+/**
+ * States.
+ */
+.webform-scale-options input:hover + label {
+  color: #333;
+  border-color: #999;
+}
+
+.webform-scale-options input:focus + label {
+  color: #333;
+  border-color: #999;
+  box-shadow: 0 0 5px #999;
+}
+
+.webform-scale-options input:checked + label {
+  color: #000;
+  border-color: #0074bd;
+}
+
+.webform-scale-options input:checked:focus + label {
+  box-shadow: 0 0 5px #0074bd;
+}
+
+/******************************************************************************/
+
+/**
+ * Small.
+ */
+.webform-scale-small .form-item {
+  margin: 4px 1px;
+}
+
+.webform-scale-small .webform-scale-text {
+  margin: 4px 1px;
+}
+
+.webform-scale-small input + label {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 1.1em;
+  border-width: 2px;
+}
+
+/**
+ * Medium.
+ */
+.webform-scale-medium input + label {
+  width: 36px;
+  height: 36px;
+  line-height: 36px;
+  font-size: 1.2em;
+}
+
+@media (max-width: 768px) {
+  .webform-scale-medium .form-item {
+    margin: 4px 1px;
+  }
+
+  .webform-scale-medium .webform-scale-text {
+    margin: 4px 1px;
+  }
+
+  .webform-scale-medium input + label {
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    font-size: 1.1em;
+    border-width: 2px;
+  }
+}
+
+/**
+ * Large.
+ */
+.webform-scale-large input + label {
+  width: 48px;
+  height: 48px;
+  line-height: 48px;
+  font-size: 1.5em;
+}
+
+@media (max-width: 768px) {
+  .webform-scale-large .form-item {
+    margin: 4px 1px;
+  }
+
+  .webform-scale-large .webform-scale-text {
+    margin: 4px 1px;
+  }
+
+  .webform-scale-large input + label {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 1.2em;
+    border-width: 2px;
+  }
+}
+
+/******************************************************************************/
+
+/**
+ * Square.
+ */
+.webform-scale-square input + label {
+  border-radius: 3px;
+}
+
+/**
+ * Flexbox.
+ */
+.webform-scale-flexbox {
+  display: block;
+}
+
+.webform-scale-flexbox .webform-scale-options {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 5px -5px;
+}
+
+.webform-scale-flexbox .webform-scale-option {
+  flex: 1;
+  margin: 0 5px;
+}
+
+.webform-scale-flexbox .form-item {
+  margin: 0 !important;
+  display: table;
+  width: 100%;
+  height: 100%;
+}
+.webform-scale-flexbox input + label {
+  display: table-cell;
+  width: 100%;
+  vertical-align: middle;
+  border-radius: 3px;
+}
+
+.webform-scale-flexbox .webform-scale-text {
+  margin: 5px;
+}

@@ -30,6 +30,11 @@ class SessionAuthenticationTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
 
@@ -67,7 +72,7 @@ class SessionAuthenticationTest extends BrowserTestBase {
     // should no longer be logged in.
     $this->drupalGet($unprotected_url);
     $this->assertResponse(200, 'An unprotected route can be accessed without basic authentication.');
-    $this->assertFalse(json_decode($session->getPage()->getContent())->user, 'The user is no longer authenticated after visiting a page without basic authentication.');
+    $this->assertEquals(0, json_decode($session->getPage()->getContent())->user, 'The user is no longer authenticated after visiting a page without basic authentication.');
 
     // If we access the protected page again without basic authentication we
     // should get 401 Unauthorized.
@@ -81,12 +86,12 @@ class SessionAuthenticationTest extends BrowserTestBase {
   public function testBasicAuthSession() {
     // Set a session value on a request through basic auth.
     $test_value = 'alpaca';
-    $response = $this->basicAuthGet('session-test/set-session/' . $test_value, $this->user->getUsername(), $this->user->pass_raw);
+    $response = $this->basicAuthGet('session-test/set-session/' . $test_value, $this->user->getAccountName(), $this->user->pass_raw);
     $this->assertSessionData($response, $test_value);
     $this->assertResponse(200, 'The request to set a session value was successful.');
 
     // Test that on a subsequent request the session value is still present.
-    $response = $this->basicAuthGet('session-test/get-session', $this->user->getUsername(), $this->user->pass_raw);
+    $response = $this->basicAuthGet('session-test/get-session', $this->user->getAccountName(), $this->user->pass_raw);
     $this->assertSessionData($response, $test_value);
     $this->assertResponse(200, 'The request to get a session value was successful.');
   }

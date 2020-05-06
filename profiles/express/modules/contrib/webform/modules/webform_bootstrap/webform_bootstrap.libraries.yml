@@ -1,5 +1,9 @@
 webform_bootstrap:
   version: VERSION
+  js:
+    js/webform_bootstrap.states.js: {}
   css:
     theme:
       css/webform_bootstrap.css: {}
+  dependencies:
+    - webform/webform.states

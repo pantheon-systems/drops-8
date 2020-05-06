@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\system\Functional\Form;
 
+use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -17,6 +18,11 @@ class RedirectTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['form_test', 'block'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Tests form redirection.
@@ -86,7 +92,7 @@ class RedirectTest extends BrowserTestBase {
 
     // Visit page 'foo' (404 page) and submit the form. Verify it ends up
     // at the right URL.
-    $expected = \Drupal::url('form_test.route1', [], ['query' => ['test1' => 'test2'], 'absolute' => TRUE]);
+    $expected = Url::fromRoute('form_test.route1', [], ['query' => ['test1' => 'test2'], 'absolute' => TRUE])->toString();
     $this->drupalGet('foo');
     $this->assertResponse(404);
     $this->drupalPostForm(NULL, [], t('Submit'));

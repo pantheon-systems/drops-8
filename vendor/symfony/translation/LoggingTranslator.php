@@ -28,7 +28,6 @@ class LoggingTranslator implements TranslatorInterface, TranslatorBagInterface
 
     /**
      * @param TranslatorInterface $translator The translator must implement TranslatorBagInterface
-     * @param LoggerInterface     $logger
      */
     public function __construct(TranslatorInterface $translator, LoggerInterface $logger)
     {
@@ -43,7 +42,7 @@ class LoggingTranslator implements TranslatorInterface, TranslatorBagInterface
     /**
      * {@inheritdoc}
      */
-    public function trans($id, array $parameters = array(), $domain = null, $locale = null)
+    public function trans($id, array $parameters = [], $domain = null, $locale = null)
     {
         $trans = $this->translator->trans($id, $parameters, $domain, $locale);
         $this->log($id, $domain, $locale);
@@ -54,7 +53,7 @@ class LoggingTranslator implements TranslatorInterface, TranslatorBagInterface
     /**
      * {@inheritdoc}
      */
-    public function transChoice($id, $number, array $parameters = array(), $domain = null, $locale = null)
+    public function transChoice($id, $number, array $parameters = [], $domain = null, $locale = null)
     {
         $trans = $this->translator->transChoice($id, $number, $parameters, $domain, $locale);
         $this->log($id, $domain, $locale);
@@ -97,7 +96,7 @@ class LoggingTranslator implements TranslatorInterface, TranslatorBagInterface
             return $this->translator->getFallbackLocales();
         }
 
-        return array();
+        return [];
     }
 
     /**
@@ -105,7 +104,7 @@ class LoggingTranslator implements TranslatorInterface, TranslatorBagInterface
      */
     public function __call($method, $args)
     {
-        return \call_user_func_array(array($this->translator, $method), $args);
+        return \call_user_func_array([$this->translator, $method], $args);
     }
 
     /**
@@ -128,9 +127,9 @@ class LoggingTranslator implements TranslatorInterface, TranslatorBagInterface
         }
 
         if ($catalogue->has($id, $domain)) {
-            $this->logger->debug('Translation use fallback catalogue.', array('id' => $id, 'domain' => $domain, 'locale' => $catalogue->getLocale()));
+            $this->logger->debug('Translation use fallback catalogue.', ['id' => $id, 'domain' => $domain, 'locale' => $catalogue->getLocale()]);
         } else {
-            $this->logger->warning('Translation not found.', array('id' => $id, 'domain' => $domain, 'locale' => $catalogue->getLocale()));
+            $this->logger->warning('Translation not found.', ['id' => $id, 'domain' => $domain, 'locale' => $catalogue->getLocale()]);
         }
     }
 }

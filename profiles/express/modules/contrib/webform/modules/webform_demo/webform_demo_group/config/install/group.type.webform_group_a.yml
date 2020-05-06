@@ -1,0 +1,12 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - webform_demo_group
+id: webform_group_a
+label: 'Webform Group A'
+description: ''
+creator_membership: false
+creator_wizard: true
+creator_roles: {  }

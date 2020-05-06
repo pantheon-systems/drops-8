@@ -21,6 +21,11 @@ class BlockUiTest extends BrowserTestBase {
    */
   public static $modules = ['block', 'block_test', 'help', 'condition_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
   protected $regions;
 
   /**
@@ -84,11 +89,11 @@ class BlockUiTest extends BrowserTestBase {
     $elements = $this->xpath('//div[contains(@class, "region-highlighted")]/div[contains(@class, "block-region") and contains(text(), :title)]', [':title' => 'Highlighted']);
     $this->assertTrue(!empty($elements), 'Block demo regions are shown.');
 
-    \Drupal::service('theme_handler')->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
     $this->drupalGet('admin/structure/block/demo/test_theme');
     $this->assertEscaped('<strong>Test theme</strong>');
 
-    \Drupal::service('theme_handler')->install(['stable']);
+    \Drupal::service('theme_installer')->install(['stable']);
     $this->drupalGet('admin/structure/block/demo/stable');
     $this->assertResponse(404, 'Hidden themes that are not the default theme are not supported by the block demo screen');
   }
@@ -211,7 +216,7 @@ class BlockUiTest extends BrowserTestBase {
    * Tests the behavior of context-aware blocks.
    */
   public function testContextAwareBlocks() {
-    $expected_text = '<div id="test_context_aware--username">' . \Drupal::currentUser()->getUsername() . '</div>';
+    $expected_text = '<div id="test_context_aware--username">' . \Drupal::currentUser()->getAccountName() . '</div>';
     $this->drupalGet('');
     $this->assertNoText('Test context-aware block');
     $this->assertNoRaw($expected_text);
@@ -351,11 +356,11 @@ class BlockUiTest extends BrowserTestBase {
     $arguments = [':message' => 'Only digits are allowed'];
     $pattern = '//div[contains(@class,"messages messages--error")]/div[contains(text()[2],:message)]';
     $elements = $this->xpath($pattern, $arguments);
-    $this->assertTrue($elements, 'Plugin error message found in parent form.');
+    $this->assertNotEmpty($elements, 'Plugin error message found in parent form.');
 
     $error_class_pattern = '//div[contains(@class,"form-item-settings-digits")]/input[contains(@class,"error")]';
     $error_class = $this->xpath($error_class_pattern);
-    $this->assertTrue($error_class, 'Plugin error class found in parent form.');
+    $this->assertNotEmpty($error_class, 'Plugin error class found in parent form.');
   }
 
   /**

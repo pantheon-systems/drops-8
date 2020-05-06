@@ -28,7 +28,7 @@ alert-dismissible';
 
 **Button classes**
 
-Use for 'Button CSS classes'  and 'Confirmation back link CSS classes'.
+Use for 'Button CSS classes' and 'Confirmation back link CSS classes'.
 
 ```
 btn

@@ -183,7 +183,7 @@ $var2      = 12;
 
 // Valid
 $error = false;
-while (list($h, $f) = each($handle)) {
+while (list($h, $f) = getKeyAndValue($handle)) {
     $error = true;
 }
 
@@ -403,3 +403,6 @@ $foofoo   = new Foo([
     $b = new Bar(),
     $c = new Bar(),
 ]);
+
+$i = 0;
+echo "TEST: ".($i += 1)."\n";

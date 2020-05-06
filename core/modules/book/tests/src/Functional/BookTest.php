@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\book\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Cache\Cache;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\user\RoleInterface;
@@ -21,6 +22,11 @@ class BookTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['book', 'block', 'node_access_test', 'book_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * A user with permission to view a book and access printer-friendly version.
@@ -81,23 +87,23 @@ class BookTest extends BrowserTestBase {
     $this->drupalLogin($this->bookAuthor);
 
     // On non-node route.
-    $this->drupalGet($this->adminUser->urlInfo());
+    $this->drupalGet($this->adminUser->toUrl());
     $this->assertRaw('[route.book_navigation]=book.none');
 
     // On non-book node route.
-    $this->drupalGet($page->urlInfo());
+    $this->drupalGet($page->toUrl());
     $this->assertRaw('[route.book_navigation]=book.none');
 
     // On book node route.
-    $this->drupalGet($book_nodes[0]->urlInfo());
+    $this->drupalGet($book_nodes[0]->toUrl());
     $this->assertRaw('[route.book_navigation]=0|2|3');
-    $this->drupalGet($book_nodes[1]->urlInfo());
+    $this->drupalGet($book_nodes[1]->toUrl());
     $this->assertRaw('[route.book_navigation]=0|2|3|4');
-    $this->drupalGet($book_nodes[2]->urlInfo());
+    $this->drupalGet($book_nodes[2]->toUrl());
     $this->assertRaw('[route.book_navigation]=0|2|3|5');
-    $this->drupalGet($book_nodes[3]->urlInfo());
+    $this->drupalGet($book_nodes[3]->toUrl());
     $this->assertRaw('[route.book_navigation]=0|2|6');
-    $this->drupalGet($book_nodes[4]->urlInfo());
+    $this->drupalGet($book_nodes[4]->toUrl());
     $this->assertRaw('[route.book_navigation]=0|2|7');
   }
 
@@ -247,7 +253,7 @@ class BookTest extends BrowserTestBase {
     $nodes = $this->createBook();
     $this->drupalGet('<front>');
     $this->assertText($block->label(), 'Book navigation block is displayed.');
-    $this->assertText($this->book->label(), format_string('Link to book root (@title) is displayed.', ['@title' => $nodes[0]->label()]));
+    $this->assertText($this->book->label(), new FormattableMarkup('Link to book root (@title) is displayed.', ['@title' => $nodes[0]->label()]));
     $this->assertNoText($nodes[0]->label(), 'No links to individual book pages are displayed.');
   }
 
@@ -340,7 +346,7 @@ class BookTest extends BrowserTestBase {
    * Tests the access for deleting top-level book nodes.
    */
   public function testBookDelete() {
-    $node_storage = $this->container->get('entity.manager')->getStorage('node');
+    $node_storage = $this->container->get('entity_type.manager')->getStorage('node');
     $nodes = $this->createBook();
     $this->drupalLogin($this->adminUser);
     $edit = [];
@@ -353,11 +359,13 @@ class BookTest extends BrowserTestBase {
     $node4 = $node_storage->load($nodes[4]->id());
     $this->assertTrue(empty($node4->book), 'Deleting child book node properly allowed.');
 
+    // $nodes[4] is stale, trying to delete it directly will cause an error.
+    $node4->delete();
+    unset($nodes[4]);
+
     // Delete all child book nodes and retest top-level node deletion.
-    foreach ($nodes as $node) {
-      $nids[] = $node->id();
-    }
-    entity_delete_multiple('node', $nids);
+    $node_storage->delete($nodes);
+
     $this->drupalPostForm('node/' . $this->book->id() . '/outline/remove', $edit, t('Remove'));
     $node_storage->resetCache([$this->book->id()]);
     $node = $node_storage->load($this->book->id());
@@ -366,11 +374,11 @@ class BookTest extends BrowserTestBase {
     // Tests directly deleting a book parent.
     $nodes = $this->createBook();
     $this->drupalLogin($this->adminUser);
-    $this->drupalGet($this->book->urlInfo('delete-form'));
+    $this->drupalGet($this->book->toUrl('delete-form'));
     $this->assertRaw(t('%title is part of a book outline, and has associated child pages. If you proceed with deletion, the child pages will be relocated automatically.', ['%title' => $this->book->label()]));
     // Delete parent, and visit a child page.
-    $this->drupalPostForm($this->book->urlInfo('delete-form'), [], t('Delete'));
-    $this->drupalGet($nodes[0]->urlInfo());
+    $this->drupalPostForm($this->book->toUrl('delete-form'), [], t('Delete'));
+    $this->drupalGet($nodes[0]->toUrl());
     $this->assertResponse(200);
     $this->assertText($nodes[0]->label());
     // The book parents should be updated.
@@ -403,7 +411,7 @@ class BookTest extends BrowserTestBase {
     $edit = [];
     $edit['book[bid]'] = '1';
     $this->drupalPostForm('node/' . $empty_book->id() . '/outline', $edit, t('Add to book outline'));
-    $node = \Drupal::entityManager()->getStorage('node')->load($empty_book->id());
+    $node = \Drupal::entityTypeManager()->getStorage('node')->load($empty_book->id());
     // Test the book array.
     $this->assertEqual($node->book['nid'], $empty_book->id());
     $this->assertEqual($node->book['bid'], $empty_book->id());
@@ -426,7 +434,7 @@ class BookTest extends BrowserTestBase {
     $edit = [];
     $edit['book[bid]'] = $node->id();
     $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
-    $node = \Drupal::entityManager()->getStorage('node')->load($node->id());
+    $node = \Drupal::entityTypeManager()->getStorage('node')->load($node->id());
 
     // Test the book array.
     $this->assertEqual($node->book['nid'], $node->id());
@@ -517,7 +525,7 @@ class BookTest extends BrowserTestBase {
     $this->drupalLogin($this->bookAuthor);
     $this->book = $this->createBookNode('new');
     // Reset any internal static caching.
-    $node_storage = \Drupal::entityManager()->getStorage('node');
+    $node_storage = \Drupal::entityTypeManager()->getStorage('node');
     $node_storage->resetCache();
 
     // Log in as user without access to the book node, so no 'node test view'

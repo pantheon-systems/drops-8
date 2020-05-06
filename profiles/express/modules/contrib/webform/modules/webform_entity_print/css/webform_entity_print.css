@@ -1,0 +1,66 @@
+/**
+ * @file
+ * Webform Entity Print styles.
+ */
+
+/**
+ * Details.
+ */
+details {
+  border: 1px solid #ccc;
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+.details-wrapper {
+  padding: 0 1em;
+}
+
+summary {
+  font-size: 1.2em;
+  font-weight: bold;
+  padding: .5em .5em 0 .5em;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+/**
+ * Form.
+ */
+.form-item {
+  margin-top: 1em;
+  margin-bottom: 1em;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+}
+
+/**
+ * Table.
+ */
+.webform-submission-table {
+  width: 100%;
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.webform-submission-table th {
+  width: 33%;
+  min-width: 100px;
+}
+
+.webform-submission-table th,
+.webform-submission-table td {
+  text-align: left;
+  padding: 10px 12px;
+}
+
+.webform-submission-table tr {
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  padding: 0.1em 0.6em;
+}

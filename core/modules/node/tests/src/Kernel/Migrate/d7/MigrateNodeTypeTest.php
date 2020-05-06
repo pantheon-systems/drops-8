@@ -20,15 +20,14 @@ class MigrateNodeTypeTest extends MigrateDrupal7TestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'text', 'filter', 'menu_ui'];
+  public static $modules = ['node', 'text', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
-    $this->installConfig(['node']);
-    $this->executeMigration('d7_node_type');
+    $this->migrateContentTypes();
   }
 
   /**
@@ -55,7 +54,7 @@ class MigrateNodeTypeTest extends MigrateDrupal7TestBase {
     $this->assertIdentical($help, $entity->getHelp());
 
     $this->assertIdentical($display_submitted, $entity->displaySubmitted(), 'Submission info is displayed');
-    $this->assertIdentical($new_revision, $entity->isNewRevision(), 'Is a new revision');
+    $this->assertIdentical($new_revision, $entity->shouldCreateNewRevision(), 'Is a new revision');
 
     if ($body_label) {
       /** @var \Drupal\field\FieldConfigInterface $body */

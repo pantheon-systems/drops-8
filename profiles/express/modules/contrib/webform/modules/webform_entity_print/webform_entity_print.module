@@ -1,0 +1,238 @@
+<?php
+
+/**
+ * @file
+ * Provides Entity Print (PDF) integration.
+ */
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
+use Drupal\webform\WebformSubmissionInterface;
+use Drupal\Core\Render\Markup;
+
+/**
+ * Implements hook_ENTITY_TYPE_view_alter().
+ *
+ * @see entity_print_entity_view_alter();
+ */
+function webform_entity_print_webform_submission_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  $is_entity_print = in_array($route_name, ['entity_print.view.debug', 'entity_print.view'])
+   || \Drupal::request()->request->get('_webform_entity_print');
+
+  if ($is_entity_print) {
+    // Add template header and footer.
+    _webform_entity_print_webform_submission_template($build, $entity, $display);
+  }
+  elseif (in_array($display->getMode(), ['html', 'table'])) {
+    // Add print links to HTML and Table mode.
+    _webform_entity_print_webform_submission_links($build, $entity, $display);
+  }
+}
+
+/**
+ * Build Webform Entity Print template.
+ *
+ * @param array &$build
+ *   A renderable array representing the entity content.
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The entity object being rendered.
+ * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+ *   The entity view display holding the display options configured for the
+ *   entity components.
+ */
+function _webform_entity_print_webform_submission_template(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+
+  $default_template_settings = $third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'template') ?: [];
+  $webform_template_settings = $entity->getWebform()->getThirdPartySetting('webform_entity_print', 'template') ?: [];
+  $template = array_filter($webform_template_settings)
+    + array_filter($default_template_settings);
+
+  /** @var \Drupal\webform\WebformTokenManagerInterface $token_manager */
+  $token_manager = \Drupal::service('webform.token_manager');
+  $template = $token_manager->replace($template, $entity);
+
+  // Header.
+  if (!empty($template['header'])) {
+    $build['webform_entity_print_header'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['webform-entity-print-header']],
+      '#markup' => $template['header'],
+      '#weight' => -20,
+    ];
+  }
+
+  // Footer.
+  if (!empty($template['footer'])) {
+    $build['webform_entity_print_footer'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['webform-entity-print-footer']],
+      '#markup' => $template['footer'],
+      '#weight' => 20,
+    ];
+  }
+}
+
+/**
+ * Build Webform Entity Print links.
+ *
+ * @param array &$build
+ *   A renderable array representing the entity content.
+ * @param \Drupal\Core\Entity\EntityInterface $entity
+ *   The entity object being rendered.
+ * @param \Drupal\Core\Entity\Display\EntityViewDisplayInterface $display
+ *   The entity view display holding the display options configured for the
+ *   entity components.
+ */
+function _webform_entity_print_webform_submission_links(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  $view_mode = $display->getMode();
+  $export_types = \Drupal::service('plugin.manager.entity_print.export_type')->getDefinitions();
+  $access_manager = \Drupal::accessManager();
+
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+
+  $debug = $third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'debug');
+  $default_export_type_settings = $third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'export_types') ?: [];
+  $webform_export_type_settings = $entity->getWebform()->getThirdPartySetting('webform_entity_print', 'export_types') ?: [];
+
+  $print_links = [];
+  $debug_links = [];
+  foreach ($export_types as $export_type => $definition) {
+    // Set default export type settings.
+    $webform_export_type_settings += [$export_type => []];
+    $default_export_type_settings += [$export_type => []];
+
+    // Get settings from webform and global settings.
+    $export_settings = array_filter($webform_export_type_settings[$export_type])
+      + $default_export_type_settings[$export_type]
+      + [
+        'link_text' => '',
+        'link_attributes' => [],
+      ];
+
+    // Skip if export type is not enabled.
+    if (empty($export_settings['enabled']) || empty($export_settings['link_text'])) {
+      continue;
+    }
+
+    $key = 'webform_entity_print_view_' . $export_type;
+
+    $route_params = [
+      'entity_type' => $entity->getEntityTypeId(),
+      'entity_id' => $entity->id(),
+      'export_type' => trim($export_type, '_engine'),
+    ];
+    $route_options = ['query' => ['view_mode' => $view_mode]];
+
+    $link_attributes = $export_settings['link_attributes'];
+    $link_attributes += ['class' => []];
+    $link_attributes['class'][] = 'webform-entity-print-link';
+    $link_attributes['class'][] = Html::getClass('webform-entity-print-link-' . $export_type);
+
+    $print_links[$key] = [
+      '#type' => 'link',
+      '#title' => $export_settings['link_text'],
+      '#export_type' => $export_type,
+      '#url' => Url::fromRoute('entity_print.view', $route_params, $route_options),
+      '#attributes' => $link_attributes,
+      '#access' => $access_manager->checkNamedRoute('entity_print.view', $route_params, NULL, TRUE),
+    ];
+
+    if ($debug) {
+      $debug_links[$key] = [
+        '#type' => 'link',
+        '#title' => $definition['label'],
+        '#export_type' => $export_type,
+        '#url' => Url::fromRoute('entity_print.view.debug', $route_params, $route_options),
+        '#access' => $access_manager->checkNamedRoute('entity_print.view', $route_params, NULL, TRUE),
+        '#prefix' => ($debug_links) ? ' | ' : '',
+      ];
+    }
+  }
+
+  if ($print_links) {
+    $build['webform_entity_print'] = [
+      '#type' => 'actions',
+      '#attributes' => ['class' => ['webform-entity-print-links']],
+    ] + $print_links;
+  }
+
+  if ($debug_links) {
+    $build['webform_entity_print_debug'] = [
+      '#suffix' => '<p>',
+      '#prefix' => '</p>',
+      'title' => ['#markup' => '<strong>' . t('Debug') . '</strong>', '#suffix' => ': '],
+    ] + $debug_links;
+  }
+}
+
+/**
+ * Implements hook_preprocess_entity_print().
+ */
+function webform_entity_print_preprocess_entity_print(array &$variables) {
+  $webform_submission = _webform_entity_print_preprocess_entity_print_get_webform_submission($variables['content']);
+  if (!$webform_submission) {
+    return;
+  }
+
+  $webform = $webform_submission->getWebform();
+
+  $css = [];
+
+  // Add webform CSS.
+  $assets = $webform->getAssets();
+  if ($assets['css']) {
+    $css[] = $assets['css'];
+  }
+
+  // Add webform entity print CSS.
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+  // Append default print template CSS.
+  $default_template = $third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'template') ?: [];
+  if (!empty($default_template['css'])) {
+    $css[] = $default_template['css'];
+  }
+
+  // Append webform print template CSS.
+  $webform_template = $webform->getThirdPartySetting('webform_entity_print', 'template') ?: [];
+  if (!empty($webform_template['css'])) {
+    $css[] = $webform_template['css'];
+  }
+
+  // Append a style tag to entity print CSS link tags.
+  $variables['entity_print_css'] = Markup::create(
+    $variables['entity_print_css'] . PHP_EOL .
+    '<style type="text/css" media="all">' . PHP_EOL .
+    implode(PHP_EOL, $css) . PHP_EOL .
+    '</style>' . PHP_EOL
+  );
+}
+
+/**
+ * Get webform submission from entity print variables.
+ *
+ * @param array $variables
+ *   An associative array of entity print template variables.
+ *
+ * @return \Drupal\webform\WebformSubmissionInterface|null
+ *   A webform submission or NULL.
+ */
+function _webform_entity_print_preprocess_entity_print_get_webform_submission(array $variables) {
+  foreach ($variables as $key => $value) {
+    if ($key === '#webform_submission' && $value instanceof WebformSubmissionInterface) {
+      return $value;
+    }
+    elseif (!is_array($value)) {
+      continue;
+    }
+    elseif ($webform_submission = _webform_entity_print_preprocess_entity_print_get_webform_submission($value)) {
+      return $webform_submission;
+    }
+  }
+}

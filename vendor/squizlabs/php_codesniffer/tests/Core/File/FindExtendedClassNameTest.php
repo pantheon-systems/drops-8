@@ -9,61 +9,17 @@
 
 namespace PHP_CodeSniffer\Tests\Core\File;
 
-use PHP_CodeSniffer\Config;
-use PHP_CodeSniffer\Ruleset;
-use PHP_CodeSniffer\Files\DummyFile;
-use PHPUnit\Framework\TestCase;
+use PHP_CodeSniffer\Tests\Core\AbstractMethodUnitTest;
 
-class FindExtendedClassNameTest extends TestCase
+class FindExtendedClassNameTest extends AbstractMethodUnitTest
 {
-
-    /**
-     * The PHP_CodeSniffer_File object containing parsed contents of the test case file.
-     *
-     * @var \PHP_CodeSniffer\Files\File
-     */
-    private $phpcsFile;
-
-
-    /**
-     * Initialize & tokenize \PHP_CodeSniffer\Files\File with code from the test case file.
-     *
-     * Methods used for these tests can be found in a test case file in the same
-     * directory and with the same name, using the .inc extension.
-     *
-     * @return void
-     */
-    public function setUp()
-    {
-        $config            = new Config();
-        $config->standards = ['Generic'];
-
-        $ruleset = new Ruleset($config);
-
-        $pathToTestFile  = dirname(__FILE__).'/'.basename(__FILE__, '.php').'.inc';
-        $this->phpcsFile = new DummyFile(file_get_contents($pathToTestFile), $ruleset, $config);
-        $this->phpcsFile->process();
-
-    }//end setUp()
-
-
-    /**
-     * Clean up after finished test.
-     *
-     * @return void
-     */
-    public function tearDown()
-    {
-        unset($this->phpcsFile);
-
-    }//end tearDown()
 
 
     /**
      * Test retrieving the name of the class being extended by another class
      * (or interface).
      *
-     * @param string $identifier Comment which preceeds the test case.
+     * @param string $identifier Comment which precedes the test case.
      * @param bool   $expected   Expected function output.
      *
      * @dataProvider dataExtendedClass
@@ -72,17 +28,8 @@ class FindExtendedClassNameTest extends TestCase
      */
     public function testFindExtendedClassName($identifier, $expected)
     {
-        $start   = ($this->phpcsFile->numTokens - 1);
-        $delim   = $this->phpcsFile->findPrevious(
-            T_COMMENT,
-            $start,
-            null,
-            false,
-            $identifier
-        );
-        $OOToken = $this->phpcsFile->findNext([T_CLASS, T_ANON_CLASS, T_INTERFACE], ($delim + 1));
-
-        $result = $this->phpcsFile->findExtendedClassName($OOToken);
+        $OOToken = $this->getTargetToken($identifier, [T_CLASS, T_ANON_CLASS, T_INTERFACE]);
+        $result  = self::$phpcsFile->findExtendedClassName($OOToken);
         $this->assertSame($expected, $result);
 
     }//end testFindExtendedClassName()

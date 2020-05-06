@@ -1,0 +1,20 @@
+/**
+ * @file
+ * Token (admin) styles
+ */
+
+tr[data-tt-id^="token-webform"] td {
+  vertical-align: top;
+}
+
+.token-tree .webform-element-more ul {
+  margin: 0;
+}
+
+tr.token-group .webform-element-more {
+  display: none;
+}
+
+tr.token-group.expanded .webform-element-more {
+  display: block;
+}

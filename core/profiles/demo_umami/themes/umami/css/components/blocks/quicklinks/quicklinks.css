@@ -44,12 +44,12 @@
 
 .quicklinks__col::after {
   position: absolute;
-  display: block;
-  bottom: 0;
   right: 10%;
-  height: 1px;
+  bottom: 0;
+  display: block;
   width: 80%;
-  content: '';
+  height: 1px;
+  content: "";
   background-color: #e6eee0;
 }
 .quicklinks__col:last-child::after {
@@ -65,12 +65,12 @@
 @media screen and (min-width: 60rem) { /* 960px */
   .quicklinks__col::after {
     position: absolute;
-    display: block;
     top: 0;
     right: 0;
-    height: 100%;
+    display: block;
     width: 1px;
-    content: '';
+    height: 100%;
+    content: "";
     background-color: #e6eee0;
   }
   .quicklinks__col:nth-child(3)::after {

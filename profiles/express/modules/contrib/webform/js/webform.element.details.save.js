@@ -68,7 +68,7 @@
    * @param {jQuery} $details
    *   A details element.
    *
-   * @return string
+   * @return {string}
    *   The name used to store the state of details element.
    */
   Drupal.webformDetailsSaveGetName = function ($details) {
@@ -103,6 +103,6 @@
     formId = formId.replace(/--.+?$/, '').replace(/-/g, '_');
     detailsId = detailsId.replace(/--.+?$/, '').replace(/-/g, '_');
     return 'Drupal.webform.' + formId + '.' + detailsId;
-  }
+  };
 
 })(jQuery, Drupal);

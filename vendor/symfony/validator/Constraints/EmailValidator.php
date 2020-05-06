@@ -39,7 +39,7 @@ class EmailValidator extends ConstraintValidator
     public function validate($value, Constraint $constraint)
     {
         if (!$constraint instanceof Email) {
-            throw new UnexpectedTypeException($constraint, __NAMESPACE__.'\Email');
+            throw new UnexpectedTypeException($constraint, Email::class);
         }
 
         if (null === $value || '' === $value) {
@@ -58,7 +58,7 @@ class EmailValidator extends ConstraintValidator
 
         if ($constraint->strict) {
             if (!class_exists('\Egulias\EmailValidator\EmailValidator')) {
-                throw new RuntimeException('Strict email validation requires egulias/email-validator ~1.2|~2.0');
+                throw new RuntimeException('Strict email validation requires egulias/email-validator ~1.2|~2.0.');
             }
 
             $strictValidator = new \Egulias\EmailValidator\EmailValidator();

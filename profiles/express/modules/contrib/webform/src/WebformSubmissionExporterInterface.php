@@ -113,7 +113,7 @@ interface WebformSubmissionExporterInterface {
   /**
    * Get the values from the webform's user input or webform state values.
    *
-   * @paran array $input
+   * @param array $values
    *   An associative array of user input or webform state values.
    *
    * @return array

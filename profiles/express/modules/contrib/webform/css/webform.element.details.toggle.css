@@ -19,3 +19,34 @@
 .webform-details-toggle-state-wrapper + details {
   margin-top: 0;
 }
+
+.webform-details-toggle-state {
+  margin-top: 0;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  font-size: 1em;
+}
+
+/* Tweak details toggle state. */
+.webform-details-toggle-state {
+  text-decoration: none;
+  color: #337ab7;
+}
+
+.webform-details-toggle-state:hover,
+.webform-details-toggle-statelink:focus {
+  text-decoration: underline;
+}
+
+/* Float toogle to the right of webform tabs */
+.webform-tabs .webform-details-toggle-state-wrapper {
+  float: right;
+}
+
+@media screen and (max-width: 600px) {
+  .webform-tabs .webform-details-toggle-state-wrapper {
+    float: none;
+  }
+}

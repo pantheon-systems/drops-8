@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - webform_access
+  theme:
+    - bartik
+  enforced:
+    module:
+      - webform_demo_region_contact
+id: bartik_webform_demo_region
+theme: bartik
+region: sidebar_second
+weight: 0
+provider: null
+plugin: webform_access_group_entity
+settings:
+  id: webform_access_group_entity
+  label: 'My Regional Webforms'
+  provider: webform_access
+  label_display: visible
+visibility: {  }

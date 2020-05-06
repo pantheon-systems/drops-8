@@ -5,31 +5,34 @@
  * API for handling file uploads and server file management.
  */
 
+use Drupal\Component\FileSecurity\FileSecurity;
 use Drupal\Component\FileSystem\FileSystem as ComponentFileSystem;
+use Drupal\Component\Utility\Environment;
 use Drupal\Component\Utility\UrlHelper;
-use Drupal\Component\PhpStorage\FileStorage;
-use Drupal\Component\Utility\Bytes;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\Exception\FileWriteException;
 use Drupal\Core\File\FileSystem;
-use Drupal\Core\Site\Settings;
-use Drupal\Core\StreamWrapper\PublicStream;
-use Drupal\Core\StreamWrapper\PrivateStream;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 
 /**
- * Default mode for new directories. See drupal_chmod().
+ * Default mode for new directories.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::CHMOD_DIRECTORY.
  *
+ * @see \Drupal\Core\File\FileSystemInterface::chmod()
  * @see https://www.drupal.org/node/2418133
  */
 const FILE_CHMOD_DIRECTORY = FileSystem::CHMOD_DIRECTORY;
 
 /**
- * Default mode for new files. See drupal_chmod().
+ * Default mode for new files.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::CHMOD_FILE.
  *
+ * @see \Drupal\Core\File\FileSystemInterface::chmod()
  * @see https://www.drupal.org/node/2418133
  */
 const FILE_CHMOD_FILE = FileSystem::CHMOD_FILE;
@@ -41,29 +44,44 @@ const FILE_CHMOD_FILE = FileSystem::CHMOD_FILE;
  */
 
 /**
- * Flag used by file_prepare_directory() -- create directory if not present.
+ * Flag used to create a directory if not present.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY.
  */
-const FILE_CREATE_DIRECTORY = 1;
+const FILE_CREATE_DIRECTORY = FileSystemInterface::CREATE_DIRECTORY;
 
 /**
- * Flag used by file_prepare_directory() -- file permissions may be changed.
+ * Flag used to indicate file permissions may be changed.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS.
  */
-const FILE_MODIFY_PERMISSIONS = 2;
+const FILE_MODIFY_PERMISSIONS = FileSystemInterface::MODIFY_PERMISSIONS;
 
 /**
  * Flag for dealing with existing files: Appends number until name is unique.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::EXISTS_RENAME.
  */
-const FILE_EXISTS_RENAME = 0;
+const FILE_EXISTS_RENAME = FileSystemInterface::EXISTS_RENAME;
 
 /**
  * Flag for dealing with existing files: Replace the existing file.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::EXISTS_REPLACE.
  */
-const FILE_EXISTS_REPLACE = 1;
+const FILE_EXISTS_REPLACE = FileSystemInterface::EXISTS_REPLACE;
 
 /**
  * Flag for dealing with existing files: Do nothing and return FALSE.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::EXISTS_ERROR.
  */
-const FILE_EXISTS_ERROR = 2;
+const FILE_EXISTS_ERROR = FileSystemInterface::EXISTS_ERROR;
 
 /**
  * Indicates that the file is permanent and should not be deleted.
@@ -78,25 +96,29 @@ const FILE_STATUS_PERMANENT = 1;
 /**
  * Returns the scheme of a URI (e.g. a stream).
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
- *   Use \Drupal\Core\File\FileSystem::uriScheme().
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getScheme()
+ *   instead.
  *
- * @see https://www.drupal.org/node/2418133
+ * @see https://www.drupal.org/node/3035273
  */
 function file_uri_scheme($uri) {
-  return \Drupal::service('file_system')->uriScheme($uri);
+  @trigger_error('file_uri_scheme() is deprecated in drupal:8.0.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getScheme() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+  return StreamWrapperManager::getScheme($uri);
 }
 
 /**
  * Checks that the scheme of a stream URI is valid.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
- *   Use \Drupal\Core\File\FileSystem::validScheme().
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidScheme()
+ *   instead.
  *
- * @see https://www.drupal.org/node/2418133
+ * @see https://www.drupal.org/node/3035273
  */
 function file_stream_wrapper_valid_scheme($scheme) {
-  return \Drupal::service('file_system')->validScheme($scheme);
+  @trigger_error('file_stream_wrapper_valid_scheme() is deprecated in drupal:8.0.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidScheme() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+  return \Drupal::service('stream_wrapper_manager')->isValidScheme($scheme);
 }
 
 /**
@@ -110,15 +132,15 @@ function file_stream_wrapper_valid_scheme($scheme) {
  *   For example, the URI "public://sample/test.txt" would return
  *   "sample/test.txt".
  *
- * @see file_uri_scheme()
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getTarget()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3035273
  */
 function file_uri_target($uri) {
-  // Remove the scheme from the URI and remove erroneous leading or trailing,
-  // forward-slashes and backslashes.
-  $target = trim(preg_replace('/^[\w\-]+:\/\/|^data:/', '', $uri), '\/');
-
-  // If nothing was replaced, the URI doesn't have a valid scheme.
-  return $target !== $uri ? $target : FALSE;
+  @trigger_error('file_uri_target() is deprecated in drupal:8.8.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getTarget() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+  return StreamWrapperManager::getTarget($uri);
 }
 
 /**
@@ -126,8 +148,14 @@ function file_uri_target($uri) {
  *
  * @return string
  *   'public', 'private' or any other file scheme defined as the default.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::config('system.file')->get('default_scheme') instead.
+ *
+ * @see https://www.drupal.org/node/3049030
  */
 function file_default_scheme() {
+  @trigger_error('file_default_scheme() is deprecated in drupal:8.8.0. It will be removed from drupal:9.0.0. Use \Drupal::config(\'system.file\')->get(\'default_scheme\') instead. See https://www.drupal.org/node/3049030', E_USER_DEPRECATED);
   return \Drupal::config('system.file')->get('default_scheme');
 }
 
@@ -145,19 +173,16 @@ function file_default_scheme() {
  *
  * @return string
  *   The normalized URI.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::normalizeUri()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3035273
  */
 function file_stream_wrapper_uri_normalize($uri) {
-  $scheme = \Drupal::service('file_system')->uriScheme($uri);
-
-  if (file_stream_wrapper_valid_scheme($scheme)) {
-    $target = file_uri_target($uri);
-
-    if ($target !== FALSE) {
-      $uri = $scheme . '://' . $target;
-    }
-  }
-
-  return $uri;
+  @trigger_error('file_stream_wrapper_uri_normalize() is deprecated in drupal:8.8.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::normalizeUri() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+  return \Drupal::service('stream_wrapper_manager')->normalizeUri($uri);
 }
 
 /**
@@ -190,7 +215,7 @@ function file_create_url($uri) {
   // file server.
   \Drupal::moduleHandler()->alter('file_url', $uri);
 
-  $scheme = \Drupal::service('file_system')->uriScheme($uri);
+  $scheme = StreamWrapperManager::getScheme($uri);
 
   if (!$scheme) {
     // Allow for:
@@ -288,57 +313,26 @@ function file_url_transform_relative($file_url) {
  * @return
  *   TRUE if the directory exists (or was created) and is writable. FALSE
  *   otherwise.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::prepareDirectory().
  */
-function file_prepare_directory(&$directory, $options = FILE_MODIFY_PERMISSIONS) {
-  if (!file_stream_wrapper_valid_scheme(\Drupal::service('file_system')->uriScheme($directory))) {
-    // Only trim if we're not dealing with a stream.
-    $directory = rtrim($directory, '/\\');
-  }
-
-  // Check if directory exists.
-  if (!is_dir($directory)) {
-    // Let mkdir() recursively create directories and use the default directory
-    // permissions.
-    if ($options & FILE_CREATE_DIRECTORY) {
-      return @drupal_mkdir($directory, NULL, TRUE);
-    }
-    return FALSE;
-  }
-  // The directory exists, so check to see if it is writable.
-  $writable = is_writable($directory);
-  if (!$writable && ($options & FILE_MODIFY_PERMISSIONS)) {
-    return drupal_chmod($directory);
-  }
-
-  return $writable;
+function file_prepare_directory(&$directory, $options = FileSystemInterface::MODIFY_PERMISSIONS) {
+  @trigger_error('file_prepare_directory() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::prepareDirectory(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  return \Drupal::service('file_system')->prepareDirectory($directory, $options);
 }
 
 /**
  * Creates a .htaccess file in each Drupal files directory if it is missing.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ * \Drupal\Core\File\HtaccessWriterInterface::ensure() instead.
+ *
+ * @see https://www.drupal.org/node/2940126
  */
 function file_ensure_htaccess() {
-  file_save_htaccess('public://', FALSE);
-  $private_path = PrivateStream::basePath();
-  if (!empty($private_path)) {
-    file_save_htaccess('private://', TRUE);
-  }
-  file_save_htaccess('temporary://', TRUE);
-
-  // If a staging directory exists then it should contain a .htaccess file.
-  // @todo https://www.drupal.org/node/2696103 catch a more specific exception
-  //   and simplify this code.
-  try {
-    $staging = config_get_config_directory(CONFIG_SYNC_DIRECTORY);
-  }
-  catch (\Exception $e) {
-    $staging = FALSE;
-  }
-  if ($staging) {
-    // Note that we log an error here if we can't write the .htaccess file. This
-    // can occur if the staging directory is read-only. If it is then it is the
-    // user's responsibility to create the .htaccess file.
-    file_save_htaccess($staging, TRUE);
-  }
+  @trigger_error("file_ensure_htaccess() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\File\HtaccessWriter::ensure() instead. See https://www.drupal.org/node/2940126", E_USER_DEPRECATED);
+  \Drupal::service('file.htaccess_writer')->ensure();
 }
 
 /**
@@ -352,31 +346,18 @@ function file_ensure_htaccess() {
  * @param bool $force_overwrite
  *   (Optional) Set to TRUE to attempt to overwrite the existing .htaccess file
  *   if one is already present. Defaults to FALSE.
+ *
+ * @return bool
+ *   TRUE when file exists or created successfully, FALSE otherwise.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Component\FileSecurity\FileSecurity::writeHtaccess() instead.
+ *
+ * @see https://www.drupal.org/node/2940126
  */
 function file_save_htaccess($directory, $private = TRUE, $force_overwrite = FALSE) {
-  if (\Drupal::service('file_system')->uriScheme($directory)) {
-    $htaccess_path = file_stream_wrapper_uri_normalize($directory . '/.htaccess');
-  }
-  else {
-    $directory = rtrim($directory, '/\\');
-    $htaccess_path = $directory . '/.htaccess';
-  }
-
-  if (file_exists($htaccess_path) && !$force_overwrite) {
-    // Short circuit if the .htaccess file already exists.
-    return TRUE;
-  }
-  $htaccess_lines = FileStorage::htaccessLines($private);
-
-  // Write the .htaccess file.
-  if (file_exists($directory) && is_writable($directory) && file_put_contents($htaccess_path, $htaccess_lines)) {
-    return drupal_chmod($htaccess_path, 0444);
-  }
-  else {
-    $variables = ['%directory' => $directory, '@htaccess' => $htaccess_lines];
-    \Drupal::logger('security')->error("Security warning: Couldn't write .htaccess file. Please create a .htaccess file in your %directory directory which contains the following lines: <pre><code>@htaccess</code></pre>", $variables);
-    return FALSE;
-  }
+  @trigger_error('file_save_htaccess() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Component\FileSecurity\FileSecurity::writeHtaccess() instead. See https://www.drupal.org/node/2940126', E_USER_DEPRECATED);
+  return \Drupal::service('file.htaccess_writer')->write($directory, $private, $force_overwrite);
 }
 
 /**
@@ -390,13 +371,13 @@ function file_save_htaccess($directory, $private = TRUE, $force_overwrite = FALS
  * @return string
  *   The desired contents of the .htaccess file.
  *
- * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
- *   Use \Drupal\Component\PhpStorage\FileStorage::htaccessLines().
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Component\FileSecurity\FileSecurity::htaccessLines().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function file_htaccess_lines($private = TRUE) {
-  return FileStorage::htaccessLines($private);
+  return FileSecurity::htaccessLines($private);
 }
 
 /**
@@ -411,14 +392,16 @@ function file_htaccess_lines($private = TRUE) {
  *
  * @return
  *   TRUE if the URI is allowed.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidUri()
+ *   instead.
+ *
+ * @see https://www.drupal.org/node/3035273
  */
 function file_valid_uri($uri) {
-  // Assert that the URI has an allowed scheme. Bare paths are not allowed.
-  $uri_scheme = \Drupal::service('file_system')->uriScheme($uri);
-  if (!file_stream_wrapper_valid_scheme($uri_scheme)) {
-    return FALSE;
-  }
-  return TRUE;
+  @trigger_error('file_valid_uri() is deprecated in drupal:8.8.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidUri() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+  return \Drupal::service('stream_wrapper_manager')->isValidUri($uri);
 }
 
 /**
@@ -452,25 +435,26 @@ function file_valid_uri($uri) {
  * @return
  *   The path to the new file, or FALSE in the event of an error.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::copy().
+ *
  * @see file_copy()
+ * @see https://www.drupal.org/node/3006851
  */
 function file_unmanaged_copy($source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
-  if (!file_unmanaged_prepare($source, $destination, $replace)) {
+  @trigger_error('file_unmanaged_copy() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::copy(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  try {
+    $file_system = \Drupal::service('file_system');
+
+    // Build a destination URI if necessary.
+    if (!isset($destination)) {
+      $destination = file_build_uri($file_system->basename($source));
+    }
+    return $file_system->copy($source, $destination, $replace);
+  }
+  catch (FileException $e) {
     return FALSE;
   }
-  // Attempt to resolve the URIs. This is necessary in certain configurations
-  // (see above).
-  $file_system = \Drupal::service('file_system');
-  $real_source = $file_system->realpath($source) ?: $source;
-  $real_destination = $file_system->realpath($destination) ?: $destination;
-  // Perform the copy operation.
-  if (!@copy($real_source, $real_destination)) {
-    \Drupal::logger('file')->error('The specified file %file could not be copied to %destination.', ['%file' => $source, '%destination' => $destination]);
-    return FALSE;
-  }
-  // Set the permissions on the new file.
-  drupal_chmod($destination);
-  return $destination;
 }
 
 /**
@@ -500,12 +484,18 @@ function file_unmanaged_copy($source, $destination = NULL, $replace = FILE_EXIST
  * @return
  *   TRUE, or FALSE in the event of an error.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::getDestinationFilename() instead.
+ *
  * @see file_unmanaged_copy()
  * @see file_unmanaged_move()
+ * @see https://www.drupal.org/node/3006851
  */
 function file_unmanaged_prepare($source, &$destination = NULL, $replace = FILE_EXISTS_RENAME) {
+  @trigger_error('file_unmanaged_prepare() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::getDestinationFilename() instead. See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
   $original_source = $source;
   $logger = \Drupal::logger('file');
+  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
   $file_system = \Drupal::service('file_system');
 
   // Assert that the source file actually exists.
@@ -524,17 +514,17 @@ function file_unmanaged_prepare($source, &$destination = NULL, $replace = FILE_E
 
   // Build a destination URI if necessary.
   if (!isset($destination)) {
-    $destination = file_build_uri(drupal_basename($source));
+    $destination = file_build_uri($file_system->basename($source));
   }
 
   // Prepare the destination directory.
   if (file_prepare_directory($destination)) {
     // The destination is already a directory, so append the source basename.
-    $destination = file_stream_wrapper_uri_normalize($destination . '/' . drupal_basename($source));
+    $destination = file_stream_wrapper_uri_normalize($destination . '/' . $file_system->basename($source));
   }
   else {
     // Perhaps $destination is a dir/file?
-    $dirname = drupal_dirname($destination);
+    $dirname = $file_system->dirname($destination);
     if (!file_prepare_directory($dirname)) {
       // The destination is not valid.
       $logger->notice('File %file could not be moved/copied because the destination directory %destination is not configured correctly.', ['%file' => $original_source, '%destination' => $dirname]);
@@ -568,8 +558,10 @@ function file_unmanaged_prepare($source, &$destination = NULL, $replace = FILE_E
  * Constructs a URI to Drupal's default files location given a relative path.
  */
 function file_build_uri($path) {
-  $uri = file_default_scheme() . '://' . $path;
-  return file_stream_wrapper_uri_normalize($uri);
+  $uri = \Drupal::config('system.file')->get('default_scheme') . '://' . $path;
+  /** @var \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager */
+  $stream_wrapper_manager = \Drupal::service('stream_wrapper_manager');
+  return $stream_wrapper_manager->normalizeUri($uri);
 }
 
 /**
@@ -587,26 +579,15 @@ function file_build_uri($path) {
  * @return
  *   The destination filepath, or FALSE if the file already exists
  *   and FILE_EXISTS_ERROR is specified.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::getDestinationFilename().
+ *
+ * @see https://www.drupal.org/node/3006851
  */
 function file_destination($destination, $replace) {
-  if (file_exists($destination)) {
-    switch ($replace) {
-      case FILE_EXISTS_REPLACE:
-        // Do nothing here, we want to overwrite the existing file.
-        break;
-
-      case FILE_EXISTS_RENAME:
-        $basename = drupal_basename($destination);
-        $directory = drupal_dirname($destination);
-        $destination = file_create_filename($basename, $directory);
-        break;
-
-      case FILE_EXISTS_ERROR:
-        // Error reporting handled by calling function.
-        return FALSE;
-    }
-  }
-  return $destination;
+  @trigger_error('file_destination() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::getDestinationFilename(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  return \Drupal::service('file_system')->getDestinationFilename($destination, $replace);
 }
 
 /**
@@ -640,36 +621,26 @@ function file_destination($destination, $replace) {
  * @return
  *   The path to the new file, or FALSE in the event of an error.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::move().
+ *
  * @see file_move()
+ * @see https://www.drupal.org/node/3006851
  */
 function file_unmanaged_move($source, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
-  if (!file_unmanaged_prepare($source, $destination, $replace)) {
+  @trigger_error('file_unmanaged_move() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::move(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  try {
+    $file_system = \Drupal::service('file_system');
+
+    // Build a destination URI if necessary.
+    if (!isset($destination)) {
+      $destination = file_build_uri($file_system->basename($source));
+    }
+    return $file_system->move($source, $destination, $replace);
+  }
+  catch (FileException $e) {
     return FALSE;
   }
-  // Ensure compatibility with Windows.
-  // @see drupal_unlink()
-  if ((substr(PHP_OS, 0, 3) == 'WIN') && (!file_stream_wrapper_valid_scheme(file_uri_scheme($source)))) {
-    chmod($source, 0600);
-  }
-  // Attempt to resolve the URIs. This is necessary in certain configurations
-  // (see above) and can also permit fast moves across local schemes.
-  $file_system = \Drupal::service('file_system');
-  $real_source = $file_system->realpath($source) ?: $source;
-  $real_destination = $file_system->realpath($destination) ?: $destination;
-  // Perform the move operation.
-  if (!@rename($real_source, $real_destination)) {
-    // Fall back to slow copy and unlink procedure. This is necessary for
-    // renames across schemes that are not local, or where rename() has not been
-    // implemented. It's not necessary to use drupal_unlink() as the Windows
-    // issue has already been resolved above.
-    if (!@copy($real_source, $real_destination) || !@unlink($real_source)) {
-      \Drupal::logger('file')->error('The specified file %file could not be moved to %destination.', ['%file' => $source, '%destination' => $destination]);
-      return FALSE;
-    }
-  }
-  // Set the permissions on the new file.
-  drupal_chmod($destination);
-  return $destination;
 }
 
 /**
@@ -768,45 +739,15 @@ function file_unmunge_filename($filename) {
  * @return
  *   File path consisting of $directory and a unique filename based off
  *   of $basename.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::createFilename().
+ *
+ * @see https://www.drupal.org/node/3006851
  */
 function file_create_filename($basename, $directory) {
-  // Strip control characters (ASCII value < 32). Though these are allowed in
-  // some filesystems, not many applications handle them well.
-  $basename = preg_replace('/[\x00-\x1F]/u', '_', $basename);
-  if (substr(PHP_OS, 0, 3) == 'WIN') {
-    // These characters are not allowed in Windows filenames
-    $basename = str_replace([':', '*', '?', '"', '<', '>', '|'], '_', $basename);
-  }
-
-  // A URI or path may already have a trailing slash or look like "public://".
-  if (substr($directory, -1) == '/') {
-    $separator = '';
-  }
-  else {
-    $separator = '/';
-  }
-
-  $destination = $directory . $separator . $basename;
-
-  if (file_exists($destination)) {
-    // Destination file already exists, generate an alternative.
-    $pos = strrpos($basename, '.');
-    if ($pos !== FALSE) {
-      $name = substr($basename, 0, $pos);
-      $ext = substr($basename, $pos);
-    }
-    else {
-      $name = $basename;
-      $ext = '';
-    }
-
-    $counter = 0;
-    do {
-      $destination = $directory . $separator . $name . '_' . $counter++ . $ext;
-    } while (file_exists($destination));
-  }
-
-  return $destination;
+  @trigger_error('file_create_filename() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::createFilename(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  return \Drupal::service('file_system')->createFilename($basename, $directory);
 }
 
 /**
@@ -819,10 +760,16 @@ function file_create_filename($basename, $directory) {
  * @param $fid
  *   The file id.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\Entity\EntityStorageInterface::delete() instead.
+ *
  * @see file_unmanaged_delete()
  * @see \Drupal\file\FileUsage\FileUsageBase::delete()
+ * @see \Drupal\Core\Entity\EntityStorageInterface::delete()
+ * @see https://www.drupal.org/node/3021663
  */
 function file_delete($fid) {
+  @trigger_error('file_delete() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Entity\EntityStorageInterface::delete() instead. See https://www.drupal.org/node/3021663.', E_USER_DEPRECATED);
   return file_delete_multiple([$fid]);
 }
 
@@ -833,14 +780,22 @@ function file_delete($fid) {
  * file usages instead. That will automatically mark the file as temporary and
  * remove it during cleanup.
  *
- * @param $fid
- *   The file id.
+ * @param $fids
+ *   An array of file ids.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\Entity\EntityStorageInterface::delete() instead.
  *
  * @see file_unmanaged_delete()
  * @see \Drupal\file\FileUsage\FileUsageBase::delete()
+ * @see \Drupal\Core\Entity\EntityStorageInterface::delete()
+ * @see https://www.drupal.org/node/3021663
  */
 function file_delete_multiple(array $fids) {
-  entity_delete_multiple('file', $fids);
+  @trigger_error('file_delete_multiple() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Entity\EntityStorageInterface::delete() instead. See https://www.drupal.org/node/3021663.', E_USER_DEPRECATED);
+  $storage = \Drupal::entityTypeManager()->getStorage('file');
+  $entities = $storage->loadMultiple($fids);
+  $storage->delete($entities);
 }
 
 /**
@@ -856,28 +811,21 @@ function file_delete_multiple(array $fids) {
  *   TRUE for success or path does not exist, or FALSE in the event of an
  *   error.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::delete().
+ *
  * @see file_delete()
  * @see file_unmanaged_delete_recursive()
+ * @see https://www.drupal.org/node/3006851
  */
 function file_unmanaged_delete($path) {
-  if (is_file($path)) {
-    return drupal_unlink($path);
+  @trigger_error('file_unmanaged_delete() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::delete(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  try {
+    return \Drupal::service('file_system')->delete($path);
   }
-  $logger = \Drupal::logger('file');
-  if (is_dir($path)) {
-    $logger->error('%path is a directory and cannot be removed using file_unmanaged_delete().', ['%path' => $path]);
+  catch (FileException $e) {
     return FALSE;
   }
-  // Return TRUE for non-existent file, but log that nothing was actually
-  // deleted, as the current state is the intended result.
-  if (!file_exists($path)) {
-    $logger->notice('The file %path was not deleted because it does not exist.', ['%path' => $path]);
-    return TRUE;
-  }
-  // We cannot handle anything other than files and directories. Log an error
-  // for everything else (sockets, symbolic links, etc).
-  $logger->error('The file %path is not of a recognized type so it was not deleted.', ['%path' => $path]);
-  return FALSE;
 }
 
 /**
@@ -903,37 +851,33 @@ function file_unmanaged_delete($path) {
  *   TRUE for success or if path does not exist, FALSE in the event of an
  *   error.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::deleteRecursive().
+ *
  * @see file_unmanaged_delete()
+ * @see https://www.drupal.org/node/3006851
  */
 function file_unmanaged_delete_recursive($path, $callback = NULL) {
-  if (isset($callback)) {
-    call_user_func($callback, $path);
+  @trigger_error('file_unmanaged_delete_recursive() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::deleteRecursive(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  $callback = is_callable($callback) ? $callback : NULL;
+  try {
+    return \Drupal::service('file_system')->deleteRecursive($path, $callback);
   }
-  if (is_dir($path)) {
-    $dir = dir($path);
-    while (($entry = $dir->read()) !== FALSE) {
-      if ($entry == '.' || $entry == '..') {
-        continue;
-      }
-      $entry_path = $path . '/' . $entry;
-      file_unmanaged_delete_recursive($entry_path, $callback);
-    }
-    $dir->close();
-
-    return drupal_rmdir($path);
+  catch (FileException $e) {
+    return FALSE;
   }
-  return file_unmanaged_delete($path);
 }
 
 /**
  * Moves an uploaded file to a new location.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::moveUploadedFile().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_move_uploaded_file($filename, $uri) {
+  @trigger_error('drupal_move_uploaded_file() is deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::moveUploadedFile(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->moveUploadedFile($filename, $uri);
 }
 
@@ -961,18 +905,28 @@ function drupal_move_uploaded_file($filename, $uri) {
  * @return
  *   A string with the path of the resulting file, or FALSE on error.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::saveData().
+ *
  * @see file_save_data()
+ * @see https://www.drupal.org/node/3006851
  */
 function file_unmanaged_save_data($data, $destination = NULL, $replace = FILE_EXISTS_RENAME) {
-  // Write the data to a temporary file.
-  $temp_name = drupal_tempnam('temporary://', 'file');
-  if (file_put_contents($temp_name, $data) === FALSE) {
+  @trigger_error('file_unmanaged_save_data() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::saveData(). See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+  try {
+    // Build a destination URI if necessary.
+    if (!isset($destination)) {
+      $destination = file_default_scheme() . '://';
+    }
+    return \Drupal::service('file_system')->saveData($data, $destination, $replace);
+  }
+  catch (FileWriteException $e) {
     \Drupal::messenger()->addError(t('The file could not be created.'));
     return FALSE;
   }
-
-  // Move the file to its final destination.
-  return file_unmanaged_move($temp_name, $destination, $replace);
+  catch (FileException $e) {
+    return FALSE;
+  }
 }
 
 /**
@@ -1011,79 +965,23 @@ function file_unmanaged_save_data($data, $destination = NULL, $replace = FILE_EX
  * @return
  *   An associative array (keyed on the chosen key) of objects with 'uri',
  *   'filename', and 'name' properties corresponding to the matched files.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Core\File\FileSystemInterface::scanDirectory() instead.
+ *
+ * @see https://www.drupal.org/node/3038437
  */
 function file_scan_directory($dir, $mask, $options = [], $depth = 0) {
-  // Merge in defaults.
-  $options += [
-    'callback' => 0,
-    'recurse' => TRUE,
-    'key' => 'uri',
-    'min_depth' => 0,
-  ];
-  // Normalize $dir only once.
-  if ($depth == 0) {
-    $dir = file_stream_wrapper_uri_normalize($dir);
-    $dir_has_slash = (substr($dir, -1) === '/');
-  }
-
-  // Allow directories specified in settings.php to be ignored. You can use this
-  // to not check for files in common special-purpose directories. For example,
-  // node_modules and bower_components. Ignoring irrelevant directories is a
-  // performance boost.
-  if (!isset($options['nomask'])) {
-    $ignore_directories = Settings::get('file_scan_ignore_directories', []);
-    array_walk($ignore_directories, function (&$value) {
-      $value = preg_quote($value, '/');
-    });
-    $default_nomask = '/^' . implode('|', $ignore_directories) . '$/';
-  }
-
-  $options['key'] = in_array($options['key'], ['uri', 'filename', 'name']) ? $options['key'] : 'uri';
+  @trigger_error('file_scan_directory() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\File\FileSystemInterface::scanDirectory() instead. See https://www.drupal.org/node/3038437', E_USER_DEPRECATED);
   $files = [];
-  // Avoid warnings when opendir does not have the permissions to open a
-  // directory.
-  if (is_dir($dir)) {
-    if ($handle = @opendir($dir)) {
-      while (FALSE !== ($filename = readdir($handle))) {
-        // Skip this file if it matches the nomask or starts with a dot.
-        if ($filename[0] != '.'
-          && !(isset($options['nomask']) && preg_match($options['nomask'], $filename))
-          && !(!empty($default_nomask) && preg_match($default_nomask, $filename))
-          ) {
-          if ($depth == 0 && $dir_has_slash) {
-            $uri = "$dir$filename";
-          }
-          else {
-            $uri = "$dir/$filename";
-          }
-          if ($options['recurse'] && is_dir($uri)) {
-            // Give priority to files in this folder by merging them in after
-            // any subdirectory files.
-            $files = array_merge(file_scan_directory($uri, $mask, $options, $depth + 1), $files);
-          }
-          elseif ($depth >= $options['min_depth'] && preg_match($mask, $filename)) {
-            // Always use this match over anything already set in $files with
-            // the same $options['key'].
-            $file = new stdClass();
-            $file->uri = $uri;
-            $file->filename = $filename;
-            $file->name = pathinfo($filename, PATHINFO_FILENAME);
-            $key = $options['key'];
-            $files[$file->$key] = $file;
-            if ($options['callback']) {
-              $options['callback']($uri);
-            }
-          }
-        }
-      }
-
-      closedir($handle);
-    }
-    else {
-      \Drupal::logger('file')->error('@dir can not be opened', ['@dir' => $dir]);
+  try {
+    if (is_dir($dir)) {
+      $files = \Drupal::service('file_system')->scanDirectory($dir, $mask, $options);
     }
   }
-
+  catch (FileException $e) {
+    // Ignore and return empty array for BC.
+  }
   return $files;
 }
 
@@ -1093,81 +991,78 @@ function file_scan_directory($dir, $mask, $options = [], $depth = 0) {
  * @return
  *   A file size limit in bytes based on the PHP upload_max_filesize and
  *   post_max_size
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
+ *   Use \Drupal\Component\Utility\Environment::getUploadMaxSize() instead.
  */
 function file_upload_max_size() {
-  static $max_size = -1;
-
-  if ($max_size < 0) {
-    // Start with post_max_size.
-    $max_size = Bytes::toInt(ini_get('post_max_size'));
-
-    // If upload_max_size is less, then reduce. Except if upload_max_size is
-    // zero, which indicates no limit.
-    $upload_max = Bytes::toInt(ini_get('upload_max_filesize'));
-    if ($upload_max > 0 && $upload_max < $max_size) {
-      $max_size = $upload_max;
-    }
-  }
-  return $max_size;
+  @trigger_error('file_upload_max_size() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Component\Utility\Environment::getUploadMaxSize() instead. See https://www.drupal.org/node/3000058.', E_USER_DEPRECATED);
+  return Environment::getUploadMaxSize();
 }
 
 /**
  * Sets the permissions on a file or directory.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::chmod().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_chmod($uri, $mode = NULL) {
+  @trigger_error('drupal_chmod() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::chmod(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->chmod($uri, $mode);
 }
 
 /**
  * Deletes a file.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::unlink().
  *
+ * @see \Drupal\Core\File\FileSystem::unlink()
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_unlink($uri, $context = NULL) {
+  @trigger_error('drupal_unlink() is deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::unlink(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->unlink($uri, $context);
 }
 
 /**
  * Resolves the absolute filepath of a local URI or filepath.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::realpath().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_realpath($uri) {
+  @trigger_error('drupal_realpath() is deprecated in drupal:8.0.0 and will be removed in drupal:9.0.0. Use \Drupal\Core\File\FileSystemInterface::realpath(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->realpath($uri);
 }
 
 /**
  * Gets the name of the directory from a given path.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::dirname().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_dirname($uri) {
+  @trigger_error('drupal_dirname() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::dirname(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->dirname($uri);
 }
 
 /**
  * Gets the filename from a given path.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::basename().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_basename($uri, $suffix = NULL) {
+  @trigger_error('drupal_basename() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::basename(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->basename($uri, $suffix);
 }
 
@@ -1175,36 +1070,39 @@ function drupal_basename($uri, $suffix = NULL) {
  * Creates a directory, optionally creating missing components in the path to
  * the directory.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::mkdir().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_mkdir($uri, $mode = NULL, $recursive = FALSE, $context = NULL) {
+  @trigger_error('drupal_mkdir() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::mkdir(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->mkdir($uri, $mode, $recursive, $context);
 }
 
 /**
  * Removes a directory.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::rmdir().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_rmdir($uri, $context = NULL) {
+  @trigger_error('drupal_rmdir() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::rmdir(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->rmdir($uri, $context);
 }
 
 /**
  * Creates a file with a unique filename in the specified directory.
  *
- * @deprecated in Drupal 8.0.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Core\File\FileSystem::tempnam().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function drupal_tempnam($directory, $prefix) {
+  @trigger_error('tempnam() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\File\FileSystemInterface::tempnam(). See https://www.drupal.org/node/2418133.', E_USER_DEPRECATED);
   return \Drupal::service('file_system')->tempnam($directory, $prefix);
 }
 
@@ -1213,30 +1111,16 @@ function drupal_tempnam($directory, $prefix) {
  *
  * @return mixed|null
  *   A string containing the path to the temporary directory.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\Core\File\FileSystemInterface::getTempDirectory() instead.
+ *
+ * @see \Drupal\Core\File\FileSystemInterface::getTempDirectory()
+ * @see https://www.drupal.org/node/3039255
  */
 function file_directory_temp() {
-  $temporary_directory = \Drupal::config('system.file')->get('path.temporary');
-  if (empty($temporary_directory)) {
-    // Needs set up.
-    $config = \Drupal::configFactory()->getEditable('system.file');
-    $temporary_directory = ComponentFileSystem::getOsTemporaryDirectory();
-
-    if (empty($temporary_directory)) {
-      // If no directory has been found default to 'files/tmp'.
-      $temporary_directory = PublicStream::basePath() . '/tmp';
-
-      // Windows accepts paths with either slash (/) or backslash (\), but will
-      // not accept a path which contains both a slash and a backslash. Since
-      // the 'file_public_path' variable may have either format, we sanitize
-      // everything to use slash which is supported on all platforms.
-      $temporary_directory = str_replace('\\', '/', $temporary_directory);
-    }
-    // Save the path of the discovered directory. Do not check config schema on
-    // save.
-    $config->set('path.temporary', (string) $temporary_directory)->save(TRUE);
-  }
-
-  return $temporary_directory;
+  @trigger_error('file_directory_temp() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\File\FileSystemInterface::getTempDirectory() instead. See https://www.drupal.org/node/3039255', E_USER_DEPRECATED);
+  return \Drupal::service('file_system')->getTempDirectory();
 }
 
 /**
@@ -1245,12 +1129,13 @@ function file_directory_temp() {
  * @return mixed
  *   A string containing the path to the temporary directory.
  *
- * @deprecated in Drupal 8.3.x-dev, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Component\FileSystem\FileSystem::getOsTemporaryDirectory().
  *
  * @see https://www.drupal.org/node/2418133
  */
 function file_directory_os_temp() {
+  @trigger_error('file_directory_os_temp() is deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use \Drupal\Component\FileSystem\FileSystem::getOsTemporaryDirectory() instead. See https://www.drupal.org/node/2418133', E_USER_DEPRECATED);
   return ComponentFileSystem::getOsTemporaryDirectory();
 }
 

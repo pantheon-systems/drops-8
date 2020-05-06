@@ -1,0 +1,210 @@
+<?php
+
+/**
+ * @file
+ * Provides support for highly customizable checkboxes and radio buttons.
+ */
+
+use Drupal\Core\Url;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Form\OptGroup;
+
+/**
+ * Implements hook_webform_libraries_info().
+ */
+function webform_icheck_webform_libraries_info() {
+  $libraries = [];
+  $libraries['jquery.icheck'] = [
+    'title' => t('jQuery: iCheck'),
+    'description' => t('Highly customizable checkboxes and radio buttons.'),
+    'notes' => t('iCheck is used to optionally enhance checkboxes and radio buttons.'),
+    'homepage_url' => Url::fromUri('http://icheck.fronteed.com/'),
+    'download_url' => Url::fromUri('https://github.com/fronteed/icheck/archive/1.0.2.zip'),
+    'version' => '1.0.2 ',
+    'optional' => FALSE,
+    'deprecated' => t('The iCheck library is not being maintained. It has been <a href=":href">deprecated</a> and will be removed before Webform 8.x-6.0.', [':href' => 'https://www.drupal.org/project/webform/issues/2931154']),
+  ];
+  return $libraries;
+}
+
+/**
+ * Implements hook_webform_element_default_properties_alter().
+ */
+function webform_icheck_webform_element_default_properties_alter(array &$properties, array &$definition) {
+  if (_webform_icheck_is_supported($definition['id'])) {
+    $properties['icheck'] = '';
+  }
+}
+
+/**
+ * Implements hook_webform_element_configuration_form_alter().
+ */
+function webform_icheck_webform_element_configuration_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\webform_ui\Form\WebformUiElementEditForm $form_object */
+  $form_object = $form_state->getFormObject();
+  $element_plugin = $form_object->getWebformElementPlugin();
+  $element_type = $element_plugin->getTypeName();
+  if (!_webform_icheck_is_supported($element_type)) {
+    return;
+  }
+
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+  $default_icheck = $third_party_settings_manager->getThirdPartySetting('webform_icheck', 'default_icheck');
+  $form['form']['icheck'] = [
+    '#type' => 'select',
+    '#title' => t('Enhance using iCheck'),
+    '#description' => t('Replaces @type element with jQuery <a href=":href">iCheck</a> boxes.', ['@type' => mb_strtolower($element_plugin->getPluginLabel()), ':href' => 'http://icheck.fronteed.com/']),
+    '#empty_option' => t('- Default -'),
+    '#options' => _webform_icheck_get_options(),
+  ];
+  if ($default_icheck) {
+    $icheck_options = OptGroup::flattenOptions($form['form']['icheck']['#options']);
+    $form['form']['icheck']['#description'] .= '<br /><br />' . t("Leave blank to use the default iCheck style. Select 'None' to display the default HTML element.");
+    $form['form']['icheck']['#description'] .= '<br /><br />' . t('Defaults to: %value', ['%value' => $icheck_options[$default_icheck]]);
+    $form['form']['icheck']['#options']['none'] = t('None');
+  }
+}
+
+/**
+ * Implements hook_webform_element_alter().
+ */
+function webform_icheck_webform_element_alter(array &$element, FormStateInterface $form_state, array $context) {
+  $element_type = (isset($element['#type'])) ? $element['#type'] : '';
+  if (!_webform_icheck_is_supported($element_type)) {
+    return;
+  }
+
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+  $default_icheck = $third_party_settings_manager->getThirdPartySetting('webform_icheck', 'default_icheck');
+
+  $icheck = NULL;
+  $icheck_skin = NULL;
+  if (isset($element['#icheck'])) {
+    if ($element['#icheck'] != 'none') {
+      $icheck = $element['#icheck'];
+      $icheck_skin = strtok($element['#icheck'], '-');
+    }
+  }
+  elseif ($default_icheck) {
+    $icheck = $default_icheck;
+    $icheck_skin = strtok($default_icheck, '-');
+  }
+
+  if ($icheck) {
+    $element['#attributes']['data-webform-icheck'] = $icheck;
+    $element['#attached']['library'][] = 'webform_icheck/webform_icheck.element';
+    $element['#attached']['library'][] = 'webform_icheck/libraries.jquery.icheck.' . $icheck_skin;
+  }
+}
+
+/**
+ * Implements hook_webform_admin_third_party_settings_form_alter().
+ */
+function webform_icheck_webform_admin_third_party_settings_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+  $default_icheck = $third_party_settings_manager->getThirdPartySetting('webform_icheck', 'default_icheck');
+
+  // iCheck.
+  $form['third_party_settings']['webform_icheck'] = [
+    '#type' => 'details',
+    '#title' => t('iCheck'),
+    '#open' => TRUE,
+  ];
+  $form['third_party_settings']['webform_icheck']['default_icheck'] = [
+    '#type' => 'select',
+    '#title' => t('Enhance checkboxes/radio buttons using iCheck'),
+    '#description' => t('If set, all checkboxes/radio buttons with be enhanced using jQuery <a href=":href">iCheck</a> boxes.', [':href' => 'http://icheck.fronteed.com/']),
+    '#empty_option' => t('- Default -'),
+    '#options' => _webform_icheck_get_options(),
+    '#default_value' => $default_icheck,
+  ];
+}
+
+/**
+ * Check if element support iCheck.
+ *
+ * @param string $element_type
+ *   An element type.
+ *
+ * @return bool
+ *   TRUE if element support iCheck.
+ */
+function _webform_icheck_is_supported($element_type) {
+  $element_types = [
+    'checkbox',
+    'checkboxes',
+    'radios',
+    'tableselect',
+    'webform_checkboxes_other',
+    'webform_radios_other',
+    'webform_entity_checkboxes',
+    'webform_entity_radios',
+    'webform_likert',
+    'webform_same',
+    'webform_tableselect_sort',
+    'webform_term_checkboxes',
+  ];
+  return in_array($element_type, $element_types);
+}
+
+/**
+ * Get the iCheck style options.
+ *
+ * @return array
+ *   The iCheck style options.
+ */
+function _webform_icheck_get_options() {
+  return [
+    (string) t('Minimal') => [
+      'minimal' => t('Minimal: Black'),
+      'minimal-grey' => t('Minimal: Grey'),
+      'minimal-yellow' => t('Minimal: Yellow'),
+      'minimal-orange' => t('Minimal: Orange'),
+      'minimal-red' => t('Minimal: Red'),
+      'minimal-pink' => t('Minimal: Pink'),
+      'minimal-purple' => t('Minimal: Purple'),
+      'minimal-blue' => t('Minimal: Blue'),
+      'minimal-green' => t('Minimal: Green'),
+      'minimal-aero' => t('Minimal: Aero'),
+    ],
+    (string) t('Square') => [
+      'square' => t('Square: Black'),
+      'square-grey' => t('Square: Grey'),
+      'square-yellow' => t('Square: Yellow'),
+      'square-orange' => t('Square: Orange'),
+      'square-red' => t('Square: Red'),
+      'square-pink' => t('Square: Pink'),
+      'square-purple' => t('Square: Purple'),
+      'square-blue' => t('Square: Blue'),
+      'square-green' => t('Square: Green'),
+      'square-aero' => t('Square: Aero'),
+    ],
+    (string) t('Flat') => [
+      'flat' => t('Flat: Black'),
+      'flat-grey' => t('Flat: Grey'),
+      'flat-yellow' => t('Flat: Yellow'),
+      'flat-orange' => t('Flat: Orange'),
+      'flat-red' => t('Flat: Red'),
+      'flat-pink' => t('Flat: Pink'),
+      'flat-purple' => t('Flat: Purple'),
+      'flat-blue' => t('Flat: Blue'),
+      'flat-green' => t('Flat: Green'),
+      'flat-aero' => t('Flat: Aero'),
+    ],
+    (string) t('Line') => [
+      'line' => t('Line: Black'),
+      'line-grey' => t('Line: Grey'),
+      'line-yellow' => t('Line: Yellow'),
+      'line-orange' => t('Line: Orange'),
+      'line-red' => t('Line: Red'),
+      'line-pink' => t('Line: Pink'),
+      'line-purple' => t('Line: Purple'),
+      'line-blue' => t('Line: Blue'),
+      'line-green' => t('Line: Green'),
+      'line-aero' => t('Line: Aero'),
+    ],
+  ];
+}

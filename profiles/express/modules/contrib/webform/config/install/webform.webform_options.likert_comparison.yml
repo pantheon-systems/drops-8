@@ -7,6 +7,7 @@ dependencies:
 id: likert_comparison
 label: 'Likert: Comparison'
 category: Likert
+likert: true
 options: |
   1: Strongly Disagree
   2: Disagree

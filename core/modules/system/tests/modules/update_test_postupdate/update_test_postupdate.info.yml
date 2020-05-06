@@ -2,4 +2,9 @@ core: 8.x
 name: Update test after
 type: module
 package: Testing
-version: VERSION
+# version: VERSION
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

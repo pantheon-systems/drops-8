@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\NamingConventions;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class UpperCaseConstantNameSniff implements Sniff
@@ -110,7 +110,7 @@ class UpperCaseConstantNameSniff implements Sniff
             $constName = substr($constName, ($splitPos + 2));
         }
 
-        // Strip namesspace from constant like /foo/bar/CONSTANT.
+        // Strip namespace from constant like /foo/bar/CONSTANT.
         $splitPos = strrpos($constName, '\\');
         if ($splitPos !== false) {
             $prefix    = substr($constName, 0, ($splitPos + 1));

@@ -2,7 +2,7 @@
 
 namespace Drupal\Core\Routing;
 
-use Drupal\Core\Database\SchemaObjectExistsException;
+use Drupal\Core\Database\DatabaseException;
 use Drupal\Core\State\StateInterface;
 use Symfony\Component\Routing\RouteCollection;
 
@@ -117,7 +117,7 @@ class MatcherDumper implements MatcherDumperInterface {
         $names = [];
         foreach ($routes as $name => $route) {
           /** @var \Symfony\Component\Routing\Route $route */
-          $route->setOption('compiler_class', '\Drupal\Core\Routing\RouteCompiler');
+          $route->setOption('compiler_class', RouteCompiler::class);
           /** @var \Drupal\Core\Routing\CompiledRoute $compiled */
           $compiled = $route->compile();
           // The fit value is a binary number which has 1 at every fixed path
@@ -179,7 +179,7 @@ class MatcherDumper implements MatcherDumperInterface {
         return TRUE;
       }
     }
-    catch (SchemaObjectExistsException $e) {
+    catch (DatabaseException $e) {
       // If another process has already created the config table, attempting to
       // recreate it will throw an exception. In this case just catch the
       // exception and do nothing.

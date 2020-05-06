@@ -87,7 +87,7 @@ class AnalyzeServiceReferencesPass extends AbstractRecursivePass implements Repe
             return $value;
         }
         if ($value instanceof Expression) {
-            $this->getExpressionLanguage()->compile((string) $value, array('this' => 'container'));
+            $this->getExpressionLanguage()->compile((string) $value, ['this' => 'container']);
 
             return $value;
         }
@@ -122,7 +122,7 @@ class AnalyzeServiceReferencesPass extends AbstractRecursivePass implements Repe
         $this->lazy = false;
 
         $byConstructor = $this->byConstructor;
-        $this->byConstructor = true;
+        $this->byConstructor = $isRoot || $byConstructor;
         $this->processValue($value->getFactory());
         $this->processValue($value->getArguments());
         $this->byConstructor = $byConstructor;
@@ -156,7 +156,7 @@ class AnalyzeServiceReferencesPass extends AbstractRecursivePass implements Repe
         }
 
         if (!$this->container->hasDefinition($id)) {
-            return;
+            return null;
         }
 
         return $this->container->normalizeId($id);

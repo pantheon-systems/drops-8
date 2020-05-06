@@ -3,6 +3,8 @@
 namespace Drupal\Tests\user\Unit\Plugin\views\field;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\user\Plugin\views\field\UserBulkForm;
 
@@ -28,33 +30,35 @@ class UserBulkFormTest extends UnitTestCase {
     $actions = [];
 
     for ($i = 1; $i <= 2; $i++) {
-      $action = $this->getMock('\Drupal\system\ActionConfigEntityInterface');
+      $action = $this->createMock('\Drupal\system\ActionConfigEntityInterface');
       $action->expects($this->any())
         ->method('getType')
         ->will($this->returnValue('user'));
       $actions[$i] = $action;
     }
 
-    $action = $this->getMock('\Drupal\system\ActionConfigEntityInterface');
+    $action = $this->createMock('\Drupal\system\ActionConfigEntityInterface');
     $action->expects($this->any())
       ->method('getType')
       ->will($this->returnValue('node'));
     $actions[] = $action;
 
-    $entity_storage = $this->getMock('Drupal\Core\Entity\EntityStorageInterface');
+    $entity_storage = $this->createMock('Drupal\Core\Entity\EntityStorageInterface');
     $entity_storage->expects($this->any())
       ->method('loadMultiple')
       ->will($this->returnValue($actions));
 
-    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
-    $entity_manager->expects($this->once())
+    $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
+    $entity_type_manager->expects($this->once())
       ->method('getStorage')
       ->with('action')
       ->will($this->returnValue($entity_storage));
 
-    $language_manager = $this->getMock('Drupal\Core\Language\LanguageManagerInterface');
+    $entity_repository = $this->createMock(EntityRepositoryInterface::class);
 
-    $messenger = $this->getMock('Drupal\Core\Messenger\MessengerInterface');
+    $language_manager = $this->createMock('Drupal\Core\Language\LanguageManagerInterface');
+
+    $messenger = $this->createMock('Drupal\Core\Messenger\MessengerInterface');
 
     $views_data = $this->getMockBuilder('Drupal\views\ViewsData')
       ->disableOriginalConstructor()
@@ -68,7 +72,7 @@ class UserBulkFormTest extends UnitTestCase {
     $container->set('string_translation', $this->getStringTranslationStub());
     \Drupal::setContainer($container);
 
-    $storage = $this->getMock('Drupal\views\ViewEntityInterface');
+    $storage = $this->createMock('Drupal\views\ViewEntityInterface');
     $storage->expects($this->any())
       ->method('get')
       ->with('base_table')
@@ -86,7 +90,7 @@ class UserBulkFormTest extends UnitTestCase {
     $definition['title'] = '';
     $options = [];
 
-    $user_bulk_form = new UserBulkForm([], 'user_bulk_form', $definition, $entity_manager, $language_manager, $messenger);
+    $user_bulk_form = new UserBulkForm([], 'user_bulk_form', $definition, $entity_type_manager, $language_manager, $messenger, $entity_repository);
     $user_bulk_form->init($executable, $display, $options);
 
     $this->assertAttributeEquals(array_slice($actions, 0, -1, TRUE), 'actions', $user_bulk_form);

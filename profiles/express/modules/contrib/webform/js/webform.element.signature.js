@@ -23,6 +23,7 @@
         return;
       }
 
+
       $(context).find('input.js-webform-signature').once('webform-signature').each(function () {
         var $input = $(this);
         var value = $input.val();
@@ -30,12 +31,17 @@
         var $canvas = $wrapper.find('canvas');
         var $button = $wrapper.find(':button, :submit');
         var canvas = $canvas[0];
+
+        var calculateDimensions = function () {
+          $canvas.attr('width', $wrapper.width());
+          $canvas.attr('height', $wrapper.width() / 3);
+        };
+
         // Set height.
         $canvas.attr('width', $wrapper.width());
         $canvas.attr('height', $wrapper.width() / 3);
         $(window).resize(function () {
-          $canvas.attr('width', $wrapper.width());
-          $canvas.attr('height', $wrapper.width() / 3);
+          calculateDimensions();
 
           // Resizing clears the canvas so we need to reset the signature pad.
           signaturePad.clear();
@@ -58,33 +64,47 @@
           signaturePad.fromDataURL(value);
         }
 
+        // Disable the signature pad when input is disabled or readonly.
+        if ($input.is(':disabled') || $input.is('[readonly]')) {
+          signaturePad.off();
+          $button.hide();
+        }
+
         // Set reset handler.
         $button.on('click', function () {
           signaturePad.clear();
-          $input.val();
+          $input.val('');
           this.blur();
           return false;
         });
 
         // Input onchange clears signature pad if value is empty.
+        // Onchange events handlers are triggered when a webform is
+        // hidden or shown.
         // @see webform.states.js
+        // @see triggerEventHandlers()
         $input.on('change', function () {
           if (!$input.val()) {
             signaturePad.clear();
           }
+          setTimeout(function () {
+            calculateDimensions();
+          }, 1);
         });
 
-        // Turn signature pad off/on when the input is disabled/enabled.
+        // Turn signature pad off/on when the input
+        // is disabled/readonly/enabled.
         // @see webform.states.js
-        $input.on('webform:disabled', function () {
-          if ($input.is(':disabled')) {
+        $input.on('webform:disabled webform:readonly', function () {
+          if ($input.is(':disabled') || $input.is('[readonly]')) {
             signaturePad.off();
+            $button.hide();
           }
           else {
             signaturePad.on();
+            $button.show();
           }
         });
-
       });
     }
   };

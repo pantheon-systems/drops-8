@@ -91,6 +91,7 @@ function _webform_honeypot_form(array &$form, FormStateInterface $form_state, $h
   $form['third_party_settings']['honeypot']['time_restriction'] = [
     '#type' => 'checkbox',
     '#title' => t('Add time restriction to %label', $t_args),
+    '#description' => '',
     '#default_value' => $time_restriction,
     '#return_value' => TRUE,
   ];
@@ -107,6 +108,9 @@ function _webform_honeypot_form(array &$form, FormStateInterface $form_state, $h
       $form['third_party_settings']['honeypot']['time_restriction']['#description'] = t('<a href=":href_webform">Time limit</a> is enabled for all webforms.', $t_args);
     }
   }
+
+  $form['third_party_settings']['honeypot']['time_restriction']['#description'] = ($form['third_party_settings']['honeypot']['time_restriction']['#description'] ? '<br/>' : '')
+    . '<strong>' . t('Page caching will be disabled when a time restriction is applied to a webform.') . '</strong>';
 
   $form['#validate'][] = '_webform_honeypot_form_validate';
 
@@ -201,7 +205,7 @@ function honeypot_webform_third_party_settings_form_alter(&$form, FormStateInter
  */
 function honeypot_webform_submission_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   // Only add a Honeypot when a webform is initially load.
-  // After a webform is submitted, via a multistep webform and/or saving a draft,
+  // After a webform is submitted, via a multi-step webform and/or saving a draft,
   // we can skip adding a Honeypot.
   if ($form_state->isSubmitted()) {
     return;

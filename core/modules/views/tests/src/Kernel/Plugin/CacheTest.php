@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel\Plugin;
 
+use Drupal\Core\Database\Database;
 use Drupal\Core\Render\RenderContext;
 use Drupal\node\Entity\Node;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
@@ -88,7 +89,7 @@ class CacheTest extends ViewsKernelTestBase {
       'age' => 29,
       'job' => 'Banjo',
     ];
-    db_insert('views_test_data')->fields($record)->execute();
+    Database::getConnection()->insert('views_test_data')->fields($record)->execute();
 
     // The result should be the same as before, because of the caching. (Note
     // that views_test_data records don't have associated cache tags, and hence
@@ -242,7 +243,7 @@ class CacheTest extends ViewsKernelTestBase {
       'age' => 29,
       'job' => 'Banjo',
     ];
-    db_insert('views_test_data')->fields($record)->execute();
+    Database::getConnection()->insert('views_test_data')->fields($record)->execute();
 
     // The Result changes, because the view is not cached.
     $view = Views::getView('test_cache');
@@ -294,7 +295,7 @@ class CacheTest extends ViewsKernelTestBase {
     $this->assertEqual(['foo' => 'bar'], $output['#attached']['drupalSettings'], 'Make sure drupalSettings are added for cached views.');
     // Note: views_test_data_views_pre_render() adds some cache tags.
     $this->assertEqual(['config:views.view.test_cache_header_storage', 'views_test_data:1'], $output['#cache']['tags']);
-    $this->assertEqual(['non-existing-placeholder-just-for-testing-purposes' => ['#lazy_builder' => ['views_test_data_placeholders', ['bar']]]], $output['#attached']['placeholders']);
+    $this->assertEqual(['non-existing-placeholder-just-for-testing-purposes' => ['#lazy_builder' => ['Drupal\views_test_data\Controller\ViewsTestDataController::placeholderLazyBuilder', ['bar']]]], $output['#attached']['placeholders']);
     $this->assertFalse(!empty($view->build_info['pre_render_called']), 'Make sure hook_views_pre_render is not called for the cached view.');
   }
 
@@ -340,7 +341,7 @@ class CacheTest extends ViewsKernelTestBase {
 
     // Assert there are results, empty results would mean this test case would
     // pass otherwise.
-    $this->assertTrue(count($cache->data['result']), 'Results saved in cached data.');
+    $this->assertGreaterThan(0, count($cache->data['result']), 'Results saved in cached data.');
 
     // Assert each row doesn't contain '_entity' or '_relationship_entities'
     // items.

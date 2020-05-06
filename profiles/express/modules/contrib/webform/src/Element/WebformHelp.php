@@ -17,7 +17,9 @@ class WebformHelp extends RenderElement {
   public function getInfo() {
     return [
       '#help' => '',
+      '#help_title' => '',
       '#theme' => 'webform_element_help',
+      '#attributes' => [],
     ];
   }
 

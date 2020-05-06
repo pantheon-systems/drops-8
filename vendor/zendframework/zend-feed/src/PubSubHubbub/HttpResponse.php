@@ -53,7 +53,7 @@ class HttpResponse
      */
     public function sendHeaders()
     {
-        if (count($this->headers) || (200 != $this->statusCode)) {
+        if ($this->headers || (200 != $this->statusCode)) {
             $this->canSendHeaders(true);
         } elseif (200 == $this->statusCode) {
             return;
@@ -133,7 +133,7 @@ class HttpResponse
      * Can we send headers?
      *
      * @param  bool $throw Whether or not to throw an exception if headers have been sent; defaults to false
-     * @return HttpResponse
+     * @return bool
      * @throws Exception\RuntimeException
      */
     public function canSendHeaders($throw = false)

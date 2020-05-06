@@ -4,4 +4,4 @@ webform_bootstrap_test_module:
     theme:
       css/webform_bootstrap_test_module.css: {}
   js:
-    js/webform_bootstrap_test_module.js:  {}
+    js/webform_bootstrap_test_module.js: {}

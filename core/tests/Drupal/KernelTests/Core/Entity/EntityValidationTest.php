@@ -44,6 +44,13 @@ class EntityValidationTest extends EntityKernelTestBase {
     ConfigurableLanguage::createFromLangcode('de')
       ->save();
 
+    $this->installEntitySchema('entity_test_mul');
+    $this->installEntitySchema('entity_test_mul_langcode_key');
+    $this->installEntitySchema('entity_test_mul_changed');
+    $this->installEntitySchema('entity_test_rev');
+    $this->installEntitySchema('entity_test_mulrev');
+    $this->installEntitySchema('entity_test_mulrev_changed');
+
     // Create the test field.
     module_load_install('entity_test');
     entity_test_install();
@@ -137,7 +144,7 @@ class EntityValidationTest extends EntityKernelTestBase {
     $this->assertEqual($violations[0]->getMessage(), t('%name: may not be longer than @max characters.', ['%name' => 'UUID', '@max' => 128]));
 
     $test_entity = clone $entity;
-    $langcode_key = $this->entityManager->getDefinition($entity_type)->getKey('langcode');
+    $langcode_key = $this->entityTypeManager->getDefinition($entity_type)->getKey('langcode');
     $test_entity->{$langcode_key}->value = $this->randomString(13);
     $violations = $test_entity->validate();
     // This should fail on AllowedValues and Length constraints.

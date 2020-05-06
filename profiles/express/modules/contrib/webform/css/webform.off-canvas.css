@@ -1,0 +1,16 @@
+/**
+ * @file
+ * Off-canvas styles.
+ */
+
+#drupal-off-canvas .webform-default-data textarea {
+  white-space: pre;
+  font-family: monospace;
+}
+
+#drupal-off-canvas .webform-default-data pre {
+  padding: 10px;
+  white-space: pre;
+  border: 1px solid #ddd;
+  font-family: monospace;
+}

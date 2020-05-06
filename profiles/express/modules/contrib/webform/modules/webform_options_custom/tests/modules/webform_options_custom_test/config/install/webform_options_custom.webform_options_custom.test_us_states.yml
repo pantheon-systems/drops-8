@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies: {  }
+id: test_us_states
+label: 'Test: U.S. states'
+description: ''
+help: ''
+category: Test
+type: url
+template: ''
+url: 'us_states.svg'
+css: ''
+javascript: ''
+options: ''
+value_attributes: data-id
+text_attributes: data-name
+fill: true
+zoom: true
+tooltip: true
+show_select: false
+element: true
+entity_reference: false

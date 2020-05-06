@@ -7,7 +7,7 @@
 
 .webform-options-display-side-by-side > div {
   display: inline-block;
-  margin-right: .5em;
+  margin-right: 0.5em;
 }
 
 /**
@@ -16,7 +16,7 @@
 @media (min-width: 400px) {
   .webform-options-display-two-columns {
     display: inline-block;
-    margin-top: .4em;
+    margin-top: 0.4em;
     -moz-column-count: 2;
     -webkit-column-count: 2;
     column-count: 2;
@@ -24,7 +24,7 @@
 
   .webform-options-display-three-columns {
     display: inline-block;
-    margin-top: .4em;
+    margin-top: 0.4em;
     -moz-column-count: 3;
     -webkit-column-count: 3;
     column-count: 3;
@@ -34,5 +34,86 @@
   .webform-options-display-three-columns div.form-item {
     margin-top: 0;
     margin-bottom: 0;
+  }
+}
+
+/**
+ * Buttons.
+ */
+.webform-options-display-buttons,
+.form-composite.webform-fieldset--title-inline .fieldset-wrapper > div.webform-options-display-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0 -5px;
+}
+
+.webform-options-display-buttons .webform-options-display-buttons-wrapper {
+  flex: 1;
+  margin: 0 5px 10px 5px;
+}
+
+.webform-options-display-buttons .form-item {
+  display: table;
+  width: 100%;
+  height: 100%;
+}
+
+.webform-options-display-buttons label.webform-options-display-buttons-label {
+  display: table-cell;
+  height: 100%;
+  padding: 10px;
+  text-align: center;
+  vertical-align: middle;
+  color: #666;
+  border: 3px solid #ccc;
+  border-radius: 3px;
+  background-color: #fff;
+}
+
+.webform-options-display-buttons input:hover + label.webform-options-display-buttons-label {
+  color: #333;
+  border-color: #999;
+}
+
+.webform-options-display-buttons input:focus + label.webform-options-display-buttons-label {
+  color: #333;
+  border-color: #999;
+  box-shadow: 0 0 5px #999;
+}
+
+.webform-options-display-buttons input:checked + label.webform-options-display-buttons-label {
+  color: #000;
+  border-color: #0074bd;
+}
+
+.webform-options-display-buttons input:checked:focus + label.webform-options-display-buttons-label {
+  box-shadow: 0 0 5px #0074bd;
+}
+
+.webform-options-display-buttons input:checked + label.webform-options-display-buttons-label .webform-options-display-buttons-description {
+  font-weight: normal;
+}
+
+.webform-options-display-buttons input:disabled + label.webform-options-display-buttons-label,
+.webform-options-display-buttons input:disabled:hover + label.webform-options-display-buttons-label,
+.webform-options-display-buttons input:disabled:focus + label.webform-options-display-buttons-label {
+  cursor: not-allowed;
+  color: #999;
+  border-color: #ccc;
+}
+
+/**
+ * Mobile support to webform options buttons on mobile devices.
+ */
+@media (max-width: 600px) {
+  .webform-options-display-buttons,
+  .form-composite.webform-fieldset--title-inline .fieldset-wrapper > div.webform-options-display-buttons {
+    display: block;
+    margin: 0;
+  }
+
+  .webform-options-display-buttons .webform-options-display-buttons-wrapper {
+    display: block;
+    margin: 5px 0;
   }
 }

@@ -1,0 +1,35 @@
+langcode: en
+status: true
+dependencies: {  }
+id: test_html_advanced
+label: 'Test: HTML advanced'
+description: 'Advanced HTML markup'
+help: 'Advanced HTML markup'
+category: Test
+type: template
+template: |
+  <div data-id="a" data-name="A -- This is the letter A">A</div>
+  <div data-name="B">B</div>
+  <div data-id="c" data-name="C">C</div>
+url: ''
+css: |
+  .webform-options-custom--test-html-advanced [data-option-value] {
+    border: 5px groove #999;
+    border-radius: 10px;
+    padding: 5px;
+    margin: 5px 0;
+    text-align: center;
+  }
+javascript: |
+  window.console && window.console.log('Test: HTML advanced loaded.');
+
+options: |
+  b: 'B -- <em>This is the letter B</em> <script>alert(''XSS'');</script>. [entity#options]'
+value_attributes: data-id
+text_attributes: data-name
+fill: true
+zoom: false
+tooltip: true
+show_select: true
+element: true
+entity_reference: false

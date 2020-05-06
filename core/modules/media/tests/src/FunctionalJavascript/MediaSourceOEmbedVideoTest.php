@@ -21,6 +21,11 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
    */
   public static $modules = ['media_test_oembed'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
   use OEmbedTestTrait;
 
   /**
@@ -91,6 +96,16 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
     $assert_session->selectExists('field_map[author_name]')->setValue('field_string_author_name');
     $assert_session->buttonExists('Save')->press();
 
+    // Configure the iframe to be narrower than the actual video, so we can
+    // verify that the video scales correctly.
+    $display = \Drupal::service('entity_display.repository')->getViewDisplay('media', $media_type_id);
+    $this->assertFalse($display->isNew());
+    $component = $display->getComponent('field_media_oembed_video');
+    $this->assertInternalType('array', $component);
+    $component['settings']['max_width'] = 240;
+    $display->setComponent('field_media_oembed_video', $component);
+    $this->assertSame(SAVED_UPDATED, $display->save());
+
     $this->hijackProviderEndpoints();
     $video_url = 'https://vimeo.com/7073899';
     ResourceController::setResourceUrl($video_url, $this->getFixturesDirectory() . '/video_vimeo.json');
@@ -112,19 +127,29 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
     $thumbnail = $media->getSource()->getMetadata($media, 'thumbnail_uri');
     $this->assertFileExists($thumbnail);
 
-    // Ensure the iframe exists and that its src attribute contains a coherent
-    // URL with the query parameters we expect.
-    $iframe_url = $assert_session->elementExists('css', 'iframe')->getAttribute('src');
-    $iframe_url = parse_url($iframe_url);
+    // Ensure the iframe exists and has the expected CSS class, and that its src
+    // attribute contains a coherent URL with the query parameters we expect.
+    $iframe = $assert_session->elementExists('css', 'iframe.media-oembed-content');
+    $iframe_url = parse_url($iframe->getAttribute('src'));
     $this->assertStringEndsWith('/media/oembed', $iframe_url['path']);
     $this->assertNotEmpty($iframe_url['query']);
     $query = [];
     parse_str($iframe_url['query'], $query);
     $this->assertSame($video_url, $query['url']);
     $this->assertNotEmpty($query['hash']);
+    // Ensure that the outer iframe's width respects the formatter settings.
+    $this->assertSame('240', $iframe->getAttribute('width'));
+    // Check the inner iframe to make sure that CSS has been applied to scale it
+    // correctly, regardless of whatever its width attribute may be (the fixture
+    // hard-codes it to 480).
+    $inner_frame = 'frames[0].document.querySelector("iframe")';
+    $this->assertSame('480', $session->evaluateScript("$inner_frame.getAttribute('width')"));
+    $this->assertLessThanOrEqual(240, $session->evaluateScript("$inner_frame.clientWidth"));
 
-    // Make sure the thumbnail is displayed from uploaded image.
-    $assert_session->elementAttributeContains('css', '.image-style-thumbnail', 'src', '/oembed_thumbnails/' . basename($thumbnail));
+    // The oEmbed content iFrame should be visible.
+    $assert_session->elementExists('css', 'iframe.media-oembed-content');
+    // The thumbnail should not be displayed.
+    $assert_session->elementNotExists('css', '.image-style-thumbnail');
 
     // Load the media and check that all fields are properly populated.
     $media = Media::load(1);
@@ -156,7 +181,7 @@ class MediaSourceOEmbedVideoTest extends MediaSourceTestBase {
     $this->assertNoRaw('core/modules/media/templates/media-oembed-iframe.html.twig');
 
     // Test themes not inheriting from stable.
-    \Drupal::service('theme_handler')->install(['stark']);
+    \Drupal::service('theme_installer')->install(['stark']);
     $this->config('system.theme')->set('default', 'stark')->save();
     $this->drupalGet('media/oembed', ['query' => $query]);
     $assert_session->pageTextContains('By the power of Greyskull, Vimeo works!');

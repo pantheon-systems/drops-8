@@ -1,0 +1,68 @@
+entity.webform_submission.collection_log:
+  path: '/admin/structure/webform/submissions/log'
+  defaults:
+    _controller: '\Drupal\webform_submission_log\Controller\WebformSubmissionLogController::overview'
+    _title: 'Webforms: Submissions log'
+  requirements:
+    _permission: 'access webform submission log'
+    _custom_access: '\Drupal\webform\Access\WebformAccountAccess:checkSubmissionAccess'
+
+entity.webform.results_log:
+  path: '/admin/structure/webform/manage/{webform}/results/log'
+  defaults:
+    _controller: '\Drupal\webform_submission_log\Controller\WebformSubmissionLogController::overview'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _permission: 'access webform submission log'
+    _entity_access: 'webform.submission_view_any'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkLogAccess'
+
+entity.webform_submission.log:
+  path: '/admin/structure/webform/manage/{webform}/submission/{webform_submission}/log'
+  defaults:
+    _controller: '\Drupal\webform_submission_log\Controller\WebformSubmissionLogController::overview'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+  requirements:
+    _permission: 'access webform submission log'
+    _entity_access: 'webform_submission.view_any'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess::checkLogAccess'
+
+# Webform node routes.
+# This routes will be removed if the webform_node.module is not installed.
+# @see \Drupal\webform_submission_log\Routing\WebformSubmissionLogRouteSubscriber
+
+entity.node.webform.results_log:
+  path: '/node/{node}/webform/results/log'
+  defaults:
+    _controller: '\Drupal\webform_submission_log\Controller\WebformSubmissionLogController::nodeOverview'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _permission: 'access webform submission log'
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformLogAccess'
+
+entity.node.webform_submission.log:
+  path: '/node/{node}/webform/submission/{webform_submission}/log'
+  defaults:
+    _controller: '\Drupal\webform_submission_log\Controller\WebformSubmissionLogController::overview'
+    _title_callback: '\Drupal\webform\Controller\WebformSubmissionViewController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    _admin_route: TRUE
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _permission: 'access webform submission log'
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformLogAccess'

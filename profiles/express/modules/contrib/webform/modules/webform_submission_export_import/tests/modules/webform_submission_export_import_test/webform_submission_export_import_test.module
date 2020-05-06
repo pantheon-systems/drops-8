@@ -1,0 +1,92 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform submission export/import.
+ */
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\user\Entity\User;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Make testing the CSV import a little easier by using and prepopulating
+ * external Google Sheet CSV.
+ */
+function webform_submission_export_import_test_form_webform_submission_export_import_upload_form_alter(&$form, FormStateInterface $form_state) {
+  $webform_id = \Drupal::routeMatch()->getRawParameter('webform');
+  if ($webform_id === 'test_submission_export_import' && isset($form['import']['import_url'])) {
+    global $base_url;
+
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+
+    $webform_path = drupal_get_path('module', 'webform');
+    $files_path = drupal_get_path('module', 'webform_submission_export_import_test') . '/files';
+    $file_names = [
+      // @see https://docs.google.com/spreadsheets/d/e/2PACX-1vTYImRfGbGGCtKq7hrYGkm5jJo_P0fwNrLOBpcSapBkEUPlBToShXcSJAdDAF5hjVupbGFAm1anUtip/pub?gid=646036902&single=true&output=csv
+      'webform',
+      // @see https://docs.google.com/spreadsheets/d/e/2PACX-1vTYImRfGbGGCtKq7hrYGkm5jJo_P0fwNrLOBpcSapBkEUPlBToShXcSJAdDAF5hjVupbGFAm1anUtip/pub?gid=173244372&single=true&output=csv
+      'external',
+    ];
+
+    $t_args = [];
+    foreach ($file_names as $file_name) {
+      // Set the test CSV URI.
+      $csv_uri = "public://test_submission_export_import-$file_name.csv";
+
+      // Set file URL href as href.
+      $t_args[":href_$file_name"] = file_create_url($csv_uri);
+
+      // Skip generate test CSV if it exists.
+      if (file_exists($csv_uri)) {
+        continue;
+      }
+
+      // Copy CSV file from module to public:// uri.
+      $csv_file_path = "$files_path/test_submission_export_import-$file_name.csv";
+      $destination = file_build_uri($file_system->basename($csv_file_path));
+      $file_system->copy($csv_file_path, $destination, FileSystemInterface::EXISTS_REPLACE);
+
+      $contents = file_get_contents($csv_uri);
+
+      // Replace GitHub URLs with location URLs.
+      $github_base_url = 'https://raw.githubusercontent.com/drupalprojects/webform/8.x-5.x/';
+      $contents = str_replace($github_base_url, "$base_url/$webform_path/", $contents);
+
+      // Replace user entity reference properties.
+      $account = User::load(1);
+      $contents = str_replace('user_id', $account->id(), $contents);
+      $contents = str_replace('user_name', $account->getAccountName(), $contents);
+      $contents = str_replace('user_mail', $account->getEmail(), $contents);
+      $contents = str_replace('user_uuid', $account->uuid(), $contents);
+
+      file_put_contents($csv_uri, $contents);
+    }
+
+    // Set the default type and URL to the webform.csv.
+    $form['import']['import_type']['#default_value'] = 'url';
+    $form['import']['import_url']['#default_value'] = $t_args[':href_webform'];
+
+    // Display clickable description that populates the import URL and
+    // submits the form.
+    // @see Drupal.behaviors.webformSubmissionExportImportTest
+    $form['import']['import_url']['#description'] = t('Test <a href=":href_webform">webform</a> or <a href=":href_external">external</a>', $t_args);
+    $form['import']['import_url']['#help'] = FALSE;
+    $form['#attached']['library'][] = 'webform_submission_export_import_test/webform_submission_export_import_test';
+  }
+
+  /*
+  // Get webform.csv and external.csv from Google Sheets.
+  file_put_contents(
+     "$files_path/test_submission_export_import-webform.csv",
+    file_get_contents('https://docs.google.com/spreadsheets/d/e/2PACX-1vTYImRfGbGGCtKq7hrYGkm5jJo_P0fwNrLOBpcSapBkEUPlBToShXcSJAdDAF5hjVupbGFAm1anUtip/pub?gid=646036902&single=true&output=csv')
+  );
+  file_put_contents(
+     "$files_path/test_submission_export_import-external.csv",
+    file_get_contents('https://docs.google.com/spreadsheets/d/e/2PACX-1vTYImRfGbGGCtKq7hrYGkm5jJo_P0fwNrLOBpcSapBkEUPlBToShXcSJAdDAF5hjVupbGFAm1anUtip/pub?gid=173244372&single=true&output=csv')
+  );
+  */
+}

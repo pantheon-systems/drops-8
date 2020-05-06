@@ -1,0 +1,16 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.webform_group_b
+  enforced:
+    module:
+      - webform_demo_group
+id: webform_group_b-outsider
+label: Outsider
+weight: -101
+internal: true
+audience: outsider
+group_type: webform_group_b
+permissions_ui: true
+permissions: {  }

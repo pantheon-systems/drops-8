@@ -3,7 +3,7 @@
 namespace Drupal\Tests\user\Functional\Views;
 
 use Drupal\Core\Cache\Cache;
-use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\user\Plugin\views\access\Role;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
 use Drupal\views\Views;
@@ -26,11 +26,16 @@ class AccessRoleTest extends AccessTestBase {
   public static $testViews = ['test_access_role'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests role access plugin.
    */
   public function testAccessRole() {
     /** @var \Drupal\views\ViewEntityInterface $view */
-    $view = \Drupal::entityManager()->getStorage('view')->load('test_access_role');
+    $view = \Drupal::entityTypeManager()->getStorage('view')->load('test_access_role');
     $display = &$view->getDisplay('default');
     $display['display_options']['access']['options']['role'] = [
       $this->normalRole => $this->normalRole,
@@ -50,8 +55,8 @@ class AccessRoleTest extends AccessTestBase {
     $this->assertTrue($access_plugin instanceof Role, 'Make sure the right class got instantiated.');
 
     // Test the access() method on the access plugin.
-    $this->assertFalse($executable->display_handler->access($this->webUser));
-    $this->assertTrue($executable->display_handler->access($this->normalUser));
+    $this->assertSame(FALSE, $executable->display_handler->access($this->webUser));
+    $this->assertSame(TRUE, $executable->display_handler->access($this->normalUser));
 
     $this->drupalLogin($this->webUser);
     $this->drupalGet('test-role');

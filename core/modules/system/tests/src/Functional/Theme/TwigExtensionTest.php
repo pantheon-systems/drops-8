@@ -3,6 +3,7 @@
 namespace Drupal\Tests\system\Functional\Theme;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\twig_extension_test\TwigExtension\TestExtension;
 
 /**
  * Tests Twig extensions.
@@ -18,9 +19,14 @@ class TwigExtensionTest extends BrowserTestBase {
    */
   public static $modules = ['theme_test', 'twig_extension_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
   }
 
   /**
@@ -28,8 +34,8 @@ class TwigExtensionTest extends BrowserTestBase {
    */
   public function testTwigExtensionLoaded() {
     $twigService = \Drupal::service('twig');
-    $ext = $twigService->getExtension('twig_extension_test.test_extension');
-    $this->assertEqual(get_class($ext), 'Drupal\twig_extension_test\TwigExtension\TestExtension', 'TestExtension loaded successfully.');
+    $ext = $twigService->getExtension(TestExtension::class);
+    $this->assertInstanceOf(TestExtension::class, $ext);
   }
 
   /**

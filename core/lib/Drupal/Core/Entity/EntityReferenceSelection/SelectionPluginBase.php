@@ -2,7 +2,9 @@
 
 namespace Drupal\Core\Entity\EntityReferenceSelection;
 
+use Drupal\Component\Plugin\ConfigurableInterface;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
+use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -11,7 +13,7 @@ use Drupal\Core\Plugin\PluginBase;
 /**
  * Provides a base class for configurable selection handlers.
  */
-abstract class SelectionPluginBase extends PluginBase implements SelectionInterface, ConfigurablePluginInterface {
+abstract class SelectionPluginBase extends PluginBase implements SelectionInterface, ConfigurableInterface, DependentPluginInterface, ConfigurablePluginInterface {
 
   /**
    * Constructs a new selection object.
@@ -118,8 +120,11 @@ abstract class SelectionPluginBase extends PluginBase implements SelectionInterf
    * @param array $configuration
    *   The configuration array to be altered.
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.x.
+   * @internal
    *
+   * @todo Remove this method call and its method in Drupal 9.
+   *
+   * @see https://www.drupal.org/project/drupal/issues/3069757
    * @see https://www.drupal.org/node/2870971
    */
   protected function resolveBackwardCompatibilityConfiguration(array &$configuration) {
@@ -132,7 +137,7 @@ abstract class SelectionPluginBase extends PluginBase implements SelectionInterf
       if (!is_array($configuration['handler_settings'])) {
         throw new \InvalidArgumentException("The setting 'handler_settings' is reserved and cannot be used.");
       }
-      @trigger_error("Providing settings under 'handler_settings' is deprecated and will be removed before 9.0.0. Move the settings in the root of the configuration array. See https://www.drupal.org/node/2870971.", E_USER_DEPRECATED);
+      @trigger_error("Providing settings under 'handler_settings' is deprecated in drupal:8.4.0 support for 'handler_settings' is removed from drupal:9.0.0. Move the settings in the root of the configuration array. See https://www.drupal.org/node/2870971", E_USER_DEPRECATED);
 
       // Settings passed in the root level take precedence over BC settings.
       $configuration += $configuration['handler_settings'];
@@ -143,8 +148,11 @@ abstract class SelectionPluginBase extends PluginBase implements SelectionInterf
   /**
    * Ensures a backward compatibility level configuration.
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.x.
+   * @internal
    *
+   * @todo Remove this method call and its method in Drupal 9.
+   *
+   * @see https://www.drupal.org/project/drupal/issues/3069757
    * @see https://www.drupal.org/node/2870971
    */
   protected function ensureBackwardCompatibilityConfiguration() {

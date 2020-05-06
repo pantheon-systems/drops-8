@@ -22,6 +22,11 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
   public static $modules = ['quickedit', 'filter', 'node', 'editor'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * The basic permissions necessary to view content and use in-place editing.
    *
    * @var array
@@ -103,11 +108,11 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
         $message = "The 'access in-place editing' permission is required.";
       }
       else {
-        $message = '';
+        $message = "The 'edit any article content' permission is required.";
       }
 
       $body = Json::decode($response->getBody());
-      $this->assertIdentical($message, $body['message']);
+      $this->assertSame($message, $body['message']);
     }
   }
 

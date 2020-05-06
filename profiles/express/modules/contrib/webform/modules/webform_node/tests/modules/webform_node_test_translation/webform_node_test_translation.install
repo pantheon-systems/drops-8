@@ -1,0 +1,59 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the webform node test translation module.
+ */
+
+use Drupal\Core\Form\FormState;
+use Drupal\language\Entity\ContentLanguageSettings;
+
+/**
+ * Implements hook_install().
+ */
+function webform_node_test_translation_install() {
+  // Initialize webform node content type translation.
+  // @see \Drupal\language\Form\ContentLanguageSettingsForm::submitForm
+  $config = ContentLanguageSettings::loadByEntityTypeBundle('node', 'webform');
+  $config->setDefaultLangcode('en')
+    ->setLanguageAlterable(TRUE)
+    ->save();
+
+  // Initialize webform node content type title field translation.
+  //
+  // Below $values are from…
+  //   $values = $form_state->getValues();
+  //   var_export($values['settings']['node']['webform']); exit;
+  //
+  // within content_translation_form_language_content_settings_submit().
+  //
+  // @see /admin/config/regional/content-language
+  // @see content_translation_form_language_content_settings_submit()
+  $values = [
+    'entity_types' => ['node' => 'node'],
+    'settings' => [
+      'node' => [
+        'webform' => [
+          'settings' => [
+            'language' => [
+              'langcode' => 'site_default',
+              'language_alterable' => '1',
+            ],
+            'content_translation' => [
+              'untranslatable_fields_hide' => '1',
+            ],
+          ],
+          'fields' => [
+            'title' => 1,
+          ],
+          'translatable' => 1,
+        ],
+      ],
+    ],
+  ];
+
+  module_load_include('inc', 'content_translation', 'content_translation.admin');
+  $form_state = new FormState();
+  $form_state->setValues($values);
+  content_translation_form_language_content_settings_submit([], $form_state);
+}

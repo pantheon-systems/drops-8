@@ -1,3 +1,19 @@
+1.6.8 (2019-10-30)
+------------------
+
+   * Fix `StringBasedFileContent::doRead` to always return a string (#204)
+
+1.6.7 (2019-07-31)
+------------------
+
+   * fix PHP 7.4 deprecation warnings (backported #189 from master)
+
+1.6.6 (2019-04-08)
+------------------
+
+   * backported #174 from master, original PR provided by @localheinz
+
+
 1.6.5 (2017-08-01)
 ------------------
 

@@ -5,6 +5,8 @@ namespace Drupal\webform\Element;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element\FormElement;
+use Drupal\webform\Utility\WebformElementHelper;
+use Drupal\webform\Utility\WebformOptionsHelper;
 
 /**
  * Provides a mapping element.
@@ -32,6 +34,7 @@ class WebformMapping extends FormElement {
       '#theme_wrappers' => ['form_element'],
       '#required' => FALSE,
       '#source' => [],
+      '#source__description_display' => 'description',
       '#destination' => [],
       '#arrow' => '→',
     ];
@@ -50,6 +53,26 @@ class WebformMapping extends FormElement {
 
     $arrow = htmlentities($element['#arrow']);
 
+    // Process sources.
+    $sources = [];
+    foreach ($element['#source'] as $source_key => $source) {
+      $source = (string) $source;
+      if (strpos($source, WebformOptionsHelper::DESCRIPTION_DELIMITER) === FALSE) {
+        $source_description_property_name = NULL;
+        $source_title = $source;
+        $source_description = '';
+      }
+      else {
+        $source_description_property_name = ($element['#source__description_display'] == 'help') ? 'help' : 'description';
+        list($source_title, $source_description) = explode(WebformOptionsHelper::DESCRIPTION_DELIMITER, $source);
+      }
+      $sources[$source_key] = [
+        'description_property_name' => $source_description_property_name,
+        'title' => $source_title,
+        'description' => $source_description,
+      ];
+    }
+
     // Setup destination__type depending if #destination is defined.
     if (empty($element['#destination__type'])) {
       $element['#destination__type'] = (empty($element['#destination'])) ? 'textfield' : 'select';
@@ -59,6 +82,7 @@ class WebformMapping extends FormElement {
     $destination_element_base = [
       '#title_display' => 'invisible',
       '#required' => ($element['#required'] === self::REQUIRED_ALL) ? TRUE : FALSE,
+      '#error_no_message'  => ($element['#required'] !== self::REQUIRED_ALL) ? TRUE : FALSE,
     ];
 
     // Get base #destination__* properties.
@@ -70,17 +94,37 @@ class WebformMapping extends FormElement {
 
     // Build header.
     $header = [
-      ['data' => ['#markup' => $element['#source__title'] . ' ' . $arrow], 'width' => '50%'],
-      ['data' => ['#markup' => $element['#destination__title']], 'width' => '50%'],
+      ['data' => ['#markup' => $element['#source__title'] . ' ' . $arrow]],
+      ['data' => ['#markup' => $element['#destination__title']]],
     ];
 
     // Build rows.
     $rows = [];
-    foreach ($element['#source'] as $source_key => $source_title) {
+    foreach ($sources as $source_key => $source) {
       $default_value = (isset($element['#default_value'][$source_key])) ? $element['#default_value'][$source_key] : NULL;
 
+      // Source element.
+      $source_element = ['data' => []];
+      $source_element['data']['title'] = ['#markup' => $source['title']];
+      if ($source['description_property_name'] === 'help') {
+        $source_element['data']['help'] = [
+          '#type' => 'webform_help',
+          '#help' => $source['description'],
+          '#help_title' => $source['title'],
+        ];
+      }
+      $source_element['data']['arrow'] = ['#markup' => $arrow, '#prefix' => ' '];
+      if ($source['description_property_name'] === 'description') {
+        $source_element['data']['description'] = [
+          '#type' => 'container',
+          '#markup' => $source['description'],
+          '#attributes' => ['class' => ['description']],
+        ];
+      }
+
+      // Destination element.
       $destination_element = $destination_element_base + [
-        '#title' => $source_title,
+        '#title' => $source['title'],
         '#required' => $element['#required'],
         '#default_value' => $default_value,
       ];
@@ -94,14 +138,15 @@ class WebformMapping extends FormElement {
         case 'select':
         case 'webform_select_other':
           $destination_element += [
-            '#empty_value' => '',
+            '#empty_option' => t('- Select -'),
             '#options' => $element['#destination'],
           ];
           break;
       }
 
+      // Add row.
       $rows[$source_key] = [
-        'source' => ['#markup' => $source_title . ' ' . $arrow],
+        'source' => $source_element,
         $source_key => $destination_element,
       ];
     }
@@ -122,11 +167,15 @@ class WebformMapping extends FormElement {
     ];
     $element['table'] += array_intersect_key($element, array_combine($properties, $properties));
 
-    $element['#element_validate'] = [[get_called_class(), 'validateWebformMapping']];
+    // Add validate callback.
+    $element += ['#element_validate' => []];
+    array_unshift($element['#element_validate'], [get_called_class(), 'validateWebformMapping']);
 
-    if (isset($element['#states'])) {
+    if (!empty($element['#states'])) {
       webform_process_states($element, '#wrapper_attributes');
     }
+
+    $element['#attached']['library'][] = 'webform/webform.element.mapping';
 
     return $element;
   }
@@ -138,21 +187,14 @@ class WebformMapping extends FormElement {
     $value = NestedArray::getValue($form_state->getValues(), $element['#parents']);
     $value = array_filter($value);
 
-    $has_access = (!isset($element['#access']) || $element['#access'] === TRUE);
     // Note: Not validating REQUIRED_ALL because each destination element is
     // already required.
+    $has_access = (!isset($element['#access']) || $element['#access'] === TRUE);
     if ($element['#required'] && $element['#required'] !== self::REQUIRED_ALL && empty($value) && $has_access) {
-      if (isset($element['#required_error'])) {
-        $form_state->setError($element, $element['#required_error']);
-      }
-      elseif (isset($element['#title'])) {
-        $form_state->setError($element, t('@name field is required.', ['@name' => $element['#title']]));
-      }
-      else {
-        $form_state->setError($element);
-      }
+      WebformElementHelper::setRequiredError($element, $form_state);
     }
 
+    $element['#value'] = $value;
     $form_state->setValueForElement($element, $value);
   }
 

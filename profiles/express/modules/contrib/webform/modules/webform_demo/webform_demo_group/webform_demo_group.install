@@ -1,0 +1,213 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the webform demo group module.
+ *
+ * drush php-eval "module_load_include('install', 'webform_demo_group'); webform_demo_group_install()";
+ * drush php-eval "module_load_include('install', 'webform_demo_group'); webform_demo_group_uninstall()";
+ */
+
+use Drupal\group\Entity\Group;
+use Drupal\node\Entity\Node;
+use Drupal\user\Entity\Role;
+use Drupal\user\Entity\User;
+use Drupal\webform\WebformInterface;
+use Drupal\webform\Entity\Webform;
+use Drupal\webform\Entity\WebformSubmission;
+
+/**
+ * Implements hook_install().
+ */
+function webform_demo_group_install() {
+  /** @var \Drupal\webform\WebformSubmissionGenerateInterface $submission_generate */
+  $submission_generate = \Drupal::service('webform_submission.generate');
+  /** @var \Drupal\Core\Path\AliasStorageInterface $path_alias_storage */
+  $path_alias_storage = \Drupal::service('path.alias_storage');
+
+  $demo_base_path = '/webform/group';
+
+  /** @var \Drupal\webform\WebformInterface $webform */
+  $webform = Webform::load('webform_group_contact');
+  // Disable all handlers.
+  foreach ($webform->getHandlers() as $handler) {
+    $handler->disable();
+    $webform->updateWebformHandler($handler);
+  }
+
+  $role_types = [
+    'administrator' => [
+      'name' => 'Administrator',
+      'permissions' => [
+        'access toolbar',
+        'access group overview',
+        'view the administration theme',
+      ],
+    ],
+    'manager' => [
+      'name' => 'Manager',
+      'permissions' => [
+        'access toolbar',
+        'access group overview',
+        'view the administration theme',
+      ],
+    ],
+    'reviewer' => [
+      'name' => 'Reviewer',
+      'permissions' => [
+        'access toolbar',
+        'access group overview',
+        'view the administration theme',
+      ],
+    ],
+    'member' => [
+      'name' => 'Member',
+      'permissions' => [],
+    ],
+  ];
+
+  // Create user roles.
+  foreach ($role_types as $role_type => &$role_settings) {
+    $values = [
+      'id' => 'webform_group_' . $role_type,
+      'label' => 'Webform Group ' . $role_settings['name'],
+    ];
+    $role_settings += $values;
+
+    $role = Role::create($values);
+    foreach ($role_settings['permissions'] as $permission) {
+      $role->grantPermission($permission);
+    }
+    $role->save();
+  }
+
+  foreach (['a', 'b'] as $letter) {
+    foreach (['1', '2'] as $number) {
+      $group_type = 'webform_group_' . $letter;
+      $group_name = 'webform_group_' . $letter . '_' . $number;
+
+      $t_args = [
+        '@letter' => strtoupper($letter),
+        '@number' => $number,
+      ];
+
+      // Create group.
+      /** @var \Drupal\group\Entity\GroupInterface $group */
+      $group = Group::create([
+        'type' => $group_type,
+        'label' => t('Webform Group @letter:@number', $t_args),
+      ]);
+      // Must first save the group to allow entities to be added.
+      $group->save();
+
+      // Create URL alias.
+      $source = $group->toUrl()->toString();
+      $alias = "$demo_base_path/$letter/$number";
+      $path_alias_storage->save($source, $alias);
+
+      // Create webform node.
+      /** @var \Drupal\node\NodeInterface $webform_node */
+      $webform_node = Node::create([
+        'type' => 'webform',
+        'title' => t('Webform Group @letter:@number - Contact', $t_args),
+        'status' => 1,
+      ]);
+      $webform_node->webform->target_id = $webform->id();
+      $webform_node->webform->status = WebformInterface::STATUS_OPEN;
+      $webform_node->webform->open = '';
+      $webform_node->webform->close = '';
+      $webform_node->body->value = '';
+      $webform_node->body->format = filter_default_format();
+      $webform_node->save();
+
+      // Add webform node to group.
+      // @see https://www.drupal.org/project/group/issues/2772623
+      $group->addContent($webform_node, 'group_node:webform');
+
+      // Create URL alias.
+      $source = $webform_node->toUrl()->toString();
+      $alias = "$demo_base_path/$letter/$number/contact";
+      $path_alias_storage->save($source, $alias);
+
+      foreach ($role_types as $role_type => $role_settings) {
+        // Create users with roles and add them as members to the group.
+        $user_name = $group_name . '_' . $role_type;
+        $user = User::create([
+          'name' => $user_name,
+          'mail' => $user_name . '@test.com',
+          'status' => 1,
+        ]);
+        $user->setPassword($user_name);
+        $user->addRole($role_settings['id']);
+        $user->save();
+        $group->addMember($user, ['group_roles' => [$group_type . '-' . $role_type]]);
+
+        // Create user webform submissions.
+        WebformSubmission::create([
+          'webform_id' => $webform->id(),
+          'entity_type' => 'node',
+          'entity_id' => $webform_node->id(),
+          'uid' => $user->id(),
+          'data' => [
+            'name' => $user->label(),
+            'email' => $user->getEmail(),
+          ] + $submission_generate->getData($webform),
+        ])->save();
+      }
+
+      // Resave the group with related nodes and members.
+      $group->save();
+    }
+  }
+
+  $config = \Drupal::configFactory()->getEditable('webform_group.settings');
+  $group_roles = $config->get('mail.group_roles');
+  $group_roles = array_unique(array_merge($group_roles, ['reviewer', 'manager', 'administrator']));
+  $config->set('mail.group_roles', $group_roles)
+    ->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_demo_group_uninstall() {
+  // Delete groups and group content.
+  /** @var \Drupal\group\Entity\GroupInterface[] $groups */
+  $groups = Group::loadMultiple();
+  foreach ($groups as $group) {
+    if (in_array($group->bundle(), ['webform_group_a', 'webform_group_b'])) {
+      /** @var \Drupal\group\Entity\GroupContentInterface[] $group_contents */
+      $group_contents = $group->getContent('group_node:webform');
+      foreach ($group_contents as $group_content) {
+        // Delete the group content before the entity.
+        $entity = $group_content->getEntity();
+        $group_content->delete();
+        $entity->delete();
+      }
+      $group->delete();
+    }
+  }
+
+  // Delete users and roles.
+  $entity_types = [
+    'user' => 'name',
+    'user_role' => 'id',
+  ];
+  foreach ($entity_types as $entity_type => $entity_key) {
+    $entity_ids = \Drupal::entityQuery($entity_type)
+      ->condition($entity_key, 'webform_group', 'STARTS_WITH')
+      ->execute();
+    if ($entity_ids) {
+      $entities = \Drupal::entityTypeManager()->getStorage($entity_type)->loadMultiple($entity_ids);
+      foreach ($entities as $entity) {
+        $entity->delete();
+      }
+    }
+  }
+
+  // Delete URL aliases.
+  // @todo Remove once Drupal 8.8.x is only supported.
+  $table_name = (floatval(\Drupal::VERSION) >= 8.8) ? 'path_alias' : 'url_alias';
+  $params = [':alias' => '/webform/group/%'];
+  \Drupal::database()->query('DELETE FROM {' . $table_name . '} WHERE alias LIKE :alias', $params);
+}

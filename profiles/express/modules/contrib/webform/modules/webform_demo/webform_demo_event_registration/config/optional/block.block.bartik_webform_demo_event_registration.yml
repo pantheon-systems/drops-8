@@ -1,0 +1,36 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - node
+    - webform
+  theme:
+    - bartik
+id: bartik_webform_demo_event_registration
+theme: bartik
+region: sidebar_second
+weight: 0
+provider: null
+plugin: webform_submission_limit_block
+settings:
+  id: webform_submission_limit_block
+  label: 'Demo: Event Registration System'
+  provider: webform
+  label_display: visible
+  type: webform
+  source_entity: true
+  content: ''
+  progress_bar: true
+  progress_bar_label: ''
+  progress_bar_message: '[total]/[limit]'
+  webform_id: null
+  entity_type: ''
+  entity_id: ''
+visibility:
+  node_type:
+    id: node_type
+    bundles:
+      webform_demo_event: webform_demo_event
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'

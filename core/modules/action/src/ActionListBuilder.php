@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Defines a class to build a listing of action entities.
  *
  * @see \Drupal\system\Entity\Action
- * @see action_entity_info()
+ * @see action_entity_type_build()
  */
 class ActionListBuilder extends ConfigEntityListBuilder {
 
@@ -51,7 +51,7 @@ class ActionListBuilder extends ConfigEntityListBuilder {
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager')->getStorage($entity_type->id()),
+      $container->get('entity_type.manager')->getStorage($entity_type->id()),
       $container->get('plugin.manager.action')
     );
   }

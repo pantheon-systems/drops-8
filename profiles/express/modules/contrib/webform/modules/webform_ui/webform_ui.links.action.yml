@@ -1,0 +1,29 @@
+entity.webform_ui.element:
+  route_name: entity.webform_ui.element
+  title: 'Add element'
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  dialog: normal
+  attributes:
+    id: 'webform-ui-add-element'
+  appears_on:
+    - entity.webform.edit_form
+
+entity.webform_ui.element.page:
+  route_name: entity.webform_ui.element.add_page
+  title: 'Add page'
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  off_canvas: normal
+  attributes:
+    id: 'webform-ui-add-page'
+  appears_on:
+    - entity.webform.edit_form
+
+entity.webform_ui.element.layout:
+  route_name: entity.webform_ui.element.add_layout
+  title: 'Add layout'
+  class: '\Drupal\webform\Plugin\Menu\LocalAction\WebformDialogLocalAction'
+  off_canvas: normal
+  attributes:
+    id: 'webform-ui-add-layout'
+  appears_on:
+    - entity.webform.edit_form

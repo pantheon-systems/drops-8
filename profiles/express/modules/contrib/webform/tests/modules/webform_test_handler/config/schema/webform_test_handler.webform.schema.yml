@@ -1,13 +1,10 @@
-# Schema for the configuration files of the webform test handler module.
-
 webform.handler.test:
   type: mapping
-  label: 'Test'
+  label: Test
   mapping:
     message:
-      label: 'Message'
+      label: Message
       type: string
-
 webform.handler.test_entity_mapping:
   type: mapping
   label: 'Test entity mapping'
@@ -16,8 +13,8 @@ webform.handler.test_entity_mapping:
       label: 'Entity type'
       type: string
     bundle:
-      label: 'Bundle'
+      label: Bundle
       type: string
     fields:
       type: ignore
-      label: 'Fields'
+      label: Fields

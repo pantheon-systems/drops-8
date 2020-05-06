@@ -13,7 +13,7 @@ function user_schema() {
     'description' => 'Stores module data as key/value pairs per user.',
     'fields' => [
       'uid' => [
-        'description' => 'Primary key: {users}.uid for user.',
+        'description' => 'The {users}.uid this record affects.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
@@ -53,7 +53,12 @@ function user_schema() {
       'name' => ['name'],
     ],
     'foreign keys' => [
-      'uid' => ['users' => 'uid'],
+      'data_user' => [
+        'table' => 'users',
+        'columns' => [
+          'uid' => 'uid',
+        ],
+      ],
     ],
   ];
 
@@ -64,7 +69,7 @@ function user_schema() {
  * Implements hook_install().
  */
 function user_install() {
-  $storage = \Drupal::entityManager()->getStorage('user');
+  $storage = \Drupal::entityTypeManager()->getStorage('user');
   // Insert a row for the anonymous user.
   $storage
     ->create([

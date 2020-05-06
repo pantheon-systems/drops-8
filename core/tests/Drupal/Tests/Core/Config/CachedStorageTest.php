@@ -14,7 +14,7 @@ use Drupal\Core\Cache\NullBackend;
 class CachedStorageTest extends UnitTestCase {
 
   /**
-   * @var \Drupal\Core\Cache\CacheFactoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Cache\CacheFactoryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $cacheFactory;
 
@@ -23,7 +23,7 @@ class CachedStorageTest extends UnitTestCase {
    */
   public function testListAllStaticCache() {
     $prefix = __FUNCTION__;
-    $storage = $this->getMock('Drupal\Core\Config\StorageInterface');
+    $storage = $this->createMock('Drupal\Core\Config\StorageInterface');
 
     $response = ["$prefix." . $this->randomMachineName(), "$prefix." . $this->randomMachineName()];
     $storage->expects($this->once())

@@ -11,7 +11,7 @@ elements: |
       4: 'Las cuatro'
       5: Cinco
       6: Seis
-    '#other__option_label': 'Número personalizado...'
+    '#other__option_label': 'Número personalizado…'
   details:
     '#title': Detalles
   markup:
@@ -26,6 +26,14 @@ elements: |
       age:
         '#title': Edad
         '#field_suffix': 'años. antiguo'
+  address:
+    '#title': 'Dirección'
+    '#address__title': 'Dirección'
+    '#address_2__title': 'Dirección 2'
+    '#city__title': 'Ciudad / Pueblo'
+    '#state_province__title': 'Estado / Provincia'
+    '#postal_code__title': 'ZIP / Código Postal'
+    '#country__title': 'Acciones de país'
   actions:
     '#type': webform_actions
     '#title': 'Submit button(s)'
@@ -35,6 +43,7 @@ settings:
 handlers:
   email_confirmation:
     label: ' Confirmación de correo electrónico'
+weight: 0
 dependencies:
   enforced:
     module:

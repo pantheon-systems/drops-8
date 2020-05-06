@@ -3,54 +3,22 @@
  * Promotions styles.
  */
 
-.messages.messages--promotion_lingotek {
-  color: #635e58;
-  background-color: #ddd;
-  background-image: url(../images/promotions/lingotek-chevron.png);
-  border-color: #635e58 #635e58 #635e58 transparent;  /* LTR */
-  box-shadow: -8px 0 0 #635e58; /* LTR */
-  padding-left: 45px; /* LTR */
+/**
+ * Webform message with logo.
+ */
+.webform-message .messages.messages--webform {
+  min-height: 20px;
+  padding-left: 56px; /* LTR */
+  color: #000;
+  border-color: #a6a6a6 #a6a6a6 #a6a6a6 transparent; /* LTR */
+  background: #e0e0d8 url(../images/logo/webform_icon_36.png) 10px center no-repeat;
+  background-size: auto;
+  box-shadow: -8px 0 0 #a6a6a6; /* LTR */
 }
 
-[dir="rtl"] .messages.messages--promotion_lingotek {
-  border-color: #635e58 transparent #635e58 #635e58;
-  box-shadow: 8px 0 0 #635e58;
+[dir="rtl"] .webform-message .messages.messages--webform {
   margin-left: 0;
-  padding-right: 45px;
-}
-
-.messages.messages--promotion_lingotek strong {
-  color: #f47920;
-}
-
-.messages.messages--promotion_lingotek em {
-  font-style: normal;
-  font-weight: bold;
-}
-
-.messages.messages--promotion_lingotek img {
-  float: left;
-  margin: 0 20px 20px 0;
-}
-
-@media screen and (max-width: 480px) {
-  .messages.messages--promotion_lingotek img {
-    float: none;
-    margin: 0 0 20px;
-  }
-}
-
-.messages.messages--promotion_lingotek .button {
-  margin-left: 0;
-}
-
-@media screen and (max-width: 600px) {
-  .messages.messages--promotion_lingotek .button {
-    display: block;
-    margin-left: 0;
-    margin-right: 0;
-    margin-top: 10px;
-    padding-bottom: 6px;
-    width: 100%;
-  }
+  padding-right: 56px;
+  border-color: #a6a6a6 transparent #a6a6a6 #a6a6a6;
+  box-shadow: 8px 0 0 #a6a6a6;
 }

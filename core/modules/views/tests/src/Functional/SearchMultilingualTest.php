@@ -23,6 +23,11 @@ class SearchMultilingualTest extends ViewTestBase {
   public static $modules = ['node', 'search', 'language', 'content_translation'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -54,7 +59,6 @@ class SearchMultilingualTest extends ViewTestBase {
       'settings[node][' . $type->id() . '][fields][body]' => TRUE,
     ];
     $this->drupalPostForm('admin/config/regional/content-language', $edit, t('Save configuration'));
-    \Drupal::entityManager()->clearCachedDefinitions();
 
     // Add a node in English, with title "sandwich".
     $values = [

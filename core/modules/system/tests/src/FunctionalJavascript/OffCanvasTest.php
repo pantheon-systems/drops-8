@@ -26,6 +26,11 @@ class OffCanvasTest extends OffCanvasTestBase {
   ];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests that non-contextual links will work with the off-canvas dialog.
    *
    * @dataProvider themeDataProvider
@@ -156,7 +161,7 @@ class OffCanvasTest extends OffCanvasTestBase {
     // Click the first test like that should open the page.
     $page->clickLink($link_text);
     if ($this->lastDialogClass) {
-      $this->waitForNoElement('.' . $this->lastDialogClass);
+      $web_assert->assertNoElementAfterWait('css', '.' . $this->lastDialogClass);
     }
     $this->waitForOffCanvasToOpen($position);
     $this->lastDialogClass = "$position-$link_index";

@@ -7,6 +7,7 @@ use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\UrlGeneratorTrait;
+use Drupal\Core\Url;
 use Drupal\views\Entity\View;
 use Drupal\views\Views;
 use Drupal\views_ui\ViewUI;
@@ -139,7 +140,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
     $this->bundleInfoService = $bundle_info_service;
     $this->base_table = $this->definition['base_table'];
 
-    $entity_types = \Drupal::entityManager()->getDefinitions();
+    $entity_types = \Drupal::entityTypeManager()->getDefinitions();
     foreach ($entity_types as $entity_type_id => $entity_type) {
       if (in_array($this->base_table, [$entity_type->getBaseTable(), $entity_type->getDataTable(), $entity_type->getRevisionTable(), $entity_type->getRevisionDataTable()], TRUE)) {
         $this->entityType = $entity_type;
@@ -215,7 +216,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $style_options = Views::fetchPluginNames('style', 'normal', [$this->base_table]);
     $feed_row_options = Views::fetchPluginNames('row', 'feed', [$this->base_table]);
-    $path_prefix = $this->url('<none>', [], ['absolute' => TRUE]);
+    $path_prefix = Url::fromRoute('<none>', [], ['absolute' => TRUE])->toString();
 
     // Add filters and sorts which apply to the view as a whole.
     $this->buildFilters($form, $form_state);
@@ -928,6 +929,7 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
       // example, is stored in taxonomy_vocabulary, not taxonomy_term_data.
       module_load_include('inc', 'views_ui', 'admin');
       $fields = Views::viewsDataHelper()->fetchFields($this->base_table, 'filter');
+      $table = FALSE;
       if (isset($fields[$this->base_table . '.' . $bundle_key])) {
         $table = $this->base_table;
       }
@@ -939,27 +941,34 @@ abstract class WizardPluginBase extends PluginBase implements WizardInterface {
           }
         }
       }
-      $table_data = Views::viewsData()->get($table);
-      // If the 'in' operator is being used, map the values to an array.
-      $handler = $table_data[$bundle_key]['filter']['id'];
-      $handler_definition = Views::pluginManager('filter')->getDefinition($handler);
-      if ($handler == 'in_operator' || is_subclass_of($handler_definition['class'], 'Drupal\\views\\Plugin\\views\\filter\\InOperator')) {
-        $value = [$type => $type];
-      }
-      // Otherwise, use just a single value.
-      else {
-        $value = $type;
-      }
+      // Some entities have bundles but don't provide their bundle data on the
+      // base table. In this case the entities wizard should provide a
+      // relationship to the relevant data.
+      // @see \Drupal\node\Plugin\views\wizard\NodeRevision
+      if (!empty($table)) {
+        $table_data = Views::viewsData()->get($table);
+        // If the 'in' operator is being used, map the values to an array.
+        $handler = $table_data[$bundle_key]['filter']['id'];
+        $handler_definition = Views::pluginManager('filter')
+          ->getDefinition($handler);
+        if ($handler == 'in_operator' || is_subclass_of($handler_definition['class'], 'Drupal\\views\\Plugin\\views\\filter\\InOperator')) {
+          $value = [$type => $type];
+        }
+        // Otherwise, use just a single value.
+        else {
+          $value = $type;
+        }
 
-      $filters[$bundle_key] = [
-        'id' => $bundle_key,
-        'table' => $table,
-        'field' => $bundle_key,
-        'value' => $value,
-        'entity_type' => isset($table_data['table']['entity type']) ? $table_data['table']['entity type'] : NULL,
-        'entity_field' => isset($table_data[$bundle_key]['entity field']) ? $table_data[$bundle_key]['entity field'] : NULL,
-        'plugin_id' => $handler,
-      ];
+        $filters[$bundle_key] = [
+          'id' => $bundle_key,
+          'table' => $table,
+          'field' => $bundle_key,
+          'value' => $value,
+          'entity_type' => isset($table_data['table']['entity type']) ? $table_data['table']['entity type'] : NULL,
+          'entity_field' => isset($table_data[$bundle_key]['entity field']) ? $table_data[$bundle_key]['entity field'] : NULL,
+          'plugin_id' => $handler,
+        ];
+      }
     }
 
     return $filters;

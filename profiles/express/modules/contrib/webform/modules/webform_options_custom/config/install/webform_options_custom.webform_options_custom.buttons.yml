@@ -1,0 +1,92 @@
+langcode: en
+status: true
+dependencies: {  }
+id: buttons
+label: Buttons
+description: 'An example of custom buttons.'
+help: ''
+category: 'Buttons'
+type: template
+template: |
+  <div class="webform-custom-options-buttons">
+  {% for value, text in options %}
+    <div class="webform-custom-options-button" data-option-value="{{ value }}" style="text-align:center">
+    {{ text }}
+    {% if descriptions[value] %}<div class="description">{{ descriptions[value] }}</div>{% endif %}
+    </div>
+  {% endfor %}
+  </div>
+url: ''
+css: |
+  .webform-custom-options-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -5px;
+  }
+
+  .webform-custom-options-button {
+    flex: 1;
+    display: table-cell;
+    margin: 0 5px 10px 5px;
+    border: 3px solid #ccc;
+    border-radius: 3px;
+    background-color: #fff;
+    padding: 10px;
+    vertical-align: middle;
+    text-align: center;
+    color: #666;
+  }
+
+  .webform-custom-options-button .description {
+    font-size: .8em;
+  }
+
+  .webform-custom-options-button[data-option-value]:hover {
+    border-color: #999;
+    color: #333;
+  }
+
+  .webform-custom-options-button[data-option-value]:focus {
+    border-color: #999;
+    color: #333;
+  }
+
+  .webform-custom-options-button[data-option-value][aria-checked=true] {
+    border-color: #0074bd;
+    color: #000;
+  }
+
+  .webform-custom-options-button[data-option-value][aria-checked=true]:focus {
+    box-shadow: 0 0 5px #0074bd;
+  }
+
+  .webform-custom-options-button[data-option-value][aria-disabled=true],
+  .webform-custom-options-button[data-option-value][aria-disabled=true]:hover,
+  .webform-custom-options-button[data-option-value][aria-disabled=true]:focus {
+    cursor: not-allowed;
+    border-color: #ccc;
+    color: #999;
+  }
+
+  @media (max-width: 600px) {
+    .webform-custom-options-buttons {
+      display: block;
+      margin: 0;
+    }
+
+    .webform-custom-options-button {
+      display: block;
+      margin: 5px 0;
+    }
+  }
+
+javascript: ''
+options: '{  }'
+value_attributes: ''
+text_attributes: ''
+fill: false
+zoom: false
+tooltip: false
+show_select: false
+element: true
+entity_reference: false

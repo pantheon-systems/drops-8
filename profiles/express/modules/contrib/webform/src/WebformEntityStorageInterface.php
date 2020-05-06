@@ -73,4 +73,13 @@ interface WebformEntityStorageInterface extends ConfigEntityStorageInterface, Im
    */
   public function getMaxSerial(WebformInterface $webform);
 
+  /**
+   * Get total results for all webforms.
+   *
+   * @return array
+   *   An associative array keyed by webform id contains total results for
+   *   all webforms.
+   */
+  public function getTotalNumberOfResults();
+
 }

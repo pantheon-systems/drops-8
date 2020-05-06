@@ -1,0 +1,11 @@
+entity.webform_access_group.add_form:
+  route_name: entity.webform_access_group.add_form
+  title: 'Add access group'
+  appears_on:
+    - entity.webform_access_group.collection
+
+entity.webform_access_type.add_form:
+  route_name: entity.webform_access_type.add_form
+  title: 'Add access type'
+  appears_on:
+    - entity.webform_access_type.collection

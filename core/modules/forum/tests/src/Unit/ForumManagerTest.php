@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\forum\Unit;
 
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -14,13 +16,14 @@ class ForumManagerTest extends UnitTestCase {
    * Tests ForumManager::getIndex().
    */
   public function testGetIndex() {
-    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
+    $entity_field_manager = $this->createMock(EntityFieldManagerInterface::class);
+    $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
 
     $storage = $this->getMockBuilder('\Drupal\taxonomy\VocabularyStorage')
       ->disableOriginalConstructor()
       ->getMock();
 
-    $config_factory = $this->getMock('\Drupal\Core\Config\ConfigFactoryInterface');
+    $config_factory = $this->createMock('\Drupal\Core\Config\ConfigFactoryInterface');
 
     $config = $this->getMockBuilder('\Drupal\Core\Config\Config')
       ->disableOriginalConstructor()
@@ -34,7 +37,7 @@ class ForumManagerTest extends UnitTestCase {
       ->method('get')
       ->will($this->returnValue('forums'));
 
-    $entity_manager->expects($this->once())
+    $entity_type_manager->expects($this->once())
       ->method('getStorage')
       ->will($this->returnValue($storage));
 
@@ -57,13 +60,17 @@ class ForumManagerTest extends UnitTestCase {
       ->disableOriginalConstructor()
       ->getMock();
 
-    $manager = $this->getMock('\Drupal\forum\ForumManager', ['getChildren'], [
-      $config_factory,
-      $entity_manager,
-      $connection,
-      $translation_manager,
-      $comment_manager,
-    ]);
+    $manager = $this->getMockBuilder('\Drupal\forum\ForumManager')
+      ->setMethods(['getChildren'])
+      ->setConstructorArgs([
+        $config_factory,
+        $entity_type_manager,
+        $connection,
+        $translation_manager,
+        $comment_manager,
+        $entity_field_manager,
+      ])
+      ->getMock();
 
     $manager->expects($this->once())
       ->method('getChildren')

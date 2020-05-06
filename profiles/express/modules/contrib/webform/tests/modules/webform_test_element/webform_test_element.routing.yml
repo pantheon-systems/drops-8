@@ -1,0 +1,7 @@
+webform_test_element:
+  path: '/webform_test_element'
+  defaults:
+    _controller: '\Drupal\webform_test_element\Controller\WebformTestElementController:index'
+    _title: 'Webform test element'
+  requirements:
+    _access: 'TRUE'

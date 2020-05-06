@@ -15,6 +15,34 @@ use Drupal\webform\WebformSubmissionInterface;
 class WebformNodeAccess {
 
   /**
+   * Check whether the user can access a node's webform drafts.
+   *
+   * @param string $operation
+   *   Operation being performed.
+   * @param string $entity_access
+   *   Entity access rule that needs to be checked.
+   * @param \Drupal\node\NodeInterface $node
+   *   A node.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Run access checks for this account.
+   *
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
+   */
+  public static function checkWebformDraftsAccess($operation, $entity_access, NodeInterface $node, AccountInterface $account) {
+    $access_result = static::checkAccess($operation, $entity_access, $node, NULL, $account);
+    if ($access_result->isAllowed()) {
+      /** @var \Drupal\webform\WebformEntityReferenceManagerInterface $entity_reference_manager */
+      $entity_reference_manager = \Drupal::service('webform.entity_reference_manager');
+      $webform = $entity_reference_manager->getWebform($node);
+      return WebformEntityAccess::checkDraftsAccess($webform, $node);
+    }
+    else {
+      return $access_result;
+    }
+  }
+
+  /**
    * Check whether the user can access a node's webform results.
    *
    * @param string $operation
@@ -120,7 +148,13 @@ class WebformNodeAccess {
         return WebformSubmissionAccess::checkWizardPagesAccess($webform_submission);
 
       case 'webform_submission_resend':
-        return WebformSubmissionAccess::checkEmailAccess($webform_submission, $account);
+        return WebformSubmissionAccess::checkResendAccess($webform_submission, $account);
+
+      case 'webform_submission_duplicate':
+        /** @var \Drupal\webform\WebformEntityReferenceManagerInterface $entity_reference_manager */
+        $entity_reference_manager = \Drupal::service('webform.entity_reference_manager');
+        $webform = $entity_reference_manager->getWebform($node);
+        return WebformEntityAccess::checkWebformSettingValue($webform, 'submission_user_duplicate', TRUE);
     }
 
     return $access_result;
@@ -154,30 +188,29 @@ class WebformNodeAccess {
     }
 
     // Check that the webform submission was created via the webform node.
-    if ($webform_submission && $webform_submission->getSourceEntity() != $node) {
-      return AccessResult::forbidden();
+    if ($webform_submission) {
+      $source_node = $webform_submission->getSourceEntity();
+      if (!$source_node || $source_node->id() !== $node->id()) {
+        return AccessResult::forbidden();
+      }
     }
 
     // Check the node operation.
-    if ($operation && $node->access($operation, $account)) {
-      return AccessResult::allowed();
-    }
+    $result = $operation ? $node->access($operation, $account, TRUE) : AccessResult::neutral();
 
     // Check entity access.
     if ($entity_access) {
       // Check entity access for the webform.
-      if (strpos($entity_access, 'webform.') === 0
-        && $webform->access(str_replace('webform.', '', $entity_access), $account)) {
-        return AccessResult::allowed();
+      if (strpos($entity_access, 'webform.') === 0) {
+        $result = $result->orIf($webform->access(str_replace('webform.', '', $entity_access), $account, TRUE));
       }
       // Check entity access for the webform submission.
-      if (strpos($entity_access, 'webform_submission.') === 0
-        && $webform_submission->access(str_replace('webform_submission.', '', $entity_access), $account)) {
-        return AccessResult::allowed();
+      if (strpos($entity_access, 'webform_submission.') === 0) {
+        $result = $result->orIf($webform_submission->access(str_replace('webform_submission.', '', $entity_access), $account, TRUE));
       }
     }
 
-    return AccessResult::forbidden();
+    return $result;
   }
 
 }

@@ -5,23 +5,26 @@ namespace Drupal\layout_builder\EventSubscriber;
 use Drupal\block_content\Access\RefinableDependentAccessInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\PreviewFallbackInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\layout_builder\Access\LayoutPreviewAccessAllowed;
 use Drupal\layout_builder\Event\SectionComponentBuildRenderArrayEvent;
 use Drupal\layout_builder\LayoutBuilderEvents;
+use Drupal\views\Plugin\Block\ViewsBlock;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
  * Builds render arrays and handles access for all block components.
  *
  * @internal
- *   Layout Builder is currently experimental and should only be leveraged by
- *   experimental modules and development releases of contributed modules.
- *   See https://www.drupal.org/core/experimental for more information.
+ *   Tagged services are internal.
  */
 class BlockComponentRenderArray implements EventSubscriberInterface {
+
+  use StringTranslationTrait;
 
   /**
    * The current user.
@@ -90,7 +93,22 @@ class BlockComponentRenderArray implements EventSubscriberInterface {
     if ($access->isAllowed()) {
       $event->addCacheableDependency($block);
 
+      // @todo Revisit after https://www.drupal.org/node/3027653, as this will
+      //   provide a better way to remove contextual links from Views blocks.
+      //   Currently, doing this requires setting
+      //   \Drupal\views\ViewExecutable::$showAdminLinks() to false before the
+      //   Views block is built.
+      if ($block instanceof ViewsBlock && $event->inPreview()) {
+        $block->getViewExecutable()->setShowAdminLinks(FALSE);
+      }
+
       $content = $block->build();
+
+      // We don't output the block render data if there are no render elements
+      // found, but we want to capture the cache metadata from the block
+      // regardless.
+      $event->addCacheableDependency(CacheableMetadata::createFromRenderArray($content));
+
       $is_content_empty = Element::isEmpty($content);
       $is_placeholder_ready = $event->inPreview() && $block instanceof PreviewFallbackInterface;
       // If the content is empty and no placeholder is available, return.
@@ -108,9 +126,24 @@ class BlockComponentRenderArray implements EventSubscriberInterface {
         '#weight' => $event->getComponent()->getWeight(),
         'content' => $content,
       ];
-      if ($is_content_empty && $is_placeholder_ready) {
-        $build['content']['#markup'] = $block->getPreviewFallbackString();
+
+      if ($event->inPreview()) {
+        if ($block instanceof PreviewFallbackInterface) {
+          $preview_fallback_string = $block->getPreviewFallbackString();
+        }
+        else {
+          $preview_fallback_string = $this->t('"@block" block', ['@block' => $block->label()]);
+        }
+        // @todo Use new label methods so
+        //   data-layout-content-preview-placeholder-label doesn't have to use
+        //   preview fallback in https://www.drupal.org/node/2025649.
+        $build['#attributes']['data-layout-content-preview-placeholder-label'] = $preview_fallback_string;
+
+        if ($is_content_empty && $is_placeholder_ready) {
+          $build['content']['#markup'] = $this->t('Placeholder for the @preview_fallback', ['@preview_fallback' => $block->getPreviewFallbackString()]);
+        }
       }
+
       $event->setBuild($build);
     }
   }

@@ -27,6 +27,11 @@ class TaxonomyIndexTidUiTest extends UITestBase {
   public static $testViews = ['test_filter_taxonomy_index_tid', 'test_taxonomy_term_name'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * Modules to enable.
    *
    * @var array
@@ -66,7 +71,7 @@ class TaxonomyIndexTidUiTest extends UITestBase {
         $this->terms[$i][$j] = $term = Term::create([
           'vid' => 'tags',
           'name' => "Term $i.$j",
-          'parent' => isset($terms[$i][0]) ? $terms[$i][0]->id() : 0,
+          'parent' => isset($this->terms[$i][0]) ? $this->terms[$i][0]->id() : 0,
         ]);
         $term->save();
       }
@@ -153,9 +158,9 @@ class TaxonomyIndexTidUiTest extends UITestBase {
     $this->drupalGet('test-filter-taxonomy-index-tid');
     $xpath = $this->xpath('//div[@class="view-content"]//a');
     $this->assertIdentical(2, count($xpath));
-    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node2->url()]);
+    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node2->toUrl()->toString()]);
     $this->assertIdentical(1, count($xpath));
-    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node3->url()]);
+    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node3->toUrl()->toString()]);
     $this->assertIdentical(1, count($xpath));
 
     // Expose the filter.
@@ -173,7 +178,7 @@ class TaxonomyIndexTidUiTest extends UITestBase {
     $this->drupalGet('test-filter-taxonomy-index-tid');
     $xpath = $this->xpath('//div[@class="view-content"]//a');
     $this->assertIdentical(1, count($xpath));
-    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node1->url()]);
+    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node1->toUrl()->toString()]);
     $this->assertIdentical(1, count($xpath));
 
     // Set the operator to 'not empty'.
@@ -186,11 +191,11 @@ class TaxonomyIndexTidUiTest extends UITestBase {
     $this->drupalGet('test-filter-taxonomy-index-tid');
     $xpath = $this->xpath('//div[@class="view-content"]//a');
     $this->assertIdentical(3, count($xpath));
-    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node2->url()]);
+    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node2->toUrl()->toString()]);
     $this->assertIdentical(1, count($xpath));
-    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node3->url()]);
+    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node3->toUrl()->toString()]);
     $this->assertIdentical(1, count($xpath));
-    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node4->url()]);
+    $xpath = $this->xpath('//div[@class="view-content"]//a[@href=:href]', [':href' => $node4->toUrl()->toString()]);
     $this->assertIdentical(1, count($xpath));
 
     // Select 'Term ID' as the field to be displayed.

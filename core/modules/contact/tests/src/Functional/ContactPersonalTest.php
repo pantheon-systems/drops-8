@@ -28,6 +28,11 @@ class ContactPersonalTest extends BrowserTestBase {
   public static $modules = ['contact', 'dblog'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user with some administrative permissions.
    *
    * @var \Drupal\user\UserInterface
@@ -65,7 +70,7 @@ class ContactPersonalTest extends BrowserTestBase {
    */
   public function testSendPersonalContactMessage() {
     // Ensure that the web user's email needs escaping.
-    $mail = $this->webUser->getUsername() . '&escaped@example.com';
+    $mail = $this->webUser->getAccountName() . '&escaped@example.com';
     $this->webUser->setEmail($mail)->save();
     $this->drupalLogin($this->webUser);
 
@@ -98,7 +103,7 @@ class ContactPersonalTest extends BrowserTestBase {
     $placeholders = [
       '@sender_name' => $this->webUser->username,
       '@sender_email' => $this->webUser->getEmail(),
-      '@recipient_name' => $this->contactUser->getUsername(),
+      '@recipient_name' => $this->contactUser->getAccountName(),
     ];
     $this->assertRaw(new FormattableMarkup('@sender_name (@sender_email) sent @recipient_name an email.', $placeholders));
     // Ensure an unescaped version of the email does not exist anywhere.
@@ -210,10 +215,10 @@ class ContactPersonalTest extends BrowserTestBase {
     // form.
     $this->drupalGet('user/' . $this->webUser->id() . '/edit');
     $this->assertNoFieldChecked('edit-contact--2');
-    $this->assertFalse(\Drupal::service('user.data')->get('contact', $this->webUser->id(), 'enabled'), 'Personal contact form disabled');
+    $this->assertNull(\Drupal::service('user.data')->get('contact', $this->webUser->id(), 'enabled'), 'Personal contact form disabled');
     $this->drupalPostForm(NULL, ['contact' => TRUE], t('Save'));
     $this->assertFieldChecked('edit-contact--2');
-    $this->assertTrue(\Drupal::service('user.data')->get('contact', $this->webUser->id(), 'enabled'), 'Personal contact form enabled');
+    $this->assertNotEmpty(\Drupal::service('user.data')->get('contact', $this->webUser->id(), 'enabled'), 'Personal contact form enabled');
 
     // Test with disabled global default contact form in combination with a user
     // that has the contact form enabled.

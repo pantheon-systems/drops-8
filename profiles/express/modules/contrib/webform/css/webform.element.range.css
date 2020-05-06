@@ -2,20 +2,54 @@
  * @file
  * Element range styles.
  *
- * @see /webform/example_elements#edit-range
  * @see http://thenewcode.com/754/input-Antipode-The-HTML5-output-Element
  */
 
-.form-range.form-range-output {
-  margin-right: 8px;
+/**
+ * Vertical center range input.
+ */
+.form-type-range input[type="range"] {
+  display: table-cell;
+  vertical-align: middle;
 }
 
-.form-range-output-container {
+/**
+ * Left or right output (via '#type': number).
+ */
+.form-type-range .form-type-number {
+  display: none;
+}
+
+html.js .form-type-range .form-type-number {
+  display: inline;
   white-space: nowrap;
 }
 
-.form-range-output-container input,
-.form-range-output-container .field-prefix,
-.form-range-output-container .field-suffix {
-  margin-left: 2px;
+.form-type-range .webform-range-output-delimiter {
+  display: inline-block;
+  width: 10px;
+}
+
+.form-type-range input[type="number"] {
+  text-align: right;
+}
+
+/**
+ * Bubble output (via <output>).
+ */
+.form-type-range output {
+  display: none;
+}
+
+html.js .form-type-range output {
+  display: block;
+}
+
+.form-type-range output {
+  position: absolute;
+  padding: 2px 5px;
+  text-align: center;
+  opacity: 0.3;
+  border: 1px solid #bbb;
+  background: #ededed;
 }

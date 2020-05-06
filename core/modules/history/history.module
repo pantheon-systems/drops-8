@@ -9,9 +9,11 @@
  * - Generic helper for node_mark().
  */
 
+use Drupal\Core\Url;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\history\HistoryRenderCallback;
 use Drupal\user\UserInterface;
 
 /**
@@ -29,7 +31,7 @@ function history_help($route_name, RouteMatchInterface $route_match) {
   switch ($route_name) {
     case 'help.page.history':
       $output = '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The History module keeps track of which content a user has read. It marks content as <em>new</em> or <em>updated</em> depending on the last time the user viewed it. History records that are older than one month are removed during cron, which means that content older than one month is always considered <em>read</em>. The History module does not have a user interface but it provides a filter to <a href=":views-help">Views</a> to show new or updated content. For more information, see the <a href=":url">online documentation for the History module</a>.', [':views-help' => (\Drupal::moduleHandler()->moduleExists('views')) ? \Drupal::url('help.page', ['name' => 'views']) : '#', ':url' => 'https://www.drupal.org/documentation/modules/history']) . '</p>';
+      $output .= '<p>' . t('The History module keeps track of which content a user has read. It marks content as <em>new</em> or <em>updated</em> depending on the last time the user viewed it. History records that are older than one month are removed during cron, which means that content older than one month is always considered <em>read</em>. The History module does not have a user interface but it provides a filter to <a href=":views-help">Views</a> to show new or updated content. For more information, see the <a href=":url">online documentation for the History module</a>.', [':views-help' => (\Drupal::moduleHandler()->moduleExists('views')) ? Url::fromRoute('help.page', ['name' => 'views'])->toString() : '#', ':url' => 'https://www.drupal.org/documentation/modules/history']) . '</p>';
       return $output;
   }
 }
@@ -80,7 +82,7 @@ function history_read_multiple($nids) {
     return $return;
   }
 
-  $result = db_query('SELECT nid, timestamp FROM {history} WHERE uid = :uid AND nid IN ( :nids[] )', [
+  $result = \Drupal::database()->query('SELECT nid, timestamp FROM {history} WHERE uid = :uid AND nid IN ( :nids[] )', [
     ':uid' => \Drupal::currentUser()->id(),
     ':nids[]' => array_keys($nodes_to_read),
   ]);
@@ -108,7 +110,7 @@ function history_write($nid, $account = NULL) {
   }
 
   if ($account->isAuthenticated()) {
-    db_merge('history')
+    \Drupal::database()->merge('history')
       ->keys([
         'uid' => $account->id(),
         'nid' => $nid,
@@ -125,7 +127,7 @@ function history_write($nid, $account = NULL) {
  * Implements hook_cron().
  */
 function history_cron() {
-  db_delete('history')
+  \Drupal::database()->delete('history')
     ->condition('timestamp', HISTORY_READ_LIMIT, '<')
     ->execute();
 }
@@ -152,7 +154,7 @@ function history_node_view_alter(array &$build, EntityInterface $node, EntityVie
  * Implements hook_ENTITY_TYPE_delete() for node entities.
  */
 function history_node_delete(EntityInterface $node) {
-  db_delete('history')
+  \Drupal::database()->delete('history')
     ->condition('nid', $node->id())
     ->execute();
 }
@@ -163,7 +165,7 @@ function history_node_delete(EntityInterface $node) {
 function history_user_cancel($edit, UserInterface $account, $method) {
   switch ($method) {
     case 'user_cancel_reassign':
-      db_delete('history')
+      \Drupal::database()->delete('history')
         ->condition('uid', $account->id())
         ->execute();
       break;
@@ -174,7 +176,7 @@ function history_user_cancel($edit, UserInterface $account, $method) {
  * Implements hook_ENTITY_TYPE_delete() for user entities.
  */
 function history_user_delete($account) {
-  db_delete('history')
+  \Drupal::database()->delete('history')
     ->condition('uid', $account->id())
     ->execute();
 }
@@ -187,9 +189,13 @@ function history_user_delete($account) {
  *
  * @return array
  *   A renderable array containing the last read timestamp.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal\history\HistoryRenderCallback::lazyBuilder() instead.
+ *
+ * @see https://www.drupal.org/node/2966725
  */
 function history_attach_timestamp($node_id) {
-  $element = [];
-  $element['#attached']['drupalSettings']['history']['lastReadTimestamps'][$node_id] = (int) history_read($node_id);
-  return $element;
+  @trigger_error('history_attach_timestamp() is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. Use \Drupal\history\HistoryRenderCallback::lazyBuilder() instead. See https://www.drupal.org/node/2966725', E_USER_DEPRECATED);
+  return HistoryRenderCallback::lazyBuilder($node_id);
 }

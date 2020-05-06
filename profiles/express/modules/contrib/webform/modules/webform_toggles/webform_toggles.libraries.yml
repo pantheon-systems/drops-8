@@ -1,0 +1,30 @@
+webform_toggles.element:
+  version: VERSION
+  css:
+    component:
+      css/webform_toggles.element.css: {}
+  js:
+    js/webform_toggles.element.js: {}
+  dependencies:
+    - core/drupal
+    - webform_toggles/libraries.jquery.toggles
+    - core/jquery.once
+
+# External libraries.
+
+libraries.jquery.toggles:
+  remote: https://github.com/simontabor/jquery-toggles/
+  version: '4.0.0'
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/mit-license.php
+    gpl-compatible: true
+  cdn:
+    /libraries/jquery.toggles/: https://cdn.jsdelivr.net/gh/simontabor/jquery-toggles@v4.0.0/
+  css:
+    component:
+      /libraries/jquery.toggles/css/toggles-full.css: {}
+  js:
+    /libraries/jquery.toggles/toggles.min.js: { minified: true }
+  dependencies:
+    - core/jquery

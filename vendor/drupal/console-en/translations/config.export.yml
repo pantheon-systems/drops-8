@@ -4,6 +4,8 @@ options:
     tar: 'If set, the configuration will be exported to an archive file.'
     remove-uuid: 'If set, the configuration will be exported without uuid key.'
     remove-config-hash: 'If set, the configuration will be exported without the default site hash key.'
+questions:
+    directory: 'Enter the directory name to save the configuration files.'
 messages:
     directory: 'The configuration was exported at "%s"'
     error: 'An error occurred while creating your directory at "%s"'
@@ -12,11 +14,10 @@ examples:
       execution: |
         drupal config:export  \
           --directory="path/to/export"
-    - description: 'If export will be in a compressed file and/or if uuid and config hashes will be removed.'
+    - description: 'Export as a compressed file with uuid and config hashes removed'
       execution: |
         drupal config:export  \
           --directory="path/to/export" \
           --tar \
           --remove-uuid \
           --remove-config-hash
-

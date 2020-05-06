@@ -1,0 +1,61 @@
+entity.webform_options_custom.collection:
+  path: '/admin/structure/webform/config/options_custom/manage'
+  defaults:
+    _entity_list: 'webform_options_custom'
+    _title: 'Webforms: Custom options'
+  requirements:
+    _permission: 'administer webform'
+
+entity.webform_options_custom.autocomplete:
+  path: '/admin/structure/webform/config/options_custom/autocomplete'
+  defaults:
+    _controller: '\Drupal\webform_options_custom\Controller\WebformOptionsCustomController::autocomplete'
+  requirements:
+    _permission: 'administer webform'
+
+entity.webform_options_custom.add_form:
+  path: '/admin/structure/webform/config/options_custom/manage/add'
+  defaults:
+    _entity_form: 'webform_options_custom.add'
+    _title: 'Add custom options'
+  requirements:
+    _entity_create_access: 'webform_options_custom'
+
+entity.webform_options_custom.edit_form:
+  path: '/admin/structure/webform/config/options_custom/manage/{webform_options_custom}/edit'
+  defaults:
+    _entity_form: 'webform_options_custom.edit'
+    _title: 'Edit custom options'
+  requirements:
+    _entity_access: 'webform_options_custom.update'
+
+entity.webform_options_custom.source_form:
+  path: '/admin/structure/webform/config/options_custom/manage/{webform_options_custom}/source'
+  defaults:
+    _entity_form: 'webform_options_custom.source'
+  requirements:
+    _custom_access: '\Drupal\webform_options_custom\Access\WebformOptionsCustomAccess::checkOptionsCustomSourceAccess'
+
+entity.webform_options_custom.preview_form:
+  path: '/admin/structure/webform/config/options_custom/manage/{webform_options_custom}/preview'
+  defaults:
+    _entity_form: 'webform_options_custom.preview'
+    _title: 'Preview custom options'
+  requirements:
+    _entity_access: 'webform_options_custom.view'
+
+entity.webform_options_custom.duplicate_form:
+  path: '/admin/structure/webform/config/options_custom/{webform_options_custom}/duplicate'
+  defaults:
+    _entity_form: 'webform_options_custom.duplicate'
+    _title: 'Duplicate custom options'
+  requirements:
+    _entity_access: 'webform_options_custom.duplicate'
+
+entity.webform_options_custom.delete_form:
+  path: '/admin/structure/webform/config/options_custom/{webform_options_custom}/delete'
+  defaults:
+    _entity_form: 'webform_options_custom.delete'
+    _title: 'Delete custom options'
+  requirements:
+    _entity_access: 'webform_options_custom.delete'

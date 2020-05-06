@@ -19,6 +19,11 @@ class NodeViewLanguageTest extends NodeTestBase {
   public static $modules = ['node', 'datetime', 'language'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests the language extra field display.
    */
   public function testViewLanguage() {
@@ -26,14 +31,15 @@ class NodeViewLanguageTest extends NodeTestBase {
     ConfigurableLanguage::createFromLangcode('es')->save();
 
     // Set language field visible.
-    entity_get_display('node', 'page', 'full')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'page', 'full')
       ->setComponent('langcode')
       ->save();
 
     // Create a node in Spanish.
     $node = $this->drupalCreateNode(['langcode' => 'es']);
 
-    $this->drupalGet($node->urlInfo());
+    $this->drupalGet($node->toUrl());
     $this->assertText('Spanish', 'The language field is displayed properly.');
   }
 

@@ -110,4 +110,20 @@ class WebformElement extends Plugin {
    */
   public $states_wrapper = FALSE;
 
+  /**
+   * Flag that indicates the element has been deprecated.
+   *
+   * @var bool
+   */
+  public $deprecated = FALSE;
+
+  /**
+   * Deprecated message.
+   *
+   * @var \Drupal\Core\Annotation\Translation
+   *
+   * @ingroup plugin_translatable
+   */
+  public $deprecated_message = '';
+
 }

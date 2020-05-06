@@ -39,7 +39,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
         $form['deleted_translations'] = [
           '#theme' => 'item_list',
           '#title' => $this->t('The following @entity-type translations will be deleted:', [
-            '@entity-type' => $entity->getEntityType()->getLowercaseLabel(),
+            '@entity-type' => $entity->getEntityType()->getSingularLabel(),
           ]),
           '#items' => $languages,
         ];
@@ -67,7 +67,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
       $untranslated_entity = $entity->getUntranslated();
       $untranslated_entity->removeTranslation($entity->language()->getId());
       $untranslated_entity->save();
-      $form_state->setRedirectUrl($untranslated_entity->urlInfo('canonical'));
+      $form_state->setRedirectUrl($untranslated_entity->toUrl('canonical'));
     }
     else {
       $entity->delete();
@@ -84,7 +84,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
   public function getCancelUrl() {
     /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
     $entity = $this->getEntity();
-    return $entity->isDefaultTranslation() ? $this->traitGetCancelUrl() : $entity->urlInfo('canonical');
+    return $entity->isDefaultTranslation() ? $this->traitGetCancelUrl() : $entity->toUrl('canonical');
   }
 
   /**
@@ -96,7 +96,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
 
     if (!$entity->isDefaultTranslation()) {
       return $this->t('The @entity-type %label @language translation has been deleted.', [
-        '@entity-type' => $entity->getEntityType()->getLowercaseLabel(),
+        '@entity-type' => $entity->getEntityType()->getSingularLabel(),
         '%label'       => $entity->label(),
         '@language'    => $entity->language()->getName(),
       ]);
@@ -114,7 +114,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
 
     if (!$entity->isDefaultTranslation()) {
       $this->logger($entity->getEntityType()->getProvider())->notice('The @entity-type %label @language translation has been deleted.', [
-        '@entity-type' => $entity->getEntityType()->getLowercaseLabel(),
+        '@entity-type' => $entity->getEntityType()->getSingularLabel(),
         '%label'       => $entity->label(),
         '@language'    => $entity->language()->getName(),
       ]);
@@ -134,7 +134,7 @@ class ContentEntityDeleteForm extends ContentEntityConfirmFormBase {
     if (!$entity->isDefaultTranslation()) {
       return $this->t('Are you sure you want to delete the @language translation of the @entity-type %label?', [
         '@language' => $entity->language()->getName(),
-        '@entity-type' => $this->getEntity()->getEntityType()->getLowercaseLabel(),
+        '@entity-type' => $this->getEntity()->getEntityType()->getSingularLabel(),
         '%label' => $this->getEntity()->label(),
       ]);
     }

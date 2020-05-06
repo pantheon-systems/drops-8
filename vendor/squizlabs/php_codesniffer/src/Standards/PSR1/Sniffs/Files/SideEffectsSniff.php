@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\PSR1\Sniffs\Files;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class SideEffectsSniff implements Sniff
@@ -151,6 +151,12 @@ class SideEffectsSniff implements Sniff
             ) {
                 if (isset($tokens[$i]['scope_opener']) === true) {
                     $i = $tokens[$i]['scope_closer'];
+                    if ($tokens[$i]['code'] === T_ENDDECLARE) {
+                        $semicolon = $phpcsFile->findNext(Tokens::$emptyTokens, ($i + 1), null, true);
+                        if ($semicolon !== false && $tokens[$semicolon]['code'] === T_SEMICOLON) {
+                            $i = $semicolon;
+                        }
+                    }
                 } else {
                     $semicolon = $phpcsFile->findNext(T_SEMICOLON, ($i + 1));
                     if ($semicolon !== false) {

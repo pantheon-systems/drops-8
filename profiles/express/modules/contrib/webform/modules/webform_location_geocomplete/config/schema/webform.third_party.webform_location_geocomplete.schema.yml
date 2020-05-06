@@ -1,0 +1,7 @@
+webform.admin_settings.third_party.webform_location_geocomplete:
+  type: mapping
+  label: 'Location Geocomplete'
+  mapping:
+    default_google_maps_api_key:
+      type: string
+      label: 'Default Google Maps API key'

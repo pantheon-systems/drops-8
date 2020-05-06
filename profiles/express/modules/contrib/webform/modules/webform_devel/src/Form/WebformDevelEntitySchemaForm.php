@@ -15,11 +15,11 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class WebformDevelEntitySchemaForm extends EntityForm {
 
- use WebformEntityAjaxFormTrait;
+  use WebformEntityAjaxFormTrait;
 
   /**
    * The webform devel scheme service.
-   * 
+   *
    * @var \Drupal\webform_devel\WebformDevelSchemaInterface
    */
   protected $scheme;
@@ -66,7 +66,7 @@ class WebformDevelEntitySchemaForm extends EntityForm {
 
       foreach ($element as $key => $value) {
         if ($key === 'options') {
-          $value = implode('; ', array_slice($value, 0, 12)) . (count($value) > 12 ? '; ...' : '');
+          $value = implode('; ', array_slice($value, 0, 12)) . (count($value) > 12 ? '; …' : '');
         }
         $rows[$element_key][$key] = ['#markup' => $value];
       }
@@ -77,7 +77,7 @@ class WebformDevelEntitySchemaForm extends EntityForm {
 
       if ($webform_ui_exists) {
         // Only add 'Edit' link to main element and not composite sub-elements.
-        if (strpos($element_key, '.') === FALSE){
+        if (strpos($element_key, '.') === FALSE) {
           $element_url = new Url(
             'entity.webform_ui.element.edit_form',
             ['webform' => $webform->id(), 'key' => $element_key],
@@ -88,13 +88,13 @@ class WebformDevelEntitySchemaForm extends EntityForm {
             '#type' => 'link',
             '#title' => $element_key,
             '#url' => $element_url,
-            '#attributes' => WebformDialogHelper::getModalDialogAttributes(800),
+            '#attributes' => WebformDialogHelper::getModalDialogAttributes(),
           ];
           $rows[$element_key]['operations'] = [
             '#type' => 'link',
             '#title' => $this->t('Edit'),
             '#url' => $element_url,
-            '#attributes' => WebformDialogHelper::getModalDialogAttributes(800, ['button', 'button--small']),
+            '#attributes' => WebformDialogHelper::getModalDialogAttributes(WebformDialogHelper::DIALOG_NORMAL, ['button', 'button--small']),
           ];
         }
         else {

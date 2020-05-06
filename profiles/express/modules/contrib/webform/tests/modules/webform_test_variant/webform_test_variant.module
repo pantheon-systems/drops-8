@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform that provides variant plugin tests.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function webform_test_variant_theme() {
+  return [
+    'webform_variant_test_summary' => [
+      'variables' => ['settings' => NULL, 'variant' => []],
+    ],
+  ];
+}

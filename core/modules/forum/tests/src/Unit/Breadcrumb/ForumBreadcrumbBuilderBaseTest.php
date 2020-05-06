@@ -3,6 +3,7 @@
 namespace Drupal\Tests\forum\Unit\Breadcrumb;
 
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Link;
 use Drupal\Tests\UnitTestCase;
 use Symfony\Component\DependencyInjection\Container;
@@ -35,21 +36,21 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
    */
   public function testConstructor() {
     // Make some test doubles.
-    $entity_manager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
+    $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
     $config_factory = $this->getConfigFactoryStub(
       [
         'forum.settings' => ['IAmATestKey' => 'IAmATestValue'],
       ]
     );
-    $forum_manager = $this->getMock('Drupal\forum\ForumManagerInterface');
-    $translation_manager = $this->getMock('Drupal\Core\StringTranslation\TranslationInterface');
+    $forum_manager = $this->createMock('Drupal\forum\ForumManagerInterface');
+    $translation_manager = $this->createMock('Drupal\Core\StringTranslation\TranslationInterface');
 
     // Make an object to test.
     $builder = $this->getMockForAbstractClass(
       'Drupal\forum\Breadcrumb\ForumBreadcrumbBuilderBase',
       // Constructor array.
       [
-        $entity_manager,
+        $entity_type_manager,
         $config_factory,
         $forum_manager,
         $translation_manager,
@@ -58,7 +59,7 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
 
     // Reflect upon our properties, except for config which is a special case.
     $property_names = [
-      'entityManager' => $entity_manager,
+      'entityTypeManager' => $entity_type_manager,
       'forumManager' => $forum_manager,
       'stringTranslation' => $translation_manager,
     ];
@@ -100,17 +101,15 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
     $prophecy->getCacheContexts()->willReturn([]);
     $prophecy->getCacheMaxAge()->willReturn(Cache::PERMANENT);
 
-    $vocab_storage = $this->getMock('Drupal\Core\Entity\EntityStorageInterface');
+    $vocab_storage = $this->createMock('Drupal\Core\Entity\EntityStorageInterface');
     $vocab_storage->expects($this->any())
       ->method('load')
       ->will($this->returnValueMap([
         ['forums', $prophecy->reveal()],
       ]));
 
-    $entity_manager = $this->getMockBuilder('Drupal\Core\Entity\EntityManagerInterface')
-      ->disableOriginalConstructor()
-      ->getMock();
-    $entity_manager->expects($this->any())
+    $entity_type_manager = $this->createMock(EntityTypeManagerInterface::class);
+    $entity_type_manager->expects($this->any())
       ->method('getStorage')
       ->will($this->returnValueMap([
         ['taxonomy_vocabulary', $vocab_storage],
@@ -129,7 +128,7 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
       'Drupal\forum\Breadcrumb\ForumBreadcrumbBuilderBase',
       // Constructor array.
       [
-        $entity_manager,
+        $entity_type_manager,
         $config_factory,
         $forum_manager,
         $translation_manager,
@@ -141,7 +140,7 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
     $breadcrumb_builder->setStringTranslation($translation_manager);
 
     // Our empty data set.
-    $route_match = $this->getMock('Drupal\Core\Routing\RouteMatchInterface');
+    $route_match = $this->createMock('Drupal\Core\Routing\RouteMatchInterface');
 
     // Expected result set.
     $expected = [

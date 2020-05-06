@@ -29,28 +29,28 @@ class LinkGeneratorTest extends UnitTestCase {
   /**
    * The mocked url generator.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $urlGenerator;
 
   /**
    * The mocked module handler.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject
+   * @var \PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The mocked renderer service.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Render\RendererInterface
+   * @var \PHPUnit\Framework\MockObject\MockObject|\Drupal\Core\Render\RendererInterface
    */
   protected $renderer;
 
   /**
    * The mocked URL Assembler service.
    *
-   * @var \PHPUnit_Framework_MockObject_MockObject|\Drupal\Core\Utility\UnroutedUrlAssemblerInterface
+   * @var \PHPUnit\Framework\MockObject\MockObject|\Drupal\Core\Utility\UnroutedUrlAssemblerInterface
    */
   protected $urlAssembler;
 
@@ -73,10 +73,10 @@ class LinkGeneratorTest extends UnitTestCase {
     $this->urlGenerator = $this->getMockBuilder('\Drupal\Core\Routing\UrlGenerator')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
-    $this->renderer = $this->getMock('\Drupal\Core\Render\RendererInterface');
+    $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->renderer = $this->createMock('\Drupal\Core\Render\RendererInterface');
     $this->linkGenerator = new LinkGenerator($this->urlGenerator, $this->moduleHandler, $this->renderer);
-    $this->urlAssembler = $this->getMock('\Drupal\Core\Utility\UnroutedUrlAssemblerInterface');
+    $this->urlAssembler = $this->createMock('\Drupal\Core\Utility\UnroutedUrlAssemblerInterface');
   }
 
   /**
@@ -152,6 +152,9 @@ class LinkGeneratorTest extends UnitTestCase {
   /**
    * Tests the generate() method with the <nolink> route.
    *
+   * The set_active_class option is set to TRUE to ensure we do not get the
+   * active class and the data-drupal-link-system-path attribute.
+   *
    * @covers ::generate
    */
   public function testGenerateNoLink() {
@@ -163,10 +166,37 @@ class LinkGeneratorTest extends UnitTestCase {
 
     $url = Url::fromRoute('<nolink>');
     $url->setUrlGenerator($this->urlGenerator);
+    $url->setOption('set_active_class', TRUE);
 
     $result = $this->linkGenerator->generate('Test', $url);
     $this->assertTrue($result instanceof GeneratedNoLink);
     $this->assertSame('<span>Test</span>', (string) $result);
+  }
+
+  /**
+   * Tests the generate() method with the <none> route.
+   *
+   * The set_active_class option is set to TRUE to ensure we do not get the
+   * active class and the data-drupal-link-system-path attribute.
+   *
+   * @covers ::generate
+   */
+  public function testGenerateNone() {
+    $this->urlGenerator->expects($this->once())
+      ->method('generateFromRoute')
+      ->with('<none>', [], ['set_active_class' => TRUE] + $this->defaultOptions)
+      ->willReturn((new GeneratedUrl())->setGeneratedUrl(''));
+
+    $this->moduleHandler->expects($this->once())
+      ->method('alter')
+      ->with('link', $this->isType('array'));
+
+    $url = Url::fromRoute('<none>');
+    $url->setUrlGenerator($this->urlGenerator);
+    $url->setOption('set_active_class', TRUE);
+
+    $result = $this->linkGenerator->generate('Test', $url);
+    $this->assertSame('<a href="">Test</a>', (string) $result);
   }
 
   /**
@@ -217,7 +247,7 @@ class LinkGeneratorTest extends UnitTestCase {
       ->with('base:example', ['query' => ['foo' => '"bar"', 'zoo' => 'baz']] + $this->defaultOptions)
       ->willReturn((new GeneratedUrl())->setGeneratedUrl('/example?foo=%22bar%22&zoo=baz'));
 
-    $path_validator = $this->getMock('Drupal\Core\Path\PathValidatorInterface');
+    $path_validator = $this->createMock('Drupal\Core\Path\PathValidatorInterface');
     $container_builder = new ContainerBuilder();
     $container_builder->set('path.validator', $path_validator);
     \Drupal::setContainer($container_builder);

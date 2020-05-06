@@ -402,7 +402,7 @@
       });
       // Add a mouseleave handler to close the dropdown when the user mouses
       // away from the item. We use mouseleave instead of mouseout because
-      // the user is going to trigger mouseout when she moves from the trigger
+      // the user is going to trigger mouseout when moving away from the trigger
       // link to the sub menu items.
       // We use the live binder because the open class on this item will be
       // toggled on and off and we want the handler to take effect in the cases
@@ -999,12 +999,7 @@
             'select.views-group-select',
             this.rowObject.element,
           );
-          if (
-            $(this.rowObject.element)
-              .prev('tr')
-              .is('.group-message') &&
-            !groupField.is(`.views-group-select-${groupName}`)
-          ) {
+          if (!groupField.is(`.views-group-select-${groupName}`)) {
             const oldGroupName = groupField
               .attr('class')
               .replace(

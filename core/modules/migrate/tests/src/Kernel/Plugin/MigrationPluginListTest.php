@@ -49,7 +49,6 @@ class MigrationPluginListTest extends KernelTestBase {
     'path',
     'search',
     'shortcut',
-    'simpletest',
     'statistics',
     'syslog',
     'system',
@@ -59,6 +58,15 @@ class MigrationPluginListTest extends KernelTestBase {
     'update',
     'user',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+
+    $this->installEntitySchema('user');
+  }
 
   /**
    * @covers ::getDefinitions

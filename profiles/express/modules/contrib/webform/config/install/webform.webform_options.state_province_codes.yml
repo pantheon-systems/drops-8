@@ -7,13 +7,14 @@ dependencies:
 id: state_province_codes
 label: 'State/Province codes'
 category: Geographic
+likert: false
 options: |
   AL: Alabama
   AK: Alaska
   AS: 'American Samoa'
   AZ: Arizona
   AR: Arkansas
-  AE: 'Armed Forces (Canada, Europe, Africa, or Middle East'
+  AE: 'Armed Forces (Canada, Europe, Africa, or Middle East)'
   AA: 'Armed Forces Americas'
   AP: 'Armed Forces Pacific'
   CA: California
@@ -21,7 +22,7 @@ options: |
   CT: Connecticut
   DE: Delaware
   DC: 'District of Columbia'
-  FM: 'Federate States of Micronesia'
+  FM: 'Federated States of Micronesia'
   FL: Florida
   GA: Georgia
   GU: Guam
@@ -70,3 +71,16 @@ options: |
   WV: 'West Virginia'
   WI: Wisconsin
   WY: Wyoming
+  AB: Alberta
+  BC: 'British Columbia'
+  MB: Manitoba
+  NB: 'New Brunswick'
+  NL: 'Newfoundland and Labrador'
+  NS: 'Nova Scotia'
+  NT: 'Northwest Territories'
+  NU: Nunavut
+  'ON': Ontario
+  PE: 'Prince Edward Island'
+  QC: Quebec
+  SK: Saskatchewan
+  YT: Yukon

@@ -22,7 +22,7 @@ class InputStream implements \IteratorAggregate
 {
     /** @var callable|null */
     private $onEmpty = null;
-    private $input = array();
+    private $input = [];
     private $open = true;
 
     /**
@@ -45,7 +45,7 @@ class InputStream implements \IteratorAggregate
             return;
         }
         if ($this->isClosed()) {
-            throw new RuntimeException(sprintf('%s is closed', static::class));
+            throw new RuntimeException(sprintf('"%s" is closed.', static::class));
         }
         $this->input[] = ProcessUtils::validateInput(__METHOD__, $input);
     }

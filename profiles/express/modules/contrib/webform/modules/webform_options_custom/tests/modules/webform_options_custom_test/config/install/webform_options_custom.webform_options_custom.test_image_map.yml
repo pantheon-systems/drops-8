@@ -1,0 +1,29 @@
+langcode: en
+status: true
+dependencies: {  }
+id: test_image_map
+label: 'Test: Image map'
+description: 'An image map'
+help: 'An image map'
+category: Test
+type: template
+template: |
+  <img src="https://www.w3schools.com/tags/planets.gif" width="145" height="126" alt="Planets" usemap="#planetmap">
+
+  <map name="planetmap">
+    <area shape="rect" coords="0,0,82,126" data-id="sun" alt="Sun" href="#">
+    <area shape="circle" coords="90,58,3" data-id="mercury" alt="Mercury" href="#">
+    <area shape="circle" coords="124,58,8" data-id="venus" alt="Venus" href="#">
+  </map>
+url: ''
+css: ''
+javascript: ''
+options: '{  }'
+value_attributes: data-id
+text_attributes: alt
+fill: false
+zoom: false
+tooltip: false
+show_select: false
+element: true
+entity_reference: false

@@ -7,6 +7,7 @@
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Xss;
+use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Utility\Error;
@@ -86,15 +87,21 @@ function _drupal_error_handler_real($error_level, $message, $filename, $line, $c
   // If the site is a test site then fail for user deprecations so they can be
   // caught by the deprecation error handler.
   elseif (DRUPAL_TEST_IN_CHILD_SITE && $error_level === E_USER_DEPRECATED) {
-    $backtrace = debug_backtrace();
-    $caller = Error::getLastCaller($backtrace);
-    _drupal_error_header(
-      Markup::create(Xss::filterAdmin($message)),
-      'User deprecated function',
-      $caller['function'],
-      $caller['file'],
-      $caller['line']
-    );
+    static $seen = [];
+    if (array_search($message, $seen, TRUE) === FALSE) {
+      // Only report each deprecation once. Too many headers can break some
+      // Chrome and web driver testing.
+      $seen[] = $message;
+      $backtrace = debug_backtrace();
+      $caller = Error::getLastCaller($backtrace);
+      _drupal_error_header(
+        Markup::create(Xss::filterAdmin($message)),
+        'User deprecated function',
+        $caller['function'],
+        $caller['file'],
+        $caller['line']
+      );
+    }
   }
 }
 
@@ -140,7 +147,7 @@ function error_displayable($error = NULL) {
  *   Non-recoverable fatal errors cannot be logged by Drupal.
  */
 function _drupal_log_error($error, $fatal = FALSE) {
-  $is_installer = drupal_installation_attempted();
+  $is_installer = InstallerKernel::installationAttempted();
 
   // Backtrace array is not a valid replacement value for t().
   $backtrace = $error['backtrace'];
@@ -180,7 +187,7 @@ function _drupal_log_error($error, $fatal = FALSE) {
       // Should not translate the string to avoid errors producing more errors.
       $response->setContent(html_entity_decode(strip_tags(new FormattableMarkup('%type: @message in %function (line %line of %file).', $error))) . "\n");
       $response->send();
-      exit;
+      exit(1);
     }
   }
 
@@ -301,7 +308,7 @@ function _drupal_get_error_level() {
   // 'config.factory' service, which reads the default 'error_level' value from
   // System module's default configuration and the default value is not verbose.
   // @see error_displayable()
-  if (drupal_installation_attempted()) {
+  if (InstallerKernel::installationAttempted()) {
     return ERROR_REPORTING_DISPLAY_VERBOSE;
   }
   $error_level = NULL;

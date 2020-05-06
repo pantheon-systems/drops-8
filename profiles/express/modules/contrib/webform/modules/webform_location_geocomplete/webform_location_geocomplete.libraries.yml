@@ -1,0 +1,28 @@
+webform_location_geocomplete.element:
+  version: VERSION
+  css:
+    component:
+      css/webform_location_geocomplete.element.css: {}
+  js:
+    js/webform_location_geocomplete.element.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery.once
+    - webform_location_geocomplete/libraries.jquery.geocomplete
+
+# External libraries.
+
+libraries.jquery.geocomplete:
+  remote: http://ubilabs.github.io/geocomplete/
+  version: '1.7.0'
+  license:
+    name: MIT
+    url: https://github.com/ubilabs/geocomplete/blob/master/MIT-LICENSE.txt
+    gpl-compatible: true
+  cdn:
+    /libraries/geocomplete/: https://cdnjs.cloudflare.com/ajax/libs/geocomplete/1.7.0/
+  js:
+    https://maps.googleapis.com/maps/api/js?key=API_KEY&libraries=places: {}
+    /libraries/geocomplete/jquery.geocomplete.min.js: { minified: true }
+  dependencies:
+    - core/jquery

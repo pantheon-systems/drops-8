@@ -23,6 +23,11 @@ table {
   margin-left: 1.6em;
 }
 
+.webform-submission-form .form-type-radio .webform-options-display-buttons-description.description,
+.webform-submission-form .form-type-checkbox .webform-options-display-buttons-description.description {
+  margin-left: 0;
+}
+
 /**
  * Tweak webform element form.
  */
@@ -40,17 +45,34 @@ table {
   min-width: 65px;
 }
 
-.webform-multiple-table td.webform-multiple-table--operations input {
-  margin: 0;
+/**
+ * Tweak details toggle state.
+ */
+.webform-details-toggle-state {
+  text-decoration: none;
+  color: #0071b3;
+  border-bottom: 1px dotted;
+}
+
+.webform-details-toggle-state:hover,
+.webform-details-toggle-statelink:focus {
+  text-decoration: none;
+  color: #018fe2;
+  border-bottom-style: solid;
 }
 
 /**
- * Tweak off-canvas webform element form.
+ * Ajax form wrapper.
+ *
+ * Prevent messages top margin from causing the slide effect to
+ * jump when completed.
  */
-/* @todo Issue #2862625: Rename offcanvas to two words in code and comments. https://www.drupal.org/node/2862625 */
-.ui-dialog-offcanvas .webform-ui-element-form details > .details-wrapper,
-.ui-dialog-off-canvas .webform-ui-element-form details > .details-wrapper {
-  padding: 0 .5em;
+.webform-ajax-form-wrapper[data-effect="slide"] .messages__wrapper:first-of-type {
+  padding-top: 28px;
+}
+
+.webform-ajax-form-wrapper[data-effect="slide"] .messages:first-of-type:first-child {
+  margin-top: 0;
 }
 
 /**
@@ -74,4 +96,11 @@ table {
 summary .webform-element-help {
   border-color: #999;
   background: #999;
+}
+
+/**
+ * Tweak Algolia places.
+ */
+input.ap-input {
+  font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif;
 }

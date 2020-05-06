@@ -21,6 +21,21 @@ class MachineName extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
+  protected function defineDefaultProperties() {
+    $properties = parent::defineDefaultProperties();
+    unset(
+      $properties['format_items'],
+      $properties['format_items_html'],
+      $properties['format_items_text']
+    );
+    return $properties;
+  }
+
+  /****************************************************************************/
+
+  /**
+   * {@inheritdoc}
+   */
   public function prepare(array &$element, WebformSubmissionInterface $webform_submission = NULL) {
     parent::prepare($element, $webform_submission);
     // Since all elements are placed under the $form['elements'] we need to

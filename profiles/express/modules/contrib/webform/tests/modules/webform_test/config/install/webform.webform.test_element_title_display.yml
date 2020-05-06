@@ -1,0 +1,1689 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+weight: 0
+uid: null
+template: false
+archive: false
+id: test_element_title_display
+title: 'Test: Element: Title display'
+description: 'Test element title display.'
+category: 'Test: Element'
+elements: |
+  basic_elements:
+    '#type': details
+    '#title': 'Basic elements'
+    '#open': true
+    checkbox_title:
+      '#markup': 'Checkbox (checkbox)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    checkbox_before:
+      '#type': checkbox
+      '#title': 'Checkbox (before)'
+      '#title_display': before
+    checkbox_after:
+      '#type': checkbox
+      '#title': 'Checkbox (after)'
+      '#title_display': after
+    checkbox_inline:
+      '#type': checkbox
+      '#title': 'Checkbox (inline)'
+      '#title_display': inline
+    checkbox_none:
+      '#type': checkbox
+      '#title': 'Checkbox (none)'
+      '#title_display': none
+    checkbox_hr:
+      '#type': webform_horizontal_rule
+    password_title:
+      '#markup': 'Password (password)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    password_before:
+      '#type': password
+      '#title': 'Password (before)'
+      '#title_display': before
+    password_after:
+      '#type': password
+      '#title': 'Password (after)'
+      '#title_display': after
+    password_inline:
+      '#type': password
+      '#title': 'Password (inline)'
+      '#title_display': inline
+    password_none:
+      '#type': password
+      '#title': 'Password (none)'
+      '#title_display': none
+    password_hr:
+      '#type': webform_horizontal_rule
+    textarea_title:
+      '#markup': 'Textarea (textarea)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    textarea_before:
+      '#type': textarea
+      '#title': 'Textarea (before)'
+      '#rows': 2
+      '#title_display': before
+    textarea_after:
+      '#type': textarea
+      '#title': 'Textarea (after)'
+      '#rows': 2
+      '#title_display': after
+    textarea_inline:
+      '#type': textarea
+      '#title': 'Textarea (inline)'
+      '#rows': 2
+      '#title_display': inline
+    textarea_none:
+      '#type': textarea
+      '#title': 'Textarea (none)'
+      '#rows': 2
+      '#title_display': none
+    textarea_hr:
+      '#type': webform_horizontal_rule
+    textfield_title:
+      '#markup': 'Text field (textfield)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    textfield_before:
+      '#type': textfield
+      '#title': 'Text field (before)'
+      '#title_display': before
+    textfield_after:
+      '#type': textfield
+      '#title': 'Text field (after)'
+      '#title_display': after
+    textfield_inline:
+      '#type': textfield
+      '#title': 'Text field (inline)'
+      '#title_display': inline
+    textfield_none:
+      '#type': textfield
+      '#title': 'Text field (none)'
+      '#title_display': none
+    textfield_hr:
+      '#type': webform_horizontal_rule
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements'
+    '#open': true
+    webform_autocomplete_title:
+      '#markup': 'Autocomplete (webform_autocomplete)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_autocomplete_before:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete (before)'
+      '#title_display': before
+    webform_autocomplete_after:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete (after)'
+      '#title_display': after
+    webform_autocomplete_inline:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete (inline)'
+      '#title_display': inline
+    webform_autocomplete_none:
+      '#type': webform_autocomplete
+      '#title': 'Autocomplete (none)'
+      '#title_display': none
+    webform_autocomplete_hr:
+      '#type': webform_horizontal_rule
+    webform_codemirror_title:
+      '#markup': 'CodeMirror (webform_codemirror)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_codemirror_before:
+      '#type': webform_codemirror
+      '#title': 'CodeMirror (before)'
+      '#mode': yaml
+      '#title_display': before
+    webform_codemirror_after:
+      '#type': webform_codemirror
+      '#title': 'CodeMirror (after)'
+      '#mode': yaml
+      '#title_display': after
+    webform_codemirror_none:
+      '#type': webform_codemirror
+      '#title': 'CodeMirror (none)'
+      '#mode': yaml
+      '#title_display': none
+    webform_codemirror_hr:
+      '#type': webform_horizontal_rule
+    color_title:
+      '#markup': 'Color (color)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    color_before:
+      '#type': color
+      '#title': 'Color (before)'
+      '#title_display': before
+    color_after:
+      '#type': color
+      '#title': 'Color (after)'
+      '#title_display': after
+    color_inline:
+      '#type': color
+      '#title': 'Color (inline)'
+      '#title_display': inline
+    color_none:
+      '#type': color
+      '#title': 'Color (none)'
+      '#title_display': none
+    color_hr:
+      '#type': webform_horizontal_rule
+    email_title:
+      '#markup': 'Email (email)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    email_before:
+      '#type': email
+      '#title': 'Email (before)'
+      '#title_display': before
+    email_after:
+      '#type': email
+      '#title': 'Email (after)'
+      '#title_display': after
+    email_inline:
+      '#type': email
+      '#title': 'Email (inline)'
+      '#title_display': inline
+    email_none:
+      '#type': email
+      '#title': 'Email (none)'
+      '#title_display': none
+    email_hr:
+      '#type': webform_horizontal_rule
+    webform_email_confirm_title:
+      '#markup': 'Email confirm (webform_email_confirm)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_email_confirm_before:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm (before)'
+      '#title_display': before
+    webform_email_confirm_after:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm (after)'
+      '#title_display': after
+    webform_email_confirm_none:
+      '#type': webform_email_confirm
+      '#title': 'Email confirm (none)'
+      '#title_display': none
+    webform_email_confirm_hr:
+      '#type': webform_horizontal_rule
+    webform_email_multiple_title:
+      '#markup': 'Email multiple (webform_email_multiple)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_email_multiple_before:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple (before)'
+      '#title_display': before
+    webform_email_multiple_after:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple (after)'
+      '#title_display': after
+    webform_email_multiple_inline:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple (inline)'
+      '#title_display': inline
+    webform_email_multiple_none:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple (none)'
+      '#title_display': none
+    webform_email_multiple_hr:
+      '#type': webform_horizontal_rule
+    webform_mapping_title:
+      '#markup': 'Mapping (webform_mapping)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_mapping_before:
+      '#type': webform_mapping
+      '#title': 'Mapping (before)'
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+      '#title_display': before
+    webform_mapping_after:
+      '#type': webform_mapping
+      '#title': 'Mapping (after)'
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+      '#title_display': after
+    webform_mapping_none:
+      '#type': webform_mapping
+      '#title': 'Mapping (none)'
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+      '#title_display': none
+    webform_mapping_hr:
+      '#type': webform_horizontal_rule
+    number_title:
+      '#markup': 'Number (number)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    number_before:
+      '#type': number
+      '#title': 'Number (before)'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#title_display': before
+    number_after:
+      '#type': number
+      '#title': 'Number (after)'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#title_display': after
+    number_inline:
+      '#type': number
+      '#title': 'Number (inline)'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#title_display': inline
+    number_none:
+      '#type': number
+      '#title': 'Number (none)'
+      '#min': 0
+      '#max': 10
+      '#step': 1
+      '#title_display': none
+    number_hr:
+      '#type': webform_horizontal_rule
+    password_confirm_title:
+      '#markup': 'Password confirm (password_confirm)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    password_confirm_before:
+      '#type': password_confirm
+      '#title': 'Password confirm (before)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+      '#title_display': before
+    password_confirm_after:
+      '#type': password_confirm
+      '#title': 'Password confirm (after)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+      '#title_display': after
+    password_confirm_inline:
+      '#type': password_confirm
+      '#title': 'Password confirm (inline)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+      '#title_display': inline
+    password_confirm_none:
+      '#type': password_confirm
+      '#title': 'Password confirm (none)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1427838">Issue #1427838: password and password_confirm children do not pick up #states or #attributes</a>'
+      '#title_display': none
+    password_confirm_hr:
+      '#type': webform_horizontal_rule
+    range_title:
+      '#markup': 'Range (range)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    range_before:
+      '#type': range
+      '#title': 'Range (before)'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#output': below
+      '#output__field_prefix': $
+      '#output__field_suffix': '.00'
+      '#title_display': before
+    range_after:
+      '#type': range
+      '#title': 'Range (after)'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#output': below
+      '#output__field_prefix': $
+      '#output__field_suffix': '.00'
+      '#title_display': after
+    range_inline:
+      '#type': range
+      '#title': 'Range (inline)'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#output': below
+      '#output__field_prefix': $
+      '#output__field_suffix': '.00'
+      '#title_display': inline
+    range_none:
+      '#type': range
+      '#title': 'Range (none)'
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#output': below
+      '#output__field_prefix': $
+      '#output__field_suffix': '.00'
+      '#title_display': none
+    range_hr:
+      '#type': webform_horizontal_rule
+    webform_rating_title:
+      '#markup': 'Rating (webform_rating)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_rating_before:
+      '#type': webform_rating
+      '#title': 'Rating (before)'
+      '#title_display': before
+    webform_rating_after:
+      '#type': webform_rating
+      '#title': 'Rating (after)'
+      '#title_display': after
+    webform_rating_inline:
+      '#type': webform_rating
+      '#title': 'Rating (inline)'
+      '#title_display': inline
+    webform_rating_none:
+      '#type': webform_rating
+      '#title': 'Rating (none)'
+      '#title_display': none
+    webform_rating_hr:
+      '#type': webform_horizontal_rule
+    webform_same_title:
+      '#markup': 'Billing address is the same as the shipping address (webform_same)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_same_before:
+      '#type': webform_same
+      '#title': 'Billing address is the same as the shipping address (before)'
+      '#title_display': before
+    webform_same_after:
+      '#type': webform_same
+      '#title': 'Billing address is the same as the shipping address (after)'
+      '#title_display': after
+    webform_same_inline:
+      '#type': webform_same
+      '#title': 'Billing address is the same as the shipping address (inline)'
+      '#title_display': inline
+    webform_same_none:
+      '#type': webform_same
+      '#title': 'Billing address is the same as the shipping address (none)'
+      '#title_display': none
+    webform_same_hr:
+      '#type': webform_horizontal_rule
+    search_title:
+      '#markup': 'Search (search)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    search_before:
+      '#type': search
+      '#title': 'Search (before)'
+      '#title_display': before
+    search_after:
+      '#type': search
+      '#title': 'Search (after)'
+      '#title_display': after
+    search_inline:
+      '#type': search
+      '#title': 'Search (inline)'
+      '#title_display': inline
+    search_none:
+      '#type': search
+      '#title': 'Search (none)'
+      '#title_display': none
+    search_hr:
+      '#type': webform_horizontal_rule
+    webform_signature_title:
+      '#markup': 'Signature (webform_signature)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_signature_before:
+      '#type': webform_signature
+      '#title': 'Signature (before)'
+      '#title_display': before
+    webform_signature_after:
+      '#type': webform_signature
+      '#title': 'Signature (after)'
+      '#title_display': after
+    webform_signature_none:
+      '#type': webform_signature
+      '#title': 'Signature (none)'
+      '#title_display': none
+    webform_signature_hr:
+      '#type': webform_horizontal_rule
+    tel_title:
+      '#markup': 'Telephone (tel)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    tel_before:
+      '#type': tel
+      '#title': 'Telephone (before)'
+      '#international': true
+      '#title_display': before
+    tel_after:
+      '#type': tel
+      '#title': 'Telephone (after)'
+      '#international': true
+      '#title_display': after
+    tel_inline:
+      '#type': tel
+      '#title': 'Telephone (inline)'
+      '#international': true
+      '#title_display': inline
+    tel_none:
+      '#type': tel
+      '#title': 'Telephone (none)'
+      '#international': true
+      '#title_display': none
+    tel_hr:
+      '#type': webform_horizontal_rule
+    webform_toggle_title:
+      '#markup': 'Toggle (webform_toggle)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_toggle_before:
+      '#type': webform_toggle
+      '#title': 'Toggle (before)'
+      '#title_display': before
+    webform_toggle_after:
+      '#type': webform_toggle
+      '#title': 'Toggle (after)'
+      '#title_display': after
+    webform_toggle_inline:
+      '#type': webform_toggle
+      '#title': 'Toggle (inline)'
+      '#title_display': inline
+    webform_toggle_none:
+      '#type': webform_toggle
+      '#title': 'Toggle (none)'
+      '#title_display': none
+    webform_toggle_hr:
+      '#type': webform_horizontal_rule
+    url_title:
+      '#markup': 'URL (url)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    url_before:
+      '#type': url
+      '#title': 'URL (before)'
+      '#title_display': before
+    url_after:
+      '#type': url
+      '#title': 'URL (after)'
+      '#title_display': after
+    url_inline:
+      '#type': url
+      '#title': 'URL (inline)'
+      '#title_display': inline
+    url_none:
+      '#type': url
+      '#title': 'URL (none)'
+      '#title_display': none
+    url_hr:
+      '#type': webform_horizontal_rule
+  file_upload_elements:
+    '#type': details
+    '#title': 'File upload elements'
+    '#open': true
+    webform_audio_file_title:
+      '#markup': 'Audio file (webform_audio_file)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_audio_file_before:
+      '#type': webform_audio_file
+      '#title': 'Audio file (before)'
+      '#title_display': before
+    webform_audio_file_after:
+      '#type': webform_audio_file
+      '#title': 'Audio file (after)'
+      '#title_display': after
+    webform_audio_file_none:
+      '#type': webform_audio_file
+      '#title': 'Audio file (none)'
+      '#title_display': none
+    webform_audio_file_hr:
+      '#type': webform_horizontal_rule
+    webform_document_file_title:
+      '#markup': 'Document file (webform_document_file)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_document_file_before:
+      '#type': webform_document_file
+      '#title': 'Document file (before)'
+      '#title_display': before
+    webform_document_file_after:
+      '#type': webform_document_file
+      '#title': 'Document file (after)'
+      '#title_display': after
+    webform_document_file_none:
+      '#type': webform_document_file
+      '#title': 'Document file (none)'
+      '#title_display': none
+    webform_document_file_hr:
+      '#type': webform_horizontal_rule
+    managed_file_title:
+      '#markup': 'File (managed_file)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    managed_file_before:
+      '#type': managed_file
+      '#title': 'File (before)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2705471">Issue #2705471: Webform states managed file fields</a><br /><a href="https://www.drupal.org/node/2113931">Issue #2113931: File Field design update</a><br /><a href="https://www.drupal.org/node/2346893">Issue #2346893: Duplicate Ajax wrapper around a file field</a><br /><a href="https://www.drupal.org/node/2482783">Issue #2482783: File upload errors not set or shown correctly</a>'
+      '#title_display': before
+    managed_file_after:
+      '#type': managed_file
+      '#title': 'File (after)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2705471">Issue #2705471: Webform states managed file fields</a><br /><a href="https://www.drupal.org/node/2113931">Issue #2113931: File Field design update</a><br /><a href="https://www.drupal.org/node/2346893">Issue #2346893: Duplicate Ajax wrapper around a file field</a><br /><a href="https://www.drupal.org/node/2482783">Issue #2482783: File upload errors not set or shown correctly</a>'
+      '#title_display': after
+    managed_file_none:
+      '#type': managed_file
+      '#title': 'File (none)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2705471">Issue #2705471: Webform states managed file fields</a><br /><a href="https://www.drupal.org/node/2113931">Issue #2113931: File Field design update</a><br /><a href="https://www.drupal.org/node/2346893">Issue #2346893: Duplicate Ajax wrapper around a file field</a><br /><a href="https://www.drupal.org/node/2482783">Issue #2482783: File upload errors not set or shown correctly</a>'
+      '#title_display': none
+    managed_file_hr:
+      '#type': webform_horizontal_rule
+    webform_image_file_title:
+      '#markup': 'Image file (webform_image_file)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_image_file_before:
+      '#type': webform_image_file
+      '#title': 'Image file (before)'
+      '#title_display': before
+    webform_image_file_after:
+      '#type': webform_image_file
+      '#title': 'Image file (after)'
+      '#title_display': after
+    webform_image_file_none:
+      '#type': webform_image_file
+      '#title': 'Image file (none)'
+      '#title_display': none
+    webform_image_file_hr:
+      '#type': webform_horizontal_rule
+    webform_video_file_title:
+      '#markup': 'Video file (webform_video_file)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_video_file_before:
+      '#type': webform_video_file
+      '#title': 'Video file (before)'
+      '#title_display': before
+    webform_video_file_after:
+      '#type': webform_video_file
+      '#title': 'Video file (after)'
+      '#title_display': after
+    webform_video_file_none:
+      '#type': webform_video_file
+      '#title': 'Video file (none)'
+      '#title_display': none
+    webform_video_file_hr:
+      '#type': webform_horizontal_rule
+  options_elements:
+    '#type': details
+    '#title': 'Options elements'
+    '#open': true
+    checkboxes_title:
+      '#markup': 'Checkboxes (checkboxes)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    checkboxes_before:
+      '#type': checkboxes
+      '#title': 'Checkboxes (before)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#title_display': before
+    checkboxes_after:
+      '#type': checkboxes
+      '#title': 'Checkboxes (after)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios and checkboxes</a>'
+      '#title_display': after
+    checkboxes_inline:
+      '#type': checkboxes
+      '#title': 'Checkboxes (inline)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios and checkboxes.</a>'
+      '#title_display': inline
+    checkboxes_none:
+      '#type': checkboxes
+      '#title': 'Checkboxes (none)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios and checkboxes.</a>'
+      '#title_display': none
+    checkboxes_hr:
+      '#type': webform_horizontal_rule
+    webform_checkboxes_other_title:
+      '#markup': 'Checkboxes other (webform_checkboxes_other)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_checkboxes_other_before:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other (before)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': before
+    webform_checkboxes_other_after:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other (after)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': after
+    webform_checkboxes_other_inline:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other (inline)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': inline
+    webform_checkboxes_other_none:
+      '#type': webform_checkboxes_other
+      '#title': 'Checkboxes other (none)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': none
+    webform_checkboxes_other_hr:
+      '#type': webform_horizontal_rule
+    webform_image_select_title:
+      '#markup': 'Image select (webform_image_select)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_image_select_before:
+      '#type': webform_image_select
+      '#title': 'Image select (before)'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+      '#title_display': before
+    webform_image_select_after:
+      '#type': webform_image_select
+      '#title': 'Image select (after)'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+      '#title_display': after
+    webform_image_select_none:
+      '#type': webform_image_select
+      '#title': 'Image select (none)'
+      '#show_label': true
+      '#images':
+        bear_1:
+          text: 'Bear 1'
+          src: 'https://www.placebear.com/80/100'
+        bear_2:
+          text: 'Bear 2'
+          src: 'https://www.placebear.com/100/100'
+        bear_3:
+          text: 'Bear 3'
+          src: 'https://www.placebear.com/120/100'
+      '#title_display': none
+    webform_image_select_hr:
+      '#type': webform_horizontal_rule
+    webform_likert_title:
+      '#markup': 'Likert (webform_likert)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_likert_before:
+      '#type': webform_likert
+      '#title': 'Likert (before)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+      '#title_display': before
+    webform_likert_after:
+      '#type': webform_likert
+      '#title': 'Likert (after)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+      '#title_display': after
+    webform_likert_none:
+      '#type': webform_likert
+      '#title': 'Likert (none)'
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: '1'
+        2: '2'
+        3: '3'
+      '#title_display': none
+    webform_likert_hr:
+      '#type': webform_horizontal_rule
+    radios_title:
+      '#markup': 'Radios (radios)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    radios_before:
+      '#type': radios
+      '#title': 'Radios (before)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#title_display': before
+    radios_after:
+      '#type': radios
+      '#title': 'Radios (after)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#title_display': after
+    radios_inline:
+      '#type': radios
+      '#title': 'Radios (inline)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#title_display': inline
+    radios_none:
+      '#type': radios
+      '#title': 'Radios (none)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#title_display': none
+    radios_hr:
+      '#type': webform_horizontal_rule
+    webform_radios_other_title:
+      '#markup': 'Radios other (webform_radios_other)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_radios_other_before:
+      '#type': webform_radios_other
+      '#title': 'Radios other (before)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': before
+    webform_radios_other_after:
+      '#type': webform_radios_other
+      '#title': 'Radios other (after)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': after
+    webform_radios_other_inline:
+      '#type': webform_radios_other
+      '#title': 'Radios other (inline)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': inline
+    webform_radios_other_none:
+      '#type': webform_radios_other
+      '#title': 'Radios other (none)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#options_display': side_by_side
+      '#title_display': none
+    webform_radios_other_hr:
+      '#type': webform_horizontal_rule
+    select_title:
+      '#markup': 'Select (select)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    select_before:
+      '#type': select
+      '#title': 'Select (before)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+      '#title_display': before
+    select_after:
+      '#type': select
+      '#title': 'Select (after)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+      '#title_display': after
+    select_inline:
+      '#type': select
+      '#title': 'Select (inline)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+      '#title_display': inline
+    select_none:
+      '#type': select
+      '#title': 'Select (none)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1426646">Issue #1426646: "-Select-" option is lost when webform elements uses ''#states''</a><br /><a href="https://www.drupal.org/node/1149078">Issue #1149078: States API doesn''t work with multiple select fields</a><br /><a href="https://www.drupal.org/node/2791741">Issue #2791741: FAPI states: fields aren''t hidden initially when depending on multi-value selection</a>'
+      '#title_display': none
+    select_hr:
+      '#type': webform_horizontal_rule
+    webform_select_other_title:
+      '#markup': 'Select other (webform_select_other)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_select_other_before:
+      '#type': webform_select_other
+      '#title': 'Select other (before)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#title_display': before
+    webform_select_other_after:
+      '#type': webform_select_other
+      '#title': 'Select other (after)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#title_display': after
+    webform_select_other_inline:
+      '#type': webform_select_other
+      '#title': 'Select other (inline)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#title_display': inline
+    webform_select_other_none:
+      '#type': webform_select_other
+      '#title': 'Select other (none)'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#title_display': none
+    webform_select_other_hr:
+      '#type': webform_horizontal_rule
+  computed_elements:
+    '#type': details
+    '#title': 'Computed Elements'
+    '#open': true
+    webform_computed_token_title:
+      '#markup': 'Computed token (webform_computed_token)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_computed_token_before:
+      '#type': webform_computed_token
+      '#title': 'Computed token (before)'
+      '#template': 'This is a Computed token value.'
+      '#title_display': before
+    webform_computed_token_after:
+      '#type': webform_computed_token
+      '#title': 'Computed token (after)'
+      '#template': 'This is a Computed token value.'
+      '#title_display': after
+    webform_computed_token_inline:
+      '#type': webform_computed_token
+      '#title': 'Computed token (inline)'
+      '#template': 'This is a Computed token value.'
+      '#title_display': inline
+    webform_computed_token_none:
+      '#type': webform_computed_token
+      '#title': 'Computed token (none)'
+      '#template': 'This is a Computed token value.'
+      '#title_display': none
+    webform_computed_token_hr:
+      '#type': webform_horizontal_rule
+    webform_computed_twig_title:
+      '#markup': 'Computed Twig (webform_computed_twig)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_computed_twig_before:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig (before)'
+      '#template': 'This is a Computed Twig value.'
+      '#title_display': before
+    webform_computed_twig_after:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig (after)'
+      '#template': 'This is a Computed Twig value.'
+      '#title_display': after
+    webform_computed_twig_inline:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig (inline)'
+      '#template': 'This is a Computed Twig value.'
+      '#title_display': inline
+    webform_computed_twig_none:
+      '#type': webform_computed_twig
+      '#title': 'Computed Twig (none)'
+      '#template': 'This is a Computed Twig value.'
+      '#title_display': none
+    webform_computed_twig_hr:
+      '#type': webform_horizontal_rule
+  date_time_elements:
+    '#type': details
+    '#title': 'Date/time elements'
+    '#open': true
+    date_title:
+      '#markup': 'Date (date)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    date_before:
+      '#type': date
+      '#title': 'Date (before)'
+      '#title_display': before
+    date_after:
+      '#type': date
+      '#title': 'Date (after)'
+      '#title_display': after
+    date_inline:
+      '#type': date
+      '#title': 'Date (inline)'
+      '#title_display': inline
+    date_none:
+      '#type': date
+      '#title': 'Date (none)'
+      '#title_display': none
+    date_hr:
+      '#type': webform_horizontal_rule
+    datetime_title:
+      '#markup': 'Date/time (datetime)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    datetime_before:
+      '#type': datetime
+      '#title': 'Date/time (before)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+      '#title_display': before
+    datetime_after:
+      '#type': datetime
+      '#title': 'Date/time (after)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+      '#title_display': after
+    datetime_inline:
+      '#type': datetime
+      '#title': 'Date/time (inline)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+      '#title_display': inline
+    datetime_none:
+      '#type': datetime
+      '#title': 'Date/time (none)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2419131">Issue #2419131: #states attribute does not work on #type datetime</a>'
+      '#title_display': none
+    datetime_hr:
+      '#type': webform_horizontal_rule
+    datelist_title:
+      '#markup': 'Date list (datelist)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    datelist_before:
+      '#type': datelist
+      '#title': 'Date list (before)'
+      '#title_display': before
+    datelist_after:
+      '#type': datelist
+      '#title': 'Date list (after)'
+      '#title_display': after
+    datelist_inline:
+      '#type': datelist
+      '#title': 'Date list (inline)'
+      '#title_display': inline
+    datelist_none:
+      '#type': datelist
+      '#title': 'Date list (none)'
+      '#title_display': none
+    datelist_hr:
+      '#type': webform_horizontal_rule
+    webform_time_title:
+      '#markup': 'Time (webform_time)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_time_before:
+      '#type': webform_time
+      '#title': 'Time (before)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+      '#title_display': before
+    webform_time_after:
+      '#type': webform_time
+      '#title': 'Time (after)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+      '#title_display': after
+    webform_time_inline:
+      '#type': webform_time
+      '#title': 'Time (inline)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+      '#title_display': inline
+    webform_time_none:
+      '#type': webform_time
+      '#title': 'Time (none)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/1838234">Issue #1838234: Add jQuery Timepicker for the Time element of the datetime field</a>'
+      '#title_display': none
+    webform_time_hr:
+      '#type': webform_horizontal_rule
+  containers:
+    '#type': details
+    '#title': Containers
+    '#open': true
+    details_title:
+      '#markup': 'Details (details)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    details_before:
+      '#type': details
+      '#title': 'Details (before)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2348851">Issue #2348851: Regression: Allow HTML tags inside detail summary</a>'
+      '#title_display': before
+    details_after:
+      '#type': details
+      '#title': 'Details (after)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2348851">Issue #2348851: Regression: Allow HTML tags inside detail summary</a>'
+      '#title_display': after
+    details_none:
+      '#type': details
+      '#title': 'Details (none)'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2348851">Issue #2348851: Regression: Allow HTML tags inside detail summary</a>'
+      '#title_display': none
+    details_hr:
+      '#type': webform_horizontal_rule
+    fieldset_title:
+      '#markup': 'Fieldset (fieldset)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    fieldset_before:
+      '#type': fieldset
+      '#title': 'Fieldset (before)'
+      '#title_display': before
+    fieldset_after:
+      '#type': fieldset
+      '#title': 'Fieldset (after)'
+      '#title_display': after
+    fieldset_none:
+      '#type': fieldset
+      '#title': 'Fieldset (none)'
+      '#title_display': none
+    fieldset_hr:
+      '#type': webform_horizontal_rule
+    item_title:
+      '#markup': 'Item (item)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    item_before:
+      '#type': item
+      '#title': 'Item (before)'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+      '#title_display': before
+    item_after:
+      '#type': item
+      '#title': 'Item (after)'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+      '#title_display': after
+    item_inline:
+      '#type': item
+      '#title': 'Item (inline)'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+      '#title_display': inline
+    item_none:
+      '#type': item
+      '#title': 'Item (none)'
+      '#markup': '{markup}'
+      '#field_prefix': '{field_prefix}'
+      '#field_suffix': '{field_suffix}'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
+      '#title_display': none
+    item_hr:
+      '#type': webform_horizontal_rule
+  entity_reference_elements:
+    '#type': details
+    '#title': 'Entity reference elements'
+    '#open': true
+    entity_autocomplete_title:
+      '#markup': 'Entity autocomplete (entity_autocomplete)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    entity_autocomplete_before:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete (before)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+      '#title_display': before
+    entity_autocomplete_after:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete (after)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+      '#title_display': after
+    entity_autocomplete_inline:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete (inline)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+      '#title_display': inline
+    entity_autocomplete_none:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete (none)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2826451">Issue #2826451: TermSelection returning HTML characters in select list</a>'
+      '#title_display': none
+    entity_autocomplete_hr:
+      '#type': webform_horizontal_rule
+    webform_entity_checkboxes_title:
+      '#markup': 'Entity checkboxes (webform_entity_checkboxes)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_entity_checkboxes_before:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes (before)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': before
+    webform_entity_checkboxes_after:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes (after)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': after
+    webform_entity_checkboxes_inline:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes (inline)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': inline
+    webform_entity_checkboxes_none:
+      '#type': webform_entity_checkboxes
+      '#title': 'Entity checkboxes (none)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': none
+    webform_entity_checkboxes_hr:
+      '#type': webform_horizontal_rule
+    webform_entity_radios_title:
+      '#markup': 'Entity radios (webform_entity_radios)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_entity_radios_before:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios (before)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': before
+    webform_entity_radios_after:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios (after)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': after
+    webform_entity_radios_inline:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios (inline)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': inline
+    webform_entity_radios_none:
+      '#type': webform_entity_radios
+      '#title': 'Entity radios (none)'
+      '#options_display': side_by_side
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': none
+    webform_entity_radios_hr:
+      '#type': webform_horizontal_rule
+    webform_entity_select_title:
+      '#markup': 'Entity select (webform_entity_select)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_entity_select_before:
+      '#type': webform_entity_select
+      '#title': 'Entity select (before)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': before
+    webform_entity_select_after:
+      '#type': webform_entity_select
+      '#title': 'Entity select (after)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': after
+    webform_entity_select_inline:
+      '#type': webform_entity_select
+      '#title': 'Entity select (inline)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': inline
+    webform_entity_select_none:
+      '#type': webform_entity_select
+      '#title': 'Entity select (none)'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+      '#options':
+        1: Administrator
+        0: Anonymous
+      '#title_display': none
+    webform_entity_select_hr:
+      '#type': webform_horizontal_rule
+    webform_term_checkboxes_title:
+      '#markup': 'Term checkboxes (webform_term_checkboxes)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_term_checkboxes_before:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes (before)'
+      '#vocabulary': tags
+      '#title_display': before
+    webform_term_checkboxes_after:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes (after)'
+      '#vocabulary': tags
+      '#title_display': after
+    webform_term_checkboxes_inline:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes (inline)'
+      '#vocabulary': tags
+      '#title_display': inline
+    webform_term_checkboxes_none:
+      '#type': webform_term_checkboxes
+      '#title': 'Term checkboxes (none)'
+      '#vocabulary': tags
+      '#title_display': none
+    webform_term_checkboxes_hr:
+      '#type': webform_horizontal_rule
+    webform_term_select_title:
+      '#markup': 'Term select (webform_term_select)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    webform_term_select_before:
+      '#type': webform_term_select
+      '#title': 'Term select (before)'
+      '#vocabulary': tags
+      '#title_display': before
+    webform_term_select_after:
+      '#type': webform_term_select
+      '#title': 'Term select (after)'
+      '#vocabulary': tags
+      '#title_display': after
+    webform_term_select_inline:
+      '#type': webform_term_select
+      '#title': 'Term select (inline)'
+      '#vocabulary': tags
+      '#title_display': inline
+    webform_term_select_none:
+      '#type': webform_term_select
+      '#title': 'Term select (none)'
+      '#vocabulary': tags
+      '#title_display': none
+    webform_term_select_hr:
+      '#type': webform_horizontal_rule
+  other_elements:
+    '#type': details
+    '#title': 'Other elements'
+    '#open': true
+    machine_name_title:
+      '#markup': 'Machine name (machine_name)'
+      '#prefix': '<h3>'
+      '#suffix': '</h3>'
+    machine_name_before:
+      '#type': machine_name
+      '#title': 'Machine name (before)'
+      '#title_display': before
+    machine_name_after:
+      '#type': machine_name
+      '#title': 'Machine name (after)'
+      '#title_display': after
+    machine_name_inline:
+      '#type': machine_name
+      '#title': 'Machine name (inline)'
+      '#title_display': inline
+    machine_name_none:
+      '#type': machine_name
+      '#title': 'Machine name (none)'
+      '#title_display': none
+    machine_name_hr:
+      '#type': webform_horizontal_rule
+  
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_remote_addr: true
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_disable_inline_errors: false
+  form_required: false
+  form_unsaved: false
+  form_disable_back: false
+  form_submit_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
+  submission_label: ''
+  submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
+  submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
+  wizard_start_label: ''
+  wizard_preview_link: false
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  wizard_track: ''
+  preview: 1
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
+  limit_total: null
+  limit_total_interval: null
+  limit_total_message: ''
+  limit_total_unique: false
+  limit_user: null
+  limit_user_interval: null
+  limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
+  purge: none
+  purge_days: null
+  results_disabled: false
+  results_disabled_ignore: false
+  results_customize: false
+  token_view: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  debug:
+    id: debug
+    label: Debug
+    handler_id: debug
+    status: true
+    conditions: {  }
+    weight: 1
+    settings: {  }
+variants: {  }

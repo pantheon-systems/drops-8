@@ -33,7 +33,8 @@ class GarbageCollectionTest extends KernelTestBase {
    */
   public function testGarbageCollection() {
     $collection = $this->randomMachineName();
-    $store = new DatabaseStorageExpirable($collection, new PhpSerialize(), Database::getConnection());
+    $connection = Database::getConnection();
+    $store = new DatabaseStorageExpirable($collection, new PhpSerialize(), $connection);
 
     // Insert some items and confirm that they're set.
     for ($i = 0; $i <= 3; $i++) {
@@ -43,7 +44,7 @@ class GarbageCollectionTest extends KernelTestBase {
 
     // Manually expire the data.
     for ($i = 0; $i <= 3; $i++) {
-      db_merge('key_value_expire')
+      $connection->merge('key_value_expire')
         ->keys([
             'name' => 'key_' . $i,
             'collection' => $collection,
@@ -59,7 +60,7 @@ class GarbageCollectionTest extends KernelTestBase {
     system_cron();
 
     // Query the database and confirm that the stale records were deleted.
-    $result = db_query(
+    $result = $connection->query(
       'SELECT name, value FROM {key_value_expire} WHERE collection = :collection',
       [
         ':collection' => $collection,

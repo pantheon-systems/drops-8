@@ -58,6 +58,7 @@ class WebformUsers extends EntityAutocomplete {
         }
       }
     }
+    $element['#value'] = $uids;
     $form_state->setValueForElement($element, $uids);
   }
 

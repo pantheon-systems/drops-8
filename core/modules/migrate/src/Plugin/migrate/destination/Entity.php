@@ -6,17 +6,13 @@ use Drupal\Component\Plugin\DependentPluginInterface;
 use Drupal\Core\Entity\DependencyTrait;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\migrate\EntityFieldDefinitionTrait;
 use Drupal\migrate\Plugin\MigrationInterface;
 use Drupal\migrate\Row;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a generic destination to import entities.
- *
- * Available configuration keys:
- * - translations: (optional) Boolean, if TRUE, the destination will be
- *   associated with the langcode provided by the source plugin. Defaults to
- *   FALSE.
  *
  * Examples:
  *
@@ -48,11 +44,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   revision_timestamp: timestamp
  * destination:
  *   plugin: entity:node
- *   translations: true
  * @endcode
- *
- * This will save the processed, migrated row as a node with the relevant
- * langcode because the translations configuration is set to "true".
  *
  * @MigrateDestination(
  *   id = "entity",
@@ -62,6 +54,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 abstract class Entity extends DestinationBase implements ContainerFactoryPluginInterface, DependentPluginInterface {
 
   use DependencyTrait;
+  use EntityFieldDefinitionTrait;
 
   /**
    * The entity storage.
@@ -114,23 +107,9 @@ abstract class Entity extends DestinationBase implements ContainerFactoryPluginI
       $plugin_id,
       $plugin_definition,
       $migration,
-      $container->get('entity.manager')->getStorage($entity_type_id),
-      array_keys($container->get('entity.manager')->getBundleInfo($entity_type_id))
+      $container->get('entity_type.manager')->getStorage($entity_type_id),
+      array_keys($container->get('entity_type.bundle.info')->getBundleInfo($entity_type_id))
     );
-  }
-
-  /**
-   * Finds the entity type from configuration or plugin ID.
-   *
-   * @param string $plugin_id
-   *   The plugin ID.
-   *
-   * @return string
-   *   The entity type.
-   */
-  protected static function getEntityTypeId($plugin_id) {
-    // Remove "entity:".
-    return substr($plugin_id, 7);
   }
 
   /**

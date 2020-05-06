@@ -8,6 +8,31 @@ namespace Drupal\Core\File;
 interface FileSystemInterface {
 
   /**
+   * Flag for dealing with existing files: Appends number until name is unique.
+   */
+  const EXISTS_RENAME = 0;
+
+  /**
+   * Flag for dealing with existing files: Replace the existing file.
+   */
+  const EXISTS_REPLACE = 1;
+
+  /**
+   * Flag for dealing with existing files: Do nothing and return FALSE.
+   */
+  const EXISTS_ERROR = 2;
+
+  /**
+   * Flag used by ::prepareDirectory() -- create directory if not present.
+   */
+  const CREATE_DIRECTORY = 1;
+
+  /**
+   * Flag used by ::prepareDirectory() -- file permissions may be changed.
+   */
+  const MODIFY_PERMISSIONS = 2;
+
+  /**
    * Moves an uploaded file to a new location.
    *
    * PHP's move_uploaded_file() does not properly support streams if
@@ -217,7 +242,11 @@ interface FileSystemInterface {
    *   A string containing the name of the scheme, or FALSE if none. For
    *   example, the URI "public://example.txt" would return "public".
    *
-   * @see file_uri_target()
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getScheme()
+   *   instead.
+   *
+   * @see https://www.drupal.org/node/3035273
    */
   public function uriScheme($uri);
 
@@ -234,7 +263,266 @@ interface FileSystemInterface {
    * @return bool
    *   Returns TRUE if the string is the name of a validated stream, or FALSE if
    *   the scheme does not have a registered handler.
+   *
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+   *   Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidScheme()
+   *   instead.
+   *
+   * @see https://www.drupal.org/node/3035273
    */
   public function validScheme($scheme);
+
+  /**
+   * Copies a file to a new location without invoking the file API.
+   *
+   * This is a powerful function that in many ways performs like an advanced
+   * version of copy().
+   * - Checks if $source and $destination are valid and readable/writable.
+   * - If file already exists in $destination either the call will error out,
+   *   replace the file or rename the file based on the $replace parameter.
+   * - If the $source and $destination are equal, the behavior depends on the
+   *   $replace parameter. FileSystemInterface::EXISTS_REPLACE will replace the
+   *   existing file. FileSystemInterface::EXISTS_ERROR will error out.
+   *   FileSystemInterface::EXISTS_RENAME will rename the file until the
+   *   $destination is unique.
+   * - Provides a fallback using realpaths if the move fails using stream
+   *   wrappers. This can occur because PHP's copy() function does not properly
+   *   support streams if open_basedir is enabled. See
+   *   https://bugs.php.net/bug.php?id=60456
+   *
+   * @param string $source
+   *   A string specifying the filepath or URI of the source file.
+   * @param string $destination
+   *   A URI containing the destination that $source should be copied to. The
+   *   URI may be a bare filepath (without a scheme).
+   * @param int $replace
+   *   Replace behavior when the destination file already exists:
+   *   - FileSystemInterface::EXISTS_REPLACE - Replace the existing file.
+   *   - FileSystemInterface::EXISTS_RENAME - Append _{incrementing number}
+   *     until the filename is unique.
+   *   - FileSystemInterface::EXISTS_ERROR - Throw an exception.
+   *
+   * @return string
+   *   The path to the new file.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   */
+  public function copy($source, $destination, $replace = self::EXISTS_RENAME);
+
+  /**
+   * Deletes a file without database changes or hook invocations.
+   *
+   * This function should be used when the file to be deleted does not have an
+   * entry recorded in the files table.
+   *
+   * @param string $path
+   *   A string containing a file path or (streamwrapper) URI.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   */
+  public function delete($path);
+
+  /**
+   * Deletes all files and directories in the specified filepath recursively.
+   *
+   * If the specified path is a directory then the function is called
+   * recursively to process the contents. Once the contents have been removed
+   * the directory is also removed.
+   *
+   * If the specified path is a file then it will be processed with delete()
+   * method.
+   *
+   * Note that this only deletes visible files with write permission.
+   *
+   * @param string $path
+   *   A string containing either an URI or a file or directory path.
+   * @param callable|null $callback
+   *   Callback function to run on each file prior to deleting it and on each
+   *   directory prior to traversing it. For example, can be used to modify
+   *   permissions.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   */
+  public function deleteRecursive($path, callable $callback = NULL);
+
+  /**
+   * Moves a file to a new location without database changes or hook invocation.
+   *
+   * This is a powerful function that in many ways performs like an advanced
+   * version of rename().
+   * - Checks if $source and $destination are valid and readable/writable.
+   * - Checks that $source is not equal to $destination; if they are an error
+   *   is reported.
+   * - If file already exists in $destination either the call will error out,
+   *   replace the file or rename the file based on the $replace parameter.
+   * - Works around a PHP bug where rename() does not properly support streams
+   *   if safe_mode or open_basedir are enabled.
+   *
+   * @param string $source
+   *   A string specifying the filepath or URI of the source file.
+   * @param string $destination
+   *   A URI containing the destination that $source should be moved to. The
+   *   URI may be a bare filepath (without a scheme) and in that case the
+   *   default scheme (public://) will be used.
+   * @param int $replace
+   *   Replace behavior when the destination file already exists:
+   *   - FileSystemInterface::EXISTS_REPLACE - Replace the existing file.
+   *   - FileSystemInterface::EXISTS_RENAME - Append _{incrementing number}
+   *     until the filename is unique.
+   *   - FileSystemInterface::EXISTS_ERROR - Do nothing and return FALSE.
+   *
+   * @return string
+   *   The path to the new file.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   *
+   * @see https://bugs.php.net/bug.php?id=60456
+   */
+  public function move($source, $destination, $replace = self::EXISTS_RENAME);
+
+  /**
+   * Saves a file to the specified destination without invoking file API.
+   *
+   * This function is identical to file_save_data() except the file will not be
+   * saved to the {file_managed} table and none of the file_* hooks will be
+   * called.
+   *
+   * @param string $data
+   *   A string containing the contents of the file.
+   * @param string $destination
+   *   A string containing the destination location. This must be a stream
+   *   wrapper URI.
+   * @param int $replace
+   *   Replace behavior when the destination file already exists:
+   *   - FileSystemInterface::EXISTS_REPLACE - Replace the existing file.
+   *   - FileSystemInterface::EXISTS_RENAME - Append _{incrementing number}
+   *     until the filename is unique.
+   *   - FileSystemInterface::EXISTS_ERROR - Do nothing and return FALSE.
+   *
+   * @return string
+   *   A string with the path of the resulting file, or FALSE on error.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   *
+   * @see file_save_data()
+   */
+  public function saveData($data, $destination, $replace = self::EXISTS_RENAME);
+
+  /**
+   * Checks that the directory exists and is writable.
+   *
+   * Directories need to have execute permissions to be considered a directory
+   * by FTP servers, etc.
+   *
+   * @param string $directory
+   *   A string reference containing the name of a directory path or URI. A
+   *   trailing slash will be trimmed from a path.
+   * @param int $options
+   *   A bitmask to indicate if the directory should be created if it does
+   *   not exist (FileSystemInterface::CREATE_DIRECTORY) or made writable if it
+   *   is read-only (FileSystemInterface::MODIFY_PERMISSIONS).
+   *
+   * @return bool
+   *   TRUE if the directory exists (or was created) and is writable. FALSE
+   *   otherwise.
+   */
+  public function prepareDirectory(&$directory, $options = self::MODIFY_PERMISSIONS);
+
+  /**
+   * Creates a full file path from a directory and filename.
+   *
+   * If a file with the specified name already exists, an alternative will be
+   * used.
+   *
+   * @param string $basename
+   *   The filename.
+   * @param string $directory
+   *   The directory or parent URI.
+   *
+   * @return string
+   *   File path consisting of $directory and a unique filename based off
+   *   of $basename.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   */
+  public function createFilename($basename, $directory);
+
+  /**
+   * Determines the destination path for a file.
+   *
+   * @param string $destination
+   *   The desired final URI or filepath.
+   * @param int $replace
+   *   Replace behavior when the destination file already exists.
+   *   - FileSystemInterface::EXISTS_REPLACE - Replace the existing file.
+   *   - FileSystemInterface::EXISTS_RENAME - Append _{incrementing number}
+   *     until the filename is unique.
+   *   - FileSystemInterface::EXISTS_ERROR - Do nothing and return FALSE.
+   *
+   * @return string|bool
+   *   The destination filepath, or FALSE if the file already exists
+   *   and FileSystemInterface::EXISTS_ERROR is specified.
+   *
+   * @throws \Drupal\Core\File\Exception\FileException
+   *   Implementation may throw FileException or its subtype on failure.
+   */
+  public function getDestinationFilename($destination, $replace);
+
+  /**
+   * Gets the path of the configured temporary directory.
+   *
+   * If the path is not set, it will fall back to the OS-specific default if
+   * set, otherwise a directory under the public files directory. It will then
+   * set this as the configured directory.
+   *
+   * @return string
+   *   A string containing the path to the temporary directory.
+   */
+  public function getTempDirectory();
+
+  /**
+   * Finds all files that match a given mask in a given directory.
+   *
+   * Directories and files beginning with a dot are excluded; this prevents
+   * hidden files and directories (such as SVN working directories) from being
+   * scanned. Use the umask option to skip configuration directories to
+   * eliminate the possibility of accidentally exposing configuration
+   * information. Also, you can use the base directory, recurse, and min_depth
+   * options to improve performance by limiting how much of the filesystem has
+   * to be traversed.
+   *
+   * @param string $dir
+   *   The base directory or URI to scan, without trailing slash.
+   * @param string $mask
+   *   The preg_match() regular expression for files to be included.
+   * @param array $options
+   *   An associative array of additional options, with the following elements:
+   *   - 'nomask': The preg_match() regular expression for files to be excluded.
+   *     Defaults to the 'file_scan_ignore_directories' setting.
+   *   - 'callback': The callback function to call for each match. There is no
+   *     default callback.
+   *   - 'recurse': When TRUE, the directory scan will recurse the entire tree
+   *     starting at the provided directory. Defaults to TRUE.
+   *   - 'key': The key to be used for the returned associative array of files.
+   *     Possible values are 'uri', for the file's URI; 'filename', for the
+   *     basename of the file; and 'name' for the name of the file without the
+   *     extension. Defaults to 'uri'.
+   *   - 'min_depth': Minimum depth of directories to return files from.
+   *     Defaults to 0.
+   *
+   * @return array
+   *   An associative array (keyed on the chosen key) of objects with 'uri',
+   *   'filename', and 'name' properties corresponding to the matched files.
+   *
+   * @throws \Drupal\Core\File\Exception\NotRegularDirectoryException
+   *   If the directory does not exist.
+   */
+  public function scanDirectory($dir, $mask, array $options = []);
 
 }

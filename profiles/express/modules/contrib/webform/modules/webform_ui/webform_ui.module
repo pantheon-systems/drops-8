@@ -5,9 +5,6 @@
  * Provides a simple user interface for building and maintaining webforms.
  */
 
-use Drupal\Core\Form\FormStateInterface;
-use Drupal\webform\Utility\WebformDialogHelper;
-
 /**
  * Implements hook_entity_type_alter().
  */
@@ -22,8 +19,10 @@ function webform_ui_entity_type_alter(array &$entity_types) {
     $handlers = $webform_entity_type->getHandlerClasses();
     $handlers['form']['source'] = $handlers['form']['edit'];
     $handlers['form']['edit'] = 'Drupal\webform_ui\WebformUiEntityElementsForm';
-    $handlers['form']['quick_edit'] = 'Drupal\webform_ui\WebformUiEntityElementsForm';
     $webform_entity_type->setHandlerClass('form', $handlers['form']);
+
+    // Add 'source' to link template.
+    $webform_entity_type->setLinkTemplate('source-form', '/admin/structure/webform/manage/{webform}/source');
   }
 
   if (isset($entity_types['webform_options'])) {
@@ -39,43 +38,27 @@ function webform_ui_entity_type_alter(array &$entity_types) {
     $handlers['form']['edit'] = 'Drupal\webform_ui\WebformUiOptionsForm';
     $handlers['form']['duplicate'] = 'Drupal\webform_ui\WebformUiOptionsForm';
     $webform_options_entity_type->setHandlerClass('form', $handlers['form']);
+
+    // Add 'source' to link template.
+    $webform_options_entity_type->setLinkTemplate('source-form', '/admin/structure/webform/manage/{webform}/source');
   }
 }
 
 /**
- * Implements hook_webform_submission_form_alter().
- */
-function webform_ui_webform_submission_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
-  // Attach dialog libraries to editable webforms to make sure that the
-  // quickedit dialog/system tray works as expected.
-  if (\Drupal::moduleHandler()->moduleExists('quickedit')) {
-    /** @var \Drupal\webform\WebformSubmissionForm $form_object */
-    $form_object = $form_state->getFormObject();
-    if ($form_object->getEntity()->access('update')) {
-      WebformDialogHelper::attachLibraries($form);
-    }
-  }
-}
-
-/**
- * Implements hook_contextual_links_view_alter().
+ * Implements hook_preprocess_menu_local_action().
  *
- * Issue #2752637: hook_contextual_links_view_alter not getting called.
- * @see https://www.drupal.org/node/2752637
+ * Add .button--secondary to add page and layout actions.
  *
- * Issue #2773591: New contextual links are not available after a module is installed
- * @see https://www.drupal.org/node/2773591
+ * @see Drupal.behaviors.webformUiElementsActionsSecondary
  */
-function webform_ui_contextual_links_view_alter(&$element, $items) {
-  if (isset($element['#links']['entitywebformquickedit'])) {
-    $element['#links']['entitywebformquickedit']['attributes'] = WebformDialogHelper::getModalDialogAttributes();
-
-    // Place Quick link first.
-    // @todo Figure out why contextual link weight is not being respected.
-    $quick_edit_link = $element['#links']['entitywebformquickedit'];
-    unset($element['#links']['entitywebformquickedit']);
-    $element['#links'] = ['entitywebformquickedit' => $quick_edit_link] + $element['#links'];
-
-    $element['#attached']['library'][] = WebformDialogHelper::useOffCanvas() ? 'outside_in/drupal.off_canvas' : 'core/drupal.dialog.ajax';
+function webform_ui_preprocess_menu_local_action(&$variables) {
+  if (\Drupal::routeMatch()->getRouteName() != 'entity.webform.edit_form') {
+    return;
   }
+
+  if (!in_array($variables['link']['#url']->getRouteName(), ['entity.webform_ui.element.add_page', 'entity.webform_ui.element.add_layout'])) {
+    return;
+  }
+
+  $variables['link']['#options']['attributes']['class'][] = 'button--secondary';
 }

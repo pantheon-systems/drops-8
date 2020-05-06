@@ -15,6 +15,25 @@ thead th .dropbutton {
 }
 
 /**
+ * Actions.
+ *
+ * Secondary buttons when .button--primary is removed.
+ * @see Drupal.behaviors.webformUiElementsActionsSecondary
+ */
+.action-links .button--secondary.button--primary {
+  display: none;
+}
+
+/**
+ * Hide secondary buttons for mobile.
+ */
+@media screen and (max-width: 600px) {
+  .action-links .button--secondary {
+    display: none;
+  }
+}
+
+/**
  * Elements (/admin/structure/webform/manage/{webform})
  */
 .webform-ui-elements-table .button {
@@ -63,11 +82,66 @@ thead th .dropbutton {
   font-weight: bold;
 }
 
+.webform-ui-elements-table tr.webform-ui-element-disabled {
+  background-color: #f5f5f5;
+  color: #666;
+}
+
+.webform-ui-elements-table tr.webform-ui-element-type-details input,
+.webform-ui-elements-table tr.webform-ui-element-type-details select,
+.webform-ui-elements-table tr.webform-ui-element-type-fieldset input,
+.webform-ui-elements-table tr.webform-ui-element-type-fieldset select {
+  font-weight: normal;
+}
+
 .webform-ui-elements-table tr.webform-ui-element-type-webform_actions td {
   border-top: 1px solid #a6a6a6;
   border-bottom: 1px solid #a6a6a6;
   background-color: #f5f5f2;
   font-weight: bold;
+}
+
+.webform-ui-elements-table tr.webform-ui-element-type-webform_actions input,
+.webform-ui-elements-table tr.webform-ui-element-type-webform_actions select {
+  font-weight: normal;
+}
+
+@media screen and (max-width: 1280px) {
+  .js-off-canvas-dialog-open .webform-ui-elements-table th,
+  .js-off-canvas-dialog-open .webform-ui-elements-table td {
+    display: none;
+  }
+
+  .js-off-canvas-dialog-open .webform-ui-elements-table th:first-child,
+  .js-off-canvas-dialog-open .webform-ui-elements-table th:nth-child(2),
+  .js-off-canvas-dialog-open .webform-ui-elements-table th:last-child,
+  .js-off-canvas-dialog-open .webform-ui-elements-table td:first-child,
+  .js-off-canvas-dialog-open .webform-ui-elements-table td:nth-child(2),
+  .js-off-canvas-dialog-open .webform-ui-elements-table td:last-child {
+    display: table-cell;
+  }
+
+  .js-off-canvas-dialog-open .webform-ui-elements-table th:nth-child(2) span,
+  .js-off-canvas-dialog-open .webform-ui-elements-table td:nth-child(2) span {
+    position: absolute !important;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px;
+    height: 1px;
+    word-wrap: normal;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .webform-ui-elements-table th:nth-child(2) span,
+  .webform-ui-elements-table td:nth-child(2) span {
+    position: absolute !important;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px;
+    height: 1px;
+    word-wrap: normal;
+  }
 }
 
 /**
@@ -131,7 +205,7 @@ thead th .dropbutton {
 }
 
 /**
- * Element (/admin/structure/webform/manage/[webform_id]/element/add/[elment_type])
+ * Element (/admin/structure/webform/manage/[webform_id]/element/add/[element_type])
  * @see \Drupal\webform\Plugin\WebformElementBase::form
  */
 .form--inline.webform-ui-element-form-inline--input .form-item {
@@ -144,6 +218,6 @@ thead th .dropbutton {
 
 .form--inline.webform-ui-element-form-inline--input .form-item select,
 .form--inline.webform-ui-element-form-inline--input .form-item input[type="text"],
-.form--inline.webform-ui-element-form-inline--input .form-item input[type="number"]{
-  width: 140px
+.form--inline.webform-ui-element-form-inline--input .form-item input[type="number"] {
+  width: 140px;
 }

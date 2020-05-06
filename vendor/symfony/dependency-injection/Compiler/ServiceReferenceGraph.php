@@ -28,7 +28,7 @@ class ServiceReferenceGraph
     /**
      * @var ServiceReferenceGraphNode[]
      */
-    private $nodes = array();
+    private $nodes = [];
 
     /**
      * Checks if the graph has a specific node.
@@ -78,7 +78,7 @@ class ServiceReferenceGraph
         foreach ($this->nodes as $node) {
             $node->clear();
         }
-        $this->nodes = array();
+        $this->nodes = [];
     }
 
     /**
@@ -89,9 +89,6 @@ class ServiceReferenceGraph
      * @param string $destId
      * @param mixed  $destValue
      * @param string $reference
-     * @param bool   $lazy
-     * @param bool   $weak
-     * @param bool   $byConstructor
      */
     public function connect($sourceId, $sourceValue, $destId, $destValue = null, $reference = null/*, bool $lazy = false, bool $weak = false, bool $byConstructor = false*/)
     {

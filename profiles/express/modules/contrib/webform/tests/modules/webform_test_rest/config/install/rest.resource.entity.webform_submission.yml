@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  module:
+    - serialization
+    - user
+    - webform
+id: entity.webform_submission
+plugin_id: 'entity:webform_submission'
+granularity: resource
+configuration:
+  methods:
+    - GET
+  formats:
+    - json
+    - hal_json
+    - xml
+  authentication:
+    - cookie

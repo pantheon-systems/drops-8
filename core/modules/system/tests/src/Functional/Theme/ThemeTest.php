@@ -23,9 +23,14 @@ class ThemeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
   }
 
   /**
@@ -78,6 +83,20 @@ class ThemeTest extends BrowserTestBase {
     // Set it back to not annoy the batch runner.
     \Drupal::requestStack()->pop();
     $this->assertTrue(in_array('page__front', $suggestions), 'Front page template was suggested.');
+  }
+
+  /**
+   * Tests theme can provide classes.
+   */
+  public function testClassLoading() {
+    // Install test theme and set it as default.
+    $this->config('system.theme')
+      ->set('default', 'test_theme')
+      ->save();
+    $this->resetAll();
+    // Visit page controller and confirm that the theme class is loaded.
+    $this->drupalGet('/theme-test/test-theme-class');
+    $this->assertText('Loading ThemeClass was successful.');
   }
 
   /**

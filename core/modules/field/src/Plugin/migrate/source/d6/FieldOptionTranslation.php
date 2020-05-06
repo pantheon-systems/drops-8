@@ -24,12 +24,10 @@ class FieldOptionTranslation extends Field {
         'language',
         'plid',
         'plural',
-        'i18n_status',
       ])
       ->condition('i18n.type', 'field')
-      ->condition('property', 'option\_%', 'LIKE')
-      ->isNotNull('translation');
-    $query->leftJoin('locales_target', 'lt', 'lt.lid = i18n.lid');
+      ->condition('property', 'option\_%', 'LIKE');
+    $query->innerJoin('locales_target', 'lt', 'lt.lid = i18n.lid');
     $query->leftjoin('content_node_field', 'cnf', 'cnf.field_name = i18n.objectid');
     $query->addField('cnf', 'field_name');
     $query->addField('cnf', 'global_settings');
@@ -39,6 +37,15 @@ class FieldOptionTranslation extends Field {
     $query->addField('cnf', 'type');
     $query->addField('i18n', 'type', 'i18n_type');
 
+    // The i18n_string module adds a status column to locale_target. It was
+    // originally 'status' in a later revision it was named 'i18n_status'.
+    /** @var \Drupal\Core\Database\Schema $db */
+    if ($this->getDatabase()->schema()->fieldExists('locales_target', 'status')) {
+      $query->addField('lt', 'status', 'i18n_status');
+    }
+    if ($this->getDatabase()->schema()->fieldExists('locales_target', 'i18n_status')) {
+      $query->addField('lt', 'i18n_status');
+    }
     return $query;
   }
 

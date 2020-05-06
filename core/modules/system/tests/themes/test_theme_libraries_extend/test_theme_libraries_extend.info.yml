@@ -1,7 +1,7 @@
 name: 'Test theme libraries-extend'
 type: theme
 description: 'Test Theme with libraries-extend'
-version: VERSION
+# version: VERSION
 base theme: classy
 core: 8.x
 libraries-extend:
@@ -13,3 +13,8 @@ libraries-extend:
   test_theme/collapse:
     - not_a_string:
         expected: 'an exception'
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

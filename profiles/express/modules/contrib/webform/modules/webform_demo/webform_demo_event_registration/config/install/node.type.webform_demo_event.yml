@@ -1,6 +1,9 @@
 langcode: en
 status: true
 dependencies:
+  enforced:
+    module:
+      - webform_demo_event_registration
   module:
     - menu_ui
 third_party_settings:

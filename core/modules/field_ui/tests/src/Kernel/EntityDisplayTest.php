@@ -32,6 +32,7 @@ class EntityDisplayTest extends KernelTestBase {
 
   protected function setUp() {
     parent::setUp();
+    $this->installEntitySchema('entity_test');
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
     $this->installConfig(['field', 'node', 'user']);
@@ -133,20 +134,22 @@ class EntityDisplayTest extends KernelTestBase {
   }
 
   /**
-   * Tests entity_get_display().
+   * @covers \Drupal\Core\Entity\EntityDisplayRepository::getViewDisplay
    */
   public function testEntityGetDisplay() {
-    // Check that entity_get_display() returns a fresh object when no
-    // configuration entry exists.
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
+    $display_repository = $this->container->get('entity_display.repository');
+
+    // Check that getViewDisplay() returns a fresh object when no configuration
+    // entry exists.
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
     $this->assertTrue($display->isNew());
 
     // Add some components and save the display.
     $display->setComponent('component_1', ['weight' => 10, 'settings' => []])
       ->save();
 
-    // Check that entity_get_display() returns the correct object.
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
+    // Check that getViewDisplay() returns the correct object.
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
     $this->assertFalse($display->isNew());
     $this->assertEqual($display->id(), 'entity_test.entity_test.default');
     $this->assertEqual($display->getComponent('component_1'), ['weight' => 10, 'settings' => [], 'third_party_settings' => [], 'region' => 'content']);
@@ -347,8 +350,10 @@ class EntityDisplayTest extends KernelTestBase {
     $type = NodeType::create(['type' => 'article']);
     $type->save();
     node_add_body_field($type);
-    entity_get_display('node', 'article', 'default')->save();
-    entity_get_form_display('node', 'article', 'default')->save();
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+    $display_repository->getViewDisplay('node', 'article')->save();
+    $display_repository->getFormDisplay('node', 'article')->save();
 
     // Delete the bundle.
     $type->delete();
@@ -389,20 +394,23 @@ class EntityDisplayTest extends KernelTestBase {
       'mode' => 'teaser',
     ])->setComponent($field_name)->save();
 
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
     // Check the component exists.
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
-    $this->assertTrue($display->getComponent($field_name));
-    $display = entity_get_display('entity_test', 'entity_test', 'teaser');
-    $this->assertTrue($display->getComponent($field_name));
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
+    $this->assertNotEmpty($display->getComponent($field_name));
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test', 'teaser');
+    $this->assertNotEmpty($display->getComponent($field_name));
 
     // Delete the field.
     $field->delete();
 
     // Check that the component has been removed from the entity displays.
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
-    $this->assertFalse($display->getComponent($field_name));
-    $display = entity_get_display('entity_test', 'entity_test', 'teaser');
-    $this->assertFalse($display->getComponent($field_name));
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
+    $this->assertNull($display->getComponent($field_name));
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test', 'teaser');
+    $this->assertNull($display->getComponent($field_name));
   }
 
   /**
@@ -431,20 +439,23 @@ class EntityDisplayTest extends KernelTestBase {
       'mode' => 'default',
     ])->setComponent($field_name, ['type' => 'field_plugins_test_text_formatter'])->save();
 
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
     // Check the component exists and is of the correct type.
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
     $this->assertEqual($display->getComponent($field_name)['type'], 'field_plugins_test_text_formatter');
 
     // Removing the field_plugins_test module should change the component to use
     // the default formatter for test fields.
     \Drupal::service('config.manager')->uninstall('module', 'field_plugins_test');
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
     $this->assertEqual($display->getComponent($field_name)['type'], 'text_default');
 
     // Removing the text module should remove the field from the view display.
     \Drupal::service('config.manager')->uninstall('module', 'text');
-    $display = entity_get_display('entity_test', 'entity_test', 'default');
-    $this->assertFalse($display->getComponent($field_name));
+    $display = $display_repository->getViewDisplay('entity_test', 'entity_test');
+    $this->assertNull($display->getComponent($field_name));
   }
 
   /**
@@ -496,17 +507,17 @@ class EntityDisplayTest extends KernelTestBase {
     $form_display_teaser->save();
 
     // Test getViewModeOptionsByBundle().
-    $view_modes = \Drupal::entityManager()->getViewModeOptionsByBundle('node', 'article');
+    $view_modes = \Drupal::service('entity_display.repository')->getViewModeOptionsByBundle('node', 'article');
     $this->assertEqual($view_modes, ['default' => 'Default']);
     $display_teaser->setStatus(TRUE)->save();
-    $view_modes = \Drupal::entityManager()->getViewModeOptionsByBundle('node', 'article');
+    $view_modes = \Drupal::service('entity_display.repository')->getViewModeOptionsByBundle('node', 'article');
     $this->assertEqual($view_modes, ['default' => 'Default', 'teaser' => 'Teaser']);
 
     // Test getFormModeOptionsByBundle().
-    $form_modes = \Drupal::entityManager()->getFormModeOptionsByBundle('user', 'user');
+    $form_modes = \Drupal::service('entity_display.repository')->getFormModeOptionsByBundle('user', 'user');
     $this->assertEqual($form_modes, ['default' => 'Default']);
     $form_display_teaser->setStatus(TRUE)->save();
-    $form_modes = \Drupal::entityManager()->getFormModeOptionsByBundle('user', 'user');
+    $form_modes = \Drupal::service('entity_display.repository')->getFormModeOptionsByBundle('user', 'user');
     $this->assertEqual($form_modes, ['default' => 'Default', 'register' => 'Register']);
   }
 

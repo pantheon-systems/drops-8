@@ -6,6 +6,8 @@ use Drupal\Component\Utility\Random;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
 use Drupal\Core\TypedData\DataDefinition;
@@ -207,8 +209,6 @@ class ImageItem extends FileItem {
       '#title' => t('Maximum image resolution'),
       '#element_validate' => [[get_class($this), 'validateResolution']],
       '#weight' => 4.1,
-      '#field_prefix' => '<div class="container-inline">',
-      '#field_suffix' => '</div>',
       '#description' => t('The maximum allowed image size expressed as WIDTH×HEIGHT (e.g. 640×480). Leave blank for no restriction. If a larger image is uploaded, it will be resized to reflect the given width and height. Resizing images on upload will cause the loss of <a href="http://wikipedia.org/wiki/Exchangeable_image_file_format">EXIF data</a> in the image.'),
     ];
     $element['max_resolution']['x'] = [
@@ -218,6 +218,7 @@ class ImageItem extends FileItem {
       '#default_value' => $max_resolution[0],
       '#min' => 1,
       '#field_suffix' => ' × ',
+      '#prefix' => '<div class="form--inline clearfix">',
     ];
     $element['max_resolution']['y'] = [
       '#type' => 'number',
@@ -226,6 +227,7 @@ class ImageItem extends FileItem {
       '#default_value' => $max_resolution[1],
       '#min' => 1,
       '#field_suffix' => ' ' . t('pixels'),
+      '#suffix' => '</div>',
     ];
 
     $min_resolution = explode('x', $settings['min_resolution']) + ['', ''];
@@ -234,8 +236,6 @@ class ImageItem extends FileItem {
       '#title' => t('Minimum image resolution'),
       '#element_validate' => [[get_class($this), 'validateResolution']],
       '#weight' => 4.2,
-      '#field_prefix' => '<div class="container-inline">',
-      '#field_suffix' => '</div>',
       '#description' => t('The minimum allowed image size expressed as WIDTH×HEIGHT (e.g. 640×480). Leave blank for no restriction. If a smaller image is uploaded, it will be rejected.'),
     ];
     $element['min_resolution']['x'] = [
@@ -245,6 +245,7 @@ class ImageItem extends FileItem {
       '#default_value' => $min_resolution[0],
       '#min' => 1,
       '#field_suffix' => ' × ',
+      '#prefix' => '<div class="form--inline clearfix">',
     ];
     $element['min_resolution']['y'] = [
       '#type' => 'number',
@@ -253,6 +254,7 @@ class ImageItem extends FileItem {
       '#default_value' => $min_resolution[1],
       '#min' => 1,
       '#field_suffix' => ' ' . t('pixels'),
+      '#suffix' => '</div>',
     ];
 
     // Remove the description option.
@@ -342,17 +344,24 @@ class ImageItem extends FileItem {
     $extension = array_rand(array_combine($extensions, $extensions));
     // Generate a max of 5 different images.
     if (!isset($images[$extension][$min_resolution][$max_resolution]) || count($images[$extension][$min_resolution][$max_resolution]) <= 5) {
-      $tmp_file = drupal_tempnam('temporary://', 'generateImage_');
+      /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+      $file_system = \Drupal::service('file_system');
+      $tmp_file = $file_system->tempnam('temporary://', 'generateImage_');
       $destination = $tmp_file . '.' . $extension;
-      file_unmanaged_move($tmp_file, $destination);
-      if ($path = $random->image(\Drupal::service('file_system')->realpath($destination), $min_resolution, $max_resolution)) {
+      try {
+        $file_system->move($tmp_file, $destination);
+      }
+      catch (FileException $e) {
+        // Ignore failed move.
+      }
+      if ($path = $random->image($file_system->realpath($destination), $min_resolution, $max_resolution)) {
         $image = File::create();
         $image->setFileUri($path);
         $image->setOwnerId(\Drupal::currentUser()->id());
         $image->setMimeType(\Drupal::service('file.mime_type.guesser')->guess($path));
-        $image->setFileName(drupal_basename($path));
+        $image->setFileName($file_system->basename($path));
         $destination_dir = static::doGetUploadLocation($settings);
-        file_prepare_directory($destination_dir, FILE_CREATE_DIRECTORY);
+        $file_system->prepareDirectory($destination_dir, FileSystemInterface::CREATE_DIRECTORY);
         $destination = $destination_dir . '/' . basename($path);
         $file = file_move($image, $destination);
         $images[$extension][$min_resolution][$max_resolution][$file->id()] = $file;
@@ -415,7 +424,7 @@ class ImageItem extends FileItem {
     // Convert the stored UUID to a FID.
     $fids = [];
     $uuid = $settings['default_image']['uuid'];
-    if ($uuid && ($file = $this->getEntityManager()->loadEntityByUuid('file', $uuid))) {
+    if ($uuid && ($file = \Drupal::service('entity.repository')->loadEntityByUuid('file', $uuid))) {
       $fids[0] = $file->id();
     }
     $element['default_image']['uuid'] = [
@@ -472,7 +481,7 @@ class ImageItem extends FileItem {
     if (isset($element['fids']['#value'][0])) {
       $value = $element['fids']['#value'][0];
       // Convert the file ID to a uuid.
-      if ($file = \Drupal::entityManager()->getStorage('file')->load($value)) {
+      if ($file = \Drupal::entityTypeManager()->getStorage('file')->load($value)) {
         $value = $file->uuid();
       }
     }
@@ -494,8 +503,17 @@ class ImageItem extends FileItem {
    * Gets the entity manager.
    *
    * @return \Drupal\Core\Entity\EntityManagerInterface
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   \Drupal::entityTypeManager() instead in most cases. If the needed method
+   *   is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the
+   *   deprecated \Drupal\Core\Entity\EntityManager to find the correct
+   *   interface or service.
+   *
+   * @see https://www.drupal.org/node/2549139
    */
   protected function getEntityManager() {
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.8.0 and is removed in drupal:9.0.0. Use \Drupal::entityTypeManager() instead in most cases. If the needed method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the deprecated \Drupal\Core\Entity\EntityManager to find the correct interface or service. See https://www.drupal.org/node/2549139', E_USER_DEPRECATED);
     if (!isset($this->entityManager)) {
       $this->entityManager = \Drupal::entityManager();
     }

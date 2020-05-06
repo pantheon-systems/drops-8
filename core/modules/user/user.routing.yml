@@ -43,7 +43,7 @@ user.admin_create:
     _entity_form: 'user.register'
     _title: 'Add user'
   requirements:
-    _permission: 'administer users'
+    _entity_create_access: 'user'
 
 user.admin_permissions:
   path: '/admin/people/permissions'
@@ -209,3 +209,10 @@ user.reset.form:
   options:
     _maintenance_access: TRUE
     no_cache: TRUE
+
+user.well-known.change_password:
+  path: '/.well-known/change-password'
+  defaults:
+    _controller: '\Drupal\user\Controller\UserController::userEditPage'
+  requirements:
+    _user_is_logged_in: 'TRUE'

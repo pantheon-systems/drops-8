@@ -1,0 +1,53 @@
+entity.webform_image_select_images.collection:
+  path: '/admin/structure/webform/config/images/manage'
+  defaults:
+    _entity_list: 'webform_image_select_images'
+    _title: 'Webforms: Images'
+  requirements:
+    _permission: 'administer webform'
+
+entity.webform_image_select_images.autocomplete:
+  path: '/admin/structure/webform/config/images/autocomplete'
+  defaults:
+    _controller: '\Drupal\webform_image_select\Controller\WebformImageSelectImagesController::autocomplete'
+  requirements:
+    _permission: 'administer webform'
+
+entity.webform_image_select_images.add_form:
+  path: '/admin/structure/webform/config/images/manage/add'
+  defaults:
+    _entity_form: 'webform_image_select_images.add'
+    _title: 'Add webform images'
+  requirements:
+    _entity_create_access: 'webform_image_select_images'
+
+entity.webform_image_select_images.edit_form:
+  path: '/admin/structure/webform/config/images/manage/{webform_image_select_images}/edit'
+  defaults:
+    _entity_form: 'webform_image_select_images.edit'
+    _title: 'Edit webform images'
+  requirements:
+    _entity_access: 'webform_image_select_images.update'
+
+entity.webform_image_select_images.source_form:
+  path: '/admin/structure/webform/config/images/manage/{webform_image_select_images}/source'
+  defaults:
+    _entity_form: 'webform_image_select_images.source'
+  requirements:
+    _custom_access: '\Drupal\webform_image_select\Access\WebformImageSelectAccess::checkImagesSourceAccess'
+
+entity.webform_image_select_images.duplicate_form:
+  path: '/admin/structure/webform/config/images/{webform_image_select_images}/duplicate'
+  defaults:
+    _entity_form: 'webform_image_select_images.duplicate'
+    _title: 'Duplicate webform images'
+  requirements:
+    _entity_access: 'webform_image_select_images.duplicate'
+
+entity.webform_image_select_images.delete_form:
+  path: '/admin/structure/webform/config/images/{webform_image_select_images}/delete'
+  defaults:
+    _entity_form: 'webform_image_select_images.delete'
+    _title: 'Delete webform images'
+  requirements:
+    _entity_access: 'webform_image_select_images.delete'

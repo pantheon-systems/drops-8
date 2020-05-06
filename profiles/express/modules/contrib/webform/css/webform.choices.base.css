@@ -1,0 +1,12 @@
+/**
+ * @file
+ * Custom base.css for Choices.js that does not conflict with any existing styles.
+ *
+ * @see https://raw.githubusercontent.com/jshjohnson/Choices/master/public/assets/styles/base.css
+ */
+
+.choices *,
+.choices *:before,
+.choices *:after {
+  box-sizing: border-box;
+}

@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\PHP;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util;
 
 class LowerCaseKeywordSniff implements Sniff
@@ -25,7 +25,6 @@ class LowerCaseKeywordSniff implements Sniff
     public function register()
     {
         return [
-            T_HALT_COMPILER,
             T_ABSTRACT,
             T_ARRAY,
             T_AS,
@@ -56,6 +55,7 @@ class LowerCaseKeywordSniff implements Sniff
             T_EXTENDS,
             T_FINAL,
             T_FINALLY,
+            T_FN,
             T_FOR,
             T_FOREACH,
             T_FUNCTION,

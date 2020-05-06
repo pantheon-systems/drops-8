@@ -1,0 +1,20 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.webform_group_a
+  enforced:
+    module:
+      - webform_demo_group
+id: group.webform_group_a.label
+field_name: label
+entity_type: group
+bundle: webform_group_a
+label: Title
+description: ''
+required: true
+translatable: true
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

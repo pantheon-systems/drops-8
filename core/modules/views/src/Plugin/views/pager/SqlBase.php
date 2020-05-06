@@ -5,11 +5,70 @@ namespace Drupal\views\Plugin\views\pager;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Pager\PagerManagerInterface;
+use Drupal\Core\Pager\PagerParameters;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * A common base class for sql based pager.
  */
-abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInterface {
+abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInterface, ContainerFactoryPluginInterface {
+
+  /**
+   * The pager manager.
+   *
+   * @var \Drupal\Core\Pager\PagerManagerInterface
+   */
+  protected $pagerManager;
+
+  /**
+   * The pager parameters.
+   *
+   * @var \Drupal\Core\Pager\PagerParametersInterface
+   */
+  protected $pagerParameters;
+
+  /**
+   * Constructs a SqlBase object.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Pager\PagerManagerInterface $pager_manager
+   *   The pager manager.
+   * @param \Drupal\Core\Pager\PagerParameters|null $pager_parameters
+   *   The pager parameters.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, PagerManagerInterface $pager_manager = NULL, PagerParameters $pager_parameters = NULL) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+    if (!$pager_manager) {
+      @trigger_error('Calling ' . __METHOD__ . ' without the $pager_manager argument is deprecated in drupal:8.8.0 and is required in drupal:9.0.0. See https://www.drupal.org/node/2779457', E_USER_DEPRECATED);
+      $pager_manager = \Drupal::service('pager.manager');
+    }
+    $this->pagerManager = $pager_manager;
+    if (!$pager_parameters) {
+      @trigger_error('Calling ' . __METHOD__ . ' without the $pager_parameters argument is deprecated in drupal:8.8.0 and is required in drupal:9.0.0. See https://www.drupal.org/node/2779457', E_USER_DEPRECATED);
+      $pager_parameters = \Drupal::service('pager.parameters');
+    }
+    $this->pagerParameters = $pager_parameters;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('pager.manager'),
+      $container->get('pager.parameters')
+    );
+  }
 
   protected function defineOptions() {
     $options = parent::defineOptions();
@@ -47,12 +106,14 @@ abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInt
     $form['items_per_page'] = [
       '#title' => $pager_text['items per page title'],
       '#type' => 'number',
+      '#min' => 0,
       '#description' => $pager_text['items per page description'],
       '#default_value' => $this->options['items_per_page'],
     ];
 
     $form['offset'] = [
       '#type' => 'number',
+      '#min' => 0,
       '#title' => $this->t('Offset (number of items to skip)'),
       '#description' => $this->t('For example, set this to 3 and the first 3 items will not be displayed.'),
       '#default_value' => $this->options['offset'],
@@ -60,6 +121,7 @@ abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInt
 
     $form['id'] = [
       '#type' => 'number',
+      '#min' => 0,
       '#title' => $this->t('Pager ID'),
       '#description' => $this->t("Unless you're experiencing problems with pagers related to this view, you should leave this at 0. If using multiple pagers on one page you may need to set this number to a higher value so as not to conflict within the ?page= array. Large values will add a lot of commas to your URLs, so avoid if possible."),
       '#default_value' => $this->options['id'],
@@ -67,6 +129,7 @@ abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInt
 
     $form['total_pages'] = [
       '#type' => 'number',
+      '#min' => 0,
       '#title' => $this->t('Number of pages'),
       '#description' => $this->t('Leave empty to show all pages.'),
       '#default_value' => $this->options['total_pages'],
@@ -238,7 +301,7 @@ abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInt
    *
    * @param $number
    *   If provided, the page number will be set to this. If NOT provided,
-   *   the page number will be set from the global page array.
+   *   the page number will be set from the pager manager service.
    */
   public function setCurrentPage($number = NULL) {
     if (isset($number)) {
@@ -246,25 +309,7 @@ abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInt
       return;
     }
 
-    // If the current page number was not specified, extract it from the global
-    // page array.
-    global $pager_page_array;
-
-    if (empty($pager_page_array)) {
-      $pager_page_array = [];
-    }
-
-    // Fill in missing values in the global page array, in case the global page
-    // array hasn't been initialized before.
-    $page = $this->view->getRequest()->query->get('page');
-    $page = isset($page) ? explode(',', $page) : [];
-
-    for ($i = 0; $i <= $this->options['id'] || $i < count($pager_page_array); $i++) {
-      $pager_page_array[$i] = empty($page[$i]) ? 0 : $page[$i];
-    }
-
-    // Don't allow the number to be less than zero.
-    $this->current_page = max(0, intval($pager_page_array[$this->options['id']]));
+    $this->current_page = max(0, $this->pagerParameters->findPage($this->options['id']));
   }
 
   public function getPagerTotal() {
@@ -293,24 +338,11 @@ abstract class SqlBase extends PagerPluginBase implements CacheableDependencyInt
     // Don't set pager settings for items per page = 0.
     $items_per_page = $this->getItemsPerPage();
     if (!empty($items_per_page)) {
-      // Dump information about what we already know into the globals.
-      global $pager_page_array, $pager_total, $pager_total_items, $pager_limits;
-      // Set the limit.
-      $pager_limits[$this->options['id']] = $this->options['items_per_page'];
-      // Set the item count for the pager.
-      $pager_total_items[$this->options['id']] = $this->total_items;
-      // Calculate and set the count of available pages.
-      $pager_total[$this->options['id']] = $this->getPagerTotal();
-
+      $pager = $this->pagerManager->createPager($this->getTotalItems(), $this->options['items_per_page'], $this->options['id']);
       // See if the requested page was within range:
-      if ($this->current_page >= $pager_total[$this->options['id']]) {
-        // Pages are numbered from 0 so if there are 10 pages, the last page is 9.
-        $this->setCurrentPage($pager_total[$this->options['id']] - 1);
+      if ($this->getCurrentPage() >= $pager->getTotalPages()) {
+        $this->setCurrentPage($pager->getTotalPages() - 1);
       }
-
-      // Put this number in to guarantee that we do not generate notices when the pager
-      // goes to look for it later.
-      $pager_page_array[$this->options['id']] = $this->current_page;
     }
   }
 

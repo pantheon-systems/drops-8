@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\views\Kernel\Plugin;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
 use Drupal\views_test_data\Plugin\views\display_extender\DisplayExtenderTest as DisplayExtenderTestData;
 use Drupal\views\Views;
@@ -40,6 +41,20 @@ class DisplayExtenderTest extends ViewsKernelTestBase {
     $this->assertTrue($display_extender->testState['preExecute'], 'Make sure the display extender was able to react on preExecute.');
     $view->execute();
     $this->assertTrue($display_extender->testState['query'], 'Make sure the display extender was able to react on query.');
+  }
+
+  /**
+   * Test display extenders validation.
+   */
+  public function testDisplayExtendersValidate() {
+    $this->config('views.settings')->set('display_extenders', ['display_extender_test_3'])->save();
+
+    $view = Views::getView('test_view');
+    $errors = $view->validate();
+
+    foreach ($view->displayHandlers as $id => $display) {
+      $this->assertTrue(isset($errors[$id]) && in_array('Display extender test error.', $errors[$id]), new FormattableMarkup('Error message found for @id display', ['@id' => $id]));
+    }
   }
 
 }

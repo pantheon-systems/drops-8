@@ -2,6 +2,7 @@
 
 namespace Drupal\taxonomy\Plugin\views\relationship;
 
+use Drupal\Core\Database\Database;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\taxonomy\VocabularyStorageInterface;
 use Drupal\views\ViewExecutable;
@@ -50,7 +51,7 @@ class NodeTermData extends RelationshipPluginBase {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager')->getStorage('taxonomy_vocabulary')
+      $container->get('entity_type.manager')->getStorage('taxonomy_vocabulary')
     );
   }
 
@@ -129,7 +130,7 @@ class NodeTermData extends RelationshipPluginBase {
       $def['type'] = empty($this->options['required']) ? 'LEFT' : 'INNER';
       $def['adjusted'] = TRUE;
 
-      $query = db_select('taxonomy_term_field_data', 'td');
+      $query = Database::getConnection()->select('taxonomy_term_field_data', 'td');
       $query->addJoin($def['type'], 'taxonomy_index', 'tn', 'tn.tid = td.tid');
       $query->condition('td.vid', array_filter($this->options['vids']), 'IN');
       $query->addTag('taxonomy_term_access');

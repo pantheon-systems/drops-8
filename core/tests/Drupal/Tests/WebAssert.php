@@ -74,7 +74,7 @@ class WebAssert extends MinkWebAssert {
     $node = $container->findButton($button);
 
     if ($node === NULL) {
-      throw new ElementNotFoundException($this->session, 'button', 'id|name|label|value', $button);
+      throw new ElementNotFoundException($this->session->getDriver(), 'button', 'id|name|label|value', $button);
     }
 
     return $node;
@@ -120,7 +120,7 @@ class WebAssert extends MinkWebAssert {
     ]);
 
     if ($node === NULL) {
-      throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
+      throw new ElementNotFoundException($this->session->getDriver(), 'select', 'id|name|label|value', $select);
     }
 
     return $node;
@@ -150,7 +150,7 @@ class WebAssert extends MinkWebAssert {
     ]);
 
     if ($select_field === NULL) {
-      throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
+      throw new ElementNotFoundException($this->session->getDriver(), 'select', 'id|name|label|value', $select);
     }
 
     $option_field = $select_field->find('named', ['option', $option]);
@@ -183,7 +183,7 @@ class WebAssert extends MinkWebAssert {
     ]);
 
     if ($select_field === NULL) {
-      throw new ElementNotFoundException($this->session, 'select', 'id|name|label|value', $select);
+      throw new ElementNotFoundException($this->session->getDriver(), 'select', 'id|name|label|value', $select);
     }
 
     $option_field = $select_field->find('named', ['option', $option]);
@@ -418,6 +418,30 @@ class WebAssert extends MinkWebAssert {
   }
 
   /**
+   * Checks that page HTML (response content) contains text.
+   *
+   * @param string|object $text
+   *   Text value. Any non-string value will be cast to string.
+   *
+   * @throws \Behat\Mink\Exception\ExpectationException
+   */
+  public function responseContains($text) {
+    parent::responseContains((string) $text);
+  }
+
+  /**
+   * Checks that page HTML (response content) does not contains text.
+   *
+   * @param string|object $text
+   *   Text value. Any non-string value will be cast to string.
+   *
+   * @throws \Behat\Mink\Exception\ExpectationException
+   */
+  public function responseNotContains($text) {
+    parent::responseNotContains((string) $text);
+  }
+
+  /**
    * Asserts a condition.
    *
    * The parent method is overridden because it is a private method.
@@ -462,6 +486,35 @@ class WebAssert extends MinkWebAssert {
 
     if (!$node->hasAttribute('disabled')) {
       throw new ExpectationException("Field $field is disabled", $this->session->getDriver());
+    }
+
+    return $node;
+  }
+
+  /**
+   * Checks that a given form field element is enabled.
+   *
+   * @param string $field
+   *   One of id|name|label|value for the field.
+   * @param \Behat\Mink\Element\TraversableElement $container
+   *   (optional) The document to check against. Defaults to the current page.
+   *
+   * @return \Behat\Mink\Element\NodeElement
+   *   The matching element.
+   *
+   * @throws \Behat\Mink\Exception\ElementNotFoundException
+   * @throws \Behat\Mink\Exception\ExpectationException
+   */
+  public function fieldEnabled($field, TraversableElement $container = NULL) {
+    $container = $container ?: $this->session->getPage();
+    $node = $container->findField($field);
+
+    if ($node === NULL) {
+      throw new ElementNotFoundException($this->session->getDriver(), 'field', 'id|name|label|value', $field);
+    }
+
+    if ($node->hasAttribute('disabled')) {
+      throw new ExpectationException("Field $field is not enabled", $this->session->getDriver());
     }
 
     return $node;

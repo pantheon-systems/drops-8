@@ -36,10 +36,10 @@ class ExpressionValidator extends ConstraintValidator
     public function validate($value, Constraint $constraint)
     {
         if (!$constraint instanceof Expression) {
-            throw new UnexpectedTypeException($constraint, __NAMESPACE__.'\Expression');
+            throw new UnexpectedTypeException($constraint, Expression::class);
         }
 
-        $variables = array();
+        $variables = [];
         $variables['value'] = $value;
         $variables['this'] = $this->context->getObject();
 

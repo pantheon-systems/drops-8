@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Support module for markup tests.
+ */
+
+/**
+ * Prepares variables for Webform HTML Editor markup templates.
+ *
+ * @see webform.webform.test_element_markup.yml
+ */
+function webform_test_markup_preprocess_webform_html_editor_markup(array &$variables) {
+  if ((string) $variables['content']['#markup'] === '<p>Alter this markup.</p>') {
+    $variables['content']['#markup'] = '<p><em>Alter this markup.</em> <strong>This markup was altered.</strong></p>';
+  }
+}

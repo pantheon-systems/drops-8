@@ -12,8 +12,8 @@
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\CodeAnalysis;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class EmptyPHPStatementSniff implements Sniff
@@ -53,12 +53,30 @@ class EmptyPHPStatementSniff implements Sniff
         case 'T_SEMICOLON':
             $prevNonEmpty = $phpcsFile->findPrevious(Tokens::$emptyTokens, ($stackPtr - 1), null, true);
 
-            if ($prevNonEmpty === false
-                || ($tokens[$prevNonEmpty]['code'] !== T_SEMICOLON
-                && $tokens[$prevNonEmpty]['code'] !== T_OPEN_TAG
-                && $tokens[$prevNonEmpty]['code'] !== T_OPEN_TAG_WITH_ECHO)
-            ) {
+            if ($prevNonEmpty === false) {
                 return;
+            }
+
+            if ($tokens[$prevNonEmpty]['code'] !== T_SEMICOLON
+                && $tokens[$prevNonEmpty]['code'] !== T_OPEN_TAG
+                && $tokens[$prevNonEmpty]['code'] !== T_OPEN_TAG_WITH_ECHO
+            ) {
+                if (isset($tokens[$prevNonEmpty]['scope_condition']) === false) {
+                    return;
+                }
+
+                if ($tokens[$prevNonEmpty]['scope_opener'] !== $prevNonEmpty
+                    && $tokens[$prevNonEmpty]['code'] !== T_CLOSE_CURLY_BRACKET
+                ) {
+                    return;
+                }
+
+                $scopeOwner = $tokens[$tokens[$prevNonEmpty]['scope_condition']]['code'];
+                if ($scopeOwner === T_CLOSURE || $scopeOwner === T_ANON_CLASS) {
+                    return;
+                }
+
+                // Else, it's something like `if (foo) {};` and the semi-colon is not needed.
             }
 
             if (isset($tokens[$stackPtr]['nested_parenthesis']) === true) {

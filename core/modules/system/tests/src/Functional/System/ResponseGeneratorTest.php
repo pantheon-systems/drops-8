@@ -22,6 +22,11 @@ class ResponseGeneratorTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
@@ -41,7 +46,7 @@ class ResponseGeneratorTest extends BrowserTestBase {
     $expectedGeneratorHeader = 'Drupal ' . $version . ' (https://www.drupal.org)';
 
     // Check to see if the header is added when viewing a normal content page
-    $this->drupalGet($node->urlInfo());
+    $this->drupalGet($node->toUrl());
     $this->assertResponse(200);
     $this->assertEqual('text/html; charset=UTF-8', $this->drupalGetHeader('Content-Type'));
     $this->assertEqual($expectedGeneratorHeader, $this->drupalGetHeader('X-Generator'));

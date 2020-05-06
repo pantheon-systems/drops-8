@@ -27,11 +27,33 @@ interface WebformOptionsStorageInterface extends ConfigEntityStorageInterface, I
   public function getOptions();
 
   /**
-   * Get all likert options with 'Likert:' prefix removed..
+   * Get all likert options with 'Likert:' prefix removed.
    *
    * @return string[]
    *   An array of likert options.
    */
   public function getLikerts();
+
+  /**
+   * Get list of composite elements that use the specified webform options.
+   *
+   * @param \Drupal\webform\WebformOptionsInterface $webform_options
+   *   A webform options entity.
+   *
+   * @return array
+   *   A list of composite elements that use the specified webform options.
+   */
+  public function getUsedByCompositeElements(WebformOptionsInterface $webform_options);
+
+  /**
+   * Get list of webform that use the specified webform options.
+   *
+   * @param \Drupal\webform\WebformOptionsInterface $webform_options
+   *   A webform options entity.
+   *
+   * @return array
+   *   A list of webform that use the specified webform options.
+   */
+  public function getUsedByWebforms(WebformOptionsInterface $webform_options);
 
 }

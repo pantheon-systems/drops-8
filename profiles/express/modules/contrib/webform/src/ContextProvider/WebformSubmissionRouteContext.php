@@ -4,8 +4,9 @@ namespace Drupal\webform\ContextProvider;
 
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Plugin\Context\Context;
-use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\ContextProviderInterface;
+use Drupal\Core\Plugin\Context\EntityContext;
+use Drupal\Core\Plugin\Context\EntityContextDefinition;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
@@ -37,8 +38,8 @@ class WebformSubmissionRouteContext implements ContextProviderInterface {
    * {@inheritdoc}
    */
   public function getRuntimeContexts(array $unqualified_context_ids) {
-    $result = [];
-    $context_definition = new ContextDefinition('entity:webform_submission', NULL, FALSE);
+    $context_definition = EntityContextDefinition::fromEntityTypeId('webform_submission')->setLabel(NULL)->setRequired(FALSE);
+
     $value = NULL;
     if (($route_object = $this->routeMatch->getRouteObject()) && ($route_contexts = $route_object->getOption('parameters')) && isset($route_contexts['webform_submission'])) {
       if ($webform_submission = $this->routeMatch->getParameter('webform_submission')) {
@@ -51,16 +52,15 @@ class WebformSubmissionRouteContext implements ContextProviderInterface {
 
     $context = new Context($context_definition, $value);
     $context->addCacheableDependency($cacheability);
-    $result['webform_submission'] = $context;
 
-    return $result;
+    return ['webform_submission' => $context];
   }
 
   /**
    * {@inheritdoc}
    */
   public function getAvailableContexts() {
-    $context = new Context(new ContextDefinition('entity:webform_submission', $this->t('Webform submission from URL')));
+    $context = EntityContext::fromEntityTypeId('webform_submission', $this->t('Webform submission from URL'));
     return ['webform_submission' => $context];
   }
 

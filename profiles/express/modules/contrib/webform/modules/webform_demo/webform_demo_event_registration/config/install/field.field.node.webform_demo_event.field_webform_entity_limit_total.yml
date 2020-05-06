@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_webform_entity_limit_total
+    - node.type.webform_demo_event
+id: node.webform_demo_event.field_webform_entity_limit_total
+field_name: field_webform_entity_limit_total
+entity_type: node
+bundle: webform_demo_event
+label: 'Maximum number of registrants'
+description: ''
+required: true
+translatable: false
+default_value:
+  - value: 10
+default_value_callback: ''
+settings:
+  min: 1
+  max: 10
+  prefix: ''
+  suffix: ' people'
+field_type: integer

@@ -2,7 +2,7 @@
 /**
  * Bans PHP 4 style constructors.
  *
- * Favor PHP 5 constructor syntax, which uses "function __construct()".
+ * Favour PHP 5 constructor syntax, which uses "function __construct()".
  * Avoid PHP 4 constructor syntax, which uses "function ClassName()".
  *
  * @author    Greg Sherwood <gsherwood@squiz.net>
@@ -13,8 +13,8 @@
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\NamingConventions;
 
-use PHP_CodeSniffer\Sniffs\AbstractScopeSniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\AbstractScopeSniff;
 
 class ConstructorNameSniff extends AbstractScopeSniff
 {
@@ -39,7 +39,7 @@ class ConstructorNameSniff extends AbstractScopeSniff
      */
     public function __construct()
     {
-        parent::__construct([T_CLASS, T_ANON_CLASS, T_INTERFACE], [T_FUNCTION], true);
+        parent::__construct([T_CLASS, T_ANON_CLASS], [T_FUNCTION], true);
 
     }//end __construct()
 

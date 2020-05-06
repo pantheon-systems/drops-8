@@ -20,6 +20,11 @@ class EarlyDateTest extends TaxonomyTestBase {
    */
   public static $modules = ['node', 'datetime'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -39,7 +44,8 @@ class EarlyDateTest extends TaxonomyTestBase {
     ];
     $this->createEntityReferenceField('node', 'article', $field_name, 'Tags', 'taxonomy_term', 'default', $handler_settings, FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED);
 
-    entity_get_form_display('node', 'article', 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('node', 'article')
       ->setComponent($field_name, [
         'type' => 'entity_reference_autocomplete_tags',
       ])

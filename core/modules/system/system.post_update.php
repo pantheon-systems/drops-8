@@ -10,6 +10,7 @@ use Drupal\Core\Entity\Display\EntityDisplayInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
 
 /**
  * Re-save all configuration entities to recalculate dependencies.
@@ -91,6 +92,13 @@ function system_post_update_field_formatter_entity_schema() {
 }
 
 /**
+ * Clear the library cache and ensure aggregate files are regenerated.
+ */
+function system_post_update_fix_jquery_extend() {
+  // Empty post-update hook.
+}
+
+/**
  * Change plugin IDs of actions.
  */
 function system_post_update_change_action_plugins() {
@@ -142,7 +150,7 @@ function system_post_update_language_item_callback() {
 }
 
 /**
- * Update all entity displays that contain extra fields.
+ * Update all entity view displays that contain extra fields.
  */
 function system_post_update_extra_fields(&$sandbox = NULL) {
   $config_entity_updater = \Drupal::classResolver(ConfigEntityUpdater::class);
@@ -166,8 +174,35 @@ function system_post_update_extra_fields(&$sandbox = NULL) {
     return $needs_save;
   };
 
-  $config_entity_updater->update($sandbox, 'entity_form_display', $callback);
   $config_entity_updater->update($sandbox, 'entity_view_display', $callback);
+}
+
+/**
+ * Update all entity form displays that contain extra fields.
+ */
+function system_post_update_extra_fields_form_display(&$sandbox = NULL) {
+  $config_entity_updater = \Drupal::classResolver(ConfigEntityUpdater::class);
+  $entity_field_manager = \Drupal::service('entity_field.manager');
+
+  $callback = function (EntityDisplayInterface $display) use ($entity_field_manager) {
+    $display_context = $display instanceof EntityViewDisplayInterface ? 'display' : 'form';
+    $extra_fields = $entity_field_manager->getExtraFields($display->getTargetEntityTypeId(), $display->getTargetBundle());
+
+    // If any extra fields are used as a component, resave the display with the
+    // updated component information.
+    $needs_save = FALSE;
+    if (!empty($extra_fields[$display_context])) {
+      foreach ($extra_fields[$display_context] as $name => $extra_field) {
+        if ($component = $display->getComponent($name)) {
+          $display->setComponent($name, $component);
+          $needs_save = TRUE;
+        }
+      }
+    }
+    return $needs_save;
+  };
+
+  $config_entity_updater->update($sandbox, 'entity_form_display', $callback);
 }
 
 /**
@@ -177,4 +212,58 @@ function system_post_update_extra_fields(&$sandbox = NULL) {
  */
 function system_post_update_states_clear_cache() {
   // Empty post-update hook.
+}
+
+/**
+ * Initialize 'expand_all_items' values to system_menu_block.
+ */
+function system_post_update_add_expand_all_items_key_in_system_menu_block(&$sandbox = NULL) {
+  if (!\Drupal::moduleHandler()->moduleExists('block')) {
+    return;
+  }
+  \Drupal::classResolver(ConfigEntityUpdater::class)->update($sandbox, 'block', function ($block) {
+    return strpos($block->getPluginId(), 'system_menu_block:') === 0;
+  });
+}
+
+/**
+ * Clear the menu cache.
+ *
+ * @see https://www.drupal.org/project/drupal/issues/3044364
+ */
+function system_post_update_clear_menu_cache() {
+  // Empty post-update hook.
+}
+
+/**
+ * Clear the schema cache.
+ */
+function system_post_update_layout_plugin_schema_change() {
+  // Empty post-update hook.
+}
+
+/**
+ * Populate the new 'match_limit' setting for the ER autocomplete widget.
+ */
+function system_post_update_entity_reference_autocomplete_match_limit(&$sandbox = NULL) {
+  $config_entity_updater = \Drupal::classResolver(ConfigEntityUpdater::class);
+  /** @var \Drupal\Core\Field\WidgetPluginManager $field_widget_manager */
+  $field_widget_manager = \Drupal::service('plugin.manager.field.widget');
+
+  $callback = function (EntityDisplayInterface $display) use ($field_widget_manager) {
+    foreach ($display->getComponents() as $field_name => $component) {
+      if (empty($component['type'])) {
+        continue;
+      }
+
+      $plugin_definition = $field_widget_manager->getDefinition($component['type'], FALSE);
+      if (is_a($plugin_definition['class'], EntityReferenceAutocompleteWidget::class, TRUE)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  };
+
+  $config_entity_updater->update($sandbox, 'entity_form_display', $callback);
 }

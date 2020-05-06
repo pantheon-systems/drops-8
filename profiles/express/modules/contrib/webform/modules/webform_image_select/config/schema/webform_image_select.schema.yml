@@ -1,0 +1,16 @@
+'webform_image_select.webform_image_select_images.*':
+  type: config_entity
+  label: Images
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: Label
+    category:
+      type: label
+      label: Category
+    images:
+      type: text
+      label: 'Images (YAML)'

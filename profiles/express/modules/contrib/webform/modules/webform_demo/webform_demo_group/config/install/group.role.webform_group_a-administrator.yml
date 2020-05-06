@@ -1,0 +1,39 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.webform_group_a
+  enforced:
+    module:
+      - webform_demo_group
+id: webform_group_a-administrator
+label: Administrator
+weight: 5
+internal: false
+audience: member
+group_type: webform_group_a
+permissions_ui: true
+permissions:
+  - 'access content overview'
+  - 'access group_node overview'
+  - 'administer group'
+  - 'administer members'
+  - 'create group_node:webform content'
+  - 'create group_node:webform entity'
+  - 'delete any group_node:webform content'
+  - 'delete any group_node:webform entity'
+  - 'delete group'
+  - 'delete own group_node:webform content'
+  - 'delete own group_node:webform entity'
+  - 'edit group'
+  - 'leave group'
+  - 'update any group_node:webform content'
+  - 'update any group_node:webform entity'
+  - 'update own group_membership content'
+  - 'update own group_node:webform content'
+  - 'update own group_node:webform entity'
+  - 'view group'
+  - 'view group_membership content'
+  - 'view group_node:webform content'
+  - 'view group_node:webform entity'
+  - 'view unpublished group_node:webform entity'

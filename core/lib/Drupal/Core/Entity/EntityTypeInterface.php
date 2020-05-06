@@ -364,7 +364,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @return bool
    *   TRUE if the entity type is a subclass of the class or interface.
    *
-   * @deprecated in Drupal 8.3.0 and will be removed before Drupal 9.0.0.
+   * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
    *   Use Drupal\Core\Entity\EntityTypeInterface::entityClassImplements()
    *   instead.
    */
@@ -488,15 +488,12 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @return callable|null
    *   The callback, or NULL if none exists.
    *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
-   *   Use Drupal\Core\Entity\EntityInterface::label() for complex label
-   *   generation as needed.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the
+   *   EntityInterface::label() method instead for dynamic labels.
    *
    * @see \Drupal\Core\Entity\EntityInterface::label()
    * @see \Drupal\Core\Entity\EntityTypeInterface::setLabelCallback()
    * @see \Drupal\Core\Entity\EntityTypeInterface::hasLabelCallback()
-   *
-   * @todo Remove usages of label_callback https://www.drupal.org/node/2450793.
    */
   public function getLabelCallback();
 
@@ -508,8 +505,8 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *
    * @return $this
    *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
-   *   Use EntityInterface::label() for complex label generation as needed.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the
+   *   EntityInterface::label() method instead for dynamic labels.
    *
    * @see \Drupal\Core\Entity\EntityInterface::label()
    * @see \Drupal\Core\Entity\EntityTypeInterface::getLabelCallback()
@@ -522,8 +519,8 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *
    * @return bool
    *
-   * @deprecated in Drupal 8.0.x-dev and will be removed before Drupal 9.0.0.
-   *   Use EntityInterface::label() for complex label generation as needed.
+   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the
+   *   EntityInterface::label() method instead for dynamic labels.
    *
    * @see \Drupal\Core\Entity\EntityInterface::label()
    * @see \Drupal\Core\Entity\EntityTypeInterface::getLabelCallback()
@@ -651,7 +648,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * This label should be used to present a human-readable name of the
    * entity type.
    *
-   * @return string
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The human-readable name of the entity type.
    */
   public function getLabel();
@@ -661,6 +658,10 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    *
    * @return string
    *   The lowercase form of the human-readable entity type name.
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
+   *   Instead, you should call getSingularLabel().
+   *   See https://www.drupal.org/node/3075567
    *
    * @see \Drupal\Core\Entity\EntityTypeInterface::getLabel()
    */
@@ -674,7 +675,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * this is the page title of a page devoted to a collection of entities such
    * as "Workflows" (instead of "Workflow entities").
    *
-   * @return string
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The collection label.
    */
   public function getCollectionLabel();
@@ -687,7 +688,10 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * "opportunities"), "child" (with the plural as "children"), or "content
    * item" (with the plural as "content items").
    *
-   * @return string
+   * Think of it as an "in a full sentence, this is what we call this" label. As
+   * a consequence, the English version is lowercase.
+   *
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The singular label.
    */
   public function getSingularLabel();
@@ -700,7 +704,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * "opportunity"), "children" (with the singular as "child"), or "content
    * items" (with the singular as "content item").
    *
-   * @return string
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The plural label.
    */
   public function getPluralLabel();
@@ -716,7 +720,7 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
    * @param int $count
    *   The item count to display if the plural form was requested.
    *
-   * @return string
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
    *   The count label.
    */
   public function getCountLabel($count);
@@ -752,7 +756,8 @@ interface EntityTypeInterface extends PluginDefinitionInterface {
   /**
    * Gets the human-readable name of the entity type group.
    *
-   * @return string
+   * @return string|\Drupal\Core\StringTranslation\TranslatableMarkup
+   *   The group label.
    */
   public function getGroupLabel();
 

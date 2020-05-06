@@ -81,8 +81,7 @@ abstract class AbstractRecursivePass implements CompilerPassInterface
     }
 
     /**
-     * @param Definition $definition
-     * @param bool       $required
+     * @param bool $required
      *
      * @return \ReflectionFunctionAbstract|null
      *
@@ -90,6 +89,10 @@ abstract class AbstractRecursivePass implements CompilerPassInterface
      */
     protected function getConstructor(Definition $definition, $required)
     {
+        if ($definition->isSynthetic()) {
+            return null;
+        }
+
         if (\is_string($factory = $definition->getFactory())) {
             if (!\function_exists($factory)) {
                 throw new RuntimeException(sprintf('Invalid service "%s": function "%s" does not exist.', $this->currentId, $factory));
@@ -123,7 +126,7 @@ abstract class AbstractRecursivePass implements CompilerPassInterface
                 throw new RuntimeException(sprintf('Invalid service "%s": class "%s" does not exist.', $this->currentId, $class));
             }
         } catch (\ReflectionException $e) {
-            throw new RuntimeException(sprintf('Invalid service "%s": %s.', $this->currentId, lcfirst(rtrim($e->getMessage(), '.'))));
+            throw new RuntimeException(sprintf('Invalid service "%s": '.lcfirst($e->getMessage()), $this->currentId));
         }
         if (!$r = $r->getConstructor()) {
             if ($required) {
@@ -137,8 +140,7 @@ abstract class AbstractRecursivePass implements CompilerPassInterface
     }
 
     /**
-     * @param Definition $definition
-     * @param string     $method
+     * @param string $method
      *
      * @throws RuntimeException
      *

@@ -26,7 +26,7 @@ class CollectionValidator extends ConstraintValidator
     public function validate($value, Constraint $constraint)
     {
         if (!$constraint instanceof Collection) {
-            throw new UnexpectedTypeException($constraint, __NAMESPACE__.'\Collection');
+            throw new UnexpectedTypeException($constraint, Collection::class);
         }
 
         if (null === $value) {
@@ -50,7 +50,7 @@ class CollectionValidator extends ConstraintValidator
 
         foreach ($constraint->fields as $field => $fieldConstraint) {
             // bug fix issue #2779
-            $existsInArray = \is_array($value) && array_key_exists($field, $value);
+            $existsInArray = \is_array($value) && \array_key_exists($field, $value);
             $existsInArrayAccess = $value instanceof \ArrayAccess && $value->offsetExists($field);
 
             if ($existsInArray || $existsInArrayAccess) {

@@ -3,10 +3,14 @@
 namespace Drupal\webform\Plugin;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\webform\Utility\WebformElementHelper;
 use Drupal\webform\WebformInterface;
 use Drupal\webform\WebformSubmissionConditionsValidatorInterface;
 use Drupal\webform\WebformSubmissionInterface;
@@ -28,6 +32,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    * @var \Drupal\webform\WebformInterface
    */
   protected $webform = NULL;
+
+  /**
+   * The webform submission.
+   *
+   * @var \Drupal\webform\WebformSubmissionInterface
+   */
+  protected $webformSubmission = NULL;
 
   /**
    * The webform handler ID.
@@ -93,6 +104,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   protected $conditionsValidator;
 
   /**
+   * The webform token manager.
+   *
+   * @var \Drupal\webform\WebformTokenManagerInterface
+   */
+  protected $tokenManager;
+
+  /**
    * Constructs a WebformHandlerBase object.
    *
    * IMPORTANT:
@@ -100,7 +118,7 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    * webform. Make sure not include any services as a dependency injection
    * that directly connect to the database. This will prevent
    * "LogicException: The database connection is not serializable." exceptions
-   * from being thrown when a form is serialized via an Ajax callaback and/or
+   * from being thrown when a form is serialized via an Ajax callback and/or
    * form build.
    *
    * @param array $configuration
@@ -122,11 +140,16 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    */
   public function __construct(array $configuration, $plugin_id, $plugin_definition, LoggerChannelFactoryInterface $logger_factory, ConfigFactoryInterface $config_factory, EntityTypeManagerInterface $entity_type_manager, WebformSubmissionConditionsValidatorInterface $conditions_validator) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->setConfiguration($configuration);
     $this->loggerFactory = $logger_factory;
     $this->configFactory = $config_factory;
     $this->submissionStorage = $entity_type_manager->getStorage('webform_submission');
     $this->conditionsValidator = $conditions_validator;
+
+    // @todo Webform 8.x-6.x: Properly inject the token manager.
+    // @todo Webform 8.x-6.x: Update handlers that injects the token manager.
+    $this->tokenManager = \Drupal::service('webform.token_manager');
+
+    $this->setConfiguration($configuration);
   }
 
   /**
@@ -157,6 +180,21 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    */
   public function getWebform() {
     return $this->webform;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setWebformSubmission(WebformSubmissionInterface $webform_submission = NULL) {
+    $this->webformSubmission = $webform_submission;
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getWebformSubmission() {
+    return $this->webformSubmission;
   }
 
   /**
@@ -196,6 +234,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    */
   public function supportsConditions() {
     return $this->pluginDefinition['conditions'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function supportsTokens() {
+    return $this->pluginDefinition['tokens'];
   }
 
   /**
@@ -276,8 +321,23 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   /**
    * {@inheritdoc}
    */
+  public function enable() {
+    return $this->setStatus(TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function disable() {
+    return $this->setStatus(FALSE);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isExcluded() {
-    return $this->configFactory->get('webform.settings')->get('handler.excluded_handlers.' . $this->pluginDefinition['id']) ? TRUE : FALSE;
+    return $this->configFactory->get('webform.settings')
+      ->get('handler.excluded_handlers.' . $this->pluginDefinition['id']) ? TRUE : FALSE;
   }
 
   /**
@@ -297,6 +357,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   /**
    * {@inheritdoc}
    */
+  public function isApplicable(WebformInterface $webform) {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function isSubmissionOptional() {
     return ($this->pluginDefinition['submission'] === self::SUBMISSION_OPTIONAL);
   }
@@ -306,6 +373,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    */
   public function isSubmissionRequired() {
     return ($this->pluginDefinition['submission'] === self::SUBMISSION_REQUIRED);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasAnonymousSubmissionTracking() {
+    return FALSE;
   }
 
   /**
@@ -324,8 +398,14 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
       return TRUE;
     }
 
+    // Get conditions.
     $state = key($conditions);
     $conditions = $conditions[$state];
+
+    // Replace tokens in conditions.
+    $conditions = $this->replaceTokens($conditions, $webform_submission);
+
+    // Validation conditions.
     $result = $this->conditionsValidator->validateConditions($conditions, $webform_submission);
 
     // Negate result for 'disabled' state.
@@ -378,13 +458,6 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   /**
    * {@inheritdoc}
    */
-  public function calculateDependencies() {
-    return [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     return $form;
   }
@@ -410,9 +483,18 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    */
   protected function applyFormStateToConfiguration(FormStateInterface $form_state) {
     $values = $form_state->getValues();
+    $default_configuration = $this->defaultConfiguration();
     foreach ($values as $key => $value) {
-      if (isset($this->configuration[$key])) {
-        $this->configuration[$key] = $value;
+      if (array_key_exists($key, $this->configuration)) {
+        if (is_bool($default_configuration[$key])) {
+          $this->configuration[$key] = (boolean) $value;
+        }
+        elseif (is_int($default_configuration[$key])) {
+          $this->configuration[$key] = (integer) $value;
+        }
+        else {
+          $this->configuration[$key] = $value;
+        }
       }
     }
   }
@@ -425,6 +507,20 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    * {@inheritdoc}
    */
   public function alterElements(array &$elements, WebformInterface $webform) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function alterElement(array &$element, FormStateInterface $form_state, array $context) {}
+
+  /****************************************************************************/
+  // Webform submission methods.
+  /****************************************************************************/
+
+  /**
+   * {@inheritdoc}
+   */
+  public function overrideSettings(array &$settings, WebformSubmissionInterface $webform_submission) {}
 
   /****************************************************************************/
   // Submission form methods.
@@ -457,7 +553,7 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   /**
    * {@inheritdoc}
    */
-  public function preCreate(array $values) {}
+  public function preCreate(array &$values) {}
 
   /**
    * {@inheritdoc}
@@ -488,6 +584,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    * {@inheritdoc}
    */
   public function postSave(WebformSubmissionInterface $webform_submission, $update = TRUE) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function access(WebformSubmissionInterface $webform_submission, $operation, AccountInterface $account = NULL) {
+    return AccessResult::neutral();
+  }
 
   /****************************************************************************/
   // Preprocessing methods.
@@ -524,6 +627,13 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   /**
    * {@inheritdoc}
    */
+  public function accessElement(array &$element, $operation, AccountInterface $account = NULL) {
+    return AccessResult::neutral();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function createElement($key, array $element) {}
 
   /**
@@ -537,17 +647,144 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
   public function deleteElement($key, array $element) {}
 
   /****************************************************************************/
-  // Loggin methods.
+  // Form helper methods.
   /****************************************************************************/
 
   /**
-   * Get webform logger.
+   * Set configuration settings parents.
+   *
+   * This helper method looks looks for the handler default configuration keys
+   * within a form and set a matching element's #parents property to
+   * ['settings', '{element_key}']
+   *
+   * @param array $elements
+   *   An array of form elements.
+   *
+   * @return array
+   *   Form element with #parents set.
+   */
+  protected function setSettingsParents(array &$elements) {
+    return $this->setSettingsParentsRecursively($elements);
+  }
+
+  /**
+   * Set configuration settings parents.
+   *
+   * This helper method looks looks for the handler default configuration keys
+   * within a form and set a matching element's #parents property to
+   * ['settings', '{element_key}']
+   *
+   * @param array $elements
+   *   An array of form elements.
+   *
+   * @return array
+   *   Form element with #parents set.
+   */
+  protected function setSettingsParentsRecursively(array &$elements) {
+    $default_configuration = $this->defaultConfiguration();
+    foreach ($elements as $element_key => &$element) {
+      // Only a form element can have #parents.
+      if (!WebformElementHelper::isElement($element, $element_key)) {
+        continue;
+      }
+
+      // If the element has #parents property assume that it has also been
+      // defined for all sub-elements.
+      if (isset($element['#parents'])) {
+        continue;
+      }
+
+      // Only set #parents when #element has…
+      // - Default configuration.
+      // - Is an input.
+      // - #default_value or #value (aka input).
+      // - Not a container with children.
+      if (array_key_exists($element_key, $default_configuration)
+        && isset($element['#type'])
+        && !WebformElementHelper::hasChildren($element)) {
+        $element['#parents'] = ['settings', $element_key];
+      }
+      else {
+        $this->setSettingsParentsRecursively($element);
+      }
+    }
+    return $elements;
+  }
+
+  /****************************************************************************/
+  // Token methods.
+  /****************************************************************************/
+
+  /**
+   * Replace tokens in text with no render context.
+   *
+   * @param string|array $text
+   *   A string of text that may contain tokens.
+   * @param \Drupal\Core\Entity\EntityInterface|null $entity
+   *   A Webform or Webform submission entity.
+   * @param array $data
+   *   (optional) An array of keyed objects.
+   * @param array $options
+   *   (optional) A keyed array of settings and flags to control the token
+   *   replacement process. Supported options are:
+   *   - langcode: A language code to be used when generating locale-sensitive
+   *     tokens.
+   *   - callback: A callback function that will be used to post-process the
+   *     array of token replacements after they are generated.
+   *   - clear: A boolean flag indicating that tokens should be removed from the
+   *     final text if no replacement value can be generated.
+   *
+   * @return string|array
+   *   Text or array with tokens replaced.
+   */
+  protected function replaceTokens($text, EntityInterface $entity = NULL, array $data = [], array $options = []) {
+    return $this->tokenManager->replaceNoRenderContext($text, $entity, $data, $options);
+  }
+
+  /**
+   * Build token tree element.
+   *
+   * @param array $token_types
+   *   (optional) An array containing token types that should be shown in the tree.
+   * @param string $description
+   *   (optional) Description to appear after the token tree link.
+   *
+   * @return array
+   *   A render array containing a token tree link wrapped in a div.
+   */
+  protected function buildTokenTreeElement(array $token_types = ['webform', 'webform_submission'], $description = NULL) {
+    return $this->tokenManager->buildTreeElement($token_types, $description);
+  }
+
+  /**
+   * Validate form that should have tokens in it.
+   *
+   * @param array $form
+   *   A form.
+   * @param array $token_types
+   *   An array containing token types that should be validated.
+   *
+   * @see token_element_validate()
+   */
+  protected function elementTokenValidate(array &$form, array $token_types = ['webform', 'webform_submission', 'webform_handler']) {
+    return $this->tokenManager->elementValidate($form, $token_types);
+  }
+
+  /****************************************************************************/
+  // Logging methods.
+  /****************************************************************************/
+
+  /**
+   * Get webform or webform_submission logger.
+   *
+   * @param string $channel
+   *   The logger channel. Defaults to 'webform'.
    *
    * @return \Drupal\Core\Logger\LoggerChannelInterface
    *   Webform logger
    */
-  protected function getLogger() {
-    return $this->loggerFactory->get('webform');
+  protected function getLogger($channel = 'webform') {
+    return $this->loggerFactory->get($channel);
   }
 
   /**
@@ -561,6 +798,18 @@ abstract class WebformHandlerBase extends PluginBase implements WebformHandlerIn
    *   The message to be logged.
    * @param array $data
    *   The data to be saved with log record.
+   *
+   * @deprecated Instead call the 'webform_submission' logger channel directly.
+   *
+   *  $message = 'Some message with an %argument.'
+   *  $context = [
+   *    '%argument' => 'Some value'
+   *    'link' => $webform_submission->toLink($this->t('Edit'), 'edit-form')->toString(),
+   *    'webform_submission' => $webform_submission,
+   *    'handler_id' => NULL,
+   *    'data' => [],
+   *  ];
+   *  \Drupal::logger('webform_submission')->notice($message, $context);
    */
   protected function log(WebformSubmissionInterface $webform_submission, $operation, $message = '', array $data = []) {
     if ($webform_submission->getWebform()->hasSubmissionLog()) {

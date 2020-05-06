@@ -6,9 +6,9 @@
  */
 
 .form-type-webform-multiple:after {
-  content: " ";
   display: table;
   clear: both;
+  content: " ";
 }
 
 .webform-multiple-table table {
@@ -16,15 +16,20 @@
 }
 
 .webform-multiple-table td {
-  white-space: nowrap;
   vertical-align: top;
+  white-space: nowrap;
+}
+
+.webform-multiple-table td .description,
+.webform-multiple-table td .form-item--error-message {
+  white-space: normal;
 }
 
 .webform-multiple-table td.webform-multiple-table--handle {
-  padding: 0 0 0 1em;
   width: 26px;
-  vertical-align: middle;
+  padding: 0 0 0 1em;
   text-align: center;
+  vertical-align: middle;
 }
 
 .webform-multiple-table td.webform-multiple-table--weight {
@@ -32,18 +37,19 @@
 }
 
 .webform-multiple-table td.webform-multiple-table--operations {
+  width: 30px;
   padding: 0 2px;
-  vertical-align: middle;
   text-align: center;
+  vertical-align: middle;
+}
+.webform-multiple-table td.webform-multiple-table--operations-two {
   width: 60px;
 }
 
 .webform-multiple-table td.webform-multiple-table--operations input {
   margin: 0 2px;
-}
-
-.webform-multiple-table td.webform-multiple-table--operations input {
   opacity: 0.4;
+  background: none;
 }
 
 .webform-multiple-table td.webform-multiple-table--operations input:hover,
@@ -71,18 +77,54 @@
   width: auto;
 }
 
+.webform-multiple-table td .form-type-datetime .form-type-textfield input {
+  width: 12em;
+}
 .webform-multiple-table .webform-multiple-sort-weight {
   width: 4em;
 }
 
 .webform-multiple-table td input[type="image"] {
-  padding: 0;
-  width: 16px;
-  height: 16px;
+  box-sizing: border-box;
+  width: 20px;
+  min-width: initial;
+  max-width: initial;
+  height: auto;
+  margin: 0;
+  padding: 2px;
+  border: 2px solid #333;
+  border-radius: 50%;
+}
+
+.webform-multiple-table td input[type="image"] + input[type="image"] {
+  margin-left: 2px;
 }
 
 .webform-multiple-table .container-inline input[type="submit"] {
   width: inherit;
+}
+
+/**
+ * Add margin between stacked form items.
+ */
+.webform-multiple-table .form-item + .form-item {
+  margin-top: 0.2em;
+}
+
+/**
+ * Fix margin be checkboxes and radios.
+ */
+.webform-multiple-table .form-checkboxes .form-item,
+.webform-multiple-table .form-radios .form-item {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+/**
+ * Remove margin from no messages.
+ */
+.webform-multiple-table--no-items-message .messages__wrapper {
+  padding: 0;
 }
 
 /**
@@ -96,8 +138,16 @@
 /**
  * Tweak tabledrag toggle weight.
  */
-.webform-multiple-tabledrag-toggle-weight {
+.tabledrag-toggle-weight-wrapper.webform-multiple-tabledrag-toggle-weight {
+  position: inherit;
+  display: inherit;
   float: right;
+}
+
+.tabledrag-toggle-weight-wrapper.webform-multiple-tabledrag-toggle-weight button {
+  position: inherit;
+  top: inherit;
+  right: inherit;
 }
 
 /**
@@ -105,4 +155,52 @@
  */
 .webform-multiple-table .imce-url-button {
   display: block;
+}
+
+/**
+ * Mobile support to multiple table.
+ */
+@media (max-width: 768px) {
+  .webform-multiple-table-responsive thead {
+    display: none;
+  }
+
+  .webform-multiple-table-responsive tr {
+    display: block;
+    padding: 0.5em 0;
+  }
+
+  .webform-multiple-table-responsive td {
+    display: block;
+    width: inherit;
+    padding: 0.5em 1em;
+    text-align: inherit;
+    border: 0;
+    background: transparent;
+  }
+
+  .webform-multiple-table-responsive td:after {
+    display: table;
+    clear: both;
+    content: "";
+  }
+
+  .webform-multiple-table-responsive td.webform-multiple-table--handle,
+  .webform-multiple-table-responsive td.webform-multiple-table--operations {
+    display: none;
+  }
+
+  .webform-multiple-table-responsive td.webform-multiple-table--weight {
+    width: 100%;
+  }
+
+  .webform-multiple-table-responsive td > div > label.visually-hidden {
+    position: inherit !important;
+    display: block;
+    overflow: inherit;
+    clip: inherit;
+    width: inherit;
+    height: inherit;
+    margin: 0.2em 0;
+  }
 }

@@ -66,6 +66,13 @@ class WebformExporter extends Plugin {
   public $archive = FALSE;
 
   /**
+   * Download uploaded files (in a zipped archive).
+   *
+   * @var bool
+   */
+  public $files = TRUE;
+
+  /**
    * Using export options.
    *
    * @var bool

@@ -3,13 +3,16 @@
 namespace Drupal\simpletest;
 
 use Drupal\Component\Assertion\Handle;
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Render\MarkupInterface;
 use Drupal\Component\Utility\Crypt;
-use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Component\Utility\Environment;
 use Drupal\Core\Database\Database;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\Core\StreamWrapper\PublicStream;
 use Drupal\Core\Test\TestDatabase;
+use Drupal\Core\Test\TestDiscovery;
 use Drupal\Core\Test\TestSetupTrait;
 use Drupal\Core\Utility\Error;
 use Drupal\Tests\AssertHelperTrait as BaseAssertHelperTrait;
@@ -21,6 +24,10 @@ use Drupal\Tests\Traits\Core\GeneratePermutationsTrait;
  * Base class for Drupal tests.
  *
  * Do not extend this class directly; use \Drupal\simpletest\WebTestBase.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Instead,
+ *   use one of the phpunit base test classes like
+ *   Drupal\Tests\BrowserTestBase. See https://www.drupal.org/node/3030340.
  */
 abstract class TestBase {
 
@@ -378,6 +385,10 @@ abstract class TestBase {
    * @return
    *   Message ID of the stored assertion.
    *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
+   *   simpletest_insert_assert() instead.
+   *
+   * @see https://www.drupal.org/node/3030340
    * @see \Drupal\simpletest\TestBase::assert()
    * @see \Drupal\simpletest\TestBase::deleteAssert()
    */
@@ -903,7 +914,7 @@ abstract class TestBase {
       $this->verbose = TRUE;
       $this->verboseDirectory = PublicStream::basePath() . '/simpletest/verbose';
       $this->verboseDirectoryUrl = file_create_url($this->verboseDirectory);
-      if (file_prepare_directory($this->verboseDirectory, FILE_CREATE_DIRECTORY) && !file_exists($this->verboseDirectory . '/.htaccess')) {
+      if (\Drupal::service('file_system')->prepareDirectory($this->verboseDirectory, FileSystemInterface::CREATE_DIRECTORY) && !file_exists($this->verboseDirectory . '/.htaccess')) {
         file_put_contents($this->verboseDirectory . '/.htaccess', "<IfModule mod_expires.c>\nExpiresActive Off\n</IfModule>\n");
       }
       $this->verboseClassName = str_replace("\\", "_", $class);
@@ -917,8 +928,7 @@ abstract class TestBase {
       $this->httpAuthCredentials = $username . ':' . $password;
     }
 
-    // Force assertion failures to be thrown as AssertionError for PHP 5 & 7
-    // compatibility.
+    // Force assertion failures to be thrown as exceptions.
     Handle::register();
 
     set_error_handler([$this, 'errorHandler']);
@@ -1094,13 +1104,11 @@ abstract class TestBase {
     // Backup statics and globals.
     $this->originalContainer = \Drupal::getContainer();
     $this->originalLanguage = $language_interface;
-    $this->originalConfigDirectories = $GLOBALS['config_directories'];
 
     // Save further contextual information.
     // Use the original files directory to avoid nesting it within an existing
     // simpletest directory if a test is executed within a test.
     $this->originalFileDirectory = Settings::get('file_public_path', $site_path . '/files');
-    $this->originalProfile = drupal_get_profile();
     $this->originalUser = isset($user) ? clone $user : NULL;
 
     // Prevent that session data is leaked into the UI test runner by closing
@@ -1125,7 +1133,7 @@ abstract class TestBase {
 
     // Create test directory ahead of installation so fatal errors and debug
     // information can be logged during installation process.
-    file_prepare_directory($this->siteDirectory, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS);
+    \Drupal::service('file_system')->prepareDirectory($this->siteDirectory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
 
     // Prepare filesystem directory paths.
     $this->publicFilesDirectory = $this->siteDirectory . '/files';
@@ -1177,7 +1185,7 @@ abstract class TestBase {
       'container_yamls' => [],
     ]);
 
-    drupal_set_time_limit($this->timeLimit);
+    Environment::setTimeLimit($this->timeLimit);
   }
 
   /**
@@ -1243,14 +1251,14 @@ abstract class TestBase {
 
     // In case a fatal error occurred that was not in the test process read the
     // log to pick up any fatal errors.
-    simpletest_log_read($this->testId, $this->databasePrefix, get_class($this));
+    (new TestDatabase($this->databasePrefix))->logRead($this->testId, get_class($this));
 
     // Restore original dependency injection container.
     $this->container = $this->originalContainer;
     \Drupal::setContainer($this->originalContainer);
 
     // Delete test site directory.
-    file_unmanaged_delete_recursive($this->siteDirectory, [$this, 'filePreDeleteCallback']);
+    \Drupal::service('file_system')->deleteRecursive($this->siteDirectory, [$this, 'filePreDeleteCallback']);
 
     // Restore original database connection.
     Database::removeConnection('default');
@@ -1265,9 +1273,6 @@ abstract class TestBase {
     $GLOBALS['config'] = $this->originalConfig;
     $GLOBALS['conf'] = $this->originalConf;
     new Settings($this->originalSettings);
-
-    // Restore original statics and globals.
-    $GLOBALS['config_directories'] = $this->originalConfigDirectories;
 
     // Re-initialize original stream wrappers of the parent site.
     // This must happen after static variables have been reset and the original
@@ -1362,11 +1367,13 @@ abstract class TestBase {
   }
 
   /**
-   * Ensures test files are deletable within file_unmanaged_delete_recursive().
+   * Ensures test files are deletable.
    *
    * Some tests chmod generated files to be read only. During
    * TestBase::restoreEnvironment() and other cleanup operations, these files
    * need to get deleted too.
+   *
+   * @see \Drupal\Core\File\FileSystemInterface::deleteRecursive()
    */
   public static function filePreDeleteCallback($path) {
     // When the webserver runs with the same system user as the test runner, we

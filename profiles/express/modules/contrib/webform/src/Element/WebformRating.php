@@ -2,8 +2,10 @@
 
 namespace Drupal\webform\Element;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element\Range;
 use Drupal\Core\Render\Element;
+use Drupal\webform\Utility\WebformElementHelper;
 
 /**
  * Provides a webform element for entering a rating.
@@ -23,11 +25,23 @@ class WebformRating extends Range {
       '#step' => 1,
       '#star_size' => 'medium',
       '#reset' => FALSE,
+      '#process' => [
+        [$class, 'processWebformRating'],
+      ],
       '#pre_render' => [
         [$class, 'preRenderWebformRating'],
       ],
       '#theme' => 'input__webform_rating',
     ] + parent::getInfo();
+  }
+
+  /**
+   * Expand rating elements.
+   */
+  public static function processWebformRating(&$element, FormStateInterface $form_state, &$complete_form) {
+    // Add validate callback.
+    $element['#element_validate'] = [[get_called_class(), 'validateWebformRating']];
+    return $element;
   }
 
   /**
@@ -47,7 +61,7 @@ class WebformRating extends Range {
     static::setAttributes($element, ['form-webform-rating']);
 
     // If value is an empty string set it the min.
-    if ($element['#attributes']['value'] == '') {
+    if (isset($element['#attributes']['value']) && $element['#attributes']['value'] === '') {
       $element['#attributes']['value'] = $element['#attributes']['min'];
     }
 
@@ -62,8 +76,8 @@ class WebformRating extends Range {
    * @param array $element
    *   A rating element.
    *
-   * @return string
-   *   The RateIt div tag.
+   * @return array
+   *   A renderable array containing the RateIt div tag.
    *
    * @see https://github.com/gjunge/rateit.js/wiki
    */
@@ -89,9 +103,9 @@ class WebformRating extends Range {
       'data-rateit-readonly' => $is_readonly ? 'true' : 'false',
     ];
 
-    // Set range element's #id.
-    if (isset($element['#id'])) {
-      $attributes['data-rateit-backingfld'] = '#' . $element['#id'];
+    // Set range element's selector based on its parents.
+    if (isset($element['#attributes']['data-drupal-selector'])) {
+      $attributes['data-rateit-backingfld'] = '[data-drupal-selector="' . $element['#attributes']['data-drupal-selector'] . '"]';
     }
 
     // Set value for HTML preview.
@@ -120,7 +134,17 @@ class WebformRating extends Range {
         'library' => ['webform/webform.element.rating'],
       ],
     ];
+  }
 
+  /**
+   * Validates a rating element.
+   */
+  public static function validateWebformRating(&$element, FormStateInterface $form_state, &$complete_form) {
+    $value = $element['#value'];
+    $has_access = (!isset($element['#access']) || $element['#access'] === TRUE);
+    if ($has_access && !empty($element['#required']) && ($value === '0' || $value === '')) {
+      WebformElementHelper::setRequiredError($element, $form_state);
+    }
   }
 
 }

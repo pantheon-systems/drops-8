@@ -9,3 +9,5 @@ webform_node.references:
   css:
     theme:
       css/webform_node.references.css: {}
+  dependencies:
+    - webform/webform.admin.dropbutton

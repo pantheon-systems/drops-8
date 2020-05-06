@@ -10,7 +10,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Provides the webform templates filter webform.
  */
-class WebformtemplatesFilterForm extends FormBase {
+class WebformTemplatesFilterForm extends FormBase {
 
   /**
    * {@inheritdoc}
@@ -74,6 +74,9 @@ class WebformtemplatesFilterForm extends FormBase {
       '#empty_option' => ($category) ? $this->t('Show all webforms') : $this->t('Filter by category'),
       '#default_value' => $category,
     ];
+    if (empty($form['filter']['category']['#options'])) {
+      $form['filter']['category']['#access'] = FALSE;
+    }
     $form['filter']['submit'] = [
       '#type' => 'submit',
       '#button_type' => 'primary',

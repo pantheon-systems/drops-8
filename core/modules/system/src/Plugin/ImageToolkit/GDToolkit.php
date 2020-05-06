@@ -4,10 +4,13 @@ namespace Drupal\system\Plugin\ImageToolkit;
 
 use Drupal\Component\Utility\Color;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\ImageToolkit\ImageToolkitBase;
 use Drupal\Core\ImageToolkit\ImageToolkitOperationManagerInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -59,6 +62,13 @@ class GDToolkit extends ImageToolkitBase {
   protected $streamWrapperManager;
 
   /**
+   * The file system.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected $fileSystem;
+
+  /**
    * Constructs a GDToolkit object.
    *
    * @param array $configuration
@@ -75,10 +85,17 @@ class GDToolkit extends ImageToolkitBase {
    *   The config factory.
    * @param \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface $stream_wrapper_manager
    *   The StreamWrapper manager.
+   * @param \Drupal\Core\File\FileSystemInterface $file_system
+   *   The file system.
    */
-  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ImageToolkitOperationManagerInterface $operation_manager, LoggerInterface $logger, ConfigFactoryInterface $config_factory, StreamWrapperManagerInterface $stream_wrapper_manager) {
+  public function __construct(array $configuration, $plugin_id, array $plugin_definition, ImageToolkitOperationManagerInterface $operation_manager, LoggerInterface $logger, ConfigFactoryInterface $config_factory, StreamWrapperManagerInterface $stream_wrapper_manager, FileSystemInterface $file_system = NULL) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $operation_manager, $logger, $config_factory);
     $this->streamWrapperManager = $stream_wrapper_manager;
+    if (!$file_system) {
+      @trigger_error('The file_system service must be passed to GDToolkit::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
+      $file_system = \Drupal::service('file_system');
+    }
+    $this->fileSystem = $file_system;
   }
 
   /**
@@ -103,7 +120,8 @@ class GDToolkit extends ImageToolkitBase {
       $container->get('image.toolkit.operation.manager'),
       $container->get('logger.channel.image'),
       $container->get('config.factory'),
-      $container->get('stream_wrapper_manager')
+      $container->get('stream_wrapper_manager'),
+      $container->get('file_system')
     );
   }
 
@@ -113,7 +131,7 @@ class GDToolkit extends ImageToolkitBase {
    * @param resource $resource
    *   The GD image resource.
    *
-   * @return \Drupal\system\Plugin\ImageToolkit\GDToolkit
+   * @return $this
    *   An instance of the current toolkit object.
    */
   public function setResource($resource) {
@@ -213,17 +231,17 @@ class GDToolkit extends ImageToolkitBase {
    * {@inheritdoc}
    */
   public function save($destination) {
-    $scheme = file_uri_scheme($destination);
+    $scheme = StreamWrapperManager::getScheme($destination);
     // Work around lack of stream wrapper support in imagejpeg() and imagepng().
-    if ($scheme && file_stream_wrapper_valid_scheme($scheme)) {
+    if ($scheme && $this->streamWrapperManager->isValidScheme($scheme)) {
       // If destination is not local, save image to temporary local file.
       $local_wrappers = $this->streamWrapperManager->getWrappers(StreamWrapperInterface::LOCAL);
       if (!isset($local_wrappers[$scheme])) {
         $permanent_destination = $destination;
-        $destination = drupal_tempnam('temporary://', 'gd_');
+        $destination = $this->fileSystem->tempnam('temporary://', 'gd_');
       }
       // Convert stream wrapper URI to normal path.
-      $destination = \Drupal::service('file_system')->realpath($destination);
+      $destination = $this->fileSystem->realpath($destination);
     }
 
     $function = 'image' . image_type_to_extension($this->getType(), FALSE);
@@ -243,7 +261,13 @@ class GDToolkit extends ImageToolkitBase {
     }
     // Move temporary local file to remote destination.
     if (isset($permanent_destination) && $success) {
-      return (bool) file_unmanaged_move($destination, $permanent_destination, FILE_EXISTS_REPLACE);
+      try {
+        $this->fileSystem->move($destination, $permanent_destination, FileSystemInterface::EXISTS_REPLACE);
+        return TRUE;
+      }
+      catch (FileException $e) {
+        return FALSE;
+      }
     }
     return $success;
   }

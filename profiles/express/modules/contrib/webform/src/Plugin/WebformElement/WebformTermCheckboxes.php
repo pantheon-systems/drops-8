@@ -13,6 +13,9 @@ use Drupal\webform\Plugin\WebformElementEntityReferenceInterface;
  *   label = @Translation("Term checkboxes"),
  *   description = @Translation("Provides a form element to select a single or multiple terms displayed as hierarchical tree or as breadcrumbs using checkboxes."),
  *   category = @Translation("Entity reference elements"),
+ *   dependencies = {
+ *     "taxonomy",
+ *   },
  * )
  */
 class WebformTermCheckboxes extends Checkboxes implements WebformElementEntityReferenceInterface {
@@ -22,20 +25,24 @@ class WebformTermCheckboxes extends Checkboxes implements WebformElementEntityRe
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    $properties = parent::getDefaultProperties() + [
+  protected function defineDefaultProperties() {
+    $properties = [
       'vocabulary' => '',
       'breadcrumb' => FALSE,
       'breadcrumb_delimiter' => ' › ',
       'tree_delimiter' => '&nbsp;&nbsp;&nbsp;',
       'scroll' => TRUE,
-    ];
+    ] + parent::defineDefaultProperties();
 
-    unset($properties['options']);
-    unset($properties['options_randomize']);
-    unset($properties['options_display']);
+    unset(
+      $properties['options'],
+      $properties['options_randomize'],
+      $properties['options_display']
+    );
     return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}

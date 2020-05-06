@@ -7,16 +7,24 @@ use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Authentication\AuthenticationProviderChallengeInterface;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Http\Exception\CacheableUnauthorizedHttpException;
 use Drupal\user\UserAuthInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 /**
  * HTTP Basic authentication provider.
  */
 class BasicAuth implements AuthenticationProviderInterface, AuthenticationProviderChallengeInterface {
+  use DeprecatedServicePropertyTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
 
   /**
    * The config factory.
@@ -40,11 +48,11 @@ class BasicAuth implements AuthenticationProviderInterface, AuthenticationProvid
   protected $flood;
 
   /**
-   * The entity manager.
+   * The entity type manager service.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $entityManager;
+  protected $entityTypeManager;
 
   /**
    * Constructs a HTTP basic authentication provider object.
@@ -55,14 +63,14 @@ class BasicAuth implements AuthenticationProviderInterface, AuthenticationProvid
    *   The user authentication service.
    * @param \Drupal\Core\Flood\FloodInterface $flood
    *   The flood service.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager service.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, UserAuthInterface $user_auth, FloodInterface $flood, EntityManagerInterface $entity_manager) {
+  public function __construct(ConfigFactoryInterface $config_factory, UserAuthInterface $user_auth, FloodInterface $flood, EntityTypeManagerInterface $entity_type_manager) {
     $this->configFactory = $config_factory;
     $this->userAuth = $user_auth;
     $this->flood = $flood;
-    $this->entityManager = $entity_manager;
+    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
@@ -89,7 +97,7 @@ class BasicAuth implements AuthenticationProviderInterface, AuthenticationProvid
     // in to many different user accounts.  We have a reasonably high limit
     // since there may be only one apparent IP for all users at an institution.
     if ($this->flood->isAllowed('basic_auth.failed_login_ip', $flood_config->get('ip_limit'), $flood_config->get('ip_window'))) {
-      $accounts = $this->entityManager->getStorage('user')->loadByProperties(['name' => $username, 'status' => 1]);
+      $accounts = $this->entityTypeManager->getStorage('user')->loadByProperties(['name' => $username, 'status' => 1]);
       $account = reset($accounts);
       if ($account) {
         if ($flood_config->get('uid_only')) {
@@ -109,7 +117,7 @@ class BasicAuth implements AuthenticationProviderInterface, AuthenticationProvid
           $uid = $this->userAuth->authenticate($username, $password);
           if ($uid) {
             $this->flood->clear('basic_auth.failed_login_user', $identifier);
-            return $this->entityManager->getStorage('user')->load($uid);
+            return $this->entityTypeManager->getStorage('user')->load($uid);
           }
           else {
             // Register a per-user failed login event.
@@ -155,7 +163,9 @@ class BasicAuth implements AuthenticationProviderInterface, AuthenticationProvid
     $cacheability = CacheableMetadata::createFromObject($site_config)
       ->addCacheTags(['config:user.role.anonymous'])
       ->addCacheContexts(['user.roles:anonymous']);
-    return new CacheableUnauthorizedHttpException($cacheability, (string) $challenge, 'No authentication credentials provided.', $previous);
+    return $request->isMethodCacheable()
+      ? new CacheableUnauthorizedHttpException($cacheability, (string) $challenge, 'No authentication credentials provided.', $previous)
+      : new UnauthorizedHttpException((string) $challenge, 'No authentication credentials provided.', $previous);
   }
 
 }

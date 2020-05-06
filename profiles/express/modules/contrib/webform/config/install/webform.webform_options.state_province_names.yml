@@ -7,13 +7,14 @@ dependencies:
 id: state_province_names
 label: 'State/Province names'
 category: Geographic
+likert: false
 options: |
   Alabama: Alabama
   Alaska: Alaska
   'American Samoa': 'American Samoa'
   Arizona: Arizona
   Arkansas: Arkansas
-  'Armed Forces (Canada, Europe, Africa, or Middle East': 'Armed Forces (Canada, Europe, Africa, or Middle East'
+  'Armed Forces (Canada, Europe, Africa, or Middle East)': 'Armed Forces (Canada, Europe, Africa, or Middle East)'
   'Armed Forces Americas': 'Armed Forces Americas'
   'Armed Forces Pacific': 'Armed Forces Pacific'
   California: California
@@ -21,7 +22,7 @@ options: |
   Connecticut: Connecticut
   Delaware: Delaware
   'District of Columbia': 'District of Columbia'
-  'Federate States of Micronesia': 'Federate States of Micronesia'
+  'Federated States of Micronesia': 'Federated States of Micronesia'
   Florida: Florida
   Georgia: Georgia
   Guam: Guam
@@ -70,3 +71,16 @@ options: |
   'West Virginia': 'West Virginia'
   Wisconsin: Wisconsin
   Wyoming: Wyoming
+  Alberta: Alberta
+  'British Columbia': 'British Columbia'
+  Manitoba: Manitoba
+  'New Brunswick': 'New Brunswick'
+  'Newfoundland and Labrador': 'Newfoundland and Labrador'
+  'Nova Scotia': 'Nova Scotia'
+  'Northwest Territories': 'Northwest Territories'
+  Nunavut: Nunavut
+  Ontario: Ontario
+  'Prince Edward Island': 'Prince Edward Island'
+  Quebec: Quebec
+  Saskatchewan: Saskatchewan
+  Yukon: Yukon

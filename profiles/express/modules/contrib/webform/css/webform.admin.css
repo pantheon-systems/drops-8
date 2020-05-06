@@ -11,7 +11,15 @@
 }
 
 /**
- * Webform setting button displays a gear icon.
+ * Submission.
+ */
+
+.webform-submission-information .button {
+  font-size: 1em;
+}
+
+/**
+ * Webform setting button displays a table rows icon.
  * @see /admin/structure/webform/manage/contact/results/submissions
  */
 .button.button-webform-table-setting {
@@ -19,29 +27,8 @@
 }
 
 .button.button-webform-table-setting:before {
-  content: '☷';
+  content: "☷";
   font-size: 1.2em;
-}
-
-/**
- * Filter webform and submissions.
- * @see /admin/structure/webform
- * @see /admin/structure/webform/templates
- */
-.webform-filter-form .form-submit {
-  margin-left: 0;
-  margin-right: 5px;
-}
-
-.webform-filter-form .form-item {
-  margin-right: 5px;
-}
-
-@media screen and (max-width: 600px) {
-  .webform-filter-form .form-item {
-    display: block;
-    margin-right: 0;
-  }
 }
 
 /**
@@ -49,61 +36,59 @@
  * @see /admin/structure/webform/submissions/manage
  * @see /admin/structure/webform/manage/contact/results/submissions
  */
-.webform-results__table th,
-.webform-results__table td {
-  max-width: 400px;
+.webform-results-table th,
+.webform-results-table td {
   overflow: hidden;
+  max-width: 400px;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-/* Make sure 'Operations' is never cut-off */
-.webform-results__table td:last-child {
+/* Make sure 'Operations' is never cut-off. */
+.webform-results-table td.webform-dropbutton-wrapper {
   overflow: visible;
   max-width: inherit;
   white-space: normal;
 }
 
-th.webform-results__icon,
-td.webform-results__icon {
-  padding-left: 0;
+th.webform-results-table__icon,
+td.webform-results-table__icon {
   padding-right: 0;
+  padding-left: 0;
 }
 
 /* Hide throbber, which breaks icon alignment */
-.webform-results__icon .ajax-progress-throbber,
-a.webform-results__custom + .ajax-progress-throbber {
+.webform-results-table__icon .ajax-progress-throbber {
   display: none;
 }
 
 /* Entire row is clickable. @see Drupal.behaviors.webformTableRowHref */
-.webform-results__table tbody tr {
+.webform-results-table tbody tr {
   cursor: pointer;
-  cursor: hand;
+}
+
+/* Limit image height to 60px */
+.webform-results-table td img {
+  width: auto;
+  max-height: 60px;
 }
 
 /**
- * Results custom(ize) dialog.
- */
-.webform-results__custom .tabledrag-changed-warning,
-.webform-results__custom .tabledrag-changed /* Hide table drag warnings. */ {
-  display: none !important; /* Must use !important because .tabledrag-changed 'display' is set via JavaScript */
-}
-
-/**
- * Results icons (sticky & notes)
+ * Results icons (notes, sticky, and locked)
  */
 .webform-icon {
   display: inline-block;
-  height: 16px;
   width: 16px;
+  height: 16px;
   text-align: center;
+  vertical-align: -2px;
   background-color: transparent;
   background-repeat: no-repeat;
   background-position: center center;
   background-size: 100% auto;
-  vertical-align: -2px;
 }
+
+/* Notes */
 
 .webform-icon-notes--on {
   background-image: url(../images/icons/notes-on.svg);
@@ -124,9 +109,11 @@ a:focus .webform-icon-notes--off {
   background-image: url(../images/icons/notes-link.svg);
 }
 
+/* Sticky */
+
 .webform-icon-sticky {
-  background: transparent url(../images/icons/sticky.svg) no-repeat left top;
   display: inline-block;
+  background: transparent url(../images/icons/sticky.svg) no-repeat left top;
   background-size: 64px 16px;
 }
 
@@ -146,19 +133,93 @@ a:focus .webform-icon-notes--off {
   background: transparent url(../images/icons/sticky-link.svg) no-repeat left top;
 }
 
+/* Locked */
+
+.webform-icon-locked--on {
+  background-image: url(../images/icons/locked-on.svg);
+}
+
+.webform-icon-locked--off {
+  background-image: url(../images/icons/locked-off.svg);
+}
+
+.webform-icon-locked--link {
+  background-image: url(../images/icons/locked-on-link.svg);
+}
+
+a:hover .webform-icon-locked--on,
+a:focus .webform-icon-locked--on {
+  background-image: url(../images/icons/locked-off-link.svg);
+}
+
+a:hover .webform-icon-locked--off,
+a:focus .webform-icon-locked--off {
+  background-image: url(../images/icons/locked-on-link.svg);
+}
+
 /**
  * Submission view table.
  * @see /admin/structure/webform/manage/{webform_id}/submission/{webform_submission_id}/table
  */
-.webform-submission__table th {
+.webform-submission-table th {
   width: 33%;
   min-width: 100px;
 }
 
-.webform-submission__table td {
+.webform-submission-table td {
   width: 66%;
 }
 
 .webform-horizontal-rule {
-  margin: .5em 0;
+  margin: 0.5em 0;
+}
+
+/**
+ * Handlers table.
+ * @see /admin/structure/webform/manage/{webform_id}/handlers
+ */
+.webform-handlers-table .ajax-progress-throbber {
+  display: none;
+}
+
+@media screen and (max-width: 1280px) {
+  .js-off-canvas-dialog-open .webform-handlers-table th,
+  .js-off-canvas-dialog-open .webform-handlers-table td {
+    display: none;
+  }
+
+  .js-off-canvas-dialog-open .webform-handlers-table th:first-child,
+  .js-off-canvas-dialog-open .webform-handlers-table th:last-child,
+  .js-off-canvas-dialog-open .webform-handlers-table td:first-child,
+  .js-off-canvas-dialog-open .webform-handlers-table td:last-child {
+    display: table-cell;
+  }
+}
+
+/**
+ * Variants table.
+ * @see /admin/structure/webform/manage/{webform_id}/variants
+ */
+.webform-variants-table .ajax-progress-throbber {
+  display: none;
+}
+
+.webform-variants-table .webform-variant-table-test-multiple td {
+  border-top: 1px solid #a6a6a6;
+  border-bottom: 1px solid #a6a6a6;
+  background-color: #f5f5f2;
+}
+
+@media screen and (max-width: 1280px) {
+  .js-off-canvas-dialog-open .webform-variants-table th,
+  .js-off-canvas-dialog-open .webform-variants-table td {
+    display: none;
+  }
+
+  .js-off-canvas-dialog-open .webform-variants-table th:first-child,
+  .js-off-canvas-dialog-open .webform-variants-table th:last-child,
+  .js-off-canvas-dialog-open .webform-variants-table td:first-child,
+  .js-off-canvas-dialog-open .webform-variants-table td:last-child {
+    display: table-cell;
+  }
 }

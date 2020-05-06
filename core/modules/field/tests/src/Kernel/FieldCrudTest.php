@@ -69,7 +69,7 @@ class FieldCrudTest extends FieldKernelTestBase {
     $field->save();
 
     $field = FieldConfig::load($field->id());
-    $this->assertTrue($field->getSetting('field_setting_from_config_data'));
+    $this->assertEquals('TRUE', $field->getSetting('field_setting_from_config_data'));
     $this->assertNull($field->getSetting('config_data_from_field_setting'));
 
     // Read the configuration. Check against raw configuration data rather than
@@ -100,20 +100,20 @@ class FieldCrudTest extends FieldKernelTestBase {
     // Guarantee that the field/bundle combination is unique.
     try {
       FieldConfig::create($this->fieldDefinition)->save();
-      $this->fail(t('Cannot create two fields with the same field / bundle combination.'));
+      $this->fail('Cannot create two fields with the same field / bundle combination.');
     }
     catch (EntityStorageException $e) {
-      $this->pass(t('Cannot create two fields with the same field / bundle combination.'));
+      $this->pass('Cannot create two fields with the same field / bundle combination.');
     }
 
     // Check that the specified field exists.
     try {
       $this->fieldDefinition['field_name'] = $this->randomMachineName();
       FieldConfig::create($this->fieldDefinition)->save();
-      $this->fail(t('Cannot create a field with a non-existing storage.'));
+      $this->fail('Cannot create a field with a non-existing storage.');
     }
     catch (FieldException $e) {
-      $this->pass(t('Cannot create a field with a non-existing storage.'));
+      $this->pass('Cannot create a field with a non-existing storage.');
     }
 
     // TODO: test other failures.
@@ -216,7 +216,7 @@ class FieldCrudTest extends FieldKernelTestBase {
     ]);
     $field->save();
 
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     // Check that no table has been created for the field.
     $this->assertFalse(\Drupal::database()->schema()->tableExists('entity_test__' . $field_storage->getName()));
@@ -283,13 +283,13 @@ class FieldCrudTest extends FieldKernelTestBase {
     FieldConfig::create($another_field_definition)->save();
 
     // Test that the first field is not deleted, and then delete it.
-    $field = current(entity_load_multiple_by_properties('field_config', ['entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE]));
+    $field = current(\Drupal::entityTypeManager()->getStorage('field_config')->loadByProperties(['entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE]));
     $this->assertTrue(!empty($field) && empty($field->deleted), 'A new field is not marked for deletion.');
     $field->delete();
 
     // Make sure the field was deleted without being marked for purging as there
     // was no data.
-    $fields = entity_load_multiple_by_properties('field_config', ['entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE]);
+    $fields = \Drupal::entityTypeManager()->getStorage('field_config')->loadByProperties(['entity_type' => 'entity_test', 'field_name' => $this->fieldDefinition['field_name'], 'bundle' => $this->fieldDefinition['bundle'], 'include_deleted' => TRUE]);
     $this->assertEquals(0, count($fields), 'A deleted field is marked for deletion.');
 
     // Try to load the field normally and make sure it does not show up.
@@ -314,8 +314,8 @@ class FieldCrudTest extends FieldKernelTestBase {
     FieldConfig::create($this->fieldDefinition)->save();
     FieldConfig::create($field_definition_2)->save();
     $field_storage->delete();
-    $this->assertFalse(FieldConfig::loadByName('entity_test', $this->fieldDefinition['bundle'], $field_storage->getName()));
-    $this->assertFalse(FieldConfig::loadByName('entity_test', $field_definition_2['bundle'], $field_storage->getName()));
+    $this->assertNull(FieldConfig::loadByName('entity_test', $this->fieldDefinition['bundle'], $field_storage->getName()));
+    $this->assertNull(FieldConfig::loadByName('entity_test', $field_definition_2['bundle'], $field_storage->getName()));
 
     // Check that deletion of the last field deletes the storage.
     $field_storage = FieldStorageConfig::create($this->fieldStorageDefinition);
@@ -325,9 +325,9 @@ class FieldCrudTest extends FieldKernelTestBase {
     $field_2 = FieldConfig::create($field_definition_2);
     $field_2->save();
     $field->delete();
-    $this->assertTrue(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
+    $this->assertNotEmpty(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
     $field_2->delete();
-    $this->assertFalse(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
+    $this->assertNull(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
 
     // Check that deletion of all fields using a storage simultaneously deletes
     // the storage.
@@ -337,8 +337,8 @@ class FieldCrudTest extends FieldKernelTestBase {
     $field->save();
     $field_2 = FieldConfig::create($field_definition_2);
     $field_2->save();
-    $this->container->get('entity.manager')->getStorage('field_config')->delete([$field, $field_2]);
-    $this->assertFalse(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
+    $this->container->get('entity_type.manager')->getStorage('field_config')->delete([$field, $field_2]);
+    $this->assertNull(FieldStorageConfig::loadByName('entity_test', $field_storage->getName()));
   }
 
 }

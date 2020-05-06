@@ -16,7 +16,13 @@ class MigrateUploadTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['language', 'menu_ui'];
+  public static $modules = [
+    'language',
+    'content_translation',
+    'menu_ui',
+    // Required for translation migrations.
+    'migrate_drupal_multilingual',
+  ];
 
   /**
    * {@inheritdoc}
@@ -63,7 +69,7 @@ class MigrateUploadTest extends MigrateDrupal6TestBase {
    * Test upload migration from Drupal 6 to Drupal 8.
    */
   public function testUpload() {
-    $this->container->get('entity.manager')
+    $this->container->get('entity_type.manager')
       ->getStorage('node')
       ->resetCache([1, 2, 12]);
 

@@ -2,7 +2,6 @@
 
 namespace Drupal\webform\Form;
 
-use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Form\FormState;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\webform\Ajax\WebformHtmlCommand;

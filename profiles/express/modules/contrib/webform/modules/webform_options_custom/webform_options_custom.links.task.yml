@@ -1,0 +1,25 @@
+webform.config.webform_options_custom:
+  title: 'Custom'
+  route_name: entity.webform_options_custom.collection
+  parent_id: webform.options
+  weight: 20
+
+entity.webform_options_custom:
+  title: 'Edit'
+  route_name: entity.webform_options_custom.edit_form
+  base_route: entity.webform_options_custom.edit_form
+
+entity.webform_options_custom.edit_form:
+  title: 'Options'
+  route_name: entity.webform_options_custom.edit_form
+  parent_id: entity.webform_options_custom
+
+entity.webform_options_custom.source_form:
+  title: 'Source'
+  route_name: entity.webform_options_custom.source_form
+  parent_id: entity.webform_options_custom
+
+entity.webform_options_custom.preview_form:
+  title: 'Preview'
+  route_name: entity.webform_options_custom.preview_form
+  parent_id: entity.webform_options_custom

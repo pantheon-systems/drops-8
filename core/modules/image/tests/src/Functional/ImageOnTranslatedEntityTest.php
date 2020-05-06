@@ -23,6 +23,11 @@ class ImageOnTranslatedEntityTest extends ImageFieldTestBase {
   public static $modules = ['language', 'content_translation', 'field_ui'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * The name of the image field used in the test.
    *
    * @var string
@@ -92,7 +97,7 @@ class ImageOnTranslatedEntityTest extends ImageFieldTestBase {
 
     // Verify that the image field on the "Basic basic" node type is
     // translatable.
-    $definitions = \Drupal::entityManager()->getFieldDefinitions('node', 'basicpage');
+    $definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions('node', 'basicpage');
     $this->assertTrue($definitions[$this->fieldName]->isTranslatable(), 'Node image field is translatable.');
 
     // Create a default language node.

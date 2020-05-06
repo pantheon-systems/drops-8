@@ -19,7 +19,6 @@ class MigrateBookTest extends MigrateDrupal7TestBase {
     'book',
     'menu_ui',
     'node',
-    'taxonomy',
     'text',
   ];
 
@@ -28,15 +27,11 @@ class MigrateBookTest extends MigrateDrupal7TestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->installEntitySchema('node');
-    $this->installEntitySchema('taxonomy_term');
-    $this->installConfig(['node']);
     $this->installSchema('book', ['book']);
     $this->installSchema('node', ['node_access']);
+    $this->migrateUsers(FALSE);
+    $this->migrateContentTypes();
     $this->executeMigrations([
-      'd7_user_role',
-      'd7_user',
-      'd7_node_type',
       'd7_node',
       'd7_book',
     ]);
@@ -64,6 +59,11 @@ class MigrateBookTest extends MigrateDrupal7TestBase {
     $this->assertSame('6', $tree['49990 is - The thing about Firefly 4']['below']['50000 Comments are closed :-( 6']['link']['nid']);
     $this->assertSame('2', $tree['49990 is - The thing about Firefly 4']['below']['50000 Comments are closed :-( 6']['below']['50000 The thing about Deep Space 9 2']['link']['nid']);
     $this->assertSame([], $tree['49990 is - The thing about Firefly 4']['below']['50000 Comments are closed :-( 6']['below']['50000 The thing about Deep Space 9 2']['below']);
+
+    // Set the d7_book migration to update and re run the migration.
+    $id_map = $this->migration->getIdMap();
+    $id_map->prepareUpdate();
+    $this->executeMigration('d7_book');
   }
 
 }

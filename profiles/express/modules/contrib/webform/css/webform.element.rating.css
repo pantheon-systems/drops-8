@@ -1,8 +1,6 @@
 /**
  * @file
  * Rating element styles.
- *
- * @see /webform/example_elements
  */
 
 html.js .form-webform-rating {
@@ -48,8 +46,8 @@ div.svg.rateit-small div.rateit-preset {
 }
 
 div.svg.rateit-small button.rateit-reset {
-  height: 16px;
   width: 16px;
+  height: 16px;
   background-size: 16px 16px;
 }
 
@@ -68,8 +66,8 @@ div.svg.rateit-medium div.rateit-preset {
 }
 
 div.svg.rateit-medium button.rateit-reset {
-  height: 24px;
   width: 24px;
+  height: 24px;
   background-size: 24px 24px;
 }
 
@@ -88,7 +86,7 @@ div.svg.rateit-large div.rateit-preset {
 }
 
 div.svg.rateit-large button.rateit-reset {
-  height: 32px;
   width: 32px;
+  height: 32px;
   background-size: 32px 32px;
 }

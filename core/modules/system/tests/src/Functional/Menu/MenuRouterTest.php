@@ -20,18 +20,16 @@ class MenuRouterTest extends BrowserTestBase {
   public static $modules = ['block', 'menu_test', 'test_page_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Name of the administrative theme to use for tests.
    *
    * @var string
    */
   protected $adminTheme;
-
-  /**
-   * Name of the default theme to use for tests.
-   *
-   * @var string
-   */
-  protected $defaultTheme;
 
   protected function setUp() {
     // Enable dummy module that implements hook_menu.
@@ -233,11 +231,11 @@ class MenuRouterTest extends BrowserTestBase {
 
     $this->drupalGet('user/login');
     // Check that we got to 'user'.
-    $this->assertUrl($this->loggedInUser->url('canonical', ['absolute' => TRUE]));
+    $this->assertUrl($this->loggedInUser->toUrl('canonical', ['absolute' => TRUE])->toString());
 
     // user/register should redirect to user/UID/edit.
     $this->drupalGet('user/register');
-    $this->assertUrl($this->loggedInUser->url('edit-form', ['absolute' => TRUE]));
+    $this->assertUrl($this->loggedInUser->toUrl('edit-form', ['absolute' => TRUE])->toString());
   }
 
   /**
@@ -247,8 +245,9 @@ class MenuRouterTest extends BrowserTestBase {
     $this->defaultTheme = 'bartik';
     $this->adminTheme = 'seven';
 
-    $theme_handler = $this->container->get('theme_handler');
-    $theme_handler->install([$this->defaultTheme, $this->adminTheme]);
+    /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
+    $theme_installer = $this->container->get('theme_installer');
+    $theme_installer->install([$this->defaultTheme, $this->adminTheme]);
     $this->config('system.theme')
       ->set('default', $this->defaultTheme)
       ->set('admin', $this->adminTheme)
@@ -305,14 +304,15 @@ class MenuRouterTest extends BrowserTestBase {
     $this->assertRaw('bartik/css/base/elements.css', "The default theme's CSS appears on the page.");
 
     // Now install the theme and request it again.
-    $theme_handler = $this->container->get('theme_handler');
-    $theme_handler->install(['test_theme']);
+    /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
+    $theme_installer = $this->container->get('theme_installer');
+    $theme_installer->install(['test_theme']);
 
     $this->drupalGet('menu-test/theme-callback/use-test-theme');
     $this->assertText('Active theme: test_theme. Actual theme: test_theme.', 'The theme negotiation system uses an optional theme once it has been installed.');
     $this->assertRaw('test_theme/kitten.css', "The optional theme's CSS appears on the page.");
 
-    $theme_handler->uninstall(['test_theme']);
+    $theme_installer->uninstall(['test_theme']);
   }
 
   /**

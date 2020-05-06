@@ -3,3 +3,8 @@ entity.webform.collection:
   description: 'Create webforms and manage submissions.'
   parent: system.admin_structure
   route_name: entity.webform.collection
+webform.reports_plugins:
+  title: 'Webform plugins'
+  parent: system.admin_reports
+  description: 'Overview of plugins used by the Webform module.'
+  route_name: webform.reports_plugins.elements

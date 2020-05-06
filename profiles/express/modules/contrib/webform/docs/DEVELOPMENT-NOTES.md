@@ -73,10 +73,17 @@ git reset --hard
 git commit --amendd ../
 
 # Unstage a file about to be committed
-git reset HEAD <file>...
+git reset HEAD <file>…
 
 # Revert (in SVN terms) an uncommitted file to the copy in your latest commit
 git checkout -- filename
+```
+
+**Pruning branches**
+
+```bash
+# Update the local list of remote branches
+git remote update origin --prune
 ```
 
 **Delete issue branch**

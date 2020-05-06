@@ -60,6 +60,7 @@ class DbDumpCommand extends DbCommandBase {
     $schema_tables = explode(',', $schema_tables);
 
     $output->writeln($this->generateScript($connection, $schema_tables), OutputInterface::OUTPUT_RAW);
+    return 0;
   }
 
   /**
@@ -425,10 +426,13 @@ ENDOFSCRIPT;
       foreach ($data as $record) {
         $insert .= "->values(" . Variable::export($record) . ")\n";
       }
-      $output .= "\$connection->insert('" . $table . "')\n"
-        . "->fields(" . Variable::export(array_keys($schema['fields'])) . ")\n"
-        . $insert
-        . "->execute();\n\n";
+      $fields = Variable::export(array_keys($schema['fields']));
+      $output .= <<<EOT
+\$connection->insert('$table')
+->fields($fields)
+{$insert}->execute();
+
+EOT;
     }
     return $output;
   }

@@ -14,6 +14,15 @@ use Drupal\Core\Serialization\Yaml;
  *   An array containing test elements with Flexbox wrappers.
  */
 function webform_test_test_element_flexbox() {
+  // Element types to be ignored.
+  $skipped_element_types = [
+    'value',
+    'webform_attachment_token',
+    'webform_attachment_twig',
+    'webform_attachment_url',
+    'webform_entity_print_attachment:pdf',
+  ];
+
   $data = [
     'containers' => [],
     'elements' => [],
@@ -23,6 +32,10 @@ function webform_test_test_element_flexbox() {
   $element_manager = \Drupal::service('plugin.manager.webform.element');
   $elements = $element_manager->getInstances();
   foreach ($elements as $element_type => $webform_element) {
+    if (in_array($element_type, $skipped_element_types)) {
+      continue;
+    }
+
     $element = _webform_test_get_element_preview($webform_element->getTypeName());
     if (!$element) {
       continue;

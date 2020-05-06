@@ -39,7 +39,7 @@ class WebformTemplatesSubmissionPreviewForm extends WebformSubmissionForm {
         '#type' => 'link',
         '#title' => $this->t('Select'),
         '#url' => Url::fromRoute('entity.webform.duplicate_form', ['webform' => $this->getWebform()->id()]),
-        '#attributes' => WebformDialogHelper::getModalDialogAttributes(700, ['button', 'button--primary']),
+        '#attributes' => WebformDialogHelper::getModalDialogAttributes(WebformDialogHelper::DIALOG_NARROW, ['button', 'button--primary']),
       ];
       $form['modal_actions']['close'] = [
         '#type' => 'submit',

@@ -1,0 +1,30 @@
+/**
+ * @file
+ * Managed file styles.
+ */
+
+.webform-managed-file-preview-wrapper + input[type="submit"],
+.webform-managed-file-preview-wrapper + button,
+.webform-managed-file-preview + input[type="submit"],
+.webform-managed-file-preview + button {
+  margin: 0.5em 0;
+}
+
+.webform-managed-file-preview-wrapper,
+.webform-managed-file-preview-wrapper.form-item {
+  display: table;
+  padding: 0.5em;
+  border: 1px solid #ccc;
+}
+
+.webform-managed-file-preview,
+label.webform-managed-file-preview,
+label.option.webform-managed-file-preview {
+  display: block;
+}
+
+.webform-managed-file-placeholder,
+.webform-managed-file-preview,
+.webform-file-button {
+  margin: 0.5em 0;
+}

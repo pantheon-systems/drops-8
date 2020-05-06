@@ -1,0 +1,13 @@
+'webform.variants.*':
+  type: mapping
+  label: 'Variants settings'
+
+# Setting, elements, and handlers mapping copied from webform.webform.*.
+# @see webform_config_schema_info_alter()
+webform.variant.override:
+  type: mapping
+  label: Override
+  mapping:
+    debug:
+      label: Debug
+      type: string

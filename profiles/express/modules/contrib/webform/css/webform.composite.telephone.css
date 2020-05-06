@@ -1,0 +1,22 @@
+/**
+ * @file
+ * Composite telephone element styles.
+ */
+
+.form-type-webform-telephone:after {
+  display: table;
+  clear: both;
+  content: "";
+}
+
+.form-type-webform-telephone .form-item,
+.form-type-webform-telephone .form-item label {
+  float: left;
+  margin: 0 10px 0 0;
+  vertical-align: middle;
+}
+
+.form-type-webform-telephone .form-item label {
+  height: 2em;
+  line-height: 2em;
+}

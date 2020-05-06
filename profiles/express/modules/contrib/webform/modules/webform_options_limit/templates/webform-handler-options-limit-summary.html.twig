@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of an webform options limit handler.
+ *
+ * Available variables:
+ * - settings: The current configuration for this handler:
+ *   - element_key: The options element.
+ * - handler: The handler information, including:
+ *   - id: The handler plugin id.
+ *   - handler_id: The handler id.
+ *   - label: The handler label.
+ *   - description: The handler description.
+ *
+ * @ingroup themeable
+ */
+#}
+<b>{{ 'Element'|t }}:</b> {{ settings.element_key }}<br/>
+{% if settings.limit %}<b>{{ 'Limit'|t }}:</b> {{ settings.limit }}<br/>{% endif %}
+<b>{{ 'Per source entity'|t }}:</b> {{ settings.limit_source_entity ? 'Yes'|t : 'No'|t}}<br/>
+<b>{{ 'Per user'|t }}:</b> {{ settings.limit_user ? 'Yes'|t : 'No'|t}}<br/>

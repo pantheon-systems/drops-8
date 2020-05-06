@@ -5,6 +5,7 @@ namespace Drupal\contact\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\contact\ContactFormInterface;
 use Drupal\Core\Render\RendererInterface;
+use Drupal\Core\Url;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -59,14 +60,14 @@ class ContactController extends ControllerBase {
 
     // Use the default form if no form has been passed.
     if (empty($contact_form)) {
-      $contact_form = $this->entityManager()
+      $contact_form = $this->entityTypeManager()
         ->getStorage('contact_form')
         ->load($config->get('default_form'));
       // If there are no forms, do not display the form.
       if (empty($contact_form)) {
         if ($this->currentUser()->hasPermission('administer contact forms')) {
           $this->messenger()->addError($this->t('The contact form has not been configured. <a href=":add">Add one or more forms</a> .', [
-            ':add' => $this->url('contact.form_add'),
+            ':add' => Url::fromRoute('contact.form_add')->toString(),
           ]));
           return [];
         }
@@ -76,7 +77,7 @@ class ContactController extends ControllerBase {
       }
     }
 
-    $message = $this->entityManager()
+    $message = $this->entityTypeManager()
       ->getStorage('contact_message')
       ->create([
         'contact_form' => $contact_form->id(),
@@ -109,7 +110,7 @@ class ContactController extends ControllerBase {
       throw new NotFoundHttpException();
     }
 
-    $message = $this->entityManager()->getStorage('contact_message')->create([
+    $message = $this->entityTypeManager()->getStorage('contact_message')->create([
       'contact_form' => 'personal',
       'recipient' => $user->id(),
     ]);

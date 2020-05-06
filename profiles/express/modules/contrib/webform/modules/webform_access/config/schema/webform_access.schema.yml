@@ -1,0 +1,39 @@
+webform_access.webform_access_type.*:
+  type: config_entity
+  label: 'Access type'
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: 'Label'
+
+webform_access.webform_access_group.*:
+  type: config_entity
+  label: 'Access group'
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: 'Label'
+    description:
+      type: label
+      label: 'Administrative description'
+    type:
+      type: string
+      label: 'Type'
+    permissions:
+      type: sequence
+      label: 'Permissions'
+      sequence:
+        type: string
+        label: 'Permission'
+    emails:
+      type: sequence
+      label: 'Emails'
+      sequence:
+        type: email
+        label: 'Email'

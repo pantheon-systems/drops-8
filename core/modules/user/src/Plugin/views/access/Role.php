@@ -61,7 +61,7 @@ class Role extends AccessPluginBase implements CacheableDependencyInterface {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager')->getStorage('user_role')
+      $container->get('entity_type.manager')->getStorage('user_role')
     );
   }
 
@@ -69,7 +69,7 @@ class Role extends AccessPluginBase implements CacheableDependencyInterface {
    * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    return array_intersect(array_filter($this->options['role']), $account->getRoles());
+    return !empty(array_intersect(array_filter($this->options['role']), $account->getRoles()));
   }
 
   /**

@@ -6,21 +6,6 @@ use Drupal\webform\Utility\WebformReflectionHelper;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * Reflection test parent.
- */
-class WebformReflectionTestParent {}
-
-/**
- * Reflection test child.
- */
-class WebformReflectionTestChild extends WebformReflectionTestParent {}
-
-/**
- * Reflection test grandchild.
- */
-class WebformReflectionTestGrandChild extends WebformReflectionTestChild {}
-
-/**
  * Tests webform reflection utility.
  *
  * @group webform
@@ -66,3 +51,18 @@ class WebformReflectionHelperTest extends UnitTestCase {
   }
 
 }
+
+/**
+ * Reflection test parent.
+ */
+class WebformReflectionTestParent {}
+
+/**
+ * Reflection test child.
+ */
+class WebformReflectionTestChild extends WebformReflectionTestParent {}
+
+/**
+ * Reflection test grandchild.
+ */
+class WebformReflectionTestGrandChild extends WebformReflectionTestChild {}

@@ -4,6 +4,15 @@
  */
 
 /**
+ * Make sure full screen progress indicator is in front of .ui-dialog.
+ *
+ * @see core/themes/seven/css/components/dialog.css
+ */
+.ajax-progress.ajax-progress-fullscreen {
+  z-index: 1261;
+}
+
+/**
  * Floating Ajax message container.
  *
  * Display status message in a floating container at the bottom of the page.
@@ -14,13 +23,14 @@
  */
 .webform-ajax-messages {
   position: fixed;
+  z-index: 100;
   bottom: 0;
   width: 100%;
 }
 
 .webform-ajax-messages .messages {
-  border-width: 10px 0 0 0;
   margin: 0;
+  border-width: 10px 0 0 0;
   font-weight: bold;
 }
 
@@ -37,10 +47,10 @@
  * @see core/misc/dialog/dialog.position.js
  * @see \Drupal\webform\Utility\WebformDialogHelper::getModalDialogAttributes
  */
-.webform-modal {
+.webform-ui-dialog {
   top: 50px !important;
 }
 
-.toolbar-tray-open.toolbar-horizontal .webform-modal {
+.toolbar-tray-open.toolbar-horizontal .webform-ui-dialog {
   top: 90px !important;
 }

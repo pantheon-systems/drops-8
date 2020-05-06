@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\Generic\Sniffs\PHP;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 
 class CharacterBeforePHPOpeningTagSniff implements Sniff
 {
@@ -48,7 +48,7 @@ class CharacterBeforePHPOpeningTagSniff implements Sniff
      * @param int                         $stackPtr  The position of the current token in
      *                                               the stack passed in $tokens.
      *
-     * @return void
+     * @return int
      */
     public function process(File $phpcsFile, $stackPtr)
     {
@@ -66,7 +66,6 @@ class CharacterBeforePHPOpeningTagSniff implements Sniff
             }
 
             // Allow a shebang line.
-            $tokens = $phpcsFile->getTokens();
             if (substr($tokens[0]['content'], 0, 2) === '#!') {
                 $expected++;
             }

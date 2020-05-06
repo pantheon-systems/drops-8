@@ -1,5 +1,4 @@
 <?php
-/* phpcs:ignoreFile */
 
 /* testBasicFunction */
 function myFunction() {}
@@ -7,7 +6,8 @@ function myFunction() {}
 /* testReturnFunction */
 function myFunction(array ...$arrays): array
 {
-    return array_map(/* testNestedClosure */function(array $array): int {
+    /* testNestedClosure */
+    return array_map(function(array $array): int {
         return array_sum($array);
     }, $arrays);
 }
@@ -60,3 +60,9 @@ interface MyInterface
     /* testInterfaceMethod */
     function myFunction();
 }
+
+$result = array_map(
+    /* testArrowFunction */
+    static fn(int $number) : int => $number + 1,
+    $numbers
+);

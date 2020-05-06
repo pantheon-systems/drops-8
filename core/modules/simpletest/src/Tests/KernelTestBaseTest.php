@@ -239,8 +239,8 @@ EOS;
    */
   public function testEnableModulesFixedList() {
     // Install system module.
-    $this->container->get('module_installer')->install(['system', 'menu_link_content']);
-    $entity_manager = \Drupal::entityManager();
+    $this->container->get('module_installer')->install(['system', 'user', 'menu_link_content']);
+    $entity_manager = \Drupal::entityTypeManager();
 
     // entity_test is loaded via $modules; its entity type should exist.
     $this->assertEqual($this->container->get('module_handler')->moduleExists('entity_test'), TRUE);
@@ -270,6 +270,7 @@ EOS;
     $this->enableModules(['field_test']);
 
     // Create a field.
+    $this->installEntitySchema('entity_test');
     $display = EntityViewDisplay::create([
       'targetEntityType' => 'entity_test',
       'bundle' => 'entity_test',

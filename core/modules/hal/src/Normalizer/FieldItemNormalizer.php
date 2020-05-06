@@ -4,6 +4,8 @@ namespace Drupal\hal\Normalizer;
 
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\TypedData\TypedDataInternalPropertiesHelper;
+use Drupal\serialization\Normalizer\FieldableEntityNormalizerTrait;
+use Drupal\serialization\Normalizer\SerializedColumnNormalizerTrait;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 
 /**
@@ -11,12 +13,13 @@ use Symfony\Component\Serializer\Exception\InvalidArgumentException;
  */
 class FieldItemNormalizer extends NormalizerBase {
 
+  use FieldableEntityNormalizerTrait;
+  use SerializedColumnNormalizerTrait;
+
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
+   * {@inheritdoc}
    */
-  protected $supportedInterfaceOrClass = 'Drupal\Core\Field\FieldItemInterface';
+  protected $supportedInterfaceOrClass = FieldItemInterface::class;
 
   /**
    * {@inheritdoc}
@@ -44,6 +47,7 @@ class FieldItemNormalizer extends NormalizerBase {
     }
 
     $field_item = $context['target_instance'];
+    $this->checkForSerializedStrings($data, $class, $field_item);
 
     // If this field is translatable, we need to create a translated instance.
     if (isset($data['lang'])) {
@@ -57,21 +61,6 @@ class FieldItemNormalizer extends NormalizerBase {
 
     $field_item->setValue($this->constructValue($data, $context));
     return $field_item;
-  }
-
-  /**
-   * Build the field item value using the incoming data.
-   *
-   * @param $data
-   *   The incoming data for this field item.
-   * @param $context
-   *   The context passed into the Normalizer.
-   *
-   * @return mixed
-   *   The value to use in Entity::setValue().
-   */
-  protected function constructValue($data, $context) {
-    return $data;
   }
 
   /**

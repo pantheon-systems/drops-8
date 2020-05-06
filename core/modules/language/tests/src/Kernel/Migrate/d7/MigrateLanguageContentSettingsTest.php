@@ -24,9 +24,8 @@ class MigrateLanguageContentSettingsTest extends MigrateDrupal7TestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->installConfig(['node']);
-    $this->installEntitySchema('node');
-    $this->executeMigrations(['d7_node_type', 'd7_language_content_settings']);
+    $this->migrateContentTypes();
+    $this->executeMigration('d7_language_content_settings');
   }
 
   /**
@@ -41,14 +40,20 @@ class MigrateLanguageContentSettingsTest extends MigrateDrupal7TestBase {
     $this->assertFalse($config->get('language_alterable'));
     $this->assertTrue($config->get('third_party_settings.content_translation.enabled'));
 
-    // Assert that a non-translatable content is not translatable.
+    // Assert that a translatable content is translatable.
     $config = ContentLanguageSettings::loadByEntityTypeBundle('node', 'page');
+    $this->assertFalse($config->isDefaultConfiguration());
+    $this->assertTrue($config->isLanguageAlterable());
+    $this->assertSame($config->getDefaultLangcode(), 'current_interface');
+
+    // Assert that a non-translatable content is not translatable.
+    $config = ContentLanguageSettings::loadByEntityTypeBundle('node', 'forum');
     $this->assertTrue($config->isDefaultConfiguration());
     $this->assertFalse($config->isLanguageAlterable());
     $this->assertSame($config->getDefaultLangcode(), 'site_default');
 
     // Make sure there's no migration exceptions.
-    $messages = $this->migration->getIdMap()->getMessageIterator()->fetchAll();
+    $messages = $this->migration->getIdMap()->getMessages()->fetchAll();
     $this->assertEmpty($messages);
 
     // Assert that a content type translatable with entity_translation is still

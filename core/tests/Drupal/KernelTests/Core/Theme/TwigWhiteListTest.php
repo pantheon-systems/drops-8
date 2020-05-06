@@ -42,7 +42,7 @@ class TwigWhiteListTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
     $this->installSchema('system', ['sequences']);
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');
@@ -100,7 +100,8 @@ class TwigWhiteListTest extends KernelTestBase {
     ])->save();
 
     // Show on default display and teaser.
-    entity_get_display('node', 'page', 'default')
+    \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', 'page')
       ->setComponent('field_term', [
         'type' => 'entity_reference_label',
       ])

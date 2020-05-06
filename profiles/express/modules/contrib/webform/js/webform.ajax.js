@@ -16,7 +16,7 @@
   /**
    * Provide Webform Ajax link behavior.
    *
-   * Display fullscreen progress indicator instead of throber.
+   * Display fullscreen progress indicator instead of throbber.
    * Copied from: Drupal.behaviors.AJAX
    *
    * @type {Drupal~behavior}
@@ -26,7 +26,7 @@
    */
   Drupal.behaviors.webformAjaxLink = {
     attach: function (context) {
-      $('.webform-ajax-link').once('webform-ajax-link').each(function () {
+      $('.webform-ajax-link', context).once('webform-ajax-link').each(function () {
         var element_settings = {};
         element_settings.progress = {type: 'fullscreen'};
 
@@ -38,18 +38,39 @@
           element_settings.event = 'click';
         }
         element_settings.dialogType = $(this).data('dialog-type');
+        element_settings.dialogRenderer = $(this).data('dialog-renderer');
         element_settings.dialog = $(this).data('dialog-options');
         element_settings.base = $(this).attr('id');
         element_settings.element = this;
         Drupal.ajax(element_settings);
 
-        // For anchor tags with 'data-hash' attribute, add the hash to current
-        // pages location.
-        // @see \Drupal\webform_ui\WebformUiEntityElementsForm::getElementRow
-        // @see Drupal.behaviors.webformFormTabs
+        // Close all open modal dialogs when opening off-canvas dialog.
+        if (element_settings.dialogRenderer === 'off_canvas') {
+          $(this).on('click', function () {
+            $('.ui-dialog.webform-ui-dialog:visible').find('.ui-dialog-content').dialog('close');
+          });
+        }
+      });
+    }
+  };
+
+  /**
+   * Adds a hash (#) to current pages location for links and buttons
+   *
+   * @type {Drupal~behavior}
+   *
+   * @prop {Drupal~behaviorAttach} attach
+   *   Attaches the behavior to a[data-hash] or :button[data-hash].
+   *
+   * @see \Drupal\webform_ui\WebformUiEntityElementsForm::getElementRow
+   * @see Drupal.behaviors.webformFormTabs
+   */
+  Drupal.behaviors.webformAjaxHash = {
+    attach: function (context) {
+      $('[data-hash]', context).once('webform-ajax-hash').each(function () {
         var hash = $(this).data('hash');
         if (hash) {
-          $(this).on('click', function() {
+          $(this).on('click', function () {
             location.hash = $(this).data('hash');
           });
         }
@@ -69,7 +90,7 @@
     attach: function (context) {
       $('.js-webform-confirmation-back-link-ajax', context)
         .once('webform-confirmation-back-ajax')
-        .click(function(event) {
+        .click(function (event) {
           var $form = $(this).parents('form');
 
           // Trigger the Ajax call back for the hidden submit button.
@@ -90,14 +111,19 @@
     }
   };
 
-  /****************************************************************************/
+  /** ********************************************************************** **/
   // Ajax commands.
-  /****************************************************************************/
+  /** ********************************************************************** **/
 
   /**
    * Track the updated table row key.
    */
   var updateKey;
+
+  /**
+   * Track the add element key.
+   */
+  var addElement;
 
   /**
    * Command to insert new content into the DOM.
@@ -121,37 +147,58 @@
     // Insert the HTML.
     this.insert(ajax, response, status);
 
-    // Scroll to and highlight the updated table row.
-    if (updateKey) {
+    // Add element.
+    if (addElement) {
+      var addSelector = (addElement === '_root_')
+        ? '#webform-ui-add-element'
+        : '[data-drupal-selector="edit-webform-ui-elements-' + addElement + '-add"]';
+      $(addSelector).click();
+    }
+
+    // If not add element, then scroll to and highlight the updated table row.
+    if (!addElement && updateKey) {
       var $element = $('tr[data-webform-key="' + updateKey + '"]');
 
       // Highlight the updated element's row.
       $element.addClass('color-success');
-      setTimeout(function() {$element.removeClass('color-success')}, 3000);
+      setTimeout(function () {$element.removeClass('color-success');}, 3000);
+
+      // Focus first tabbable item for the updated elements and handlers.
+      $element.find(':tabbable:not(.tabledrag-handle)').eq(0).focus();
 
       // Scroll to elements that are not visible.
       if (!isScrolledIntoView($element)) {
         $('html, body').animate({scrollTop: $element.offset().top - Drupal.webform.ajax.scrollTopOffset}, 500);
       }
     }
-    updateKey = null; // Reset element update.
+    else {
+      // Focus main content.
+      $('#main-content').focus();
+    }
 
     // Display main page's status message in a floating container.
     var $wrapper = $(response.selector);
     if ($wrapper.parents('.ui-dialog').length === 0) {
       var $messages = $wrapper.find('.messages');
-      if ($messages.length) {
+      // If 'add element' don't show any messages.
+      if (addElement) {
+        $messages.remove();
+      }
+      else if ($messages.length) {
         var $floatingMessage = $('#webform-ajax-messages');
         if ($floatingMessage.length === 0) {
           $floatingMessage = $('<div id="webform-ajax-messages" class="webform-ajax-messages"></div>');
           $('body').append($floatingMessage);
         }
-        if ($floatingMessage.is(":animated")) {
+        if ($floatingMessage.is(':animated')) {
           $floatingMessage.stop(true, true);
         }
         $floatingMessage.html($messages).show().delay(3000).fadeOut(1000);
       }
     }
+
+    updateKey = null; // Reset element update.
+    addElement = null; // Reset add element.
   };
 
   /**
@@ -180,7 +227,7 @@
       scrollTarget = $(scrollTarget).parent();
     }
 
-    if (response.target == 'page' && $(scrollTarget).length && $(scrollTarget)[0].tagName === 'HTML') {
+    if (response.target === 'page' && $(scrollTarget).length && $(scrollTarget)[0].tagName === 'HTML') {
       // Scroll to top when scroll target is the entire page.
       // @see https://stackoverflow.com/questions/123999/how-to-tell-if-a-dom-element-is-visible-in-the-current-viewport
       var rect = $(scrollTarget)[0].getBoundingClientRect();
@@ -193,6 +240,14 @@
       if (offset.top - Drupal.webform.ajax.scrollTopOffset < $(scrollTarget).scrollTop()) {
         $(scrollTarget).animate({scrollTop: (offset.top - Drupal.webform.ajax.scrollTopOffset)}, 500);
       }
+    }
+
+    // Focus on the form wrapper content bookmark if
+    // .js-webform-autofocus is not enabled.
+    // @see \Drupal\webform\Form\WebformAjaxFormTrait::buildAjaxForm
+    var $form = $(response.selector + '-content').find('form');
+    if (!$form.hasClass('js-webform-autofocus')) {
+      $(response.selector + '-content').focus();
     }
   };
 
@@ -213,25 +268,45 @@
     // @see https://stackoverflow.com/questions/6944744/javascript-get-portion-of-url-path
     var a = document.createElement('a');
     a.href = response.url;
-    if (a.pathname == window.location.pathname && $('.webform-ajax-refresh').length) {
-      updateKey = (response.url.match(/[\?|&]update=(.*)($|&)/)) ? RegExp.$1 : null;
+    var forceReload = (response.url.match(/\?reload=([^&]+)($|&)/)) ? RegExp.$1 : null;
+    if (forceReload) {
+      response.url = response.url.replace(/\?reload=([^&]+)($|&)/, '');
+      this.redirect(ajax, response, status);
+      return;
+    }
+
+    if (a.pathname === window.location.pathname && $('.webform-ajax-refresh').length) {
+      updateKey = (response.url.match(/[?|&]update=([^&]+)($|&)/)) ? RegExp.$1 : null;
+      addElement = (response.url.match(/[?|&]add_element=([^&]+)($|&)/)) ? RegExp.$1 : null;
       $('.webform-ajax-refresh').click();
     }
     else {
+      // Clear unsaved information flag so that the current webform page
+      // can be redirected.
+      // @see Drupal.behaviors.webformUnsaved.clear
+      if (Drupal.behaviors.webformUnsaved) {
+        Drupal.behaviors.webformUnsaved.clear();
+      }
+
       this.redirect(ajax, response, status);
     }
   };
 
   /**
-   * Command to close a dialog.
+   * Command to close a off-canvas and modal dialog.
    *
    * If no selector is given, it defaults to trying to close the modal.
    *
    * @param {Drupal.Ajax} [ajax]
+   *   {@link Drupal.Ajax} object created by {@link Drupal.ajax}.
    * @param {object} response
+   *   The response from the Ajax request.
    * @param {string} response.selector
+   *   Selector to use.
    * @param {bool} response.persist
+   *   Whether to persist the dialog element or not.
    * @param {number} [status]
+   *   The HTTP status code.
    */
   Drupal.AjaxCommands.prototype.webformCloseDialog = function (ajax, response, status) {
     if ($('#drupal-off-canvas').length) {
@@ -246,26 +321,44 @@
       var edge = document.documentElement.dir === 'rtl' ? 'left' : 'right';
       var $mainCanvasWrapper = $('[data-off-canvas-main-canvas]');
       $mainCanvasWrapper.css('padding-' + edge, 0);
+
+      // Resize tabs when closing off-canvas system tray.
+      $(window).trigger('resize.tabs');
     }
-    else {
-      // https://stackoverflow.com/questions/15763909/jquery-ui-dialog-check-if-exists-by-instance-method
-      if ($(response.selector).hasClass('ui-dialog-content')) {
-        this.closeDialog(ajax, response, status);
-      }
+
+    // https://stackoverflow.com/questions/15763909/jquery-ui-dialog-check-if-exists-by-instance-method
+    if ($(response.selector).hasClass('ui-dialog-content')) {
+      this.closeDialog(ajax, response, status);
     }
   };
 
-  /****************************************************************************/
+  /**
+   * Triggers confirm page reload.
+   *
+   * @param {Drupal.Ajax} [ajax]
+   *   A {@link Drupal.ajax} object.
+   * @param {object} response
+   *   Ajax response.
+   * @param {string} response.message
+   *   A message to be displayed in the confirm dialog.
+   */
+  Drupal.AjaxCommands.prototype.webformConfirmReload = function (ajax, response) {
+    if (window.confirm(response.message)) {
+      window.location.reload(true);
+    }
+  };
+
+  /** ********************************************************************** **/
   // Helper functions.
-  /****************************************************************************/
+  /** ********************************************************************** **/
 
   /**
    * Determine if element is visible in the viewport.
    *
-   * @param element
+   * @param {Element} element
    *   An element.
    *
-   * @returns {boolean}
+   * @return {boolean}
    *   TRUE if element is visible in the viewport.
    *
    * @see https://stackoverflow.com/questions/487073/check-if-element-is-visible-after-scrolling

@@ -1,5 +1,4 @@
 <?php
-/* phpcs:ignoreFile */
 
 /* testSimpleAssignment */
 $a = false;
@@ -27,3 +26,30 @@ switch ($a) {
 $a = [new Datetime];
 $a = array(new Datetime);
 $a = new Datetime;
+
+/* testUseGroup */
+use Vendor\Package\{ClassA as A, ClassB, ClassC as C};
+
+$a = [
+    /* testArrowFunctionArrayValue */
+    'a' => fn() => return 1,
+    'b' => fn() => return 1,
+];
+
+/* testStaticArrowFunction */
+static fn ($a) => $a;
+
+/* testArrowFunctionReturnValue */
+fn(): array => [a($a, $b)];
+
+/* testArrowFunctionAsArgument */
+$foo = foo(
+    fn() => bar()
+);
+
+/* testArrowFunctionWithArrayAsArgument */
+$foo = foo(
+    fn() => [$row[0], $row[3]]
+);
+
+return 0;

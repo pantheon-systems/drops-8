@@ -1,0 +1,20 @@
+webform.config.webform_image_select_images:
+  title: 'Images'
+  route_name: entity.webform_image_select_images.collection
+  parent_id: webform.options
+  weight: 10
+
+entity.webform_image_select_images:
+  title: 'Edit'
+  route_name: entity.webform_image_select_images.edit_form
+  base_route: entity.webform_image_select_images.edit_form
+
+entity.webform_image_select_images.edit_form:
+  title: 'Images'
+  route_name: entity.webform_image_select_images.edit_form
+  parent_id: entity.webform_image_select_images
+
+entity.webform_image_select_images.source_form:
+  title: 'Source'
+  route_name: entity.webform_image_select_images.source_form
+  parent_id: entity.webform_image_select_images

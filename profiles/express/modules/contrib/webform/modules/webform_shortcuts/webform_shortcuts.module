@@ -1,0 +1,161 @@
+<?php
+
+/**
+ * @file
+ * Provides keyboard shortcuts to create and save webform elements.
+ */
+
+use Drupal\Core\Url;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\Utility\WebformTextHelper;
+
+/**
+ * Implements hook_webform_libraries_info().
+ */
+function webform_shortcuts_webform_libraries_info() {
+  $libraries = [];
+  $libraries['jquery.hotkeys'] = [
+    'title' => t('jQuery.Hotkeys'),
+    'description' => t('jQuery Hotkeys is a plug-in that lets you easily add and remove handlers for keyboard events anywhere in your code supporting almost any key combination.'),
+    'notes' => t('jQuery Hotkeys is used by the form builder to quickly add and save elements.'),
+    'homepage_url' => Url::fromUri('https://github.com/jeresig/jquery.hotkeys'),
+    'download_url' => Url::fromUri('https://github.com/jeresig/jquery.hotkeys/archive/0.2.0.zip'),
+    'version' => '0.2.0',
+    'optional' => FALSE,
+  ];
+  return $libraries;
+}
+
+/**
+ * Implements hook_preprocess_block().
+ */
+function webform_shortcuts_preprocess_block(&$variables) {
+  if ($variables['plugin_id'] != 'local_actions_block') {
+    return;
+  }
+
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.webform.edit_form') {
+    return;
+  }
+
+  // Get shortcuts settings.
+  $config = \Drupal::config('webform_shortcuts.settings');
+
+  // Shortcuts.
+  $shortcuts = [
+    '--',
+    'add_element' => t('Add element'),
+    'add_page' => t('Add page'),
+    'add_layout' => t('Add layout'),
+    '--',
+    'save_elements' => t('Save element or elements'),
+    'reset_elements' => t('Reset elements'),
+    '--',
+    'toggle_weights' => t('Show/hide row weights'),
+    '--',
+  ];
+
+  $items = [];
+  $last_shortcut = '';
+  foreach ($shortcuts as $name => $task) {
+    if ($task === '--') {
+      if ($last_shortcut !== $task) {
+        $items[] = ['#markup' => '<hr/>'];
+      }
+      $last_shortcut = $task;
+    }
+    else {
+      $shortcut = $config->get($name);
+      if ($shortcut) {
+        $t_args = [
+          '@shortcut' => strtoupper($shortcut),
+          '@task' => $task,
+        ];
+        $items[] = [
+          '#markup' => t('@shortcut = @task', $t_args),
+          '#suffix' => '<br/>',
+        ];
+        $last_shortcut = $name;
+      }
+    }
+  }
+
+  $variables['content']['help'] = [
+    '#type' => 'webform_help',
+    '#help_title' => t('Keyboard shortcuts'),
+    '#help' => $items,
+  ];
+
+  $variables['content']['help']['#attached']['library'][] = 'webform_shortcuts/webform_shortcuts';
+
+  // Convert shortcuts PHP settings to camelCase JavaScript settings.
+  $settings = [];
+  $data = $config->getRawData();
+  foreach ($data as $name => $value) {
+    $settings[WebformTextHelper::snakeToCamel($name)] = $value;
+  }
+  $variables['content']['help']['#attached']['drupalSettings']['webform']['shortcuts'] = $settings;
+
+  // Add config to render array caching.
+  $renderer = \Drupal::service('renderer');
+  $renderer->addCacheableDependency($variables['content']['help'], $config);
+
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_shortcuts_form_webform_admin_config_advanced_form_alter(&$form, FormStateInterface $form_state) {
+  $config = \Drupal::config('webform_shortcuts.settings');
+
+  $form['webform_shortcuts'] = [
+    '#type' => 'details',
+    '#title' => t('Keyboard shortcut settings'),
+    '#description' => t('Enter custom keyboard shortcuts for common form builder actions. Leave blank to disable an individual shortcut.') . '<br/>' .
+      t('<a href=":href">Learn more about configuring shortcuts using the jQuery HotKeys library</a>', [':href' => 'https://github.com/jeresig/jquery.hotkeys']),
+    '#open' => TRUE,
+    '#tree' => TRUE,
+  ];
+  $form['webform_shortcuts']['add_element'] = [
+    '#type' => 'textfield',
+    '#title' => t('Add element'),
+    '#default_value' => $config->get('add_element'),
+  ];
+  $form['webform_shortcuts']['add_page'] = [
+    '#type' => 'textfield',
+    '#title' => t('Add page'),
+    '#default_value' => $config->get('add_page'),
+  ];
+  $form['webform_shortcuts']['add_layout'] = [
+    '#type' => 'textfield',
+    '#title' => t('Add layout'),
+    '#default_value' => $config->get('add_layout'),
+  ];
+  $form['webform_shortcuts']['save_elements'] = [
+    '#type' => 'textfield',
+    '#title' => t('Save element or elements'),
+    '#default_value' => $config->get('save_elements'),
+  ];
+  $form['webform_shortcuts']['reset_elements'] = [
+    '#type' => 'textfield',
+    '#title' => t('Reset elements'),
+    '#default_value' => $config->get('reset_elements'),
+  ];
+  $form['webform_shortcuts']['toggle_weights'] = [
+    '#type' => 'textfield',
+    '#title' => t('Show/hide row weights'),
+    '#default_value' => $config->get('reset_elements'),
+  ];
+
+  $form['#submit'][] = '_webform_shortcuts_form_webform_admin_config_advanced_form_submit';
+}
+
+/**
+ * Submit callback to save the webform shortcuts setting.
+ */
+function _webform_shortcuts_form_webform_admin_config_advanced_form_submit($form, FormStateInterface $form_state) {
+  \Drupal::configFactory()
+    ->getEditable('webform_shortcuts.settings')
+    ->setData($form_state->getValue('webform_shortcuts'))
+    ->save();
+}

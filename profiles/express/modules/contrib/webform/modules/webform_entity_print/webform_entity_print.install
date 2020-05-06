@@ -1,0 +1,48 @@
+<?php
+
+/**
+ * @file
+ * Installation information for the 'Webform Entity Print' module.
+ */
+
+/**
+ * Implements hook_install().
+ */
+function webform_entity_print_install() {
+  /** @var \Drupal\webform\WebformThirdPartySettingsManagerInterface $third_party_settings_manager */
+  $third_party_settings_manager = \Drupal::service('webform.third_party_settings_manager');
+
+  // Debug.
+  if ($third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'debug') === NULL) {
+    $third_party_settings_manager->setThirdPartySetting('webform_entity_print', 'debug', FALSE);
+  }
+
+  // Template.
+  if ($third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'template') === NULL) {
+    $template = [
+      'header' => '<h1>[webform_submission:label]</h1>',
+      'footer' => '',
+      'css' => '/* Remove page margins and padding and rely on the PDF generator\'s default margins. */
+body {
+  margin: 0;
+}
+
+.page {
+  padding: 0;
+}',
+    ];
+    $third_party_settings_manager->setThirdPartySetting('webform_entity_print', 'template', $template);
+  }
+
+  // Export types. Only enabling PDF documents.
+  if ($third_party_settings_manager->getThirdPartySetting('webform_entity_print', 'export_types') === NULL) {
+    $export_types = [
+      'pdf' => [
+        'enabled' => TRUE,
+        'link_text' => t('Download PDF'),
+        'link_attributes' => ['class' => ['button']],
+      ],
+    ];
+    $third_party_settings_manager->setThirdPartySetting('webform_entity_print', 'export_types', $export_types);
+  }
+}

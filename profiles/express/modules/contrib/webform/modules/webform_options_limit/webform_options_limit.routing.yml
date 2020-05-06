@@ -1,0 +1,30 @@
+entity.webform_options_limit.summary:
+  path: '/admin/structure/webform/manage/{webform}/results/options-limit'
+  defaults:
+    _controller: '\Drupal\webform_options_limit\Controller\WebformOptionsLimitController::index'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _entity_access: 'webform.submission_view_any'
+    _custom_access: '\Drupal\webform_options_limit\Controller\WebformOptionsLimitController::checkAccess'
+
+# Webform node routes.
+# This route will be removed if the webform_node.module is not installed.
+# @see \Drupal\webform_options_limit\Routing\WebformOptionsLimitRouteSubscriber
+
+entity.node.webform_options_limit.summary:
+  path: '/node/{node}/webform/results/options-limit'
+  defaults:
+    _controller: '\Drupal\webform_options_limit\Controller\WebformOptionsLimitController::index'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_options_limit\Controller\WebformOptionsLimitController::checkNodeAccess'

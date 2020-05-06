@@ -180,12 +180,12 @@ function comment_tokens($type, $tokens, array $data, array $options, BubbleableM
         // Comment related URLs.
         case 'url':
           $url_options['fragment'] = 'comment-' . $comment->id();
-          $replacements[$original] = $comment->url('canonical', $url_options);
+          $replacements[$original] = $comment->toUrl('canonical', $url_options)->toString();
           break;
 
         case 'edit-url':
           $url_options['fragment'] = NULL;
-          $replacements[$original] = $comment->url('edit-form', $url_options);
+          $replacements[$original] = $comment->toUrl('edit-form', $url_options)->toString();
           break;
 
         case 'author':
@@ -209,13 +209,13 @@ function comment_tokens($type, $tokens, array $data, array $options, BubbleableM
         case 'created':
           $date_format = DateFormat::load('medium');
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($comment->getCreatedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($comment->getCreatedTime(), 'medium', '', NULL, $langcode);
           break;
 
         case 'changed':
           $date_format = DateFormat::load('medium');
           $bubbleable_metadata->addCacheableDependency($date_format);
-          $replacements[$original] = format_date($comment->getChangedTime(), 'medium', '', NULL, $langcode);
+          $replacements[$original] = \Drupal::service('date.formatter')->format($comment->getChangedTime(), 'medium', '', NULL, $langcode);
           break;
 
         case 'entity':

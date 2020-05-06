@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\Core\TempStore;
 
+use Drupal\Core\TempStore\Lock;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\TempStore\PrivateTempStore;
 use Drupal\Core\TempStore\TempStoreException;
@@ -17,14 +18,14 @@ class PrivateTempStoreTest extends UnitTestCase {
   /**
    * The mock key value expirable backend.
    *
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $keyValue;
 
   /**
    * The mock lock backend.
    *
-   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Lock\LockBackendInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $lock;
 
@@ -38,7 +39,7 @@ class PrivateTempStoreTest extends UnitTestCase {
   /**
    * The current user.
    *
-   * @var \Drupal\Core\Session\AccountProxyInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Session\AccountProxyInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $currentUser;
 
@@ -69,9 +70,9 @@ class PrivateTempStoreTest extends UnitTestCase {
   protected function setUp() {
     parent::setUp();
 
-    $this->keyValue = $this->getMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
-    $this->lock = $this->getMock('Drupal\Core\Lock\LockBackendInterface');
-    $this->currentUser = $this->getMock('Drupal\Core\Session\AccountProxyInterface');
+    $this->keyValue = $this->createMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
+    $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
+    $this->currentUser = $this->createMock('Drupal\Core\Session\AccountProxyInterface');
     $this->currentUser->expects($this->any())
       ->method('id')
       ->willReturn(1);
@@ -138,7 +139,7 @@ class PrivateTempStoreTest extends UnitTestCase {
     $this->keyValue->expects($this->once())
       ->method('getCollectionName');
 
-    $this->setExpectedException(TempStoreException::class);
+    $this->expectException(TempStoreException::class);
     $this->tempStore->set('test', 'value');
   }
 
@@ -182,11 +183,43 @@ class PrivateTempStoreTest extends UnitTestCase {
       ->will($this->returnValue(FALSE));
 
     $metadata = $this->tempStore->getMetadata('test');
-    $this->assertObjectHasAttribute('owner', $metadata);
+    $this->assertInstanceOf(Lock::class, $metadata);
+    $this->assertObjectHasAttribute('ownerId', $metadata);
+    $this->assertObjectHasAttribute('updated', $metadata);
     // Data should get removed.
     $this->assertObjectNotHasAttribute('data', $metadata);
 
     $this->assertNull($this->tempStore->getMetadata('test'));
+  }
+
+  /**
+   * @covers ::getMetadata
+   * @expectedDeprecation Using the "owner" public property of a TempStore lock is deprecated in Drupal 8.7.0 and will not be allowed in Drupal 9.0.0. Use \Drupal\Core\TempStore\Lock::getOwnerId() instead. See https://www.drupal.org/node/3025869.
+   * @group legacy
+   */
+  public function testGetMetadataOwner() {
+    $this->keyValue->expects($this->once())
+      ->method('get')
+      ->with('1:test')
+      ->will($this->returnValue($this->ownObject));
+
+    $metadata = $this->tempStore->getMetadata('test');
+    $this->assertSame(1, $metadata->owner);
+  }
+
+  /**
+   * @covers ::getMetadata
+   * @expectedDeprecation Using the "updated" public property of a TempStore lock is deprecated in Drupal 8.7.0 and will not be allowed in Drupal 9.0.0. Use \Drupal\Core\TempStore\Lock::getUpdated() instead. See https://www.drupal.org/node/3025869.
+   * @group legacy
+   */
+  public function testGetMetadataUpdated() {
+    $this->keyValue->expects($this->once())
+      ->method('get')
+      ->with('1:test')
+      ->will($this->returnValue($this->ownObject));
+
+    $metadata = $this->tempStore->getMetadata('test');
+    $this->assertSame($metadata->getUpdated(), $metadata->updated);
   }
 
   /**
@@ -241,7 +274,7 @@ class PrivateTempStoreTest extends UnitTestCase {
     $this->keyValue->expects($this->once())
       ->method('getCollectionName');
 
-    $this->setExpectedException(TempStoreException::class);
+    $this->expectException(TempStoreException::class);
     $this->tempStore->delete('test');
   }
 

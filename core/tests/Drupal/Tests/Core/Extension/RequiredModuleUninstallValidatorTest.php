@@ -2,7 +2,7 @@
 
 namespace Drupal\Tests\Core\Extension;
 
-use Drupal\simpletest\AssertHelperTrait;
+use Drupal\Tests\AssertHelperTrait;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -14,7 +14,7 @@ class RequiredModuleUninstallValidatorTest extends UnitTestCase {
   use AssertHelperTrait;
 
   /**
-   * @var \Drupal\Core\Extension\RequiredModuleUninstallValidator|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\RequiredModuleUninstallValidator|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $uninstallValidator;
 

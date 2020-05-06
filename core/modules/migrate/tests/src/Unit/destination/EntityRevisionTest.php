@@ -34,9 +34,9 @@ class EntityRevisionTest extends UnitTestCase {
   protected $storage;
 
   /**
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface
    */
-  protected $entityManager;
+  protected $entityFieldManager;
 
   /**
    * @var \Drupal\Core\Field\FieldTypePluginManagerInterface
@@ -55,7 +55,7 @@ class EntityRevisionTest extends UnitTestCase {
     $entity_type->getPluralLabel()->willReturn('craziness');
     $this->storage->getEntityType()->willReturn($entity_type->reveal());
 
-    $this->entityManager = $this->prophesize('\Drupal\Core\Entity\EntityManagerInterface');
+    $this->entityFieldManager = $this->prophesize('\Drupal\Core\Entity\EntityFieldManagerInterface');
     $this->fieldTypeManager = $this->prophesize('\Drupal\Core\Field\FieldTypePluginManagerInterface');
   }
 
@@ -67,8 +67,7 @@ class EntityRevisionTest extends UnitTestCase {
   public function testGetEntityDestinationValues() {
     $destination = $this->getEntityRevisionDestination([]);
     // Return a dummy because we don't care what gets called.
-    $entity = $this->prophesize('\Drupal\Core\Entity\EntityInterface')
-      ->willImplement('\Drupal\Core\Entity\RevisionableInterface');
+    $entity = $this->prophesize('\Drupal\Core\Entity\RevisionableInterface');
     // Assert that the first ID from the destination values is used to load the
     // entity.
     $this->storage->loadRevision(12)
@@ -85,8 +84,7 @@ class EntityRevisionTest extends UnitTestCase {
    */
   public function testGetEntityUpdateRevision() {
     $destination = $this->getEntityRevisionDestination([]);
-    $entity = $this->prophesize('\Drupal\Core\Entity\EntityInterface')
-      ->willImplement('\Drupal\Core\Entity\RevisionableInterface');
+    $entity = $this->prophesize('\Drupal\Core\Entity\RevisionableInterface');
 
     $entity_type = $this->prophesize('\Drupal\Core\Entity\EntityTypeInterface');
     $entity_type->getKey('id')->willReturn('nid');
@@ -113,8 +111,7 @@ class EntityRevisionTest extends UnitTestCase {
    */
   public function testGetEntityNewRevision() {
     $destination = $this->getEntityRevisionDestination([]);
-    $entity = $this->prophesize('\Drupal\Core\Entity\EntityInterface')
-      ->willImplement('\Drupal\Core\Entity\RevisionableInterface');
+    $entity = $this->prophesize('\Drupal\Core\Entity\RevisionableInterface');
 
     $entity_type = $this->prophesize('\Drupal\Core\Entity\EntityTypeInterface');
     $entity_type->getKey('id')->willReturn('nid');
@@ -196,7 +193,7 @@ class EntityRevisionTest extends UnitTestCase {
       $this->migration->reveal(),
       $this->storage->reveal(),
       [],
-      $this->entityManager->reveal(),
+      $this->entityFieldManager->reveal(),
       $this->fieldTypeManager->reveal()
     );
   }

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\system\Functional\Menu;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Url;
 
@@ -60,6 +61,10 @@ trait AssertBreadcrumbTrait {
     // Compare paths with actual breadcrumb.
     $parts = $this->getBreadcrumbParts();
     $pass = TRUE;
+    // Fail if there is no breadcrumb and we have a trail.
+    if (!empty($trail) && empty($parts)) {
+      $pass = FALSE;
+    }
     // There may be more than one breadcrumb on the page. If $trail is empty
     // this test would go into an infinite loop, so we need to check that too.
     while ($trail && !empty($parts)) {
@@ -84,7 +89,7 @@ trait AssertBreadcrumbTrait {
     // No parts must be left, or an expected "Home" will always pass.
     $pass = ($pass && empty($parts));
 
-    $this->assertTrue($pass, format_string('Breadcrumb %parts found on @path.', [
+    $this->assertTrue($pass, new FormattableMarkup('Breadcrumb %parts found on @path.', [
       '%parts' => implode(' » ', $trail),
       '@path' => $this->getUrl(),
     ]));

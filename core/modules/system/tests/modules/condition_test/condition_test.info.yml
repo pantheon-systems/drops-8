@@ -2,5 +2,10 @@ name: "Condition Test Support"
 type: module
 description: "Test general form component for condition plugins."
 package: Testing
-version: VERSION
+# version: VERSION
 core: 8.x
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

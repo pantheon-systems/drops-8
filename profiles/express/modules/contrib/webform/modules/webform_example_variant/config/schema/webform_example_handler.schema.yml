@@ -1,0 +1,13 @@
+webform.variant.example:
+  type: mapping
+  label: Example
+  mapping:
+    description__markup:
+      label: Description
+      type: text
+    notes__type:
+      label: Notes element types
+      type: string
+    debug:
+      type: boolean
+      label: 'Enable debugging'

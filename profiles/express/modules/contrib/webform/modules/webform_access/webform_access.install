@@ -1,0 +1,158 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform access module.
+ */
+
+use Drupal\Core\Entity\EntityTypeInterface;
+
+/**
+ * Implements hook_schema().
+ */
+function webform_access_schema() {
+  $schema['webform_access_group_admin'] = [
+    'description' => 'Stores admin associated with a webform access group.',
+    'fields' => [
+      'group_id' => [
+        'description' => 'The webform access group id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'The admin user id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'indexes' => [
+      'indexing' => ['group_id', 'uid'],
+    ],
+    'primary key' => ['group_id', 'uid'],
+  ];
+
+  $schema['webform_access_group_user'] = [
+    'description' => 'Stores users associated with a webform access group.',
+    'fields' => [
+      'group_id' => [
+        'description' => 'The webform access group id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'The user id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'indexes' => [
+      'indexing' => ['group_id', 'uid'],
+    ],
+    'primary key' => ['group_id', 'uid'],
+  ];
+
+  $schema['webform_access_group_entity'] = [
+    'description' => 'Stores users associated with a webform access group.',
+    'fields' => [
+      'group_id' => [
+        'description' => 'The webform access group id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'entity_type' => [
+        'description' => 'The source entity type.',
+        'type' => 'varchar',
+        'length' => EntityTypeInterface::ID_MAX_LENGTH,
+        'not null' => TRUE,
+      ],
+      'entity_id' => [
+        'description' => 'The source entity id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'field_name' => [
+        'description' => 'The webform field name.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'webform_id' => [
+        'description' => 'The webform id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+    ],
+    'indexes' => [
+      'source_entity' => ['entity_type', 'entity_id', 'field_name', 'webform_id'],
+    ],
+    'primary key' => ['group_id', 'webform_id', 'entity_type', 'entity_id', 'field_name'],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Issue #3034127: Error webform access with postgres.
+ */
+function webform_access_update_8001() {
+  // Converts storage for 'webform_access_group_entity.entity_id'
+  // from integer to string.
+  \Drupal::database()
+    ->schema()
+    ->changeField('webform_access_group_entity', 'entity_id', 'entity_id', [
+      'description' => 'The source entity id.',
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => TRUE,
+    ]);
+}
+
+/**
+ * Issue #3043276: Allow selected users to administer webform access groups.
+ */
+function webform_access_update_8002() {
+  $table = [
+    'description' => 'Stores admin associated with a webform access group.',
+    'fields' => [
+      'group_id' => [
+        'description' => 'The webform access group id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'The admin user id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'indexes' => [
+      'indexing' => ['group_id', 'uid'],
+    ],
+    'primary key' => ['group_id', 'uid'],
+  ];
+  \Drupal::database()->schema()->createTable('webform_access_group_admin', $table);
+}
+
+/**
+ * Issue #3043755: Allow access groups to have custom email addresses.
+ */
+function webform_access_update_8003() {
+  $config_factory = \Drupal::configFactory();
+  foreach ($config_factory->listAll('webform_access.webform_access_group.') as $webform_config_name) {
+    $webform_config = $config_factory->getEditable($webform_config_name);
+    $data = $webform_config->getRawData() + ['emails' => []];
+    $webform_config->setData($data)->save();
+  }
+}

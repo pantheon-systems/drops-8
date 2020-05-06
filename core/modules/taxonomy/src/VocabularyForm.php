@@ -38,7 +38,7 @@ class VocabularyForm extends BundleEntityFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorage('taxonomy_vocabulary')
+      $container->get('entity_type.manager')->getStorage('taxonomy_vocabulary')
     );
   }
 
@@ -122,18 +122,18 @@ class VocabularyForm extends BundleEntityFormBase {
     $vocabulary->set('name', trim($vocabulary->label()));
 
     $status = $vocabulary->save();
-    $edit_link = $this->entity->link($this->t('Edit'));
+    $edit_link = $this->entity->toLink($this->t('Edit'), 'edit-form')->toString();
     switch ($status) {
       case SAVED_NEW:
         $this->messenger()->addStatus($this->t('Created new vocabulary %name.', ['%name' => $vocabulary->label()]));
         $this->logger('taxonomy')->notice('Created new vocabulary %name.', ['%name' => $vocabulary->label(), 'link' => $edit_link]);
-        $form_state->setRedirectUrl($vocabulary->urlInfo('overview-form'));
+        $form_state->setRedirectUrl($vocabulary->toUrl('overview-form'));
         break;
 
       case SAVED_UPDATED:
         $this->messenger()->addStatus($this->t('Updated vocabulary %name.', ['%name' => $vocabulary->label()]));
         $this->logger('taxonomy')->notice('Updated vocabulary %name.', ['%name' => $vocabulary->label(), 'link' => $edit_link]);
-        $form_state->setRedirectUrl($vocabulary->urlInfo('collection'));
+        $form_state->setRedirectUrl($vocabulary->toUrl('collection'));
         break;
     }
 

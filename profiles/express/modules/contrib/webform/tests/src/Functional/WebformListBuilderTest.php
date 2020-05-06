@@ -19,13 +19,41 @@ class WebformListBuilderTest extends BrowserTestBase {
   public static $modules = ['node', 'webform', 'webform_test_submissions'];
 
   /**
-   * Tests the webform overview page.
+   * Tests the webform overview filter.
    */
-  public function testWebformOverview() {
+  public function testFilter() {
+    $this->drupalLogin($this->rootUser);
+
+    // Check filter default category and state.
+    $this->drupalGet('/admin/structure/webform');
+    $this->assertOptionSelected('edit-category', '');
+    $this->assertOptionSelected('edit-state', '');
+
+    // Set filter category and state.
+    \Drupal::configFactory()->getEditable('webform.settings')
+      ->set('form.filter_category', 'Test: Submissions')
+      ->set('form.filter_state', 'open')
+      ->save();
+
+    // Check filter customized category and state.
+    $this->drupalGet('/admin/structure/webform');
+    $this->assertOptionSelected('edit-category', 'Test: Submissions');
+    $this->assertOptionSelected('edit-state', 'open');
+
+    // Check customized filter can still be cleared.
+    $this->drupalGet('/admin/structure/webform', ['query' => ['category' => '', 'state' => '']]);
+    $this->assertOptionSelected('edit-category', '');
+    $this->assertOptionSelected('edit-state', '');
+  }
+
+  /**
+   * Tests the webform overview access.
+   */
+  public function testAccess() {
     $assert_session = $this->assertSession();
 
     // Test with a superuser.
-    $any_webform_user = $this->drupalCreateUser([
+    $any_webform_user = $this->createUser([
       'access webform overview',
       'create webform',
       'edit any webform',
@@ -35,18 +63,15 @@ class WebformListBuilderTest extends BrowserTestBase {
     $list_path = '/admin/structure/webform';
     $this->drupalGet($list_path);
     $assert_session->linkExists('Test: Submissions');
-    $assert_session->linkExists('Submissions');
-    $assert_session->linkExists('Download');
-    $assert_session->linkExists('Clear');
+    $assert_session->linkExists('Results');
     $assert_session->linkExists('Build');
     $assert_session->linkExists('Settings');
     $assert_session->linkExists('View');
-    $assert_session->linkExists('Test');
     $assert_session->linkExists('Duplicate');
     $assert_session->linkExists('Delete');
 
     // Test with a user that only has submission access.
-    $any_webform_submission_user = $this->drupalCreateUser([
+    $any_webform_submission_user = $this->createUser([
       'access webform overview',
       'view any webform submission',
       'edit any webform submission',
@@ -57,15 +82,10 @@ class WebformListBuilderTest extends BrowserTestBase {
     // Webform name should not be a link as the user doesn't have access to the
     // submission page.
     $assert_session->linkExists('Test: Submissions');
-    $assert_session->linkExists('Submissions');
-    $assert_session->linkExists('Download');
-    // TODO: Is this a bug that this doesn't pass? User has delete any
-    // submission permission.
-    // $assert_session->linkExists('Clear')
+    $assert_session->linkExists('Results');
     $assert_session->linkNotExists('Build');
     $assert_session->linkNotExists('Settings');
     $assert_session->linkExists('View');
-    $assert_session->linkExists('Test');
     $assert_session->linkNotExists('Duplicate');
     $assert_session->linkNotExists('Delete');
 
@@ -80,8 +100,8 @@ class WebformListBuilderTest extends BrowserTestBase {
     $this->assertLinkNotInRow('Test: Submissions', 'View');
 
     // Test with role that is configured via webform access settings.
-    $rid = $this->createRole(['access webform overview']);
-    $special_access_user = $this->drupalCreateUser();
+    $rid = $this->drupalCreateRole(['access webform overview']);
+    $special_access_user = $this->createUser();
     $special_access_user->addRole($rid);
     $special_access_user->save();
     $access = $webform_config->get('access');
@@ -90,8 +110,7 @@ class WebformListBuilderTest extends BrowserTestBase {
     $this->drupalLogin($special_access_user);
     $this->drupalGet($list_path);
     $assert_session->responseContains('Test: Submissions');
-    $assert_session->linkExists('Submissions');
-    $assert_session->linkExists('Download');
+    $assert_session->linkExists('Results');
   }
 
   /**

@@ -416,3 +416,109 @@ functionCall(
 );
 
 // phpcs:set PEAR.Functions.FunctionCallSignature allowMultipleArguments true
+
+$this->foo(
+
+    ['a','b'],
+    true
+
+);
+
+$this->foo(
+
+    // Comment
+    ['a','b'],
+    true
+
+);
+
+function m()
+{
+    $t = '
+    ' . (empty(true) ? '
+    ' . f(
+                '1',
+                '2',
+            ) . '
+    ' : '');
+}
+
+class C
+{
+
+    public function m()
+    {
+        $a = [];
+        $t =
+            "SELECT * FROM t
+WHERE f IN(" . implode(
+                ",",
+                $a
+            ) . ")";
+    }
+}
+
+$notices = array(
+    'index' => sprintf(
+        translation_function('a text string with %s placeholder'),
+    'replacement'
+    ),
+);
+
+$componentType = $this->componentTypeRepository->findByType($this->identifier) ?:
+    $this->componentTypeFactory->createForType(
+        $this->identifier,
+        $this->className,
+        true,
+        $this->isPrototypal
+    );
+
+return [
+    'export-path' => 'exports/database/'
+        . env(
+            'APP_CUSTOMER',
+            'not-configured'
+        )
+        . '/' . env(
+            'APP_IDENTIFIER',
+            'not-configured'
+        ),
+];
+
+$methods .=
+    str_replace(
+        array_keys($replacements),
+        array_values($replacements),
+        $methodTemplate
+    )
+    . PHP_EOL . PHP_EOL . str_repeat(' ', 4);
+
+$rangeValues['min'] =
+    $this->adjustLowerThreshold(
+        $this->normalizeRatingForFilter($rangeValues['min'])
+    );
+
+$salesOrderThresholdTransfer->fromArray($salesOrderThresholdEntity->toArray(), true)
+    ->setSalesOrderThresholdValue(
+        $this->mapSalesOrderThresholdValueTransfer($salesOrderThresholdTransfer, $salesOrderThresholdEntity)
+    )->setCurrency(
+        (new CurrencyTransfer())->fromArray($salesOrderThresholdEntity->getCurrency()->toArray(), true)
+    )->setStore(
+        (new StoreTransfer())->fromArray($salesOrderThresholdEntity->getStore()->toArray(), true)
+    );
+
+return trim(preg_replace_callback(
+            // sprintf replaces IGNORED_CHARS multiple times: for %s as well as %1$s (argument numbering)
+            // /[%s]*([^%1$s]+)/ results in /[IGNORED_CHARS]*([^IGNORED_CHARS]+)/
+                sprintf('/[%s]*([^%1$s]+)/', self::IGNORED_CHARS),
+                function (array $term) use ($mode): string {
+                    // query pieces have to bigger than one char, otherwise they are too expensive for the search
+                    if (mb_strlen($term[1], 'UTF-8') > 1) {
+                        // in boolean search mode '' (empty) means OR, '-' means NOT
+                        return sprintf('%s%s ', $mode === 'AND' ? '+' : '', self::extractUmlauts($term[1]));
+                    }
+
+                    return '';
+                },
+                $search
+            ));

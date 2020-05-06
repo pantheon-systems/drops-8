@@ -12,7 +12,7 @@ class Param implements PhpParser\Builder
 
     protected $default = null;
 
-    /** @var string|Node\Name|Node\NullableType|null */
+    /** @var Node\Identifier|Node\Name|Node\NullableType|null */
     protected $type = null;
 
     protected $byRef = false;
@@ -44,7 +44,7 @@ class Param implements PhpParser\Builder
     /**
      * Sets type for the parameter.
      *
-     * @param string|Node\Name|Node\NullableType $type Parameter type
+     * @param string|Node\Name|Node\NullableType|Node\UnionType $type Parameter type
      *
      * @return $this The builder instance (for fluid interface)
      */
@@ -60,7 +60,7 @@ class Param implements PhpParser\Builder
     /**
      * Sets type for the parameter.
      *
-     * @param string|Node\Name|Node\NullableType $type Parameter type
+     * @param string|Node\Name|Node\NullableType|Node\UnionType $type Parameter type
      *
      * @return $this The builder instance (for fluid interface)
      *

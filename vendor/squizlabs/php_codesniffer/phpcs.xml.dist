@@ -8,7 +8,8 @@
     <file>src</file>
     <file>tests</file>
 
-    <exclude-pattern>*/Standards/*/Tests/*\.(inc|css|js)</exclude-pattern>
+    <exclude-pattern>*/src/Standards/*/Tests/*\.(inc|css|js)$</exclude-pattern>
+    <exclude-pattern>*/tests/Core/*/*Test\.(inc|css|js)$</exclude-pattern>
 
     <arg name="basepath" value="."/>
     <arg name="colors"/>
@@ -54,10 +55,12 @@
     <rule ref="Squiz.WhiteSpace.ControlStructureSpacing"/>
     <rule ref="Squiz.WhiteSpace.FunctionClosingBraceSpace"/>
     <rule ref="Squiz.WhiteSpace.FunctionSpacing"/>
+    <rule ref="Squiz.WhiteSpace.MemberVarSpacing"/>
     <rule ref="Squiz.WhiteSpace.OperatorSpacing"/>
     <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
     <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>
     <rule ref="Generic.Commenting.Todo"/>
+    <rule ref="Generic.ControlStructures.DisallowYodaConditions"/>
     <rule ref="Generic.ControlStructures.InlineControlStructure"/>
     <rule ref="Generic.Formatting.DisallowMultipleStatements"/>
     <rule ref="Generic.Formatting.SpaceAfterCast"/>
@@ -69,6 +72,7 @@
     <rule ref="PSR2.Classes.PropertyDeclaration"/>
     <rule ref="PSR2.Methods.MethodDeclaration"/>
     <rule ref="PSR2.Files.EndFileNewline"/>
+    <rule ref="PSR12.Files.OpenTag"/>
     <rule ref="Zend.Files.ClosingTag"/>
 
     <!-- PEAR uses warnings for inline control structures, so switch back to errors -->

@@ -11,7 +11,7 @@ use Drupal\webform\WebformSubmissionInterface;
  * Implements hook_ENTITY_TYPE_presave().
  */
 function webform_demo_application_evaluation_webform_submission_presave(WebformSubmissionInterface $webform_submission) {
-  if ($webform_submission->getWebform()->id() != 'demo_application'){
+  if ($webform_submission->getWebform()->id() != 'demo_application') {
     return;
   }
 
@@ -31,8 +31,63 @@ function webform_demo_application_evaluation_webform_submission_presave(WebformS
   if ($original_data['state'] != $current_data['state']) {
     /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
     $date_formatter = \Drupal::service('date.formatter');
-    $current_data[$current_data['state'] .'_date'] = $date_formatter->format(time(), 'html_datetime');
+    $current_data[$current_data['state'] . '_date'] = $date_formatter->format(time(), 'html_datetime');
 
     $webform_submission->setData($current_data);
   }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function webform_demo_application_evaluation_webform_submission_insert(WebformSubmissionInterface $webform_submission) {
+  _webform_demo_application_evaluation_calculate_evaluation_rating($webform_submission);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_update().
+ */
+function webform_demo_application_evaluation_webform_submission_update(WebformSubmissionInterface $webform_submission) {
+  _webform_demo_application_evaluation_calculate_evaluation_rating($webform_submission);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function webform_demo_application_evaluation_webform_submission_delete(WebformSubmissionInterface $webform_submission) {
+  _webform_demo_application_evaluation_calculate_evaluation_rating($webform_submission);
+}
+
+/**
+ * Calculate an applications average evaluation rating.
+ *
+ * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
+ *   A webform submission.
+ */
+function _webform_demo_application_evaluation_calculate_evaluation_rating(WebformSubmissionInterface $webform_submission) {
+  $webform = $webform_submission->getWebform();
+  if (!$webform || $webform->id() !== 'demo_application_evaluation') {
+    return;
+  }
+
+  $source_entity = $webform_submission->getSourceEntity();
+  if (!$source_entity instanceof WebformSubmissionInterface
+    || $source_entity->getWebform()->id() !== 'demo_application') {
+    return;
+  }
+
+  // Get evaluation ratings.
+  /** @var \Drupal\webform\WebformSubmissionStorageInterface $webform_submission_storage */
+  $webform_submission_storage = \Drupal::entityTypeManager()->getStorage('webform_submission');
+  $webform_submissions = $webform_submission_storage->loadByEntities($webform, $source_entity);
+  $ratings = [];
+  foreach ($webform_submissions as $webform_submission) {
+    $ratings[] = $webform_submission->getElementData('rating');
+  }
+
+  // Set evaluations rating average and count.
+  $evaluation_rating = array_sum($ratings) / count($ratings);
+  $source_entity->setElementData('evaluation_rating', $evaluation_rating);
+  $source_entity->setElementData('evaluation_count', count($ratings));
+  $source_entity->save();
 }

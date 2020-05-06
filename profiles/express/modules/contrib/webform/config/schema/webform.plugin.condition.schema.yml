@@ -1,0 +1,7 @@
+condition.plugin.webform:
+  type: condition.plugin
+  mapping:
+    webforms:
+      type: sequence
+      sequence:
+        type: string

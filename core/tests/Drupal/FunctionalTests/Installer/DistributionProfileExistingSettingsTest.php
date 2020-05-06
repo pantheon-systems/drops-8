@@ -25,11 +25,16 @@ class DistributionProfileExistingSettingsTest extends InstallerTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function prepareEnvironment() {
     parent::prepareEnvironment();
     $this->info = [
       'type' => 'profile',
-      'core' => \Drupal::CORE_COMPATIBILITY,
+      'core_version_requirement' => '*',
       'name' => 'Distribution profile',
       'distribution' => [
         'name' => 'My Distribution',
@@ -64,13 +69,11 @@ class DistributionProfileExistingSettingsTest extends InstallerTestBase {
     // not be available at this point in the install process.
     $site_path = DrupalKernel::findSitePath(Request::createFromGlobals());
     // Pre-configure config directories.
-    $this->settings['config_directories'] = [
-      CONFIG_SYNC_DIRECTORY => (object) [
-        'value' => $site_path . '/files/config_staging',
-        'required' => TRUE,
-      ],
+    $this->settings['settings']['config_sync_directory'] = (object) [
+      'value' => $site_path . '/files/config_staging',
+      'required' => TRUE,
     ];
-    mkdir($this->settings['config_directories'][CONFIG_SYNC_DIRECTORY]->value, 0777, TRUE);
+    mkdir($this->settings['settings']['config_sync_directory']->value, 0777, TRUE);
   }
 
   /**
@@ -115,7 +118,7 @@ class DistributionProfileExistingSettingsTest extends InstallerTestBase {
     $this->assertUrl('user/1');
     $this->assertResponse(200);
     // Confirm that we are logged-in after installation.
-    $this->assertText($this->rootUser->getUsername());
+    $this->assertText($this->rootUser->getAccountName());
 
     // Confirm that Drupal recognizes this distribution as the current profile.
     $this->assertEqual(\Drupal::installProfile(), 'mydistro');

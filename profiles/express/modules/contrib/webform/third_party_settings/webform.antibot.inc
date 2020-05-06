@@ -137,7 +137,7 @@ function antibot_webform_third_party_settings_form_alter(&$form, FormStateInterf
  */
 function antibot_webform_submission_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   // Only add an Antibot when a webform is initially load.
-  // After a webform is submitted, via a multistep webform and/or saving a draft,
+  // After a webform is submitted, via a multi-step webform and/or saving a draft,
   // we can skip adding an Antibot.
   if ($form_state->isSubmitted()) {
     return;
@@ -153,8 +153,17 @@ function antibot_webform_submission_form_alter(&$form, FormStateInterface $form_
   $antibot = $third_party_settings_manager->getThirdPartySetting('antibot', 'antibot') ?:
     $webform->getThirdPartySetting('antibot', 'antibot');
   if ($antibot) {
-    // @see antibot_form_alter().
-    $form['#pre_render'][] = 'antibot_form_pre_render';
+    if (function_exists('antibot_protect_form')) {
+      // Applies to antibot-8.x-1.2+
+      // Set #form_id which is needed by antibot_protect_form().
+      $form['#form_id'] = $form_id;
+      antibot_protect_form($form);
+    }
+    else {
+      // Applies to antibot-8.x-1.1 and below.
+      // @todo Remove backward compatibility for antibot-8.x-1.1.
+      $form['#pre_render'][] = 'antibot_form_pre_render';
+    }
   }
 
 }

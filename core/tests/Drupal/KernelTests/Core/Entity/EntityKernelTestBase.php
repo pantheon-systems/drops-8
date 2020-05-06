@@ -2,15 +2,25 @@
 
 namespace Drupal\KernelTests\Core\Entity;
 
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\user\Entity\Role;
-use Drupal\user\Entity\User;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Defines an abstract test base for entity kernel tests.
  */
 abstract class EntityKernelTestBase extends KernelTestBase {
+  use UserCreationTrait {
+    checkPermissions as drupalCheckPermissions;
+    createAdminRole as drupalCreateAdminRole;
+    createRole as drupalCreateRole;
+    createUser as drupalCreateUser;
+    grantPermissions as drupalGrantPermissions;
+    setCurrentUser as drupalSetCurrentUser;
+    setUpCurrentUser as drupalSetUpCurrentUser;
+  }
+  use DeprecatedServicePropertyTrait;
 
   /**
    * Modules to enable.
@@ -20,11 +30,18 @@ abstract class EntityKernelTestBase extends KernelTestBase {
   public static $modules = ['user', 'system', 'field', 'text', 'filter', 'entity_test'];
 
   /**
-   * The entity manager service.
+   * The list of deprecated services.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var array
    */
-  protected $entityManager;
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
+
+  /**
+   * The entity type manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
 
   /**
    * A list of generated identifiers.
@@ -43,7 +60,7 @@ abstract class EntityKernelTestBase extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->entityManager = $this->container->get('entity.manager');
+    $this->entityTypeManager = $this->container->get('entity_type.manager');
     $this->state = $this->container->get('state');
 
     $this->installSchema('system', 'sequences');
@@ -70,8 +87,8 @@ abstract class EntityKernelTestBase extends KernelTestBase {
             // enabled in. The comment, node and taxonomy config and the
             // taxonomy_term schema need to be installed before the forum config
             // which in turn needs to be installed before field config.
-            $this->installConfig(['comment', 'node', 'taxonomy']);
             $this->installEntitySchema('taxonomy_term');
+            $this->installConfig(['comment', 'node', 'taxonomy']);
             $this->installConfig(['forum']);
           }
         }
@@ -94,24 +111,7 @@ abstract class EntityKernelTestBase extends KernelTestBase {
    *   The created user entity.
    */
   protected function createUser($values = [], $permissions = []) {
-    if ($permissions) {
-      // Create a new role and apply permissions to it.
-      $role = Role::create([
-        'id' => strtolower($this->randomMachineName(8)),
-        'label' => $this->randomMachineName(8),
-      ]);
-      $role->save();
-      user_role_grant_permissions($role->id(), $permissions);
-      $values['roles'][] = $role->id();
-    }
-
-    $account = User::create($values + [
-      'name' => $this->randomMachineName(),
-      'status' => 1,
-    ]);
-    $account->enforceIsNew();
-    $account->save();
-    return $account;
+    return $this->drupalCreateUser($permissions ?: [], NULL, FALSE, $values ?: []);
   }
 
   /**
@@ -124,7 +124,7 @@ abstract class EntityKernelTestBase extends KernelTestBase {
    *   The reloaded entity.
    */
   protected function reloadEntity(EntityInterface $entity) {
-    $controller = $this->entityManager->getStorage($entity->getEntityTypeId());
+    $controller = $this->entityTypeManager->getStorage($entity->getEntityTypeId());
     $controller->resetCache([$entity->id()]);
     return $controller->load($entity->id());
   }
@@ -169,7 +169,8 @@ abstract class EntityKernelTestBase extends KernelTestBase {
    */
   protected function refreshServices() {
     $this->container = \Drupal::getContainer();
-    $this->entityManager = $this->container->get('entity.manager');
+
+    $this->entityTypeManager = $this->container->get('entity_type.manager');
     $this->state = $this->container->get('state');
   }
 

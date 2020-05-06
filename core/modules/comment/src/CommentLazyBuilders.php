@@ -3,10 +3,13 @@
 namespace Drupal\comment;
 
 use Drupal\comment\Plugin\Field\FieldType\CommentItemInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\EntityFormBuilderInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Render\Element\Link;
+use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Render\RendererInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
@@ -14,14 +17,20 @@ use Drupal\Core\Url;
 /**
  * Defines a service for comment #lazy_builder callbacks.
  */
-class CommentLazyBuilders {
+class CommentLazyBuilders implements TrustedCallbackInterface {
+  use DeprecatedServicePropertyTrait;
 
   /**
-   * The entity manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * {@inheritdoc}
    */
-  protected $entityManager;
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
+
+  /**
+   * The entity type manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
+  protected $entityTypeManager;
 
   /**
    * The entity form builder service.
@@ -61,8 +70,8 @@ class CommentLazyBuilders {
   /**
    * Constructs a new CommentLazyBuilders object.
    *
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager service.
    * @param \Drupal\Core\Entity\EntityFormBuilderInterface $entity_form_builder
    *   The entity form builder service.
    * @param \Drupal\Core\Session\AccountInterface $current_user
@@ -74,8 +83,8 @@ class CommentLazyBuilders {
    * @param \Drupal\Core\Render\RendererInterface $renderer
    *   The renderer service.
    */
-  public function __construct(EntityManagerInterface $entity_manager, EntityFormBuilderInterface $entity_form_builder, AccountInterface $current_user, CommentManagerInterface $comment_manager, ModuleHandlerInterface $module_handler, RendererInterface $renderer) {
-    $this->entityManager = $entity_manager;
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityFormBuilderInterface $entity_form_builder, AccountInterface $current_user, CommentManagerInterface $comment_manager, ModuleHandlerInterface $module_handler, RendererInterface $renderer) {
+    $this->entityTypeManager = $entity_type_manager;
     $this->entityFormBuilder = $entity_form_builder;
     $this->currentUser = $current_user;
     $this->commentManager = $comment_manager;
@@ -106,7 +115,7 @@ class CommentLazyBuilders {
       'comment_type' => $comment_type_id,
       'pid' => NULL,
     ];
-    $comment = $this->entityManager->getStorage('comment')->create($values);
+    $comment = $this->entityTypeManager->getStorage('comment')->create($values);
     return $this->entityFormBuilder->getForm($comment);
   }
 
@@ -128,13 +137,13 @@ class CommentLazyBuilders {
   public function renderLinks($comment_entity_id, $view_mode, $langcode, $is_in_preview) {
     $links = [
       '#theme' => 'links__comment',
-      '#pre_render' => ['drupal_pre_render_links'],
+      '#pre_render' => [[Link::class, 'preRenderLinks']],
       '#attributes' => ['class' => ['links', 'inline']],
     ];
 
     if (!$is_in_preview) {
       /** @var \Drupal\comment\CommentInterface $entity */
-      $entity = $this->entityManager->getStorage('comment')->load($comment_entity_id);
+      $entity = $this->entityTypeManager->getStorage('comment')->load($comment_entity_id);
       $commented_entity = $entity->getCommentedEntity();
 
       $links['comment'] = $this->buildLinks($entity, $commented_entity);
@@ -169,14 +178,14 @@ class CommentLazyBuilders {
       if ($entity->access('delete')) {
         $links['comment-delete'] = [
           'title' => t('Delete'),
-          'url' => $entity->urlInfo('delete-form'),
+          'url' => $entity->toUrl('delete-form'),
         ];
       }
 
       if ($entity->access('update')) {
         $links['comment-edit'] = [
           'title' => t('Edit'),
-          'url' => $entity->urlInfo('edit-form'),
+          'url' => $entity->toUrl('edit-form'),
         ];
       }
       if ($entity->access('create')) {
@@ -205,7 +214,7 @@ class CommentLazyBuilders {
     if ($this->moduleHandler->moduleExists('content_translation') && $this->access($entity)->isAllowed()) {
       $links['comment-translations'] = [
         'title' => t('Translate'),
-        'url' => $entity->urlInfo('drupal:content-translation-overview'),
+        'url' => $entity->toUrl('drupal:content-translation-overview'),
       ];
     }
 
@@ -222,6 +231,13 @@ class CommentLazyBuilders {
    */
   protected function access(EntityInterface $entity) {
     return content_translation_translate_access($entity);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function trustedCallbacks() {
+    return ['renderLinks', 'renderForm'];
   }
 
 }

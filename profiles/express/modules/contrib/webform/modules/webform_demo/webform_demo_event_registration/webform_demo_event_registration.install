@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Install, update and uninstall functions for the webform node module.
+ * Install, update and uninstall functions for the webform demo event registration module.
  */
 
 use Drupal\Core\Datetime\DrupalDateTime;
@@ -23,6 +23,7 @@ function webform_demo_event_registration_install() {
     ]);
     $webform_node->webform->target_id = 'demo_event_registration';
     $webform_node->webform->status = WebformInterface::STATUS_OPEN;
+    $webform_node->field_webform_entity_limit_total->value = rand(3, 10);
     $webform_node->webform->open = '';
     $webform_node->webform->close = '';
     $webform_node->body->value = '<p>' . t('This is example of event with a registration form that sends an email confirmation and an email reminder 1 day before the event.') . '</p>';
@@ -33,11 +34,12 @@ function webform_demo_event_registration_install() {
 }
 
 /**
- * Implements hook_install().
+ * Implements hook_uninstall().
  */
 function webform_demo_event_registration_uninstall() {
-  // Delete all webform:demo_application nodes.
+  // Delete all webform:demo_event_registration nodes.
   $entity_ids = \Drupal::entityQuery('node')
+    ->condition('type', 'webform_demo_event')
     ->condition('webform.target_id', 'demo_event_registration')
     ->execute();
   if ($entity_ids) {

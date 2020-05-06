@@ -5,7 +5,6 @@ namespace Drupal\image\Plugin\Field\FieldWidget;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Image\ImageFactory;
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\file\Entity\File;
@@ -178,7 +177,7 @@ class ImageWidget extends FileWidget {
       $default_image = $this->fieldDefinition->getFieldStorageDefinition()->getSetting('default_image');
     }
     // Convert the stored UUID into a file ID.
-    if (!empty($default_image['uuid']) && $entity = \Drupal::entityManager()->loadEntityByUuid('file', $default_image['uuid'])) {
+    if (!empty($default_image['uuid']) && $entity = \Drupal::service('entity.repository')->loadEntityByUuid('file', $default_image['uuid'])) {
       $default_image['fid'] = $entity->id();
     }
     $element['#default_image'] = !empty($default_image['fid']) ? $default_image : [];
@@ -296,18 +295,7 @@ class ImageWidget extends FileWidget {
     // Only do validation if the function is triggered from other places than
     // the image process form.
     $triggering_element = $form_state->getTriggeringElement();
-    if (empty($triggering_element['#submit']) || !in_array('file_managed_file_submit', $triggering_element['#submit'])) {
-      // If the image is not there, we do not check for empty values.
-      $parents = $element['#parents'];
-      $field = array_pop($parents);
-      $image_field = NestedArray::getValue($form_state->getUserInput(), $parents);
-      // We check for the array key, so that it can be NULL (like if the user
-      // submits the form without using the "upload" button).
-      if (!array_key_exists($field, $image_field)) {
-        return;
-      }
-    }
-    else {
+    if (!empty($triggering_element['#submit']) && in_array('file_managed_file_submit', $triggering_element['#submit'], TRUE)) {
       $form_state->setLimitValidationErrors([]);
     }
   }
@@ -338,7 +326,7 @@ class ImageWidget extends FileWidget {
     if ($style_id && $style = ImageStyle::load($style_id)) {
       if (!empty($dependencies[$style->getConfigDependencyKey()][$style->getConfigDependencyName()])) {
         /** @var \Drupal\image\ImageStyleStorageInterface $storage */
-        $storage = \Drupal::entityManager()->getStorage($style->getEntityTypeId());
+        $storage = \Drupal::entityTypeManager()->getStorage($style->getEntityTypeId());
         $replacement_id = $storage->getReplacementId($style_id);
         // If a valid replacement has been provided in the storage, replace the
         // preview image style with the replacement.

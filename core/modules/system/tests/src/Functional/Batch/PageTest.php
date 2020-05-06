@@ -19,12 +19,17 @@ class PageTest extends BrowserTestBase {
   public static $modules = ['batch_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests that the batch API progress page uses the correct theme.
    */
   public function testBatchProgressPageTheme() {
     // Make sure that the page which starts the batch (an administrative page)
     // is using a different theme than would normally be used by the batch API.
-    $this->container->get('theme_handler')->install(['seven', 'bartik']);
+    $this->container->get('theme_installer')->install(['seven', 'bartik']);
     $this->config('system.theme')
       ->set('default', 'bartik')
       ->set('admin', 'seven')

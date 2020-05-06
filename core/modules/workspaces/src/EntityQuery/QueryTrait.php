@@ -54,8 +54,8 @@ trait QueryTrait {
 
     // Only alter the query if the active workspace is not the default one and
     // the entity type is supported.
-    $active_workspace = $this->workspaceManager->getActiveWorkspace();
-    if (!$active_workspace->isDefaultWorkspace() && $this->workspaceManager->isEntityTypeSupported($this->entityType)) {
+    if ($this->workspaceManager->hasActiveWorkspace() && $this->workspaceManager->isEntityTypeSupported($this->entityType)) {
+      $active_workspace = $this->workspaceManager->getActiveWorkspace();
       $this->sqlQuery->addMetaData('active_workspace_id', $active_workspace->id());
       $this->sqlQuery->addMetaData('simple_query', FALSE);
 
@@ -67,6 +67,20 @@ trait QueryTrait {
     }
 
     return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isSimpleQuery() {
+    // We declare that this is not a simple query in
+    // \Drupal\workspaces\EntityQuery\QueryTrait::prepare(), but that's not
+    // enough because the parent method can return TRUE in some circumstances.
+    if ($this->sqlQuery->getMetaData('active_workspace_id')) {
+      return FALSE;
+    }
+
+    return parent::isSimpleQuery();
   }
 
 }

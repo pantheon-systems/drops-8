@@ -3,7 +3,10 @@
 namespace Drupal\workspaces;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -66,7 +69,26 @@ class EntityTypeInfo implements ContainerInjectionInterface {
     foreach ($entity_types as $entity_type) {
       if ($this->workspaceManager->isEntityTypeSupported($entity_type)) {
         $entity_type->addConstraint('EntityWorkspaceConflict');
+        $entity_type->setRevisionMetadataKey('workspace', 'workspace');
       }
+    }
+  }
+
+  /**
+   * Removes the 'latest-version' link template provided by Content Moderation.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface[] $entity_types
+   *   An array of entity types.
+   *
+   * @see hook_entity_type_alter()
+   */
+  public function entityTypeAlter(array &$entity_types) {
+    foreach ($entity_types as $entity_type_id => $entity_type) {
+      // Non-default workspaces display the active revision on the canonical
+      // route of an entity, so the latest version route is no longer needed.
+      $link_templates = $entity_type->get('links');
+      unset($link_templates['latest-version']);
+      $entity_type->set('links', $link_templates);
     }
   }
 
@@ -81,6 +103,39 @@ class EntityTypeInfo implements ContainerInjectionInterface {
   public function fieldInfoAlter(&$definitions) {
     if (isset($definitions['entity_reference'])) {
       $definitions['entity_reference']['constraints']['EntityReferenceSupportedNewEntities'] = [];
+    }
+
+    // Allow path aliases to be changed in workspace-specific pending revisions.
+    if (isset($definitions['path'])) {
+      unset($definitions['path']['constraints']['PathAlias']);
+    }
+  }
+
+  /**
+   * Provides custom base field definitions for a content entity type.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
+   *
+   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
+   *   An array of field definitions, keyed by field name.
+   *
+   * @see hook_entity_base_field_info()
+   */
+  public function entityBaseFieldInfo(EntityTypeInterface $entity_type) {
+    if ($this->workspaceManager->isEntityTypeSupported($entity_type)) {
+      // Disable the BC layer to prevent a recursion, this only needs the
+      // workspace key that is always set.
+      $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
+      $fields[$field_name] = BaseFieldDefinition::create('entity_reference')
+        ->setLabel(new TranslatableMarkup('Workspace'))
+        ->setDescription(new TranslatableMarkup('Indicates the workspace that this revision belongs to.'))
+        ->setSetting('target_type', 'workspace')
+        ->setInternal(TRUE)
+        ->setTranslatable(FALSE)
+        ->setRevisionable(TRUE);
+
+      return $fields;
     }
   }
 

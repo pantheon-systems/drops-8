@@ -5,6 +5,8 @@
  * Common API for interface translation.
  */
 
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
+
 /**
  * Comparison result of source files timestamps.
  *
@@ -173,11 +175,13 @@ function locale_translation_source_check_file($source) {
     $directory = $source_file->directory;
     $filename = '/' . preg_quote($source_file->filename) . '$/';
 
-    if ($files = file_scan_directory($directory, $filename, ['key' => 'name', 'recurse' => FALSE])) {
-      $file = current($files);
-      $source_file->uri = $file->uri;
-      $source_file->timestamp = filemtime($file->uri);
-      return $source_file;
+    if (is_dir($directory)) {
+      if ($files = \Drupal::service('file_system')->scanDirectory($directory, $filename, ['key' => 'name', 'recurse' => FALSE])) {
+        $file = current($files);
+        $source_file->uri = $file->uri;
+        $source_file->timestamp = filemtime($file->uri);
+        return $source_file;
+      }
     }
   }
   return FALSE;
@@ -271,7 +275,7 @@ function locale_translation_source_build($project, $langcode, $filename = NULL) 
       'version' => $project->version,
       'type' => LOCALE_TRANSLATION_LOCAL,
       'filename' => locale_translation_build_server_pattern($source, basename($source->server_pattern)),
-      'directory' => locale_translation_build_server_pattern($source, drupal_dirname($source->server_pattern)),
+      'directory' => locale_translation_build_server_pattern($source, \Drupal::service('file_system')->dirname($source->server_pattern)),
     ];
     $files[LOCALE_TRANSLATION_LOCAL]->uri = $files[LOCALE_TRANSLATION_LOCAL]->directory . '/' . $files[LOCALE_TRANSLATION_LOCAL]->filename;
   }
@@ -332,7 +336,8 @@ function locale_cron_fill_queue() {
   $projects = array_filter($projects, function ($project) {
     return $project['status'] == 1;
   });
-  $files = db_select('locale_file', 'f')
+  $connection = \Drupal::database();
+  $files = $connection->select('locale_file', 'f')
     ->condition('f.project', array_keys($projects), 'IN')
     ->condition('f.last_checked', $last, '<')
     ->fields('f', ['project', 'langcode'])
@@ -342,7 +347,7 @@ function locale_cron_fill_queue() {
 
     // Update the last_checked timestamp of the project+language that will
     // be checked for updates.
-    db_update('locale_file')
+    $connection->update('locale_file')
       ->fields(['last_checked' => REQUEST_TIME])
       ->condition('project', $file->project)
       ->condition('langcode', $file->langcode)
@@ -375,7 +380,7 @@ function locale_cron_fill_queue() {
  *   TRUE if the $uri is a remote file.
  */
 function _locale_translation_file_is_remote($uri) {
-  $scheme = file_uri_scheme($uri);
+  $scheme = StreamWrapperManager::getScheme($uri);
   if ($scheme) {
     return !\Drupal::service('file_system')->realpath($scheme . '://');
   }

@@ -1,0 +1,10 @@
+/**
+ * @file
+ * Checkbox value element styles.
+ *
+ * @see /webform/test_element_checkbox_value
+ */
+
+.form-item.form-type-webform-checkbox-value {
+  margin: 0;
+}

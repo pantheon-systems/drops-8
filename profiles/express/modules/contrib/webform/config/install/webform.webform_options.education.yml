@@ -7,9 +7,9 @@ dependencies:
 id: education
 label: Education
 category: Demographic
+likert: false
 options: |
   High School: High School
-  Associate Degree: Associate Degree
   Associate Degree: Associate Degree
   Graduate or Professional Degree: Graduate or Professional Degree
   Some College: Some College

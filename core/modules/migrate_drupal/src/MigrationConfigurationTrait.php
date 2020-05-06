@@ -4,6 +4,7 @@ namespace Drupal\migrate_drupal;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\migrate\Exception\RequirementsException;
 use Drupal\migrate\Plugin\RequirementsInterface;
 
@@ -11,6 +12,27 @@ use Drupal\migrate\Plugin\RequirementsInterface;
  * Configures the appropriate migrations for a given source Drupal database.
  */
 trait MigrationConfigurationTrait {
+
+  /**
+   * The config factory service.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * The migration plugin manager service.
+   *
+   * @var \Drupal\migrate\Plugin\MigrationPluginManagerInterface
+   */
+  protected $migrationPluginManager;
+
+  /**
+   * The state service.
+   *
+   * @var \Drupal\Core\State\StateInterface
+   */
+  protected $state;
 
   /**
    * The follow-up migration tags.
@@ -56,7 +78,7 @@ trait MigrationConfigurationTrait {
         $system_data[$result['type']][$result['name']] = $result;
       }
     }
-    catch (\Exception $e) {
+    catch (DatabaseExceptionWrapper $e) {
       // The table might not exist for example in tests.
     }
     return $system_data;
@@ -81,8 +103,9 @@ trait MigrationConfigurationTrait {
     $database_state['key'] = 'upgrade';
     $database_state['database'] = $database;
     $database_state_key = 'migrate_drupal_' . $drupal_version;
-    \Drupal::state()->set($database_state_key, $database_state);
-    \Drupal::state()->set('migrate.fallback_state_key', $database_state_key);
+    $state = $this->getState();
+    $state->set($database_state_key, $database_state);
+    $state->set('migrate.fallback_state_key', $database_state_key);
   }
 
   /**
@@ -98,9 +121,8 @@ trait MigrationConfigurationTrait {
    */
   protected function getMigrations($database_state_key, $drupal_version) {
     $version_tag = 'Drupal ' . $drupal_version;
-    $plugin_manager = \Drupal::service('plugin.manager.migration');
     /** @var \Drupal\migrate\Plugin\Migration[] $all_migrations */
-    $all_migrations = $plugin_manager->createInstancesByTag($version_tag);
+    $all_migrations = $this->getMigrationPluginManager()->createInstancesByTag($version_tag);
     $migrations = [];
     foreach ($all_migrations as $migration) {
       // Skip migrations tagged with any of the follow-up migration tags. They
@@ -146,7 +168,7 @@ trait MigrationConfigurationTrait {
    */
   protected function getFollowUpMigrationTags() {
     if ($this->followUpMigrationTags === NULL) {
-      $this->followUpMigrationTags = \Drupal::configFactory()
+      $this->followUpMigrationTags = $this->getConfigFactory()
         ->get('migrate_drupal.settings')
         ->get('follow_up_migration_tags') ?: [];
     }
@@ -189,16 +211,66 @@ trait MigrationConfigurationTrait {
     // For Drupal 8 (and we're predicting beyond) the schema version is in the
     // key_value store.
     elseif ($connection->schema()->tableExists('key_value')) {
-      $result = $connection
-        ->query("SELECT value FROM {key_value} WHERE collection = :system_schema  and name = :module", [':system_schema' => 'system.schema', ':module' => 'system'])
-        ->fetchField();
-      $version_string = unserialize($result);
+      try {
+        $result = $connection
+          ->query("SELECT value FROM {key_value} WHERE collection = :system_schema  and name = :module", [
+            ':system_schema' => 'system.schema',
+            ':module' => 'system',
+          ])
+          ->fetchField();
+        $version_string = unserialize($result);
+      }
+      catch (DatabaseExceptionWrapper $e) {
+        $version_string = FALSE;
+      }
     }
     else {
       $version_string = FALSE;
     }
 
     return $version_string ? substr($version_string, 0, 1) : FALSE;
+  }
+
+  /**
+   * Gets the config factory service.
+   *
+   * @return \Drupal\Core\Config\ConfigFactoryInterface
+   *   The config factory service.
+   */
+  protected function getConfigFactory() {
+    if (!$this->configFactory) {
+      $this->configFactory = \Drupal::service('config.factory');
+    }
+
+    return $this->configFactory;
+  }
+
+  /**
+   * Gets the migration plugin manager service.
+   *
+   * @return \Drupal\migrate\Plugin\MigrationPluginManagerInterface
+   *   The migration plugin manager service.
+   */
+  protected function getMigrationPluginManager() {
+    if (!$this->migrationPluginManager) {
+      $this->migrationPluginManager = \Drupal::service('plugin.manager.migration');
+    }
+
+    return $this->migrationPluginManager;
+  }
+
+  /**
+   * Gets the state service.
+   *
+   * @return \Drupal\Core\State\StateInterface
+   *   The state service.
+   */
+  protected function getState() {
+    if (!$this->state) {
+      $this->state = \Drupal::service('state');
+    }
+
+    return $this->state;
   }
 
 }

@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\language\Functional;
 
+use Drupal\Core\Url;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Tests\BrowserTestBase;
@@ -19,6 +20,11 @@ class LanguageCustomLanguageConfigurationTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['language'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Functional tests for adding, editing and deleting languages.
@@ -39,7 +45,7 @@ class LanguageCustomLanguageConfigurationTest extends BrowserTestBase {
     $this->assertText(t('@name field is required.', ['@name' => t('Language name')]));
     $empty_language = new Language();
     $this->assertFieldChecked('edit-direction-' . $empty_language->getDirection(), 'Consistent usage of language direction.');
-    $this->assertUrl(\Drupal::url('language.add', [], ['absolute' => TRUE]), [], 'Correct page redirection.');
+    $this->assertUrl(Url::fromRoute('language.add', [], ['absolute' => TRUE])->toString(), [], 'Correct page redirection.');
 
     // Test validation of invalid values.
     $edit = [
@@ -56,7 +62,7 @@ class LanguageCustomLanguageConfigurationTest extends BrowserTestBase {
     ]));
 
     $this->assertRaw(t('%field cannot contain any markup.', ['%field' => t('Language name')]));
-    $this->assertUrl(\Drupal::url('language.add', [], ['absolute' => TRUE]), [], 'Correct page redirection.');
+    $this->assertUrl(Url::fromRoute('language.add', [], ['absolute' => TRUE])->toString(), [], 'Correct page redirection.');
 
     // Test adding a custom language with a numeric region code.
     $edit = [
@@ -71,7 +77,7 @@ class LanguageCustomLanguageConfigurationTest extends BrowserTestBase {
       'The language %language has been created and can now be used.',
       ['%language' => $edit['label']]
     ));
-    $this->assertUrl(\Drupal::url('entity.configurable_language.collection', [], ['absolute' => TRUE]), [], 'Correct page redirection.');
+    $this->assertUrl(Url::fromRoute('entity.configurable_language.collection', [], ['absolute' => TRUE])->toString(), [], 'Correct page redirection.');
 
     // Test validation of existing language values.
     $edit = [
@@ -87,7 +93,7 @@ class LanguageCustomLanguageConfigurationTest extends BrowserTestBase {
       'The language %language has been created and can now be used.',
       ['%language' => $edit['label']]
     ));
-    $this->assertUrl(\Drupal::url('entity.configurable_language.collection', [], ['absolute' => TRUE]), [], 'Correct page redirection.');
+    $this->assertUrl(Url::fromRoute('entity.configurable_language.collection', [], ['absolute' => TRUE])->toString(), [], 'Correct page redirection.');
 
     // Add the language a second time and confirm that this is not allowed.
     $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add custom language'));
@@ -95,7 +101,7 @@ class LanguageCustomLanguageConfigurationTest extends BrowserTestBase {
       'The language %language (%langcode) already exists.',
       ['%language' => $edit['label'], '%langcode' => $edit['langcode']]
     ));
-    $this->assertUrl(\Drupal::url('language.add', [], ['absolute' => TRUE]), [], 'Correct page redirection.');
+    $this->assertUrl(Url::fromRoute('language.add', [], ['absolute' => TRUE])->toString(), [], 'Correct page redirection.');
   }
 
 }

@@ -3,11 +3,11 @@
 namespace Drupal\webform_ui\Form;
 
 use Drupal\Component\Render\FormattableMarkup;
-use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
-use Drupal\webform\Form\WebformDialogFormTrait;
+use Drupal\webform\Form\WebformDeleteFormBase;
 use Drupal\webform\Plugin\WebformElementManagerInterface;
+use Drupal\webform\Plugin\WebformElementVariantInterface;
 use Drupal\webform\WebformEntityElementsValidatorInterface;
 use Drupal\webform\WebformInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -16,9 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Webform for deleting a webform element.
  */
-class WebformUiElementDeleteForm extends ConfirmFormBase {
-
-  use WebformDialogFormTrait;
+class WebformUiElementDeleteForm extends WebformDeleteFormBase {
 
   /**
    * The renderer.
@@ -37,7 +35,7 @@ class WebformUiElementDeleteForm extends ConfirmFormBase {
   /**
    * Webform element validator.
    *
-   * @var \Drupal\webform\WebformEntityElementsValidator
+   * @var \Drupal\webform\WebformEntityElementsValidatorInterface
    */
   protected $elementsValidator;
 
@@ -96,84 +94,88 @@ class WebformUiElementDeleteForm extends ConfirmFormBase {
     );
   }
 
-  /**
-   * {@inheritdoc}
-   */
-  public function getDescription() {
-    $t_args = [
-      '%element' => $this->getElementTitle(),
-      '%webform' => $this->webform->label(),
-    ];
-
-    $build = [];
-    $element_plugin = $this->getWebformElementPlugin();
-    if ($element_plugin->isContainer($this->element)) {
-      $build['warning'] = [
-        '#markup' => $this->t('This will immediately delete the %element container and all nested elements within %element from the %webform webform. This cannot be undone.', $t_args),
-      ];
-    }
-    else {
-      $build['warning'] = [
-        '#markup' => $this->t('This will immediately delete the %element element from the %webform webform. This cannot be undone.', $t_args),
-      ];
-    }
-
-    if ($this->element['#webform_children']) {
-      $build['elements'] = $this->getDeletedElementsItemList($this->element['#webform_children']);
-      $build['elements']['#title'] = t('The below nested elements will be also deleted.');
-    }
-
-    return $this->renderer->renderPlain($build);
-  }
-
-  /**
-   * Get deleted elements as item list.
-   *
-   * @param array $children
-   *   An array child key.
-   *
-   * @return array
-   *   A render array representing an item list of elements.
-   */
-  protected function getDeletedElementsItemList(array $children) {
-    if (empty($children)) {
-      return [];
-    }
-
-    $items = [];
-    foreach ($children as $key) {
-      $element = $this->webform->getElement($key);
-      if (isset($element['#title'])) {
-        $title = new FormattableMarkup('@title (@key)', ['@title' => $element['#title'], '@key' => $key]);
-      }
-      else {
-        $title = $key;
-      }
-      $items[$key]['title'] = ['#markup' => $title];
-      if ($element['#webform_children']) {
-        $items[$key]['items'] = $this->getDeletedElementsItemList($element['#webform_children']);
-      }
-    }
-
-    return [
-      '#theme' => 'item_list',
-      '#items' => $items,
-    ];
-  }
+  /****************************************************************************/
+  // Delete form.
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return $this->t('Are you sure you want to delete the %title element from the %webform webform?', ['%webform' => $this->webform->label(), '%title' => $this->getElementTitle()]);
+    if ($this->isDialog()) {
+      $t_args = [
+        '@title' => $this->getElementTitle(),
+      ];
+      return $this->t("Delete the '@title' element?", $t_args);
+    }
+    else {
+      $t_args = [
+        '%webform' => $this->webform->label(),
+        '%title' => $this->getElementTitle(),
+      ];
+      return $this->t('Delete the %title element from the %webform webform?', $t_args);
+    }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getConfirmText() {
-    return $this->t('Delete');
+  public function getWarning() {
+    $t_args = ['%title' => $this->getElementTitle()];
+    return [
+      '#type' => 'webform_message',
+      '#message_type' => 'warning',
+      '#message_message' => $this->t('Are you sure you want to delete the %title element?', $t_args) . '<br/>' .
+        '<strong>' . $this->t('This action cannot be undone.') . '</strong>',
+    ];
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
+    $element_plugin = $this->getWebformElementPlugin();
+
+    $items = [];
+    $items[] = $this->t('Remove this element');
+    $items[] = $this->t('Delete any submission data associated with this element');
+    if ($element_plugin->isContainer($this->element)) {
+      $items[] = $this->t('Delete all child elements');
+    }
+    if ($element_plugin instanceof WebformElementVariantInterface) {
+      $items[] = $this->t('Delete all related variants');
+    }
+    return [
+      'title' => [
+        '#markup' => $this->t('This action will…'),
+      ],
+      'list' => [
+        '#theme' => 'item_list',
+        '#items' => $items,
+      ],
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDetails() {
+    $elements = $this->getDeletedElementsItemList($this->element['#webform_children']);
+    if ($elements) {
+      return [
+        '#type' => 'details',
+        '#title' => $this->t('Nested elements being deleted'),
+        'elements' => $elements,
+      ];
+    }
+    else {
+      return [];
+    }
+  }
+
+  /****************************************************************************/
+  // Form methods.
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
@@ -213,8 +215,55 @@ class WebformUiElementDeleteForm extends ConfirmFormBase {
     $this->webform->deleteElement($this->key);
     $this->webform->save();
 
-    drupal_set_message($this->t('The webform element %title has been deleted.', ['%title' => $this->getElementTitle()]));
-    $form_state->setRedirectUrl($this->webform->toUrl('edit-form'));
+    $this->messenger()->addStatus($this->t('The webform element %title has been deleted.', ['%title' => $this->getElementTitle()]));
+
+    $query = [];
+    // Variants require the entire page to be reloaded so that Variants tab
+    // can be hidden.
+    if ($this->getWebformElementPlugin() instanceof WebformElementVariantInterface) {
+      $query = ['reload' => 'true'];
+    }
+
+    $form_state->setRedirectUrl($this->webform->toUrl('edit-form', ['query' => $query]));
+  }
+
+  /****************************************************************************/
+  // Helper methods.
+  /****************************************************************************/
+
+  /**
+   * Get deleted elements as item list.
+   *
+   * @param array $children
+   *   An array child key.
+   *
+   * @return array
+   *   A render array representing an item list of elements.
+   */
+  protected function getDeletedElementsItemList(array $children) {
+    if (empty($children)) {
+      return [];
+    }
+
+    $items = [];
+    foreach ($children as $key) {
+      $element = $this->webform->getElement($key);
+      if (isset($element['#title'])) {
+        $title = new FormattableMarkup('@title (@key)', ['@title' => $element['#title'], '@key' => $key]);
+      }
+      else {
+        $title = $key;
+      }
+      $items[$key]['title'] = ['#markup' => $title];
+      if ($element['#webform_children']) {
+        $items[$key]['items'] = $this->getDeletedElementsItemList($element['#webform_children']);
+      }
+    }
+
+    return [
+      '#theme' => 'item_list',
+      '#items' => $items,
+    ];
   }
 
   /**

@@ -1,0 +1,10 @@
+services:
+  webform_entity_print.print_css_alter_subscriber:
+    class: Drupal\webform_entity_print\EventSubscriber\WebformEntityPrintCssAlterSubscriber
+    tags:
+      - { name: event_subscriber }
+  webform_entity_print.request_subscriber:
+    class: Drupal\webform_entity_print\EventSubscriber\WebformEntityPrintRequestSubscriber
+    arguments: ['@current_route_match']
+    tags:
+      - { name: event_subscriber }

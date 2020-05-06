@@ -2,7 +2,6 @@
 
 namespace Drupal\webform\Controller;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Database;
@@ -13,7 +12,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
- * Provides route responses for webform element.
+ * Provides route responses for Webform elements.
  */
 class WebformElementController extends ControllerBase {
 
@@ -34,7 +33,7 @@ class WebformElementController extends ControllerBase {
    * @see \Drupal\webform\Element\WebformMessage::setClosed
    */
   public function close($storage, $id) {
-    if (!in_array($storage, ['user', 'state'])) {
+    if (!in_array($storage, [WebformMessage::STORAGE_USER, WebformMessage::STORAGE_STATE, WebformMessage::STORAGE_CUSTOM])) {
       throw new \Exception('Undefined storage mechanism for Webform close message.');
     }
     WebformMessage::setClosed($storage, $id);
@@ -77,7 +76,7 @@ class WebformElementController extends ControllerBase {
     ];
 
     // Check minimum number of characters.
-    if (Unicode::strlen($q) < (int) $element['#autocomplete_match']) {
+    if (mb_strlen($q) < (int) $element['#autocomplete_match']) {
       return new JsonResponse([]);
     }
 

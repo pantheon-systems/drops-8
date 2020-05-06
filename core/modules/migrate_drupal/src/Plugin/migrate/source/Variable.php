@@ -2,7 +2,7 @@
 
 namespace Drupal\migrate_drupal\Plugin\migrate\source;
 
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\migrate\Plugin\MigrationInterface;
 
@@ -29,8 +29,8 @@ class Variable extends DrupalSqlBase {
   /**
    * {@inheritdoc}
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, StateInterface $state, EntityManagerInterface $entity_manager) {
-    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $state, $entity_manager);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, MigrationInterface $migration, StateInterface $state, EntityTypeManagerInterface $entity_type_manager) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition, $migration, $state, $entity_type_manager);
     $this->variables = $this->configuration['variables'];
   }
 
@@ -60,7 +60,8 @@ class Variable extends DrupalSqlBase {
    * {@inheritdoc}
    */
   public function count($refresh = FALSE) {
-    return intval($this->query()->countQuery()->execute()->fetchField() > 0);
+    // Variable always returns a single row with at minimum an 'id' property.
+    return 1;
   }
 
   /**

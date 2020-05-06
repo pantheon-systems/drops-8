@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\locale\Functional;
 
+use Drupal\Core\Database\Database;
 use Drupal\Core\Language\LanguageInterface;
 
 /**
@@ -10,6 +11,11 @@ use Drupal\Core\Language\LanguageInterface;
  * @group locale
  */
 class LocaleUpdateTest extends LocaleUpdateBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * {@inheritdoc}
@@ -24,25 +30,6 @@ class LocaleUpdateTest extends LocaleUpdateBase {
     // file that come with the locale_test module (test.de.po) and can therefore
     // not be chosen randomly.
     $this->addLanguage('de');
-  }
-
-  /**
-   * Checks if a list of translatable projects gets build.
-   */
-  public function testUpdateProjects() {
-    module_load_include('compare.inc', 'locale');
-
-    // Make the test modules look like a normal custom module. i.e. make the
-    // modules not hidden. locale_test_system_info_alter() modifies the project
-    // info of the locale_test and locale_test_translate modules.
-    \Drupal::state()->set('locale.test_system_info_alter', TRUE);
-    $this->resetAll();
-
-    // Check if interface translation data is collected from hook_info.
-    $projects = locale_translation_project_list();
-    $this->assertFalse(isset($projects['locale_test_translate']), 'Hidden module not found');
-    $this->assertEqual($projects['locale_test']['info']['interface translation server pattern'], 'core/modules/locale/test/test.%language.po', 'Interface translation parameter found in project info.');
-    $this->assertEqual($projects['locale_test']['name'], 'locale_test', format_string('%key found in project info.', ['%key' => 'interface translation project']));
   }
 
   /**
@@ -136,8 +123,10 @@ class LocaleUpdateTest extends LocaleUpdateBase {
     // Check the status on the Available translation status page.
     $this->assertRaw('<label for="edit-langcodes-de" class="visually-hidden">Update German</label>', 'German language found');
     $this->assertText('Updates for: Contributed module one, Contributed module two, Custom module one, Locale test', 'Updates found');
-    $this->assertText('Contributed module one (' . format_date($this->timestampNew, 'html_date') . ')', 'Updates for Contrib module one');
-    $this->assertText('Contributed module two (' . format_date($this->timestampNew, 'html_date') . ')', 'Updates for Contrib module two');
+    /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+    $date_formatter = $this->container->get('date.formatter');
+    $this->assertText('Contributed module one (' . $date_formatter->format($this->timestampNew, 'html_date') . ')', 'Updates for Contrib module one');
+    $this->assertText('Contributed module two (' . $date_formatter->format($this->timestampNew, 'html_date') . ')', 'Updates for Contrib module two');
 
     // Execute the translation update.
     $this->drupalPostForm('admin/reports/translations', [], t('Update translations'));
@@ -363,14 +352,15 @@ class LocaleUpdateTest extends LocaleUpdateBase {
     $this->assertTranslation('Extraday', 'extra dag', 'nl');
 
     // Check if the language data is added to the database.
-    $result = db_query("SELECT project FROM {locale_file} WHERE langcode='nl'")->fetchField();
-    $this->assertTrue($result, 'Files added to file history');
+    $connection = Database::getConnection();
+    $result = $connection->query("SELECT project FROM {locale_file} WHERE langcode='nl'")->fetchField();
+    $this->assertNotEmpty($result, 'Files added to file history');
 
     // Remove a language.
     $this->drupalPostForm('admin/config/regional/language/delete/nl', [], t('Delete'));
 
     // Check if the language data is removed from the database.
-    $result = db_query("SELECT project FROM {locale_file} WHERE langcode='nl'")->fetchField();
+    $result = $connection->query("SELECT project FROM {locale_file} WHERE langcode='nl'")->fetchField();
     $this->assertFalse($result, 'Files removed from file history');
 
     // Check that the Dutch translation is gone.

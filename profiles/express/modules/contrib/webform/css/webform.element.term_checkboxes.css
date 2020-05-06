@@ -4,8 +4,8 @@
  */
 
 .webform-term-checkboxes-scroll .fieldset-wrapper {
-  max-height: 180px;
-  border: 1px solid #ccc;
-  padding: 0 10px;
   overflow: auto;
+  max-height: 180px;
+  padding: 0 10px;
+  border: 1px solid #ccc;
 }

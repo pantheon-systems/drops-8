@@ -37,7 +37,7 @@ class WebformMailTest extends BrowserTestBase {
 
     $captured_emails = \Drupal::state()->get('system.test_mail_collector');
     $sent_message = end($captured_emails);
-    $this->assertEqual('=?UTF-8?B?RHLDg8KpcGFs?= <simpletest@example.com>', $sent_message['headers']['From'], 'From header is correctly encoded.');
+    $this->assertEquals($sent_message['headers']['From'], '=?UTF-8?B?RHLDg8KpcGFs?= <simpletest@example.com>', 'From header is correctly encoded.');
   }
 
 }

@@ -2,7 +2,18 @@
 
 namespace Drupal\Core\File;
 
+use Drupal\Component\FileSystem\FileSystem as FileSystemComponent;
+use Drupal\Component\Utility\Unicode;
+use Drupal\Core\File\Exception\DirectoryNotReadyException;
+use Drupal\Core\File\Exception\FileException;
+use Drupal\Core\File\Exception\FileExistsException;
+use Drupal\Core\File\Exception\FileNotExistsException;
+use Drupal\Core\File\Exception\FileWriteException;
+use Drupal\Core\File\Exception\NotRegularDirectoryException;
+use Drupal\Core\File\Exception\NotRegularFileException;
 use Drupal\Core\Site\Settings;
+use Drupal\Core\StreamWrapper\PublicStream;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\Core\StreamWrapper\StreamWrapperManagerInterface;
 use Psr\Log\LoggerInterface;
 
@@ -103,8 +114,7 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function unlink($uri, $context = NULL) {
-    $scheme = $this->uriScheme($uri);
-    if (!$this->validScheme($scheme) && (substr(PHP_OS, 0, 3) == 'WIN')) {
+    if (!$this->streamWrapperManager->isValidUri($uri) && (substr(PHP_OS, 0, 3) == 'WIN')) {
       chmod($uri, 0600);
     }
     if ($context) {
@@ -133,9 +143,9 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function dirname($uri) {
-    $scheme = $this->uriScheme($uri);
+    $scheme = StreamWrapperManager::getScheme($uri);
 
-    if ($this->validScheme($scheme)) {
+    if ($this->streamWrapperManager->isValidScheme($scheme)) {
       return $this->streamWrapperManager->getViaScheme($scheme)->dirname($uri);
     }
     else {
@@ -174,7 +184,7 @@ class FileSystem implements FileSystemInterface {
 
     // If the URI has a scheme, don't override the umask - schemes can handle
     // this issue in their own implementation.
-    if ($this->uriScheme($uri)) {
+    if (StreamWrapperManager::getScheme($uri)) {
       return $this->mkdirCall($uri, $mode, $recursive, $context);
     }
 
@@ -245,8 +255,7 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function rmdir($uri, $context = NULL) {
-    $scheme = $this->uriScheme($uri);
-    if (!$this->validScheme($scheme) && (substr(PHP_OS, 0, 3) == 'WIN')) {
+    if (!$this->streamWrapperManager->isValidUri($uri) && (substr(PHP_OS, 0, 3) == 'WIN')) {
       chmod($uri, 0700);
     }
     if ($context) {
@@ -261,9 +270,9 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function tempnam($directory, $prefix) {
-    $scheme = $this->uriScheme($directory);
+    $scheme = StreamWrapperManager::getScheme($directory);
 
-    if ($this->validScheme($scheme)) {
+    if ($this->streamWrapperManager->isValidScheme($scheme)) {
       $wrapper = $this->streamWrapperManager->getViaScheme($scheme);
 
       if ($filename = tempnam($wrapper->getDirectoryPath(), $prefix)) {
@@ -283,22 +292,468 @@ class FileSystem implements FileSystemInterface {
    * {@inheritdoc}
    */
   public function uriScheme($uri) {
-    if (preg_match('/^([\w\-]+):\/\/|^(data):/', $uri, $matches)) {
-      // The scheme will always be the last element in the matches array.
-      return array_pop($matches);
-    }
-
-    return FALSE;
+    @trigger_error('FileSystem::uriScheme() is deprecated in drupal:8.8.0. It will be removed from drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::getScheme() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+    return StreamWrapperManager::getScheme($uri);
   }
 
   /**
    * {@inheritdoc}
    */
   public function validScheme($scheme) {
-    if (!$scheme) {
+    @trigger_error('FileSystem::validScheme() is deprecated in drupal:8.8.0 and will be removed before drupal:9.0.0. Use \Drupal\Core\StreamWrapper\StreamWrapperManagerInterface::isValidScheme() instead. See https://www.drupal.org/node/3035273', E_USER_DEPRECATED);
+    return $this->streamWrapperManager->isValidScheme($scheme);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function copy($source, $destination, $replace = self::EXISTS_RENAME) {
+    $this->prepareDestination($source, $destination, $replace);
+
+    if (!@copy($source, $destination)) {
+      // If the copy failed and realpaths exist, retry the operation using them
+      // instead.
+      $real_source = $this->realpath($source) ?: $source;
+      $real_destination = $this->realpath($destination) ?: $destination;
+      if ($real_source === FALSE || $real_destination === FALSE || !@copy($real_source, $real_destination)) {
+        $this->logger->error("The specified file '%source' could not be copied to '%destination'.", [
+          '%source' => $source,
+          '%destination' => $destination,
+        ]);
+        throw new FileWriteException("The specified file '$source' could not be copied to '$destination'.");
+      }
+    }
+
+    // Set the permissions on the new file.
+    $this->chmod($destination);
+
+    return $destination;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function delete($path) {
+    if (is_file($path)) {
+      if (!$this->unlink($path)) {
+        $this->logger->error("Failed to unlink file '%path'.", ['%path' => $path]);
+        throw new FileException("Failed to unlink file '$path'.");
+      }
+      return TRUE;
+    }
+
+    if (is_dir($path)) {
+      $this->logger->error("Cannot delete '%path' because it is a directory. Use deleteRecursive() instead.", ['%path' => $path]);
+      throw new NotRegularFileException("Cannot delete '$path' because it is a directory. Use deleteRecursive() instead.");
+    }
+
+    // Return TRUE for non-existent file, but log that nothing was actually
+    // deleted, as the current state is the intended result.
+    if (!file_exists($path)) {
+      $this->logger->notice('The file %path was not deleted because it does not exist.', ['%path' => $path]);
+      return TRUE;
+    }
+
+    // We cannot handle anything other than files and directories.
+    // Throw an exception for everything else (sockets, symbolic links, etc).
+    $this->logger->error("The file '%path' is not of a recognized type so it was not deleted.", ['%path' => $path]);
+    throw new NotRegularFileException("The file '$path' is not of a recognized type so it was not deleted.");
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function deleteRecursive($path, callable $callback = NULL) {
+    if ($callback) {
+      call_user_func($callback, $path);
+    }
+
+    if (is_dir($path)) {
+      $dir = dir($path);
+      while (($entry = $dir->read()) !== FALSE) {
+        if ($entry == '.' || $entry == '..') {
+          continue;
+        }
+        $entry_path = $path . '/' . $entry;
+        $this->deleteRecursive($entry_path, $callback);
+      }
+      $dir->close();
+
+      return $this->rmdir($path);
+    }
+
+    return $this->delete($path);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function move($source, $destination, $replace = self::EXISTS_RENAME) {
+    $this->prepareDestination($source, $destination, $replace);
+
+    // Ensure compatibility with Windows.
+    // @see \Drupal\Core\File\FileSystemInterface::unlink().
+    if (!$this->streamWrapperManager->isValidUri($source) && (substr(PHP_OS, 0, 3) == 'WIN')) {
+      chmod($source, 0600);
+    }
+    // Attempt to resolve the URIs. This is necessary in certain
+    // configurations (see above) and can also permit fast moves across local
+    // schemes.
+    $real_source = $this->realpath($source) ?: $source;
+    $real_destination = $this->realpath($destination) ?: $destination;
+    // Perform the move operation.
+    if (!@rename($real_source, $real_destination)) {
+      // Fall back to slow copy and unlink procedure. This is necessary for
+      // renames across schemes that are not local, or where rename() has not
+      // been implemented. It's not necessary to use FileSystem::unlink() as the
+      // Windows issue has already been resolved above.
+      if (!@copy($real_source, $real_destination)) {
+        $this->logger->error("The specified file '%source' could not be moved to '%destination'.", [
+          '%source' => $source,
+          '%destination' => $destination,
+        ]);
+        throw new FileWriteException("The specified file '$source' could not be moved to '$destination'.");
+      }
+      if (!@unlink($real_source)) {
+        $this->logger->error("The source file '%source' could not be unlinked after copying to '%destination'.", [
+          '%source' => $source,
+          '%destination' => $destination,
+        ]);
+        throw new FileException("The source file '$source' could not be unlinked after copying to '$destination'.");
+      }
+    }
+
+    // Set the permissions on the new file.
+    $this->chmod($destination);
+
+    return $destination;
+  }
+
+  /**
+   * Prepares the destination for a file copy or move operation.
+   *
+   * - Checks if $source and $destination are valid and readable/writable.
+   * - Checks that $source is not equal to $destination; if they are an error
+   *   is reported.
+   * - If file already exists in $destination either the call will error out,
+   *   replace the file or rename the file based on the $replace parameter.
+   *
+   * @param string $source
+   *   A string specifying the filepath or URI of the source file.
+   * @param string|null $destination
+   *   A URI containing the destination that $source should be moved/copied to.
+   *   The URI may be a bare filepath (without a scheme) and in that case the
+   *   default scheme (file://) will be used.
+   * @param int $replace
+   *   Replace behavior when the destination file already exists:
+   *   - FileSystemInterface::EXISTS_REPLACE - Replace the existing file.
+   *   - FileSystemInterface::EXISTS_RENAME - Append _{incrementing number}
+   *     until the filename is unique.
+   *   - FileSystemInterface::EXISTS_ERROR - Do nothing and return FALSE.
+   *
+   * @see \Drupal\Core\File\FileSystemInterface::copy()
+   * @see \Drupal\Core\File\FileSystemInterface::move()
+   */
+  protected function prepareDestination($source, &$destination, $replace) {
+    $original_source = $source;
+
+    if (!file_exists($source)) {
+      if (($realpath = $this->realpath($original_source)) !== FALSE) {
+        $this->logger->error("File '%original_source' ('%realpath') could not be copied because it does not exist.", [
+          '%original_source' => $original_source,
+          '%realpath' => $realpath,
+        ]);
+        throw new FileNotExistsException("File '$original_source' ('$realpath') could not be copied because it does not exist.");
+      }
+      else {
+        $this->logger->error("File '%original_source' could not be copied because it does not exist.", [
+          '%original_source' => $original_source,
+        ]);
+        throw new FileNotExistsException("File '$original_source' could not be copied because it does not exist.");
+      }
+    }
+
+    // Prepare the destination directory.
+    if ($this->prepareDirectory($destination)) {
+      // The destination is already a directory, so append the source basename.
+      $destination = $this->streamWrapperManager->normalizeUri($destination . '/' . $this->basename($source));
+    }
+    else {
+      // Perhaps $destination is a dir/file?
+      $dirname = $this->dirname($destination);
+      if (!$this->prepareDirectory($dirname)) {
+        $this->logger->error("The specified file '%original_source' could not be copied because the destination directory is not properly configured. This may be caused by a problem with file or directory permissions.", [
+          '%original_source' => $original_source,
+        ]);
+        throw new DirectoryNotReadyException("The specified file '$original_source' could not be copied because the destination directory is not properly configured. This may be caused by a problem with file or directory permissions.");
+      }
+    }
+
+    // Determine whether we can perform this operation based on overwrite rules.
+    $destination = $this->getDestinationFilename($destination, $replace);
+    if ($destination === FALSE) {
+      $this->logger->error("File '%original_source' could not be copied because a file by that name already exists in the destination directory ('%destination').", [
+        '%original_source' => $original_source,
+        '%destination' => $destination,
+      ]);
+      throw new FileExistsException("File '$original_source' could not be copied because a file by that name already exists in the destination directory ('$destination').");
+    }
+
+    // Assert that the source and destination filenames are not the same.
+    $real_source = $this->realpath($source);
+    $real_destination = $this->realpath($destination);
+    if ($source == $destination || ($real_source !== FALSE) && ($real_source == $real_destination)) {
+      $this->logger->error("File '%source' could not be copied because it would overwrite itself.", [
+        '%source' => $source,
+      ]);
+      throw new FileException("File '$source' could not be copied because it would overwrite itself.");
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function saveData($data, $destination, $replace = self::EXISTS_RENAME) {
+    // Write the data to a temporary file.
+    $temp_name = $this->tempnam('temporary://', 'file');
+    if (file_put_contents($temp_name, $data) === FALSE) {
+      $this->logger->error("Temporary file '%temp_name' could not be created.", ['%temp_name' => $temp_name]);
+      throw new FileWriteException("Temporary file '$temp_name' could not be created.");
+    }
+
+    // Move the file to its final destination.
+    return $this->move($temp_name, $destination, $replace);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function prepareDirectory(&$directory, $options = self::MODIFY_PERMISSIONS) {
+    if (!$this->streamWrapperManager->isValidUri($directory)) {
+      // Only trim if we're not dealing with a stream.
+      $directory = rtrim($directory, '/\\');
+    }
+
+    if (!is_dir($directory)) {
+      // Let mkdir() recursively create directories and use the default
+      // directory permissions.
+      if ($options & static::CREATE_DIRECTORY) {
+        return @$this->mkdir($directory, NULL, TRUE);
+      }
       return FALSE;
     }
-    return class_exists($this->streamWrapperManager->getClass($scheme));
+
+    $writable = is_writable($directory);
+    if (!$writable && ($options & static::MODIFY_PERMISSIONS)) {
+      return $this->chmod($directory);
+    }
+
+    return $writable;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDestinationFilename($destination, $replace) {
+    $basename = $this->basename($destination);
+    if (!Unicode::validateUtf8($basename)) {
+      throw new FileException(sprintf("Invalid filename '%s'", $basename));
+    }
+    if (file_exists($destination)) {
+      switch ($replace) {
+        case FileSystemInterface::EXISTS_REPLACE:
+          // Do nothing here, we want to overwrite the existing file.
+          break;
+
+        case FileSystemInterface::EXISTS_RENAME:
+          $directory = $this->dirname($destination);
+          $destination = $this->createFilename($basename, $directory);
+          break;
+
+        case FileSystemInterface::EXISTS_ERROR:
+          // Error reporting handled by calling function.
+          return FALSE;
+      }
+    }
+    return $destination;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createFilename($basename, $directory) {
+    $original = $basename;
+    // Strip control characters (ASCII value < 32). Though these are allowed in
+    // some filesystems, not many applications handle them well.
+    $basename = preg_replace('/[\x00-\x1F]/u', '_', $basename);
+    if (preg_last_error() !== PREG_NO_ERROR) {
+      throw new FileException(sprintf("Invalid filename '%s'", $original));
+    }
+    if (substr(PHP_OS, 0, 3) == 'WIN') {
+      // These characters are not allowed in Windows filenames.
+      $basename = str_replace([':', '*', '?', '"', '<', '>', '|'], '_', $basename);
+    }
+
+    // A URI or path may already have a trailing slash or look like "public://".
+    if (substr($directory, -1) == '/') {
+      $separator = '';
+    }
+    else {
+      $separator = '/';
+    }
+
+    $destination = $directory . $separator . $basename;
+
+    if (file_exists($destination)) {
+      // Destination file already exists, generate an alternative.
+      $pos = strrpos($basename, '.');
+      if ($pos !== FALSE) {
+        $name = substr($basename, 0, $pos);
+        $ext = substr($basename, $pos);
+      }
+      else {
+        $name = $basename;
+        $ext = '';
+      }
+
+      $counter = 0;
+      do {
+        $destination = $directory . $separator . $name . '_' . $counter++ . $ext;
+      } while (file_exists($destination));
+    }
+
+    return $destination;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTempDirectory() {
+    // Use settings.
+    $temporary_directory = $this->settings->get('file_temp_path');
+    if (!empty($temporary_directory)) {
+      return $temporary_directory;
+    }
+
+    // Fallback to config for Backwards compatibility.
+    // This service is lazy-loaded and not injected, as the file_system service
+    // is used in the install phase before config_factory service exists. It
+    // will be removed before Drupal 9.0.0.
+    if (\Drupal::hasContainer()) {
+      $temporary_directory = \Drupal::config('system.file')->get('path.temporary');
+      if (!empty($temporary_directory)) {
+        @trigger_error("The 'system.file' config 'path.temporary' is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Set 'file_temp_path' in settings.php instead. See https://www.drupal.org/node/3039255", E_USER_DEPRECATED);
+        return $temporary_directory;
+      }
+    }
+
+    // Fallback to OS default.
+    $temporary_directory = FileSystemComponent::getOsTemporaryDirectory();
+
+    if (empty($temporary_directory)) {
+      // If no directory has been found default to 'files/tmp'.
+      $temporary_directory = PublicStream::basePath() . '/tmp';
+
+      // Windows accepts paths with either slash (/) or backslash (\), but
+      // will not accept a path which contains both a slash and a backslash.
+      // Since the 'file_public_path' variable may have either format, we
+      // sanitize everything to use slash which is supported on all platforms.
+      $temporary_directory = str_replace('\\', '/', $temporary_directory);
+    }
+    return $temporary_directory;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function scanDirectory($dir, $mask, array $options = []) {
+    // Merge in defaults.
+    $options += [
+      'callback' => 0,
+      'recurse' => TRUE,
+      'key' => 'uri',
+      'min_depth' => 0,
+    ];
+    $dir = $this->streamWrapperManager->normalizeUri($dir);
+    if (!is_dir($dir)) {
+      throw new NotRegularDirectoryException("$dir is not a directory.");
+    }
+    // Allow directories specified in settings.php to be ignored. You can use
+    // this to not check for files in common special-purpose directories. For
+    // example, node_modules and bower_components. Ignoring irrelevant
+    // directories is a performance boost.
+    if (!isset($options['nomask'])) {
+      $ignore_directories = $this->settings->get('file_scan_ignore_directories', []);
+      array_walk($ignore_directories, function (&$value) {
+        $value = preg_quote($value, '/');
+      });
+      $options['nomask'] = '/^' . implode('|', $ignore_directories) . '$/';
+    }
+    $options['key'] = in_array($options['key'], ['uri', 'filename', 'name']) ? $options['key'] : 'uri';
+    return $this->doScanDirectory($dir, $mask, $options);
+  }
+
+  /**
+   * Internal function to handle directory scanning with recursion.
+   *
+   * @param string $dir
+   *   The base directory or URI to scan, without trailing slash.
+   * @param string $mask
+   *   The preg_match() regular expression for files to be included.
+   * @param array $options
+   *   The options as per ::scanDirectory().
+   * @param int $depth
+   *   The current depth of recursion.
+   *
+   * @return array
+   *   An associative array as per ::scanDirectory().
+   *
+   * @throws \Drupal\Core\File\Exception\NotRegularDirectoryException
+   *   If the directory does not exist.
+   *
+   * @see \Drupal\Core\File\FileSystemInterface::scanDirectory()
+   */
+  protected function doScanDirectory($dir, $mask, array $options = [], $depth = 0) {
+    $files = [];
+    // Avoid warnings when opendir does not have the permissions to open a
+    // directory.
+    if ($handle = @opendir($dir)) {
+      while (FALSE !== ($filename = readdir($handle))) {
+        // Skip this file if it matches the nomask or starts with a dot.
+        if ($filename[0] != '.' && !(preg_match($options['nomask'], $filename))) {
+          if (substr($dir, -1) == '/') {
+            $uri = "$dir$filename";
+          }
+          else {
+            $uri = "$dir/$filename";
+          }
+          if ($options['recurse'] && is_dir($uri)) {
+            // Give priority to files in this folder by merging them in after
+            // any subdirectory files.
+            $files = array_merge($this->doScanDirectory($uri, $mask, $options, $depth + 1), $files);
+          }
+          elseif ($depth >= $options['min_depth'] && preg_match($mask, $filename)) {
+            // Always use this match over anything already set in $files with
+            // the same $options['key'].
+            $file = new \stdClass();
+            $file->uri = $uri;
+            $file->filename = $filename;
+            $file->name = pathinfo($filename, PATHINFO_FILENAME);
+            $key = $options['key'];
+            $files[$file->$key] = $file;
+            if ($options['callback']) {
+              $options['callback']($uri);
+            }
+          }
+        }
+      }
+      closedir($handle);
+    }
+    else {
+      $this->logger->error('@dir can not be opened', ['@dir' => $dir]);
+    }
+
+    return $files;
   }
 
 }

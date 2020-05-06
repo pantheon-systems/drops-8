@@ -2,7 +2,7 @@
 
 namespace Drupal\webform\Plugin;
 
-use Drupal\Component\Plugin\ConfigurablePluginInterface;
+use Drupal\Component\Plugin\ConfigurableInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
@@ -17,7 +17,17 @@ use Drupal\webform\WebformSubmissionInterface;
  * @see \Drupal\webform\Plugin\WebformExporterManagerInterface
  * @see plugin_api
  */
-interface WebformExporterInterface extends PluginInspectionInterface, ConfigurablePluginInterface, PluginFormInterface, ContainerFactoryPluginInterface {
+interface WebformExporterInterface extends PluginInspectionInterface, ConfigurableInterface, PluginFormInterface, ContainerFactoryPluginInterface {
+
+  /**
+   * Tar archive.
+   */
+  const ARCHIVE_TAR = 'tar';
+
+  /**
+   * ZIP file.
+   */
+  const ARCHIVE_ZIP = 'zip';
 
   /**
    * Returns the results exporter label.
@@ -50,6 +60,14 @@ interface WebformExporterInterface extends PluginInspectionInterface, Configurab
    *   TRUE if exporter generates an archive.
    */
   public function isArchive();
+
+  /**
+   * Determine if exporter can include uploaded files (in a zipped archive).
+   *
+   * @return bool
+   *   TRUE if exporter can include uploaded files (in a zipped archive).
+   */
+  public function hasFiles();
 
   /**
    * Determine if exporter has options.
@@ -166,5 +184,41 @@ interface WebformExporterInterface extends PluginInspectionInterface, Configurab
    *   Archive file name.
    */
   public function getArchiveFileName();
+
+  /**
+   * Get archive file extension for a webform.
+   *
+   * @return string
+   *   Archive file extension.
+   */
+  public function getArchiveFileExtension();
+
+  /**
+   * Get archive file type.
+   *
+   * @return string
+   *   Archive file type.
+   */
+  public function getArchiveType();
+
+  /**
+   * Add file, directory, or content to exporter archive.
+   *
+   * @param string $path
+   *   System path or file content.
+   * @param string $name
+   *   Archive path or file name (applies to file content).
+   * @param array $options
+   *   Tar and zip options.
+   */
+  public function addToArchive($path, $name, array $options = []);
+
+  /**
+   * Get the number of submissions to be exported with each batch.
+   *
+   * @return int
+   *   Number of submissions to be exported with each batch.
+   */
+  public function getBatchLimit();
 
 }

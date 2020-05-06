@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  enforced:
+    module:
+      - webform_image_select
+id: kittens
+label: 'Cute Kittens'
+category: Animals
+images: |
+  kitten_1:
+    text: 'Cute Kitten 1'
+    src: 'http://placekitten.com/220/200'
+  kitten_2:
+    text: 'Cute Kitten 2'
+    src: 'http://placekitten.com/180/200'
+  kitten_3:
+    text: 'Cute Kitten 3'
+    src: 'http://placekitten.com/130/200'
+  kitten_4:
+    text: 'Cute Kitten 4'
+    src: 'http://placekitten.com/270/200'

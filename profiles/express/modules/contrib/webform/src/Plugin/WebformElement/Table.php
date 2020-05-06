@@ -6,7 +6,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\webform\Plugin\WebformElementBase;
 use Drupal\webform\WebformInterface;
-use Drupal\Component\Utility\Unicode;
 use Drupal\webform\WebformSubmissionInterface;
 
 /**
@@ -17,7 +16,7 @@ use Drupal\webform\WebformSubmissionInterface;
  *   api = "https://api.drupal.org/api/drupal/core!lib!Drupal!Core!Render!Element!Table.php/class/Table",
  *   label = @Translation("Table"),
  *   description = @Translation("Provides an element to render a table."),
- *   category = @Translation("Markup elements"),
+ *   hidden = TRUE,
  * )
  */
 class Table extends WebformElementBase {
@@ -25,7 +24,7 @@ class Table extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
+  protected function defineDefaultProperties() {
     return [
       // Table settings.
       'header' => [],
@@ -36,9 +35,11 @@ class Table extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function getTranslatableProperties() {
-    return array_merge(parent::getTranslatableProperties(), ['header']);
+  protected function defineTranslatableProperties() {
+    return array_merge(parent::defineTranslatableProperties(), ['header']);
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
@@ -102,7 +103,7 @@ class Table extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function formatHtmlItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
+  protected function formatHtmlItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
     $rows = [];
     foreach ($element as $row_key => $row_element) {
       if (Element::property($row_key)) {
@@ -138,7 +139,7 @@ class Table extends WebformElementBase {
   /**
    * {@inheritdoc}
    */
-  public function formatTextItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
+  protected function formatTextItem(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
     // Render the HTML table.
     $build = $this->formatHtml($element, $webform_submission, $options);
     $html = \Drupal::service('renderer')->renderPlain($build);
@@ -158,7 +159,7 @@ class Table extends WebformElementBase {
     // Add divider between (optional) header.
     if (!empty($element['#header'])) {
       $lines = explode(PHP_EOL, trim($html));
-      $lines[0] .= PHP_EOL . str_repeat('-', Unicode::strlen($lines[0]));
+      $lines[0] .= PHP_EOL . str_repeat('-', mb_strlen($lines[0]));
       $html = implode(PHP_EOL, $lines);
     }
 

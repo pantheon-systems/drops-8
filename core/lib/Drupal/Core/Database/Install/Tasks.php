@@ -162,7 +162,7 @@ abstract class Tasks {
       $this->pass('Drupal can CONNECT to the database ok.');
     }
     catch (\Exception $e) {
-      $this->fail(t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname?</li></ul>', ['%error' => $e->getMessage()]));
+      $this->fail(t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname and port number?</li></ul>', ['%error' => $e->getMessage()]));
       return FALSE;
     }
     return TRUE;
@@ -242,7 +242,10 @@ abstract class Tasks {
       '#weight' => 10,
     ];
 
-    $profile = drupal_get_profile();
+    global $install_state;
+    // @todo https://www.drupal.org/project/drupal/issues/3110839 remove PHP 7.4
+    //   work around and add a better message for the migrate UI.
+    $profile = $install_state['parameters']['profile'] ?? NULL;
     $db_prefix = ($profile == 'standard') ? 'drupal_' : $profile . '_';
     $form['advanced_options']['prefix'] = [
       '#type' => 'textfield',

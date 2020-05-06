@@ -7,4 +7,5 @@ dependencies:
 id: test
 label: Test
 category: Test
+likert: false
 options: ''

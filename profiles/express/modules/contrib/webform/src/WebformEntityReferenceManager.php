@@ -14,7 +14,7 @@ use Drupal\webform\Entity\Webform;
  * Webform entity reference (field) manager.
  *
  * The webform entity reference (field) manager is used to track webforms that
- * are attached to entities, specifically webform nodes.  Generally, only one
+ * are attached to entities, specifically webform nodes. Generally, only one
  * webform is attached to a single node. Field API does allow multiple
  * webforms to be attached to any entity and this services helps handle this
  * edge case.
@@ -43,6 +43,20 @@ class WebformEntityReferenceManager implements WebformEntityReferenceManagerInte
   protected $userData;
 
   /**
+   * Cache of source entity webforms.
+   *
+   * @var array
+   */
+  protected $webforms = [];
+
+  /**
+   * Cache of source entity field names.
+   *
+   * @var array
+   */
+  protected $fieldNames = [];
+
+  /**
    * Constructs a WebformEntityReferenceManager object.
    *
    * @param \Drupal\Core\Routing\RouteMatchInterface $route_match
@@ -67,15 +81,13 @@ class WebformEntityReferenceManager implements WebformEntityReferenceManagerInte
    */
   public function isUserWebformRoute(EntityInterface $entity) {
     $entity_type = $entity->getEntityTypeId();
+    $route_name = $this->routeMatch->getRouteName();
     $user_routes = [
       "entity.$entity_type.webform.test_form",
-      "entity.$entity_type.webform.results_submissions",
-      "entity.$entity_type.webform.results_export",
-      "entity.$entity_type.webform.results_clear",
-      "entity.$entity_type.webform.results_log",
       "entity.$entity_type.webform.api_form",
     ];
-    return in_array($this->routeMatch->getRouteName(), $user_routes);
+    return in_array($this->routeMatch->getRouteName(), $user_routes)
+      || (strpos($route_name, "entity.$entity_type.webform.results_") === 0);
   }
 
   /**
@@ -130,30 +142,6 @@ class WebformEntityReferenceManager implements WebformEntityReferenceManagerInte
   /**
    * {@inheritdoc}
    */
-  public function getFieldNames(EntityInterface $entity = NULL) {
-    if ($entity === NULL || !method_exists($entity, 'hasField')) {
-      return [];
-    }
-
-    $field_names = [];
-    if ($entity instanceof ContentEntityInterface) {
-      $fields = $entity->getFieldDefinitions();
-      foreach ($fields as $field_name => $field_definition) {
-        if ($field_definition->getType() == 'webform') {
-          $field_names[$field_name] = $field_name;
-        }
-      }
-    }
-
-    // Sort fields alphabetically.
-    ksort($field_names);
-
-    return $field_names;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function hasField(EntityInterface $entity = NULL) {
     return $this->getFieldName($entity) ? TRUE : FALSE;
   }
@@ -169,12 +157,43 @@ class WebformEntityReferenceManager implements WebformEntityReferenceManagerInte
   /**
    * {@inheritdoc}
    */
+  public function getFieldNames(EntityInterface $entity = NULL) {
+    if ($entity === NULL || !method_exists($entity, 'hasField')) {
+      return [];
+    }
+
+    // Cache the source entity's field names.
+    $entity_id = $entity->getEntityTypeId() . '-' . $entity->id();
+    if (isset($this->fieldNames[$entity_id])) {
+      return $this->fieldNames[$entity_id];
+    }
+
+    $field_names = [];
+    if ($entity instanceof ContentEntityInterface) {
+      $fields = $entity->getFieldDefinitions();
+      foreach ($fields as $field_name => $field_definition) {
+        if ($field_definition->getType() == 'webform') {
+          $field_names[$field_name] = $field_name;
+        }
+      }
+    }
+
+    // Sort fields alphabetically.
+    ksort($field_names);
+
+    $this->fieldNames[$entity_id] = $field_names;
+    return $field_names;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function getWebform(EntityInterface $entity = NULL) {
     if ($webform_id = $this->getUserWebformId($entity)) {
       return Webform::load($webform_id);
     }
-    elseif ($field_name = $this->getFieldName($entity)) {
-      return $entity->$field_name->entity;
+    elseif ($webforms = $this->getWebforms($entity)) {
+      return reset($webforms);
     }
     else {
       return NULL;
@@ -185,14 +204,33 @@ class WebformEntityReferenceManager implements WebformEntityReferenceManagerInte
    * {@inheritdoc}
    */
   public function getWebforms(EntityInterface $entity = NULL) {
+    // Cache the source entity's webforms.
+    $entity_id = $entity->getEntityTypeId() . '-' . $entity->id();
+    if (isset($this->webforms[$entity_id])) {
+      return $this->webforms[$entity_id];
+    }
+
     $field_names = $this->getFieldNames($entity);
     $target_entities = [];
+    $sorted_entities = [];
     foreach ($field_names as $field_name) {
       foreach ($entity->$field_name as $item) {
+        $sorted_entities[$item->target_id] = (method_exists($item->entity, 'getWeight')) ? $item->entity->getWeight() : 0;
         $target_entities[$item->target_id] = $item->entity;
       }
     }
-    return $target_entities;
+    // Sort the webforms by key and then weight.
+    ksort($sorted_entities);
+    asort($sorted_entities, SORT_NUMERIC);
+
+    // Return the sort webforms.
+    $webforms = [];
+    foreach (array_keys($sorted_entities) as $target_id) {
+      $webforms[$target_id] = $target_entities[$target_id];
+    }
+
+    $this->webforms[$entity_id] = $webforms;
+    return $webforms;
   }
 
   /****************************************************************************/
@@ -203,7 +241,6 @@ class WebformEntityReferenceManager implements WebformEntityReferenceManagerInte
    * {@inheritdoc}
    */
   public function getTableNames() {
-    // @todo Figure out a better way to determine webform field table names.
     /** @var \Drupal\field\FieldStorageConfigInterface[] $field_storage_configs */
     $field_storage_configs = FieldStorageConfig::loadMultiple();
     $tables = [];

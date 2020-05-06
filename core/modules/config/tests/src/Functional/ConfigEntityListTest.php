@@ -26,11 +26,16 @@ class ConfigEntityListTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     // Delete the override config_test entity since it is not required by this
     // test.
-    \Drupal::entityManager()->getStorage('config_test')->load('override')->delete();
+    \Drupal::entityTypeManager()->getStorage('config_test')->load('override')->delete();
     $this->drupalPlaceBlock('local_actions_block');
   }
 
@@ -38,19 +43,18 @@ class ConfigEntityListTest extends BrowserTestBase {
    * Tests entity list builder methods.
    */
   public function testList() {
-    $controller = \Drupal::entityManager()->getListBuilder('config_test');
+    $controller = \Drupal::entityTypeManager()->getListBuilder('config_test');
 
     // Test getStorage() method.
-    $this->assertTrue($controller->getStorage() instanceof EntityStorageInterface, 'EntityStorage instance in storage.');
+    $this->assertInstanceOf(EntityStorageInterface::class, $controller->getStorage(), 'EntityStorage instance in storage.');
 
     // Get a list of ConfigTest entities and confirm that it contains the
     // ConfigTest entity provided by the config_test module.
     // @see config_test.dynamic.dotted.default.yml
     $list = $controller->load();
-    $this->assertEqual(count($list), 1, '1 ConfigTest entity found.');
+    $this->assertCount(1, $list, '1 ConfigTest entity found.');
     $entity = $list['dotted.default'];
-    $this->assertTrue(!empty($entity), '"Default" ConfigTest entity ID found.');
-    $this->assertTrue($entity instanceof ConfigTest, '"Default" ConfigTest entity is an instance of ConfigTest.');
+    $this->assertInstanceOf(ConfigTest::class, $entity, '"Default" ConfigTest entity is an instance of ConfigTest.');
 
     // Test getOperations() method.
     $expected_operations = [
@@ -74,7 +78,7 @@ class ConfigEntityListTest extends BrowserTestBase {
     $actual_operations = $controller->getOperations($entity);
     // Sort the operations to normalize link order.
     uasort($actual_operations, ['Drupal\Component\Utility\SortArray', 'sortByWeightElement']);
-    $this->assertEqual($expected_operations, $actual_operations, 'The operations are identical.');
+    $this->assertEquals($expected_operations, $actual_operations, 'The operations are identical.');
 
     // Test buildHeader() method.
     $expected_items = [
@@ -83,7 +87,7 @@ class ConfigEntityListTest extends BrowserTestBase {
       'operations' => 'Operations',
     ];
     $actual_items = $controller->buildHeader();
-    $this->assertEqual($expected_items, $actual_items, 'Return value from buildHeader matches expected.');
+    $this->assertEquals($expected_items, $actual_items, 'Return value from buildHeader matches expected.');
 
     // Test buildRow() method.
     $build_operations = $controller->buildOperations($entity);
@@ -95,7 +99,7 @@ class ConfigEntityListTest extends BrowserTestBase {
       ],
     ];
     $actual_items = $controller->buildRow($entity);
-    $this->assertEqual($expected_items, $actual_items, 'Return value from buildRow matches expected.');
+    $this->assertEquals($expected_items, $actual_items, 'Return value from buildRow matches expected.');
     // Test sorting.
     $storage = $controller->getStorage();
     $entity = $storage->create([
@@ -121,7 +125,7 @@ class ConfigEntityListTest extends BrowserTestBase {
 
     // Test that config entities that do not support status, do not have
     // enable/disable operations.
-    $controller = $this->container->get('entity.manager')
+    $controller = $this->container->get('entity_type.manager')
       ->getListBuilder('config_test_no_status');
 
     $list = $controller->load();
@@ -144,7 +148,7 @@ class ConfigEntityListTest extends BrowserTestBase {
     $actual_operations = $controller->getOperations($entity);
     // Sort the operations to normalize link order.
     uasort($actual_operations, ['Drupal\Component\Utility\SortArray', 'sortByWeightElement']);
-    $this->assertEqual($expected_operations, $actual_operations, 'The operations are identical.');
+    $this->assertEquals($expected_operations, $actual_operations, 'The operations are identical.');
   }
 
   /**
@@ -162,11 +166,11 @@ class ConfigEntityListTest extends BrowserTestBase {
 
     // Test for the table.
     $element = $this->xpath('//div[@class="layout-content"]//table');
-    $this->assertTrue($element, 'Configuration entity list table found.');
+    $this->assertCount(1, $element, 'Configuration entity list table found.');
 
     // Test the table header.
     $elements = $this->xpath('//div[@class="layout-content"]//table/thead/tr/th');
-    $this->assertEqual(count($elements), 3, 'Correct number of table header cells found.');
+    $this->assertCount(3, $elements, 'Correct number of table header cells found.');
 
     // Test the contents of each th cell.
     $expected_items = ['Label', 'Machine name', 'Operations'];
@@ -176,7 +180,7 @@ class ConfigEntityListTest extends BrowserTestBase {
 
     // Check the number of table row cells.
     $elements = $this->xpath('//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td');
-    $this->assertEqual(count($elements), 3, 'Correct number of table row cells found.');
+    $this->assertCount(3, $elements, 'Correct number of table row cells found.');
 
     // Check the contents of each row cell. The first cell contains the label,
     // the second contains the machine name, and the third contains the
@@ -252,7 +256,7 @@ class ConfigEntityListTest extends BrowserTestBase {
   public function testPager() {
     $this->drupalLogin($this->drupalCreateUser(['administer site configuration']));
 
-    $storage = \Drupal::entityManager()->getListBuilder('config_test')->getStorage();
+    $storage = \Drupal::service('entity_type.manager')->getListBuilder('config_test')->getStorage();
 
     // Create 51 test entities.
     for ($i = 1; $i < 52; $i++) {

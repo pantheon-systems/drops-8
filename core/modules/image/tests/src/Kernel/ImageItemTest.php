@@ -12,6 +12,7 @@ use Drupal\Tests\field\Kernel\FieldKernelTestBase;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\user\Entity\Role;
+use PHPUnit\Framework\Error\Warning;
 
 /**
  * Tests using entity fields of the image field type.
@@ -67,7 +68,7 @@ class ImageItemTest extends FieldKernelTestBase {
         'file_extensions' => 'jpg',
       ],
     ])->save();
-    file_unmanaged_copy($this->root . '/core/misc/druplicon.png', 'public://example.jpg');
+    \Drupal::service('file_system')->copy($this->root . '/core/misc/druplicon.png', 'public://example.jpg');
     $this->image = File::create([
       'uri' => 'public://example.jpg',
     ]);
@@ -100,7 +101,7 @@ class ImageItemTest extends FieldKernelTestBase {
     $this->assertEqual($entity->image_test->entity->uuid(), $this->image->uuid());
 
     // Make sure the computed entity reflects updates to the referenced file.
-    file_unmanaged_copy($this->root . '/core/misc/druplicon.png', 'public://example-2.jpg');
+    \Drupal::service('file_system')->copy($this->root . '/core/misc/druplicon.png', 'public://example-2.jpg');
     $image2 = File::create([
       'uri' => 'public://example-2.jpg',
     ]);
@@ -153,7 +154,7 @@ class ImageItemTest extends FieldKernelTestBase {
       $this->fail('Exception did not fail');
     }
     catch (EntityStorageException $exception) {
-      $this->assertInstanceOf(\PHPUnit_Framework_Error_Warning::class, $exception->getPrevious());
+      $this->assertInstanceOf(Warning::class, $exception->getPrevious());
       $this->assertEquals($exception->getMessage(), 'Missing file with ID 9999.');
       $this->assertEmpty($entity->image_test->width);
       $this->assertEmpty($entity->image_test->height);

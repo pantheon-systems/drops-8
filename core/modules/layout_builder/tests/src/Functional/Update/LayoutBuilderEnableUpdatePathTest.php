@@ -47,6 +47,7 @@ class LayoutBuilderEnableUpdatePathTest extends UpdatePathTestBase {
               'weight' => 0,
             ],
           ],
+          'third_party_settings' => [],
         ],
       ],
     ];
@@ -57,6 +58,7 @@ class LayoutBuilderEnableUpdatePathTest extends UpdatePathTestBase {
 
     // The display with existing sections is enabled while the other is not.
     $expected['enabled'] = TRUE;
+    $expected['sections'][0]['layout_settings']['label'] = '';
     $this->assertLayoutBuilderSettings($expected, 'block_content', 'basic', 'default');
     $this->assertLayoutBuilderSettings(NULL, 'node', 'page', 'default');
 

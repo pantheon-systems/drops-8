@@ -44,7 +44,6 @@ class WebformElementHelperTest extends UnitTestCase {
     $tests[] = [['#title' => ''], FALSE];
     $tests[] = [['#title' => NULL], FALSE];
     $tests[] = [['#title' => 'Test', '#title_display' => 'invisible'], FALSE];
-    $tests[] = [['#title' => 'Test', '#title_display' => 'attribute'], FALSE];
     return $tests;
   }
 
@@ -132,10 +131,39 @@ class WebformElementHelperTest extends UnitTestCase {
       ['#tree' => TRUE, '#value' => 'text', '#element_validate' => 'some_function'],
       ['#value' => 'text'],
     ];
+    // Remove #ajax: string
+    $tests[] = [
+      ['#ajax' => 'some_function'],
+      [],
+    ];
+    // Don't remove #ajax: FALSE.
+    // @see @see \Drupal\webform\Element\WebformComputedBase
+    $tests[] = [
+      ['#ajax' => FALSE],
+      ['#ajax' => FALSE],
+    ];
     // Remove #subelement__tree and #subelement__element_validate.
     $tests[] = [
       ['#subelement__tree' => TRUE, '#value' => 'text', '#subelement__element_validate' => 'some_function'],
       ['#value' => 'text'],
+    ];
+    // Remove random nested #element_validate.
+    $tests[] = [
+      ['random' => ['#element_validate' => 'some_function']],
+      ['random' => []],
+    ];
+    $tests[] = [
+      ['#prefix' => ['#markup' => 'some_markup', '#element_validate' => 'some_function']],
+      ['#prefix' => ['#markup' => 'some_markup']],
+    ];
+    // Remove any *_validate(s) and *_callback(s).
+    $tests[] = [
+      ['random' => ['#some_random_validate' => 'some_function']],
+      ['random' => []],
+    ];
+    $tests[] = [
+      ['random' => ['#some_random_callbacks' => 'some_function']],
+      ['random' => []],
     ];
     return $tests;
   }
@@ -172,6 +200,64 @@ class WebformElementHelperTest extends UnitTestCase {
         ['test' => ['nested' => Markup::create('markup')]],
         ['test' => ['nested' => 'markup']],
       ],
+    ];
+  }
+
+  /**
+   * Tests WebformElementHelper::hasProperty().
+   *
+   * @param array $elements
+   *   The array to run through WebformElementHelper::convertRenderMarkupToStrings().
+   * @param bool $expected
+   *   The expected result from calling the function.
+   *
+   * @see WebformElementHelper::HasProperty()
+   *
+   * @dataProvider providerHasProperty
+   */
+  public function testHasProperty(array $arguments, $expected) {
+    $result = WebformElementHelper::hasProperty($arguments[0], $arguments[1], $arguments[2]);
+    $this->assertEquals($expected, $result);
+  }
+
+  /**
+   * Data provider for testConvertRenderMarkupToStrings().
+   *
+   * @see testHasProperty()
+   */
+  public function providerHasProperty() {
+    return [
+      [
+        [[], '#required', NULL],
+        FALSE,
+        'Does not have #required',
+      ],
+      [
+        [['#required' => TRUE], '#required', NULL],
+        TRUE,
+        'Has #required',
+      ],
+      [
+        [['#required' => TRUE], '#required', 'value'],
+        FALSE,
+        '#required !== value',
+      ],
+      [
+        [['#required' => 'value'], '#required', 'value'],
+        TRUE,
+        '#required == value',
+      ],
+      [
+        [['nested' => ['#required' => TRUE]], '#required', NULL],
+        TRUE,
+        'Has nested #required',
+      ],
+      [
+        [['nested' => ['#required' => 'value']], '#required', 'value'],
+        TRUE,
+        'nested #required == value',
+      ],
+
     ];
   }
 

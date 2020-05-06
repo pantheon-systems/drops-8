@@ -1,0 +1,23 @@
+/**
+ * @file
+ * Choices styles.
+ */
+
+.choices {
+  width: 100%;
+}
+
+.webform-element--title-inline .choices {
+  display: inline-block;
+  width: 50%;
+}
+
+.choices .webform-choices.choices__input.is-hidden {
+  position: absolute !important;
+  display: block;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  width: 1px;
+  height: 1px;
+  word-wrap: normal;
+}

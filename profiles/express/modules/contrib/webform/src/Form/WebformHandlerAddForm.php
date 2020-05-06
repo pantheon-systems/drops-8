@@ -2,9 +2,12 @@
 
 namespace Drupal\webform\Form;
 
+use Drupal\Component\Transliteration\TransliterationInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\webform\Plugin\WebformHandlerManagerInterface;
 use Drupal\webform\WebformInterface;
+use Drupal\webform\WebformTokenManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -23,10 +26,17 @@ class WebformHandlerAddForm extends WebformHandlerFormBase {
   /**
    * Constructs a WebformHandlerAddForm.
    *
+   * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
+   *   The language manager.
+   * @param \Drupal\Component\Transliteration\TransliterationInterface $transliteration
+   *   The transliteration helper.
+   * @param \Drupal\webform\WebformTokenManagerInterface $token_manager
+   *   The webform token manager.
    * @param \Drupal\webform\Plugin\WebformHandlerManagerInterface $webform_handler
    *   The webform handler manager.
    */
-  public function __construct(WebformHandlerManagerInterface $webform_handler) {
+  public function __construct(LanguageManagerInterface $language_manager, TransliterationInterface $transliteration, WebformTokenManagerInterface $token_manager, WebformHandlerManagerInterface $webform_handler) {
+    parent::__construct($language_manager, $transliteration, $token_manager);
     $this->webformHandlerManager = $webform_handler;
   }
 
@@ -35,6 +45,9 @@ class WebformHandlerAddForm extends WebformHandlerFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
+      $container->get('language_manager'),
+      $container->get('transliteration'),
+      $container->get('webform.token_manager'),
       $container->get('plugin.manager.webform.handler')
     );
   }

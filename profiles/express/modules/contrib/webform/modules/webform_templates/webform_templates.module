@@ -17,3 +17,21 @@ function webform_templates_entity_type_alter(array &$entity_types) {
     $webform_submission_entity_type->setHandlerClass('form', $handlers['form']);
   }
 }
+
+/**
+ * Implements hook_webform_help_info().
+ */
+function webform_templates_webform_help_info() {
+  $help['webform_templates'] = [
+    'group' => 'forms',
+    'title' => t('Templates'),
+    'content' => t('The <strong>Templates</strong> page lists reusable templates that can be duplicated and customized to create new webforms.'),
+    'video_id' => 'forms',
+    'routes' => [
+      // @see /admin/structure/webform/templates
+      'entity.webform.templates',
+    ],
+  ];
+
+  return $help;
+}

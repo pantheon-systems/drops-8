@@ -26,7 +26,9 @@ class WebformSourceEntityAccess {
     /** @var \Drupal\webform\WebformEntityReferenceManagerInterface $entity_reference_manager */
     $entity_reference_manager = \Drupal::service('webform.entity_reference_manager');
 
-    return AccessResult::allowedIf($entity->access('update', $account) && $entity_reference_manager->getWebform($entity));
+    $access = $entity->access('update', $account, TRUE);
+    $access->andIf(AccessResult::allowedIf($entity_reference_manager->getWebform($entity)));
+    return $access;
   }
-}
 
+}

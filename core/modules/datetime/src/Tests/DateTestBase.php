@@ -15,7 +15,7 @@ use Drupal\simpletest\WebTestBase;
 /**
  * Provides a base class for testing Datetime field functionality.
  *
- * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.4.0 and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\BrowserTestBase instead.
  */
 abstract class DateTestBase extends WebTestBase {
@@ -28,9 +28,14 @@ abstract class DateTestBase extends WebTestBase {
   public static $modules = ['node', 'entity_test', 'datetime', 'field_ui'];
 
   /**
-   * An array of display options to pass to entity_get_display()
+   * An array of display options.
+   *
+   * An array of display options to pass to
+   * EntityDisplayRepositoryInterface::getViewDisplay()
    *
    * @var array
+   *
+   * @see \Drupal\Core\Entity\EntityDisplayRepositoryInterface::getViewDisplay()
    */
   protected $displayOptions;
 

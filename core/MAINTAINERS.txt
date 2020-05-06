@@ -27,18 +27,19 @@ Framework managers
   Backend
   - Alex Bronstein 'effulgentsia' https://www.drupal.org/u/effulgentsia
   - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
+  - Francesco Placella 'plach' https://www.drupal.org/u/plach
   - Alex Pott 'alexpott' https://www.drupal.org/u/alexpott
   - Lee Rowlands 'larowlan' https://www.drupal.org/u/larowlan
-  - (provisional) Francesco Placella 'plach' https://www.drupal.org/u/plach
 
   Frontend
   - Lauri Eskola 'lauriii' https://www.drupal.org/u/lauriii
 
 Release managers
 - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
-- Chris McCafferty 'cilefen' https://www.drupal.org/u/cilefen
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 
+Committer team facilitators
+- (provisional) Pamela Barone 'pameeela' https://www.drupal.org/u/pameeela
 
 Subsystem maintainers
 ---------------------
@@ -210,7 +211,7 @@ Field UI
 - Andrei Mateescu 'amateescu' https://www.drupal.org/u/amateescu
 
 File
-- ?
+- Kim Pepper 'kim.pepper' https://www.drupal.org/u/kimpepper
 
 Filter
 - ?
@@ -231,6 +232,10 @@ Hypertext Application Language (HAL)
 Help
 - ?
 
+Help Topics
+- Amber Matz 'Amber Himes Matz' https://www.drupal.org/u/amber-himes-matz
+- Andrey Postnikov 'andypost' https://www.drupal.org/u/andypost
+
 Image
 - Claudiu Cristea 'claudiu.cristea' https://www.drupal.org/u/claudiu.cristea
 
@@ -245,12 +250,21 @@ Interface Translation (locale)
 
 JavaScript
 - Théodore Biadala 'nod_' https://www.drupal.org/u/nod_
-- Matthew Grill 'drpal' https://www.drupal.org/u/drpal
 - Sally Young 'justafish' https://www.drupal.org/u/justafish
+
+JSON:API
+- Gabe Sullice 'gabesullice' https://www.drupal.org/u/gabesullice
+- Mateu Aguiló Bosch 'e0ipso' https://www.drupal.org/u/e0ipso
+- Wim Leers 'Wim Leers' https://www.drupal.org/u/wim-leers
 
 Language
 - Francesco Placella 'plach' https://www.drupal.org/u/plach
 - Daniel F. Kudwien 'sun' https://www.drupal.org/u/sun
+
+Layout Builder
+- Ted Bowman 'tedbow' https://www.drupal.org/u/tedbow
+- Emilie Nouveau 'DyanneNova' https://www.drupal.org/u/dyannenova
+- Tim Plunkett 'tim.plunkett' https://www.drupal.org/u/tim.plunkett
 
 Link Field
 - Weber Macedo 'Mac_Weber' https://www.drupal.org/u/mac_weber
@@ -270,6 +284,10 @@ Media
 - Christian Fritsch 'chr.fritsch' https://www.drupal.org/u/chr.fritsch
 - Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
 
+  Media Library
+  - Sean Blommaert 'seanB' https://www.drupal.org/u/seanb
+  - Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
+
 Menu
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
 - Peter Wolanin 'pwolanin' https://www.drupal.org/u/pwolanin
@@ -285,7 +303,6 @@ Migrate
 - Adam Globus-Hoenich 'phenaproxima' https://www.drupal.org/u/phenaproxima
 - Lucas Hedding 'heddn' https://www.drupal.org/u/heddn
 - Michael Lutz 'mikelutz' https://www.drupal.org/u/mikelutz
-- Markus Sipilä 'masipila' https://www.drupal.org/u/masipila
 - Vicki Spagnolo 'quietone' https://www.drupal.org/u/quietone
 
 Node
@@ -306,6 +323,9 @@ Page Cache
 Path
 - Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
 
+Path Alias
+- Nathaniel Catchpole 'catch' https://www.drupal.org/u/catch
+
 Plugin
 - Kris Vanderwater 'EclipseGc' https://www.drupal.org/u/eclipseGc
 - Alex Bronstein 'effulgentsia' https://www.drupal.org/u/effulgentsia
@@ -319,7 +339,7 @@ Quick Edit
 - Théodore Biadala 'nod_' https://www.drupal.org/u/nod_
 
 RDF
-- Stéphane Corlosquet 'scor' https://www.drupal.org/u/scor
+- ?
 
 Render API
 - Alex Bronstein 'effulgentsia' https://www.drupal.org/u/effulgentsia
@@ -409,6 +429,12 @@ Transliteration
 Typed Data
 - Wolfgang Ziegler 'fago' https://www.drupal.org/u/fago
 
+Umami demo
+- Mark Conroy 'markconroy' https://www.drupal.org/u/markconroy
+- Gareth Goodwin 'smaz' https://www.drupal.org/u/smaz
+- Keith Jay 'kjay' https://www.drupal.org/u/kjay
+- Ofer Shaal 'shaal' https://www.drupal.org/u/shaal
+
 Update UI
 - ?
 
@@ -430,6 +456,7 @@ Topic maintainers
 -----------------
 
 Accessibility
+- Rain Breaw Michaels 'rainbreaw' https://www.drupal.org/u/rainbreaw
 - Mike Gifford 'mgifford' https://www.drupal.org/u/mgifford
 - Andrew Macpherson 'andrewmacpherson' https://www.drupal.org/u/andrewmacpherson
 
@@ -443,6 +470,7 @@ Testing
 - ?
 
 Usability
+- Cristina Chumillas 'ckrina' https://www.drupal.org/u/ckrina
 - Roy Scholten 'yoroy' https://www.drupal.org/u/yoroy
 - Bojhan Somers 'Bojhan' https://www.drupal.org/u/bojhan
 
@@ -477,9 +505,7 @@ API-first Initiative
 - Gabe Sullice 'gabesullice' https://www.drupal.org/u/gabesullice
 
 Admin UI & JavaScript Modernisation Initiative
-- Angela Byron 'webchick' https://www.drupal.org/u/webchick
 - Cristina Chumillas 'ckrina' https://www.drupal.org/u/ckrina
-- Matthew Grill 'drpal' https://www.drupal.org/u/drpal
 - Sally Young 'justafish' https://www.drupal.org/u/justafish
 
 Layout Initiative
@@ -488,12 +514,6 @@ Layout Initiative
 
 Media Initiative
 - Janez Urevc 'slashrsm' https://www.drupal.org/u/slashrsm
-
-Out-of-the-Box Initiative
-- Mark Conroy 'markconroy' https://www.drupal.org/u/markconroy
-- Gareth Goodwin 'smaz' https://www.drupal.org/u/smaz
-- Keith Jay 'kjay' https://www.drupal.org/u/kjay
-- Elliot Ward 'eli-t' https://www.drupal.org/u/eli-t
 
 PHPUnit Initiative
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner

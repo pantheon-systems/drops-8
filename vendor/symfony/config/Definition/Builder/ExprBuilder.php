@@ -144,7 +144,7 @@ class ExprBuilder
     public function castToArray()
     {
         $this->ifPart = function ($v) { return !\is_array($v); };
-        $this->thenPart = function ($v) { return array($v); };
+        $this->thenPart = function ($v) { return [$v]; };
 
         return $this;
     }
@@ -168,7 +168,7 @@ class ExprBuilder
      */
     public function thenEmptyArray()
     {
-        $this->thenPart = function ($v) { return array(); };
+        $this->thenPart = function ($v) { return []; };
 
         return $this;
     }
@@ -200,7 +200,7 @@ class ExprBuilder
      */
     public function thenUnset()
     {
-        $this->thenPart = function ($v) { throw new UnsetKeyException('Unsetting key'); };
+        $this->thenPart = function ($v) { throw new UnsetKeyException('Unsetting key.'); };
 
         return $this;
     }

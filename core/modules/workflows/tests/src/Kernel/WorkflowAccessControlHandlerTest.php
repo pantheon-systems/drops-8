@@ -6,7 +6,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Context\CacheContextsManager;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\simpletest\UserCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\workflows\Entity\Workflow;
 
 /**
@@ -211,6 +211,66 @@ class WorkflowAccessControlHandlerTest extends KernelTestBase {
           ->addCacheContexts(['user.permissions'])
           ->setReason("The 'administer workflows' permission is required."),
         ['foo' => TRUE, 'bar' => FALSE],
+      ],
+      'Update state for user, uses admin permission by default' => [
+        'user',
+        'update-state:foo',
+        AccessResult::neutral()
+          ->addCacheContexts(['user.permissions'])
+          ->setReason("The 'administer workflows' permission is required."),
+      ],
+      'Update state for admin, uses admin permission by default' => [
+        'adminUser',
+        'update-state:foo',
+        AccessResult::allowed()->addCacheContexts(['user.permissions']),
+      ],
+      'Add state for user, uses admin permission by default' => [
+        'user',
+        'add-state',
+        AccessResult::neutral()
+          ->addCacheContexts(['user.permissions'])
+          ->setReason("The 'administer workflows' permission is required."),
+      ],
+      'Add state for admin, uses admin permission by default' => [
+        'adminUser',
+        'add-state',
+        AccessResult::allowed()->addCacheContexts(['user.permissions']),
+      ],
+      'Add transition for user, uses admin permission by default' => [
+        'user',
+        'add-transition',
+        AccessResult::neutral()
+          ->addCacheContexts(['user.permissions'])
+          ->setReason("The 'administer workflows' permission is required."),
+      ],
+      'Add transition for admin, uses admin permission by default' => [
+        'adminUser',
+        'add-transition',
+        AccessResult::allowed()->addCacheContexts(['user.permissions']),
+      ],
+      'Edit transition for user, uses admin permission by default' => [
+        'user',
+        'edit-transition:foo',
+        AccessResult::neutral()
+          ->addCacheContexts(['user.permissions'])
+          ->setReason("The 'administer workflows' permission is required."),
+      ],
+      'Edit transition for admin, uses admin permission by default' => [
+        'adminUser',
+        'edit-transition:foo',
+        AccessResult::allowed()->addCacheContexts(['user.permissions']),
+      ],
+      'Delete transition for user, uses admin permission by default' => [
+        'user',
+        'delete-transition:foo',
+        AccessResult::neutral()
+          ->addCacheContexts(['user.permissions'])
+          ->setReason("The 'administer workflows' permission is required."),
+      ],
+      'Delete transition for admin, uses admin permission by default' => [
+        'adminUser',
+        'delete-transition:foo',
+        AccessResult::allowed()->addCacheContexts(['user.permissions']),
       ],
     ];
   }

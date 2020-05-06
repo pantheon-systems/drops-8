@@ -38,7 +38,7 @@ class MockFileSessionStorage extends MockArraySessionStorage
         }
 
         if (!is_dir($savePath) && !@mkdir($savePath, 0777, true) && !is_dir($savePath)) {
-            throw new \RuntimeException(sprintf('Session Storage was not able to create directory "%s"', $savePath));
+            throw new \RuntimeException(sprintf('Session Storage was not able to create directory "%s".', $savePath));
         }
 
         $this->savePath = $savePath;
@@ -88,7 +88,7 @@ class MockFileSessionStorage extends MockArraySessionStorage
     public function save()
     {
         if (!$this->started) {
-            throw new \RuntimeException('Trying to save a session that was not started yet or was already closed');
+            throw new \RuntimeException('Trying to save a session that was not started yet or was already closed.');
         }
 
         $data = $this->data;
@@ -98,7 +98,7 @@ class MockFileSessionStorage extends MockArraySessionStorage
                 unset($data[$key]);
             }
         }
-        if (array($key = $this->metadataBag->getStorageKey()) === array_keys($data)) {
+        if ([$key = $this->metadataBag->getStorageKey()] === array_keys($data)) {
             unset($data[$key]);
         }
 
@@ -145,7 +145,7 @@ class MockFileSessionStorage extends MockArraySessionStorage
     private function read()
     {
         $filePath = $this->getFilePath();
-        $this->data = is_readable($filePath) && is_file($filePath) ? unserialize(file_get_contents($filePath)) : array();
+        $this->data = is_readable($filePath) && is_file($filePath) ? unserialize(file_get_contents($filePath)) : [];
 
         $this->loadSession();
     }

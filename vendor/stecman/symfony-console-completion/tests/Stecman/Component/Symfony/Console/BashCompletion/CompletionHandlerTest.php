@@ -68,6 +68,17 @@ class CompletionHandlerTest extends CompletionHandlerTestCase
         $this->assertEquals(array('-j'), $this->getTerms($handler->runCompletion()));
     }
 
+    public function testCompleteOptionShortcutFirst()
+    {
+        // Check command options complete
+        $handler = $this->createHandler('app -v wave --');
+        $this->assertArraySubset(array('--vigorous', '--jazz-hands'), $this->getTerms($handler->runCompletion()));
+
+        // Check unambiguous command name still completes
+        $handler = $this->createHandler('app --quiet wav');
+        $this->assertEquals(array('wave'), $this->getTerms($handler->runCompletion()));
+    }
+
     public function testCompleteDoubleDash()
     {
         $handler = $this->createHandler('app wave --');
@@ -78,6 +89,21 @@ class CompletionHandlerTest extends CompletionHandlerTestCase
     {
         $handler = $this->createHandler('app wave --jazz');
         $this->assertArraySubset(array('--jazz-hands'), $this->getTerms($handler->runCompletion()));
+    }
+
+    public function testCompleteOptionEqualsValue()
+    {
+        // Cursor at the "=" sign
+        $handler = $this->createHandler('app completion-aware --option-with-suggestions=');
+        $this->assertEquals(array('one-opt', 'two-opt'), $this->getTerms($handler->runCompletion()));
+
+        // Cursor at an opening quote
+        $handler = $this->createHandler('app completion-aware --option-with-suggestions="');
+        $this->assertEquals(array('one-opt', 'two-opt'), $this->getTerms($handler->runCompletion()));
+
+        // Cursor inside a quote with value
+        $handler = $this->createHandler('app completion-aware --option-with-suggestions="two');
+        $this->assertEquals(array('two-opt'), $this->getTerms($handler->runCompletion()));
     }
 
     public function testCompleteOptionOrder()

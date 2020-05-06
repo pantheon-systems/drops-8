@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform that provides handler invoke alter tests.
+ */
+
+use Drupal\webform\Plugin\WebformHandlerInterface;
+
+/**
+ * Implements hook_webform_handler_invoke_alter().
+ */
+function webform_test_handler_invoke_alter_webform_handler_invoke_alter(WebformHandlerInterface $handler, $method_name, array $args) {
+  $t_args = [
+    '@webform_id' => $handler->getWebform()->id(),
+    '@handler_id' => $handler->getHandlerId(),
+    '@method_name' => $method_name,
+  ];
+  \Drupal::messenger()->addStatus(t('Invoking hook_webform_handler_invoke_alter() for "@webform_id:@handler_id::@method_name"', $t_args), TRUE);
+}
+
+/**
+ * Implements hook_webform_handler_invoke_METHOD_NAME_alter().
+ */
+function webform_test_handler_invoke_alter_webform_handler_invoke_pre_create_alter(WebformHandlerInterface $handler, array $args) {
+  $t_args = [
+    '@webform_id' => $handler->getWebform()->id(),
+    '@handler_id' => $handler->getHandlerId(),
+  ];
+  \Drupal::messenger()->addStatus(t('Invoking hook_webform_handler_invoke_pre_create_alter() for "@webform_id:@handler_id"', $t_args), TRUE);
+}

@@ -37,7 +37,7 @@ class EntityQueryAggregateTest extends EntityKernelTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->entityStorage = $this->entityManager->getStorage('entity_test');
+    $this->entityStorage = $this->entityTypeManager->getStorage('entity_test');
 
     // Add some fieldapi fields to be used in the test.
     for ($i = 1; $i <= 2; $i++) {
@@ -539,6 +539,38 @@ class EntityQueryAggregateTest extends EntityKernelTestBase {
       ['field_test_1' => 2, 'field_test_2_count' => 3],
     ]);
 
+  }
+
+  /**
+   * Tests preparing a query and executing twice.
+   */
+  public function testRepeatedExecution() {
+    $query = $this->entityStorage->getAggregateQuery()
+      ->groupBy('user_id');
+
+    $this->queryResult = $query->execute();
+    $this->assertResults([
+      ['user_id' => 1],
+      ['user_id' => 2],
+      ['user_id' => 3],
+    ]);
+
+    $entity = $this->entityStorage->create([
+      'id' => 7,
+      'user_id' => 4,
+      'field_test_1' => 42,
+      'field_test_2' => 68,
+    ]);
+    $entity->enforceIsNew();
+    $entity->save();
+
+    $this->queryResult = $query->execute();
+    $this->assertResults([
+      ['user_id' => 1],
+      ['user_id' => 2],
+      ['user_id' => 3],
+      ['user_id' => 4],
+    ]);
   }
 
   /**

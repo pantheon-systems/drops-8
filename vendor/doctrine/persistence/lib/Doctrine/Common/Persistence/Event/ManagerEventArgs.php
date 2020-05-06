@@ -2,29 +2,15 @@
 
 namespace Doctrine\Common\Persistence\Event;
 
-use Doctrine\Common\EventArgs;
-use Doctrine\Common\Persistence\ObjectManager;
+use function class_alias;
 
-/**
- * Provides event arguments for the preFlush event.
- */
-class ManagerEventArgs extends EventArgs
-{
-    /** @var ObjectManager */
-    private $objectManager;
+class_alias(
+    \Doctrine\Persistence\Event\ManagerEventArgs::class,
+    __NAMESPACE__ . '\ManagerEventArgs'
+);
 
-    public function __construct(ObjectManager $objectManager)
+if (false) {
+    class ManagerEventArgs extends \Doctrine\Persistence\Event\ManagerEventArgs
     {
-        $this->objectManager = $objectManager;
-    }
-
-    /**
-     * Retrieves the associated ObjectManager.
-     *
-     * @return ObjectManager
-     */
-    public function getObjectManager()
-    {
-        return $this->objectManager;
     }
 }

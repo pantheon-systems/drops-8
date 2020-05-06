@@ -11,6 +11,7 @@
 
 namespace PHP_CodeSniffer\Files;
 
+use PHP_CodeSniffer\Autoload;
 use PHP_CodeSniffer\Util;
 use PHP_CodeSniffer\Ruleset;
 use PHP_CodeSniffer\Config;
@@ -135,6 +136,7 @@ class FileList implements \Iterator, \Countable
      * Get the class name of the filter being used for the run.
      *
      * @return string
+     * @throws \PHP_CodeSniffer\Exceptions\DeepExitException If the specified filter could not be found.
      */
     private function getFilterClass()
     {
@@ -151,7 +153,7 @@ class FileList implements \Iterator, \Countable
                     throw new DeepExitException($error, 3);
                 }
 
-                $filterClass = \PHP_CodeSniffer\Autoload::loadFile($filename);
+                $filterClass = Autoload::loadFile($filename);
             } else {
                 $filterClass = '\PHP_CodeSniffer\Filters\\'.$filterType;
             }

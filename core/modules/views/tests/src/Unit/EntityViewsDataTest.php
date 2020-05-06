@@ -9,7 +9,9 @@ namespace Drupal\Tests\views\Unit;
 
 use Drupal\Core\Config\Entity\ConfigEntityType;
 use Drupal\Core\Entity\ContentEntityType;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Sql\DefaultTableMapping;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
@@ -45,28 +47,36 @@ class EntityViewsDataTest extends UnitTestCase {
   /**
    * The mocked entity storage.
    *
-   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\Sql\SqlContentEntityStorage|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityStorage;
 
   /**
-   * The mocked entity manager.
+   * The mocked entity field manager.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityFieldManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
-  protected $entityManager;
+  protected $entityFieldManager;
+
+
+  /**
+   * The mocked entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
+   */
+  protected $entityTypeManager;
 
   /**
    * The mocked module handler.
    *
-   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $moduleHandler;
 
   /**
    * The mocked translation manager.
    *
-   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\StringTranslation\TranslationInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $translationManager;
 
@@ -84,12 +94,13 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->entityStorage = $this->getMockBuilder('Drupal\Core\Entity\Sql\SqlContentEntityStorage')
       ->disableOriginalConstructor()
       ->getMock();
-    $this->entityManager = $this->getMock('Drupal\Core\Entity\EntityManagerInterface');
+    $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $this->entityFieldManager = $this->createMock(EntityFieldManagerInterface::class);
 
-    $typed_data_manager = $this->getMock(TypedDataManagerInterface::class);
+    $typed_data_manager = $this->createMock(TypedDataManagerInterface::class);
     $typed_data_manager->expects($this->any())
       ->method('createDataDefinition')
-      ->willReturn($this->getMock('Drupal\Core\TypedData\DataDefinitionInterface'));
+      ->willReturn($this->createMock('Drupal\Core\TypedData\DataDefinitionInterface'));
 
     $typed_data_manager->expects($this->any())
       ->method('getDefinition')
@@ -115,9 +126,9 @@ class EntityViewsDataTest extends UnitTestCase {
 
     $this->translationManager = $this->getStringTranslationStub();
     $this->baseEntityType->setStringTranslation($this->translationManager);
-    $this->moduleHandler = $this->getMock('Drupal\Core\Extension\ModuleHandlerInterface');
+    $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
 
-    $this->viewsData = new TestEntityViewsData($this->baseEntityType, $this->entityStorage, $this->entityManager, $this->moduleHandler, $this->translationManager);
+    $this->viewsData = new TestEntityViewsData($this->baseEntityType, $this->entityStorage, $this->entityTypeManager, $this->moduleHandler, $this->translationManager, $this->entityFieldManager);
 
     $field_type_manager = $this->getMockBuilder('Drupal\Core\Field\FieldTypePluginManager')
       ->disableOriginalConstructor()
@@ -134,7 +145,8 @@ class EntityViewsDataTest extends UnitTestCase {
 
     $container = new ContainerBuilder();
     $container->set('plugin.manager.field.field_type', $field_type_manager);
-    $container->set('entity.manager', $this->entityManager);
+    $container->set('entity_type.manager', $this->entityTypeManager);
+    $container->set('entity_field.manager', $this->entityFieldManager);
     $container->set('typed_data_manager', $typed_data_manager);
     $container->set('state', $state->reveal());
     \Drupal::setContainer($container);
@@ -374,47 +386,53 @@ class EntityViewsDataTest extends UnitTestCase {
    * Helper method to mock all store definitions.
    */
   protected function setupFieldStorageDefinition() {
-    $id_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $id_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $id_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(IntegerItem::schema($id_field_storage_definition));
-    $uuid_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $uuid_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $uuid_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(UuidItem::schema($uuid_field_storage_definition));
-    $type_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $type_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $type_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(StringItem::schema($type_field_storage_definition));
-    $langcode_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $langcode_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $langcode_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(LanguageItem::schema($langcode_field_storage_definition));
-    $name_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $name_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $name_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(StringItem::schema($name_field_storage_definition));
-    $description_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $description_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $description_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(TextLongItem::schema($description_field_storage_definition));
-    $homepage_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $homepage_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $homepage_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(UriItem::schema($homepage_field_storage_definition));
-    $string_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $string_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $string_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(StringItem::schema($string_field_storage_definition));
 
     // Setup the user_id entity reference field.
-    $this->entityManager->expects($this->any())
+    $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->willReturnMap([
           ['user', TRUE, static::userEntityInfo()],
         ]
       );
-    $user_id_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $this->entityTypeManager->expects($this->any())
+      ->method('getDefinition')
+      ->willReturnMap([
+          ['user', TRUE, static::userEntityInfo()],
+        ]
+      );
+    $user_id_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $user_id_field_storage_definition->expects($this->any())
       ->method('getSetting')
       ->with('target_type')
@@ -426,12 +444,12 @@ class EntityViewsDataTest extends UnitTestCase {
       ->method('getSchema')
       ->willReturn(EntityReferenceItem::schema($user_id_field_storage_definition));
 
-    $revision_id_field_storage_definition = $this->getMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
+    $revision_id_field_storage_definition = $this->createMock('Drupal\Core\Field\FieldStorageDefinitionInterface');
     $revision_id_field_storage_definition->expects($this->any())
       ->method('getSchema')
       ->willReturn(IntegerItem::schema($revision_id_field_storage_definition));
 
-    $this->entityManager->expects($this->any())
+    $this->entityFieldManager->expects($this->any())
       ->method('getFieldStorageDefinitions')
       ->willReturn([
         'id' => $id_field_storage_definition,
@@ -459,7 +477,13 @@ class EntityViewsDataTest extends UnitTestCase {
         ->setReadOnly(TRUE)
         ->setSetting('unsigned', TRUE),
     ];
-    $this->entityManager->expects($this->any())
+    $this->entityFieldManager->expects($this->any())
+      ->method('getBaseFieldDefinitions')
+      ->will($this->returnValueMap([
+        ['user', $user_base_field_definitions],
+        ['entity_test', $base_field_definitions],
+      ]));
+    $this->entityFieldManager->expects($this->any())
       ->method('getBaseFieldDefinitions')
       ->will($this->returnValueMap([
         ['user', $user_base_field_definitions],
@@ -582,7 +606,13 @@ class EntityViewsDataTest extends UnitTestCase {
     ];
     $entity_test_type = new ConfigEntityType(['id' => 'entity_test_bundle']);
 
-    $this->entityManager->expects($this->any())
+    $this->entityFieldManager->expects($this->any())
+      ->method('getBaseFieldDefinitions')
+      ->will($this->returnValueMap([
+        ['user', $user_base_field_definitions],
+        ['entity_test_mul', $base_field_definitions],
+      ]));
+    $this->entityFieldManager->expects($this->any())
       ->method('getBaseFieldDefinitions')
       ->will($this->returnValueMap([
         ['user', $user_base_field_definitions],
@@ -647,7 +677,7 @@ class EntityViewsDataTest extends UnitTestCase {
     $this->setupFieldStorageDefinition();
 
     $user_entity_type = static::userEntityInfo();
-    $this->entityManager->expects($this->any())
+    $this->entityTypeManager->expects($this->any())
       ->method('getDefinition')
       ->will($this->returnValueMap([
         ['user', TRUE, $user_entity_type],
@@ -732,7 +762,13 @@ class EntityViewsDataTest extends UnitTestCase {
         ->setReadOnly(TRUE)
         ->setSetting('unsigned', TRUE),
     ];
-    $this->entityManager->expects($this->any())
+    $this->entityFieldManager->expects($this->any())
+      ->method('getBaseFieldDefinitions')
+      ->will($this->returnValueMap([
+        ['user', $user_base_field_definitions],
+        ['entity_test_mulrev', $base_field_definitions],
+      ]));
+    $this->entityFieldManager->expects($this->any())
       ->method('getBaseFieldDefinitions')
       ->will($this->returnValueMap([
         ['user', $user_base_field_definitions],
@@ -973,7 +1009,36 @@ class EntityViewsDataTest extends UnitTestCase {
   public function testGetViewsDataWithEntityOperations() {
     $this->baseEntityType->setListBuilderClass('\Drupal\Core\Entity\EntityListBuilder');
     $data = $this->viewsData->getViewsData();
-    $this->assertSame('entity_operations', $data[$this->baseEntityType->getBaseTable()]['operations']['field']['id']);
+
+    $tables = ['entity_test', 'entity_test_revision'];
+    $this->assertSame($tables, array_keys($data));
+    foreach ($tables as $table_name) {
+      $this->assertSame('entity_operations', $data[$table_name]['operations']['field']['id']);
+    }
+  }
+
+  /**
+   * @covers ::getViewsData
+   */
+  public function testGetViewsDataWithNonRevisionableEntityOperations() {
+    $this->baseEntityType->setListBuilderClass('\Drupal\Core\Entity\EntityListBuilder');
+
+    $entity_type_without_revisions = $this->baseEntityType;
+    $views_data = $this->viewsData;
+
+    $entity_type_keys = $entity_type_without_revisions->getKeys();
+    unset($entity_type_keys['revision']);
+
+    $entity_type_without_revisions->set('entity_keys', $entity_type_keys);
+    $views_data->setEntityType($entity_type_without_revisions);
+
+    $data = $views_data->getViewsData();
+
+    $tables = ['entity_test'];
+    $this->assertSame($tables, array_keys($data));
+    foreach ($tables as $table_name) {
+      $this->assertSame('entity_operations', $data[$table_name]['operations']['field']['id']);
+    }
   }
 
   /**

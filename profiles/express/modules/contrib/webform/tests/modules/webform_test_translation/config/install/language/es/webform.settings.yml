@@ -1,7 +1,7 @@
 settings:
   default_submit_button_label: Enviar
   default_preview_next_button_label: 'Vista previa'
-  default_form_close_message: 'Lo siento ... Esta forma está cerrado a nuevas presentaciones.'
+  default_form_close_message: 'Lo siento … Esta forma está cerrado a nuevas presentaciones.'
   default_form_exception_message: 'No se puede mostrar este formulario. Por favor contacte al administrador del sitio.'
   default_preview_prev_button_label: '< Anterior'
   default_preview_message: 'Por favor revise su presentación. Su presentación no está completo hasta que se pulsa el botón "Enviar"!'
@@ -20,6 +20,7 @@ mail:
     Los valores presentados son:
 
     [webform_submission:values]
+
 test:
   types: |
     checkbox:
@@ -67,21 +68,16 @@ test:
     url:
       - 'http://example.com'
       - 'http://test.com'
-    webform_creditcard_number:
-      - '4111111111111111'
     webform_email_confirm:
       - 'example@example.com'
       - 'test@test.com'
       - 'random@random.com'
     webform_email_multiple:
       - 'example@example.com, test@test.com, random@random.com'
-    webform_location:
-      - value: 'The White House, 1600 Pennsylvania Ave NW, Washington, DC 20500, USA'
-      - value: 'London SW1A 1AA, United Kingdom'
-      - value: 'Moscow, Russia, 10307'
     webform_time:
       - '09:00'
       - '17:00'
+
   names: |
     first_name:
       - 'John'

@@ -5,6 +5,7 @@
  * Test module for the entity API providing several entity types for testing.
  */
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Database\Query\AlterableInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
@@ -96,10 +97,15 @@ function entity_test_entity_type_alter(array &$entity_types) {
 
   // Allow entity_test_rev tests to override the entity type definition.
   $entity_types['entity_test_rev'] = $state->get('entity_test_rev.entity_type', $entity_types['entity_test_rev']);
+  $entity_types['entity_test_revpub'] = $state->get('entity_test_revpub.entity_type', $entity_types['entity_test_revpub']);
 
   // Enable the entity_test_new only when needed.
   if (!$state->get('entity_test_new')) {
     unset($entity_types['entity_test_new']);
+  }
+  else {
+    // Allow tests to override the entity type definition.
+    $entity_types['entity_test_new'] = \Drupal::state()->get('entity_test_new.entity_type', $entity_types['entity_test_new']);
   }
 
   $entity_test_definition = $entity_types['entity_test'];
@@ -192,7 +198,7 @@ function entity_test_create_bundle($bundle, $text = NULL, $entity_type = 'entity
   $bundles += [$bundle => ['label' => $text ? $text : $bundle]];
   \Drupal::state()->set($entity_type . '.bundles', $bundles);
 
-  \Drupal::entityManager()->onBundleCreate($bundle, $entity_type);
+  \Drupal::service('entity_bundle.listener')->onBundleCreate($bundle, $entity_type);
 }
 
 /**
@@ -209,7 +215,7 @@ function entity_test_delete_bundle($bundle, $entity_type = 'entity_test') {
   unset($bundles[$bundle]);
   \Drupal::state()->set($entity_type . '.bundles', $bundles);
 
-  \Drupal::entityManager()->onBundleDelete($bundle, $entity_type);
+  \Drupal::service('entity_bundle.listener')->onBundleDelete($bundle, $entity_type);
 }
 
 /**
@@ -217,7 +223,7 @@ function entity_test_delete_bundle($bundle, $entity_type = 'entity_test') {
  */
 function entity_test_entity_bundle_info() {
   $bundles = [];
-  $entity_types = \Drupal::entityManager()->getDefinitions();
+  $entity_types = \Drupal::entityTypeManager()->getDefinitions();
   foreach ($entity_types as $entity_type_id => $entity_type) {
     if ($entity_type->getProvider() == 'entity_test' && $entity_type_id != 'entity_test_with_bundle') {
       $bundles[$entity_type_id] = \Drupal::state()->get($entity_type_id . '.bundles') ?: [$entity_type_id => ['label' => 'Entity Test Bundle']];
@@ -234,7 +240,7 @@ function entity_test_entity_bundle_info_alter(&$bundles) {
   $state = \Drupal::state();
   foreach ($bundles as $entity_type_id => &$all_bundle_info) {
     if ($entity_info[$entity_type_id]->getProvider() == 'entity_test') {
-      if ($state->get('entity_test.translation')) {
+      if ($state->get('entity_test.translation') && $entity_info[$entity_type_id]->isTranslatable()) {
         foreach ($all_bundle_info as $bundle_name => &$bundle_info) {
           $bundle_info['translatable'] = TRUE;
           if ($state->get('entity_test.untranslatable_fields.default_translation_affected')) {
@@ -250,7 +256,7 @@ function entity_test_entity_bundle_info_alter(&$bundles) {
  * Implements hook_entity_view_mode_info_alter().
  */
 function entity_test_entity_view_mode_info_alter(&$view_modes) {
-  $entity_info = \Drupal::entityManager()->getDefinitions();
+  $entity_info = \Drupal::entityTypeManager()->getDefinitions();
   foreach ($entity_info as $entity_type => $info) {
     if ($entity_info[$entity_type]->getProvider() == 'entity_test' && !isset($view_modes[$entity_type])) {
       $view_modes[$entity_type] = [
@@ -273,14 +279,12 @@ function entity_test_entity_view_mode_info_alter(&$view_modes) {
  * Implements hook_entity_form_mode_info_alter().
  */
 function entity_test_entity_form_mode_info_alter(&$form_modes) {
-  $entity_info = \Drupal::entityManager()->getDefinitions();
+  $entity_info = \Drupal::entityTypeManager()->getDefinitions();
   foreach ($entity_info as $entity_type => $info) {
     if ($entity_info[$entity_type]->getProvider() == 'entity_test') {
-      $form_modes[$entity_type] = [
-        'compact' => [
-          'label' => t('Compact version'),
-          'status' => TRUE,
-        ],
+      $form_modes[$entity_type]['compact'] = [
+        'label' => t('Compact version'),
+        'status' => TRUE,
       ];
     }
   }
@@ -361,8 +365,14 @@ function entity_test_form_node_form_alter(&$form, FormStateInterface $form_state
  *
  * @return \Drupal\entity_test\Entity\EntityTest
  *   The loaded entity object, or NULL if the entity cannot be loaded.
+ *
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getStorage('entity_test')->load().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function entity_test_load($id, $reset = FALSE) {
+  @trigger_error('entity_test_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getStorage(\'entity_test\')->load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   $storage = \Drupal::entityTypeManager()->getStorage('entity_test');
   if ($reset) {
     $storage->resetCache([$id]);
@@ -380,8 +390,14 @@ function entity_test_load($id, $reset = FALSE) {
  *
  * @return \Drupal\entity_test\Entity\EntityTestRev
  *   The loaded entity object, or NULL if the entity cannot be loaded.
+ *
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getStorage('entity_test_rev')->load().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function entity_test_rev_load($id, $reset = FALSE) {
+  @trigger_error('entity_test_rev_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getStorage(\'entity_test_rev\')->load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   $storage = \Drupal::entityTypeManager()->getStorage('entity_test_rev');
   if ($reset) {
     $storage->resetCache([$id]);
@@ -399,8 +415,14 @@ function entity_test_rev_load($id, $reset = FALSE) {
  *
  * @return \Drupal\entity_test\Entity\EntityTestMul
  *   The loaded entity object, or FALSE if the entity cannot be loaded.
+ *
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getStorage('entity_test_mul')->load().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function entity_test_mul_load($id, $reset = FALSE) {
+  @trigger_error('entity_test_mul_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getStorage(\'entity_test_mul\')->load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   $storage = \Drupal::entityTypeManager()->getStorage('entity_test_mul');
   if ($reset) {
     $storage->resetCache([$id]);
@@ -418,8 +440,14 @@ function entity_test_mul_load($id, $reset = FALSE) {
  *
  * @return \Drupal\entity_test\Entity\EntityTestMulRev
  *   The loaded entity object, or NULL if the entity cannot be loaded.
+ *
+ * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::entityTypeManager()->getStorage('entity_test_mulrev_load')->load().
+ *
+ * @see https://www.drupal.org/node/2266845
  */
 function entity_test_mulrev_load($id, $reset = FALSE) {
+  @trigger_error('entity_test_mulrev_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getStorage(\'entity_test_mulrev\')->load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
   $storage = \Drupal::entityTypeManager()->getStorage('entity_test_mulrev');
   if ($reset) {
     $storage->resetCache([$id]);
@@ -546,7 +574,7 @@ function entity_test_entity_operation_alter(array &$operations, EntityInterface 
   if (in_array($entity->getEntityTypeId(), $valid_entity_type_ids)) {
     if (\Drupal::service('router.route_provider')->getRouteByName("entity.{$entity->getEntityTypeId()}.test_operation")) {
       $operations['test_operation'] = [
-        'title' => format_string('Test Operation: @label', ['@label' => $entity->label()]),
+        'title' => new FormattableMarkup('Test Operation: @label', ['@label' => $entity->label()]),
         'url' => Url::fromRoute("entity.{$entity->getEntityTypeId()}.test_operation", [$entity->getEntityTypeId() => $entity->id()]),
         'weight' => 50,
       ];

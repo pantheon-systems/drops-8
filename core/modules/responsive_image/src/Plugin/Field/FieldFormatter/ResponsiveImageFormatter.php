@@ -9,6 +9,7 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Url;
+use Drupal\file\FileInterface;
 use Drupal\image\Plugin\Field\FieldFormatter\ImageFormatterBase;
 use Drupal\responsive_image\Entity\ResponsiveImageStyle;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -104,8 +105,8 @@ class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFa
       $configuration['label'],
       $configuration['view_mode'],
       $configuration['third_party_settings'],
-      $container->get('entity.manager')->getStorage('responsive_image_style'),
-      $container->get('entity.manager')->getStorage('image_style'),
+      $container->get('entity_type.manager')->getStorage('responsive_image_style'),
+      $container->get('entity_type.manager')->getStorage('image_style'),
       $container->get('link_generator'),
       $container->get('current_user')
     );
@@ -205,7 +206,7 @@ class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFa
     if ($this->getSetting('image_link') == 'content') {
       $entity = $items->getEntity();
       if (!$entity->isNew()) {
-        $url = $entity->urlInfo();
+        $url = $entity->toUrl();
       }
     }
     elseif ($this->getSetting('image_link') == 'file') {
@@ -227,9 +228,10 @@ class ResponsiveImageFormatter extends ImageFormatterBase implements ContainerFa
     }
 
     foreach ($files as $delta => $file) {
+      assert($file instanceof FileInterface);
       // Link the <picture> element to the original file.
       if (isset($link_file)) {
-        $url = file_url_transform_relative(file_create_url($file->getFileUri()));
+        $url = $file->createFileUrl();
       }
       // Extract field item attributes for the theme function, and unset them
       // from the $item so that the field template does not re-render them.

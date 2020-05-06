@@ -4,7 +4,7 @@ namespace Drupal\Tests\taxonomy\Kernel;
 
 use Drupal\taxonomy\Entity\Term;
 use Drupal\KernelTests\KernelTestBase;
-use Drupal\Tests\taxonomy\Functional\TaxonomyTestTrait;
+use Drupal\Tests\taxonomy\Traits\TaxonomyTestTrait;
 
 /**
  * Kernel tests for taxonomy term functions.
@@ -30,19 +30,15 @@ class TermKernelTest extends KernelTestBase {
   }
 
   /**
-   * Deleting terms should also remove related vocabulary.
-   * Deleting an invalid term should silently fail.
+   * Tests that a deleted term is no longer in the vocabulary.
    */
   public function testTermDelete() {
     $vocabulary = $this->createVocabulary();
     $valid_term = $this->createTerm($vocabulary);
     // Delete a valid term.
     $valid_term->delete();
-    $terms = entity_load_multiple_by_properties('taxonomy_term', ['vid' => $vocabulary->id()]);
+    $terms = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['vid' => $vocabulary->id()]);
     $this->assertTrue(empty($terms), 'Vocabulary is empty after deletion');
-
-    // Delete an invalid term. Should not throw any notices.
-    entity_delete_multiple('taxonomy_term', [42]);
   }
 
   /**
@@ -58,7 +54,7 @@ class TermKernelTest extends KernelTestBase {
     $child_term_id = $child_term->id();
 
     $parent_term1->delete();
-    $term_storage = $this->container->get('entity.manager')->getStorage('taxonomy_term');
+    $term_storage = $this->container->get('entity_type.manager')->getStorage('taxonomy_term');
     $term_storage->resetCache([$child_term_id]);
     $child_term = Term::load($child_term_id);
     $this->assertTrue(!empty($child_term), 'Child term is not deleted if only one of its parents is removed.');
@@ -81,7 +77,7 @@ class TermKernelTest extends KernelTestBase {
     }
 
     // Get the taxonomy storage.
-    $taxonomy_storage = $this->container->get('entity.manager')->getStorage('taxonomy_term');
+    $taxonomy_storage = $this->container->get('entity_type.manager')->getStorage('taxonomy_term');
 
     // Set the weight on $term[1] so it appears before $term[5] when fetching
     // the parents for $term[2], in order to test for a regression on
@@ -131,7 +127,7 @@ class TermKernelTest extends KernelTestBase {
     $this->assertEqual(1, $depth_count[3], 'One element in taxonomy tree depth 3.');
 
     /** @var \Drupal\taxonomy\TermStorageInterface $storage */
-    $storage = \Drupal::entityManager()->getStorage('taxonomy_term');
+    $storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
     // Count parents of $term[2].
     $parents = $storage->loadParents($term[2]->id());
     $this->assertEqual(2, count($parents), 'The term has two parents.');
@@ -147,6 +143,29 @@ class TermKernelTest extends KernelTestBase {
     // Identify all ancestors of $term[3].
     $ancestors = $storage->loadAllParents($term[3]->id());
     $this->assertEqual(5, count($ancestors), 'The term has five ancestors including the term itself.');
+  }
+
+  /**
+   * Tests that a Term is renderable when unsaved (preview).
+   */
+  public function testTermPreview() {
+    $entity_manager = \Drupal::entityTypeManager();
+    $vocabulary = $this->createVocabulary();
+
+    // Create a unsaved term.
+    $term = $entity_manager->getStorage('taxonomy_term')->create([
+      'vid' => $vocabulary->id(),
+      'name' => 'Inator',
+    ]);
+
+    // Confirm we can get the view of unsaved term.
+    $render_array = $entity_manager->getViewBuilder('taxonomy_term')
+      ->view($term);
+    $this->assertTrue(!empty($render_array), 'Term view builder is built.');
+
+    // Confirm we can render said view.
+    $rendered = \Drupal::service('renderer')->renderPlain($render_array);
+    $this->assertTrue(!empty(trim($rendered)), 'Term is able to be rendered.');
   }
 
 }

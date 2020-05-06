@@ -12,7 +12,6 @@ class ContextDefinition implements ContextDefinitionInterface {
 
   use DependencySerializationTrait {
     __sleep as traitSleep;
-    __wakeup as traitWakeup;
   }
 
   use TypedDataTrait;
@@ -243,6 +242,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   public function getConstraints() {
     // If the backwards compatibility layer is present, delegate to that.
+    $this->initializeEntityContextDefinition();
     if ($this->entityContextDefinition) {
       return $this->entityContextDefinition->getConstraints();
     }
@@ -256,6 +256,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   public function getConstraint($constraint_name) {
     // If the backwards compatibility layer is present, delegate to that.
+    $this->initializeEntityContextDefinition();
     if ($this->entityContextDefinition) {
       return $this->entityContextDefinition->getConstraint($constraint_name);
     }
@@ -269,6 +270,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   public function setConstraints(array $constraints) {
     // If the backwards compatibility layer is present, delegate to that.
+    $this->initializeEntityContextDefinition();
     if ($this->entityContextDefinition) {
       $this->entityContextDefinition->setConstraints($constraints);
     }
@@ -282,6 +284,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   public function addConstraint($constraint_name, $options = NULL) {
     // If the backwards compatibility layer is present, delegate to that.
+    $this->initializeEntityContextDefinition();
     if ($this->entityContextDefinition) {
       $this->entityContextDefinition->addConstraint($constraint_name, $options);
     }
@@ -313,13 +316,35 @@ class ContextDefinition implements ContextDefinitionInterface {
   }
 
   /**
+   * Checks if this definition's data type matches that of the given context.
+   *
+   * @param \Drupal\Core\Plugin\Context\ContextInterface $context
+   *   The context to test against.
+   *
+   * @return bool
+   *   TRUE if the data types match, otherwise FALSE.
+   */
+  protected function dataTypeMatches(ContextInterface $context) {
+    $this_type = $this->getDataType();
+    $that_type = $context->getContextDefinition()->getDataType();
+
+    return (
+      // 'any' means all data types are supported.
+      $this_type === 'any' ||
+      $this_type === $that_type ||
+      // Allow a more generic data type like 'entity' to be fulfilled by a more
+      // specific data type like 'entity:user'. However, if this type is more
+      // specific, do not consider a more generic type to be a match.
+      strpos($that_type, "$this_type:") === 0
+    );
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function isSatisfiedBy(ContextInterface $context) {
     $definition = $context->getContextDefinition();
-    // If the data types do not match, this context is invalid unless the
-    // expected data type is any, which means all data types are supported.
-    if ($this->getDataType() != 'any' && $definition->getDataType() != $this->getDataType()) {
+    if (!$this->dataTypeMatches($context)) {
       return FALSE;
     }
 
@@ -329,6 +354,7 @@ class ContextDefinition implements ContextDefinitionInterface {
       $values = [$context->getContextData()];
     }
     elseif ($definition instanceof self) {
+      $this->initializeEntityContextDefinition();
       if ($this->entityContextDefinition) {
         $values = $this->entityContextDefinition->getSampleValues();
       }
@@ -380,6 +406,7 @@ class ContextDefinition implements ContextDefinitionInterface {
    */
   protected function getConstraintObjects() {
     // If the backwards compatibility layer is present, delegate to that.
+    $this->initializeEntityContextDefinition();
     if ($this->entityContextDefinition) {
       return $this->entityContextDefinition->getConstraintObjects();
     }
@@ -403,17 +430,6 @@ class ContextDefinition implements ContextDefinitionInterface {
   }
 
   /**
-   * Implements magic __wakeup() method.
-   */
-  public function __wakeup() {
-    $this->traitWakeup();
-
-    if (strpos($this->getDataType(), 'entity:') === 0) {
-      $this->initializeEntityContextDefinition();
-    }
-  }
-
-  /**
    * Initializes $this->entityContextDefinition for backwards compatibility.
    *
    * This method should be kept private so that it is only accessible to this
@@ -422,14 +438,16 @@ class ContextDefinition implements ContextDefinitionInterface {
    * @deprecated
    */
   private function initializeEntityContextDefinition() {
-    $this->entityContextDefinition = EntityContextDefinition::create()
-      ->setDataType($this->getDataType())
-      ->setLabel($this->getLabel())
-      ->setRequired($this->isRequired())
-      ->setMultiple($this->isMultiple())
-      ->setDescription($this->getDescription())
-      ->setConstraints($this->getConstraints())
-      ->setDefaultValue($this->getDefaultValue());
+    if (!$this instanceof EntityContextDefinition && strpos($this->getDataType(), 'entity:') === 0 && !$this->entityContextDefinition) {
+      $this->entityContextDefinition = EntityContextDefinition::create()
+        ->setDataType($this->getDataType())
+        ->setLabel($this->getLabel())
+        ->setRequired($this->isRequired())
+        ->setMultiple($this->isMultiple())
+        ->setDescription($this->getDescription())
+        ->setConstraints($this->constraints)
+        ->setDefaultValue($this->getDefaultValue());
+    }
   }
 
 }

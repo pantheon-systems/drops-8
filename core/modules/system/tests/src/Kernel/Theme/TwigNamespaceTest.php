@@ -3,6 +3,7 @@
 namespace Drupal\Tests\system\Kernel\Theme;
 
 use Drupal\KernelTests\KernelTestBase;
+use Twig\TemplateWrapper;
 
 /**
  * Tests Twig namespaces.
@@ -25,7 +26,7 @@ class TwigNamespaceTest extends KernelTestBase {
 
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(['test_theme', 'bartik']);
+    \Drupal::service('theme_installer')->install(['test_theme', 'bartik']);
     $this->twig = \Drupal::service('twig');
   }
 
@@ -33,7 +34,7 @@ class TwigNamespaceTest extends KernelTestBase {
    * Checks to see if a value is a twig template.
    */
   public function assertTwigTemplate($value, $message = '', $group = 'Other') {
-    $this->assertTrue($value instanceof \Twig_Template, $message, $group);
+    $this->assertTrue($value instanceof TemplateWrapper, $message, $group);
   }
 
   /**
@@ -41,10 +42,10 @@ class TwigNamespaceTest extends KernelTestBase {
    */
   public function testTemplateDiscovery() {
     // Tests resolving namespaced templates in modules.
-    $this->assertTwigTemplate($this->twig->resolveTemplate('@node/node.html.twig'), 'Found node.html.twig in node module.');
+    $this->assertTwigTemplate($this->twig->load('@node/node.html.twig'), 'Found node.html.twig in node module.');
 
     // Tests resolving namespaced templates in themes.
-    $this->assertTwigTemplate($this->twig->resolveTemplate('@bartik/page.html.twig'), 'Found page.html.twig in Bartik theme.');
+    $this->assertTwigTemplate($this->twig->load('@bartik/page.html.twig'), 'Found page.html.twig in Bartik theme.');
   }
 
   /**

@@ -24,7 +24,8 @@ class WebformUiAccess {
    *   The access result.
    */
   public static function checkWebformSourceAccess(WebformInterface $webform, AccountInterface $account) {
-    return AccessResult::allowedIf($webform->access('update', $account) && $account->hasPermission('edit webform source'));
+    return $webform->access('update', $account, TRUE)
+      ->andIf(AccessResult::allowedIfHasPermission($account, 'edit webform source'));
   }
 
   /**
@@ -39,7 +40,8 @@ class WebformUiAccess {
    *   The access result.
    */
   public static function checkWebformOptionSourceAccess(WebformOptionsInterface $webform_options, AccountInterface $account) {
-    return AccessResult::allowedIf($webform_options->access('update', $account) && $account->hasPermission('edit webform source'));
+    return $webform_options->access('update', $account, TRUE)
+      ->andIf(AccessResult::allowedIfHasPermission($account, 'edit webform source'));
   }
 
   /**
@@ -54,7 +56,31 @@ class WebformUiAccess {
    *   The access result.
    */
   public static function checkWebformEditAccess(WebformInterface $webform, AccountInterface $account) {
-    return AccessResult::allowedIf($webform->access('update', $account));
+    return $webform->access('update', $account, TRUE);
+  }
+
+  /**
+   * Check that webform element type can be added by a user.
+   *
+   * @param \Drupal\webform\WebformInterface $webform
+   *   A webform.
+   * @param string $type
+   *   An element type.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Run access checks for this account.
+   *
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
+   */
+  public static function checkWebformElementAccess(WebformInterface $webform, $type, AccountInterface $account) {
+    /** @var \Drupal\webform\Plugin\WebformElementManagerInterface $element_manager */
+    $element_manager = \Drupal::service('plugin.manager.webform.element');
+
+    $access = $webform->access('update', $account, TRUE);
+    $access = $access->andIf(!$element_manager->isExcluded($type) ? AccessResult::allowed() : AccessResult::forbidden());
+    $access->addCacheableDependency($webform);
+    $access->addCacheableDependency(\Drupal::config('webform.settings'));
+    return $access;
   }
 
 }

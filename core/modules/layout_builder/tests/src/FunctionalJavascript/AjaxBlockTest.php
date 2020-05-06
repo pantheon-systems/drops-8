@@ -26,6 +26,11 @@ class AjaxBlockTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
     $user = $this->drupalCreateUser([
@@ -63,13 +68,13 @@ class AjaxBlockTest extends WebDriverTestBase {
     $this->drupalPostForm("$field_ui_prefix/display/default", ['layout[enabled]' => TRUE], 'Save');
     $assert_session->linkExists('Manage layout');
     $this->clickLink('Manage layout');
-    $assert_session->addressEquals("$field_ui_prefix/display-layout/default");
+    $assert_session->addressEquals("$field_ui_prefix/display/default/layout");
     // The body field is present.
     $assert_session->elementExists('css', '.field--name-body');
 
     // Add a new block.
-    $assert_session->linkExists('Add Block');
-    $this->clickLink('Add Block');
+    $assert_session->linkExists('Add block');
+    $this->clickLink('Add block');
     $assert_session->assertWaitOnAjaxRequest();
     $assert_session->linkExists('TestAjax');
     $this->clickLink('TestAjax');
@@ -86,7 +91,7 @@ class AjaxBlockTest extends WebDriverTestBase {
       }
     }
     // Then add the block.
-    $page->pressButton('Add Block');
+    $page->pressButton('Add block');
     $assert_session->assertWaitOnAjaxRequest();
     $block_elements = $this->cssSelect('.block-layout-builder-test-testajax');
     // Should be exactly one of these in there.

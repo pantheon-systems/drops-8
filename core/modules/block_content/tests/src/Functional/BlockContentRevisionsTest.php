@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\block_content\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\block_content\Entity\BlockContent;
 use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
@@ -12,6 +13,11 @@ use Drupal\user\UserInterface;
  * @group block_content
  */
 class BlockContentRevisionsTest extends BlockContentTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Stores blocks created during the test.
@@ -74,7 +80,7 @@ class BlockContentRevisionsTest extends BlockContentTestBase {
         ->getStorage('block_content')
         ->loadRevision($revision_id);
       // Verify revision log is the same.
-      $this->assertEqual($loaded->getRevisionLogMessage(), $logs[$delta], format_string('Correct log message found for revision @revision', [
+      $this->assertEqual($loaded->getRevisionLogMessage(), $logs[$delta], new FormattableMarkup('Correct log message found for revision @revision', [
         '@revision' => $loaded->getRevisionId(),
       ]));
       if ($delta > 0) {

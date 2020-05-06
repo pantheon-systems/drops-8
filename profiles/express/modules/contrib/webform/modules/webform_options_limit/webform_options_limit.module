@@ -1,0 +1,49 @@
+<?php
+
+/**
+ * @file
+ * Allows elements with options (i.e. select, checkboxes, and radios) to have option specific submission limits.
+ */
+
+/**
+ * Implements hook_webform_help_info().
+ */
+function webform_options_limit_webform_help_info() {
+  $help['webform_options_limit'] = [
+    'group' => 'forms',
+    'title' => t('Options limit'),
+    'content' => t("The <strong>Options</strong> page displays a summary of the webform's options limits."),
+    'routes' => [
+      // @see /admin/structure/webform/manage/{webform}/results/options-limit
+      'entity.webform_options_limit.summary',
+      // @see /node/{node}/webform/results/options-limit
+      'entity.node.webform_options_limit.summary',
+    ],
+  ];
+
+  return $help;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function webform_options_limit_theme() {
+  return [
+    'webform_handler_options_limit_summary' => [
+      'variables' => ['settings' => NULL, 'handler' => []],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_local_tasks_alter().
+ */
+function webform_options_limit_local_tasks_alter(&$local_tasks) {
+  // Remove webform node results import if the webform_node.module
+  // is not installed.
+  if (!\Drupal::moduleHandler()->moduleExists('webform_node')) {
+    unset(
+      $local_tasks['entity.node.webform_options_limit.summary']
+    );
+  }
+}

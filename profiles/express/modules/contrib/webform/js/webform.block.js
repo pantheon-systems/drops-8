@@ -34,7 +34,7 @@
        *   A string with the summary.
        */
       function selectSummary(context) {
-        return $(context).find('#edit-visibility-webform-webforms option:selected').map(function () { return this.text; }).get().join(', ') || Drupal.t('Not restricted');
+        return $(context).find('#edit-visibility-webform-webforms option:selected').map(function () { return Drupal.checkPlain(this.text); }).get().join(', ') || Drupal.t('Not restricted');
       }
 
       $('[data-drupal-selector="edit-visibility-webform"]').drupalSetSummary(selectSummary);

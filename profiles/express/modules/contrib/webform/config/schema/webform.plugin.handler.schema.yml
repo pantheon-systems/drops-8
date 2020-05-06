@@ -1,0 +1,221 @@
+'webform.handler.*':
+  type: mapping
+  label: 'Handler settings'
+webform.handler.action:
+  type: mapping
+  label: Action
+  mapping:
+    states:
+      type: sequence
+      label: States
+      sequence:
+        type: string
+        label: State
+    notes:
+      label: Notes
+      type: text
+    sticky:
+      label: Flag
+      type: boolean
+    locked:
+      label: Locked
+      type: boolean
+    data:
+      label: Data
+      type: text
+    message:
+      label: Message
+      type: text
+    message_type:
+      label: 'Message type'
+      type: string
+    debug:
+      type: boolean
+      label: 'Enable debugging'
+webform.handler.log:
+  type: mapping
+  label: Log
+  mapping: {  }
+webform.handler.email:
+  type: mapping
+  label: Email
+  mapping:
+    states:
+      type: sequence
+      label: States
+      sequence:
+        type: string
+        label: State
+    to_mail:
+      label: 'Email to address'
+      type: email
+    to_options:
+      label: 'Email to address options'
+      type: ignore
+    bcc_mail:
+      label: 'Email BCC address'
+      type: email
+    bcc_options:
+      label: 'Email BCC address options'
+      type: ignore
+    cc_mail:
+      label: 'Email CC address'
+      type: email
+    cc_options:
+      label: 'Email CC address options'
+      type: ignore
+    from_mail:
+      label: 'Email from address'
+      type: email
+    from_options:
+      label: 'Email from address options'
+      type: ignore
+    from_name:
+      label: 'Email from name'
+      type: label
+    reply_to:
+      type: label
+      label: 'Reply to email'
+    return_path:
+      type: label
+      label: 'Return path email'
+    sender_mail:
+      type: email
+      label: 'Sender email'
+    sender_name:
+      type: label
+      label: 'Sender name'
+    subject:
+      label: 'Email subject'
+      type: label
+    body:
+      label: 'Email body'
+      type: text
+    excluded_elements:
+      type: sequence
+      label: 'Exclude elements'
+      sequence:
+        type: string
+        label: 'Element key'
+    ignore_access:
+      type: boolean
+      label: 'Always include private and restricted access elements.'
+    exclude_empty:
+      type: boolean
+      label: 'Exclude empty elements'
+    exclude_empty_checkbox:
+      type: boolean
+      label: 'Exclude unselected checkboxes'
+    exclude_attachments:
+      type: boolean
+      label: 'Exclude file attachments'
+    html:
+      type: boolean
+      label: HTML
+    attachments:
+      type: boolean
+      label: Attachments
+    twig:
+      type: boolean
+      label: Twig
+    theme_name:
+      type: string
+      label: 'Theme name'
+    parameters:
+      label: 'Parameters'
+      type: ignore
+    debug:
+      type: boolean
+      label: 'Enable debugging'
+webform.handler.remote_post:
+  type: mapping
+  label: 'Remote Post'
+  mapping:
+    method:
+      label: Method
+      type: string
+    type:
+      label: Type
+      type: string
+    excluded_data:
+      type: sequence
+      label: 'Excluded data'
+      sequence:
+        type: string
+        label: 'Data name'
+    custom_data:
+      label: 'Custom data'
+      type: string
+    custom_options:
+      label: 'Custom options'
+      type: string
+    cast:
+      type: boolean
+      label: 'Cast remote post data'
+    debug:
+      type: boolean
+      label: 'Enable debugging'
+    completed_url:
+      label: 'Completed URL'
+      type: uri
+    completed_custom_data:
+      label: 'Completed custom data'
+      type: string
+    updated_url:
+      label: 'Updated URL'
+      type: uri
+    updated_custom_data:
+      label: 'Updated custom data'
+      type: string
+    deleted_url:
+      label: 'Deleted URL'
+      type: uri
+    deleted_custom_data:
+      label: 'Deleted custom data'
+      type: string
+    draft_created_url:
+      label: 'Draft created URL'
+      type: uri
+    draft_created_custom_data:
+      label: 'Draft created custom data'
+      type: string
+    draft_updated_url:
+      label: 'Draft updated URL'
+      type: uri
+    draft_updated_custom_data:
+      label: 'Draft updated custom data'
+      type: string
+    converted_url:
+      label: 'Converted URL'
+      type: uri
+    converted_custom_data:
+      label: 'Converted custom data'
+      type: string
+    message:
+      type: text
+      label: 'Error response message'
+    messages:
+      label: 'Error response messages'
+      type: sequence
+      sequence:
+        type: mapping
+        label: Message
+        mapping:
+          code:
+            type: integer
+            label: 'Response status code'
+          message:
+            type: text
+            label: 'Response message'
+    error_url:
+      label: 'Error response redirect URL'
+      type: string
+# Setting copied from webform.webform.*.
+# @see webform_config_schema_info_alter()
+webform.handler.settings:
+  type: mapping
+  label: Settings
+  mapping:
+    debug:
+      type: string
+      label: 'Enable debugging'

@@ -40,10 +40,10 @@ class OptionsFieldTest extends OptionsFieldUnitTestBase {
     $this->fieldStorage->setSetting('allowed_values', [2 => 'Two']);
     try {
       $this->fieldStorage->save();
-      $this->fail(t('Cannot update a list field storage to not include keys with existing data.'));
+      $this->fail('Cannot update a list field storage to not include keys with existing data.');
     }
     catch (FieldStorageDefinitionUpdateForbiddenException $e) {
-      $this->pass(t('Cannot update a list field storage to not include keys with existing data.'));
+      $this->pass('Cannot update a list field storage to not include keys with existing data.');
     }
     // Empty the value, so that we can actually remove the option.
     unset($entity->{$this->fieldName});
@@ -80,7 +80,8 @@ class OptionsFieldTest extends OptionsFieldUnitTestBase {
       'bundle' => 'entity_test',
       'required' => TRUE,
     ])->save();
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    \Drupal::service('entity_display.repository')
+      ->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($this->fieldName, [
         'type' => 'options_buttons',
       ])

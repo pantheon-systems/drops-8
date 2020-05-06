@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Element date styles.
+ */
+
+.ui-datepicker-trigger {
+  margin: 0 2px;
+}
+
+.form-item.form-type-datetime .container-inline,
+.form-item.form-type-datelist .container-inline {
+  display: inline-block;
+}

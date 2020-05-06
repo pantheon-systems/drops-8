@@ -3,8 +3,8 @@
 namespace Drupal\Tests\views\FunctionalJavascript;
 
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
-use Drupal\simpletest\ContentTypeCreationTrait;
-use Drupal\simpletest\NodeCreationTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\node\Traits\NodeCreationTrait;
 use Drupal\views\Tests\ViewTestData;
 
 /**
@@ -21,6 +21,11 @@ class ClickSortingAJAXTest extends WebDriverTestBase {
    * {@inheritdoc}
    */
   public static $modules = ['node', 'views', 'views_test_config'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   public static $testViews = ['test_content_ajax'];
 

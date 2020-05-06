@@ -3,9 +3,9 @@
 namespace Drupal\Tests\content_moderation\Functional;
 
 use Drupal\node\Entity\Node;
-use Drupal\simpletest\ContentTypeCreationTrait;
 use Drupal\Tests\BrowserTestBase;
 use Drupal\Tests\content_moderation\Traits\ContentModerationTestTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 
 /**
  * Test the content moderation actions.
@@ -27,6 +27,11 @@ class ModerationActionsTest extends BrowserTestBase {
     'node',
     'views',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * {@inheritdoc}

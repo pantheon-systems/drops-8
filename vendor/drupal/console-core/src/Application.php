@@ -2,7 +2,9 @@
 
 namespace Drupal\Console\Core;
 
+use Drupal\Console\Core\EventSubscriber\SendStatisticsListener;
 use Drupal\Console\Core\EventSubscriber\RemoveMessagesListener;
+use Drupal\Console\Core\EventSubscriber\SaveStatisticsListener;
 use Drupal\Console\Core\EventSubscriber\ShowGenerateCountCodeLinesListener;
 use Drupal\Console\Core\Utils\TranslatorManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -20,6 +22,7 @@ use Drupal\Console\Core\EventSubscriber\ValidateExecutionListener;
 use Drupal\Console\Core\EventSubscriber\ShowGeneratedFilesListener;
 use Drupal\Console\Core\EventSubscriber\ShowGenerateInlineListener;
 use Drupal\Console\Core\EventSubscriber\CallCommandListener;
+use Drupal\Console\Core\EventSubscriber\MaintenanceModeListener;
 use Drupal\Console\Core\Utils\ConfigurationManager;
 use Drupal\Console\Core\Style\DrupalStyle;
 use Drupal\Console\Core\Utils\ChainDiscovery;
@@ -305,10 +308,34 @@ class Application extends BaseApplication
             );
 
             $dispatcher->addSubscriber(
+                new SaveStatisticsListener(
+                    $this->container->get('console.count_code_lines'),
+                    $this->container->get('console.configuration_manager'),
+                    $this->container->get('console.translator_manager')
+                )
+            );
+
+            $dispatcher->addSubscriber(
+                new SendStatisticsListener(
+                    $this->container->get('console.configuration_manager'),
+                    $this->container->get('console.translator_manager')
+                )
+            );
+
+            $dispatcher->addSubscriber(
                 new RemoveMessagesListener(
                     $this->container->get('console.message_manager')
                 )
             );
+
+            if($this->container->has('state')) {
+                $dispatcher->addSubscriber(
+                    new MaintenanceModeListener(
+                        $this->container->get('console.translator_manager'),
+                        $this->container->get('state')
+                    )
+                );
+            }
 
             $this->setDispatcher($dispatcher);
             $this->eventRegistered = true;
@@ -664,7 +691,7 @@ class Application extends BaseApplication
             ->loadExtendConfiguration();
     }
 
-    public function getData()
+    public function getData($filterNamespaces = null, $excludeNamespaces = [], $excludeChainCommands = false)
     {
         $singleCommands = [
             'about',
@@ -676,7 +703,8 @@ class Application extends BaseApplication
             'init',
             'list',
             'shell',
-            'server'
+            'server',
+            'snippet'
         ];
 
         $languages = $this->container->get('console.configuration_manager')
@@ -684,8 +712,11 @@ class Application extends BaseApplication
             ->get('application.languages');
 
         $data = [];
-        foreach ($singleCommands as $singleCommand) {
-            $data['commands']['misc'][] = $this->commandData($singleCommand);
+        // Exclude misc if it is inside the $excludeNamespaces array.
+        if (!in_array('misc', $excludeNamespaces)) {
+            foreach ($singleCommands as $singleCommand) {
+                $data['commands']['misc'][] = $this->commandData($singleCommand);
+            }
         }
 
         $namespaces = array_filter(
@@ -693,8 +724,17 @@ class Application extends BaseApplication
                 return (strpos($item, ':')<=0);
             }
         );
+
         sort($namespaces);
         array_unshift($namespaces, 'misc');
+
+        // Exclude specific namespaces
+        $namespaces = array_diff($namespaces, $excludeNamespaces);
+
+        // filter namespaces if available
+        if ($filterNamespaces) {
+            $namespaces = array_intersect($namespaces, $filterNamespaces);
+        }
 
         foreach ($namespaces as $namespace) {
             $commands = $this->all($namespace);
@@ -705,6 +745,11 @@ class Application extends BaseApplication
             );
 
             foreach ($commands as $command) {
+                // Exclude command if is a chain command and was requested to exclude chain commands
+                if ($excludeChainCommands && $command instanceof ChainCustomCommand) {
+                    continue;
+                }
+
                 if (method_exists($command, 'getModule')) {
                     if ($command->getModule() == 'Console') {
                         $data['commands'][$namespace][] = $this->commandData(
@@ -718,6 +763,13 @@ class Application extends BaseApplication
                 }
             }
         }
+
+        // Remove namepsaces without commands
+        $namespaces = array_filter(
+            $namespaces, function ($namespace) use ($data) {
+                return count($data['commands'][$namespace]) > 0;
+            }
+        );
 
         $input = $this->getDefinition();
         $options = [];
@@ -735,25 +787,32 @@ class Application extends BaseApplication
             ];
         }
 
-        $data['application'] = [
-            'namespaces' => $namespaces,
-            'options' => $options,
-            'arguments' => $arguments,
-            'languages' => $languages,
-            'messages' => [
-                'title' => $this->trans('application.gitbook.messages.title'),
-                'note' =>  $this->trans('application.gitbook.messages.note'),
-                'note_description' =>  $this->trans('application.gitbook.messages.note-description'),
-                'command' =>  $this->trans('application.gitbook.messages.command'),
-                'options' => $this->trans('application.gitbook.messages.options'),
-                'option' => $this->trans('application.gitbook.messages.option'),
-                'details' => $this->trans('application.gitbook.messages.details'),
-                'arguments' => $this->trans('application.gitbook.messages.arguments'),
-                'argument' => $this->trans('application.gitbook.messages.argument'),
-                'examples' => $this->trans('application.gitbook.messages.examples')
-            ],
-            'examples' => []
-        ];
+        //Add default Language
+        $language = $this->container->get('console.translator_manager')->getLanguage();
+        $data['default_language'] = $language;
+
+        // Exclude application if it is inside the $excludeNamespaces array.
+        if (!in_array('application', $excludeNamespaces)) {
+            $data['application'] = [
+                'namespaces' => $namespaces,
+                'options' => $options,
+                'arguments' => $arguments,
+                'languages' => $languages,
+                'messages' => [
+                    'title' => $this->trans('application.gitbook.messages.title'),
+                    'note' =>  $this->trans('application.gitbook.messages.note'),
+                    'note_description' =>  $this->trans('application.gitbook.messages.note-description'),
+                    'command' =>  $this->trans('application.gitbook.messages.command'),
+                    'options' => $this->trans('application.gitbook.messages.options'),
+                    'option' => $this->trans('application.gitbook.messages.option'),
+                    'details' => $this->trans('application.gitbook.messages.details'),
+                    'arguments' => $this->trans('application.gitbook.messages.arguments'),
+                    'argument' => $this->trans('application.gitbook.messages.argument'),
+                    'examples' => $this->trans('application.gitbook.messages.examples')
+                ],
+                'examples' => []
+            ];
+        }
 
         return $data;
     }
@@ -860,7 +919,8 @@ class Application extends BaseApplication
     /**
      * Add Drupal system messages.
      */
-    protected function addDrupalMessages($messageManager) {
+    protected function addDrupalMessages($messageManager)
+    {
         if (function_exists('drupal_get_messages')) {
             $drupalMessages = drupal_get_messages();
             foreach ($drupalMessages as $type => $messages) {
@@ -881,13 +941,14 @@ class Application extends BaseApplication
      * @return string
      *   Name of the method
      */
-    protected function getMessageMethod($type) {
+    protected function getMessageMethod($type)
+    {
         $methodName = 'info';
         switch ($type) {
-            case 'error':
-            case 'warning':
-                $methodName = $type;
-                break;
+        case 'error':
+        case 'warning':
+            $methodName = $type;
+            break;
         }
 
         return $methodName;

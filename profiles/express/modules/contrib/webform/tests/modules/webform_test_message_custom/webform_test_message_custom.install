@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Webform Test Message Custom module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_test_message_custom_install() {
+  /** @var \Drupal\webform\WebformHelpManagerInterface $help_manager */
+  $help_manager = \Drupal::service('webform.help_manager');
+
+  // Add warning notification.
+  $help_manager->addNotification('webform_test_message_custom_install_warning', t('This is a warning notification.'), 'warning');
+
+  // Add info notification.
+  $info = [
+    '#theme' => 'item_list',
+    '#title' => t('This is an info notification.'),
+    '#items' => [
+      t('One'),
+      t('Two'),
+      t('Three'),
+    ],
+  ];
+  $help_manager->addNotification('webform_test_message_custom_install_info', $info, 'info');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_test_message_custom_uninstall() {
+  \Drupal::state()->delete('webform_test_message_custom');
+}

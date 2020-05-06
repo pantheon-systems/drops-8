@@ -3,7 +3,6 @@
 namespace Drupal\Tests\rdf\Unit;
 
 use Drupal\Core\DependencyInjection\ContainerBuilder;
-use Drupal\Core\Entity\EntityManager;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Tests\UnitTestCase;
 use Drupal\rdf\Entity\RdfMapping;
@@ -17,21 +16,14 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
   /**
    * The entity type used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityType;
 
   /**
-   * The entity manager used for testing.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface|\PHPUnit_Framework_MockObject_MockObject
-   */
-  protected $entityManager;
-
-  /**
    * The entity type manager used for testing.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $entityTypeManager;
 
@@ -45,7 +37,7 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
   /**
    * The UUID generator used for testing.
    *
-   * @var \Drupal\Component\Uuid\UuidInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Component\Uuid\UuidInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $uuid;
 
@@ -55,21 +47,18 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
   protected function setUp() {
     $this->entityTypeId = $this->randomMachineName();
 
-    $this->entityType = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
+    $this->entityType = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue('entity'));
 
-    $this->entityManager = new EntityManager();
-    $this->entityTypeManager = $this->getMock(EntityTypeManagerInterface::class);
+    $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
 
-    $this->uuid = $this->getMock('\Drupal\Component\Uuid\UuidInterface');
+    $this->uuid = $this->createMock('\Drupal\Component\Uuid\UuidInterface');
 
     $container = new ContainerBuilder();
-    $container->set('entity.manager', $this->entityManager);
     $container->set('entity_type.manager', $this->entityTypeManager);
     $container->set('uuid', $this->uuid);
-    $this->entityManager->setContainer($container);
     \Drupal::setContainer($container);
 
   }
@@ -80,7 +69,7 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
   public function testCalculateDependencies() {
     $target_entity_type_id = $this->randomMachineName(16);
 
-    $target_entity_type = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
+    $target_entity_type = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $target_entity_type->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue('test_module'));
@@ -88,6 +77,9 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
     $target_entity_type->expects($this->any())
       ->method('getBundleEntityType')
       ->will($this->returnValue(NULL));
+    $target_entity_type->expects($this->any())
+      ->method('getBundleConfigDependency')
+      ->will($this->returnValue(['type' => 'module', 'name' => 'test_module']));
 
     $this->entityTypeManager->expects($this->at(0))
       ->method('getDefinition')
@@ -97,7 +89,10 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
       ->method('getDefinition')
       ->with($this->entityTypeId)
       ->will($this->returnValue($this->entityType));
-
+    $this->entityTypeManager->expects($this->at(2))
+      ->method('getDefinition')
+      ->with($this->entityTypeId)
+      ->will($this->returnValue($this->entityType));
     $entity = new RdfMapping($values, $this->entityTypeId);
     $dependencies = $entity->calculateDependencies()->getDependencies();
     $this->assertArrayNotHasKey('config', $dependencies);
@@ -109,7 +104,7 @@ class RdfMappingConfigEntityUnitTest extends UnitTestCase {
    */
   public function testCalculateDependenciesWithEntityBundle() {
     $target_entity_type_id = $this->randomMachineName(16);
-    $target_entity_type = $this->getMock('\Drupal\Core\Entity\EntityTypeInterface');
+    $target_entity_type = $this->createMock('\Drupal\Core\Entity\EntityTypeInterface');
     $target_entity_type->expects($this->any())
       ->method('getProvider')
       ->will($this->returnValue('test_module'));

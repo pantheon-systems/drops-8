@@ -1,0 +1,36 @@
+/**
+ * @file
+ * Wizard styles.
+ */
+
+.webform-wizard-pages-links {
+  display: none;
+}
+
+/**
+  * Progress link styles.
+ */
+.webform-progress [role="link"] {
+  cursor: pointer;
+}
+
+.webform-progress .progress-title[role="link"] {
+  color: #1976d2;
+}
+
+.webform-progress .progress-title[role="link"]:hover,
+.webform-progress .progress-title[role="link"]:focus {
+  text-decoration: underline;
+  color: #2196f3;
+}
+
+/**
+  * Preview link styles.
+ */
+.webform-wizard-page-edit {
+  display: none;
+}
+
+.webform-wizard-page-edit input {
+  margin: 0;
+}

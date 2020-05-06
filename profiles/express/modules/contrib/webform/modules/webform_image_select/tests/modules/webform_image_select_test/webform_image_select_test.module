@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * @file
+ * Support module for webform that provides image select element working examples.
+ */
+
+use Drupal\webform_image_select\Entity\WebformImageSelectImages;
+
+/**
+ * Implements hook_webform_image_select_images_WEBFORM_IMAGE_SELECT_IMAGES_ID_alter().
+ */
+function webform_image_select_test_webform_image_select_images_animals_alter(array &$images, array &$element) {
+  if ($kittens = WebformImageSelectImages::load('kittens')) {
+    $images += $kittens->getImages();
+  }
+}
+
+/**
+ * Implements hook_webform_image_select_images_alter().
+ */
+function webform_image_select_test_webform_image_select_images_alter(array &$images, array &$element, $id) {
+  if ($id === 'animals' && ($bears = WebformImageSelectImages::load('bears'))) {
+    $images += $bears->getImages();
+    // Set the default value to one of the added images.
+    $element['#default_value'] = 'kitten_1';
+  }
+}

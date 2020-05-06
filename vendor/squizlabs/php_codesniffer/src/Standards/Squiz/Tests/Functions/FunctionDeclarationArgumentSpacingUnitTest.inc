@@ -33,7 +33,7 @@ function multiLineFunction(
 }
 
 $noArgs_longVars = function ($longVar1,  $longerVar2= false) use (
-    $longVar1 ,  $longerVar2= false,
+    $longVar1 ,  $longerVar2,
     $muchLongerVar3
 )  {
     // body
@@ -95,3 +95,17 @@ function x(
     ?int  $d
 ) {
 }
+
+function functionName(  ?string  $arg1 = 'foo' ,  ?int  & $arg2   ,  $arg3  ) {}
+function functionName(string $arg1,  ... $arg2) {}
+function functionName(string $arg1, int  ... $arg2) {}
+function functionName(string $arg1, & ... $arg2) {}
+
+
+$a = function ($var1, $var2=false) use (
+    $longVar1, & $longerVar1,
+    $longVar2 ,  &$longerVar2,
+    $muchLongerVar3
+) {};
+
+fn ($a,$b = null) => $a($b);

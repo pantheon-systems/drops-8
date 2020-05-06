@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Routing\RequestContext;
 
 /**
@@ -25,14 +26,14 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
   /**
    * The mocked HTTP kernel.
    *
-   * @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $kernel;
 
   /**
    * The mocked config factory
    *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Config\ConfigFactoryInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $configFactory;
 
@@ -60,13 +61,13 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
   /**
    * The mocked redirect.destination service.
    *
-   * @var \Drupal\Core\Routing\RedirectDestinationInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\Core\Routing\RedirectDestinationInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $redirectDestination;
 
   /**
    * The mocked access unaware router.
-   * @var \Symfony\Component\Routing\Matcher\UrlMatcherInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Symfony\Component\Routing\Matcher\UrlMatcherInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $accessUnawareRouter;
 
@@ -83,26 +84,26 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
   protected function setUp() {
     $this->configFactory = $this->getConfigFactoryStub(['system.site' => ['page.403' => '/access-denied-page', 'page.404' => '/not-found-page']]);
 
-    $this->kernel = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
-    $this->logger = $this->getMock('Psr\Log\LoggerInterface');
-    $this->redirectDestination = $this->getMock('\Drupal\Core\Routing\RedirectDestinationInterface');
+    $this->kernel = $this->createMock('Symfony\Component\HttpKernel\HttpKernelInterface');
+    $this->logger = $this->createMock('Psr\Log\LoggerInterface');
+    $this->redirectDestination = $this->createMock('\Drupal\Core\Routing\RedirectDestinationInterface');
     $this->redirectDestination->expects($this->any())
       ->method('getAsArray')
       ->willReturn(['destination' => 'test']);
-    $this->accessUnawareRouter = $this->getMock('Symfony\Component\Routing\Matcher\UrlMatcherInterface');
+    $this->accessUnawareRouter = $this->createMock('Symfony\Component\Routing\Matcher\UrlMatcherInterface');
     $this->accessUnawareRouter->expects($this->any())
       ->method('match')
       ->willReturn([
         '_controller' => 'mocked',
       ]);
-    $this->accessManager = $this->getMock('Drupal\Core\Access\AccessManagerInterface');
+    $this->accessManager = $this->createMock('Drupal\Core\Access\AccessManagerInterface');
     $this->accessManager->expects($this->any())
       ->method('checkNamedRoute')
       ->willReturn(AccessResult::allowed()->addCacheTags(['foo', 'bar']));
 
     $this->customPageSubscriber = new CustomPageExceptionHtmlSubscriber($this->configFactory, $this->kernel, $this->logger, $this->redirectDestination, $this->accessUnawareRouter, $this->accessManager);
 
-    $path_validator = $this->getMock('Drupal\Core\Path\PathValidatorInterface');
+    $path_validator = $this->createMock('Drupal\Core\Path\PathValidatorInterface');
     $path_validator->expects($this->any())
       ->method('getUrlIfValidWithoutAccessCheck')
       ->willReturn(Url::fromRoute('foo', ['foo' => 'bar']));
@@ -138,7 +139,7 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
       return new HtmlResponse($request->getMethod());
     }));
 
-    $event = new GetResponseForExceptionEvent($this->kernel, $request, 'foo', new NotFoundHttpException('foo'));
+    $event = new GetResponseForExceptionEvent($this->kernel, $request, HttpKernelInterface::MASTER_REQUEST, new NotFoundHttpException('foo'));
 
     $this->customPageSubscriber->onException($event);
 
@@ -165,7 +166,7 @@ class CustomPageExceptionHtmlSubscriberTest extends UnitTestCase {
       return new Response($request->getMethod() . ' ' . UrlHelper::buildQuery($request->query->all()));
     }));
 
-    $event = new GetResponseForExceptionEvent($this->kernel, $request, 'foo', new NotFoundHttpException('foo'));
+    $event = new GetResponseForExceptionEvent($this->kernel, $request, HttpKernelInterface::MASTER_REQUEST, new NotFoundHttpException('foo'));
     $this->customPageSubscriber->onException($event);
 
     $response = $event->getResponse();

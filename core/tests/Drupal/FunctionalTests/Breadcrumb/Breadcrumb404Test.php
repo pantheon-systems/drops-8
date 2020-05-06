@@ -2,7 +2,7 @@
 
 namespace Drupal\FunctionalTests\Breadcrumb;
 
-use Drupal\simpletest\BlockCreationTrait;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -18,6 +18,11 @@ class Breadcrumb404Test extends BrowserTestBase {
    * {@inheritdoc}
    */
   public static $modules = ['system', 'block'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Tests that different 404s don't create unnecessary cache entries.

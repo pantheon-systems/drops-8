@@ -8,6 +8,7 @@
  * customized by user themes.
  */
 
+use Drupal\Core\Url;
 use Drupal\Component\Serialization\Json;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Component\Utility\Html;
@@ -19,10 +20,11 @@ use Drupal\Core\Render\AttachmentsInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Template\AttributeHelper;
 use Drupal\Core\Theme\ThemeSettings;
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Utility\TableSort;
 
 /**
  * @defgroup content_flags Content markers
@@ -98,7 +100,7 @@ function theme_get_registry($complete = TRUE) {
 /**
  * Returns an array of default theme features.
  *
- * @see \Drupal\Core\Extension\ThemeHandler::$defaultFeatures
+ * @see \Drupal\Core\Extension\ThemeExtensionList::$defaults
  */
 function _system_default_theme_features() {
   return [
@@ -214,7 +216,10 @@ function drupal_find_theme_templates($cache, $extension, $path) {
   // Escape the periods in the extension.
   $regex = '/' . str_replace('.', '\.', $extension) . '$/';
   // Get a listing of all template files in the path to search.
-  $files = file_scan_directory($path, $regex, ['key' => 'filename']);
+  $files = [];
+  if (is_dir($path)) {
+    $files = \Drupal::service('file_system')->scanDirectory($path, $regex, ['key' => 'filename']);
+  }
 
   // Find templates that implement registered theme hooks and include that in
   // what is returned so that the registry knows that the theme has this
@@ -506,17 +511,19 @@ function theme_settings_convert_to_config(array $theme_settings, Config $config)
  *   - text:
  */
 function template_preprocess_time(&$variables) {
+  /** @var \Drupal\Core\Datetime\DateFormatterInterface $date_formatter */
+  $date_formatter = \Drupal::service('date.formatter');
   // Format the 'datetime' attribute based on the timestamp.
   // @see http://www.w3.org/TR/html5-author/the-time-element.html#attr-time-datetime
   if (!isset($variables['attributes']['datetime']) && isset($variables['timestamp'])) {
-    $variables['attributes']['datetime'] = format_date($variables['timestamp'], 'html_datetime', '', 'UTC');
+    $variables['attributes']['datetime'] = $date_formatter->format($variables['timestamp'], 'html_datetime', '', 'UTC');
   }
 
   // If no text was provided, try to auto-generate it.
   if (!isset($variables['text'])) {
     // Format and use a human-readable version of the timestamp, if any.
     if (isset($variables['timestamp'])) {
-      $variables['text'] = format_date($variables['timestamp']);
+      $variables['text'] = $date_formatter->format($variables['timestamp']);
     }
     // Otherwise, use the literal datetime attribute.
     elseif (isset($variables['attributes']['datetime'])) {
@@ -615,20 +622,22 @@ function template_preprocess_datetime_wrapper(&$variables) {
  *
  * @param array $variables
  *   An associative array containing:
- *   - links: An array of links to be themed. Each link should be itself an
- *     array, with the following elements:
+ *   - links: An array of links to be themed. Each link itself is an array, with
+ *     the following elements:
  *     - title: The link text.
- *     - url: (optional) The \Drupal\Core\Url object to link to. If omitted, no
- *       anchor tag is printed out.
+ *     - url: (optional) The \Drupal\Core\Url object to link to. If the 'url'
+ *       element is supplied, the 'title' and 'url' are used to generate a link
+ *       through \Drupal::linkGenerator()->generate(). All data from the link
+ *       array other than 'title' and 'url' are added as #options on
+ *       the URL object. See \Drupal\Core\Url::fromUri() for details on the
+ *       options. If no 'url' is supplied, the 'title' is printed as plain text.
  *     - attributes: (optional) Attributes for the anchor, or for the <span>
- *       tag used in its place if no 'href' is supplied. If element 'class' is
+ *       tag used in its place if no 'url' is supplied. If element 'class' is
  *       included, it must be an array of one or more class names.
- *     If the 'href' element is supplied, the entire link array is passed to
- *     l() as its $options parameter.
  *   - attributes: A keyed array of attributes for the <ul> containing the list
  *     of links.
  *   - set_active_class: (optional) Whether each link should compare the
- *     route_name + route_parameters or href (path), language and query options
+ *     route_name + route_parameters or url (path), language, and query options
  *     to the current URL, to determine whether the link is "active". If so,
  *     attributes will be added to the HTML elements for both the link and the
  *     list item that contains it, which will result in an "is-active" class
@@ -812,7 +821,7 @@ function template_preprocess_image(&$variables) {
     if (isset($variables[$key])) {
       // If the property has already been defined in the attributes,
       // do not override, including NULL.
-      if (array_key_exists($key, $variables['attributes'])) {
+      if (AttributeHelper::attributeExists($key, $variables['attributes'])) {
         continue;
       }
       $variables['attributes'][$key] = $variables[$key];
@@ -837,6 +846,8 @@ function template_preprocess_image(&$variables) {
  *     - sort: A default sort order for this column ("asc" or "desc"). Only
  *       one column should be given a default sort order because table sorting
  *       only applies to one column at a time.
+ *     - initial_click_sort: Set the initial sort of the column when clicked.
+ *       Defaults to "asc".
  *     - class: An array of values for the 'class' attribute. In particular,
  *       the least important columns that can be hidden on narrow and medium
  *       width screens should have a 'priority-low' class, referenced with the
@@ -944,7 +955,7 @@ function template_preprocess_table(&$variables) {
   $ts = [];
   $header_columns = 0;
   if (!empty($variables['header'])) {
-    $ts = tablesort_init($variables['header']);
+    $ts = TableSort::getContextFromRequest($variables['header'], \Drupal::request());
 
     // Use a separate index with responsive classes as headers
     // may be associative.
@@ -988,9 +999,10 @@ function template_preprocess_table(&$variables) {
           }
         }
 
-        tablesort_header($cell_content, $cell, $variables['header'], $ts);
+        TableSort::header($cell_content, $cell, $variables['header'], $ts);
 
-        // tablesort_header() removes the 'sort' and 'field' keys.
+        // TableSort::header() removes the 'sort', 'initial_click_sort' and
+        // 'field' keys.
         $cell_attributes = new Attribute($cell);
       }
       $variables['header'][$col_key] = [];
@@ -1118,7 +1130,7 @@ function template_preprocess_item_list(&$variables) {
             // \Drupal\Core\Render\Element::children(), which cannot be used
             // here, since it triggers an error on string values.
             foreach ($child as $child_key => $child_value) {
-              if ($child_key[0] !== '#') {
+              if (is_int($child_key) || $child_key === '' || $child_key[0] !== '#') {
                 $child['#items'][$child_key] = $child_value;
                 unset($child[$child_key]);
               }
@@ -1231,7 +1243,7 @@ function template_preprocess(&$variables, $hook, $info) {
   if (isset($info['render element'])) {
     $key = $info['render element'];
     if (isset($variables[$key]['#attributes'])) {
-      $variables['attributes'] = NestedArray::mergeDeep($variables['attributes'], $variables[$key]['#attributes']);
+      $variables['attributes'] = AttributeHelper::mergeCollections($variables['attributes'], $variables[$key]['#attributes']);
     }
   }
 }
@@ -1372,7 +1384,7 @@ function template_preprocess_page(&$variables) {
   }
 
   $variables['base_path'] = base_path();
-  $variables['front_page'] = \Drupal::url('<front>');
+  $variables['front_page'] = Url::fromRoute('<front>')->toString();
   $variables['language'] = $language_interface;
 
   // An exception might be thrown.
@@ -1566,7 +1578,7 @@ function template_preprocess_field(&$variables, $hook) {
 
   // Merge attributes when a single-value field has a hidden label.
   if ($element['#label_display'] == 'hidden' && !$variables['multiple'] && !empty($element['#items'][0]->_attributes)) {
-    $variables['attributes'] = NestedArray::mergeDeep($variables['attributes'], (array) $element['#items'][0]->_attributes);
+    $variables['attributes'] = AttributeHelper::mergeCollections($variables['attributes'], (array) $element['#items'][0]->_attributes);
   }
 
   // We want other preprocess functions and the theme implementation to have
@@ -1606,6 +1618,7 @@ function template_preprocess_field(&$variables, $hook) {
 function template_preprocess_field_multiple_value_form(&$variables) {
   $element = $variables['element'];
   $variables['multiple'] = $element['#cardinality_multiple'];
+  $variables['attributes'] = $element['#attributes'];
 
   if ($variables['multiple']) {
     $table_id = Html::getUniqueId($element['#field_name'] . '_values');

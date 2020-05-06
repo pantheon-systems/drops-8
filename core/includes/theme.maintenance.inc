@@ -5,6 +5,7 @@
  * Theming for maintenance pages.
  */
 
+use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Site\Settings;
 
 /**
@@ -31,7 +32,7 @@ function _drupal_maintenance_theme() {
 
   // Install and update pages are treated differently to prevent theming overrides.
   if (defined('MAINTENANCE_MODE') && (MAINTENANCE_MODE == 'install' || MAINTENANCE_MODE == 'update')) {
-    if (drupal_installation_attempted()) {
+    if (InstallerKernel::installationAttempted()) {
       $custom_theme = $GLOBALS['install_state']['theme'];
     }
     else {
@@ -68,7 +69,7 @@ function _drupal_maintenance_theme() {
   $theme_init = \Drupal::service('theme.initialization');
   $theme_handler = \Drupal::service('theme_handler');
   if (empty($themes) || !isset($themes[$custom_theme])) {
-    $themes = $theme_handler->rebuildThemeData();
+    $themes = \Drupal::service('extension.list.theme')->getList();
     $theme_handler->addTheme($themes[$custom_theme]);
   }
 

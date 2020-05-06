@@ -1,0 +1,10 @@
+webform.handler.example:
+  type: mapping
+  label: Example
+  mapping:
+    message:
+      label: Message
+      type: string
+    debug:
+      type: boolean
+      label: 'Enable debugging'

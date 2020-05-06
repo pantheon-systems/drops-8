@@ -5,6 +5,7 @@ namespace Drupal\Core\Plugin\Context;
 use Drupal\Component\Plugin\Definition\ContextAwarePluginDefinitionInterface;
 use Drupal\Component\Plugin\Exception\ContextException;
 use Drupal\Component\Plugin\Exception\MissingValueContextException;
+use Drupal\Component\Plugin\Exception\PluginException;
 use Drupal\Core\Cache\CacheableDependencyInterface;
 use Drupal\Core\Plugin\ContextAwarePluginInterface;
 
@@ -17,12 +18,19 @@ class ContextHandler implements ContextHandlerInterface {
    * {@inheritdoc}
    */
   public function filterPluginDefinitionsByContexts(array $contexts, array $definitions) {
-    return array_filter($definitions, function ($plugin_definition) use ($contexts) {
+    $checked_requirements = [];
+    return array_filter($definitions, function ($plugin_definition) use ($contexts, &$checked_requirements) {
       $context_definitions = $this->getContextDefinitions($plugin_definition);
-
       if ($context_definitions) {
-        // Check the set of contexts against the requirements.
-        return $this->checkRequirements($contexts, $context_definitions);
+        // Generate a unique key for the current context definitions. This will
+        // allow calling checkRequirements() once for all plugins that have the
+        // same context definitions.
+        $context_definitions_key = hash('sha256', serialize($context_definitions));
+        if (!isset($checked_requirements[$context_definitions_key])) {
+          // Check the set of contexts against the requirements.
+          $checked_requirements[$context_definitions_key] = $this->checkRequirements($contexts, $context_definitions);
+        }
+        return $checked_requirements[$context_definitions_key];
       }
       // If this plugin doesn't need any context, it is available to use.
       return TRUE;
@@ -43,8 +51,8 @@ class ContextHandler implements ContextHandlerInterface {
     if ($plugin_definition instanceof ContextAwarePluginDefinitionInterface) {
       return $plugin_definition->getContextDefinitions();
     }
-    if (is_array($plugin_definition) && isset($plugin_definition['context'])) {
-      return $plugin_definition['context'];
+    if (is_array($plugin_definition) && isset($plugin_definition['context_definitions'])) {
+      return $plugin_definition['context_definitions'];
     }
     return NULL;
   }
@@ -97,21 +105,42 @@ class ContextHandler implements ContextHandlerInterface {
 
         // Pass the value to the plugin if there is one.
         if ($contexts[$context_id]->hasContextValue()) {
-          $plugin->setContextValue($plugin_context_id, $contexts[$context_id]->getContextData());
+          $plugin->setContext($plugin_context_id, $contexts[$context_id]);
         }
         elseif ($plugin_context_definition->isRequired()) {
           // Collect required contexts that exist but are missing a value.
           $missing_value[] = $plugin_context_id;
         }
+
+        // Proceed to the next definition.
+        continue;
       }
-      elseif ($plugin_context_definition->isRequired()) {
+
+      try {
+        $context = $plugin->getContext($context_id);
+      }
+      catch (ContextException $e) {
+        $context = NULL;
+      }
+      // @todo Remove in https://www.drupal.org/project/drupal/issues/3046342.
+      catch (PluginException $e) {
+        $context = NULL;
+      }
+
+      if ($context && $context->hasContextValue()) {
+        // Ignore mappings if the plugin has a value for a missing context.
+        unset($mappings[$plugin_context_id]);
+        continue;
+      }
+
+      if ($plugin_context_definition->isRequired()) {
         // Collect required contexts that are missing.
         $missing_value[] = $plugin_context_id;
+        continue;
       }
-      else {
-        // Ignore mappings for optional missing context.
-        unset($mappings[$plugin_context_id]);
-      }
+
+      // Ignore mappings for optional missing context.
+      unset($mappings[$plugin_context_id]);
     }
 
     // If there are any mappings that were not satisfied, throw an exception.

@@ -12,21 +12,21 @@
  * @see https://coderwall.com/p/-7trcg/simple-css-only-wizard-progress-tracker
  */
 .webform-progress-bar {
+  overflow: hidden;
   margin: 0;
   padding: 0;
-  overflow: hidden;
   font-size: smaller;
 }
 
 li.webform-progress-bar__page {
-  list-style-type: none;
-  display: inline-block;
   position: relative;
+  display: inline-block;
+  height: 30px;
   margin: 0;
   padding: 0;
-  line-height: 30px;
-  height: 30px;
+  list-style-type: none;
   background-color: #f0f0f0;
+  line-height: 30px;
 }
 
 .webform-progress-bar[data-steps="2"] li {
@@ -59,11 +59,11 @@ li.webform-progress-bar__page {
 
 li.webform-progress-bar__page > b {
   display: block;
-  padding: 0 0 0 30px;
-  font-weight: normal;
-  white-space: nowrap;
   overflow: hidden;
+  padding: 0 0 0 30px;
+  white-space: nowrap;
   text-overflow: ellipsis;
+  font-weight: normal;
 }
 
 li.webform-progress-bar__page--done > b {
@@ -76,23 +76,23 @@ li.webform-progress-bar__page--current > b {
 
 li.webform-progress-bar__page > b:after,
 li.webform-progress-bar__page > b:before {
-  content: "";
-  display: block;
-  width: 0;
-  height: 0;
   position: absolute;
   top: 0;
   left: 0;
+  display: block;
+  width: 0;
+  height: 0;
+  content: "";
   border: solid transparent;
-  border-left-color: #ededed;
   border-width: 15px;
+  border-left-color: #ededed;
 }
 
 li.webform-progress-bar__page > b:after {
-  top: -5px;
   z-index: 1;
-  border-left-color: white;
+  top: -5px;
   border-width: 20px;
+  border-left-color: white;
 }
 
 li.webform-progress-bar__page > b:before {
@@ -110,21 +110,21 @@ li:first-child > b:before {
 
 li.webform-progress-bar__page:first-child span,
 li.webform-progress-bar__page:last-child span {
-  display: block;
-  height: 0;
-  width: 0;
   position: absolute;
   top: 0;
   left: 0;
+  display: block;
+  width: 0;
+  height: 0;
   border: solid transparent;
-  border-left-color: white;
   border-width: 15px;
+  border-left-color: white;
 }
 
 li.webform-progress-bar__page:last-child span {
-  left: auto;
   right: -15px;
-  border-left-color: transparent;
+  left: auto;
   border-top-color: white;
   border-bottom-color: white;
+  border-left-color: transparent;
 }

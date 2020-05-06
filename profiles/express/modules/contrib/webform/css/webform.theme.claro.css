@@ -1,0 +1,364 @@
+/**
+ * @file
+ * Claro theme styles.
+ */
+
+/*****************************************************************************   */
+/* Form */
+/*****************************************************************************   */
+
+/**
+ * Only add margin to bottom of the form item.
+ *
+ * @see /admin/structure/webform/manage/contact/element/name/edit
+ */
+.webform-tabs .form-item {
+  margin-top: 0;
+}
+
+.webform-tabs.ui-tabs .ui-tabs-nav {
+  margin-bottom: 1.5rem;
+}
+
+/*****************************************************************************   */
+/* Fields */
+/*****************************************************************************   */
+
+/**
+ * Capitalize fieldset to match details.
+ */
+.fieldset__label {
+  text-transform: capitalize;
+}
+
+/*****************************************************************************   */
+/* Messages */
+/*****************************************************************************   */
+
+.messages.messages--webform a.button {
+  margin: 0;
+  text-decoration: none;
+  color: #fff;
+  background-color: #003cc5;
+}
+
+html.js .webform-message--close .webform-message__link {
+  opacity: inherit;
+  color: #ffd23f;
+  font-size: 36px;
+  line-height: 36px;
+}
+
+html.js .webform-message--close .webform-message__link:hover,
+html.js .webform-message--close .webform-message__link:focus,
+html.js .webform-message--close .webform-message__link:active {
+  opacity: inherit;
+  color: #fff;
+}
+
+/**
+ * Fix webform promotion message link color.
+ *
+ * @see /admin/structure/webform
+ * @see webform.promotions.css
+ * @see claro/css/src/components/messages.css
+ */
+.webform-message .messages.messages--webform {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  padding: 1.5rem 1.5rem 2rem -webkit-calc(1.5rem - 5px);
+  padding: 1.5rem 1.5rem 2rem calc(1.5rem - 5px); /* LTR */
+  color: #fff;
+  border-width: 0 0 0 5px; /* LTR */
+  border-style: solid;
+  border-color: #a6a6a6;
+  border-radius: 2px;
+  background-color: #353641;
+  box-shadow: none;
+}
+
+[dir="rtl"] .webform-message .messages.messages--webform {
+  padding-right: -webkit-calc(1.5rem - 5px);
+  padding-right: calc(1.5rem - 5px);
+  padding-left: 1.5rem;
+  border-right-width: 5px;
+  border-left-width: 0;
+}
+
+/**
+ * Add styles to default (info) message,
+ */
+.messages.messages--info {
+  color: #fff;
+  border-color: #0074bd;
+  background-color: #353641;
+  background-image: none;
+  box-shadow: none;
+}
+[dir="rtl"] .messages.messages--info {
+  margin-left: 0;
+}
+
+.messages.messages--info .messages__header {
+  background: url(../images/icons/info.svg) no-repeat center left;
+  background-size: 19px 19px;
+}
+
+/*****************************************************************************   */
+/* Tables */
+/*****************************************************************************   */
+
+table th {
+  height: auto;
+}
+
+/**
+ * Align all tables cells need to align top, so we are removing the cell height
+ * and adding more padding around the cells.
+ */
+table td,
+table td.tabledrag-cell {
+  height: auto;
+  padding: 1em 1rem;
+  vertical-align: top;
+}
+
+table .tabledrag-cell-content .indentation {
+  height: 1.5625rem;
+}
+
+table td.tabledrag-cell .tabledrag-handle::after {
+  padding: 0 1rem;
+}
+
+/**
+ * Buttons.
+ */
+table .button {
+  margin: 0 0.75rem 0 0;
+  padding: -webkit-calc(0.5rem - 1px) -webkit-calc(1rem - 1px);
+  padding: calc(0.5rem - 1px) calc(1rem - 1px);
+  font-size: 0.79rem;
+}
+[dir="rtl"] table .button {
+  margin: 0 0 0 0.75rem;
+}
+
+/**
+ * Form table.
+ */
+table td > .form-item:only-child,
+table td > .button:only-child {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+/**
+ * Results table.
+ */
+th.webform-results-table__icon.sortable-heading {
+  padding: 0 1rem;
+}
+
+/**
+ * Table select element.
+ */
+.tableselect-sort th:first-child .form-type--boolean,
+.tableselect-sort td:first-child .form-type--boolean {
+  display: inline;
+}
+
+/*****************************************************************************   */
+/* States and Multiple */
+/*****************************************************************************   */
+
+.webform-multiple-table td input[type="image"] + input[type="image"],
+.webform-states-table td.webform-states-table--operations input[type="image"] + input[type="image"] {
+  margin-left: 2px;
+}
+
+table.webform-states-table td {
+  padding: 1em 0.25rem;
+}
+
+table.webform-states-table td.webform-states-table--operator > .form-item > .form-element {
+  width: auto;
+}
+
+/*****************************************************************************   */
+/* Form */
+/*****************************************************************************   */
+
+/**
+ * Remove margin around checkboxes buttons.
+ *
+ * @see claro/css/src/components/form--checkbox-radio.css
+ */
+.webform-options-display-buttons .form-type--boolean {
+  margin-left: 0;
+}
+[dir="rtl"] .webform-options-display-buttons .form-type--boolean {
+  margin-right: 0;
+}
+
+/*****************************************************************************   */
+/* Filter */
+/*****************************************************************************   */
+
+div.webform-form-filter input.webform-form-filter-reset {
+  padding: 1em;
+}
+
+div.webform-form-filter input.webform-form-filter-text {
+  padding-right: 2em;
+}
+
+/*****************************************************************************   */
+/* Webform */
+/*****************************************************************************   */
+
+/**
+ * Element types
+ *
+ * @see /admin/structure/webform/manage/[webform_id]/element/add
+ */
+.webform-ui-element-type-select-form > details > .claro-details__wrapper.details-wrapper {
+  margin: 0.5em 1em 0 1em;
+  padding: 0;
+}
+
+.webform-details-toggle-state {
+  color: #003cc5;
+}
+
+/**
+ * Make tooltip a little bigger.
+ */
+.webform-element-help {
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  line-height: 18px;
+}
+
+/*****************************************************************************   */
+/* Claro */
+/*****************************************************************************   */
+
+/**
+ * Hide 'loading...' message when displayed in an inline container.
+ *
+ * @see /admin/structure/webform
+ */
+.container-inline div.claro-autocomplete__message[hidden] {
+  display: none;
+}
+
+/**
+ * Add-ons.
+ *
+ * @see /admin/structure/webform/addons
+ */
+.webform-addons .admin-item__link {
+  display: block;
+}
+
+.webform-addons .claro-details__wrapper {
+  margin: 0;
+}
+
+/**
+ * Multiple elements.
+ */
+.webform-multiple-table td > .form-item:only-child,
+.webform-multiple-table td > .form-item:only-child .form-item {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/*****************************************************************************   */
+/* jQuery UI */
+/*****************************************************************************   */
+
+/**
+ * jQuery UI tooltip.
+ *
+ * Used for webform element help (tooltips).
+ *
+ * @see core/assets/vendor/jquery.ui/themes/base/tabs.css
+ */
+.ui-tooltip.ui-widget {
+  border: 1px solid #ed5;
+  border-radius: 2px;
+  background: #fe6;
+}
+
+.ui-tooltip hr {
+  height: 1px;
+  margin: 0.3em 0;
+  background: #666;
+}
+
+.ui-tooltip code {
+  padding: 0.2em;
+  white-space: nowrap;
+  background-color: #f5f5f2;
+  font-size: 0.9em;
+  font-weight: bold;
+}
+
+/**
+ * jQuery UI tabs.
+ */
+.webform-tabs.ui-tabs .ui-tabs-nav li {
+  padding: 0 5px;
+}
+
+.webform-tabs.ui-tabs .ui-tabs-panel {
+  padding: 0;
+}
+
+.webform-tabs .ui-tabs-tab.ui-tab a {
+  border-radius: 0;
+}
+
+.webform-tabs .ui-tabs-active.ui-state-active a {
+  border-bottom: 3px solid #003cc5;
+}
+
+/**
+ * System tray divider.
+ */
+.ui-dialog.ui-dialog-off-canvas .ui-resizable-w {
+  border: 1px solid #6b6b6b;
+  border-width: 1px 2px;
+  background-color: #bfbfba;
+}
+
+/* System tray title bar */
+.ui-dialog.ui-dialog-off-canvas {
+  background: #fff;
+}
+
+.ui-dialog.ui-dialog-off-canvas .ui-dialog-titlebar {
+  border-radius: 0;
+}
+
+.webform-off-canvas .fieldset__label {
+  padding-right: 1rem;
+  padding-left: 1rem;
+}
+
+.webform-off-canvas .fieldset__label--group {
+  padding: 0;
+}
+
+.webform-off-canvas .fieldset__wrapper,
+.webform-off-canvas .claro-details__wrapper {
+  margin: 1rem;
+}
+
+.webform-off-canvas .fieldset__wrapper--group {
+  margin: 0;
+}

@@ -10,15 +10,17 @@
  */
 .messages.messages--info {
   color: #31708f;
+  border-color: #0074bd #0074bd #0074bd transparent; /* LTR */
   background-color: #d9edf7;
   background-image: url(../images/icons/info.svg);
-  border-color: #0074bd #0074bd #0074bd transparent;  /* LTR */
+  background-repeat: no-repeat;
+  background-position: 10px 17px;
   box-shadow: -8px 0 0 #0074bd; /* LTR */
 }
 [dir="rtl"] .messages.messages--info {
+  margin-left: 0;
   border-color: #0074bd transparent #0074bd #0074bd;
   box-shadow: 8px 0 0 #0074bd;
-  margin-left: 0;
 }
 
 /**
@@ -40,31 +42,37 @@
 }
 
 html.js .webform-message--close .webform-message__link {
-  display: block;
   position: absolute;
   top: 11px;
   right: 10px;
-  line-height: 24px;
+  display: block;
   font-size: 24px;
+  line-height: 24px;
+}
+
+html[dir="rtl"].js .webform-message--close .webform-message__link {
+  top: 11px;
+  right: inherit;
+  left: 10px;
 }
 
 .webform-message__link {
-  color: inherit;
   opacity: 0.33;
+  color: inherit;
 }
 
 .webform-message__link:link {
-  border-bottom: none;
   text-decoration: none;
+  border-bottom: none;
 }
 
 .webform-message__link:hover,
 .webform-message__link:focus,
 .webform-message__link:active {
-  border-bottom: none;
   text-decoration: none;
-  color: inherit;
   opacity: 1;
+  color: inherit;
+  border-bottom: none;
 }
 
 html.js .js-webform-message--close-storage {

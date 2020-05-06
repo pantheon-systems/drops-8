@@ -220,8 +220,21 @@ class OEmbedFormatter extends FormatterBase implements ContainerFactoryPluginInt
             'allowtransparency' => TRUE,
             'width' => $max_width ?: $resource->getWidth(),
             'height' => $max_height ?: $resource->getHeight(),
+            'class' => ['media-oembed-content'],
+          ],
+          '#attached' => [
+            'library' => [
+              'media/oembed.formatter',
+            ],
           ],
         ];
+
+        // An empty title attribute will disable title inheritance, so only
+        // add it if the resource has a title.
+        $title = $resource->getTitle();
+        if ($title) {
+          $element[$delta]['#attributes']['title'] = $title;
+        }
 
         CacheableMetadata::createFromObject($resource)
           ->addCacheTags($this->config->getCacheTags())

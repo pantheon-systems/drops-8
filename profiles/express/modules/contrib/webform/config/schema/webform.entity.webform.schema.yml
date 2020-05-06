@@ -1,0 +1,530 @@
+'webform.webform.*':
+  type: config_entity
+  label: Webforms
+  mapping:
+    status:
+      type: string
+      label: Status
+    weight:
+      type: integer
+      label: Weight
+    open:
+      type: string
+      label: 'Open date/time'
+    close:
+      type: string
+      label: 'Close date/time'
+    uid:
+      type: integer
+      label: Author
+    template:
+      type: boolean
+      label: Template
+    archive:
+      type: boolean
+      label: Archive
+    id:
+      type: string
+      label: 'Machine name'
+    title:
+      type: label
+      label: Title
+    description:
+      type: text
+      label: 'Administrative description'
+    category:
+      type: label
+      label: Category
+    elements:
+      type: text
+      label: 'Elements (YAML)'
+    css:
+      type: string
+      label: 'CSS (Cascading Style Sheets)'
+    javascript:
+      type: string
+      label: JavaScript
+    settings:
+      type: mapping
+      label: Settings
+      mapping:
+        ajax:
+          type: boolean
+          label: 'Use Ajax'
+        ajax_scroll_top:
+          type: string
+          label: 'Ajax scroll top'
+        ajax_progress_type:
+          type: string
+          label: 'Ajax progress type'
+        ajax_effect:
+          type: string
+          label: 'Ajax effect'
+        ajax_speed:
+          type: integer
+          label: 'Ajax speed'
+        page:
+          type: boolean
+          label: 'Enable page'
+        page_submit_path:
+          type: string
+          label: 'Page submit URL alias'
+        page_confirm_path:
+          type: string
+          label: 'Page confirm URL alias'
+        page_admin_theme:
+          type: boolean
+          label: 'Use admin theme for page'
+        form_title:
+          type: string
+          label: 'Form title display'
+        form_submit_once:
+          type: boolean
+          label: 'Prevent duplicate submissions'
+        form_open_message:
+          type: text
+          label: 'Form open message'
+        form_close_message:
+          type: text
+          label: 'Form closed message'
+        form_exception_message:
+          type: text
+          label: 'Form exception message'
+        form_previous_submissions:
+          type: boolean
+          label: 'Form previous submissions notification'
+        form_confidential:
+          type: boolean
+          label: 'Form confidential'
+        form_confidential_message:
+          type: text
+          label: 'Form confidential message'
+        form_remote_addr:
+          type: boolean
+          label: 'Track user IP address'
+        form_convert_anonymous:
+          type: boolean
+          label: 'Convert anonymous drafts and submissions to authenticated'
+        form_prepopulate:
+          type: boolean
+          label: 'Form prepopulate elements'
+        form_prepopulate_source_entity:
+          type: boolean
+          label: 'Form prepopulate source entity'
+        form_prepopulate_source_entity_required:
+          type: boolean
+          label: 'Form prepopulate source entity required'
+        form_prepopulate_source_entity_type:
+          type: string
+          label: 'Form prepopulate source entity type'
+        form_unsaved:
+          type: boolean
+          label: 'Warn users about unsaved changes'
+        form_disable_back:
+          type: boolean
+          label: 'Disable back button'
+        form_submit_back:
+          type: boolean
+          label: 'Submit previous wizard page when browser back button is clicked'
+        form_disable_autocomplete:
+          type: boolean
+          label: 'Disable autocompletion'
+        form_novalidate:
+          type: boolean
+          label: 'Disable client-side validation'
+        form_disable_inline_errors:
+          type: boolean
+          label: 'Disable inline form errors'
+        form_required:
+          type: boolean
+          label: 'Display required indicator'
+        form_autofocus:
+          type: boolean
+          label: Autofocus
+        form_details_toggle:
+          type: boolean
+          label: 'Display collapse/expand all details link'
+        form_reset:
+          type: boolean
+          label: 'Display reset button'
+        form_access_denied:
+          type: string
+          label: 'Form access denied action'
+        form_access_denied_title:
+          type: label
+          label: 'Form access denied title'
+        form_access_denied_message:
+          type: text
+          label: 'Form access denied message'
+        form_access_denied_attributes:
+          type: ignore
+          label: 'Form access denied message attributes'
+        form_file_limit:
+          type: string
+          label: 'Form file upload limit'
+        submission_label:
+          type: label
+          label: 'Default submission label'
+        submission_exception_message:
+          type: text
+          label: 'Submission exception message'
+        submission_locked_message:
+          type: text
+          label: 'Submission locked message'
+        submission_log:
+          type: boolean
+          label: 'Submission logging'
+        submission_excluded_elements:
+          type: sequence
+          label: 'Submission excluded elements'
+          sequence:
+            type: string
+            label: 'Element key'
+        submission_exclude_empty:
+          type: boolean
+          label: 'Submission exclude empty elements'
+        submission_exclude_empty_checkbox:
+          type: boolean
+          label: 'Submission exclude unselected checkboxes'
+        submission_views:
+          type: sequence
+          label: 'Submission views'
+          sequence:
+            type: mapping
+            label: 'Submission view'
+            mapping:
+              title:
+                type: text
+                label: Title
+              view:
+                type: string
+                label: 'View name / Display ID'
+              webform_routes:
+                type: sequence
+                label: 'Apply to webform'
+                sequence:
+                  type: string
+                  label: Route
+              node_routes:
+                type: sequence
+                label: 'Apply to node'
+                sequence:
+                  type: string
+                  label: Route
+        submission_views_replace:
+          type: mapping
+          label: 'Submission view replace'
+          mapping:
+            global_routes:
+              type: sequence
+              label: 'Replace to global'
+              sequence:
+                type: string
+                label: Route
+            webform_routes:
+              type: sequence
+              label: 'Replace to webform'
+              sequence:
+                type: string
+                label: Route
+            node_routes:
+              type: sequence
+              label: 'Replace to node'
+              sequence:
+                type: string
+                label: Route
+        submission_user_columns:
+          type: sequence
+          label: 'Submission user columns'
+          sequence:
+            type: string
+            label: 'Column name'
+        submission_user_duplicate:
+          type: boolean
+          label: 'Submission user duplicate'
+        submission_access_denied:
+          type: string
+          label: 'Submission access denied action'
+        submission_access_denied_title:
+          type: label
+          label: 'Submission access denied title'
+        submission_access_denied_message:
+          type: text
+          label: 'Submission access denied message'
+        submission_access_denied_attributes:
+          type: ignore
+          label: 'Submission access denied message attributes'
+        previous_submission_message:
+          type: text
+          label: 'Previous submission message'
+        previous_submissions_message:
+          type: text
+          label: 'Previous submissions message'
+        autofill:
+          type: boolean
+          label: 'Autofill with previous submission'
+        autofill_message:
+          type: text
+          label: 'Autofill with previous submission message'
+        autofill_excluded_elements:
+          type: sequence
+          label: 'Autofill excluded elements'
+          sequence:
+            type: string
+            label: 'Element key'
+        wizard_progress_bar:
+          type: boolean
+          label: 'Show wizard progress bar'
+        wizard_progress_pages:
+          type: boolean
+          label: 'Show wizard progress pages'
+        wizard_progress_percentage:
+          type: boolean
+          label: 'Show wizard progress pages'
+        wizard_progress_link:
+          type: boolean
+          label: 'Link to previous pages in progress bar'
+        wizard_progress_states:
+          type: boolean
+          label: 'Update wizard progress bar''s pages based on conditions'
+        wizard_start_label:
+          type: label
+          label: 'Wizard start label'
+        wizard_start_attributes:
+          type: ignore
+          label: 'Wizard start attributes'
+        wizard_preview_link:
+          type: boolean
+          label: 'Link to previous pages in preview'
+        wizard_confirmation:
+          type: boolean
+          label: 'Include confirmation page in progress'
+        wizard_confirmation_label:
+          type: label
+          label: 'Wizard confirmation label'
+        wizard_track:
+          type: text
+          label: 'Track wizard progress in the URL'
+        preview:
+          type: integer
+          label: 'Enable preview page'
+        preview_label:
+          type: text
+          label: 'Preview label'
+        preview_title:
+          type: text
+          label: 'Preview page title'
+        preview_message:
+          type: text
+          label: 'Preview message'
+        preview_attributes:
+          type: ignore
+          label: 'Preview attributes'
+        preview_excluded_elements:
+          type: sequence
+          label: 'Preview excluded elements'
+          sequence:
+            type: string
+            label: 'Element key'
+        preview_exclude_empty:
+          type: boolean
+          label: 'Preview exclude empty elements'
+        preview_exclude_empty_checkbox:
+          type: boolean
+          label: 'Preview exclude unselected checkboxes'
+        draft:
+          type: string
+          label: 'Allow users to save and finish the webform later.'
+        draft_multiple:
+          type: boolean
+          label: 'Allow users to save multiple drafts'
+        draft_auto_save:
+          type: boolean
+          label: 'Automatically save as draft when previewing and when there are validation errors.'
+        draft_saved_message:
+          type: text
+          label: 'Draft saved message'
+        draft_loaded_message:
+          type: text
+          label: 'Draft loaded message'
+        draft_pending_single_message:
+          type: text
+          label: 'Draft pending single draft message'
+        draft_pending_multiple_message:
+          type: text
+          label: 'Draft pending multiple drafts message'
+        confirmation_type:
+          type: string
+          label: 'Confirmation type'
+        confirmation_url:
+          type: string
+          label: 'Confirmation URL'
+        confirmation_title:
+          type: label
+          label: 'Confirmation title'
+        confirmation_message:
+          type: text
+          label: 'Confirmation message'
+        confirmation_attributes:
+          type: ignore
+          label: 'Confirmation attributes'
+        confirmation_back:
+          type: boolean
+          label: 'Display back to webform link.'
+        confirmation_back_label:
+          type: text
+          label: 'Confirmation back link label'
+        confirmation_back_attributes:
+          type: ignore
+          label: 'Confirmation back link attributes'
+        confirmation_exclude_query:
+          type: boolean
+          label: 'Exclude query string from confirmation URL'
+        confirmation_exclude_token:
+          type: boolean
+          label: 'Exclude token from confirmation URL'
+        confirmation_update:
+          type: boolean
+          label: 'Display confirmation when submission is updated'
+        limit_total:
+          type: integer
+          label: 'Limit total submissions'
+        limit_total_interval:
+          type: integer
+          label: 'Limit total interval'
+        limit_total_message:
+          type: text
+          label: 'Limit total message'
+        limit_total_unique:
+          type: boolean
+          label: 'Limit total to one submission per source entity'
+        limit_user:
+          type: integer
+          label: 'Limit user submissions'
+        limit_user_interval:
+          type: integer
+          label: 'Limit user interval'
+        limit_user_message:
+          type: text
+          label: 'Limit user message'
+        limit_user_unique:
+          type: boolean
+          label: 'Limit user to one submission per source entity'
+        entity_limit_total:
+          type: integer
+          label: 'Entity limit total submissions'
+        entity_limit_total_interval:
+          type: integer
+          label: 'Entity limit total interval'
+        entity_limit_user:
+          type: integer
+          label: 'Entity limit user submissions'
+        entity_limit_user_interval:
+          type: integer
+          label: 'Entity limit user interval'
+        purge:
+          type: string
+          label: 'Default purging'
+        purge_days:
+          type: integer
+          label: 'Default days to retain submissions'
+        results_disabled:
+          type: boolean
+          label: 'Results disabled'
+        results_disabled_ignore:
+          type: boolean
+          label: 'Ignore disabled results warning'
+        results_customize:
+          type: boolean
+          label: 'Allow users to customize the results'
+        token_view:
+          type: boolean
+          label: 'Allow viewing a submission using token'
+        token_update:
+          type: boolean
+          label: 'Allow updating a submission using token'
+    access:
+      type: sequence
+      label: 'Access Rules'
+      sequence:
+        type: mapping
+        label: 'Access Rule'
+        mapping:
+          roles:
+            type: sequence
+            label: Roles
+            sequence:
+              type: string
+              label: Role
+          users:
+            type: sequence
+            label: Users
+            sequence:
+              type: integer
+              label: 'User IDs'
+          permissions:
+            type: sequence
+            label: Permissions
+            sequence:
+              type: string
+              label: Permission
+    handlers:
+      type: sequence
+      label: 'Webform handlers'
+      sequence:
+        type: mapping
+        mapping:
+          id:
+            type: string
+            label: 'Handle plugin ID'
+          handler_id:
+            type: string
+            label: 'Handler instance ID'
+          label:
+            type: label
+            label: Label
+          status:
+            type: boolean
+            label: Status
+          conditions:
+            type: ignore
+            label: 'Conditional logic'
+          weight:
+            type: integer
+            label: Weight
+          settings:
+            type: 'webform.handler.[%parent.id]'
+    variants:
+      type: sequence
+      label: 'Webform variants'
+      sequence:
+        type: mapping
+        mapping:
+          id:
+            type: string
+            label: 'Variant plugin ID'
+          variant_id:
+            type: string
+            label: 'Variant instance ID'
+          element_key:
+            type: string
+            label: 'Variant element key'
+          label:
+            type: label
+            label: Label
+          notes:
+            type: text
+            label: Notes
+          status:
+            type: boolean
+            label: Status
+          weight:
+            type: integer
+            label: Weight
+          settings:
+            type: 'webform.variant.[%parent.id]'
+    third_party_settings:
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: 'webform.settings.third_party.[%key]'

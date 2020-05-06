@@ -29,6 +29,11 @@ class StyleOpmlTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp($import_test_views = TRUE) {
     parent::setUp($import_test_views);
 
@@ -48,7 +53,7 @@ class StyleOpmlTest extends ViewTestBase {
       'url' => 'http://example.com/rss.xml',
       'refresh' => '900',
     ];
-    $feed = $this->container->get('entity.manager')
+    $feed = $this->container->get('entity_type.manager')
       ->getStorage('aggregator_feed')
       ->create($values);
     $feed->save();
@@ -59,7 +64,7 @@ class StyleOpmlTest extends ViewTestBase {
     $this->assertEquals($feed->label(), $outline->getAttribute('text'));
     $this->assertEquals($feed->getUrl(), $outline->getAttribute('xmlUrl'));
 
-    $view = $this->container->get('entity.manager')
+    $view = $this->container->get('entity_type.manager')
       ->getStorage('view')
       ->load('test_style_opml');
     $display = &$view->getDisplay('feed_1');

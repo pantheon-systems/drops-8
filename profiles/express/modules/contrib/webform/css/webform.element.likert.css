@@ -39,26 +39,18 @@
 /**
  * Basic table formatting.
  */
-.webform-likert-table th,
-.webform-likert-table td {
+.webform-likert-table-wrapper th,
+.webform-likert-table-wrapper td {
   text-align: center;
 }
 
-/**
- * Hide radio title when Likert is displayed within a grid on desktop.
- * @see \Drupal\webform\Element\WebformLikert::processWebformLikert
- */
-.webform-likert-label {
-  display: none;
-}
-
-.webform-likert-table th:first-child,
-.webform-likert-table td:first-child {
-  text-align: inherit;
+.webform-likert-table-wrapper th:first-child,
+.webform-likert-table-wrapper td:first-child {
   width: 40%;
+  text-align: inherit;
 }
 
-.form-type-webform-likert td:first-child label {
+.webform-likert-table-wrapper td:first-child label {
   display: block;
 }
 
@@ -67,6 +59,10 @@
  * grid to inline vertical radios.
  */
 @media (max-width: 768px) {
+  .form-type-webform-likert table.sticky-header {
+    display: none;
+  }
+
   .form-type-webform-likert table {
     border-collapse: collapse;
     font-size: inherit;
@@ -84,10 +80,10 @@
 
   .form-type-webform-likert td {
     display: block;
-    border: 0;
-    background: transparent;
     padding: 0;
     text-align: inherit;
+    border: 0;
+    background: transparent;
   }
 
   .webform-likert-table[data-likert-answers-count] th,
@@ -98,10 +94,28 @@
   }
 
   /**
-   * Show radio title when Likert is displayed inline on mobile.
+   * Show visually hidden radio title and description
+   * when Likert is displayed inline on mobile.
    * @see \Drupal\webform\Element\WebformLikert::processWebformLikert
+   * @see core/modules/system/css/components/hidden.module.css
    */
-  .webform-likert-label {
+  .webform-likert-table .visually-hidden {
+    position: inherit !important;
+    overflow: inherit;
+    clip: inherit;
+    width: inherit;
+    height: inherit;
+  }
+
+  .webform-likert-label.visually-hidden {
+    display: inline;
+  }
+
+  .webform-likert-description.hidden {
+    display: block;
+  }
+
+  .webform-likert-help.hidden {
     display: inline;
   }
 

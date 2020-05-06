@@ -1,0 +1,21 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.other
+    - node.type.webform
+  module:
+    - gnode
+    - node
+  enforced:
+    module:
+      - webform_group_test
+id: other-group_node-webform
+label: 'Other label: Group node (Webform)'
+description: 'Adds <em class="placeholder">Webform</em> content to groups both publicly and privately.'
+group_type: other
+content_plugin: 'group_node:webform'
+plugin_config:
+  group_cardinality: 0
+  entity_cardinality: 1
+  use_creation_wizard: false

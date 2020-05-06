@@ -71,7 +71,6 @@ class Entry
      * Set a block value of "yes" or "no". You may also set an empty string.
      *
      * @param  string
-     * @return Entry
      * @throws Writer\Exception\InvalidArgumentException
      */
     public function setItunesBlock($value)
@@ -193,6 +192,23 @@ class Entry
     }
 
     /**
+     * Set title
+     *
+     * @param  string $value
+     * @return Entry
+     * @throws Writer\Exception\InvalidArgumentException
+     */
+    public function setItunesTitle($value)
+    {
+        if ($this->stringWrapper->strlen($value) > 255) {
+            throw new Writer\Exception\InvalidArgumentException('invalid parameter: "title" may only'
+            . ' contain a maximum of 255 characters');
+        }
+        $this->data['title'] = $value;
+        return $this;
+    }
+
+    /**
      * Set subtitle
      *
      * @param  string $value
@@ -230,7 +246,7 @@ class Entry
      * Set entry image (icon)
      *
      * @param  string $value
-     * @return Feed
+     * @return Entry
      * @throws Writer\Exception\InvalidArgumentException
      */
     public function setItunesImage($value)

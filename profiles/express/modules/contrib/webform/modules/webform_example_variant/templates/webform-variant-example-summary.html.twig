@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of an example webform variant.
+ *
+ * Available variables:
+ * - settings: The current configuration for this variant:
+ *   - debug: Debugging flag.
+ * - variant: The variant information, including:
+ *   - id: The variant plugin id.
+ *   - variant_id: The variant id.
+ *   - label: The variant label.
+ *   - description: The variant description.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if settings.debug %}<b class="color-error">{{ 'Debugging is enabled'|t }}</b><br />{% endif %}
+{% if settings.description__markup %}<b>{{ 'Description:'|t }}</b> {{ settings.description__markup }}<br />{% endif %}
+{% if settings.notes__type %}<b>{{ 'Notes element type:'|t }}</b> {{ settings.notes__type }}<br />{% endif %}

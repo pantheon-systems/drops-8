@@ -124,7 +124,7 @@ class TextFormat extends RenderElement {
     // Setup child container for the text format widget.
     $element['format'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['filter-wrapper']],
+      '#attributes' => ['class' => ['js-filter-wrapper']],
     ];
 
     // Get a list of formats that the current user has access to.
@@ -148,7 +148,8 @@ class TextFormat extends RenderElement {
     // If #allowed_formats is set, the list of formats must not be modified in
     // any way. Otherwise, however, if all of the following conditions are true,
     // remove the fallback format from the list of formats:
-    // 1. The 'always_show_fallback_choice' filter setting has not been activated.
+    // 1. The 'always_show_fallback_choice' filter setting has not been
+    //    activated.
     // 2. Multiple text formats are available.
     // 3. The fallback format is not the default format.
     // The 'always_show_fallback_choice' filter setting is a hidden setting that
@@ -164,7 +165,7 @@ class TextFormat extends RenderElement {
     // Prepare text format guidelines.
     $element['format']['guidelines'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['filter-guidelines']],
+      '#attributes' => ['class' => ['js-filter-guidelines']],
       '#weight' => 20,
     ];
     $options = [];
@@ -183,7 +184,7 @@ class TextFormat extends RenderElement {
       '#default_value' => $element['#format'],
       '#access' => count($formats) > 1,
       '#weight' => 10,
-      '#attributes' => ['class' => ['filter-list']],
+      '#attributes' => ['class' => ['js-filter-list']],
       '#parents' => array_merge($element['#parents'], ['format']),
     ];
 
@@ -195,7 +196,6 @@ class TextFormat extends RenderElement {
         '#url' => new Url('filter.tips_all'),
         '#attributes' => ['target' => '_blank'],
       ],
-      '#attributes' => ['class' => ['filter-help']],
       '#weight' => 0,
     ];
 
@@ -226,7 +226,7 @@ class TextFormat extends RenderElement {
       // Prepend #pre_render callback to replace field value with user notice
       // prior to rendering.
       $element['value'] += ['#pre_render' => []];
-      array_unshift($element['value']['#pre_render'], 'filter_form_access_denied');
+      array_unshift($element['value']['#pre_render'], [static::class, 'accessDeniedCallback']);
 
       // Cosmetic adjustments.
       if (isset($element['value']['#rows'])) {
@@ -244,6 +244,26 @@ class TextFormat extends RenderElement {
       }
     }
 
+    return $element;
+  }
+
+  /**
+   * Render API callback: Hides the field value of 'text_format' elements.
+   *
+   * To not break form processing and previews if a user does not have access to
+   * a stored text format, the expanded form elements in filter_process_format()
+   * are forced to take over the stored #default_values for 'value' and
+   * 'format'. However, to prevent the unfiltered, original #value from being
+   * displayed to the user, we replace it with a friendly notice here.
+   *
+   * @param array $element
+   *   The render array to add the access denied message to.
+   *
+   * @return array
+   *   The updated render array.
+   */
+  public static function accessDeniedCallback(array $element) {
+    $element['#value'] = t('This field has been disabled because you do not have sufficient permissions to edit it.');
     return $element;
   }
 

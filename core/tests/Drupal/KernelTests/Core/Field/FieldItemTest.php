@@ -27,7 +27,7 @@ class FieldItemTest extends EntityKernelTestBase {
     parent::setUp();
 
     $this->container->get('state')->set('entity_test.field_test_item', TRUE);
-    $this->entityManager->clearCachedDefinitions();
+    $this->entityTypeManager->clearCachedDefinitions();
 
     $entity_type_id = 'entity_test_mulrev';
     $this->installEntitySchema($entity_type_id);
@@ -49,8 +49,8 @@ class FieldItemTest extends EntityKernelTestBase {
       'label' => 'Test field',
     ])->save();
 
-    $this->entityManager->clearCachedDefinitions();
-    $definitions = $this->entityManager->getFieldStorageDefinitions($entity_type_id);
+    $this->entityTypeManager->clearCachedDefinitions();
+    $definitions = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions($entity_type_id);
     $this->assertTrue(!empty($definitions[$this->fieldName]));
   }
 

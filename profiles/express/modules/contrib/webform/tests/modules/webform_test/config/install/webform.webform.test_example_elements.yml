@@ -6,8 +6,10 @@ dependencies:
       - webform_test
 open: null
 close: null
+weight: 0
 uid: null
 template: false
+archive: false
 id: test_example_elements
 title: 'Test: Example: Elements'
 description: 'Examples of every supported <a href="https://api.drupal.org/api/drupal/elements">webform element</a>.'
@@ -62,9 +64,6 @@ elements: |
     color:
       '#type': color
       '#title': Color
-    webform_creditcard_number:
-      '#type': webform_creditcard_number
-      '#title': 'Credit card number'
     email:
       '#type': email
       '#title': Email
@@ -101,9 +100,9 @@ elements: |
       '#min': 0
       '#max': 100
       '#step': 1
-      '#range__output': true
-      '#range__output_prefix': $
-      '#range__output_suffix': '.00'
+      '#output': below
+      '#output__field_prefix': $
+      '#output__field_suffix': '.00'
     webform_rating:
       '#type': webform_rating
       '#title': Rating
@@ -128,9 +127,6 @@ elements: |
       '#required': true
       '#terms_type': slideout
       '#terms_content': '<em>These are the terms of service.</em>'
-    webform_toggle:
-      '#type': webform_toggle
-      '#title': Toggle
     url:
       '#type': url
       '#title': URL
@@ -138,6 +134,10 @@ elements: |
       '#type': url
       '#title': 'URL multiple'
       '#multiple': true
+    value:
+      '#type': value
+      '#title': Value
+      '#value': preview
   markup_elements:
     '#type': details
     '#title': 'Markup elements'
@@ -155,15 +155,31 @@ elements: |
         class:
           - webform-horizontal-rule--dotted
           - webform-horizontal-rule--thick
+    label:
+      '#type': label
+      '#title': Label
     webform_message:
       '#type': webform_message
       '#title': Message
       '#message_type': warning
       '#message_message': 'This is a <strong>warning</strong> message.'
       '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/77245">Issue #77245: A place for JavaScript status messages</a>'
-    table:
-      '#type': table
-      '#title': Table
+  file_attachment_elements:
+    '#type': details
+    '#title': 'File attachment elements'
+    '#open': true
+    'webform_entity_print_attachment:pdf':
+      '#type': webform_entity_print_attachment
+      '#title': 'Attachment PDF'
+    webform_attachment_token:
+      '#type': webform_attachment_token
+      '#title': 'Attachment token'
+    webform_attachment_twig:
+      '#type': webform_attachment_twig
+      '#title': 'Attachment Twig'
+    webform_attachment_url:
+      '#type': webform_attachment_url
+      '#title': 'Attachment URL'
   file_upload_elements:
     '#type': details
     '#title': 'File upload elements'
@@ -208,20 +224,6 @@ elements: |
     '#type': details
     '#title': 'Options elements'
     '#open': true
-    webform_buttons:
-      '#type': webform_buttons
-      '#title': Buttons
-      '#options':
-        one: One
-        two: Two
-        three: Three
-    webform_buttons_other:
-      '#type': webform_buttons_other
-      '#title': 'Buttons other'
-      '#options':
-        one: One
-        two: Two
-        three: Three
     checkboxes:
       '#type': checkboxes
       '#title': Checkboxes
@@ -230,7 +232,7 @@ elements: |
         two: Two
         three: Three
       '#options_display': side_by_side
-      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios and checkboxess.</a>'
     webform_checkboxes_other:
       '#type': webform_checkboxes_other
       '#title': 'Checkboxes other'
@@ -276,7 +278,7 @@ elements: |
         two: Two
         three: Three
       '#options_display': side_by_side
-      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios, checkboxes, and buttons.</a>'
+      '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/2731991">Issue #2731991: Setting required on radios marks all options required</a><br /><a href="https://www.drupal.org/node/994360">Issue #994360: #states cannot disable/enable radios and checkboxes</a><br /><a href="https://www.drupal.org/node/2836364">Issue #2836364: Wrapper attributes are not supported by composite elements, this includes radios and checkboxes.</a>'
     webform_radios_other:
       '#type': webform_radios_other
       '#title': 'Radios other'
@@ -339,13 +341,6 @@ elements: |
         one: One
         two: Two
         three: Three
-    webform_toggles:
-      '#type': webform_toggles
-      '#title': Toggles
-      '#options':
-        one: One
-        two: Two
-        three: Three
   computed_elements:
     '#type': details
     '#title': 'Computed Elements'
@@ -353,11 +348,11 @@ elements: |
     webform_computed_token:
       '#type': webform_computed_token
       '#title': 'Computed token'
-      '#value': 'This is a Computed token value.'
+      '#template': 'This is a Computed token value.'
     webform_computed_twig:
       '#type': webform_computed_twig
       '#title': 'Computed Twig'
-      '#value': 'This is a Computed Twig value.'
+      '#template': 'This is a Computed Twig value.'
   containers:
     '#type': details
     '#title': Containers
@@ -379,9 +374,6 @@ elements: |
       '#field_prefix': '{field_prefix}'
       '#field_suffix': '{field_suffix}'
       '#description': '<b>Known Issues:</b><br /><a href="https://www.drupal.org/node/783438">Issue #783438: #states doesn''t work for #type item</a>'
-    label:
-      '#type': label
-      '#title': Label
     webform_section:
       '#type': webform_section
       '#title': Section
@@ -515,14 +507,23 @@ elements: |
     machine_name:
       '#type': machine_name
       '#title': 'Machine name'
+    table:
+      '#type': table
+      '#title': Table
+  
 css: ''
 javascript: ''
 settings:
   ajax: false
   ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
   page: true
   page_submit_path: ''
   page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
   form_submit_once: false
   form_exception_message: ''
   form_open_message: ''
@@ -530,6 +531,7 @@ settings:
   form_previous_submissions: true
   form_confidential: false
   form_confidential_message: ''
+  form_remote_addr: true
   form_convert_anonymous: false
   form_prepopulate: false
   form_prepopulate_source_entity: false
@@ -538,19 +540,48 @@ settings:
   form_reset: false
   form_disable_autocomplete: false
   form_novalidate: false
+  form_disable_inline_errors: false
+  form_required: false
   form_unsaved: false
   form_disable_back: false
+  form_submit_back: false
   form_autofocus: false
   form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
   submission_label: ''
   submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
   submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
   wizard_progress_bar: true
   wizard_progress_pages: false
   wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
   wizard_start_label: ''
+  wizard_preview_link: false
   wizard_confirmation: true
   wizard_confirmation_label: ''
+  wizard_track: ''
   preview: 0
   preview_label: ''
   preview_title: ''
@@ -558,11 +589,14 @@ settings:
   preview_attributes: {  }
   preview_excluded_elements: {  }
   preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
   draft: none
   draft_multiple: false
   draft_auto_save: false
   draft_saved_message: ''
   draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
   confirmation_type: page
   confirmation_title: ''
   confirmation_message: ''
@@ -571,16 +605,27 @@ settings:
   confirmation_back: true
   confirmation_back_label: ''
   confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
   limit_total: null
+  limit_total_interval: null
   limit_total_message: ''
+  limit_total_unique: false
   limit_user: null
+  limit_user_interval: null
   limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
   purge: none
   purge_days: null
-  entity_limit_total: null
-  entity_limit_user: null
   results_disabled: false
   results_disabled_ignore: false
+  results_customize: false
+  token_view: false
   token_update: false
 access:
   create:
@@ -617,4 +662,17 @@ access:
     roles: {  }
     users: {  }
     permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
 handlers: {  }
+variants: {  }

@@ -64,7 +64,7 @@ class ThemeRenderAndAutoescapeTest extends KernelTestBase {
       'empty string unchanged' => ['', ''],
       'simple string unchanged' => ['ab', 'ab'],
       'int (scalar) cast to string' => [111, '111'],
-      'float (scalar) cast to string' => [2.10, '2.10'],
+      'float (scalar) cast to string' => [2.10, '2.1'],
       '> is escaped' => ['>', '&gt;'],
       'Markup EM tag is unchanged' => [Markup::create('<em>hi</em>'), '<em>hi</em>'],
       'Markup SCRIPT tag is unchanged' => [Markup::create('<script>alert("hi");</script>'), '<script>alert("hi");</script>'],
@@ -84,7 +84,7 @@ class ThemeRenderAndAutoescapeTest extends KernelTestBase {
    * Ensures invalid content is handled correctly.
    */
   public function testThemeEscapeAndRenderNotPrintable() {
-    $this->setExpectedException(\Exception::class);
+    $this->expectException(\Exception::class);
     theme_render_and_autoescape(new NonPrintable());
   }
 

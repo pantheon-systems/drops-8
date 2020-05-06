@@ -15,14 +15,21 @@ class MediaTranslationUITest extends ContentTranslationUITestBase {
   use MediaTypeCreationTrait;
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * {inheritdoc}
    */
   protected $defaultCacheContexts = [
     'languages:language_interface',
+    'session',
     'theme',
-    'timezone',
-    'url.query_args:_wrapper_format',
+    'url.path',
+    'url.query_args',
     'user.permissions',
+    'user.roles:authenticated',
   ];
 
   /**

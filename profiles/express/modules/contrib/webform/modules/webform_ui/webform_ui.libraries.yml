@@ -4,4 +4,4 @@ webform_ui:
     theme:
       css/webform_ui.module.css: {}
   js:
-    js/webform_ui.js:  {}
+    js/webform_ui.js: {}

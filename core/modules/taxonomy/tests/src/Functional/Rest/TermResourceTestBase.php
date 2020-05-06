@@ -156,6 +156,9 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
       'tid' => [
         ['value' => 1],
       ],
+      'revision_id' => [
+        ['value' => 1],
+      ],
       'uuid' => [
         ['value' => $this->entity->uuid()],
       ],
@@ -201,6 +204,16 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
         ],
       ],
       'status' => [
+        [
+          'value' => TRUE,
+        ],
+      ],
+      'revision_created' => [
+        $this->formatExpectedTimestampItemValues((int) $this->entity->getRevisionCreationTime()),
+      ],
+      'revision_user' => [],
+      'revision_log_message' => [],
+      'revision_translation_affected' => [
         [
           'value' => TRUE,
         ],
@@ -356,9 +369,9 @@ abstract class TermResourceTestBase extends EntityResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function getExpectedUnauthorizedAccessCacheability() {
+  protected function getExpectedUnauthorizedEntityAccessCacheability($is_authenticated) {
     // @see \Drupal\taxonomy\TermAccessControlHandler::checkAccess()
-    return parent::getExpectedUnauthorizedAccessCacheability()
+    return parent::getExpectedUnauthorizedEntityAccessCacheability($is_authenticated)
       ->addCacheTags(['taxonomy_term:1']);
   }
 

@@ -1,0 +1,6 @@
+# Logger.
+
+logger.channel.webform_image_select:
+  class: Drupal\Core\Logger\LoggerChannel
+  factory: logger.factory:get
+  arguments: ['webform_image_select']

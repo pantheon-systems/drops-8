@@ -7,6 +7,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Template\AttributeArray;
 use Drupal\Core\Template\AttributeString;
+use Drupal\Core\Template\Loader\StringLoader;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Component\Render\MarkupInterface;
 
@@ -261,14 +262,12 @@ class AttributeTest extends UnitTestCase {
    *
    * @covers ::removeClass
    * @covers ::addClass
-   *
-   * @group legacy
    */
   public function testTwigAddRemoveClasses($template, $expected, $seed_attributes = []) {
-    $loader = new \Twig_Loader_String();
+    $loader = new StringLoader();
     $twig = new \Twig_Environment($loader);
     $data = ['attributes' => new Attribute($seed_attributes)];
-    $result = $twig->render($template, $data);
+    $result = $twig->createTemplate($template)->render($data);
     $this->assertEquals($expected, $result);
   }
 
@@ -451,6 +450,64 @@ class AttributeTest extends UnitTestCase {
     $attribute = new Attribute(['class' => ['example-class']]);
 
     $this->assertEquals(['class' => new AttributeArray('class', ['example-class'])], $attribute->storage());
+  }
+
+  /**
+   * Provides tests data for testHasAttribute
+   *
+   * @return array
+   *   An array of test data each containing an array of attributes, the name
+   *   of the attribute to check existence of, and the expected result.
+   */
+  public function providerTestHasAttribute() {
+    return [
+      [['class' => ['example-class']], 'class', TRUE],
+      [[], 'class', FALSE],
+      [['class' => ['example-class']], 'id', FALSE],
+      [['class' => ['example-class'], 'id' => 'foo'], 'id', TRUE],
+      [['id' => 'foo'], 'class', FALSE],
+    ];
+  }
+
+  /**
+   * @covers ::hasAttribute
+   * @dataProvider providerTestHasAttribute
+   */
+  public function testHasAttribute(array $test_data, $test_attribute, $expected) {
+    $attributes = new Attribute($test_data);
+    $this->assertSame($expected, $attributes->hasAttribute($test_attribute));
+  }
+
+  /**
+   * Provides tests data for testMerge
+   *
+   * @return array
+   *   An array of test data each containing an initial Attribute object, an
+   *   Attribute object or array to be merged, and the expected result.
+   */
+  public function providerTestMerge() {
+    return [
+      [new Attribute([]), new Attribute(['class' => ['class1']]), new Attribute(['class' => ['class1']])],
+      [new Attribute(['class' => ['example-class']]), new Attribute(['class' => ['class1']]), new Attribute(['class' => ['example-class', 'class1']])],
+      [new Attribute(['class' => ['example-class']]), new Attribute(['id' => 'foo', 'href' => 'bar']), new Attribute(['class' => ['example-class'], 'id' => 'foo', 'href' => 'bar'])],
+    ];
+  }
+
+  /**
+   * @covers ::merge
+   * @dataProvider providerTestMerge
+   */
+  public function testMerge($original, $merge, $expected) {
+    $this->assertEquals($expected, $original->merge($merge));
+  }
+
+  /**
+   * @covers ::merge
+   */
+  public function testMergeArgumentException() {
+    $attributes = new Attribute(['class' => ['example-class']]);
+    $this->expectException(\TypeError::class);
+    $attributes->merge('not an array');
   }
 
 }

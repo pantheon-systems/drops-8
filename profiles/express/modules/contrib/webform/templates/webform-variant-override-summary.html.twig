@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of a webform override variant.
+ *
+ * Available variables:
+ * - settings: The current configuration for this override variant.
+ * - variant: The override variant.
+ *
+ * @ingroup themeable
+ */
+#}
+
+{% if settings.debug %}<b class="color-error">{{ 'Debugging is enabled'|t }}</b><br />{% endif %}
+{% if settings.settings %}<b>{{ 'Settings:'|t }}</b> {{ 'Overridden'|t }}<br />{% endif %}
+{% if settings.elements %}<b>{{ 'Elements:'|t }}</b> {{ 'Overridden'|t }}<br />{% endif %}
+{% if settings.handlers %}<b>{{ 'Handlers:'|t }}</b> {{ 'Overridden'|t }}<br />{% endif %}

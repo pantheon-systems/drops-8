@@ -5,10 +5,10 @@ namespace Drupal\Tests\node\Kernel;
 use Drupal\Core\Datetime\Entity\DateFormat;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\node\Entity\Node;
-use Drupal\simpletest\ContentTypeCreationTrait;
-use Drupal\simpletest\NodeCreationTrait;
-use Drupal\simpletest\UserCreationTrait;
 use Drupal\Tests\EntityViewTrait;
+use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
+use Drupal\Tests\node\Traits\NodeCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
  * Tests summary length.
@@ -86,7 +86,7 @@ class SummaryLengthTest extends KernelTestBase {
       'promote' => 1,
     ];
     $node = $this->drupalCreateNode($settings);
-    $this->assertTrue(Node::load($node->id()), 'Node created.');
+    $this->assertNotEmpty(Node::load($node->id()), 'Node created.');
 
     // Render the node as a teaser.
     $content = $this->drupalBuildEntityView($node, 'teaser');
@@ -99,7 +99,8 @@ class SummaryLengthTest extends KernelTestBase {
     $this->assertRaw($expected);
 
     // Change the teaser length for "Basic page" content type.
-    $display = entity_get_display('node', $node->getType(), 'teaser');
+    $display = \Drupal::service('entity_display.repository')
+      ->getViewDisplay('node', $node->getType(), 'teaser');
     $display_options = $display->getComponent('body');
     $display_options['settings']['trim_length'] = 200;
     $display->setComponent('body', $display_options)

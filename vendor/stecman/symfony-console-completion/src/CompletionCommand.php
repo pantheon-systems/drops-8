@@ -10,7 +10,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class CompletionCommand extends SymfonyCommand
 {
-
     /**
      * @var CompletionHandler
      */
@@ -49,6 +48,52 @@ END
         return $this->createDefinition();
     }
 
+    /**
+     * Ignore user-defined global options
+     *
+     * Any global options defined by user-code are meaningless to this command.
+     * Options outside of the core defaults are ignored to avoid name and shortcut conflicts.
+     */
+    public function mergeApplicationDefinition($mergeArgs = true)
+    {
+        // Get current application options
+        $appDefinition = $this->getApplication()->getDefinition();
+        $originalOptions = $appDefinition->getOptions();
+
+        // Temporarily replace application options with a filtered list
+        $appDefinition->setOptions(
+            $this->filterApplicationOptions($originalOptions)
+        );
+
+        parent::mergeApplicationDefinition($mergeArgs);
+
+        // Restore original application options
+        $appDefinition->setOptions($originalOptions);
+    }
+
+    /**
+     * Reduce the passed list of options to the core defaults (if they exist)
+     *
+     * @param InputOption[] $appOptions
+     * @return InputOption[]
+     */
+    protected function filterApplicationOptions(array $appOptions)
+    {
+        return array_filter($appOptions, function(InputOption $option) {
+            static $coreOptions = array(
+                'help' => true,
+                'quiet' => true,
+                'verbose' => true,
+                'version' => true,
+                'ansi' => true,
+                'no-ansi' => true,
+                'no-interaction' => true,
+            );
+
+            return isset($coreOptions[$option->getName()]);
+        });
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $this->handler = new CompletionHandler($this->getApplication());
@@ -76,7 +121,56 @@ END
             $output->write($hook, true);
         } else {
             $handler->setContext(new EnvironmentCompletionContext());
-            $output->write($this->runCompletion(), true);
+
+            // Get completion results
+            $results = $this->runCompletion();
+
+            // Escape results for the current shell
+            $shellType = $input->getOption('shell-type') ?: $this->getShellType();
+
+            foreach ($results as &$result) {
+                $result = $this->escapeForShell($result, $shellType);
+            }
+
+            $output->write($results, true);
+        }
+
+        return 0;
+    }
+
+    /**
+     * Escape each completion result for the specified shell
+     *
+     * @param string $result - Completion results that should appear in the shell
+     * @param string $shellType - Valid shell type from HookFactory
+     * @return string
+     */
+    protected function escapeForShell($result, $shellType)
+    {
+        switch ($shellType) {
+            // BASH requires special escaping for multi-word and special character results
+            // This emulates registering completion with`-o filenames`, without side-effects like dir name slashes
+            case 'bash':
+                $context = $this->handler->getContext();
+                $wordStart = substr($context->getRawCurrentWord(), 0, 1);
+
+                if ($wordStart == "'") {
+                    // If the current word is single-quoted, escape any single quotes in the result
+                    $result = str_replace("'", "\\'", $result);
+                } else if ($wordStart == '"') {
+                    // If the current word is double-quoted, escape any double quotes in the result
+                    $result = str_replace('"', '\\"', $result);
+                } else {
+                    // Otherwise assume the string is unquoted and word breaks should be escaped
+                    $result = preg_replace('/([\s\'"\\\\])/', '\\\\$1', $result);
+                }
+
+                // Escape output to prevent special characters being lost when passing results to compgen
+                return escapeshellarg($result);
+
+            // No transformation by default
+            default:
+                return $result;
         }
     }
 

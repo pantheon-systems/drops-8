@@ -1,0 +1,19 @@
+'webform.webform_options.*':
+  type: config_entity
+  label: Options
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: Label
+    category:
+      type: label
+      label: Category
+    likert:
+      type: boolean
+      label: 'Use as Likert'
+    options:
+      type: text
+      label: 'Options (YAML)'

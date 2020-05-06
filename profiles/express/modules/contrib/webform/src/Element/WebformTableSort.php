@@ -6,6 +6,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Element\Table;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\webform\Plugin\WebformElement\TableSelect;
 
 /**
  * Provides a webform element for a sortable table element.
@@ -150,12 +151,8 @@ class WebformTableSort extends Table {
     $value = is_array($element['#value']) ? $element['#value'] : [];
 
     // Add validate callback that extracts the associative array of options.
-    if (isset($element['#element_validate'])) {
-      array_unshift($element['#element_validate'], [get_called_class(), 'validateWebformTableSelectOrder']);
-    }
-    else {
-      $element['#element_validate'][] = [get_called_class(), 'validateWebformTableSelectOrder'];
-    }
+    $element += ['#element_validate' => []];
+    array_unshift($element['#element_validate'], [get_called_class(), 'validateWebformTableSelectOrder']);
 
     $element['#tree'] = TRUE;
 
@@ -183,12 +180,8 @@ class WebformTableSort extends Table {
         // Do not overwrite manually created children.
         if (!isset($element[$key])) {
           $weight_title = '';
-          if (isset($element['#options'][$key]['title']) && is_array($element['#options'][$key]['title'])) {
-            if (!empty($element['#options'][$key]['title']['data']['#title'])) {
-              $weight_title = new TranslatableMarkup('Weight for @title', [
-                '@title' => $element['#options'][$key]['title']['data']['#title'],
-              ]);
-            }
+          if ($title = TableSelect::getTableSelectOptionTitle($choice)) {
+            $weight_title = new TranslatableMarkup('Weight for @title', ['@title' => $title]);
           }
 
           $element[$key]['value'] = [
@@ -250,6 +243,7 @@ class WebformTableSort extends Table {
     $form_state->setValueForElement($element, NULL);
 
     // Now, set the values as the element's value.
+    $element['#value'] = $values;
     $form_state->setValueForElement($element, $values);
   }
 

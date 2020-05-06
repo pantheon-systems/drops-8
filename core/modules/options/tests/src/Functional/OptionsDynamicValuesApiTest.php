@@ -10,6 +10,11 @@ namespace Drupal\Tests\options\Functional;
 class OptionsDynamicValuesApiTest extends OptionsDynamicValuesTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests options_allowed_values().
    *
    * @see options_test_dynamic_values_callback()
@@ -23,7 +28,7 @@ class OptionsDynamicValuesApiTest extends OptionsDynamicValuesTestBase {
 
     $expected_values = [
       $this->entity->label(),
-      $this->entity->url(),
+      $this->entity->toUrl()->toString(),
       $this->entity->uuid(),
       $this->entity->bundle(),
     ];

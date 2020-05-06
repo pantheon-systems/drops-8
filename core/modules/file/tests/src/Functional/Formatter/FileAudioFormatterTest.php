@@ -12,6 +12,11 @@ use Drupal\file\Entity\File;
 class FileAudioFormatterTest extends FileMediaFormatterTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * @covers ::viewElements
    *
    * @dataProvider dataProvider
@@ -46,8 +51,8 @@ class FileAudioFormatterTest extends FileMediaFormatterTestBase {
 
     $this->drupalGet($entity->toUrl());
 
-    $file1_url = file_url_transform_relative(file_create_url($file1->getFileUri()));
-    $file2_url = file_url_transform_relative(file_create_url($file2->getFileUri()));
+    $file1_url = $file1->createFileUrl();
+    $file2_url = $file2->createFileUrl();
 
     $assert_session = $this->assertSession();
     $assert_session->elementsCount('css', 'audio[controls="controls"]', $tag_count);

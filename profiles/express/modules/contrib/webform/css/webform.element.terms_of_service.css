@@ -4,9 +4,9 @@
  */
 
 .webform-terms-of-service-details {
+  margin: 0.5em 0;
+  padding: 0.5em 1em;
   border: 1px solid #ccc;
-  padding: .5em 1em;
-  margin: .5em 0;
 }
 
 .webform-terms-of-service-details--title {

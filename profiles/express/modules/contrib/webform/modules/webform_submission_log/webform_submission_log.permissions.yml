@@ -1,0 +1,3 @@
+'access webform submission log':
+  title: 'Access the webform submission log'
+  description: 'Allows viewing of <em>all</em> submission events, if the user can access a webform''s results.'

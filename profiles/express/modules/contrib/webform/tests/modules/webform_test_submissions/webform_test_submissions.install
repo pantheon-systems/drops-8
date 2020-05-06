@@ -31,12 +31,12 @@ function webform_test_submissions_install() {
         [
           'value' => '{Body}',
           'format' => filter_default_format(),
-        ]
+        ],
       ],
       'title' => 'Node ' . $i,
       'type' => 'webform_test_submissions',
       'uid' => 0,
-      'status' => NodeInterface::PUBLISHED
+      'status' => NodeInterface::PUBLISHED,
     ]);
     $node->save();
     $nodes[$i] = $node->id();
@@ -54,7 +54,7 @@ function webform_test_submissions_install() {
         'node' => $nodes[0],
         'colors' => ['white'],
         'likert' => ['q1' => 1, 'q2' => 1, 'q3' => 1],
-        'address' => ['address' => '{Address}', 'city' => '{City}', 'state_province' => 'New York', 'country' => 'United States', 'postal_code' => '11111-1111'],
+        'address' => ['address' => 'quotes\' "', 'city' => 'html <markup>', 'state_province' => 'New York', 'country' => 'United States', 'postal_code' => '11111-1111'],
       ],
     ],
     [
@@ -75,6 +75,19 @@ function webform_test_submissions_install() {
       'data' => [
         'first_name' => 'Hillary',
         'last_name' => 'Clinton',
+        'sex' => 'Female',
+        'dob' => '1947-10-26',
+        'node' => $nodes[2],
+        'colors' => ['red'],
+        'likert' => ['q1' => 2, 'q2' => 2, 'q3' => 2],
+        'address' => ['address' => '{Address}', 'city' => '{City}', 'state_province' => 'New York', 'country' => 'United States', 'postal_code' => '11111-1111'],
+      ],
+    ],
+    [
+      'created' => strtotime('2002-01-02'),
+      'data' => [
+        'first_name' => 'quotes\' "',
+        'last_name' => 'html <markup>',
         'sex' => 'Female',
         'dob' => '1947-10-26',
         'node' => $nodes[2],

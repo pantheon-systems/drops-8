@@ -164,7 +164,7 @@ class Random {
    * @param int $size
    *   The number of random keys to add to the object.
    *
-   * @return \stdClass
+   * @return object
    *   The generated object, with the specified number of random keys. Each key
    *   has a random string value.
    */
@@ -264,8 +264,10 @@ class Random {
    *
    * @param string $destination
    *   The absolute file path where the image should be stored.
-   * @param int $min_resolution
-   * @param int $max_resolution
+   * @param string $min_resolution
+   *   The minimum resolution for the image. For example, '400x300'.
+   * @param string $max_resolution
+   *   The maximum resolution for the image. For example, '800x600'.
    *
    * @return string
    *   Path to image file.

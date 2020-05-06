@@ -1,0 +1,7 @@
+webform.admin_settings.third_party.captcha:
+  type: mapping
+  label: 'CAPTCHA third party settings'
+  mapping:
+    replace_administration_mode:
+      type: boolean
+      label: 'Replace ''Add CAPTCHA administration links to forms'' with CAPTCHA webform element'

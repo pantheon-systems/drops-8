@@ -2,6 +2,8 @@
 
 namespace Drupal\webform\Plugin\WebformElement;
 
+use Drupal\webform\Plugin\WebformElementOtherInterface;
+
 /**
  * Provides a 'radios_other' element.
  *
@@ -12,4 +14,4 @@ namespace Drupal\webform\Plugin\WebformElement;
  *   category = @Translation("Options elements"),
  * )
  */
-class WebformRadiosOther extends Radios {}
+class WebformRadiosOther extends Radios implements WebformElementOtherInterface {}

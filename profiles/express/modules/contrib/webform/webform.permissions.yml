@@ -1,9 +1,9 @@
 'access webform overview':
   title: 'Access the webform overview page'
   description: 'Get an overview of all webforms.'
-'access webform submission log':
-  title: 'Access webform submission log'
-  description: 'Allows viewing of <em>all</em> submission events, if the user can access a webform''s results.'
+'access webform submission user':
+  title: 'Access the webform user submission page'
+  description: 'Allows a user to view their submissions via ''Submissions'' tab on their profile page.'
 
 'administer webform':
   title: 'Administer webforms'
@@ -18,9 +18,24 @@
   title: 'Administer webform element access'
   description: 'Restrict webform element access to certain roles and users.'
 
+'edit webform source':
+  title: 'Edit webform source code'
+  description: 'Editing webform source code allows users to alter and possibly break a webform''s render array.'
+  restrict access: true
+
+'edit webform twig':
+  title: 'Edit webform Twig templates'
+  description: 'Editing inline Twig template allows users to access any data exposed by Twig functions.'
+  restrict access: true
+
 'edit webform assets':
   title: 'Edit CSS/JS webform assets'
   description: 'Allows administrators to attach custom CSS and JavaScript to a webform.'
+  restrict access: true
+
+'edit webform variants':
+  title: 'Edit webform variants'
+  description: 'Allows administrators to create variations of a webform.'
   restrict access: true
 
 'create webform':
@@ -38,21 +53,35 @@
 'delete own webform':
   title: 'Delete own webform'
 
+'access own webform configuration':
+  title: 'Access own webform configuration'
+  description: 'Allows users and applications to access a webform''s configuration created by the user.'
+  restrict access: true
+  warning: 'Warning: Give to trusted roles only; this permission has security implications. Note: A webform''s configuration includes all settings and handlers which can contain sensitive information.'
+'access any webform configuration':
+  title: 'Access any webform configuration'
+  description: 'Allows users and applications to access any webform''s configuration.'
+  restrict access: true
+  warning: 'Warning: Give to trusted roles only; this permission has security implications. Note: A webform''s configuration includes all settings and handlers which can contain sensitive information.'
+
 'view any webform submission':
   title: 'View any webform submission'
   description: 'Allows viewing <em>all</em> submissions.'
 'view own webform submission':
   title: 'View own webform submission'
-  description: 'Allows viewing <em>own</em> submissions.'
+  description: 'Allows viewing <em>own</em> submissions for all webforms.'
+  warning: 'Warning: This permission affects access to all webform. Note: To allow users to edit own submissions for an individual webform, please go to the webform''s ''Access'' tab.'
 'edit any webform submission':
   title: 'Edit any webform submission'
   description: 'Allows updating <em>all</em> submissions.'
 'edit own webform submission':
   title: 'Edit own webform submission'
-  description: 'Allows updating <em>own</em> submissions.'
+  description: 'Allows updating <em>own</em> submissions for all webforms.'
+  warning: 'Warning: This permission affects access to all webform. Note: To allow users to update own submissions for an individual webform, please go to the webform''s ''Access'' tab.'
 'delete any webform submission':
-  title: 'Deleting any webform submission'
+  title: 'Delete any webform submission'
   description: 'Allows deleting <em>all</em> submissions.'
 'delete own webform submission':
   title: 'Delete own webform submission'
-  description: 'Allows deleting <em>own</em> submissions.'
+  description: 'Allows deleting <em>own</em> submissions for all webforms.'
+  warning: 'Warning: This permission affects access to all webform. Note: To allow users to deleted own submissions for an individual webform, please go to the webform''s ''Access'' tab.'

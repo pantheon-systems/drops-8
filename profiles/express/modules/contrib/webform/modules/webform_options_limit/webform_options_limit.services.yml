@@ -1,0 +1,6 @@
+services:
+  webform_options_limit.route_subscriber:
+    class: Drupal\webform_options_limit\Routing\WebformOptionsLimitRouteSubscriber
+    arguments: ['@module_handler']
+    tags:
+      - { name: event_subscriber }

@@ -38,8 +38,7 @@ class ConfigUninstallViaCliImportTest extends KernelTestBase {
     // Set up the ConfigImporter object for testing.
     $storage_comparer = new StorageComparer(
       $this->container->get('config.storage.sync'),
-      $this->container->get('config.storage'),
-      $this->container->get('config.manager')
+      $this->container->get('config.storage')
     );
     $this->configImporter = new ConfigImporter(
       $storage_comparer->createChangelist(),
@@ -50,7 +49,8 @@ class ConfigUninstallViaCliImportTest extends KernelTestBase {
       $this->container->get('module_handler'),
       $this->container->get('module_installer'),
       $this->container->get('theme_handler'),
-      $this->container->get('string_translation')
+      $this->container->get('string_translation'),
+      $this->container->get('extension.list.module')
     );
   }
 

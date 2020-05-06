@@ -24,14 +24,21 @@
             .removeClass('form-color-large');
         }
         else {
-          // Display color input's output to the end user.
-          var $output = $('<input class="form-color-output ' + $element.attr('class') + ' js-webform-input-mask" data-inputmask-mask="\\#######" />');
+          // Display color input's output w/ visually-hidden label to
+          // the end user.
+          var $output = $('<input class="form-color-output ' + $element.attr('class') + ' js-webform-input-mask" data-inputmask-mask="\\#######" />').uniqueId();
+          var $label = $element.parent('.js-form-type-color').find('label').clone();
+          $label.attr({
+            for: $output.attr('id'),
+            class: 'visually-hidden'
+          });
           if ($.fn.inputmask) {
             $output.inputmask();
           }
           $output[0].value = $element[0].value;
           $element
             .after($output)
+            .after($label)
             .css({float: 'left'});
 
           // Sync $element and $output.

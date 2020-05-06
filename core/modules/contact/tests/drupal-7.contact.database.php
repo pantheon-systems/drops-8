@@ -9,14 +9,15 @@
  * the database structure expected in tests altogether.
  */
 
+$connection = \Drupal::database();
 // Update the default category to that it is not selected.
-db_update('contact')
+$connection->update('contact')
   ->fields(['selected' => '0'])
   ->condition('cid', '1')
   ->execute();
 
 // Add a custom contact category.
-db_insert('contact')->fields([
+$connection->insert('contact')->fields([
   'category',
   'recipients',
   'reply',

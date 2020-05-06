@@ -1,0 +1,90 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, and update hooks of the module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function webform_submission_log_schema() {
+  $schema = [];
+
+  $schema['webform_submission_log'] = [
+    'description' => 'Table that contains logs of all webform submission events.',
+    'fields' => [
+      'lid' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique log event ID.',
+      ],
+      'webform_id' => [
+        'description' => 'The webform id.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ],
+      'sid' => [
+        'description' => 'The webform submission id.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'handler_id' => [
+        'description' => 'The webform handler id.',
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The {users}.uid of the user who triggered the event.',
+      ],
+      'operation' => [
+        'type' => 'varchar_ascii',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Type of operation, for example "save", "sent", or "update."',
+      ],
+      'message' => [
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'big',
+        'description' => 'Text of log message.',
+      ],
+      'variables' => [
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'big',
+        'description' => 'Serialized array of variables that match the message string and that is passed into the t() function.',
+      ],
+      'data' => [
+        'type' => 'blob',
+        'not null' => TRUE,
+        'size' => 'big',
+        'description' => 'Serialized array of data.',
+      ],
+      'timestamp' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of when event occurred.',
+      ],
+    ],
+    'primary key' => ['lid'],
+    'indexes' => [
+      'webform_id' => ['webform_id'],
+      'sid' => ['sid'],
+      'uid' => ['uid'],
+      'handler_id' => ['handler_id'],
+      'handler_id_operation' => ['handler_id', 'operation'],
+    ],
+  ];
+
+  return $schema;
+}

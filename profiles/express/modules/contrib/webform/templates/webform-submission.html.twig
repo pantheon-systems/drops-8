@@ -4,13 +4,25 @@
  * Default theme implementation for webform submission.
  *
  * Available variables:
- * - information: The webform submission's information.
- * - data: The webform submission's data.
+ * - elements: An array of elements to display in view mode.
+ * - webform_submission: The webform submission.
+ * - webform: The webform.
  *
  * @see template_preprocess_webform_submission()
  *
  * @ingroup themeable
  */
 #}
+{%
+set classes = [
+'webform-submission',
+'webform-submission--webform-' ~ webform.id()|clean_class,
+webform_submission.isSticky() ? 'webform-submission--sticky',
+view_mode ? 'webform-submission--view-mode-' ~ view_mode|clean_class,
+]
+%}
+<div{{ attributes.addClass(classes) }}>
+{{ navigation }}
 {{ information }}
-{{ data }}
+{{ submission }}
+</div>

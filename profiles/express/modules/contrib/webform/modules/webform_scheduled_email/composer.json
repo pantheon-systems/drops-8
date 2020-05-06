@@ -1,0 +1,28 @@
+{
+  "name": "drupal/webform_scheduled_email",
+  "description": "Extends the Webform email handler to allow emails to be scheduled.",
+  "type": "drupal-module",
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "homepage": "https://drupal.org/project/webform",
+  "authors": [
+    {
+      "name": "Jacob Rockowitz (jrockowitz)",
+      "homepage": "https://www.drupal.org/u/jrockowitz",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/webform?version=8.x",
+    "source": "http://cgit.drupalcode.org/webform",
+    "docs": "https://www.drupal.org/docs/8/modules/webform",
+    "forum": "https://drupal.stackexchange.com/questions/tagged/webform"
+  },
+  "extra": {
+    "drush": {
+      "services": {
+        "drush.services.yml": "^9"
+      }
+    }
+  }
+}

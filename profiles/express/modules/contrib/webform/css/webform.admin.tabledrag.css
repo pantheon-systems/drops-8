@@ -1,0 +1,34 @@
+/**
+ * @file
+ * Tabledrag styles.
+ */
+
+.tabledrag-toggle-weight-wrapper {
+  position: relative;
+}
+
+.tabledrag-toggle-weight-wrapper button {
+  position: absolute;
+  top: -2.5em;
+  right: 0;
+}
+
+[dir="rtl"] .tabledrag-toggle-weight-wrapper button {
+  right: inherit;
+  left: 0;
+}
+
+@media screen and (max-width: 960px) {
+  .tabledrag-toggle-weight-wrapper {
+    float: right;
+  }
+  .tabledrag-toggle-weight-wrapper button {
+    position: static;
+    top: inherit;
+    right: inherit;
+  }
+}
+
+.webform-tabledrag-hide {
+  display: none;
+}

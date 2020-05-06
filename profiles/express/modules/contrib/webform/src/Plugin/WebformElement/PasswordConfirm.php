@@ -22,9 +22,35 @@ class PasswordConfirm extends Password {
   /**
    * {@inheritdoc}
    */
+  protected function defineDefaultProperties() {
+    return [
+      'wrapper_type' => 'fieldset',
+    ] + parent::defineDefaultProperties();
+  }
+
+  /****************************************************************************/
+
+  /**
+   * {@inheritdoc}
+   */
   public function prepare(array &$element, WebformSubmissionInterface $webform_submission = NULL) {
     parent::prepare($element, $webform_submission);
+    $element['#theme_wrappers'] = [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function prepareElementValidateCallbacks(array &$element, WebformSubmissionInterface $webform_submission = NULL) {
+    parent::prepareElementValidateCallbacks($element, $webform_submission);
     $element['#element_validate'][] = [get_class($this), 'validatePasswordConfirm'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function prepareElementPreRenderCallbacks(array &$element, WebformSubmissionInterface $webform_submission = NULL) {
+    $element['#pre_render'] = [[get_called_class(), 'preRenderWebformCompositeFormElement']];
   }
 
   /**
@@ -60,9 +86,23 @@ class PasswordConfirm extends Password {
    * Form API callback. Convert password confirm array to single value.
    */
   public static function validatePasswordConfirm(array &$element, FormStateInterface $form_state, array &$completed_form) {
-    $name = $element['#name'];
-    $value = $form_state->getValue($name);
-    $form_state->setValue($name, $value['pass1']);
+    $value = $element['#value'];
+    $form_state->setValueForElement($element, $value['pass1']);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function form(array $form, FormStateInterface $form_state) {
+    $form = parent::form($form, $form_state);
+
+    // Remove unsupported title and description display from composite elements.
+    if ($this->isComposite()) {
+      unset($form['form']['display_container']['title_display']['#options']['inline']);
+      unset($form['form']['display_container']['description_display']['#options']['tooltip']);
+    }
+
+    return $form;
   }
 
 }

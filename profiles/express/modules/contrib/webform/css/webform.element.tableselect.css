@@ -2,11 +2,11 @@
  * @file
  * Table select element styles.
  *
- * @see /webform/test_element_table
+ * @see /webform/test_element_table_select_sort
  */
 
 /* Make the first column containing a checkbox/radio as small as possible. */
 .tableselect th:first-child,
 .tableselect td:first-child {
-  width: 1px;
+  width: 1%;
 }

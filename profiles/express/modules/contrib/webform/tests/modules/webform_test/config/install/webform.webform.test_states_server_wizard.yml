@@ -1,0 +1,396 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_test
+open: null
+close: null
+weight: 0
+uid: null
+template: false
+archive: false
+id: test_states_server_wizard
+title: 'Test: Form API #states server-side wizard pages'
+description: 'Test Drupal''s #states API for wizard pages via server-side.'
+category: 'Test: Form API #states'
+elements: |
+  page_01:
+    '#type': webform_wizard_page
+    '#title': page_01
+    page_01_trigger_checkbox:
+      '#type': checkbox
+      '#title': trigger_checkbox
+    page_01_textfield_required:
+      '#type': textfield
+      '#title': page_01_textfield_required
+      '#default_value': '{default_value}'
+      '#description': '<b>Required:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        required:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_textfield_optional:
+      '#type': textfield
+      '#title': page_01_textfield_optional
+      '#default_value': '{default_value}'
+      '#description': '<b>Optional:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        optional:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_textfield_disabled:
+      '#type': textfield
+      '#title': page_01_textfield_disabled
+      '#description': '<b>Disabled:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        disabled:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_textfield_enabled:
+      '#type': textfield
+      '#title': page_01_textfield_enabled
+      '#description': '<b>Enabled:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        enabled:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_textfield_visible:
+      '#type': textfield
+      '#title': page_01_textfield_visible
+      '#description': '<b>Visible:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        visible:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_textfield_invisible:
+      '#type': textfield
+      '#title': page_01_textfield_invisible
+      '#description': '<b>Invisible:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        invisible:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_checkbox_checked:
+      '#type': checkbox
+      '#title': page_01_checkbox_checked
+      '#description': '<b>Checked:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        checked:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_checkbox_unchecked:
+      '#type': checkbox
+      '#title': page_01_checkbox_unchecked
+      '#description': '<b>Unchecked:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        unchecked:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_details_expanded:
+      '#type': details
+      '#title': page_01_details_open
+      '#description': '<b>Expanded:</b> page_01_trigger_checkbox:checked'
+      '#attributes':
+        data-webform-details-nosave: true
+      '#states':
+        expanded:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_01_details_collapsed:
+      '#type': details
+      '#title': page_01_details_collapsed
+      '#description': '<b>Collapsed:</b> page_01_trigger_checkbox:checked'
+      '#attributes':
+        data-webform-details-nosave: true
+      '#states':
+        collapsed:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+  page_02:
+    '#type': webform_wizard_page
+    '#title': page_02
+    page_01_trigger_checkbox_computed:
+      '#type': webform_computed_twig
+      '#title': trigger_checkbox
+      '#template': '{{ data.page_01_trigger_checkbox ? ''Yes'' : ''No'' }}'
+    page_02_textfield_required:
+      '#type': textfield
+      '#title': page_02_textfield_required
+      '#default_value': '{default_value}'
+      '#description': '<b>Required:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        required:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_optional:
+      '#type': textfield
+      '#title': page_02_textfield_optional
+      '#default_value': '{default_value}'
+      '#description': '<b>Optional:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        optional:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_disabled:
+      '#type': textfield
+      '#title': page_02_textfield_disabled
+      '#description': '<b>Disabled:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        disabled:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_enabled:
+      '#type': textfield
+      '#title': page_02_textfield_enabled
+      '#description': '<b>Enabled:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        enabled:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_visible:
+      '#type': textfield
+      '#title': page_02_textfield_visible
+      '#description': '<b>Visible:</b> page_01_trigger_checkbox:checked'
+      '#default_value': '{default_value}'
+      '#states':
+        visible:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_visible_slide:
+      '#type': textfield
+      '#title': page_02_textfield_visible_slide
+      '#description': '<b>Visible (Slide):</b> page_01_trigger_checkbox:checked'
+      '#default_value': '{default_value}'
+      '#states':
+        visible-slide:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_invisible:
+      '#type': textfield
+      '#title': page_02_textfield_invisible
+      '#description': '<b>Invisible:</b> page_01_trigger_checkbox:checked'
+      '#default_value': '{default_value}'
+      '#states':
+        invisible:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_textfield_invisible_slide:
+      '#type': textfield
+      '#title': page_02_textfield_invisible_slide
+      '#description': '<b>Invisible (Slide):</b> page_01_trigger_checkbox:checked'
+      '#default_value': '{default_value}'
+      '#states':
+        invisible-slide:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_checkbox_checked:
+      '#type': checkbox
+      '#title': page_02_checkbox_checked
+      '#description': '<b>Checked:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        checked:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_checkbox_unchecked:
+      '#type': checkbox
+      '#title': page_02_checkbox_unchecked
+      '#description': '<b>Unchecked:</b> page_01_trigger_checkbox:checked'
+      '#states':
+        unchecked:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_details_expanded:
+      '#type': details
+      '#title': page_02_details_open
+      '#description': '<b>Expanded:</b> page_01_trigger_checkbox:checked'
+      '#attributes':
+        data-webform-details-nosave: true
+      '#states':
+        expanded:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+    page_02_details_collapsed:
+      '#type': details
+      '#title': page_02_details_collapsed
+      '#description': '<b>Collapsed:</b> page_01_trigger_checkbox:checked'
+      '#attributes':
+        data-webform-details-nosave: true
+      '#states':
+        collapsed:
+          ':input[name="page_01_trigger_checkbox"]':
+            checked: true
+  
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_remote_addr: true
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: true
+  form_disable_inline_errors: false
+  form_required: false
+  form_unsaved: false
+  form_disable_back: false
+  form_submit_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
+  submission_label: ''
+  submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
+  submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
+  wizard_start_label: ''
+  wizard_preview_link: false
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  wizard_track: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
+  confirmation_type: message
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
+  limit_total: null
+  limit_total_interval: null
+  limit_total_message: ''
+  limit_total_unique: false
+  limit_user: null
+  limit_user_interval: null
+  limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
+  purge: none
+  purge_days: null
+  results_disabled: true
+  results_disabled_ignore: true
+  results_customize: false
+  token_view: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers:
+  debug:
+    id: debug
+    label: Debug
+    handler_id: debug
+    status: true
+    conditions: {  }
+    weight: 1
+    settings: {  }
+variants: {  }

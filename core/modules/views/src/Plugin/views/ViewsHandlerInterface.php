@@ -31,7 +31,7 @@ interface ViewsHandlerInterface extends ViewsPluginInterface {
 
   /**
    * Determines if the handler is considered 'broken', meaning it's a
-   * a placeholder used when a handler can't be found.
+   * placeholder used when a handler can't be found.
    */
   public function broken();
 
@@ -129,7 +129,7 @@ interface ViewsHandlerInterface extends ViewsPluginInterface {
    * @param bool $force_int
    *   Enforce a numeric check.
    *
-   * @return \stdClass
+   * @return object
    *   A stdClass object containing value and operator properties.
    */
   public static function breakString($str, $force_int = FALSE);

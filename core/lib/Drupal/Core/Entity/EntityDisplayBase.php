@@ -157,7 +157,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
       $default_region = $this->getDefaultRegion();
       // Fill in defaults for extra fields.
       $context = $this->displayContext == 'view' ? 'display' : $this->displayContext;
-      $extra_fields = \Drupal::entityManager()->getExtraFields($this->targetEntityType, $this->bundle);
+      $extra_fields = \Drupal::service('entity_field.manager')->getExtraFields($this->targetEntityType, $this->bundle);
       $extra_fields = isset($extra_fields[$context]) ? $extra_fields[$context] : [];
       foreach ($extra_fields as $name => $definition) {
         if (!isset($this->content[$name]) && !isset($this->hidden[$name])) {
@@ -186,7 +186,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
           // @todo Remove handling of 'type' in https://www.drupal.org/node/2799641.
           if (!isset($options['region']) && !empty($options['type']) && $options['type'] === 'hidden') {
             $options['region'] = 'hidden';
-            @trigger_error("Specifying 'type' => 'hidden' is deprecated, use 'region' => 'hidden' instead.", E_USER_DEPRECATED);
+            @trigger_error("Support for using 'type' => 'hidden' in a component is deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use 'region' => 'hidden' instead. See https://www.drupal.org/node/2801513", E_USER_DEPRECATED);
           }
 
           if (!empty($options['region']) && $options['region'] === 'hidden') {
@@ -253,7 +253,13 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   public function preSave(EntityStorageInterface $storage) {
     // Ensure that a region is set on each component.
     foreach ($this->getComponents() as $name => $component) {
-      $this->handleHiddenType($name, $component);
+      // @todo Remove this BC layer in Drupal 9.
+      // @see https://www.drupal.org/project/drupal/issues/2799641
+      if (!isset($component['region']) && isset($component['type']) && $component['type'] === 'hidden') {
+        @trigger_error("Support for using 'type' => 'hidden' in a component is deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use 'region' => 'hidden' instead. See https://www.drupal.org/node/2801513", E_USER_DEPRECATED);
+        $this->removeComponent($name);
+      }
+
       // Ensure that a region is set.
       if (isset($this->content[$name]) && !isset($component['region'])) {
         // Directly set the component to bypass other changes in setComponent().
@@ -269,16 +275,21 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
   /**
    * Handles a component type of 'hidden'.
    *
-   * @deprecated This method exists only for backwards compatibility.
-   *
-   * @todo Remove this in https://www.drupal.org/node/2799641.
+   * The logic of this method has been duplicated inline in the preSave()
+   * method so that this method may remain deprecated and trigger an error.
    *
    * @param string $name
    *   The name of the component.
    * @param array $component
    *   The component array.
+   *
+   * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. No
+   *   replacement is provided.
+   *
+   * @see https://www.drupal.org/node/2801513
    */
   protected function handleHiddenType($name, array $component) {
+    @trigger_error(__METHOD__ . ' is deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. No replacement is provided. See https://www.drupal.org/node/2801513', E_USER_DEPRECATED);
     if (!isset($component['region']) && isset($component['type']) && $component['type'] === 'hidden') {
       $this->removeComponent($name);
     }
@@ -289,7 +300,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
    */
   public function calculateDependencies() {
     parent::calculateDependencies();
-    $target_entity_type = $this->entityManager()->getDefinition($this->targetEntityType);
+    $target_entity_type = $this->entityTypeManager()->getDefinition($this->targetEntityType);
 
     // Create dependency on the bundle.
     $bundle_config_dependency = $target_entity_type->getBundleConfigDependency($this->bundle);
@@ -300,7 +311,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
     // field overrides, since the field still exists without them.
     if (\Drupal::moduleHandler()->moduleExists('field')) {
       $components = $this->content + $this->hidden;
-      $field_definitions = $this->entityManager()->getFieldDefinitions($this->targetEntityType, $this->bundle);
+      $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($this->targetEntityType, $this->bundle);
       foreach (array_intersect_key($field_definitions, $components) as $field_name => $field_definition) {
         if ($field_definition instanceof ConfigEntityInterface && $field_definition->getEntityTypeId() == 'field_config') {
           $this->addDependency('config', $field_definition->getConfigDependencyName());
@@ -310,7 +321,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
 
     // Depend on configured modes.
     if ($this->mode != 'default') {
-      $mode_entity = $this->entityManager()->getStorage('entity_' . $this->displayContext . '_mode')->load($target_entity_type->id() . '.' . $this->mode);
+      $mode_entity = $this->entityTypeManager()->getStorage('entity_' . $this->displayContext . '_mode')->load($target_entity_type->id() . '.' . $this->mode);
       $this->addDependency('config', $mode_entity->getConfigDependencyName());
     }
     return $this;
@@ -424,7 +435,7 @@ abstract class EntityDisplayBase extends ConfigEntityBase implements EntityDispl
    */
   protected function getFieldDefinitions() {
     if (!isset($this->fieldDefinitions)) {
-      $definitions = \Drupal::entityManager()->getFieldDefinitions($this->targetEntityType, $this->bundle);
+      $definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($this->targetEntityType, $this->bundle);
       // For "official" view modes and form modes, ignore fields whose
       // definition states they should not be displayed.
       if ($this->mode !== static::CUSTOM_MODE) {

@@ -22,27 +22,43 @@ class WebformEmailConfirm extends Email {
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    $properties = parent::getDefaultProperties() + [
+  protected function defineDefaultProperties() {
+    $properties = parent::defineDefaultProperties() + [
       // Email confirm settings.
       'confirm__title' => '',
       'confirm__description' => '',
       'confirm__placeholder' => '',
+      'flexbox' => '',
+      // Wrapper.
+      'wrapper_type' => 'fieldset',
     ];
     unset(
       $properties['multiple'],
-      $properties['multiple__header_label']
+      $properties['multiple__header_label'],
+      $properties['format_items'],
+      $properties['format_items_html'],
+      $properties['format_items_text']
     );
     return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}
    */
   public function prepare(array &$element, WebformSubmissionInterface $webform_submission = NULL) {
     parent::prepare($element, $webform_submission);
+    // Set confirm description.
     if (isset($element['#confirm__description'])) {
       $element['#confirm__description'] = WebformHtmlEditor::checkMarkup($element['#confirm__description']);
+    }
+
+    // If #flexbox is not set or an empty string, determine if the
+    // webform is using a flexbox layout.
+    if ((!isset($element['#flexbox']) || $element['#flexbox'] === '') && $webform_submission) {
+      $webform = $webform_submission->getWebform();
+      $element['#flexbox'] = $webform->hasFlexboxLayout();
     }
   }
 
@@ -52,9 +68,8 @@ class WebformEmailConfirm extends Email {
   public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
     $form['email_confirm'] = [
-      '#type' => 'details',
+      '#type' => 'fieldset',
       '#title' => $this->t('Email confirm settings'),
-      '#open' => TRUE,
     ];
     $form['email_confirm']['confirm__title'] = [
       '#type' => 'textfield',
@@ -68,6 +83,25 @@ class WebformEmailConfirm extends Email {
       '#type' => 'textfield',
       '#title' => $this->t('Email confirm placeholder'),
     ];
+    $form['email_confirm']['flexbox'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Use Flexbox'),
+      '#description' => $this->t("If 'Automatic' is selected Flexbox layout will only be used if a 'Flexbox layout' element is included in the webform."),
+      '#options' => [
+        '' => $this->t('Automatic'),
+        0 => $this->t('No'),
+        1 => $this->t('Yes'),
+      ],
+    ];
+
+    $form['form']['display_container']['title_display']['#options'] = [
+      'before' => $this->t('Before'),
+      'after' => $this->t('After'),
+      'inline' => $this->t('Inline'),
+      'invisible' => $this->t('Invisible'),
+      'none' => $this->t('None'),
+    ];
+
     return $form;
   }
 

@@ -17,9 +17,4 @@ settings:
   label: 'Test Webform Ajax Modal Dialogs'
   provider: webform_test_ajax
   label_display: visible
-visibility:
-  request_path:
-    id: request_path
-    pages: '<front>'
-    negate: false
-    context_mapping: {  }
+visibility: {  }

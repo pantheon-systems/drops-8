@@ -1,0 +1,16 @@
+services:
+  webform_submission_log.manager:
+    class: Drupal\webform_submission_log\WebformSubmissionLogManager
+    arguments: ['@database']
+
+  logger.webform_submission_log:
+    class: Drupal\webform_submission_log\WebformSubmissionLogLogger
+    arguments: ['@logger.log_message_parser', '@webform_submission_log.manager']
+    tags:
+      - { name: logger }
+
+  webform_submission_log.route_subscriber:
+    class: Drupal\webform_submission_log\Routing\WebformSubmissionLogRouteSubscriber
+    arguments: ['@module_handler']
+    tags:
+      - { name: event_subscriber }

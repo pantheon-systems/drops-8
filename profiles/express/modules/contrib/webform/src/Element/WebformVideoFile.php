@@ -12,6 +12,6 @@ class WebformVideoFile extends WebformManagedFileBase {
   /**
    * {@inheritdoc}
    */
-  protected static $accept = 'video/*';
+  protected static $accept = 'video/mp4,video/x-m4v,video/*';
 
 }

@@ -22,6 +22,11 @@ class EmailFieldTest extends BrowserTestBase {
   public static $modules = ['node', 'entity_test', 'field_ui'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A field storage to use in this test class.
    *
    * @var \Drupal\field\Entity\FieldStorageConfig
@@ -63,8 +68,11 @@ class EmailFieldTest extends BrowserTestBase {
     ]);
     $this->field->save();
 
+    /** @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface $display_repository */
+    $display_repository = \Drupal::service('entity_display.repository');
+
     // Create a form display for the default form mode.
-    entity_get_form_display('entity_test', 'entity_test', 'default')
+    $display_repository->getFormDisplay('entity_test', 'entity_test')
       ->setComponent($field_name, [
         'type' => 'email_default',
         'settings' => [
@@ -73,7 +81,7 @@ class EmailFieldTest extends BrowserTestBase {
       ])
       ->save();
     // Create a display for the full view mode.
-    entity_get_display('entity_test', 'entity_test', 'full')
+    $display_repository->getViewDisplay('entity_test', 'entity_test', 'full')
       ->setComponent($field_name, [
         'type' => 'email_mailto',
       ])
@@ -97,7 +105,7 @@ class EmailFieldTest extends BrowserTestBase {
 
     // Verify that a mailto link is displayed.
     $entity = EntityTest::load($id);
-    $display = entity_get_display($entity->getEntityTypeId(), $entity->bundle(), 'full');
+    $display = $display_repository->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $rendered_content = (string) \Drupal::service('renderer')->renderRoot($content);
     $this->assertContains('href="mailto:test@example.com"', $rendered_content);

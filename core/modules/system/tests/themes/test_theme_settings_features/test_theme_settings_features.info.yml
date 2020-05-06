@@ -1,8 +1,14 @@
 name: Test features
 type: theme
+base theme: stable
 core: 8.x
 description: 'Test theme to test theme settings with limited features.'
 features:
   - node_user_picture
   - comment_user_picture
   - comment_user_verification
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

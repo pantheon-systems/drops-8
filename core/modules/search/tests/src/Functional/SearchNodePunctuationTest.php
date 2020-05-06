@@ -17,6 +17,11 @@ class SearchNodePunctuationTest extends BrowserTestBase {
   protected static $modules = ['node', 'search'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user with permission to use advanced search.
    *
    * @var \Drupal\user\UserInterface
@@ -43,7 +48,6 @@ class SearchNodePunctuationTest extends BrowserTestBase {
 
     // Update the search index.
     $this->container->get('plugin.manager.search')->createInstance('node_search')->updateIndex();
-    search_update_totals();
 
     // Refresh variables after the treatment.
     $this->refreshVariables();
@@ -54,7 +58,7 @@ class SearchNodePunctuationTest extends BrowserTestBase {
     $this->assertText($node->label());
 
     // Check if the author is linked correctly to the user profile page.
-    $username = $node->getOwner()->getUsername();
+    $username = $node->getOwner()->getAccountName();
     $this->assertLink($username);
 
     // Search for "&" and verify entities are not broken up in the output.

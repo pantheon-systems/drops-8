@@ -2,38 +2,30 @@
 
 namespace Drupal\webform;
 
-use Drupal\Core\Entity\EntityDeleteForm;
-use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Url;
-use Drupal\webform\Form\WebformDialogFormTrait;
+use Drupal\webform\Form\WebformConfigEntityDeleteFormBase;
 
 /**
- * Provides a delete webform.
+ * Provides a delete webform form.
  */
-class WebformEntityDeleteForm extends EntityDeleteForm {
-
-  use WebformDialogFormTrait;
+class WebformEntityDeleteForm extends WebformConfigEntityDeleteFormBase {
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
-    $form = parent::buildForm($form, $form_state);
-    $form['confirm'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Yes, I want to delete this webform.'),
-      '#required' => TRUE,
-      '#weight' => 10,
+  public function getDescription() {
+    return [
+      'title' => [
+        '#markup' => $this->t('This action will…'),
+      ],
+      'list' => [
+        '#theme' => 'item_list',
+        '#items' => [
+          $this->t('Remove configuration'),
+          $this->t('Delete all related submissions'),
+          $this->t('Affect any fields or nodes which reference this webform'),
+        ],
+      ],
     ];
-
-    return $this->buildDialogConfirmForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getRedirectUrl() {
-    return Url::fromRoute('entity.webform.collection');
   }
 
 }

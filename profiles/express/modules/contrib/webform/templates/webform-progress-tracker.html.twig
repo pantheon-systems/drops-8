@@ -12,6 +12,7 @@
  * - max_pages: Maximum number of pages that progress text should be displayed on.
  *
  * @see template_preprocess_webform_progress_bar()
+ * @see https://www.w3.org/WAI/tutorials/forms/multi-page/
  *
  * @ingroup themeable
  */
@@ -19,21 +20,28 @@
 {{ attach_library('webform/webform.progress.tracker') }}
 
 <ul class="webform-progress-tracker progress-tracker progress-tracker--center">
-  {% for index, title in progress %}
-  {%
-    set classes = [
-      'progress-step',
-      index < current_index ? 'is-complete',
-      index == current_index ? 'is-active',
-    ]
-  %}
-  <li{{ attributes.setAttribute('class', '').addClass(classes) }}>
-    <span class="progress-marker">{{ index + 1 }}</span>
-    {% if progress|length < max_pages %}
-      <span class="progress-text">
-        <div class="progress-title">{{ title }}</div>
-      </span>
-    {% endif %}
-  </li>
+  {% for index, page in progress %}
+    {% set is_completed = index < current_index %}
+    {% set is_active = index == current_index %}
+    {%
+      set classes = [
+        'progress-step',
+        is_completed ? 'is-complete',
+        is_active ? 'is-active',
+      ]
+    %}
+    <li{{ attributes.setAttribute('data-webform-page', page.name).setAttribute('title', page.title).setAttribute('class', '').addClass(classes) }}>
+      <span class="progress-marker">{{ index + 1 }}</span>
+      {% if progress|length < max_pages %}
+        <span class="progress-text">
+          <span class="progress-title">
+            {% if is_active or is_completed %}
+              <span class="visually-hidden">{{ is_active ? 'Current'|t : 'Completed'|t }}: </span>
+            {% endif %}
+            {{ page.title }}
+          </span>
+        </span>
+      {% endif %}
+    </li>
   {% endfor %}
 </ul>

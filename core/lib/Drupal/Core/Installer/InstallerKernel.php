@@ -15,6 +15,8 @@ class InstallerKernel extends DrupalKernel {
   protected function initializeContainer() {
     // Always force a container rebuild.
     $this->containerNeedsRebuild = TRUE;
+    // Ensure the InstallerKernel's container is not dumped.
+    $this->allowDumping = FALSE;
     $container = parent::initializeContainer();
     return $container;
   }
@@ -64,6 +66,21 @@ class InstallerKernel extends DrupalKernel {
       $profile = parent::getInstallProfile();
     }
     return $profile;
+  }
+
+  /**
+   * Returns TRUE if a Drupal installation is currently being attempted.
+   *
+   * @return bool
+   *   TRUE if the installation is currently being attempted.
+   */
+  public static function installationAttempted() {
+    // This cannot rely on the MAINTENANCE_MODE constant, since that would
+    // prevent tests from using the non-interactive installer, in which case
+    // Drupal only happens to be installed within the same request, but
+    // subsequently executed code does not involve the installer at all.
+    // @see install_drupal()
+    return isset($GLOBALS['install_state']) && empty($GLOBALS['install_state']['installation_finished']);
   }
 
 }

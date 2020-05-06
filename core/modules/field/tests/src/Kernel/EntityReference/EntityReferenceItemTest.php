@@ -242,7 +242,7 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     $entity = EntityTest::create();
     $entity->field_test_entity_test_string_id->target_id = $this->entityStringId->id();
     $entity->save();
-    $storage = \Drupal::entityManager()->getStorage('entity_test');
+    $storage = \Drupal::entityTypeManager()->getStorage('entity_test');
     $storage->resetCache();
     $this->assertEqual($this->entityStringId->id(), $storage->load($entity->id())->field_test_entity_test_string_id->target_id);
     // Verify that the label for the target ID property definition is correct.
@@ -318,7 +318,7 @@ class EntityReferenceItemTest extends FieldKernelTestBase {
     $entity = unserialize($entity);
     // And then the entity.
     $entity->save();
-    $term = \Drupal::entityManager()->loadEntityByUuid($term->getEntityTypeId(), $term->uuid());
+    $term = \Drupal::service('entity.repository')->loadEntityByUuid($term->getEntityTypeId(), $term->uuid());
     $this->assertEqual($entity->field_test_taxonomy_term->entity->id(), $term->id());
   }
 

@@ -8,6 +8,11 @@ dependencies:
   - drupal:comment
   - drupal:options
 package: Core
-version: VERSION
+# version: VERSION
 core: 8.x
 configure: forum.overview
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

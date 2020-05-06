@@ -5,7 +5,10 @@
  * Install, update, and uninstall functions for the Update Manager module.
  */
 
+use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\update\ProjectSecurityData;
+use Drupal\update\ProjectSecurityRequirement;
 
 /**
  * Implements hook_requirements().
@@ -35,6 +38,13 @@ function update_requirements($phase) {
       $data = update_calculate_project_data($available);
       // First, populate the requirements for core:
       $requirements['update_core'] = _update_requirement_check($data['drupal'], 'core');
+      if (!empty($available['drupal']['releases'])) {
+        $security_data = ProjectSecurityData::createFromProjectDataAndReleases($data['drupal'], $available['drupal']['releases'])->getCoverageInfo();
+        if ($core_coverage_requirement = ProjectSecurityRequirement::createFromProjectDataAndSecurityCoverageInfo($data['drupal'], $security_data)->getRequirement()) {
+          $requirements['coverage_core'] = $core_coverage_requirement;
+        }
+      }
+
       // We don't want to check drupal a second time.
       unset($data['drupal']);
       if (!empty($data)) {
@@ -114,10 +124,10 @@ function _update_requirement_check($project, $type) {
     $requirement['description'][] = ['#markup' => _update_message_text($type, $status)];
     if (!in_array($status, [UPDATE_UNKNOWN, UPDATE_NOT_CHECKED, UPDATE_NOT_FETCHED, UPDATE_FETCH_PENDING])) {
       if (_update_manager_access()) {
-        $requirement['description'][] = ['#prefix' => ' ', '#markup' => t('See the <a href=":available_updates">available updates</a> page for more information and to install your missing updates.', [':available_updates' => \Drupal::url('update.report_update')])];
+        $requirement['description'][] = ['#prefix' => ' ', '#markup' => t('See the <a href=":available_updates">available updates</a> page for more information and to install your missing updates.', [':available_updates' => Url::fromRoute('update.report_update')->toString()])];
       }
       else {
-        $requirement['description'][] = ['#prefix' => ' ', '#markup' => t('See the <a href=":available_updates">available updates</a> page for more information.', [':available_updates' => \Drupal::url('update.status')])];
+        $requirement['description'][] = ['#prefix' => ' ', '#markup' => t('See the <a href=":available_updates">available updates</a> page for more information.', [':available_updates' => Url::fromRoute('update.status')->toString()])];
       }
     }
   }
@@ -148,7 +158,7 @@ function _update_requirement_check($project, $type) {
   if ($status != UPDATE_CURRENT && $type == 'core' && isset($project['recommended'])) {
     $requirement_label .= ' ' . t('(version @version available)', ['@version' => $project['recommended']]);
   }
-  $requirement['value'] = \Drupal::l($requirement_label, new Url(_update_manager_access() ? 'update.report_update' : 'update.status'));
+  $requirement['value'] = Link::fromTextAndUrl($requirement_label, Url::fromRoute(_update_manager_access() ? 'update.report_update' : 'update.status'))->toString();
   return $requirement;
 }
 

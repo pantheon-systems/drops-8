@@ -64,10 +64,10 @@ interface ExecutionContextInterface
     /**
      * Adds a violation at the current node of the validation graph.
      *
-     * @param string $message The error message
-     * @param array  $params  The parameters substituted in the error message
+     * @param string|\Stringable $message The error message as a string or a stringable object
+     * @param array              $params  The parameters substituted in the error message
      */
-    public function addViolation($message, array $params = array());
+    public function addViolation($message, array $params = []);
 
     /**
      * Returns a builder for adding a violation with extended information.
@@ -81,12 +81,12 @@ interface ExecutionContextInterface
      *         ->setTranslationDomain('number_validation')
      *         ->addViolation();
      *
-     * @param string $message    The error message
-     * @param array  $parameters The parameters substituted in the error message
+     * @param string|\Stringable $message    The error message as a string or a stringable object
+     * @param array              $parameters The parameters substituted in the error message
      *
      * @return ConstraintViolationBuilderInterface The violation builder
      */
-    public function buildViolation($message, array $parameters = array());
+    public function buildViolation($message, array $parameters = []);
 
     /**
      * Returns the validator.
@@ -97,7 +97,7 @@ interface ExecutionContextInterface
      *     {
      *         $validator = $this->context->getValidator();
      *
-     *         $violations = $validator->validate($value, new Length(array('min' => 3)));
+     *         $violations = $validator->validate($value, new Length(['min' => 3]));
      *
      *         if (count($violations) > 0) {
      *             // ...
@@ -283,7 +283,7 @@ interface ExecutionContextInterface
     /**
      * Returns the validation group that is currently being validated.
      *
-     * @return string The current validation group
+     * @return string|null The current validation group
      */
     public function getGroup();
 

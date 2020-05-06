@@ -1,0 +1,15 @@
+entity.webform_options_limit.summary:
+  title: 'Options'
+  route_name: entity.webform_options_limit.summary
+  parent_id: entity.webform.results
+  weight: 1
+
+# Webform node task.
+# This task will be removed if the webform_node.module is not installed.
+# @see webform_options_limit_local_tasks_alter()
+
+entity.node.webform_options_limit.summary:
+  title: 'Options'
+  route_name: entity.node.webform_options_limit.summary
+  parent_id: entity.node.webform.results
+  weight: 1

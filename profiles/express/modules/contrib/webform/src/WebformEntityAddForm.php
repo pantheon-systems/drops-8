@@ -55,9 +55,12 @@ class WebformEntityAddForm extends BundleEntityFormBase {
       '#machine_name' => [
         'exists' => '\Drupal\webform\Entity\Webform::load',
         'source' => ['title'],
+        'label' => '<br/>' . $this->t('Machine name'),
+
       ],
       '#maxlength' => 32,
-      '#disabled' => (bool) $webform->id() && $this->operation != 'duplicate',
+      '#field_suffix' => ' (' . $this->t('Maximum @max characters', ['@max' => 32]) . ')',
+      '#disabled' => (bool) ($webform->id() && $this->operation !== 'duplicate'),
       '#required' => TRUE,
     ];
     $form['title'] = [
@@ -82,9 +85,20 @@ class WebformEntityAddForm extends BundleEntityFormBase {
       '#type' => 'webform_select_other',
       '#title' => $this->t('Category'),
       '#options' => $webform_storage->getCategories(),
-      '#empty_option' => '<' . $this->t('None') . '>',
+      '#empty_option' => $this->t('- None -'),
       '#default_value' => $webform->get('category'),
     ];
+    $form['status'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Status'),
+      '#default_value' => $webform->get('status'),
+      '#options' => [
+        WebformInterface::STATUS_OPEN => $this->t('Open'),
+        WebformInterface::STATUS_CLOSED => $this->t('Closed'),
+      ],
+      '#options_display' => 'side_by_side',
+    ];
+
     $form = $this->protectBundleIdElement($form);
 
     return parent::form($form, $form_state);
@@ -96,21 +110,32 @@ class WebformEntityAddForm extends BundleEntityFormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     parent::submitForm($form, $form_state);
 
-    // Poormans duplication of translated webform configuration.
-    // This completely bypasses the config translation system and just
-    // duplicates any translated webform config stored in the database.
-    if ($this->operation == 'duplicate') {
+    if ($this->operation === 'duplicate') {
+      $original_id = \Drupal::routeMatch()->getRawParameter('webform');
+      $duplicate_id = $this->getEntity()->id();
+
+      // Poormans duplication of translated webform configuration.
+      // This completely bypasses the config translation system and just
+      // duplicates any translated webform config stored in the database.
       $result = \Drupal::database()->select('config', 'c')
         ->fields('c', ['collection', 'name', 'data'])
-        ->condition('c.name', 'webform.webform.' . \Drupal::routeMatch()->getRawParameter('webform'))
+        ->condition('c.name', 'webform.webform.' . $original_id)
         ->condition('c.collection', 'language.%', 'LIKE')
         ->execute();
       while ($record = $result->fetchAssoc()) {
-        $record['name'] = 'webform.webform.' . $this->entity->id();
+        $record['name'] = 'webform.webform.' . $duplicate_id;
         \Drupal::database()->insert('config')
           ->fields(['collection', 'name', 'data'])
           ->values($record)
           ->execute();
+      }
+
+      // Copy webform export and results from state.
+      $state = \Drupal::state()->get("webform.webform.$original_id");
+      // Remove node (source entity) keys.
+      unset($state['results.export.node'], $state['results.custom.node']);
+      if ($state) {
+        \Drupal::state()->set("webform.webform.$duplicate_id", $state);
       }
     }
 
@@ -128,11 +153,11 @@ class WebformEntityAddForm extends BundleEntityFormBase {
 
     $context = [
       '@label' => $webform->label(),
-      'link' => $webform->toLink($this->t('Edit'), 'settings')->toString()
+      'link' => $webform->toLink($this->t('Edit'), 'settings')->toString(),
     ];
     $t_args = ['%label' => $webform->label()];
     $this->logger('webform')->notice('Webform @label created.', $context);
-    drupal_set_message($this->t('Webform %label created.', $t_args));
+    $this->messenger()->addStatus($this->t('Webform %label created.', $t_args));
   }
 
 }

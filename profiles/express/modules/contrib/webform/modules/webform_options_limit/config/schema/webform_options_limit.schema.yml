@@ -1,0 +1,46 @@
+webform.handler.options_limit:
+  type: mapping
+  label: Example
+  mapping:
+    element_key:
+      type: string
+      label: 'Element'
+    limit:
+      type: ignore
+      label: 'Boolean limit'
+    limits:
+      type: ignore
+      label: 'Options limits'
+    limit_reached_message:
+      type: label
+      label: 'Limit reached message'
+    limit_source_entity:
+      type: boolean
+      label: 'Limit per source entity'
+    limit_user:
+      type: boolean
+      label: 'Limit per user'
+    option_none_action:
+      type: string
+      label: 'Limit reached behavior'
+    option_message_display:
+      type: string
+      label: 'Option message display'
+    option_multiple_message:
+      type: label
+      label: 'Option multiple remaining message'
+    option_single_message:
+      type: label
+      label: 'Option single remaining message'
+    option_none_message:
+      type: label
+      label: 'Option none remaining message'
+    option_unlimited_message:
+      type: label
+      label: 'Option unlimited message'
+    option_error_message:
+      type: label
+      label: 'Option validation error message'
+    tableselect_header:
+      type: label
+      label: 'Table select header'

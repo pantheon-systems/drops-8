@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.webform_group_a
+  enforced:
+    module:
+      - webform_demo_group
+id: webform_group_a-manager
+label: Manager
+weight: 6
+internal: false
+audience: member
+group_type: webform_group_a
+permissions_ui: true
+permissions:
+  - 'access group_node overview'
+  - 'leave group'
+  - 'view group'
+  - 'view group_membership content'
+  - 'view group_node:webform content'
+  - 'view group_node:webform entity'
+  - 'view unpublished group_node:webform entity'

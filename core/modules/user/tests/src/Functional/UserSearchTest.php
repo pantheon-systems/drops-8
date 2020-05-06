@@ -19,6 +19,11 @@ class UserSearchTest extends BrowserTestBase {
    */
   public static $modules = ['search'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   public function testUserSearch() {
     // Verify that a user without 'administer users' permission cannot search
     // for users by email address. Additionally, ensure that the username has a
@@ -38,7 +43,7 @@ class UserSearchTest extends BrowserTestBase {
     $this->assertText('no results', 'Non-matching search gave appropriate message');
 
     // Verify that a user with search permission can search for users by name.
-    $keys = $user1->getUsername();
+    $keys = $user1->getAccountName();
     $edit = ['keys' => $keys];
     $this->drupalPostForm('search/user', $edit, t('Search'));
     $this->assertLink($keys, 0, 'Search by username worked for non-admin user');
@@ -63,23 +68,23 @@ class UserSearchTest extends BrowserTestBase {
     $edit = ['keys' => $keys];
     $this->drupalPostForm('search/user', $edit, t('Search'));
     $this->assertText($keys, 'Search by email works for administrative user');
-    $this->assertText($user2->getUsername(), 'Search by email resulted in username on page for administrative user');
+    $this->assertText($user2->getAccountName(), 'Search by email resulted in username on page for administrative user');
 
     // Verify that a substring works too for email.
     $subkey = substr($keys, 1, 5);
     $edit = ['keys' => $subkey];
     $this->drupalPostForm('search/user', $edit, t('Search'));
     $this->assertText($keys, 'Search by email substring works for administrative user');
-    $this->assertText($user2->getUsername(), 'Search by email substring resulted in username on page for administrative user');
+    $this->assertText($user2->getAccountName(), 'Search by email substring resulted in username on page for administrative user');
 
     // Verify that wildcard search works for email
     $subkey = substr($keys, 0, 2) . '*' . substr($keys, 4, 2);
     $edit = ['keys' => $subkey];
     $this->drupalPostForm('search/user', $edit, t('Search'));
-    $this->assertText($user2->getUsername(), 'Search for email wildcard resulted in username on page for administrative user');
+    $this->assertText($user2->getAccountName(), 'Search for email wildcard resulted in username on page for administrative user');
 
     // Verify that if they search by user name, they see email address too.
-    $keys = $user1->getUsername();
+    $keys = $user1->getAccountName();
     $edit = ['keys' => $keys];
     $this->drupalPostForm('search/user', $edit, t('Search'));
     $this->assertText($keys, 'Search by username works for admin user');
@@ -92,14 +97,14 @@ class UserSearchTest extends BrowserTestBase {
 
     // Verify that users with "administer users" permissions can see blocked
     // accounts in search results.
-    $edit = ['keys' => $blocked_user->getUsername()];
+    $edit = ['keys' => $blocked_user->getAccountName()];
     $this->drupalPostForm('search/user', $edit, t('Search'));
-    $this->assertText($blocked_user->getUsername(), 'Blocked users are listed on the user search results for users with the "administer users" permission.');
+    $this->assertText($blocked_user->getAccountName(), 'Blocked users are listed on the user search results for users with the "administer users" permission.');
 
     // Verify that users without "administer users" permissions do not see
     // blocked accounts in search results.
     $this->drupalLogin($user1);
-    $edit = ['keys' => $blocked_user->getUsername()];
+    $edit = ['keys' => $blocked_user->getAccountName()];
     $this->drupalPostForm('search/user', $edit, t('Search'));
     $this->assertText(t('Your search yielded no results.'), 'Blocked users are hidden from the user search results.');
 

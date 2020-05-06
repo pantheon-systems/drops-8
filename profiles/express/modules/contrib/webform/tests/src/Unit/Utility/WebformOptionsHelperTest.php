@@ -73,6 +73,7 @@ class WebformOptionsHelperTest extends UnitTestCase {
   public function providerGetOptionsText() {
     $tests[] = [['value'], ['value' => 'text'], ['text']];
     $tests[] = [[1, 3], [1 => 'One', 2 => 'Two', 'optgroup' => [3 => 'Three']], ['One', 'Three']];
+    $tests[] = [[2], ['optgroup1' => [1 => 'One'], 'optgroup2' => [2 => 'Two']], ['Two']];
     return $tests;
   }
 

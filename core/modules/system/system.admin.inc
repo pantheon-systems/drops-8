@@ -6,6 +6,7 @@
  */
 
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Link;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 
@@ -25,7 +26,7 @@ function template_preprocess_admin_block_content(&$variables) {
   if (!empty($variables['content'])) {
     $variables['compact'] = system_admin_compact_mode();
     foreach ($variables['content'] as $key => $item) {
-      $variables['content'][$key]['link'] = \Drupal::l($item['title'], $item['url']);
+      $variables['content'][$key]['link'] = Link::fromTextAndUrl($item['title'], $item['url'])->toString();
       if (!$variables['compact'] && isset($item['description'])) {
         $variables['content'][$key]['description'] = ['#markup' => $item['description']];
       }
@@ -292,8 +293,8 @@ function template_preprocess_system_themes_page(&$variables) {
 
       // Make sure to provide feedback on compatibility.
       $current_theme['incompatible'] = '';
-      if (!empty($theme->incompatible_core)) {
-        $current_theme['incompatible'] = t("This theme is not compatible with Drupal @core_version. Check that the .info.yml file contains the correct 'core' value.", ['@core_version' => \Drupal::CORE_COMPATIBILITY]);
+      if (!empty($theme->info['core_incompatible'])) {
+        $current_theme['incompatible'] = t("This theme is not compatible with Drupal @core_version. Check that the .info.yml file contains a compatible 'core' or 'core_version_requirement' value.", ['@core_version' => \Drupal::VERSION]);
       }
       elseif (!empty($theme->incompatible_region)) {
         $current_theme['incompatible'] = t("This theme is missing a 'content' region.");

@@ -9,3 +9,7 @@ img.webform-image-file {
   max-width: 100%;
   height: auto;
 }
+
+.webform-image-file-modal img {
+  display: block;
+}

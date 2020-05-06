@@ -17,6 +17,11 @@ class PreviewTest extends UITestBase {
   public static $testViews = ['test_preview', 'test_preview_error', 'test_pager_full', 'test_mini_pager', 'test_click_sort'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * Tests contextual links in the preview form.
    */
   public function testPreviewContextual() {
@@ -82,7 +87,7 @@ class PreviewTest extends UITestBase {
     $this->clickLink(t('Feed'));
     $this->drupalPostForm(NULL, [], t('Update preview'));
     $result = $this->xpath('//div[@id="views-live-preview"]/pre');
-    $this->assertTrue(strpos($result[0]->getText(), '<title>' . $view['page[title]'] . '</title>'), 'The Feed RSS preview was rendered.');
+    $this->assertContains('<title>' . $view['page[title]'] . '</title>', $result[0]->getText(), 'The Feed RSS preview was rendered.');
 
     // Test the non-default UI display options.
     // Statistics only, no query.

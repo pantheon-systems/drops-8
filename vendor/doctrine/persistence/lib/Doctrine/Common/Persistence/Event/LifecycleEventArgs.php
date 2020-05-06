@@ -2,59 +2,15 @@
 
 namespace Doctrine\Common\Persistence\Event;
 
-use Doctrine\Common\EventArgs;
-use Doctrine\Common\Persistence\ObjectManager;
+use function class_alias;
 
-/**
- * Lifecycle Events are triggered by the UnitOfWork during lifecycle transitions
- * of entities.
- */
-class LifecycleEventArgs extends EventArgs
-{
-    /** @var ObjectManager */
-    private $objectManager;
+class_alias(
+    \Doctrine\Persistence\Event\LifecycleEventArgs::class,
+    __NAMESPACE__ . '\LifecycleEventArgs'
+);
 
-    /** @var object */
-    private $object;
-
-    /**
-     * @param object $object
-     */
-    public function __construct($object, ObjectManager $objectManager)
+if (false) {
+    class LifecycleEventArgs extends \Doctrine\Persistence\Event\LifecycleEventArgs
     {
-        $this->object        = $object;
-        $this->objectManager = $objectManager;
-    }
-
-    /**
-     * Retrieves the associated entity.
-     *
-     * @deprecated
-     *
-     * @return object
-     */
-    public function getEntity()
-    {
-        return $this->object;
-    }
-
-    /**
-     * Retrieves the associated object.
-     *
-     * @return object
-     */
-    public function getObject()
-    {
-        return $this->object;
-    }
-
-    /**
-     * Retrieves the associated ObjectManager.
-     *
-     * @return ObjectManager
-     */
-    public function getObjectManager()
-    {
-        return $this->objectManager;
     }
 }

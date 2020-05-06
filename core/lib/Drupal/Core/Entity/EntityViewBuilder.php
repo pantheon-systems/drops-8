@@ -4,12 +4,14 @@ namespace Drupal\Core\Entity;
 
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\Entity\EntityViewDisplay;
 use Drupal\Core\Field\FieldItemInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Security\TrustedCallbackInterface;
 use Drupal\Core\Theme\Registry;
 use Drupal\Core\TypedData\TranslatableInterface as TranslatableDataInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -19,7 +21,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * @ingroup entity_api
  */
-class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterface, EntityViewBuilderInterface {
+class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterface, EntityViewBuilderInterface, TrustedCallbackInterface {
+  use DeprecatedServicePropertyTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
 
   /**
    * The type of entities for which this view builder is instantiated.
@@ -36,11 +44,18 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
   protected $entityType;
 
   /**
-   * The entity manager service.
+   * The entity repository service.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface
    */
-  protected $entityManager;
+  protected $entityRepository;
+
+  /**
+   * The entity display repository.
+   *
+   * @var \Drupal\Core\Entity\EntityDisplayRepositoryInterface
+   */
+  protected $entityDisplayRepository;
 
   /**
    * The cache bin used to store the render cache.
@@ -77,19 +92,26 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type definition.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager service.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository service.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\Core\Theme\Registry $theme_registry
    *   The theme registry.
+   * @param \Drupal\Core\Entity\EntityDisplayRepositoryInterface $entity_display_repository
+   *   The entity display repository.
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, Registry $theme_registry = NULL) {
+  public function __construct(EntityTypeInterface $entity_type, EntityRepositoryInterface $entity_repository, LanguageManagerInterface $language_manager, Registry $theme_registry = NULL, EntityDisplayRepositoryInterface $entity_display_repository = NULL) {
     $this->entityTypeId = $entity_type->id();
     $this->entityType = $entity_type;
-    $this->entityManager = $entity_manager;
+    $this->entityRepository = $entity_repository;
     $this->languageManager = $language_manager;
     $this->themeRegistry = $theme_registry ?: \Drupal::service('theme.registry');
+    if (!$entity_display_repository) {
+      @trigger_error('Calling EntityViewBuilder::__construct() with the $entity_repository argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
+      $entity_display_repository = \Drupal::service('entity_display.repository');
+    }
+    $this->entityDisplayRepository = $entity_display_repository;
   }
 
   /**
@@ -98,9 +120,10 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
   public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
     return new static(
       $entity_type,
-      $container->get('entity.manager'),
+      $container->get('entity.repository'),
       $container->get('language_manager'),
-      $container->get('theme.registry')
+      $container->get('theme.registry'),
+      $container->get('entity_display.repository')
     );
   }
 
@@ -123,6 +146,13 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
   /**
    * {@inheritdoc}
    */
+  public static function trustedCallbacks() {
+    return ['build', 'buildMultiple'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function viewMultiple(array $entities = [], $view_mode = 'full', $langcode = NULL) {
     $build_list = [
       '#sorted' => TRUE,
@@ -132,7 +162,7 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
     foreach ($entities as $key => $entity) {
       // Ensure that from now on we are dealing with the proper translation
       // object.
-      $entity = $this->entityManager->getTranslationFromContext($entity, $langcode);
+      $entity = $this->entityRepository->getTranslationFromContext($entity, $langcode);
 
       // Set build defaults.
       $build_list[$key] = $this->getBuildDefaults($entity, $view_mode);
@@ -418,7 +448,7 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
       // The 'default' is not an actual view mode.
       return TRUE;
     }
-    $view_modes_info = $this->entityManager->getViewModes($this->entityTypeId);
+    $view_modes_info = $this->entityDisplayRepository->getViewModes($this->entityTypeId);
     return !empty($view_modes_info[$view_mode]['cache']);
   }
 
@@ -426,7 +456,15 @@ class EntityViewBuilder extends EntityHandlerBase implements EntityHandlerInterf
    * {@inheritdoc}
    */
   public function viewField(FieldItemListInterface $items, $display_options = []) {
+    /** @var \Drupal\Core\Entity\FieldableEntityInterface $entity */
     $entity = $items->getEntity();
+    // If the field is not translatable and the entity is, then the field item
+    // list always points to the default translation of the entity. Attempt to
+    // fetch it in the current content language.
+    if (!$items->getFieldDefinition()->isTranslatable() && $entity->isTranslatable()) {
+      $entity = $this->entityRepository->getTranslationFromContext($entity);
+    }
+
     $field_name = $items->getFieldDefinition()->getName();
     $display = $this->getSingleFieldDisplay($entity, $field_name, $display_options);
 

@@ -1,10 +1,15 @@
 name: 'Testing config import'
 type: profile
 description: 'Tests install profiles in the config importer.'
-version: VERSION
+# version: VERSION
 core: 8.x
 hidden: true
 install:
   - syslog
 themes:
   - stark
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

@@ -2,6 +2,7 @@
 
 namespace Drupal\simpletest\Tests;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Crypt;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\simpletest\WebTestBase;
@@ -12,6 +13,8 @@ use Drupal\simpletest\WebTestBase;
  * internal browser and APIs implicitly.
  *
  * @group simpletest
+ * @group WebTestBase
+ * @group legacy
  */
 class SimpleTestTest extends WebTestBase {
 
@@ -204,7 +207,7 @@ EOD;
 
     // This causes the eleventh of the sixteen passes asserted in
     // confirmStubResults().
-    $this->pass(t('Test ID is @id.', ['@id' => $this->testId]));
+    $this->pass('Test ID is ' . $this->testId . '.');
 
     // These cause the twelfth to fifteenth of the sixteen passes asserted in
     // confirmStubResults().
@@ -233,7 +236,7 @@ EOD;
    * Assert nothing.
    */
   public function assertNothing() {
-    $this->pass("This is nothing.");
+    $this->pass('This is nothing.');
   }
 
   /**
@@ -312,7 +315,7 @@ EOD;
         break;
       }
     }
-    return $this->assertTrue($found, format_string('Found assertion {"@message", "@type", "@status", "@file", "@function"}.', ['@message' => $message, '@type' => $type, '@status' => $status, "@file" => $file, "@function" => $function]));
+    return $this->assertTrue($found, new FormattableMarkup('Found assertion {"@message", "@type", "@status", "@file", "@function"}.', ['@message' => $message, '@type' => $type, '@status' => $status, "@file" => $file, "@function" => $function]));
   }
 
   /**

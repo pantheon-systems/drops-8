@@ -102,6 +102,11 @@ class DrupalFinder
                 file_get_contents($path . '/' . $this->getComposerFileName()),
                 true
             );
+
+            if (is_null($json)) {
+                throw new \Exception('Unable to decode ' . $path . '/' . $this->getComposerFileName());
+            }
+
             if (is_array($json)) {
                 if (isset($json['extra']['installer-paths']) && is_array($json['extra']['installer-paths'])) {
                     foreach ($json['extra']['installer-paths'] as $install_path => $items) {
@@ -110,8 +115,8 @@ class DrupalFinder
                             in_array('drupal/drupal', $items)) {
                             $this->composerRoot = $path;
                             // @todo: Remove this magic and detect the major version instead.
-                            if ($install_path == 'core') {
-                                $install_path = null;
+                            if (($install_path == 'core') || ((isset($json['name'])) && ($json['name'] == 'drupal/drupal'))) {
+                                $install_path = '';
                             } elseif (substr($install_path, -5) == '/core') {
                                 $install_path = substr($install_path, 0, -5);
                             }

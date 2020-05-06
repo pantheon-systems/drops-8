@@ -3,7 +3,6 @@
 namespace Drupal\Tests\webform\Kernel;
 
 use Drupal\Core\Url;
-use Drupal\webform\WebformEntityElementsValidator;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
@@ -23,7 +22,7 @@ class WebformEntityElementsValidationTest extends KernelTestBase {
   /**
    * The webform elements validator.
    *
-   * @var \Drupal\webform\WebformEntityElementsValidator
+   * @var \Drupal\webform\WebformEntityElementsValidatorInterface
    */
   protected $validator;
 
@@ -32,7 +31,7 @@ class WebformEntityElementsValidationTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->validator = new WebformEntityElementsValidator();
+    $this->validator = \Drupal::service('webform.elements_validator');
   }
 
   /**
@@ -65,6 +64,15 @@ class WebformEntityElementsValidationTest extends KernelTestBase {
         ],
       ],
 
+      // Check names.
+      [
+        'getElementsRaw' => "Not Valid:
+  '#type': textfield",
+        'messages' => [
+          'The element key <em class="placeholder">Not Valid</em> on line 1 must contain only lowercase letters, numbers, and underscores.',
+        ],
+      ],
+
       // Check duplicate names.
       [
         'getElementsRaw' => "name:
@@ -73,7 +81,7 @@ duplicate:
   name:
     '#type': textfield",
         'messages' => [
-          'Elements contain a duplicate element name <em class="placeholder">name</em> found on lines 1 and 4.',
+          'Elements contain a duplicate element key <em class="placeholder">name</em> found on lines 1 and 4.',
         ],
       ],
 
@@ -85,7 +93,19 @@ duplicate:
   name:
     '#type': textfield",
         'messages' => [
-          'Elements contain a duplicate element name <em class="placeholder">name</em> found on lines 1 and 4.',
+          'Elements contain a duplicate element key <em class="placeholder">name</em> found on lines 1 and 4.',
+        ],
+      ],
+
+      // Check reserved names.
+      [
+        'getElementsRaw' => "name:
+  '#type': textfield
+duplicate:
+  add:
+    '#type': textfield",
+        'messages' => [
+          'The element key <em class="placeholder">add</em> on line 4 is a reserved key.',
         ],
       ],
 
@@ -132,6 +152,32 @@ duplicate:
           'The <em class="placeholder">root</em> (webform_wizard_page) is a root element that can not be used as child to another element',
         ],
       ],
+
+      // Check validate table hierarchy.
+      [
+        'getElementsRaw' => 'empty: empty',
+        'getElementsOriginalRaw' => 'empty: empty',
+        'getElementsInitializedAndFlattened' => [
+          'table' => [
+            '#type' => 'webform_table',
+            '#webform_key' => 'table',
+          ],
+          'table_row' => [
+            '#type' => 'webform_table_row',
+            '#webform_key' => 'table_row',
+            '#webform_parent_key' => 'table',
+          ],
+          'table_row_invalid' => [
+            '#type' => 'webform_table_row',
+            '#webform_key' => 'table_row',
+            '#webform_parent_key' => NULL,
+          ],
+        ],
+        'messages' => [
+          'The <em class="placeholder">table_row_invalid</em> (webform_table_row) must be with in a <em class="placeholder">Table</em> (webform_table) element.',
+        ],
+      ],
+
 /*
       // Check validate rendering.
       [
@@ -190,9 +236,9 @@ duplicate:
       ];
 
       /** @var \Drupal\webform\WebformInterface $webform */
-      $webform = $this->getMock('\Drupal\webform\WebformInterface');
+      $webform = $this->createMock('\Drupal\webform\WebformInterface');
       $methods = $test;
-      unset($methods['message']);
+      unset($methods['messages']);
       foreach ($methods as $method => $returnValue) {
         $webform->expects($this->any())
           ->method($method)

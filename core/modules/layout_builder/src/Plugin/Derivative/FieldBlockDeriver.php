@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeRepositoryInterface;
 use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\FormatterPluginManager;
+use Drupal\Core\Plugin\Context\ContextDefinition;
 use Drupal\Core\Plugin\Context\EntityContextDefinition;
 use Drupal\Core\Plugin\Discovery\ContainerDeriverInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -18,6 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Provides entity field block definitions for every field.
  *
  * @internal
+ *   Plugin derivers are internal.
  */
 class FieldBlockDeriver extends DeriverBase implements ContainerDeriverInterface {
 
@@ -120,8 +122,9 @@ class FieldBlockDeriver extends DeriverBase implements ContainerDeriverInterface
 
           $context_definition = EntityContextDefinition::fromEntityTypeId($entity_type_id)->setLabel($entity_type_labels[$entity_type_id]);
           $context_definition->addConstraint('Bundle', [$bundle]);
-          $derivative['context'] = [
+          $derivative['context_definitions'] = [
             'entity' => $context_definition,
+            'view_mode' => new ContextDefinition('string'),
           ];
 
           $derivative_id = $entity_type_id . PluginBase::DERIVATIVE_SEPARATOR . $bundle . PluginBase::DERIVATIVE_SEPARATOR . $field_name;

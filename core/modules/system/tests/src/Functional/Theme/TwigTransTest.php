@@ -25,6 +25,11 @@ class TwigTransTest extends BrowserTestBase {
   ];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * An administrative user for testing.
    *
    * @var \Drupal\user\Entity\User
@@ -48,7 +53,7 @@ class TwigTransTest extends BrowserTestBase {
     parent::setUp();
 
     // Setup test_theme.
-    \Drupal::service('theme_handler')->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
     $this->config('system.theme')->set('default', 'test_theme')->save();
 
     // Create and log in as admin.
@@ -108,7 +113,7 @@ class TwigTransTest extends BrowserTestBase {
       $this->fail('{% trans %}{% endtrans %} did not throw an exception.');
     }
     catch (\Twig_Error_Syntax $e) {
-      $this->assertTrue(strstr($e->getMessage(), '{% trans %} tag cannot be empty'), '{% trans %}{% endtrans %} threw the expected exception.');
+      $this->assertContains('{% trans %} tag cannot be empty', $e->getMessage(), '{% trans %}{% endtrans %} threw the expected exception.');
     }
     catch (\Exception $e) {
       $this->fail('{% trans %}{% endtrans %} threw an unexpected exception.');
@@ -192,6 +197,7 @@ class TwigTransTest extends BrowserTestBase {
    * Helper function: install languages.
    */
   protected function installLanguages() {
+    $file_system = \Drupal::service('file_system');
     foreach ($this->languages as $langcode => $name) {
       // Generate custom .po contents for the language.
       $contents = $this->poFileContents($langcode);
@@ -209,7 +215,7 @@ class TwigTransTest extends BrowserTestBase {
         $this->assertRaw('"edit-languages-' . $langcode . '-weight"', 'Language code found.');
 
         // Import the custom .po contents for the language.
-        $filename = \Drupal::service('file_system')->tempnam('temporary://', "po_") . '.po';
+        $filename = $file_system->tempnam('temporary://', "po_") . '.po';
         file_put_contents($filename, $contents);
         $options = [
           'files[file]' => $filename,
@@ -217,7 +223,7 @@ class TwigTransTest extends BrowserTestBase {
           'customized' => TRUE,
         ];
         $this->drupalPostForm('admin/config/regional/translate/import', $options, t('Import'));
-        drupal_unlink($filename);
+        $file_system->unlink($filename);
       }
     }
     $this->container->get('language_manager')->reset();

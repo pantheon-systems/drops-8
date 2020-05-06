@@ -1,0 +1,73 @@
+textfield: Loremipsum
+textarea: 'Quae cum dixisset, finem ille. Quamquam non negatis nos intellegere quid sit voluptas, sed quid ille dicat. Progredientibus autem aetatibus sensim tardeve potius quasi nosmet ipsos cognoscimus. Gloriosa ostentatio in constituendo summo bono. Qui-vere falsone, quaerere mittimus-dicitur oculis se privasse; Duarum enim vitarum nobis erunt instituta capienda. Comprehensum, quod cognitum non habet? Qui enim existimabit posse se miserum esse beatus non erit. Causa autem fuit huc veniendi ut quosdam hinc libros promerem. Nunc omni virtuti vitium contrario nomine opponitur.'
+select: one
+checkboxes:
+  - two
+  - three
+  - one
+date: '2017-11-23T00:01:39-0500'
+datelist: '2023-09-26T21:26:55-0400'
+date_datepicker: '2029-08-19T02:45:54-0400'
+webform_time: '09:00'
+email_multiple: 'example@example.com, test@test.com, random@random.com'
+tel_international: '+1 212-333-4444'
+range: !!float 50
+managed_file: '29'
+tableselect:
+  - one
+  - two
+  - three
+webform_tableselect_sort:
+  - two
+  - one
+webform_table_sort:
+  - one
+  - three
+  - two
+webform_autocomplete: Oratione
+webform_buttons: three
+webform_codemirror: 'message: ''Hello World'''
+webform_image_select: kitten_1
+webform_rating: 5
+webform_terms_of_service: true
+webform_likert:
+  q1: 1
+  q2: 3
+  q3: 1
+entity_autocomplete: 1
+webform_entity_select: 1
+webform_term_select: 39
+webform_custom_composite:
+  -
+    first_name: George
+    last_name: Lennon
+    gender: Female
+    martial_status: Divorced
+    employment_status: 'Full Time'
+    age: 1
+  -
+    first_name: George
+    last_name: McCartney
+    gender: Male
+    martial_status: Married
+    employment_status: Unemployed
+    age: 1
+  -
+    first_name: Paul
+    last_name: Starr
+    gender: Male
+    martial_status: Single
+    employment_status: Unemployed
+    age: !!float 5
+form_element_input_mask: ''
+form_element_input_hide: Dixisset
+descriptions: Oratione
+element_flex_1: Dixisset
+element_flex_2: Oratione
+element_flex_3: Loremipsum
+checkbox_value: Loremipsum
+mapping:
+  one: six
+  two: five
+  three: five
+multiple: Oratione

@@ -4,6 +4,7 @@ namespace Drupal\node\Plugin\views\field;
 
 @trigger_error('Drupal\node\Plugin\views\field\Path is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use @ViewsField("entity_link") with \'output_url_as_text\' set.', E_USER_DEPRECATED);
 
+use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\display\DisplayPluginBase;
@@ -17,7 +18,7 @@ use Drupal\views\ViewExecutable;
  *
  * @ViewsField("node_path")
  *
- * @deprecated in Drupal 8.5.x, will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0.
  *  Use @ViewsField("entity_link") with 'output_url_as_text' set.
  */
 class Path extends FieldPluginBase {
@@ -69,7 +70,7 @@ class Path extends FieldPluginBase {
   public function render(ResultRow $values) {
     $nid = $this->getValue($values, 'nid');
     return [
-      '#markup' => \Drupal::url('entity.node.canonical', ['node' => $nid], ['absolute' => $this->options['absolute']]),
+      '#markup' => Url::fromRoute('entity.node.canonical', ['node' => $nid], ['absolute' => $this->options['absolute']])->toString(),
     ];
   }
 

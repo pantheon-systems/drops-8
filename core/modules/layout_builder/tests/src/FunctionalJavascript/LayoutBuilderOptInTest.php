@@ -23,12 +23,13 @@ class LayoutBuilderOptInTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     parent::setUp();
-
-    // @todo The Layout Builder UI relies on local tasks; fix in
-    //   https://www.drupal.org/project/drupal/issues/2917777.
-    $this->drupalPlaceBlock('local_tasks_block');
 
     // Create one content type before installing Layout Builder and one after.
     $this->createContentType(['type' => 'before']);
@@ -116,8 +117,7 @@ class LayoutBuilderOptInTest extends WebDriverTestBase {
     $page->selectFieldOption('settings[formatter][type]', 'text_trimmed');
     $assert_session->assertWaitOnAjaxRequest();
     $page->pressButton('Update');
-    $assert_session->linkExists('Save Layout');
-    $this->clickLink('Save Layout');
+    $page->pressButton('Save layout');
 
     $this->drupalGet($layout_builder_ui);
     $assert_session->fieldValueEquals('settings[formatter][type]', 'text_trimmed');

@@ -10,7 +10,9 @@ use Drupal\migrate\Row;
  * Defines an interface for migrate ID mappings.
  *
  * Migrate ID mappings maintain a relation between source ID and destination ID
- * for audit and rollback purposes.
+ * for audit and rollback purposes. The keys used in the migrate_map table are
+ * of the form sourceidN and destidN for the source and destination values
+ * respectively.
  */
 interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
 
@@ -63,6 +65,27 @@ interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
   public function saveMessage(array $source_id_values, $message, $level = MigrationInterface::MESSAGE_ERROR);
 
   /**
+   * Retrieves a traversable object of messages related to source records.
+   *
+   * @param array $source_id_values
+   *   (optional) The source identifier keyed values of the record, e.g.
+   *   ['nid' => 5]. If empty (the default), all messages are retrieved.
+   * @param int $level
+   *   (optional) Message severity. If NULL (the default), retrieve messages of
+   *   all severities.
+   *
+   * @return \Traversable
+   *   Retrieves a traversable object of message objects of unspecified class.
+   *   Each object has the following public properties:
+   *   - source_row_hash: the hash of the entire serialized source row data.
+   *   - message: the text of the message.
+   *   - level: one of MigrationInterface::MESSAGE_ERROR,
+   *   MigrationInterface::MESSAGE_WARNING, MigrationInterface::MESSAGE_NOTICE,
+   *   MigrationInterface::MESSAGE_INFORMATIONAL.
+   */
+  public function getMessages(array $source_id_values = [], $level = NULL);
+
+  /**
    * Retrieves an iterator over messages relate to source records.
    *
    * @param array $source_id_values
@@ -74,6 +97,11 @@ interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
    *
    * @return \Iterator
    *   Retrieves an iterator over the message rows.
+   *
+   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
+   *   Use \Drupal\migrate\Plugin\MigrateIdMapInterface::getMessages() instead.
+   *
+   * @see https://www.drupal.org/node/3060969
    */
   public function getMessageIterator(array $source_id_values = [], $level = NULL);
 
@@ -210,7 +238,7 @@ interface MigrateIdMapInterface extends \Iterator, PluginInspectionInterface {
    * @return array
    *   The destination identifier values of the record, or empty on failure.
    *
-   * @deprecated in Drupal 8.1.x, will be removed before Drupal 9.0.x. Use
+   * @deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use
    *   lookupDestinationIds() instead.
    *
    * @see https://www.drupal.org/node/2725809

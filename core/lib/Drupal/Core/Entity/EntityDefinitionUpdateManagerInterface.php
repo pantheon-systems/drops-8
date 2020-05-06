@@ -13,10 +13,11 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  * perform complex or long-running logic in response to the change. For
  * example, a SQL-based storage handler may need to update the database schema.
  *
- * To support this, \Drupal\Core\Entity\EntityManagerInterface has methods to
- * retrieve the last installed definitions as well as the definitions specified
- * by the current codebase. It also has create/update/delete methods to bring
- * the former up to date with the latter.
+ * To support this,
+ * \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface has methods
+ * to retrieve the last installed definitions as well as the definitions
+ * specified by the current codebase. It also has create/update/delete methods
+ * to bring the former up to date with the latter.
  *
  * However, it is not the responsibility of the entity manager to decide how to
  * report the differences or when to apply each update. This interface is for
@@ -33,10 +34,10 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
  * in state allows to avoid this and ensures that the various steps of the
  * update process are predictable and repeatable.
  *
- * @see \Drupal\Core\Entity\EntityManagerInterface::getDefinition()
- * @see \Drupal\Core\Entity\EntityManagerInterface::getLastInstalledDefinition()
- * @see \Drupal\Core\Entity\EntityManagerInterface::getFieldStorageDefinitions()
- * @see \Drupal\Core\Entity\EntityManagerInterface::getLastInstalledFieldStorageDefinitions()
+ * @see \Drupal\Core\Entity\EntityTypeManagerInterface::getDefinition()
+ * @see \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface::getLastInstalledDefinition()
+ * @see \Drupal\Core\Entity\EntityFieldManagerInterface::getFieldStorageDefinitions()
+ * @see \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface::getLastInstalledFieldStorageDefinitions()
  * @see hook_update_N()
  */
 interface EntityDefinitionUpdateManagerInterface {
@@ -80,6 +81,23 @@ interface EntityDefinitionUpdateManagerInterface {
   public function getChangeSummary();
 
   /**
+   * Gets a list of changes to entity type and field storage definitions.
+   *
+   * @return array
+   *   An associative array keyed by entity type ID of change descriptors. Every
+   *   entry is an associative array with the following optional keys:
+   *   - entity_type: a scalar having one value among:
+   *     - EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED
+   *     - EntityDefinitionUpdateManagerInterface::DEFINITION_UPDATED
+   *   - field_storage_definitions: an associative array keyed by field name of
+   *     scalars having one value among:
+   *     - EntityDefinitionUpdateManagerInterface::DEFINITION_CREATED
+   *     - EntityDefinitionUpdateManagerInterface::DEFINITION_UPDATED
+   *     - EntityDefinitionUpdateManagerInterface::DEFINITION_DELETED
+   */
+  public function getChangeList();
+
+  /**
    * Applies all the detected valid changes.
    *
    * Use this with care, as it will apply updates for any module, which will
@@ -90,6 +108,12 @@ interface EntityDefinitionUpdateManagerInterface {
    *   unacceptable data loss. In such a case, the site administrator needs to
    *   apply some other process, such as a custom update function or a
    *   migration via the Migrate module.
+   *
+   * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
+   *    \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface::getChangeList()
+   *    and execute each entity type and field storage update manually instead.
+   *
+   * @see https://www.drupal.org/node/3034742
    */
   public function applyUpdates();
 
@@ -129,6 +153,16 @@ interface EntityDefinitionUpdateManagerInterface {
   public function installEntityType(EntityTypeInterface $entity_type);
 
   /**
+   * Installs a new fieldable entity type definition.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The entity type definition.
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface[] $field_storage_definitions
+   *   The entity type's field storage definitions.
+   */
+  public function installFieldableEntityType(EntityTypeInterface $entity_type, array $field_storage_definitions);
+
+  /**
    * Applies any change performed to the passed entity type definition.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -143,6 +177,20 @@ interface EntityDefinitionUpdateManagerInterface {
    *   The entity type definition.
    */
   public function uninstallEntityType(EntityTypeInterface $entity_type);
+
+  /**
+   * Applies any change performed to a fieldable entity type definition.
+   *
+   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+   *   The updated entity type definition.
+   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface[] $field_storage_definitions
+   *   The updated field storage definitions, including possibly new ones.
+   * @param array &$sandbox
+   *   (optional) A sandbox array provided by a hook_update_N() implementation
+   *   or a Batch API callback. If the entity schema update requires a data
+   *   migration, this parameter is mandatory. Defaults to NULL.
+   */
+  public function updateFieldableEntityType(EntityTypeInterface $entity_type, array $field_storage_definitions, array &$sandbox = NULL);
 
   /**
    * Returns a field storage definition ready to be manipulated.

@@ -2,9 +2,11 @@
 
 namespace Drupal\webform\Form;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\webform\Plugin\WebformHandler\EmailWebformHandler;
+use Drupal\webform\Element\WebformAjaxElementTrait;
+use Drupal\webform\Plugin\WebformHandlerMessageInterface;
 use Drupal\webform\WebformRequestInterface;
 use Drupal\webform\WebformSubmissionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -13,6 +15,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Defines a webform that resends webform submission.
  */
 class WebformSubmissionResendForm extends FormBase {
+
+  use WebformAjaxElementTrait;
 
   /**
    * A webform submission.
@@ -67,15 +71,9 @@ class WebformSubmissionResendForm extends FormBase {
   public function buildForm(array $form, FormStateInterface $form_state, WebformSubmissionInterface $webform_submission = NULL) {
     $this->webformSubmission = $webform_submission;
 
-    $handlers = $webform_submission->getWebform()->getHandlers();
-
-    /** @var \Drupal\webform\Plugin\WebformHandlerMessageInterface[] $message_handlers */
-    $message_handlers = [];
-    foreach ($handlers as $handler_id => $handler) {
-      if ($handler instanceof EmailWebformHandler) {
-        $message_handlers[$handler_id] = $handler;
-      }
-    }
+    // Apply variants to the webform.
+    $webform = $webform_submission->getWebform();
+    $webform->applyVariants($webform_submission);
 
     // Get header.
     $header = [];
@@ -96,41 +94,19 @@ class WebformSubmissionResendForm extends FormBase {
     ];
 
     // Get options.
-    $options = [];
-    foreach ($message_handlers as $index => $message_handler) {
-      $message = $message_handler->getMessage($this->webformSubmission);
+    $options = $this->getMessageHandlerOptions($webform_submission);
 
-      $options[$index]['title'] = [
-        'data' => [
-          'label' => [
-            '#type' => 'label',
-            '#title' => $message_handler->label() . ': ' . $message_handler->description(),
-            '#title_display' => NULL,
-            '#for' => 'edit-message-handler-id-' . str_replace('_', '-', $message_handler->getHandlerId()),
-          ],
-        ],
-      ];
-      $options[$index]['id'] = [
-        'data' => $message_handler->getHandlerId(),
-      ];
-      $options[$index]['summary'] = [
-        'data' => $message_handler->getMessageSummary($message),
-      ];
-      $options[$index]['status'] = ($message_handler->isEnabled()) ? $this->t('Enabled') : $this->t('Disabled');
-    }
-
-    // Get message handler id.
-    if (empty($form_state->getValue('message_handler_id'))) {
-      reset($options);
-      $message_handler_id = key($options);
-      $form_state->setValue('message_handler_id', $message_handler_id);
-    }
-    else {
+    // Get message handler id from form state or use the first message handler.
+    if (!empty($form_state->getValue('message_handler_id'))) {
       $message_handler_id = $form_state->getValue('message_handler_id');
     }
+    else {
+      $message_handler_id = key($options);
+    }
 
-    $message_handler = $this->getMessageHandler($form_state);
-    $form['message_handler_id'] = [
+    // Display message handler with change message Ajax submit button.
+    $form['message_handler'] = [];
+    $form['message_handler']['message_handler_id'] = [
       '#type' => 'tableselect',
       '#header' => $header,
       '#options' => $options,
@@ -138,23 +114,18 @@ class WebformSubmissionResendForm extends FormBase {
       '#empty' => $this->t('No messages are available.'),
       '#multiple' => FALSE,
       '#default_value' => $message_handler_id,
-      '#ajax' => [
-        'callback' => '::updateMessage',
-        'wrapper' => 'edit-webform-message-wrapper',
-      ],
     ];
 
     // Message.
+    $message_handler = $this->webformSubmission->getWebform()->getHandler($message_handler_id);
+    $message = $message_handler->getMessage($webform_submission);
+    $resend_form = $message_handler->resendMessageForm($message);
     $form['message'] = [
       '#type' => 'details',
       '#title' => $this->t('Message'),
       '#open' => TRUE,
       '#tree' => TRUE,
-      '#prefix' => '<div id="edit-webform-message-wrapper">',
-      '#suffix' => '</div>',
-    ];
-    $message = $message_handler->getMessage($webform_submission);
-    $form['message'] += $message_handler->resendMessageForm($message);
+    ] + $resend_form;
 
     // Add resend button.
     $form['submit'] = [
@@ -165,39 +136,26 @@ class WebformSubmissionResendForm extends FormBase {
     // Add submission navigation.
     $source_entity = $this->requestHandler->getCurrentSourceEntity('webform_submission');
     $form['navigation'] = [
-      '#theme' => 'webform_submission_navigation',
+      '#type' => 'webform_submission_navigation',
       '#webform_submission' => $webform_submission,
       '#weight' => -20,
     ];
     $form['information'] = [
-      '#theme' => 'webform_submission_information',
+      '#type' => 'webform_submission_information',
       '#webform_submission' => $webform_submission,
       '#source_entity' => $source_entity,
       '#weight' => -19,
     ];
     $form['#attached']['library'][] = 'webform/webform.admin';
 
-    return $form;
-  }
+    $this->buildAjaxElement(
+      'webform-message-handler',
+      $form['message'],
+      $form['message_handler']['message_handler_id'],
+      $form['message_handler']
+    );
 
-  /**
-   * Handles switching between messages.
-   *
-   * @param array $form
-   *   An associative array containing the structure of the form.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   The current state of the form.
-   *
-   * @return array
-   *   An associative array containing an email message.
-   */
-  public function updateMessage(array $form, FormStateInterface $form_state) {
-    $message_handler = $this->getMessageHandler($form_state);
-    $message = $message_handler->getMessage($this->webformSubmission);
-    foreach ($message as $key => $value) {
-      $form['message'][$key]['#value'] = $value;
-    }
-    return $form['message'];
+    return $form;
   }
 
   /**
@@ -205,13 +163,19 @@ class WebformSubmissionResendForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $params = $form_state->getValue('message');
-    $message_handler = $this->getMessageHandler($form_state);
+
+    // Add webform submission.
+    $params['webform_submission'] = $this->webformSubmission;
+
+    $message_handler_id = $form_state->getValue('message_handler_id');
+    $message_handler = $this->webformSubmission->getWebform()->getHandler($message_handler_id);
+
     $message_handler->sendMessage($this->webformSubmission, $params);
 
     $t_args = [
       '%label' => $message_handler->label(),
     ];
-    drupal_set_message($this->t('Successfully re-sent %label.', $t_args));
+    $this->messenger()->addStatus($this->t('Successfully re-sent %label.', $t_args));
   }
 
   /**
@@ -226,6 +190,69 @@ class WebformSubmissionResendForm extends FormBase {
   protected function getMessageHandler(FormStateInterface $form_state) {
     $message_handler_id = $form_state->getValue('message_handler_id');
     return $this->webformSubmission->getWebform()->getHandler($message_handler_id);
+  }
+
+  /****************************************************************************/
+  // Helper methods.
+  /****************************************************************************/
+
+  /**
+   * Get a webform submission's message handlers as options.
+   *
+   * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
+   *   A webform submission.
+   *
+   * @return array
+   *   An associative array containing a webform submission's message handlers
+   *   as table select options.
+   */
+  protected function getMessageHandlerOptions(WebformSubmissionInterface $webform_submission) {
+    $handlers = $webform_submission->getWebform()->getHandlers();
+
+    // Get options.
+    $options = [];
+    foreach ($handlers as $handler_id => $message_handler) {
+      if (!($message_handler instanceof WebformHandlerMessageInterface)) {
+        continue;
+      }
+
+      $message = $message_handler->getMessage($webform_submission);
+
+      $options[$handler_id]['title'] = [
+        'data' => [
+          'label' => [
+            '#type' => 'label',
+            '#title' => $message_handler->label() . ': ' . $message_handler->description(),
+            '#title_display' => NULL,
+            '#for' => 'edit-message-handler-id-' . str_replace('_', '-', $message_handler->getHandlerId()),
+          ],
+        ],
+      ];
+      $options[$handler_id]['id'] = [
+        'data' => $message_handler->getHandlerId(),
+      ];
+      $options[$handler_id]['summary'] = [
+        'data' => $message_handler->getMessageSummary($message),
+      ];
+      $options[$handler_id]['status'] = ($message_handler->isEnabled()) ? $this->t('Enabled') : $this->t('Disabled');
+    }
+    return $options;
+  }
+
+  /****************************************************************************/
+  // Change message ajax callbacks.
+  /****************************************************************************/
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function submitAjaxElementCallback(array $form, FormStateInterface $form_state) {
+    // Unset the message so that it can be completely rebuilt.
+    NestedArray::unsetValue($form_state->getUserInput(), ['message']);
+    $form_state->unsetValue('message');
+
+    // Rebuild the form.
+    $form_state->setRebuild();
   }
 
 }

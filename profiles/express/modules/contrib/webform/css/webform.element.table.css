@@ -1,0 +1,58 @@
+/**
+ * @file
+ * Table element styles.
+ */
+
+.webform-table td {
+  vertical-align: top;
+}
+
+.webform-table td select,
+.webform-table td .form-type-textfield input,
+.webform-table td .form-type-email input,
+.webform-table td .form-type-url input,
+.webform-table td .form-type-tel input,
+.webform-table td .form-type-entity-autocomplete input,
+.webform-table td .form-type-webform-autocomplete input {
+  width: 100%;
+}
+
+.webform-table td .container-inline select,
+.form-type-webform-multiple.webform-has-field-prefix td select,
+.form-type-webform-multiple.webform-has-field-suffix td select,
+.form-type-webform-multiple.webform-has-field-prefix td input,
+.form-type-webform-multiple.webform-has-field-suffix td input {
+  width: auto;
+}
+
+.webform-table td .form-type-datetime .form-type-textfield input {
+  width: 12em;
+}
+
+/**
+ * Add margin between stacked form items.
+ */
+.webform-table tr td .form-item {
+  margin-top: 1em;
+}
+
+.webform-table tr td > .form-item:first-child,
+.webform-table tr td > div > .form-item:first-child {
+  margin-top: 0;
+}
+
+/**
+ * Fix margin be checkboxes and radios.
+ */
+.webform-table tr td .form-checkboxes .form-item,
+.webform-table tr td .form-radios .form-item {
+  margin-top: 0.4em;
+  margin-bottom: 0.4em;
+}
+
+/**
+ * IMCE tweaks
+ */
+.webform-table .imce-url-button {
+  display: block;
+}

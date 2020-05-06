@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Generate test elements with Flexbox wrappers.
+ * Generate test multiple elements with formatting.
  */
 
 use Drupal\webform\WebformInterface;

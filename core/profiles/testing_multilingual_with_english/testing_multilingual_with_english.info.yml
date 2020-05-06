@@ -1,9 +1,14 @@
 name: 'Testing multilingual with English'
 type: profile
 description: 'Minimal profile for running tests with a multilingual installer.'
-version: VERSION
+# version: VERSION
 core: 8.x
 hidden: true
 install:
   - locale
 keep_english: true
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

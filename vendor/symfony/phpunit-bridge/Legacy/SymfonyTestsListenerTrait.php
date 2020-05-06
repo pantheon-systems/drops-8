@@ -37,7 +37,6 @@ class SymfonyTestsListenerTrait
     private $gatheredDeprecations = array();
     private $previousErrorHandler;
     private $testsWithWarnings;
-    private $reportUselessTests;
     private $error;
     private $runsInSeparateProcess = false;
 
@@ -47,9 +46,12 @@ class SymfonyTestsListenerTrait
     public function __construct(array $mockedNamespaces = array())
     {
         if (class_exists('PHPUnit_Util_Blacklist')) {
-            \PHPUnit_Util_Blacklist::$blacklistedClassNames['\Symfony\Bridge\PhpUnit\Legacy\SymfonyTestsListenerTrait'] = 2;
+            \PHPUnit_Util_Blacklist::$blacklistedClassNames[__CLASS__] = 2;
+        } elseif (method_exists(Blacklist::class, 'addDirectory')) {
+            (new BlackList())->getBlacklistedDirectories();
+            Blacklist::addDirectory(\dirname((new \ReflectionClass(__CLASS__))->getFileName(), 2));
         } else {
-            Blacklist::$blacklistedClassNames['\Symfony\Bridge\PhpUnit\Legacy\SymfonyTestsListenerTrait'] = 2;
+            Blacklist::$blacklistedClassNames[__CLASS__] = 2;
         }
 
         $warn = false;
@@ -81,6 +83,16 @@ class SymfonyTestsListenerTrait
                 echo "Clock-mocked namespaces for SymfonyTestsListener need to be nested in a \"time-sensitive\" key. This will be enforced in Symfony 4.0.\n";
             }
         }
+    }
+
+    public function __sleep()
+    {
+        throw new \BadMethodCallException('Cannot serialize '.__CLASS__);
+    }
+
+    public function __wakeup()
+    {
+        throw new \BadMethodCallException('Cannot unserialize '.__CLASS__);
     }
 
     public function __destruct()
@@ -188,10 +200,6 @@ class SymfonyTestsListenerTrait
     public function startTest($test)
     {
         if (-2 < $this->state && ($test instanceof \PHPUnit\Framework\TestCase || $test instanceof TestCase)) {
-            if (null !== $test->getTestResultObject()) {
-                $this->reportUselessTests = $test->getTestResultObject()->isStrictAboutTestsThatDoNotTestAnything();
-            }
-
             // This event is triggered before the test is re-run in isolation
             if ($this->willBeIsolated($test)) {
                 $this->runsInSeparateProcess = tempnam(sys_get_temp_dir(), 'deprec');
@@ -215,6 +223,10 @@ class SymfonyTestsListenerTrait
                 if (\in_array('dns-sensitive', $groups, true)) {
                     DnsMock::register(\get_class($test));
                 }
+            }
+
+            if (!$test->getTestResultObject()) {
+                return;
             }
 
             $annotations = $Test::parseTestMethodAnnotations(\get_class($test), $test->getName(false));
@@ -257,11 +269,6 @@ class SymfonyTestsListenerTrait
         $classGroups = $Test::getGroups($className);
         $groups = $Test::getGroups($className, $test->getName(false));
 
-        if (null !== $this->reportUselessTests) {
-            $test->getTestResultObject()->beStrictAboutTestsThatDoNotTestAnything($this->reportUselessTests);
-            $this->reportUselessTests = null;
-        }
-
         if ($errored = null !== $this->error) {
             $test->getTestResultObject()->addError($test, $this->error, 0);
             $this->error = null;
@@ -274,7 +281,8 @@ class SymfonyTestsListenerTrait
             foreach ($deprecations ? unserialize($deprecations) : array() as $deprecation) {
                 $error = serialize(array('deprecation' => $deprecation[1], 'class' => $className, 'method' => $test->getName(false), 'triggering_file' => isset($deprecation[2]) ? $deprecation[2] : null));
                 if ($deprecation[0]) {
-                    @trigger_error($error, E_USER_DEPRECATED);
+                    // unsilenced on purpose
+                    trigger_error($error, E_USER_DEPRECATED);
                 } else {
                     @trigger_error($error, E_USER_DEPRECATED);
                 }
@@ -346,6 +354,8 @@ class SymfonyTestsListenerTrait
             $msg = 'Unsilenced deprecation: '.$msg;
         }
         $this->gatheredDeprecations[] = $msg;
+
+        return null;
     }
 
     /**

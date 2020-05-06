@@ -5,7 +5,7 @@ namespace Drupal\webform\Ajax;
 use Drupal\Core\Ajax\RedirectCommand;
 
 /**
- * Provides an Ajax command for refreshing webform page/.
+ * Provides an Ajax command for refreshing webform page.
  *
  * This command is implemented in Drupal.AjaxCommands.prototype.webformRefresh.
  */

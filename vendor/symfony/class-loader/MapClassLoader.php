@@ -22,7 +22,7 @@ namespace Symfony\Component\ClassLoader;
  */
 class MapClassLoader
 {
-    private $map = array();
+    private $map = [];
 
     /**
      * @param array $map A map where keys are classes and values the absolute file path
@@ -39,7 +39,7 @@ class MapClassLoader
      */
     public function register($prepend = false)
     {
-        spl_autoload_register(array($this, 'loadClass'), true, $prepend);
+        spl_autoload_register([$this, 'loadClass'], true, $prepend);
     }
 
     /**
@@ -63,8 +63,6 @@ class MapClassLoader
      */
     public function findFile($class)
     {
-        if (isset($this->map[$class])) {
-            return $this->map[$class];
-        }
+        return isset($this->map[$class]) ? $this->map[$class] : null;
     }
 }

@@ -1,7 +1,7 @@
 name: 'Theme test base theme'
 type: theme
 description: 'Test theme which acts as a base theme for other test subthemes.'
-version: VERSION
+# version: VERSION
 core: 8.x
 base theme: false
 hidden: true
@@ -22,3 +22,8 @@ libraries-override:
 libraries-extend:
   classy/base:
     - test_basetheme/global-styling
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

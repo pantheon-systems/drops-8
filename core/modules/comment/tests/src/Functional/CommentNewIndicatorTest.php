@@ -25,6 +25,11 @@ class CommentNewIndicatorTest extends CommentTestBase {
   public static $modules = ['views'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Get node "x new comments" metadata from the server for the current user.
    *
    * @param array $node_ids
@@ -117,7 +122,7 @@ class CommentNewIndicatorTest extends CommentTestBase {
     $expected = [
       $this->node->id() => [
         'new_comment_count' => 1,
-        'first_new_comment_link' => $this->node->url('canonical', ['fragment' => 'new']),
+        'first_new_comment_link' => $this->node->toUrl('canonical', ['fragment' => 'new'])->toString(),
       ],
     ];
     $this->assertIdentical($expected, $json);

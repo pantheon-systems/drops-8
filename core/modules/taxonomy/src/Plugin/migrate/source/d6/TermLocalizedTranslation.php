@@ -32,7 +32,6 @@ class TermLocalizedTranslation extends Term {
     // Add in the property, which is either name or description.
     // Cast td.tid as char for PostgreSQL compatibility.
     $query->leftJoin('i18n_strings', 'i18n', 'CAST(td.tid AS CHAR(255)) = i18n.objectid');
-    $query->isNotNull('i18n.lid');
     $query->addField('i18n', 'lid');
     $query->addField('i18n', 'property');
 
@@ -71,7 +70,13 @@ class TermLocalizedTranslation extends Term {
     $query->condition('lt.language', $language);
     $query->addField('lt', 'translation');
     $results = $query->execute()->fetchAssoc();
-    $row->setSourceProperty($other_property . '_translated', $results['translation']);
+    if ($results) {
+      $row->setSourceProperty($other_property . '_translated', $results['translation']);
+    }
+    else {
+      // The translation does not exist.
+      $row->setSourceProperty($other_property . '_translated', NULL);
+    }
 
     parent::prepareRow($row);
   }

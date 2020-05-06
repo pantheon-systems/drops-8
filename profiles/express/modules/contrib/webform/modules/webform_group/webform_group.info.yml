@@ -1,0 +1,16 @@
+name: 'Webform Group [EXPERIMENTAL]'
+type: module
+description: 'Provides a Webform integration with the Group module.'
+experimental: true
+package: 'Webform [EXPERIMENTAL]'
+core_version_requirement: ^8.7.7 || ^9
+dependencies:
+  - 'webform:webform'
+  - 'webform:webform_node'
+  - 'group:group'
+  - 'group:gnode'
+
+# Information added by Drupal.org packaging script on 2020-05-05
+version: '8.x-5.11'
+project: 'webform'
+datestamp: 1588690393

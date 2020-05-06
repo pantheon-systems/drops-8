@@ -1,0 +1,26 @@
+<?php
+
+/**
+ * @file
+ * Provides a group of multiple buttons used for selecting a value.
+ */
+
+/**
+ * Implements hook_library_info_alter().
+ *
+ * @todo Remove once Drupal 8.8.x is only supported.
+ */
+function webform_jqueryui_buttons_library_info_alter(&$libraries, $extension) {
+  // Issue #2906737: With the new jquery 3 checkboxradio and selectmenu error.
+  // @see https://www.drupal.org/node/2906737
+  if (floatval(\Drupal::VERSION) <= 8.7
+    && $extension == 'webform_jqueryui_buttons'
+    && isset($libraries['webform_jqueryui_buttons.element'])) {
+    $libraries['webform_jqueryui_buttons.element']['js'] = [
+      '/core/assets/vendor/jquery.ui/ui/form-reset-mixin-min.js' => ['minified' => TRUE],
+      '/core/assets/vendor/jquery.ui/ui/escape-selector-min.js' => ['minified' => TRUE],
+      '/core/assets/vendor/jquery.ui/ui/widgets/checkboxradio-min.js' => ['minified' => TRUE],
+      'js/webform_jqueryui_buttons.element.js' => [],
+    ];
+  }
+}

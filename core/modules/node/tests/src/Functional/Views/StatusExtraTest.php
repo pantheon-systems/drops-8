@@ -13,6 +13,16 @@ use Drupal\node\NodeInterface;
 class StatusExtraTest extends NodeTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  public static $modules = ['node_test_views', 'content_moderation'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -26,6 +36,7 @@ class StatusExtraTest extends NodeTestBase {
     $node_author = $this->drupalCreateUser(['view own unpublished content']);
     $node_author_not_unpublished = $this->drupalCreateUser();
     $normal_user = $this->drupalCreateUser();
+    $privileged_user = $this->drupalCreateUser(['view any unpublished content']);
     $admin_user = $this->drupalCreateUser(['bypass node access']);
 
     // Create one published and one unpublished node by the admin.
@@ -47,7 +58,15 @@ class StatusExtraTest extends NodeTestBase {
     $this->assertText($node_unpublished2->label());
     $this->assertText($node_unpublished3->label());
 
-    // The node author should see the published node and his own node.
+    // The privileged user should simply see all nodes.
+    $this->drupalLogin($privileged_user);
+    $this->drupalGet('test_status_extra');
+    $this->assertText($node_published->label());
+    $this->assertText($node_unpublished->label());
+    $this->assertText($node_unpublished2->label());
+    $this->assertText($node_unpublished3->label());
+
+    // The node author should see the published node and their own node.
     $this->drupalLogin($node_author);
     $this->drupalGet('test_status_extra');
     $this->assertText($node_published->label());
@@ -63,7 +82,7 @@ class StatusExtraTest extends NodeTestBase {
     $this->assertNoText($node_unpublished2->label());
     $this->assertNoText($node_unpublished3->label());
 
-    // The author without the permission to see his own unpublished node should
+    // The author without the permission to see their own unpublished node should
     // just see the published node.
     $this->drupalLogin($node_author_not_unpublished);
     $this->drupalGet('test_status_extra');

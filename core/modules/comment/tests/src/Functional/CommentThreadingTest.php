@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\comment\Functional;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\comment\CommentManagerInterface;
 
 /**
@@ -10,6 +11,11 @@ use Drupal\comment\CommentManagerInterface;
  * @group comment
  */
 class CommentThreadingTest extends CommentTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * Tests the comment threading.
@@ -135,9 +141,9 @@ class CommentThreadingTest extends CommentTestBase {
     //     <a href="...comment-1"></a>
     //   </p>
     //  </article>
-    $pattern = "//a[@id='comment-$cid']/following-sibling::article//p[contains(@class, 'parent')]//a[contains(@href, 'comment-$pid')]";
+    $pattern = "//article[@id='comment-$cid']//p[contains(@class, 'parent')]//a[contains(@href, 'comment-$pid')]";
 
-    $this->assertFieldByXpath($pattern, NULL, format_string(
+    $this->assertFieldByXpath($pattern, NULL, new FormattableMarkup(
       'Comment %cid has a link to parent %pid.',
       [
         '%cid' => $cid,
@@ -159,8 +165,8 @@ class CommentThreadingTest extends CommentTestBase {
     //   <p class="parent"></p>
     //  </article>
 
-    $pattern = "//a[@id='comment-$cid']/following-sibling::article//p[contains(@class, 'parent')]";
-    $this->assertNoFieldByXpath($pattern, NULL, format_string(
+    $pattern = "//article[@id='comment-$cid']//p[contains(@class, 'parent')]";
+    $this->assertNoFieldByXpath($pattern, NULL, new FormattableMarkup(
       'Comment %cid does not have a link to a parent.',
       [
         '%cid' => $cid,

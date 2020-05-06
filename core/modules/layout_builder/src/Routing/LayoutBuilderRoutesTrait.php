@@ -11,11 +11,6 @@ use Symfony\Component\Routing\RouteCollection;
 
 /**
  * Provides a trait for building routes for a Layout Builder UI.
- *
- * @internal
- *   Layout Builder is currently experimental and should only be leveraged by
- *   experimental modules and development releases of contributed modules.
- *   See https://www.drupal.org/core/experimental for more information.
  */
 trait LayoutBuilderRoutesTrait {
 
@@ -36,14 +31,15 @@ trait LayoutBuilderRoutesTrait {
    *   (optional) An array of options.
    * @param string $route_name_prefix
    *   (optional) The prefix to use for the route name.
+   * @param string $entity_type_id
+   *   (optional) The entity type ID, if available.
    */
-  protected function buildLayoutRoutes(RouteCollection $collection, SectionStorageDefinition $definition, $path, array $defaults = [], array $requirements = [], array $options = [], $route_name_prefix = '') {
+  protected function buildLayoutRoutes(RouteCollection $collection, SectionStorageDefinition $definition, $path, array $defaults = [], array $requirements = [], array $options = [], $route_name_prefix = '', $entity_type_id = '') {
     $type = $definition->id();
     $defaults['section_storage_type'] = $type;
     // Provide an empty value to allow the section storage to be upcast.
     $defaults['section_storage'] = '';
     // Trigger the layout builder access check.
-    $requirements['_has_layout_section'] = 'true';
     $requirements['_layout_builder_access'] = 'view';
     // Trigger the layout builder RouteEnhancer.
     $options['_layout_builder'] = TRUE;
@@ -60,30 +56,27 @@ trait LayoutBuilderRoutesTrait {
     }
 
     $main_defaults = $defaults;
-    $main_defaults['is_rebuilding'] = FALSE;
-    $main_defaults['_controller'] = '\Drupal\layout_builder\Controller\LayoutBuilderController::layout';
+    $main_options = $options;
+    if ($entity_type_id) {
+      $main_defaults['_entity_form'] = "$entity_type_id.layout_builder";
+    }
+    else {
+      $main_defaults['_controller'] = '\Drupal\layout_builder\Controller\LayoutBuilderController::layout';
+    }
     $main_defaults['_title_callback'] = '\Drupal\layout_builder\Controller\LayoutBuilderController::title';
     $route = (new Route($path))
       ->setDefaults($main_defaults)
       ->setRequirements($requirements)
-      ->setOptions($options);
+      ->setOptions($main_options);
     $collection->add("$route_name_prefix.view", $route);
 
-    $save_defaults = $defaults;
-    $save_defaults['_controller'] = '\Drupal\layout_builder\Controller\LayoutBuilderController::saveLayout';
-    $route = (new Route("$path/save"))
-      ->setDefaults($save_defaults)
+    $discard_changes_defaults = $defaults;
+    $discard_changes_defaults['_form'] = '\Drupal\layout_builder\Form\DiscardLayoutChangesForm';
+    $route = (new Route("$path/discard-changes"))
+      ->setDefaults($discard_changes_defaults)
       ->setRequirements($requirements)
       ->setOptions($options);
-    $collection->add("$route_name_prefix.save", $route);
-
-    $cancel_defaults = $defaults;
-    $cancel_defaults['_controller'] = '\Drupal\layout_builder\Controller\LayoutBuilderController::cancelLayout';
-    $route = (new Route("$path/cancel"))
-      ->setDefaults($cancel_defaults)
-      ->setRequirements($requirements)
-      ->setOptions($options);
-    $collection->add("$route_name_prefix.cancel", $route);
+    $collection->add("$route_name_prefix.discard_changes", $route);
 
     if (is_subclass_of($definition->getClass(), OverridesSectionStorageInterface::class)) {
       $revert_defaults = $defaults;

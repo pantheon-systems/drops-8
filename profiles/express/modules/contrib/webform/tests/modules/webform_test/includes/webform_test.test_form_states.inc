@@ -13,7 +13,7 @@ use Drupal\webform\Entity\Webform;
  * @return array
  *   An array containing test elements with #states.
  */
-function webform_test_test_form_states() {
+function webform_test_test_states() {
   $elements = [];
 
   // Visible.
@@ -25,7 +25,7 @@ function webform_test_test_form_states() {
     '#type' => 'checkbox',
     '#title' => 'Displays and require elements',
   ];
-  $elements['visible'] += _webform_test_form_states('visible', [
+  $elements['visible'] += _webform_test_states('visible', [
     '#states' => [
       'visible' => [
         ':input[name="visible_trigger"]' => [
@@ -49,7 +49,7 @@ function webform_test_test_form_states() {
     '#type' => 'checkbox',
     '#title' => 'Hide and empty elements',
   ];
-  $elements['invisible'] += _webform_test_form_states('invisible', [
+  $elements['invisible'] += _webform_test_states('invisible', [
     '#states' => [
       'invisible' => [
         ':input[name="invisible_trigger"]' => [
@@ -68,7 +68,7 @@ function webform_test_test_form_states() {
     '#type' => 'checkbox',
     '#title' => 'Disable elements',
   ];
-  $elements['disabled'] += _webform_test_form_states('disabled', [
+  $elements['disabled'] += _webform_test_states('disabled', [
     '#states' => [
       'disabled' => [
         ':input[name="disabled_trigger"]' => [
@@ -92,7 +92,7 @@ function webform_test_test_form_states() {
  * @return array
  *   A render array of example elements
  */
-function _webform_test_form_states($type, array $default_properties = []) {
+function _webform_test_states($type, array $default_properties = []) {
   $data = [
     'containers' => [],
     'elements' => [],

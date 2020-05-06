@@ -60,7 +60,7 @@ class MigrateNodeTest extends MigrateNodeTestBase {
     $this->assertIdentical('1420861423', $node->getRevisionCreationTime());
 
     /** @var \Drupal\node\NodeInterface $node_revision */
-    $node_revision = \Drupal::entityManager()->getStorage('node')->loadRevision(1);
+    $node_revision = \Drupal::entityTypeManager()->getStorage('node')->loadRevision(1);
     $this->assertIdentical('Test title', $node_revision->getTitle());
     $this->assertIdentical('1', $node_revision->getRevisionUser()->id(), 'Node revision has the correct user');
     $this->assertSame('1', $node_revision->id(), 'Node 1 loaded.');
@@ -107,7 +107,7 @@ class MigrateNodeTest extends MigrateNodeTestBase {
 
     // Test that user reference field values were migrated.
     $this->assertCount(1, $node->field_commander);
-    $this->assertSame('joe.roe', $node->field_commander[0]->entity->getUsername());
+    $this->assertSame('joe.roe', $node->field_commander[0]->entity->getAccountName());
 
     $node = Node::load(2);
     $this->assertIdentical('Test title rev 3', $node->getTitle());
@@ -207,6 +207,15 @@ class MigrateNodeTest extends MigrateNodeTestBase {
     ]);
     $node = Node::load(2);
     $this->assertIdentical($title, $node->getTitle());
+
+    // Test synchronized field.
+    $value = 'jsmith@example.com';
+    $node = Node::load(21);
+    $this->assertSame($value, $node->field_sync->value);
+    $this->assertArrayNotHasKey('field_sync', $node->getTranslatableFields());
+
+    $node = $node->getTranslation('fr');
+    $this->assertSame($value, $node->field_sync->value);
   }
 
   /**

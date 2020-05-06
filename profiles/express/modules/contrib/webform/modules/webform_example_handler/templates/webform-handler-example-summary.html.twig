@@ -1,0 +1,20 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of an example webform handler.
+ *
+ * Available variables:
+ * - settings: The current configuration for this handler:
+ *   - message: The message.
+ *   - debug: Debugging flag.
+ * - handler: The handler information, including:
+ *   - id: The handler plugin id.
+ *   - handler_id: The handler id.
+ *   - label: The handler label.
+ *   - description: The handler description.
+ *
+ * @ingroup themeable
+ */
+#}
+{% if settings.debug %}<b class="color-error">{{ 'Debugging is enabled'|t }}</b><br />{% endif %}
+<b>Message:</b> {{ settings.message }}

@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\PSR2\Sniffs\ControlStructures;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class SwitchDeclarationSniff implements Sniff
@@ -208,7 +208,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int                         $stackPtr  The position to start looking at.
      * @param int                         $end       The position to stop looking at.
      *
-     * @return int | bool
+     * @return int|false
      */
     private function findNextCase($phpcsFile, $stackPtr, $end)
     {

@@ -1,0 +1,38 @@
+<?php
+
+/**
+ * @file
+ * Demonstrate how to use integrate the Webform module with the Group module.
+ */
+
+use Drupal\block\Entity\Block;
+use Drupal\group\Entity\GroupInterface;
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Session\AccountInterface;
+
+/**
+ * Implements hook_block_access().
+ */
+function webform_demo_group_block_access(Block $block, $operation, AccountInterface $account) {
+  // Block access to group operation block when there is no group context in
+  // the Bartik theme.
+  // @see \Drupal\group\Plugin\Block\GroupOperationsBlock
+  if ($operation === 'view'
+    && $block->getPluginId() === 'group_operations'
+    && $block->id() === 'group_operations'
+    && $block->getTheme() === 'bartik') {
+    // Get the current route group context.
+    // @see \Drupal\group\Context\GroupRouteContext;
+    // @see \Drupal\group\Plugin\views\access\GroupPermission
+    /** @var \Drupal\Core\Plugin\Context\ContextProviderInterface $context_provider */
+    $context_provider = \Drupal::service('group.group_route_context');
+    $contexts = $context_provider->getRuntimeContexts(['group']);
+    $group = $contexts['group']->getContextValue();
+    if (!$group || !$group instanceof GroupInterface) {
+      return AccessResult::forbidden();
+    }
+  }
+
+  // No opinion.
+  return AccessResult::neutral();
+}

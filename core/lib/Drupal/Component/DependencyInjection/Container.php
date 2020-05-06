@@ -3,7 +3,6 @@
 namespace Drupal\Component\DependencyInjection;
 
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\DependencyInjection\ResettableContainerInterface;
 use Symfony\Component\DependencyInjection\Exception\LogicException;
 use Symfony\Component\DependencyInjection\Exception\InvalidArgumentException;
 use Symfony\Component\DependencyInjection\Exception\RuntimeException;
@@ -42,9 +41,12 @@ use Symfony\Component\DependencyInjection\Exception\ServiceCircularReferenceExce
  * - The function getServiceIds() was added as it has a use-case in core and
  *   contrib.
  *
+ * @todo Implement Symfony\Contracts\Service\ResetInterface once Symfony 4
+ *   is being used. See https://www.drupal.org/project/drupal/issues/3032605
+ *
  * @ingroup container
  */
-class Container implements ContainerInterface, ResettableContainerInterface {
+class Container implements ContainerInterface {
 
   /**
    * The parameters of the container.
@@ -145,7 +147,7 @@ class Container implements ContainerInterface, ResettableContainerInterface {
 
     if (!$definition && $invalid_behavior === ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE) {
       if (!$id) {
-        throw new ServiceNotFoundException($id);
+        throw new ServiceNotFoundException('');
       }
 
       throw new ServiceNotFoundException($id, NULL, NULL, $this->getServiceAlternatives($id));
@@ -187,7 +189,12 @@ class Container implements ContainerInterface, ResettableContainerInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * Resets shared services from the container.
+   *
+   * The container is not intended to be used again after being reset in a
+   * normal workflow. This method is meant as a way to release references for
+   * ref-counting. A subsequent call to ContainerInterface::get() will recreate
+   * a new instance of the shared service.
    */
   public function reset() {
     if (!empty($this->scopedServices)) {
@@ -368,7 +375,7 @@ class Container implements ContainerInterface, ResettableContainerInterface {
   public function getParameter($name) {
     if (!(isset($this->parameters[$name]) || array_key_exists($name, $this->parameters))) {
       if (!$name) {
-        throw new ParameterNotFoundException($name);
+        throw new ParameterNotFoundException('');
       }
 
       throw new ParameterNotFoundException($name, NULL, NULL, NULL, $this->getParameterAlternatives($name));
@@ -409,7 +416,7 @@ class Container implements ContainerInterface, ResettableContainerInterface {
   /**
    * Resolves arguments that represent services or variables to the real values.
    *
-   * @param array|\stdClass $arguments
+   * @param array|object $arguments
    *   The arguments to resolve.
    *
    * @return array
@@ -510,6 +517,11 @@ class Container implements ContainerInterface, ResettableContainerInterface {
           else {
             $arguments[$key] = $value;
           }
+
+          continue;
+        }
+        elseif ($type == 'raw') {
+          $arguments[$key] = $argument->value;
 
           continue;
         }

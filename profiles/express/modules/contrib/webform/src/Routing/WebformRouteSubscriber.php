@@ -14,6 +14,7 @@ class WebformRouteSubscriber extends RouteSubscriberBase {
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection) {
+    // Set admin route for webform admin routes.
     foreach ($collection->all() as $route) {
       if (!$route->hasOption('_admin_route') && (
           strpos($route->getPath(), '/admin/structure/webform/') === 0

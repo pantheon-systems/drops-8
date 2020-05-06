@@ -3,6 +3,7 @@
 namespace Drupal\KernelTests\Core\Routing;
 
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Cache\CacheableJsonResponse;
 use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -56,6 +57,7 @@ class ExceptionHandlingTest extends KernelTestBase {
     $this->assertEqual($response->getStatusCode(), Response::HTTP_FORBIDDEN);
     $this->assertEqual($response->headers->get('Content-type'), 'application/json');
     $this->assertEqual('{"message":""}', $response->getContent());
+    $this->assertInstanceOf(CacheableJsonResponse::class, $response);
   }
 
   /**
@@ -155,7 +157,7 @@ class ExceptionHandlingTest extends KernelTestBase {
     $kernel = \Drupal::getContainer()->get('http_kernel');
     $response = $kernel->handle($request)->prepare($request);
     $this->assertEqual($response->getStatusCode(), Response::HTTP_INTERNAL_SERVER_ERROR);
-    $this->assertEqual($response->headers->get('Content-type'), 'text/plain; charset=UTF-8');
+    $this->assertEqual($response->headers->get('Content-type'), 'text/html; charset=UTF-8');
 
     // Test both that the backtrace is properly escaped, and that the unescaped
     // string is not output at all.
@@ -178,7 +180,7 @@ class ExceptionHandlingTest extends KernelTestBase {
     $kernel = \Drupal::getContainer()->get('http_kernel');
     $response = $kernel->handle($request)->prepare($request);
     $this->assertEqual($response->getStatusCode(), Response::HTTP_INTERNAL_SERVER_ERROR);
-    $this->assertEqual($response->headers->get('Content-type'), 'text/plain; charset=UTF-8');
+    $this->assertEqual($response->headers->get('Content-type'), 'text/html; charset=UTF-8');
 
     // Test message is properly escaped, and that the unescaped string is not
     // output at all.

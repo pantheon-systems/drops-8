@@ -1,0 +1,44 @@
+block.settings.webform_block:
+  type: block_settings
+  label: 'Webforms block'
+  mapping:
+    webform_id:
+      type: string
+      label: Webform
+    default_data:
+      type: text
+      label: 'Default webform submission data'
+    redirect:
+      type: boolean
+      label: 'Redirect to the webform'
+block.settings.webform_submission_limit_block:
+  type: block_settings
+  label: 'Webform submission limits block'
+  mapping:
+    type:
+      type: text
+      label: Type
+    source_entity:
+      type: boolean
+      label: 'Source entity'
+    content:
+      label: Content
+      type: text
+    progress_bar:
+      type: boolean
+      label: 'Progress bar'
+    progress_bar_label:
+      type: label
+      label: 'Progress bar label'
+    progress_bar_message:
+      type: label
+      label: 'Progress bar message'
+    webform_id:
+      type: string
+      label: Webform
+    entity_type:
+      type: string
+      label: 'Source entity type'
+    entity_id:
+      type: string
+      label: 'Source entity id'

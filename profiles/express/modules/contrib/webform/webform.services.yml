@@ -10,8 +10,16 @@ services:
     class: Drupal\webform\Plugin\WebformHandlerManager
     arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
 
+  plugin.manager.webform.variant:
+    class: Drupal\webform\Plugin\WebformVariantManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
+
   plugin.manager.webform.exporter:
     class: Drupal\webform\Plugin\WebformExporterManager
+    arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
+
+  plugin.manager.webform.source_entity:
+    class: Drupal\webform\Plugin\WebformSourceEntityManager
     arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@config.factory']
 
   # Logger.
@@ -21,13 +29,23 @@ services:
     factory: logger.factory:get
     arguments: ['webform']
 
+  logger.channel.webform_submission:
+    class: Drupal\Core\Logger\LoggerChannel
+    factory: logger.factory:get
+    arguments: ['webform_submission']
+
+
   # Services.
 
   webform.addons_manager:
     class: Drupal\webform\WebformAddonsManager
 
+  webform.cli_service:
+    class: Drupal\webform\Commands\WebformCliService
+
   webform.elements_validator:
     class: Drupal\webform\WebformEntityElementsValidator
+    arguments: ['@renderer', '@plugin.manager.webform.element', '@entity_type.manager', '@form_builder', '@config.factory']
 
   webform.email_provider:
     class: Drupal\webform\WebformEmailProvider
@@ -43,19 +61,19 @@ services:
 
   webform.libraries_manager:
     class: Drupal\webform\WebformLibrariesManager
-    arguments: ['@config.factory', '@module_handler', '@renderer']
+    arguments: ['@library.discovery', '@config.factory', '@module_handler', '@renderer']
 
   webform.message_manager:
     class: Drupal\webform\WebformMessageManager
-    arguments: ['@current_user', '@config.factory', '@entity_type.manager', '@logger.channel.webform', '@renderer', '@webform.request', '@webform.token_manager']
+    arguments: ['@current_user', '@config.factory', '@entity_type.manager', '@logger.channel.webform', '@renderer', '@messenger', '@webform.request', '@webform.token_manager']
 
   webform.translation_manager:
     class: Drupal\webform\WebformTranslationManager
-    arguments: ['@language_manager', '@config.factory', '@plugin.manager.webform.element']
+    arguments: ['@current_route_match', '@language_manager', '@config.factory', '@messenger', '@plugin.manager.webform.element']
 
   webform.request:
     class: Drupal\webform\WebformRequest
-    arguments: ['@router.route_provider', '@request_stack', '@router.admin_context', '@current_route_match', '@entity_type.manager', '@entity_type.repository', '@webform.entity_reference_manager']
+    arguments: ['@router.route_provider', '@request_stack', '@router.admin_context', '@current_route_match', '@entity_type.manager', '@entity_type.repository', '@webform.entity_reference_manager', '@plugin.manager.webform.source_entity']
 
   webform_submission.generate:
     class: Drupal\webform\WebformSubmissionGenerate
@@ -63,7 +81,7 @@ services:
 
   webform_submission.exporter:
     class: Drupal\webform\WebformSubmissionExporter
-    arguments: ['@config.factory', '@file_system', '@entity_type.manager', '@stream_wrapper_manager', '@plugin.manager.webform.element', '@plugin.manager.webform.exporter']
+    arguments: ['@config.factory', '@file_system', '@entity_type.manager', '@stream_wrapper_manager', '@plugin.manager.archiver', '@plugin.manager.webform.element', '@plugin.manager.webform.exporter']
 
   webform.third_party_settings_manager:
     class: Drupal\webform\WebformThirdPartySettingsManager
@@ -71,7 +89,15 @@ services:
 
   webform.token_manager:
     class: Drupal\webform\WebformTokenManager
-    arguments: ['@config.factory', '@module_handler', '@token']
+    arguments: ['@current_user', '@language_manager', '@config.factory', '@module_handler', '@token']
+
+  webform.theme_manager:
+    class: Drupal\webform\WebformThemeManager
+    arguments: ['@config.factory', '@renderer', '@theme.manager', '@theme_handler', '@theme.initialization', '@current_route_match']
+
+  webform.access_rules_manager:
+    class: Drupal\webform\WebformAccessRulesManager
+    arguments: ['@module_handler']
 
   webform_submission.conditions_validator:
     class: Drupal\webform\WebformSubmissionConditionsValidator
@@ -87,9 +113,9 @@ services:
 
   # Event subscriber.
 
-  webform.event_subscriber:
-    class: Drupal\webform\EventSubscriber\WebformSubscriber
-    arguments: ['@current_user', '@config.factory']
+  webform.exception_html_subscriber:
+    class: Drupal\webform\EventSubscriber\WebformExceptionHtmlSubscriber
+    arguments: ['@http_kernel', '@logger.channel.php', '@redirect.destination', '@router.no_access_checks', '@current_user', '@config.factory', '@renderer', '@messenger', '@webform.token_manager']
     tags:
       - { name: event_subscriber }
 
@@ -118,13 +144,13 @@ services:
 
   webform.theme_negotiator:
     class: Drupal\webform\Theme\WebformThemeNegotiator
-    arguments: ['@current_user', '@config.factory']
+    arguments: ['@current_user', '@config.factory', '@webform.request']
     tags:
       - { name: theme_negotiator, priority: -41 }
 
   # Twig extension.
 
   webform.twig_extension:
-    class: Drupal\webform\Twig\TwigExtension
+    class: Drupal\webform\Twig\WebformTwigExtension
     tags:
       - { name: twig.extension }

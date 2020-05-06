@@ -2,9 +2,3 @@ services:
   webform_devel.schema:
     class: Drupal\webform_devel\WebformDevelSchema
     arguments: ['@plugin.manager.element_info', '@plugin.manager.webform.element']
-
-  logger.webform_devel_log:
-    class: Drupal\webform_devel\Logger\WebformDevelLog
-    arguments: ['@config.factory', '@logger.log_message_parser']
-    tags:
-      - { name: logger }

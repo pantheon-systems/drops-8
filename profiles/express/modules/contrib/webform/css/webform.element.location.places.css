@@ -1,0 +1,16 @@
+/**
+ * @file
+ * Location Algolia places element styles.
+ *
+ * @see https://community.algolia.com/places/documentation.html#css-classes
+ * @see /webform/test_element_loc_places
+ */
+
+.ap-input {
+  height: 2em;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 4px;
+  border-radius: unset;
+  line-height: 2em;
+}

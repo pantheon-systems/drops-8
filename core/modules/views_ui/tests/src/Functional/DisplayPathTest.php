@@ -28,6 +28,11 @@ class DisplayPathTest extends UITestBase {
   public static $modules = ['menu_ui'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Views used by this test.
    *
    * @var array
@@ -212,7 +217,7 @@ class DisplayPathTest extends UITestBase {
     ];
     $this->drupalPostForm('admin/structure/menu/manage/admin/add', $edit, t('Save'));
 
-    $menu_items = \Drupal::entityManager()->getStorage('menu_link_content')->getQuery()
+    $menu_items = \Drupal::entityTypeManager()->getStorage('menu_link_content')->getQuery()
       ->sort('id', 'DESC')
       ->pager(1)
       ->execute();

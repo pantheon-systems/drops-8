@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies: {  }
+id: test_ballroom
+label: 'Test: Ballroom'
+description: 'A SVG image of a ballroom'
+help: 'A SVG image of a ballroom'
+category: Test
+type: url
+template: ''
+url: 'ballroom.svg'
+css: ''
+javascript: ''
+options: ''
+value_attributes: id
+text_attributes: data-name
+fill: true
+zoom: true
+tooltip: true
+show_select: false
+element: true
+entity_reference: false

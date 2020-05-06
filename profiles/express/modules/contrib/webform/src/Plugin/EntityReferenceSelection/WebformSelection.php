@@ -37,6 +37,8 @@ class WebformSelection extends DefaultSelection {
     $query = parent::buildEntityQuery($match, $match_operator);
     // Exclude templates.
     $query->condition('template', FALSE);
+    // Exclude archived.
+    $query->condition('archive', FALSE);
     return $query;
   }
 

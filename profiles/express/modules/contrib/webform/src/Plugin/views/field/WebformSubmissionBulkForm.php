@@ -2,7 +2,7 @@
 
 namespace Drupal\webform\Plugin\views\field;
 
-use Drupal\system\Plugin\views\field\BulkForm;
+use Drupal\views\Plugin\views\field\BulkForm;
 
 /**
  * Defines a webform submission operations bulk form element.

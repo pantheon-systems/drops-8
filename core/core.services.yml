@@ -106,7 +106,7 @@ services:
       - { name: cache.context }
   cache_context.url.query_args.pagers:
     class: Drupal\Core\Cache\Context\PagersCacheContext
-    arguments: ['@request_stack']
+    arguments: ['@pager.parameters']
     tags:
       - { name: cache.context }
 
@@ -291,7 +291,7 @@ services:
       - { name: dynamic_page_cache_response_policy }
   config.manager:
     class: Drupal\Core\Config\ConfigManager
-    arguments: ['@entity.manager', '@config.factory', '@config.typed', '@string_translation', '@config.storage', '@event_dispatcher']
+    arguments: ['@entity_type.manager', '@config.factory', '@config.typed', '@string_translation', '@config.storage', '@event_dispatcher', '@entity.repository']
   config.factory:
     class: Drupal\Core\Config\ConfigFactory
     tags:
@@ -315,6 +315,16 @@ services:
     public: false
     tags:
       - { name: backend_overridable }
+  config.import_transformer:
+    class: Drupal\Core\Config\ImportStorageTransformer
+    arguments: ['@event_dispatcher', '@database', '@lock', '@lock.persistent']
+  config.storage.export:
+    class: Drupal\Core\Config\ManagedStorage
+    arguments: ['@config.storage.export.manager']
+  config.storage.export.manager:
+    class: Drupal\Core\Config\ExportStorageManager
+    arguments: ['@config.storage', '@database', '@event_dispatcher', '@lock']
+    public: false
   # @deprecated in Drupal 8.0.x and will be removed before 9.0.0. Use
   #   config.storage.sync instead.
   # @see https://www.drupal.org/node/2574957
@@ -340,7 +350,6 @@ services:
       - [setValidationConstraintManager, ['@validation.constraint']]
   context.handler:
     class: Drupal\Core\Plugin\Context\ContextHandler
-    arguments: ['@typed_data_manager']
   context.repository:
     class: Drupal\Core\Plugin\Context\LazyContextRepository
     arguments: ['@service_container']
@@ -355,6 +364,15 @@ services:
     class: Drupal\Core\Database\Connection
     factory: Drupal\Core\Database\Database::getConnection
     arguments: [default]
+  database.replica:
+    class: Drupal\Core\Database\Connection
+    factory: Drupal\Core\Database\Database::getConnection
+    arguments: [replica]
+  database.replica_kill_switch:
+    class: Drupal\Core\Database\ReplicaKillSwitch
+    arguments: ['@settings', '@datetime.time', '@session']
+    tags:
+      - { name: event_subscriber }
   datetime.time:
     class: Drupal\Component\Datetime\Time
     arguments: ['@request_stack']
@@ -416,6 +434,9 @@ services:
   logger.channel.form:
     parent: logger.channel_base
     arguments: ['form']
+  logger.channel.security:
+    parent: logger.channel_base
+    arguments: ['security']
   logger.log_message_parser:
     class: Drupal\Core\Logger\LogMessageParser
 
@@ -441,13 +462,12 @@ services:
     class: Drupal\Core\Queue\QueueDatabaseFactory
     arguments: ['@database']
   path.alias_whitelist:
-    class: Drupal\Core\Path\AliasWhitelist
-    tags:
-      - { name: needs_destruction }
-    arguments: [path_alias_whitelist, '@cache.bootstrap', '@lock', '@state', '@path.alias_storage']
+    alias: path_alias.whitelist
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.whitelist" instead. See https://drupal.org/node/3092086'
   path.alias_manager:
     class: Drupal\Core\Path\AliasManager
-    arguments: ['@path.alias_storage', '@path.alias_whitelist', '@language_manager', '@cache.data']
+    arguments: ['@path_alias.repository', '@path_alias.whitelist', '@language_manager', '@cache.data']
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.manager" instead. See https://drupal.org/node/3092086'
   path.current:
     class: Drupal\Core\Path\CurrentPathStack
     arguments: ['@request_stack']
@@ -501,7 +521,7 @@ services:
     class: Drupal\Core\Extension\ModuleInstaller
     tags:
       - { name: service_collector, tag: 'module_install.uninstall_validator', call: addUninstallValidator }
-    arguments: ['@app.root', '@module_handler', '@kernel', '@router.builder']
+    arguments: ['@app.root', '@module_handler', '@kernel']
     lazy: true
   extension.list.module:
     class: Drupal\Core\Extension\ModuleExtensionList
@@ -509,39 +529,41 @@ services:
   extension.list.profile:
     class: Drupal\Core\Extension\ProfileExtensionList
     arguments: ['@app.root', 'profile', '@cache.default', '@info_parser', '@module_handler', '@state', '%install_profile%']
+  extension.list.theme:
+    class: Drupal\Core\Extension\ThemeExtensionList
+    arguments: ['@app.root', 'theme', '@cache.default', '@info_parser', '@module_handler', '@state', '@config.factory', '@extension.list.theme_engine', '%install_profile%']
+  extension.list.theme_engine:
+    class: Drupal\Core\Extension\ThemeEngineExtensionList
+    arguments: ['@app.root', 'theme_engine', '@cache.default', '@info_parser', '@module_handler', '@state', '%install_profile%']
   content_uninstall_validator:
     class: Drupal\Core\Entity\ContentUninstallValidator
     tags:
       - { name: module_install.uninstall_validator }
-    arguments: ['@entity.manager', '@string_translation']
+    arguments: ['@entity_type.manager', '@string_translation']
     lazy: true
   required_module_uninstall_validator:
     class: Drupal\Core\Extension\RequiredModuleUninstallValidator
     tags:
       - { name: module_install.uninstall_validator }
-    arguments: ['@string_translation']
+    arguments: ['@string_translation', '@extension.list.module']
     lazy: true
   theme_handler:
     class: Drupal\Core\Extension\ThemeHandler
-    arguments: ['@app.root', '@config.factory', '@module_handler', '@state', '@info_parser']
+    arguments: ['@app.root', '@config.factory', '@extension.list.theme']
   theme_installer:
     class: Drupal\Core\Extension\ThemeInstaller
     arguments: ['@theme_handler', '@config.factory', '@config.installer', '@module_handler', '@config.manager', '@asset.css.collection_optimizer', '@router.builder', '@logger.channel.default', '@state']
   # @deprecated in Drupal 8.0.x and will be removed before 9.0.0. Use the other
   #   entity* services instead.
   entity.manager:
-    # We cannot set the deprecated property here because many test cases still
-    # rely on this service and they would fail with deprecation warnings.
     class: Drupal\Core\Entity\EntityManager
     parent: container.trait
-    # @todo Remove this tag in https://www.drupal.org/node/2549143.
-    tags:
-      - { name: plugin_manager_cache_clear }
+    deprecated: The "%service_id%" service is deprecated. You should use the 'entity_type.manager' service instead.
   entity.memory_cache:
     class: Drupal\Core\Cache\MemoryCache\MemoryCache
   entity_type.manager:
     class: Drupal\Core\Entity\EntityTypeManager
-    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@string_translation', '@class_resolver']
+    arguments: ['@container.namespaces', '@module_handler', '@cache.discovery', '@string_translation', '@class_resolver', '@entity.last_installed_schema.repository']
     parent: container.trait
     tags:
       - { name: plugin_manager_cache_clear }
@@ -553,7 +575,7 @@ services:
     arguments: ['@entity_type.manager', '@language_manager', '@module_handler', '@typed_data_manager', '@cache.discovery']
   entity.repository:
     class: Drupal\Core\Entity\EntityRepository
-    arguments: ['@entity_type.manager', '@language_manager']
+    arguments: ['@entity_type.manager', '@language_manager', '@context.repository']
   entity_display.repository:
     class: Drupal\Core\Entity\EntityDisplayRepository
     arguments: ['@entity_type.manager', '@module_handler', '@cache.discovery', '@language_manager']
@@ -568,12 +590,12 @@ services:
     arguments: ['@entity_type.manager', '@entity_type.bundle.info', '@entity_field.manager', '@module_handler']
   entity_route_subscriber:
     class: Drupal\Core\EventSubscriber\EntityRouteProviderSubscriber
-    arguments: ['@entity.manager']
+    arguments: ['@entity_type.manager']
     tags:
       - { name: event_subscriber }
   entity.definition_update_manager:
     class: Drupal\Core\Entity\EntityDefinitionUpdateManager
-    arguments: ['@entity.manager', '@entity.last_installed_schema.repository']
+    arguments: ['@entity_type.manager', '@entity.last_installed_schema.repository', '@entity_field.manager', '@entity_type.listener', '@field_storage_definition.listener']
   entity.last_installed_schema.repository:
     class: Drupal\Core\Entity\EntityLastInstalledSchemaRepository
     arguments: ['@keyvalue']
@@ -588,10 +610,10 @@ services:
     arguments: ['@entity_type.manager', '@entity_field.manager', '@keyvalue', '@cache.discovery']
   entity.form_builder:
     class: Drupal\Core\Entity\EntityFormBuilder
-    arguments: ['@entity.manager', '@form_builder']
+    arguments: ['@entity_type.manager', '@form_builder']
   entity.bundle_config_import_validator:
     class: Drupal\Core\Entity\Event\BundleConfigImportValidate
-    arguments: ['@config.manager', '@entity.manager']
+    arguments: ['@config.manager', '@entity_type.manager']
     tags:
       - { name: event_subscriber }
   entity.autocomplete_matcher:
@@ -619,6 +641,7 @@ services:
   plugin.manager.archiver:
     class: Drupal\Core\Archiver\ArchiverManager
     parent: default_plugin_manager
+    arguments: ['@file_system']
   plugin.manager.action:
     class: Drupal\Core\Action\ActionManager
     arguments: ['@container.namespaces', '@cache.discovery', '@module_handler']
@@ -638,7 +661,7 @@ services:
       - { name: needs_destruction }
   menu.parent_form_selector:
     class: Drupal\Core\Menu\MenuParentFormSelector
-    arguments: ['@menu.link_tree', '@entity.manager', '@string_translation']
+    arguments: ['@menu.link_tree', '@entity_type.manager', '@string_translation']
   plugin.manager.menu.local_action:
     class: Drupal\Core\Menu\LocalActionManager
     arguments: ['@http_kernel.controller.argument_resolver', '@request_stack', '@current_route_match', '@router.route_provider', '@module_handler', '@cache.discovery', '@language_manager', '@access_manager', '@current_user']
@@ -717,15 +740,12 @@ services:
     arguments: ['@event_dispatcher', '@controller_resolver', '@request_stack', '@http_kernel.controller.argument_resolver']
   http_kernel.controller.argument_resolver:
     class: Symfony\Component\HttpKernel\Controller\ArgumentResolver
-    arguments: ['@http_kernel.controller.argument_metadata_factory', ['@argument_resolver.request_attribute', '@argument_resolver.raw_parameter', '@argument_resolver.request', '@argument_resolver.psr7_request', '@argument_resolver.route_match', '@argument_resolver.default']]
+    arguments: ['@http_kernel.controller.argument_metadata_factory', ['@argument_resolver.request_attribute', '@argument_resolver.request', '@argument_resolver.psr7_request', '@argument_resolver.route_match', '@argument_resolver.default']]
   http_kernel.controller.argument_metadata_factory:
     class: Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadataFactory
     public: false
   argument_resolver.request_attribute:
     class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestAttributeValueResolver
-    public: false
-  argument_resolver.raw_parameter:
-    class: Drupal\Core\Controller\ArgumentResolver\RawParameterValueResolver
     public: false
   argument_resolver.request:
     class: Symfony\Component\HttpKernel\Controller\ArgumentResolver\RequestValueResolver
@@ -790,10 +810,6 @@ services:
     arguments: ['@language.default']
     tags:
       - { name: service_collector, tag: string_translator, call: addTranslator }
-  database.replica:
-    class: Drupal\Core\Database\Connection
-    factory: Drupal\Core\Database\Database::getConnection
-    arguments: [replica]
   typed_data_manager:
     class: Drupal\Core\TypedData\TypedDataManager
     arguments: ['@container.namespaces', '@cache.discovery', '@module_handler', '@class_resolver']
@@ -902,7 +918,7 @@ services:
       - { name: event_subscriber }
   entity.query:
     class: Drupal\Core\Entity\Query\QueryFactory
-    arguments: ['@entity.manager']
+    arguments: ['@entity_type.manager']
     calls:
       - [setContainer, ['@service_container']]
     deprecated: The "%service_id%" service is deprecated. Use the 'entity_type.manager' service to get an entity type's storage object and then call \Drupal\Core\Entity\EntityStorageInterface::getQuery() or \Drupal\Core\Entity\EntityStorageInterface::getAggregateQuery() instead. See https://www.drupal.org/node/2849874
@@ -938,14 +954,15 @@ services:
       - { name: needs_destruction }
   menu.rebuild_subscriber:
     class: Drupal\Core\EventSubscriber\MenuRouterRebuildSubscriber
-    arguments: ['@lock', '@plugin.manager.menu.link']
+    arguments: ['@lock', '@plugin.manager.menu.link', '@database', '@database.replica_kill_switch']
     tags:
       - { name: event_subscriber }
   path.alias_storage:
     class: Drupal\Core\Path\AliasStorage
-    arguments: ['@database', '@module_handler']
+    arguments: ['@database', '@module_handler', '@entity_type.manager']
     tags:
       - { name: backend_overridable }
+    deprecated: The "%service_id%" service is deprecated. Use the "path_alias.repository" service instead, or the entity storage handler for the "path_alias" entity type for CRUD methods. See https://www.drupal.org/node/3013865
   path.matcher:
     class: Drupal\Core\Path\PathMatcher
     arguments: ['@config.factory', '@current_route_match']
@@ -998,7 +1015,7 @@ services:
     class: Drupal\Core\ParamConverter\EntityConverter
     tags:
       - { name: paramconverter }
-    arguments: ['@entity.manager', '@language_manager']
+    arguments: ['@entity_type.manager', '@entity.repository']
   paramconverter.entity_revision:
     class: Drupal\Core\ParamConverter\EntityRevisionParamConverter
     tags:
@@ -1009,7 +1026,7 @@ services:
     tags:
       # Use a higher priority than EntityConverter, see the class for details.
       - { name: paramconverter, priority: 5 }
-    arguments: ['@entity.manager', '@config.factory', '@router.admin_context']
+    arguments: ['@entity_type.manager', '@config.factory', '@router.admin_context', '@entity.repository']
     lazy: true
   route_subscriber.module:
     class: Drupal\Core\EventSubscriber\ModuleRouteSubscriber
@@ -1018,7 +1035,7 @@ services:
     arguments: ['@module_handler']
   resolver_manager.entity:
     class: Drupal\Core\Entity\EntityResolverManager
-    arguments: ['@entity.manager', '@class_resolver']
+    arguments: ['@entity_type.manager', '@class_resolver']
   route_subscriber.entity:
     class: Drupal\Core\EventSubscriber\EntityRouteAlterSubscriber
     tags:
@@ -1083,13 +1100,13 @@ services:
       - { name: render.main_content_renderer, format: html }
   main_content_renderer.ajax:
     class: Drupal\Core\Render\MainContent\AjaxRenderer
-    arguments: ['@element_info']
+    arguments: ['@element_info', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_ajax }
       - { name: render.main_content_renderer, format: iframeupload }
   main_content_renderer.dialog:
     class: Drupal\Core\Render\MainContent\DialogRenderer
-    arguments: ['@title_resolver']
+    arguments: ['@title_resolver', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_dialog }
   main_content_renderer.off_canvas:
@@ -1104,7 +1121,7 @@ services:
       - { name: render.main_content_renderer, format: drupal_dialog.off_canvas_top }
   main_content_renderer.modal:
     class: Drupal\Core\Render\MainContent\ModalRenderer
-    arguments: ['@title_resolver']
+    arguments: ['@title_resolver', '@renderer']
     tags:
       - { name: render.main_content_renderer, format: drupal_modal }
   controller.form:
@@ -1112,7 +1129,7 @@ services:
     arguments: ['@http_kernel.controller.argument_resolver', '@form_builder', '@class_resolver']
   controller.entity_form:
     class: Drupal\Core\Entity\HtmlEntityFormController
-    arguments: ['@http_kernel.controller.argument_resolver', '@form_builder', '@entity.manager']
+    arguments: ['@http_kernel.controller.argument_resolver', '@form_builder', '@entity_type.manager']
   form_ajax_response_builder:
     class: Drupal\Core\Form\FormAjaxResponseBuilder
     arguments: ['@main_content_renderer.ajax', '@current_route_match']
@@ -1156,7 +1173,7 @@ services:
       - { name: access_check, applies_to: _entity_access }
   access_check.entity_create:
     class: Drupal\Core\Entity\EntityCreateAccessCheck
-    arguments: ['@entity.manager']
+    arguments: ['@entity_type.manager']
     tags:
       - { name: access_check, applies_to: _entity_create_access }
   access_check.entity_create_any:
@@ -1191,7 +1208,7 @@ services:
       - { name: access_check, needs_incoming_request: TRUE }
   maintenance_mode:
     class: Drupal\Core\Site\MaintenanceMode
-    arguments: ['@state', '@current_user']
+    arguments: ['@state']
   maintenance_mode_subscriber:
     class: Drupal\Core\EventSubscriber\MaintenanceModeSubscriber
     arguments: ['@maintenance_mode', '@config.factory', '@string_translation', '@url_generator', '@current_user', '@bare_html_page_renderer', '@messenger']
@@ -1199,9 +1216,8 @@ services:
       - { name: event_subscriber }
   path_subscriber:
     class: Drupal\Core\EventSubscriber\PathSubscriber
-    tags:
-      - { name: event_subscriber }
-    arguments: ['@path.alias_manager', '@path.current']
+    arguments: ['@path_alias.manager', '@path.current']
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.subscriber" instead. See https://drupal.org/node/3092086'
   route_access_response_subscriber:
     class: Drupal\Core\EventSubscriber\RouteAccessResponseSubscriber
     tags:
@@ -1255,12 +1271,17 @@ services:
     class: Drupal\Core\EventSubscriber\ConfigImportSubscriber
     tags:
       - { name: event_subscriber }
-    arguments: ['@theme_handler']
+    arguments: ['@theme_handler', '@extension.list.module']
   config_snapshot_subscriber:
     class: Drupal\Core\EventSubscriber\ConfigSnapshotSubscriber
     tags:
       - { name: event_subscriber }
     arguments: ['@config.manager', '@config.storage', '@config.storage.snapshot']
+  config_exclude_modules_subscriber:
+    class: Drupal\Core\EventSubscriber\ExcludedModulesEventSubscriber
+    arguments: ['@config.storage', '@settings', '@config.manager']
+    tags:
+      - { name: event_subscriber }
   exception.needs_installer:
     class: Drupal\Core\EventSubscriber\ExceptionDetectNeedsInstallSubscriber
     arguments: ['@database']
@@ -1329,10 +1350,8 @@ services:
       - { name: route_processor_outbound, priority: 200 }
   path_processor_alias:
     class: Drupal\Core\PathProcessor\PathProcessorAlias
-    tags:
-      - { name: path_processor_inbound, priority: 100 }
-      - { name: path_processor_outbound, priority: 300 }
-    arguments: ['@path.alias_manager']
+    arguments: ['@path_alias.manager']
+    deprecated: 'The "%service_id%" service is deprecated. Use "path_alias.path_processor" instead. See https://drupal.org/node/3092086'
   route_processor_csrf:
     class: Drupal\Core\Access\RouteProcessorCsrf
     tags:
@@ -1402,16 +1421,12 @@ services:
     tags:
       - { name: backend_overridable }
     lazy: true
-  replica_database_ignore__subscriber:
-    class: Drupal\Core\EventSubscriber\ReplicaDatabaseIgnoreSubscriber
-    tags:
-      - {name: event_subscriber}
   country_manager:
     class: Drupal\Core\Locale\CountryManager
     arguments: ['@module_handler']
   date.formatter:
     class: Drupal\Core\Datetime\DateFormatter
-    arguments: ['@entity.manager', '@language_manager', '@string_translation', '@config.factory', '@request_stack']
+    arguments: ['@entity_type.manager', '@language_manager', '@string_translation', '@config.factory', '@request_stack']
   feed.bridge.reader:
     class: Drupal\Component\Bridge\ZfExtensionManagerSfContainer
     calls:
@@ -1524,6 +1539,7 @@ services:
     arguments: ['@private_key', '@cache.bootstrap', '@cache.static']
   current_user:
     class: Drupal\Core\Session\AccountProxy
+    arguments: ['@event_dispatcher']
   session_configuration:
     class: Drupal\Core\Session\SessionConfiguration
     arguments: ['%session.storage.options%']
@@ -1543,10 +1559,6 @@ services:
     arguments: ['@request_stack', '@database']
     tags:
       - { name: backend_overridable }
-  session_handler.write_check:
-    class: Symfony\Component\HttpFoundation\Session\Storage\Handler\WriteCheckSessionHandler
-    tags:
-      - { name: session_handler_proxy, priority: 100 }
   session_handler.write_safe:
     class: Drupal\Core\Session\WriteSafeSessionHandler
     tags:
@@ -1566,25 +1578,27 @@ services:
     arguments: [ '@state' ]
   asset.css.collection_optimizer:
     class: Drupal\Core\Asset\CssCollectionOptimizer
-    arguments: [ '@asset.css.collection_grouper', '@asset.css.optimizer', '@asset.css.dumper', '@state' ]
+    arguments: [ '@asset.css.collection_grouper', '@asset.css.optimizer', '@asset.css.dumper', '@state', '@file_system']
   asset.css.optimizer:
     class: Drupal\Core\Asset\CssOptimizer
   asset.css.collection_grouper:
     class: Drupal\Core\Asset\CssCollectionGrouper
   asset.css.dumper:
     class: Drupal\Core\Asset\AssetDumper
+    arguments: ['@file_system']
   asset.js.collection_renderer:
     class: Drupal\Core\Asset\JsCollectionRenderer
     arguments: [ '@state' ]
   asset.js.collection_optimizer:
     class: Drupal\Core\Asset\JsCollectionOptimizer
-    arguments: [ '@asset.js.collection_grouper', '@asset.js.optimizer', '@asset.js.dumper', '@state' ]
+    arguments: [ '@asset.js.collection_grouper', '@asset.js.optimizer', '@asset.js.dumper', '@state', '@file_system']
   asset.js.optimizer:
     class: Drupal\Core\Asset\JsOptimizer
   asset.js.collection_grouper:
     class: Drupal\Core\Asset\JsCollectionGrouper
   asset.js.dumper:
     class: Drupal\Core\Asset\AssetDumper
+    arguments: ['@file_system']
   library.discovery:
     class: Drupal\Core\Asset\LibraryDiscovery
     arguments: ['@library.discovery.collector']
@@ -1595,7 +1609,7 @@ services:
       - { name: needs_destruction }
   library.discovery.parser:
     class: Drupal\Core\Asset\LibraryDiscoveryParser
-    arguments: ['@app.root', '@module_handler', '@theme.manager']
+    arguments: ['@app.root', '@module_handler', '@theme.manager', '@stream_wrapper_manager']
   library.dependency_resolver:
     class: Drupal\Core\Asset\LibraryDependencyResolver
     arguments: ['@library.discovery']
@@ -1604,6 +1618,7 @@ services:
     arguments: ['@library.discovery', '@library.dependency_resolver', '@module_handler', '@theme.manager', '@language_manager', '@cache.data']
   info_parser:
     class: Drupal\Core\Extension\InfoParser
+    arguments: ['@app.root']
   twig:
     class: Drupal\Core\Template\TwigEnvironment
     arguments: ['@app.root', '@cache.default', '%twig_extension_hash%', '@state', '@twig.loader', '%twig.config%']
@@ -1644,6 +1659,9 @@ services:
       - { name: twig.loader, priority: -100 }
   element_info:
     alias: plugin.manager.element_info
+  file.htaccess_writer:
+    class: Drupal\Core\File\HtaccessWriter
+    arguments: ['@logger.channel.security', '@stream_wrapper_manager']
   file.mime_type.guesser:
     class: Drupal\Core\File\MimeType\MimeTypeGuesser
     arguments: ['@stream_wrapper_manager']
@@ -1689,7 +1707,7 @@ services:
     tags:
       - { name: placeholder_strategy, priority: -1000 }
   email.validator:
-    class: Egulias\EmailValidator\EmailValidator
+    class: Drupal\Component\Utility\EmailValidator
   update.post_update_registry:
     class: Drupal\Core\Update\UpdateRegistry
     factory: ['@update.post_update_registry_factory', create]
@@ -1720,3 +1738,9 @@ services:
     arguments: ['@keyvalue.expirable', '@lock', '@request_stack', '%tempstore.expire%']
     tags:
       - { name: backend_overridable }
+  pager.manager:
+    class: Drupal\Core\Pager\PagerManager
+    arguments: ['@pager.parameters']
+  pager.parameters:
+    class: Drupal\Core\Pager\PagerParameters
+    arguments: ['@request_stack']

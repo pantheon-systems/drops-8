@@ -1,0 +1,583 @@
+webform.settings:
+  type: config_object
+  label: 'Webform settings'
+  mapping:
+    settings:
+      type: mapping
+      label: 'Webform default settings'
+      mapping:
+        default_status:
+          type: string
+          label: 'Default status'
+        default_page_base_path:
+          type: string
+          label: 'Default base path'
+        default_ajax:
+          type: boolean
+          label: 'Use Ajax'
+        default_ajax_progress_type:
+          type: string
+          label: 'Default Ajax progress type'
+        default_ajax_effect:
+          type: string
+          label: 'Default Ajax effect'
+        default_ajax_speed:
+          type: integer
+          label: 'Default Ajax speed'
+        default_submit_button_label:
+          type: label
+          label: 'Default submit button label'
+        default_reset_button_label:
+          type: label
+          label: 'Default reset button label'
+        default_form_submit_once:
+          type: boolean
+          label: 'Prevent duplicate submissions'
+        default_form_open_message:
+          type: text
+          label: 'Default form open message'
+        default_form_close_message:
+          type: text
+          label: 'Default form close message'
+        default_form_exception_message:
+          type: text
+          label: 'Default form exception message'
+        default_form_confidential_message:
+          type: text
+          label: 'Default form confidential message'
+        default_form_access_denied_message:
+          type: text
+          label: 'Default form access denied message'
+        default_form_novalidate:
+          type: boolean
+          label: 'Disable client-side validation'
+        default_form_disable_inline_errors:
+          type: boolean
+          label: 'Disable inline form errors'
+        default_form_required:
+          type: boolean
+          label: 'Display required indicator'
+        default_form_required_label:
+          type: label
+          label: 'Display required indicator label'
+        default_form_unsaved:
+          type: boolean
+          label: 'Warn users about unsaved changes'
+        default_form_disable_back:
+          type: boolean
+          label: 'Disable back button'
+        default_form_submit_back:
+          type: boolean
+          label: 'Submit previous wizard page when browser back button is clicked'
+        default_form_details_toggle:
+          type: boolean
+          label: 'Display collapse/expand all details link'
+        default_form_file_limit:
+          type: string
+          label: 'Default file upload limit per form'
+        default_wizard_prev_button_label:
+          type: label
+          label: 'Default wizard previous page button label'
+        default_wizard_next_button_label:
+          type: label
+          label: 'Default wizard next page button label'
+        default_wizard_start_label:
+          type: label
+          label: 'Default wizard start label'
+        default_wizard_confirmation_label:
+          type: label
+          label: 'Default wizard confirmation label'
+        default_preview_next_button_label:
+          type: label
+          label: 'Default preview button label'
+        default_preview_prev_button_label:
+          type: label
+          label: 'Default preview previous page button label'
+        default_preview_label:
+          type: text
+          label: 'Default preview label'
+        default_preview_title:
+          type: text
+          label: 'Default preview page title'
+        default_preview_message:
+          type: text
+          label: 'Default preview message'
+        default_draft_button_label:
+          type: label
+          label: 'Default draft button label'
+        default_draft_saved_message:
+          type: text
+          label: 'Default draft save message'
+        default_draft_loaded_message:
+          type: text
+          label: 'Default draft load message'
+        default_draft_pending_single_message:
+          type: text
+          label: 'Default draft pending single draft message'
+        default_draft_pending_multiple_message:
+          type: text
+          label: 'Default drafts pending multiple drafts message'
+        default_confirmation_message:
+          type: text
+          label: 'Default confirmation message'
+        default_confirmation_back_label:
+          type: text
+          label: 'Default confirmation back label'
+        default_limit_total_message:
+          type: text
+          label: 'Default limit total message'
+        default_limit_user_message:
+          type: text
+          label: 'Default limit user message'
+        default_submission_label:
+          type: label
+          label: 'Default submission label'
+        default_submission_log:
+          type: boolean
+          label: 'Default submission logging'
+        default_submission_views:
+          type: sequence
+          label: 'Default submission views'
+          sequence:
+            type: mapping
+            label: 'Submission view'
+            mapping:
+              title:
+                type: text
+                label: Title
+              view:
+                type: string
+                label: 'View name / Display ID'
+              global_routes:
+                type: sequence
+                label: 'Apply to global'
+                sequence:
+                  type: string
+                  label: Route
+              webform_routes:
+                type: sequence
+                label: 'Apply to webform'
+                sequence:
+                  type: string
+                  label: Route
+              node_routes:
+                type: sequence
+                label: 'Apply to node'
+                sequence:
+                  type: string
+                  label: Route
+        default_submission_views_replace:
+          type: mapping
+          label: 'Default submission view replace'
+          mapping:
+            global_routes:
+              type: sequence
+              label: 'Replace to global'
+              sequence:
+                type: string
+                label: Route
+            webform_routes:
+              type: sequence
+              label: 'Replace to webform'
+              sequence:
+                type: string
+                label: Route
+            node_routes:
+              type: sequence
+              label: 'Replace to node'
+              sequence:
+                type: string
+                label: Route
+        default_results_customize:
+          type: boolean
+          label: 'Allow users to customize the results table'
+        default_submission_access_denied_message:
+          type: text
+          label: 'Default submission access denied message'
+        default_submission_exception_message:
+          type: text
+          label: 'Default submission exception message'
+        default_submission_locked_message:
+          type: text
+          label: 'Default submission locked message'
+        default_previous_submission_message:
+          type: text
+          label: 'Default previous submission message'
+        default_previous_submissions_message:
+          type: text
+          label: 'Default previous submissions message'
+        default_autofill_message:
+          type: text
+          label: 'Default submission autofill message'
+        form_classes:
+          type: string
+          label: 'Form CSS classes '
+        button_classes:
+          type: string
+          label: 'Button CSS classes'
+        preview_classes:
+          type: string
+          label: 'Preview CSS classes'
+        confirmation_classes:
+          type: string
+          label: 'Confirmation CSS classes'
+        confirmation_back_classes:
+          type: string
+          label: 'Confirmation back link CSS classes'
+        dialog:
+          type: boolean
+          label: 'Enable webform dialog support'
+        dialog_options:
+          type: sequence
+          label: 'Preset dialog options'
+          sequence:
+            type: mapping
+            label: 'Dialog options'
+            mapping:
+              name:
+                type: string
+                label: 'Dialog name'
+              title:
+                type: label
+                label: 'Dialog title'
+              width:
+                type: integer
+                label: 'Dialog width'
+              height:
+                type: integer
+                label: 'Dialog height'
+    assets:
+      type: mapping
+      label: 'Global Assets (CSS/JavaScript)'
+      mapping:
+        css:
+          type: string
+          label: 'CSS (Cascading Style Sheets)'
+        javascript:
+          type: string
+          label: JavaScript
+    form:
+      type: mapping
+      label: 'Form default settings'
+      mapping:
+        filter_category:
+          type: label
+          label: 'Filter category'
+        filter_state:
+          type: string
+          label: 'Filter state'
+    element:
+      type: mapping
+      label: 'Element default settings'
+      mapping:
+        machine_name_pattern:
+          type: string
+          label: 'Element key pattern'
+        empty_message:
+          type: label
+          label: 'Empty element message/placeholder'
+        allowed_tags:
+          type: string
+          label: 'Allowed tags'
+        wrapper_classes:
+          type: string
+          label: 'Wrapper CSS classes'
+        classes:
+          type: string
+          label: 'Element CSS classes'
+        horizontal_rule_classes:
+          type: string
+          label: 'Horizontal rule CSS classes'
+        default_description_display:
+          type: string
+          label: 'Default title display'
+        default_more_title:
+          type: label
+          label: 'Default more title'
+        default_section_title_tag:
+          type: label
+          label: 'Default section title tag'
+        default_empty_option:
+          type: boolean
+          label: 'Default empty option'
+        default_empty_option_required:
+          type: label
+          label: 'Default empty option required label'
+        default_empty_option_optional:
+          type: label
+          label: 'Default empty option optional label'
+        default_algolia_places_app_id:
+          type: string
+          label: 'Default Algolia application id'
+        default_algolia_places_api_key:
+          type: string
+          label: 'Default Algolia API key'
+        excluded_elements:
+          type: ignore
+          label: 'Excluded types'
+    html_editor:
+      type: mapping
+      label: 'HTML editor settings'
+      mapping:
+        disabled:
+          type: boolean
+          label: 'Disable HTML editor'
+        element_format:
+          type: string
+          label: 'Element text format'
+        mail_format:
+          type: string
+          label: 'Mail text format'
+        tidy:
+          type: boolean
+          label: 'Tidy HTML markup'
+        make_unused_managed_files_temporary:
+          type: boolean
+          label: 'Controls if unused HTML editor files should be marked temporary'
+    file:
+      type: mapping
+      label: 'File upload default settings'
+      mapping:
+        file_public:
+          type: boolean
+          label: 'Allow files to be uploaded to public file system.'
+        file_private_redirect:
+          type: boolean
+          label: 'Redirect anonymous users to login when attempting to access private file uploads.'
+        file_private_redirect_message:
+          type: text
+          label: 'Login message when access denied to private file uploads.'
+        default_max_filesize:
+          type: string
+          label: 'Default maximum file upload size'
+        default_managed_file_extensions:
+          type: string
+          label: 'Default allowed managed file extensions'
+        default_image_file_extensions:
+          type: string
+          label: 'Default allowed image file extensions'
+        default_video_file_extensions:
+          type: string
+          label: 'Default allowed video file extensions'
+        default_audio_file_extensions:
+          type: string
+          label: 'Default allowed audio file extensions'
+        default_document_file_extensions:
+          type: string
+          label: 'Default allowed document file extensions'
+        make_unused_managed_files_temporary:
+          type: boolean
+          label: 'Controls if unused webform submission files should be marked temporary'
+        delete_temporary_managed_files:
+          type: boolean
+          label: 'Immediately deleted temporary managed webform submission files'
+    format:
+      type: ignore
+      label: 'Format default settings'
+    mail:
+      type: mapping
+      label: 'Email default settings'
+      mapping:
+        default_to_mail:
+          type: email
+          label: 'Default to email'
+        default_from_mail:
+          type: email
+          label: 'Default from email'
+        default_from_name:
+          type: label
+          label: 'Default from name'
+        default_reply_to:
+          type: label
+          label: 'Default reply to email'
+        default_return_path:
+          type: label
+          label: 'Default return path email'
+        default_sender_mail:
+          type: email
+          label: 'Default sender email'
+        default_sender_name:
+          type: label
+          label: 'Default sender name'
+        default_subject:
+          type: label
+          label: 'Default email subject'
+        default_body_text:
+          type: text
+          label: 'Default email body (Plain text)'
+        default_body_html:
+          type: text
+          label: 'Default email body (HTML)'
+        roles:
+          type: sequence
+          label: Roles
+          sequence:
+            type: string
+            label: Role
+    export:
+      type: mapping
+      label: 'Export default settings'
+      mapping:
+        temp_directory:
+          type: string
+          label: 'Export temporary directory'
+        exporter:
+          type: string
+          label: 'Results exporter'
+        delimiter:
+          type: string
+          label: 'Delimiter text format'
+        multiple_delimiter:
+          type: string
+          label: 'Element multiple values delimiter'
+        excel:
+          type: boolean
+          label: 'Open HTML table in Excel'
+        archive_type:
+          type: string
+          label: 'Type of downloadable archive'
+        file_name:
+          type: string
+          label: 'File name'
+        header_format:
+          type: string
+          label: 'Column header format'
+        header_prefix:
+          type: boolean
+          label: 'Column header prefix'
+        header_prefix_key_delimiter:
+          type: string
+          label: 'Column header prefix key delimiter'
+        header_prefix_label_delimiter:
+          type: string
+          label: 'Column header prefix label delimiter'
+        entity_reference_items:
+          type: sequence
+          label: 'Entity reference format items'
+          sequence:
+            type: string
+            label: 'Entity reference format item'
+        options_single_format:
+          type: string
+          label: 'Options single value format'
+        options_multiple_format:
+          type: string
+          label: 'Options multiple values format'
+        options_item_format:
+          type: string
+          label: 'Options item format'
+        likert_answers_format:
+          type: string
+          label: 'Likert answers format'
+        signature_format:
+          type: string
+          label: 'Signature format'
+        composite_element_item_format:
+          type: string
+          label: 'Composite element item format'
+        excluded_exporters:
+          type: ignore
+          label: 'Excluded submission exporters'
+    handler:
+      type: mapping
+      label: 'Handler settings'
+      mapping:
+        excluded_handlers:
+          type: ignore
+          label: 'Excluded submission handlers'
+    variant:
+      type: mapping
+      label: 'Variant settings'
+      mapping:
+        excluded_variants:
+          type: ignore
+          label: 'Excluded webform variants'
+    batch:
+      type: mapping
+      label: 'Batch settings'
+      mapping:
+        default_batch_export_size:
+          type: integer
+          label: 'Batch export size'
+        default_batch_import_size:
+          type: integer
+          label: 'Batch import size'
+        default_batch_update_size:
+          type: integer
+          label: 'Batch update size'
+        default_batch_delete_size:
+          type: integer
+          label: 'Batch delete size'
+        default_batch_email_size:
+          type: integer
+          label: 'Batch email size'
+    purge:
+      type: mapping
+      label: 'Purging settings'
+      mapping:
+        cron_size:
+          type: integer
+          label: 'Amount of submissions to process'
+    test:
+      type: mapping
+      label: 'Test settings'
+      mapping:
+        types:
+          type: text
+          label: 'Test types'
+        names:
+          type: text
+          label: 'Test names'
+    ui:
+      type: mapping
+      label: 'User interface settings'
+      mapping:
+        video_display:
+          type: string
+          label: 'Video display'
+        help_disabled:
+          type: boolean
+          label: 'Disable help'
+        dialog_disabled:
+          type: boolean
+          label: 'Disable dialogs'
+        offcanvas_disabled:
+          type: boolean
+          label: 'Disable system tray'
+        promotions_disabled:
+          type: boolean
+          label: 'Disable promotions'
+        details_save:
+          type: boolean
+          label: 'Save details open/close state'
+        description_help:
+          type: boolean
+          label: 'Display element description as help text (tooltip)'
+    libraries:
+      type: mapping
+      label: 'Library settings'
+      mapping:
+        excluded_libraries:
+          type: ignore
+          label: 'Excluded libraries'
+        cdn:
+          type: boolean
+          label: 'Use CDN'
+    requirements:
+      type: mapping
+      label: Requirements
+      mapping:
+        cdn:
+          type: boolean
+          label: 'Check if CDN is being used for external libraries'
+        bootstrap:
+          type: boolean
+          label: 'Check if Webform Bootstrap Integration module is installed when using the Bootstrap theme'
+        spam:
+          type: boolean
+          label: 'Check if SPAM protection module is installed'
+    third_party_settings:
+      type: sequence
+      label: 'Third party settings'
+      sequence:
+        type: 'webform.admin_settings.third_party.[%key]'

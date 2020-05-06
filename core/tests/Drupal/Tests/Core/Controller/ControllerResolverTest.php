@@ -7,6 +7,7 @@
 
 namespace Drupal\Tests\Core\Controller;
 
+use Drupal\Core\Controller\ArgumentResolver\RawParameterValueResolver;
 use Drupal\Core\Controller\ControllerResolver;
 use Drupal\Core\DependencyInjection\ClassResolver;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
@@ -22,6 +23,7 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Bridge\PsrHttpMessage\Factory\DiactorosFactory;
 use Psr\Http\Message\ServerRequestInterface;
+use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 
 /**
  * @coversDefaultClass \Drupal\Core\Controller\ControllerResolver
@@ -75,12 +77,15 @@ class ControllerResolverTest extends UnitTestCase {
    * @expectedDeprecation Drupal\Core\Controller\ControllerResolver::doGetArguments is deprecated as of 8.6.0 and will be removed in 9.0. Inject the "http_kernel.controller.argument_resolver" service instead.
    */
   public function testGetArguments() {
+    if (!in_array('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface', class_implements('Symfony\Component\HttpKernel\Controller\ControllerResolver'))) {
+      $this->markTestSkipped("Do not test ::getArguments() method when it is not implemented by Symfony's ControllerResolver.");
+    }
     $controller = function (EntityInterface $entity, $user, RouteMatchInterface $route_match, ServerRequestInterface $psr_7) {
     };
-    $mock_entity = $this->getMockBuilder('Drupal\Core\Entity\Entity')
+    $mock_entity = $this->getMockBuilder('Drupal\Core\Entity\EntityBase')
       ->disableOriginalConstructor()
       ->getMock();
-    $mock_account = $this->getMock('Drupal\Core\Session\AccountInterface');
+    $mock_account = $this->createMock('Drupal\Core\Session\AccountInterface');
     $request = new Request([], [], [
       'entity' => $mock_entity,
       'user' => $mock_account,
@@ -125,7 +130,7 @@ class ControllerResolverTest extends UnitTestCase {
    * Tests createController() with a non-existent class.
    */
   public function testCreateControllerNonExistentClass() {
-    $this->setExpectedException(\InvalidArgumentException::class);
+    $this->expectException(\InvalidArgumentException::class);
     $this->controllerResolver->getControllerFromDefinition('Class::method');
   }
 
@@ -133,7 +138,7 @@ class ControllerResolverTest extends UnitTestCase {
    * Tests createController() with an invalid name.
    */
   public function testCreateControllerInvalidName() {
-    $this->setExpectedException(\LogicException::class);
+    $this->expectException(\LogicException::class);
     $this->controllerResolver->getControllerFromDefinition('ClassWithoutMethod');
   }
 
@@ -171,6 +176,7 @@ class ControllerResolverTest extends UnitTestCase {
    * @dataProvider providerTestGetControllerFromDefinition
    */
   public function testGetControllerFromDefinition($definition, $output) {
+    $this->container->set('invoke_service', new MockInvokeController());
     $controller = $this->controllerResolver->getControllerFromDefinition($definition);
     $this->assertCallableController($controller, NULL, $output);
   }
@@ -188,6 +194,8 @@ class ControllerResolverTest extends UnitTestCase {
       [new MockInvokeController(), 'This used __invoke().'],
       // Tests a class using __invoke().
       ['Drupal\Tests\Core\Controller\MockInvokeController', 'This used __invoke().'],
+      // Tests a service from the container using __invoke().
+      ['invoke_service', 'This used __invoke().'],
     ];
   }
 
@@ -195,7 +203,7 @@ class ControllerResolverTest extends UnitTestCase {
    * Tests getControllerFromDefinition() without a callable.
    */
   public function testGetControllerFromDefinitionNotCallable() {
-    $this->setExpectedException(\InvalidArgumentException::class);
+    $this->expectException(\InvalidArgumentException::class);
     $this->controllerResolver->getControllerFromDefinition('Drupal\Tests\Core\Controller\MockController::bananas');
   }
 
@@ -222,12 +230,14 @@ class ControllerResolverTest extends UnitTestCase {
   /**
    * Tests getArguments with a route match and a request.
    *
-   * @covers ::getArguments
    * @covers ::doGetArguments
    *
    * @group legacy
    */
   public function testGetArgumentsWithRouteMatchAndRequest() {
+    if (!in_array('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface', class_implements('Symfony\Component\HttpKernel\Controller\ControllerResolver'))) {
+      $this->markTestSkipped("Do not test ::getArguments() method when it is not implemented by Symfony's ControllerResolver.");
+    }
     $request = Request::create('/test');
     $mock_controller = new MockController();
     $arguments = $this->controllerResolver->getArguments($request, [$mock_controller, 'getControllerWithRequestAndRouteMatch']);
@@ -237,17 +247,29 @@ class ControllerResolverTest extends UnitTestCase {
   /**
    * Tests getArguments with a route match and a PSR-7 request.
    *
-   * @covers ::getArguments
    * @covers ::doGetArguments
    *
    * @group legacy
    */
   public function testGetArgumentsWithRouteMatchAndPsr7Request() {
+    if (!in_array('Symfony\Component\HttpKernel\Controller\ArgumentResolverInterface', class_implements('Symfony\Component\HttpKernel\Controller\ControllerResolver'))) {
+      $this->markTestSkipped("Do not test ::getArguments() method when it is not implemented by Symfony's ControllerResolver.");
+    }
     $request = Request::create('/test');
     $mock_controller = new MockControllerPsr7();
     $arguments = $this->controllerResolver->getArguments($request, [$mock_controller, 'getControllerWithRequestAndRouteMatch']);
     $this->assertEquals(RouteMatch::createFromRequest($request), $arguments[0], 'Ensure that the route match object is passed along as well');
     $this->assertInstanceOf('Psr\Http\Message\ServerRequestInterface', $arguments[1], 'Ensure that the PSR-7 object is passed along as well');
+  }
+
+  /**
+   * @group legacy
+   * @expectedDeprecation Drupal\Core\Controller\ArgumentResolver\RawParameterValueResolver is deprecated in Drupal 8.8.1 and will be removed before Drupal 9.0.0. This class exists to prevent problems with updating core using Drush 8. There is no replacement.
+   */
+  public function testRawParameterValueResolver() {
+    $resolver = new RawParameterValueResolver();
+    $metadata = $this->prophesize(ArgumentMetadata::class);
+    $this->assertFalse($resolver->supports(Request::create('/test'), $metadata->reveal()));
   }
 
 }

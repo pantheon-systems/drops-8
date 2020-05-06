@@ -14,7 +14,7 @@ use Drupal\webform\WebformInterface;
  *   A webform object.
  *
  * @return array
- *   An array containing long webform elements..
+ *   An array containing long webform elements.
  */
 function webform_test_test_form_long(WebformInterface $webform) {
   $length = (int) str_replace('test_form_long_', '', $webform->id());

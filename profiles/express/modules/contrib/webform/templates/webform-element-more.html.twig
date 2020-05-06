@@ -7,8 +7,11 @@
  * - title: More label.
  * - content: More content.
  *
- * @see template_preprocess_webform_element_more()
+ * Based on WAI-ARIA Authoring Practices 1.1: Disclosure (Show/Hide)
  *
+ * @see https://www.w3.org/TR/wai-aria-practices-1.1/#disclosure
+ * @see https://www.w3.org/TR/wai-aria-practices-1.1/examples/disclosure/disclosure-faq.html
+ * @see template_preprocess_webform_element_more()
  * @ingroup themeable
  */
 #}
@@ -20,6 +23,6 @@ set classes = [
 ]
 %}
 <div{{ attributes.addClass(classes) }}>
-  <div class="webform-element-more--link"><a href="#more">{{ more_title }}</a></div>
-  <div class="webform-element-more--content">{{ more }}</div>
+  <div class="webform-element-more--link"><a role="button" href="#{{ attributes.id }}--content">{{ more_title }}</a></div>
+  <div id="{{ attributes.id }}--content" class="webform-element-more--content">{{ more }}</div>
 </div>

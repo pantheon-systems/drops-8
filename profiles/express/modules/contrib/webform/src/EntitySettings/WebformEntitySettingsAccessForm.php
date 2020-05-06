@@ -3,11 +3,39 @@
 namespace Drupal\webform\EntitySettings;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\WebformAccessRulesManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Webform access settings.
  */
 class WebformEntitySettingsAccessForm extends WebformEntitySettingsBaseForm {
+
+  /**
+   * Webform access rules manager.
+   *
+   * @var \Drupal\webform\WebformAccessRulesManagerInterface
+   */
+  protected $accessRulesManager;
+
+  /**
+   * WebformEntitySettingsAccessForm constructor.
+   *
+   * @param \Drupal\webform\WebformAccessRulesManagerInterface $access_rules_manager
+   *   Webform access rules manager.
+   */
+  public function __construct(WebformAccessRulesManagerInterface $access_rules_manager) {
+    $this->accessRulesManager = $access_rules_manager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('webform.access_rules_manager')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -16,43 +44,37 @@ class WebformEntitySettingsAccessForm extends WebformEntitySettingsBaseForm {
     /** @var \Drupal\webform\WebformInterface $webform */
     $webform = $this->entity;
 
-    $access = $webform->getAccessRules();
-
-    $permissions = [
-      'create' => $this->t('Create webform submissions'),
-      'view_any' => $this->t('View all webform submissions'),
-      'update_any' => $this->t('Update all webform submissions'),
-      'delete_any' => $this->t('Delete all webform submissions'),
-      'purge_any' => $this->t('Purge all webform submissions'),
-      'view_own' => $this->t('View own webform submissions'),
-      'update_own' => $this->t('Update own webform submissions'),
-      'delete_own' => $this->t('Delete own webform submissions'),
-    ];
-
     $form['access']['#tree'] = TRUE;
-    foreach ($permissions as $name => $title) {
-      $form['access'][$name] = [
-        '#type' => ($name === 'create') ? 'fieldset' : 'details',
-        '#title' => $title,
-        '#open' => ($access[$name]['roles'] || $access[$name]['users']) ? TRUE : FALSE,
+
+    $access = $webform->getAccessRules() + $this->accessRulesManager->getDefaultAccessRules();
+    $access_rules = $this->accessRulesManager->getAccessRulesInfo();
+    foreach ($access_rules as $access_rule => $info) {
+      $form['access'][$access_rule] = [
+        '#type' => ($access_rule === 'create') ? 'fieldset' : 'details',
+        '#title' => $info['title'],
+        '#open' => ($access[$access_rule]['roles'] || $access[$access_rule]['users']) ? TRUE : FALSE,
+        '#description' => $info['description'],
+        // Never convert description to help.
+        // @see _webform_preprocess_description_help()
+        '#help' => FALSE,
       ];
-      $form['access'][$name]['roles'] = [
+      $form['access'][$access_rule]['roles'] = [
         '#type' => 'webform_roles',
         '#title' => $this->t('Roles'),
-        '#include_anonymous' => (!in_array($name, ['update_any', 'delete_any', 'purge_any'])) ? TRUE : FALSE,
-        '#default_value' => $access[$name]['roles'],
+        '#include_anonymous' => (!in_array($access_rule, ['update_any', 'delete_any', 'purge_any'])) ? TRUE : FALSE,
+        '#default_value' => $access[$access_rule]['roles'],
       ];
-      $form['access'][$name]['users'] = [
+      $form['access'][$access_rule]['users'] = [
         '#type' => 'webform_users',
         '#title' => $this->t('Users'),
-        '#default_value' => $access[$name]['users'] ? $this->entityTypeManager->getStorage('user')->loadMultiple($access[$name]['users']) : [],
+        '#default_value' => $access[$access_rule]['users'] ? $this->entityTypeManager->getStorage('user')->loadMultiple($access[$access_rule]['users']) : [],
       ];
-      $form['access'][$name]['permissions'] = [
+      $form['access'][$access_rule]['permissions'] = [
         '#type' => 'webform_permissions',
         '#title' => $this->t('Permissions'),
         '#multiple' => TRUE,
         '#select2' => TRUE,
-        '#default_value' => $access[$name]['permissions'],
+        '#default_value' => $access[$access_rule]['permissions'],
       ];
     }
 
@@ -64,7 +86,6 @@ class WebformEntitySettingsAccessForm extends WebformEntitySettingsBaseForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $access = $form_state->getValue('access');
-
     /** @var \Drupal\webform\WebformInterface $webform */
     $webform = $this->getEntity();
 

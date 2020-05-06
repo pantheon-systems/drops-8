@@ -4,13 +4,14 @@ namespace Drupal\system\Tests\Menu;
 
 @trigger_error(__NAMESPACE__ . '\AssertBreadcrumbTrait is deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Instead, use \Drupal\Tests\system\Functional\Menu\AssertBreadcrumbTrait', E_USER_DEPRECATED);
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Url;
 
 /**
  * Provides test assertions for verifying breadcrumbs.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0.
+ * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
  *   Use \Drupal\Tests\system\Functional\Menu\AssertBreadcrumbTrait instead.
  */
 trait AssertBreadcrumbTrait {
@@ -89,7 +90,7 @@ trait AssertBreadcrumbTrait {
     // No parts must be left, or an expected "Home" will always pass.
     $pass = ($pass && empty($parts));
 
-    $this->assertTrue($pass, format_string('Breadcrumb %parts found on @path.', [
+    $this->assertTrue($pass, new FormattableMarkup('Breadcrumb %parts found on @path.', [
       '%parts' => implode(' » ', $trail),
       '@path' => $this->getUrl(),
     ]));

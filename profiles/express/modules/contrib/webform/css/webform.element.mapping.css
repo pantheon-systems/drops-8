@@ -1,0 +1,13 @@
+/**
+ * @file
+ * Element mapping styles.
+ */
+
+.webform-mapping-table th {
+  width: 50%;
+}
+
+.webform-mapping-table .form-text,
+.webform-mapping-table .form-select {
+  width: 100%;
+}

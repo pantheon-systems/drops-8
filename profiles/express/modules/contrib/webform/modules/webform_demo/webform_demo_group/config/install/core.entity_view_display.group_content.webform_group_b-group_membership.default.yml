@@ -1,0 +1,28 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.group_content.webform_group_b-group_membership.group_roles
+    - group.content_type.webform_group_b-group_membership
+  enforced:
+    module:
+      - webform_demo_group
+id: group_content.webform_group_b-group_membership.default
+targetEntityType: group_content
+bundle: webform_group_b-group_membership
+mode: default
+content:
+  group_roles:
+    label: above
+    type: entity_reference_label
+    settings:
+      link: false
+    weight: -4
+    third_party_settings: {  }
+    region: content
+hidden:
+  entity_id: true
+  entity_print_view_epub: true
+  entity_print_view_pdf: true
+  entity_print_view_word_docx: true
+  uid: true

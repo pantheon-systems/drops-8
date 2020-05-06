@@ -1,0 +1,21 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a summary of a webform action handler.
+ *
+ * Available variables:
+ * - settings: The current configuration for this debug handler.
+ * - handler: The action handler.
+ *
+ * @ingroup themeable
+ */
+#}
+
+{% if settings.debug %}<b class="color-error">{{ 'Debugging is enabled'|t }}</b><br />{% endif %}
+{% if settings.sticky is not null %}<b>{{ 'Status:'|t }}</b> {{ settings.sticky ? 'Flag/Star'|t : 'Unflag/Unstar'|t }}<br />{% endif %}
+{% if settings.locked is not null %}<b>{{ 'Lock:'|t }}</b> {{ settings.locked ? 'Locked'|t : 'Unlocked'|t }}<br />{% endif %}
+{% if settings.notes %}<b>{{ 'Notes:'|t }}</b> {{ settings.notes }}<br />{% endif %}
+{% if settings.message %}<b>{{ 'Message:'|t }}</b> {{ settings.message }} ({{ settings.message_type }})<br />{% endif %}
+{% if settings.data %}<b>{{ 'Data (keys):'|t }}</b> {{ settings.data|join('; ') }}<br />{% endif %}
+<b>{{ 'Execute when:'|t }}</b> {{ settings.states|join('; ') }}<br />
+

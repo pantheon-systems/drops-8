@@ -1,7 +1,7 @@
 name: Testing
 type: profile
 description: 'Minimal profile for running tests. Includes absolutely required modules only.'
-version: VERSION
+# version: VERSION
 core: 8.x
 hidden: true
 install:
@@ -9,6 +9,8 @@ install:
   # tests as possible run with them enabled.
   - drupal:page_cache
   - dynamic_page_cache
-# @todo: Remove this in https://www.drupal.org/node/2352949
-themes:
-  - classy
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

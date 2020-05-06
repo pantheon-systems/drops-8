@@ -1,0 +1,17 @@
+/**
+ * @file
+ * Element counter styles.
+ */
+
+input.webform-counter-warning,
+input.form-text.webform-counter-warning,
+textarea.webform-counter-warning,
+textarea.form-textarea.webform-counter-warning {
+  border-color: #e09600;
+  background: #fdf8ed;
+}
+
+.text-count-wrapper.webform-counter-warning {
+  color: #734c00;
+  font-weight: bold;
+}

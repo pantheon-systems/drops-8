@@ -29,22 +29,21 @@
  * - status: Whether or not the Media is published.
  *
  * @see template_preprocess_media()
+ * @see media_library_preprocess_media()
  *
  * @ingroup themeable
  */
 #}
 <article{{ attributes }}>
   {% if content %}
-    <div{{ preview_attributes }}>
+    <div{{ preview_attributes.addClass('js-media-library-item-preview') }}>
       {{ content|without('name') }}
     </div>
     {% if not status %}
-      <div class="media-library-item__status">{{ "unpublished" | t }}</div>
+      {{ "unpublished" | t }}
     {% endif %}
     <div{{ metadata_attributes }}>
-      <div class="media-library-item__name">
-        <a href="{{ url }}" rel="bookmark">{{ name }}</a>
-      </div>
+      {{ name }}
     </div>
   {% endif %}
 </article>

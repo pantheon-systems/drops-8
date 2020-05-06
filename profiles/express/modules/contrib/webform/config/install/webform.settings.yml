@@ -1,22 +1,34 @@
 settings:
+  default_status: open
   default_page_base_path: form
+  default_ajax: false
+  default_ajax_effect: fade
+  default_ajax_speed: 500
+  default_ajax_progress_type: throbber
   default_form_open_message: 'This form has not yet been opened to submissions.'
-  default_form_close_message: 'Sorry...This form is closed to new submissions.'
+  default_form_close_message: 'Sorry… This form is closed to new submissions.'
   default_form_exception_message: 'Unable to display this webform. Please contact the site administrator.'
   default_submit_button_label: Submit
   default_reset_button_label: Reset
   default_form_submit_once: false
   default_form_confidential_message: 'This form is confidential. You must <a href="[site:login-url]/logout?destination=[current-page:url:relative]">Log out</a> to submit it.'
+  default_form_access_denied_message: 'Please login to access this form.'
   default_form_disable_back: false
+  default_form_submit_back: false
   default_form_unsaved: false
   default_form_novalidate: false
+  default_form_disable_inline_errors: false
+  default_form_required: false
+  default_form_required_label: 'Indicates required field'
   default_form_details_toggle: true
+  default_form_file_limit: ''
   form_classes: |
     container-inline clearfix
     form--inline clearfix
     messages messages--error
     messages messages--warning
     messages messages--status
+
   button_classes: ''
   default_wizard_prev_button_label: '< Previous Page'
   default_wizard_next_button_label: 'Next Page >'
@@ -30,33 +42,69 @@ settings:
   default_draft_button_label: 'Save Draft'
   default_draft_saved_message: 'Submission saved. You may return to this form later and it will restore the current values.'
   default_draft_loaded_message: 'A partially-completed form was found. Please complete the remaining portions.'
+  default_draft_pending_single_message: 'You have a pending draft for this webform. <a href="#">Load your pending draft</a>.'
+  default_draft_pending_multiple_message: 'You have pending drafts for this webform. <a href="#">View your pending drafts</a>.'
   default_confirmation_message: 'New submission added to [webform:title].'
   default_confirmation_back_label: 'Back to form'
   default_submission_label: '[webform_submission:submitted-to]: Submission #[webform_submission:serial]'
+  default_submission_access_denied_message: 'Please login to access this submission.'
+  default_submission_exception_message: 'Unable to process this submission. Please contact the site administrator.'
+  default_submission_locked_message: 'This submission has been locked.'
   default_submission_log: false
+  default_submission_views: {  }
+  default_submission_views_replace:
+    global_routes:
+      - entity.webform_submission.collection
+      - entity.webform_submission.user
+    webform_routes:
+      - entity.webform.results_submissions
+      - entity.webform.user.drafts
+      - entity.webform.user.submissions
+    node_routes:
+      - entity.node.webform.results_submissions
+      - entity.node.webform.user.drafts
+      - entity.node.webform.user.submissions
+  default_results_customize: false
+  default_previous_submission_message: 'You have already submitted this webform. <a href="#">View your previous submission</a>.'
+  default_previous_submissions_message: 'You have already submitted this webform. <a href="#">View your previous submissions</a>.'
+  default_autofill_message: 'This submission has been autofilled with your previous submission.'
   preview_classes: |
     messages messages--error
     messages messages--warning
     messages messages--status
+
   confirmation_classes: |
     messages messages--error
     messages messages--warning
     messages messages--status
+
   confirmation_back_classes: |
     button
+
   default_limit_total_message: 'No more submissions are permitted.'
   default_limit_user_message: 'No more submissions are permitted.'
+  dialog: false
+  dialog_options:
+    narrow:
+      title: Narrow
+      width: 600
+    normal:
+      title: Normal
+      width: 800
+    wide:
+      title: Wide
+      width: 1000
 assets:
   css: ''
   javascript: ''
 handler:
   excluded_handlers: {  }
+variant:
+  excluded_variants: {  }
 export:
+  temp_directory: ''
   exporter: delimited
-  delimiter: ','
   multiple_delimiter: ;
-  excel: false
-  file_name: 'submission-[webform_submission:serial]'
   header_format: label
   header_prefix: true
   header_prefix_label_delimiter: ': '
@@ -71,15 +119,23 @@ export:
     - url
   likert_answers_format: label
   signature_format: status
+  delimiter: ','
+  excel: false
+  archive_type: tar
   excluded_exporters: {  }
 batch:
   default_batch_export_size: 500
+  default_batch_import_size: 100
   default_batch_update_size: 500
   default_batch_delete_size: 500
   default_batch_email_size: 500
 purge:
   cron_size: 100
+form:
+  filter_category: ''
+  filter_state: ''
 element:
+  machine_name_pattern: 'a-z0-9_'
   empty_message: '{Empty}'
   allowed_tags: admin
   wrapper_classes: |
@@ -88,12 +144,14 @@ element:
     messages messages--error
     messages messages--warning
     messages messages--status
+
   classes: |
     container-inline clearfix
     form--inline clearfix
     messages messages--error
     messages messages--warning
     messages messages--status
+
   horizontal_rule_classes: |
     webform-horizontal-rule--solid
     webform-horizontal-rule--dashed
@@ -104,28 +162,36 @@ element:
     webform-horizontal-rule--thick
     webform-horizontal-rule--flaired
     webform-horizontal-rule--glyph
+
   default_description_display: ''
   default_more_title: More
   default_section_title_tag: h2
   default_empty_option: true
   default_empty_option_required: ''
   default_empty_option_optional: ''
-  default_icheck: ''
-  default_google_maps_api_key: ''
-  excluded_elements: {  }
+  default_algolia_places_app_id: ''
+  default_algolia_places_api_key: ''
+  excluded_elements:
+    password: password
+    password_confirm: password_confirm
 html_editor:
   disabled: false
-  format: ''
+  element_format: ''
+  mail_format: ''
   tidy: true
+  make_unused_managed_files_temporary: true
 file:
   file_public: false
   file_private_redirect: true
+  file_private_redirect_message: 'Please login to access the uploaded file.'
   default_max_filesize: ''
-  default_managed_file_extensions: 'gif jpg png bmp eps tif pict psd txt rtf html odf pdf doc docx ppt pptx xls xlsx xml avi mov mp3 ogg wav bz2 dmg gz jar rar sit svg tar zip'
+  default_managed_file_extensions: 'gif jpg jpeg png bmp eps tif pict psd txt rtf html odf pdf doc docx ppt pptx xls xlsx xml avi mov mp3 mp4 ogg wav bz2 dmg gz jar rar sit svg tar zip'
   default_audio_file_extensions: 'mp3 ogg wav'
   default_document_file_extensions: 'txt rtf pdf doc docx odt ppt pptx odp xls xlsx ods'
-  default_image_file_extensions: 'gif jpg png svg'
+  default_image_file_extensions: 'gif jpg jpeg png'
   default_video_file_extensions: 'avi mov mp4 ogg wav webm'
+  make_unused_managed_files_temporary: true
+  delete_temporary_managed_files: true
 format: {  }
 mail:
   default_to_mail: '[site:mail]'
@@ -135,18 +201,20 @@ mail:
   default_return_path: ''
   default_sender_mail: ''
   default_sender_name: ''
-  default_subject: 'Webform submission from: [webform_submission:source-entity]'
+  default_subject: 'Webform submission from: [webform_submission:source-title]'
   default_body_text: |
     Submitted on [webform_submission:created]
     Submitted by: [webform_submission:user]
-    
+
     Submitted values are:
     [webform_submission:values]
+
   default_body_html: |
     <p>Submitted on [webform_submission:created]</p>
     <p>Submitted by: [webform_submission:user]</p>
     <p>Submitted values are:</p>
     [webform_submission:values]
+
   roles: {  }
 test:
   types: |
@@ -156,21 +224,6 @@ test:
       - '#ffffcc'
       - '#ffffcc'
       - '#ccffff'
-    date:
-      - '1942-06-18'
-      - '1940-07-07'
-      - '1943-02-25'
-      - '1940-10-09'
-    datetime:
-      - '1942-06-18'
-      - '1940-07-07'
-      - '1943-02-25'
-      - '1940-10-09'
-    datelist:
-      - '1942-06-18'
-      - '1940-07-07'
-      - '1943-02-25'
-      - '1940-10-09'
     email:
       - 'example@example.com'
       - 'test@test.com'
@@ -195,21 +248,16 @@ test:
     url:
       - 'http://example.com'
       - 'http://test.com'
-    webform_creditcard_number:
-      - '4111111111111111'
     webform_email_confirm:
       - 'example@example.com'
       - 'test@test.com'
       - 'random@random.com'
     webform_email_multiple:
       - 'example@example.com, test@test.com, random@random.com'
-    webform_location:
-      - value: 'The White House, 1600 Pennsylvania Ave NW, Washington, DC 20500, USA'
-      - value: 'London SW1A 1AA, United Kingdom'
-      - value: 'Moscow, Russia, 10307'
     webform_time:
       - '09:00'
       - '17:00'
+
   names: |
     first_name:
       - 'John'
@@ -225,6 +273,10 @@ test:
       - '10 Main Street'
       - '11 Brook Alley Road. APT 1'
     zip:
+      - '11111'
+      - '12345'
+      - '12345-6789'
+    postal_code:
       - '11111'
       - '12345'
       - '12345-6789'
@@ -245,20 +297,24 @@ test:
       - 'Loremipsum'
       - 'Oratione'
       - 'Dixisset'
+
 ui:
   video_display: dialog
   details_save: true
+  help_disabled: false
   dialog_disabled: false
   offcanvas_disabled: false
-  about_disabled: false
   promotions_disabled: false
   description_help: true
 libraries:
   excluded_libraries:
+    - choices
     - jquery.chosen
 requirements:
   cdn: true
   bootstrap: true
   spam: true
 langcode: en
-third_party_settings: {  }
+third_party_settings:
+  captcha:
+    replace_administration_mode: true

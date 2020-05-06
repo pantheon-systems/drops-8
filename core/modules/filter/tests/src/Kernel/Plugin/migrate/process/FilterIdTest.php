@@ -24,7 +24,7 @@ class FilterIdTest extends KernelTestBase {
   /**
    * The mocked MigrateExecutable.
    *
-   * @var \Drupal\migrate\MigrateExecutableInterface|\PHPUnit_Framework_MockObject_MockObject
+   * @var \Drupal\migrate\MigrateExecutableInterface|\PHPUnit\Framework\MockObject\MockObject
    */
   protected $executable;
 
@@ -33,7 +33,7 @@ class FilterIdTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->executable = $this->getMock(MigrateExecutableInterface::class);
+    $this->executable = $this->createMock(MigrateExecutableInterface::class);
   }
 
   /**
@@ -66,7 +66,7 @@ class FilterIdTest extends KernelTestBase {
         ->expects($this->exactly(1))
         ->method('saveMessage')
         ->with(
-          'Filter ' . $invalid_id . ' could not be mapped to an existing filter plugin; defaulting to filter_null.',
+          sprintf('Filter %s could not be mapped to an existing filter plugin; defaulting to %s and dropping all settings. Either redo the migration with the module installed that provides an equivalent filter, or modify the text format after the migration to remove this filter if it is no longer necessary.', $invalid_id, $expected_value),
           MigrationInterface::MESSAGE_WARNING
         );
     }

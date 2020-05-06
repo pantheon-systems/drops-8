@@ -1,0 +1,464 @@
+<?php
+
+/**
+ * @file
+ * Provides a Webform integration with the Group module.
+ */
+
+use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Database\Query\AlterableInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
+use Drupal\webform\Element\WebformMessage;
+use Drupal\webform\WebformInterface;
+use Drupal\webform\Plugin\WebformHandler\EmailWebformHandler;
+use Drupal\webform\WebformSubmissionInterface;
+
+/******************************************************************************/
+// Schema definitions hook.
+/******************************************************************************/
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function webform_group_config_schema_info_alter(&$definitions) {
+  // Append group roles to webform access schema.
+  $mapping =& $definitions['webform.webform.*']['mapping']['access']['sequence']['mapping'];
+  $mapping['group_roles'] = [
+    'type' => 'sequence',
+    'label' => 'Group roles',
+    'sequence' => [
+      'type' => 'string',
+      'label' => 'Group role',
+    ],
+  ];
+}
+
+/******************************************************************************/
+// Form and element UI alter hooks.
+/******************************************************************************/
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Adds group role token options to email handler elements.
+ */
+function webform_group_form_webform_handler_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\webform\Form\WebformHandlerFormBase $form_object */
+  $form_object = $form_state->getFormObject();
+  $webform_handler = $form_object->getWebformHandler();
+  if (!$webform_handler instanceof EmailWebformHandler) {
+    return;
+  }
+
+  /** @var \Drupal\webform_group\WebformGroupManagerInterface $webform_group_manager */
+  $webform_group_manager = \Drupal::service('webform_group.manager');
+
+  // Get available group tokens as options.
+  // @see webform_group_token_info()
+  $group_role_options = [];
+
+  /** @var \Drupal\group\Entity\GroupTypeInterface[] $group_types */
+  $group_types = \Drupal::entityTypeManager()->getStorage('group_type')->loadMultiple();
+  $group_role_names = [];
+  foreach ($group_types as $group_type_id => $group_type) {
+    $group_roles = $group_type->getRoles();
+    foreach ($group_roles as $group_role_id => $group_role) {
+      if (($group_role->isInternal() && $group_role_id !== "$group_type_id-member")
+        || !$group_role->inPermissionsUI()
+        || $group_role->isAnonymous()) {
+        continue;
+      }
+
+      // Make sure the group role is allowed to be used by email handlers.
+      // @see webform_group_form_webform_admin_config_handlers_form_alter()
+      if ($webform_group_manager->isGroupRoleTokenEnabled($group_role_id)) {
+        $t_args = [
+          '@group_type' => $group_type->label(),
+          '@group_role' => $group_role->label(),
+        ];
+        $group_role_options["[webform_group:role:$group_role_id]"] = t('@group_type: @group_role', $t_args);
+      }
+
+      $group_role_name = preg_replace("/^$group_type_id-/", "", $group_role_id);
+      // Make sure the group name is allowed to be used by email handlers.
+      // @see webform_group_form_webform_admin_config_handlers_form_alter()
+      if ($webform_group_manager->isGroupRoleTokenEnabled($group_role_name)) {
+        $group_role_names[$group_role_name] = $group_role->label();
+      }
+    }
+  }
+  foreach ($group_role_names as $group_role_name => $group_role_label) {
+    $group_role_options["[webform_group:role:$group_role_name]"] = $group_role_label;
+  }
+
+  if ($webform_group_manager->isGroupOwnerTokenEnable()) {
+    $group_role_options['[webform_group:owner:mail]'] = t('Owner');
+  }
+
+  if ($group_role_options) {
+    _webform_group_form_webform_handler_form_alter_email_element_recursive($form, $group_role_options);
+  }
+
+  if (empty($group_role_options) && \Drupal::currentUser()->hasPermission('administer webform')) {
+    $route_name = 'webform.config.handlers';
+    $route_destination = Url::fromRoute('entity.webform.handlers', ['webform' => $webform_handler->getWebform()->id()])->toString();
+    $route_options = ['query' => ['destination' => $route_destination]];
+    $t_args = [':href' => Url::fromRoute($route_name, [], $route_options)->toString()];
+    $form['settings']['to']['group_roles_message'] = [
+      '#type' => 'webform_message',
+      '#message_type' => 'warning',
+      '#message_message' => t('Please note: You can select which <strong>group roles</strong> are available to receive webform emails by going to the Webform module\'s <a href=":href">admin settings</a> form.', $t_args),
+      '#message_close' => TRUE,
+      '#message_id' => 'webform_email_group_roles_message',
+      '#message_storage' => WebformMessage::STORAGE_USER,
+    ];
+  }
+}
+
+/**
+ * Add group role token options to email handler elements.
+ *
+ * @param array $form
+ *   A form.
+ * @param array $options
+ *   Group role token options.
+ */
+function _webform_group_form_webform_handler_form_alter_email_element_recursive(array &$form, array $options) {
+  foreach ($form as $element_key => &$element) {
+    if (!Element::child($element_key) || !is_array($element)) {
+      continue;
+    }
+    if (isset($element['#type']) && $element['#type'] === 'webform_select_other'
+      && isset($element['#other__type']) && $element['#other__type'] == 'webform_email_multiple') {
+      $group_optgroup = (string) t('Group roles');
+      $other_optgroup = (string) t('Other');
+      $other_options = $element['#options'][$other_optgroup];
+      unset($element['#options'][$other_optgroup]);
+      $element['#options'][$group_optgroup] = $options;
+      $element['#options'][$other_optgroup] = $other_options;
+    }
+    _webform_group_form_webform_handler_form_alter_email_element_recursive($element, $options);
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_group_form_webform_settings_access_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\webform_group\WebformGroupManagerInterface $webform_group_manager */
+  $webform_group_manager = \Drupal::service('webform_group.manager');
+
+  /** @var Drupal\webform\EntitySettings\WebformEntitySettingsAccessForm $entity_form */
+  $entity_form = $form_state->getFormObject();
+  /** @var \Drupal\webform\WebformInterface $webform */
+  $webform = $entity_form->getEntity();
+
+  $weight = 0;
+  $access_rules = $webform_group_manager->getAccessRules($webform);
+  foreach ($access_rules as $permission => $access_rule) {
+    if ($permission === 'administer') {
+      // Create dedicated 'Administer submission' details.
+      $form['access']['administer_submissions'] = [
+        '#type' => 'details',
+        '#title' => t('Administer submissions (Groups only)'),
+        '#open' => FALSE,
+        '#weight' => $weight++,
+      ];
+      $form['access']['administer_submissions']['group_roles'] = [
+        '#type' => 'webform_group_roles',
+        '#title' => t('Group (node) roles'),
+        '#default_value' => $access_rules[$permission]['group_roles'],
+      ];
+    }
+    else {
+      $form['access'][$permission]['group_roles'] = [
+        '#type' => 'webform_group_roles',
+        '#title' => t('Group (node) roles'),
+        '#default_value' => $access_rules[$permission]['group_roles'],
+      ];
+      $form['access'][$permission]['group_roles_message'] = [
+        '#type' => 'webform_message',
+        '#message_message' => t('Anonymous and authenticated users are able to access this webform, which will result in group roles being ignored.'),
+        '#message_type' => 'warning',
+        '#message_close' => TRUE,
+        '#message_storage' => WebformMessage::STORAGE_SESSION,
+        '#states' => [
+          'visible' => [
+            [':input[name="access[' . $permission . '][roles][anonymous]"]' => ['checked' => TRUE]],
+            'or',
+            [':input[name="access[' . $permission . '][roles][authenticated]"]' => ['checked' => TRUE]],
+          ],
+        ],
+      ];
+    }
+    $form['access'][$permission]['#weight'] = $weight++;
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_group_form_webform_ui_element_form_alter(&$form, FormStateInterface $form_state) {
+  $default_properties = $form_state->get('default_properties');
+  $custom_default_value =& $form['properties']['custom']['properties']['#default_value'];
+
+  $operations = ['create', 'update', 'view'];
+  foreach ($operations as $operation) {
+    $user_roles_property = 'access_' . $operation . '_roles';
+    $group_roles_property = 'access_' . $operation . '_group_roles';
+
+    // Get default value from custom properties.
+    if (isset($custom_default_value[$group_roles_property])) {
+      $default_value = $custom_default_value[$group_roles_property];
+      unset($custom_default_value[$group_roles_property]);
+    }
+    else {
+      $default_value = [];
+    }
+
+    $form['properties']['access']['access_' . $operation][$group_roles_property] = [
+      '#type' => 'webform_group_roles',
+      '#title' => t('Group roles'),
+      '#parents' => ['properties', $group_roles_property],
+      '#default_value' => $default_value,
+    ];
+    $form['properties']['access']['access_' . $operation][$group_roles_property . '_message'] = [
+      '#type' => 'webform_message',
+      '#message_message' => t('Anonymous or authenticated users are able to access this element, which will result in group roles being ignored.'),
+      '#message_type' => 'warning',
+      '#message_close' => TRUE,
+      '#message_storage' => WebformMessage::STORAGE_SESSION,
+      '#states' => [
+        'visible' => [
+          [':input[name="properties[' . $user_roles_property . '][anonymous]"]' => ['checked' => TRUE]],
+          'or',
+          [':input[name="properties[' . $user_roles_property . '][authenticated]"]' => ['checked' => TRUE]],
+        ],
+      ],
+    ];
+
+    // Set default property so that these custom properties are processed.
+    $default_properties[$group_roles_property] = [];
+  }
+
+  $form_state->set('default_properties', $default_properties);
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_group_form_webform_admin_config_handlers_form_alter(&$form, FormStateInterface $form_state) {
+  $form['mail']['roles']['#weight'] = 0;
+  $form['mail']['group_roles'] = [
+    '#type' => 'webform_group_roles',
+    '#title' => t('Recipient group roles'),
+    '#description' => t("Select group roles that can be assigned to receive a webform's email. <em>Please note: Selected group roles will be available to all webforms.</em>"),
+    '#include_anonymous' => FALSE,
+    '#include_outsider' => FALSE,
+    '#default_value' => \Drupal::config('webform_group.settings')->get('mail.group_roles'),
+    '#parents' => ['webform_group_mail', 'group_roles'],
+    '#weight' => 0,
+  ];
+  $form['mail']['group_owner'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Allow group owner to receive emails'),
+    '#return_value' => TRUE,
+    '#default_value' => \Drupal::config('webform_group.settings')->get('mail.group_owner'),
+    '#parents' => ['webform_group_mail', 'group_owner'],
+    '#weight' => 0,
+  ];
+  $form['#submit'][] = '_webform_group_form_webform_admin_config_handlers_form_submit';
+}
+
+/**
+ * Submit handler for handlers configuration form.
+ */
+function _webform_group_form_webform_admin_config_handlers_form_submit(&$form, FormStateInterface $form_state) {
+  \Drupal::configFactory()->getEditable('webform_group.settings')
+    ->set('mail', $form_state->getValue('webform_group_mail'))
+    ->save();
+
+  \Drupal::token()->resetInfo();
+  if (function_exists('token_clear_cache')) {
+    token_clear_cache();
+  }
+}
+
+/******************************************************************************/
+// Access controls.
+/******************************************************************************/
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function webform_group_webform_access(WebformInterface $webform, $operation, AccountInterface $account) {
+  // Prevent recursion when a webform is being passed as the source entity
+  // via the URL.
+  // @see \Drupal\webform\Plugin\WebformSourceEntity\QueryStringWebformSourceEntity::getSourceEntity
+  if (\Drupal::request()->query->get('source_entity_type') === 'webform') {
+    return AccessResult::neutral();
+  }
+
+  /** @var \Drupal\webform_group\WebformGroupManagerInterface $webform_group_manager */
+  $webform_group_manager = \Drupal::service('webform_group.manager');
+
+  // Get the current user's group roles for the current group content.
+  $current_user_group_roles = $webform_group_manager->getCurrentUserGroupRoles();
+
+  // Get webform's access rules.
+  $access_rules = $webform_group_manager->getAccessRules($webform);
+
+  // Get access rules permission name.
+  $permission = str_replace('submission_', '', $operation);
+
+  // Make sure the permission exists.
+  if (!isset($access_rules[$permission])) {
+    return AccessResult::neutral();
+  }
+
+  // Compare the current user group roles with the admin and permission
+  // access rules' group roles.
+  $is_admin = array_intersect($access_rules['administer']['group_roles'], $current_user_group_roles);
+  $has_permission = array_intersect($access_rules[$permission]['group_roles'], $current_user_group_roles);
+  return AccessResult::allowedIf($is_admin || $has_permission)
+    ->cachePerUser()
+    ->addCacheableDependency($webform);
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_access().
+ */
+function webform_group_webform_submission_access(WebformSubmissionInterface $webform_submission, $operation, AccountInterface $account) {
+  if (!in_array($operation, ['view', 'update', 'delete'])) {
+    return AccessResult::neutral();
+  }
+
+  /** @var \Drupal\webform_group\WebformGroupManagerInterface $webform_group_manager */
+  $webform_group_manager = \Drupal::service('webform_group.manager');
+
+  // During testing we need to only look at the current users group roles.
+  // @todo Rework webform_group_webform_submission_query_access_alter().
+  // @see \Drupal\Tests\webform_group\Functional\WebformGroupSubmissionAccessTest
+  if (drupal_valid_test_ua()) {
+    // Get the current user's group roles for the current group content.
+    $user_group_roles = $webform_group_manager->getCurrentUserGroupRoles();
+  }
+  else {
+    // Get the user's group roles for the current group content.
+    $user_group_roles = $webform_group_manager->getWebformSubmissionUserGroupRoles($webform_submission, $account);
+  }
+
+  // Get webform access rules.
+  $webform = $webform_submission->getWebform();
+  $access_rules = $webform_group_manager->getAccessRules($webform);
+
+  // Compare the current user group roles with the admin and permission
+  // access rules' group roles.
+  if (
+    // Is admin.
+    (array_intersect($access_rules['administer']['group_roles'], $user_group_roles)) ||
+    // Is operation any.
+    (array_intersect($access_rules[$operation . '_any']['group_roles'], $user_group_roles)) ||
+    // Is operation own.
+    (array_intersect($access_rules[$operation . '_own']['group_roles'], $user_group_roles)  && $webform_submission->getOwnerId() == $account->id())
+  ) {
+    return AccessResult::allowed()
+      ->cachePerUser()
+      ->addCacheableDependency($webform)
+      ->addCacheableDependency($webform_submission);
+  }
+
+  // No opinion.
+  return AccessResult::neutral();
+}
+
+/**
+ * Implements hook_webform_element_access().
+ */
+function webform_group_webform_element_access($operation, array $element, AccountInterface $account = NULL) {
+  // Set default access rules.
+  $element += [
+    '#access_' . $operation . '_roles' => ['anonymous', 'authenticated'],
+    '#access_' . $operation . '_group_roles' => [],
+  ];
+
+  // Get user and group roles.
+  $user_roles = $element['#access_' . $operation . '_roles'];
+  $group_roles = $element['#access_' . $operation . '_group_roles'];
+
+  // If group roles are empty and current user is assigned Drupal's
+  // anonymous/authenticated roles, then allow access.
+  if (empty($group_roles)) {
+    $current_user_default_role = $account->isAnonymous() ? 'anonymous' : 'authenticated';
+    if (in_array($current_user_default_role, $user_roles)) {
+      return AccessResult::allowed();
+    }
+  }
+
+  /** @var \Drupal\webform_group\WebformGroupManagerInterface $webform_group_manager */
+  $webform_group_manager = \Drupal::service('webform_group.manager');
+  $current_user_group_roles = $webform_group_manager->getCurrentUserGroupRoles() ?: [];
+
+  // If the group or current user roles are empty return no opinion.
+  if (empty($group_roles) || empty($current_user_group_roles)) {
+    return AccessResult::neutral();
+  }
+
+  return AccessResult::allowedIf(array_intersect($group_roles, $current_user_group_roles));
+}
+
+/**
+ * Implements hook_webform_submission_query_access_alter().
+ */
+function webform_group_webform_submission_query_access_alter(AlterableInterface $query, array $webform_submission_tables) {
+  /** @var \Drupal\Core\Database\Query\SelectInterface $query */
+  $operation = $query->getMetaData('op') ?: 'view';
+  $account = $query->getMetaData('account') ?: \Drupal::currentUser();
+
+  /** @var \Drupal\webform_group\WebformGroupManagerInterface $webform_group_manager */
+  $webform_group_manager = \Drupal::service('webform_group.manager');
+
+  // Get the current group webform.
+  $webform = $webform_group_manager->getCurrentGroupWebform();
+  if (!$webform) {
+    return;
+  }
+
+  // Get the current group content (source) entity.
+  $group_content = $webform_group_manager->getCurrentGroupContent();
+  $source_entity = $group_content->getEntity();
+
+  // Get the current user's group roles for the current group content.
+  $current_user_group_roles = $webform_group_manager->getCurrentUserGroupRoles();
+
+  // Get webform's access rules.
+  $access_rules = $webform_group_manager->getAccessRules($webform);
+
+  $has_administer_access = (array_intersect($access_rules['administer']['group_roles'], $current_user_group_roles));
+  $has_any_access = (array_intersect($access_rules[$operation . '_any']['group_roles'], $current_user_group_roles));
+  // Only check own access if user can administer or access any submissions.
+  if (!$has_administer_access && !$has_any_access) {
+    $check_own_access = (array_intersect($access_rules[$operation . '_own']['group_roles'], $current_user_group_roles));
+  }
+  else {
+    $check_own_access = FALSE;
+  }
+
+  if ($has_administer_access || $has_any_access || $check_own_access) {
+    foreach ($webform_submission_tables as $table) {
+      /** @var \Drupal\Core\Database\Query\SelectInterface $query */
+      $and_condition = $query->andConditionGroup();
+      $and_condition->condition($table['alias'] . '.webform_id', $webform->id());
+      $and_condition->condition($table['alias'] . '.entity_type', $source_entity->getEntityTypeId());
+      $and_condition->condition($table['alias'] . '.entity_id', $source_entity->id());
+      if ($check_own_access) {
+        $and_condition->condition($table['alias'] . '.uid', $account->id());
+      }
+
+      $table['condition']->condition($and_condition);
+    }
+  }
+}

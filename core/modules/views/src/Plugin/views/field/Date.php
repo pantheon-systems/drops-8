@@ -61,7 +61,7 @@ class Date extends FieldPluginBase {
       $plugin_id,
       $plugin_definition,
       $container->get('date.formatter'),
-      $container->get('entity.manager')->getStorage('date_format')
+      $container->get('entity_type.manager')->getStorage('date_format')
     );
   }
 
@@ -171,12 +171,12 @@ class Date extends FieldPluginBase {
 
         case 'custom':
           if ($custom_format == 'r') {
-            return format_date($value, $format, $custom_format, $timezone, 'en');
+            return $this->dateFormatter->format($value, $format, $custom_format, $timezone, 'en');
           }
-          return format_date($value, $format, $custom_format, $timezone);
+          return $this->dateFormatter->format($value, $format, $custom_format, $timezone);
 
         default:
-          return format_date($value, $format, '', $timezone);
+          return $this->dateFormatter->format($value, $format, '', $timezone);
       }
     }
   }

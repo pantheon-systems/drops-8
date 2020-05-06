@@ -3,6 +3,11 @@
  * Addons styles
  */
 
+.webform-addons-summary {
+  float: left;
+  margin: 0 0 0.5em 0;
+}
+
 /**
  * Projects.
  */
@@ -10,21 +15,12 @@
   background-color: #f8f8f8;
 }
 
-/**
- * Promotion Lingotek.
- */
-.webform-addons-promotions .messages--promotion_lingotek {
-  font-size: 1.1em;
-  background-image: none;
-  padding: 18px;
+.webform-addons-projects img {
+  float: right;
+  height: 50px;
+  margin-left: 10px;
 }
 
-[dir="rtl"] .messages.messages--promotion_lingotek {
-  padding-right: 18px;
-}
-
-.messages.messages--promotion_lingotek hr {
-  margin: 18px 0;
-  height: 2px;
-  background-color: #adaba8;
+.webform-addons .admin-list li {
+  clear: both;
 }

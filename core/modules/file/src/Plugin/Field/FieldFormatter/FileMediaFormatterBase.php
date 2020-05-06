@@ -151,7 +151,7 @@ abstract class FileMediaFormatterBase extends FileFormatterBase implements FileM
    */
   protected function prepareAttributes(array $additional_attributes = []) {
     $attributes = new Attribute();
-    foreach (['controls', 'autoplay', 'loop'] + $additional_attributes as $attribute) {
+    foreach (array_merge(['controls', 'autoplay', 'loop'], $additional_attributes) as $attribute) {
       if ($this->getSetting($attribute)) {
         $attributes->setAttribute($attribute, $attribute);
       }
@@ -196,7 +196,7 @@ abstract class FileMediaFormatterBase extends FileFormatterBase implements FileM
       if (static::mimeTypeApplies($file->getMimeType())) {
         $source_attributes = new Attribute();
         $source_attributes
-          ->setAttribute('src', file_url_transform_relative(file_create_url($file->getFileUri())))
+          ->setAttribute('src', $file->createFileUrl())
           ->setAttribute('type', $file->getMimeType());
         if ($this->getSetting('multiple_file_display_type') === 'tags') {
           $source_files[] = [

@@ -7,6 +7,7 @@ dependencies:
 id: industry
 label: Industry
 category: Demographic
+likert: false
 options: |
   Accounting/Finance: Accounting/Finance
   Advertising/Public Relations: Advertising/Public Relations

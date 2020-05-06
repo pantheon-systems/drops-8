@@ -25,18 +25,21 @@ class WebformTermSelect extends Select implements WebformElementEntityReferenceI
   /**
    * {@inheritdoc}
    */
-  public function getDefaultProperties() {
-    $properties = parent::getDefaultProperties() + [
+  protected function defineDefaultProperties() {
+    $properties = [
       'vocabulary' => '',
       'breadcrumb' => FALSE,
       'breadcrumb_delimiter' => ' › ',
       'tree_delimiter' => '-',
-    ];
-
-    unset($properties['options']);
-    unset($properties['options_randomize']);
+    ] + parent::defineDefaultProperties();
+    unset(
+      $properties['options'],
+      $properties['options_randomize']
+    );
     return $properties;
   }
+
+  /****************************************************************************/
 
   /**
    * {@inheritdoc}

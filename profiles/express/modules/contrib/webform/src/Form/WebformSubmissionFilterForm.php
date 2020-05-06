@@ -4,9 +4,10 @@ namespace Drupal\webform\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\WebformInterface;
 
 /**
- * Provides the webform submission filter webform.
+ * Provides the webform submission filter form.
  */
 class WebformSubmissionFilterForm extends FormBase {
 
@@ -20,7 +21,7 @@ class WebformSubmissionFilterForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $search = NULL, $state = NULL, array $state_options = []) {
+  public function buildForm(array $form, FormStateInterface $form_state, $search = NULL, $state = NULL, array $state_options = [], $source_entity = NULL, $source_entity_options = []) {
     $form['#attributes'] = ['class' => ['webform-filter-form']];
     $form['filter'] = [
       '#type' => 'details',
@@ -30,13 +31,36 @@ class WebformSubmissionFilterForm extends FormBase {
     ];
     $form['filter']['search'] = [
       '#type' => 'search',
-      '#title' => $this->t('Filter by submitted data and/or notes'),
+      '#title' => $this->t('Keyword'),
       '#title_display' => 'invisible',
       '#placeholder' => $this->t('Filter by submitted data and/or notes'),
       '#maxlength' => 128,
       '#size' => 40,
       '#default_value' => $search,
     ];
+    if ($source_entity_options) {
+      if ($source_entity_options instanceof WebformInterface) {
+        $form['filter']['entity'] = [
+          '#type' => 'search',
+          '#title' => $this->t('Submitted to'),
+          '#title_display' => 'invisible',
+          '#autocomplete_route_name' => 'entity.webform.results.source_entity.autocomplete',
+          '#autocomplete_route_parameters' => ['webform' => $source_entity_options->id()],
+          '#placeholder' => $this->t('Enter submitted to…'),
+          '#size' => 20,
+          '#default_value' => $source_entity,
+        ];
+      }
+      else {
+        $form['filter']['entity'] = [
+          '#type' => 'select',
+          '#title' => $this->t('Submitted to'),
+          '#title_display' => 'invisible',
+          '#options' => ['' => $this->t('Filter by submitted to')] + $source_entity_options,
+          '#default_value' => $source_entity,
+        ];
+      }
+    }
     $form['filter']['state'] = [
       '#type' => 'select',
       '#title' => $this->t('State'),
@@ -66,7 +90,12 @@ class WebformSubmissionFilterForm extends FormBase {
     $query = [
       'search' => trim($form_state->getValue('search')),
       'state' => trim($form_state->getValue('state')),
+      'entity' => trim($form_state->getValue('entity')),
     ];
+    $query = array_filter($query);
+    if (!empty($query['entity']) && preg_match('#\(([^)]+)\)#', $query['entity'], $match)) {
+      $query['entity'] = $match[1];
+    }
     $form_state->setRedirect($this->getRouteMatch()->getRouteName(), $this->getRouteMatch()->getRawParameters()->all(), [
       'query' => $query ,
     ]);

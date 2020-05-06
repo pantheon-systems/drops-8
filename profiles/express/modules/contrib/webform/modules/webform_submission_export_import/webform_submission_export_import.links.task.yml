@@ -1,0 +1,15 @@
+entity.webform_submission_export_import.results_import:
+  title: 'Upload'
+  route_name: entity.webform_submission_export_import.results_import
+  parent_id: entity.webform.results
+  weight: 11
+
+# Webform node task.
+# This task will be removed if the webform_node.module is not installed.
+# @see webform_submission_export_import_local_tasks_alter()
+
+entity.node.webform_submission_export_import.results_import:
+  title: 'Upload'
+  route_name: entity.node.webform_submission_export_import.results_import
+  parent_id: entity.node.webform.results
+  weight: 11

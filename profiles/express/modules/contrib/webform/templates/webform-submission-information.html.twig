@@ -4,57 +4,83 @@
  * Default theme implementation for webform submission information.
  *
  * Available variables:
- * @todo Add variables.
+ * - serial: The serial number of the submission entity.
+ * - sid: The ID of the submission entity.
+ * - uuid: The UUID of the submission entity.
+ * - token: A secure token used to look up a submission.
+ * - uri: The URI the user submitted the webform.
+ * - created: The time that the submission was first saved.
+ * - completed: The time that the submission was completed.
+ * - changed: The time that the submission was saved.
+ * - in_draft: Is this a draft of the submission?
+ * - current_page: The current wizard page.
+ * - remote_addr: The IP address of the user that submitted the webform.
+ * - submitted_by: The user that submitted the webform.
+ * - submitted_to: Link to the submission's URI.
+ * - langcode: The submission language code.
+ * - locked: A flag that indicates a locked submission.
+ * - sticky: A flag that indicate the status of the submission.
+ * - notes: Administrative notes about the submission.
+ * - webform: The associated webform.
+ * - token_update: The tokenize URL used to update the submission.
+ * - delete: Link to delete the submission.
  *
  * @see template_preprocess_webform_submission_information()
  *
  * @ingroup themeable
  */
 #}
-<details data-webform-element-id="{{ webform_id }}--submission_information"{% if open %} open="open"{% endif %}>
-  <summary role="button"{% if open %} aria-expanded="true" aria-pressed="true"{% endif %}>{{ 'Submission information'|t }}</summary>
-  <div class="details-wrapper">
-    {% if submissions_view %}
-      <div><b>{{ 'Submission Number'|t }}:</b> {{ serial }}</div>
-      <div><b>{{ 'Submission ID'|t }}:</b> {{ sid }}</div>
-      <div><b>{{ 'Submission UUID'|t }}:</b> {{ uuid }}</div>
-      {% if uri %}
-        <div><b>{{ 'Submission URI'|t }}:</b> {{ uri }}</div>
-      {% endif %}
-      {% if token_update %}
-        <div><b>{{ 'Submission Update'|t }}:</b> {{ token_update }}</div>
-      {% endif %}
-      <br />
-      <div><b>{{ 'Created'|t }}:</b> {{ created }}</div>
-      <div><b>{{ 'Completed'|t }}:</b> {{ completed }}</div>
-      <div><b>{{ 'Changed'|t }}:</b> {{ changed }}</div>
-      <br />
-      <div><b>{{ 'Remote IP address'|t }}:</b> {{ remote_addr }}</div>
-      <div><b>{{ 'Submitted by'|t }}:</b> {{ submitted_by }}</div>
-      <div><b>{{ 'Language'|t }}:</b> {{ language }}</div>
-      <br />
-      <div><b>{{ 'Is draft'|t }}:</b> {{ is_draft }}</div>
-      {% if current_page %}
-        <div><b>{{ 'Current page'|t }}:</b> {{ current_page }}</div>
-      {% endif %}
-      <div><b>{{ 'Webform'|t }}:</b> {{ webform }}</div>
-      {% if submitted_to %}
-        <div><b>{{ 'Submitted to'|t }}:</b> {{ submitted_to }}</div>
-      {% endif %}
-      {% if sticky or notes %}
-        <br />
-        {% if sticky %}
-          <div><b>{{ 'Flagged'|t }}:</b> {{ sticky }}</div>
-        {% endif %}
-        {% if notes %}
-          <div><b>{{ 'Notes'|t }}:</b> {{ notes }}</div>
-        {% endif %}
-      {% endif %}
-
-    {% else %}
-      <div><b>{{ 'Submission Number'|t }}:</b> {{ serial }}</div>
-      <div><b>{{ 'Created'|t }}:</b> {{ created }}</div>
+{% if submissions_view %}
+  <div><b>{{ 'Submission Number'|t }}:</b> {{ serial }}</div>
+  <div><b>{{ 'Submission ID'|t }}:</b> {{ sid }}</div>
+  <div><b>{{ 'Submission UUID'|t }}:</b> {{ uuid }}</div>
+  {% if uri %}
+    <div><b>{{ 'Submission URI'|t }}:</b> {{ uri }}</div>
+  {% endif %}
+  {% if token_view %}
+    <div><b>{{ 'Submission View'|t }}:</b> {{ token_view }}</div>
+  {% endif %}
+  {% if token_update %}
+    <div><b>{{ 'Submission Update'|t }}:</b> {{ token_update }}</div>
+  {% endif %}
+  <br />
+  <div><b>{{ 'Created'|t }}:</b> {{ created }}</div>
+  <div><b>{{ 'Completed'|t }}:</b> {{ completed }}</div>
+  <div><b>{{ 'Changed'|t }}:</b> {{ changed }}</div>
+  <br />
+  <div><b>{{ 'Remote IP address'|t }}:</b> {{ remote_addr }}</div>
+  <div><b>{{ 'Submitted by'|t }}:</b> {{ submitted_by }}</div>
+  <div><b>{{ 'Language'|t }}:</b> {{ language }}</div>
+  <br />
+  <div><b>{{ 'Is draft'|t }}:</b> {{ is_draft }}</div>
+  {% if current_page %}
+    <div><b>{{ 'Current page'|t }}:</b> {{ current_page }}</div>
+  {% endif %}
+  <div><b>{{ 'Webform'|t }}:</b> {{ webform }}</div>
+  {% if submitted_to %}
+    <div><b>{{ 'Submitted to'|t }}:</b> {{ submitted_to }}</div>
+  {% endif %}
+  {% if sticky or locked or notes %}
+    <br />
+    {% if sticky %}
+      <div><b>{{ 'Flagged'|t }}:</b> {{ sticky }}</div>
     {% endif %}
+    {% if locked %}
+      <div><b>{{ 'Locked'|t }}:</b> {{ locked }}</div>
+    {% endif %}
+    {% if notes %}
+      <div><b>{{ 'Notes'|t }}:</b><br/>
+      <pre>{{ notes }}</pre>
+      </div>
+    {% endif %}
+  {% endif %}
 
-  </div>
-</details>
+{% else %}
+  <div><b>{{ 'Submission Number'|t }}:</b> {{ serial }}</div>
+  <div><b>{{ 'Created'|t }}:</b> {{ created }}</div>
+{% endif %}
+
+{% if delete %}
+  <br/>
+  <div>{{ delete }}</div>
+{% endif %}

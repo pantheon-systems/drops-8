@@ -1,0 +1,4 @@
+services:
+  webform_group.manager:
+    class: Drupal\webform_group\WebformGroupManager
+    arguments: ['@current_user', '@config.factory', '@entity_type.manager', '@webform.request', '@webform.access_rules_manager']

@@ -18,7 +18,7 @@ function webform_devel_drush_command() {
     'examples' => [
       'webform-devel-reset' => 'Resets Webform user data and saved state for messages',
     ],
-    'aliases' => ['wfdr'],
+    'aliases' => ['wfdr', 'webform:devel:reset'],
   ];
 
   return $items;
@@ -46,15 +46,17 @@ function webform_devel_drush_help($section) {
 
 /**
  * Implements drush_hook_COMMAND().
+ *
+ * @see \Drupal\webform_devel\Commands\WebformDevelCommands::drush_webform_devel_reset()
  */
 function drush_webform_devel_reset() {
   if (!drush_confirm(dt("Are you sure you want reset the Webform module's user data and saved state?"))) {
     return drush_user_abort();
   }
 
-  drush_print(dt('Resetting message closed via State API...'));
+  drush_print(dt('Resetting message closed via State API…'));
   \Drupal::state()->delete('webform.element.message');
 
-  drush_print(dt('Resetting message closed via User Data...'));
+  drush_print(dt('Resetting message closed via User Data…'));
   \Drupal::service('user.data')->delete('webform', NULL, 'webform.element.message');
 }

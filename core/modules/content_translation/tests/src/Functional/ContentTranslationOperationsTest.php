@@ -21,6 +21,11 @@ class ContentTranslationOperationsTest extends NodeTestBase {
   protected $baseUser1;
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A base user.
    *
    * @var \Drupal\user\Entity\User|false
@@ -49,10 +54,8 @@ class ContentTranslationOperationsTest extends NodeTestBase {
     // Enable translation for the current entity type and ensure the change is
     // picked up.
     \Drupal::service('content_translation.manager')->setEnabled('node', 'article', TRUE);
-    drupal_static_reset();
-    \Drupal::entityManager()->clearCachedDefinitions();
+
     \Drupal::service('router.builder')->rebuild();
-    \Drupal::service('entity.definition_update_manager')->applyUpdates();
 
     $this->baseUser1 = $this->drupalCreateUser(['access content overview']);
     $this->baseUser2 = $this->drupalCreateUser(['access content overview', 'create content translations', 'update content translations', 'delete content translations']);
@@ -86,7 +89,7 @@ class ContentTranslationOperationsTest extends NodeTestBase {
       ]
     );
     $this->drupalLogin($this->baseUser1);
-    $this->drupalGet($node->urlInfo('drupal:content-translation-overview'));
+    $this->drupalGet($node->toUrl('drupal:content-translation-overview'));
     $this->assertResponse(403);
 
     // Ensure that the translation overview is also not accessible when the user
@@ -99,7 +102,7 @@ class ContentTranslationOperationsTest extends NodeTestBase {
       ]
     );
     $node->setUnpublished()->save();
-    $this->drupalGet($node->urlInfo('drupal:content-translation-overview'));
+    $this->drupalGet($node->toUrl('drupal:content-translation-overview'));
     $this->assertResponse(403);
     $this->drupalLogout();
 
@@ -128,7 +131,7 @@ class ContentTranslationOperationsTest extends NodeTestBase {
    * @see content_translation_translate_access()
    */
   public function testContentTranslationOverviewAccess() {
-    $access_control_handler = \Drupal::entityManager()->getAccessControlHandler('node');
+    $access_control_handler = \Drupal::entityTypeManager()->getAccessControlHandler('node');
     $user = $this->createUser(['create content translations', 'access content']);
     $this->drupalLogin($user);
 

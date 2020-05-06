@@ -13,6 +13,11 @@ use Drupal\media\Plugin\media\Source\File;
 class MediaSourceFileTest extends MediaSourceTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
+
+  /**
    * Tests the file media source.
    */
   public function testMediaFileSource() {
@@ -62,8 +67,10 @@ class MediaSourceFileTest extends MediaSourceTestBase {
     // Get the media entity view URL from the creation message.
     $this->drupalGet($this->assertLinkToCreatedMedia());
 
-    // Make sure the thumbnail is displayed.
-    $assert_session->elementAttributeContains('css', '.image-style-thumbnail', 'src', 'generic.png');
+    // Make sure a link to the file is displayed.
+    $assert_session->linkExists($test_filename);
+    // The thumbnail should not be displayed.
+    $assert_session->elementNotExists('css', '.image-style-thumbnail');
 
     // Make sure checkbox changes the visibility of log message field.
     $this->drupalGet("media/1/edit");
@@ -80,7 +87,7 @@ class MediaSourceFileTest extends MediaSourceTestBase {
 
     // Test the MIME type icon.
     $icon_base = \Drupal::config('media.settings')->get('icon_base_uri');
-    file_unmanaged_copy($icon_base . '/generic.png', $icon_base . '/text--plain.png');
+    \Drupal::service('file_system')->copy($icon_base . '/generic.png', $icon_base . '/text--plain.png');
     $this->drupalGet("media/add/{$media_type_id}");
     $page->attachFileToField("files[{$source_field_id}_0]", \Drupal::service('file_system')->realpath($test_filepath));
     $result = $assert_session->waitForButton('Remove');

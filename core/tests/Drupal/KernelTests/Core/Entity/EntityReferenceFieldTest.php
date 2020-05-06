@@ -108,7 +108,9 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
 
     // Test a non-referenceable bundle.
     entity_test_create_bundle('non_referenceable', NULL, $this->referencedEntityType);
-    $referenced_entity = entity_create($this->referencedEntityType, ['type' => 'non_referenceable']);
+    $referenced_entity = $this->entityTypeManager
+      ->getStorage($this->referencedEntityType)
+      ->create(['type' => 'non_referenceable']);
     $referenced_entity->save();
     $entity->{$this->fieldName}->target_id = $referenced_entity->id();
     $violations = $entity->{$this->fieldName}->validate();
@@ -242,7 +244,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
    * Tests all the possible ways to autocreate an entity via the API.
    */
   public function testAutocreateApi() {
-    $entity = $this->entityManager
+    $entity = $this->entityTypeManager
       ->getStorage($this->entityType)
       ->create(['name' => $this->randomString()]);
 
@@ -315,7 +317,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
     });
 
     // Test target entity saving after setting it as new.
-    $storage = $this->entityManager->getStorage('user');
+    $storage = $this->entityTypeManager->getStorage('user');
     $user_id = $this->generateRandomEntityId();
     $user = $storage->create(['uid' => $user_id, 'name' => $this->randomString()]);
     $entity->user_id = $user;
@@ -336,7 +338,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
    *   TRUE if the user was autocreated, FALSE otherwise.
    */
   protected function assertUserAutocreate(EntityInterface $entity, $setter_callback) {
-    $storage = $this->entityManager->getStorage('user');
+    $storage = $this->entityTypeManager->getStorage('user');
     $user_id = $this->generateRandomEntityId();
     $user = $storage->create(['uid' => $user_id, 'name' => $this->randomString()]);
     $setter_callback($entity, $user);
@@ -358,7 +360,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
    *   TRUE if the user was autocreated, FALSE otherwise.
    */
   protected function assertUserRoleAutocreate(EntityInterface $entity, $setter_callback) {
-    $storage = $this->entityManager->getStorage('user_role');
+    $storage = $this->entityTypeManager->getStorage('user_role');
     $role_id = $this->generateRandomEntityId(TRUE);
     $role = $storage->create(['id' => $role_id, 'label' => $this->randomString()]);
     $setter_callback($entity, $role);
@@ -375,7 +377,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
     // Setup a test entity type with an entity reference field to itself. We use
     // a special storage class throwing exceptions when a load operation is
     // triggered to be able to detect them.
-    $entity_type = clone $this->entityManager->getDefinition('entity_test_update');
+    $entity_type = clone $this->entityTypeManager->getDefinition('entity_test_update');
     $entity_type->setHandlerClass('storage', '\Drupal\entity_test\EntityTestNoLoadStorage');
     $this->state->set('entity_test_update.entity_type', $entity_type);
     $definitions = [
@@ -384,11 +386,11 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
         ->setSetting('handler', 'default'),
     ];
     $this->state->set('entity_test_update.additional_base_field_definitions', $definitions);
-    $this->entityManager->clearCachedDefinitions();
+    $this->entityTypeManager->clearCachedDefinitions();
     $this->installEntitySchema($entity_type->id());
 
     // Create the target entity.
-    $storage = $this->entityManager->getStorage($entity_type->id());
+    $storage = $this->entityTypeManager->getStorage($entity_type->id());
     $target_id = $this->generateRandomEntityId();
     $target = $storage->create(['id' => $target_id, 'name' => $this->randomString()]);
     $target->save();
@@ -398,7 +400,7 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
     // trigger a load operation.
     $message = 'The target entity was not loaded.';
     try {
-      $entity = $this->entityManager
+      $entity = $this->entityTypeManager
         ->getStorage($entity_type->id())
         ->create(['name' => $this->randomString()]);
       $entity->target_reference = $target_id;

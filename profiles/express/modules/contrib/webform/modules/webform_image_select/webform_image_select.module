@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * @file
+ * Provides a webform element for a selecting an image.
+ */
+
+use Drupal\Core\Url;
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Serialization\Yaml;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_webform_help_info().
+ */
+function webform_image_select_webform_help_info() {
+  $help = [];
+  $help['config_image_select_images'] = [
+    'group' => 'configuration',
+    'title' => t('Configuration: Images'),
+    'content' => t('The <strong>Images configuration</strong> page lists reusable images for the image select element.'),
+    'routes' => [
+      // @see /admin/structure/webform/config/images
+      'entity.webform_image_select_images.collection',
+    ],
+  ];
+  return $help;
+}
+
+/**
+ * Implements hook_webform_libraries_info().
+ */
+function webform_image_select_webform_libraries_info() {
+  $libraries = [];
+  $libraries['jquery.image-picker'] = [
+    'title' => t('jQuery: Image Picker'),
+    'description' => t('A simple jQuery plugin that transforms a select element into a more user friendly graphical interface.'),
+    'notes' => t('Image Picker is used by the Image select element.'),
+    'homepage_url' => Url::fromUri('https://rvera.github.io/image-picker/'),
+    'download_url' => Url::fromUri('https://github.com/rvera/image-picker/archive/0.3.0.zip'),
+    'version' => '0.3.0',
+    'elements' => ['webform_image_select'],
+    'optional' => FALSE,
+  ];
+  return $libraries;
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function webform_image_select_menu_local_tasks_alter(&$data, $route_name) {
+  // Change config entities 'Translate *' tab to be just label 'Translate'.
+  if (isset($data['tabs'][0]["config_translation.local_tasks:entity.webform_image_select_images.config_translation_overview"]['#link']['title'])) {
+    $data['tabs'][0]["config_translation.local_tasks:entity.webform_image_select_images.config_translation_overview"]['#link']['title'] = t('Translate');
+  }
+}
+
+/******************************************************************************/
+// Lingotek integration.
+/******************************************************************************/
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_image_select_form_config_translation_add_form_alter(&$form, FormStateInterface $form_state, $is_new = TRUE) {
+  // Manually apply YAML editor to text field that store YAML data.
+  // @see webform_form_config_translation_add_form_alter()
+  // @see _webform_form_config_translate_add_form_alter_yaml_element()
+  foreach ($form['config_names'] as $config_name => &$config_element) {
+    if (strpos($config_name, 'webform_image_select.webform_image_select_images.') === 0) {
+      _webform_form_config_translate_add_form_alter_yaml_element($config_element['images']);
+    }
+  }
+}
+
+/**
+ * Implements hook_lingotek_config_entity_document_upload().
+ */
+function webform_image_select_lingotek_config_entity_document_upload(array &$source_data, ConfigEntityInterface &$entity, &$url) {
+  switch ($entity->getEntityTypeId()) {
+    case 'webform_image_select_images';
+      // Convert images YAML string to an associative array.
+      $source_data['images'] = Yaml::decode($source_data['images']);
+      break;
+  }
+}
+
+/**
+ * Implements hook_lingotek_config_entity_translation_presave().
+ */
+function webform_image_select_lingotek_config_entity_translation_presave(ConfigEntityInterface &$translation, $langcode, &$data) {
+  switch ($translation->getEntityTypeId()) {
+    case 'webform_image_select_images';
+      /** @var \Drupal\webform_image_select\WebformImageSelectImagesInterface $translation */
+      // Convert images associative array back to YAML string.
+      $translation->setImages($data['images']);
+      $data['images'] = Yaml::encode($data['images']);
+      break;
+  }
+}

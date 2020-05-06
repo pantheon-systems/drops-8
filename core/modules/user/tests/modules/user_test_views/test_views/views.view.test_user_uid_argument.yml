@@ -9,8 +9,7 @@ module: views
 description: ''
 tag: ''
 base_table: users_field_data
-base_field: nid
-core: '8'
+base_field: uid
 display:
   default:
     display_options:

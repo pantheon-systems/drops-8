@@ -1,15 +1,10 @@
 *.patch
 interdiff-*.txt
 
-# Ignore the HTML directory used for generate Webform documentation.
-html
+# Ignore the HTML and reports directory used for generate Webform documentation.
+/html
+/reports/accessiblity/html
+/reports/accessiblity/pdf
 
-# Ignore all *.features.yml in 'modules' directory.
-# NOTE: *.features.yml are not ignored with 'test/modules' directory.
-webform.features.yml
-modules/webform_examples/webform_examples.features.yml
-modules/webform_example_composite/webform_example_composite.features.yml
-modules/webform_example_element/webform_example_element.features.yml
-modules/webform_example_remote_post/webform_example_remote_post.features.yml
-modules/webform_templates/webform_templates.features.yml
-modules/webform_node/webform_node.features.yml
+# Ignore all *.features.yml files.
+*.features.yml

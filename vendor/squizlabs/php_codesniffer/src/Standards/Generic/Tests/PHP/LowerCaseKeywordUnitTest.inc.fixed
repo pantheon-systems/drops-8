@@ -28,4 +28,6 @@ class X extends Y {
         self::n();
     }
 }
+fn ($x) => $x;
+__HALT_COMPILER(); // An exception due to phar support.
 function

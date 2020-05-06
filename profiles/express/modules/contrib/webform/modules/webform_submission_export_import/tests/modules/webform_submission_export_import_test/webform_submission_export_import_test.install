@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Install/uninstall functions for the Webform Export/Import Test module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function webform_submission_export_import_test_uninstall() {
+  // Delete webform and external CSV import examples.
+  $files_path = drupal_get_path('module', 'webform_submission_export_import_test') . '/files';
+  $file_names = [
+    'public://test_submission_export_import-webform.csv',
+    'public://test_submission_export_import-external.csv',
+  ];
+  foreach ($file_names as $file_name) {
+    if (file_exists("$files_path/$file_name")) {
+      \Drupal::service('file_system')->delete("$files_path/$file_name");
+    }
+  }
+
+}

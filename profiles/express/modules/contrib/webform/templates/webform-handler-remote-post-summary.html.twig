@@ -16,5 +16,7 @@
 {% if settings.deleted_url %}<b>{{ 'Deleted URL:'|t }}</b> {{ settings.deleted_url }}<br />{% endif %}
 {% if settings.draft_url %}<b>{{ 'Draft URL:'|t }}</b> {{ settings.draft_url }}<br />{% endif %}
 {% if settings.converted_url %}<b>{{ 'Converted URL:'|t }}</b> {{ settings.converted_url }}<br />{% endif %}
+{% if settings.error_url %}<b>{{ 'Error URL:'|t }}</b> {{ settings.error_url }}<br />{% endif %}
 <b>{{ 'Method:'|t }}</b> {{ settings.method }}<br />
 {% if settings.method == 'POST' %}<b>{{ 'Type:'|t }}</b> {{ settings.type }}<br />{% endif %}
+{% if settings.message or settings.messages %}<b>{{ 'Response message:'|t }}</b> {{ 'Yes'|t }}<br/>{% endif %}

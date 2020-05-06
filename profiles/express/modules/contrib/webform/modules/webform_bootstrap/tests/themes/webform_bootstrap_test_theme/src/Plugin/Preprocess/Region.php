@@ -7,6 +7,7 @@ use Drupal\bootstrap\Plugin\Preprocess\PreprocessBase;
 use Drupal\bootstrap\Plugin\Preprocess\PreprocessInterface;
 
 if (class_exists('\Drupal\bootstrap\Plugin\Preprocess\PreprocessBase')) {
+
   /**
    * Pre-processes variables for the "region" theme hook.
    *
@@ -33,10 +34,14 @@ if (class_exists('\Drupal\bootstrap\Plugin\Preprocess\PreprocessBase')) {
         $variables->addClass($region_wells[$region]);
       }
     }
-
   }
 
 }
 else {
+
+  /**
+   * Empty "region" theme hook.
+   *
+   */
   class Region {}
 }

@@ -28,6 +28,11 @@ class EntityTestDateonlyTest extends EntityTestResourceTestBase {
   protected static $dateString = '2017-03-01';
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Datetime test field name.
    *
    * @var string
@@ -136,7 +141,7 @@ class EntityTestDateonlyTest extends EntityTestResourceTestBase {
 
       $request_options[RequestOptions::BODY] = $this->serializer->encode($normalization, static::$format);
       $response = $this->request($method, $url, $request_options);
-      $message = "Unprocessable Entity: validation failed.\n{$fieldName}.0: The datetime value '{$value}' is invalid for the format 'Y-m-d'\n";
+      $message = "The specified date \"$value\" is not in an accepted format: \"Y-m-d\" (date-only).";
       $this->assertResourceErrorResponse(422, $message, $response);
 
       // DX: 422 when value is not a valid date.
@@ -146,7 +151,7 @@ class EntityTestDateonlyTest extends EntityTestResourceTestBase {
 
       $request_options[RequestOptions::BODY] = $this->serializer->encode($normalization, static::$format);
       $response = $this->request($method, $url, $request_options);
-      $message = "Unprocessable Entity: validation failed.\n{$fieldName}.0: The datetime value '{$value}' did not parse properly for the format 'Y-m-d'\n{$fieldName}.0.value: This value should be of the correct primitive type.\n";
+      $message = "The specified date \"$value\" is not in an accepted format: \"Y-m-d\" (date-only).";
       $this->assertResourceErrorResponse(422, $message, $response);
     }
   }

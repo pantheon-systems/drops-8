@@ -3,7 +3,7 @@
 namespace Drupal\Tests\node\Kernel\Views;
 
 use Drupal\node\Entity\Node;
-use Drupal\simpletest\UserCreationTrait;
+use Drupal\Tests\user\Traits\UserCreationTrait;
 use Drupal\Tests\views\Kernel\ViewsKernelTestBase;
 use Drupal\views\Tests\ViewTestData;
 use Drupal\views\Views;
@@ -64,13 +64,13 @@ class ArgumentUidRevisionTest extends ViewsKernelTestBase {
       'type' => 'default',
       'title' => $this->randomMachineName(),
     ]);
-    $node2->setRevisionAuthorId($no_author->id());
+    $node2->setRevisionUserId($no_author->id());
     $node2->save();
     $expected_result[] = ['nid' => $node2->id()];
 
     // Force to add a new revision.
     $node2->setNewRevision(TRUE);
-    $node2->setRevisionAuthorId($author->id());
+    $node2->setRevisionUserId($author->id());
     $node2->save();
 
     // Create one  node on which the author has neither authorship of revisions

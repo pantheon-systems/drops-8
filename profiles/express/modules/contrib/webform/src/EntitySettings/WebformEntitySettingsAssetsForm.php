@@ -4,6 +4,7 @@ namespace Drupal\webform\EntitySettings;
 
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\webform\Element\WebformMessage;
 
 /**
  * Webform CSS and JS assets.
@@ -21,11 +22,14 @@ class WebformEntitySettingsAssetsForm extends WebformEntitySettingsBaseForm {
       '#type' => 'webform_message',
       '#message_message' => $this->t('The below CSS and JavasScript will be loaded on all pages that references and loads this webform.'),
       '#message_type' => 'info',
+      '#message_close' => TRUE,
+      '#message_storage' => WebformMessage::STORAGE_SESSION,
     ];
     $form['css'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Custom CSS'),
-      '#description' => $this->t('Enter custom CSS to be attached to the webform.'),
+      '#description' => $this->t('Enter custom CSS to be attached to the webform.') . '<br/>' .
+        $this->t("To customize only webform specific elements, you should use the '.webform-submission-form' selector"),
     ];
     $form['css']['css'] = [
       '#type' => 'webform_codemirror',

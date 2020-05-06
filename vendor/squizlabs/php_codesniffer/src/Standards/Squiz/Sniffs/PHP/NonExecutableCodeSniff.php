@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\Squiz\Sniffs\PHP;
 
-use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class NonExecutableCodeSniff implements Sniff
@@ -105,6 +105,7 @@ class NonExecutableCodeSniff implements Sniff
                         T_CASE,
                         T_DEFAULT,
                         T_CLOSE_CURLY_BRACKET,
+                        T_ENDSWITCH,
                     ],
                     ($end + 1)
                 );

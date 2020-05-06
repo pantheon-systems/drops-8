@@ -128,13 +128,8 @@ class ArgumentsResolverTest extends TestCase {
     $resolver = new ArgumentsResolver([], [], $wildcards);
 
     $callable = function ($route) {};
-    if (method_exists($this, 'expectException')) {
-      $this->expectException(\RuntimeException::class);
-      $this->expectExceptionMessage('requires a value for the "$route" argument.');
-    }
-    else {
-      $this->setExpectedException(\RuntimeException::class, 'requires a value for the "$route" argument.');
-    }
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('requires a value for the "$route" argument.');
     $resolver->getArguments($callable);
   }
 
@@ -162,13 +157,8 @@ class ArgumentsResolverTest extends TestCase {
     $resolver = new ArgumentsResolver($scalars, $objects, []);
 
     $callable = function (\stdClass $foo) {};
-    if (method_exists($this, 'expectException')) {
-      $this->expectException(\RuntimeException::class);
-      $this->expectExceptionMessage('requires a value for the "$foo" argument.');
-    }
-    else {
-      $this->setExpectedException(\RuntimeException::class, 'requires a value for the "$foo" argument.');
-    }
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('requires a value for the "$foo" argument.');
     $resolver->getArguments($callable);
   }
 
@@ -179,13 +169,8 @@ class ArgumentsResolverTest extends TestCase {
    */
   public function testHandleUnresolvedArgument($callable) {
     $resolver = new ArgumentsResolver([], [], []);
-    if (method_exists($this, 'expectException')) {
-      $this->expectException(\RuntimeException::class);
-      $this->expectExceptionMessage('requires a value for the "$foo" argument.');
-    }
-    else {
-      $this->setExpectedException(\RuntimeException::class, 'requires a value for the "$foo" argument.');
-    }
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('requires a value for the "$foo" argument.');
     $resolver->getArguments($callable);
   }
 

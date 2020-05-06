@@ -122,7 +122,7 @@ class WebformArrayHelper {
    *   A key.
    *
    * @return string|null
-   *   The next key in an array or NULL is there is no next key.
+   *   The next key in an array or NULL if there is no next key.
    */
   public static function getNextKey(array $array, $key) {
     return self::getKey($array, $key, 'next');
@@ -137,7 +137,7 @@ class WebformArrayHelper {
    *   A key.
    *
    * @return string|null
-   *   The prev(ious) key in an array or NULL is there is no previous key.
+   *   The prev(ious) key in an array or NULL if there is no previous key.
    */
   public static function getPreviousKey(array $array, $key) {
     return self::getKey($array, $key, 'prev');
@@ -329,6 +329,71 @@ class WebformArrayHelper {
       if (is_array($item)) {
         self::flattenAssocRecursive($item, $array, $duplicate_array_keys);
       }
+    }
+  }
+
+  /**
+   * Inserts a new key/value before the key in the array.
+   *
+   * @param array &$array
+   *   An array to insert in to.
+   * @param string $target_key
+   *   The key to insert before.
+   * @param string $new_key
+   *   The key to insert.
+   * @param mixed $new_value
+   *   An value to insert.
+   */
+  public static function insertBefore(array &$array, $target_key, $new_key, $new_value) {
+    $new = [];
+    foreach ($array as $k => $value) {
+      if ($k === $target_key) {
+        $new[$new_key] = $new_value;
+      }
+      $new[$k] = $value;
+    }
+    $array = $new;
+  }
+
+  /**
+   * Inserts a new key/value after the key in the array.
+   *
+   * @param array &$array
+   *   An array to insert in to.
+   * @param string $target_key
+   *   The key to insert after.
+   * @param string $new_key
+   *   The key to insert.
+   * @param mixed $new_value
+   *   An value to insert.
+   */
+  public static function insertAfter(array &$array, $target_key, $new_key, $new_value) {
+    $new = [];
+    foreach ($array as $key => $value) {
+      $new[$key] = $value;
+      if ($key === $target_key) {
+        $new[$new_key] = $new_value;
+      }
+    }
+    $array = $new;
+  }
+
+  /**
+   * Remove value from an array.
+   *
+   * @param array &$array
+   *   An array.
+   * @param mixed $value
+   *   A value.
+   *
+   * @see https://stackoverflow.com/questions/7225070/php-array-delete-by-value-not-key
+   */
+  public static function removeValue(array &$array, $value) {
+    if (($key = array_search($value, $array)) !== FALSE) {
+      unset($array[$key]);
+    }
+    if (static::isSequential($array)) {
+      array_values($array);
     }
   }
 

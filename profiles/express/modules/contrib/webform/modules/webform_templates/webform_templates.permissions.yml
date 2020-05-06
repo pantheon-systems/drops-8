@@ -1,0 +1,4 @@
+'administer webform templates':
+  title: 'Administer webform templates'
+  description: 'Allows administration to manage webform templates.'
+  restrict access: true

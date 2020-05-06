@@ -58,7 +58,6 @@ function webform_bootstrap_test_module_webform_element_alter(array &$element, Fo
     case 'webform_email_multiple':
     case 'webform_time':
     case 'webform_term_select':
-    case 'webform_creditcard_number':
     case 'webform_entity_select':
       $element['#attributes']['class'][] = 'input-lg';
       break;

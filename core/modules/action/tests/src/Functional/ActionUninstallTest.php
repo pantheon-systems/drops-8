@@ -8,7 +8,8 @@ use Drupal\Tests\BrowserTestBase;
  * Tests that uninstalling actions does not remove other module's actions.
  *
  * @group action
- * @see \Drupal\action\Plugin\views\field\BulkForm
+ * @see \Drupal\views\Plugin\views\field\BulkForm
+ * @see \Drupal\user\Plugin\Action\BlockUser
  */
 class ActionUninstallTest extends BrowserTestBase {
 
@@ -20,6 +21,11 @@ class ActionUninstallTest extends BrowserTestBase {
   public static $modules = ['views', 'action'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests Action uninstall.
    */
   public function testActionUninstall() {
@@ -27,7 +33,7 @@ class ActionUninstallTest extends BrowserTestBase {
 
     $storage = $this->container->get('entity_type.manager')->getStorage('action');
     $storage->resetCache(['user_block_user_action']);
-    $this->assertTrue($storage->load('user_block_user_action'), 'Configuration entity \'user_block_user_action\' still exists after uninstalling action module.');
+    $this->assertNotEmpty($storage->load('user_block_user_action'), 'Configuration entity \'user_block_user_action\' still exists after uninstalling action module.');
 
     $admin_user = $this->drupalCreateUser(['administer users']);
     $this->drupalLogin($admin_user);

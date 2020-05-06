@@ -2,7 +2,6 @@
 
 namespace Drupal\webform\Form;
 
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\webform\WebformSubmissionExporterInterface;
@@ -81,6 +80,11 @@ class WebformResultsExportForm extends FormBase {
       '#access' => ($saved_options) ? TRUE : FALSE,
       '#submit' => ['::delete'],
     ];
+
+    // Disable single submit.
+    $form['#attributes']['class'][] = 'webform-remove-single-submit';
+    $form['#attached']['library'][] = 'webform/webform.form';
+
     return $form;
   }
 
@@ -96,14 +100,18 @@ class WebformResultsExportForm extends FormBase {
         $export_options[$key] = implode(',', $value);
       }
     }
+    $webform = $this->submissionExporter->getWebform();
     if ($source_entity = $this->submissionExporter->getSourceEntity()) {
       $entity_type = $source_entity->getEntityTypeId();
       $entity_id = $source_entity->id();
       $route_parameters = [$entity_type => $entity_id];
+      if ($webform) {
+        $route_parameters['webform'] = $webform->id();
+      }
       $route_options = ['query' => $export_options];
       $form_state->setRedirect('entity.' . $entity_type . '.webform.results_export', $route_parameters, $route_options);
     }
-    elseif ($webform = $this->submissionExporter->getWebform()) {
+    elseif ($webform) {
       $route_parameters = ['webform' => $webform->id()];
       $route_options = ['query' => $export_options];
       $form_state->setRedirect('entity.webform.results_export', $route_parameters, $route_options);
@@ -122,7 +130,7 @@ class WebformResultsExportForm extends FormBase {
     // Save the export options to the webform's state.
     $export_options = $this->submissionExporter->getValuesFromInput($form_state->getValues());
     $this->submissionExporter->setWebformOptions($export_options);
-    drupal_set_message($this->t('The download settings have been saved.'));
+    $this->messenger()->addStatus($this->t('The download settings have been saved.'));
   }
 
   /**
@@ -135,7 +143,7 @@ class WebformResultsExportForm extends FormBase {
    */
   public function delete(array &$form, FormStateInterface $form_state) {
     $this->submissionExporter->deleteWebformOptions();
-    drupal_set_message($this->t('The download settings have been reset.'));
+    $this->messenger()->addStatus($this->t('The download settings have been reset.'));
   }
 
 }

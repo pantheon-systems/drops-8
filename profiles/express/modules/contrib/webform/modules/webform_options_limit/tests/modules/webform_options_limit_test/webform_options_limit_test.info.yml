@@ -1,0 +1,13 @@
+name: 'Webform options limit module tests'
+type: module
+description: 'Support module for webform options limit that provides test forms.'
+package: Testing
+core_version_requirement: ^8.7.7 || ^9
+dependencies:
+  - 'webform:webform'
+  - 'webform:webform_options_limit'
+
+# Information added by Drupal.org packaging script on 2020-05-05
+version: '8.x-5.11'
+project: 'webform'
+datestamp: 1588690393

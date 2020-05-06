@@ -1,0 +1,67 @@
+webform_icheck.element:
+  version: VERSION
+  css:
+    component:
+      css/webform_icheck.element.css: {}
+  js:
+    js/webform_icheck.element.js: { weight: -10 } # iCheck library must be executed before #states.
+  dependencies:
+    - core/drupal
+    - core/jquery.once
+    - webform_icheck/libraries.jquery.icheck
+
+# External libraries.
+
+libraries.jquery.icheck:
+  remote: http://icheck.fronteed.com/
+  version: &webform_icheck_version '1.0.2'
+  license: &webform_icheck_license
+    name: MIT
+    url: https://en.wikipedia.org/wiki/MIT_License
+    gpl-compatible: true
+  cdn: &webform_icheck_cdn
+    /libraries/jquery.icheck/: https://cdnjs.cloudflare.com/ajax/libs/iCheck/1.0.2/
+  js:
+    /libraries/jquery.icheck/icheck.js: {}
+  dependencies:
+    - core/jquery
+
+libraries.jquery.icheck.flat:
+  version: *webform_icheck_version
+  license: *webform_icheck_license
+  cdn: *webform_icheck_cdn
+  css:
+    component:
+      /libraries/jquery.icheck/skins/flat/_all.css: {}
+  dependencies:
+    - webform/libraries.jquery.icheck
+
+libraries.jquery.icheck.line:
+  version: *webform_icheck_version
+  license: *webform_icheck_license
+  cdn: *webform_icheck_cdn
+  css:
+    component:
+      /libraries/jquery.icheck/skins/line/_all.css: {}
+  dependencies:
+    - webform/libraries.jquery.icheck
+
+libraries.jquery.icheck.minimal:
+  version: *webform_icheck_version
+  license: *webform_icheck_license
+  cdn: *webform_icheck_cdn
+  css:
+    component:
+      /libraries/jquery.icheck/skins/minimal/_all.css: {}
+  dependencies:
+    - webform/libraries.jquery.icheck
+
+libraries.jquery.icheck.square:
+  version: *webform_icheck_version
+  license: *webform_icheck_license
+  cdn: *webform_icheck_cdn
+  css:
+    component:
+      /libraries/jquery.icheck/skins/square/_all.css: {}
+  dependencies:
+    - webform/libraries.jquery.icheck

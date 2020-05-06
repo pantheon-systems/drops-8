@@ -2,9 +2,9 @@
 
 namespace Drupal\Tests\system\Kernel\Theme;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Component\Render\MarkupInterface;
-use Drupal\test_theme\ThemeClass;
 
 /**
  * Tests low-level theme functions.
@@ -23,7 +23,7 @@ class ThemeTest extends KernelTestBase {
    */
   protected function setUp() {
     parent::setUp();
-    \Drupal::service('theme_handler')->install(['test_theme']);
+    \Drupal::service('theme_installer')->install(['test_theme']);
   }
 
   /**
@@ -58,7 +58,7 @@ class ThemeTest extends KernelTestBase {
     $foos = ['null' => NULL, 'false' => FALSE, 'integer' => 1, 'string' => 'foo', 'empty_string' => ''];
     foreach ($foos as $type => $example) {
       $output = \Drupal::theme()->render('theme_test_foo', ['foo' => $example]);
-      $this->assertTrue($output instanceof MarkupInterface || is_string($output), format_string('\Drupal::theme() returns an object that implements MarkupInterface or a string for data type @type.', ['@type' => $type]));
+      $this->assertTrue($output instanceof MarkupInterface || is_string($output), new FormattableMarkup('\Drupal::theme() returns an object that implements MarkupInterface or a string for data type @type.', ['@type' => $type]));
       if ($output instanceof MarkupInterface) {
         $this->assertIdentical((string) $example, $output->__toString());
       }
@@ -104,8 +104,8 @@ class ThemeTest extends KernelTestBase {
    * Test the listInfo() function.
    */
   public function testListThemes() {
+    $this->container->get('theme_installer')->install(['test_subtheme']);
     $theme_handler = $this->container->get('theme_handler');
-    $theme_handler->install(['test_subtheme']);
     $themes = $theme_handler->listInfo();
 
     // Check if ThemeHandlerInterface::listInfo() retrieves enabled themes.
@@ -144,13 +144,6 @@ class ThemeTest extends KernelTestBase {
       ],
     ];
     $this->assertThemeOutput('theme_test_render_element_children', $element, 'Foo', 'drupal_render() avoids #theme_wrappers recursion loop when rendering a render element.');
-  }
-
-  /**
-   * Tests theme can provide classes.
-   */
-  public function testClassLoading() {
-    new ThemeClass();
   }
 
   /**

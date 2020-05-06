@@ -36,7 +36,7 @@ class VocabularyResetForm extends EntityConfirmFormBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('entity.manager')->getStorage('taxonomy_term')
+      $container->get('entity_type.manager')->getStorage('taxonomy_term')
     );
   }
 
@@ -58,7 +58,7 @@ class VocabularyResetForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getCancelUrl() {
-    return $this->entity->urlInfo('overview-form');
+    return $this->entity->toUrl('overview-form');
   }
 
   /**

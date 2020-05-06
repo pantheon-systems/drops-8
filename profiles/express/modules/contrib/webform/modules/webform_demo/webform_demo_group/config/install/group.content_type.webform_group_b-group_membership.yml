@@ -1,0 +1,19 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - group.type.webform_group_b
+  module:
+    - user
+  enforced:
+    module:
+      - webform_demo_group
+id: webform_group_b-group_membership
+label: 'Webform Group B: Group membership'
+description: 'Adds users to groups as members.'
+group_type: webform_group_b
+content_plugin: group_membership
+plugin_config:
+  group_cardinality: 0
+  entity_cardinality: 1
+  use_creation_wizard: false

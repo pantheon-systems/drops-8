@@ -9,9 +9,9 @@
 
 namespace PHP_CodeSniffer\Tokenizers;
 
-use PHP_CodeSniffer\Util;
 use PHP_CodeSniffer\Config;
 use PHP_CodeSniffer\Exceptions\TokenizerException;
+use PHP_CodeSniffer\Util;
 
 class CSS extends PHP
 {
@@ -27,7 +27,7 @@ class CSS extends PHP
      * @param string                  $eolChar The EOL char used in the content.
      *
      * @return void
-     * @throws TokenizerException If the file appears to be minified.
+     * @throws \PHP_CodeSniffer\Exceptions\TokenizerException If the file appears to be minified.
      */
     public function __construct($content, Config $config, $eolChar='\n')
     {
@@ -35,7 +35,7 @@ class CSS extends PHP
             throw new TokenizerException('File appears to be minified and cannot be processed');
         }
 
-        return parent::__construct($content, $config, $eolChar);
+        parent::__construct($content, $config, $eolChar);
 
     }//end __construct()
 
@@ -96,6 +96,9 @@ class CSS extends PHP
                 $token['type'] = 'T_STRING';
                 $token['code'] = T_STRING;
             }
+
+            $token['content'] = str_replace('^PHPCS_CSS_T_OPEN_TAG^', '<?php', $token['content']);
+            $token['content'] = str_replace('^PHPCS_CSS_T_CLOSE_TAG^', '?>', $token['content']);
 
             if (PHP_CODESNIFFER_VERBOSITY > 1) {
                 $type    = $token['type'];
@@ -177,14 +180,14 @@ class CSS extends PHP
             if ($token['code'] === T_COMMENT
                 && $multiLineComment === false
                 && (substr($token['content'], 0, 2) === '//'
-                || $token['content']{0} === '#')
+                || $token['content'][0] === '#')
             ) {
                 $content = ltrim($token['content'], '#/');
 
                 // Guard against PHP7+ syntax errors by stripping
                 // leading zeros so the content doesn't look like an invalid int.
                 $leadingZero = false;
-                if ($content{0} === '0') {
+                if ($content[0] === '0') {
                     $content     = '1'.$content;
                     $leadingZero = true;
                 }
@@ -200,7 +203,7 @@ class CSS extends PHP
                     $content = substr($content, 1);
                 }
 
-                if ($token['content']{0} === '#') {
+                if ($token['content'][0] === '#') {
                     // The # character is not a comment in CSS files, so
                     // determine what it means in this context.
                     $firstContent = $commentTokens[0]['content'];

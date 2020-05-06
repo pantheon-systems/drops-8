@@ -2,11 +2,9 @@ langcode: en
 status: true
 dependencies:
   config:
-    - core.entity_view_mode.node.full
     - node.type.webform_demo_event
     - system.menu.main
   module:
-    - datetime
     - node
     - user
 id: webform_demo_events
@@ -72,7 +70,8 @@ display:
       row:
         type: 'entity:node'
         options:
-          view_mode: full
+          relationship: none
+          view_mode: default
       fields:
         title:
           id: title

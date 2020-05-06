@@ -12,10 +12,12 @@ interface WebformEntityElementsValidatorInterface {
    *
    * @param \Drupal\webform\WebformInterface $webform
    *   A webform.
+   * @param array $options
+   *   An array of validation rules to check.
    *
    * @return array|null
-   *   An array of error messages or NULL is the elements are valid.
+   *   An array of error messages or NULL if the elements are valid.
    */
-  public function validate(WebformInterface $webform);
+  public function validate(WebformInterface $webform, array $options = []);
 
 }

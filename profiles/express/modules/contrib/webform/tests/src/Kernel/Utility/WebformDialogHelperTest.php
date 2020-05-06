@@ -34,14 +34,14 @@ class WebformDialogHelperTest extends KernelTestBase {
     $this->assertEquals(WebformDialogHelper::getModalDialogAttributes(), [
       'class' => ['webform-ajax-link'],
       'data-dialog-type' => 'modal',
-      'data-dialog-options' => '{"width":800,"dialogClass":"webform-modal"}',
+      'data-dialog-options' => '{"width":800,"dialogClass":"webform-ui-dialog"}',
     ]);
 
     // Check custom width and attributes.
     $this->assertEquals(WebformDialogHelper::getModalDialogAttributes(400, ['custom']), [
       'class' => ['custom', 'webform-ajax-link'],
       'data-dialog-type' => 'modal',
-      'data-dialog-options' => '{"width":400,"dialogClass":"webform-modal"}',
+      'data-dialog-options' => '{"width":400,"dialogClass":"webform-ui-dialog"}',
     ]);
 
     // Disable dialogs.

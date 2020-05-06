@@ -2,11 +2,12 @@
 
 namespace Drupal\update;
 
+use Drupal\Component\Utility\EmailValidatorInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Egulias\EmailValidator\EmailValidator;
 
 /**
  * Configure update settings for this site.
@@ -18,17 +19,17 @@ class UpdateSettingsForm extends ConfigFormBase implements ContainerInjectionInt
   /**
    * The email validator.
    *
-   * @var \Egulias\EmailValidator\EmailValidator
+   * @var \Drupal\Component\Utility\EmailValidatorInterface
    */
   protected $emailValidator;
 
   /**
    * Constructs a new UpdateSettingsForm.
    *
-   * @param \Egulias\EmailValidator\EmailValidator $email_validator
+   * @param \Drupal\Component\Utility\EmailValidatorInterface $email_validator
    *   The email validator.
    */
-  public function __construct(EmailValidator $email_validator) {
+  public function __construct(EmailValidatorInterface $email_validator) {
     $this->emailValidator = $email_validator;
   }
 
@@ -95,7 +96,7 @@ class UpdateSettingsForm extends ConfigFormBase implements ContainerInjectionInt
         'all' => t('All newer versions'),
         'security' => t('Only security updates'),
       ],
-      '#description' => t('You can choose to send email only if a security update is available, or to be notified about all newer versions. If there are updates available of Drupal core or any of your installed modules and themes, your site will always print a message on the <a href=":status_report">status report</a> page, and will also display an error message on administration pages if there is a security update.', [':status_report' => $this->url('system.status')]),
+      '#description' => t('You can choose to send email only if a security update is available, or to be notified about all newer versions. If there are updates available of Drupal core or any of your installed modules and themes, your site will always print a message on the <a href=":status_report">status report</a> page, and will also display an error message on administration pages if there is a security update.', [':status_report' => Url::fromRoute('system.status')->toString()]),
     ];
 
     return parent::buildForm($form, $form_state);

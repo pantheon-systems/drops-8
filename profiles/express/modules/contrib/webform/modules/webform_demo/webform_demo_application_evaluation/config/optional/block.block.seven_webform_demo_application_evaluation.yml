@@ -1,13 +1,15 @@
 langcode: en
 status: true
 dependencies:
+  config:
+    - webform.webform.demo_application_evaluation
+  enforced:
+    module:
+      - webform_demo_application_evaluation
   module:
     - webform
   theme:
     - seven
-  enforced:
-    module:
-      - webform_demo_application_evaluation
 id: seven_webform_demo_application_evaluation
 theme: seven
 region: content
@@ -21,6 +23,7 @@ settings:
   label_display: '0'
   webform_id: demo_application_evaluation
   default_data: ''
+  redirect: false
 visibility:
   webform:
     id: webform

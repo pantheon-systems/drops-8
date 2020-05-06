@@ -9,8 +9,8 @@
 
 namespace PHP_CodeSniffer\Standards\Squiz\Sniffs\WhiteSpace;
 
-use PHP_CodeSniffer\Sniffs\AbstractVariableSniff;
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Sniffs\AbstractVariableSniff;
 use PHP_CodeSniffer\Util\Tokens;
 
 class MemberVarSpacingSniff extends AbstractVariableSniff
@@ -110,7 +110,7 @@ class MemberVarSpacingSniff extends AbstractVariableSniff
         }
 
         // Determine if this is the first member var.
-        $prev = $phpcsFile->findPrevious(Tokens::$emptyTokens, ($first - 1), null, true);
+        $prev = $phpcsFile->findPrevious(T_WHITESPACE, ($first - 1), null, true);
         if ($tokens[$prev]['code'] === T_CLOSE_CURLY_BRACKET
             && isset($tokens[$prev]['scope_condition']) === true
             && $tokens[$tokens[$prev]['scope_condition']]['code'] === T_FUNCTION
@@ -131,6 +131,13 @@ class MemberVarSpacingSniff extends AbstractVariableSniff
         }
 
         $foundLines = ($tokens[$first]['line'] - $tokens[$prev]['line'] - 1);
+
+        if ($errorCode === 'FirstIncorrect') {
+            $phpcsFile->recordMetric($stackPtr, 'Member var spacing before first', $foundLines);
+        } else {
+            $phpcsFile->recordMetric($stackPtr, 'Member var spacing before', $foundLines);
+        }
+
         if ($foundLines === $spacing) {
             if ($endOfStatement !== false) {
                 return $endOfStatement;

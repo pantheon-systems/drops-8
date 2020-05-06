@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies: {  }
+id: us_states
+label: 'U.S. states'
+description: 'A clickable map of U.S. states.'
+help: 'A clickable map of U.S. states.'
+category: Maps
+type: url
+template: ''
+url: 'us_states.svg'
+css: ''
+javascript: ''
+options: ''
+value_attributes: data-id
+text_attributes: data-name
+fill: true
+zoom: true
+tooltip: true
+show_select: false
+element: true
+entity_reference: false

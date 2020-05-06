@@ -8,6 +8,7 @@ use Drupal\KernelTests\KernelTestBase;
 /**
  * Tests the configure route for core modules.
  *
+ * @group #slow
  * @group Module
  */
 class ModuleConfigureRouteTest extends KernelTestBase {
@@ -37,7 +38,7 @@ class ModuleConfigureRouteTest extends KernelTestBase {
   protected function setUp() {
     parent::setUp();
     $this->routeProvider = \Drupal::service('router.route_provider');
-    $this->moduleInfo = system_rebuild_module_data();
+    $this->moduleInfo = \Drupal::service('extension.list.module')->getList();
   }
 
   /**
@@ -47,11 +48,12 @@ class ModuleConfigureRouteTest extends KernelTestBase {
    */
   public function testModuleConfigureRoutes($module) {
     $module_info = $this->moduleInfo[$module]->info;
-    if (isset($module_info['configure'])) {
-      $this->container->get('module_installer')->install([$module]);
-      $route = $this->routeProvider->getRouteByName($module_info['configure']);
-      $this->assertNotEmpty($route, sprintf('The configure route for the "%s" module was found.', $module));
+    if (!isset($module_info['configure'])) {
+      $this->markTestSkipped("$module has no configure route");
     }
+    $this->container->get('module_installer')->install([$module]);
+    $route = $this->routeProvider->getRouteByName($module_info['configure']);
+    $this->assertNotEmpty($route, sprintf('The configure route for the "%s" module was found.', $module));
   }
 
 }

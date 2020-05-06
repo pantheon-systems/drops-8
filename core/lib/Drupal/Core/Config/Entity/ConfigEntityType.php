@@ -14,6 +14,8 @@ class ConfigEntityType extends EntityType implements ConfigEntityTypeInterface {
   /**
    * The config prefix set in the configuration entity type annotation.
    *
+   * @var string
+   *
    * @see \Drupal\Core\Config\Entity\ConfigEntityTypeInterface::getConfigPrefix()
    */
   protected $config_prefix;
@@ -173,6 +175,7 @@ class ConfigEntityType extends EntityType implements ConfigEntityTypeInterface {
       if (!isset($definition['mapping'])) {
         return NULL;
       }
+      @trigger_error(sprintf('Entity type "%s" is using config schema as a fallback for a missing `config_export` definition is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. See https://www.drupal.org/node/2949023.', $this->id()), E_USER_DEPRECATED);
       $this->mergedConfigExport = array_combine(array_keys($definition['mapping']), array_keys($definition['mapping']));
     }
     return $this->mergedConfigExport;

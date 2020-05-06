@@ -88,7 +88,7 @@ class Response
     const HTTP_NETWORK_AUTHENTICATION_REQUIRED = 511;                             // RFC6585
 
     /**
-     * @var \Symfony\Component\HttpFoundation\ResponseHeaderBag
+     * @var ResponseHeaderBag
      */
     public $headers;
 
@@ -121,14 +121,14 @@ class Response
      * Status codes translation table.
      *
      * The list of codes is complete according to the
-     * {@link http://www.iana.org/assignments/http-status-codes/ Hypertext Transfer Protocol (HTTP) Status Code Registry}
+     * {@link https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml Hypertext Transfer Protocol (HTTP) Status Code Registry}
      * (last updated 2016-03-01).
      *
      * Unless otherwise noted, the status code is defined in RFC2616.
      *
      * @var array
      */
-    public static $statusTexts = array(
+    public static $statusTexts = [
         100 => 'Continue',
         101 => 'Switching Protocols',
         102 => 'Processing',            // RFC2518
@@ -191,7 +191,7 @@ class Response
         508 => 'Loop Detected',                                               // RFC5842
         510 => 'Not Extended',                                                // RFC2774
         511 => 'Network Authentication Required',                             // RFC6585
-    );
+    ];
 
     /**
      * @param mixed $content The response content, see setContent()
@@ -200,7 +200,7 @@ class Response
      *
      * @throws \InvalidArgumentException When the HTTP status code is not valid
      */
-    public function __construct($content = '', $status = 200, $headers = array())
+    public function __construct($content = '', $status = 200, $headers = [])
     {
         $this->headers = new ResponseHeaderBag($headers);
         $this->setContent($content);
@@ -222,7 +222,7 @@ class Response
      *
      * @return static
      */
-    public static function create($content = '', $status = 200, $headers = array())
+    public static function create($content = '', $status = 200, $headers = [])
     {
         return new static($content, $status, $headers);
     }
@@ -310,9 +310,9 @@ class Response
         }
 
         // Check if we need to send extra expire info headers
-        if ('1.0' == $this->getProtocolVersion() && false !== strpos($this->headers->get('Cache-Control'), 'no-cache')) {
-            $this->headers->set('pragma', 'no-cache');
-            $this->headers->set('expires', -1);
+        if ('1.0' == $this->getProtocolVersion() && false !== strpos($headers->get('Cache-Control'), 'no-cache')) {
+            $headers->set('pragma', 'no-cache');
+            $headers->set('expires', -1);
         }
 
         $this->ensureIEOverSSLCompatibility($request);
@@ -342,7 +342,7 @@ class Response
 
         // cookies
         foreach ($this->headers->getCookies() as $cookie) {
-            header('Set-Cookie: '.$cookie->getName().strstr($cookie, '='), false, $this->statusCode);
+            header('Set-Cookie: '.$cookie, false, $this->statusCode);
         }
 
         // status
@@ -375,7 +375,7 @@ class Response
 
         if (\function_exists('fastcgi_finish_request')) {
             fastcgi_finish_request();
-        } elseif (!\in_array(\PHP_SAPI, array('cli', 'phpdbg'), true)) {
+        } elseif (!\in_array(\PHP_SAPI, ['cli', 'phpdbg'], true)) {
             static::closeOutputBuffers(0, true);
         }
 
@@ -395,7 +395,7 @@ class Response
      */
     public function setContent($content)
     {
-        if (null !== $content && !\is_string($content) && !is_numeric($content) && !\is_callable(array($content, '__toString'))) {
+        if (null !== $content && !\is_string($content) && !is_numeric($content) && !\is_callable([$content, '__toString'])) {
             throw new \UnexpectedValueException(sprintf('The Response content must be a string or object implementing __toString(), "%s" given.', \gettype($content)));
         }
 
@@ -407,7 +407,7 @@ class Response
     /**
      * Gets the current response content.
      *
-     * @return string Content
+     * @return string|false
      */
     public function getContent()
     {
@@ -542,7 +542,7 @@ class Response
      */
     public function isCacheable()
     {
-        if (!\in_array($this->statusCode, array(200, 203, 300, 301, 302, 404, 410))) {
+        if (!\in_array($this->statusCode, [200, 203, 300, 301, 302, 404, 410])) {
             return false;
         }
 
@@ -649,7 +649,7 @@ class Response
     }
 
     /**
-     * Returns true if the response must be revalidated by caches.
+     * Returns true if the response must be revalidated by shared caches once it has become stale.
      *
      * This method indicates that the response must not be served stale by a
      * cache in any circumstance without first revalidating with the origin.
@@ -707,7 +707,7 @@ class Response
             return (int) $age;
         }
 
-        return max(time() - $this->getDate()->format('U'), 0);
+        return max(time() - (int) $this->getDate()->format('U'), 0);
     }
 
     /**
@@ -788,8 +788,10 @@ class Response
         }
 
         if (null !== $this->getExpires()) {
-            return $this->getExpires()->format('U') - $this->getDate()->format('U');
+            return (int) $this->getExpires()->format('U') - (int) $this->getDate()->format('U');
         }
+
+        return null;
     }
 
     /**
@@ -846,6 +848,8 @@ class Response
         if (null !== $maxAge = $this->getMaxAge()) {
             return $maxAge - $this->getAge();
         }
+
+        return null;
     }
 
     /**
@@ -974,7 +978,7 @@ class Response
      */
     public function setCache(array $options)
     {
-        if ($diff = array_diff(array_keys($options), array('etag', 'last_modified', 'max_age', 's_maxage', 'private', 'public', 'immutable'))) {
+        if ($diff = array_diff(array_keys($options), ['etag', 'last_modified', 'max_age', 's_maxage', 'private', 'public', 'immutable'])) {
             throw new \InvalidArgumentException(sprintf('Response does not support the following options: "%s".', implode('", "', $diff)));
         }
 
@@ -1025,7 +1029,7 @@ class Response
      *
      * @return $this
      *
-     * @see http://tools.ietf.org/html/rfc2616#section-10.3.5
+     * @see https://tools.ietf.org/html/rfc2616#section-10.3.5
      *
      * @final since version 3.3
      */
@@ -1035,7 +1039,7 @@ class Response
         $this->setContent(null);
 
         // remove headers that MUST NOT be included with 304 Not Modified responses
-        foreach (array('Allow', 'Content-Encoding', 'Content-Language', 'Content-Length', 'Content-MD5', 'Content-Type', 'Last-Modified') as $header) {
+        foreach (['Allow', 'Content-Encoding', 'Content-Language', 'Content-Length', 'Content-MD5', 'Content-Type', 'Last-Modified'] as $header) {
             $this->headers->remove($header);
         }
 
@@ -1064,10 +1068,10 @@ class Response
     public function getVary()
     {
         if (!$vary = $this->headers->get('Vary', null, false)) {
-            return array();
+            return [];
         }
 
-        $ret = array();
+        $ret = [];
         foreach ($vary as $item) {
             $ret = array_merge($ret, preg_split('/[\s,]+/', $item));
         }
@@ -1133,7 +1137,7 @@ class Response
      *
      * @return bool
      *
-     * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+     * @see https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
      *
      * @final since version 3.2
      */
@@ -1249,7 +1253,7 @@ class Response
      */
     public function isRedirect($location = null)
     {
-        return \in_array($this->statusCode, array(201, 301, 302, 303, 307, 308)) && (null === $location ?: $location == $this->headers->get('Location'));
+        return \in_array($this->statusCode, [201, 301, 302, 303, 307, 308]) && (null === $location ?: $location == $this->headers->get('Location'));
     }
 
     /**
@@ -1261,7 +1265,7 @@ class Response
      */
     public function isEmpty()
     {
-        return \in_array($this->statusCode, array(204, 304));
+        return \in_array($this->statusCode, [204, 304]);
     }
 
     /**

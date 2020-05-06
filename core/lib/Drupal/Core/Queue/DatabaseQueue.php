@@ -3,7 +3,7 @@
 namespace Drupal\Core\Queue;
 
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Database\SchemaObjectExistsException;
+use Drupal\Core\Database\DatabaseException;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 
 /**
@@ -124,32 +124,30 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
       }
       catch (\Exception $e) {
         $this->catchException($e);
-        // If the table does not exist there are no items currently available to
-        // claim.
+      }
+
+      // If the table does not exist there are no items currently available to
+      // claim.
+      if (empty($item)) {
         return FALSE;
       }
-      if ($item) {
-        // Try to update the item. Only one thread can succeed in UPDATEing the
-        // same row. We cannot rely on REQUEST_TIME because items might be
-        // claimed by a single consumer which runs longer than 1 second. If we
-        // continue to use REQUEST_TIME instead of the current time(), we steal
-        // time from the lease, and will tend to reset items before the lease
-        // should really expire.
-        $update = $this->connection->update(static::TABLE_NAME)
-          ->fields([
-            'expire' => time() + $lease_time,
-          ])
-          ->condition('item_id', $item->item_id)
-          ->condition('expire', 0);
-        // If there are affected rows, this update succeeded.
-        if ($update->execute()) {
-          $item->data = unserialize($item->data);
-          return $item;
-        }
-      }
-      else {
-        // No items currently available to claim.
-        return FALSE;
+
+      // Try to update the item. Only one thread can succeed in UPDATEing the
+      // same row. We cannot rely on REQUEST_TIME because items might be
+      // claimed by a single consumer which runs longer than 1 second. If we
+      // continue to use REQUEST_TIME instead of the current time(), we steal
+      // time from the lease, and will tend to reset items before the lease
+      // should really expire.
+      $update = $this->connection->update(static::TABLE_NAME)
+        ->fields([
+          'expire' => time() + $lease_time,
+        ])
+        ->condition('item_id', $item->item_id)
+        ->condition('expire', 0);
+      // If there are affected rows, this update succeeded.
+      if ($update->execute()) {
+        $item->data = unserialize($item->data);
+        return $item;
       }
     }
   }
@@ -250,7 +248,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
     // If another process has already created the queue table, attempting to
     // recreate it will throw an exception. In this case just catch the
     // exception and do nothing.
-    catch (SchemaObjectExistsException $e) {
+    catch (DatabaseException $e) {
       return TRUE;
     }
     return FALSE;

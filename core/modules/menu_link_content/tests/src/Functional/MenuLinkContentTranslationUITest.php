@@ -32,6 +32,11 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp() {
     $this->entityTypeId = 'menu_link_content';
     $this->bundle = 'menu_link_content';
@@ -88,7 +93,7 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
     $entityId = $this->createEntity([], 'en');
 
     // Set up Seven as the admin theme to test.
-    $this->container->get('theme_handler')->install(['seven']);
+    $this->container->get('theme_installer')->install(['seven']);
     $edit = [];
     $edit['admin_theme'] = 'seven';
     $this->drupalPostForm('admin/appearance', $edit, t('Save configuration'));
@@ -112,7 +117,7 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
       // We only want to test the title for non-english translations.
       if ($langcode != 'en') {
         $options = ['language' => $languages[$langcode]];
-        $url = $entity->urlInfo('edit-form', $options);
+        $url = $entity->toUrl('edit-form', $options);
         $this->drupalGet($url);
 
         $title = t('@title [%language translation]', [

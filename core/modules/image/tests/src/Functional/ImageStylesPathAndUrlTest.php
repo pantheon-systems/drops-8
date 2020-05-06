@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\image\Functional;
 
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
@@ -25,6 +27,11 @@ class ImageStylesPathAndUrlTest extends BrowserTestBase {
    * @var array
    */
   public static $modules = ['image', 'image_module_test', 'language'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * The image style.
@@ -134,7 +141,7 @@ class ImageStylesPathAndUrlTest extends BrowserTestBase {
 
     // Create the directories for the styles.
     $directory = $scheme . '://styles/' . $this->style->id();
-    $status = file_prepare_directory($directory, FILE_CREATE_DIRECTORY);
+    $status = \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY);
     $this->assertNotIdentical(FALSE, $status, 'Created the directory for the generated images for the test style.');
 
     // Override the language to build the URL for the correct language.
@@ -147,7 +154,9 @@ class ImageStylesPathAndUrlTest extends BrowserTestBase {
     // Create a working copy of the file.
     $files = $this->drupalGetTestFiles('image');
     $file = array_shift($files);
-    $original_uri = file_unmanaged_copy($file->uri, $scheme . '://', FILE_EXISTS_RENAME);
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $original_uri = $file_system->copy($file->uri, $scheme . '://', FileSystemInterface::EXISTS_RENAME);
     // Let the image_module_test module know about this file, so it can claim
     // ownership in hook_file_download().
     \Drupal::state()->set('image.test_file_download', $original_uri);
@@ -186,7 +195,7 @@ class ImageStylesPathAndUrlTest extends BrowserTestBase {
     // match the desired scheme before testing this, then switch it back to the
     // "temporary" scheme used throughout this test afterwards.
     $this->config('system.file')->set('default_scheme', $scheme)->save();
-    $relative_path = file_uri_target($original_uri);
+    $relative_path = StreamWrapperManager::getTarget($original_uri);
     $generate_url_from_relative_path = $this->style->buildUrl($relative_path, $clean_url);
     $this->assertEqual($generate_url, $generate_url_from_relative_path);
     $this->config('system.file')->set('default_scheme', 'temporary')->save();
@@ -231,8 +240,8 @@ class ImageStylesPathAndUrlTest extends BrowserTestBase {
       // Repeat this with a different file that we do not have access to and
       // make sure that access is denied.
       $file_noaccess = array_shift($files);
-      $original_uri_noaccess = file_unmanaged_copy($file_noaccess->uri, $scheme . '://', FILE_EXISTS_RENAME);
-      $generated_uri_noaccess = $scheme . '://styles/' . $this->style->id() . '/' . $scheme . '/' . drupal_basename($original_uri_noaccess);
+      $original_uri_noaccess = $file_system->copy($file_noaccess->uri, $scheme . '://', FileSystemInterface::EXISTS_RENAME);
+      $generated_uri_noaccess = $scheme . '://styles/' . $this->style->id() . '/' . $scheme . '/' . $file_system->basename($original_uri_noaccess);
       $this->assertFalse(file_exists($generated_uri_noaccess), 'Generated file does not exist.');
       $generate_url_noaccess = $this->style->buildUrl($original_uri_noaccess);
 
@@ -271,7 +280,7 @@ class ImageStylesPathAndUrlTest extends BrowserTestBase {
     // Create another working copy of the file.
     $files = $this->drupalGetTestFiles('image');
     $file = array_shift($files);
-    $original_uri = file_unmanaged_copy($file->uri, $scheme . '://', FILE_EXISTS_RENAME);
+    $original_uri = $file_system->copy($file->uri, $scheme . '://', FileSystemInterface::EXISTS_RENAME);
     // Let the image_module_test module know about this file, so it can claim
     // ownership in hook_file_download().
     \Drupal::state()->set('image.test_file_download', $original_uri);

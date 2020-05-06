@@ -14,51 +14,49 @@ use Drupal\Core\Extension\ExtensionDiscovery;
  *   The type of list to return:
  *   - theme: All installed themes.
  *
- * @return
+ * @return array
  *   An associative array of themes, keyed by name.
  *   For $type 'theme', the array values are objects representing the
  *   respective database row, with the 'info' property already unserialized.
  *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
+ *   \Drupal::service('theme_handler')->listInfo() instead.
+ *
+ * @see https://www.drupal.org/node/2709919
  * @see \Drupal\Core\Extension\ThemeHandler::listInfo()
  */
 function system_list($type) {
-  $lists = &drupal_static(__FUNCTION__);
-  if ($cached = \Drupal::cache('bootstrap')->get('system_list')) {
-    $lists = $cached->data;
-  }
-  else {
-    $lists = [
-      'theme' => [],
-      'filepaths' => [],
-    ];
-    // ThemeHandler maintains the 'system.theme.data' state record.
-    $theme_data = \Drupal::state()->get('system.theme.data', []);
-    foreach ($theme_data as $name => $theme) {
-      $lists['theme'][$name] = $theme;
-      $lists['filepaths'][] = [
-        'type' => 'theme',
-        'name' => $name,
-        'filepath' => $theme->getPathname(),
-      ];
-    }
-    \Drupal::cache('bootstrap')->set('system_list', $lists);
-  }
-  // To avoid a separate database lookup for the filepath, prime the
-  // drupal_get_filename() static cache with all enabled themes.
-  foreach ($lists['filepaths'] as $item) {
-    system_register($item['type'], $item['name'], $item['filepath']);
-  }
+  @trigger_error('system_list() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::service(\'theme_handler\')->listInfo() instead. See https://www.drupal.org/node/2709919', E_USER_DEPRECATED);
 
+  $lists = [
+    'theme' => \Drupal::service('theme_handler')->listInfo(),
+    'filepaths' => [],
+  ];
+  foreach ($lists['theme'] as $name => $theme) {
+    $lists['filepaths'][] = [
+      'type' => 'theme',
+      'name' => $name,
+      'filepath' => $theme->getPathname(),
+    ];
+  }
   return $lists[$type];
 }
 
 /**
  * Resets all system_list() caches.
+ *
+ * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. There
+ *   is no direct replacement. Call each
+ *   \Drupal::service('extension.list.TYPE')->reset() as necessary.
+ *
+ * @see https://www.drupal.org/node/2709919
  */
 function system_list_reset() {
-  drupal_static_reset('system_list');
+  @trigger_error("system_list_reset() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. There is no direct replacement. Call each \Drupal::service('extension.list.TYPE')->reset() as necessary. See https://www.drupal.org/node/2709919.", E_USER_DEPRECATED);
+  \Drupal::service('extension.list.profile')->reset();
   \Drupal::service('extension.list.module')->reset();
-  \Drupal::cache('bootstrap')->delete('system_list');
+  \Drupal::service('extension.list.theme_engine')->reset();
+  \Drupal::service('extension.list.theme')->reset();
 }
 
 /**
@@ -71,10 +69,18 @@ function system_list_reset() {
  * @param string $uri
  *   The relative URI of the primary extension file; e.g.,
  *   'core/modules/node/node.module'.
+ *
+ * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. There is
+ *   no replacement for this function. Use the following sequence of code to
+ *   achieve the same functionality:
+ *   @code
+ *   $path = \Drupal::service("extension.list.$type")->getPath($name);
+ *   \Drupal::service('class_loader')->addPsr4('Drupal\\' . $name . '\\', \Drupal::root() . '/' . $path . '/src');
+ *   @endcode
  */
 function system_register($type, $name, $uri) {
-  drupal_get_filename($type, $name, $uri);
-  drupal_classloader_register($name, dirname($uri));
+  @trigger_error('system_register() is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. There is no replacement for this function. To achieve the same functionality use this snippet: $path = \Drupal::service("extension.list.$type")->getPath($name); ' . "\\Drupal::service('class_loader')->addPsr4('Drupal\\\\' . \$name . '\\\\', \\Drupal::root() . '/' . \$path . '/src'); See https://www.drupal.org/node/3035275.", E_USER_DEPRECATED);
+  \Drupal::service('class_loader')->addPsr4('Drupal\\' . $name . '\\', \Drupal::root() . '/' . dirname($uri) . '/src');
 }
 
 /**
@@ -149,9 +155,8 @@ function drupal_required_modules() {
   $required = [];
 
   // Unless called by the installer, an installation profile is required and
-  // must always be loaded. drupal_get_profile() also returns the installation
-  // profile in the installer, but only after it has been selected.
-  if ($profile = drupal_get_profile()) {
+  // must always be loaded.
+  if ($profile = \Drupal::installProfile()) {
     $required[] = $profile;
   }
 

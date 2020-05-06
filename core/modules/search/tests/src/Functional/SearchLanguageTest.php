@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\search\Functional;
 
+use Drupal\Core\Url;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\BrowserTestBase;
@@ -17,6 +18,11 @@ class SearchLanguageTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected static $modules = ['language', 'node', 'search'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * Array of nodes available to search.
@@ -84,7 +90,6 @@ class SearchLanguageTest extends BrowserTestBase {
     // Update the index and then run the shutdown method.
     $plugin = $this->container->get('plugin.manager.search')->createInstance('node_search');
     $plugin->updateIndex();
-    search_update_totals();
   }
 
   public function testLanguages() {
@@ -101,7 +106,7 @@ class SearchLanguageTest extends BrowserTestBase {
 
     // Ensure selecting no language does not make the query different.
     $this->drupalPostForm('search/node', [], 'edit-submit--2');
-    $this->assertUrl(\Drupal::url('search.view_node_search', [], ['query' => ['keys' => ''], 'absolute' => TRUE]), [], 'Correct page redirection, no language filtering.');
+    $this->assertUrl(Url::fromRoute('search.view_node_search', [], ['query' => ['keys' => ''], 'absolute' => TRUE])->toString(), [], 'Correct page redirection, no language filtering.');
 
     // Pick French and ensure it is selected.
     $edit = ['language[fr]' => TRUE];

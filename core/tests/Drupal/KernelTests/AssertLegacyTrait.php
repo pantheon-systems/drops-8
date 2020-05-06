@@ -8,15 +8,19 @@ namespace Drupal\KernelTests;
  * Protected methods are custom. Public static methods override methods of
  * \PHPUnit\Framework\Assert.
  *
- * @deprecated Scheduled for removal in Drupal 9.0.0. Use PHPUnit's native
+ * Deprecated Scheduled for removal in Drupal 10.0.0. Use PHPUnit's native
  *   assert methods instead.
+ *
+ * @todo https://www.drupal.org/project/drupal/issues/3031580 Note that
+ *   deprecations in this file do not use the @ symbol in Drupal 8 because this
+ *   will be removed in Drupal 10.0.0.
  */
 trait AssertLegacyTrait {
 
   /**
    * @see \Drupal\simpletest\TestBase::assert()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use self::assertTrue()
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use self::assertTrue()
    *   instead.
    */
   protected function assert($actual, $message = '') {
@@ -24,86 +28,62 @@ trait AssertLegacyTrait {
   }
 
   /**
-   * @see \Drupal\simpletest\TestBase::assertTrue()
-   */
-  public static function assertTrue($actual, $message = '') {
-    if (is_bool($actual)) {
-      parent::assertTrue($actual, $message);
-    }
-    else {
-      parent::assertNotEmpty($actual, $message);
-    }
-  }
-
-  /**
-   * @see \Drupal\simpletest\TestBase::assertFalse()
-   */
-  public static function assertFalse($actual, $message = '') {
-    if (is_bool($actual)) {
-      parent::assertFalse($actual, $message);
-    }
-    else {
-      parent::assertEmpty($actual, $message);
-    }
-  }
-
-  /**
    * @see \Drupal\simpletest\TestBase::assertEqual()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use self::assertEquals()
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use self::assertEquals()
    *   instead.
    */
   protected function assertEqual($actual, $expected, $message = '') {
-    $this->assertEquals($expected, $actual, $message);
+    $this->assertEquals($expected, $actual, (string) $message);
   }
 
   /**
    * @see \Drupal\simpletest\TestBase::assertNotEqual()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use
    *   self::assertNotEquals() instead.
    */
   protected function assertNotEqual($actual, $expected, $message = '') {
-    $this->assertNotEquals($expected, $actual, $message);
+    $this->assertNotEquals($expected, $actual, (string) $message);
   }
 
   /**
    * @see \Drupal\simpletest\TestBase::assertIdentical()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use self::assertSame()
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use self::assertSame()
    *   instead.
    */
   protected function assertIdentical($actual, $expected, $message = '') {
-    $this->assertSame($expected, $actual, $message);
+    $this->assertSame($expected, $actual, (string) $message);
   }
 
   /**
    * @see \Drupal\simpletest\TestBase::assertNotIdentical()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use
    *   self::assertNotSame() instead.
    */
   protected function assertNotIdentical($actual, $expected, $message = '') {
-    $this->assertNotSame($expected, $actual, $message);
+    $this->assertNotSame($expected, $actual, (string) $message);
   }
 
   /**
    * @see \Drupal\simpletest\TestBase::assertIdenticalObject()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use self::assertEquals()
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use self::assertEquals()
    *   instead.
    */
   protected function assertIdenticalObject($actual, $expected, $message = '') {
     // Note: ::assertSame checks whether its the same object. ::assertEquals
     // though compares
 
-    $this->assertEquals($expected, $actual, $message);
+    $this->assertEquals($expected, $actual, (string) $message);
   }
 
   /**
    * @see \Drupal\simpletest\TestBase::pass()
    *
-   * @deprecated Scheduled for removal in Drupal 9.0.0. Use self::assertTrue()
+   * Deprecated Scheduled for removal in Drupal 10.0.0. Use self::assertTrue()
    *   instead.
    */
   protected function pass($message) {

@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\webform\Entity\Webform;
 use Drupal\webform\Entity\WebformSubmission;
+use Drupal\webform\WebformInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -18,6 +19,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * @see \Drupal\webform\Controller\WebformPluginElementController::index
  */
 class WebformUiElementTestForm extends WebformUiElementFormBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $operation = 'test';
 
   /**
    * Type of webform element being tested.
@@ -43,7 +49,7 @@ class WebformUiElementTestForm extends WebformUiElementFormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $type = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, WebformInterface $webform = NULL, $key = NULL, $parent_key = NULL, $type = NULL) {
     // Create a temp webform.
     $this->webform = Webform::create(['id' => '_webform_ui_temp_form']);
 
@@ -154,7 +160,7 @@ class WebformUiElementTestForm extends WebformUiElementFormBase {
       ];
     }
 
-    // Clear all messages including 'Unable to display this webform...' which is
+    // Clear all messages including 'Unable to display this webform…' which is
     // generated because we are using a temp webform.
     // drupal_get_messages();
     return $form;
@@ -165,7 +171,7 @@ class WebformUiElementTestForm extends WebformUiElementFormBase {
    */
   public function reset(array &$form, FormStateInterface $form_state) {
     \Drupal::request()->getSession()->remove('webform_ui_test_element_' . $this->type);
-    drupal_set_message($this->t('Webform element %type test has been reset.', ['%type' => $this->type]));
+    $this->messenger()->addStatus($this->t('Webform element %type test has been reset.', ['%type' => $this->type]));
   }
 
   /**
@@ -191,7 +197,7 @@ class WebformUiElementTestForm extends WebformUiElementFormBase {
 
     \Drupal::request()->getSession()->set('webform_ui_test_element_' . $this->type, $properties);
 
-    drupal_set_message($this->t('Webform element %type test has been updated.', ['%type' => $this->type]));
+    $this->messenger()->addStatus($this->t('Webform element %type test has been updated.', ['%type' => $this->type]));
   }
 
   /**

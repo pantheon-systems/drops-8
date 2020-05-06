@@ -104,6 +104,7 @@ class WebformFormHelper {
         '#group' => 'tabs',
         '#attributes' => [
           'id' => 'webform-tab--' . $tab_name,
+          'class' => ['webform-tab'],
         ],
       ];
     }
@@ -137,7 +138,7 @@ class WebformFormHelper {
    *
    * @return array
    *   The values without default keys like
-   *   'form_build_id', 'form_token', 'form_id', 'op', 'actions', etc...
+   *   'form_build_id', 'form_token', 'form_id', 'op', 'actions', etc…
    */
   public static function cleanupFormStateValues(array $values, array $keys = []) {
     // Remove default FAPI values.
@@ -163,7 +164,7 @@ class WebformFormHelper {
   }
 
   /**
-   * Traverse a render array and collect references to all elements in an associative array keyed by element name.
+   * Traverse a render array and collect references to all elements in an associative array keyed by element key.
    *
    * @param array $build
    *   An render array.
@@ -179,7 +180,7 @@ class WebformFormHelper {
   }
 
   /**
-   * Traverse a render array and collect references to all elements in an associative array keyed by element name.
+   * Traverse a render array and collect references to all elements in an associative array keyed by element key.
    *
    * @param array $build
    *   An render array.
@@ -190,7 +191,7 @@ class WebformFormHelper {
    */
   protected static function flattenElementsRecursive(array &$build, array &$elements, array &$duplicate_element_keys) {
     foreach ($build as $key => &$element) {
-      if (Element::child($key) && is_array($element)) {
+      if (WebformElementHelper::isElement($element, $key)) {
         // If there are duplicate element keys create an array of referenced
         // elements.
         if (isset($elements[$key])) {

@@ -305,7 +305,7 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
    * @return static
    *   The object itself for chaining.
    *
-   * @deprecated in Drupal 8.4.0 and will be removed before Drupal 9.0.0. Use
+   * @deprecated in drupal:8.4.0 and is removed from drupal:9.0.0. Use
    *   \Drupal\Core\Field\BaseFieldDefinition::setCustomStorage() instead.
    *
    * @see https://www.drupal.org/node/2856563
@@ -637,7 +637,7 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
   /**
    * Helper to retrieve the field item class.
    *
-   * @deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Use
+   * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use
    *   \Drupal\Core\TypedData\ListDataDefinition::getClass() instead.
    */
   protected function getFieldItemClass() {
@@ -734,12 +734,6 @@ class BaseFieldDefinition extends ListDataDefinition implements FieldDefinitionI
    */
   public function getColumns() {
     $schema = $this->getSchema();
-    // A typical use case for the method is to iterate on the columns, while
-    // some other use cases rely on identifying the first column with the key()
-    // function. Since the schema is persisted in the Field object, we take care
-    // of resetting the array pointer so that the former does not interfere with
-    // the latter.
-    reset($schema['columns']);
     return $schema['columns'];
   }
 

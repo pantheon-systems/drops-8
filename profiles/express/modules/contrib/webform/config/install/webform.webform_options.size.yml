@@ -7,6 +7,7 @@ dependencies:
 id: size
 label: Size
 category: General
+likert: false
 options: |
   Extra Small: Extra Small
   Small: Small

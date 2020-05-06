@@ -2,10 +2,10 @@
 
 namespace Drupal\webform\Plugin\WebformHandler;
 
-use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\webform\Utility\WebformYaml;
 use Drupal\webform\Plugin\WebformHandlerBase;
+use Drupal\webform\Utility\WebformElementHelper;
+use Drupal\webform\Utility\WebformYaml;
 use Drupal\webform\WebformSubmissionInterface;
 
 /**
@@ -27,8 +27,10 @@ class DebugWebformHandler extends WebformHandlerBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state, WebformSubmissionInterface $webform_submission) {
-    $build = ['#markup' => 'Submitted values are:<pre>' . WebformYaml::tidy(Yaml::encode($webform_submission->getData())) . '</pre>'];
-    drupal_set_message(\Drupal::service('renderer')->renderPlain($build), 'warning');
+    $data = $webform_submission->getData();
+    WebformElementHelper::convertRenderMarkupToStrings($data);
+    $build = ['#markup' => 'Submitted values are:<pre>' . WebformYaml::encode($data) . '</pre>'];
+    $this->messenger()->addWarning(\Drupal::service('renderer')->renderPlain($build));
   }
 
 }

@@ -11,10 +11,10 @@ use Drupal\Core\Serialization\Yaml;
  * Implements hook_install().
  */
 function webform_bootstrap_test_module_install() {
-  // Uninstall bootstrap theme.
-  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
-  $theme_handler = \Drupal::service('theme_handler');
-  $theme_handler->install(['webform_bootstrap_test_theme', 'bootstrap']);
+  // Install bootstrap theme.
+  /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
+  $theme_installer = \Drupal::service('theme_installer');
+  $theme_installer->install(['webform_bootstrap_test_theme', 'bootstrap']);
 
   // Set default theme to bootstrap.
   \Drupal::configFactory()->getEditable('system.theme')
@@ -115,7 +115,8 @@ function webform_bootstrap_test_module_uninstall() {
     ->save();
 
   // Uninstall bootstrap theme.
-  /** @var \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler */
-  $theme_handler = \Drupal::service('theme_handler');
-  $theme_handler->uninstall(['webform_bootstrap_test_theme', 'bootstrap']);
+  // Install bootstrap theme.
+  /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
+  $theme_installer = \Drupal::service('theme_installer');
+  $theme_installer->uninstall(['webform_bootstrap_test_theme', 'bootstrap']);
 }

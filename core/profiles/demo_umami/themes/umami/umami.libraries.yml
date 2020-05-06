@@ -7,12 +7,15 @@ global:
       css/components/blocks/banner/banner.css: {}
       css/components/blocks/branding/branding.css: {}
       css/components/blocks/disclaimer/disclaimer.css: {}
+      css/components/blocks/help/help.css: {}
       css/components/blocks/page-title/page-title.css: {}
       css/components/blocks/footer-promo/footer-promo.css: {}
+      css/components/blocks/language-switcher/language-switcher.css: {}
       css/components/blocks/search/search.css: {}
       css/components/blocks/search/search-results.css: {}
       css/components/blocks/articles-aside/articles-aside.css: {}
       css/components/forms/contact.css: {}
+      css/components/forms/content-moderation.css: {}
       css/components/content/node.css: {}
       css/components/content/full/node-full.css: {}
       css/components/content-types/recipe/recipe.css: {}
@@ -20,6 +23,7 @@ global:
       css/components/fields/ingredients.css: {}
       css/components/fields/label-items.css: {}
       css/components/fields/recipe-instruction.css: {}
+      css/components/fields/summary.css: {}
       css/components/forms/buttons.css: {}
       css/components/views/promoted-items.css: {}
       css/components/views/frontpage.css: {}
@@ -33,7 +37,10 @@ global:
       css/components/regions/bottom/bottom.css: {}
       css/components/regions/footer/footer.css: {}
       css/components/regions/header/header.css: {}
+      css/components/regions/highlighted/highlighted.css: {}
       css/components/regions/pre-header/pre-header.css: {}
+      css/components/toolbar/toolbar.css: {}
+      css/components/layout_builder/layout-builder.css: {}
     layout:
       css/layout/grid-2.css: {}
       css/layout/grid-3.css: {}
@@ -41,6 +48,8 @@ global:
       css/layout/layout.css: {}
   js:
     js/components/navigation/menu-main/menu-main.js: {}
+  dependencies:
+    - umami/demo-umami-tour
 
 messages:
   css:
@@ -67,11 +76,25 @@ two-columns:
     layout:
       css/layout/layout-2-col.css: {}
 
-
-webfonts:
+webfonts-open-sans:
+  remote: https://fonts.google.com
+  license:
+    name: Apache License, Version 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0
+    gpl-compatible: false
   css:
     theme:
-      'https://fonts.googleapis.com/css?family=Open+Sans|Scope+One': { type: external, minified: true }
+      'https://fonts.googleapis.com/css?family=Open+Sans:400,400i,700,700i': { type: external, minified: true }
+
+webfonts-scope-one:
+  remote: https://fonts.google.com
+  license:
+    name: SIL Open Font License, Version 1.1
+    url: http://scripts.sil.org/OFL_web
+    gpl-compatible: false
+  css:
+    theme:
+      'https://fonts.googleapis.com/css?family=Scope+One': { type: external, minified: true }
 
 view-mode-card:
   css:
@@ -95,3 +118,15 @@ view-mode-card-common-alt:
       css/components/content/card-common-alt/card-common-alt.css: {}
   dependencies:
     - umami/more-link
+
+demo-umami-tour:
+  css:
+   theme:
+      css/components/tour/tour.theme.css: {}
+  dependencies:
+    - seven/tour-styling
+
+oneplusfourgrid_section:
+  css:
+    theme:
+      layouts/oneplusfourgrid_section/oneplusfourgrid_section.css: {}

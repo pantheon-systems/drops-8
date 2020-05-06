@@ -18,15 +18,15 @@ function views_ui_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.views_ui':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('The Views UI module provides an interface for managing views for the <a href=":views">Views module</a>. For more information, see the <a href=":handbook">online documentation for the Views UI module</a>.', [':views' => \Drupal::url('help.page', ['name' => 'views']), ':handbook' => 'https://www.drupal.org/documentation/modules/views_ui']) . '</p>';
+      $output .= '<p>' . t('The Views UI module provides an interface for managing views for the <a href=":views">Views module</a>. For more information, see the <a href=":handbook">online documentation for the Views UI module</a>.', [':views' => Url::fromRoute('help.page', ['name' => 'views'])->toString(), ':handbook' => 'https://www.drupal.org/documentation/modules/views_ui']) . '</p>';
       $output .= '<h3>' . t('Uses') . '</h3>';
       $output .= '<dl>';
       $output .= '<dt>' . t('Creating and managing views') . '</dt>';
-      $output .= '<dd>' . t('Views can be created from the <a href=":list">Views list page</a> by using the "Add view" action. Existing views can be managed from the <a href=":list">Views list page</a> by locating the view in the "Enabled" or "Disabled" list and selecting the desired operation action, for example "Edit".', [':list' => \Drupal::url('entity.view.collection', ['name' => 'views_ui'])]) . '</dd>';
+      $output .= '<dd>' . t('Views can be created from the <a href=":list">Views list page</a> by using the "Add view" action. Existing views can be managed from the <a href=":list">Views list page</a> by locating the view in the "Enabled" or "Disabled" list and selecting the desired operation action, for example "Edit".', [':list' => Url::fromRoute('entity.view.collection', ['name' => 'views_ui'])->toString()]) . '</dd>';
       $output .= '<dt>' . t('Enabling and disabling views') . '<dt>';
-      $output .= '<dd>' . t('Views can be enabled or disabled from the <a href=":list">Views list page</a>. To enable a view, find the view within the "Disabled" list and select the "Enable" operation. To disable a view find the view within the "Enabled" list and select the "Disable" operation.', [':list' => \Drupal::url('entity.view.collection', ['name' => 'views_ui'])]) . '</dd>';
+      $output .= '<dd>' . t('Views can be enabled or disabled from the <a href=":list">Views list page</a>. To enable a view, find the view within the "Disabled" list and select the "Enable" operation. To disable a view find the view within the "Enabled" list and select the "Disable" operation.', [':list' => Url::fromRoute('entity.view.collection', ['name' => 'views_ui'])->toString()]) . '</dd>';
       $output .= '<dt>' . t('Exporting and importing views') . '</dt>';
-      $output .= '<dd>' . t('Views can be exported and imported as configuration files by using the <a href=":config">Configuration Manager module</a>.', [':config' => (\Drupal::moduleHandler()->moduleExists('config')) ? \Drupal::url('help.page', ['name' => 'config']) : '#']) . '</dd>';
+      $output .= '<dd>' . t('Views can be exported and imported as configuration files by using the <a href=":config">Configuration Manager module</a>.', [':config' => (\Drupal::moduleHandler()->moduleExists('config')) ? Url::fromRoute('help.page', ['name' => 'config'])->toString() : '#']) . '</dd>';
       $output .= '</dl>';
       return $output;
   }
@@ -316,15 +316,14 @@ function views_ui_views_analyze(ViewExecutable $view) {
   if (count($view->displayHandlers) < 2) {
     $ret[] = Analyzer::formatMessage(t('This view has only a default display and therefore will not be placed anywhere on your site; perhaps you want to add a page or a block display.'), 'warning');
   }
-  // You can give a page display the same path as an alias existing in the
-  // system, so the alias will not work anymore. Report this to the user,
-  // because he probably wanted something else.
+  // If a display has a path, check that it does not match an existing path
+  // alias. This results in the path alias not working.
   foreach ($view->displayHandlers as $display) {
     if (empty($display)) {
       continue;
     }
     if ($display->hasPath() && $path = $display->getOption('path')) {
-      $normal_path = \Drupal::service('path.alias_manager')->getPathByAlias($path);
+      $normal_path = \Drupal::service('path_alias.manager')->getPathByAlias($path);
       if ($path != $normal_path) {
         $ret[] = Analyzer::formatMessage(t('You have configured display %display with a path which is an path alias as well. This might lead to unwanted effects so better use an internal path.', ['%display' => $display->display['display_title']]), 'warning');
       }

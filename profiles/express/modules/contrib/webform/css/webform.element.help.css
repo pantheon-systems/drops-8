@@ -5,34 +5,42 @@
 
 .webform-element-help {
   display: inline-block;
-  border: 2px solid #bbb;
-  background: #bbb;
-  line-height: 14px;
+  box-sizing: content-box;
   width: 14px;
-  font-size: 12px;
-  border-radius: 50%;
-  font-weight: bold;
+  height: 14px;
+  margin: 0 0.3em;
   text-align: center;
   vertical-align: baseline;
-  margin: 0 .3em;
-}
-
-.webform-element-help:link,
-.webform-element-help:visited {
   color: #fff;
-  text-decoration: none;
+  border: 2px solid #bbb;
+  border-radius: 50%;
+  background: #bbb;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 14px;
 }
 
 .webform-element-help:focus,
 .webform-element-help:active,
 .webform-element-help:hover {
+  cursor: help;
+  color: #fff;
   border: 2px solid #0074bd;
   background: #0074bd;
-  color: #fff;
-  text-decoration: none;
-  cursor: help;
+}
+
+.webform-element-help--title {
+  margin: 0 0 0.2em 0;
+  font-size: 1.1em;
+  font-weight: bold;
 }
 
 .ui-tooltip.webform-element-help--tooltip {
   max-width: 400px;
+}
+
+@media only screen and (max-width: 400px) {
+  .ui-tooltip.webform-element-help--tooltip {
+    max-width: 300px;
+  }
 }

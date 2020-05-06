@@ -1,0 +1,28 @@
+webform_options_custom.element:
+  version: VERSION
+  css:
+    component:
+      css/webform_options_custom.element.css: {}
+  js:
+    js/webform_options_custom.element.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery.once
+    - core/jquery.ui.tooltip
+    - webform/webform.element.select
+
+# External libraries.
+
+libraries.svg-pan-zoom:
+  remote: https://github.com/ariutta/svg-pan-zoom
+  version: '3.6.1'
+  license:
+    name: BDS
+    url: https://github.com/ariutta/svg-pan-zoom/blob/master/LICENSE
+    gpl-compatible: true
+  cdn:
+    /libraries/svg-pan-zoom/: https://cdn.jsdelivr.net/gh/ariutta/svg-pan-zoom@3.6.1/
+  js:
+    /libraries/svg-pan-zoom/dist/svg-pan-zoom.js: {}
+  dependencies:
+    - core/jquery

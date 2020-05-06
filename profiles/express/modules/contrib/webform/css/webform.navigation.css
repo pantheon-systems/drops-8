@@ -9,17 +9,17 @@
  * Navigation.
  */
 .webform-submission-navigation {
+  margin: 0.5em 0;
   border-top: 1px solid #ccc;
   border-bottom: 1px solid #ccc;
-  margin: 0.5em 0;
 }
 
 /**
  * Pager.
  */
 .webform-submission-pager {
-  margin: 0;
   overflow: auto;
+  margin: 0;
   padding: 0.5em 0;
 }
 
@@ -30,8 +30,8 @@
 }
 
 .webform-submission-pager__item--previous {
-  text-align: left; /* LTR */
   width: 45%;
+  text-align: left; /* LTR */
 }
 
 [dir="rtl"] .webform-submission-pager__item--previous {
@@ -41,8 +41,8 @@
 
 .webform-submission-pager__item--next {
   float: right; /* LTR */
-  text-align: right; /* LTR */
   width: 45%;
+  text-align: right; /* LTR */
 }
 
 [dir="rtl"] .webform-submission-pager__item--next {

@@ -17,6 +17,11 @@ class CommandsTest extends WebDriverTestBase {
   public static $modules = ['node', 'ajax_test', 'ajax_forms_test'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests the various Ajax Commands.
    */
   public function testAjaxCommands() {
@@ -37,14 +42,36 @@ class CommandsTest extends WebDriverTestBase {
     $this->assertWaitPageContains('<div id="after_div">Something can be inserted after this</div>This will be placed after');
 
     // Tests the 'alert' command.
-    $test_alert_command = <<<JS
-window.alert = function() {
-  document.body.innerHTML += '<div class="alert-command">Alert</div>';
-};
-JS;
-    $session->executeScript($test_alert_command);
     $page->pressButton("AJAX 'Alert': Click to alert");
-    $this->assertWaitPageContains('<div class="alert-command">Alert</div>');
+    // Wait for the alert to appear.
+    $page->waitFor(10, function () use ($session) {
+      try {
+        $session->getDriver()->getWebDriverSession()->getAlert_text();
+        return TRUE;
+      }
+      catch (\Exception $e) {
+        return FALSE;
+      }
+    });
+    $alert_text = $this->getSession()->getDriver()->getWebDriverSession()->getAlert_text();
+    $this->assertEquals('Alert', $alert_text);
+    $this->getSession()->getDriver()->getWebDriverSession()->accept_alert();
+
+    $this->drupalGet($form_path);
+    $page->pressButton("AJAX 'Announce': Click to announce");
+    $this->assertWaitPageContains('<div id="drupal-live-announce" class="visually-hidden" aria-live="polite" aria-busy="false">Default announcement.</div>');
+
+    $this->drupalGet($form_path);
+    $page->pressButton("AJAX 'Announce': Click to announce with 'polite' priority");
+    $this->assertWaitPageContains('<div id="drupal-live-announce" class="visually-hidden" aria-live="polite" aria-busy="false">Polite announcement.</div>');
+
+    $this->drupalGet($form_path);
+    $page->pressButton("AJAX 'Announce': Click to announce with 'assertive' priority");
+    $this->assertWaitPageContains('<div id="drupal-live-announce" class="visually-hidden" aria-live="assertive" aria-busy="false">Assertive announcement.</div>');
+
+    $this->drupalGet($form_path);
+    $page->pressButton("AJAX 'Announce': Click to announce twice");
+    $this->assertWaitPageContains('<div id="drupal-live-announce" class="visually-hidden" aria-live="assertive" aria-busy="false">Assertive announcement.' . "\nAnother announcement.</div>");
 
     // Tests the 'append' command.
     $page->pressButton("AJAX 'Append': Click to append something");

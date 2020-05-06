@@ -45,12 +45,7 @@ class PoStreamWriterTest extends TestCase {
    * @covers ::getURI
    */
   public function testGetUriException() {
-    if (method_exists($this, 'expectException')) {
-      $this->expectException(\Exception::class, 'No URI set.');
-    }
-    else {
-      $this->setExpectedException(\Exception::class, 'No URI set.');
-    }
+    $this->expectException(\Exception::class, 'No URI set.');
 
     $this->poWriter->getURI();
   }
@@ -61,12 +56,7 @@ class PoStreamWriterTest extends TestCase {
    */
   public function testWriteItem($poContent, $expected, $long) {
     if ($long) {
-      if (method_exists($this, 'expectException')) {
-        $this->expectException(\Exception::class, 'Unable to write data:');
-      }
-      else {
-        $this->setExpectedException(\Exception::class, 'Unable to write data:');
-      }
+      $this->expectException(\Exception::class, 'Unable to write data:');
     }
 
     // Limit the file system quota to make the write fail on long strings.
@@ -105,12 +95,7 @@ class PoStreamWriterTest extends TestCase {
    * @covers ::close
    */
   public function testCloseException() {
-    if (method_exists($this, 'expectException')) {
-      $this->expectException(\Exception::class, 'Cannot close stream that is not open.');
-    }
-    else {
-      $this->setExpectedException(\Exception::class, 'Cannot close stream that is not open.');
-    }
+    $this->expectException(\Exception::class, 'Cannot close stream that is not open.');
 
     $this->poWriter->close();
   }

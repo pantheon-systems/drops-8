@@ -9,6 +9,28 @@ use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Url;
 use Drupal\webform\Utility\WebformElementHelper;
 
+/**
+ * Test element callback that should be ignored.
+ *
+ * @param array $element
+ *   An element.
+ *
+ * @return array
+ *   An element.
+ */
+function webform_test_ignored_element_callback($arg = NULL) {
+  // Display error message when this callback is executed.
+  if (is_array($arg) && isset($arg['#title'])) {
+    $message = t('Callback not ignored for @title', ['@title' => $arg['#title']]);
+    \Drupal::messenger()->addError($message);
+    return $arg;
+  }
+  else {
+    $message = t('Callback not ignored');
+    \Drupal::messenger()->addError($message);
+  }
+}
+
 /******************************************************************************/
 // Generate elements.
 /******************************************************************************/
@@ -22,7 +44,7 @@ function webform_test_preprocess_page(&$variables) {
     && _webform_test_load_include(\Drupal::routeMatch()->getRawParameter('webform'))
   ) {
     $t_args = [':href' => Url::fromRouteMatch(\Drupal::routeMatch())->toString() . '?generate'];
-    drupal_set_message(t('The below webform\'s elements are automatically generated and exported. You can regenerate the below elements by appending <a href=":href">?generate</a> to this page\'s URL.', $t_args), 'warning');
+    \Drupal::messenger()->addWarning(t('The below webform\'s elements are automatically generated and exported. You can regenerate the below elements by appending <a href=":href">?generate</a> to this page\'s URL.', $t_args));
   }
 }
 
@@ -51,7 +73,7 @@ function webform_test_webform_load(array $entities) {
         ->save();
 
       // Display message.
-      drupal_set_message(t('Generated elements for %title webform', ['%title' => $entity->label()]));
+      \Drupal::messenger()->addStatus(t('Generated elements for %title webform', ['%title' => $entity->label()]));
     }
   }
 }

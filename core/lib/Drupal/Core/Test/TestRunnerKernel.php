@@ -31,8 +31,8 @@ class TestRunnerKernel extends DrupalKernel {
     // Prime the module list and corresponding Extension objects.
     // @todo Remove System module. Needed because
     //   \Drupal\Core\Datetime\DateFormatter has a (needless) dependency on the
-    //   'date_format' entity, so calls to format_date()/format_interval() cause
-    //   a plugin not found exception.
+    //   'date_format' entity, so calls to DateFormatter::format() and
+    //   DateFormatter::formatInterval() cause a plugin not found exception.
     $this->moduleList = [
       'system' => 0,
       'simpletest' => 0,
@@ -70,7 +70,11 @@ class TestRunnerKernel extends DrupalKernel {
 
     $this->getContainer()->get('module_handler')->loadAll();
 
-    $this->getContainer()->get('test_discovery')->registerTestNamespaces();
+    $test_discovery = new TestDiscovery(
+      $this->getContainer()->get('app.root'),
+      $this->getContainer()->get('class_loader')
+    );
+    $test_discovery->registerTestNamespaces();
 
     // Register stream wrappers.
     $this->getContainer()->get('stream_wrapper_manager')->register();

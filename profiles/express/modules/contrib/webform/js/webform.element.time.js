@@ -31,7 +31,7 @@
 
         // Skip if time inputs are supported by the browser and input is not a text field.
         // @see \Drupal\webform\Element\WebformDatetime
-        if (window.Modernizr && Modernizr.inputtypes.time === true && $input.attr('type') != 'text') {
+        if (window.Modernizr && Modernizr.inputtypes && Modernizr.inputtypes.time === true && $input.attr('type') !== 'text') {
           return;
         }
 
@@ -62,6 +62,6 @@
         $input.timepicker(options);
       });
     }
-  }
+  };
 
 })(jQuery, Drupal);

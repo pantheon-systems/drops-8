@@ -25,13 +25,12 @@ content:
     third_party_settings: {  }
     type: file_generic
     region: content
-  name:
-    type: string_textfield
-    weight: -5
+  langcode:
+    type: language_select
+    weight: 2
     region: content
     settings:
-      size: 60
-      placeholder: ''
+      include_locked: true
     third_party_settings: {  }
   path:
     type: path
@@ -51,9 +50,11 @@ content:
     weight: 5
     settings:
       match_operator: CONTAINS
+      match_limit: 10
       size: 60
       placeholder: ''
     region: content
     third_party_settings: {  }
 hidden:
   moderation_state: true
+  name: true

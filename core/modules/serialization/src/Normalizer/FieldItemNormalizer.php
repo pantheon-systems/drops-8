@@ -11,6 +11,9 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
  */
 class FieldItemNormalizer extends ComplexDataNormalizer implements DenormalizerInterface {
 
+  use FieldableEntityNormalizerTrait;
+  use SerializedColumnNormalizerTrait;
+
   /**
    * {@inheritdoc}
    */
@@ -30,28 +33,10 @@ class FieldItemNormalizer extends ComplexDataNormalizer implements DenormalizerI
 
     /** @var \Drupal\Core\Field\FieldItemInterface $field_item */
     $field_item = $context['target_instance'];
+    $this->checkForSerializedStrings($data, $class, $field_item);
 
     $field_item->setValue($this->constructValue($data, $context));
     return $field_item;
-  }
-
-  /**
-   * Build the field item value using the incoming data.
-   *
-   * Most normalizers that extend this class can simply use this method to
-   * construct the denormalized value without having to override denormalize()
-   * and reimplementing its validation logic or its call to set the field value.
-   *
-   * @param mixed $data
-   *   The incoming data for this field item.
-   * @param array $context
-   *   The context passed into the Normalizer.
-   *
-   * @return mixed
-   *   The value to use in Entity::setValue().
-   */
-  protected function constructValue($data, $context) {
-    return $data;
   }
 
 }

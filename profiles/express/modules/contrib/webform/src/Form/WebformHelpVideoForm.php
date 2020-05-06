@@ -4,7 +4,7 @@ namespace Drupal\webform\Form;
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Url;
 use Drupal\webform\WebformHelpManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -13,6 +13,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Help video form.
  */
 class WebformHelpVideoForm extends FormBase {
+
+  use WebformDialogFormTrait;
 
   /**
    * The webform help manager.
@@ -66,6 +68,7 @@ class WebformHelpVideoForm extends FormBase {
     }
 
     $form['#title'] = $video['title'];
+
     // Content.
     if (is_array($video['content'])) {
       $form['content'] = $video['content'];
@@ -84,15 +87,41 @@ class WebformHelpVideoForm extends FormBase {
       ];
     }
 
-    // Actions.
-    if (isset($video['submit_label'])) {
-      $form['actions'] = ['#type' => 'actions'];
-      $form['actions']['submit'] = [
-        '#type' => 'submit',
-        '#value' => $video['submit_label'],
-        '#button_type' => 'primary',
+    // Related resources.
+    if ($video_links = $this->helpManager->getVideoLinks($this->videoId)) {
+      $form['resources'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Additional resources'),
+        'links' => [
+          '#theme' => 'links',
+          '#links' => $video_links,
+        ],
       ];
     }
+
+    // Actions.
+    if ($this->isDialog()) {
+      $form['modal_actions'] = ['#type' => 'actions'];
+      $form['modal_actions']['close'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Close'),
+        '#ajax' => [
+          'callback' => '::closeDialog',
+          'event' => 'click',
+        ],
+        '#attributes' => ['class' => ['button', 'button--primary']],
+      ];
+      if ($this->getRequest()->query->get('more')) {
+        $form['modal_actions']['more'] = [
+          '#type' => 'link',
+          '#title' => $this->t('▶ Watch more videos'),
+          '#url' => Url::fromRoute('webform.help'),
+          '#attributes' => ['class' => ['button']],
+        ];
+      }
+    }
+
+    $form['#attached']['library'][] = 'webform/webform.help';
 
     return $form;
   }
@@ -100,11 +129,20 @@ class WebformHelpVideoForm extends FormBase {
   /**
    * {@inheritdoc}
    */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    if ($this->isDialog()) {
+      $form_state->clearErrors();
+    }
+    else {
+      parent::validateForm($form, $form_state);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $video = $this->helpManager->getVideo($this->videoId);
-    /** @var \Drupal\Core\Url $url */
-    $url = $video['submit_url'];
-    $form_state->setResponse(new TrustedRedirectResponse($url->setAbsolute()->toString()));
+    // Do nothing.
   }
 
 }

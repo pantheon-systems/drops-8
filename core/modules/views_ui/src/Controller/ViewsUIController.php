@@ -3,6 +3,7 @@
 namespace Drupal\views_ui\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\views\ViewExecutable;
 use Drupal\views\ViewEntityInterface;
@@ -54,7 +55,7 @@ class ViewsUIController extends ControllerBase {
    *   The Views fields report page.
    */
   public function reportFields() {
-    $views = $this->entityManager()->getStorage('view')->loadMultiple();
+    $views = $this->entityTypeManager()->getStorage('view')->loadMultiple();
 
     // Fetch all fieldapi fields which are used in views
     // Therefore search in all views, displays and handler-types.
@@ -86,7 +87,7 @@ class ViewsUIController extends ControllerBase {
     foreach ($fields as $field_name => $views) {
       $rows[$field_name]['data'][0]['data']['#plain_text'] = $field_name;
       foreach ($views as $view) {
-        $rows[$field_name]['data'][1][] = $this->l($view, new Url('entity.view.edit_form', ['view' => $view]));
+        $rows[$field_name]['data'][1][] = Link::fromTextAndUrl($view, new Url('entity.view.edit_form', ['view' => $view]))->toString();
       }
       $item_list = [
         '#theme' => 'item_list',
@@ -120,7 +121,7 @@ class ViewsUIController extends ControllerBase {
       $views = [];
       // Link each view name to the view itself.
       foreach ($row['views'] as $row_name => $view) {
-        $views[] = $this->l($view, new Url('entity.view.edit_form', ['view' => $view]));
+        $views[] = Link::fromTextAndUrl($view, new Url('entity.view.edit_form', ['view' => $view]))->toString();
       }
       unset($row['views']);
       $row['views']['data'] = [
@@ -160,7 +161,7 @@ class ViewsUIController extends ControllerBase {
 
     // If the request is via AJAX, return the rendered list as JSON.
     if ($request->request->get('js')) {
-      $list = $this->entityManager()->getListBuilder('view')->render();
+      $list = $this->entityTypeManager()->getListBuilder('view')->render();
       $response = new AjaxResponse();
       $response->addCommand(new ReplaceCommand('#views-entity-list', $list));
       return $response;
@@ -183,7 +184,7 @@ class ViewsUIController extends ControllerBase {
     $matches = [];
     $string = $request->query->get('q');
     // Get matches from default views.
-    $views = $this->entityManager()->getStorage('view')->loadMultiple();
+    $views = $this->entityTypeManager()->getStorage('view')->loadMultiple();
     // Keep track of previously processed tags so they can be skipped.
     $tags = [];
     foreach ($views as $view) {

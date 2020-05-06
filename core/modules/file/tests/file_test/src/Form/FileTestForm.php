@@ -2,6 +2,7 @@
 
 namespace Drupal\file_test\Form;
 
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormInterface;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -29,11 +30,11 @@ class FileTestForm implements FormInterface {
       '#type' => 'select',
       '#title' => t('Replace existing image'),
       '#options' => [
-        FILE_EXISTS_RENAME => t('Appends number until name is unique'),
-        FILE_EXISTS_REPLACE => t('Replace the existing file'),
-        FILE_EXISTS_ERROR => t('Fail with an error'),
+        FileSystemInterface::EXISTS_RENAME => t('Appends number until name is unique'),
+        FileSystemInterface::EXISTS_REPLACE => t('Replace the existing file'),
+        FileSystemInterface::EXISTS_ERROR => t('Fail with an error'),
       ],
-      '#default_value' => FILE_EXISTS_RENAME,
+      '#default_value' => FileSystemInterface::EXISTS_RENAME,
     ];
     $form['file_subdir'] = [
       '#type' => 'textfield',
@@ -79,7 +80,7 @@ class FileTestForm implements FormInterface {
     // form value for the $replace parameter.
     if (!$form_state->isValueEmpty('file_subdir')) {
       $destination = 'temporary://' . $form_state->getValue('file_subdir');
-      file_prepare_directory($destination, FILE_CREATE_DIRECTORY);
+      \Drupal::service('file_system')->prepareDirectory($destination, FileSystemInterface::CREATE_DIRECTORY);
     }
     else {
       $destination = FALSE;
@@ -98,9 +99,9 @@ class FileTestForm implements FormInterface {
       $validators['file_validate_extensions'] = [$form_state->getValue('extensions')];
     }
 
-    // The test for drupal_move_uploaded_file() triggering a warning is
-    // unavoidable. We're interested in what happens afterwards in
-    // file_save_upload().
+    // The test for \Drupal::service('file_system')->moveUploadedFile()
+    // triggering a warning is unavoidable. We're interested in what happens
+    // afterwards in file_save_upload().
     if (\Drupal::state()->get('file_test.disable_error_collection')) {
       define('SIMPLETEST_COLLECT_ERRORS', FALSE);
     }

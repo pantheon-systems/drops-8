@@ -5,6 +5,8 @@
  * Hooks for the Help system.
  */
 
+use Drupal\Core\Url;
+
 /**
  * @addtogroup hooks
  * @{
@@ -48,7 +50,7 @@ function hook_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_
   switch ($route_name) {
     // Main module help for the block module.
     case 'help.page.block':
-      return '<p>' . t('Blocks are boxes of content rendered into an area, or region, of a web page. The default theme Bartik, for example, implements the regions "Sidebar first", "Sidebar second", "Featured", "Content", "Header", "Footer", etc., and a block may appear in any one of these areas. The <a href=":blocks">blocks administration page</a> provides a drag-and-drop interface for assigning a block to a region, and for controlling the order of blocks within regions.', [':blocks' => \Drupal::url('block.admin_display')]) . '</p>';
+      return '<p>' . t('Blocks are boxes of content rendered into an area, or region, of a web page. The default theme Bartik, for example, implements the regions "Sidebar first", "Sidebar second", "Featured", "Content", "Header", "Footer", etc., and a block may appear in any one of these areas. The <a href=":blocks">blocks administration page</a> provides a drag-and-drop interface for assigning a block to a region, and for controlling the order of blocks within regions.', [':blocks' => Url::fromRoute('block.admin_display')->toString()]) . '</p>';
 
     // Help for another path in the block module.
     case 'block.admin_display':
@@ -70,9 +72,11 @@ function hook_help($route_name, \Drupal\Core\Routing\RouteMatchInterface $route_
  * @see \Drupal\help\Annotation\HelpSection
  * @see \Drupal\help\HelpSectionManager
  */
-function hook_help_section_info_alter(&$info) {
+function hook_help_section_info_alter(array &$info) {
   // Alter the header for the module overviews section.
-  $info['hook_help']['header'] = t('Overviews of modules');
+  $info['hook_help']['title'] = t('Overviews of modules');
+  // Move the module overviews section to the end.
+  $info['hook_help']['weight'] = 500;
 }
 
 /**

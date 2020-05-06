@@ -23,23 +23,13 @@ abstract class DocumentBaseWebformExporter extends WebformExporterBase {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    if (isset($form['file_name'])) {
-      return $form;
-    }
-
+    $form = parent::buildConfigurationForm($form, $form_state);
     $form['file_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('File name'),
       '#description' => $this->t('Used to create unique file names for exported submissions.'),
       '#required' => TRUE,
       '#default_value' => $this->configuration['file_name'],
-      '#states' => [
-        'visible' => [
-          [':input.js-webform-exporter' => ['value' => 'json']],
-          'or',
-          [':input.js-webform-exporter' => ['value' => 'yaml']],
-        ],
-      ],
     ];
     return $form;
   }

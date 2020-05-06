@@ -1,0 +1,70 @@
+webform.admin_settings.third_party.webform_entity_print:
+  type: mapping
+  label: 'Entity print settings'
+  mapping:
+    template:
+      type: mapping
+      label: 'Print template'
+      mapping:
+        header:
+          type: text
+          label: 'Print header'
+        footer:
+          type: text
+          label: 'Print footer'
+        css:
+          type: text
+          label: 'Print CSS'
+    export_types:
+      type: sequence
+      label: 'Export types'
+      sequence:
+        type: mapping
+        label: 'Export type'
+        mapping:
+          enabled:
+            type: boolean
+            label: 'Enable export link'
+          link_text:
+            type: label
+            label: 'Export link text'
+          link_attributes:
+            type: ignore
+            label: 'Export link attributes'
+    debug:
+      type: boolean
+      label: 'Debug generated documents'
+
+webform.settings.third_party.webform_entity_print:
+  type: mapping
+  label: 'Entity print settings settings'
+  mapping:
+    template:
+      type: mapping
+      label: 'Print template'
+      mapping:
+        header:
+          type: text
+          label: 'Print header'
+        footer:
+          type: text
+          label: 'Print footer'
+        css:
+          type: text
+          label: 'Print CSS'
+    export_types:
+      type: sequence
+      label: 'Export types'
+      sequence:
+        type: mapping
+        label: 'Export type'
+        mapping:
+          enabled:
+            type: boolean
+            label: 'Enable export link'
+          link_text:
+            type: label
+            label: 'Export link text'
+          link_attributes:
+            type: ignore
+            label: 'Export link attributes'

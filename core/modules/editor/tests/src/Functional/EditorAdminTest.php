@@ -23,6 +23,11 @@ class EditorAdminTest extends BrowserTestBase {
   public static $modules = ['filter', 'editor'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * A user with the 'administer filters' permission.
    *
    * @var \Drupal\user\UserInterface
@@ -206,7 +211,7 @@ class EditorAdminTest extends BrowserTestBase {
     ];
     $this->drupalPostForm(NULL, $edit, 'Configure');
     $unicorn_setting = $this->xpath('//input[@name="editor[settings][ponies_too]" and @type="checkbox" and @checked]');
-    $this->assertTrue(count($unicorn_setting), "Unicorn Editor's settings form is present.");
+    $this->assertCount(1, $unicorn_setting, "Unicorn Editor's settings form is present.");
 
     return $edit;
   }

@@ -2,10 +2,8 @@
 
 /**
  * @file
- * Generate test elements with with description tooltips.
+ * Generate test elements with description tooltips.
  */
-
-use Drupal\Component\Utility\Unicode;
 
 /**
  * Generate test element description tooltip.
@@ -25,9 +23,7 @@ function webform_test_test_element_description_tooltip() {
     'basic_elements' => [],
     'advanced_elements' => [],
   ];
-  foreach ($definitions as $definition) {
-    $element_type = $definition['id'];
-
+  foreach ($definitions as $element_type => $definition) {
     $webform_element = $elements[$element_type];
     $element = _webform_test_get_element_preview($element_type);
     if (!$element || !$webform_element->hasProperty('description_display')) {
@@ -35,7 +31,7 @@ function webform_test_test_element_description_tooltip() {
     }
 
     $category_name = (string) $webform_element->getPluginDefinition()['category'] ?: 'Other elements';
-    $category_id = preg_replace('/[^a-zA-Z0-9]+/', '_', Unicode::strtolower($category_name));
+    $category_id = preg_replace('/[^a-zA-Z0-9]+/', '_', mb_strtolower($category_name));
     if (empty($data[$category_id])) {
       $data[$category_id] = [
         '#type' => 'details',

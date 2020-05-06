@@ -10,8 +10,8 @@
 namespace PHP_CodeSniffer\Standards\PSR12\Sniffs\Operators;
 
 use PHP_CodeSniffer\Files\File;
-use PHP_CodeSniffer\Util\Tokens;
 use PHP_CodeSniffer\Standards\Squiz\Sniffs\WhiteSpace\OperatorSpacingSniff as SquizOperatorSpacingSniff;
+use PHP_CodeSniffer\Util\Tokens;
 
 class OperatorSpacingSniff extends SquizOperatorSpacingSniff
 {
@@ -24,20 +24,18 @@ class OperatorSpacingSniff extends SquizOperatorSpacingSniff
      */
     public function register()
     {
-        return array_unique(
-            array_merge(
-                Tokens::$comparisonTokens,
-                Tokens::$operators,
-                Tokens::$assignmentTokens,
-                Tokens::$booleanOperators,
-                [
-                    T_INLINE_THEN,
-                    T_INLINE_ELSE,
-                    T_STRING_CONCAT,
-                    T_INSTANCEOF,
-                ]
-            )
-        );
+        parent::register();
+
+        $targets   = Tokens::$comparisonTokens;
+        $targets  += Tokens::$operators;
+        $targets  += Tokens::$assignmentTokens;
+        $targets  += Tokens::$booleanOperators;
+        $targets[] = T_INLINE_THEN;
+        $targets[] = T_INLINE_ELSE;
+        $targets[] = T_STRING_CONCAT;
+        $targets[] = T_INSTANCEOF;
+
+        return $targets;
 
     }//end register()
 

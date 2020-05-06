@@ -96,13 +96,9 @@ class WebformElementMultiple extends FormElement {
       $element['container']['cardinality_number']['#disabled'] = TRUE;
     }
 
-    // Set validation.
-    if (isset($element['#element_validate'])) {
-      $element['#element_validate'] = array_merge([[get_called_class(), 'validateWebformElementMultiple']], $element['#element_validate']);
-    }
-    else {
-      $element['#element_validate'] = [[get_called_class(), 'validateWebformElementMultiple']];
-    }
+    // Add validate callback.
+    $element += ['#element_validate' => []];
+    array_unshift($element['#element_validate'], [get_called_class(), 'validateWebformElementMultiple']);
 
     // Set #type to item to apply #states.
     // @see drupal_process_states
@@ -115,26 +111,37 @@ class WebformElementMultiple extends FormElement {
    * Validates element multiple.
    */
   public static function validateWebformElementMultiple(&$element, FormStateInterface $form_state, &$complete_form) {
-    if (!empty($element['#disabled'])) {
+    $has_access = (!isset($element['#access']) || $element['#access'] === TRUE);
+    $is_disabled = (!empty($element['#disabled']));
+
+    if (!$has_access) {
+      $multiple = $element['#value'];
+    }
+    elseif ($is_disabled) {
       $multiple = $element['#default_value'];
     }
     else {
       $cardinality = $element['#value']['container']['cardinality'];
       $cardinality_number = (int) $element['#value']['container']['cardinality_number'];
-
       if ($cardinality == WebformMultiple::CARDINALITY_UNLIMITED) {
-        $multiple = TRUE;
-      }
-      elseif ($cardinality_number === 1) {
-        $multiple = FALSE;
+        $multiple = WebformMultiple::CARDINALITY_UNLIMITED;
       }
       else {
         $multiple = $cardinality_number;
       }
     }
 
+    if ($multiple == WebformMultiple::CARDINALITY_UNLIMITED) {
+      $multiple = TRUE;
+    }
+    elseif ($multiple === 1) {
+      $multiple = FALSE;
+    }
+
     $form_state->setValueForElement($element['container']['cardinality'], NULL);
     $form_state->setValueForElement($element['container']['cardinality_number'], NULL);
+
+    $element['#value'] = $multiple;
     $form_state->setValueForElement($element, $multiple);
   }
 

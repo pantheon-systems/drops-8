@@ -17,7 +17,7 @@ base theme: classy
 description: 'The default administration theme for Drupal 8 was designed with clean lines, simple blocks, and sans-serif font to emphasize the tools and tasks at hand.'
 alt text: 'Default administration theme for Drupal 8 with simple blocks and clean lines.'
 package: Core
-version: VERSION
+# version: VERSION
 core: 8.x
 libraries:
  - seven/global-styling
@@ -31,7 +31,7 @@ libraries-override:
   core/drupal.vertical-tabs:
     css:
       component:
-        misc/vertical-tabs.css: false
+        /core/themes/stable/css/core/vertical-tabs.css: false
   core/jquery.ui:
     css:
       theme:
@@ -46,6 +46,10 @@ libraries-override:
     css:
       component:
         css/components/details.css: false
+  classy/media_library:
+    css:
+      layout:
+        css/layout/media-library.css: false
 
 libraries-extend:
   core/ckeditor:
@@ -54,6 +58,10 @@ libraries-extend:
     - seven/vertical-tabs
   core/jquery.ui:
     - seven/seven.jquery.ui
+  media_library/view:
+    - seven/media_library
+  media_library/widget:
+    - seven/media_library
   tour/tour-styling:
     - seven/tour-styling
 quickedit_stylesheets:
@@ -70,3 +78,8 @@ regions:
   sidebar_first: 'First sidebar'
 regions_hidden:
   - sidebar_first
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

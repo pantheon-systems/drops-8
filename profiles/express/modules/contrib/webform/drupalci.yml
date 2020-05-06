@@ -1,0 +1,19 @@
+build:
+  assessment:
+    validate_codebase:
+      phplint:
+      container_composer:
+      csslint:
+      eslint:
+      phpcs:
+    testing:
+      run_tests.standard:
+        types: 'Simpletest,PHPUnit-Unit,PHPUnit-Kernel,PHPUnit-Functional'
+        # Test for Drupal 9 compatibility
+        suppress-deprecations: true
+      run_tests.js:
+        concurrency: 3
+        types: 'PHPUnit-FunctionalJavascript'
+        # Test for Drupal 9 compatibility
+        suppress-deprecations: true
+      nightwatchjs:

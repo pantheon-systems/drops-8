@@ -12,6 +12,36 @@ use Drupal\webform\WebformInterface;
 class WebformEntityAccess {
 
   /**
+   * Check whether the webform has drafts.
+   *
+   * @param \Drupal\webform\WebformInterface $webform
+   *   A webform.
+   * @param \Drupal\Core\Entity\EntityInterface|null $source_entity
+   *   The source entity.
+   *
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
+   */
+  public static function checkDraftsAccess(WebformInterface $webform, EntityInterface $source_entity = NULL) {
+    $draft = $webform->getSetting('draft');
+    switch ($draft) {
+      case WebformInterface::DRAFT_AUTHENTICATED:
+        $access_result = AccessResult::allowedIf(\Drupal::currentUser()->isAuthenticated());
+        break;
+
+      case WebformInterface::DRAFT_ALL:
+        $access_result = AccessResult::allowed();
+        break;
+
+      case WebformInterface::DRAFT_NONE:
+      default:
+        $access_result = AccessResult::forbidden();
+        break;
+    }
+    return $access_result->addCacheableDependency($webform);
+  }
+
+  /**
    * Check whether the webform has results.
    *
    * @param \Drupal\webform\WebformInterface $webform
@@ -71,5 +101,22 @@ class WebformEntityAccess {
     return $access_result->addCacheTags(['config:webform.settings']);
   }
 
+  /**
+   * Check whether a webform setting is set to specified value.
+   *
+   * @param \Drupal\webform\WebformInterface $webform
+   *   A webform.
+   * @param string $setting
+   *   A webform setting.
+   * @param string $value
+   *   The setting value used to determine access.
+   *
+   * @return \Drupal\Core\Access\AccessResultInterface
+   *   The access result.
+   */
+  public static function checkWebformSettingValue(WebformInterface $webform = NULL, $setting = NULL, $value = NULL) {
+    return AccessResult::allowedIf($webform->getSetting($setting) === $value)
+      ->addCacheableDependency($webform);
+  }
 
 }

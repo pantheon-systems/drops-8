@@ -22,6 +22,13 @@ class WebformAddress extends WebformCompositeBase {
   /**
    * {@inheritdoc}
    */
+  public function getPluginLabel() {
+    return \Drupal::moduleHandler()->moduleExists('address') ? $this->t('Basic address') : parent::getPluginLabel();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function formatHtmlItemValue(array $element, WebformSubmissionInterface $webform_submission, array $options = []) {
     return $this->formatTextItemValue($element, $webform_submission, $options);
   }

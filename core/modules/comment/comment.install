@@ -12,14 +12,40 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\field\Entity\FieldStorageConfig;
 
 /**
+ * Implements hook_requirements().
+ */
+function comment_requirements($phase) {
+  $requirements = [];
+  if ($phase === 'update' && drupal_get_installed_schema_version('comment') < 8701) {
+    $has_empty_columns = \Drupal::entityQuery('comment', 'OR')
+      ->condition('entity_type', NULL, 'IS NULL')
+      ->condition('field_name', NULL, 'IS NULL')
+      ->range(0, 1)
+      ->accessCheck(FALSE)
+      ->execute();
+    if ($has_empty_columns) {
+      $requirements['comment_update_8701'] = [
+        'title' => t('Comment required fields update'),
+        'description' => t('The comment_update_8701() function requires that the %field_1 and %field_2 fields have values for all comment entities. See the <a href=":change_record">change record</a> for more information.', [
+          '%field_1' => 'entity_type',
+          '%field_2' => 'field_name',
+          ':change_record' => 'https://www.drupal.org/node/3053046',
+        ]),
+        'severity' => REQUIREMENT_ERROR,
+      ];
+    }
+  }
+  return $requirements;
+}
+
+/**
  * Implements hook_uninstall().
  */
 function comment_uninstall() {
   // Remove the comment fields.
-  $fields = entity_load_multiple_by_properties('field_storage_config', ['type' => 'comment']);
-  foreach ($fields as $field) {
-    $field->delete();
-  }
+  $storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
+  $fields = $storage->loadByProperties(['type' => 'comment']);
+  $storage->delete($fields);
 
   // Remove state setting.
   \Drupal::state()->delete('comment.node_comment_statistics_scale');
@@ -206,4 +232,31 @@ function comment_update_8600() {
   $field_storage_definition = $entity_definition_update_manager->getFieldStorageDefinition('hostname', 'comment');
   $field_storage_definition->setDefaultValueCallback(Comment::class . '::getDefaultHostname');
   $entity_definition_update_manager->updateFieldStorageDefinition($field_storage_definition);
+}
+
+/**
+ * Set the 'owner' entity key and update the field.
+ */
+function comment_update_8700() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $definition_update_manager->getEntityType('comment');
+  $keys = $entity_type->getKeys();
+  $keys['owner'] = 'uid';
+  $entity_type->set('entity_keys', $keys);
+  $definition_update_manager->updateEntityType($entity_type);
+  $definition_update_manager->updateFieldStorageDefinition($definition_update_manager->getFieldStorageDefinition('uid', 'comment'));
+}
+
+/**
+ * Make the 'entity_type' and 'field_name' comment fields required.
+ */
+function comment_update_8701() {
+  $definition_update_manager = \Drupal::entityDefinitionUpdateManager();
+  $field_definition = $definition_update_manager->getFieldStorageDefinition('entity_type', 'comment');
+  $field_definition->setRequired(TRUE);
+  $definition_update_manager->updateFieldStorageDefinition($field_definition);
+
+  $field_definition = $definition_update_manager->getFieldStorageDefinition('field_name', 'comment');
+  $field_definition->setRequired(TRUE);
+  $definition_update_manager->updateFieldStorageDefinition($field_definition);
 }

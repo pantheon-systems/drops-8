@@ -1,0 +1,23 @@
+webform_shortcuts:
+  version: VERSION
+  js:
+    js/webform_shortcuts.js: {}
+  dependencies:
+    - core/jquery
+    - webform_shortcuts/libraries.jquery.hotkeys
+
+# External libraries.
+
+libraries.jquery.hotkeys:
+  remote: https://github.com/jeresig/jquery.hotkeys
+  version: '0.2.0'
+  license:
+    name: MIT
+    url: https://github.com/rvera/image-picker/blob/master/LICENSE
+    gpl-compatible: true
+  cdn:
+    /libraries/jquery.hotkeys/: https://cdn.jsdelivr.net/gh/jeresig/jquery.hotkeys@0.2.0/
+  js:
+    /libraries/jquery.hotkeys/jquery.hotkeys.js: {}
+  dependencies:
+    - core/jquery

@@ -1,0 +1,6 @@
+add_element: 'ctrl+e'
+add_page: 'ctrl+p'
+add_layout: 'ctrl+l'
+save_elements: 'ctrl+s'
+reset_elements: 'ctrl+r'
+toggle_weights: 'ctrl+w'

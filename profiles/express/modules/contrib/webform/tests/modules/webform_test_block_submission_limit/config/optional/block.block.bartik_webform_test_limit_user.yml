@@ -24,7 +24,7 @@ settings:
   content: ''
   progress_bar: true
   progress_bar_label: '[total] user submission(s)'
-  progress_bar_message: '[limit] user limit'
+  progress_bar_message: '[limit] user limit ([interval])'
   webform_id: ''
   entity_type: ''
   entity_id: ''

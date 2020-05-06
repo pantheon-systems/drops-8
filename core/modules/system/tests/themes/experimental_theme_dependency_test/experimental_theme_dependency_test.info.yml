@@ -1,0 +1,11 @@
+name: 'Experimental dependency test'
+type: theme
+description: 'Experimental dependency test theme.'
+# version: VERSION
+core: 8.x
+base theme: experimental_theme_test
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

@@ -1,0 +1,80 @@
+entity.webform_submission_export_import.results_import:
+  path: '/admin/structure/webform/manage/{webform}/results/upload'
+  defaults:
+    _form: '\Drupal\webform_submission_export_import\Form\WebformSubmissionExportImportUploadForm'
+    _title_callback: '\Drupal\webform\Controller\WebformEntityController::title'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _entity_access: 'webform.submission_update_any'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
+
+entity.webform_submission_export_import.results_import.example.download:
+  path: '/admin/structure/webform/manage/{webform}/results/upload/example/download'
+  defaults:
+    _controller: '\Drupal\webform_submission_export_import\Controller\WebformSubmissionExportImportController::download'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _entity_access: 'webform.submission_update_any'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
+
+entity.webform_submission_export_import.results_import.example.view:
+  path: '/admin/structure/webform/manage/{webform}/results/upload/example/view'
+  defaults:
+    _controller: '\Drupal\webform_submission_export_import\Controller\WebformSubmissionExportImportController::view'
+  options:
+    parameters:
+      webform:
+        type: 'entity:webform'
+  requirements:
+    _entity_access: 'webform.submission_update_any'
+    _custom_access: '\Drupal\webform\Access\WebformEntityAccess:checkResultsAccess'
+
+# Webform node routes.
+# This route will be removed if the webform_node.module is not installed.
+# @see \Drupal\webform_submission_export_import\Routing\WebformSubmissionExportImportRouteSubscriber
+
+entity.node.webform_submission_export_import.results_import:
+  path: '/node/{node}/webform/results/upload'
+  defaults:
+    _form: '\Drupal\webform_submission_export_import\Form\WebformSubmissionExportImportUploadForm'
+    _title_callback: '\Drupal\Core\Entity\Controller\EntityController::title'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform_submission_export_import.results_import.example.download:
+  path: '/node/{node}/webform/results/upload/example/download'
+  defaults:
+    _controller: '\Drupal\webform_submission_export_import\Controller\WebformSubmissionExportImportController::download'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'
+
+entity.node.webform_submission_export_import.results_import.example.view:
+  path: '/node/{node}/webform/results/upload/example/view'
+  defaults:
+    _controller: '\Drupal\webform_submission_export_import\Controller\WebformSubmissionExportImportController::view'
+    operation: webform_submission_view
+    entity_access: 'webform.submission_view_any'
+  options:
+    parameters:
+      node:
+        type: 'entity:node'
+  requirements:
+    _custom_access: '\Drupal\webform_node\Access\WebformNodeAccess::checkWebformResultsAccess'

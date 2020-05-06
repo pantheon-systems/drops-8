@@ -1,0 +1,7 @@
+
+Welcome to Pa11y
+
+ > Running Pa11y on URL http://localhost/wf/webform/example_accessibility_containers
+
+No issues found!
+

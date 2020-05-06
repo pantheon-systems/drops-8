@@ -1,0 +1,17 @@
+<?php
+
+/**
+ * @file
+ * Provides an example of a webform variant.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function webform_example_variant_theme() {
+  return [
+    'webform_variant_example_summary' => [
+      'variables' => ['settings' => NULL, 'variant' => []],
+    ],
+  ];
+}

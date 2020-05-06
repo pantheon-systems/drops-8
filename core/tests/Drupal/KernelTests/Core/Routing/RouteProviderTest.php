@@ -7,7 +7,6 @@
 
 namespace Drupal\KernelTests\Core\Routing;
 
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\MemoryBackend;
 use Drupal\Core\Database\Database;
 use Drupal\Core\DependencyInjection\ContainerBuilder;
@@ -19,6 +18,7 @@ use Drupal\Core\State\State;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\Tests\Core\Routing\RoutingFixtures;
+use Drupal\Tests\Traits\Core\PathAliasTestTrait;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
@@ -33,10 +33,12 @@ use Symfony\Component\Routing\RouteCollection;
  */
 class RouteProviderTest extends KernelTestBase {
 
+  use PathAliasTestTrait;
+
   /**
    * Modules to enable.
    */
-  public static $modules = ['url_alter_test', 'system', 'language'];
+  public static $modules = ['url_alter_test', 'system', 'language', 'path_alias'];
 
   /**
    * A collection of shared fixture data for tests.
@@ -88,6 +90,7 @@ class RouteProviderTest extends KernelTestBase {
     $this->cache = new MemoryBackend();
     $this->pathProcessor = \Drupal::service('path_processor_manager');
     $this->cacheTagsInvalidator = \Drupal::service('cache_tags.invalidator');
+    $this->installEntitySchema('path_alias');
   }
 
   /**
@@ -97,8 +100,8 @@ class RouteProviderTest extends KernelTestBase {
     parent::register($container);
 
     // Read the incoming path alias for these tests.
-    if ($container->hasDefinition('path_processor_alias')) {
-      $definition = $container->getDefinition('path_processor_alias');
+    if ($container->hasDefinition('path_alias.path_processor')) {
+      $definition = $container->getDefinition('path_alias.path_processor');
       $definition->addTag('path_processor_inbound');
     }
   }
@@ -221,12 +224,6 @@ class RouteProviderTest extends KernelTestBase {
    * @dataProvider providerMixedCaseRoutePaths
    */
   public function testMixedCasePaths($path, $expected_route_name, $method = 'GET') {
-    // The case-insensitive behavior for higher UTF-8 characters depends on
-    // mb_strtolower() using mb_strtolower()
-    // but kernel tests do not currently run the check that enables it.
-    // @todo remove this when https://www.drupal.org/node/2849669 is fixed.
-    Unicode::check();
-
     $connection = Database::getConnection();
     $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
@@ -271,13 +268,6 @@ class RouteProviderTest extends KernelTestBase {
    * @dataProvider providerDuplicateRoutePaths
    */
   public function testDuplicateRoutePaths($path, $number, $expected_route_name = NULL) {
-
-    // The case-insensitive behavior for higher UTF-8 characters depends on
-    // mb_strtolower() using mb_strtolower()
-    // but kernel tests do not currently run the check that enables it.
-    // @todo remove this when https://www.drupal.org/node/2849669 is fixed.
-    Unicode::check();
-
     $connection = Database::getConnection();
     $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
@@ -533,10 +523,10 @@ class RouteProviderTest extends KernelTestBase {
     $request = Request::create($path, 'GET');
 
     $routes = $provider->getRoutesByPattern($path);
-    $this->assertFalse(count($routes), 'No path found with this pattern.');
+    $this->assertEmpty($routes, 'No path found with this pattern.');
 
     $collection = $provider->getRouteCollectionForRequest($request);
-    $this->assertTrue(count($collection) == 0, 'Empty route collection found with this pattern.');
+    $this->assertEmpty($collection, 'Empty route collection found with this pattern.');
   }
 
   /**
@@ -559,7 +549,7 @@ class RouteProviderTest extends KernelTestBase {
     $request = Request::create($path, 'GET');
     $provider->getRouteCollectionForRequest($request);
 
-    $cache = $this->cache->get('route:en:/path/add/one:');
+    $cache = $this->cache->get('route:[language]=en:/path/add/one:');
     $this->assertEqual('/path/add/one', $cache->data['path']);
     $this->assertEqual([], $cache->data['query']);
     $this->assertEqual(3, count($cache->data['routes']));
@@ -569,7 +559,7 @@ class RouteProviderTest extends KernelTestBase {
     $request = Request::create($path, 'GET');
     $provider->getRouteCollectionForRequest($request);
 
-    $cache = $this->cache->get('route:en:/path/add/one:foo=bar');
+    $cache = $this->cache->get('route:[language]=en:/path/add/one:foo=bar');
     $this->assertEqual('/path/add/one', $cache->data['path']);
     $this->assertEqual(['foo' => 'bar'], $cache->data['query']);
     $this->assertEqual(3, count($cache->data['routes']));
@@ -579,24 +569,22 @@ class RouteProviderTest extends KernelTestBase {
     $request = Request::create($path, 'GET');
     $provider->getRouteCollectionForRequest($request);
 
-    $cache = $this->cache->get('route:en:/path/1/one:');
+    $cache = $this->cache->get('route:[language]=en:/path/1/one:');
     $this->assertEqual('/path/1/one', $cache->data['path']);
     $this->assertEqual([], $cache->data['query']);
     $this->assertEqual(2, count($cache->data['routes']));
 
     // A path with a path alias.
-    /** @var \Drupal\Core\Path\AliasStorageInterface $path_storage */
-    $path_storage = \Drupal::service('path.alias_storage');
-    $path_storage->save('/path/add/one', '/path/add-one');
-    /** @var \Drupal\Core\Path\AliasManagerInterface $alias_manager */
-    $alias_manager = \Drupal::service('path.alias_manager');
+    $this->createPathAlias('/path/add/one', '/path/add-one');
+    /** @var \Drupal\path_alias\AliasManagerInterface $alias_manager */
+    $alias_manager = \Drupal::service('path_alias.manager');
     $alias_manager->cacheClear();
 
     $path = '/path/add-one';
     $request = Request::create($path, 'GET');
     $provider->getRouteCollectionForRequest($request);
 
-    $cache = $this->cache->get('route:en:/path/add-one:');
+    $cache = $this->cache->get('route:[language]=en:/path/add-one:');
     $this->assertEqual('/path/add/one', $cache->data['path']);
     $this->assertEqual([], $cache->data['query']);
     $this->assertEqual(3, count($cache->data['routes']));
@@ -611,7 +599,7 @@ class RouteProviderTest extends KernelTestBase {
     $request = Request::create($path, 'GET');
     $provider->getRouteCollectionForRequest($request);
 
-    $cache = $this->cache->get('route:gsw-berne:/path/add-one:');
+    $cache = $this->cache->get('route:[language]=gsw-berne:/path/add-one:');
     $this->assertEquals('/path/add/one', $cache->data['path']);
     $this->assertEquals([], $cache->data['query']);
     $this->assertEquals(3, count($cache->data['routes']));

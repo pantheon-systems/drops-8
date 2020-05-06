@@ -30,11 +30,13 @@ class ValidatorTest extends FileManagedUnitTestBase {
 
     $this->image = File::create();
     $this->image->setFileUri('core/misc/druplicon.png');
-    $this->image->setFilename(drupal_basename($this->image->getFileUri()));
+    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
+    $file_system = \Drupal::service('file_system');
+    $this->image->setFilename($file_system->basename($this->image->getFileUri()));
 
     $this->nonImage = File::create();
     $this->nonImage->setFileUri('core/assets/vendor/jquery/jquery.min.js');
-    $this->nonImage->setFilename(drupal_basename($this->nonImage->getFileUri()));
+    $this->nonImage->setFilename($file_system->basename($this->nonImage->getFileUri()));
   }
 
   /**
@@ -104,7 +106,7 @@ class ValidatorTest extends FileManagedUnitTestBase {
       $errors = file_validate_image_resolution($this->image, '-10x-5');
       $this->assertEqual(count($errors), 1, 'An error reported for an oversized image that can not be scaled down.', 'File');
 
-      drupal_unlink('temporary://druplicon.png');
+      \Drupal::service('file_system')->unlink('temporary://druplicon.png');
     }
     else {
       // TODO: should check that the error is returned if no toolkit is available.

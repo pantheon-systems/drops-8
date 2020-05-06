@@ -17,6 +17,7 @@ use Drupal\Core\DependencyInjection\YamlFileLoader;
 use Drupal\Core\Extension\ExtensionDiscovery;
 use Drupal\Core\File\MimeType\MimeTypeGuesser;
 use Drupal\Core\Http\TrustedHostsRequestFactory;
+use Drupal\Core\Installer\InstallerKernel;
 use Drupal\Core\Installer\InstallerRedirectTrait;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Security\PharExtensionInterceptor;
@@ -620,6 +621,20 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // Retrieve enabled modules and register their namespaces.
     if (!isset($this->moduleList)) {
       $extensions = $this->getConfigStorage()->read('core.extension');
+      // If core.extension configuration does not exist and we're not in the
+      // installer itself, then we need to put the kernel into a pre-installer
+      // mode. The container should not be dumped because Drupal is yet to be
+      // installed. The installer service provider is registered to ensure that
+      // cache and other automatically created tables are not created if
+      // database settings are available. None of this is required when the
+      // installer is running because the installer has its own kernel and
+      // manages the addition of its own service providers.
+      // @see install_begin_request()
+      if ($extensions === FALSE && !InstallerKernel::installationAttempted()) {
+        $this->allowDumping = FALSE;
+        $this->containerNeedsDumping = FALSE;
+        $GLOBALS['conf']['container_service_providers']['InstallerServiceProvider'] = 'Drupal\Core\Installer\InstallerServiceProvider';
+      }
       $this->moduleList = isset($extensions['module']) ? $extensions['module'] : [];
     }
     $module_filenames = $this->getModuleFileNames();
@@ -685,7 +700,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       // Redirect the user to the installation script if Drupal has not been
       // installed yet (i.e., if no $databases array has been defined in the
       // settings.php file) and we are not already installing.
-      if (!Database::getConnectionInfo() && !drupal_installation_attempted() && PHP_SAPI !== 'cli') {
+      if (!Database::getConnectionInfo() && !InstallerKernel::installationAttempted() && PHP_SAPI !== 'cli') {
         $response = new RedirectResponse($request->getBasePath() . '/core/install.php', 302, ['Cache-Control' => 'no-cache']);
       }
       else {
@@ -753,6 +768,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     $request->attributes->set(RouteObjectInterface::ROUTE_NAME, '<none>');
     $this->container->get('request_stack')->push($request);
     $this->container->get('router.request_context')->fromRequest($request);
+    @trigger_error(__NAMESPACE__ . '\DrupalKernel::prepareLegacyRequest is deprecated drupal:8.0.0 and is removed from drupal:9.0.0. Use DrupalKernel::boot() and DrupalKernel::preHandle() instead. See https://www.drupal.org/node/3070678', E_USER_DEPRECATED);
     return $this;
   }
 
@@ -772,16 +788,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       $listing->setProfileDirectories([]);
       $all_profiles = $listing->scan('profile');
       $profiles = array_intersect_key($all_profiles, $this->moduleList);
-
-      // If a module is within a profile directory but specifies another
-      // profile for testing, it needs to be found in the parent profile.
-      $settings = $this->getConfigStorage()->read('simpletest.settings');
-      $parent_profile = !empty($settings['parent_profile']) ? $settings['parent_profile'] : NULL;
-      if ($parent_profile && !isset($profiles[$parent_profile])) {
-        // In case both profile directories contain the same extension, the
-        // actual profile always has precedence.
-        $profiles = [$parent_profile => $all_profiles[$parent_profile]] + $profiles;
-      }
 
       $profile_directories = array_map(function ($profile) {
         return $profile->getPath();
@@ -907,16 +913,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
     // If there is no container and no cached container definition, build a new
     // one from scratch.
     if (!isset($container) && !isset($container_definition)) {
-      // Building the container creates 1000s of objects. Garbage collection of
-      // these objects is expensive. This appears to be causing random
-      // segmentation faults in PHP 5.6 due to
-      // https://bugs.php.net/bug.php?id=72286. Once the container is rebuilt,
-      // garbage collection is re-enabled.
-      $disable_gc = version_compare(PHP_VERSION, '7', '<') && gc_enabled();
-      if ($disable_gc) {
-        gc_collect_cycles();
-        gc_disable();
-      }
       $container = $this->compileContainer();
 
       // Only dump the container if dumping is allowed. This is useful for
@@ -925,11 +921,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
       if ($this->allowDumping) {
         $dumper = new $this->phpArrayDumperClass($container);
         $container_definition = $dumper->getArray();
-      }
-      // If garbage collection was disabled prior to rebuilding container,
-      // re-enable it.
-      if ($disable_gc) {
-        gc_enable();
       }
     }
 
@@ -1043,8 +1034,6 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
 
         // Web tests are to be conducted with runtime assertions active.
         assert_options(ASSERT_ACTIVE, TRUE);
-        // Now synchronize PHP 5 and 7's handling of assertions as much as
-        // possible.
         Handle::register();
 
         // Log fatal errors to the test site directory.
@@ -1587,7 +1576,7 @@ class DrupalKernel implements DrupalKernelInterface, TerminableInterface {
    * @return bool
    *   TRUE if the Host header is trusted, FALSE otherwise.
    *
-   * @see https://www.drupal.org/node/1992030
+   * @see https://www.drupal.org/docs/8/install/trusted-host-settings
    * @see \Drupal\Core\Http\TrustedHostsRequestFactory
    */
   protected static function setupTrustedHosts(Request $request, $host_patterns) {

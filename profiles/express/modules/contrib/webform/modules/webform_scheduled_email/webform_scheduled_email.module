@@ -6,8 +6,19 @@
  */
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\webform\WebformInterface;
 use Drupal\webform\WebformSubmissionInterface;
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function webform_scheduled_email_config_schema_info_alter(&$definitions) {
+  $mapping = $definitions['webform.handler.email']['mapping'];
+
+  // Append email handler to scheduled email handler settings.
+  $definitions['webform.handler.scheduled_email']['mapping'] += $mapping;
+}
 
 /**
  * Implements hook_entity_update().
@@ -63,4 +74,40 @@ function webform_scheduled_email_theme() {
       'variables' => ['settings' => NULL, 'handler' => [], 'status' => NULL],
     ],
   ];
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function webform_scheduled_email_form_webform_admin_config_handlers_form_alter(&$form, FormStateInterface $form_state) {
+  $form['webform_scheduled_email'] = [
+    '#type' => 'details',
+    '#title' => t('Scheduled email settings'),
+    '#open' => TRUE,
+    '#tree' => TRUE,
+  ];
+  $form['webform_scheduled_email']['schedule_type'] = [
+    '#type' => 'select',
+    '#title' => t('Date type'),
+    '#description' => t('Scheduled emails are queued and sent via hourly <a href="@href">cron tasks</a>. To schedule an email for a specific time, requires site administrators to increase the cron task execution frequency.', ['@href' => 'https://www.drupal.org/docs/8/cron-automated-tasks/cron-automated-tasks-overview']),
+    '#options' => [
+      'date' => t('Date (@format)', ['@format' => 'YYYY-MM-DD']),
+      'datetime' => t('Date/time (@format)', ['@format' => 'YYYY-MM-DD HH:MM:SS']),
+    ],
+    '#required' => TRUE,
+    '#default_value' => \Drupal::config('webform_scheduled_email.settings')->get('schedule_type'),
+  ];
+
+  $form['#submit'][] = '_webform_scheduled_email_form_webform_admin_config_handlers_form_submit';
+}
+
+/**
+ * Submit callback for Scheduled email settings.
+ */
+function _webform_scheduled_email_form_webform_admin_config_handlers_form_submit(&$form, FormStateInterface $form_state) {
+  $values = $form_state->getValue('webform_scheduled_email');
+  \Drupal::configFactory()
+    ->getEditable('webform_scheduled_email.settings')
+    ->set('schedule_type', $values['schedule_type'])
+    ->save();
 }

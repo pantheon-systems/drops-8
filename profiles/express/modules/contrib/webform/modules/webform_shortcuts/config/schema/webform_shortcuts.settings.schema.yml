@@ -1,0 +1,22 @@
+webform_shortcuts.settings:
+  type: config_object
+  label: 'Webform shortcuts settings'
+  mapping:
+    add_element:
+      type: string
+      label: 'Add element'
+    add_page:
+      type: string
+      label: 'Add page'
+    add_layout:
+      type: string
+      label: 'Add layout'
+    save_elements:
+      type: string
+      label: 'Save element or elements'
+    reset_elements:
+      type: string
+      label: 'Reset elements'
+    toggle_weights:
+      type: string
+      label: 'Show/hide row weights'

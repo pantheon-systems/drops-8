@@ -1,0 +1,6 @@
+webform_jqueryui_buttons.element:
+  version: VERSION
+  js:
+    js/webform_jqueryui_buttons.element.js: {}
+  dependencies:
+    - core/jquery.ui.checkboxradio

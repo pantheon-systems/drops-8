@@ -14,7 +14,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @Condition(
  *   id = "node_type",
  *   label = @Translation("Node Bundle"),
- *   context = {
+ *   context_definitions = {
  *     "node" = @ContextDefinition("entity:node", label = @Translation("Node"))
  *   }
  * )
@@ -53,7 +53,7 @@ class NodeType extends ConditionPluginBase implements ContainerFactoryPluginInte
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
     return new static(
-      $container->get('entity.manager')->getStorage('node_type'),
+      $container->get('entity_type.manager')->getStorage('node_type'),
       $configuration,
       $plugin_id,
       $plugin_definition

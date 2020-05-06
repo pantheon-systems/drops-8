@@ -29,6 +29,8 @@ use Symfony\Component\Validator\Mapping\PropertyMetadata;
  */
 abstract class ConstraintValidatorTestCase extends TestCase
 {
+    use ForwardCompatTestTrait;
+
     /**
      * @var ExecutionContextInterface
      */
@@ -48,7 +50,7 @@ abstract class ConstraintValidatorTestCase extends TestCase
     protected $constraint;
     protected $defaultTimezone;
 
-    protected function setUp()
+    private function doSetUp()
     {
         $this->group = 'MyGroup';
         $this->metadata = null;
@@ -70,7 +72,7 @@ abstract class ConstraintValidatorTestCase extends TestCase
         $this->setDefaultTimezone('UTC');
     }
 
-    protected function tearDown()
+    private function doTearDown()
     {
         $this->restoreDefaultTimezone();
     }
@@ -107,7 +109,7 @@ abstract class ConstraintValidatorTestCase extends TestCase
         $validator->expects($this->any())
             ->method('inContext')
             ->with($context)
-            ->will($this->returnValue($contextualValidator));
+            ->willReturn($contextualValidator);
 
         return $context;
     }
@@ -172,10 +174,11 @@ abstract class ConstraintValidatorTestCase extends TestCase
         $validator->expects($this->at(2 * $i))
             ->method('atPath')
             ->with($propertyPath)
-            ->will($this->returnValue($validator));
+            ->willReturn($validator);
         $validator->expects($this->at(2 * $i + 1))
             ->method('validate')
-            ->with($value, $this->logicalOr(null, array(), $this->isInstanceOf('\Symfony\Component\Validator\Constraints\Valid')), $group);
+            ->with($value, $this->logicalOr(null, [], $this->isInstanceOf('\Symfony\Component\Validator\Constraints\Valid')), $group)
+            ->willReturn($validator);
     }
 
     protected function expectValidateValueAt($i, $propertyPath, $value, $constraints, $group = null)
@@ -184,10 +187,11 @@ abstract class ConstraintValidatorTestCase extends TestCase
         $contextualValidator->expects($this->at(2 * $i))
             ->method('atPath')
             ->with($propertyPath)
-            ->will($this->returnValue($contextualValidator));
+            ->willReturn($contextualValidator);
         $contextualValidator->expects($this->at(2 * $i + 1))
             ->method('validate')
-            ->with($value, $constraints, $group);
+            ->with($value, $constraints, $group)
+            ->willReturn($contextualValidator);
     }
 
     protected function assertNoViolation()
@@ -224,7 +228,7 @@ class ConstraintViolationAssertion
     private $assertions;
 
     private $message;
-    private $parameters = array();
+    private $parameters = [];
     private $invalidValue = 'InvalidValue';
     private $propertyPath = 'property.path';
     private $plural;
@@ -232,7 +236,7 @@ class ConstraintViolationAssertion
     private $constraint;
     private $cause;
 
-    public function __construct(ExecutionContextInterface $context, $message, Constraint $constraint = null, array $assertions = array())
+    public function __construct(ExecutionContextInterface $context, $message, Constraint $constraint = null, array $assertions = [])
     {
         $this->context = $context;
         $this->message = $message;
@@ -306,7 +310,7 @@ class ConstraintViolationAssertion
 
     public function assertRaised()
     {
-        $expected = array();
+        $expected = [];
         foreach ($this->assertions as $assertion) {
             $expected[] = $assertion->getViolation();
         }

@@ -45,4 +45,3 @@ webform_editorial.drush:
   parent: webform_editorial.index
   route_name: webform_editorial.drush
   weight: 40
-

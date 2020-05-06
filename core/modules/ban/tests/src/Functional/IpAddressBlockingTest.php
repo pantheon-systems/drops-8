@@ -21,6 +21,11 @@ class IpAddressBlockingTest extends BrowserTestBase {
   public static $modules = ['ban'];
 
   /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
+  /**
    * Tests various user input to confirm correct validation and saving of data.
    */
   public function testIPAddressValidation() {
@@ -28,13 +33,14 @@ class IpAddressBlockingTest extends BrowserTestBase {
     $admin_user = $this->drupalCreateUser(['ban IP addresses']);
     $this->drupalLogin($admin_user);
     $this->drupalGet('admin/config/people/ban');
+    $connection = Database::getConnection();
 
     // Ban a valid IP address.
     $edit = [];
     $edit['ip'] = '1.2.3.3';
     $this->drupalPostForm('admin/config/people/ban', $edit, t('Add'));
-    $ip = db_query("SELECT iid from {ban_ip} WHERE ip = :ip", [':ip' => $edit['ip']])->fetchField();
-    $this->assertTrue($ip, 'IP address found in database.');
+    $ip = $connection->query("SELECT iid from {ban_ip} WHERE ip = :ip", [':ip' => $edit['ip']])->fetchField();
+    $this->assertNotEmpty($ip, 'IP address found in database.');
     $this->assertRaw(t('The IP address %ip has been banned.', ['%ip' => $edit['ip']]), 'IP address was banned.');
 
     // Try to block an IP address that's already blocked.
@@ -64,8 +70,8 @@ class IpAddressBlockingTest extends BrowserTestBase {
     // Pass an IP address as a URL parameter and submit it.
     $submit_ip = '1.2.3.4';
     $this->drupalPostForm('admin/config/people/ban/' . $submit_ip, [], t('Add'));
-    $ip = db_query("SELECT iid from {ban_ip} WHERE ip = :ip", [':ip' => $submit_ip])->fetchField();
-    $this->assertTrue($ip, 'IP address found in database');
+    $ip = $connection->query("SELECT iid from {ban_ip} WHERE ip = :ip", [':ip' => $submit_ip])->fetchField();
+    $this->assertNotEmpty($ip, 'IP address found in database');
     $this->assertRaw(t('The IP address %ip has been banned.', ['%ip' => $submit_ip]), 'IP address was banned.');
 
     // Submit your own IP address. This fails, although it works when testing
@@ -78,13 +84,12 @@ class IpAddressBlockingTest extends BrowserTestBase {
 
     // Test duplicate ip address are not present in the 'blocked_ips' table.
     // when they are entered programmatically.
-    $connection = Database::getConnection();
     $banIp = new BanIpManager($connection);
     $ip = '1.0.0.0';
     $banIp->banIp($ip);
     $banIp->banIp($ip);
     $banIp->banIp($ip);
-    $query = db_select('ban_ip', 'bip');
+    $query = $connection->select('ban_ip', 'bip');
     $query->fields('bip', ['iid']);
     $query->condition('bip.ip', $ip);
     $ip_count = $query->execute()->fetchAll();
@@ -92,7 +97,7 @@ class IpAddressBlockingTest extends BrowserTestBase {
     $ip = '';
     $banIp->banIp($ip);
     $banIp->banIp($ip);
-    $query = db_select('ban_ip', 'bip');
+    $query = $connection->select('ban_ip', 'bip');
     $query->fields('bip', ['iid']);
     $query->condition('bip.ip', $ip);
     $ip_count = $query->execute()->fetchAll();

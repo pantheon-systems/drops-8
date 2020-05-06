@@ -21,13 +21,18 @@ class MultipleDistributionsProfileTest extends InstallerTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'stark';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function prepareEnvironment() {
     parent::prepareEnvironment();
     // Create two distributions.
     foreach (['distribution_one', 'distribution_two'] as $name) {
       $info = [
         'type' => 'profile',
-        'core' => \Drupal::CORE_COMPATIBILITY,
+        'core_version_requirement' => '*',
         'name' => $name . ' profile',
         'distribution' => [
           'name' => $name,
@@ -73,7 +78,7 @@ class MultipleDistributionsProfileTest extends InstallerTestBase {
     $this->assertUrl('user/1');
     $this->assertResponse(200);
     // Confirm that we are logged-in after installation.
-    $this->assertText($this->rootUser->getUsername());
+    $this->assertText($this->rootUser->getAccountName());
 
     // Confirm that Drupal recognizes this distribution as the current profile.
     $this->assertEqual(\Drupal::installProfile(), 'distribution_one');

@@ -5,6 +5,8 @@ namespace Drupal\webform\Element;
 use Drupal\Component\Utility\Xss;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element\FormElement;
+use Drupal\webform\Utility\WebformElementHelper;
+use Drupal\webform\Utility\WebformXss;
 
 /**
  * Provides a webform element for entering HTML using CodeMirror, TextFormat, or custom CKEditor.
@@ -21,15 +23,12 @@ class WebformHtmlEditor extends FormElement {
     return [
       '#input' => TRUE,
       '#process' => [
+        [$class, 'processWebformHtmlEditor'],
         [$class, 'processAjaxForm'],
         [$class, 'processGroup'],
-        [$class, 'preRenderWebformHtmlEditor'],
       ],
       '#pre_render' => [
         [$class, 'preRenderGroup'],
-      ],
-      '#element_validate' => [
-        [$class, 'validateWebformHtmlEditor'],
       ],
       '#theme_wrappers' => ['form_element'],
       '#format' => '',
@@ -40,15 +39,17 @@ class WebformHtmlEditor extends FormElement {
    * {@inheritdoc}
    */
   public static function valueCallback(&$element, $input, FormStateInterface $form_state) {
+    $element += ['#default_value' => ''];
     if ($input === FALSE) {
-      if (!isset($element['#default_value'])) {
-        $element['#default_value'] = '';
-      }
       return [
         'value' => $element['#default_value'],
       ];
     }
     else {
+      // Get value from TextFormat element.
+      if (isset($input['value']['value'])) {
+        $input['value'] = $input['value']['value'];
+      }
       return $input;
     }
   }
@@ -63,65 +64,76 @@ class WebformHtmlEditor extends FormElement {
    *   The HTML Editor which can be a CodeMirror element, TextFormat, or
    *   Textarea which is transformed into a custom HTML Editor.
    */
-  public static function preRenderWebformHtmlEditor(array $element) {
+  public static function processWebformHtmlEditor(array $element) {
     $element['#tree'] = TRUE;
 
-    $element['value']['#title'] = $element['#title'];
+    // Define value element.
+    $element += ['value' => []];
+
+    // Copy properties to value element.
+    $properties = ['#title', '#required', '#attributes', '#default_value'];
+    $element['value'] += array_intersect_key($element, array_combine($properties, $properties));
+
+    // Hide title.
     $element['value']['#title_display'] = 'invisible';
-    if (isset($element['#required'])) {
-      $element['value']['#required'] = $element['#required'];
-    }
+
+    // Don't display inline form error messages.
+    $element['#error_no_message'] = TRUE;
+
+    // Add validate callback.
+    $element += ['#element_validate' => []];
+    array_unshift($element['#element_validate'], [get_called_class(), 'validateWebformHtmlEditor']);
 
     // If HTML disabled and no #format is specified return simple CodeMirror
     // HTML editor.
-    $disabled = \Drupal::config('webform.settings')->get('html_editor.disabled') ?: ($element['#format'] ===  FALSE);
+    $disabled = \Drupal::config('webform.settings')->get('html_editor.disabled') ?: ($element['#format'] === FALSE);
     if ($disabled) {
       $element['value'] += [
         '#type' => 'webform_codemirror',
         '#mode' => 'html',
-        '#value' => empty($element['#value']) ? NULL : $element['#value']['value'],
       ];
       return $element;
     }
 
-    // If #format or 'webform.settings.html_editor.format' is defined return
+    // If #format or 'webform.settings.html_editor.element_format' is defined return
     // a 'text_format' element.
-    $format = $element['#format'] ?: \Drupal::config('webform.settings')->get('html_editor.format');
+    $format = $element['#format'] ?: \Drupal::config('webform.settings')->get('html_editor.element_format');
     if ($format) {
       $element['value'] += [
         '#type' => 'text_format',
         '#format' => $format,
         '#allowed_formats' => [$format],
-        '#value' => empty($element['#value']) ? NULL : $element['#value']['value'],
       ];
+      WebformElementHelper::fixStatesWrapper($element);
       return $element;
     }
 
     // Else use textarea with completely custom HTML Editor.
     $element['value'] += [
       '#type' => 'textarea',
-      '#attributes' => ['class' => ['js-html-editor']],
-      '#value' => empty($element['#value']) ? NULL : $element['#value']['value'],
     ];
+    $element['value']['#attributes']['class'][] = 'js-html-editor';
 
     $element['#attached']['library'][] = 'webform/webform.element.html_editor';
     $element['#attached']['drupalSettings']['webform']['html_editor']['allowedContent'] = static::getAllowedContent();
 
-    $base_path = base_path();
-    /** @var \Drupal\webform\WebformLibrariesManagerInterface $libaries_manager */
-    $libaries_manager = \Drupal::service('webform.libraries_manager');
-    $libraries = $libaries_manager->getLibraries(TRUE);
+    /** @var \Drupal\webform\WebformLibrariesManagerInterface $libraries_manager */
+    $libraries_manager = \Drupal::service('webform.libraries_manager');
+    $libraries = $libraries_manager->getLibraries(TRUE);
     $element['#attached']['drupalSettings']['webform']['html_editor']['plugins'] = [];
     foreach ($libraries as $library_name => $library) {
-      if (strpos($library_name, 'ckeditor.') === 0) {
-        $plugin_version = $library['version'];
-        $plugin_name = str_replace('ckeditor.', '', $library_name);
-        if (file_exists("libraries/$library_name")) {
-          $element['#attached']['drupalSettings']['webform']['html_editor']['plugins'][$plugin_name] = "{$base_path}libraries/{$library_name}/";
-        }
-        else {
-          $element['#attached']['drupalSettings']['webform']['html_editor']['plugins'][$plugin_name] = "https://cdn.rawgit.com/ckeditor/ckeditor-dev/$plugin_version/plugins/$plugin_name/";
-        }
+      if (strpos($library_name, 'ckeditor.') === FALSE) {
+        continue;
+      }
+
+      $plugin_name = str_replace('ckeditor.', '', $library_name);
+      $plugin_path = $library['plugin_path'];
+      $plugin_url = $library['plugin_url'];
+      if (file_exists($plugin_path)) {
+        $element['#attached']['drupalSettings']['webform']['html_editor']['plugins'][$plugin_name] = base_path() . $plugin_path;
+      }
+      else {
+        $element['#attached']['drupalSettings']['webform']['html_editor']['plugins'][$plugin_name] = $plugin_url;
       }
     }
 
@@ -130,7 +142,7 @@ class WebformHtmlEditor extends FormElement {
       $element['#attached']['drupalSettings']['webform']['html_editor']['ImceImageIcon'] = file_create_url(drupal_get_path('module', 'imce') . '/js/plugins/ckeditor/icons/imceimage.png');
     }
 
-    if (isset($element['#states'])) {
+    if (!empty($element['#states'])) {
       webform_process_states($element, '#wrapper_attributes');
     }
 
@@ -144,11 +156,14 @@ class WebformHtmlEditor extends FormElement {
     $value = $element['#value']['value'];
     if (is_array($value)) {
       // Get value from TextFormat element.
-      $form_state->setValueForElement($element, $value['value']);
+      $value = $value['value'];
     }
     else {
-      $form_state->setValueForElement($element, trim($value));
+      $value = trim($value);
     }
+
+    $element['#value'] = $value;
+    $form_state->setValueForElement($element, $value);
   }
 
   /**
@@ -188,15 +203,10 @@ class WebformHtmlEditor extends FormElement {
     $allowed_tags = \Drupal::config('webform.settings')->get('element.allowed_tags');
     switch ($allowed_tags) {
       case 'admin':
-        $allowed_tags = Xss::getAdminTagList();
-        // <label>, <fieldset>, <legend> is missing from allowed tags.
-        $allowed_tags[] = 'label';
-        $allowed_tags[] = 'fieldset';
-        $allowed_tags[] = 'legend';
-        return $allowed_tags;
+        return WebformXss::getAdminTagList();
 
       case 'html':
-        return Xss::getHtmlTagList();
+        return WebformXss::getHtmlTagList();
 
       default:
         return preg_split('/ +/', $allowed_tags);
@@ -208,47 +218,40 @@ class WebformHtmlEditor extends FormElement {
    *
    * @param string $text
    *   The text to be filtered.
-   * @param bool $render
-   *   If TRUE the HTML markup should be rendered. If FALSE a renderable array
-   *   containing #markup or processed_text is returned. Defaults to FALSE.
+   * @param array $options
+   *   HTML markup options.
    *
-   * @return \Drupal\Component\Render\MarkupInterface|string|array
-   *   The filtered text, text, or a render array containing 'processed_text'.
+   * @return array
+   *   Render array containing 'processed_text'.
    *
    * @see \Drupal\webform\Plugin\WebformHandler\EmailWebformHandler::getMessage
    */
-  public static function checkMarkup($text, $render = FALSE) {
+  public static function checkMarkup($text, array $options = []) {
+    $options += [
+      'tidy' => \Drupal::config('webform.settings')->get('html_editor.tidy'),
+    ];
     // Remove <p> tags around a single line of text, which creates minor
     // margin issues.
-    if (\Drupal::config('webform.settings')->get('html_editor.tidy')) {
+    if ($options['tidy']) {
       if (substr_count($text, '<p>') === 1 && preg_match('#^\s*<p>.*</p>\s*$#m', $text)) {
         $text = preg_replace('#^\s*<p>#', '', $text);
         $text = preg_replace('#</p>\s*$#', '', $text);
       }
     }
 
-    if ($format = \Drupal::config('webform.settings')->get('html_editor.format')) {
-      if ($render) {
-        return check_markup($text, $format);
-      }
-      else {
-        return [
-          '#type' => 'processed_text',
-          '#text' => $text,
-          '#format' => $format,
-        ];
-      }
+    if ($format = \Drupal::config('webform.settings')->get('html_editor.element_format')) {
+      return [
+        '#type' => 'processed_text',
+        '#text' => $text,
+        '#format' => $format,
+      ];
     }
     else {
-      if ($render) {
-        return $text;
-      }
-      else {
-        return [
-          '#markup' => $text,
-          '#allowed_tags' => static::getAllowedTags(),
-        ];
-      }
+      return [
+        '#theme' => 'webform_html_editor_markup',
+        '#markup' => $text,
+        '#allowed_tags' => static::getAllowedTags(),
+      ];
     }
   }
 

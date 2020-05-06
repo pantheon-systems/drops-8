@@ -4,4 +4,4 @@ webform_example_composite:
     theme:
       css/webform_example_composite.css: {}
   dependencies:
-    - webform/webform.element.composite
+    - webform/webform.composite

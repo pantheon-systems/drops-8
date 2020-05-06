@@ -19,18 +19,9 @@ class EntityUpdateAddRevisionDefaultTest extends UpdatePathTestBase {
   use DbUpdatesTrait;
 
   /**
-   * The entity manager service.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * {@inheritdoc}
    */
-  protected $entityManager;
-
-  /**
-   * The last installed schema repository service.
-   *
-   * @var \Drupal\Core\Entity\EntityLastInstalledSchemaRepositoryInterface
-   */
-  protected $lastInstalledSchemaRepository;
+  protected $defaultTheme = 'stark';
 
   /**
    * The state service.
@@ -45,8 +36,7 @@ class EntityUpdateAddRevisionDefaultTest extends UpdatePathTestBase {
   protected function setUp() {
     parent::setUp();
 
-    $this->entityManager = \Drupal::entityManager();
-    $this->lastInstalledSchemaRepository = \Drupal::service('entity.last_installed_schema.repository');
+    // Do not use this property after calling ::runUpdates().
     $this->state = \Drupal::state();
   }
 
@@ -71,20 +61,20 @@ class EntityUpdateAddRevisionDefaultTest extends UpdatePathTestBase {
 
     // Check that the test entity type does not have the 'revision_default'
     // field before running the updates.
-    $field_storage_definitions = $this->lastInstalledSchemaRepository->getLastInstalledFieldStorageDefinitions('entity_test_update');
+    $field_storage_definitions = \Drupal::service('entity.last_installed_schema.repository')->getLastInstalledFieldStorageDefinitions('entity_test_update');
     $this->assertFalse(isset($field_storage_definitions['revision_default']));
 
     $this->runUpdates();
 
     // Check that the 'revision_default' field has been added by
     // system_update_8501().
-    $field_storage_definitions = $this->lastInstalledSchemaRepository->getLastInstalledFieldStorageDefinitions('entity_test_update');
+    $field_storage_definitions = \Drupal::service('entity.last_installed_schema.repository')->getLastInstalledFieldStorageDefinitions('entity_test_update');
     $this->assertTrue(isset($field_storage_definitions['revision_default']));
 
     // Check that the correct initial value was set when the field was
     // installed.
     /** @var \Drupal\Core\Entity\ContentEntityInterface $entity */
-    $entity = $this->entityManager->getStorage('entity_test_update')->load(1);
+    $entity = \Drupal::entityTypeManager()->getStorage('entity_test_update')->load(1);
     $this->assertTrue($entity->wasDefaultRevision());
   }
 

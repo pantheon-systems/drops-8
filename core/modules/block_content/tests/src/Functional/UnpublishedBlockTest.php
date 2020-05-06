@@ -3,7 +3,7 @@
 namespace Drupal\Tests\block_content\Functional;
 
 use Drupal\block_content\Entity\BlockContent;
-use Drupal\simpletest\BlockCreationTrait;
+use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -19,6 +19,11 @@ class UnpublishedBlockTest extends BrowserTestBase {
    * {@inheritdoc}
    */
   public static $modules = ['block_content'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * Tests unpublishing of block_content entities.

@@ -9,12 +9,22 @@
  */
 
 use Drupal\Component\Graph\Graph;
+use Drupal\Core\Update\UpdateKernel;
 use Drupal\Core\Utility\Error;
 
 /**
  * Disables any extensions that are incompatible with the current core version.
+ *
+ * @deprecated in Drupal 8.8.4 and is removed from Drupal 9.0.0.
+ *
+ * @see https://www.drupal.org/node/3026100
  */
 function update_fix_compatibility() {
+  @trigger_error(__FUNCTION__ . '() is deprecated in Drupal 8.8.4 and will be removed before Drupal 9.0.0. There is no replacement. See https://www.drupal.org/node/3026100', E_USER_DEPRECATED);
+  // Fix extension objects if the update is being done via Drush 8. In non-Drush
+  // environments this will already be fixed by the UpdateKernel this point.
+  UpdateKernel::fixSerializedExtensionObjects(\Drupal::getContainer());
+
   $extension_config = \Drupal::configFactory()->getEditable('core.extension');
   $save = FALSE;
   foreach (['module', 'theme'] as $type) {
@@ -43,7 +53,7 @@ function update_check_incompatibility($name, $type = 'module') {
     // code changes that were made in the filesystem before the update script
     // was initiated.
     $themes = \Drupal::service('theme_handler')->rebuildThemeData();
-    $modules = system_rebuild_module_data();
+    $modules = \Drupal::service('extension.list.module')->reset()->getList();
   }
 
   if ($type == 'module' && isset($modules[$name])) {
@@ -53,8 +63,7 @@ function update_check_incompatibility($name, $type = 'module') {
     $file = $themes[$name];
   }
   if (!isset($file)
-      || !isset($file->info['core'])
-      || $file->info['core'] != \Drupal::CORE_COMPATIBILITY
+      || $file->info['core_incompatible']
       || version_compare(phpversion(), $file->info['php']) < 0) {
     return TRUE;
   }
@@ -112,10 +121,11 @@ function update_check_requirements() {
  */
 function update_set_schema($module, $schema_version) {
   \Drupal::keyValue('system.schema')->set($module, $schema_version);
-  // system_list_reset() is in module.inc but that would only be available
-  // once the variable bootstrap is done.
-  require_once __DIR__ . '/module.inc';
-  system_list_reset();
+  \Drupal::service('extension.list.profile')->reset();
+  \Drupal::service('extension.list.module')->reset();
+  \Drupal::service('extension.list.theme_engine')->reset();
+  \Drupal::service('extension.list.theme')->reset();
+  drupal_static_reset('drupal_get_installed_schema_version');
 }
 
 /**
@@ -301,9 +311,11 @@ function update_get_update_list() {
   $ret = ['system' => []];
 
   $modules = drupal_get_installed_schema_version(NULL, FALSE, TRUE);
+  /** @var \Drupal\Core\Extension\ExtensionList $extension_list */
+  $extension_list = \Drupal::service('extension.list.module');
   foreach ($modules as $module => $schema_version) {
     // Skip uninstalled and incompatible modules.
-    if ($schema_version == SCHEMA_UNINSTALLED || update_check_incompatibility($module)) {
+    if ($schema_version == SCHEMA_UNINSTALLED || $extension_list->checkIncompatibility($module)) {
       continue;
     }
     // Display a requirements error if the user somehow has a schema version
@@ -602,7 +614,7 @@ function update_retrieve_dependencies() {
   $return = [];
   // Get a list of installed modules, arranged so that we invoke their hooks in
   // the same order that \Drupal::moduleHandler()->invokeAll() does.
-  foreach (\Drupal::keyValue('system.schema')->getAll() as $module => $schema) {
+  foreach (drupal_get_installed_schema_version(NULL, FALSE, TRUE) as $module => $schema) {
     if ($schema == SCHEMA_UNINSTALLED) {
       // Nothing to upgrade.
       continue;

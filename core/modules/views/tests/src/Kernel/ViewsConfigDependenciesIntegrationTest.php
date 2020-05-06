@@ -31,6 +31,7 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
   protected function setUp($import_test_views = TRUE) {
     parent::setUp($import_test_views);
 
+    $this->installEntitySchema('entity_test');
     $this->installEntitySchema('user');
     $this->installSchema('user', ['users_data']);
   }
@@ -147,7 +148,7 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
     foreach ($entities as $entity_type_id => $definition) {
       if ($definition->getProvider() == 'entity_test') {
         $this->installEntitySchema($entity_type_id);
-      };
+      }
     }
 
     // Check that removing the module that provides the base table for a View,

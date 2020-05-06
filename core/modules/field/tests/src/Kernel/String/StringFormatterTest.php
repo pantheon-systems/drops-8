@@ -80,7 +80,8 @@ class StringFormatterTest extends KernelTestBase {
     ]);
     $instance->save();
 
-    $this->display = entity_get_display($this->entityType, $this->bundle, 'default')
+    $this->display = \Drupal::service('entity_display.repository')
+      ->getViewDisplay($this->entityType, $this->bundle)
       ->setComponent($this->fieldName, [
         'type' => 'string',
         'settings' => [],
@@ -142,11 +143,11 @@ class StringFormatterTest extends KernelTestBase {
 
     $this->renderEntityFields($entity, $this->display);
     $this->assertLink($value, 0);
-    $this->assertLinkByHref($entity->url());
+    $this->assertLinkByHref($entity->toUrl()->toString());
 
-    // $entity->url('revision') falls back to the canonical URL if this is no
+    // $entity->toUrl('revision') falls back to the canonical URL if this is no
     // revision.
-    $this->assertLinkByHref($entity->url('revision'));
+    $this->assertLinkByHref($entity->toUrl('revision')->toString());
 
     // Make the entity a new revision.
     $old_revision_id = $entity->getRevisionId();
@@ -158,7 +159,7 @@ class StringFormatterTest extends KernelTestBase {
 
     $this->renderEntityFields($entity, $this->display);
     $this->assertLink($value2, 0);
-    $this->assertLinkByHref($entity->url('revision'));
+    $this->assertLinkByHref($entity->toUrl('revision')->toString());
 
     $this->renderEntityFields($entity_new_revision, $this->display);
     $this->assertLink($value, 0);
@@ -175,7 +176,7 @@ class StringFormatterTest extends KernelTestBase {
 
     $this->renderEntityFields($entity_new_revision, $this->display);
     $this->assertLink($value, 0);
-    $this->assertLinkByHref($entity->url('canonical'));
+    $this->assertLinkByHref($entity->toUrl('canonical')->toString());
   }
 
 }

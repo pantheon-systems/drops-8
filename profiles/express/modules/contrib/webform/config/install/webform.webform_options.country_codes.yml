@@ -7,4 +7,5 @@ dependencies:
 id: country_codes
 label: 'Country codes'
 category: Geographic
+likert: false
 options: ''

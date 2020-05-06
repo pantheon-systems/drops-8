@@ -9,6 +9,7 @@ use Drupal\Tests\simpletest\Functional\SimpletestPhpunitBrowserTest;
  * Test PHPUnit output for the Simpletest UI.
  *
  * @group simpletest
+ * @group legacy
  *
  * @see \Drupal\Tests\Listeners\SimpletestUiPrinter
  */
@@ -35,9 +36,9 @@ class UiPhpUnitOutputTest extends WebTestBase {
 
     // Check that there are <br> tags for the HTML output by
     // SimpletestUiPrinter.
-    $this->assertEqual($output[19], 'HTML output was generated<br />');
+    $this->assertEqual($output[20], 'HTML output was generated<br />');
     // Check that URLs are printed as HTML links.
-    $this->assertIdentical(strpos($output[20], '<a href="http'), 0);
+    $this->assertIdentical(strpos($output[21], '<a href="http'), 0);
   }
 
 }

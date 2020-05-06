@@ -1,0 +1,348 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_examples_accessibility
+open: null
+close: null
+weight: 0
+uid: null
+template: false
+archive: false
+id: example_accessibility_labels
+title: 'Example: Accessibility Labels & Descriptions'
+description: 'Example of webform label and description accessibility.'
+category: 'Example: Accessibility'
+elements: |
+  form_elements:
+    '#type': details
+    '#title': 'Form elements'
+    '#open': true
+    form_element:
+      '#type': textfield
+      '#title': 'Form element'
+      '#placeholder': 'This is a placeholder'
+      '#description': 'This is a description.'
+      '#help': 'This is help text.'
+      '#more': 'This is more text'
+      '#required': true
+      '#field_prefix': prefix
+      '#field_suffix': suffix
+    datelist_element:
+      '#type': datelist
+      '#title': Datelist
+      '#placeholder': 'This is a placeholder'
+      '#description': 'This is a description.'
+      '#help': 'This is help text.'
+      '#more': 'This is more text'
+      '#field_prefix': prefix
+      '#field_suffix': suffix
+  element_title:
+    '#type': details
+    '#title': 'Element title'
+    '#open': true
+    title_display_before:
+      '#type': textfield
+      '#title': 'Title displayed before'
+      '#title_display': before
+    title_display_after:
+      '#type': textfield
+      '#title': 'Title displayed after'
+      '#title_display': after
+    title_display_inline:
+      '#type': textfield
+      '#title': 'Title displayed inline'
+      '#title_display': inline
+      '#description': 'This is a description.'
+    title_display_inline_composite:
+      '#type': radios
+      '#title': 'Title displayed inline composite'
+      '#title_display': inline
+      '#description': 'This is a description.'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+  element_description:
+    '#type': details
+    '#title': 'Element description'
+    '#open': true
+    description_display_after:
+      '#type': textfield
+      '#title': 'Description displayed after'
+      '#description': 'This is a description.'
+    description_display_before:
+      '#type': textfield
+      '#title': 'Description displayed before'
+      '#description': 'This is a description.'
+      '#description_display': before
+    description_display_tooltip:
+      '#type': textfield
+      '#title': 'Description displayed in tooltip'
+      '#description': 'This is a description.'
+      '#description_display': tooltip
+  element_help:
+    '#type': details
+    '#title': 'Element help'
+    '#open': true
+    help:
+      '#type': textfield
+      '#title': Help
+      '#help': 'This is help.'
+  element_more:
+    '#type': details
+    '#title': 'Element more'
+    '#open': true
+    more:
+      '#type': textfield
+      '#title': More
+      '#more': 'This is more text.'
+  fieldset_elements:
+    '#type': details
+    '#title': 'Fieldset elements'
+    '#open': true
+    fieldset:
+      '#type': fieldset
+      '#title': Fieldset
+      '#description': 'This is a description.'
+      '#help': 'This is help text.'
+      '#more': 'This is more text'
+      '#required': true
+      '#field_prefix': prefix
+      '#field_suffix': suffix
+    fieldset_description:
+      '#type': fieldset
+      '#title': 'Fieldset description'
+      '#description': 'This is a description.'
+    fieldset_title_invisible:
+      '#type': fieldset
+      '#title': 'Fieldset description invisible'
+      '#description': 'This is a description.'
+      '#title_display': invisible
+    fieldset_help:
+      '#type': fieldset
+      '#title': 'Fieldset help'
+      '#help': 'This is help text.'
+    fieldset_more:
+      '#type': fieldset
+      '#title': 'Fieldset more'
+      '#more': 'This is more text'
+  details_elements:
+    '#type': details
+    '#title': 'Details elements'
+    '#open': true
+    details:
+      '#type': details
+      '#title': details
+      '#description': 'This is a description.'
+      '#help': 'This is help text.'
+      '#more': 'This is more text'
+      '#required': true
+      '#open': true
+    details_description:
+      '#type': details
+      '#title': 'details description'
+      '#description': 'This is a description.'
+      '#open': true
+    details_description_before:
+      '#type': details
+      '#title': 'details description before'
+      '#description': 'This is a description.'
+      '#description_display': before
+      '#open': true
+      details_description_before_textfield:
+        '#type': textfield
+        '#title': 'Details description before textfield'
+    details_description_invisible:
+      '#type': details
+      '#title': 'details description invisible'
+      '#description': 'This is a description.'
+      '#description_display': invisible
+      '#open': true
+    details_help:
+      '#type': details
+      '#title': 'details help'
+      '#help': 'This is help text.'
+      '#open': true
+    details_more:
+      '#type': details
+      '#title': 'details more'
+      '#more': 'This is more text'
+      '#open': true
+  section_elements:
+    '#type': details
+    '#title': 'Section elements'
+    '#open': true
+    section:
+      '#type': webform_section
+      '#title': Section
+      '#help': 'This is help text'
+      '#required': true
+      '#description': 'This is a description'
+  
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_remote_addr: true
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_disable_inline_errors: false
+  form_required: false
+  form_unsaved: false
+  form_disable_back: false
+  form_submit_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
+  submission_label: ''
+  submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
+  submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
+  wizard_start_label: ''
+  wizard_preview_link: false
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  wizard_track: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
+  limit_total: null
+  limit_total_interval: null
+  limit_total_message: ''
+  limit_total_unique: false
+  limit_user: null
+  limit_user_interval: null
+  limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
+  purge: none
+  purge_days: null
+  results_disabled: false
+  results_disabled_ignore: false
+  results_customize: false
+  token_view: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }
+variants: {  }

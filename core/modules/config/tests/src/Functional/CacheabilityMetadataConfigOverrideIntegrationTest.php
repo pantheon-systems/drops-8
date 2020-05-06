@@ -2,8 +2,8 @@
 
 namespace Drupal\Tests\config\Functional;
 
-use Drupal\system\Tests\Cache\AssertPageCacheContextsAndTagsTrait;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\system\Functional\Cache\AssertPageCacheContextsAndTagsTrait;
 
 /**
  * Tests if configuration overrides correctly affect cacheability metadata.
@@ -21,6 +21,11 @@ class CacheabilityMetadataConfigOverrideIntegrationTest extends BrowserTestBase 
     'block_test',
     'config_override_integration_test',
   ];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'classy';
 
   /**
    * {@inheritdoc}

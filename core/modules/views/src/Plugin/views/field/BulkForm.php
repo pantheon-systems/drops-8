@@ -3,8 +3,10 @@
 namespace Drupal\views\Plugin\views\field;
 
 use Drupal\Core\Cache\CacheableDependencyInterface;
+use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
@@ -28,13 +30,26 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
   use RedirectDestinationTrait;
   use UncacheableFieldHandlerTrait;
   use EntityTranslationRenderTrait;
+  use DeprecatedServicePropertyTrait;
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
 
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
    */
-  protected $entityManager;
+  protected $entityTypeManager;
+
+  /**
+   * The entity repository service.
+   *
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface
+   */
+  protected $entityRepository;
 
   /**
    * The action storage.
@@ -73,22 +88,29 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
    *   The plugin ID for the plugin instance.
    * @param mixed $plugin_definition
    *   The plugin implementation definition.
-   * @param \Drupal\Core\Entity\EntityManagerInterface $entity_manager
-   *   The entity manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
    * @param \Drupal\Core\Messenger\MessengerInterface $messenger
    *   The messenger.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    *
    * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
    */
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityManagerInterface $entity_manager, LanguageManagerInterface $language_manager, MessengerInterface $messenger) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager, LanguageManagerInterface $language_manager, MessengerInterface $messenger, EntityRepositoryInterface $entity_repository = NULL) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 
-    $this->entityManager = $entity_manager;
-    $this->actionStorage = $entity_manager->getStorage('action');
+    $this->entityTypeManager = $entity_type_manager;
+    $this->actionStorage = $entity_type_manager->getStorage('action');
     $this->languageManager = $language_manager;
     $this->messenger = $messenger;
+    if (!$entity_repository) {
+      @trigger_error('Calling BulkForm::__construct() with the $entity_repository argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
+      $entity_repository = \Drupal::service('entity.repository');
+    }
+    $this->entityRepository = $entity_repository;
   }
 
   /**
@@ -99,9 +121,10 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('entity.manager'),
+      $container->get('entity_type.manager'),
       $container->get('language_manager'),
-      $container->get('messenger')
+      $container->get('messenger'),
+      $container->get('entity.repository')
     );
   }
 
@@ -152,7 +175,23 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
    * {@inheritdoc}
    */
   protected function getEntityManager() {
+    // This relies on DeprecatedServicePropertyTrait to trigger a deprecation
+    // message in case it is accessed.
     return $this->entityManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEntityTypeManager() {
+    return $this->entityTypeManager;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEntityRepository() {
+    return $this->entityRepository;
   }
 
   /**
@@ -383,6 +422,12 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
         $entities[$bulk_form_key] = $entity;
       }
 
+      // If there were entities selected but the action isn't allowed on any of
+      // them, we don't need to do anything further.
+      if (!$count) {
+        return;
+      }
+
       $action->execute($entities);
 
       $operation_definition = $action->getPluginDefinition();
@@ -395,11 +440,9 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
       else {
         // Don't display the message unless there are some elements affected and
         // there is no confirmation form.
-        if ($count) {
-          $this->messenger->addStatus($this->formatPlural($count, '%action was applied to @count item.', '%action was applied to @count items.', [
-            '%action' => $action->label(),
-          ]));
-        }
+        $this->messenger->addStatus($this->formatPlural($count, '%action was applied to @count item.', '%action was applied to @count items.', [
+          '%action' => $action->label(),
+        ]));
       }
     }
   }
@@ -499,7 +542,7 @@ class BulkForm extends FieldPluginBase implements CacheableDependencyInterface {
     $langcode = array_pop($key_parts);
 
     // Load the entity or a specific revision depending on the given key.
-    $storage = $this->entityManager->getStorage($this->getEntityType());
+    $storage = $this->entityTypeManager->getStorage($this->getEntityType());
     $entity = $revision_id ? $storage->loadRevision($revision_id) : $storage->load($id);
 
     if ($entity instanceof TranslatableInterface) {

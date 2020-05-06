@@ -3,7 +3,7 @@
 /*
  * This file is part of Psy Shell.
  *
- * (c) 2012-2018 Justin Hileman
+ * (c) 2012-2020 Justin Hileman
  *
  * For the full copyright and license information, please view the LICENSE
  * file that was distributed with this source code.
@@ -140,11 +140,13 @@ HELP
         } else {
             $type = $input->getOption('no-numbers') ? 0 : ShellOutput::NUMBER_LINES;
             if (!$highlighted) {
-                $type = $type | ShellOutput::OUTPUT_RAW;
+                $type = $type | OutputInterface::OUTPUT_RAW;
             }
 
             $output->page($highlighted ?: $history, $type);
         }
+
+        return 0;
     }
 
     /**

@@ -7,17 +7,44 @@
 
   'use strict';
 
+  var isChrome = (/chrom(e|ium)/.test(window.navigator.userAgent.toLowerCase()));
+
   /**
-   * Autofocus first input.
+   * Remove single submit event listener.
+   *
+   * @type {Drupal~behavior}
+   *
+   * @prop {Drupal~behaviorAttach} attach
+   *   Attaches the behavior for removing single submit event listener.
+   *
+   * @see Drupal.behaviors.formSingleSubmit
+   */
+  Drupal.behaviors.webformRemoveFormSingleSubmit = {
+    attach: function attach() {
+      function onFormSubmit(e) {
+        var $form = $(e.currentTarget);
+        $form.removeAttr('data-drupal-form-submit-last');
+      }
+      $('body')
+        .once('webform-single-submit')
+        .on('submit.singleSubmit', 'form.webform-remove-single-submit', onFormSubmit);
+    }
+  };
+
+  /**
+   * Autocomplete.
    *
    * @type {Drupal~behavior}
    *
    * @prop {Drupal~behaviorAttach} attach
    *   Attaches the behavior for the webform autofocusing.
    */
-  Drupal.behaviors.webformAutofocus = {
+  Drupal.behaviors.webformAutocomplete = {
     attach: function (context) {
-      $(context).find('.webform-submission-form.js-webform-autofocus :input:visible:enabled:first').focus();
+      if (isChrome) {
+        $(context).find('.webform-submission-form input[autocomplete="off"]')
+          .attr('autocomplete', 'chrome-off-' + Math.floor(Math.random() * 100000000));
+      }
     }
   };
 
@@ -28,17 +55,19 @@
    *
    * @prop {Drupal~behaviorAttach} attach
    *   Attaches the behavior for disabling webform autosubmit.
-   *   Wizard pages need to be progressed with the Previous or Next buttons, not by pressing Enter.
+   *   Wizard pages need to be progressed with the Previous or Next buttons,
+   *   not by pressing Enter.
    */
   Drupal.behaviors.webformDisableAutoSubmit = {
     attach: function (context) {
+      // Not using context so that inputs loaded via Ajax will have autosubmit
+      // disabled.
       // @see http://stackoverflow.com/questions/11235622/jquery-disable-form-submit-on-enter
-      $(context).find('.webform-submission-form.js-webform-disable-autosubmit input')
+      $('.js-webform-disable-autosubmit input')
         .not(':button, :submit, :reset, :image, :file')
         .once('webform-disable-autosubmit')
         .on('keyup keypress', function (e) {
-          var keyCode = e.keyCode || e.which;
-          if (keyCode === 13) {
+          if (e.which === 13) {
             e.preventDefault();
             return false;
           }
@@ -53,161 +82,61 @@
    *
    * @prop {Drupal~behaviorAttach} attach
    *   Attaches the behavior for the skipping client-side validation.
+   *
+   * @deprecated in Webform 8.x-5.x and will be removed in Webform 8.x-6.x.
+   *   Use 'formnovalidate' attribute instead.
    */
   Drupal.behaviors.webformSubmitNoValidate = {
     attach: function (context) {
-      $(context).find(':submit.js-webform-novalidate').once('webform-novalidate').on('click', function () {
-        $(this.form).attr('novalidate', 'novalidate');
-      });
+      $(context).find(':submit.js-webform-novalidate')
+        .once('webform-novalidate')
+        .attr('formnovalidate', 'formnovalidate');
     }
   };
 
   /**
-   * Attach behaviors to trigger submit button from input onchange.
+   * Custom required and pattern validation error messages.
    *
    * @type {Drupal~behavior}
    *
    * @prop {Drupal~behaviorAttach} attach
-   *   Attaches form trigger submit events.
-   */
-  Drupal.behaviors.webformSubmitTrigger = {
-    attach: function (context) {
-      $('[data-webform-trigger-submit]').once('webform-trigger-submit').on('change', function () {
-        var submit = $(this).attr('data-webform-trigger-submit');
-        $(submit).mousedown();
-      });
-    }
-  };
-
-  /**
-   * Custom required error message.
-   *
-   * @type {Drupal~behavior}
-   *
-   * @prop {Drupal~behaviorAttach} attach
-   *   Attaches the behavior for the webform custom required error message.
+   *   Attaches the behavior for the webform custom required and pattern
+   *   validation error messages.
    *
    * @see http://stackoverflow.com/questions/5272433/html5-form-required-attribute-set-custom-validation-message
-   */
+   **/
   Drupal.behaviors.webformRequiredError = {
     attach: function (context) {
-      $(context).find(':input[data-webform-required-error]').once('webform-required-error')
-        .on('invalid', function() {
+      $(context).find(':input[data-webform-required-error], :input[data-webform-pattern-error]').once('webform-required-error')
+        .on('invalid', function () {
           this.setCustomValidity('');
-          if (!this.valid) {
+          if (this.valid) {
+            return;
+          }
+
+          if (this.validity.patternMismatch && $(this).attr('data-webform-pattern-error')) {
+            this.setCustomValidity($(this).attr('data-webform-pattern-error'));
+          }
+          else if (this.validity.valueMissing && $(this).attr('data-webform-required-error')) {
             this.setCustomValidity($(this).attr('data-webform-required-error'));
           }
         })
-        .on('input, change', function() {
+        .on('input change', function () {
           // Find all related elements by name and reset custom validity.
           // This specifically applies to required radios and checkboxes.
           var name = $(this).attr('name');
-          $(this.form).find(':input[name="' + name + '"]').each(
-            function() {this.setCustomValidity('');
+          $(this.form).find(':input[name="' + name + '"]').each(function () {
+            this.setCustomValidity('');
           });
         });
     }
   };
 
-  /**
-   * Filters the webform element list by a text input search string.
-   *
-   * The text input will have the selector `input.webform-form-filter-text`.
-   *
-   * The target element to do searching in will be in the selector
-   * `input.webform-form-filter-text[data-element]`
-   *
-   * The text source where the text should be found will have the selector
-   * `.webform-form-filter-text-source`
-   *
-   * @type {Drupal~behavior}
-   *
-   * @prop {Drupal~behaviorAttach} attach
-   *   Attaches the behavior for the webform element filtering.
-   */
-  Drupal.behaviors.webformFilterByText = {
-    attach: function (context, settings) {
-      var $input = $('input.webform-form-filter-text').once('webform-form-filter-text');
-      var $table = $($input.attr('data-element'));
-      var $details = $table.closest('details');
-      var $filter_rows;
-
-      /**
-       * Filters the webform element list.
-       *
-       * @param {jQuery.Event} e
-       *   The jQuery event for the keyup event that triggered the filter.
-       */
-      function filterElementList(e) {
-        var query = $(e.target).val().toLowerCase();
-
-        /**
-         * Shows or hides the webform element entry based on the query.
-         *
-         * @param {number} index
-         *   The index in the loop, as provided by `jQuery.each`
-         * @param {HTMLElement} label
-         *   The label of the webform.
-         */
-        function toggleEntry(index, label) {
-          var $label = $(label);
-          var $row = $label.closest('tr');
-          var textMatch = $label.text().toLowerCase().indexOf(query) !== -1;
-          $row.toggle(textMatch);
-          if (textMatch && $details.length) {
-            $row.closest('details').show();
-          }
-        }
-
-        // Filter if the length of the query is at least 2 characters.
-        if (query.length >= 2) {
-          if ($details.length) {
-            $details.hide();
-          }
-          $filter_rows.each(toggleEntry);
-        }
-        else {
-          $filter_rows.each(function (index) {
-            $(this).closest('tr').show();
-            if ($details.length) {
-              $details.show();
-            }
-          });
-        }
-      }
-
-      if ($table.length) {
-        $filter_rows = $table.find('.webform-form-filter-text-source');
-        $input.on('keyup', filterElementList);
-        if ($input.val()) {
-          $input.keyup();
-        }
-      }
-    }
-  };
-
-  if (window.imceInput) {
-    window.imceInput.processUrlInput = function (i, el) {
-      var button = imceInput.createUrlButton(el.id, el.getAttribute('data-imce-type'));
-      el.parentNode.insertAfter(button, el);
-    };
-  }
-
-  /**
-   * Reacts to contextual links being added.
-   *
-   * @param {jQuery.Event} event
-   *   The `drupalContextualLinkAdded` event.
-   * @param {object} data
-   *   An object containing the data relevant to the event.
-   *
-   * @listens event:drupalContextualLinkAdded
-   */
-  $(document).on('drupalContextualLinkAdded', function (event, data) {
-    // Bind Ajax behaviors to all items showing the class.
-    // @todo Fix contextual links to work with use-ajax links in
-    //    https://www.drupal.org/node/2764931.
-    Drupal.attachBehaviors(data.$el[0]);
+  // When #state:required is triggered we need to reset the target elements
+  // custom validity.
+  $(document).on('state:required', function (e) {
+    $(e.target).filter('[data-webform-required-error]')
+      .each(function () {this.setCustomValidity('');});
   });
 
 })(jQuery, Drupal);

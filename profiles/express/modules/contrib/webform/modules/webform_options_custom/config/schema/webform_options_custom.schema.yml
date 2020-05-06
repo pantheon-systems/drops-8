@@ -1,0 +1,61 @@
+'webform_options_custom.webform_options_custom.*':
+  type: config_entity
+  label: Images
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: label
+      label: Label
+    category:
+      type: label
+      label: Category
+    description:
+      type: text
+      label: 'Description'
+    help:
+      type: text
+      label: 'Help'
+    type:
+      type: string
+      label: 'Type of custom options'
+    template:
+      type: text
+      label: 'HTML/SVG markup'
+    url:
+      type: label
+      label: 'HTML/SVG URL'
+    css:
+      type: string
+      label: 'CSS (Cascading Style Sheets)'
+    javascript:
+      type: string
+      label: JavaScript
+    value_attributes:
+      type: string
+      label: 'Option value attribute names'
+    text_attributes:
+      type: string
+      label: 'Option text attribute names'
+    options:
+      type: text
+      label: 'Options (YAML)'
+    fill:
+      type: boolean
+      label: 'Allow SVG to be filled using CSS'
+    zoom:
+      type: boolean
+      label: 'Enable SVG panning and zooming'
+    tooltip:
+      type: boolean
+      label: 'Display text and description in a tooltip'
+    show_select:
+      type: boolean
+      label: 'Show select menu'
+    element:
+      type: boolean
+      label: 'Use as a select element'
+    entity_reference:
+      type: boolean
+      label: 'Use as an entity reference element'

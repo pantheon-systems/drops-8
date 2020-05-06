@@ -8,6 +8,7 @@ use Drupal\Core\DrupalKernel;
 use Drupal\Core\Language\Language;
 use Drupal\Core\Session\UserSession;
 use Drupal\Core\Site\Settings;
+use Drupal\Tests\RequirementsPageTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpFoundation\Request;
@@ -16,11 +17,13 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Base class for testing the interactive installer.
  *
- * @deprecated in Drupal 8.6.0 and will be removed before Drupal 9.0.0.
+ * @deprecated in drupal:8.6.0 and is removed from drupal:9.0.0.
  * Use \Drupal\FunctionalTests\Installer\InstallerTestBase. See
  * https://www.drupal.org/node/2988752
  */
 abstract class InstallerTestBase extends WebTestBase {
+
+  use RequirementsPageTrait;
 
   /**
    * Custom settings.php values to write for a test run.
@@ -145,9 +148,7 @@ abstract class InstallerTestBase extends WebTestBase {
       $request = Request::createFromGlobals();
       $class_loader = require $this->container->get('app.root') . '/autoload.php';
       Settings::initialize($this->container->get('app.root'), DrupalKernel::findSitePath($request), $class_loader);
-      foreach ($GLOBALS['config_directories'] as $type => $path) {
-        $this->configDirectories[$type] = $path;
-      }
+      $this->configDirectories['sync'] = Settings::get('config_sync_directory');
 
       // After writing settings.php, the installer removes write permissions
       // from the site directory. To allow drupal_generate_test_ua() to write
@@ -157,8 +158,13 @@ abstract class InstallerTestBase extends WebTestBase {
       // Not using File API; a potential error must trigger a PHP warning.
       chmod($this->container->get('app.root') . '/' . $this->siteDirectory, 0777);
       $this->kernel = DrupalKernel::createFromRequest($request, $class_loader, 'prod', FALSE);
-      $this->kernel->prepareLegacyRequest($request);
+      $this->kernel->boot();
+      $this->kernel->preHandle($request);
       $this->container = $this->kernel->getContainer();
+      // Ensure our request includes the session if appropriate.
+      if (PHP_SAPI !== 'cli') {
+        $request->setSession($this->container->get('session'));
+      }
 
       // Manually configure the test mail collector implementation to prevent
       // tests from sending out emails and collect them in state instead.
@@ -213,12 +219,7 @@ abstract class InstallerTestBase extends WebTestBase {
    * @see system_requirements()
    */
   protected function setUpRequirementsProblem() {
-    // By default, skip the "recommended PHP version" warning on older test
-    // environments. This allows the installer to be tested consistently on
-    // both recommended PHP versions and older (but still supported) versions.
-    if (version_compare(phpversion(), '7.0') < 0) {
-      $this->continueOnExpectedWarnings(['PHP']);
-    }
+    // Do nothing.
   }
 
   /**
@@ -242,46 +243,6 @@ abstract class InstallerTestBase extends WebTestBase {
     if ($this->isInstalled) {
       parent::refreshVariables();
     }
-  }
-
-  /**
-   * Continues installation when an expected warning is found.
-   *
-   * @param string[] $expected_warnings
-   *   A list of warning summaries to expect on the requirements screen (e.g.
-   *   'PHP', 'PHP OPcode caching', etc.). If only the expected warnings
-   *   are found, the test will click the "continue anyway" link to go to the
-   *   next screen of the installer. If an expected warning is not found, or if
-   *   a warning not in the list is present, a fail is raised.
-   */
-  protected function continueOnExpectedWarnings($expected_warnings = []) {
-    // Don't try to continue if there are errors.
-    if (strpos($this->getTextContent(), 'Errors found') !== FALSE) {
-      return;
-    }
-    // Allow only details elements that are directly after the warning header
-    // or each other. There is no guaranteed wrapper we can rely on across
-    // distributions. When there are multiple warnings, the selectors will be:
-    // - h3#warning+details summary
-    // - h3#warning+details+details summary
-    // - etc.
-    // We add one more selector than expected warnings to confirm that there
-    // isn't any other warning before clicking the link.
-    // @todo Make this more reliable in
-    //   https://www.drupal.org/project/drupal/issues/2927345.
-    $selectors = [];
-    for ($i = 0; $i <= count($expected_warnings); $i++) {
-      $selectors[] = 'h3#warning' . implode('', array_fill(0, $i + 1, '+details')) . ' summary';
-    }
-    $warning_elements = $this->cssSelect(implode(', ', $selectors));
-
-    // Confirm that there are only the expected warnings.
-    $warnings = [];
-    foreach ($warning_elements as $warning) {
-      $warnings[] = trim((string) $warning);
-    }
-    $this->assertEqual($expected_warnings, $warnings);
-    $this->clickLink('continue anyway');
   }
 
 }

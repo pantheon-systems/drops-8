@@ -242,7 +242,7 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
   /**
    * Implements Drupal\Core\Entity\EntityStorageInterface::save().
    *
-   * @throws EntityMalformedException
+   * @throws \Drupal\Core\Entity\EntityMalformedException
    *   When attempting to save a configuration entity that has no ID.
    */
   public function save(EntityInterface $entity) {
@@ -256,8 +256,8 @@ class ConfigEntityStorage extends EntityStorageBase implements ConfigEntityStora
     // @see \Drupal\Core\Config\Entity\ConfigEntityStorage::MAX_ID_LENGTH
     // @todo Consider moving this to a protected method on the parent class, and
     //   abstracting it for all entity types.
-    if (strlen($entity->get($this->idKey)) > self::MAX_ID_LENGTH) {
-      throw new ConfigEntityIdLengthException("Configuration entity ID {$entity->get($this->idKey)} exceeds maximum allowed length of " . self::MAX_ID_LENGTH . " characters.");
+    if (strlen($entity->get($this->idKey)) > static::MAX_ID_LENGTH) {
+      throw new ConfigEntityIdLengthException("Configuration entity ID {$entity->get($this->idKey)} exceeds maximum allowed length of " . static::MAX_ID_LENGTH . " characters.");
     }
 
     return parent::save($entity);

@@ -17,11 +17,6 @@ class ContentEntityType extends EntityType implements ContentEntityTypeInterface
   /**
    * The required revision metadata keys.
    *
-   * This property should only be filled in the constructor. This ensures that
-   * only new instances get newly added required revision metadata keys.
-   * Unserialized objects will only retrieve the keys that they already have
-   * been cached with.
-   *
    * @var array
    */
   protected $requiredRevisionMetadataKeys = [];
@@ -88,15 +83,15 @@ class ContentEntityType extends EntityType implements ContentEntityTypeInterface
     if ((!$this->revision_metadata_keys || ($this->revision_metadata_keys == $this->requiredRevisionMetadataKeys)) && $include_backwards_compatibility_field_names) {
       $base_fields = \Drupal::service('entity_field.manager')->getBaseFieldDefinitions($this->id());
       if ((isset($base_fields['revision_uid']) && $revision_user = 'revision_uid') || (isset($base_fields['revision_user']) && $revision_user = 'revision_user')) {
-        @trigger_error('The revision_user revision metadata key is not set.', E_USER_DEPRECATED);
+        @trigger_error('The revision_user revision metadata key is not set for entity type: ' . $this->id . ' See: https://www.drupal.org/node/2831499', E_USER_DEPRECATED);
         $this->revision_metadata_keys['revision_user'] = $revision_user;
       }
       if ((isset($base_fields['revision_timestamp']) && $revision_timestamp = 'revision_timestamp') || (isset($base_fields['revision_created'])) && $revision_timestamp = 'revision_created') {
-        @trigger_error('The revision_created revision metadata key is not set.', E_USER_DEPRECATED);
+        @trigger_error('The revision_created revision metadata key is not set for entity type: ' . $this->id . ' See: https://www.drupal.org/node/2831499', E_USER_DEPRECATED);
         $this->revision_metadata_keys['revision_created'] = $revision_timestamp;
       }
       if ((isset($base_fields['revision_log']) && $revision_log = 'revision_log') || (isset($base_fields['revision_log_message']) && $revision_log = 'revision_log_message')) {
-        @trigger_error('The revision_log_message revision metadata key is not set.', E_USER_DEPRECATED);
+        @trigger_error('The revision_log_message revision metadata key is not set for entity type: ' . $this->id . ' See: https://www.drupal.org/node/2831499', E_USER_DEPRECATED);
         $this->revision_metadata_keys['revision_log_message'] = $revision_log;
       }
     }
@@ -117,6 +112,27 @@ class ContentEntityType extends EntityType implements ContentEntityTypeInterface
   public function hasRevisionMetadataKey($key) {
     $keys = $this->getRevisionMetadataKeys();
     return isset($keys[$key]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setRevisionMetadataKey($key, $field_name) {
+    if ($field_name !== NULL) {
+      // Update the property holding the required revision metadata keys,
+      // which is used by the BC layer for retrieving the revision metadata
+      // keys.
+      // @see \Drupal\Core\Entity\ContentEntityType::getRevisionMetadataKeys()
+      $this->requiredRevisionMetadataKeys[$key] = $field_name;
+
+      // Add the new revision metadata key.
+      $this->revision_metadata_keys[$key] = $field_name;
+    }
+    else {
+      unset($this->requiredRevisionMetadataKeys[$key], $this->revision_metadata_keys[$key]);
+    }
+
+    return $this;
   }
 
 }

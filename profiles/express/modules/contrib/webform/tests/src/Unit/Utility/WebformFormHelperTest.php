@@ -59,10 +59,10 @@ class WebformFormHelperTest extends UnitTestCase {
         ],
       ],
     ];
-    $flattenend_elements = WebformFormHelper::flattenElements($elements);
+    $flattened_elements = WebformFormHelper::flattenElements($elements);
 
     // Check flattened elements.
-    $this->assertEquals($flattenend_elements, [
+    $this->assertEquals($flattened_elements, [
       'one' => [
         '#title' => 'one',
         'two' => [
@@ -79,7 +79,7 @@ class WebformFormHelperTest extends UnitTestCase {
     $elements['one']['two']['#title'] .= '-UPDATED';
     $elements['one']['two']['#type'] = 'textfield';
 
-    $this->assertEquals($flattenend_elements, [
+    $this->assertEquals($flattened_elements, [
       'one' => [
         '#title' => 'one-UPDATED',
         'two' => [
@@ -105,8 +105,8 @@ class WebformFormHelperTest extends UnitTestCase {
         '#title' => 'two-SECOND',
       ],
     ];
-    $flattenend_elements = WebformFormHelper::flattenElements($elements);
-    $this->assertEquals($flattenend_elements, [
+    $flattened_elements = WebformFormHelper::flattenElements($elements);
+    $this->assertEquals($flattened_elements, [
       'one' => [
         '#title' => 'one',
         'two' => [
@@ -128,7 +128,7 @@ class WebformFormHelperTest extends UnitTestCase {
     $elements['one']['two']['#title'] .= '-UPDATED';
     $elements['one']['two']['#type'] = 'textfield';
 
-    $this->assertEquals($flattenend_elements, [
+    $this->assertEquals($flattened_elements, [
       'one' => [
         '#title' => 'one-UPDATED',
         'two' => [

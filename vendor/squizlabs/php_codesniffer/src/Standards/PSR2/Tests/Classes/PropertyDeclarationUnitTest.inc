@@ -41,3 +41,33 @@ class ABC {
             $propE;
     static private    /*comment*/   $propF;
 }
+
+class MyClass
+{
+    public string $var = null;
+    protected ?Folder\ClassName $var = null;
+
+    var int $var = null;
+    static int $var = null;
+
+    private int $_var = null;
+
+    public $foo, $bar, $var = null;
+    public ?string $foo,
+           $bar,
+           $var = null;
+
+    protected
+    array
+        $foo,
+        $bar;
+}
+
+class MyClass
+{
+    public string$var = null;
+    protected ?Folder\ClassName
+        $var = null;
+    public int   $var = null;
+    public static int/*comment*/$var = null;
+}

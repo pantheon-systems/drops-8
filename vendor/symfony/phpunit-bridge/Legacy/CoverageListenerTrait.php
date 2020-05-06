@@ -76,7 +76,7 @@ class CoverageListenerTrait
         $cache = $r->getValue();
         $cache = array_replace_recursive($cache, array(
             \get_class($test) => array(
-                'covers' => array($sutFqcn),
+                'covers' => \is_array($sutFqcn) ? $sutFqcn : array($sutFqcn),
             ),
         ));
         $r->setValue($testClass, $cache);
@@ -95,11 +95,7 @@ class CoverageListenerTrait
         $sutFqcn = str_replace('\\Tests\\', '\\', $class);
         $sutFqcn = preg_replace('{Test$}', '', $sutFqcn);
 
-        if (!class_exists($sutFqcn)) {
-            return;
-        }
-
-        return $sutFqcn;
+        return class_exists($sutFqcn) ? $sutFqcn : null;
     }
 
     public function __destruct()

@@ -2,10 +2,12 @@
 
 namespace Drupal\Tests\system\Kernel\Block;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\system\Entity\Menu;
 use Drupal\block\Entity\Block;
 use Drupal\Core\Render\Element;
+use Drupal\system\Plugin\Block\SystemMenuBlock;
 use Drupal\system\Tests\Routing\MockRouteProvider;
 use Drupal\Tests\Core\Menu\MenuLinkMock;
 use Drupal\user\Entity\User;
@@ -226,7 +228,7 @@ class SystemMenuBlockTest extends KernelTestBase {
     foreach ($blocks as $id => $block) {
       $block_build = $block->build();
       $items = isset($block_build['#items']) ? $block_build['#items'] : [];
-      $this->assertIdentical($no_active_trail_expectations[$id], $this->convertBuiltMenuToIdTree($items), format_string('Menu block %id with no active trail renders the expected tree.', ['%id' => $id]));
+      $this->assertIdentical($no_active_trail_expectations[$id], $this->convertBuiltMenuToIdTree($items), new FormattableMarkup('Menu block %id with no active trail renders the expected tree.', ['%id' => $id]));
     }
 
     // Scenario 2: test all block instances when there's an active trail.
@@ -278,8 +280,92 @@ class SystemMenuBlockTest extends KernelTestBase {
     foreach ($blocks as $id => $block) {
       $block_build = $block->build();
       $items = isset($block_build['#items']) ? $block_build['#items'] : [];
-      $this->assertIdentical($active_trail_expectations[$id], $this->convertBuiltMenuToIdTree($items), format_string('Menu block %id with an active trail renders the expected tree.', ['%id' => $id]));
+      $this->assertIdentical($active_trail_expectations[$id], $this->convertBuiltMenuToIdTree($items), new FormattableMarkup('Menu block %id with an active trail renders the expected tree.', ['%id' => $id]));
     }
+  }
+
+  /**
+   * Tests the config expanded option.
+   *
+   * @dataProvider configExpandedTestCases
+   */
+  public function testConfigExpanded($active_route, $menu_block_level, $expected_items) {
+    $block = $this->blockManager->createInstance('system_menu_block:' . $this->menu->id(), [
+      'region' => 'footer',
+      'id' => 'machinename',
+      'theme' => 'stark',
+      'level' => $menu_block_level,
+      'depth' => 0,
+      'expand_all_items' => TRUE,
+    ]);
+
+    $route = $this->container->get('router.route_provider')->getRouteByName($active_route);
+    $request = new Request();
+    $request->attributes->set(RouteObjectInterface::ROUTE_NAME, $active_route);
+    $request->attributes->set(RouteObjectInterface::ROUTE_OBJECT, $route);
+    $this->container->get('request_stack')->push($request);
+
+    $block_build = $block->build();
+    $items = isset($block_build['#items']) ? $block_build['#items'] : [];
+    $this->assertEquals($expected_items, $this->convertBuiltMenuToIdTree($items));
+  }
+
+  /**
+   * @return array
+   */
+  public function configExpandedTestCases() {
+    return [
+      'All levels' => [
+        'example5',
+        1,
+        [
+          'test.example1' => [],
+          'test.example2' => [
+            'test.example3' => [
+              'test.example4' => [],
+            ],
+          ],
+          'test.example5' => [
+            'test.example7' => [],
+          ],
+          'test.example6' => [],
+          'test.example8' => [],
+        ],
+      ],
+      'Level two in "example 5" branch' => [
+        'example5',
+        2,
+        [
+          'test.example7' => [],
+        ],
+      ],
+      'Level three in "example 5" branch' => [
+        'example5',
+        3,
+        [],
+      ],
+      'Level three in "example 4" branch' => [
+        'example4',
+        3,
+        [
+          'test.example4' => [],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * @deprecationMessage The menu.active_trail service must be passed to SystemMenuBlock::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/2669550.
+   * @group legacy
+   */
+  public function testConstructorDeprecation() {
+    $block = new SystemMenuBlock([], 'test', ['provider' => 'test'], $this->container->get('menu.link_tree'));
+
+    // Ensure the BC layer injects the correct object.
+    $reflection_object = new \ReflectionObject($block);
+    $reflection_property = $reflection_object->getProperty('menuActiveTrail');
+    $reflection_property->setAccessible(TRUE);
+    $this->assertSame($reflection_property->getValue($block), $this->container->get('menu.active_trail'));
   }
 
   /**

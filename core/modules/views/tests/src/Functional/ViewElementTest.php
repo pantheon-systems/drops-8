@@ -21,6 +21,11 @@ class ViewElementTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
+  protected $defaultTheme = 'classy';
+
+  /**
+   * {@inheritdoc}
+   */
   protected function setUp($import_test_views = TRUE) {
     parent::setUp($import_test_views);
 
@@ -37,10 +42,10 @@ class ViewElementTest extends ViewTestBase {
     $this->drupalGet('views_test_data_element_form');
 
     $xpath = $this->xpath('//div[@class="views-element-container js-form-wrapper form-wrapper"]');
-    $this->assertTrue($xpath, 'The view container has been found on the form.');
+    $this->assertNotEmpty($xpath, 'The view container has been found on the form.');
 
     $xpath = $this->xpath('//div[@class="view-content"]');
-    $this->assertTrue($xpath, 'The view content has been found on the form.');
+    $this->assertNotEmpty($xpath, 'The view content has been found on the form.');
     // There should be 5 rows in the results.
     $xpath = $this->xpath('//div[@class="view-content"]/div');
     $this->assertEqual(count($xpath), 5);
@@ -82,10 +87,10 @@ class ViewElementTest extends ViewTestBase {
     $this->drupalGet('views_test_data_element_embed_form');
 
     $xpath = $this->xpath('//div[@class="views-element-container js-form-wrapper form-wrapper"]');
-    $this->assertTrue($xpath, 'The view container has been found on the form.');
+    $this->assertNotEmpty($xpath, 'The view container has been found on the form.');
 
     $xpath = $this->xpath('//div[@class="view-content"]');
-    $this->assertTrue($xpath, 'The view content has been found on the form.');
+    $this->assertNotEmpty($xpath, 'The view content has been found on the form.');
     // There should be 5 rows in the results.
     $xpath = $this->xpath('//div[@class="view-content"]/div');
     $this->assertEqual(count($xpath), 5);

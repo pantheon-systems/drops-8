@@ -1,0 +1,13 @@
+'webform.exporter.*':
+  type: mapping
+  label: 'Exporter settings'
+webform.exporter.delimited_text:
+  type: mapping
+  label: Delimiter
+  mapping:
+    delimiter:
+      type: string
+      label: Delimiter
+    excel:
+      type: boolean
+      label: Excel

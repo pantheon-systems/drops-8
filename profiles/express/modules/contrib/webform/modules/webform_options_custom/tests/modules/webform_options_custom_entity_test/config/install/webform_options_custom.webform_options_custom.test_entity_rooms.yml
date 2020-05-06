@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies: {  }
+id: test_entity_rooms
+label: 'Test: Entity rooms'
+description: 'Provides an element to select a room.'
+help: 'Provides an element to select a room.'
+category: Test
+type: template
+template: |
+  <div data-name="Room 1">Room 1</div>
+  <div data-name="Room 2">Room 2</div>
+  <div data-name="Room 3">Room 3</div>
+url: ''
+css: ''
+javascript: ''
+options: ''
+value_attributes: data-id
+text_attributes: data-name
+fill: true
+zoom: false
+tooltip: true
+show_select: true
+element: false
+entity_reference: true

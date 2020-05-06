@@ -18,6 +18,10 @@
 
 <b>{{ 'Send on:'|t }}</b> {{ settings.send }}{% if settings.days %} {{ settings.days > 0 ? '+' : ''}}{{ settings.days }} {{ 'days'|t }}{% endif %}<br />
 <b>{{ 'Unschedule:'|t }}</b> {{ settings.unschedule ? 'Yes'|t : 'No'|t }}<br />
+<b>{{ 'Ignore past:'|t }}</b> {{ settings.ignore_past ? 'Yes'|t : 'No'|t }}<br />
+{% if settings.test_send %}
+  <em>{{ 'Email will be sent immediately when testing this webform'|t }}</em><br />
+{% endif %}
 <hr />
 {% include '@webform/webform-handler-email-summary.html.twig' %}
 {% if status %}{{ status }}{% endif %}

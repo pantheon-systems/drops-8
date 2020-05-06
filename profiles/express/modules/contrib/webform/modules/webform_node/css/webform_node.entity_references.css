@@ -15,7 +15,7 @@
 }
 
 /**
- * If dropbutton is in a contextual  region we need to move it to the left to
+ * If dropbutton is in a contextual region we need to move it to the left to
  * prevent it from overlapping with the pencil icon.
  */
 .js .contextual-region .webform-node-entity-references .dropbutton-widget {

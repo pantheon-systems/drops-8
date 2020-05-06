@@ -1,0 +1,14 @@
+name: 'User batch action test'
+type: module
+description: 'Support module for user batch action testing.'
+package: Testing
+# version: VERSION
+core: 8.x
+dependencies:
+  - views
+  - user
+
+# Information added by Drupal.org packaging script on 2020-04-02
+version: '8.8.5'
+project: 'drupal'
+datestamp: 1585861582

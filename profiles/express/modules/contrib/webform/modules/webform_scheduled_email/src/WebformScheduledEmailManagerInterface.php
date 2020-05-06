@@ -112,6 +112,20 @@ interface WebformScheduledEmailManagerInterface {
   const EMAIL_UNSCHEDULED = 'unscheduled';
 
   /**
+   * Denote email being ignored.
+   *
+   * @var string
+   */
+  const EMAIL_IGNORED = 'ignored';
+
+  /**
+   * Denote email being skipped.
+   *
+   * @var string
+   */
+  const EMAIL_SKIPPED = 'skipped';
+
+  /**
    * Denote email being sent.
    *
    * @var string
@@ -128,6 +142,38 @@ interface WebformScheduledEmailManagerInterface {
   /****************************************************************************/
   // Scheduled message functions.
   /****************************************************************************/
+
+  /**
+   * Get scheduled email date type (date or datetime).
+   *
+   * @return string
+   *   Scheduled email date type (date or datetime).
+   */
+  public function getDateType();
+
+  /**
+   * Get scheduled email date label (date or date/time).
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup|string
+   *   Scheduled email date label (date or date/time).
+   */
+  public function getDateTypeLabel();
+
+  /**
+   * Get scheduled email date format (Y-m-d or Y-m-d H:i:s).
+   *
+   * @return string
+   *   Scheduled email date format (Y-m-d or Y-m-d H:i:s).
+   */
+  public function getDateFormat();
+
+  /**
+   * Get scheduled email date format label (YYYY-DD-MM or YYYY-DD-MM HH:MM:SS).
+   *
+   * @return string
+   *   Scheduled email date format label (YYYY-DD-MM or YYYY-DD-MM HH:MM:SS).
+   */
+  public function getDateFormatLabel();
 
   /**
    * Determine if submission has scheduled email for specified handler.
@@ -164,8 +210,8 @@ interface WebformScheduledEmailManagerInterface {
    *   A webform handler id.
    *
    * @return string|bool
-   *   A send date using ISO date format (YYYY-MM-DD) or FALSE if the send date
-   *   is invalid.
+   *   A send date using ISO date (YYYY-MM-DD) or datetime
+   *   format (YYYY-MM-DD HH:MM:SS) or FALSE if the send date is invalid.
    */
   public function getSendDate(WebformSubmissionInterface $webform_submission, $handler_id);
 
@@ -232,7 +278,7 @@ interface WebformScheduledEmailManagerInterface {
    * @param int $send_limit
    *   The maximum number of emails to be sent.
    *   If set to 0 no emails will be sent.
-   *   Defaults to webform.settting->batch.default_batch_email_size
+   *   Defaults to webform.settting->batch.default_batch_email_size.
    *
    * @return array
    *   An associative array containing cron task stats.

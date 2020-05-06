@@ -1,0 +1,471 @@
+langcode: en
+status: open
+dependencies:
+  enforced:
+    module:
+      - webform_example_custom_form
+open: null
+close: null
+weight: 0
+uid: null
+template: false
+archive: false
+id: webform_example_custom_form
+title: 'Example: Webform Custom (Configuration) Form'
+description: 'An example of a custom (configuration) form built using the webform module.'
+category: Example
+elements: |
+  '#attributes':
+    'class':
+      - 'webform-example-custom-form-settings'
+  basic_elements:
+    '#type': details
+    '#title': 'Basic elements'
+    '#open': true
+    textfield:
+      '#type': textfield
+      '#title': 'Text field'
+      '#counter_type': character
+      '#counter_maximum': 10
+    textarea:
+      '#type': textarea
+      '#title': 'Text area'
+      '#counter_type': word
+      '#counter_maximum': 500
+    select:
+      '#type': select
+      '#title': 'Select menu'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+      '#select2': true
+    checkboxes:
+      '#type': checkboxes
+      '#title': 'Checkboxes'
+      '#options_display': side_by_side
+      '#options_description_display': help
+      '#options':
+        one: 'One -- This is help text.'
+        two: 'Two -- This is help text.'
+        three: 'Three -- This is  help text.'
+  date_elements:
+    '#type': details
+    '#title': 'Date elements'
+    '#open': true
+    date:
+      '#type': date
+      '#title': Date
+    datelist:
+      '#type': datelist
+      '#title': 'Date list'
+    date_datepicker:
+      '#type': date
+      '#title': 'Date picker'
+      '#datepicker': true
+      '#date_date_format': 'D, m/d/Y'
+    webform_time:
+      '#type': webform_time
+      '#title': Time
+  advanced_elements:
+    '#type': details
+    '#title': 'Advanced elements'
+    '#open': true
+    email_multiple:
+      '#type': webform_email_multiple
+      '#title': 'Email multiple'
+    tel_international:
+      '#type': tel
+      '#title': 'Telephone (International)'
+      '#international': true
+      '#telephone_validation_format': '0'
+    range:
+      '#type': range
+      '#title': Range
+      '#min': 0
+      '#max': 100
+      '#step': 1
+      '#output': right
+      '#output__field_prefix': $
+      '#output__field_suffix': '.00'
+    managed_file:
+      '#type': managed_file
+      '#title': 'File upload'
+    tableselect:
+      '#type': tableselect
+      '#title': 'Table select'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_tableselect_sort:
+      '#type': webform_tableselect_sort
+      '#title': 'Tableselect sort'
+      '#options':
+        one: One
+        two: Two
+    webform_table_sort:
+      '#type': webform_table_sort
+      '#title': 'Table sort'
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_autocomplete:
+      '#type': webform_autocomplete
+      '#title': Autocomplete
+      '#autocomplete_items': country_names
+    webform_buttons:
+      '#type': webform_buttons
+      '#title': Buttons
+      '#options':
+        one: One
+        two: Two
+        three: Three
+    webform_codemirror:
+      '#type': webform_codemirror
+      '#title': CodeMirror
+      '#mode': yaml
+    webform_image_select:
+      '#type': webform_image_select
+      '#title': 'Image select'
+      '#show_label': true
+      '#images':
+        kitten_1:
+          text: 'Cute Kitten 1'
+          src: 'http://placekitten.com/220/200'
+        kitten_2:
+          text: 'Cute Kitten 2'
+          src: 'http://placekitten.com/180/200'
+        kitten_3:
+          text: 'Cute Kitten 3'
+          src: 'http://placekitten.com/130/200'
+    webform_rating:
+      '#type': webform_rating
+      '#title': Rating
+    webform_terms_of_service:
+      '#type': webform_terms_of_service
+      '#terms_content': 'These are the terms of service.'
+    webform_likert:
+      '#type': webform_likert
+      '#title': Likert
+      '#questions':
+        q1: 'Please answer question 1?'
+        q2: 'How about now answering question 2?'
+        q3: 'Finally, here is question 3?'
+      '#answers':
+        1: 1
+        2: 2
+        3: 3
+        4: 4
+        5: 5
+  entity_reference_elements:
+    '#type': details
+    '#title': 'Entity reference elements'
+    '#open': true
+    entity_autocomplete:
+      '#type': entity_autocomplete
+      '#title': 'Entity autocomplete'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+    webform_entity_select:
+      '#type': webform_entity_select
+      '#title': 'Entity select'
+      '#target_type': user
+      '#selection_handler': 'default:user'
+      '#selection_settings':
+        include_anonymous: true
+    webform_term_select:
+      '#type': webform_term_select
+      '#title': 'Term select'
+      '#vocabulary': tags
+  webform_composites:
+    '#type': details
+    '#title': 'Webform composites'
+    '#open': true
+    webform_custom_composite:
+      '#type': webform_custom_composite
+      '#title': 'Custom composite'
+      '#element':
+        first_name:
+          '#type': textfield
+          '#title': 'First name'
+        last_name:
+          '#type': textfield
+          '#title': 'Last name'
+        gender:
+          '#type': webform_select_other
+          '#options': gender
+          '#title': Gender
+        martial_status:
+          '#type': webform_select_other
+          '#options': marital_status
+          '#title': 'Martial status'
+        employment_status:
+          '#type': webform_select_other
+          '#options': employment_status
+          '#title': 'Employment status'
+        age:
+          '#type': number
+          '#title': Age
+  form_elements:
+    '#type': details
+    '#title': 'Form elements'
+    '#open': true
+    form_element_input_mask:
+      '#type': textfield
+      '#title': 'Form element (Input mask: Phone)'
+      '#input_mask': '(999) 999-9999'
+      '#test': ''
+    form_element_input_hide:
+      '#type': textfield
+      '#title': 'Form element (Input hiding)'
+      '#input_hide': true
+      '#default_value': '{value}'
+    form_element_descriptions:
+      '#type': textfield
+      '#title': 'Form element (Labels and descriptions)'
+      '#description': 'This is a description.'
+      '#placeholder': 'This is a placeholder.'
+      '#help': 'This is help.'
+      '#more': 'This is more text'
+  dividers:
+    '#type': details
+    '#title': Dividers
+    '#open': true
+    horizontal_rule_dotted_medium:
+      '#type': webform_horizontal_rule
+      '#attributes':
+        class:
+          - webform-horizontal-rule--dotted
+          - webform-horizontal-rule--medium
+  messages:
+    '#type': details
+    '#title': Messages
+    '#open': true
+    message_info:
+      '#type': webform_message
+      '#message_type': info
+      '#message_message': 'This is an <strong>info</strong> message.'
+      '#message_close': true
+  flexbox:
+    '#type': details
+    '#title': Flexbox
+    '#open': true
+    webform_flexbox:
+      '#type': webform_flexbox
+      '#title': 'Flexbox elements'
+      element_flex_1:
+        '#type': textfield
+        '#title': 'Element (Flex: 1)'
+        '#flex': 1
+      element_flex_2:
+        '#type': textfield
+        '#title': 'Element (Flex: 2)'
+        '#flex': 2
+      element_flex_3:
+        '#type': textfield
+        '#title': 'Element (Flex: 3)'
+        '#flex': 3
+  internal:
+    '#type': details
+    '#title': 'Internal'
+    '#open': true
+    checkbox_value:
+      '#type': webform_checkbox_value
+      '#title': 'Checkbox with value'
+      '#value__title': 'Enter a value'
+    mapping:
+      '#type': webform_mapping
+      '#title': 'Mapping'
+      '#source':
+        one: One
+        two: Two
+        three: Three
+      '#destination':
+        four: Four
+        five: Five
+        six: Six
+    multiple:
+      '#type': webform_multiple
+      '#title': 'Multiple values'
+      '#element':
+        first_name:
+          '#type': textfield
+          '#title': first_name
+        last_name:
+          '#type': textfield
+          '#title': last_name
+      '#default_value':
+        - first_name: John
+          last_name: Smith
+        - first_name: Jane
+          last_name: Doe
+  
+css: ''
+javascript: ''
+settings:
+  ajax: false
+  ajax_scroll_top: form
+  ajax_progress_type: ''
+  ajax_effect: ''
+  ajax_speed: null
+  page: true
+  page_submit_path: ''
+  page_confirm_path: ''
+  page_admin_theme: false
+  form_title: source_entity_webform
+  form_submit_once: false
+  form_exception_message: ''
+  form_open_message: ''
+  form_close_message: ''
+  form_previous_submissions: true
+  form_confidential: false
+  form_confidential_message: ''
+  form_remote_addr: true
+  form_convert_anonymous: false
+  form_prepopulate: false
+  form_prepopulate_source_entity: false
+  form_prepopulate_source_entity_required: false
+  form_prepopulate_source_entity_type: ''
+  form_reset: false
+  form_disable_autocomplete: false
+  form_novalidate: false
+  form_disable_inline_errors: false
+  form_required: false
+  form_unsaved: false
+  form_disable_back: false
+  form_submit_back: false
+  form_autofocus: false
+  form_details_toggle: false
+  form_access_denied: default
+  form_access_denied_title: ''
+  form_access_denied_message: ''
+  form_access_denied_attributes: {  }
+  form_file_limit: ''
+  submission_label: ''
+  submission_log: false
+  submission_views: {  }
+  submission_views_replace: {  }
+  submission_user_columns: {  }
+  submission_user_duplicate: false
+  submission_access_denied: default
+  submission_access_denied_title: ''
+  submission_access_denied_message: ''
+  submission_access_denied_attributes: {  }
+  submission_exception_message: ''
+  submission_locked_message: ''
+  submission_excluded_elements: {  }
+  submission_exclude_empty: false
+  submission_exclude_empty_checkbox: false
+  previous_submission_message: ''
+  previous_submissions_message: ''
+  autofill: false
+  autofill_message: ''
+  autofill_excluded_elements: {  }
+  wizard_progress_bar: true
+  wizard_progress_pages: false
+  wizard_progress_percentage: false
+  wizard_progress_link: false
+  wizard_progress_states: false
+  wizard_start_label: ''
+  wizard_preview_link: false
+  wizard_confirmation: true
+  wizard_confirmation_label: ''
+  wizard_track: ''
+  preview: 0
+  preview_label: ''
+  preview_title: ''
+  preview_message: ''
+  preview_attributes: {  }
+  preview_excluded_elements: {  }
+  preview_exclude_empty: true
+  preview_exclude_empty_checkbox: false
+  draft: none
+  draft_multiple: false
+  draft_auto_save: false
+  draft_saved_message: ''
+  draft_loaded_message: ''
+  draft_pending_single_message: ''
+  draft_pending_multiple_message: ''
+  confirmation_type: page
+  confirmation_title: ''
+  confirmation_message: ''
+  confirmation_url: ''
+  confirmation_attributes: {  }
+  confirmation_back: true
+  confirmation_back_label: ''
+  confirmation_back_attributes: {  }
+  confirmation_exclude_query: false
+  confirmation_exclude_token: false
+  confirmation_update: false
+  limit_total: null
+  limit_total_interval: null
+  limit_total_message: ''
+  limit_total_unique: false
+  limit_user: null
+  limit_user_interval: null
+  limit_user_message: ''
+  limit_user_unique: false
+  entity_limit_total: null
+  entity_limit_total_interval: null
+  entity_limit_user: null
+  entity_limit_user_interval: null
+  purge: none
+  purge_days: null
+  results_disabled: true
+  results_disabled_ignore: true
+  results_customize: false
+  token_view: false
+  token_update: false
+access:
+  create:
+    roles:
+      - anonymous
+      - authenticated
+    users: {  }
+    permissions: {  }
+  view_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  purge_any:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  view_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  update_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  delete_own:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  administer:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  test:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+  configuration:
+    roles: {  }
+    users: {  }
+    permissions: {  }
+handlers: {  }
+variants: {  }

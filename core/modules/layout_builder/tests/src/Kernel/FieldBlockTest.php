@@ -10,6 +10,8 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FormatterPluginManager;
+use Drupal\Core\Plugin\Context\ContextDefinition;
+use Drupal\Core\Form\EnforcedResponseException;
 use Drupal\Core\Plugin\Context\EntityContextDefinition;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\KernelTests\Core\Entity\EntityKernelTestBase;
@@ -20,6 +22,7 @@ use Prophecy\Promise\ReturnPromise;
 use Prophecy\Promise\ThrowPromise;
 use Prophecy\Prophecy\ProphecyInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * @coversDefaultClass \Drupal\layout_builder\Plugin\Block\FieldBlock
@@ -206,8 +209,9 @@ class FieldBlockTest extends EntityKernelTestBase {
       'category' => 'Test',
       'admin_label' => 'Test Block',
       'bundles' => ['entity_test'],
-      'context' => [
+      'context_definitions' => [
         'entity' => EntityContextDefinition::fromEntityTypeId('entity_test')->setLabel('Test'),
+        'view_mode' => new ContextDefinition('string'),
       ],
     ];
     $formatter_manager = $this->prophesize(FormatterPluginManager::class);
@@ -223,6 +227,7 @@ class FieldBlockTest extends EntityKernelTestBase {
       $this->logger->reveal()
     );
     $block->setContextValue('entity', $entity_prophecy->reveal());
+    $block->setContextValue('view_mode', 'default');
     return $block;
   }
 
@@ -276,13 +281,39 @@ class FieldBlockTest extends EntityKernelTestBase {
       new ReturnPromise([[]]),
       '',
     ];
-    $data['exception'] = [
-      new ThrowPromise(new \Exception('The exception message')),
+    return $data;
+  }
+
+  /**
+   * @covers ::build
+   */
+  public function testBuildException() {
+    // In PHP 7.4 ReflectionClass cannot be serialized so this cannot be part of
+    // providerTestBuild().
+    $promise = new ThrowPromise(new \Exception('The exception message'));
+    $this->testBuild(
+      $promise,
       '',
       'The field "%field" failed to render with the error of "%error".',
-      ['%field' => 'the_field_name', '%error' => 'The exception message'],
-    ];
-    return $data;
+      ['%field' => 'the_field_name', '%error' => 'The exception message']
+    );
+  }
+
+  /**
+   * Tests a field block that throws a form exception.
+   *
+   * @todo Remove in https://www.drupal.org/project/drupal/issues/2367555.
+   */
+  public function testBuildWithFormException() {
+    $field = $this->prophesize(FieldItemListInterface::class);
+    $field->view(Argument::type('array'))->willThrow(new EnforcedResponseException(new Response()));
+
+    $entity = $this->prophesize(FieldableEntityInterface::class);
+    $entity->get('the_field_name')->willReturn($field->reveal());
+
+    $block = $this->getTestBlock($entity);
+    $this->expectException(EnforcedResponseException::class);
+    $block->build();
   }
 
 }

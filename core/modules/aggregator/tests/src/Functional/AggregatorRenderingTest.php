@@ -19,6 +19,11 @@ class AggregatorRenderingTest extends AggregatorTestBase {
    */
   public static $modules = ['block', 'test_page_test'];
 
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
+
   protected function setUp() {
     parent::setUp();
 
@@ -55,20 +60,20 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $this->assertText($block->label(), 'Feed block is displayed on the page.');
 
     // Confirm items appear as links.
-    $items = $this->container->get('entity.manager')->getStorage('aggregator_item')->loadByFeed($feed->id(), 1);
+    $items = $this->container->get('entity_type.manager')->getStorage('aggregator_item')->loadByFeed($feed->id(), 1);
     $links = $this->xpath('//a[@href = :href]', [':href' => reset($items)->getLink()]);
     $this->assert(isset($links[0]), 'Item link found.');
 
     // Find the expected read_more link.
-    $href = $feed->url();
+    $href = $feed->toUrl()->toString();
     $links = $this->xpath('//a[@href = :href]', [':href' => $href]);
-    $this->assert(isset($links[0]), format_string('Link to href %href found.', ['%href' => $href]));
+    $this->assert(isset($links[0]), new FormattableMarkup('Link to href %href found.', ['%href' => $href]));
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
     $cache_tags = explode(' ', $cache_tags_header);
     $this->assertTrue(in_array('aggregator_feed:' . $feed->id(), $cache_tags));
 
     // Visit that page.
-    $this->drupalGet($feed->urlInfo()->getInternalPath());
+    $this->drupalGet($feed->toUrl()->getInternalPath());
     $correct_titles = $this->xpath('//h1[normalize-space(text())=:title]', [':title' => $feed->label()]);
     $this->assertFalse(empty($correct_titles), 'Aggregator feed page is available and has the correct title.');
     $cache_tags = explode(' ', $this->drupalGetHeader('X-Drupal-Cache-Tags'));
@@ -112,7 +117,7 @@ class AggregatorRenderingTest extends AggregatorTestBase {
     $this->assertTrue(!empty($titles), 'Source page contains correct title.');
 
     // Find the expected read_more link on the sources page.
-    $href = $feed->url();
+    $href = $feed->toUrl()->toString();
     $links = $this->xpath('//a[@href = :href]', [':href' => $href]);
     $this->assertTrue(isset($links[0]), new FormattableMarkup('Link to href %href found.', ['%href' => $href]));
     $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');

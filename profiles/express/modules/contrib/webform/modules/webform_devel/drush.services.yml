@@ -1,0 +1,6 @@
+services:
+  webform_devel.commands:
+    class: \Drupal\webform_devel\Commands\WebformDevelCommands
+    arguments: ['@state', '@user.data']
+    tags:
+      - { name: drush.command }

@@ -11,9 +11,17 @@
  */
 
 // Please update when phpunit needs to be reinstalled with fresh deps:
-// Cache-Id-Version: 2018-11-20 15:30 UTC
+// Cache-Id: 2020-01-31 10:00 UTC
 
 error_reporting(-1);
+
+$passthruOrFail = function ($command) {
+    passthru($command, $status);
+
+    if ($status) {
+        exit($status);
+    }
+};
 
 if (PHP_VERSION_ID >= 70200) {
     // PHPUnit 6 is required for PHP 7.2+
@@ -26,10 +34,7 @@ if (PHP_VERSION_ID >= 70200) {
     $PHPUNIT_VERSION = '4.8';
 }
 
-if ('composer.json' !== $COMPOSER_JSON = getenv('COMPOSER') ?: 'composer.json') {
-    putenv('COMPOSER=composer.json');
-    $_SERVER['COMPOSER'] = $_ENV['COMPOSER'] = 'composer.json';
-}
+$COMPOSER_JSON = getenv('COMPOSER') ?: 'composer.json';
 
 $root = __DIR__;
 while (!file_exists($root.'/'.$COMPOSER_JSON) || file_exists($root.'/DeprecationErrorHandler.php')) {
@@ -47,9 +52,26 @@ if ('phpdbg' === PHP_SAPI) {
     $PHP .= ' -qrr';
 }
 
-$COMPOSER = file_exists($COMPOSER = $oldPwd.'/composer.phar') || ($COMPOSER = rtrim('\\' === DIRECTORY_SEPARATOR ? preg_replace('/[\r\n].*/', '', `where.exe composer.phar`) : `which composer.phar 2> /dev/null`))
-    ? $PHP.' '.escapeshellarg($COMPOSER)
-    : 'composer';
+$defaultEnvs = array(
+    'COMPOSER' => 'composer.json',
+    'COMPOSER_VENDOR_DIR' => 'vendor',
+    'COMPOSER_BIN_DIR' => 'bin',
+);
+
+foreach ($defaultEnvs as $envName => $envValue) {
+    if ($envValue !== getenv($envName)) {
+        putenv("$envName=$envValue");
+        $_SERVER[$envName] = $_ENV[$envName] = $envValue;
+    }
+}
+
+if (false === $COMPOSER = \getenv('COMPOSER_BINARY')) {
+    $COMPOSER = file_exists($COMPOSER = $oldPwd.'/composer.phar')
+        || ($COMPOSER = rtrim('\\' === DIRECTORY_SEPARATOR ? preg_replace('/[\r\n].*/', '', `where.exe composer.phar`) : `which composer.phar 2> /dev/null`))
+        || ($COMPOSER = rtrim('\\' === DIRECTORY_SEPARATOR ? preg_replace('/[\r\n].*/', '', `where.exe composer`) : `which composer 2> /dev/null`))
+        ? (file_get_contents($COMPOSER, false, null, 0, 18) === '#!/usr/bin/env php' ? $PHP : '').' '.escapeshellarg($COMPOSER) // detect shell wrappers by looking at the shebang
+        : 'composer';
+}
 
 if (false === $SYMFONY_PHPUNIT_REMOVE = getenv('SYMFONY_PHPUNIT_REMOVE')) {
     $SYMFONY_PHPUNIT_REMOVE = 'phpspec/prophecy symfony/yaml';
@@ -61,29 +83,35 @@ if (!file_exists("$PHPUNIT_DIR/phpunit-$PHPUNIT_VERSION/phpunit") || md5_file(__
     @mkdir($PHPUNIT_DIR, 0777, true);
     chdir($PHPUNIT_DIR);
     if (file_exists("phpunit-$PHPUNIT_VERSION")) {
-        passthru(sprintf('\\' === DIRECTORY_SEPARATOR ? '(del /S /F /Q %s & rmdir %1$s) >nul': 'rm -rf %s', "phpunit-$PHPUNIT_VERSION"));
+        passthru(sprintf('\\' === DIRECTORY_SEPARATOR ? 'rmdir /S /Q %s > NUL': 'rm -rf %s', "phpunit-$PHPUNIT_VERSION.old"));
+        rename("phpunit-$PHPUNIT_VERSION", "phpunit-$PHPUNIT_VERSION.old");
+        passthru(sprintf('\\' === DIRECTORY_SEPARATOR ? 'rmdir /S /Q %s': 'rm -rf %s', "phpunit-$PHPUNIT_VERSION.old"));
     }
-    passthru("$COMPOSER create-project --no-install --prefer-dist --no-scripts --no-plugins --no-progress --ansi phpunit/phpunit phpunit-$PHPUNIT_VERSION \"$PHPUNIT_VERSION.*\"");
+    $passthruOrFail("$COMPOSER create-project --no-install --prefer-dist --no-scripts --no-plugins --no-progress --ansi phpunit/phpunit phpunit-$PHPUNIT_VERSION \"$PHPUNIT_VERSION.*\"");
+    @copy("phpunit-$PHPUNIT_VERSION/phpunit.xsd", 'phpunit.xsd');
     chdir("phpunit-$PHPUNIT_VERSION");
     if ($SYMFONY_PHPUNIT_REMOVE) {
-        passthru("$COMPOSER remove --no-update ".$SYMFONY_PHPUNIT_REMOVE);
+        $passthruOrFail("$COMPOSER remove --no-update ".$SYMFONY_PHPUNIT_REMOVE);
     }
     if (5.1 <= $PHPUNIT_VERSION && $PHPUNIT_VERSION < 5.4) {
-        passthru("$COMPOSER require --no-update phpunit/phpunit-mock-objects \"~3.1.0\"");
+        $passthruOrFail("$COMPOSER require --no-update phpunit/phpunit-mock-objects \"~3.1.0\"");
     }
+
+    $passthruOrFail("$COMPOSER config --unset platform.php");
     if (file_exists($path = $root.'/vendor/symfony/phpunit-bridge')) {
-        passthru("$COMPOSER require --no-update symfony/phpunit-bridge \"*@dev\"");
-        passthru("$COMPOSER config repositories.phpunit-bridge path ".escapeshellarg(str_replace('/', DIRECTORY_SEPARATOR, $path)));
+        $passthruOrFail("$COMPOSER require --no-update symfony/phpunit-bridge \"*@dev\"");
+        $passthruOrFail("$COMPOSER config repositories.phpunit-bridge path ".escapeshellarg(str_replace('/', DIRECTORY_SEPARATOR, $path)));
         if ('\\' === DIRECTORY_SEPARATOR) {
             file_put_contents('composer.json', preg_replace('/^( {8})"phpunit-bridge": \{$/m', "$0\n$1    ".'"options": {"symlink": false},', file_get_contents('composer.json')));
         }
     } else {
-        passthru("$COMPOSER require --no-update symfony/phpunit-bridge \"*\"");
+        $passthruOrFail("$COMPOSER require --no-update symfony/phpunit-bridge \"*\"");
     }
     $prevRoot = getenv('COMPOSER_ROOT_VERSION');
     putenv("COMPOSER_ROOT_VERSION=$PHPUNIT_VERSION.99");
+    $q = '\\' === DIRECTORY_SEPARATOR ? '"' : '';
     // --no-suggest is not in the list to keep compat with composer 1.0, which is shipped with Ubuntu 16.04LTS
-    $exit = proc_close(proc_open("$COMPOSER install --no-dev --prefer-dist --no-progress --ansi", array(), $p, getcwd(), null, array('bypass_shell' => true)));
+    $exit = proc_close(proc_open("$q$COMPOSER install --no-dev --prefer-dist --no-progress --ansi$q", array(), $p, getcwd()));
     putenv('COMPOSER_ROOT_VERSION'.(false !== $prevRoot ? '='.$prevRoot : ''));
     if ($exit) {
         exit($exit);
@@ -100,6 +128,10 @@ if (!class_exists('SymfonyBlacklistPhpunit', false)) {
 if (class_exists('PHPUnit_Util_Blacklist')) {
     PHPUnit_Util_Blacklist::$blacklistedClassNames['SymfonyBlacklistPhpunit'] = 1;
     PHPUnit_Util_Blacklist::$blacklistedClassNames['SymfonyBlacklistSimplePhpunit'] = 1;
+} elseif (method_exists('PHPUnit\Util\Blacklist', 'addDirectory')) {
+    (new PHPUnit\Util\BlackList())->getBlacklistedDirectories();
+    PHPUnit\Util\Blacklist::addDirectory(\dirname((new \ReflectionClass('SymfonyBlacklistPhpunit'))->getFileName()));
+    PHPUnit\Util\Blacklist::addDirectory(\dirname((new \ReflectionClass('SymfonyBlacklistSimplePhpunit'))->getFileName()));
 } else {
     PHPUnit\Util\Blacklist::$blacklistedClassNames['SymfonyBlacklistPhpunit'] = 1;
     PHPUnit\Util\Blacklist::$blacklistedClassNames['SymfonyBlacklistSimplePhpunit'] = 1;
@@ -118,6 +150,14 @@ EOPHP
 global $argv, $argc;
 $argv = isset($_SERVER['argv']) ? $_SERVER['argv'] : array();
 $argc = isset($_SERVER['argc']) ? $_SERVER['argc'] : 0;
+
+if ($PHPUNIT_VERSION < 8.0) {
+    $argv = array_filter($argv, function ($v) use (&$argc) { if ('--do-not-cache-result' !== $v) return true; --$argc; return false; });
+} elseif (filter_var(getenv('SYMFONY_PHPUNIT_DISABLE_RESULT_CACHE'), FILTER_VALIDATE_BOOLEAN)) {
+    $argv[] = '--do-not-cache-result';
+    ++$argc;
+}
+
 $components = array();
 $cmd = array_map('escapeshellarg', $argv);
 $exit = 0;

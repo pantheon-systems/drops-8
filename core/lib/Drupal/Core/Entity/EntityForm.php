@@ -35,13 +35,14 @@ class EntityForm extends FormBase implements EntityFormInterface {
   /**
    * The entity manager.
    *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
+   * This member exists for BC reasons and should be removed when the
+   *   drupal:9.0.0 branch opens.
    *
-   * @deprecated in Drupal 8.0.0, will be removed before Drupal 9.0.0.
+   * @var \Drupal\Core\Entity\EntityManagerInterface
    *
    * @see https://www.drupal.org/node/2549139
    */
-  protected $entityManager;
+  private $privateEntityManager;
 
   /**
    * The entity type manager.
@@ -56,6 +57,37 @@ class EntityForm extends FormBase implements EntityFormInterface {
    * @var \Drupal\Core\Entity\EntityInterface
    */
   protected $entity;
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __get($name) {
+    // Removing core's usage of ::setEntityManager means that this deprecated
+    // service wont be set. We provide it here for backwards compatibility.
+    if ($name === 'entityManager') {
+      @trigger_error('EntityForm::entityManager is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use EntityForm::entityTypeManager instead. See https://www.drupal.org/node/2549139', E_USER_DEPRECATED);
+      return $this->privateEntityManager ?: \Drupal::entityManager();
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __set($name, $value) {
+    // We've changed the entityManager property from protected to private so
+    // access is funnelled through __get above. This method is provided for BC
+    // purposes, in case any extended class attempts to set the previously
+    // accessible property directly.
+    if ($name === 'entityManager') {
+      @trigger_error('EntityForm::entityManager is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use EntityForm::entityTypeManager instead. See https://www.drupal.org/node/2549139', E_USER_DEPRECATED);
+      $this->privateEntityManager = $value;
+    }
+    else {
+      // Ensure usual PHP behaviour of dynamically declaring properties works as
+      // expected.
+      $this->$name = $value;
+    }
+  }
 
   /**
    * {@inheritdoc}
@@ -246,7 +278,7 @@ class EntityForm extends FormBase implements EntityFormInterface {
     ];
 
     if (!$this->entity->isNew() && $this->entity->hasLinkTemplate('delete-form')) {
-      $route_info = $this->entity->urlInfo('delete-form');
+      $route_info = $this->entity->toUrl('delete-form');
       if ($this->getRequest()->query->has('destination')) {
         $query = $route_info->getOption('query');
         $query['destination'] = $this->getRequest()->query->get('destination');
@@ -429,7 +461,8 @@ class EntityForm extends FormBase implements EntityFormInterface {
    * {@inheritdoc}
    */
   public function setEntityManager(EntityManagerInterface $entity_manager) {
-    $this->entityManager = $entity_manager;
+    @trigger_error('EntityForm::setEntityTypeManager() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use EntityFormInterface::setEntityTypeManager() instead. See https://www.drupal.org/node/2549139', E_USER_DEPRECATED);
+    $this->privateEntityManager = $entity_manager;
     return $this;
   }
 

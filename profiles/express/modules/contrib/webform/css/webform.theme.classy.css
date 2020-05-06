@@ -1,0 +1,25 @@
+/**
+ * @file
+ * Classy theme styles.
+ */
+
+/**
+ * Make sure the date picker is in front of the dialog.
+ *
+ * @see core/themes/classy/css/components/dialog.css
+ * @see core/themes/seven/css/components/dialog.css
+ */
+.ui-datepicker {
+  z-index: 1261 !important;
+}
+
+/**
+ * Ajax form wrapper.
+ *
+ * Prevent actions bottom margin from causing the slide effect to
+ * jump when completed.
+ */
+.webform-ajax-form-wrapper[data-effect="slide"] .form-actions {
+  margin-bottom: 0;
+  padding-bottom: 1em;
+}

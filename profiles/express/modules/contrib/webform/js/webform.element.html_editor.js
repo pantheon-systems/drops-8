@@ -32,8 +32,22 @@
         // @see \Drupal\webform\Element\WebformHtmlEditor::preRenderWebformHtmlEditor
         // @see \Drupal\webform\WebformLibrariesManager::initLibraries
         var plugins = drupalSettings['webform']['html_editor']['plugins'];
+
+        // If requirejs is present don't use the codemirror plugin.
+        // @see Issue #2936147: ckeditor.codemirror plugin breaks admin textarea.
+        // @todo Remove the below code once this issue is resolved.
+        if (plugins.codemirror
+          && drupalSettings.yamlEditor
+          && drupalSettings.yamlEditor.source
+          && drupalSettings.yamlEditor.source.indexOf('noconflict') !== -1) {
+          delete plugins.codemirror;
+          if ('console' in window) {
+            window.console.log('YAML Editor module is not compatible with the ckeditor.codemirror plugin. @see Issue #2936147: ckeditor.codemirror plugin breaks admin textarea.');
+          }
+        }
+
         for (var plugin_name in plugins) {
-          if(plugins.hasOwnProperty(plugin_name)) {
+          if (plugins.hasOwnProperty(plugin_name)) {
             CKEDITOR.plugins.addExternal(plugin_name, plugins[plugin_name]);
           }
         }
@@ -54,10 +68,8 @@
           removePlugins: 'elementspath,magicline',
           // Toolbar settings.
           format_tags: 'p;h2;h3;h4;h5;h6',
-          // Autogrow.
-          extraPlugins: 'autogrow',
-          autoGrow_minHeight: 60,
-          autoGrow_maxHeight: 300
+          // extraPlugins
+          extraPlugins: ''
         };
 
         // Add toolbar.
@@ -85,11 +97,26 @@
           options.toolbar.push({name: 'tools', items: ['Source', '-', 'Maximize']});
         }
 
+        // Add autogrow plugin.
+        if (plugins['autogrow']) {
+          options.extraPlugins += (options.extraPlugins ? ',' : '') + 'autogrow';
+          options.autoGrow_minHeight = 60;
+          options.autoGrow_maxHeight = 300;
+        }
+
+        // Add CodeMirror integration plugin.
+        if (plugins['codemirror']) {
+          options.extraPlugins += (options.extraPlugins ? ',' : '') + 'codemirror';
+          options.codemirror = {
+            mode: 'text/html'
+          };
+        }
+
         options = $.extend(options, Drupal.webform.htmlEditor.options);
 
         // Catch and suppress
         // "Uncaught TypeError: Cannot read property 'getEditor' of undefined".
-        // 
+        //
         // Steps to reproduce this error.
         // - Goto any form elements.
         // - Edit an element.

@@ -9,9 +9,9 @@
 
 namespace PHP_CodeSniffer\Standards\PSR2\Sniffs\Classes;
 
+use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\AbstractVariableSniff;
 use PHP_CodeSniffer\Util\Tokens;
-use PHP_CodeSniffer\Files\File;
 
 class PropertyDeclarationSniff extends AbstractVariableSniff
 {
@@ -38,8 +38,12 @@ class PropertyDeclarationSniff extends AbstractVariableSniff
         // Detect multiple properties defined at the same time. Throw an error
         // for this, but also only process the first property in the list so we don't
         // repeat errors.
-        $find = Tokens::$scopeModifiers;
-        $find = array_merge($find, [T_VARIABLE, T_VAR, T_SEMICOLON, T_OPEN_CURLY_BRACKET]);
+        $find   = Tokens::$scopeModifiers;
+        $find[] = T_VARIABLE;
+        $find[] = T_VAR;
+        $find[] = T_SEMICOLON;
+        $find[] = T_OPEN_CURLY_BRACKET;
+
         $prev = $phpcsFile->findPrevious($find, ($stackPtr - 1));
         if ($tokens[$prev]['code'] === T_VARIABLE) {
             return;
@@ -61,10 +65,51 @@ class PropertyDeclarationSniff extends AbstractVariableSniff
             if (empty($propertyInfo) === true) {
                 return;
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             // Turns out not to be a property after all.
             return;
         }
+
+        if ($propertyInfo['type'] !== '') {
+            $typeToken = $propertyInfo['type_end_token'];
+            $error     = 'There must be 1 space after the property type declaration; %s found';
+            if ($tokens[($typeToken + 1)]['code'] !== T_WHITESPACE) {
+                $data = ['0'];
+                $fix  = $phpcsFile->addFixableError($error, $typeToken, 'SpacingAfterType', $data);
+                if ($fix === true) {
+                    $phpcsFile->fixer->addContent($typeToken, ' ');
+                }
+            } else if ($tokens[($typeToken + 1)]['content'] !== ' ') {
+                $next = $phpcsFile->findNext(T_WHITESPACE, ($typeToken + 1), null, true);
+                if ($tokens[$next]['line'] !== $tokens[$typeToken]['line']) {
+                    $found = 'newline';
+                } else {
+                    $found = $tokens[($typeToken + 1)]['length'];
+                }
+
+                $data = [$found];
+
+                $nextNonWs = $phpcsFile->findNext(Tokens::$emptyTokens, ($typeToken + 1), null, true);
+                if ($nextNonWs !== $next) {
+                    $phpcsFile->addError($error, $typeToken, 'SpacingAfterType', $data);
+                } else {
+                    $fix = $phpcsFile->addFixableError($error, $typeToken, 'SpacingAfterType', $data);
+                    if ($fix === true) {
+                        if ($found === 'newline') {
+                            $phpcsFile->fixer->beginChangeset();
+                            for ($x = ($typeToken + 1); $x < $next; $x++) {
+                                $phpcsFile->fixer->replaceToken($x, '');
+                            }
+
+                            $phpcsFile->fixer->addContent($typeToken, ' ');
+                            $phpcsFile->fixer->endChangeset();
+                        } else {
+                            $phpcsFile->fixer->replaceToken(($typeToken + 1), ' ');
+                        }
+                    }
+                }
+            }//end if
+        }//end if
 
         if ($propertyInfo['scope_specified'] === false) {
             $error = 'Visibility must be declared on property "%s"';

@@ -9,6 +9,9 @@ use Drupal\views\Entity\View;
 /**
  * Tests the upgrade path for moving the revision metadata fields.
  *
+ * This test uses the entity_test_revlog module, which intentionally omits the
+ * entity_metadata_keys fields. This causes deprecation errors.
+ *
  * @group Update
  * @group legacy
  */
@@ -27,6 +30,11 @@ class MoveRevisionMetadataFieldsUpdateTest extends UpdatePathTestBase {
 
   /**
    * Tests that the revision metadata fields are moved correctly.
+   *
+   * @expectedDeprecation The revision_user revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation The revision_created revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation The revision_log_message revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation Support for pre-8.3.0 revision table names in imported views is deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Imported views must reference the correct tables. See https://www.drupal.org/node/2831499
    */
   public function testSystemUpdate8400() {
     $this->runUpdates();
@@ -87,6 +95,10 @@ class MoveRevisionMetadataFieldsUpdateTest extends UpdatePathTestBase {
    * This test ensures that already cached entity instances will only return the
    * required revision metadata keys they have been cached with and only new
    * instances will return all the new required revision metadata keys.
+   *
+   * @expectedDeprecation The revision_user revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation The revision_created revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation The revision_log_message revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
    */
   public function testAddingRequiredRevisionMetadataKeys() {
     // Ensure that cached entity types without required revision metadata keys
@@ -190,10 +202,54 @@ class MoveRevisionMetadataFieldsUpdateTest extends UpdatePathTestBase {
       'revision_log_message' => 'revision_log_message',
     ];
     $this->assertEquals($revision_metadata_keys, $entity_type->getRevisionMetadataKeys(TRUE));
+
+    // Ensure that the BC layer will break if a new revision metadata key is
+    // only added to the revision_metadata_keys property.
+    $definition = [
+      'id' => 'entity_test_mul_revlog',
+    ];
+    $entity_type = new ContentEntityType($definition);
+    $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
+    $revision_metadata_keys['new_revision_metadata_key'] = 'new_revision_metadata_key';
+    $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+    $expected_revision_metadata_keys = [
+      'new_revision_metadata_key' => 'new_revision_metadata_key',
+      'revision_default' => 'revision_default',
+    ];
+    $this->assertEquals($expected_revision_metadata_keys, $entity_type->getRevisionMetadataKeys(TRUE));
+
+    // Ensure that the BC layer will be triggered if a new revision metadata key
+    // is added to both properties revision_metadata_keys and
+    // requiredRevisionMetadataKeys.
+    $definition = [
+      'id' => 'entity_test_mul_revlog',
+    ];
+    $entity_type = new ContentEntityType($definition);
+
+    $revision_metadata_keys = $entity_type->get('revision_metadata_keys');
+    $revision_metadata_keys['new_revision_metadata_key'] = 'new_revision_metadata_key';
+    $entity_type->set('revision_metadata_keys', $revision_metadata_keys);
+
+    $required_revision_metadata_keys = $entity_type->get('requiredRevisionMetadataKeys');
+    $required_revision_metadata_keys['new_revision_metadata_key'] = 'new_revision_metadata_key';
+    $entity_type->set('requiredRevisionMetadataKeys', $required_revision_metadata_keys);
+
+    $expected_revision_metadata_keys = [
+      'new_revision_metadata_key' => 'new_revision_metadata_key',
+      'revision_default' => 'revision_default',
+      'revision_user' => 'revision_user',
+      'revision_created' => 'revision_created',
+      'revision_log_message' => 'revision_log_message',
+    ];
+    $this->assertEquals($expected_revision_metadata_keys, $entity_type->getRevisionMetadataKeys(TRUE));
   }
 
   /**
    * Tests that the revision metadata key BC layer was updated correctly.
+   *
+   * @expectedDeprecation The revision_user revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation The revision_created revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
+   * @expectedDeprecation The revision_log_message revision metadata key is not set for entity type: entity_test_mul_revlog See: https://www.drupal.org/node/2831499
    */
   public function testSystemUpdate8501() {
     $this->runUpdates();

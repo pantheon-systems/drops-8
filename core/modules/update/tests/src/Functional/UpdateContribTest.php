@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\update\Functional;
 
+use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\ProjectInfo;
 
@@ -14,11 +15,26 @@ use Drupal\Core\Utility\ProjectInfo;
 class UpdateContribTest extends UpdateTestBase {
 
   /**
+   * {@inheritdoc}
+   */
+  protected $updateTableLocator = 'table.update:nth-of-type(2)';
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $updateProject = 'aaa_update_test';
+
+  /**
    * Modules to enable.
    *
    * @var array
    */
   public static $modules = ['update_test', 'update', 'aaa_update_test', 'bbb_update_test', 'ccc_update_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   protected function setUp() {
     parent::setUp();
@@ -46,12 +62,12 @@ class UpdateContribTest extends UpdateTestBase {
     // Cannot use $this->standardTests() because we need to check for the
     // 'No available releases found' string.
     $this->assertRaw('<h3>' . t('Drupal core') . '</h3>');
-    $this->assertRaw(\Drupal::l(t('Drupal'), Url::fromUri('http://example.com/project/drupal')));
+    $this->assertRaw(Link::fromTextAndUrl(t('Drupal'), Url::fromUri('http://example.com/project/drupal'))->toString());
     $this->assertText(t('Up to date'));
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertNoText(t('Update available'));
     $this->assertText(t('No available releases found'));
-    $this->assertNoRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')));
+    $this->assertNoRaw(Link::fromTextAndUrl(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'))->toString());
 
     $available = update_get_available();
     $this->assertFalse(isset($available['aaa_update_test']['fetch_status']), 'Results are cached even if no releases are available.');
@@ -61,7 +77,7 @@ class UpdateContribTest extends UpdateTestBase {
    * Tests the basic functionality of a contrib module on the status report.
    */
   public function testUpdateContribBasic() {
-    $project_link = \Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'));
+    $project_link = Link::fromTextAndUrl(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'))->toString();
     $system_info = [
       '#all' => [
         'version' => '8.0.0',
@@ -120,7 +136,7 @@ class UpdateContribTest extends UpdateTestBase {
    * project. We need to make sure that we see the "BBB" project before the
    * "CCC" project, even though "CCC" includes a module that's processed first
    * if you sort alphabetically by module name (which is the order we see things
-   * inside system_rebuild_module_data() for example).
+   * inside \Drupal\Core\Extension\ExtensionList::getList() for example).
    */
   public function testUpdateContribOrder() {
     // We want core to be version 8.0.0.
@@ -167,10 +183,10 @@ class UpdateContribTest extends UpdateTestBase {
     $this->assertText(t('CCC Update test'));
     // We want aaa_update_test included in the ccc_update_test project, not as
     // its own project on the report.
-    $this->assertNoRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project does not appear.');
+    $this->assertNoRaw(Link::fromTextAndUrl(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'))->toString(), 'Link to aaa_update_test project does not appear.');
     // The other two should be listed as projects.
-    $this->assertRaw(\Drupal::l(t('BBB Update test'), Url::fromUri('http://example.com/project/bbb_update_test')), 'Link to bbb_update_test project appears.');
-    $this->assertRaw(\Drupal::l(t('CCC Update test'), Url::fromUri('http://example.com/project/ccc_update_test')), 'Link to bbb_update_test project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('BBB Update test'), Url::fromUri('http://example.com/project/bbb_update_test'))->toString(), 'Link to bbb_update_test project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('CCC Update test'), Url::fromUri('http://example.com/project/ccc_update_test'))->toString(), 'Link to bbb_update_test project appears.');
 
     // We want to make sure we see the BBB project before the CCC project.
     // Instead of just searching for 'BBB Update test' or something, we want
@@ -188,7 +204,7 @@ class UpdateContribTest extends UpdateTestBase {
     // @todo https://www.drupal.org/node/2338175 base themes have to be
     //  installed.
     // Only install the subtheme, not the base theme.
-    \Drupal::service('theme_handler')->install(['update_test_subtheme']);
+    \Drupal::service('theme_installer')->install(['update_test_subtheme']);
 
     // Define the initial state for core and the subtheme.
     $system_info = [
@@ -217,7 +233,103 @@ class UpdateContribTest extends UpdateTestBase {
     ];
     $this->refreshUpdateStatus($xml_mapping);
     $this->assertText(t('Security update required!'));
-    $this->assertRaw(\Drupal::l(t('Update test base theme'), Url::fromUri('http://example.com/project/update_test_basetheme')), 'Link to the Update test base theme project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('Update test base theme'), Url::fromUri('http://example.com/project/update_test_basetheme'))->toString(), 'Link to the Update test base theme project appears.');
+  }
+
+  /**
+   * Tests the Update Manager module when one normal update is available.
+   */
+  public function testNormalUpdateAvailable() {
+    $assert_session = $this->assertSession();
+    // Ensure that the update check requires a token.
+    $this->drupalGet('admin/reports/updates/check');
+    $assert_session->statusCodeEquals(403);
+
+    $system_info = [
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.0',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+
+    foreach (['1.1', '1.2', '2.0'] as $version) {
+      foreach (['-beta1', '-alpha1', ''] as $extra_version) {
+        $full_version = "8.x-$version$extra_version";
+        $this->refreshUpdateStatus([
+          'drupal' => '0.0',
+          'aaa_update_test' => str_replace('.', '_', $version) . $extra_version,
+        ]);
+        $this->standardTests();
+        $this->drupalGet('admin/reports/updates');
+        $this->clickLink('Check manually');
+        $this->checkForMetaRefresh();
+        $assert_session->pageTextNotContains('Security update required!');
+        // The XML test fixtures for this method all contain the '8.x-3.0'
+        // release but because '8.x-3.0' is not in a supported branch it will
+        // not be in the available updates.
+        $this->assertNoRaw('8.x-3.0');
+        // Set a CSS selector in order for assertions to target the 'Modules'
+        // table and not Drupal core updates.
+        $this->updateTableLocator = 'table.update:nth-of-type(2)';
+        switch ($version) {
+          case '1.1':
+            // Both stable and unstable releases are available.
+            // A stable release is the latest.
+            if ($extra_version == '') {
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Up to date');
+              $assert_session->elementTextContains('css', $this->updateTableLocator, 'Update available');
+              $this->assertVersionUpdateLinks('Recommended version', $full_version);
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Latest version:');
+              $assert_session->elementContains('css', $this->updateTableLocator, 'warning.svg');
+            }
+            // Only unstable releases are available.
+            // An unstable release is the latest.
+            else {
+              $assert_session->elementTextContains('css', $this->updateTableLocator, 'Up to date');
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Update available');
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Recommended version:');
+              $this->assertVersionUpdateLinks('Latest version', $full_version);
+              $assert_session->elementContains('css', $this->updateTableLocator, 'check.svg');
+            }
+            break;
+
+          case '1.2':
+            // Both stable and unstable releases are available.
+            // A stable release is the latest.
+            if ($extra_version == '') {
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Up to date');
+              $assert_session->elementTextContains('css', $this->updateTableLocator, 'Update available');
+              $this->assertVersionUpdateLinks('Recommended version:', $full_version);
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Latest version:');
+              $assert_session->elementContains('css', $this->updateTableLocator, 'warning.svg');
+            }
+            // Both stable and unstable releases are available.
+            // An unstable release is the latest.
+            else {
+              $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Up to date');
+              $assert_session->elementTextContains('css', $this->updateTableLocator, 'Update available');
+              $this->assertVersionUpdateLinks('Recommended version:', '8.x-1.1');
+              $this->assertVersionUpdateLinks('Latest version:', $full_version);
+              $assert_session->elementTextContains('css', $this->updateTableLocator, 'Latest version:');
+              $assert_session->elementContains('css', $this->updateTableLocator, 'warning.svg');
+            }
+            break;
+
+          case '2.0':
+            // When next major release (either stable or unstable) is available
+            // and the current major is still supported, the next major will be
+            // listed as "Also available".
+            $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Up to date');
+            $assert_session->elementTextContains('css', $this->updateTableLocator, 'Update available');
+            $this->assertVersionUpdateLinks('Recommended version', '8.x-1.2');
+            $this->assertVersionUpdateLinks('Also available', $full_version);
+            $assert_session->elementTextNotContains('css', $this->updateTableLocator, 'Latest version:');
+            $assert_session->elementContains('css', $this->updateTableLocator, 'warning.svg');
+        }
+      }
+    }
   }
 
   /**
@@ -267,8 +379,8 @@ class UpdateContribTest extends UpdateTestBase {
       'update_test_subtheme' => '1_0',
       'update_test_basetheme' => '1_1-sec',
     ];
-    $base_theme_project_link = \Drupal::l(t('Update test base theme'), Url::fromUri('http://example.com/project/update_test_basetheme'));
-    $sub_theme_project_link = \Drupal::l(t('Update test subtheme'), Url::fromUri('http://example.com/project/update_test_subtheme'));
+    $base_theme_project_link = Link::fromTextAndUrl(t('Update test base theme'), Url::fromUri('http://example.com/project/update_test_basetheme'))->toString();
+    $sub_theme_project_link = Link::fromTextAndUrl(t('Update test subtheme'), Url::fromUri('http://example.com/project/update_test_subtheme'))->toString();
     foreach ([TRUE, FALSE] as $check_disabled) {
       $update_settings->set('check.disabled_extensions', $check_disabled)->save();
       $this->refreshUpdateStatus($xml_mapping);
@@ -295,7 +407,7 @@ class UpdateContribTest extends UpdateTestBase {
     module_load_include('compare.inc', 'update');
 
     // Install the subtheme.
-    \Drupal::service('theme_handler')->install(['update_test_subtheme']);
+    \Drupal::service('theme_installer')->install(['update_test_subtheme']);
 
     // Add a project and initial state for base theme and subtheme.
     $system_info = [
@@ -373,9 +485,9 @@ class UpdateContribTest extends UpdateTestBase {
     $this->assertUniqueText(t('Failed to get available update data for one project.'));
 
     // The other two should be listed as projects.
-    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
-    $this->assertNoRaw(\Drupal::l(t('BBB Update test'), Url::fromUri('http://example.com/project/bbb_update_test')), 'Link to bbb_update_test project does not appear.');
-    $this->assertRaw(\Drupal::l(t('CCC Update test'), Url::fromUri('http://example.com/project/ccc_update_test')), 'Link to bbb_update_test project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'))->toString(), 'Link to aaa_update_test project appears.');
+    $this->assertNoRaw(Link::fromTextAndUrl(t('BBB Update test'), Url::fromUri('http://example.com/project/bbb_update_test'))->toString(), 'Link to bbb_update_test project does not appear.');
+    $this->assertRaw(Link::fromTextAndUrl(t('CCC Update test'), Url::fromUri('http://example.com/project/ccc_update_test'))->toString(), 'Link to bbb_update_test project appears.');
   }
 
   /**
@@ -417,7 +529,7 @@ class UpdateContribTest extends UpdateTestBase {
     $this->drupalGet('admin/reports/updates');
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertText(t('Security update required!'));
-    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'))->toString(), 'Link to aaa_update_test project appears.');
 
     // Visit the reports page again without the altering and make sure the
     // status is back to normal.
@@ -425,7 +537,7 @@ class UpdateContribTest extends UpdateTestBase {
     $this->drupalGet('admin/reports/updates');
     $this->assertRaw('<h3>' . t('Modules') . '</h3>');
     $this->assertNoText(t('Security update required!'));
-    $this->assertRaw(\Drupal::l(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test')), 'Link to aaa_update_test project appears.');
+    $this->assertRaw(Link::fromTextAndUrl(t('AAA Update test'), Url::fromUri('http://example.com/project/aaa_update_test'))->toString(), 'Link to aaa_update_test project appears.');
 
     // Turn the altering back on and visit the Update manager UI.
     $update_test_config->set('update_status', $update_status)->save();
@@ -436,6 +548,46 @@ class UpdateContribTest extends UpdateTestBase {
     $update_test_config->set('update_status', [])->save();
     $this->drupalGet('admin/modules/update');
     $this->assertNoText(t('Security update'));
+  }
+
+  /**
+   * Tests that core compatibility messages are displayed.
+   */
+  public function testCoreCompatibilityMessage() {
+    $system_info = [
+      '#all' => [
+        'version' => '8.0.0',
+      ],
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.0',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+
+    // Confirm that messages are displayed for recommended and latest updates.
+    // @todo In https://www.drupal.org/project/drupal/issues/3112962:
+    //   Change the calls to 'refreshUpdateStatus()' to use:
+    //   - '1.1' instead of '1.1-core_compatibility'.
+    //   - '1.1-alpha1' instead of '1.1-alpha1-core_compatibility'.
+    //   Delete the files:
+    //   - core/modules/update/tests/modules/update_test/drupal.1.1-alpha1-core_compatibility.xml
+    //   - core/modules/update/tests/modules/update_test/drupal.1.1-core_compatibility.xml
+    $this->refreshUpdateStatus(['drupal' => '1.1-core_compatibility', 'aaa_update_test' => '8.x-1.2']);
+    $this->assertCoreCompatibilityMessage('8.x-1.2', '8.0.0 to 8.1.1', 'Recommended version:');
+    $this->assertCoreCompatibilityMessage('8.x-1.3-beta1', '8.0.0, 8.1.1', 'Latest version:');
+
+    // Change the available core releases and confirm that the messages change.
+    $this->refreshUpdateStatus(['drupal' => '1.1-alpha1-core_compatibility', 'aaa_update_test' => '8.x-1.2']);
+    $this->assertCoreCompatibilityMessage('8.x-1.2', '8.0.0 to 8.1.0', 'Recommended version:');
+    $this->assertCoreCompatibilityMessage('8.x-1.3-beta1', '8.0.0', 'Latest version:');
+
+    // Confirm that messages are displayed for security and 'Also available'
+    // updates.
+    $this->refreshUpdateStatus(['drupal' => '1.1-core_compatibility', 'aaa_update_test' => 'core_compatibility.8.x-1.2_8.x-2.2']);
+    $this->assertCoreCompatibilityMessage('8.x-1.2', '8.1.0 to 8.1.1', 'Security update:', FALSE);
+    $this->assertCoreCompatibilityMessage('8.x-2.2', '8.1.1', 'Also available:', FALSE);
   }
 
   /**
@@ -562,6 +714,160 @@ class UpdateContribTest extends UpdateTestBase {
       //   - 8.x-3.0-beta1 using fixture 'sec.8.x-1.2_8.x-2.2' to ensure that
       //     8.x-2.2 is the  only security update.
     ];
+  }
+
+  /**
+   * Tests messages when a project release is unpublished.
+   *
+   * This test confirms that revoked messages are displayed regardless of
+   * whether the installed version is in a supported branch or not. This test
+   * relies on 2 test XML fixtures that are identical except for the
+   * 'supported_branches' value:
+   * - aaa_update_test.1_0-supported.xml
+   *    'supported_branches' is '8.x-1.,8.x-2.'.
+   * - aaa_update_test.1_0-unsupported.xml
+   *    'supported_branches' is '8.x-2.'.
+   * They both have an '8.x-1.0' release that is unpublished and an '8.x-2.0'
+   * release that is published and is the expected update.
+   */
+  public function testRevokedRelease() {
+    $system_info = [
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.0',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-supported',
+    ]);
+    // @todo Change the version label to 'Recommended version:' in
+    // https://www.drupal.org/node/3114408.
+    $this->confirmRevokedStatus('8.x-1.0', '8.x-2.0', 'Also available:');
+
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-unsupported',
+    ]);
+    $this->confirmRevokedStatus('8.x-1.0', '8.x-2.0', 'Recommended version:');
+  }
+
+  /**
+   * Tests messages when a project release is marked unsupported.
+   *
+   * This test confirms unsupported messages are displayed regardless of whether
+   * the installed version is in a supported branch or not. This test relies on
+   * 2 test XML fixtures that are identical except for the 'supported_branches'
+   * value:
+   * - aaa_update_test.1_0-supported.xml
+   *    'supported_branches' is '8.x-1.,8.x-2.'.
+   * - aaa_update_test.1_0-unsupported.xml
+   *    'supported_branches' is '8.x-2.'.
+   * They both have an '8.x-1.1' release that has the 'Release type' value of
+   * 'unsupported' and an '8.x-2.0' release that has the 'Release type' value of
+   * 'supported' and is the expected update.
+   */
+  public function testUnsupportedRelease() {
+    $system_info = [
+      'aaa_update_test' => [
+        'project' => 'aaa_update_test',
+        'version' => '8.x-1.1',
+        'hidden' => FALSE,
+      ],
+    ];
+    $this->config('update_test.settings')->set('system_info', $system_info)->save();
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-supported',
+    ]);
+    // @todo Change the version label to 'Recommended version:' in
+    // https://www.drupal.org/node/3114408.
+    $this->confirmUnsupportedStatus('8.x-1.1', '8.x-2.0', 'Also available:');
+
+    $this->refreshUpdateStatus([
+      'drupal' => '0.0',
+      $this->updateProject => '1_0-unsupported',
+    ]);
+    $this->confirmUnsupportedStatus('8.x-1.1', '8.x-2.0', 'Recommended version:');
+  }
+
+  /**
+   * Tests messages for invalid, empty and missing version strings.
+   */
+  public function testNonStandardVersionStrings() {
+    $version_infos = [
+      'invalid' => [
+        'version' => 'llama',
+        'expected' => 'Invalid version: llama',
+      ],
+      'empty' => [
+        'version' => '',
+        'expected' => 'Empty version',
+      ],
+      'null' => [
+        'expected' => 'Invalid version: Unknown',
+      ],
+    ];
+    foreach ($version_infos as $version_info) {
+      $system_info = [
+        'aaa_update_test' => [
+          'project' => 'aaa_update_test',
+          'hidden' => FALSE,
+        ],
+      ];
+      if (isset($version_info['version'])) {
+        $system_info['aaa_update_test']['version'] = $version_info['version'];
+      }
+      $this->config('update_test.settings')->set('system_info', $system_info)->save();
+      $this->refreshUpdateStatus([
+        'drupal' => '0.0',
+        $this->updateProject => '1_0-supported',
+      ]);
+      $this->standardTests();
+      $this->assertSession()->elementTextContains('css', $this->updateTableLocator, $version_info['expected']);
+    }
+  }
+
+  /**
+   * Asserts that a core compatibility message is correct for an update.
+   *
+   * @param string $version
+   *   The version of the update.
+   * @param string $expected_range
+   *   The expected core compatibility range.
+   * @param string $expected_release_title
+   *   The expected release title.
+   * @param bool $is_compatible
+   *   If the update is compatible with the installed version of Drupal.
+   */
+  protected function assertCoreCompatibilityMessage($version, $expected_range, $expected_release_title, $is_compatible = TRUE) {
+    $update_element = $this->findUpdateElementByLabel($expected_release_title);
+    $this->assertTrue($update_element->hasLink($version));
+    $compatibility_details = $update_element->find('css', '.project-update__compatibility-details details');
+    $this->assertContains("Requires Drupal core: $expected_range", $compatibility_details->getText());
+    $details_summary_element = $compatibility_details->find('css', 'summary');
+    if ($is_compatible) {
+      $download_version = str_replace('.', '-', $version);
+      // If an update is compatible with the installed version of Drupal core,
+      // it should have a download link and the details element should be closed
+      // by default.
+      $this->assertFalse($compatibility_details->hasAttribute('open'));
+      $this->assertSame('Compatible', $details_summary_element->getText());
+      $this->assertEquals(
+        $update_element->findLink('Download')->getAttribute('href'),
+        "http://example.com/{$this->updateProject}-$download_version.tar.gz"
+      );
+    }
+    else {
+      // If an update is not compatible with the installed version of Drupal
+      // core, it should not have a download link and the details element should
+      // be open by default.
+      $this->assertTrue($compatibility_details->hasAttribute('open'));
+      $this->assertSame('Not compatible', $details_summary_element->getText());
+      $this->assertFalse($update_element->hasLink('Download'));
+    }
   }
 
 }
