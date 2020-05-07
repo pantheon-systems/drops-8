@@ -12,10 +12,13 @@
 namespace Symfony\Component\Serializer\Mapping\Loader;
 
 use Doctrine\Common\Annotations\Reader;
+use Symfony\Component\Serializer\Annotation\DiscriminatorMap;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Serializer\Exception\MappingException;
 use Symfony\Component\Serializer\Mapping\AttributeMetadata;
+use Symfony\Component\Serializer\Mapping\ClassDiscriminatorMapping;
 use Symfony\Component\Serializer\Mapping\ClassMetadataInterface;
 
 /**
@@ -43,6 +46,15 @@ class AnnotationLoader implements LoaderInterface
 
         $attributesMetadata = $classMetadata->getAttributesMetadata();
 
+        foreach ($this->reader->getClassAnnotations($reflectionClass) as $annotation) {
+            if ($annotation instanceof DiscriminatorMap) {
+                $classMetadata->setClassDiscriminatorMapping(new ClassDiscriminatorMapping(
+                    $annotation->getTypeProperty(),
+                    $annotation->getMapping()
+                ));
+            }
+        }
+
         foreach ($reflectionClass->getProperties() as $property) {
             if (!isset($attributesMetadata[$property->name])) {
                 $attributesMetadata[$property->name] = new AttributeMetadata($property->name);
@@ -57,6 +69,8 @@ class AnnotationLoader implements LoaderInterface
                         }
                     } elseif ($annotation instanceof MaxDepth) {
                         $attributesMetadata[$property->name]->setMaxDepth($annotation->getMaxDepth());
+                    } elseif ($annotation instanceof SerializedName) {
+                        $attributesMetadata[$property->name]->setSerializedName($annotation->getSerializedName());
                     }
 
                     $loaded = true;
@@ -96,6 +110,12 @@ class AnnotationLoader implements LoaderInterface
                     }
 
                     $attributeMetadata->setMaxDepth($annotation->getMaxDepth());
+                } elseif ($annotation instanceof SerializedName) {
+                    if (!$accessorOrMutator) {
+                        throw new MappingException(sprintf('SerializedName on "%s::%s" cannot be added. SerializedName can only be added on methods beginning with "get", "is", "has" or "set".', $className, $method->name));
+                    }
+
+                    $attributeMetadata->setSerializedName($annotation->getSerializedName());
                 }
 
                 $loaded = true;

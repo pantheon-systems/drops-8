@@ -2,7 +2,6 @@
 
 namespace Drupal\node;
 
-use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\BundleEntityFormBase;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
@@ -16,14 +15,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * @internal
  */
 class NodeTypeForm extends BundleEntityFormBase {
-  use DeprecatedServicePropertyTrait;
-
-  /**
-   * {@inheritdoc}
-   */
-  protected $deprecatedProperties = [
-    'entityManager' => 'entity.manager',
-  ];
 
   /**
    * The entity field manager.
@@ -163,7 +154,7 @@ class NodeTypeForm extends BundleEntityFormBase {
         'sticky' => t('Sticky at top of lists'),
         'revision' => t('Create new revision'),
       ],
-      '#description' => t('Users with the <em>Administer content</em> permission will be able to override these options.'),
+      '#description' => t('Users with sufficient access rights will be able to override these options.'),
     ];
     if ($this->moduleHandler->moduleExists('language')) {
       $form['language'] = [

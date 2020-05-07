@@ -2,7 +2,6 @@
 
 namespace Drupal\Core\Database;
 
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\Query\PlaceholderInterface;
 
 /**
@@ -150,7 +149,7 @@ abstract class Schema implements PlaceholderInterface {
     // Retrieve the table name and schema
     $table_info = $this->getPrefixInfo($table_name, $add_prefix);
 
-    $condition = new Condition('AND');
+    $condition = $this->connection->condition('AND');
     $condition->condition('table_catalog', $info['database']);
     $condition->condition('table_schema', $table_info['schema']);
     $condition->condition('table_name', $table_info['table'], $operator);
@@ -341,44 +340,6 @@ abstract class Schema implements PlaceholderInterface {
    *   by that name to begin with.
    */
   abstract public function dropField($table, $field);
-
-  /**
-   * Set the default value for a field.
-   *
-   * @param $table
-   *   The table to be altered.
-   * @param $field
-   *   The field to be altered.
-   * @param $default
-   *   Default value to be set. NULL for 'default NULL'.
-   *
-   * @throws \Drupal\Core\Database\SchemaObjectDoesNotExistException
-   *   If the specified table or field doesn't exist.
-   *
-   * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Instead,
-   *   call ::changeField() passing a full field specification.
-   *
-   * @see ::changeField()
-   */
-  abstract public function fieldSetDefault($table, $field, $default);
-
-  /**
-   * Set a field to have no default value.
-   *
-   * @param $table
-   *   The table to be altered.
-   * @param $field
-   *   The field to be altered.
-   *
-   * @throws \Drupal\Core\Database\SchemaObjectDoesNotExistException
-   *   If the specified table or field doesn't exist.
-   *
-   * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Instead,
-   *   call ::changeField() passing a full field specification.
-   *
-   * @see ::changeField()
-   */
-  abstract public function fieldSetNoDefault($table, $field);
 
   /**
    * Checks if an index exists in the given table.

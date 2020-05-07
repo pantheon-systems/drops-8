@@ -5,29 +5,64 @@
  * Contains install and update functions for Migrate Drupal
  */
 
+use Drupal\Core\Database\Database;
+
 /**
- * Creates migrate_drupal.settings config object.
+ * Implements hook_update_last_removed().
  */
-function migrate_drupal_update_8501() {
-  \Drupal::configFactory()
-    ->getEditable('migrate_drupal.settings')
-    ->set('enforce_source_module_tags', ['Drupal 6', 'Drupal 7'])
-    ->save();
+function migrate_drupal_update_last_removed() {
+  return 8601;
 }
 
 /**
- * Sets the follow-up migration tags.
+ * Add revision ID to entity reference translation migrate_map tables..
  */
-function migrate_drupal_update_8502() {
-  \Drupal::configFactory()
-    ->getEditable('migrate_drupal.settings')
-    ->set('follow_up_migration_tags', ['Follow-up migration'])
-    ->save();
-}
+function migrate_drupal_update_8901(&$sandbox) {
+  $schema = Database::getConnection()->schema();
+  $table_expression = 'migrate_map%entity_reference_translation%node%';
+  $tables = $schema->findTables($table_expression);
+  foreach ($tables as $table) {
+    // Move language code to sourceid3.
+    $spec = [
+      'type' => 'varchar',
+      'length' => 12,
+      'not null' => TRUE,
+    ];
+    $schema->changeField($table, 'sourceid2', 'sourceid3', $spec);
 
-/**
- * Install migrate_drupal_multilingual since migrate_drupal is installed.
- */
-function migrate_drupal_update_8601() {
-  \Drupal::service('module_installer')->install(['migrate_drupal_multilingual']);
+    // Add revision ID.
+    $spec = [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+    ];
+    $schema->addField($table, 'sourceid2', $spec);
+
+    // Add sourceid2 to index.
+    $spec = [
+      'fields' => [
+        'sourceid1' => [
+          'type' => 'int',
+          'not_null' => TRUE,
+        ],
+        'sourceid2' => [
+          'type' => 'int',
+          'not_null' => TRUE,
+        ],
+        'sourceid3' => [
+          'type' => 'varchar',
+          'length' => 12,
+          'not null' => TRUE,
+        ],
+      ],
+    ];
+    $fields = [
+      'sourceid1',
+      'sourceid2',
+      'sourceid3',
+    ];
+    $schema->dropIndex($table, 'source');
+    $schema->addIndex($table, 'source', $fields, $spec);
+  }
 }

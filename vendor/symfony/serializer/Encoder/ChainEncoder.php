@@ -20,9 +20,9 @@ use Symfony\Component\Serializer\Exception\RuntimeException;
  * @author Johannes M. Schmitt <schmittjoh@gmail.com>
  * @author Lukas Kahwe Smith <smith@pooteeweet.org>
  *
- * @final since version 3.3.
+ * @final
  */
-class ChainEncoder implements EncoderInterface /*, ContextAwareEncoderInterface*/
+class ChainEncoder implements ContextAwareEncoderInterface
 {
     protected $encoders = [];
     protected $encoderByFormat = [];
@@ -43,10 +43,8 @@ class ChainEncoder implements EncoderInterface /*, ContextAwareEncoderInterface*
     /**
      * {@inheritdoc}
      */
-    public function supportsEncoding($format/*, array $context = []*/)
+    public function supportsEncoding($format, array $context = []): bool
     {
-        $context = \func_num_args() > 1 ? func_get_arg(1) : [];
-
         try {
             $this->getEncoder($format, $context);
         } catch (RuntimeException $e) {
@@ -58,14 +56,9 @@ class ChainEncoder implements EncoderInterface /*, ContextAwareEncoderInterface*
 
     /**
      * Checks whether the normalization is needed for the given format.
-     *
-     * @param string $format
-     *
-     * @return bool
      */
-    public function needsNormalization($format/*, array $context = []*/)
+    public function needsNormalization(string $format, array $context = []): bool
     {
-        $context = \func_num_args() > 1 ? func_get_arg(1) : [];
         $encoder = $this->getEncoder($format, $context);
 
         if (!$encoder instanceof NormalizationAwareInterface) {
@@ -82,13 +75,9 @@ class ChainEncoder implements EncoderInterface /*, ContextAwareEncoderInterface*
     /**
      * Gets the encoder supporting the format.
      *
-     * @param string $format
-     *
-     * @return EncoderInterface
-     *
      * @throws RuntimeException if no encoder is found
      */
-    private function getEncoder($format, array $context)
+    private function getEncoder(string $format, array $context): EncoderInterface
     {
         if (isset($this->encoderByFormat[$format])
             && isset($this->encoders[$this->encoderByFormat[$format]])

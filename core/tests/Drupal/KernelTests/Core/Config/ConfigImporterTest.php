@@ -584,7 +584,7 @@ class ConfigImporterTest extends KernelTestBase {
     $extensions['theme']['unknown_theme'] = 0;
     // Add a module and a theme that depend on uninstalled extensions.
     $extensions['module']['book'] = 0;
-    $extensions['theme']['bartik'] = 0;
+    $extensions['theme']['test_subtheme'] = 0;
 
     $sync->write('core.extension', $extensions);
     try {
@@ -597,8 +597,7 @@ class ConfigImporterTest extends KernelTestBase {
         'Unable to install the <em class="placeholder">unknown_module</em> module since it does not exist.',
         'Unable to install the <em class="placeholder">Book</em> module since it requires the <em class="placeholder">Node, Text, Field, Filter, User</em> modules.',
         'Unable to install the <em class="placeholder">unknown_theme</em> theme since it does not exist.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Classy</em> theme.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Stable</em> theme.',
+        'Unable to install the <em class="placeholder">Theme test subtheme</em> theme since it requires the <em class="placeholder">Theme test base theme</em> theme.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.config</em> depends on the <em class="placeholder">unknown</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.existing</em> depends on the <em class="placeholder">config_test.dynamic.dotted.deleted</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.module</em> depends on the <em class="placeholder">unknown</em> module that will not be installed after import.',
@@ -611,7 +610,6 @@ class ConfigImporterTest extends KernelTestBase {
         'Unable to install the <em class="placeholder">unknown_module</em> module since it does not exist.',
         'Unable to install the <em class="placeholder">Book</em> module since it requires the <em class="placeholder">Node, Text, Field, Filter, User</em> modules.',
         'Unable to install the <em class="placeholder">unknown_theme</em> theme since it does not exist.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Classy</em> theme.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.config</em> depends on the <em class="placeholder">unknown</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.existing</em> depends on the <em class="placeholder">config_test.dynamic.dotted.deleted</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.module</em> depends on the <em class="placeholder">unknown</em> module that will not be installed after import.',
@@ -641,8 +639,7 @@ class ConfigImporterTest extends KernelTestBase {
         'Unable to install the <em class="placeholder">unknown_module</em> module since it does not exist.',
         'Unable to install the <em class="placeholder">Book</em> module since it requires the <em class="placeholder">Node, Text, Field, Filter, User</em> modules.',
         'Unable to install the <em class="placeholder">unknown_theme</em> theme since it does not exist.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Classy</em> theme.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Stable</em> theme.',
+        'Unable to install the <em class="placeholder">Theme test subtheme</em> theme since it requires the <em class="placeholder">Theme test base theme</em> theme.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.config</em> depends on the <em class="placeholder">unknown</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.existing</em> depends on the <em class="placeholder">config_test.dynamic.dotted.deleted</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.module</em> depends on the <em class="placeholder">unknown</em> module that will not be installed after import.',
@@ -651,8 +648,7 @@ class ConfigImporterTest extends KernelTestBase {
         'Unable to install the <em class="placeholder">unknown_module</em> module since it does not exist.',
         'Unable to install the <em class="placeholder">Book</em> module since it requires the <em class="placeholder">Node, Text, Field, Filter, User</em> modules.',
         'Unable to install the <em class="placeholder">unknown_theme</em> theme since it does not exist.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Classy</em> theme.',
-        'Unable to install the <em class="placeholder">Bartik</em> theme since it requires the <em class="placeholder">Stable</em> theme.',
+        'Unable to install the <em class="placeholder">Theme test subtheme</em> theme since it requires the <em class="placeholder">Theme test base theme</em> theme.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.config</em> depends on configuration (<em class="placeholder">unknown, unknown2</em>) that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.existing</em> depends on the <em class="placeholder">config_test.dynamic.dotted.deleted</em> configuration that will not exist after import.',
         'Configuration <em class="placeholder">config_test.dynamic.dotted.module</em> depends on modules (<em class="placeholder">unknown, Database Logging</em>) that will not be installed after import.',
@@ -744,27 +740,6 @@ class ConfigImporterTest extends KernelTestBase {
       // to get in but site's can removed the install profile setting from
       // settings.php so the test is valid.
       $this->assertEqual(['Cannot change the install profile from <em class="placeholder"></em> to <em class="placeholder">this_will_not_work</em> once Drupal is installed.'], $error_log);
-    }
-  }
-
-  /**
-   * Tests config_get_config_directory().
-   *
-   * @group legacy
-   * @expectedDeprecation config_get_config_directory() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal\Core\Site\Settings::get('config_sync_directory') instead. See https://www.drupal.org/node/3018145
-   */
-  public function testConfigGetConfigDirectory() {
-    global $config_directories;
-    // Ensure the global and the setting matches.
-    $this->assertSame(config_get_config_directory(CONFIG_SYNC_DIRECTORY), $config_directories[CONFIG_SYNC_DIRECTORY]);
-
-    $message = 'Calling config_get_config_directory() with an invalid key results in an exception.';
-    try {
-      config_get_config_directory('does_not_exist');
-      $this->fail($message);
-    }
-    catch (\Exception $e) {
-      $this->pass($message);
     }
   }
 

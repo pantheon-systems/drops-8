@@ -53,10 +53,20 @@ class ResolveNamedArgumentsPass extends AbstractRecursivePass
                     $parameters = $r->getParameters();
                 }
 
+                if (isset($key[0]) && '$' !== $key[0] && !class_exists($key) && !interface_exists($key, false)) {
+                    throw new InvalidArgumentException(sprintf('Invalid service "%s": did you forget to add the "$" prefix to argument "%s"?', $this->currentId, $key));
+                }
+
                 if (isset($key[0]) && '$' === $key[0]) {
                     foreach ($parameters as $j => $p) {
                         if ($key === '$'.$p->name) {
-                            $resolvedArguments[$j] = $argument;
+                            if ($p->isVariadic() && \is_array($argument)) {
+                                foreach ($argument as $variadicArgument) {
+                                    $resolvedArguments[$j++] = $variadicArgument;
+                                }
+                            } else {
+                                $resolvedArguments[$j] = $argument;
+                            }
 
                             continue 2;
                         }
@@ -66,7 +76,7 @@ class ResolveNamedArgumentsPass extends AbstractRecursivePass
                 }
 
                 if (null !== $argument && !$argument instanceof Reference && !$argument instanceof Definition) {
-                    throw new InvalidArgumentException(sprintf('Invalid service "%s": the value of argument "%s" of method "%s()" must be null, an instance of %s or an instance of %s, %s given.', $this->currentId, $key, $class !== $this->currentId ? $class.'::'.$method : $method, Reference::class, Definition::class, \gettype($argument)));
+                    throw new InvalidArgumentException(sprintf('Invalid service "%s": the value of argument "%s" of method "%s()" must be null, an instance of "%s" or an instance of "%s", "%s" given.', $this->currentId, $key, $class !== $this->currentId ? $class.'::'.$method : $method, Reference::class, Definition::class, \gettype($argument)));
                 }
 
                 $typeFound = false;

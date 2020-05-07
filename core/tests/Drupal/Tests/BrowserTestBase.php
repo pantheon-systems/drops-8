@@ -16,7 +16,9 @@ use Drupal\FunctionalTests\AssertLegacyTrait;
 use Drupal\Tests\block\Traits\BlockCreationTrait;
 use Drupal\Tests\node\Traits\ContentTypeCreationTrait;
 use Drupal\Tests\node\Traits\NodeCreationTrait;
+use Drupal\Tests\Traits\PHPUnit8Warnings;
 use Drupal\Tests\user\Traits\UserCreationTrait;
+use Drupal\TestTools\Comparator\MarkupInterfaceComparator;
 use GuzzleHttp\Cookie\CookieJar;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\RequestInterface;
@@ -62,7 +64,7 @@ abstract class BrowserTestBase extends TestCase {
     createUser as drupalCreateUser;
   }
   use XdebugRequestTrait;
-  use PhpunitCompatibilityTrait;
+  use PHPUnit8Warnings;
 
   /**
    * The database prefix of this test run.
@@ -395,6 +397,9 @@ abstract class BrowserTestBase extends TestCase {
   protected function setUp() {
     parent::setUp();
 
+    // Allow tests to compare MarkupInterface objects via assertEquals().
+    $this->registerComparator(new MarkupInterfaceComparator());
+
     $this->setupBaseUrl();
 
     // Install Drupal test site.
@@ -643,22 +648,6 @@ abstract class BrowserTestBase extends TestCase {
    */
   protected function config($name) {
     return $this->container->get('config.factory')->getEditable($name);
-  }
-
-  /**
-   * Returns all response headers.
-   *
-   * @return array
-   *   The HTTP headers values.
-   *
-   * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
-   *   Use $this->getSession()->getResponseHeaders() instead.
-   *
-   * @see https://www.drupal.org/node/3067207
-   */
-  protected function drupalGetHeaders() {
-    @trigger_error('Drupal\Tests\BrowserTestBase::drupalGetHeaders() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use $this->getSession()->getResponseHeaders() instead. See https://www.drupal.org/node/3067207', E_USER_DEPRECATED);
-    return $this->getSession()->getResponseHeaders();
   }
 
   /**

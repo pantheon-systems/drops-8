@@ -3,6 +3,7 @@
 namespace Drupal\Tests;
 
 use Drupal\Tests\Composer\ComposerIntegrationTrait;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Tests Composer integration.
@@ -20,6 +21,17 @@ class ComposerIntegrationTest extends UnitTestCase {
     $content_hash = self::getContentHash(file_get_contents($this->root . '/composer.json'));
     $lock = json_decode(file_get_contents($this->root . '/composer.lock'), TRUE);
     $this->assertSame($content_hash, $lock['content-hash']);
+
+    // @see \Composer\Repository\PathRepository::initialize()
+    $core_content_hash = sha1(file_get_contents($this->root . '/core/composer.json') . serialize([]));
+    $core_lock_file_hash = '';
+    foreach ($lock['packages'] as $package) {
+      if ($package['name'] === 'drupal/core') {
+        $core_lock_file_hash = $package['dist']['reference'];
+        break;
+      }
+    }
+    $this->assertSame($core_content_hash, $core_lock_file_hash);
   }
 
   /**
@@ -84,9 +96,18 @@ class ComposerIntegrationTest extends UnitTestCase {
     $discard = ['.', '..'];
     foreach ($folders as $file_name) {
       if ((!in_array($file_name, $discard)) && is_dir($module_path . '/' . $file_name)) {
+        // Skip any modules marked as hidden.
+        $info_yml = $module_path . '/' . $file_name . '/' . $file_name . '.info.yml';
+        if (file_exists($info_yml)) {
+          $info = Yaml::parseFile($info_yml);
+          if (!empty($info['hidden'])) {
+            continue;
+          }
+        }
         $module_names[] = $file_name;
       }
     }
+    $this->assertNotEmpty($module_names);
 
     // Assert that each core module has a corresponding 'replace' in
     // composer.json.

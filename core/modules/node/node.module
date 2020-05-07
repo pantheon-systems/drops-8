@@ -26,71 +26,13 @@ use Drupal\Core\Url;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\language\ConfigurableLanguageInterface;
+use Drupal\migrate_drupal\MigrationConfigurationTrait;
+use Drupal\migrate_drupal\NodeMigrateType;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\node\NodeInterface;
 use Drupal\node\NodeTypeInterface;
 use Drupal\user\UserInterface;
-
-/**
- * Denotes that the node is not published.
- *
- * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
- *   Use \Drupal\node\NodeInterface::NOT_PUBLISHED instead.
- *
- * @see https://www.drupal.org/node/2316145
- */
-const NODE_NOT_PUBLISHED = 0;
-
-/**
- * Denotes that the node is published.
- *
- * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
- *   Use \Drupal\node\NodeInterface::PUBLISHED instead.
- *
- * @see https://www.drupal.org/node/2316145
- */
-const NODE_PUBLISHED = 1;
-
-/**
- * Denotes that the node is not promoted to the front page.
- *
- * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
- *   Use \Drupal\node\NodeInterface::NOT_PROMOTED instead.
- *
- * @see https://www.drupal.org/node/2316145
- */
-const NODE_NOT_PROMOTED = 0;
-
-/**
- * Denotes that the node is promoted to the front page.
- *
- * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
- *   Use \Drupal\node\NodeInterface::PROMOTED instead.
- *
- * @see https://www.drupal.org/node/2316145
- */
-const NODE_PROMOTED = 1;
-
-/**
- * Denotes that the node is not sticky at the top of the page.
- *
- * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
- *   Use \Drupal\node\NodeInterface::NOT_STICKY instead.
- *
- * @see https://www.drupal.org/node/2316145
- */
-const NODE_NOT_STICKY = 0;
-
-/**
- * Denotes that the node is sticky at the top of the page.
- *
- * @deprecated in drupal:8.?.? and is removed from drupal:9.0.0.
- *   Use \Drupal\node\NodeInterface::STICKY instead.
- *
- * @see https://www.drupal.org/node/2316145
- */
-const NODE_STICKY = 1;
 
 /**
  * Implements hook_help().
@@ -265,23 +207,6 @@ function node_mark($nid, $timestamp) {
 }
 
 /**
- * Returns a list of all the available node types.
- *
- * This list can include types that are queued for addition or deletion.
- *
- * @return \Drupal\node\NodeTypeInterface[]
- *   An array of node type entities, keyed by ID.
- *
- * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\node\Entity\NodeType::loadMultiple().
- *
- * @see \Drupal\node\Entity\NodeType::load()
- */
-function node_type_get_types() {
-  return NodeType::loadMultiple();
-}
-
-/**
  * Returns a list of available node type names.
  *
  * This list can include types that are queued for addition or deletion.
@@ -323,25 +248,6 @@ function node_get_type_label(NodeInterface $node) {
  */
 function node_type_get_description(NodeTypeInterface $node_type) {
   return $node_type->getDescription();
-}
-
-/**
- * Menu argument loader: Loads a node type by string.
- *
- * @param $name
- *   The machine name of a node type to load.
- *
- * @return \Drupal\node\NodeTypeInterface
- *   A node type object or NULL if $name does not exist.
- *
- * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
- *   \Drupal\node\Entity\NodeType::load().
- *
- * @see https://www.drupal.org/node/2266845
- */
-function node_type_load($name) {
-  @trigger_error('node_type_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\node\Entity\NodeType::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
-  return NodeType::load($name);
 }
 
 /**
@@ -433,60 +339,6 @@ function node_entity_extra_field_info() {
  */
 function node_type_update_nodes($old_id, $new_id) {
   return \Drupal::entityTypeManager()->getStorage('node')->updateType($old_id, $new_id);
-}
-
-/**
- * Loads node entities from the database.
- *
- * This function should be used whenever you need to load more than one node
- * from the database. Nodes are loaded into memory and will not require database
- * access if loaded again during the same page request.
- *
- * @param array $nids
- *   (optional) An array of entity IDs. If omitted, all entities are loaded.
- * @param bool $reset
- *   (optional) Whether to reset the internal node_load() cache.  Defaults to
- *   FALSE.
- *
- * @return \Drupal\node\NodeInterface[]
- *   An array of node entities indexed by nid.
- *
- * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
- *   \Drupal\node\Entity\Node::loadMultiple().
- *
- * @see https://www.drupal.org/node/2266845
- */
-function node_load_multiple(array $nids = NULL, $reset = FALSE) {
-  @trigger_error('node_load_multiple() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\node\Entity\Node::loadMultiple(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
-  if ($reset) {
-    \Drupal::entityTypeManager()->getStorage('node')->resetCache($nids);
-  }
-  return Node::loadMultiple($nids);
-}
-
-/**
- * Loads a node entity from the database.
- *
- * @param int $nid
- *   The node ID.
- * @param bool $reset
- *   (optional) Whether to reset the node_load_multiple() cache. Defaults to
- *   FALSE.
- *
- * @return \Drupal\node\NodeInterface|null
- *   A fully-populated node entity, or NULL if the node is not found.
- *
- * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Use
- *   \Drupal\node\Entity\Node::load().
- *
- * @see https://www.drupal.org/node/2266845
- */
-function node_load($nid = NULL, $reset = FALSE) {
-  @trigger_error('node_load() is deprecated in Drupal 8.0.0 and will be removed before Drupal 9.0.0. Use \Drupal\node\Entity\Node::load(). See https://www.drupal.org/node/2266845', E_USER_DEPRECATED);
-  if ($reset) {
-    \Drupal::entityTypeManager()->getStorage('node')->resetCache([$nid]);
-  }
-  return Node::load($nid);
 }
 
 /**
@@ -842,60 +694,6 @@ function node_get_recent($number = 10) {
   $nodes = Node::loadMultiple($nids);
 
   return $nodes ? $nodes : [];
-}
-
-/**
- * Generates an array for rendering the given node.
- *
- * @param \Drupal\node\NodeInterface $node
- *   A node entity.
- * @param $view_mode
- *   (optional) View mode, e.g., 'full', 'teaser', etc. Defaults to 'full.'
- * @param $langcode
- *   (optional) A language code to use for rendering. Defaults to NULL which is
- *   the global content language of the current request.
- *
- * @return array
- *   An array as expected by \Drupal\Core\Render\RendererInterface::render().
- *
- * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
- *   Use \Drupal::entityTypeManager()->getViewBuilder('node')->view() instead.
- *
- * @see https://www.drupal.org/node/3033656
- */
-function node_view(NodeInterface $node, $view_mode = 'full', $langcode = NULL) {
-  @trigger_error("node_view() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('node')->view() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
-  return \Drupal::entityTypeManager()
-    ->getViewBuilder('node')
-    ->view($node, $view_mode, $langcode);
-}
-
-/**
- * Constructs a drupal_render() style array from an array of loaded nodes.
- *
- * @param $nodes
- *   An array of nodes as returned by Node::loadMultiple().
- * @param $view_mode
- *   (optional) View mode, e.g., 'full', 'teaser', etc. Defaults to 'teaser.'
- * @param $langcode
- *   (optional) A language code to use for rendering. Defaults to the global
- *   content language of the current request.
- *
- * @return array
- *   An array in the format expected by
- *   \Drupal\Core\Render\RendererInterface::render().
- *
- * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0. Use
- *   \Drupal::entityTypeManager()->getViewBuilder('node')->viewMultiple()
- *   instead.
- *
- * @see https://www.drupal.org/node/3033656
- */
-function node_view_multiple($nodes, $view_mode = 'teaser', $langcode = NULL) {
-  @trigger_error("node_view_multiple() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal::entityTypeManager()->getViewBuilder('node')->viewMultiple() instead. See https://www.drupal.org/node/3033656", E_USER_DEPRECATED);
-  return \Drupal::entityTypeManager()
-    ->getViewBuilder('node')
-    ->viewMultiple($nodes, $view_mode, $langcode);
 }
 
 /**
@@ -1460,4 +1258,53 @@ function node_comment_delete($comment) {
  */
 function node_config_translation_info_alter(&$info) {
   $info['node_type']['class'] = 'Drupal\node\ConfigTranslation\NodeTypeMapper';
+}
+
+/**
+ * Implements hook_migration_plugins_alter().
+ */
+function node_migration_plugins_alter(array &$definitions) {
+  $version = FALSE;
+  $connection = \Drupal::database();
+  // We need to get the version of the source database in order to check
+  // if the classic or complete node tables have been used in a migration.
+  if (isset($definitions['system_site'])) {
+    // Use the source plugin of the system_site migration to get the
+    // database connection.
+    $migration = $definitions['system_site'];
+    /** @var \Drupal\migrate\Plugin\migrate\source\SqlBase $source_plugin */
+    $source_plugin = \Drupal::service('plugin.manager.migration')
+      ->createStubMigration($migration)
+      ->getSourcePlugin();
+    $source_connection = NULL;
+
+    try {
+      $source_connection = $source_plugin->getDatabase();
+      $version = MigrationConfigurationTrait::getLegacyDrupalVersion($source_connection);
+    }
+    catch (\Exception $e) {
+      \Drupal::messenger()->addError(t('Failed to connect to your database server. The server reports the following message: %error.<ul><li>Is the database server running?</li><li>Does the database exist, and have you entered the correct database name?</li><li>Have you entered the correct username and password?</li><li>Have you entered the correct database hostname?</li></ul>', ['%error' => $e->getMessage()]));
+    }
+  }
+  // If this is a complete node migration then for all migrations, except the
+  // classic node migrations, replace any dependency on a classic node migration
+  // with a dependency on the complete node migration.
+  if (NodeMigrateType::getNodeMigrateType($connection, $version) === NodeMigrateType::NODE_MIGRATE_TYPE_COMPLETE) {
+    // Anonymous function to replace classic node migration plugin IDs with the
+    // node complete plugin ID.
+    $replace_with_complete_migration = function (&$value) {
+      if (is_string($value)) {
+        $value = preg_replace('/d([67])_(node|node_translation|node_revision|node_entity_translation)($|:.*)/', 'd$1_node_complete$3', $value);
+      }
+      return $value;
+    };
+
+    foreach ($definitions as &$definition) {
+      $is_node_classic_migration = preg_match('/d([67])_(node|node_translation|node_revision|node_entity_translation)($|:.*)/', $definition['id']);
+      if (!$is_node_classic_migration && isset($definition['migration_dependencies'])) {
+        array_walk_recursive($definition['migration_dependencies'], $replace_with_complete_migration);
+      }
+    }
+
+  }
 }

@@ -22,17 +22,6 @@ use Drupal\system\Entity\Menu;
 use Drupal\node\NodeInterface;
 
 /**
- * Maximum length of menu name as entered by the user.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0. Use
- *   \Drupal\system\MenuStorage::MAX_ID_LENGTH instead.
- *
- * @see https://www.drupal.org/node/2831620
- * @see \Drupal\system\MenuStorage::MAX_ID_LENGTH
- */
-const MENU_MAX_MENU_NAME_LENGTH_UI = 27;
-
-/**
  * Implements hook_help().
  */
 function menu_ui_help($route_name, RouteMatchInterface $route_match) {
@@ -464,7 +453,7 @@ function menu_ui_preprocess_block(&$variables) {
 /**
  * Implements hook_system_breadcrumb_alter().
  */
-function menu_ui_system_breadcrumb_alter(Breadcrumb &$breadcrumb, RouteMatchInterface $route_match, array $context) {
+function menu_ui_system_breadcrumb_alter(Breadcrumb $breadcrumb, RouteMatchInterface $route_match, array $context) {
   // Custom breadcrumb behavior for editing menu links, we append a link to
   // the menu in which the link is found.
   if (($route_match->getRouteName() == 'menu_ui.link_edit') && $menu_link = $route_match->getParameter('menu_link_plugin')) {

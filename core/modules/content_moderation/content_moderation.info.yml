@@ -2,13 +2,12 @@ name: 'Content Moderation'
 type: module
 description: 'Provides moderation states for content.'
 # version: VERSION
-core: 8.x
 package: Core
 configure: entity.workflow.collection
 dependencies:
   - drupal:workflows
 
-# Information added by Drupal.org packaging script on 2020-04-02
-version: '8.8.5'
+# Information added by Drupal.org packaging script on 2020-03-30
+version: '9.0.0-beta2'
 project: 'drupal'
-datestamp: 1585861582
+datestamp: 1585597457

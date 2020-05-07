@@ -1,0 +1,8 @@
+name: Test Theme with a Base Theme Depending on Modules
+type: theme
+base theme: test_theme_depending_on_modules
+
+# Information added by Drupal.org packaging script on 2020-03-30
+version: '9.0.0-beta2'
+project: 'drupal'
+datestamp: 1585597457

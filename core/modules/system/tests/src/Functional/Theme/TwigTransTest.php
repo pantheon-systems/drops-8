@@ -4,6 +4,7 @@ namespace Drupal\Tests\system\Functional\Theme;
 
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Tests\BrowserTestBase;
+use Twig\Error\SyntaxError;
 
 /**
  * Tests Twig "trans" tags.
@@ -112,8 +113,8 @@ class TwigTransTest extends BrowserTestBase {
 
       $this->fail('{% trans %}{% endtrans %} did not throw an exception.');
     }
-    catch (\Twig_Error_Syntax $e) {
-      $this->assertContains('{% trans %} tag cannot be empty', $e->getMessage(), '{% trans %}{% endtrans %} threw the expected exception.');
+    catch (SyntaxError $e) {
+      $this->assertContains('{% trans %} tag cannot be empty', $e->getMessage());
     }
     catch (\Exception $e) {
       $this->fail('{% trans %}{% endtrans %} threw an unexpected exception.');

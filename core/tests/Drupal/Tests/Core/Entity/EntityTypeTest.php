@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\Core\Entity;
 
+use Drupal\Core\Config\Entity\ConfigEntityInterface;
+use Drupal\Core\Entity\Entity\EntityFormMode;
 use Drupal\Core\Entity\EntityType;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -167,6 +169,8 @@ class EntityTypeTest extends UnitTestCase {
     ]);
     $this->assertSame($controller, $entity_type->getHandlerClass('storage'));
     $this->assertSame($controller, $entity_type->getHandlerClass('form', 'default'));
+    $this->assertNull($entity_type->getHandlerClass('foo'));
+    $this->assertNull($entity_type->getHandlerClass('foo', 'bar'));
   }
 
   /**
@@ -479,6 +483,26 @@ class EntityTypeTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::entityClassImplements
+   */
+  public function testEntityClassImplements() {
+    $entity_type = $this->setUpEntityType(['class' => EntityFormMode::class]);
+    $this->assertSame(TRUE, $entity_type->entityClassImplements(ConfigEntityInterface::class));
+    $this->assertSame(FALSE, $entity_type->entityClassImplements(\DateTimeInterface::class));
+  }
+
+  /**
+   * @covers ::isSubclassOf
+   * @group legacy
+   * @expectedDeprecation Drupal\Core\Entity\EntityType::isSubclassOf() is deprecated in drupal:8.3.0 and is removed from drupal:10.0.0. Use Drupal\Core\Entity\EntityTypeInterface::entityClassImplements() instead. See https://www.drupal.org/node/2842808
+   */
+  public function testIsSubClassOf() {
+    $entity_type = $this->setUpEntityType(['class' => EntityFormMode::class]);
+    $this->assertSame(TRUE, $entity_type->isSubclassOf(ConfigEntityInterface::class));
+    $this->assertSame(FALSE, $entity_type->isSubclassOf(\DateTimeInterface::class));
+  }
+
+  /**
    * Tests that the EntityType object can be serialized.
    */
   public function testIsSerializable() {
@@ -494,49 +518,6 @@ class EntityTypeTest extends UnitTestCase {
     $entity_type = unserialize(serialize($entity_type));
 
     $this->assertEquals('example_entity_type', $entity_type->id());
-  }
-
-  /**
-   * @covers ::getLabelCallback
-   *
-   * @group legacy
-   *
-   * @deprecatedMessage EntityType::getLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
-   */
-  public function testGetLabelCallack() {
-    $entity_type = $this->setUpEntityType(['label_callback' => 'label_function']);
-    $this->assertSame('label_function', $entity_type->getLabelCallback());
-
-    $entity_type = $this->setUpEntityType([]);
-    $this->assertNull($entity_type->getLabelCallback());
-  }
-
-  /**
-   * @covers ::setLabelCallback
-   *
-   * @group legacy
-   *
-   * @deprecatedMessage EntityType::setLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
-   */
-  public function testSetLabelCallack() {
-    $entity_type = $this->setUpEntityType([]);
-    $entity_type->setLabelCallback('label_function');
-    $this->assertSame('label_function', $entity_type->get('label_callback'));
-  }
-
-  /**
-   * @covers ::hasLabelCallback
-   *
-   * @group legacy
-   *
-   * @deprecatedMessage EntityType::hasLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
-   */
-  public function testHasLabelCallack() {
-    $entity_type = $this->setUpEntityType(['label_callback' => 'label_function']);
-    $this->assertTrue($entity_type->hasLabelCallback());
-
-    $entity_type = $this->setUpEntityType([]);
-    $this->assertFalse($entity_type->hasLabelCallback());
   }
 
 }

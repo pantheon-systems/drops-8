@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\ckeditor\Kernel;
 
-use Drupal\ckeditor\Plugin\Editor\CKEditor;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\language\Entity\ConfigurableLanguage;
 use Drupal\editor\Entity\Editor;
@@ -277,11 +276,11 @@ class CKEditorTest extends KernelTestBase {
     // Enable the Bartik theme, which specifies a CKEditor stylesheet.
     \Drupal::service('theme_installer')->install(['bartik']);
     $this->config('system.theme')->set('default', 'bartik')->save();
-    $expected[] = file_url_transform_relative(file_create_url('core/themes/classy/css/components/media-embed-error.css')) . $query_string;
     $expected[] = file_url_transform_relative(file_create_url('core/themes/bartik/css/base/elements.css')) . $query_string;
     $expected[] = file_url_transform_relative(file_create_url('core/themes/bartik/css/components/captions.css')) . $query_string;
     $expected[] = file_url_transform_relative(file_create_url('core/themes/bartik/css/components/table.css')) . $query_string;
     $expected[] = file_url_transform_relative(file_create_url('core/themes/bartik/css/components/text-formatted.css')) . $query_string;
+    $expected[] = file_url_transform_relative(file_create_url('core/themes/bartik/css/classy/components/media-embed-error.css')) . $query_string;
     $this->assertIdentical($expected, $this->ckeditor->buildContentsCssJSSetting($editor), '"contentsCss" configuration part of JS settings built correctly while a theme providing a CKEditor stylesheet exists.');
   }
 
@@ -495,20 +494,6 @@ class CKEditorTest extends KernelTestBase {
       file_url_transform_relative(file_create_url('core/modules/ckeditor/css/ckeditor-iframe.css')) . $query_string,
       file_url_transform_relative(file_create_url('core/modules/system/css/components/align.module.css')) . $query_string,
     ];
-  }
-
-  /**
-   * @deprecationMessage Calling CKEditor::__construct() without the $state argument is deprecated in drupal:8.8.0. The $state argument is required in drupal:9.0.0. See https://www.drupal.org/node/3075102.
-   * @group legacy
-   */
-  public function testConstructorDeprecation() {
-    $editor = new CKEditor([], 'test', ['provider' => 'test'], $this->container->get('plugin.manager.ckeditor.plugin'), $this->container->get('module_handler'), $this->container->get('language_manager'), $this->container->get('renderer'));
-
-    // Ensure the BC layer injects the correct object.
-    $reflection_object = new \ReflectionObject($editor);
-    $reflection_property = $reflection_object->getProperty('state');
-    $reflection_property->setAccessible(TRUE);
-    $this->assertSame($reflection_property->getValue($editor), $this->container->get('state'));
   }
 
 }
