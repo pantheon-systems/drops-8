@@ -138,7 +138,7 @@ services:
     class: Drupal\Core\Cache\CacheBackendInterface
     tags:
       - { name: cache.bin }
-    factory: cache_factory:get
+    factory: ['@cache_factory', 'get']
     arguments: [jsonapi_normalizations]
 
   # Route filter.
@@ -207,7 +207,7 @@ services:
       - { name: event_subscriber }
   jsonapi.resource_response_validator.subscriber:
     class: Drupal\jsonapi\EventSubscriber\ResourceResponseValidator
-    arguments: ['@logger.channel.jsonapi', '@module_handler', '@app.root']
+    arguments: ['@logger.channel.jsonapi', '@module_handler', '%app.root%']
     calls:
       - [setValidator, []]
     tags:
@@ -240,11 +240,6 @@ services:
       - '@jsonapi.version_negotiator'
     tags:
       - { name: route_enhancer }
-
-  # Deprecated services.
-  serializer.normalizer.htt_exception.jsonapi:
-    alias: serializer.normalizer.http_exception.jsonapi
-    deprecated: The "%service_id%" service is deprecated. You should use the 'serializer.normalizer.http_exception.jsonapi' service instead.
 
   # @todo Remove once https://www.drupal.org/project/drupal/issues/2940383 lands.
   jsonapi.file.uploader.field:

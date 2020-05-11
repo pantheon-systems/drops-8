@@ -17,98 +17,8 @@ use Drupal\Core\Url;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Site\Settings;
-
-// These are internally used constants for this code, do not modify.
-
-/**
- * Project is missing security update(s).
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateManagerInterface::NOT_SECURE instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_NOT_SECURE = 1;
-
-/**
- * Current release has been unpublished and is no longer available.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateManagerInterface::REVOKED instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_REVOKED = 2;
-
-/**
- * Current release is no longer supported by the project maintainer.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateManagerInterface::NOT_SUPPORTED instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_NOT_SUPPORTED = 3;
-
-/**
- * Project has a new release available, but it is not a security release.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateManagerInterface::NOT_CURRENT instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_NOT_CURRENT = 4;
-
-/**
- * Project is up to date.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateManagerInterface::CURRENT instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_CURRENT = 5;
-
-/**
- * Project's status cannot be checked.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateFetcherInterface::NOT_CHECKED instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_NOT_CHECKED = -1;
-
-/**
- * No available update data was found for project.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateFetcherInterface::UNKNOWN instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_UNKNOWN = -2;
-
-/**
- * There was a failure fetching available update data for this project.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateFetcherInterface::NOT_FETCHED instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_NOT_FETCHED = -3;
-
-/**
- * We need to (re)fetch available update data for this project.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\update\UpdateFetcherInterface::FETCH_PENDING instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const UPDATE_FETCH_PENDING = -4;
+use Drupal\update\UpdateFetcherInterface;
+use Drupal\update\UpdateManagerInterface;
 
 /**
  * Implements hook_help().
@@ -207,7 +117,7 @@ function update_page_top() {
       else {
         if (isset($status[$type])
             && isset($status[$type]['reason'])
-            && $status[$type]['reason'] === UPDATE_NOT_SECURE) {
+            && $status[$type]['reason'] === UpdateManagerInterface::NOT_SECURE) {
           \Drupal::messenger()->addError($status[$type]['description']);
         }
       }
@@ -382,18 +292,18 @@ function update_get_available($refresh = FALSE) {
     // will be changed, so this is the only way we can be sure we're not showing
     // bogus information right after they upgrade.
     if ($project['info']['_info_file_ctime'] > $available[$key]['last_fetch']) {
-      $available[$key]['fetch_status'] = UPDATE_FETCH_PENDING;
+      $available[$key]['fetch_status'] = UpdateFetcherInterface::FETCH_PENDING;
     }
 
     // If we have project data but no release data, we need to fetch. This
     // can be triggered when we fail to contact a release history server.
     if (empty($available[$key]['releases']) && !$available[$key]['last_fetch']) {
-      $available[$key]['fetch_status'] = UPDATE_FETCH_PENDING;
+      $available[$key]['fetch_status'] = UpdateFetcherInterface::FETCH_PENDING;
     }
 
     // If we think this project needs to fetch, actually create the task now
     // and remember that we think we're missing some data.
-    if (!empty($available[$key]['fetch_status']) && $available[$key]['fetch_status'] == UPDATE_FETCH_PENDING) {
+    if (!empty($available[$key]['fetch_status']) && $available[$key]['fetch_status'] == UpdateFetcherInterface::FETCH_PENDING) {
       \Drupal::service('update.processor')->createFetchTask($project);
       $needs_refresh = TRUE;
     }
@@ -408,45 +318,6 @@ function update_get_available($refresh = FALSE) {
   }
 
   return $available;
-}
-
-/**
- * Identifies equivalent security releases with a hardcoded list.
- *
- * Generally, only the latest minor version of Drupal 8 is supported. However,
- * when security fixes are backported to an old branch, and the site owner
- * updates to the release containing the backported fix, they should not
- * see "Security update required!" again if the only other security releases
- * are releases for the same advisories.
- *
- * @return string[]
- *   A list of security release numbers that are equivalent to this release
- *   (i.e. covered by the same advisory), for backported security fixes only.
- *
- * @internal
- *
- * @deprecated in drupal:8.6.0 and is removed from drupal:9.0.0. Use the
- *   'Insecure' release type tag in update XML provided by Drupal.org to
- *   determine if releases are insecure.
- */
-function _update_equivalent_security_releases() {
-  trigger_error("_update_equivalent_security_releases() was a temporary fix and will be removed before 9.0.0. Use the 'Insecure' release type tag in update XML provided by Drupal.org to determine if releases are insecure.", E_USER_DEPRECATED);
-  switch (\Drupal::VERSION) {
-    case '8.3.8':
-      return ['8.4.5', '8.5.0-rc1'];
-    case '8.3.9':
-      return ['8.4.6', '8.5.1'];
-    case '8.4.5':
-      return ['8.5.0-rc1'];
-    case '8.4.6':
-      return ['8.5.1'];
-    case '8.4.7':
-      return ['8.5.2'];
-    case '8.4.8':
-      return ['8.5.3'];
-  }
-
-  return [];
 }
 
 /**
@@ -521,12 +392,13 @@ function update_fetch_data_finished($success, $results) {
  * @param $params
  *   Array of parameters to indicate what kind of text to include in the message
  *   body. This is a keyed array of message type ('core' or 'contrib') as the
- *   keys, and the status reason constant (UPDATE_NOT_SECURE, etc) for the
- *   values.
+ *   keys, and the status reason constant (UpdateManagerInterface::NOT_SECURE,
+ *   etc) for the values.
  *
  * @see \Drupal\Core\Mail\MailManagerInterface::mail()
  * @see _update_cron_notify()
  * @see _update_message_text()
+ * @see \Drupal\update\UpdateManagerInterface
  */
 function update_mail($key, &$message, $params) {
   $langcode = $message['langcode'];
@@ -569,7 +441,7 @@ function update_mail($key, &$message, $params) {
 function _update_message_text($msg_type, $msg_reason, $langcode = NULL) {
   $text = '';
   switch ($msg_reason) {
-    case UPDATE_NOT_SECURE:
+    case UpdateManagerInterface::NOT_SECURE:
       if ($msg_type == 'core') {
         $text = t('There is a security update available for your version of Drupal. To ensure the security of your server, you should update immediately!', [], ['langcode' => $langcode]);
       }
@@ -578,7 +450,7 @@ function _update_message_text($msg_type, $msg_reason, $langcode = NULL) {
       }
       break;
 
-    case UPDATE_REVOKED:
+    case UpdateManagerInterface::REVOKED:
       if ($msg_type == 'core') {
         $text = t('Your version of Drupal has been revoked and is no longer available for download. Upgrading is strongly recommended!', [], ['langcode' => $langcode]);
       }
@@ -587,7 +459,7 @@ function _update_message_text($msg_type, $msg_reason, $langcode = NULL) {
       }
       break;
 
-    case UPDATE_NOT_SUPPORTED:
+    case UpdateManagerInterface::NOT_SUPPORTED:
       if ($msg_type == 'core') {
         $text = t('Your version of Drupal is no longer supported. Upgrading is strongly recommended!', [], ['langcode' => $langcode]);
       }
@@ -596,7 +468,7 @@ function _update_message_text($msg_type, $msg_reason, $langcode = NULL) {
       }
       break;
 
-    case UPDATE_NOT_CURRENT:
+    case UpdateManagerInterface::NOT_CURRENT:
       if ($msg_type == 'core') {
         $text = t('There are updates available for your version of Drupal. To ensure the proper functioning of your site, you should update as soon as possible.', [], ['langcode' => $langcode]);
       }
@@ -605,10 +477,10 @@ function _update_message_text($msg_type, $msg_reason, $langcode = NULL) {
       }
       break;
 
-    case UPDATE_UNKNOWN:
-    case UPDATE_NOT_CHECKED:
-    case UPDATE_NOT_FETCHED:
-    case UPDATE_FETCH_PENDING:
+    case UpdateFetcherInterface::UNKNOWN:
+    case UpdateFetcherInterface::NOT_CHECKED:
+    case UpdateFetcherInterface::NOT_FETCHED:
+    case UpdateFetcherInterface::FETCH_PENDING:
       if ($msg_type == 'core') {
         $text = t('There was a problem checking <a href=":update-report">available updates</a> for Drupal.', [':update-report' => Url::fromRoute('update.status')->toString()], ['langcode' => $langcode]);
       }

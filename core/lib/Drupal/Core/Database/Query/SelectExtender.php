@@ -375,13 +375,6 @@ class SelectExtender implements SelectInterface {
   /**
    * {@inheritdoc}
    */
-  public function rightJoin($table, $alias = NULL, $condition = NULL, $arguments = []) {
-    return $this->query->rightJoin($table, $alias, $condition, $arguments);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function addJoin($type, $table, $alias = NULL, $condition = NULL, $arguments = []) {
     return $this->query->addJoin($type, $table, $alias, $condition, $arguments);
   }
@@ -528,7 +521,7 @@ class SelectExtender implements SelectInterface {
    * {@inheritdoc}
    */
   public function conditionGroupFactory($conjunction = 'AND') {
-    return new Condition($conjunction);
+    return $this->connection->condition($conjunction);
   }
 
   /**

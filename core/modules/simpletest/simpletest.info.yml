@@ -1,12 +1,11 @@
 name: Testing
 type: module
-description: 'Provides a framework for unit and functional testing.'
+description: 'Deprecated. SimpleTest has been removed from core.'
 package: Core
 # version: VERSION
-core: 8.x
-configure: simpletest.settings
+hidden: true
 
-# Information added by Drupal.org packaging script on 2020-04-02
-version: '8.8.5'
+# Information added by Drupal.org packaging script on 2020-03-30
+version: '9.0.0-beta2'
 project: 'drupal'
-datestamp: 1585861582
+datestamp: 1585597457

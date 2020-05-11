@@ -24,10 +24,8 @@ interface AttributeMetadataInterface
 {
     /**
      * Gets the attribute name.
-     *
-     * @return string
      */
-    public function getName();
+    public function getName(): string;
 
     /**
      * Adds this attribute to the given group.
@@ -41,7 +39,7 @@ interface AttributeMetadataInterface
      *
      * @return string[]
      */
-    public function getGroups();
+    public function getGroups(): array;
 
     /**
      * Sets the serialization max depth for this attribute.
@@ -56,6 +54,16 @@ interface AttributeMetadataInterface
      * @return int|null
      */
     public function getMaxDepth();
+
+    /**
+     * Sets the serialization name for this attribute.
+     */
+    public function setSerializedName(string $serializedName = null);
+
+    /**
+     * Gets the serialization name for this attribute.
+     */
+    public function getSerializedName(): ?string;
 
     /**
      * Merges an {@see AttributeMetadataInterface} with in the current one.

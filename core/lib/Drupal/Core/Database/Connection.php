@@ -2,6 +2,8 @@
 
 namespace Drupal\Core\Database;
 
+use Drupal\Core\Database\Query\Condition;
+
 /**
  * Base Database API class.
  *
@@ -144,8 +146,31 @@ abstract class Connection {
    * List of escaped database, table, and field names, keyed by unescaped names.
    *
    * @var array
+   *
+   * @deprecated in drupal:9.0.0 and is removed from drupal:10.0.0. This is no
+   *   longer used. Use \Drupal\Core\Database\Connection::$escapedTables or
+   *   \Drupal\Core\Database\Connection::$escapedFields instead.
+   *
+   * @see https://www.drupal.org/node/2986894
    */
   protected $escapedNames = [];
+
+  /**
+   * List of escaped table names, keyed by unescaped names.
+   *
+   * @var array
+   */
+  protected $escapedTables = [];
+
+  /**
+   * List of escaped field names, keyed by unescaped names.
+   *
+   * There are cases in which escapeField() is called on an empty string. In
+   * this case it should always return an empty string.
+   *
+   * @var array
+   */
+  protected $escapedFields = ["" => ""];
 
   /**
    * List of escaped aliases names, keyed by unescaped aliases.
@@ -255,6 +280,11 @@ abstract class Connection {
    *   additional queries (such as inserting new user accounts). In rare cases,
    *   such as creating an SQL function, a ; is needed and can be allowed by
    *   changing this option to TRUE.
+   * - allow_square_brackets: By default, queries which contain square brackets
+   *   will have them replaced with the identifier quote character for the
+   *   database type. In rare cases, such as creating an SQL function, []
+   *   characters might be needed and can be allowed by changing this option to
+   *   TRUE.
    *
    * @return array
    *   An array of default query options.
@@ -265,6 +295,7 @@ abstract class Connection {
       'return' => Database::RETURN_STATEMENT,
       'throw_exception' => TRUE,
       'allow_delimiter_in_query' => FALSE,
+      'allow_square_brackets' => FALSE,
     ];
   }
 
@@ -299,6 +330,7 @@ abstract class Connection {
       $this->prefixes = ['default' => $prefix];
     }
 
+    $identifier_quote = $this->identifierQuote();
     // Set up variables for use in prefixTables(). Replace table-specific
     // prefixes first.
     $this->prefixSearch = [];
@@ -306,14 +338,20 @@ abstract class Connection {
     foreach ($this->prefixes as $key => $val) {
       if ($key != 'default') {
         $this->prefixSearch[] = '{' . $key . '}';
-        $this->prefixReplace[] = $val . $key;
+        // $val can point to another database like 'database.users'. In this
+        // instance we need to quote the identifiers correctly.
+        $val = str_replace('.', $identifier_quote . '.' . $identifier_quote, $val);
+        $this->prefixReplace[] = $identifier_quote . $val . $key . $identifier_quote;
       }
     }
     // Then replace remaining tables with the default prefix.
     $this->prefixSearch[] = '{';
-    $this->prefixReplace[] = $this->prefixes['default'];
+    // $this->prefixes['default'] can point to another database like
+    // 'other_db.'. In this instance we need to quote the identifiers correctly.
+    // For example, "other_db"."PREFIX_table_name".
+    $this->prefixReplace[] = $identifier_quote . str_replace('.', $identifier_quote . '.' . $identifier_quote, $this->prefixes['default']);
     $this->prefixSearch[] = '}';
-    $this->prefixReplace[] = '';
+    $this->prefixReplace[] = $identifier_quote;
 
     // Set up a map of prefixed => un-prefixed tables.
     foreach ($this->prefixes as $table_name => $prefix) {
@@ -321,6 +359,20 @@ abstract class Connection {
         $this->unprefixedTablesMap[$prefix . $table_name] = $table_name;
       }
     }
+  }
+
+  /**
+   * Returns the identifier quote character for the database type.
+   *
+   * The ANSI SQL standard identifier quote character is a double quotation
+   * mark.
+   *
+   * @return string
+   *   The identifier quote character for the database type.
+   */
+  protected function identifierQuote() {
+    @trigger_error('In drupal:10.0.0 this method will be abstract and contrib and custom drivers will have to implement it. See https://www.drupal.org/node/2986894', E_USER_DEPRECATED);
+    return '';
   }
 
   /**
@@ -339,6 +391,30 @@ abstract class Connection {
    */
   public function prefixTables($sql) {
     return str_replace($this->prefixSearch, $this->prefixReplace, $sql);
+  }
+
+  /**
+   * Quotes all identifiers in a query.
+   *
+   * Queries sent to Drupal should wrap all unquoted identifiers in square
+   * brackets. This function searches for this syntax and replaces them with the
+   * database specific identifier. In ANSI SQL this a double quote.
+   *
+   * Note that :variable[] is used to denote array arguments but
+   * Connection::expandArguments() is always called first.
+   *
+   * @param string $sql
+   *   A string containing a partial or entire SQL query.
+   *
+   * @return string
+   *   The string containing a partial or entire SQL query with all identifiers
+   *   quoted.
+   *
+   * @internal
+   *   This method should only be called by database API code.
+   */
+  public function quoteIdentifiers($sql) {
+    return str_replace(['[', ']'], $this->identifierQuote(), $sql);
   }
 
   /**
@@ -387,18 +463,25 @@ abstract class Connection {
   /**
    * Prepares a query string and returns the prepared statement.
    *
-   * This method caches prepared statements, reusing them when
-   * possible. It also prefixes tables names enclosed in curly-braces.
+   * This method caches prepared statements, reusing them when possible. It also
+   * prefixes tables names enclosed in curly-braces and, optionally, quotes
+   * identifiers enclosed in square brackets.
    *
    * @param $query
    *   The query string as SQL, with curly-braces surrounding the
    *   table names.
+   * @param bool $quote_identifiers
+   *   (optional) Quote any identifiers enclosed in square brackets. Defaults to
+   *   TRUE.
    *
    * @return \Drupal\Core\Database\StatementInterface
    *   A PDO prepared statement ready for its execute() method.
    */
-  public function prepareQuery($query) {
+  public function prepareQuery($query, $quote_identifiers = TRUE) {
     $query = $this->prefixTables($query);
+    if ($quote_identifiers) {
+      $query = $this->quoteIdentifiers($query);
+    }
 
     return $this->connection->prepare($query);
   }
@@ -494,7 +577,10 @@ abstract class Connection {
    *   A table prefix-parsed string for the sequence name.
    */
   public function makeSequenceName($table, $field) {
-    return $this->prefixTables('{' . $table . '}_' . $field . '_seq');
+    $sequence_name = $this->prefixTables('{' . $table . '}_' . $field . '_seq');
+    // Remove identifier quotes as we are constructing a new name from a
+    // prefixed and quoted table name.
+    return str_replace($this->identifierQuote(), '', $sequence_name);
   }
 
   /**
@@ -606,9 +692,7 @@ abstract class Connection {
   public function query($query, array $args = [], $options = []) {
     // Use default values if not already set.
     $options += $this->defaultOptions();
-    if (isset($options['target'])) {
-      @trigger_error('Passing a \'target\' key to \\Drupal\\Core\\Database\\Connection::query $options argument is deprecated in drupal:8.0.x and will be removed before drupal:9.0.0. Instead, use \\Drupal\\Core\\Database\\Database::getConnection($target)->query(). See https://www.drupal.org/node/2993033', E_USER_DEPRECATED);
-    }
+    assert(!isset($options['target']), 'Passing "target" option to query() has no effect. See https://www.drupal.org/node/2993033');
 
     try {
       // We allow either a pre-bound statement object or a literal string.
@@ -630,7 +714,7 @@ abstract class Connection {
         if (strpos($query, ';') !== FALSE && empty($options['allow_delimiter_in_query'])) {
           throw new \InvalidArgumentException('; is not supported in SQL strings. Use only one statement at a time.');
         }
-        $stmt = $this->prepareQuery($query);
+        $stmt = $this->prepareQuery($query, !$options['allow_square_brackets']);
         $stmt->execute($args, $options);
       }
 
@@ -783,6 +867,11 @@ abstract class Connection {
       }
       $driver_class = $this->connectionOptions['namespace'] . '\\' . $class;
       $this->driverClasses[$class] = class_exists($driver_class) ? $driver_class : $class;
+      if ($this->driverClasses[$class] === 'Condition') {
+        // @todo Deprecate the fallback for contrib and custom drivers in 9.1.x
+        //   in https://www.drupal.org/project/drupal/issues/3120036.
+        $this->driverClasses[$class] = Condition::class;
+      }
     }
     return $this->driverClasses[$class];
   }
@@ -808,7 +897,7 @@ abstract class Connection {
    */
   public function select($table, $alias = NULL, array $options = []) {
     $class = $this->getDriverClass('Select');
-    return new $class($table, $alias, $this, $options);
+    return new $class($this, $table, $alias, $options);
   }
 
   /**
@@ -945,6 +1034,22 @@ abstract class Connection {
   }
 
   /**
+   * Prepares and returns a CONDITION query object.
+   *
+   * @param string $conjunction
+   *   The operator to use to combine conditions: 'AND' or 'OR'.
+   *
+   * @return \Drupal\Core\Database\Query\Condition
+   *   A new Condition query object.
+   *
+   * @see \Drupal\Core\Database\Query\Condition
+   */
+  public function condition($conjunction) {
+    $class = $this->getDriverClass('Condition');
+    return new $class($conjunction);
+  }
+
+  /**
    * Escapes a database name string.
    *
    * Force all database names to be strictly alphanumeric-plus-underscore.
@@ -958,30 +1063,32 @@ abstract class Connection {
    *   The sanitized database name.
    */
   public function escapeDatabase($database) {
-    if (!isset($this->escapedNames[$database])) {
-      $this->escapedNames[$database] = preg_replace('/[^A-Za-z0-9_.]+/', '', $database);
-    }
-    return $this->escapedNames[$database];
+    $database = preg_replace('/[^A-Za-z0-9_]+/', '', $database);
+    return $this->identifierQuote() . $database . $this->identifierQuote();
   }
 
   /**
    * Escapes a table name string.
    *
    * Force all table names to be strictly alphanumeric-plus-underscore.
-   * For some database drivers, it may also wrap the table name in
-   * database-specific escape characters.
+   * Database drivers should never wrap the table name in database-specific
+   * escape characters. This is done in Connection::prefixTables(). The
+   * database-specific escape characters are added in Connection::setPrefix().
    *
    * @param string $table
    *   An unsanitized table name.
    *
    * @return string
    *   The sanitized table name.
+   *
+   * @see \Drupal\Core\Database\Connection::prefixTables()
+   * @see \Drupal\Core\Database\Connection::setPrefix()
    */
   public function escapeTable($table) {
-    if (!isset($this->escapedNames[$table])) {
-      $this->escapedNames[$table] = preg_replace('/[^A-Za-z0-9_.]+/', '', $table);
+    if (!isset($this->escapedTables[$table])) {
+      $this->escapedTables[$table] = preg_replace('/[^A-Za-z0-9_.]+/', '', $table);
     }
-    return $this->escapedNames[$table];
+    return $this->escapedTables[$table];
   }
 
   /**
@@ -998,10 +1105,14 @@ abstract class Connection {
    *   The sanitized field name.
    */
   public function escapeField($field) {
-    if (!isset($this->escapedNames[$field])) {
-      $this->escapedNames[$field] = preg_replace('/[^A-Za-z0-9_.]+/', '', $field);
+    if (!isset($this->escapedFields[$field])) {
+      $escaped = preg_replace('/[^A-Za-z0-9_.]+/', '', $field);
+      $identifier_quote = $this->identifierQuote();
+      // Sometimes fields have the format table_alias.field. In such cases
+      // both identifiers should be quoted, for example, "table_alias"."field".
+      $this->escapedFields[$field] = $identifier_quote . str_replace('.', $identifier_quote . '.' . $identifier_quote, $escaped) . $identifier_quote;
     }
-    return $this->escapedNames[$field];
+    return $this->escapedFields[$field];
   }
 
   /**
@@ -1020,7 +1131,7 @@ abstract class Connection {
    */
   public function escapeAlias($field) {
     if (!isset($this->escapedAliases[$field])) {
-      $this->escapedAliases[$field] = preg_replace('/[^A-Za-z0-9_]+/', '', $field);
+      $this->escapedAliases[$field] = $this->identifierQuote() . preg_replace('/[^A-Za-z0-9_]+/', '', $field) . $this->identifierQuote();
     }
     return $this->escapedAliases[$field];
   }

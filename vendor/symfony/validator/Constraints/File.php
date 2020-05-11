@@ -59,6 +59,9 @@ class File extends Constraint
 
     protected $maxSize;
 
+    /**
+     * {@inheritdoc}
+     */
     public function __construct($options = null)
     {
         parent::__construct($options);
@@ -114,7 +117,7 @@ class File extends Constraint
             $this->maxSize = $matches[1] * $factors[$unit = strtolower($matches[2])];
             $this->binaryFormat = null === $this->binaryFormat ? 2 === \strlen($unit) : $this->binaryFormat;
         } else {
-            throw new ConstraintDefinitionException(sprintf('"%s" is not a valid maximum size', $this->maxSize));
+            throw new ConstraintDefinitionException(sprintf('"%s" is not a valid maximum size.', $this->maxSize));
         }
     }
 }

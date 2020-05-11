@@ -14,7 +14,7 @@ use Drupal\Tests\Traits\ExpectDeprecationTrait;
 use Drupal\Tests\UnitTestCase;
 
 /**
- * @coversDefaultClass \Drupal\Core\Entity\Entity
+ * @coversDefaultClass \Drupal\Core\Entity\EntityBase
  * @group Entity
  * @group Access
  */
@@ -118,8 +118,6 @@ class EntityUnitTest extends UnitTestCase {
     $this->cacheTagsInvalidator = $this->createMock('Drupal\Core\Cache\CacheTagsInvalidator');
 
     $container = new ContainerBuilder();
-    // Ensure that Entity doesn't use the deprecated entity.manager service.
-    $container->set('entity.manager', NULL);
     $container->set('entity_type.manager', $this->entityTypeManager);
     $container->set('uuid', $this->uuid);
     $container->set('language_manager', $this->languageManager);
@@ -171,33 +169,17 @@ class EntityUnitTest extends UnitTestCase {
 
   /**
    * @covers ::label
-   * @group legacy
    */
   public function testLabel() {
-
-    $this->addExpectedDeprecationMessage('Entity type ' . $this->entityTypeId . ' defines a label callback. Support for that is deprecated in drupal:8.0.0 and will be removed in drupal:9.0.0. Override the EntityInterface::label() method instead. See https://www.drupal.org/node/3050794');
-
-    // Make a mock with one method that we use as the entity's uri_callback. We
-    // check that it is called, and that the entity's label is the callback's
-    // return value.
-    $callback_label = $this->randomMachineName();
     $property_label = $this->randomMachineName();
-    $callback_container = $this->createMock(get_class());
-    $callback_container->expects($this->once())
-      ->method(__FUNCTION__)
-      ->will($this->returnValue($callback_label));
-    $this->entityType->expects($this->at(0))
-      ->method('get')
-      ->with('label_callback')
-      ->will($this->returnValue([$callback_container, __FUNCTION__]));
-    $this->entityType->expects($this->at(2))
+    $this->entityType->expects($this->atLeastOnce())
       ->method('getKey')
       ->with('label')
       ->will($this->returnValue('label'));
 
     // Set a dummy property on the entity under test to test that the label can
     // be returned form a property if there is no callback.
-    $this->entityTypeManager->expects($this->at(1))
+    $this->entityTypeManager->expects($this->atLeastOnce())
       ->method('getDefinition')
       ->with($this->entityTypeId)
       ->will($this->returnValue([
@@ -207,7 +189,6 @@ class EntityUnitTest extends UnitTestCase {
       ]));
     $this->entity->label = $property_label;
 
-    $this->assertSame($callback_label, $this->entity->label());
     $this->assertSame($property_label, $this->entity->label());
   }
 
@@ -444,6 +425,43 @@ class EntityUnitTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::postSave
+   */
+  public function testPostSaveBundle() {
+    $this->cacheTagsInvalidator->expects($this->at(0))
+      ->method('invalidateTags')
+      ->with([
+        // List cache tag.
+        $this->entityTypeId . '_list',
+        $this->entityTypeId . '_list:' . $this->entity->bundle(),
+      ]);
+    $this->cacheTagsInvalidator->expects($this->at(1))
+      ->method('invalidateTags')
+      ->with([
+        // Own cache tag.
+        $this->entityTypeId . ':' . $this->values['id'],
+        // List cache tag.
+        $this->entityTypeId . '_list',
+        $this->entityTypeId . '_list:' . $this->entity->bundle(),
+      ]);
+
+    $this->entityType->expects($this->atLeastOnce())
+      ->method('hasKey')
+      ->with('bundle')
+      ->willReturn(TRUE);
+
+    // This method is internal, so check for errors on calling it only.
+    $storage = $this->createMock('\Drupal\Core\Entity\EntityStorageInterface');
+
+    // A creation should trigger the invalidation of the global list cache tag
+    // and the one for the bundle.
+    $this->entity->postSave($storage, FALSE);
+    // An update should trigger the invalidation of the "list", bundle list and
+    // the "own" cache tags.
+    $this->entity->postSave($storage, TRUE);
+  }
+
+  /**
    * @covers ::preCreate
    */
   public function testPreCreate() {
@@ -484,6 +502,30 @@ class EntityUnitTest extends UnitTestCase {
         $this->entityTypeId . ':' . $this->values['id'],
         $this->entityTypeId . '_list',
       ]);
+    $storage = $this->createMock('\Drupal\Core\Entity\EntityStorageInterface');
+    $storage->expects($this->once())
+      ->method('getEntityType')
+      ->willReturn($this->entityType);
+
+    $entities = [$this->values['id'] => $this->entity];
+    $this->entity->postDelete($storage, $entities);
+  }
+
+  /**
+   * @covers ::postDelete
+   */
+  public function testPostDeleteBundle() {
+    $this->cacheTagsInvalidator->expects($this->once())
+      ->method('invalidateTags')
+      ->with([
+        $this->entityTypeId . ':' . $this->values['id'],
+        $this->entityTypeId . '_list',
+        $this->entityTypeId . '_list:' . $this->entity->bundle(),
+      ]);
+    $this->entityType->expects($this->atLeastOnce())
+      ->method('hasKey')
+      ->with('bundle')
+      ->willReturn(TRUE);
     $storage = $this->createMock('\Drupal\Core\Entity\EntityStorageInterface');
     $storage->expects($this->once())
       ->method('getEntityType')

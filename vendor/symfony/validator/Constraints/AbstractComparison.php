@@ -14,6 +14,7 @@ namespace Symfony\Component\Validator\Constraints;
 use Symfony\Component\PropertyAccess\PropertyAccess;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Exception\ConstraintDefinitionException;
+use Symfony\Component\Validator\Exception\LogicException;
 
 /**
  * Used for the comparison of values.
@@ -38,15 +39,15 @@ abstract class AbstractComparison extends Constraint
 
         if (\is_array($options)) {
             if (!isset($options['value']) && !isset($options['propertyPath'])) {
-                throw new ConstraintDefinitionException(sprintf('The "%s" constraint requires either the "value" or "propertyPath" option to be set.', \get_class($this)));
+                throw new ConstraintDefinitionException(sprintf('The "%s" constraint requires either the "value" or "propertyPath" option to be set.', static::class));
             }
 
             if (isset($options['value']) && isset($options['propertyPath'])) {
-                throw new ConstraintDefinitionException(sprintf('The "%s" constraint requires only one of the "value" or "propertyPath" options to be set, not both.', \get_class($this)));
+                throw new ConstraintDefinitionException(sprintf('The "%s" constraint requires only one of the "value" or "propertyPath" options to be set, not both.', static::class));
             }
 
             if (isset($options['propertyPath']) && !class_exists(PropertyAccess::class)) {
-                throw new ConstraintDefinitionException(sprintf('The "%s" constraint requires the Symfony PropertyAccess component to use the "propertyPath" option.', \get_class($this)));
+                throw new LogicException(sprintf('The "%s" constraint requires the Symfony PropertyAccess component to use the "propertyPath" option.', static::class));
             }
         }
 

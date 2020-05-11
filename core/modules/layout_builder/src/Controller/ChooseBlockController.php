@@ -58,13 +58,9 @@ class ChooseBlockController implements ContainerInjectionInterface {
    * @param \Drupal\Core\Session\AccountInterface $current_user
    *   The current user.
    */
-  public function __construct(BlockManagerInterface $block_manager, EntityTypeManagerInterface $entity_type_manager, AccountInterface $current_user = NULL) {
+  public function __construct(BlockManagerInterface $block_manager, EntityTypeManagerInterface $entity_type_manager, AccountInterface $current_user) {
     $this->blockManager = $block_manager;
     $this->entityTypeManager = $entity_type_manager;
-    if (!$current_user) {
-      @trigger_error('The current_user service must be passed to ChooseBlockController::__construct(), it is required before Drupal 9.0.0.', E_USER_DEPRECATED);
-      $current_user = \Drupal::currentUser();
-    }
     $this->currentUser = $current_user;
   }
 
@@ -92,7 +88,7 @@ class ChooseBlockController implements ContainerInjectionInterface {
    * @return array
    *   A render array.
    */
-  public function build(SectionStorageInterface $section_storage, $delta, $region) {
+  public function build(SectionStorageInterface $section_storage, int $delta, $region) {
     if ($this->entityTypeManager->hasDefinition('block_content_type') && $types = $this->entityTypeManager->getStorage('block_content_type')->loadMultiple()) {
       if (count($types) === 1) {
         $type = reset($types);
@@ -146,10 +142,6 @@ class ChooseBlockController implements ContainerInjectionInterface {
     $block_categories['#attributes']['class'][] = 'js-layout-builder-categories';
     $block_categories['#attributes']['data-layout-builder-target-highlight-id'] = $this->blockAddHighlightId($delta, $region);
 
-    // @todo Explicitly cast delta to an integer, remove this in
-    //   https://www.drupal.org/project/drupal/issues/2984509.
-    $delta = (int) $delta;
-
     $definitions = $this->blockManager->getFilteredDefinitions('layout_builder', $this->getAvailableContexts($section_storage), [
       'section_storage' => $section_storage,
       'delta' => $delta,
@@ -180,7 +172,7 @@ class ChooseBlockController implements ContainerInjectionInterface {
    * @return array
    *   A render array.
    */
-  public function inlineBlockList(SectionStorageInterface $section_storage, $delta, $region) {
+  public function inlineBlockList(SectionStorageInterface $section_storage, int $delta, $region) {
     $definitions = $this->blockManager->getFilteredDefinitions('layout_builder', $this->getAvailableContexts($section_storage), [
       'section_storage' => $section_storage,
       'region' => $region,
@@ -228,7 +220,7 @@ class ChooseBlockController implements ContainerInjectionInterface {
    * @return array
    *   The block links render array.
    */
-  protected function getBlockLinks(SectionStorageInterface $section_storage, $delta, $region, array $blocks) {
+  protected function getBlockLinks(SectionStorageInterface $section_storage, int $delta, $region, array $blocks) {
     $links = [];
     foreach ($blocks as $block_id => $block) {
       $attributes = $this->getAjaxAttributes();

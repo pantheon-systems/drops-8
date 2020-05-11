@@ -30,10 +30,6 @@ class Config {
       'coder_sniffer/Drupal/Test',
       'coder_sniffer/DrupalPractice/Test',
     ],
-    'doctrine/cache' => ['tests'],
-    'doctrine/collections' => ['tests'],
-    'doctrine/common' => ['tests'],
-    'doctrine/inflector' => ['tests'],
     'doctrine/instantiator' => ['tests'],
     'easyrdf/easyrdf' => ['scripts'],
     'egulias/email-validator' => ['documentation', 'tests'],
@@ -74,7 +70,6 @@ class Config {
     'squizlabs/php_codesniffer' => ['tests'],
     'stack/builder' => ['tests'],
     'symfony/browser-kit' => ['Tests'],
-    'symfony/class-loader' => ['Tests'],
     'symfony/console' => ['Tests'],
     'symfony/css-selector' => ['Tests'],
     'symfony/debug' => ['Tests'],
@@ -96,9 +91,6 @@ class Config {
     'symfony-cmf/routing' => ['Test', 'Tests'],
     'theseer/tokenizer' => ['tests'],
     'twig/twig' => ['doc', 'ext', 'test', 'tests'],
-    'zendframework/zend-escaper' => ['doc'],
-    'zendframework/zend-feed' => ['doc'],
-    'zendframework/zend-stdlib' => ['doc'],
   ];
 
   /**

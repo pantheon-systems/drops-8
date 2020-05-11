@@ -1,6 +1,80 @@
 CHANGELOG
 =========
 
+4.4.0
+-----
+
+ * [BC BREAK] using null as `$classValidatorRegexp` value in `PropertyInfoLoader::__construct` will not enable auto-mapping for all classes anymore, use `'{.*}'` instead.
+ * added `EnableAutoMapping` and `DisableAutoMapping` constraints to enable or disable auto mapping for class or a property
+ * using anything else than a `string` as the code of a `ConstraintViolation` is deprecated, a `string` type-hint will
+   be added to the constructor of the `ConstraintViolation` class and to the `ConstraintViolationBuilder::setCode()`
+   method in 5.0
+ * deprecated passing an `ExpressionLanguage` instance as the second argument of `ExpressionValidator::__construct()`. Pass it as the first argument instead.
+ * added the `compared_value_path` parameter in violations when using any
+   comparison constraint with the `propertyPath` option.
+ * added support for checking an array of types in `TypeValidator`
+ * added a new `allowEmptyString` option to the `Length` constraint to allow rejecting empty strings when `min` is set, by setting it to `false`.
+ * Added new `minPropertyPath` and `maxPropertyPath` options
+   to `Range` constraint in order to get the value to compare
+   from an array or object
+ * added the `min_limit_path` and `max_limit_path` parameters in violations when using
+   `Range` constraint with respectively the `minPropertyPath` and
+   `maxPropertyPath` options
+ * added a new `notInRangeMessage` option to the `Range` constraint that will
+   be used in the violation builder when both `min` and `max` are not null
+ * added ability to use stringable objects as violation messages
+ * Overriding the methods `ConstraintValidatorTestCase::setUp()` and `ConstraintValidatorTestCase::tearDown()` without the `void` return-type is deprecated.
+ * deprecated `Symfony\Component\Validator\Mapping\Cache\CacheInterface` in favor of PSR-6.
+ * deprecated `ValidatorBuilder::setMetadataCache`, use `ValidatorBuilder::setMappingCache` instead.
+ * Marked the `ValidatorDataCollector` class as `@final`.
+
+4.3.0
+-----
+
+ * added `Timezone` constraint
+ * added `NotCompromisedPassword` constraint
+ * added options `iban` and `ibanPropertyPath` to Bic constraint
+ * added UATP cards support to `CardSchemeValidator`
+ * added option `allowNull` to NotBlank constraint
+ * added `Json` constraint
+ * added `Unique` constraint
+ * added a new `normalizer` option to the string constraints and to the `NotBlank` constraint
+ * added `Positive` constraint
+ * added `PositiveOrZero` constraint
+ * added `Negative` constraint
+ * added `NegativeOrZero` constraint
+
+4.2.0
+-----
+
+ * added a new `UnexpectedValueException` that can be thrown by constraint validators, these exceptions are caught by
+   the validator and are converted into constraint violations
+ * added `DivisibleBy` constraint
+ * decoupled from `symfony/translation` by using `Symfony\Contracts\Translation\TranslatorInterface`
+ * deprecated `ValidatorBuilderInterface`
+ * made `ValidatorBuilder::setTranslator()` final
+ * marked `format` the default option in `DateTime` constraint
+ * deprecated validating instances of `\DateTimeInterface` in `DateTimeValidator`, `DateValidator` and `TimeValidator`.
+ * deprecated using the `Bic`, `Country`, `Currency`, `Language` and `Locale` constraints without `symfony/intl`
+ * deprecated using the `Email` constraint without `egulias/email-validator`
+ * deprecated using the `Expression` constraint without `symfony/expression-language`
+
+4.1.0
+-----
+
+ * Deprecated the `checkDNS` and `dnsMessage` options of the `Url` constraint.
+ * added a `values` option to the `Expression` constraint
+ * Deprecated use of `Locale` constraint without setting `true` at "canonicalize" option, which will be the default value in 5.0
+
+4.0.0
+-----
+
+ * Setting the `strict` option of the `Choice` constraint to anything but `true`
+   is not supported anymore.
+ * removed the `DateTimeValidator::PATTERN` constant
+ * removed the `AbstractConstraintValidatorTest` class
+ * removed support for setting the `checkDNS` option of the `Url` constraint to `true`
+
 3.4.0
 -----
 

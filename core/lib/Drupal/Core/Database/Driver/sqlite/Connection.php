@@ -180,7 +180,7 @@ class Connection extends DatabaseConnection {
           $count = $this->query('SELECT COUNT(*) FROM ' . $prefix . '.sqlite_master WHERE type = :type AND name NOT LIKE :pattern', [':type' => 'table', ':pattern' => 'sqlite_%'])->fetchField();
 
           // We can prune the database file if it doesn't have any tables.
-          if ($count == 0) {
+          if ($count == 0 && file_exists($this->connectionOptions['database'] . '-' . $prefix)) {
             // Detaching the database fails at this point, but no other queries
             // are executed after the connection is destructed so we can simply
             // remove the database file.
@@ -376,6 +376,13 @@ class Connection extends DatabaseConnection {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  protected function identifierQuote() {
+    return '"';
+  }
+
+  /**
    * Overrides \Drupal\Core\Database\Connection::createDatabase().
    *
    * @param string $database
@@ -398,8 +405,12 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  public function prepareQuery($query) {
-    return $this->prepare($this->prefixTables($query));
+  public function prepareQuery($query, $quote_identifiers = TRUE) {
+    $query = $this->prefixTables($query);
+    if ($quote_identifiers) {
+      $query = $this->quoteIdentifiers($query);
+    }
+    return $this->prepare($query);
   }
 
   public function nextId($existing_id = 0) {

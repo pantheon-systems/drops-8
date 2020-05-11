@@ -35,15 +35,30 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
     'rdf',
     'statistics',
     'migration_provider_test',
-    // Required for translation migrations.
-    'migrate_drupal_multilingual',
   ];
+
+  /**
+   * The entity storage for node.
+   *
+   * @var \Drupal\Core\Entity\EntityStorageInterface
+   */
+  protected $nodeStorage;
 
   /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
+
+    // Delete the existing content made to test the ID Conflict form. Migrations
+    // are to be done on a site without content. The test of the ID Conflict
+    // form is being moved to its own issue which will remove the deletion
+    // of the created nodes.
+    // See https://www.drupal.org/project/drupal/issues/3087061.
+    $this->nodeStorage = $this->container->get('entity_type.manager')
+      ->getStorage('node');
+    $this->nodeStorage->delete($this->nodeStorage->loadMultiple());
+
     $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal7.php');
   }
 
@@ -74,12 +89,12 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'contact_form' => 3,
       'contact_message' => 0,
       'editor' => 2,
-      'field_config' => 73,
-      'field_storage_config' => 55,
+      'field_config' => 76,
+      'field_storage_config' => 58,
       'file' => 3,
       'filter_format' => 7,
       'image_style' => 6,
-      'language_content_settings' => 18,
+      'language_content_settings' => 24,
       'node' => 6,
       'node_type' => 6,
       'rdf_mapping' => 8,
@@ -87,7 +102,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'shortcut' => 6,
       'shortcut_set' => 2,
       'action' => 19,
-      'menu' => 6,
+      'menu' => 7,
       'taxonomy_term' => 24,
       'taxonomy_vocabulary' => 7,
       'path_alias' => 8,
@@ -97,9 +112,9 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'menu_link_content' => 12,
       'view' => 16,
       'date_format' => 11,
-      'entity_form_display' => 17,
+      'entity_form_display' => 20,
       'entity_form_mode' => 1,
-      'entity_view_display' => 28,
+      'entity_view_display' => 31,
       'entity_view_mode' => 14,
       'base_field_override' => 4,
     ];
@@ -149,6 +164,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'link',
       'list',
       'menu',
+      'node',
       'number',
       'options',
       'path',
@@ -186,10 +202,10 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'i18n',
       'i18n_field',
       'i18n_string',
+      'i18n_menu',
       'i18n_taxonomy',
       'i18n_translation',
       'locale',
-      'node',
       'variable',
       'variable_realm',
       'variable_store',

@@ -3,7 +3,6 @@ type: theme
 description: A default base theme using Drupal 8.0.0's core markup and CSS.
 package: Core
 # version: VERSION
-core: 8.x
 base theme: false
 hidden: true
 
@@ -89,6 +88,9 @@ libraries-override:
     css:
       component:
         misc/vertical-tabs.css: css/core/vertical-tabs.css
+
+  # Load version 3.0.3 of normalize.css for backwards compatibility.
+  core/normalize: stable/normalize
 
   dblog/drupal.dblog:
     css:
@@ -208,11 +210,6 @@ libraries-override:
         css/shortcut.theme.css: css/shortcut/shortcut.theme.css
         css/shortcut.icons.theme.css: css/shortcut/shortcut.icons.theme.css
 
-  simpletest/drupal.simpletest:
-    css:
-      component:
-        css/simpletest.module.css: css/simpletest/simpletest.module.css
-
   system/base:
     css:
       component:
@@ -310,7 +307,7 @@ libraries-extend:
   user/drupal.user:
     - stable/drupal.user
 
-# Information added by Drupal.org packaging script on 2020-04-02
-version: '8.8.5'
+# Information added by Drupal.org packaging script on 2020-03-30
+version: '9.0.0-beta2'
 project: 'drupal'
-datestamp: 1585861582
+datestamp: 1585597457

@@ -13,25 +13,27 @@
 # changes.
 name: Seven
 type: theme
-base theme: classy
+base theme: false
 description: 'The default administration theme for Drupal 8 was designed with clean lines, simple blocks, and sans-serif font to emphasize the tools and tasks at hand.'
 alt text: 'Default administration theme for Drupal 8 with simple blocks and clean lines.'
 package: Core
 # version: VERSION
-core: 8.x
 libraries:
- - seven/global-styling
+  - seven/classy.messages
+  - core/normalize
+  - seven/global-styling
 libraries-override:
   system/base:
     css:
       component:
-        /core/themes/stable/css/system/components/system-status-counter.css: css/components/system-status-counter.css
-        /core/themes/stable/css/system/components/system-status-report-counters.css: css/components/system-status-report-counters.css
-        /core/themes/stable/css/system/components/system-status-report-general-info.css: css/components/system-status-report-general-info.css
+        css/components/system-status-counter.css: css/components/system-status-counter.css
+        css/components/system-status-report-counters.css: css/components/system-status-report-counters.css
+        css/components/system-status-report-general-info.css: css/components/system-status-report-general-info.css
+
   core/drupal.vertical-tabs:
     css:
       component:
-        /core/themes/stable/css/core/vertical-tabs.css: false
+        misc/vertical-tabs.css: false
   core/jquery.ui:
     css:
       theme:
@@ -40,30 +42,37 @@ libraries-override:
     css:
       component:
         assets/vendor/jquery.ui/themes/base/dialog.css: false
-  classy/dialog:
-    seven/seven.drupal.dialog
-  classy/base:
-    css:
-      component:
-        css/components/details.css: false
-  classy/media_library:
-    css:
-      layout:
-        css/layout/media-library.css: false
 
 libraries-extend:
   core/ckeditor:
     - seven/ckeditor-dialog
+  core/drupal.dialog:
+    - seven/seven.drupal.dialog
+  core/drupal.dropbutton:
+    - seven/classy.dropbutton
+  core/drupal.progress:
+    - seven/classy.progress
   core/drupal.vertical-tabs:
     - seven/vertical-tabs
   core/jquery.ui:
     - seven/seven.jquery.ui
+  file/drupal.file:
+    - seven/classy.file
+  filter/drupal.filter.admin:
+    - seven/filter
+  filter/drupal.filter:
+    - seven/filter
+  media/media_embed_ckeditor_theme:
+    - seven/classy.media_embed_ckeditor_theme
   media_library/view:
     - seven/media_library
   media_library/widget:
     - seven/media_library
   tour/tour-styling:
     - seven/tour-styling
+  user/drupal.user:
+    - seven/user
+
 quickedit_stylesheets:
   - css/components/quickedit.css
 regions:
@@ -79,7 +88,10 @@ regions:
 regions_hidden:
   - sidebar_first
 
-# Information added by Drupal.org packaging script on 2020-04-02
-version: '8.8.5'
+ckeditor_stylesheets:
+  - css/classy/components/media-embed-error.css
+
+# Information added by Drupal.org packaging script on 2020-03-30
+version: '9.0.0-beta2'
 project: 'drupal'
-datestamp: 1585861582
+datestamp: 1585597457

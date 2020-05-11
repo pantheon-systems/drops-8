@@ -60,7 +60,7 @@ function update_manager_download_batch_finished($success, $results) {
   }
   elseif ($success) {
     \Drupal::messenger()->addStatus(t('Updates downloaded successfully.'));
-    $_SESSION['update_manager_update_projects'] = $results['projects'];
+    \Drupal::request()->getSession()->set('update_manager_update_projects', $results['projects']);
     return new RedirectResponse(Url::fromRoute('update.confirmation_page', [], ['absolute' => TRUE])->toString());
   }
   else {
@@ -318,7 +318,7 @@ function update_manager_local_transfers_allowed() {
   // the configuration directory to determine if local transfers will be
   // allowed.
   $temporary_file = \Drupal::service('file_system')->tempnam('temporary://', 'update_');
-  $site_path = \Drupal::service('site.path');
+  $site_path = \Drupal::getContainer()->getParameter('site.path');
   $local_transfers_allowed = fileowner($temporary_file) === fileowner($site_path);
 
   // Clean up. If this fails, we can ignore it (since this is just a temporary
