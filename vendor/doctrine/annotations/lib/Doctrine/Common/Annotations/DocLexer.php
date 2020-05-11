@@ -51,11 +51,12 @@ final class DocLexer extends AbstractLexer
     const T_TRUE                = 110;
     const T_NULL                = 111;
     const T_COLON               = 112;
+    const T_MINUS               = 113;
 
     /**
      * @var array
      */
-    protected $noCase = array(
+    protected $noCase = [
         '@'  => self::T_AT,
         ','  => self::T_COMMA,
         '('  => self::T_OPEN_PARENTHESIS,
@@ -64,28 +65,40 @@ final class DocLexer extends AbstractLexer
         '}'  => self::T_CLOSE_CURLY_BRACES,
         '='  => self::T_EQUALS,
         ':'  => self::T_COLON,
+        '-'  => self::T_MINUS,
         '\\' => self::T_NAMESPACE_SEPARATOR
-    );
+    ];
 
     /**
      * @var array
      */
-    protected $withCase = array(
+    protected $withCase = [
         'true'  => self::T_TRUE,
         'false' => self::T_FALSE,
         'null'  => self::T_NULL
-    );
+    ];
+
+    /**
+     * Whether the next token starts immediately, or if there were
+     * non-captured symbols before that
+     */
+    public function nextTokenIsAdjacent() : bool
+    {
+        return $this->token === null
+            || ($this->lookahead !== null
+                && ($this->lookahead['position'] - $this->token['position']) === strlen($this->token['value']));
+    }
 
     /**
      * {@inheritdoc}
      */
     protected function getCatchablePatterns()
     {
-        return array(
+        return [
             '[a-z_\\\][a-z0-9_\:\\\]*[a-z_][a-z0-9_]*',
             '(?:[+-]?[0-9]+(?:[\.][0-9]+)*)(?:[eE][+-]?[0-9]+)?',
             '"(?:""|[^"])*+"',
-        );
+        ];
     }
 
     /**
@@ -93,7 +106,7 @@ final class DocLexer extends AbstractLexer
      */
     protected function getNonCatchablePatterns()
     {
-        return array('\s+', '\*+', '(.)');
+        return ['\s+', '\*+', '(.)'];
     }
 
     /**

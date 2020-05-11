@@ -110,7 +110,7 @@ class ViewEditForm extends ViewFormBase {
 
     $form['#tree'] = TRUE;
 
-    $form['#attached']['library'][] = 'core/jquery.ui.dialog';
+    $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
     $form['#attached']['library'][] = 'core/drupal.states';
     $form['#attached']['library'][] = 'core/drupal.tabledrag';
     $form['#attached']['library'][] = 'views_ui/views_ui.admin';
@@ -315,8 +315,6 @@ class ViewEditForm extends ViewFormBase {
           $query->remove('destination');
         }
       }
-      // @todo Use Url::fromPath() once https://www.drupal.org/node/2351379 is
-      //   resolved.
       $form_state->setRedirectUrl(Url::fromUri("base:$destination"));
     }
 

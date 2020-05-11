@@ -14,7 +14,6 @@ use Drupal\Core\Field\FieldTypePluginManagerInterface;
 use Drupal\Core\Field\PluginSettingsInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
-use Drupal\field_ui\Element\FieldUiTable;
 use Drupal\field_ui\FieldUI;
 
 /**
@@ -77,18 +76,10 @@ abstract class EntityDisplayFormBase extends EntityForm {
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface|null $entity_field_manager
    *   (optional) The entity field manager.
    */
-  public function __construct(FieldTypePluginManagerInterface $field_type_manager, PluginManagerBase $plugin_manager, EntityDisplayRepositoryInterface $entity_display_repository = NULL, EntityFieldManagerInterface $entity_field_manager = NULL) {
+  public function __construct(FieldTypePluginManagerInterface $field_type_manager, PluginManagerBase $plugin_manager, EntityDisplayRepositoryInterface $entity_display_repository, EntityFieldManagerInterface $entity_field_manager) {
     $this->fieldTypes = $field_type_manager->getDefinitions();
     $this->pluginManager = $plugin_manager;
-    if (!$entity_display_repository) {
-      @trigger_error('Calling EntityDisplayFormBase::__construct() with the $entity_display_repository argument is supported in Drupal 8.7.0 and will be required before Drupal 9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-      $entity_display_repository = \Drupal::service('entity_display.repository');
-    }
     $this->entityDisplayRepository = $entity_display_repository;
-    if (!$entity_field_manager) {
-      @trigger_error('Calling EntityDisplayFormBase::__construct() with the $entity_field_manager argument is supported in Drupal 8.7.0 and will be required before Drupal 9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-      $entity_field_manager = \Drupal::service('entity_field.manager');
-    }
     $this->entityFieldManager = $entity_field_manager;
   }
 
@@ -720,39 +711,6 @@ abstract class EntityDisplayFormBase extends EntityForm {
 
     // Return the whole table.
     return $form['fields'];
-  }
-
-  /**
-   * Performs pre-render tasks on field_ui_table elements.
-   *
-   * @param array $elements
-   *   A structured array containing two sub-levels of elements. Properties
-   *   used:
-   *   - #tabledrag: The value is a list of $options arrays that are passed to
-   *     drupal_attach_tabledrag(). The HTML ID of the table is added to each
-   *     $options array.
-   *
-   * @return array
-   *
-   * @see \Drupal\Core\Render\RendererInterface::render()
-   * @see \Drupal\Core\Render\Element\Table::preRenderTable()
-   *
-   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
-   */
-  public function tablePreRender($elements) {
-    return FieldUiTable::tablePreRender($elements);
-  }
-
-  /**
-   * Determines the rendering order of an array representing a tree.
-   *
-   * Callback for array_reduce() within
-   * \Drupal\field_ui\Form\EntityDisplayFormBase::tablePreRender().
-   *
-   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
-   */
-  public function reduceOrder($array, $a) {
-    return FieldUiTable::reduceOrder($array, $a);
   }
 
   /**

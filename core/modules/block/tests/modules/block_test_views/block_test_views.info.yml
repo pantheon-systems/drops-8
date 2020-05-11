@@ -3,12 +3,11 @@ type: module
 description: 'Provides a view and block to test block displays in views.'
 package: Testing
 # version: VERSION
-core: 8.x
 dependencies:
   - drupal:block
   - drupal:views
 
-# Information added by Drupal.org packaging script on 2020-04-02
-version: '8.8.5'
+# Information added by Drupal.org packaging script on 2020-03-30
+version: '9.0.0-beta2'
 project: 'drupal'
-datestamp: 1585861582
+datestamp: 1585597457

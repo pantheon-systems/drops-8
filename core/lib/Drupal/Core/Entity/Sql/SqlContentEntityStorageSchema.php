@@ -4,7 +4,6 @@ namespace Drupal\Core\Entity\Sql;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
-use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -30,15 +29,9 @@ use Drupal\Core\Site\Settings;
 class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorageSchemaInterface {
 
   use DependencySerializationTrait;
-  use DeprecatedServicePropertyTrait;
   use SqlFieldableEntityTypeListenerTrait {
     onFieldableEntityTypeUpdate as traitOnFieldableEntityTypeUpdate;
   }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
 
   /**
    * The entity type manager.
@@ -124,14 +117,10 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
    * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
    *   The entity field manager.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, ContentEntityTypeInterface $entity_type, SqlContentEntityStorage $storage, Connection $database, EntityFieldManagerInterface $entity_field_manager = NULL) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, ContentEntityTypeInterface $entity_type, SqlContentEntityStorage $storage, Connection $database, EntityFieldManagerInterface $entity_field_manager) {
     $this->entityTypeManager = $entity_type_manager;
     $this->storage = clone $storage;
     $this->database = $database;
-    if (!$entity_field_manager) {
-      @trigger_error('Calling SqlContentEntityStorageSchema::__construct() with the $entity_field_manager argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-      $entity_field_manager = \Drupal::service('entity_field.manager');
-    }
     $this->entityFieldManager = $entity_field_manager;
 
     $this->entityType = $entity_type_manager->getActiveDefinition($entity_type->id());
@@ -568,6 +557,12 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       $this->fieldStorageDefinitions = $field_storage_definitions;
       $this->saveEntitySchemaData($entity_type, $new_entity_schema);
 
+      // The storage needs to use the updated definitions and table mapping
+      // before generating and saving the final field schema data.
+      $this->storage->setEntityType($entity_type);
+      $this->storage->setFieldStorageDefinitions($field_storage_definitions);
+      $this->storage->setTableMapping($new_table_mapping);
+
       // Store the updated field schema for each field storage.
       foreach ($field_storage_definitions as $field_storage_definition) {
         if ($new_table_mapping->requiresDedicatedTableStorage($field_storage_definition)) {
@@ -971,10 +966,6 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       }
 
       // Process tables after having gathered field information.
-      $this->processBaseTable($entity_type, $schema[$tables['base_table']]);
-      if (isset($tables['revision_table'])) {
-        $this->processRevisionTable($entity_type, $schema[$tables['revision_table']]);
-      }
       if (isset($tables['data_table'])) {
         $this->processDataTable($entity_type, $schema[$tables['data_table']]);
       }
@@ -1441,36 +1432,6 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       'indexes' => [],
       'foreign keys' => [],
     ];
-  }
-
-  /**
-   * Processes the gathered schema for a base table.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
-   *   The entity type.
-   * @param array $schema
-   *   The table schema, passed by reference.
-   */
-  protected function processBaseTable(ContentEntityTypeInterface $entity_type, array &$schema) {
-    // Process the schema for the 'id' entity key only if it exists.
-    if ($entity_type->hasKey('id')) {
-      $this->processIdentifierSchema($schema, $entity_type->getKey('id'));
-    }
-  }
-
-  /**
-   * Processes the gathered schema for a base table.
-   *
-   * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
-   *   The entity type.
-   * @param array $schema
-   *   The table schema, passed by reference.
-   */
-  protected function processRevisionTable(ContentEntityTypeInterface $entity_type, array &$schema) {
-    // Process the schema for the 'revision' entity key only if it exists.
-    if ($entity_type->hasKey('revision')) {
-      $this->processIdentifierSchema($schema, $entity_type->getKey('revision'));
-    }
   }
 
   /**
@@ -2089,6 +2050,7 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
 
     $field_name = $storage_definition->getName();
     $base_table = $this->storage->getBaseTable();
+    $revision_table = $this->storage->getRevisionTable();
 
     // Define the initial values, if any.
     $initial_value = $initial_value_from_field = [];
@@ -2165,6 +2127,13 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
 
     if (!empty($field_schema['foreign keys'])) {
       $schema['foreign keys'] = $this->getFieldForeignKeys($field_name, $field_schema, $column_mapping);
+    }
+
+    // Process the 'id' and 'revision' entity keys for the base and revision
+    // tables.
+    if (($table_name === $base_table && $field_name === $this->entityType->getKey('id')) ||
+      ($table_name === $revision_table && $field_name === $this->entityType->getKey('revision'))) {
+      $this->processIdentifierSchema($schema, $field_name);
     }
 
     return $schema;

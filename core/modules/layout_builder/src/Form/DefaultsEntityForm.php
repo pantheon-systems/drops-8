@@ -50,12 +50,8 @@ class DefaultsEntityForm extends EntityForm {
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
    *   The entity type bundle info service.
    */
-  public function __construct(LayoutTempstoreRepositoryInterface $layout_tempstore_repository, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL) {
+  public function __construct(LayoutTempstoreRepositoryInterface $layout_tempstore_repository, EntityTypeBundleInfoInterface $entity_type_bundle_info) {
     $this->layoutTempstoreRepository = $layout_tempstore_repository;
-    if (!$entity_type_bundle_info) {
-      @trigger_error('The entity_type.bundle.info service must be passed to DefaultsEntityForm::__construct(), it is required before Drupal 9.0.0.', E_USER_DEPRECATED);
-      $entity_type_bundle_info = \Drupal::service('entity_type.bundle.info');
-    }
     $this->entityTypeBundleInfo = $entity_type_bundle_info;
   }
 
@@ -84,11 +80,26 @@ class DefaultsEntityForm extends EntityForm {
     $form['layout_builder'] = [
       '#type' => 'layout_builder',
       '#section_storage' => $section_storage,
+      '#process' => [[static::class, 'layoutBuilderElementGetKeys']],
     ];
     $form['layout_builder_message'] = $this->buildMessage($section_storage->getContextValue('display'));
 
     $this->sectionStorage = $section_storage;
     return parent::buildForm($form, $form_state);
+  }
+
+  /**
+   * Form element #process callback.
+   *
+   * Save the layout builder element array parents as a property on the top form
+   * element so that they can be used to access the element within the whole
+   * render array later.
+   *
+   * @see \Drupal\layout_builder\Controller\LayoutBuilderHtmlEntityFormController
+   */
+  public static function layoutBuilderElementGetKeys(array $element, FormStateInterface $form_state, &$form) {
+    $form['#layout_builder_element_keys'] = $element['#array_parents'];
+    return $element;
   }
 
   /**

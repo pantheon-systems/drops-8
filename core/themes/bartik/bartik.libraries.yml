@@ -9,6 +9,7 @@ global-styling:
       css/components/breadcrumb.css: {}
       css/components/captions.css: {}
       css/components/comments.css: {}
+      css/components/container-inline.module.css: {}
       css/components/contextual.css: {}
       css/components/demo-block.css: {}
       # @see https://www.drupal.org/node/2389735
@@ -85,3 +86,114 @@ maintenance_page:
   dependencies:
     - system/maintenance
     - bartik/global-styling
+
+classy.base:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/action-links.css: { weight: -10 }
+      css/classy/components/breadcrumb.css: { weight: -10 }
+      css/classy/components/button.css: { weight: -10 }
+      css/classy/components/collapse-processed.css: { weight: -10 }
+      css/classy/components/container-inline.css: { weight: -10 }
+      css/classy/components/details.css: { weight: -10 }
+      css/classy/components/exposed-filters.css: { weight: -10 }
+      css/classy/components/field.css: { weight: -10 }
+      css/classy/components/form.css: { weight: -10 }
+      css/classy/components/icons.css: { weight: -10 }
+      css/classy/components/inline-form.css: { weight: -10 }
+      css/classy/components/item-list.css: { weight: -10 }
+      css/classy/components/link.css: { weight: -10 }
+      css/classy/components/links.css: { weight: -10 }
+      css/classy/components/menu.css: { weight: -10 }
+      css/classy/components/more-link.css: { weight: -10 }
+      css/classy/components/pager.css: { weight: -10 }
+      css/classy/components/tabledrag.css: { weight: -10 }
+      css/classy/components/tableselect.css: { weight: -10 }
+      css/classy/components/tablesort.css: { weight: -10 }
+      css/classy/components/tabs.css: { weight: -10 }
+      css/classy/components/textarea.css: { weight: -10 }
+      css/classy/components/ui-dialog.css: { weight: -10 }
+
+user:
+  version: VERSION
+  css:
+    component:
+      css/components/user.css: { weight: -10 }
+
+filter:
+  version: VERSION
+  css:
+    component:
+      css/theme/filter.admin.css: {}
+
+classy.book-navigation:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/book-navigation.css: {}
+
+classy.dialog:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/dialog.css: { weight: -10 }
+
+classy.dropbutton:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/dropbutton.css: { weight: -10 }
+
+classy.file:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/file.css: { weight: -10 }
+
+classy.forum:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/forum.css: { weight: -10 }
+
+classy.media_embed_ckeditor_theme:
+  version: VERSION
+  js:
+    js/classy/media_embed_ckeditor.theme.js: {}
+
+classy.media_embed_error:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/media-embed-error.css: {}
+
+classy.media_library:
+  version: VERSION
+  css:
+    layout:
+      css/classy/layout/media-library.css: {}
+
+classy.messages:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/messages.css: { weight: -10 }
+
+classy.node:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/node.css: { weight: -10 }
+
+classy.progress:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/progress.css: { weight: -10 }
+
+classy.search-results:
+  version: VERSION
+  css:
+    component:
+      css/classy/components/search-results.css: {}

@@ -2,9 +2,9 @@
 
 namespace Drupal\KernelTests\Core\Database;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
+use Drupal\Core\Database\Query\Condition;
 
 /**
  * Tests of the core database system.
@@ -157,22 +157,16 @@ class ConnectionTest extends DatabaseTestBase {
   }
 
   /**
-   * Test the escapeTable(), escapeField() and escapeAlias() methods with all possible reserved words in PostgreSQL.
+   * Test that the method ::condition() returns a Condition object.
    */
-  public function testPostgresqlReservedWords() {
-    if (Database::getConnection()->databaseType() !== 'pgsql') {
-      $this->markTestSkipped("This test only runs for PostgreSQL");
+  public function testCondition() {
+    $connection = Database::getConnection('default', 'default');
+    $namespace = (new \ReflectionObject($connection))->getNamespaceName() . "\\Condition";
+    if (!class_exists($namespace)) {
+      $namespace = Condition::class;
     }
-
-    $db = Database::getConnection('default', 'default');
-    $stmt = $db->query("SELECT word FROM pg_get_keywords() WHERE catcode IN ('R', 'T')");
-    $stmt->execute();
-    foreach ($stmt->fetchAllAssoc('word') as $word => $row) {
-      $expected = '"' . $word . '"';
-      $this->assertIdentical($db->escapeTable($word), $expected, new FormattableMarkup('The reserved word %word was correctly escaped when used as a table name.', ['%word' => $word]));
-      $this->assertIdentical($db->escapeField($word), $expected, new FormattableMarkup('The reserved word %word was correctly escaped when used as a column name.', ['%word' => $word]));
-      $this->assertIdentical($db->escapeAlias($word), $expected, new FormattableMarkup('The reserved word %word was correctly escaped when used as an alias.', ['%word' => $word]));
-    }
+    $condition = $connection->condition('AND');
+    $this->assertSame($namespace, get_class($condition));
   }
 
 }

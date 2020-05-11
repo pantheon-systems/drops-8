@@ -146,9 +146,9 @@
     /**
      * Used to determine up or down direction from last mouse move.
      *
-     * @type {number}
+     * @type {?number}
      */
-    this.oldY = 0;
+    this.oldY = null;
 
     /**
      * Whether anything in the entire table has changed.
@@ -443,7 +443,7 @@
       $tables.find('.js-tabledrag-handle').css('display', '');
       // Reduce the colspan of any effected multi-span columns.
       $tables.find('.tabledrag-has-colspan').each(function decreaseColspan() {
-        this.colSpan = this.colSpan - 1;
+        this.colSpan -= -1;
       });
       // Change link text.
       $('.js-tabledrag-toggle-weight-wrapper').each(
@@ -483,7 +483,7 @@
       $tables.find('.js-tabledrag-handle').css('display', 'none');
       // Increase the colspan for any columns where it was previously reduced.
       $tables.find('.tabledrag-has-colspan').each(function increaseColspan() {
-        this.colSpan = this.colSpan + 1;
+        this.colSpan += 1;
       });
       // Change link text.
       $('.js-tabledrag-toggle-weight-wrapper').each(
@@ -856,6 +856,10 @@
       if (self.oldRowElement) {
         $(self.oldRowElement).removeClass('drag-previous');
       }
+
+      // Set the initial y coordinate so the direction can be calculated in
+      // dragRow().
+      self.oldY = self.pointerCoords(event).y;
     },
 
     /**

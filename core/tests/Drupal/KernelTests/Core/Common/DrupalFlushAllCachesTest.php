@@ -26,7 +26,7 @@ class DrupalFlushAllCachesTest extends KernelTestBase {
 
     drupal_flush_all_caches();
 
-    $this->assertSame(['system_test', 'path_alias', 'system'], array_keys($this->container->getParameter('container.modules')));
+    $this->assertSame(['system_test', 'system'], array_keys($this->container->getParameter('container.modules')));
   }
 
 }

@@ -51,6 +51,13 @@ class ModuleInstaller implements ModuleInstallerInterface {
   protected $uninstallValidators;
 
   /**
+   * The theme extension list.
+   *
+   * @var \Drupal\Core\Extension\ThemeExtensionList
+   */
+  protected $themeExtensionList;
+
+  /**
    * Constructs a new ModuleInstaller instance.
    *
    * @param string $root
@@ -59,14 +66,21 @@ class ModuleInstaller implements ModuleInstallerInterface {
    *   The module handler.
    * @param \Drupal\Core\DrupalKernelInterface $kernel
    *   The drupal kernel.
+   * @param \Drupal\Core\Extension\ThemeExtensionList $extension_list_theme
+   *   The theme extension list.
    *
    * @see \Drupal\Core\DrupalKernel
    * @see \Drupal\Core\CoreServiceProvider
    */
-  public function __construct($root, ModuleHandlerInterface $module_handler, DrupalKernelInterface $kernel) {
+  public function __construct($root, ModuleHandlerInterface $module_handler, DrupalKernelInterface $kernel, ThemeExtensionList $extension_list_theme = NULL) {
     $this->root = $root;
     $this->moduleHandler = $module_handler;
     $this->kernel = $kernel;
+    if (is_null($extension_list_theme)) {
+      @trigger_error('The extension.list.theme service must be passed to ' . __NAMESPACE__ . '\ModuleInstaller::__construct(). It was added in drupal:8.9.0 and will be required before drupal:10.0.0.', E_USER_DEPRECATED);
+      $extension_list_theme = \Drupal::service('extension.list.theme');
+    }
+    $this->themeExtensionList = $extension_list_theme;
   }
 
   /**
@@ -323,7 +337,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
         \Drupal::service('theme_handler')->refreshInfo();
 
         // Allow the module to perform install tasks.
-        $this->moduleHandler->invoke($module, 'install');
+        $this->moduleHandler->invoke($module, 'install', [$sync_status]);
 
         // Record the fact that it was installed.
         \Drupal::logger('system')->info('%module module installed.', ['%module' => $module]);
@@ -345,7 +359,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
         \Drupal::service('router.builder')->rebuild();
       }
 
-      $this->moduleHandler->invokeAll('modules_installed', [$modules_installed]);
+      $this->moduleHandler->invokeAll('modules_installed', [$modules_installed, $sync_status]);
     }
 
     return TRUE;
@@ -357,6 +371,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
   public function uninstall(array $module_list, $uninstall_dependents = TRUE) {
     // Get all module data so we can find dependencies and sort.
     $module_data = \Drupal::service('extension.list.module')->getList();
+    $sync_status = \Drupal::service('config.installer')->isSyncing();
     $module_list = $module_list ? array_combine($module_list, $module_list) : [];
     if (array_diff_key($module_list, $module_data)) {
       // One or more of the given modules doesn't exist.
@@ -371,12 +386,14 @@ class ModuleInstaller implements ModuleInstallerInterface {
     }
 
     if ($uninstall_dependents) {
+      $theme_list = $this->themeExtensionList->getList();
+
       // Add dependent modules to the list. The new modules will be processed as
       // the foreach loop continues.
       foreach ($module_list as $module => $value) {
         foreach (array_keys($module_data[$module]->required_by) as $dependent) {
-          if (!isset($module_data[$dependent])) {
-            // The dependent module does not exist.
+          if (!isset($module_data[$dependent]) && !isset($theme_list[$dependent])) {
+            // The dependent module or theme does not exist.
             return FALSE;
           }
 
@@ -428,7 +445,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
 
       // Uninstall the module.
       module_load_install($module);
-      $this->moduleHandler->invoke($module, 'uninstall');
+      $this->moduleHandler->invoke($module, 'uninstall', [$sync_status]);
 
       // Remove all configuration belonging to the module.
       \Drupal::service('config.manager')->uninstall('module', $module);
@@ -514,7 +531,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
     drupal_get_installed_schema_version(NULL, TRUE);
 
     // Let other modules react.
-    $this->moduleHandler->invokeAll('modules_uninstalled', [$module_list]);
+    $this->moduleHandler->invokeAll('modules_uninstalled', [$module_list, $sync_status]);
 
     // Flush all persistent caches.
     // Any cache entry might implicitly depend on the uninstalled modules,
@@ -577,6 +594,7 @@ class ModuleInstaller implements ModuleInstallerInterface {
     // After rebuilding the container we need to update the injected
     // dependencies.
     $container = $this->kernel->getContainer();
+    $this->themeExtensionList = $container->get('extension.list.theme');
     $this->moduleHandler = $container->get('module_handler');
   }
 

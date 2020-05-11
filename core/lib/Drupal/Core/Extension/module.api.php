@@ -180,13 +180,21 @@ function hook_module_preinstall($module) {
  *
  * @param $modules
  *   An array of the modules that were installed.
+ * @param bool $is_syncing
+ *   TRUE if the module is being installed as part of a configuration import. In
+ *   these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
  *
  * @see \Drupal\Core\Extension\ModuleInstaller::install()
  * @see hook_install()
  */
-function hook_modules_installed($modules) {
+function hook_modules_installed($modules, $is_syncing) {
   if (in_array('lousy_module', $modules)) {
     \Drupal::state()->set('mymodule.lousy_module_compatibility', TRUE);
+  }
+  if (!$is_syncing) {
+    \Drupal::service('mymodule.service')->doSomething($modules);
   }
 }
 
@@ -220,15 +228,26 @@ function hook_modules_installed($modules) {
  * Please be sure that anything added or modified in this function that can
  * be removed during uninstall should be removed with hook_uninstall().
  *
+ * @param bool $is_syncing
+ *   TRUE if the module is being installed as part of a configuration import. In
+ *   these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
+ *
+ * @see \Drupal\Core\Config\ConfigInstallerInterface::isSyncing
  * @see hook_schema()
  * @see \Drupal\Core\Extension\ModuleInstaller::install()
  * @see hook_uninstall()
  * @see hook_modules_installed()
  */
-function hook_install() {
+function hook_install($is_syncing) {
   // Create the styles directory and ensure it's writable.
   $directory = \Drupal::config('system.file')->get('default_scheme') . '://styles';
   \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+  if (!$is_syncing) {
+    // Modify a configuration value because we're not syncing.
+    \Drupal::configFactory()->getEditable('system.file')->set('default_scheme', 'private')->save();
+  }
 }
 
 /**
@@ -253,14 +272,22 @@ function hook_module_preuninstall($module) {
  *
  * @param $modules
  *   An array of the modules that were uninstalled.
+ * @param bool $is_syncing
+ *   TRUE if the module is being uninstalled as part of a configuration import.
+ *   In these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
  *
  * @see hook_uninstall()
  */
-function hook_modules_uninstalled($modules) {
+function hook_modules_uninstalled($modules, $is_syncing) {
   if (in_array('lousy_module', $modules)) {
     \Drupal::state()->delete('mymodule.lousy_module_compatibility');
   }
   mymodule_cache_rebuild();
+  if (!$is_syncing) {
+    \Drupal::service('mymodule.service')->doSomething($modules);
+  }
 }
 
 /**
@@ -278,13 +305,22 @@ function hook_modules_uninstalled($modules) {
  * tables are removed, allowing your module to query its own tables during
  * this routine.
  *
+ * @param bool $is_syncing
+ *   TRUE if the module is being uninstalled as part of a configuration import.
+ *   In these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
+ *
  * @see hook_install()
  * @see hook_schema()
  * @see hook_modules_uninstalled()
  */
-function hook_uninstall() {
+function hook_uninstall($is_syncing) {
   // Remove the styles directory and generated images.
   \Drupal::service('file_system')->deleteRecursive(\Drupal::config('system.file')->get('default_scheme') . '://styles');
+  if (!$is_syncing) {
+    \Drupal::service('mymodule.service')->removeContent();
+  }
 }
 
 /**
@@ -547,9 +583,6 @@ function hook_install_tasks_alter(&$tasks, $install_state) {
  *   \Drupal::entityDefinitionUpdateManager()::getFieldStorageDefinition(). When
  *   adding a new definition always replicate it in the update function body as
  *   you would do with a schema definition.
- * - Never call \Drupal::entityDefinitionUpdateManager()::applyUpdates() in an
- *   update function, as it will apply updates for any module not only yours,
- *   which will lead to unpredictable results.
  * - Be careful about API functions and especially CRUD operations that you use
  *   in your update function. If they invoke hooks or use services, they may
  *   not behave as expected, and it may actually not be appropriate to use the
@@ -608,8 +641,6 @@ function hook_install_tasks_alter(&$tasks, $install_state) {
  * @see hook_update_last_removed()
  * @see update_get_update_list()
  * @see \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface
- * @see node_update_8001
- * @see system_update_8004
  * @see https://www.drupal.org/node/2535316
  */
 function hook_update_N(&$sandbox) {
@@ -724,25 +755,10 @@ function hook_post_update_NAME(&$sandbox) {
 
   $result = t('Node %nid saved', ['%nid' => $node->id()]);
 
-  // Example of disabling blocks with missing condition contexts. Note: The
-  // block itself is in a state which is valid at that point.
-  // @see block_update_8001()
-  // @see block_post_update_disable_blocks_with_missing_contexts()
-  $block_update_8001 = \Drupal::keyValue('update_backup')->get('block_update_8001', []);
-
-  $block_ids = array_keys($block_update_8001);
-  $block_storage = \Drupal::entityTypeManager()->getStorage('block');
-  $blocks = $block_storage->loadMultiple($block_ids);
-  /** @var $blocks \Drupal\block\BlockInterface[] */
-  foreach ($blocks as $block) {
-    // This block has had conditions removed due to an inability to resolve
-    // contexts in block_update_8001() so disable it.
-
-    // Disable currently enabled blocks.
-    if ($block_update_8001[$block->id()]['status']) {
-      $block->setStatus(FALSE);
-      $block->save();
-    }
+  // Example of updating some config.
+  if (\Drupal::moduleHandler()->moduleExists('taxonomy')) {
+    // Update the dependencies of all Vocabulary configuration entities.
+    \Drupal::classResolver(\Drupal\Core\Config\Entity\ConfigEntityUpdater::class)->update($sandbox, 'taxonomy_vocabulary');
   }
 
   return $result;

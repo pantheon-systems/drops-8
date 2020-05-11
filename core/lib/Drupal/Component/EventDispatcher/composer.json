@@ -5,9 +5,9 @@
   "homepage": "https://www.drupal.org/project/drupal",
   "license": "GPL-2.0-or-later",
   "require": {
-    "php": ">=7.0.8",
-    "symfony/dependency-injection": ">=3.4 <4.0.0",
-    "symfony/event-dispatcher": ">=3.4 <4.0.0"
+    "php": ">=7.3.0",
+    "symfony/dependency-injection": "^4.4",
+    "symfony/event-dispatcher": "^4.4"
   },
   "autoload": {
     "psr-4": {

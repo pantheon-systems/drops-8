@@ -121,25 +121,7 @@ function common_test_theme() {
     'common_test_render_element' => [
       'render element' => 'foo',
     ],
-    'common_test_empty' => [
-      'variables' => ['foo' => 'foo'],
-      'function' => 'theme_common_test_empty',
-    ],
   ];
-}
-
-/**
- * Provides a theme function for drupal_render().
- */
-function theme_common_test_foo($variables) {
-  return $variables['foo'] . $variables['bar'];
-}
-
-/**
- * Always returns an empty string.
- */
-function theme_common_test_empty($variables) {
-  return '';
 }
 
 /**
@@ -260,6 +242,19 @@ function common_test_page_attachments_alter(array &$page) {
     $page['something'] = [
       '#markup' => 'test',
     ];
+  }
+}
+
+/**
+ * Implements hook_js_alter().
+ *
+ * @see \Drupal\KernelTests\Core\Asset\AttachedAssetsTest::testAlter()
+ */
+function common_test_js_alter(&$javascript, AttachedAssetsInterface $assets) {
+  // Attach alter.js above tableselect.js.
+  $alterjs = drupal_get_path('module', 'common_test') . '/alter.js';
+  if (array_key_exists($alterjs, $javascript) && array_key_exists('core/misc/tableselect.js', $javascript)) {
+    $javascript[$alterjs]['weight'] = $javascript['core/misc/tableselect.js']['weight'] - 1;
   }
 }
 

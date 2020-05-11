@@ -33,17 +33,7 @@ class RequestContext
     private $queryString;
     private $parameters = [];
 
-    /**
-     * @param string $baseUrl     The base URL
-     * @param string $method      The HTTP method
-     * @param string $host        The HTTP host name
-     * @param string $scheme      The HTTP scheme
-     * @param int    $httpPort    The HTTP port
-     * @param int    $httpsPort   The HTTPS port
-     * @param string $path        The path
-     * @param string $queryString The query string
-     */
-    public function __construct($baseUrl = '', $method = 'GET', $host = 'localhost', $scheme = 'http', $httpPort = 80, $httpsPort = 443, $path = '/', $queryString = '')
+    public function __construct(string $baseUrl = '', string $method = 'GET', string $host = 'localhost', string $scheme = 'http', int $httpPort = 80, int $httpsPort = 443, string $path = '/', string $queryString = '')
     {
         $this->setBaseUrl($baseUrl);
         $this->setMethod($method);
@@ -67,8 +57,8 @@ class RequestContext
         $this->setMethod($request->getMethod());
         $this->setHost($request->getHost());
         $this->setScheme($request->getScheme());
-        $this->setHttpPort($request->isSecure() ? $this->httpPort : $request->getPort());
-        $this->setHttpsPort($request->isSecure() ? $request->getPort() : $this->httpsPort);
+        $this->setHttpPort($request->isSecure() || null === $request->getPort() ? $this->httpPort : $request->getPort());
+        $this->setHttpsPort($request->isSecure() && null !== $request->getPort() ? $request->getPort() : $this->httpsPort);
         $this->setQueryString($request->server->get('QUERY_STRING', ''));
 
         return $this;

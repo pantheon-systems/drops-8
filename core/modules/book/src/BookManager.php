@@ -4,7 +4,6 @@ namespace Drupal\book;
 
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
-use Drupal\Core\DependencyInjection\DeprecatedServicePropertyTrait;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\RendererInterface;
@@ -20,12 +19,6 @@ use Drupal\node\NodeInterface;
  */
 class BookManager implements BookManagerInterface {
   use StringTranslationTrait;
-  use DeprecatedServicePropertyTrait;
-
-  /**
-   * {@inheritdoc}
-   */
-  protected $deprecatedProperties = ['entityManager' => 'entity.manager'];
 
   /**
    * Defines the maximum supported depth of the book tree.
@@ -594,8 +587,7 @@ class BookManager implements BookManagerInterface {
       // Allow book-specific theme overrides.
       $element['attributes'] = new Attribute();
       $element['title'] = $data['link']['title'];
-      $node = $this->entityTypeManager->getStorage('node')->load($data['link']['nid']);
-      $element['url'] = $node->toUrl();
+      $element['url'] = 'entity:node/' . $data['link']['nid'];
       $element['localized_options'] = !empty($data['link']['localized_options']) ? $data['link']['localized_options'] : [];
       $element['localized_options']['set_active_class'] = TRUE;
       $element['below'] = $data['below'] ? $this->buildItems($data['below']) : [];

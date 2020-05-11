@@ -95,7 +95,8 @@ class ComposerProjectTemplatesTest extends BuildTestBase {
       $json_file = new JsonFile($file->getPathname());
       $json = $json_file->read();
       $this->assertArrayHasKey('name', $json);
-      // Does provideTemplateCreateProject() give us this template name?
+      // Assert that the template name is in the project created
+      // from the template.
       $this->assertArrayHasKey($json['name'], $template_data);
     }
   }

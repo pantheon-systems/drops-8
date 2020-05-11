@@ -14,6 +14,7 @@ namespace Symfony\Component\Validator\Constraints;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Exception\UnexpectedValueException;
 
 /**
  * @author Manuel Reinhard <manu@sprain.ch>
@@ -142,7 +143,7 @@ class IbanValidator extends ConstraintValidator
     public function validate($value, Constraint $constraint)
     {
         if (!$constraint instanceof Iban) {
-            throw new UnexpectedTypeException($constraint, __NAMESPACE__.'\Iban');
+            throw new UnexpectedTypeException($constraint, Iban::class);
         }
 
         if (null === $value || '' === $value) {
@@ -150,7 +151,7 @@ class IbanValidator extends ConstraintValidator
         }
 
         if (!is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
-            throw new UnexpectedTypeException($value, 'string');
+            throw new UnexpectedValueException($value, 'string');
         }
 
         $value = (string) $value;
@@ -224,7 +225,7 @@ class IbanValidator extends ConstraintValidator
         }
     }
 
-    private static function toBigInt($string)
+    private static function toBigInt(string $string): string
     {
         $chars = str_split($string);
         $bigInt = '';
@@ -244,7 +245,7 @@ class IbanValidator extends ConstraintValidator
         return $bigInt;
     }
 
-    private static function bigModulo97($bigInt)
+    private static function bigModulo97(string $bigInt): int
     {
         $parts = str_split($bigInt, 7);
         $rest = 0;

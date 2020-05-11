@@ -13,7 +13,9 @@ namespace Symfony\Component\Serializer\Normalizer;
 
 use Symfony\Component\HttpFoundation\File\File;
 use Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesser;
-use Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface;
+use Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface as DeprecatedMimeTypeGuesserInterface;
+use Symfony\Component\Mime\MimeTypeGuesserInterface;
+use Symfony\Component\Mime\MimeTypes;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
 
@@ -23,7 +25,7 @@ use Symfony\Component\Serializer\Exception\NotNormalizableValueException;
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
  */
-class DataUriNormalizer implements NormalizerInterface, DenormalizerInterface
+class DataUriNormalizer implements NormalizerInterface, DenormalizerInterface, CacheableSupportsMethodInterface
 {
     private static $supportedTypes = [
         \SplFileInfo::class => true,
@@ -36,10 +38,22 @@ class DataUriNormalizer implements NormalizerInterface, DenormalizerInterface
      */
     private $mimeTypeGuesser;
 
-    public function __construct(MimeTypeGuesserInterface $mimeTypeGuesser = null)
+    /**
+     * @param MimeTypeGuesserInterface|null $mimeTypeGuesser
+     */
+    public function __construct($mimeTypeGuesser = null)
     {
-        if (null === $mimeTypeGuesser && class_exists('Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesser')) {
-            $mimeTypeGuesser = MimeTypeGuesser::getInstance();
+        if ($mimeTypeGuesser instanceof DeprecatedMimeTypeGuesserInterface) {
+            @trigger_error(sprintf('Passing a %s to "%s()" is deprecated since Symfony 4.3, pass a "%s" instead.', DeprecatedMimeTypeGuesserInterface::class, __METHOD__, MimeTypeGuesserInterface::class), E_USER_DEPRECATED);
+        } elseif (null === $mimeTypeGuesser) {
+            if (class_exists(MimeTypes::class)) {
+                $mimeTypeGuesser = MimeTypes::getDefault();
+            } elseif (class_exists(MimeTypeGuesser::class)) {
+                @trigger_error(sprintf('Passing null to "%s()" to use a default MIME type guesser without Symfony Mime installed is deprecated since Symfony 4.3. Try running "composer require symfony/mime".', __METHOD__), E_USER_DEPRECATED);
+                $mimeTypeGuesser = MimeTypeGuesser::getInstance();
+            }
+        } elseif (!$mimeTypeGuesser instanceof MimeTypes) {
+            throw new \TypeError(sprintf('Argument 1 passed to "%s()" must be an instance of "%s" or null, "%s" given.', __METHOD__, MimeTypes::class, \is_object($mimeTypeGuesser) ? \get_class($mimeTypeGuesser) : \gettype($mimeTypeGuesser)));
         }
 
         $this->mimeTypeGuesser = $mimeTypeGuesser;
@@ -120,17 +134,27 @@ class DataUriNormalizer implements NormalizerInterface, DenormalizerInterface
     }
 
     /**
-     * Gets the mime type of the object. Defaults to application/octet-stream.
-     *
-     * @return string
+     * {@inheritdoc}
      */
-    private function getMimeType(\SplFileInfo $object)
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return __CLASS__ === static::class;
+    }
+
+    /**
+     * Gets the mime type of the object. Defaults to application/octet-stream.
+     */
+    private function getMimeType(\SplFileInfo $object): string
     {
         if ($object instanceof File) {
             return $object->getMimeType();
         }
 
-        if ($this->mimeTypeGuesser && $mimeType = $this->mimeTypeGuesser->guess($object->getPathname())) {
+        if ($this->mimeTypeGuesser instanceof DeprecatedMimeTypeGuesserInterface && $mimeType = $this->mimeTypeGuesser->guess($object->getPathname())) {
+            return $mimeType;
+        }
+
+        if ($this->mimeTypeGuesser && $mimeType = $this->mimeTypeGuesser->guessMimeType($object->getPathname())) {
             return $mimeType;
         }
 
@@ -139,10 +163,8 @@ class DataUriNormalizer implements NormalizerInterface, DenormalizerInterface
 
     /**
      * Returns the \SplFileObject instance associated with the given \SplFileInfo instance.
-     *
-     * @return \SplFileObject
      */
-    private function extractSplFileObject(\SplFileInfo $object)
+    private function extractSplFileObject(\SplFileInfo $object): \SplFileObject
     {
         if ($object instanceof \SplFileObject) {
             return $object;

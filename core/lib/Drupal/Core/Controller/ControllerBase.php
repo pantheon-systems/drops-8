@@ -4,9 +4,7 @@ namespace Drupal\Core\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Logger\LoggerChannelTrait;
-use Drupal\Core\Routing\LinkGeneratorTrait;
 use Drupal\Core\Routing\RedirectDestinationTrait;
-use Drupal\Core\Routing\UrlGeneratorTrait;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -36,19 +34,10 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 abstract class ControllerBase implements ContainerInjectionInterface {
 
-  use LinkGeneratorTrait;
   use LoggerChannelTrait;
   use MessengerTrait;
   use RedirectDestinationTrait;
   use StringTranslationTrait;
-  use UrlGeneratorTrait;
-
-  /**
-   * The entity manager.
-   *
-   * @var \Drupal\Core\Entity\EntityManagerInterface
-   */
-  protected $entityManager;
 
   /**
    * The entity type manager.
@@ -118,24 +107,6 @@ abstract class ControllerBase implements ContainerInjectionInterface {
    */
   public static function create(ContainerInterface $container) {
     return new static();
-  }
-
-  /**
-   * Retrieves the entity manager service.
-   *
-   * @return \Drupal\Core\Entity\EntityManagerInterface
-   *   The entity manager service.
-   *
-   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
-   *   Most of the time static::entityTypeManager() is supposed to be used
-   *   instead.
-   */
-  protected function entityManager() {
-    @trigger_error('ControllerBase::getEntityManager() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use ::getEntityTypeManager() instead. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-    if (!$this->entityManager) {
-      $this->entityManager = $this->container()->get('entity.manager');
-    }
-    return $this->entityManager;
   }
 
   /**

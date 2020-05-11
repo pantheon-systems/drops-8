@@ -1,5 +1,37 @@
 # Release Notes
 
+2.7.0 (2019-07-25)
+
+- #164: Drop HHVM support
+- #168: Set default encoding in the DOMDocument object
+
+2.6.0 (2019-03-10)
+
+- #163: Allow to pass a charset to the Scanner
+
+2.5.0 (2018-12-27)
+
+- #162, #161, #155, #154, #153, #151: big performance improvements
+- #156: fixed typos
+- #160: adopt and enforce code style
+- #159: remove deprecated php unit base test case
+- #150: backport changes from old master branch 
+
+2.4.0 (2018-11-17)
+
+- #148: Improve performance by moving sequence matching 
+- #147: Improve the Tokenizer performance 
+- #146: Improve performance by relying on a native string instead of InputStream 
+- #144: Add DOM extension in composer.json
+- #145: Add more extensions on composer.json, improve phpdocs and remove dead code 
+- #143: Remove experimental comment 
+
+2.3.1 (2018-10-18)
+
+- #121: Audio is not a block tag (fixed by #141)
+- #136: Handle illegal self-closing according to spec (fixed by #137)
+- #141: Minor fixes in the README
+
 2.3.0 (2017-09-04)
 
 - #129: image within inline svg breaks system (fixed by #133) 

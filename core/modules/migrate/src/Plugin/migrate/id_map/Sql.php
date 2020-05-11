@@ -3,6 +3,7 @@
 namespace Drupal\migrate\Plugin\migrate\id_map;
 
 use Drupal\Core\Database\DatabaseException;
+use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Plugin\PluginBase;
@@ -544,15 +545,6 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
   /**
    * {@inheritdoc}
    */
-  public function lookupDestinationId(array $source_id_values) {
-    @trigger_error(__NAMESPACE__ . '\Sql::lookupDestinationId() is deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use Sql::lookupDestinationIds() instead. See https://www.drupal.org/node/2725809', E_USER_DEPRECATED);
-    $results = $this->lookupDestinationIds($source_id_values);
-    return $results ? reset($results) : [];
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function lookupDestinationIds(array $source_id_values) {
     if (empty($source_id_values)) {
       return [];
@@ -600,7 +592,16 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
       }
     }
 
-    return $query->execute()->fetchAll(\PDO::FETCH_NUM);
+    try {
+      return $query->execute()->fetchAll(\PDO::FETCH_NUM);
+    }
+    catch (DatabaseExceptionWrapper $e) {
+      // It's possible that the query will cause an exception to be thrown. For
+      // example, the URL alias migration uses a dummy node ID of 'INVALID_NID'
+      // to cause the lookup to return no results. On PostgreSQL this causes an
+      // exception because 'INVALID_NID' is not the expected type.
+      return [];
+    }
   }
 
   /**
@@ -696,14 +697,6 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
       $query->condition('msg.level', $level);
     }
     return $query->execute();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getMessageIterator(array $source_id_values = [], $level = NULL) {
-    @trigger_error('getMessageIterator() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use getMessages() instead. See https://www.drupal.org/node/3060969', E_USER_DEPRECATED);
-    return $this->getMessages($source_id_values, $level);
   }
 
   /**
