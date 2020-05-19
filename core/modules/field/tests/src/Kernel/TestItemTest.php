@@ -21,7 +21,7 @@ class TestItemTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['field_test'];
+  protected static $modules = ['field_test'];
 
   /**
    * The name of the field to use in this test.
@@ -30,7 +30,7 @@ class TestItemTest extends FieldKernelTestBase {
    */
   protected $fieldName = 'field_test';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a 'test_field' field and storage for validation.
@@ -60,8 +60,8 @@ class TestItemTest extends FieldKernelTestBase {
     // Verify entity has been created properly.
     $id = $entity->id();
     $entity = EntityTest::load($id);
-    $this->assertTrue($entity->{$this->fieldName} instanceof FieldItemListInterface, 'Field implements interface.');
-    $this->assertTrue($entity->{$this->fieldName}[0] instanceof FieldItemInterface, 'Field item implements interface.');
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->{$this->fieldName});
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->{$this->fieldName}[0]);
     $this->assertEqual($entity->{$this->fieldName}->value, $value);
     $this->assertEqual($entity->{$this->fieldName}[0]->value, $value);
 

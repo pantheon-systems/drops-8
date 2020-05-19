@@ -25,7 +25,7 @@ class TwigEnvironmentTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system'];
+  protected static $modules = ['system'];
 
   /**
    * Tests inline templates.
@@ -109,7 +109,7 @@ class TwigEnvironmentTest extends KernelTestBase {
       $this->fail('Did not throw an exception as expected.');
     }
     catch (LoaderError $e) {
-      $this->assertTrue(strpos($e->getMessage(), 'Template "this-template-does-not-exist.html.twig" is not defined') === 0);
+      $this->assertStringStartsWith('Template "this-template-does-not-exist.html.twig" is not defined', $e->getMessage());
     }
   }
 

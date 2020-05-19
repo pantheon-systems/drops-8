@@ -17,7 +17,7 @@ class BlockFormInBlockTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'block_test', 'test_page_test'];
+  protected static $modules = ['block', 'block_test', 'test_page_test'];
 
   /**
    * {@inheritdoc}
@@ -27,7 +27,7 @@ class BlockFormInBlockTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable our test block.

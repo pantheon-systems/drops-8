@@ -18,7 +18,15 @@ class ContentEntityChangedTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'user', 'system', 'field', 'text', 'filter', 'entity_test'];
+  protected static $modules = [
+    'language',
+    'user',
+    'system',
+    'field',
+    'text',
+    'filter',
+    'entity_test',
+  ];
 
   /**
    * The EntityTestMulChanged entity type storage.
@@ -37,7 +45,7 @@ class ContentEntityChangedTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable an additional language.

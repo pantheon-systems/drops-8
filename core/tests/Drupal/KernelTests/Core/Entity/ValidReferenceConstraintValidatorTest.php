@@ -33,12 +33,12 @@ class ValidReferenceConstraintValidatorTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['field', 'node', 'user'];
+  protected static $modules = ['field', 'node', 'user'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installSchema('user', ['users_data']);
     $this->installSchema('node', ['node_access']);

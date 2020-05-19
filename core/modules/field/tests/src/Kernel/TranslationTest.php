@@ -23,7 +23,7 @@ class TranslationTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'node'];
+  protected static $modules = ['language', 'node'];
 
   /**
    * The name of the field to use in this test.
@@ -70,7 +70,7 @@ class TranslationTest extends FieldKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('node');

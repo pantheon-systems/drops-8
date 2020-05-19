@@ -20,14 +20,14 @@ class NodeRSSContentTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['node_test', 'views'];
+  protected static $modules = ['node_test', 'views'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Use bypass node access permission here, because the test class uses

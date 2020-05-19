@@ -21,7 +21,7 @@ class OEmbedFormatterTest extends MediaFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'field_ui',
     'link',
     'media_test_oembed',
@@ -35,7 +35,7 @@ class OEmbedFormatterTest extends MediaFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->lockHttpClientToFixtures();
 
@@ -194,7 +194,7 @@ class OEmbedFormatterTest extends MediaFunctionalTestBase {
       $element = $assert->elementExists('css', $selector);
       foreach ($attributes as $attribute => $value) {
         if (isset($value)) {
-          $this->assertContains($value, $element->getAttribute($attribute));
+          $this->assertStringContainsString($value, $element->getAttribute($attribute));
         }
         else {
           $this->assertFalse($element->hasAttribute($attribute));

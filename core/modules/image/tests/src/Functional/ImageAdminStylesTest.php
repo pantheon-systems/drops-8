@@ -70,7 +70,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     $this->drupalPostForm('admin/config/media/image-styles/add', $edit, t('Create new style'));
     $this->assertRaw(t('Style %name was created.', ['%name' => $style_label]));
     $options = image_style_options();
-    $this->assertTrue(array_key_exists($style_name, $options), new FormattableMarkup('Array key %key exists.', ['%key' => $style_name]));
+    $this->assertArrayHasKey($style_name, $options);
   }
 
   /**
@@ -152,7 +152,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
 
     // Ensure that the image style URI matches our expected path.
     $style_uri_path = $style->toUrl()->toString();
-    $this->assertTrue(strpos($style_uri_path, $style_path) !== FALSE, 'The image style URI is correct.');
+    $this->assertStringContainsString($style_path, $style_uri_path, 'The image style URI is correct.');
 
     // Confirm that all effects on the image style have settings that match
     // what was saved.
@@ -278,7 +278,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     $this->drupalPostForm(NULL, $edit, t('Add effect'));
     $entity_type_manager = $this->container->get('entity_type.manager');
     $style = $entity_type_manager->getStorage('image_style')->loadUnchanged($style_name);
-    $this->assertEqual(count($style->getEffects()), 6, 'Rotate effect with transparent background was added.');
+    $this->assertCount(6, $style->getEffects(), 'Rotate effect with transparent background was added.');
 
     // Style deletion form.
 
@@ -287,7 +287,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
 
     // Confirm the style directory has been removed.
     $directory = 'public://styles/' . $style_name;
-    $this->assertFalse(is_dir($directory), new FormattableMarkup('Image style %style directory removed on style deletion.', ['%style' => $style->label()]));
+    $this->assertDirectoryNotExists($directory);
 
     $this->assertNull(ImageStyle::load($style_name), new FormattableMarkup('Image style %style successfully deleted.', ['%style' => $style->label()]));
 

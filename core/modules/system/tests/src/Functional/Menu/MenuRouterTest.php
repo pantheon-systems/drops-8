@@ -17,7 +17,7 @@ class MenuRouterTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'menu_test', 'test_page_test'];
+  protected static $modules = ['block', 'menu_test', 'test_page_test'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class MenuRouterTest extends BrowserTestBase {
    */
   protected $adminTheme;
 
-  protected function setUp() {
+  protected function setUp(): void {
     // Enable dummy module that implements hook_menu.
     parent::setUp();
 

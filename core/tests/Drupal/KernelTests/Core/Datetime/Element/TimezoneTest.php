@@ -24,7 +24,7 @@ class TimezoneTest extends EntityKernelTestBase implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system'];
+  protected static $modules = ['system'];
 
   /**
    * The date used in tests.
@@ -158,7 +158,7 @@ class TimezoneTest extends EntityKernelTestBase implements FormInterface {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['system']);

@@ -29,7 +29,7 @@ class BigPipeRegressionTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'big_pipe',
     'big_pipe_regression_test',
   ];
@@ -42,7 +42,7 @@ class BigPipeRegressionTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     // Use the big_pipe_test_theme theme.

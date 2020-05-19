@@ -38,12 +38,12 @@ class PrepareUninstallTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'taxonomy', 'entity_test'];
+  protected static $modules = ['node', 'taxonomy', 'entity_test'];
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $admin_user = $this->drupalCreateUser(['administer modules']);

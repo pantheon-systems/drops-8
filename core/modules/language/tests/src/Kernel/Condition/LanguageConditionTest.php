@@ -32,9 +32,9 @@ class LanguageConditionTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system', 'language'];
+  protected static $modules = ['system', 'language'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['language']);

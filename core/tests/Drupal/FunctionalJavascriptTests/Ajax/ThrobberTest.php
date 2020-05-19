@@ -14,7 +14,7 @@ class ThrobberTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'views',
     'views_ui',
@@ -30,7 +30,7 @@ class ThrobberTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $admin_user = $this->drupalCreateUser([

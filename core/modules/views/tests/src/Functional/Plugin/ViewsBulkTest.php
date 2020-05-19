@@ -23,14 +23,14 @@ class ViewsBulkTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'views'];
+  protected static $modules = ['node', 'views'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  public function setUp($import_test_views = TRUE) {
+  public function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->drupalCreateContentType(['type' => 'page']);

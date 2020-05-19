@@ -19,7 +19,7 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'content_translation'];
+  protected static $modules = ['language', 'content_translation'];
 
   /**
    * {@inheritdoc}
@@ -29,7 +29,7 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $admin_user = $this->drupalCreateUser(['administer languages', 'access administration pages', 'view the administration theme', 'administer modules']);
     $this->drupalLogin($admin_user);
@@ -85,7 +85,7 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
 
     $type = LanguageInterface::TYPE_CONTENT;
     $language_types = $this->languageManager()->getLanguageTypes();
-    $this->assertTrue(in_array($type, $language_types), 'Content language type is configurable.');
+    $this->assertContains($type, $language_types, 'Content language type is configurable.');
 
     // Enable some core and custom language negotiation methods. The test
     // language type is supposed to be configurable.
@@ -141,7 +141,7 @@ class LanguageNegotiationInfoTest extends BrowserTestBase {
 
     // Check that only the core language types are available.
     foreach ($this->languageManager()->getDefinedLanguageTypes() as $type) {
-      $this->assertTrue(strpos($type, 'test') === FALSE, new FormattableMarkup('The %type language is still available', ['%type' => $type]));
+      $this->assertStringNotContainsString('test', $type, new FormattableMarkup('The %type language is still available', ['%type' => $type]));
     }
 
     // Check that fixed language types are properly configured, even those

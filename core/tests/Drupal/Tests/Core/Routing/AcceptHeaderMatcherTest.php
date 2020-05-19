@@ -31,7 +31,7 @@ class AcceptHeaderMatcherTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->fixtures = new RoutingFixtures();
@@ -75,7 +75,7 @@ class AcceptHeaderMatcherTest extends UnitTestCase {
     $request->headers->set('Accept', $accept_header);
     $request->setRequestFormat($format);
     $routes = $this->matcher->filter($collection, $request);
-    $this->assertEquals(count($routes), 4, 'The correct number of routes was found.');
+    $this->assertCount(4, $routes, 'The correct number of routes was found.');
     $this->assertNotNull($routes->get($included_route), "Route $included_route was found when matching $accept_header.");
     $this->assertNull($routes->get($excluded_route), "Route $excluded_route was not found when matching $accept_header.");
     foreach ($routes as $name => $route) {

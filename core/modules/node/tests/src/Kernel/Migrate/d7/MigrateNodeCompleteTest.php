@@ -23,7 +23,7 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'content_translation',
     'comment',
     'datetime',
@@ -49,7 +49,7 @@ class MigrateNodeCompleteTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Remove the classic node table made in setup.

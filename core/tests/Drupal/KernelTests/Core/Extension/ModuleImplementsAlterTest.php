@@ -14,7 +14,7 @@ class ModuleImplementsAlterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system'];
+  protected static $modules = ['system'];
 
   /**
    * Tests hook_module_implements_alter() adding an implementation.
@@ -42,13 +42,12 @@ class ModuleImplementsAlterTest extends KernelTestBase {
     $this->assertTrue(function_exists('module_test_modules_installed'),
       'The file module_test.module was successfully included.');
 
-    $this->assertTrue(array_key_exists('module_test', \Drupal::moduleHandler()->getModuleList()),
-      'module_test is in the module list.');
+    $this->assertArrayHasKey('module_test', \Drupal::moduleHandler()->getModuleList());
 
-    $this->assertTrue(in_array('module_test', \Drupal::moduleHandler()->getImplementations('modules_installed')),
+    $this->assertContains('module_test', \Drupal::moduleHandler()->getImplementations('modules_installed'),
       'module_test implements hook_modules_installed().');
 
-    $this->assertTrue(in_array('module_test', \Drupal::moduleHandler()->getImplementations('module_implements_alter')),
+    $this->assertContains('module_test', \Drupal::moduleHandler()->getImplementations('module_implements_alter'),
       'module_test implements hook_module_implements_alter().');
 
     // Assert that module_test.implementations.inc is not included yet.
@@ -58,7 +57,7 @@ class ModuleImplementsAlterTest extends KernelTestBase {
     // Trigger hook discovery for hook_altered_test_hook().
     // Assert that module_test_module_implements_alter(*, 'altered_test_hook')
     // has added an implementation.
-    $this->assertTrue(in_array('module_test', \Drupal::moduleHandler()->getImplementations('altered_test_hook')),
+    $this->assertContains('module_test', \Drupal::moduleHandler()->getImplementations('altered_test_hook'),
       'module_test implements hook_altered_test_hook().');
 
     // Assert that module_test.implementations.inc was included as part of the process.

@@ -19,7 +19,7 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['quickedit', 'filter', 'node', 'editor'];
+  protected static $modules = ['quickedit', 'filter', 'node', 'editor'];
 
   /**
    * {@inheritdoc}
@@ -33,7 +33,7 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
    */
   protected static $basicPermissions = ['access content', 'create article content', 'use text format filtered_html', 'access contextual links'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a text format.
@@ -139,7 +139,7 @@ class QuickEditIntegrationLoadingTest extends BrowserTestBase {
 
     $this->assertEquals(200, $response->getStatusCode());
     $ajax_commands = Json::decode($response->getBody());
-    $this->assertIdentical(1, count($ajax_commands), 'The untransformed text POST request results in one AJAX command.');
+    $this->assertCount(1, $ajax_commands, 'The untransformed text POST request results in one AJAX command.');
     $this->assertIdentical('editorGetUntransformedText', $ajax_commands[0]['command'], 'The first AJAX command is an editorGetUntransformedText command.');
     $this->assertIdentical('<p>Do you also love Drupal?</p><img src="druplicon.png" data-caption="Druplicon" />', $ajax_commands[0]['data'], 'The editorGetUntransformedText command contains the expected data.');
   }

@@ -22,7 +22,7 @@ class BulkFormAccessTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['node_test_views', 'node_access_test'];
+  protected static $modules = ['node_test_views', 'node_access_test'];
 
   /**
    * {@inheritdoc}
@@ -46,7 +46,7 @@ class BulkFormAccessTest extends NodeTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     // Create Article node type.

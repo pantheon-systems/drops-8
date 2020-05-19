@@ -25,7 +25,7 @@ class ContactPersonalTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['contact', 'dblog'];
+  protected static $modules = ['contact', 'dblog'];
 
   /**
    * {@inheritdoc}
@@ -53,7 +53,7 @@ class ContactPersonalTest extends BrowserTestBase {
    */
   private $contactUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create an admin user.
@@ -78,7 +78,7 @@ class ContactPersonalTest extends BrowserTestBase {
     $this->assertEscaped($mail);
     $message = $this->submitPersonalContact($this->contactUser);
     $mails = $this->getMails();
-    $this->assertEqual(1, count($mails));
+    $this->assertCount(1, $mails);
     $mail = $mails[0];
     $this->assertEqual($mail['to'], $this->contactUser->getEmail());
     $this->assertEqual($mail['from'], $this->config('system.site')->get('mail'));
@@ -91,9 +91,9 @@ class ContactPersonalTest extends BrowserTestBase {
     ];
     $subject = PlainTextOutput::renderFromHtml(t('[@site-name] @subject', $variables));
     $this->assertEqual($mail['subject'], $subject, 'Subject is in sent message.');
-    $this->assertTrue(strpos($mail['body'], 'Hello ' . $variables['@recipient-name']) !== FALSE, 'Recipient name is in sent message.');
-    $this->assertTrue(strpos($mail['body'], $this->webUser->getDisplayName()) !== FALSE, 'Sender name is in sent message.');
-    $this->assertTrue(strpos($mail['body'], $message['message[0][value]']) !== FALSE, 'Message body is in sent message.');
+    $this->assertStringContainsString('Hello ' . $variables['@recipient-name'], $mail['body'], 'Recipient name is in sent message.');
+    $this->assertStringContainsString($this->webUser->getDisplayName(), $mail['body'], 'Sender name is in sent message.');
+    $this->assertStringContainsString($message['message[0][value]'], $mail['body'], 'Message body is in sent message.');
 
     // Check there was no problems raised during sending.
     $this->drupalLogout();

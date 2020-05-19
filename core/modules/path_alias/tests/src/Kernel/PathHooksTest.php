@@ -17,12 +17,12 @@ class PathHooksTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['path_alias'];
+  protected static $modules = ['path_alias'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('path_alias');

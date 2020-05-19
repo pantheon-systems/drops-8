@@ -23,14 +23,14 @@ class BlockLanguageTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'block', 'content_translation'];
+  protected static $modules = ['language', 'block', 'content_translation'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->adminUser = $this->drupalCreateUser(['administer blocks', 'administer languages']);

@@ -31,14 +31,14 @@ class ThemeTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'block', 'file'];
+  protected static $modules = ['node', 'block', 'file'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'classy';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);

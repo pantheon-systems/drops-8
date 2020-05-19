@@ -45,12 +45,12 @@ class DbLogResourceTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['hal', 'dblog'];
+  protected static $modules = ['hal', 'dblog'];
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $auth = isset(static::$auth) ? [static::$auth] : [];

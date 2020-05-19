@@ -20,7 +20,7 @@ class UpdatesWith7xTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['update_test_with_7x'];
+  protected static $modules = ['update_test_with_7x'];
 
   /**
    * {@inheritdoc}
@@ -39,7 +39,7 @@ class UpdatesWith7xTest extends BrowserTestBase {
    */
   private $updateUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     require_once $this->root . '/core/includes/update.inc';
     $this->updateUrl = $GLOBALS['base_url'] . '/update.php';

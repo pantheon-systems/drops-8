@@ -18,14 +18,14 @@ class NestedFormTest extends FieldTestBase {
    *
    * @var array
    */
-  public static $modules = ['field_test', 'entity_test'];
+  protected static $modules = ['field_test', 'entity_test'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $web_user = $this->drupalCreateUser(['view test entity', 'administer entity_test content']);
@@ -199,7 +199,7 @@ class NestedFormTest extends FieldTestBase {
     $page->pressButton(t('Save'));
 
     $elements = $this->cssSelect('.entity-2.error');
-    $this->assertEqual(1, count($elements), 'The whole nested entity form has been correctly flagged with an error class.');
+    $this->assertCount(1, $elements, 'The whole nested entity form has been correctly flagged with an error class.');
   }
 
 }

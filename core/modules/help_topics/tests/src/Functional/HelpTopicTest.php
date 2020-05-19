@@ -18,7 +18,7 @@ class HelpTopicTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'help_topics_test',
     'help',
     'help_topics',
@@ -47,7 +47,7 @@ class HelpTopicTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // These tests rely on some markup from the 'Seven' theme and we test theme
@@ -189,7 +189,7 @@ class HelpTopicTest extends BrowserTestBase {
     // Verify theme provided help topics work and can be related.
     $this->drupalGet('admin/help/topic/help_topics_test_theme.test');
     $session->pageTextContains('This is a theme provided topic.');
-    $this->assertContains('This is a theme provided topic.', $session->elementExists('css', 'article')->getText());
+    $this->assertStringContainsString('This is a theme provided topic.', $session->elementExists('css', 'article')->getText());
     $this->clickLink('Additional topic');
     $session->linkExists('XYZ Help Test theme');
 

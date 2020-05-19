@@ -17,12 +17,12 @@ class MigrateForumConfigsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['comment', 'forum', 'taxonomy'];
+  protected static $modules = ['comment', 'forum', 'taxonomy'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executeMigration('d6_taxonomy_vocabulary');
     $this->executeMigration('d6_forum_settings');

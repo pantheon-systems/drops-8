@@ -15,12 +15,12 @@ class MigrateBookTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['book', 'node', 'menu_ui'];
+  protected static $modules = ['book', 'node', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installSchema('book', ['book']);
     $this->installSchema('node', ['node_access']);

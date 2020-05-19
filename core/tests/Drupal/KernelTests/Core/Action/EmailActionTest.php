@@ -16,12 +16,12 @@ class EmailActionTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'user', 'dblog'];
+  protected static $modules = ['system', 'user', 'dblog'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installSchema('dblog', ['watchdog']);

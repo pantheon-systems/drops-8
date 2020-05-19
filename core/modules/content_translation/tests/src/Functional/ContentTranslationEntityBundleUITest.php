@@ -11,14 +11,20 @@ use Drupal\Tests\BrowserTestBase;
  */
 class ContentTranslationEntityBundleUITest extends BrowserTestBase {
 
-  public static $modules = ['language', 'content_translation', 'node', 'comment', 'field_ui'];
+  protected static $modules = [
+    'language',
+    'content_translation',
+    'node',
+    'comment',
+    'field_ui',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $user = $this->drupalCreateUser(['access administration pages', 'administer languages', 'administer content translation', 'administer content types']);
     $this->drupalLogin($user);

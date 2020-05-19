@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
  * @ingroup testing
  */
 abstract class UnitTestCase extends TestCase {
+
   use PHPUnit8Warnings;
 
   /**
@@ -49,7 +50,7 @@ abstract class UnitTestCase extends TestCase {
     // Ensure that FileCacheFactory has a prefix.
     FileCacheFactory::setPrefix('prefix');
 
-    $this->root = dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
+    $this->root = dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__)), 2);
   }
 
   /**

@@ -17,7 +17,10 @@ class ConfigEntityStaticCacheTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['config_test', 'config_entity_static_cache_test'];
+  protected static $modules = [
+    'config_test',
+    'config_entity_static_cache_test',
+  ];
 
   /**
    * The type ID of the entity under test.
@@ -36,7 +39,7 @@ class ConfigEntityStaticCacheTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->entityTypeId = 'config_test';
     $this->entityId = 'test_1';

@@ -29,7 +29,7 @@ class ConfigTranslationUiTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'config_translation',
     'config_translation_test',
@@ -79,7 +79,7 @@ class ConfigTranslationUiTest extends BrowserTestBase {
    */
   protected $localeStorage;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $translator_permissions = [
       'translate configuration',
@@ -1156,9 +1156,7 @@ class ConfigTranslationUiTest extends BrowserTestBase {
       ':id' => $id,
     ]);
     $textarea = reset($textarea);
-    $this->assertTrue($textarea instanceof NodeElement, new FormattableMarkup('Disabled field @id exists.', [
-      '@id' => $id,
-    ]));
+    $this->assertInstanceOf(NodeElement::class, $textarea);
     $expected = 'This field has been disabled because you do not have sufficient permissions to edit it.';
     $this->assertEqual($textarea->getText(), $expected, new FormattableMarkup('Disabled textarea @id hides text in an inaccessible text format.', [
       '@id' => $id,

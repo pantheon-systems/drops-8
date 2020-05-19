@@ -13,7 +13,7 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'datetime',
     'image',
@@ -28,7 +28,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateFields();
     $this->executeMigrations([
@@ -45,7 +45,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
    */
   protected function assertEntity($id) {
     $display = EntityViewDisplay::load($id);
-    $this->assertTrue($display instanceof EntityViewDisplayInterface);
+    $this->assertInstanceOf(EntityViewDisplayInterface::class, $display);
   }
 
   /**
@@ -64,7 +64,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
    */
   protected function assertComponent($display_id, $component_id, $type, $label, $weight) {
     $component = EntityViewDisplay::load($display_id)->getComponent($component_id);
-    $this->assertTrue(is_array($component));
+    $this->assertIsArray($component);
     $this->assertIdentical($type, $component['type']);
     $this->assertIdentical($label, $component['label']);
     $this->assertIdentical($weight, $component['weight']);
@@ -80,7 +80,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
    */
   protected function assertComponentNotExists($display_id, $component_id) {
     $component = EntityViewDisplay::load($display_id)->getComponent($component_id);
-    $this->assertTrue(is_null($component));
+    $this->assertNull($component);
   }
 
   /**

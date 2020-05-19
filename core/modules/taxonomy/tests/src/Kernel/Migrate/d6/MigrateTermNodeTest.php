@@ -15,12 +15,12 @@ class MigrateTermNodeTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'menu_ui'];
+  protected static $modules = ['taxonomy', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installSchema('node', ['node_access']);
     $this->migrateContent();
@@ -40,10 +40,10 @@ class MigrateTermNodeTest extends MigrateDrupal6TestBase {
 
     $nodes = Node::loadMultiple([1, 2]);
     $node = $nodes[1];
-    $this->assertSame(1, count($node->field_vocabulary_1_i_0_));
+    $this->assertCount(1, $node->field_vocabulary_1_i_0_);
     $this->assertSame('1', $node->field_vocabulary_1_i_0_[0]->target_id);
     $node = $nodes[2];
-    $this->assertSame(2, count($node->field_vocabulary_2_i_1_));
+    $this->assertCount(2, $node->field_vocabulary_2_i_1_);
     $this->assertSame('2', $node->field_vocabulary_2_i_1_[0]->target_id);
     $this->assertSame('3', $node->field_vocabulary_2_i_1_[1]->target_id);
   }

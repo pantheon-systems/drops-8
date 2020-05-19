@@ -17,14 +17,18 @@ class DependencyHookInvocationTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['update_test_0', 'update_test_1', 'update_test_2'];
+  protected static $modules = [
+    'update_test_0',
+    'update_test_1',
+    'update_test_2',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     require_once $this->root . '/core/includes/update.inc';
   }

@@ -20,7 +20,7 @@ class MediaUiFunctionalTest extends MediaFunctionalTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'media_test_source',
   ];
@@ -33,7 +33,7 @@ class MediaUiFunctionalTest extends MediaFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('local_actions_block');
     $this->drupalPlaceBlock('local_tasks_block');

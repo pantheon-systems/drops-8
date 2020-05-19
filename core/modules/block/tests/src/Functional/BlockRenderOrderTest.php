@@ -17,14 +17,14 @@ class BlockRenderOrderTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'block'];
+  protected static $modules = ['node', 'block'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Create a test user.
     $end_user = $this->drupalCreateUser([

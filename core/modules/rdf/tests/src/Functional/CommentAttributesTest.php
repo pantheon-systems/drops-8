@@ -24,7 +24,7 @@ class CommentAttributesTest extends CommentTestBase {
    *
    * @var array
    */
-  public static $modules = ['views', 'node', 'comment', 'rdf'];
+  protected static $modules = ['views', 'node', 'comment', 'rdf'];
 
   /**
    * {@inheritdoc}
@@ -45,7 +45,7 @@ class CommentAttributesTest extends CommentTestBase {
    */
   protected $nodeUri;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enables anonymous user comments.

@@ -19,7 +19,7 @@ class UpdateSchemaTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['update_test_schema'];
+  protected static $modules = ['update_test_schema'];
 
   /**
    * {@inheritdoc}
@@ -41,7 +41,7 @@ class UpdateSchemaTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     require_once $this->root . '/core/includes/update.inc';

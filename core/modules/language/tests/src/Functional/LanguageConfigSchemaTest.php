@@ -19,7 +19,7 @@ class LanguageConfigSchemaTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'menu_link_content'];
+  protected static $modules = ['language', 'menu_link_content'];
 
   /**
    * {@inheritdoc}
@@ -36,7 +36,7 @@ class LanguageConfigSchemaTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create user.

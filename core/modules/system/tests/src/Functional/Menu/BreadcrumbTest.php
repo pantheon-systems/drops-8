@@ -23,7 +23,7 @@ class BreadcrumbTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['menu_test', 'block'];
+  protected static $modules = ['menu_test', 'block'];
 
   /**
    * An administrative user.
@@ -46,7 +46,7 @@ class BreadcrumbTest extends BrowserTestBase {
    */
   protected $profile = 'standard';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $perms = array_keys(\Drupal::service('user.permissions')->getPermissions());
@@ -296,7 +296,7 @@ class BreadcrumbTest extends BrowserTestBase {
         ':menu' => 'block-bartik-tools',
         ':href' => Url::fromUri('base:' . $link_path)->toString(),
       ]);
-      $this->assertTrue(count($elements) == 1, "Link to {$link_path} appears only once.");
+      $this->assertCount(1, $elements, "Link to {$link_path} appears only once.");
 
       // Next iteration should expect this tag as parent link.
       // Note: Term name, not link name, due to taxonomy_term_page().

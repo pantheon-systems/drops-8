@@ -11,12 +11,12 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateAggregatorSettingsTest extends MigrateDrupal7TestBase {
 
-  public static $modules = ['aggregator'];
+  protected static $modules = ['aggregator'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(static::$modules);
     $this->executeMigration('d7_aggregator_settings');

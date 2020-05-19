@@ -20,7 +20,7 @@ class InitialStateTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'node',
     'user',
@@ -30,7 +30,7 @@ class InitialStateTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installSchema('node', 'node_access');

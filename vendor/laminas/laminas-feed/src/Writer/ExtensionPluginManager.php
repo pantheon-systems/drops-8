@@ -110,21 +110,23 @@ class ExtensionPluginManager extends AbstractPluginManager implements ExtensionM
         'WellFormedWeb\Renderer\Entry' => Extension\WellFormedWeb\Renderer\Entry::class,
 
         // Legacy Zend Framework aliases
-        \Zend\Feed\Writer\Extension\Atom\Renderer\Feed::class => Extension\Atom\Renderer\Feed::class,
-        \Zend\Feed\Writer\Extension\Content\Renderer\Entry::class => Extension\Content\Renderer\Entry::class,
-        \Zend\Feed\Writer\Extension\DublinCore\Renderer\Entry::class => Extension\DublinCore\Renderer\Entry::class,
-        \Zend\Feed\Writer\Extension\DublinCore\Renderer\Feed::class => Extension\DublinCore\Renderer\Feed::class,
-        \Zend\Feed\Writer\Extension\GooglePlayPodcast\Entry::class => Extension\GooglePlayPodcast\Entry::class,
-        \Zend\Feed\Writer\Extension\GooglePlayPodcast\Feed::class => Extension\GooglePlayPodcast\Feed::class,
+        // @codingStandardsIgnoreStart
+        \Zend\Feed\Writer\Extension\Atom\Renderer\Feed::class               => Extension\Atom\Renderer\Feed::class,
+        \Zend\Feed\Writer\Extension\Content\Renderer\Entry::class           => Extension\Content\Renderer\Entry::class,
+        \Zend\Feed\Writer\Extension\DublinCore\Renderer\Entry::class        => Extension\DublinCore\Renderer\Entry::class,
+        \Zend\Feed\Writer\Extension\DublinCore\Renderer\Feed::class         => Extension\DublinCore\Renderer\Feed::class,
+        \Zend\Feed\Writer\Extension\GooglePlayPodcast\Entry::class          => Extension\GooglePlayPodcast\Entry::class,
+        \Zend\Feed\Writer\Extension\GooglePlayPodcast\Feed::class           => Extension\GooglePlayPodcast\Feed::class,
         \Zend\Feed\Writer\Extension\GooglePlayPodcast\Renderer\Entry::class => Extension\GooglePlayPodcast\Renderer\Entry::class,
-        \Zend\Feed\Writer\Extension\GooglePlayPodcast\Renderer\Feed::class => Extension\GooglePlayPodcast\Renderer\Feed::class,
-        \Zend\Feed\Writer\Extension\ITunes\Entry::class => Extension\ITunes\Entry::class,
-        \Zend\Feed\Writer\Extension\ITunes\Feed::class => Extension\ITunes\Feed::class,
-        \Zend\Feed\Writer\Extension\ITunes\Renderer\Entry::class => Extension\ITunes\Renderer\Entry::class,
-        \Zend\Feed\Writer\Extension\ITunes\Renderer\Feed::class => Extension\ITunes\Renderer\Feed::class,
-        \Zend\Feed\Writer\Extension\Slash\Renderer\Entry::class => Extension\Slash\Renderer\Entry::class,
-        \Zend\Feed\Writer\Extension\Threading\Renderer\Entry::class => Extension\Threading\Renderer\Entry::class,
-        \Zend\Feed\Writer\Extension\WellFormedWeb\Renderer\Entry::class => Extension\WellFormedWeb\Renderer\Entry::class,
+        \Zend\Feed\Writer\Extension\GooglePlayPodcast\Renderer\Feed::class  => Extension\GooglePlayPodcast\Renderer\Feed::class,
+        \Zend\Feed\Writer\Extension\ITunes\Entry::class                     => Extension\ITunes\Entry::class,
+        \Zend\Feed\Writer\Extension\ITunes\Feed::class                      => Extension\ITunes\Feed::class,
+        \Zend\Feed\Writer\Extension\ITunes\Renderer\Entry::class            => Extension\ITunes\Renderer\Entry::class,
+        \Zend\Feed\Writer\Extension\ITunes\Renderer\Feed::class             => Extension\ITunes\Renderer\Feed::class,
+        \Zend\Feed\Writer\Extension\Slash\Renderer\Entry::class             => Extension\Slash\Renderer\Entry::class,
+        \Zend\Feed\Writer\Extension\Threading\Renderer\Entry::class         => Extension\Threading\Renderer\Entry::class,
+        \Zend\Feed\Writer\Extension\WellFormedWeb\Renderer\Entry::class     => Extension\WellFormedWeb\Renderer\Entry::class,
+        // @codingStandardsIgnoreEnd
 
         // v2 normalized FQCNs
         'zendfeedwriterextensionatomrendererfeed' => Extension\Atom\Renderer\Feed::class,
@@ -216,12 +218,12 @@ class ExtensionPluginManager extends AbstractPluginManager implements ExtensionM
             return;
         }
 
-        if ('Feed' == substr(get_class($plugin), -4)) {
+        if ('Feed' === substr(get_class($plugin), -4)) {
             // we're okay
             return;
         }
 
-        if ('Entry' == substr(get_class($plugin), -5)) {
+        if ('Entry' === substr(get_class($plugin), -5)) {
             // we're okay
             return;
         }
@@ -229,7 +231,7 @@ class ExtensionPluginManager extends AbstractPluginManager implements ExtensionM
         throw new InvalidServiceException(sprintf(
             'Plugin of type %s is invalid; must implement %s\Extension\RendererInterface '
             . 'or the classname must end in "Feed" or "Entry"',
-            (is_object($plugin) ? get_class($plugin) : gettype($plugin)),
+            is_object($plugin) ? get_class($plugin) : gettype($plugin),
             __NAMESPACE__
         ));
     }
@@ -237,7 +239,7 @@ class ExtensionPluginManager extends AbstractPluginManager implements ExtensionM
     /**
      * Validate plugin (v2)
      *
-     * @param mixed $plugin
+     * @param  mixed $plugin
      * @return void
      * @throws Exception\InvalidArgumentException when invalid
      */
@@ -249,7 +251,7 @@ class ExtensionPluginManager extends AbstractPluginManager implements ExtensionM
             throw new Exception\InvalidArgumentException(sprintf(
                 'Plugin of type %s is invalid; must implement %s\Extension\RendererInterface '
                 . 'or the classname must end in "Feed" or "Entry"',
-                (is_object($plugin) ? get_class($plugin) : gettype($plugin)),
+                is_object($plugin) ? get_class($plugin) : gettype($plugin),
                 __NAMESPACE__
             ));
         }

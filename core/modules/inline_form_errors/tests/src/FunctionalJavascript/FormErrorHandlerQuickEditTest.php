@@ -17,7 +17,7 @@ class FormErrorHandlerQuickEditTest extends WebDriverTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'quickedit',
     'node',
     'inline_form_errors',
@@ -38,7 +38,7 @@ class FormErrorHandlerQuickEditTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a page node type for testing.

@@ -23,7 +23,7 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_test'];
+  protected static $modules = ['entity_test'];
 
   /**
    * Views used by this test.
@@ -35,7 +35,7 @@ class CommentLinksTest extends CommentViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installEntitySchema('entity_test');

@@ -29,12 +29,19 @@ class ConfigImportRenameValidationTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system', 'user', 'node', 'field', 'text', 'config_test'];
+  protected static $modules = [
+    'system',
+    'user',
+    'node',
+    'field',
+    'text',
+    'config_test',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');

@@ -17,7 +17,7 @@ class ImageEffectsTest extends ToolkitTestBase {
    *
    * @var array
    */
-  public static $modules = ['image', 'image_test', 'image_module_test'];
+  protected static $modules = ['image', 'image_test', 'image_module_test'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class ImageEffectsTest extends ToolkitTestBase {
    */
   protected $manager;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->manager = $this->container->get('plugin.manager.image.effect');
   }
@@ -150,7 +150,7 @@ class ImageEffectsTest extends ToolkitTestBase {
 
     // Check the parameters.
     $calls = $this->imageTestGetAllCalls();
-    $this->assertEqual(count($calls['desaturate'][0]), 0, 'No parameters were passed.');
+    $this->assertCount(0, $calls['desaturate'][0], 'No parameters were passed.');
   }
 
   /**

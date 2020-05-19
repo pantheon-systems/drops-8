@@ -32,7 +32,7 @@ class YamlDiscoveryTest extends UnitTestCase {
     'test_2' => 'test_2_b',
   ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $base_path = __DIR__ . '/Fixtures';
@@ -51,7 +51,7 @@ class YamlDiscoveryTest extends UnitTestCase {
   public function testGetDefinitions() {
     $definitions = $this->discovery->getDefinitions();
 
-    $this->assertInternalType('array', $definitions);
+    $this->assertIsArray($definitions);
     $this->assertCount(4, $definitions);
 
     foreach ($this->expectedKeys as $expected_key) {

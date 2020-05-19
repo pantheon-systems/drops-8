@@ -24,7 +24,14 @@ abstract class CommentTestBase extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'comment', 'node', 'history', 'field_ui', 'datetime'];
+  protected static $modules = [
+    'block',
+    'comment',
+    'node',
+    'history',
+    'field_ui',
+    'datetime',
+  ];
 
   /**
    * An administrative user with permission to configure comment settings.
@@ -242,8 +249,6 @@ abstract class CommentTestBase extends BrowserTestBase {
       $form_display->removeComponent('subject');
     }
     $form_display->save();
-    // Display status message.
-    $this->pass('Comment subject ' . ($enabled ? 'enabled' : 'disabled') . '.');
   }
 
   /**
@@ -329,8 +334,6 @@ abstract class CommentTestBase extends BrowserTestBase {
     $field = FieldConfig::loadByName('node', 'article', $field_name);
     $field->setSetting($name, $value);
     $field->save();
-    // Display status message.
-    $this->pass($message);
   }
 
   /**

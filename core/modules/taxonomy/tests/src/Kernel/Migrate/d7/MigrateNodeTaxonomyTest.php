@@ -11,7 +11,7 @@ use Drupal\node\NodeInterface;
  */
 class MigrateNodeTaxonomyTest extends MigrateDrupal7TestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'datetime',
     'image',
@@ -26,7 +26,7 @@ class MigrateNodeTaxonomyTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('file');
@@ -41,7 +41,7 @@ class MigrateNodeTaxonomyTest extends MigrateDrupal7TestBase {
    */
   public function testMigration() {
     $node = Node::load(2);
-    $this->assertTrue($node instanceof NodeInterface);
+    $this->assertInstanceOf(NodeInterface::class, $node);
     $this->assertEqual(9, $node->field_tags[0]->target_id);
     $this->assertEqual(14, $node->field_tags[1]->target_id);
     $this->assertEqual(17, $node->field_tags[2]->target_id);

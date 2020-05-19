@@ -17,14 +17,13 @@ use Drupal\Tests\migrate\Unit\MigrateTestCase;
  *
  * @coversDefaultClass \Drupal\field\Plugin\migrate\process\ProcessField
  * @group field
- * @group legacy
  */
 class ProcessFieldTest extends MigrateTestCase {
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->fieldManager = $this->prophesize(MigrateFieldPluginManagerInterface::class);
     $this->fieldPlugin = $this->prophesize(MigrateFieldInterface::class);
     $this->migrateExecutable = $this->prophesize(MigrateExecutable::class);

@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\views\Kernel;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\views\Views;
 use Drupal\views\Plugin\views\PluginBase;
 
@@ -54,7 +53,7 @@ class PluginInstanceTest extends ViewsKernelTestBase {
    */
   protected $definitions;
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->definitions = Views::getPluginDefinitions();
@@ -65,12 +64,13 @@ class PluginInstanceTest extends ViewsKernelTestBase {
    */
   public function testPluginData() {
     // Check that we have an array of data.
-    $this->assertTrue(is_array($this->definitions), 'Plugin data is an array.');
+    $this->assertIsArray($this->definitions);
 
     // Check all plugin types.
     foreach ($this->pluginTypes as $type) {
-      $this->assertTrue(array_key_exists($type, $this->definitions), new FormattableMarkup('Key for plugin type @type found.', ['@type' => $type]));
-      $this->assertTrue(is_array($this->definitions[$type]) && !empty($this->definitions[$type]), new FormattableMarkup('Plugin type @type has an array of plugins.', ['@type' => $type]));
+      $this->assertArrayHasKey($type, $this->definitions);
+      $this->assertIsArray($this->definitions[$type]);
+      $this->assertNotEmpty($this->definitions[$type], "Plugin type '$type' should contain plugins.");
     }
 
     // Tests that the plugin list has not missed any types.

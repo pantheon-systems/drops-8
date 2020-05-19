@@ -15,12 +15,12 @@ class MigrateVocabularyFieldTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'menu_ui'];
+  protected static $modules = ['taxonomy', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateTaxonomy();
   }

@@ -18,7 +18,7 @@ class FileListingTest extends FileFieldTestBase {
    *
    * @var array
    */
-  public static $modules = ['views', 'file', 'image', 'entity_test'];
+  protected static $modules = ['views', 'file', 'image', 'entity_test'];
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,7 @@ class FileListingTest extends FileFieldTestBase {
    */
   protected $baseUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // This test expects unused managed files to be marked as a temporary file.
@@ -134,7 +134,7 @@ class FileListingTest extends FileFieldTestBase {
     $this->assertRaw('admin/content/files/usage/' . $file->id() . '">' . $usage);
 
     $result = $this->xpath("//td[contains(@class, 'views-field-status') and contains(text(), :value)]", [':value' => 'Temporary']);
-    $this->assertEqual(1, count($result), 'Unused file marked as temporary.');
+    $this->assertCount(1, $result, 'Unused file marked as temporary.');
 
     // Test file usage page.
     foreach ($nodes as $node) {

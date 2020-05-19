@@ -56,6 +56,11 @@ class Connection extends DatabaseConnection {
   public $tableDropped = FALSE;
 
   /**
+   * {@inheritdoc}
+   */
+  protected $identifierQuotes = ['"', '"'];
+
+  /**
    * Constructs a \Drupal\Core\Database\Driver\sqlite\Connection object.
    */
   public function __construct(\PDO $connection, array $connection_options) {
@@ -67,8 +72,6 @@ class Connection extends DatabaseConnection {
 
     // This driver defaults to transaction support, except if explicitly passed FALSE.
     $this->transactionSupport = $this->transactionalDDLSupport = !isset($connection_options['transactions']) || $connection_options['transactions'] !== FALSE;
-
-    $this->connectionOptions = $connection_options;
 
     // Attach one database for each registered prefix.
     $prefixes = $this->prefixes;
@@ -373,13 +376,6 @@ class Connection extends DatabaseConnection {
 
   public function databaseType() {
     return 'sqlite';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  protected function identifierQuote() {
-    return '"';
   }
 
   /**

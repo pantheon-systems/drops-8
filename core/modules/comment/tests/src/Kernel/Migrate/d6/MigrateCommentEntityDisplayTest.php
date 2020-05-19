@@ -16,12 +16,12 @@ class MigrateCommentEntityDisplayTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['comment', 'menu_ui'];
+  protected static $modules = ['comment', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['comment']);
     $this->migrateContentTypes();
@@ -44,7 +44,7 @@ class MigrateCommentEntityDisplayTest extends MigrateDrupal6TestBase {
    */
   protected function assertDisplay($id, $component_id) {
     $component = EntityViewDisplay::load($id)->getComponent($component_id);
-    $this->assertInternalType('array', $component);
+    $this->assertIsArray($component);
     $this->assertSame('hidden', $component['label']);
     $this->assertSame('comment_default', $component['type']);
     $this->assertSame(20, $component['weight']);

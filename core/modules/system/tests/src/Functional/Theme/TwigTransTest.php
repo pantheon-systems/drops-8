@@ -18,7 +18,7 @@ class TwigTransTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'theme_test',
     'twig_theme_test',
     'locale',
@@ -50,7 +50,7 @@ class TwigTransTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Setup test_theme.
@@ -114,7 +114,7 @@ class TwigTransTest extends BrowserTestBase {
       $this->fail('{% trans %}{% endtrans %} did not throw an exception.');
     }
     catch (SyntaxError $e) {
-      $this->assertContains('{% trans %} tag cannot be empty', $e->getMessage());
+      $this->assertStringContainsString('{% trans %} tag cannot be empty', $e->getMessage());
     }
     catch (\Exception $e) {
       $this->fail('{% trans %}{% endtrans %} threw an unexpected exception.');

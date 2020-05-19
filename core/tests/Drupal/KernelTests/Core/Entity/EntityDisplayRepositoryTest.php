@@ -17,7 +17,7 @@ class EntityDisplayRepositoryTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['user'];
+  protected static $modules = ['user'];
 
   /**
    * The entity display repository under test.
@@ -29,7 +29,7 @@ class EntityDisplayRepositoryTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->displayRepository = \Drupal::service('entity_display.repository');
 

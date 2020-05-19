@@ -58,14 +58,20 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['locale', 'language_test', 'block', 'user', 'content_translation'];
+  protected static $modules = [
+    'locale',
+    'language_test',
+    'block',
+    'user',
+    'content_translation',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'classy';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->adminUser = $this->drupalCreateUser(['administer languages', 'translate interface', 'access administration pages', 'administer blocks']);
@@ -548,12 +554,12 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
 
     // Check if configurability persisted.
     $config = $this->config('language.types');
-    $this->assertTrue(in_array('language_interface', $config->get('configurable')), 'Interface language is configurable.');
-    $this->assertTrue(in_array('language_content', $config->get('configurable')), 'Content language is configurable.');
+    $this->assertContains('language_interface', $config->get('configurable'), 'Interface language is configurable.');
+    $this->assertContains('language_content', $config->get('configurable'), 'Content language is configurable.');
 
     // Ensure configuration was saved.
-    $this->assertFalse(array_key_exists('language-url', $config->get('negotiation.language_content.enabled')), 'URL negotiation is not enabled for content.');
-    $this->assertTrue(array_key_exists('language-session', $config->get('negotiation.language_content.enabled')), 'Session negotiation is enabled for content.');
+    $this->assertArrayNotHasKey('language-url', $config->get('negotiation.language_content.enabled'));
+    $this->assertArrayHasKey('language-session', $config->get('negotiation.language_content.enabled'));
   }
 
   /**

@@ -20,7 +20,7 @@ class FieldDisplayTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'field',
     'system',
@@ -58,7 +58,7 @@ class FieldDisplayTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Configure the theme system.

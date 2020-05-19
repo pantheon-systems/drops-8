@@ -17,14 +17,14 @@ class CommentBlockTest extends CommentTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'views'];
+  protected static $modules = ['block', 'views'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Update admin user to have the 'administer blocks' permission.
     $this->adminUser = $this->drupalCreateUser([

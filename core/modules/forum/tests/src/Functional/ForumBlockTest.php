@@ -19,7 +19,7 @@ class ForumBlockTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['forum', 'block'];
+  protected static $modules = ['forum', 'block'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class ForumBlockTest extends BrowserTestBase {
    */
   protected $adminUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create users.

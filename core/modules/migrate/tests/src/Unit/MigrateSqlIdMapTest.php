@@ -56,7 +56,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->database = $this->getDatabase([]);
   }
 
@@ -194,7 +194,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $message = $this->createMock('Drupal\migrate\MigrateMessageInterface');
     $id_map = $this->getIdMap();
     $id_map->setMessage($message);
-    $this->assertAttributeEquals($message, 'message', $id_map);
+    $this->assertEquals($message, $id_map->message);
   }
 
   /**
@@ -427,7 +427,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $this->assertSame([$expected_result], $destination_ids);
     // Test for a miss.
     $destination_ids = $id_map->lookupDestinationIds($nonexistent_id_values);
-    $this->assertSame(0, count($destination_ids));
+    $this->assertCount(0, $destination_ids);
   }
 
   /**
@@ -639,7 +639,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $this->assertSame($expected_result, $source_id);
     // Test for a miss.
     $source_id = $id_map->lookupSourceId($nonexistent_id_values);
-    $this->assertSame(0, count($source_id));
+    $this->assertCount(0, $source_id);
   }
 
   /**

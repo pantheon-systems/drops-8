@@ -23,7 +23,7 @@ class ResourceTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['hal', 'rest', 'entity_test', 'rest_test'];
+  protected static $modules = ['hal', 'rest', 'entity_test', 'rest_test'];
 
   /**
    * {@inheritdoc}
@@ -40,7 +40,7 @@ class ResourceTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Create an entity programmatic.
     $this->entity = EntityTest::create([
@@ -157,7 +157,7 @@ class ResourceTest extends BrowserTestBase {
 
     foreach ($manager->getDefinitions() as $resource => $definition) {
       foreach ($definition['uri_paths'] as $key => $uri_path) {
-        $this->assertFalse(strpos($uri_path, '//'), 'The resource URI path does not have duplicate slashes.');
+        $this->assertStringNotContainsString('//', $uri_path, 'The resource URI path does not have duplicate slashes.');
       }
     }
   }

@@ -21,7 +21,7 @@ class EntitySchemaTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_test_update'];
+  protected static $modules = ['entity_test_update'];
 
   /**
    * The database connection used.
@@ -33,7 +33,7 @@ class EntitySchemaTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installSchema('user', ['users_data']);
     $this->installEntitySchema('entity_test_update');

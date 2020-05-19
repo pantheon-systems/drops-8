@@ -17,7 +17,7 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'jsonapi',
     'serialization',
@@ -50,7 +50,7 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Add the entity schemas.
     $this->installEntitySchema('node');
@@ -134,7 +134,7 @@ class RelatedResourceTypesTest extends JsonapiKernelTestBase {
       }
     }
 
-    $this->assertArraySubset($relatable_type_names, $subjects);
+    $this->assertEquals($relatable_type_names, $subjects);
   }
 
   /**

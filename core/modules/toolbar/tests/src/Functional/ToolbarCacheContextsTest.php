@@ -21,7 +21,7 @@ class ToolbarCacheContextsTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['toolbar', 'test_page_test'];
+  protected static $modules = ['toolbar', 'test_page_test'];
 
   /**
    * {@inheritdoc}
@@ -56,7 +56,7 @@ class ToolbarCacheContextsTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->adminUser = $this->drupalCreateUser($this->perms);

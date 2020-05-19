@@ -31,7 +31,7 @@ class SearchLanguageTest extends BrowserTestBase {
    */
   protected $searchableNodes;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
@@ -115,7 +115,7 @@ class SearchLanguageTest extends BrowserTestBase {
     $url = $this->getUrl();
     $parts = parse_url($url);
     $query_string = isset($parts['query']) ? rawurldecode($parts['query']) : '';
-    $this->assertTrue(strpos($query_string, '=language:fr') !== FALSE, 'Language filter language:fr add to the query string.');
+    $this->assertStringContainsString('=language:fr', $query_string, 'Language filter language:fr add to the query string.');
 
     // Search for keyword node and language filter as Spanish.
     $edit = ['keys' => 'node', 'language[es]' => TRUE];

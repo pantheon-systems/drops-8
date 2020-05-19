@@ -20,9 +20,16 @@ class EntityFormDisplayTest extends KernelTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['field_ui', 'field', 'entity_test', 'field_test', 'user', 'text'];
+  protected static $modules = [
+    'field_ui',
+    'field',
+    'entity_test',
+    'field_test',
+    'user',
+    'text',
+  ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('entity_test');
   }

@@ -35,7 +35,7 @@ class ContextAwarePluginBaseTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $configuration = [
       'context' => [
@@ -51,7 +51,7 @@ class ContextAwarePluginBaseTest extends KernelTestBase {
    * @covers ::getContextDefinitions
    */
   public function testGetContextDefinitions() {
-    $this->assertInternalType('array', $this->plugin->getContextDefinitions());
+    $this->assertIsArray($this->plugin->getContextDefinitions());
   }
 
   /**

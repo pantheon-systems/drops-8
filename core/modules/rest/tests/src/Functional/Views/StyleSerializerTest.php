@@ -36,7 +36,17 @@ class StyleSerializerTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = ['views_ui', 'entity_test', 'hal', 'rest_test_views', 'node', 'text', 'field', 'language', 'basic_auth'];
+  protected static $modules = [
+    'views_ui',
+    'entity_test',
+    'hal',
+    'rest_test_views',
+    'node',
+    'text',
+    'field',
+    'language',
+    'basic_auth',
+  ];
 
   /**
    * {@inheritdoc}
@@ -62,7 +72,7 @@ class StyleSerializerTest extends ViewTestBase {
    */
   protected $renderer;
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     ViewTestData::createTestViews(get_class($this), ['rest_test_views']);
@@ -652,7 +662,7 @@ class StyleSerializerTest extends ViewTestBase {
     $node->save();
     $result = Json::decode($this->drupalGet('test/serialize/node-field', ['query' => ['_format' => 'json']]));
     $this->assertEqual($result[1]['nid'], $node->id());
-    $this->assertTrue(strpos($this->getSession()->getPage()->getContent(), "<script") === FALSE, "No script tag is present in the raw page contents.");
+    $this->assertStringNotContainsString("<script", $this->getSession()->getPage()->getContent(), "No script tag is present in the raw page contents.");
 
     $this->drupalLogin($this->adminUser);
 

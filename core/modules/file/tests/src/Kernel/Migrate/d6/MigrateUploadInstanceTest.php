@@ -15,12 +15,12 @@ class MigrateUploadInstanceTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_ui'];
+  protected static $modules = ['menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateFields();
   }
@@ -34,14 +34,14 @@ class MigrateUploadInstanceTest extends MigrateDrupal6TestBase {
     $this->assertIdentical('node.page.upload', $field->id());
     $this->assertIdentical('jpg jpeg gif png txt doc xls pdf ppt pps odt ods odp', $settings['file_extensions']);
     $this->assertIdentical('1MB', $settings['max_filesize']);
-    $this->assertIdentical(TRUE, $settings['description_field']);
+    $this->assertTrue($settings['description_field']);
 
     $field = FieldConfig::load('node.story.upload');
     $this->assertIdentical('node.story.upload', $field->id());
 
     // Shouldn't exist.
     $field = FieldConfig::load('node.article.upload');
-    $this->assertTrue(is_null($field));
+    $this->assertNull($field);
 
     $this->assertIdentical([['node', 'page', 'upload']], $this->getMigration('d6_upload_field_instance')->getIdMap()->lookupDestinationIds(['page']));
   }

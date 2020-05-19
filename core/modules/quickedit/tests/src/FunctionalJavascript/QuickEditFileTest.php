@@ -18,7 +18,7 @@ class QuickEditFileTest extends QuickEditJavascriptTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'file',
   ];
@@ -29,18 +29,9 @@ class QuickEditFileTest extends QuickEditJavascriptTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * CSS animations must be enabled for PopperJS positioning to work properly.
-   *
-   * @var bool
-   *
-   * @todo revisit in http://drupal.org/node/3082602
-   */
-  protected $disableCssAnimations = FALSE;
-
-  /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create the Article node type.

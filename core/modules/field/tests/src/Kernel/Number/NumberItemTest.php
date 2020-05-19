@@ -21,9 +21,9 @@ class NumberItemTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [];
+  protected static $modules = [];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create number field storages and fields for validation.
@@ -53,7 +53,7 @@ class NumberItemTest extends FieldKernelTestBase {
     $entity->field_float = $float;
     $entity->field_decimal = '20-40';
     $violations = $entity->validate();
-    $this->assertIdentical(1, count($violations), 'Wrong decimal value causes validation error');
+    $this->assertCount(1, $violations, 'Wrong decimal value causes validation error');
     $decimal = '31.3';
     $entity->field_decimal = $decimal;
     $entity->name->value = $this->randomMachineName();
@@ -62,16 +62,16 @@ class NumberItemTest extends FieldKernelTestBase {
     // Verify entity has been created properly.
     $id = $entity->id();
     $entity = EntityTest::load($id);
-    $this->assertTrue($entity->field_integer instanceof FieldItemListInterface, 'Field implements interface.');
-    $this->assertTrue($entity->field_integer[0] instanceof FieldItemInterface, 'Field item implements interface.');
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->field_integer);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->field_integer[0]);
     $this->assertEqual($entity->field_integer->value, $integer);
     $this->assertEqual($entity->field_integer[0]->value, $integer);
-    $this->assertTrue($entity->field_float instanceof FieldItemListInterface, 'Field implements interface.');
-    $this->assertTrue($entity->field_float[0] instanceof FieldItemInterface, 'Field item implements interface.');
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->field_float);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->field_float[0]);
     $this->assertEqual($entity->field_float->value, $float);
     $this->assertEqual($entity->field_float[0]->value, $float);
-    $this->assertTrue($entity->field_decimal instanceof FieldItemListInterface, 'Field implements interface.');
-    $this->assertTrue($entity->field_decimal[0] instanceof FieldItemInterface, 'Field item implements interface.');
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->field_decimal);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->field_decimal[0]);
     $this->assertEqual($entity->field_decimal->value, (float) $decimal);
     $this->assertEqual($entity->field_decimal[0]->value, (float) $decimal);
 

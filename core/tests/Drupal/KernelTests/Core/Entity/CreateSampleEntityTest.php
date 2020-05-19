@@ -25,12 +25,23 @@ class CreateSampleEntityTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['path_alias', 'system', 'field', 'filter', 'text', 'file', 'user', 'node', 'comment', 'taxonomy'];
+  protected static $modules = [
+    'path_alias',
+    'system',
+    'field',
+    'filter',
+    'text',
+    'file',
+    'user',
+    'node',
+    'comment',
+    'taxonomy',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setup();
 
     $this->installEntitySchema('file');

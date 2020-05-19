@@ -26,7 +26,15 @@ class ForumTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['taxonomy', 'comment', 'forum', 'node', 'block', 'menu_ui', 'help'];
+  protected static $modules = [
+    'taxonomy',
+    'comment',
+    'forum',
+    'node',
+    'block',
+    'menu_ui',
+    'help',
+  ];
 
   /**
    * {@inheritdoc}
@@ -81,7 +89,7 @@ class ForumTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('system_breadcrumb_block');
     $this->drupalPlaceBlock('page_title_block');
@@ -209,7 +217,7 @@ class ForumTest extends BrowserTestBase {
     $this->assertStringStartsWith('6 new posts', $elements[0]->getText(), 'Number of unread topics found.');
     // Verify that the forum name is in the unread topics text.
     $elements = $this->xpath('//tr[@id=:forum]//em[@class="placeholder"]', $forum_arg);
-    $this->assertContains($this->forum['name'], $elements[0]->getText(), 'Forum name found in unread topics text.');
+    $this->assertStringContainsString($this->forum['name'], $elements[0]->getText(), 'Forum name found in unread topics text.');
 
     // Verify total number of posts in forum.
     $elements = $this->xpath('//tr[@id=:forum]//td[@class="forum__posts"]', $forum_arg);

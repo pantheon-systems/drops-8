@@ -25,7 +25,17 @@ class DbDumpTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'config', 'dblog', 'menu_link_content', 'link', 'block_content', 'file', 'path_alias', 'user'];
+  protected static $modules = [
+    'system',
+    'config',
+    'dblog',
+    'menu_link_content',
+    'link',
+    'block_content',
+    'file',
+    'path_alias',
+    'user',
+  ];
 
   /**
    * Test data to write into config.
@@ -80,7 +90,7 @@ class DbDumpTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Determine what database backend is running, and set the skip flag.

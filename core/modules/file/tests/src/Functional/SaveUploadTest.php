@@ -24,7 +24,7 @@ class SaveUploadTest extends FileManagedTestBase {
    *
    * @var array
    */
-  public static $modules = ['dblog'];
+  protected static $modules = ['dblog'];
 
   /**
    * {@inheritdoc}
@@ -59,7 +59,7 @@ class SaveUploadTest extends FileManagedTestBase {
    */
   protected $imageExtension;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $account = $this->drupalCreateUser(['access site reports']);
     $this->drupalLogin($account);
@@ -68,10 +68,10 @@ class SaveUploadTest extends FileManagedTestBase {
     $this->image = File::create((array) current($image_files));
 
     list(, $this->imageExtension) = explode('.', $this->image->getFilename());
-    $this->assertTrue(is_file($this->image->getFileUri()), "The image file we're going to upload exists.");
+    $this->assertFileExists($this->image->getFileUri());
 
     $this->phpfile = current($this->drupalGetTestFiles('php'));
-    $this->assertTrue(is_file($this->phpfile->uri), 'The PHP file we are going to upload exists.');
+    $this->assertFileExists($this->phpfile->uri);
 
     $this->maxFidBefore = (int) \Drupal::entityQueryAggregate('file')->aggregate('fid', 'max')->execute()[0]['fid_max'];
 
@@ -97,7 +97,7 @@ class SaveUploadTest extends FileManagedTestBase {
     $max_fid_after = (int) \Drupal::entityQueryAggregate('file')->aggregate('fid', 'max')->execute()[0]['fid_max'];
     $this->assertTrue($max_fid_after > $this->maxFidBefore, 'A new file was created.');
     $file1 = File::load($max_fid_after);
-    $this->assertInstanceOf(File::class, $file1, 'Loaded the file.');
+    $this->assertInstanceOf(File::class, $file1);
     // MIME type of the uploaded image may be either image/jpeg or image/png.
     $this->assertEqual(substr($file1->getMimeType(), 0, 5), 'image', 'A MIME type was set.');
 
@@ -116,7 +116,7 @@ class SaveUploadTest extends FileManagedTestBase {
     $this->assertFileHooksCalled(['validate', 'insert']);
 
     $file2 = File::load($max_fid_after);
-    $this->assertInstanceOf(File::class, $file2, 'Loaded the file');
+    $this->assertInstanceOf(File::class, $file2);
     // MIME type of the uploaded image may be either image/jpeg or image/png.
     $this->assertEqual(substr($file2->getMimeType(), 0, 5), 'image', 'A MIME type was set.');
 
@@ -136,7 +136,7 @@ class SaveUploadTest extends FileManagedTestBase {
     $this->drupalPostForm('file-test/upload', $edit, t('Submit'));
     $this->assertResponse(200, 'Received a 200 response for posted test file.');
     $this->assertRaw(t('You WIN!'));
-    $this->assertTrue(is_file('temporary://' . $dir . '/' . trim(\Drupal::service('file_system')->basename($image3_realpath))));
+    $this->assertFileExists('temporary://' . $dir . '/' . trim(\Drupal::service('file_system')->basename($image3_realpath)));
   }
 
   /**
@@ -389,7 +389,7 @@ class SaveUploadTest extends FileManagedTestBase {
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
     $file_system = \Drupal::service('file_system');
     $file_system->mkdir('temporary://' . $test_directory, 0000);
-    $this->assertTrue(is_dir('temporary://' . $test_directory));
+    $this->assertDirectoryExists('temporary://' . $test_directory);
 
     $edit = [
       'file_subdir' => $test_directory,
@@ -462,8 +462,8 @@ class SaveUploadTest extends FileManagedTestBase {
     $content = (string) $response->getBody();
     $this->htmlOutput($content);
     $error_text = new FormattableMarkup('The file %filename could not be uploaded because the name is invalid.', ['%filename' => $filename]);
-    $this->assertContains((string) $error_text, $content);
-    $this->assertContains('Epic upload FAIL!', $content);
+    $this->assertStringContainsString((string) $error_text, $content);
+    $this->assertStringContainsString('Epic upload FAIL!', $content);
     $this->assertFileNotExists('temporary://' . $filename);
   }
 

@@ -16,7 +16,7 @@ class ShortcutSetsTest extends ShortcutTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['block'];
+  protected static $modules = ['block'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class ShortcutSetsTest extends ShortcutTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('local_actions_block');
@@ -68,7 +68,7 @@ class ShortcutSetsTest extends ShortcutTestBase {
 
     // Test the table header.
     $elements = $this->xpath('//div[@class="layout-content"]//table/thead/tr/th');
-    $this->assertEqual(count($elements), 3, 'Correct number of table header cells found.');
+    $this->assertCount(3, $elements, 'Correct number of table header cells found.');
 
     // Test the contents of each th cell.
     $expected_items = [t('Name'), t('Weight'), t('Operations')];

@@ -22,7 +22,12 @@ class GlossaryViewTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['language', 'node', 'views', 'views_test_config'];
+  protected static $modules = [
+    'language',
+    'node',
+    'views',
+    'views_test_config',
+  ];
 
   /**
    * {@inheritdoc}
@@ -38,7 +43,7 @@ class GlossaryViewTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     ViewTestData::createTestViews(get_class($this), ['views_test_config']);

@@ -19,7 +19,13 @@ class ConfigImportUITest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['config', 'config_test', 'config_import_test', 'text', 'options'];
+  protected static $modules = [
+    'config',
+    'config_test',
+    'config_import_test',
+    'text',
+    'options',
+  ];
 
   /**
    * {@inheritdoc}
@@ -33,7 +39,7 @@ class ConfigImportUITest extends BrowserTestBase {
    */
   protected $webUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->webUser = $this->drupalCreateUser(['synchronize configuration']);
@@ -57,7 +63,7 @@ class ConfigImportUITest extends BrowserTestBase {
     // Create updated configuration object.
     $new_site_name = 'Config import test ' . $this->randomString();
     $this->prepareSiteNameUpdate($new_site_name);
-    $this->assertIdentical($sync->exists($name), TRUE, $name . ' found.');
+    $this->assertTrue($sync->exists($name), $name . ' found.');
 
     // Create new config entity.
     $original_dynamic_data = [
@@ -74,7 +80,7 @@ class ConfigImportUITest extends BrowserTestBase {
       'protected_property' => '',
     ];
     $sync->write($dynamic_name, $original_dynamic_data);
-    $this->assertIdentical($sync->exists($dynamic_name), TRUE, $dynamic_name . ' found.');
+    $this->assertTrue($sync->exists($dynamic_name), $dynamic_name . ' found.');
 
     // Enable the Automated Cron and Ban modules during import. The Ban
     // module is used because it creates a table during the install.

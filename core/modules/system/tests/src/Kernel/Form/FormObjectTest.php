@@ -17,9 +17,9 @@ class FormObjectTest extends ConfigFormTestBase {
    *
    * @var array
    */
-  public static $modules = ['form_test'];
+  protected static $modules = ['form_test'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->form = new FormTestObject($this->container->get('config.factory'));

@@ -21,7 +21,15 @@ class RowEntityTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['taxonomy', 'text', 'filter', 'field', 'system', 'node', 'user'];
+  protected static $modules = [
+    'taxonomy',
+    'text',
+    'filter',
+    'field',
+    'system',
+    'node',
+    'user',
+  ];
 
   /**
    * Views used by this test.
@@ -33,7 +41,7 @@ class RowEntityTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->installEntitySchema('taxonomy_term');

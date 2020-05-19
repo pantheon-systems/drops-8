@@ -50,9 +50,9 @@ class NodeAdminTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['views'];
+  protected static $modules = ['views'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Remove the "view own unpublished content" permission which is set

@@ -27,12 +27,12 @@ class NodeFieldOverridesTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['user', 'system', 'field', 'node'];
+  protected static $modules = ['user', 'system', 'field', 'node'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['user']);
     $this->user = $this->createUser();
@@ -57,7 +57,7 @@ class NodeFieldOverridesTest extends EntityKernelTestBase {
     /** @var \Drupal\node\NodeInterface $node */
     $node = Node::create(['type' => 'ponies']);
     $owner = $node->getOwner();
-    $this->assertTrue($owner instanceof UserInterface);
+    $this->assertInstanceOf(UserInterface::class, $owner);
     $this->assertEqual($owner->id(), $this->user->id());
   }
 

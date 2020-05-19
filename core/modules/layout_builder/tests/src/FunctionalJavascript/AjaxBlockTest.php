@@ -14,7 +14,7 @@ class AjaxBlockTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'node',
     'datetime',
@@ -31,7 +31,7 @@ class AjaxBlockTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $user = $this->drupalCreateUser([
       'configure any layout',
@@ -95,7 +95,7 @@ class AjaxBlockTest extends WebDriverTestBase {
     $assert_session->assertWaitOnAjaxRequest();
     $block_elements = $this->cssSelect('.block-layout-builder-test-testajax');
     // Should be exactly one of these in there.
-    $this->assertEquals(1, count($block_elements));
+    $this->assertCount(1, $block_elements);
     $assert_session->pageTextContains('Every word is like an unnecessary stain on silence and nothingness.');
   }
 

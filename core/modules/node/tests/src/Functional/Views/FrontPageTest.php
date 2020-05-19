@@ -43,12 +43,12 @@ class FrontPageTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'contextual'];
+  protected static $modules = ['node', 'contextual'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->nodeStorage = $this->container->get('entity_type.manager')

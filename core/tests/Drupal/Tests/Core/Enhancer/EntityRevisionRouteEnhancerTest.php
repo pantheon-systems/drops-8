@@ -16,14 +16,14 @@ use Symfony\Component\Routing\Route;
 class EntityRevisionRouteEnhancerTest extends UnitTestCase {
 
   /**
-   * @var \Drupal\entity\RouteEnhancer\EntityRevisionRouteEnhancer
+   * @var \Drupal\Core\Routing\RouteEnhancer\EntityRevisionRouteEnhancer
    */
   protected $routeEnhancer;
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->routeEnhancer = new EntityRevisionRouteEnhancer();

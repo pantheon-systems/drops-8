@@ -13,7 +13,7 @@ class QuickEditJavascriptTestBase extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['contextual', 'quickedit', 'toolbar'];
+  protected static $modules = ['contextual', 'quickedit', 'toolbar'];
 
   /**
    * A user with permissions to edit Articles and use Quick Edit.
@@ -273,7 +273,7 @@ function () {
 JS;
     $result = $this->getSession()->evaluateScript($js_match_field_element_attributes);
     foreach ($expected_field_attributes as $quickedit_field_id => $expectation) {
-      $this->assertSame(TRUE, $result[$quickedit_field_id], 'Field ' . $quickedit_field_id . ' did not match its expectation selector (' . $expectation . '), actual HTML: ' . $result[$quickedit_field_id]);
+      $this->assertTrue($result[$quickedit_field_id], 'Field ' . $quickedit_field_id . ' did not match its expectation selector (' . $expectation . '), actual HTML: ' . $result[$quickedit_field_id]);
     }
   }
 

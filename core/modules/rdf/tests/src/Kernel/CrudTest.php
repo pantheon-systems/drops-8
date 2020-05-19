@@ -16,7 +16,7 @@ class CrudTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_test', 'rdf', 'system'];
+  protected static $modules = ['entity_test', 'rdf', 'system'];
 
   /**
    * @var string
@@ -33,7 +33,7 @@ class CrudTest extends KernelTestBase {
    */
   protected $bundle;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->prefix = 'rdf.mapping';
     $this->entityType = $this->bundle = 'entity_test';
@@ -49,7 +49,7 @@ class CrudTest extends KernelTestBase {
     rdf_get_mapping($this->entityType, $this->bundle)->save();
     // Test that config file was saved.
     $mapping_config = \Drupal::configFactory()->listAll('rdf.mapping.');
-    $this->assertTrue(in_array($mapping_config_name, $mapping_config), 'Rdf mapping config saved.');
+    $this->assertContains($mapping_config_name, $mapping_config, 'Rdf mapping config saved.');
   }
 
   /**

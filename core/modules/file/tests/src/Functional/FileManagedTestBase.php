@@ -18,7 +18,7 @@ abstract class FileManagedTestBase extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['file_test', 'file'];
+  protected static $modules = ['file_test', 'file'];
 
   protected function setUp() {
     parent::setUp();
@@ -194,7 +194,7 @@ abstract class FileManagedTestBase extends BrowserTestBase {
     }
 
     file_put_contents($filepath, $contents);
-    $this->assertTrue(is_file($filepath), t('The test file exists on the disk.'), 'Create test file');
+    $this->assertFileExists($filepath);
     return $filepath;
   }
 

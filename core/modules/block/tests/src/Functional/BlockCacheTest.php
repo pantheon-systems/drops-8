@@ -17,7 +17,7 @@ class BlockCacheTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'block_test', 'test_page_test'];
+  protected static $modules = ['block', 'block_test', 'test_page_test'];
 
   /**
    * {@inheritdoc}
@@ -52,7 +52,7 @@ class BlockCacheTest extends BrowserTestBase {
    */
   protected $block;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create an admin user, log in and enable test blocks.

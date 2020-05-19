@@ -63,7 +63,7 @@ class UpdateScriptTest extends BrowserTestBase {
    */
   private $updateUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->updateUrl = Url::fromRoute('system.db_update');
     $this->statusReportUrl = Url::fromRoute('system.status');
@@ -322,6 +322,28 @@ class UpdateScriptTest extends BrowserTestBase {
           'php' => 1000000000,
         ],
         'The following theme is installed, but it is incompatible with PHP ' . phpversion() . ":",
+      ],
+      'module: core_version_requirement key missing' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'module',
+        ],
+        [
+          'core' => '8.x',
+          'type' => 'module',
+        ],
+        $incompatible_module_message,
+      ],
+      'theme: core_version_requirement key missing' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'theme',
+        ],
+        [
+          'core' => '8.x',
+          'type' => 'theme',
+        ],
+        $incompatible_theme_message,
       ],
     ];
   }

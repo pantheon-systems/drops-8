@@ -58,18 +58,35 @@ class ContentAwareGenerator extends ProviderBasedGenerator
     /**
      * {@inheritdoc}
      *
-     * @param string $name       ignored
-     * @param array  $parameters must either contain the field 'route' with a
-     *                           RouteObjectInterface or the field 'content_id'
-     *                           with the id of a document implementing
-     *                           RouteReferrersReadInterface
+     * The CMF routing system used to allow to pass route objects as $name to generate the route.
+     * Since Symfony 5.0, the UrlGeneratorInterface declares $name as string. We widen the contract
+     * for BC but deprecate passing non-strings.
+     * Instead, Pass the RouteObjectInterface::OBJECT_BASED_ROUTE_NAME as route name and the object
+     * in the parameters with key RouteObjectInterface::ROUTE_OBJECT or the ID of a
+     * RouteReferrersReadInterface in 'content_id.
+     *
+     * @param mixed $name       ignored
+     * @param array $parameters must either contain the field 'route' with a
+     *                          RouteObjectInterface or the field 'content_id'
+     *                          with the id of a document implementing
+     *                          RouteReferrersReadInterface
      *
      * @throws RouteNotFoundException If there is no such route in the database
      */
     public function generate($name, $parameters = [], $absolute = UrlGeneratorInterface::ABSOLUTE_PATH)
     {
         if ($name instanceof SymfonyRoute) {
+            @trigger_error('Passing an object as route name is deprecated since version 2.3. Pass the `RouteObjectInterface::OBJECT_BASED_ROUTE_NAME` as route name and the object in the parameters with key `RouteObjectInterface::ROUTE_OBJECT` resp the content id with content_id.', E_USER_DEPRECATED);
+
             $route = $this->getBestLocaleRoute($name, $parameters);
+        } elseif (RouteObjectInterface::OBJECT_BASED_ROUTE_NAME === $name) {
+            if (array_key_exists(RouteObjectInterface::ROUTE_OBJECT, $parameters)
+                && $parameters[RouteObjectInterface::ROUTE_OBJECT] instanceof SymfonyRoute
+            ) {
+                $route = $this->getBestLocaleRoute($parameters[RouteObjectInterface::ROUTE_OBJECT], $parameters);
+            } else {
+                $route = $this->getRouteByContent($name, $parameters);
+            }
         } elseif (is_string($name) && $name) {
             $route = $this->getRouteByName($name, $parameters);
         } else {
@@ -83,8 +100,9 @@ class ContentAwareGenerator extends ProviderBasedGenerator
         }
 
         $this->unsetLocaleIfNotNeeded($route, $parameters);
+        $parameters[RouteObjectInterface::ROUTE_OBJECT] = $route;
 
-        return parent::generate($route, $parameters, $absolute);
+        return parent::generate(RouteObjectInterface::OBJECT_BASED_ROUTE_NAME, $parameters, $absolute);
     }
 
     /**
@@ -164,7 +182,14 @@ class ContentAwareGenerator extends ProviderBasedGenerator
     protected function getRouteByContent($name, &$parameters)
     {
         if ($name instanceof RouteReferrersReadInterface) {
+            @trigger_error('Passing an object as route name is deprecated since version 2.3. Pass the `RouteObjectInterface::OBJECT_BASED_ROUTE_NAME` as route name and the object in the parameters with key `RouteObjectInterface::ROUTE_OBJECT`.', E_USER_DEPRECATED);
+
             $content = $name;
+        } elseif (RouteObjectInterface::OBJECT_BASED_ROUTE_NAME === $name
+            && array_key_exists(RouteObjectInterface::ROUTE_OBJECT, $parameters)
+            && $parameters[RouteObjectInterface::ROUTE_OBJECT] instanceof RouteReferrersReadInterface
+        ) {
+            $content = $parameters[RouteObjectInterface::ROUTE_OBJECT];
         } elseif (array_key_exists('content_id', $parameters)
             && null !== $this->contentRepository
         ) {
@@ -178,7 +203,7 @@ class ContentAwareGenerator extends ProviderBasedGenerator
         } else {
             $hint = is_object($name) ? get_class($name) : gettype($name);
 
-            throw new RouteNotFoundException("The route name argument '$hint' is not RouteReferrersReadInterface instance and there is no 'content_id' parameter");
+            throw new RouteNotFoundException("The route name argument '$hint' is not a RouteReferrersReadInterface instance and there is no 'content_id' parameter");
         }
 
         $routes = $content->getRoutes();
@@ -290,10 +315,20 @@ class ContentAwareGenerator extends ProviderBasedGenerator
      */
     public function getRouteDebugMessage($name, array $parameters = [])
     {
-        if (!$name && array_key_exists('content_id', $parameters)) {
+        if ((!$name || RouteObjectInterface::OBJECT_BASED_ROUTE_NAME === $name)
+            && array_key_exists('content_id', $parameters)
+        ) {
             return 'Content id '.$parameters['content_id'];
         }
 
+        if (RouteObjectInterface::OBJECT_BASED_ROUTE_NAME === $name
+            && array_key_exists(RouteObjectInterface::ROUTE_OBJECT, $parameters)
+            && $parameters[RouteObjectInterface::ROUTE_OBJECT] instanceof RouteReferrersReadInterface
+        ) {
+            return 'Route aware content '.parent::getRouteDebugMessage($name, $parameters);
+        }
+
+        // legacy
         if ($name instanceof RouteReferrersReadInterface) {
             return 'Route aware content '.parent::getRouteDebugMessage($name, $parameters);
         }

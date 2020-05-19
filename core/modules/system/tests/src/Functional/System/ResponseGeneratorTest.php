@@ -17,7 +17,7 @@ class ResponseGeneratorTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['hal', 'rest', 'node', 'basic_auth'];
+  protected static $modules = ['hal', 'rest', 'node', 'basic_auth'];
 
   /**
    * {@inheritdoc}
@@ -27,7 +27,7 @@ class ResponseGeneratorTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
 
