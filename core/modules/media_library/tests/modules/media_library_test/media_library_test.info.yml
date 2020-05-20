@@ -11,7 +11,7 @@ dependencies:
   - drupal:node
   - drupal:path
 
-# Information added by Drupal.org packaging script on 2020-04-02
-version: '8.8.5'
+# Information added by Drupal.org packaging script on 2020-05-20
+version: '8.8.6'
 project: 'drupal'
-datestamp: 1585861582
+datestamp: 1589989103
