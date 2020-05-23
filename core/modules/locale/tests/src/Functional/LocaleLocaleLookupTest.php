@@ -18,7 +18,7 @@ class LocaleLocaleLookupTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['locale', 'locale_test'];
+  protected static $modules = ['locale', 'locale_test'];
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class LocaleLocaleLookupTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Change the language default object to different values.
@@ -84,7 +84,7 @@ class LocaleLocaleLookupTest extends BrowserTestBase {
     // Check that 'count[2]' was saved for source value.
     $translation = $string_storage->findTranslation(['language' => 'fr', 'lid' => $lid])->translation;
     $this->assertSame($translation_value, $translation, 'Source value not changed');
-    $this->assertNotFalse(strpos($translation, '@count[2]'), 'Source value contains @count[2]');
+    $this->assertStringContainsString('@count[2]', $translation, 'Source value contains @count[2]');
   }
 
   /**

@@ -24,7 +24,7 @@ class FileItemTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['file'];
+  protected static $modules = ['file'];
 
   /**
    * Created file entity.
@@ -40,7 +40,7 @@ class FileItemTest extends FieldKernelTestBase {
    */
   protected $directory;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');
@@ -93,8 +93,8 @@ class FileItemTest extends FieldKernelTestBase {
     $entity->save();
 
     $entity = EntityTest::load($entity->id());
-    $this->assertTrue($entity->file_test instanceof FieldItemListInterface, 'Field implements interface.');
-    $this->assertTrue($entity->file_test[0] instanceof FieldItemInterface, 'Field item implements interface.');
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->file_test);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->file_test[0]);
     $this->assertEqual($entity->file_test->target_id, $this->file->id());
     $this->assertEqual($entity->file_test->display, 1);
     $this->assertEqual($entity->file_test->description, $description);

@@ -2,7 +2,7 @@ name: 'Block test theme'
 type: theme
 base theme: stable
 description: 'Theme for testing the block system'
-# version: VERSION
+version: VERSION
 regions:
   sidebar_first: 'Left sidebar'
   sidebar_second: 'Right sidebar'
@@ -14,8 +14,3 @@ regions:
 regions_hidden:
   - sidebar_first
   - sidebar_second
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

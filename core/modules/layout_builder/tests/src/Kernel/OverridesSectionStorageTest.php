@@ -47,7 +47,7 @@ class OverridesSectionStorageTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->setUpCurrentUser();
@@ -109,9 +109,9 @@ class OverridesSectionStorageTest extends KernelTestBase {
     // Perform the same checks again but with a non default translation which
     // should always deny access.
     $result = $this->plugin->access('view');
-    $this->assertSame(FALSE, $result);
+    $this->assertFalse($result);
     $result = $this->plugin->access('view', $account);
-    $this->assertSame(FALSE, $result);
+    $this->assertFalse($result);
   }
 
   /**

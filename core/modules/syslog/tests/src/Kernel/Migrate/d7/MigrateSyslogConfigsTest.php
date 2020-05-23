@@ -19,12 +19,12 @@ class MigrateSyslogConfigsTest extends MigrateDrupal7TestBase {
    *
    * @var array
    */
-  public static $modules = ['syslog'];
+  protected static $modules = ['syslog'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(static::$modules);
     $this->executeMigration('d7_syslog_settings');

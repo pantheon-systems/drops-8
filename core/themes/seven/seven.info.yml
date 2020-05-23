@@ -17,7 +17,7 @@ base theme: false
 description: 'The default administration theme for Drupal 8 was designed with clean lines, simple blocks, and sans-serif font to emphasize the tools and tasks at hand.'
 alt text: 'Default administration theme for Drupal 8 with simple blocks and clean lines.'
 package: Core
-# version: VERSION
+version: VERSION
 libraries:
   - seven/classy.messages
   - core/normalize
@@ -90,8 +90,3 @@ regions_hidden:
 
 ckeditor_stylesheets:
   - css/classy/components/media-embed-error.css
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

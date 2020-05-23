@@ -1,0 +1,25 @@
+{
+  "alias": "alias-tool.phar",
+  "chmod": "0755",
+  "compactors": [],
+  "directories": ["src"],
+  "files": ["alias-tool", "README.md", "VERSION"],
+  "finder": [
+    {
+      "name": "*.php",
+      "exclude": [
+        "test",
+        "tests",
+        "Test",
+        "Tests",
+        "Tester"
+      ],
+      "in": "vendor"
+    }
+  ],
+  "git-commit": "git-commit",
+  "git-version": "git-version",
+  "output": "alias-tool.phar",
+  "main": "alias-tool",
+  "stub": true
+}

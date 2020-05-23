@@ -1,0 +1,60 @@
+{% import 'lib/di.twig' as di %}
+<?php
+
+namespace Drupal\{{ machine_name }};
+
+{% if services %}
+{{ di.use(services) }}
+{% endif %}
+/**
+ * Twig extension.
+ */
+class {{ class }} extends \Twig_Extension {
+
+{% if services %}
+{{ di.properties(services) }}
+
+  /**
+   * Constructs a new {{ class }} object.
+   *
+{{ di.annotation(services) }}
+   */
+  public function __construct({{ di.signature(services) }}) {
+{{ di.assignment(services) }}
+  }
+
+{% endif %}
+  /**
+   * {@inheritdoc}
+   */
+  public function getFunctions() {
+    return [
+      new \Twig_SimpleFunction('foo', function ($argument = NULL) {
+        return 'Foo: ' . $argument;
+      }),
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getFilters() {
+    return [
+      new \Twig_SimpleFilter('bar', function ($text) {
+        return str_replace('bar', 'BAR', $text);
+      }),
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTests() {
+    return [
+      new \Twig_SimpleTest('color', function ($text) {
+        return preg_match('/^#(?:[0-9a-f]{3}){1,2}$/i', $text);
+      }),
+    ];
+  }
+
+}

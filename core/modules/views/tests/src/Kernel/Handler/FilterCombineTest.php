@@ -15,7 +15,7 @@ class FilterCombineTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test'];
+  protected static $modules = ['entity_test'];
 
   /**
    * Views used by this test.
@@ -37,7 +37,7 @@ class FilterCombineTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installEntitySchema('entity_test');
@@ -188,6 +188,10 @@ class FilterCombineTest extends ViewsKernelTestBase {
       ],
     ];
     $this->assertIdenticalResultset($view, $resultset, $this->columnMap);
+
+    // Confirm that the query with multiple filters used the "CONCAT_WS"
+    // operator.
+    $this->assertStringContainsString('CONCAT_WS(', $view->query->query());
   }
 
   /**
@@ -271,6 +275,10 @@ class FilterCombineTest extends ViewsKernelTestBase {
     $errors = $view->validate();
     // Check that the right error is shown.
     $this->assertEquals(t('%display: %filter can only be used on displays that use fields. Set the style or row format for that display to one using fields to use the combine field filter.', ['%filter' => 'Global: Combine fields filter', '%display' => 'Master']), reset($errors['default']));
+
+    // Confirm that the query with single filter does not use the "CONCAT_WS"
+    // operator.
+    $this->assertStringNotContainsString('CONCAT_WS(', $view->query->query());
   }
 
   /**

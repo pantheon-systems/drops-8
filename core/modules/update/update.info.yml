@@ -1,13 +1,8 @@
 name: 'Update Manager'
 type: module
 description: 'Checks for available updates, and can securely install or update modules and themes via a web interface.'
-# version: VERSION
+version: VERSION
 package: Core
 configure: update.settings
 dependencies:
   - drupal:file
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

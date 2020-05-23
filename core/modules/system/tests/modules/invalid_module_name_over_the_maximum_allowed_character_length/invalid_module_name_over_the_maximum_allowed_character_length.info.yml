@@ -2,9 +2,4 @@ name: 'Module name length test'
 type: module
 description: 'Test module with a name over the maximum allowed characters.'
 package: Testing
-# version: VERSION
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457
+version: VERSION

@@ -28,7 +28,14 @@ class EntityReferenceAdminTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'field_ui', 'path', 'taxonomy', 'block', 'views_ui'];
+  protected static $modules = [
+    'node',
+    'field_ui',
+    'path',
+    'taxonomy',
+    'block',
+    'views_ui',
+  ];
 
   /**
    * {@inheritdoc}
@@ -45,7 +52,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('system_breadcrumb_block');
 
@@ -203,7 +210,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
       ->condition('vid', 'tags')
       ->accessCheck(FALSE)
       ->execute();
-    $this->assertIdentical(0, count($result), "No taxonomy terms exist with the name '$term_name'.");
+    $this->assertCount(0, $result, "No taxonomy terms exist with the name '$term_name'.");
     $edit = [
       // This must be set before new entities will be auto-created.
       'settings[handler_settings][auto_create]' => 1,
@@ -221,7 +228,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
       ->condition('vid', 'tags')
       ->accessCheck(FALSE)
       ->execute();
-    $this->assertIdentical(1, count($result), 'Taxonomy term was auto created when set as field default.');
+    $this->assertCount(1, $result, 'Taxonomy term was auto created when set as field default.');
   }
 
   /**
@@ -340,7 +347,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
     // should be reset (no auto-creation).
     $vocabularies[1]->delete();
     $field_config = FieldConfig::load($field_id);
-    $this->assertSame(FALSE, $field_config->getSetting('handler_settings')['auto_create']);
+    $this->assertFalse($field_config->getSetting('handler_settings')['auto_create']);
     $this->assertFalse(isset($field_config->getSetting('handler_settings')['auto_create_bundle']));
   }
 

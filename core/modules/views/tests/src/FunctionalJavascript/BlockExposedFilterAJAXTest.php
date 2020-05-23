@@ -20,7 +20,7 @@ class BlockExposedFilterAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'views', 'block', 'views_test_config'];
+  protected static $modules = ['node', 'views', 'block', 'views_test_config'];
 
   public static $testViews = ['test_block_exposed_ajax', 'test_block_exposed_ajax_with_page'];
 
@@ -32,7 +32,7 @@ class BlockExposedFilterAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     ViewTestData::createTestViews(self::class, ['views_test_config']);
     $this->createContentType(['type' => 'page']);
@@ -58,9 +58,9 @@ class BlockExposedFilterAJAXTest extends WebDriverTestBase {
 
     // Ensure that the Content we're testing for is present.
     $html = $page->getHtml();
-    $this->assertContains('Page A', $html);
-    $this->assertContains('Page B', $html);
-    $this->assertContains('Article A', $html);
+    $this->assertStringContainsString('Page A', $html);
+    $this->assertStringContainsString('Page B', $html);
+    $this->assertStringContainsString('Article A', $html);
 
     // Filter by page type.
     $this->submitForm(['type' => 'page'], t('Apply'));
@@ -68,18 +68,18 @@ class BlockExposedFilterAJAXTest extends WebDriverTestBase {
 
     // Verify that only the page nodes are present.
     $html = $page->getHtml();
-    $this->assertContains('Page A', $html);
-    $this->assertContains('Page B', $html);
-    $this->assertNotContains('Article A', $html);
+    $this->assertStringContainsString('Page A', $html);
+    $this->assertStringContainsString('Page B', $html);
+    $this->assertStringNotContainsString('Article A', $html);
 
     // Reset the form.
     $this->submitForm([], t('Reset'));
     // Assert we are still on the node page.
     $html = $page->getHtml();
     // Repeat the original tests.
-    $this->assertContains('Page A', $html);
-    $this->assertContains('Page B', $html);
-    $this->assertContains('Article A', $html);
+    $this->assertStringContainsString('Page A', $html);
+    $this->assertStringContainsString('Page B', $html);
+    $this->assertStringContainsString('Article A', $html);
     $this->assertSession()->addressEquals('node/' . $node->id());
 
     $block->delete();

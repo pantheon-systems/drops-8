@@ -16,7 +16,7 @@ type: theme
 base theme: false
 description: 'A flexible, recolorable theme with many regions and a responsive, mobile-first layout.'
 package: Core
-# version: VERSION
+version: VERSION
 libraries:
   - bartik/classy.base
   - bartik/classy.messages
@@ -71,8 +71,3 @@ regions:
   footer_third: 'Footer third'
   footer_fourth: 'Footer fourth'
   footer_fifth: 'Footer fifth'
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

@@ -14,12 +14,17 @@ class TimestampSchemaTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['entity_test', 'field', 'field_timestamp_test', 'user'];
+  protected static $modules = [
+    'entity_test',
+    'field',
+    'field_timestamp_test',
+    'user',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('entity_test');
   }

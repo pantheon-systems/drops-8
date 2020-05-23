@@ -1,0 +1,18 @@
+tests/phpunit.xml
+vendor
+box.phar
+drush.phar
+#The mkdocs output directory.
+site
+#The sami output directories
+api
+.sami-cache
+# IDE config
+.idea/
+sut/*
+!sut/drush
+sut/drush/sites/*test.site.yml
+/sandbox/
+.env
+# Test fixtures
+sut/drush/sites/synctest.site.yml

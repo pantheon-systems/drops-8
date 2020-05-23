@@ -1,0 +1,9 @@
+a:
+  color: red
+  shape: round
+b:
+  color: blue
+  shape: square
+c:
+  color: green
+  shape: triangular

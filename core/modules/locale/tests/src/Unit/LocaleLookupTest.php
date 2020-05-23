@@ -67,7 +67,7 @@ class LocaleLookupTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->storage = $this->createMock('Drupal\locale\StringStorageInterface');
     $this->cache = $this->createMock('Drupal\Core\Cache\CacheBackendInterface');
     $this->lock = $this->createMock('Drupal\Core\Lock\LockBackendInterface');
@@ -304,7 +304,12 @@ class LocaleLookupTest extends UnitTestCase {
       ->with('locale:' . $langcode . '::anonymous', FALSE);
 
     $locale_lookup = new LocaleLookup($langcode, '', $this->storage, $this->cache, $this->lock, $this->configFactory, $this->languageManager, $this->requestStack);
-    $this->assertSame($is_fix, strpos($locale_lookup->get($string), '@count[2]') === FALSE);
+    if ($is_fix) {
+      $this->assertStringNotContainsString('@count[2]', $locale_lookup->get($string));
+    }
+    else {
+      $this->assertStringContainsString('@count[2]', $locale_lookup->get($string));
+    }
   }
 
   /**

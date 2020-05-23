@@ -18,7 +18,7 @@ class LocalActionTest extends BrowserTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['block', 'menu_test'];
+  protected static $modules = ['block', 'menu_test'];
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class LocalActionTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('local_actions_block');
@@ -55,7 +55,7 @@ class LocalActionTest extends BrowserTestBase {
     ]);
     // Verify the expected cache tag in the response headers.
     $header_values = explode(' ', $this->drupalGetHeader('x-drupal-cache-tags'));
-    $this->assertTrue(in_array('config:menu_test.links.action', $header_values), "Found 'config:menu_test.links.action' cache tag in header");
+    $this->assertContains('config:menu_test.links.action', $header_values, "Found 'config:menu_test.links.action' cache tag in header");
     /** @var \Drupal\Core\Config\Config $config */
     $config = $this->container->get('config.factory')->getEditable('menu_test.links.action');
     $config->set('title', 'New title');

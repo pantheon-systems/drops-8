@@ -1,0 +1,5 @@
+.idea/
+box.phar
+build
+example.phar
+vendor/

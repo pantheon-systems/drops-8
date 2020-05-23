@@ -17,12 +17,12 @@ class SchemaConfigListenerTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['config_test'];
+  protected static $modules = ['config_test'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Install configuration provided by the module so that the order of the
     // config keys is the same as

@@ -33,7 +33,7 @@ class UserEntityReferenceTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->role1 = Role::create([
@@ -81,17 +81,17 @@ class UserEntityReferenceTest extends EntityKernelTestBase {
     $autocomplete = \Drupal::service('entity.autocomplete_matcher');
 
     $matches = $autocomplete->getMatches('user', 'default', $field_definition->getSetting('handler_settings'), 'aabb');
-    $this->assertEqual(count($matches), 2);
+    $this->assertCount(2, $matches);
     $users = [];
     foreach ($matches as $match) {
       $users[] = $match['label'];
     }
-    $this->assertTrue(in_array($user1->label(), $users));
-    $this->assertTrue(in_array($user2->label(), $users));
-    $this->assertFalse(in_array($user3->label(), $users));
+    $this->assertContains($user1->label(), $users);
+    $this->assertContains($user2->label(), $users);
+    $this->assertNotContains($user3->label(), $users);
 
     $matches = $autocomplete->getMatches('user', 'default', $field_definition->getSetting('handler_settings'), 'aabbbb');
-    $this->assertEqual(count($matches), 0, '');
+    $this->assertCount(0, $matches);
   }
 
 }

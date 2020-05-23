@@ -15,7 +15,7 @@ class EntityDisplayTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['field_ui', 'entity_test'];
+  protected static $modules = ['field_ui', 'entity_test'];
 
   /**
    * {@inheritdoc}
@@ -25,7 +25,7 @@ class EntityDisplayTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $entity = EntityTest::create([

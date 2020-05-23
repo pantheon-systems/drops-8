@@ -14,7 +14,7 @@ class FormStoragePageCacheTest extends BrowserTestBase {
   /**
    * @var array
    */
-  public static $modules = ['form_test'];
+  protected static $modules = ['form_test'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class FormStoragePageCacheTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $config = $this->config('system.performance');
@@ -37,7 +37,7 @@ class FormStoragePageCacheTest extends BrowserTestBase {
    */
   protected function getFormBuildId() {
     $build_id_fields = $this->xpath('//input[@name="form_build_id"]');
-    $this->assertEqual(count($build_id_fields), 1, 'One form build id field on the page');
+    $this->assertCount(1, $build_id_fields, 'One form build id field on the page');
     return (string) $build_id_fields[0]->getAttribute('value');
   }
 

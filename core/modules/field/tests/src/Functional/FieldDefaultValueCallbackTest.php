@@ -18,7 +18,7 @@ class FieldDefaultValueCallbackTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'field_test', 'field_ui'];
+  protected static $modules = ['node', 'field_test', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -35,7 +35,7 @@ class FieldDefaultValueCallbackTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->fieldName = 'field_test';

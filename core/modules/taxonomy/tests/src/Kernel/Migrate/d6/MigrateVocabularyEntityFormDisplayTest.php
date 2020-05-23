@@ -15,12 +15,12 @@ class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'menu_ui'];
+  protected static $modules = ['taxonomy', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Execute Dependency Migrations.
@@ -55,7 +55,7 @@ class MigrateVocabularyEntityFormDisplayTest extends MigrateDrupal6TestBase {
     // Tests that a vocabulary named like a D8 base field will be migrated and
     // prefixed with 'field_' to avoid conflicts.
     $field_type = EntityFormDisplay::load('node.sponsor.default')->getComponent('field_type');
-    $this->assertTrue(is_array($field_type));
+    $this->assertIsArray($field_type);
   }
 
   /**

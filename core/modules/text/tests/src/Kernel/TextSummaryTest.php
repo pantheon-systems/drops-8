@@ -20,7 +20,7 @@ class TextSummaryTest extends KernelTestBase {
 
   use UserCreationTrait;
 
-  public static $modules = [
+  protected static $modules = [
     'system',
     'user',
     'filter',
@@ -29,7 +29,7 @@ class TextSummaryTest extends KernelTestBase {
     'entity_test',
   ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['text']);

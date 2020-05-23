@@ -33,9 +33,9 @@ class ConfigImporterTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['config_test', 'system', 'config_import_test'];
+  protected static $modules = ['config_test', 'system', 'config_import_test'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['system', 'config_test']);
@@ -142,7 +142,7 @@ class ConfigImporterTest extends KernelTestBase {
     $this->configImporter->reset()->import();
 
     // Verify the file has been removed.
-    $this->assertIdentical($storage->read($dynamic_name), FALSE);
+    $this->assertFalse($storage->read($dynamic_name));
 
     $config = $this->config($dynamic_name);
     $this->assertIdentical($config->get('id'), NULL);
@@ -157,7 +157,7 @@ class ConfigImporterTest extends KernelTestBase {
 
     $this->assertFalse($this->configImporter->hasUnprocessedConfigurationChanges());
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 0);
+    $this->assertCount(0, $logs);
   }
 
   /**
@@ -169,7 +169,7 @@ class ConfigImporterTest extends KernelTestBase {
     $sync = $this->container->get('config.storage.sync');
 
     // Verify the configuration to create does not exist yet.
-    $this->assertIdentical($storage->exists($dynamic_name), FALSE, $dynamic_name . ' not found.');
+    $this->assertFalse($storage->exists($dynamic_name), $dynamic_name . ' not found.');
 
     // Create new config entity.
     $original_dynamic_data = [
@@ -187,7 +187,7 @@ class ConfigImporterTest extends KernelTestBase {
     ];
     $sync->write($dynamic_name, $original_dynamic_data);
 
-    $this->assertIdentical($sync->exists($dynamic_name), TRUE, $dynamic_name . ' found.');
+    $this->assertTrue($sync->exists($dynamic_name), $dynamic_name . ' found.');
 
     // Import.
     $this->configImporter->reset()->import();
@@ -211,7 +211,7 @@ class ConfigImporterTest extends KernelTestBase {
     // Verify that there is nothing more to import.
     $this->assertFalse($this->configImporter->hasUnprocessedConfigurationChanges());
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 0);
+    $this->assertCount(0, $logs);
   }
 
   /**
@@ -256,7 +256,7 @@ class ConfigImporterTest extends KernelTestBase {
     $this->assertEqual($secondary->label(), $values_secondary['label']);
 
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 1);
+    $this->assertCount(1, $logs);
     $this->assertEqual($logs[0], new FormattableMarkup('Deleted and replaced configuration entity "@name"', ['@name' => $name_secondary]));
   }
 
@@ -302,7 +302,7 @@ class ConfigImporterTest extends KernelTestBase {
     $this->assertEqual($secondary->label(), $values_secondary['label']);
 
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 1);
+    $this->assertCount(1, $logs);
     $this->assertEqual($logs[0], Html::escape("Unexpected error during import with operation create for $name_primary: 'config_test' entity with ID 'secondary' already exists."));
   }
 
@@ -384,7 +384,7 @@ class ConfigImporterTest extends KernelTestBase {
     $this->assertEqual($other->label(), $values_other['label']);
 
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 1);
+    $this->assertCount(1, $logs);
     $this->assertEqual($logs[0], new FormattableMarkup('Update target "@name" is missing.', ['@name' => $name_deletee]));
   }
 
@@ -435,7 +435,7 @@ class ConfigImporterTest extends KernelTestBase {
     $this->assertNull($entity_storage->load('deleter'));
     $this->assertNull($entity_storage->load('deletee'));
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 0);
+    $this->assertCount(0, $logs);
   }
 
   /**
@@ -477,7 +477,7 @@ class ConfigImporterTest extends KernelTestBase {
     // delete occurred in \Drupal\config_test\Entity\ConfigTest::postDelete()
     // this does not matter.
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 0);
+    $this->assertCount(0, $logs);
   }
 
   /**
@@ -490,8 +490,8 @@ class ConfigImporterTest extends KernelTestBase {
     $sync = $this->container->get('config.storage.sync');
 
     // Verify that the configuration objects to import exist.
-    $this->assertIdentical($storage->exists($name), TRUE, $name . ' found.');
-    $this->assertIdentical($storage->exists($dynamic_name), TRUE, $dynamic_name . ' found.');
+    $this->assertTrue($storage->exists($name), $name . ' found.');
+    $this->assertTrue($storage->exists($dynamic_name), $dynamic_name . ' found.');
 
     // Replace the file content of the existing configuration objects in the
     // sync directory.
@@ -534,7 +534,7 @@ class ConfigImporterTest extends KernelTestBase {
     // Verify that there is nothing more to import.
     $this->assertFalse($this->configImporter->hasUnprocessedConfigurationChanges());
     $logs = $this->configImporter->getErrors();
-    $this->assertEqual(count($logs), 0);
+    $this->assertCount(0, $logs);
   }
 
   /**
@@ -617,7 +617,7 @@ class ConfigImporterTest extends KernelTestBase {
         'Configuration <em class="placeholder">unknown.config</em> depends on the <em class="placeholder">unknown</em> extension that will not be installed after import.',
       ];
       foreach ($expected as $expected_message) {
-        $this->assertTrue(in_array($expected_message, $error_log), $expected_message);
+        $this->assertContains($expected_message, $error_log, $expected_message);
       }
     }
 
@@ -663,7 +663,7 @@ class ConfigImporterTest extends KernelTestBase {
         'Configuration <em class="placeholder">config_test.dynamic.dotted.theme</em> depends on themes (<em class="placeholder">unknown, Seven</em>) that will not be installed after import.',
       ];
       foreach ($expected as $expected_message) {
-        $this->assertTrue(in_array($expected_message, $error_log), $expected_message);
+        $this->assertContains($expected_message, $error_log, $expected_message);
       }
     }
   }

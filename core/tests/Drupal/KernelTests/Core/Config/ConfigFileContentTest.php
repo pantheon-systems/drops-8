@@ -63,7 +63,7 @@ class ConfigFileContentTest extends KernelTestBase {
 
     // Verify nothing was saved.
     $data = $storage->read($name);
-    $this->assertIdentical($data, FALSE);
+    $this->assertFalse($data);
 
     // Add a top level value.
     $config = $this->config($name);
@@ -126,7 +126,7 @@ class ConfigFileContentTest extends KernelTestBase {
     $this->assertIdentical($config->get('null'), NULL);
 
     // Read false that had been nested in an array value.
-    $this->assertSame(FALSE, $config->get($casting_array_false_value_key), "Nested boolean FALSE value returned FALSE.");
+    $this->assertFalse($config->get($casting_array_false_value_key), "Nested boolean FALSE value returned FALSE.");
 
     // Unset a top level value.
     $config->clear($key);
@@ -159,17 +159,17 @@ class ConfigFileContentTest extends KernelTestBase {
     // Get file listing for all files starting with 'foo'. Should return
     // two elements.
     $files = $storage->listAll('foo');
-    $this->assertEqual(count($files), 2, 'Two files listed with the prefix \'foo\'.');
+    $this->assertCount(2, $files, 'Two files listed with the prefix \'foo\'.');
 
     // Get file listing for all files starting with 'biff'. Should return
     // one element.
     $files = $storage->listAll('biff');
-    $this->assertEqual(count($files), 1, 'One file listed with the prefix \'biff\'.');
+    $this->assertCount(1, $files, 'One file listed with the prefix \'biff\'.');
 
     // Get file listing for all files starting with 'foo.bar'. Should return
     // one element.
     $files = $storage->listAll('foo.bar');
-    $this->assertEqual(count($files), 1, 'One file listed with the prefix \'foo.bar\'.');
+    $this->assertCount(1, $files, 'One file listed with the prefix \'foo.bar\'.');
 
     // Get file listing for all files starting with 'bar'. Should return
     // an empty array.
@@ -182,7 +182,7 @@ class ConfigFileContentTest extends KernelTestBase {
 
     // Verify the database entry no longer exists.
     $data = $storage->read($name);
-    $this->assertIdentical($data, FALSE);
+    $this->assertFalse($data);
   }
 
   /**

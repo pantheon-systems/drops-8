@@ -73,7 +73,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->moduleHandler = $this->createMock('Drupal\Core\Extension\ModuleHandlerInterface');
@@ -236,7 +236,7 @@ class LibraryDiscoveryParserTest extends UnitTestCase {
 
     $libraries = $this->libraryDiscoveryParser->buildByExtension('versions');
 
-    $this->assertFalse(array_key_exists('version', $libraries['versionless']));
+    $this->assertArrayNotHasKey('version', $libraries['versionless']);
     $this->assertEquals(-1, $libraries['versionless']['css'][0]['version']);
     $this->assertEquals(-1, $libraries['versionless']['js'][0]['version']);
 

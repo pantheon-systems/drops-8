@@ -18,7 +18,14 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['field', 'file', 'image', 'entity_test', 'user', 'text'];
+  protected static $modules = [
+    'field',
+    'file',
+    'image',
+    'entity_test',
+    'user',
+    'text',
+  ];
 
   /**
    * {@inheritdoc}
@@ -28,7 +35,7 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installEntitySchema('entity_test');
@@ -76,7 +83,7 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
     $dependencies = $view->getDependencies() + ['config' => []];
 
     // Checks that style 'foo' is a dependency of view 'entity_test_fields'.
-    $this->assertTrue(in_array('image.style.foo', $dependencies['config']));
+    $this->assertContains('image.style.foo', $dependencies['config']);
 
     // Delete the 'foo' image style.
     $style->delete();
@@ -95,7 +102,7 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
 
     $dependencies = $view->getDependencies() + ['config' => []];
     // Checks that the dependency on style 'foo' has been removed.
-    $this->assertFalse(in_array('image.style.foo', $dependencies['config']));
+    $this->assertNotContains('image.style.foo', $dependencies['config']);
   }
 
   /**
@@ -127,7 +134,7 @@ class ViewsConfigDependenciesIntegrationTest extends ViewsKernelTestBase {
 
     // Check that the View now has a dependency on the Role.
     $dependencies = $view->getDependencies() + ['config' => []];
-    $this->assertTrue(in_array('user.role.dummy', $dependencies['config']));
+    $this->assertContains('user.role.dummy', $dependencies['config']);
 
     // Delete the role.
     $role->delete();

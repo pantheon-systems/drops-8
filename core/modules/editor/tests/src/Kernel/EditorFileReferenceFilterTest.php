@@ -19,7 +19,14 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system', 'filter', 'editor', 'field', 'file', 'user'];
+  protected static $modules = [
+    'system',
+    'filter',
+    'editor',
+    'field',
+    'file',
+    'user',
+  ];
 
   /**
    * @var \Drupal\filter\Plugin\FilterInterface[]
@@ -29,7 +36,7 @@ class EditorFileReferenceFilterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['system']);
     $this->installEntitySchema('file');

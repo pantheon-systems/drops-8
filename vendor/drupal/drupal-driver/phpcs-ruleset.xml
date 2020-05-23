@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!-- PHP_CodeSniffer standard -->
+<!-- See https://github.com/squizlabs/PHP_CodeSniffer/wiki/Annotated-ruleset.xml -->
+<ruleset name="Invoicing">
+    <description>DrupalDriver coding standard</description>
+
+    <rule ref="./vendor/drupal/coder/coder_sniffer/Drupal">
+    </rule>
+
+    <!-- Core drivers need to set a server's remote address. -->
+    <rule ref="Drupal.Semantics.RemoteAddress.RemoteAddress">
+        <exclude-pattern>src/Drupal/Driver/Cores/*.php</exclude-pattern>
+    </rule>
+
+    <exclude-pattern>*/doc/*</exclude-pattern>
+    <exclude-pattern >*/drush/*</exclude-pattern>
+    <exclude-pattern>*/reports/*</exclude-pattern>
+    <exclude-pattern>*/spec/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/CHANGELOG.md</exclude-pattern>
+    <exclude-pattern>*/README.md</exclude-pattern>
+
+</ruleset>

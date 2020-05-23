@@ -45,7 +45,7 @@ class EntityReferenceIntegrationTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['config_test', 'entity_test', 'field_ui'];
+  protected static $modules = ['config_test', 'entity_test', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -55,7 +55,7 @@ class EntityReferenceIntegrationTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a test user.
@@ -163,7 +163,7 @@ class EntityReferenceIntegrationTest extends BrowserTestBase {
       // Ensure the configuration has the expected dependency on the entity that
       // is being used a default value.
       $field = FieldConfig::loadByName($this->entityType, $this->bundle, $this->fieldName);
-      $this->assertTrue(in_array($referenced_entities[0]->getConfigDependencyName(), $field->getDependencies()[$key]), new FormattableMarkup('Expected @type dependency @name found', ['@type' => $key, '@name' => $referenced_entities[0]->getConfigDependencyName()]));
+      $this->assertContains($referenced_entities[0]->getConfigDependencyName(), $field->getDependencies()[$key], new FormattableMarkup('Expected @type dependency @name found', ['@type' => $key, '@name' => $referenced_entities[0]->getConfigDependencyName()]));
       // Ensure that the field can be imported without change even after the
       // default value deleted.
       $referenced_entities[0]->delete();

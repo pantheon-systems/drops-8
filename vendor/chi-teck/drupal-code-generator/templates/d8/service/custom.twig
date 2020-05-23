@@ -1,0 +1,34 @@
+{% import 'lib/di.twig' as di %}
+<?php
+
+namespace Drupal\{{ machine_name }};
+
+{% if services %}
+{{ di.use(services) }}
+{% endif %}
+/**
+ * {{ class }} service.
+ */
+class {{ class }} {
+
+{% if services %}
+{{ di.properties(services) }}
+
+  /**
+   * Constructs {{ class|article }} object.
+   *
+{{ di.annotation(services) }}
+   */
+  public function __construct({{ di.signature(services) }}) {
+{{ di.assignment(services) }}
+  }
+
+{% endif %}
+  /**
+   * Method description.
+   */
+  public function doSomething() {
+    // @DCG place your code here.
+  }
+
+}

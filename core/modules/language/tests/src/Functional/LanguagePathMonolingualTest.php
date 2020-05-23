@@ -16,14 +16,14 @@ class LanguagePathMonolingualTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'language', 'path'];
+  protected static $modules = ['block', 'language', 'path'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create and log in user.
@@ -71,7 +71,7 @@ class LanguagePathMonolingualTest extends BrowserTestBase {
 
     // Verify that links in this page can be followed and work.
     $this->clickLink(t('Languages'));
-    $this->assertResponse(200, 'Clicked link results in a valid page');
+    $this->assertResponse(200);
     $this->assertText(t('Add language'), 'Page contains the add language text');
   }
 

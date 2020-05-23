@@ -14,7 +14,7 @@ class CommandsTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'ajax_test', 'ajax_forms_test'];
+  protected static $modules = ['node', 'ajax_test', 'ajax_forms_test'];
 
   /**
    * {@inheritdoc}
@@ -151,7 +151,7 @@ JS;
     $page->waitFor(10, function () use ($page, $text) {
       return stripos($page->getContent(), $text) !== FALSE;
     });
-    $this->assertContains($text, $page->getContent());
+    $this->assertStringContainsString($text, $page->getContent());
   }
 
 }

@@ -18,7 +18,7 @@ class ExtensionViewsFieldTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['file', 'file_test_views', 'user'];
+  protected static $modules = ['file', 'file_test_views', 'user'];
 
   /**
    * Views used by this test.
@@ -30,7 +30,7 @@ class ExtensionViewsFieldTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
     ViewTestData::createTestViews(get_class($this), ['file_test_views']);
 

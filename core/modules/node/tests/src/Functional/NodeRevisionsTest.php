@@ -41,12 +41,18 @@ class NodeRevisionsTest extends NodeTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'contextual', 'datetime', 'language', 'content_translation'];
+  protected static $modules = [
+    'node',
+    'contextual',
+    'datetime',
+    'language',
+    'content_translation',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable additional languages.

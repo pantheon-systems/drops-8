@@ -1,0 +1,116 @@
+{% import 'lib/di.twig' as di %}
+<?php
+
+namespace Drupal\{{ machine_name }}\Plugin\views\argument_default;
+
+{% sort %}
+use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableDependencyInterface;
+  {% if configurable %}
+use Drupal\Core\Form\FormStateInterface;
+  {% endif %}
+use Drupal\views\Plugin\views\argument_default\ArgumentDefaultPluginBase;
+  {% if services %}
+{{ di.use(services) }}
+use Symfony\Component\DependencyInjection\ContainerInterface;
+  {% endif %}
+{% endsort %}
+
+/**
+ * {{ plugin_label }} argument default plugin.
+ *
+ * @ViewsArgumentDefault(
+ *   id = "{{ plugin_id }}",
+ *   title = @Translation("{{ plugin_label }}")
+ * )
+ */
+class {{ class }} extends ArgumentDefaultPluginBase implements CacheableDependencyInterface {
+
+{% if services %}
+{{ di.properties(services) }}
+
+  /**
+   * Constructs a new {{ class }} instance.
+   *
+   * @param array $configuration
+   *   The plugin configuration, i.e. an array with configuration values keyed
+   *   by configuration option name. The special key 'context' may be used to
+   *   initialize the defined contexts by setting it to an array of context
+   *   values keyed by context names.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+{{ di.annotation(services) }}
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, {{ di.signature(services) }}) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+{{ di.assignment(services) }}
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+{{ di.container(services) }}
+    );
+  }
+
+{% endif %}
+{% if configurable %}
+  /**
+   * {@inheritdoc}
+   */
+  protected function defineOptions() {
+    $options = parent::defineOptions();
+    $options['example'] = ['default' => ''];
+    return $options;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildOptionsForm(&$form, FormStateInterface $form_state) {
+    $form['example'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Example'),
+      '#default_value' => $this->options['example'],
+    ];
+  }
+
+{% endif %}
+  /**
+   * {@inheritdoc}
+   */
+  public function getArgument() {
+
+    // @DCG
+    // Here is the place where you should create a default argument for the
+    // contextual filter. The source of this argument depends on your needs.
+    // For example, you can extract the value from the URL or fetch it from
+    // some fields of the current viewed entity.
+    $argument = 123;
+
+    return $argument;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheMaxAge() {
+    return Cache::PERMANENT;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheContexts() {
+    // @DCG Use 'url' context if the argument comes from URL.
+    return [];
+  }
+
+}

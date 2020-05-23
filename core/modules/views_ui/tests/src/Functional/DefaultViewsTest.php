@@ -26,7 +26,7 @@ class DefaultViewsTest extends UITestBase {
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->placeBlock('page_title_block');
@@ -176,21 +176,21 @@ class DefaultViewsTest extends UITestBase {
     $this->drupalGet('admin/structure/views');
 
     $elements = $this->xpath($xpath, $arguments);
-    $this->assertIdentical(count($elements), 0, 'A disabled view is not found in the enabled views table.');
+    $this->assertCount(0, $elements, 'A disabled view is not found in the enabled views table.');
 
     $arguments[':status'] = 'views-list-section disabled';
     $elements = $this->xpath($xpath, $arguments);
-    $this->assertIdentical(count($elements), 1, 'A disabled view is found in the disabled views table.');
+    $this->assertCount(1, $elements, 'A disabled view is found in the disabled views table.');
 
     // Enable the view.
     $this->clickViewsOperationLink(t('Enable'), '/test_view_status/');
 
     $elements = $this->xpath($xpath, $arguments);
-    $this->assertIdentical(count($elements), 0, 'After enabling a view, it is not found in the disabled views table.');
+    $this->assertCount(0, $elements, 'After enabling a view, it is not found in the disabled views table.');
 
     $arguments[':status'] = 'views-list-section enabled';
     $elements = $this->xpath($xpath, $arguments);
-    $this->assertIdentical(count($elements), 1, 'After enabling a view, it is found in the enabled views table.');
+    $this->assertCount(1, $elements, 'After enabling a view, it is found in the enabled views table.');
 
     // Attempt to disable the view by path directly, with no token.
     $this->drupalGet('admin/structure/views/view/test_view_status/disable');

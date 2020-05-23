@@ -21,7 +21,7 @@ class RssFieldsTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'field', 'text', 'filter'];
+  protected static $modules = ['node', 'field', 'text', 'filter'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class RssFieldsTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installConfig(['node', 'filter']);
@@ -71,7 +71,7 @@ class RssFieldsTest extends ViewsKernelTestBase {
     $view = Views::getView('test_display_feed');
     $output = $view->preview('feed_2');
     $output = (string) $renderer->renderRoot($output);
-    $this->assertContains('<link>' . $node_url . '</link>', $output);
+    $this->assertStringContainsString('<link>' . $node_url . '</link>', $output);
   }
 
 }

@@ -21,7 +21,7 @@ class ContentEntityNonRevisionableFieldTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['language'];
+  protected static $modules = ['language'];
 
   /**
    * The EntityTestMulRev entity type storage.
@@ -40,7 +40,7 @@ class ContentEntityNonRevisionableFieldTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable an additional language.

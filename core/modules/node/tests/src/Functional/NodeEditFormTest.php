@@ -43,9 +43,9 @@ class NodeEditFormTest extends NodeTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['block', 'node', 'datetime'];
+  protected static $modules = ['block', 'node', 'datetime'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->webUser = $this->drupalCreateUser(['edit own page content', 'create page content']);

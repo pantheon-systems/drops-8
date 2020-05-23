@@ -33,7 +33,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'contextual',
     'quickedit',
     'filter',
@@ -68,18 +68,9 @@ class QuickEditLoadingTest extends WebDriverTestBase {
   protected $editorUser;
 
   /**
-   * CSS animations must be enabled for PopperJS positioning to work properly.
-   *
-   * @var bool
-   *
-   * @todo revisit in http://drupal.org/node/3082602
-   */
-  protected $disableCssAnimations = FALSE;
-
-  /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a text format.
@@ -267,7 +258,7 @@ class QuickEditLoadingTest extends WebDriverTestBase {
     ];
     $build = $node->body->view($display_settings);
     $output = \Drupal::service('renderer')->renderRoot($build);
-    $this->assertFalse(strpos($output, 'data-quickedit-field-id'), 'data-quickedit-field-id attribute not added when rendering field using dynamic display options.');
+    $this->assertStringNotContainsString('data-quickedit-field-id', $output, 'data-quickedit-field-id attribute not added when rendering field using dynamic display options.');
   }
 
   /**

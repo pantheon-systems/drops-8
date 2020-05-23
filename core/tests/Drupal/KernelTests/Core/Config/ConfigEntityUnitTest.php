@@ -25,7 +25,7 @@ class ConfigEntityUnitTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['config_test'];
+  protected static $modules = ['config_test'];
 
   /**
    * The config_test entity storage.
@@ -37,7 +37,7 @@ class ConfigEntityUnitTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->storage = $this->container->get('entity_type.manager')->getStorage('config_test');
   }
@@ -83,10 +83,10 @@ class ConfigEntityUnitTest extends KernelTestBase {
     $this->assertSame($entity->uuid(), $entity_loaded_by_uuid->uuid());
 
     $entities = $this->storage->loadByProperties();
-    $this->assertEqual(count($entities), 3, 'Three entities are loaded when no properties are specified.');
+    $this->assertCount(3, $entities, 'Three entities are loaded when no properties are specified.');
 
     $entities = $this->storage->loadByProperties(['style' => $style]);
-    $this->assertEqual(count($entities), 2, 'Two entities are loaded when the style property is specified.');
+    $this->assertCount(2, $entities, 'Two entities are loaded when the style property is specified.');
 
     // Assert that both returned entities have a matching style property.
     foreach ($entities as $entity) {

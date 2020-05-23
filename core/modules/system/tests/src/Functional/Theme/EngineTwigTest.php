@@ -21,14 +21,14 @@ class EngineTwigTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['theme_test', 'twig_theme_test'];
+  protected static $modules = ['theme_test', 'twig_theme_test'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::service('theme_installer')->install(['test_theme']);
   }

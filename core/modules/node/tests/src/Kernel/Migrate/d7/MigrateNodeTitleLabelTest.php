@@ -12,12 +12,12 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateNodeTitleLabelTest extends MigrateDrupal7TestBase {
 
-  public static $modules = ['node', 'text', 'menu_ui'];
+  protected static $modules = ['node', 'text', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateContentTypes();
     $this->executeMigration('d7_node_title_label');
@@ -33,7 +33,7 @@ class MigrateNodeTitleLabelTest extends MigrateDrupal7TestBase {
    */
   protected function assertEntity($id, $label) {
     $override = BaseFieldOverride::load($id);
-    $this->assertTrue($override instanceof BaseFieldOverride);
+    $this->assertInstanceOf(BaseFieldOverride::class, $override);
     /** @var \Drupal\Core\Field\Entity\BaseFieldOverride $override */
     $this->assertIdentical($label, $override->getLabel());
   }
@@ -54,7 +54,7 @@ class MigrateNodeTitleLabelTest extends MigrateDrupal7TestBase {
     ];
     foreach ($no_override_node_type as $type) {
       $override = BaseFieldOverride::load("node.$type.title");
-      $this->assertFalse($override instanceof BaseFieldOverride);
+      $this->assertNotInstanceOf(BaseFieldOverride::class, $override);
     }
   }
 

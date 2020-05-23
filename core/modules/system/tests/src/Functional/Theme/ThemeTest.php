@@ -18,7 +18,7 @@ class ThemeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['theme_test', 'node'];
+  protected static $modules = ['theme_test', 'node'];
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class ThemeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::service('theme_installer')->install(['test_theme']);
   }
@@ -37,7 +37,7 @@ class ThemeTest extends BrowserTestBase {
    * Ensures preprocess functions run even for suggestion implementations.
    *
    * The theme hook used by this test has its base preprocess function in a
-   * separate file, so this test also ensures that that file is correctly loaded
+   * separate file, so this test also ensures that the file is correctly loaded
    * when needed.
    */
   public function testPreprocessForSuggestions() {
@@ -82,7 +82,7 @@ class ThemeTest extends BrowserTestBase {
     $suggestions = theme_get_suggestions(['user', 'login'], 'page');
     // Set it back to not annoy the batch runner.
     \Drupal::requestStack()->pop();
-    $this->assertTrue(in_array('page__front', $suggestions), 'Front page template was suggested.');
+    $this->assertContains('page__front', $suggestions, 'Front page template was suggested.');
   }
 
   /**
@@ -150,7 +150,7 @@ class ThemeTest extends BrowserTestBase {
   public function testPreprocessHtml() {
     $this->drupalGet('');
     $attributes = $this->xpath('/body[@theme_test_page_variable="Page variable is an array."]');
-    $this->assertTrue(count($attributes) == 1, 'In template_preprocess_html(), the page variable is still an array (not rendered yet).');
+    $this->assertCount(1, $attributes, 'In template_preprocess_html(), the page variable is still an array (not rendered yet).');
     $this->assertText('theme test page bottom markup', 'Modules are able to set the page bottom region.');
   }
 
@@ -164,14 +164,14 @@ class ThemeTest extends BrowserTestBase {
     $this->drupalPlaceBlock('system_main_block');
     $this->drupalGet('');
     $elements = $this->cssSelect(".region-sidebar-first.new_class");
-    $this->assertEqual(count($elements), 1, 'New class found.');
+    $this->assertCount(1, $elements, 'New class found.');
   }
 
   /**
    * Ensures suggestion preprocess functions run for default implementations.
    *
    * The theme hook used by this test has its base preprocess function in a
-   * separate file, so this test also ensures that that file is correctly loaded
+   * separate file, so this test also ensures that the file is correctly loaded
    * when needed.
    */
   public function testSuggestionPreprocessForDefaults() {

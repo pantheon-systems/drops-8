@@ -21,7 +21,7 @@ class NodeTypeTranslationTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'config_translation',
     'field_ui',
@@ -54,7 +54,7 @@ class NodeTypeTranslationTest extends BrowserTestBase {
    */
   protected $adminUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $admin_permissions = [

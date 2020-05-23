@@ -1,0 +1,49 @@
+{
+  "name": "drupal/drupal-driver",
+  "type": "library",
+  "description": "A collection of reusable Drupal drivers",
+  "keywords": ["drupal", "web", "test"],
+  "homepage": "http://github.com/jhedstrom/DrupalDriver",
+  "license": "GPL-2.0-or-later",
+  "authors": [
+     {
+       "name": "Jonathan Hedstrom",
+       "email": "jhedstrom@gmail.com"
+     }
+  ],
+  "require": {
+    "php": ">=5.6",
+    "symfony/process": "~2.5|~3.0|~4.4",
+    "symfony/dependency-injection": "~2.6|~3.0|~4.4",
+    "drupal/core-utility": "^8.4 || ^9"
+  },
+  "require-dev": {
+    "drupal/coder": "~8.3.0",
+    "phpspec/phpspec": "~2.0 || ~4.0 || ~6.1",
+    "phpunit/phpunit": "~6.0 || ~7.0",
+    "mockery/mockery": "0.9.4",
+    "drush-ops/behat-drush-endpoint": "*",
+    "jakub-onderka/php-parallel-lint": "^1.0"
+  },
+  "scripts": {
+    "test": [
+      "composer validate --no-interaction",
+      "parallel-lint src spec tests",
+      "phpunit --coverage-html=reports/coverage",
+      "phpspec run -f pretty --no-interaction",
+      "phpcs --standard=./phpcs-ruleset.xml ."
+
+    ]
+  },
+  "autoload": {
+    "psr-0": {
+      "Drupal\\Driver": "src/",
+      "Drupal\\Tests\\Driver" : "tests/"
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "2.1.x-dev"
+    }
+  }
+}

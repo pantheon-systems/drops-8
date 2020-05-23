@@ -1,0 +1,37 @@
+dist: trusty
+language: php
+branches:
+  only:
+  - master
+  - "/^[[:digit:]]+\\.[[:digit:]]+\\.[[:digit:]]+.*$/"
+matrix:
+  fast_finish: true
+  include:
+  - php: 7.2
+    env: DEPENCENCIES=highest
+  - php: 7.2
+  - php: 7.1
+  - php: 7.1
+    env: DEPENDENCIES=lowest
+sudo: false
+cache:
+  directories:
+  - "$HOME/.composer/cache"
+install:
+- .scenarios.lock/install "${SCENARIO}" "${DEPENDENCIES}"
+script:
+- composer test
+after_success:
+- travis_retry php vendor/bin/php-coveralls -v
+before_deploy:
+- composer phar:install-tools
+- composer require --no-scripts consolidation/Robo
+- composer install --prefer-dist --no-dev --no-interaction
+- composer phar:build
+deploy:
+  provider: releases
+  api_key:
+    secure: nF8o89VYeIkgHm5Iw7qPAIihVAZHz8zZwcKY1FzRAEuQWwQncMfgRpmW2VffFsDPAE+iaIeTcE5Xl5oIZGstdJ1Toybsm6U1Zwg5nP30t7IeJt4KBcY65LnZLUixnf+W8nfmQ1LLoHriZqSIEqUsb8nBuADkeROWRO1VOdntPmTFSdTeju/cOikW/xighxSLS57Ie4btKKcVmUOSnORPZj3PD0E1epYl6Sl4ghWmk0MdzUFNjlqAKrikkJG3DpLAvHPVzLC7T3IleEN7ueZC+N4iSwRxnBqc/+si07Kir6uJ3Y2uyCUcy5JLmoZHKRJ6OZjOxxW79kQ4xgiulsag2LEW3IntjK3N3h11U8Dcr6gQZ5PsOfND/FeSQlZb5mvqFKWEldwWLdHsMVyOxVmcnmZUK4/ZieHkX4fD5bB8YKHbQdvHPLlhyclps6aF+QVwDuy7ghlozpgEJ9s192ndQAeaJERm6+p6Owre41D6DG4Svq4z3ASlUJNFjWRQrrHjhYDbUg3G23H3UmigZpW3V0+VXzcnRo8tZCcQQulieBhxNLVL369VhWeq5GXiknL8SolT/5hgBPQzCFi/H++ITCBvygRbCZKepsA9YCM4RlW1Uq0wdqTMFgHnBvTpeKyngacY4hCRPFOEli8SEndR5ldPwHcWaGXth0MU35lwUqA=
+  file: remo.phar
+  on:
+    repo: consolidation/site-process

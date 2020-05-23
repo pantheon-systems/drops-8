@@ -54,7 +54,7 @@ class CommentPreviewTest extends CommentTestBase {
 
     \Drupal::state()->set('user_hooks_test_user_format_name_alter_safe', TRUE);
     $this->drupalPostForm('node/' . $this->node->id(), $edit, t('Preview'));
-    $this->assertTrue($this->webUser->getDisplayName() instanceof MarkupInterface, 'Username is marked safe');
+    $this->assertInstanceOf(MarkupInterface::class, $this->webUser->getDisplayName());
     $this->assertNoEscaped('<em>' . $this->webUser->id() . '</em>');
     $this->assertRaw('<em>' . $this->webUser->id() . '</em>');
 
@@ -113,7 +113,7 @@ class CommentPreviewTest extends CommentTestBase {
     $this->drupalPostForm(NULL, [], 'Save');
     $this->assertText('Your comment has been posted.');
     $elements = $this->xpath('//section[contains(@class, "comment-wrapper")]/article');
-    $this->assertEqual(1, count($elements));
+    $this->assertCount(1, $elements);
 
     // Go back and re-submit the form.
     $this->getSession()->getDriver()->back();
@@ -121,7 +121,7 @@ class CommentPreviewTest extends CommentTestBase {
     $submit_button->click();
     $this->assertText('Your comment has been posted.');
     $elements = $this->xpath('//section[contains(@class, "comment-wrapper")]/article');
-    $this->assertEqual(2, count($elements));
+    $this->assertCount(2, $elements);
   }
 
   /**

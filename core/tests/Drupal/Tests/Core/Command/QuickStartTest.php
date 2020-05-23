@@ -49,11 +49,11 @@ class QuickStartTest extends TestCase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $php_executable_finder = new PhpExecutableFinder();
     $this->php = $php_executable_finder->find();
-    $this->root = dirname(dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__))));
+    $this->root = dirname(substr(__DIR__, 0, -strlen(__NAMESPACE__)), 2);
     chdir($this->root);
     if (!is_writable("{$this->root}/sites/simpletest")) {
       $this->markTestSkipped('This test requires a writable sites/simpletest directory');
@@ -66,7 +66,7 @@ class QuickStartTest extends TestCase {
   /**
    * {@inheritdoc}
    */
-  public function tearDown() {
+  public function tearDown(): void {
     if ($this->testDb) {
       $test_site_directory = $this->root . DIRECTORY_SEPARATOR . $this->testDb->getTestSitePath();
       if (file_exists($test_site_directory)) {
@@ -105,7 +105,6 @@ class QuickStartTest extends TestCase {
       '--suppress-login',
     ];
     $process = new Process($install_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $process->inheritEnvironmentVariables();
     $process->setTimeout(500);
     $process->start();
     $guzzle = new Client();
@@ -158,7 +157,6 @@ class QuickStartTest extends TestCase {
       '--suppress-login',
     ];
     $process = new Process($install_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $process->inheritEnvironmentVariables();
     $process->setTimeout(500);
     $process->start();
     while ($process->isRunning()) {
@@ -195,7 +193,6 @@ class QuickStartTest extends TestCase {
       "--site-name='Test site {$this->testDb->getDatabasePrefix()}'",
     ];
     $install_process = new Process($install_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $install_process->inheritEnvironmentVariables();
     $install_process->setTimeout(500);
     $result = $install_process->run();
     // The progress bar uses STDERR to write messages.
@@ -210,7 +207,6 @@ class QuickStartTest extends TestCase {
       '--suppress-login',
     ];
     $server_process = new Process($server_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $server_process->inheritEnvironmentVariables();
     $server_process->start();
     $guzzle = new Client();
     $port = FALSE;
@@ -249,7 +245,6 @@ class QuickStartTest extends TestCase {
       "--site-name='Test another site {$this->testDb->getDatabasePrefix()}'",
     ];
     $install_process = new Process($install_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $install_process->inheritEnvironmentVariables();
     $install_process->setTimeout(500);
     $result = $install_process->run();
     $this->assertStringContainsString('Drupal is already installed.', $install_process->getOutput());
@@ -278,7 +273,6 @@ class QuickStartTest extends TestCase {
       "--site-name='Test site {$this->testDb->getDatabasePrefix()}' --suppress-login",
     ];
     $process = new Process($install_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $process->inheritEnvironmentVariables();
     $process->run();
     $this->assertStringContainsString('\'umami\' is not a valid install profile. Did you mean \'demo_umami\'?', $process->getErrorOutput());
   }
@@ -294,7 +288,6 @@ class QuickStartTest extends TestCase {
       '--suppress-login',
     ];
     $server_process = new Process($server_command, NULL, ['DRUPAL_DEV_SITE_PATH' => $this->testDb->getTestSitePath()]);
-    $server_process->inheritEnvironmentVariables();
     $server_process->run();
     $this->assertStringContainsString('No installation found. Use the \'install\' command.', $server_process->getErrorOutput());
   }

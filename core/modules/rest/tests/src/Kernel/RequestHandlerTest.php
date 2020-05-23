@@ -28,7 +28,7 @@ class RequestHandlerTest extends KernelTestBase {
    */
   protected $requestHandler;
 
-  public static $modules = ['serialization', 'rest'];
+  protected static $modules = ['serialization', 'rest'];
 
   /**
    * The entity storage.
@@ -40,7 +40,7 @@ class RequestHandlerTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $serializer = $this->prophesize(SerializerInterface::class);
     $serializer->willImplement(DecoderInterface::class);

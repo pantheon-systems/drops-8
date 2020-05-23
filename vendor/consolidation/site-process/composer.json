@@ -1,0 +1,76 @@
+{
+    "name": "consolidation/site-process",
+    "description": "A thin wrapper around the Symfony Process Component that allows applications to use the Site Alias library to specify the target for a remote call.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Greg Anderson",
+            "email": "greg.1.anderson@greenknowe.org"
+        },
+        {
+            "name": "Moshe Weitzman",
+            "email": "weitzman@tejasa.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Consolidation\\SiteProcess\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Consolidation\\SiteProcess\\": "tests/src"
+        }
+    },
+    "require": {
+        "php": ">=7.1.3",
+        "consolidation/config": "^1.2.1",
+        "consolidation/site-alias": "^3",
+        "symfony/process": "^4.3.4"
+    },
+    "require-dev": {
+        "consolidation/Robo": "^1.4.10",
+        "knplabs/github-api": "^2.7",
+        "php-http/guzzle6-adapter": "^1.1",
+        "phpunit/phpunit": "^6.5.14",
+        "g1a/composer-test-scenarios": "^3.0.4",
+        "php-coveralls/php-coveralls": "^1.1",
+        "squizlabs/php_codesniffer": "^2.9.2"
+    },
+    "scripts": {
+        "phar:install-tools": [
+            "gem install mime-types -v 2.6.2",
+            "curl -LSs https://box-project.github.io/box2/installer.php | php",
+            "mkdir -p tools",
+            "mv -f box.phar tools/box"
+        ],
+        "phar:build": "env PATH=tools:$PATH box build",
+        "cs": "phpcs --standard=PSR2 -n src",
+        "cbf": "phpcbf --standard=PSR2 -n src",
+        "unit": "phpunit --colors=always",
+        "lint": [
+            "find src -name '*.php' -print0 | xargs -0 -n1 php -l",
+            "find tests/src -name '*.php' -print0 | xargs -0 -n1 php -l"
+        ],
+        "test": [
+            "@lint",
+            "@unit",
+            "@cs"
+        ],
+        "release": [
+            "release VERSION"
+        ]
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
+        "platform": {
+            "php": "7.1.3"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "4.x-dev"
+        }
+    }
+}

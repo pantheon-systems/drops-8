@@ -18,12 +18,21 @@ class ResponsiveImageIntegrationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['responsive_image', 'field', 'image', 'file', 'entity_test', 'breakpoint', 'responsive_image_test_module', 'user'];
+  protected static $modules = [
+    'responsive_image',
+    'field',
+    'image',
+    'file',
+    'entity_test',
+    'breakpoint',
+    'responsive_image_test_module',
+    'user',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('entity_test');
   }

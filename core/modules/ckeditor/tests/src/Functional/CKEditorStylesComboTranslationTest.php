@@ -17,7 +17,7 @@ class CKEditorStylesComboTranslationTest extends BrowserTestBase {
   /**
    * {inheritdoc}
    */
-  public static $modules = ['ckeditor', 'config_translation'];
+  protected static $modules = ['ckeditor', 'config_translation'];
 
   /**
    * {@inheritdoc}
@@ -41,7 +41,7 @@ class CKEditorStylesComboTranslationTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->format = strtolower($this->randomMachineName());

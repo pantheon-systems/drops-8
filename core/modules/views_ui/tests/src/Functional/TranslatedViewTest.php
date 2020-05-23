@@ -16,7 +16,7 @@ class TranslatedViewTest extends UITestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'config_translation',
     'views_ui',
   ];
@@ -42,7 +42,7 @@ class TranslatedViewTest extends UITestBase {
    */
   protected $adminUser;
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $permissions = [

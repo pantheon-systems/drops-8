@@ -1,0 +1,370 @@
+<?php
+
+namespace Drupal\{{ machine_name }}\Entity;
+
+{% sort %}
+{% if not revisionable %}
+use Drupal\Core\Entity\ContentEntityBase;
+{% endif %}
+{% if author_base_field %}
+use Drupal\Core\Entity\EntityStorageInterface;
+{% endif %}
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+{% if revisionable %}
+use Drupal\Core\Entity\RevisionableContentEntityBase;
+{% endif %}
+use Drupal\{{ machine_name }}\{{ class_prefix }}Interface;
+{% if author_base_field %}
+use Drupal\user\UserInterface;
+{% endif %}
+{% if changed_base_field %}
+use Drupal\Core\Entity\EntityChangedTrait;
+{% endif %}
+{% endsort %}
+
+/**
+ * Defines the {{ entity_type_label|lower }} entity class.
+ *
+ * @ContentEntityType(
+ *   id = "{{ entity_type_id }}",
+ *   label = @Translation("{{ entity_type_label }}"),
+ *   label_collection = @Translation("{{ entity_type_label|plural }}"),
+{% if bundle %}
+ *   bundle_label = @Translation("{{ entity_type_label }} type"),
+{% endif %}
+ *   handlers = {
+{% if template %}
+ *     "view_builder" = "Drupal\Core\Entity\EntityViewBuilder",
+{% else %}
+ *     "view_builder" = "Drupal\{{ machine_name }}\{{ class_prefix }}ViewBuilder",
+{% endif %}
+ *     "list_builder" = "Drupal\{{ machine_name }}\{{ class_prefix }}ListBuilder",
+ *     "views_data" = "Drupal\views\EntityViewsData",
+{% if access_controller %}
+ *     "access" = "Drupal\{{ machine_name }}\{{ class_prefix }}AccessControlHandler",
+{% endif %}
+ *     "form" = {
+ *       "add" = "Drupal\{{ machine_name }}\Form\{{ class_prefix }}Form",
+ *       "edit" = "Drupal\{{ machine_name }}\Form\{{ class_prefix }}Form",
+ *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm"
+ *     },
+ *     "route_provider" = {
+ *       "html" = "Drupal\Core\Entity\Routing\AdminHtmlRouteProvider",
+ *     }
+ *   },
+ *   base_table = "{{ entity_type_id }}",
+{% if translatable %}
+ *   data_table = "{{ entity_type_id }}_field_data",
+{% endif %}
+{% if revisionable %}
+ *   revision_table = "{{ entity_type_id }}_revision",
+{% endif %}
+{% if revisionable and translatable %}
+ *   revision_data_table = "{{ entity_type_id }}_field_revision",
+{% endif %}
+{% if revisionable %}
+ *   show_revision_ui = TRUE,
+{% endif %}
+{% if translatable %}
+ *   translatable = TRUE,
+{% endif %}
+{% if bundle %}
+ *   admin_permission = "administer {{ entity_type_label|lower }} types",
+{% elseif fieldable %}
+ *   admin_permission = "administer {{ entity_type_label|lower }}",
+{% else %}
+ *   admin_permission = "access {{ entity_type_label|lower }} overview",
+{% endif %}
+ *   entity_keys = {
+ *     "id" = "id",
+{% if revisionable %}
+ *     "revision" = "revision_id",
+{% endif %}
+{% if translatable %}
+ *     "langcode" = "langcode",
+{% endif %}
+{% if bundle %}
+ *     "bundle" = "bundle",
+{% endif %}
+ *     "label" = "{{ title_base_field ? 'title' : 'id' }}",
+ *     "uuid" = "uuid"
+ *   },
+{% if revisionable %}
+ *   revision_metadata_keys = {
+{% if author_base_field %}
+ *     "revision_user" = "revision_uid",
+{% endif %}
+{% if created_base_field %}
+ *     "revision_created" = "revision_timestamp",
+{% endif %}
+ *     "revision_log_message" = "revision_log"
+ *   },
+{% endif %}
+ *   links = {
+{% if bundle %}
+ *     "add-form" = "{{ entity_base_path }}/add/{{ '{' }}{{ entity_type_id }}{{ '_type}' }}",
+ *     "add-page" = "{{ entity_base_path }}/add",
+{% else %}
+ *     "add-form" = "{{ entity_base_path }}/add",
+{% endif %}
+ *     "canonical" = "/{{ entity_type_id }}/{{ '{' }}{{ entity_type_id }}{{ '}' }}",
+ *     "edit-form" = "{{ entity_base_path }}/{{ '{' }}{{ entity_type_id }}{{ '}' }}/edit",
+ *     "delete-form" = "{{ entity_base_path }}/{{ '{' }}{{ entity_type_id }}{{ '}' }}/delete",
+ *     "collection" = "/admin/content/{{ entity_type_id|u2h }}"
+ *   },
+{% if bundle %}
+ *   bundle_entity_type = "{{ entity_type_id }}_type",
+ *   field_ui_base_route = "entity.{{ entity_type_id }}_type.edit_form"
+{% elseif fieldable %}
+ *   field_ui_base_route = "entity.{{ entity_type_id }}.settings"
+{% endif %}
+ * )
+ */
+class {{ class_prefix }} extends {% if revisionable %}Revisionable{% endif %}ContentEntityBase implements {{ class_prefix }}Interface {
+
+{% if changed_base_field %}
+  use EntityChangedTrait;
+
+{% endif %}
+{% if author_base_field %}
+  /**
+   * {@inheritdoc}
+   *
+   * When a new {{ entity_type_label|lower }} entity is created, set the uid entity reference to
+   * the current user as the creator of the entity.
+   */
+  public static function preCreate(EntityStorageInterface $storage_controller, array &$values) {
+    parent::preCreate($storage_controller, $values);
+    $values += ['uid' => \Drupal::currentUser()->id()];
+  }
+
+{% endif %}
+{% if title_base_field %}
+  /**
+   * {@inheritdoc}
+   */
+  public function getTitle() {
+    return $this->get('title')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setTitle($title) {
+    $this->set('title', $title);
+    return $this;
+  }
+
+{% endif %}
+{% if status_base_field %}
+  /**
+   * {@inheritdoc}
+   */
+  public function isEnabled() {
+    return (bool) $this->get('status')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setStatus($status) {
+    $this->set('status', $status);
+    return $this;
+  }
+
+{% endif %}
+{% if created_base_field %}
+  /**
+   * {@inheritdoc}
+   */
+  public function getCreatedTime() {
+    return $this->get('created')->value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setCreatedTime($timestamp) {
+    $this->set('created', $timestamp);
+    return $this;
+  }
+
+{% endif %}
+{% if author_base_field %}
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwner() {
+    return $this->get('uid')->entity;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getOwnerId() {
+    return $this->get('uid')->target_id;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwnerId($uid) {
+    $this->set('uid', $uid);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setOwner(UserInterface $account) {
+    $this->set('uid', $account->id());
+    return $this;
+  }
+
+{% endif %}
+  /**
+   * {@inheritdoc}
+   */
+  public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {
+
+    $fields = parent::baseFieldDefinitions($entity_type);
+
+{% if title_base_field %}
+    $fields['title'] = BaseFieldDefinition::create('string')
+{% if revisionable %}
+      ->setRevisionable(TRUE)
+{% endif %}
+{% if translatable %}
+      ->setTranslatable(TRUE)
+{% endif %}
+      ->setLabel(t('Title'))
+      ->setDescription(t('The title of the {{ entity_type_label|lower }} entity.'))
+      ->setRequired(TRUE)
+      ->setSetting('max_length', 255)
+      ->setDisplayOptions('form', [
+        'type' => 'string_textfield',
+        'weight' => -5,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'label' => 'hidden',
+        'type' => 'string',
+        'weight' => -5,
+      ])
+      ->setDisplayConfigurable('view', TRUE);
+
+{% endif %}
+{% if status_base_field %}
+    $fields['status'] = BaseFieldDefinition::create('boolean')
+{% if revisionable %}
+      ->setRevisionable(TRUE)
+{% endif %}
+      ->setLabel(t('Status'))
+      ->setDescription(t('A boolean indicating whether the {{ entity_type_label|lower }} is enabled.'))
+      ->setDefaultValue(TRUE)
+      ->setSetting('on_label', 'Enabled')
+      ->setDisplayOptions('form', [
+        'type' => 'boolean_checkbox',
+        'settings' => [
+          'display_label' => FALSE,
+        ],
+        'weight' => 0,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'type' => 'boolean',
+        'label' => 'above',
+        'weight' => 0,
+        'settings' => [
+          'format' => 'enabled-disabled',
+        ],
+      ])
+      ->setDisplayConfigurable('view', TRUE);
+
+{% endif %}
+{% if description_base_field %}
+    $fields['description'] = BaseFieldDefinition::create('text_long')
+{% if revisionable %}
+      ->setRevisionable(TRUE)
+{% endif %}
+{% if translatable %}
+      ->setTranslatable(TRUE)
+{% endif %}
+      ->setLabel(t('Description'))
+      ->setDescription(t('A description of the {{ entity_type_label|lower }}.'))
+      ->setDisplayOptions('form', [
+        'type' => 'text_textarea',
+        'weight' => 10,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'type' => 'text_default',
+        'label' => 'above',
+        'weight' => 10,
+      ])
+      ->setDisplayConfigurable('view', TRUE);
+
+{% endif %}
+{% if author_base_field %}
+    $fields['uid'] = BaseFieldDefinition::create('entity_reference')
+{% if revisionable %}
+      ->setRevisionable(TRUE)
+{% endif %}
+{% if translatable %}
+      ->setTranslatable(TRUE)
+{% endif %}
+      ->setLabel(t('Author'))
+      ->setDescription(t('The user ID of the {{ entity_type_label|lower }} author.'))
+      ->setSetting('target_type', 'user')
+      ->setDisplayOptions('form', [
+        'type' => 'entity_reference_autocomplete',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'size' => 60,
+          'placeholder' => '',
+        ],
+        'weight' => 15,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'author',
+        'weight' => 15,
+      ])
+      ->setDisplayConfigurable('view', TRUE);
+
+{% endif %}
+{% if created_base_field %}
+    $fields['created'] = BaseFieldDefinition::create('created')
+      ->setLabel(t('Authored on'))
+{% if translatable %}
+      ->setTranslatable(TRUE)
+{% endif %}
+      ->setDescription(t('The time that the {{ entity_type_label|lower }} was created.'))
+      ->setDisplayOptions('view', [
+        'label' => 'above',
+        'type' => 'timestamp',
+        'weight' => 20,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayOptions('form', [
+        'type' => 'datetime_timestamp',
+        'weight' => 20,
+      ])
+      ->setDisplayConfigurable('view', TRUE);
+
+{% endif %}
+{% if changed_base_field %}
+    $fields['changed'] = BaseFieldDefinition::create('changed')
+      ->setLabel(t('Changed'))
+{% if translatable %}
+      ->setTranslatable(TRUE)
+{% endif %}
+      ->setDescription(t('The time that the {{ entity_type_label|lower }} was last edited.'));
+
+{% endif %}
+    return $fields;
+  }
+
+}

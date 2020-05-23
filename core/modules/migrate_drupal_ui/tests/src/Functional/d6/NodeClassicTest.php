@@ -21,7 +21,7 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'config_translation',
@@ -38,7 +38,7 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal6.php');
   }
@@ -84,7 +84,7 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
     $connection_options = $this->sourceDatabase->getConnectionOptions();
     $this->drupalGet('/upgrade');
     $session = $this->assertSession();
-    $session->responseContains('Upgrade a site by importing its files and the data from its database into a clean and empty new install of Drupal 8.');
+    $session->responseContains("Upgrade a site by importing its files and the data from its database into a clean and empty new install of Drupal $this->destinationSiteVersion.");
 
     $this->drupalPostForm(NULL, [], t('Continue'));
     $session->pageTextContains('Provide credentials for the database of the Drupal site you want to upgrade.');
@@ -112,7 +112,7 @@ class NodeClassicTest extends MigrateUpgradeExecuteTestBase {
 
     // Start the upgrade process.
     $this->drupalGet('/upgrade');
-    $session->responseContains('Upgrade a site by importing its files and the data from its database into a clean and empty new install of Drupal 8.');
+    $session->responseContains("Upgrade a site by importing its files and the data from its database into a clean and empty new install of Drupal $this->destinationSiteVersion.");
 
     $this->drupalPostForm(NULL, [], t('Continue'));
     $session->pageTextContains('Provide credentials for the database of the Drupal site you want to upgrade.');

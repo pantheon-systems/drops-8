@@ -21,7 +21,7 @@ class CommentRssTest extends CommentTestBase {
    *
    * @var array
    */
-  public static $modules = ['views'];
+  protected static $modules = ['views'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class CommentRssTest extends CommentTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Setup the rss view display.

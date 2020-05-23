@@ -9,14 +9,14 @@ namespace Drupal\Tests\comment\Functional;
  */
 class CommentLinksAlterTest extends CommentTestBase {
 
-  public static $modules = ['comment_test'];
+  protected static $modules = ['comment_test'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable comment_test.module's hook_comment_links_alter() implementation.

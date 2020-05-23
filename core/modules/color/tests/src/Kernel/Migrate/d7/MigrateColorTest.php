@@ -14,12 +14,12 @@ class MigrateColorTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['color'];
+  protected static $modules = ['color'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Install the themes used for this test.
     $this->container->get('theme_installer')->install(['bartik']);

@@ -22,7 +22,7 @@ class EntityQueryRelationshipTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['taxonomy'];
+  protected static $modules = ['taxonomy'];
 
   /**
    * Term entities.
@@ -59,7 +59,7 @@ class EntityQueryRelationshipTest extends EntityKernelTestBase {
    */
   protected $queryResults;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('taxonomy_term');
@@ -132,7 +132,7 @@ class EntityQueryRelationshipTest extends EntityKernelTestBase {
     $this->queryResults = $storage->getQuery()
       ->notExists("user_id.entity.name")
       ->execute();
-    $this->assertEqual(count($this->queryResults), 0);
+    $this->assertCount(0, $this->queryResults);
     // This returns the 0th entity as that's only one pointing to the 0th
     // term (test without specifying the field column).
     $this->queryResults = $storage->getQuery()
@@ -171,7 +171,7 @@ class EntityQueryRelationshipTest extends EntityKernelTestBase {
     $this->queryResults = $storage->getQuery()
       ->notExists("user_id.entity:user.name")
       ->execute();
-    $this->assertEqual(count($this->queryResults), 0);
+    $this->assertCount(0, $this->queryResults);
     // This returns the 0th entity as that's only one pointing to the 0th
     // term (test without specifying the field column).
     $this->queryResults = $storage->getQuery()

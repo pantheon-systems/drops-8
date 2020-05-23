@@ -23,12 +23,12 @@ class RevisionableContentEntityBaseTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test_revlog', 'system', 'user'];
+  protected static $modules = ['entity_test_revlog', 'system', 'user'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('entity_test_mul_revlog');
   }
@@ -80,7 +80,7 @@ class RevisionableContentEntityBaseTest extends EntityKernelTestBase {
     }
     $this->assertItemsTableCount(6, $definition);
 
-    $this->assertEqual(6, count($revision_ids));
+    $this->assertCount(6, $revision_ids);
 
     // Delete the first 3 revisions.
     foreach (range(0, 2) as $key) {

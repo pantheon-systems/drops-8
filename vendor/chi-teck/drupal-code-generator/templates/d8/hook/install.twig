@@ -1,0 +1,8 @@
+/**
+ * Implements hook_install().
+ */
+function {{ machine_name }}_install() {
+  // Create the styles directory and ensure it's writable.
+  $directory = \Drupal::config('system.file')->get('default_scheme') . '://styles';
+  \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+}

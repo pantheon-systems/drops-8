@@ -26,14 +26,14 @@ class FormTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['filter', 'form_test', 'file', 'datetime'];
+  protected static $modules = ['filter', 'form_test', 'file', 'datetime'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'classy';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $filtered_html_format = FilterFormat::create([

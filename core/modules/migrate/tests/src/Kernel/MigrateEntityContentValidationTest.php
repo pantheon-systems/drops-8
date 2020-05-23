@@ -30,7 +30,7 @@ class MigrateEntityContentValidationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['system', 'user']);
@@ -143,7 +143,7 @@ class MigrateEntityContentValidationTest extends KernelTestBase {
   /**
    * Reacts to map message event.
    *
-   * @param \Drupal\Migrate\Event\MigrateIdMapMessageEvent $event
+   * @param \Drupal\migrate\Event\MigrateIdMapMessageEvent $event
    *   The migration event.
    */
   public function mapMessageRecorder(MigrateIdMapMessageEvent $event) {

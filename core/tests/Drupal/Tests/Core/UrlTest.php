@@ -70,7 +70,7 @@ class UrlTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $map = [];
@@ -191,7 +191,7 @@ class UrlTest extends UnitTestCase {
 
     $this->assertInstanceOf('Drupal\Core\Url', $url);
     $this->assertFalse($url->isRouted());
-    $this->assertEquals(0, strpos($uri, 'base:'));
+    $this->assertStringStartsWith('base:', $uri);
 
     $parts = UrlHelper::parse($path);
     $options = $url->getOptions();
@@ -233,7 +233,7 @@ class UrlTest extends UnitTestCase {
       ->with('invalid-path')
       ->willReturn(FALSE);
     $url = Url::fromUri('internal:/invalid-path');
-    $this->assertSame(FALSE, $url->isRouted());
+    $this->assertFalse($url->isRouted());
     $this->assertSame('base:invalid-path', $url->getUri());
   }
 

@@ -20,12 +20,12 @@ class MigrateNodeTypeTest extends MigrateDrupal7TestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'text', 'menu_ui'];
+  protected static $modules = ['node', 'text', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateContentTypes();
   }
@@ -47,7 +47,7 @@ class MigrateNodeTypeTest extends MigrateDrupal7TestBase {
   protected function assertEntity($id, $label, $description, $help, $display_submitted, $new_revision, $expected_available_menus, $expected_parent, $body_label = NULL) {
     /** @var \Drupal\node\NodeTypeInterface $entity */
     $entity = NodeType::load($id);
-    $this->assertTrue($entity instanceof NodeTypeInterface);
+    $this->assertInstanceOf(NodeTypeInterface::class, $entity);
     $this->assertIdentical($label, $entity->label());
     $this->assertIdentical($description, $entity->getDescription());
 
@@ -59,7 +59,7 @@ class MigrateNodeTypeTest extends MigrateDrupal7TestBase {
     if ($body_label) {
       /** @var \Drupal\field\FieldConfigInterface $body */
       $body = FieldConfig::load('node.' . $id . '.body');
-      $this->assertTrue($body instanceof FieldConfigInterface);
+      $this->assertInstanceOf(FieldConfigInterface::class, $body);
       $this->assertIdentical($body_label, $body->label());
     }
 

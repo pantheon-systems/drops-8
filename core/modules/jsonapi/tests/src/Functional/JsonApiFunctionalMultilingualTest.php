@@ -23,7 +23,7 @@ class JsonApiFunctionalMultilingualTest extends JsonApiFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
   ];
@@ -36,7 +36,7 @@ class JsonApiFunctionalMultilingualTest extends JsonApiFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $language = ConfigurableLanguage::createFromLangcode('ca');
     $language->save();
@@ -161,7 +161,7 @@ class JsonApiFunctionalMultilingualTest extends JsonApiFunctionalTestBase {
 
     // Changing the langcode of the default ('en') translation is possible:
     // first verify that it currently is 'en', then change it to 'ca-fr', and
-    // verify that the the title is unchanged, but the langcode is updated.
+    // verify that the title is unchanged, but the langcode is updated.
     $response = $this->request('GET', Url::fromUri('base:/jsonapi/node/article/' . $this->nodes[0]->uuid()), $request_options);
     $this->assertSame(200, $response->getStatusCode());
     $document = Json::decode((string) $response->getBody());

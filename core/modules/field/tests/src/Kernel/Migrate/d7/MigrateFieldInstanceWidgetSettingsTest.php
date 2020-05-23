@@ -18,7 +18,7 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'datetime',
     'image',
@@ -33,7 +33,7 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateFields();
     $this->executeMigration('d7_field_instance_widget_settings');
@@ -52,7 +52,7 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
   protected function assertEntity($id, $expected_entity_type, $expected_bundle) {
     /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $entity */
     $entity = EntityFormDisplay::load($id);
-    $this->assertTrue($entity instanceof EntityFormDisplayInterface);
+    $this->assertInstanceOf(EntityFormDisplayInterface::class, $entity);
     $this->assertIdentical($expected_entity_type, $entity->getTargetEntityTypeId());
     $this->assertIdentical($expected_bundle, $entity->getTargetBundle());
   }
@@ -71,7 +71,7 @@ class MigrateFieldInstanceWidgetSettingsTest extends MigrateDrupal7TestBase {
    */
   protected function assertComponent($display_id, $component_id, $widget_type, $weight) {
     $component = EntityFormDisplay::load($display_id)->getComponent($component_id);
-    $this->assertTrue(is_array($component));
+    $this->assertIsArray($component);
     $this->assertIdentical($widget_type, $component['type']);
     $this->assertIdentical($weight, $component['weight']);
   }

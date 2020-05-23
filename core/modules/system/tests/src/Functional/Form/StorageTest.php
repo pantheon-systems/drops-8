@@ -25,7 +25,7 @@ class StorageTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['form_test', 'dblog'];
+  protected static $modules = ['form_test', 'dblog'];
 
   /**
    * {@inheritdoc}
@@ -35,7 +35,7 @@ class StorageTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->drupalCreateUser());
@@ -147,7 +147,7 @@ class StorageTest extends BrowserTestBase {
     // Request the form with 'cache' query parameter to enable form caching.
     $this->drupalGet('form_test/form-storage', ['query' => ['cache' => 1, 'immutable' => 1]]);
     $buildIdFields = $this->xpath('//input[@name="form_build_id"]');
-    $this->assertEquals(count($buildIdFields), 1, 'One form build id field on the page');
+    $this->assertCount(1, $buildIdFields, 'One form build id field on the page');
     $buildId = $buildIdFields[0]->getValue();
 
     // Trigger validation error by submitting an empty title.
@@ -159,7 +159,7 @@ class StorageTest extends BrowserTestBase {
 
     // Retrieve the new build-id.
     $buildIdFields = $this->xpath('//input[@name="form_build_id"]');
-    $this->assertEquals(count($buildIdFields), 1, 'One form build id field on the page');
+    $this->assertCount(1, $buildIdFields, 'One form build id field on the page');
     $buildId = (string) $buildIdFields[0]->getValue();
 
     // Trigger validation error by again submitting an empty title.
@@ -176,7 +176,7 @@ class StorageTest extends BrowserTestBase {
   public function testImmutableFormLegacyProtection() {
     $this->drupalGet('form_test/form-storage', ['query' => ['cache' => 1, 'immutable' => 1]]);
     $build_id_fields = $this->xpath('//input[@name="form_build_id"]');
-    $this->assertEquals(count($build_id_fields), 1, 'One form build id field on the page');
+    $this->assertCount(1, $build_id_fields, 'One form build id field on the page');
     $build_id = $build_id_fields[0]->getValue();
 
     // Try to poison the form cache.

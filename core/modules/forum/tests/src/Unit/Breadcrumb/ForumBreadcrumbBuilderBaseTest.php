@@ -17,7 +17,7 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $cache_contexts_manager = $this->getMockBuilder('Drupal\Core\Cache\Context\CacheContextsManager')
@@ -56,18 +56,6 @@ class ForumBreadcrumbBuilderBaseTest extends UnitTestCase {
         $translation_manager,
       ]
     );
-
-    // Reflect upon our properties, except for config which is a special case.
-    $property_names = [
-      'entityTypeManager' => $entity_type_manager,
-      'forumManager' => $forum_manager,
-      'stringTranslation' => $translation_manager,
-    ];
-    foreach ($property_names as $property_name => $property_value) {
-      $this->assertAttributeEquals(
-        $property_value, $property_name, $builder
-      );
-    }
 
     // Test that the constructor made a config object with our info in it.
     $reflector = new \ReflectionClass($builder);

@@ -27,7 +27,14 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'field_ui', 'field_test', 'taxonomy', 'image', 'block'];
+  protected static $modules = [
+    'node',
+    'field_ui',
+    'field_test',
+    'taxonomy',
+    'image',
+    'block',
+  ];
 
   /**
    * {@inheritdoc}
@@ -65,7 +72,7 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('system_breadcrumb_block');
@@ -608,7 +615,7 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
       ->getFormDisplay('node', $this->contentType)
       ->setComponent($field_name)
       ->save();
-    $this->assertInstanceOf(FieldConfig::class, FieldConfig::load('node.' . $this->contentType . '.' . $field_name), new FormattableMarkup('A field of the field storage %field was created programmatically.', ['%field' => $field_name]));
+    $this->assertInstanceOf(FieldConfig::class, FieldConfig::load('node.' . $this->contentType . '.' . $field_name));
 
     // Check that the newly added field appears on the 'Manage Fields'
     // screen.

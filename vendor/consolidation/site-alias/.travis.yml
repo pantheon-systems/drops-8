@@ -1,0 +1,41 @@
+dist: trusty
+language: php
+branches:
+  only:
+  - master
+  - "/^[[:digit:]]+\\.[[:digit:]]+\\.[[:digit:]]+.*$/"
+matrix:
+  fast_finish: true
+  include:
+  - php: 7.2
+    env: DEPENCENCIES=highest
+  - php: 7.2
+  - php: 7.1
+  - php: 7.0.11
+  - php: 5.6
+    env: SCENARIO=phpunit5
+  - php: 5.6
+    env: SCENARIO=phpunit5 DEPENDENCIES=lowest
+sudo: false
+cache:
+  directories:
+  - "$HOME/.composer/cache"
+install:
+- .scenarios.lock/install "${SCENARIO}" "${DEPENDENCIES}"
+script:
+- composer test
+after_success:
+- travis_retry php vendor/bin/php-coveralls -v
+before_deploy:
+- composer phar:install-tools
+- composer install --prefer-dist --no-dev --no-interaction
+- php box.phar build
+deploy:
+  provider: releases
+  api_key:
+    secure: Nk+oRXu2ZpF6UCKSxIK1FeQ4zykN8X2oGZrUjQy+tTVE2/BjhldFqlOxHhjfrtViC+eTvGbJbxGteQ7S+67WKyz5Kps9g2mlf7M2wJj9obIR2YJn1d8ch1PYKkWbiXcp8vZoMXDt++pP5TkL6IDTsV7pom7cBa9Yb7OlGkzyxQmu2sfqXzF4ivcsmmoF49ASkHpA6PmRJetXywW/zM1nglIGXZCqfIIYCMi6BLmWsDFBe1xLbvk4H4DgLyMs5O4p5cW9y2abQ0vydcUSoJmIo/7Ehjg4xy2UNWcJnS/oMc4jQj62uPgAtk81rrSAM8HgmCr/fDAVOdOryypElT6jCXSA0LRvCP67X9JkpM5PBGktFYJwMJFKygpGjyqYjI5u7CR8GQuUpJIhgOvIqJIsz+PoDkFnEohbS0NqtLkTfq4GP3wIr2u42NnArpUNw8ejawGk8sgHlhxWI98+3mif8ZHHZlUEr8JCppFIz/W9f2TiFvoRCsNUOR7t2FV/q0k5tbxRA3465fDy2fxz506c11rb6NHV61mu6Xl1RevtX97bHhRHT1Igmhzn3dnfxAyEWxU5CPeVUKFdAqx0WxrAlosQaUwmRXxUlq9qs5j8F2rjPbE+une/sB5S5+2+lSlz8ympF5vIKIE4eExdXaTaIoXO52hPIMKkhZCHxq5tdU4=
+  file: alias-tool.phar
+  skip_cleanup: true
+  on:
+    tags: true
+    repo: consolidation/site-alias

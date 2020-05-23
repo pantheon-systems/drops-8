@@ -19,7 +19,7 @@ class NodeViewBuilderTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node'];
+  protected static $modules = ['node'];
 
   /**
    * The node storage.
@@ -45,7 +45,7 @@ class NodeViewBuilderTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->storage = $this->entityTypeManager->getStorage('node');
@@ -91,11 +91,11 @@ class NodeViewBuilderTest extends EntityKernelTestBase {
 
     $build = $this->viewBuilder->view($node, 'teaser');
     $output = (string) $this->renderer->renderPlain($build);
-    $this->assertContains("title=\"$title\"", $output);
+    $this->assertStringContainsString("title=\"$title\"", $output);
 
     $build = $this->viewBuilder->view($pending_revision, 'teaser');
     $output = (string) $this->renderer->renderPlain($build);
-    $this->assertContains("title=\"$draft_title\"", $output);
+    $this->assertStringContainsString("title=\"$draft_title\"", $output);
   }
 
 }

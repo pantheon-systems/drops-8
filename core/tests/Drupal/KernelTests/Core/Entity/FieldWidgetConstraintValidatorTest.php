@@ -15,12 +15,18 @@ use Drupal\KernelTests\KernelTestBase;
  */
 class FieldWidgetConstraintValidatorTest extends KernelTestBase {
 
-  public static $modules = ['entity_test', 'field', 'field_test', 'user', 'system'];
+  protected static $modules = [
+    'entity_test',
+    'field',
+    'field_test',
+    'user',
+    'system',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installSchema('system', ['key_value']);

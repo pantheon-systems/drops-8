@@ -18,7 +18,7 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['field', 'field_ui', 'text', 'node', 'user'];
+  protected static $modules = ['field', 'field_ui', 'text', 'node', 'user'];
 
   /**
    * {@inheritdoc}
@@ -42,7 +42,7 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a content type. Use Node because it has Field UI pages that work.
@@ -127,7 +127,7 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
         ':class' => 'field-plugin-summary',
         ':text' => (string) t('Display: @true_label / @false_label', ['@true_label' => $values[0], '@false_label' => $values[1]]),
       ]);
-      $this->assertEqual(count($result), 1, "Boolean formatter settings summary exist.");
+      $this->assertCount(1, $result, "Boolean formatter settings summary exist.");
     }
   }
 

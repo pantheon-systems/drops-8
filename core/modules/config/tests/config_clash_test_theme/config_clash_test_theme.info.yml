@@ -1,14 +1,9 @@
 name: 'Test theme for configuration clash detection'
 type: theme
 description: 'Test theme for configuration clash detection'
-# version: VERSION
+version: VERSION
 base theme: classy
 regions:
   content: Content
   left: Left
   right: Right
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

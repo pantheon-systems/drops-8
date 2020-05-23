@@ -20,7 +20,7 @@ class DrupalKernelTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     // Do not invoke KernelTestBase::setUp(), since that would set up further
     // environment aspects, which would distort this test, because it tests the
     // DrupalKernel (re-)building itself.
@@ -139,7 +139,7 @@ class DrupalKernelTest extends KernelTestBase {
     // Check that the container itself is not among the persist IDs because it
     // does not make sense to persist the container itself.
     $persist_ids = $container->getParameter('persist_ids');
-    $this->assertSame(FALSE, array_search('service_container', $persist_ids));
+    $this->assertNotContains('service_container', $persist_ids);
   }
 
   /**

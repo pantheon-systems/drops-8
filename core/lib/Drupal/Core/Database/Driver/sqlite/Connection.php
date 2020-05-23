@@ -56,6 +56,11 @@ class Connection extends DatabaseConnection {
   public $tableDropped = FALSE;
 
   /**
+   * {@inheritdoc}
+   */
+  protected $identifierQuotes = ['"', '"'];
+
+  /**
    * Constructs a \Drupal\Core\Database\Driver\sqlite\Connection object.
    */
   public function __construct(\PDO $connection, array $connection_options) {
@@ -67,8 +72,6 @@ class Connection extends DatabaseConnection {
 
     // This driver defaults to transaction support, except if explicitly passed FALSE.
     $this->transactionSupport = $this->transactionalDDLSupport = !isset($connection_options['transactions']) || $connection_options['transactions'] !== FALSE;
-
-    $this->connectionOptions = $connection_options;
 
     // Attach one database for each registered prefix.
     $prefixes = $this->prefixes;
@@ -180,7 +183,7 @@ class Connection extends DatabaseConnection {
           $count = $this->query('SELECT COUNT(*) FROM ' . $prefix . '.sqlite_master WHERE type = :type AND name NOT LIKE :pattern', [':type' => 'table', ':pattern' => 'sqlite_%'])->fetchField();
 
           // We can prune the database file if it doesn't have any tables.
-          if ($count == 0 && file_exists($this->connectionOptions['database'] . '-' . $prefix)) {
+          if ($count == 0 && $this->connectionOptions['database'] != ':memory:' && file_exists($this->connectionOptions['database'] . '-' . $prefix)) {
             // Detaching the database fails at this point, but no other queries
             // are executed after the connection is destructed so we can simply
             // remove the database file.
@@ -376,13 +379,6 @@ class Connection extends DatabaseConnection {
   }
 
   /**
-   * {@inheritdoc}
-   */
-  protected function identifierQuote() {
-    return '"';
-  }
-
-  /**
    * Overrides \Drupal\Core\Database\Connection::createDatabase().
    *
    * @param string $database
@@ -458,7 +454,7 @@ class Connection extends DatabaseConnection {
     if ($url_components['path'][0] === '/') {
       $url_components['path'] = substr($url_components['path'], 1);
     }
-    if ($url_components['path'][0] === '/') {
+    if ($url_components['path'][0] === '/' || $url_components['path'] === ':memory:') {
       $database['database'] = $url_components['path'];
     }
     else {

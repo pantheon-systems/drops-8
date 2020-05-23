@@ -19,12 +19,20 @@ class PathItemTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['path', 'path_alias', 'node', 'user', 'system', 'language', 'content_translation'];
+  protected static $modules = [
+    'path',
+    'path_alias',
+    'node',
+    'user',
+    'system',
+    'language',
+    'content_translation',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('node');

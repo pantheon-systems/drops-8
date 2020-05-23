@@ -11,7 +11,6 @@ use Prophecy\Argument;
 /**
  * @coversDefaultClass \Drupal\text\Plugin\migrate\field\d6\TextField
  * @group text
- * @group legacy
  */
 class TextFieldTest extends UnitTestCase {
 
@@ -28,7 +27,7 @@ class TextFieldTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->plugin = new TextField([], 'text', []);
 
     $migration = $this->prophesize(MigrationInterface::class);

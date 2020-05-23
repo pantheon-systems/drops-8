@@ -15,12 +15,12 @@ class MigrateVocabularyFieldInstanceTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'menu_ui'];
+  protected static $modules = ['taxonomy', 'menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Execute Dependency Migrations.
@@ -58,25 +58,25 @@ class MigrateVocabularyFieldInstanceTest extends MigrateDrupal6TestBase {
     $settings = $field->getSettings();
     $this->assertSame('default:taxonomy_term', $settings['handler'], 'The handler plugin ID is correct.');
     $this->assertSame(['field_tags'], $settings['handler_settings']['target_bundles'], 'The target_bundles handler setting is correct.');
-    $this->assertSame(TRUE, $settings['handler_settings']['auto_create'], 'The "auto_create" setting is correct.');
+    $this->assertTrue($settings['handler_settings']['auto_create'], 'The "auto_create" setting is correct.');
 
     $this->assertSame([['node', 'article', 'field_tags']], $this->getMigration('d6_vocabulary_field_instance')->getIdMap()->lookupDestinationIds([4, 'article']));
 
-    // Test the the field vocabulary_1_i_0_ with multilingual option,
+    // Test the field vocabulary_1_i_0_ with multilingual option,
     // 'per language terms'.
     $field_id = 'node.story.field_vocabulary_1_i_0_';
     $field = FieldConfig::load($field_id);
     $this->assertFalse($field->isRequired(), 'Field is not required');
     $this->assertTrue($field->isTranslatable());
 
-    // Test the the field vocabulary_2_i_0_ with multilingual option,
+    // Test the field vocabulary_2_i_0_ with multilingual option,
     // 'Set language to vocabulary'.
     $field_id = 'node.story.field_vocabulary_2_i_1_';
     $field = FieldConfig::load($field_id);
     $this->assertFalse($field->isRequired(), 'Field is not required');
     $this->assertFalse($field->isTranslatable());
 
-    // Test the the field vocabulary_3_i_0_ with multilingual option,
+    // Test the field vocabulary_3_i_0_ with multilingual option,
     // 'Localize terms'.
     $field_id = 'node.story.field_vocabulary_3_i_2_';
     $field = FieldConfig::load($field_id);

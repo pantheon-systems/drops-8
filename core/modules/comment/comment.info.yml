@@ -2,12 +2,7 @@ name: Comment
 type: module
 description: 'Allows users to comment on content.'
 package: Core
-# version: VERSION
+version: VERSION
 dependencies:
   - drupal:text
 configure: comment.admin
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

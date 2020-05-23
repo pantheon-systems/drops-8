@@ -19,7 +19,7 @@ class MediaUiJavascriptTest extends MediaJavascriptTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'media_test_source',
   ];
@@ -39,7 +39,7 @@ class MediaUiJavascriptTest extends MediaJavascriptTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('local_actions_block');
     $this->drupalPlaceBlock('local_tasks_block');
@@ -86,7 +86,7 @@ class MediaUiJavascriptTest extends MediaJavascriptTestBase {
     $source = $media_type->getSource();
     /** @var \Drupal\field\FieldConfigInterface $source_field */
     $source_field = $source->getSourceFieldDefinition($media_type);
-    $this->assertInstanceOf(FieldConfigInterface::class, $source_field, 'Source field exists.');
+    $this->assertInstanceOf(FieldConfigInterface::class, $source_field);
     $this->assertFalse($source_field->isNew(), 'Source field was saved.');
     /** @var \Drupal\field\FieldStorageConfigInterface $storage */
     $storage = $source_field->getFieldStorageDefinition();
