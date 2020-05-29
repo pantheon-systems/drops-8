@@ -3,6 +3,7 @@ Feature: Configuration Manager
   As a website user
   I need to be able to export and import configuration
 
+  @api
   Scenario: Control to make sure site has default configuration
     Given I am on "/"
     Then I should not see "A site slogan set through Drush"
@@ -14,6 +15,7 @@ Feature: Configuration Manager
     And I am on "/admin/config/development/configuration"
     Then I should see "There are no configuration changes to import."
 
+  @api
   Scenario: Set up and change something to test
     Given I have run the drush command "config-set -y system.site slogan 'A site slogan set through Drush'"
     And I have run the drush command "cr -y"
@@ -29,6 +31,7 @@ Feature: Configuration Manager
     Then I should not see "The configuration cannot be imported because it failed validation"
     And I should see "The configuration was imported successfully"
 
+  @api
   Scenario: Make sure site went back to the way it originally was
     Given I am on "/"
     Then I should not see "A site slogan set through Drush"
