@@ -2,45 +2,11 @@
 #
 # Example PS1 prompt.
 #
-# Note: This file does a lot, and is designed for Bash. If you want to show the
-# currently set alias in your prompt, use the first 2 values below as an example.
-# This example can be used directly for the POWERLEVEL9K theme for Oh My Zsh.
-#FILE="${TMPDIR:-/tmp/}/drush-env-${USER}/drush-drupal-site-$$"
-#POWERLEVEL9K_CUSTOM_DRUSH="[ -r $FILE ] && cat $FILE"
-#POWERLEVEL9K_CUSTOM_DRUSH_BACKGROUND="green"
-#POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs custom_drush)
-#
-# Use `drush init` to copy this to ~/.drush/drush.prompt.sh, and source it in
-# ~/.bashrc or ~/.bash_profile.
-#
-# Note that your Bash session must already have the __git_ps1 function available.
-# Typically this is provided by git-prompt.sh, see instructions for downloading
-# and including this file here:
-# https://github.com/git/git/blob/master/contrib/completion/git-prompt.sh
+# Use `drush init` to copy this to ~/.drush/drush.prompt.sh, and source it in ~/.bashrc
 #
 # Features:
 #
 # Displays Git repository and Drush alias status in your prompt.
-
-__drush_ps1() {
-  f="${TMPDIR:-/tmp/}/drush-env-${USER}/drush-drupal-site-$$"
-  if [ -f $f ]
-  then
-    __DRUPAL_SITE=$(cat "$f")
-  else
-    __DRUPAL_SITE="$DRUPAL_SITE"
-  fi
-
-  # Set DRUSH_PS1_SHOWCOLORHINTS to a non-empty value and define a
-  # __drush_ps1_colorize_alias() function for color hints in your Drush PS1
-  # prompt. See example.prompt.sh for an example implementation.
-  if [ -n "${__DRUPAL_SITE-}" ] && [ -n "${DRUSH_PS1_SHOWCOLORHINTS-}" ]; then
-    __drush_ps1_colorize_alias
-  fi
-
-  [[ -n "$__DRUPAL_SITE" ]] && printf "${1:- (%s)}" "$__DRUPAL_SITE"
-}
-
 if [ -n "$(type -t __git_ps1)" ] && [ "$(type -t __git_ps1)" = function ] && [ "$(type -t __drush_ps1)" ] && [ "$(type -t __drush_ps1)" = function ]; then
 
   # This line enables color hints in your Drush prompt. Modify the below

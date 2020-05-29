@@ -19,10 +19,7 @@
         "drupal/core-composer-scaffold": "^9",
         "drupal/core-project-message": "^9",
         "drupal/core-recommended": "^9",
-        "drupal/core-vendor-hardening": "^9",
-        "drupal/drupal-driver": "^2",
-        "drush-ops/behat-drush-endpoint": "^9",
-        "drush/drush": "^10"
+        "drupal/core-vendor-hardening": "^9"
     },
     "conflict": {
         "drupal/drupal": "*"
@@ -85,5 +82,11 @@
                 "      composer remove drupal/core-project-message"
             ]
         }
+    },
+    "require-dev": {
+        "drupal/drupal-driver": "dev-master",
+        "drupal/drupal-extension": "dev-master",
+        "drush-ops/behat-drush-endpoint": "^9.4",
+        "drush/drush": "dev-revert-dependencies"
     }
 }

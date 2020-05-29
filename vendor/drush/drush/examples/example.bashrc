@@ -8,6 +8,7 @@
 #
 #       dr               - drush
 #       ddd              - drush drupal-directory
+#       dl               - drush pm-download
 #       ev               - drush php-eval
 #       sa               - drush site-alias
 #       sa               - drush site-alias --local-only (show local site aliases)
@@ -16,10 +17,17 @@
 #
 # Aliases for Drush commands that work on the current drupal site:
 #
+#       cc               - drush cache-clear
 #       cr               - drush cache-rebuild
+#       cca              - drush cache-clear all
+#       dis              - drush pm-disable
 #       en               - drush pm-enable
+#       i                - drush pm-info
 #       pml              - drush pm-list
+#       rf               - drush pm-refresh
 #       unin             - drush pm-uninstall
+#       up               - drush pm-update
+#       upc              - drush pm-updatecode
 #       updb             - drush updatedb
 #       q                - drush sql-query
 #
@@ -56,19 +64,28 @@
 
 # Aliases for common Drush commands that work in a global context.
 alias dr='drush'
-alias ddd='drush drupal:directory'
-alias ev='drush php:eval'
-alias sa='drush site:alias'
-alias st='drush core:status'
-alias use='drush site:set'
+alias ddd='drush drupal-directory'
+alias dl='drush pm-download'
+alias ev='drush php-eval'
+alias sa='drush site-alias'
+alias lsa='drush site-alias --local-only'
+alias st='drush core-status'
+alias use='drush site-set'
 
 # Aliases for Drush commands that work on the current drupal site
-alias cr='drush cache:rebuild'
-alias en='drush pm:enable'
-alias pml='drush pm:list'
-alias unin='drush pm:uninstall'
+alias cc='drush cache-clear'
+alias cr='drush cache-rebuild'
+alias cca='drush cache-clear all'
+alias dis='drush pm-disable'
+alias en='drush pm-enable'
+alias pmi='drush pm-info'
+alias pml='drush pm-list'
+alias rf='drush pm-refresh'
+alias unin='drush pm-uninstall'
+alias up='drush pm-update'
+alias upc='drush pm-updatecode'
 alias updb='drush updatedb'
-alias q='drush sql:query'
+alias q='drush sql-query'
 
 # Overrides for standard shell commands. Uncomment to enable.  Alias
 # cd='cdd' if you want to be able to use cd @remote to ssh to a
@@ -108,7 +125,7 @@ function fastcddl() {
     builtin cd
   elif [ "${s:0:1}" == "@" ] || [ "${s:0:1}" == "%" ]
   then
-    d="$(drush drupal:directory $1 --local-only 2>/dev/null)"
+    d="$(drush drupal-directory $1 --local-only 2>/dev/null)"
     if [ $? == 0 ]
     then
       echo "cd $d";
@@ -138,8 +155,8 @@ function cdd() {
     builtin cd
   elif [ "${s:0:1}" == "@" ] || [ "${s:0:1}" == "%" ]
   then
-    d="$(drush drupal:directory $s 2>/dev/null)"
-    rh="$(drush sa ${s%%:*} --fields=host --format=list)"
+    d="$(drush drupal-directory $s 2>/dev/null)"
+    rh="$(drush sa ${s%%:*} --fields=remote-host --format=list)"
     if [ -z "$rh" ]
     then
       echo "cd $d"
@@ -166,7 +183,7 @@ function gitd() {
   if [ -n "$s" ] && [ ${s:0:1} == "@" ] || [ ${s:0:1} == "%" ]
   then
     d="$(drush drupal-directory $s 2>/dev/null)"
-    rh="$(drush sa ${s%%:*} --fields=host --format=list)"
+    rh="$(drush sa ${s%%:*} --fields=remote-host --format=list)"
     if [ -n "$rh" ]
     then
       drush ${s%%:*} ssh "cd '$d' ; git ${@:2}"
@@ -189,10 +206,10 @@ function lsd() {
   for a in "$@" ; do
     if [ ${a:0:1} == "@" ] || [ ${a:0:1} == "%" ]
     then
-      p[${#p[@]}]="$(drush drupal:directory $a 2>/dev/null)"
+      p[${#p[@]}]="$(drush drupal-directory $a 2>/dev/null)"
       if [ ${a:0:1} == "@" ]
       then
-        rh="$(drush sa ${a%:*} --fields=host --format=list)"
+        rh="$(drush sa ${a%:*} --fields=remote-host --format=list)"
         if [ -n "$rh" ]
         then
           r=${a%:*}
@@ -217,7 +234,7 @@ function cpd() {
   for a in "$@" ; do
     if [ ${a:0:1} == "@" ] || [ ${a:0:1} == "%" ]
     then
-      p[${#p[@]}]="$(drush drupal:directory $a --local-only 2>/dev/null)"
+      p[${#p[@]}]="$(drush drupal-directory $a --local-only 2>/dev/null)"
     elif [ -n "$a" ]
     then
       p[${#p[@]}]="$a"
@@ -237,3 +254,10 @@ function dssh() {
     "ssh" "$@"
   fi
 }
+
+# Drush checks the current PHP version to ensure compatibility, and fails with
+# an error if less than the supported minimum (currently 5.4.5). If you would
+# like to try to run Drush on a lower version of PHP, you can un-comment the
+# line below to skip this check. Note, however, that this is un-supported.
+
+# DRUSH_NO_MIN_PHP=TRUE

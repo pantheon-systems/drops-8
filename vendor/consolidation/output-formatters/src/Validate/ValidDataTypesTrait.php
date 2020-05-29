@@ -13,7 +13,7 @@ trait ValidDataTypesTrait
      *
      * @return \ReflectionClass[]
      */
-    abstract public function validDataTypes();
+    public abstract function validDataTypes();
 
     /**
      * Return the list of data types acceptable to this formatter

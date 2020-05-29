@@ -1,117 +1,132 @@
 Creating Custom Drush Commands
 ==============================
 
-Creating a new Drush command or porting a legacy command is easy. Follow the steps below.
+Creating a new Drush command is very easy. Follow these simple steps:
 
-1. Run `drush generate drush-command-file`.
-1. Drush will prompt for the machine name of the module that should "own" the file.
-    1. (optional) Drush will also prompt for the path to a legacy command file to port. See [tips on porting command to Drush 9](https://weitzman.github.io/blog/port-to-drush9)
-    1. The module selected must already exist and be enabled. Use `drush generate module-standard` to create a new module.
-1. Drush will then report that it created a commandfile, a drush.services.yml file and a composer.json file. Edit those files as needed.
-1. Use the classes for the core Drush commands at [/src/Drupal/Commands](https://github.com/drush-ops/drush/tree/master/src/Drupal/Commands) as inspiration and documentation.
-1. See the [dependency injection docs](dependency-injection.md) for interfaces you can implement to gain access to Drush config, Drupal site aliases, etc.
-1. Write PHPUnit tests based on [Drush Test Traits](https://github.com/drush-ops/drush/tree/master/tests#drush-test-traits).
-1. Once your two files are ready, run `drush cr` to get your command recognized by the Drupal container.
+1.  Create a command file called COMMANDFILE.drush.inc
+1.  Implement the function COMMANDFILE\_drush\_command()
+1.  Implement the functions that your commands will call. These will usually be named drush\_COMMANDFILE\_COMMANDNAME().
 
-Specifying the Services File
-================================
+For an example Drush command, see examples/sandwich.drush.inc. The steps for implementing your command are explained in more detail below.
 
-A module's composer.json file stipulates the filename where the Drush services (e.g. the Drush command files) are defined. The default services file is `drush.services.yml`, which is defined in the extra section of the composer.json file as follows:
-```
-  "extra": {
-    "drush": {
-      "services": {
-        "drush.services.yml": "^9"
-      }
-    }
-  }
-```
-If for some reason you need to load different services for different versions of Drush, simply define multiple services files in the `services` section. The first one found will be used. For example:
-```
-  "extra": {
-    "drush": {
-      "services": {
-        "drush-9-99.services.yml": "^9.99",
-        "drush.services.yml": "^9"
-      }
-    }
-  }
-```
-In this example, the file `drush-9-99.services.yml` loads commandfile classes that require features only available in Drush 9.99 and later, and drush.services.yml loads an older commandfile implementation for earlier versions of Drush.
+Create COMMANDFILE.drush.inc
+----------------------------
 
-It is also possible to use [version ranges](https://getcomposer.org/doc/articles/versions.md#version-range) to exactly specify which version of Drush the services file should be used with (e.g. `"drush.services.yml": ">=9 <9.99"`).
+The name of your Drush command is very important. It must end in ".drush.inc" to be recognized as a Drush command. The part of the filename that comes before the ".drush.inc" becomes the name of the commandfile. Optionally, the commandfile may be restricted to a particular version of Drupal by adding a ".dVERSION" after the name of the commandfile (e.g. ".d8.drush.inc") Your commandfile name is used by Drush to compose the names of the functions it will call, so choose wisely.
 
-In Drush 9, the default services file, `drush.services.yml`, will be used in instances where there is no `services` section in the Drush extras of the project's composer.json file. In Drush 10, however, the services section must exist, and must name the services file to be used. If a future Drush extension is written such that it only works with Drush 10 and later, then its entry would read `"drush.services.yml": "^10"`, and Drush 9 would not load the extension's commands. It is all the same recommended that Drush 9 extensions explicitly declare their services file with an appropriate version constraint.
+The example Drush command, 'make-me-a-sandwich', is stored in the 'sandwich' commandfile, 'sandwich.Drush.inc'. You can find this file in the 'examples' directory in the Drush distribution.
 
-Altering Drush Command Info
-===========================
+Drush searches for commandfiles in the following locations:
 
-Drush command info (annotations) can be altered from other modules. This is done by creating and registering 'command info alterers'. Alterers are class services that are able to intercept and manipulate an existing command annotation.
+-   Folders listed in the 'include' option (see `drush topic docs-configuration`).
+-   The system-wide Drush commands folder, e.g. /usr/share/drush/commands
+-   The ".drush" folder in the user's HOME folder.
+-   /drush and /sites/all/drush in the current Drupal installation
+-   All enabled modules in the current Drupal installation
+-   Folders and files containing other versions of Drush in their names will be \*skipped\* (e.g. devel.drush4.inc or drush4/devel.drush.inc). Names containing the current version of Drush (e.g. devel.drush5.inc) will be loaded.
 
-In order to alter an existing command info, follow the steps below:
+Note that modules in the current Drupal installation will only be considered if Drush has bootstrapped to at least the DRUSH\_BOOSTRAP\_SITE level. Usually, when working with a Drupal site, Drush will bootstrap to DRUSH\_BOOTSTRAP\_FULL; in this case, only the Drush commandfiles in enabled modules will be considered eligible for loading. If Drush only bootstraps to DRUSH\_BOOTSTRAP\_SITE, though, then all Drush commandfiles will be considered, whether the module is enabled or not. See `drush topic docs-bootstrap` for more information on bootstrapping.
 
-1. In the module that wants to alter a command info, add a service class that implements the `\Consolidation\AnnotatedCommand\CommandInfoAltererInterface`.
-1. In the module `drush.services.yml` declare a service pointing to this class and tag the service with the `drush.command_info_alterer` tag.
-1. In that class, implement the alteration logic in the `alterCommandInfo()` method.
-1. Along with the alter code, it's strongly recommended to log a debug message explaining what exactly was altered. This makes things easier on others who may need to debug the interaction of the alter code with other modules. Also it's a good practice to inject the the logger in the class constructor.
+Implement COMMANDFILE\_drush\_command()
+---------------------------------------
 
-For an example, see the alterer class provided by the testing 'woot' module: `tests/functional/resources/modules/d8/woot/src/WootCommandInfoAlterer.php`.
+The drush\_command hook is the most important part of the commandfile. It returns an array of items that define how your commands should be called, and how they work. Drush commands are very similar to the Drupal menu system. The elements that can appear in a Drush command definition are shown below.
 
-Site-Wide Drush Commands
-==============================
+-   **aliases**: Provides a list of shorter names for the command. For example, pm-download may also be called via `drush dl`. If the alias is used, Drush will substitute back in the primary command name, so pm-download will still be used to generate the command hook, etc.
+-   **command-hook**: Change the name of the function Drush will call to execute the command from drush\_COMMANDFILE\_COMMANDNAME() to drush\_COMMANDFILE\_COMMANDHOOK(), where COMMANDNAME is the original name of the command, and COMMANDHOOK is the value of the 'command-hook' item.
+-   **callback**: Name of function to invoke for this command. The callback function name \_must\_ begin with "drush\_commandfile\_", where commandfile is from the file "commandfile.drush.inc", which contains the commandfile\_drush\_command() function that returned this command. Note that the callback entry is optional; it is preferable to omit it, in which case drush\_invoke() will generate the hook function name.
+-   **callback arguments**: An array of arguments to pass to the callback. The command line arguments, if any, will appear after the callback arguments in the function parameters.
+-   **description**: Description of the command.
+-   **arguments**: An array of arguments that are understood by the command. Used by `drush help` only.
+-   **required-arguments**: Defaults to FALSE; TRUE if all of the arguments are required. Set to an integer count of required arguments if only some are required.
+-   **options**: An array of options that are understood by the command. Any option that the command expects to be able to query via drush\_get\_option \_must\_ be listed in the options array. If it is not, users will get an error about an "Unknown option" when they try to specify the option on the command line.
 
-Commandfiles that are installed in a Drupal site and are not bundled inside a Drupal module are called 'site-wide' commandfiles. Site-wide commands may either be added directly to the Drupal site's repository (e.g. for site-specific policy files), or via `composer require`. See the [examples/Commands](https://github.com/drush-ops/drush/tree/master/examples/Commands) folder for examples. In general, it's better to use modules to carry your Drush commands, as module-based commands may [participate in Drupal's dependency injection via the drush.services.yml](#specifying-the-services-file).
+    The value of each option may be either a simple string containing the option description, or an array containing the following information:
 
-If you still prefer using site-wide commandfiles, here are some examples of valid commandfile names and namespaces:
+    -   **description**: A description of the option.
+    -   **example-value**: An example value to show in help.
+    -   **value**: optional|required.
+    -   **required**: Indicates that an option must be provided.
+    -   **hidden**: The option is not shown in the help output (rare).
 
-1. Simple
-     - Filename: $PROJECT_ROOT/drush/Commands/ExampleCommands.php
-     - Namespace: Drush\Commands
-1. Nested in a subdirectory committed to the site's repository
-     - Filename: $PROJECT_ROOT/drush/Commands/example/ExampleCommands.php
-     - Namespace: Drush\Commands\example
-1. Nested in a subdirectory installed via a Composer package
-    - Filename: $PROJECT_ROOT/drush/Commands/contrib/dev_modules/ExampleCommands.php
-    - Namespace: Drush\Commands\dev_modules
+-   **allow-additional-options**: If TRUE, then the strict validation to see if options exist is skipped. Examples of where this is done includes the core-rsync command, which passes options along to the rsync shell command. This item may also contain a list of other commands that are invoked as subcommands (e.g. the pm-update command calls pm-updatecode and updatedb commands). When this is done, the options from the subcommand may be used on the commandline, and are also listed in the command's `help` output. Defaults to FALSE.
+-   **examples**: An array of examples that are understood by the command. Used by `drush help` only.
+-   **scope**: One of 'system', 'project', 'site'. Not currently used.
+-   **bootstrap**: Drupal bootstrap level. More info at `drush topic docs-bootstrap`. Valid values are:
+    -   DRUSH\_BOOTSTRAP\_NONE
+    -   DRUSH\_BOOTSTRAP\_DRUPAL\_ROOT
+    -   DRUSH\_BOOTSTRAP\_DRUPAL\_SITE
+    -   DRUSH\_BOOTSTRAP\_DRUPAL\_CONFIGURATION
+    -   DRUSH\_BOOTSTRAP\_DRUPAL\_DATABASE
+    -   DRUSH\_BOOTSTRAP\_DRUPAL\_FULL
+    -   DRUSH\_BOOTSTRAP\_DRUPAL\_LOGIN (default)
+    -   DRUSH\_BOOTSTRAP\_MAX
+-   **core**: Drupal major version required. Append a '+' to indicate 'and later versions.'
+-   **drupal dependencies**: Drupal modules required for this command.
+-   **drush dependencies**: Other Drush commandfiles required for this command.
+-   **engines**: Provides a list of Drush engines to load with this command. The set of appropriate engines varies by command.
+    -   **outputformat**: One important engine is the 'outputformat' engine. This engine is responsible for formatting the structured data (usually an associative array) that a Drush command returns as its function result into a human-readable or machine-parsable string. Some of the options that may be used with output format engines are listed below; however, each specific output format type can take additional option items that control the way that the output is rendered. See the comment in the output format's implementation for information. The Drush core output format engines can be found in commands/core/outputformat.
+        -   **default**: The default type to render output as. If declared, the command should not print any output on its own, but instead should return a data structure (usually an associative array) that can be rendered by the output type selected.
+        -   **pipe-format**: When the command is executed in --pipe mode, the command output will be rendered by the format specified by the pipe-format item instead of the default format. Note that in either event, the user may specify the format to use via the --format command-line option.
+        -   **formatted-filter** and **pipe-filter**: Specifies a function callback that will be used to filter the command result. The filter is selected based on the type of output format object selected. Most output formatters are 'pipe' formatters, that produce machine-parsable output. A few formatters, such as 'table' and 'key-value' are 'formatted' filter types, that produce human-readable output.
+-   **topics**: Provides a list of topic commands that are related in some way to this command. Used by `drush help`.
+-   **topic**: Set to TRUE if this command is a topic, callable from the `drush docs-topics` command.
+-   **category**: Set this to override the category in which your command is listed in help.
 
-Installing commands as part of a Composer project requires that the project's type be `drupal-drush`, and that the `installer-paths` in the Drupal site's composer.json file contains `"drush/Commands/contrib/{$name}": ["type:drupal-drush"]`. It is also possible to commit projects with a similar layout using a directory named `custom` in place of `contrib`; if this is done, then the directory `custom` will not be considered to be part of the commandfile's namespace.
+The 'sandwich' drush\_command hook looks like this:
 
-If a site-wide commandfile is added via a Composer package, then it may declare any dependencies that it may need in its composer.json file. Site-wide commandfiles that are committed directly to a site's repository only have access to the dependencies already available in the site. Site-wide commandfiles should declare their Drush version compatibility via a `conflict` directive. For example, a Composer-managed site-wide command that works with both Drush 8 and Drush 9 might contain something similar to the following in its composer.json file:
-```
-    "conflict": {
-        "drush/drush": "<8.2 || >=9.0 <9.6 || >=10.0",
-    }
-```
-Using `require` in place of `conflict` is not recommended.
+            function sandwich_drush_command() {
+              $items = array();
 
-A site-wide commandfile should have tests that run with each (major) version of Drush that is supported. You may model your test suite after the [example drush extension](https://github.com/drush-ops/example-drush-extension) project, which works on Drush ^8.2 and ^9.6.
+              $items['make-me-a-sandwich'] = array(
+                'description' => "Makes a delicious sandwich.",
+                'arguments' => array(
+                  'filling' => 'The type of the sandwich (turkey, cheese, etc.)',
+                ),
+                'options' => array(
+                  'spreads' => 'Comma delimited list of spreads (e.g. mayonnaise, mustard)',
+                ),
+                'examples' => array(
+                  'drush mmas turkey --spreads=ketchup,mustard' => 'Make a terrible-tasting sandwich that is lacking in pickles.',
+                ),
+                'aliases' => array('mmas'),
+                'bootstrap' => DRUSH_BOOTSTRAP_DRUSH, // No bootstrap at all.
+              );
 
-Global Drush Commands
-==============================
+              return $items;
+            }
 
-Commandfiles that are not part of any Drupal site are called 'global' commandfiles. Global commandfiles are not supported by default; in order to enable them, you must configure your `drush.yml` configuration file to add an `include` search location.
+Most of the items in the 'make-me-a-sandwich' command definition have no effect on execution, and are used only by `drush help`. The exceptions are 'aliases' (described above) and 'bootstrap'. As previously mentioned, `drush topic docs-bootstrap` explains the Drush bootstrapping process in detail.
 
-For example:
+Implement drush\_COMMANDFILE\_COMMANDNAME()
+-------------------------------------------
 
-drush:
-  paths:
-    include:
-      - '${env.home}/.drush/commands'
-      
-With this configuration in place, global commands may be placed as described in the Site-Wide Drush Commands section above. Global commandfiles may not declare any dependencies of their own; they may only use those dependencies already available via the autoloader.
+The 'make-me-a-sandwich' command in sandwich.drush.inc is defined as follows:
 
-##### Tips
-1. The filename must be have a name like Commands/ExampleCommands.php
-    1. The prefix `Example` can be whatever string you want.
-    1. The file must end in `Commands.php`
-1. The directory above `Commands` must be one of: 
-    1.  A Folder listed in the 'include' option. Include may be provided via [config](#global-drush-commands) or via CLI.
-    1.  ../drush, /drush or /sites/all/drush. These paths are relative to Drupal root.
+        function drush_sandwich_make_me_a_sandwich($filling = 'ascii') {
+          // implementation here ...
+        }
 
-It is recommended that you avoid global Drush commands, and favor site-wide commandfiles instead. If you really need a command or commands that are not part of any Drupal site, consider making a stand-alone script or custom .phar instead. See [ahoy](https://github.com/ahoy-cli/ahoy), [Robo](https://github.com/consolidation/robo) and [g1a/starter](https://github.com/g1a/starter) as potential starting points.
+If a user runs `drush make-me-a-sandwich` with no command line arguments, then Drush will call drush\_sandwich\_make\_me\_a\_sandwich() with no function parameters; in this case, $filling will take on the provided default value, 'ascii'. (If there is no default value provided, then the variable will be NULL, and a warning will be printed.) Running `drush make-me-a-sandwich ham` will cause Drush to call drush\_sandwich\_make\_me\_a\_sandwich('ham'). In the same way, commands that take two command line arguments can simply define two functional parameters, and a command that takes a variable number of command line arguments can use the standard php function func\_get\_args() to get them all in an array for easy processing.
 
-Composer packaged commands
-==============================
+It is also very easy to query the command options using the function drush\_get\_option(). For example, in the drush\_sandwich\_make\_me\_a\_sandwich() function, the --spreads option is retrieved as follows:
 
-##### Symlinked packages
-While it is good practice to make your custom commands into a Composer package, please beware that symlinked packages (by using the composer repository type [Path](https://getcomposer.org/doc/05-repositories.md#path)) will **not** be discovered by Drush. When in development, it is recommended to [specify your package's](https://github.com/drush-ops/drush/blob/master/examples/example.drush.yml#L52-L67) path in your `drush.yml` to have quick access to your commands.
+            $str_spreads = '';
+            if ($spreads = drush_get_option('spreads')) {
+              $list = implode(' and ', explode(',', $spreads));
+              $str_spreads = ' with just a dash of ' . $list;
+            }
+
+Note that Drush will actually call a sequence of functions before and after your Drush command function. One of these hooks is the "validate" hook. The 'sandwich' commandfile provides a validate hook for the 'make-me-a-sandwich' command:
+
+            function drush_sandwich_make_me_a_sandwich_validate() {
+              $name = posix_getpwuid(posix_geteuid());
+              if ($name['name'] !== 'root') {
+                return drush_set_error('MAKE_IT_YOUSELF', dt('What? Make your own sandwich.'));
+              }
+            }
+
+The validate function should call drush\_set\_error() and return its result if the command cannot be validated for some reason. See `drush topic docs-policy` for more information on defining policy functions with validate hooks, and `drush topic docs-api` for information on how the command hook process works. Also, the list of defined drush error codes can be found in `drush topic docs-errorcodes`.
+
+To see the full implementation of the sample 'make-me-a-sandwich' command, see `drush topic docs-examplecommand`.
+

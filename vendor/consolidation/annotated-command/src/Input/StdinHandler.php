@@ -98,7 +98,7 @@ class StdinHandler
 
     public static function selectStream(InputInterface $input, $optionOrArg)
     {
-        $handler = new self();
+        $handler = new Self();
 
         return $handler->setStream($input, $optionOrArg);
     }

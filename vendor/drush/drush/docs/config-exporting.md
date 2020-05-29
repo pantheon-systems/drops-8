@@ -29,7 +29,7 @@ a Drush feature. It should be the preferred method for changing
 configuration values on a per-environment basis; however, it does not
 work for some things, such as enabling and disabling modules.  For
 configuration changes not handled by the configuration override system,
-you can use Drush configuration filters.
+you can use configuration filters of the Config Filter module.
 
 ## Ignoring Development Modules
 

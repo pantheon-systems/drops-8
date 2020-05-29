@@ -1,16 +1,16 @@
 Running Drupal cron tasks from Drush
 ====================================
 
-Drupal cron tasks are often set up to be run via a wget call to cron.php; this same task can also be accomplished via the `drush cron` command, which circumvents the need to provide a web server interface to cron.
+Drupal cron tasks are often set up to be run via a wget call to cron.php; this same task can also be accomplished via the `drush cron` command, which circumvents the need to provide a webserver interface to cron.
 
 Quick start
 ----------
 
 If you just want to get started quickly, here is a crontab entry that will run cron once every hour at ten minutes after the hour:
 
-    10 * * * * cd [DOCROOT] && /usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin COLUMNS=72 ../vendor/bin/drush --uri=your.drupalsite.org --quiet cron
+    10 * * * * /usr/bin/env PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin COLUMNS=72 /usr/local/bin/drush --root=/path/to/your/drupalroot --uri=your.drupalsite.org --quiet cron
 
-You should set up crontab to run your cron tasks as the same user that runs the web server; for example, if you run your web server as the user www-data:
+You should set up crontab to run your cron tasks as the same user that runs the web server; for example, if you run your webserver as the user www-data:
 
     sudo crontab -u www-data -e
 
@@ -33,9 +33,9 @@ Take the value that is output and place it into your crontab entry in the place 
 Setting COLUMNS
 ---------------
 
-When running Drush in a terminal, the number of columns will be automatically determined by Drush by way of the tput command, which queries the active terminal to determine what the width of the screen is. When running Drush from cron, there will not be any terminal set, and the call to tput will produce an error message. Spurious error messages are undesirable, as cron is often configured to send email whenever any output is produced, so it is important to make an effort to insure that successful runs of cron complete with no output.
+When running Drush in a terminal, the number of columns will be automatically determined by Drush by way of the tput command, which queries the active terminal to determine what the width of the screen is. When running Drush from cron, there will not be any terminal set, and the call to tput will produce an error message. Spurrious error messages are undesirable, as cron is often configured to send email whenever any output is produced, so it is important to make an effort to insure that successful runs of cron complete with no output.
 
-In some cases, Drush is smart enough to recognize that there is no terminal -- if the terminal value is empty or "dumb", for example. However, there are some "non-terminal" values that Drush does not recognize, such as "unknown." If you manually set `COLUMNS`, then Drush will respect your setting and will not attempt to call tput.
+In some cases, Drush is smart enough to recognize that there is no terminal -- if the terminal value is empty or "dumb", for example. However, there are some "non-terminal" values that Drush does not recognize, such as "unknown." If you manually set `COLUMNS`, then Drush will repect your setting and will not attempt to call tput.
 
 Using --quiet
 -------------
@@ -45,5 +45,5 @@ By default, Drush will print a success message when the run of cron is completed
 Specifying the Drupal site to run
 ---------------------------------
 
-There are many ways to tell Drush which Drupal site to select for the active command, and any may be used here. The example uses `cd [DOCROOT]`, but you could also use the --root and --uri flags.
+There are many ways to tell Drush which Drupal site to select for the active command, and any may be used here. The example uses the --root and --uri flags, but you could also use an alias record.
 

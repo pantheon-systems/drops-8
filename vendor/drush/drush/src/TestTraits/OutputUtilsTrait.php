@@ -17,7 +17,7 @@ trait OutputUtilsTrait
      *
      * @access public
      */
-    abstract public function getOutputRaw();
+    public abstract function getOutputRaw();
 
     /**
      * Accessor for the last stderr output, non-trimmed.
@@ -27,7 +27,7 @@ trait OutputUtilsTrait
      *
      * @access public
      */
-    abstract public function getErrorOutputRaw();
+    public abstract function getErrorOutputRaw();
 
     /**
      * Get command output and simplify away things like full paths and extra
