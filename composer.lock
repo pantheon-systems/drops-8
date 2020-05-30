@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0524c16be2f7c2e762c208d75b7cc3f7",
+    "content-hash": "d9b92824359019209df6bf88c4b10312",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -4854,16 +4854,16 @@
         },
         {
             "name": "drush/drush",
-            "version": "dev-revert-dependencies",
+            "version": "8.x-dev",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drush-ops/drush.git",
-                "reference": "1334302bec38c59e8f2105d84ecd9b75f7cdea30"
+                "reference": "9e906da85aaa9b932a00dc222944b87472bda295"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drush-ops/drush/zipball/1334302bec38c59e8f2105d84ecd9b75f7cdea30",
-                "reference": "1334302bec38c59e8f2105d84ecd9b75f7cdea30",
+                "url": "https://api.github.com/repos/drush-ops/drush/zipball/9e906da85aaa9b932a00dc222944b87472bda295",
+                "reference": "9e906da85aaa9b932a00dc222944b87472bda295",
                 "shasum": ""
             },
             "require": {
@@ -4964,7 +4964,7 @@
             ],
             "description": "Drush is a command line shell and scripting interface for Drupal, a veritable Swiss Army knife designed to make life easier for those of us who spend some of our working hours hacking away at the command prompt.",
             "homepage": "http://www.drush.org",
-            "time": "2020-05-29T02:48:18+00:00"
+            "time": "2020-05-29T23:09:56+00:00"
         },
         {
             "name": "fabpot/goutte",
