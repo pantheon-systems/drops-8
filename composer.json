@@ -87,6 +87,6 @@
         "drupal/drupal-driver": "dev-master",
         "drupal/drupal-extension": "dev-master",
         "drush-ops/behat-drush-endpoint": "^9.4",
-        "drush/drush": "8.x-dev"
+        "drush/drush": "^8.3.5"
     }
 }

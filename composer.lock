@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d9b92824359019209df6bf88c4b10312",
+    "content-hash": "8576647be8da80061b1dd001888e449c",
     "packages": [
         {
             "name": "asm89/stack-cors",
@@ -4854,16 +4854,16 @@
         },
         {
             "name": "drush/drush",
-            "version": "8.x-dev",
+            "version": "8.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/drush-ops/drush.git",
-                "reference": "9e906da85aaa9b932a00dc222944b87472bda295"
+                "reference": "24e317b182155c9cd551e772b45ebce1fe7a2b17"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drush-ops/drush/zipball/9e906da85aaa9b932a00dc222944b87472bda295",
-                "reference": "9e906da85aaa9b932a00dc222944b87472bda295",
+                "url": "https://api.github.com/repos/drush-ops/drush/zipball/24e317b182155c9cd551e772b45ebce1fe7a2b17",
+                "reference": "24e317b182155c9cd551e772b45ebce1fe7a2b17",
                 "shasum": ""
             },
             "require": {
@@ -4888,7 +4888,7 @@
                 "symfony/event-dispatcher": "~2.7",
                 "symfony/finder": "~2.7",
                 "symfony/process": "2.7.*",
-                "symfony/var-dumper": "2.8.*",
+                "symfony/var-dumper": "~2.7",
                 "symfony/yaml": "~2.3"
             },
             "suggest": {
@@ -4964,7 +4964,7 @@
             ],
             "description": "Drush is a command line shell and scripting interface for Drupal, a veritable Swiss Army knife designed to make life easier for those of us who spend some of our working hours hacking away at the command prompt.",
             "homepage": "http://www.drush.org",
-            "time": "2020-05-29T23:09:56+00:00"
+            "time": "2020-05-30T01:54:49+00:00"
         },
         {
             "name": "fabpot/goutte",
@@ -5734,8 +5734,7 @@
     "minimum-stability": "dev",
     "stability-flags": {
         "drupal/drupal-driver": 20,
-        "drupal/drupal-extension": 20,
-        "drush/drush": 20
+        "drupal/drupal-extension": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,

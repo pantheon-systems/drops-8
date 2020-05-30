@@ -1969,17 +1969,17 @@
     },
     {
         "name": "drush/drush",
-        "version": "8.x-dev",
-        "version_normalized": "8.9999999.9999999.9999999-dev",
+        "version": "8.3.5",
+        "version_normalized": "8.3.5.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drush-ops/drush.git",
-            "reference": "9e906da85aaa9b932a00dc222944b87472bda295"
+            "reference": "24e317b182155c9cd551e772b45ebce1fe7a2b17"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drush-ops/drush/zipball/9e906da85aaa9b932a00dc222944b87472bda295",
-            "reference": "9e906da85aaa9b932a00dc222944b87472bda295",
+            "url": "https://api.github.com/repos/drush-ops/drush/zipball/24e317b182155c9cd551e772b45ebce1fe7a2b17",
+            "reference": "24e317b182155c9cd551e772b45ebce1fe7a2b17",
             "shasum": ""
         },
         "require": {
@@ -2004,14 +2004,14 @@
             "symfony/event-dispatcher": "~2.7",
             "symfony/finder": "~2.7",
             "symfony/process": "2.7.*",
-            "symfony/var-dumper": "2.8.*",
+            "symfony/var-dumper": "~2.7",
             "symfony/yaml": "~2.3"
         },
         "suggest": {
             "drush/config-extra": "Provides configuration workflow commands, such as config-merge.",
             "ext-pcntl": "*"
         },
-        "time": "2020-05-29T23:09:56+00:00",
+        "time": "2020-05-30T01:54:49+00:00",
         "bin": [
             "drush",
             "drush.launcher",
