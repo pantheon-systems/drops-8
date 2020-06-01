@@ -14,7 +14,12 @@ class TaxonomyTermFilterDepthTest extends TaxonomyTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'taxonomy_test_views', 'views', 'node'];
+  protected static $modules = [
+    'taxonomy',
+    'taxonomy_test_views',
+    'views',
+    'node',
+  ];
 
   /**
    * {@inheritdoc}
@@ -39,7 +44,7 @@ class TaxonomyTermFilterDepthTest extends TaxonomyTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     // Create a hierarchy 3 deep. Note the parent setup function creates two

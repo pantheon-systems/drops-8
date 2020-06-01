@@ -8,11 +8,10 @@ use Drupal\Tests\migrate_drupal\Kernel\d6\MigrateDrupal6TestBase;
  * Upgrade i18n maintenance variables to system.*.yml.
  *
  * @group migrate_drupal_6
- * @group legacy
  */
 class MigrateSystemMaintenanceTranslationTest extends MigrateDrupal6TestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'language',
     'config_translation',
   ];
@@ -20,7 +19,7 @@ class MigrateSystemMaintenanceTranslationTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executeMigration('d6_system_maintenance_translation');
   }

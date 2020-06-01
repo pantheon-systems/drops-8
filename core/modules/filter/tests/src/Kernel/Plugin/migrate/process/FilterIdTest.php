@@ -20,7 +20,7 @@ class FilterIdTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['filter'];
+  protected static $modules = ['filter'];
 
   /**
    * The mocked MigrateExecutable.
@@ -32,7 +32,7 @@ class FilterIdTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executable = $this->createMock(MigrateExecutableInterface::class);
   }

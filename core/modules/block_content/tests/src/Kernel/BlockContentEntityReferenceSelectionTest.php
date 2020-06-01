@@ -19,7 +19,7 @@ class BlockContentEntityReferenceSelectionTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'block_content',
     'block_content_test',
@@ -65,7 +65,7 @@ class BlockContentEntityReferenceSelectionTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->installSchema('system', ['sequences']);
     $this->installEntitySchema('user');

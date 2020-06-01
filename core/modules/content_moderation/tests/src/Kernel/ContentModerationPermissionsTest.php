@@ -18,7 +18,7 @@ class ContentModerationPermissionsTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'workflows',
     'content_moderation',
     'workflow_type_test',
@@ -27,7 +27,7 @@ class ContentModerationPermissionsTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('workflow');
   }

@@ -13,12 +13,12 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateUserPictureFieldInstanceTest extends MigrateDrupal7TestBase {
 
-  public static $modules = ['image', 'file'];
+  protected static $modules = ['image', 'file'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executeMigrations([
       'user_picture_field',
@@ -32,7 +32,7 @@ class MigrateUserPictureFieldInstanceTest extends MigrateDrupal7TestBase {
   public function testUserPictureField() {
     /** @var \Drupal\field\FieldConfigInterface $field */
     $field = FieldConfig::load('user.user.user_picture');
-    $this->assertTrue($field instanceof FieldConfigInterface);
+    $this->assertInstanceOf(FieldConfigInterface::class, $field);
     $this->assertIdentical('user', $field->getTargetEntityTypeId());
     $this->assertIdentical('user', $field->getTargetBundle());
     $this->assertIdentical('user_picture', $field->getName());

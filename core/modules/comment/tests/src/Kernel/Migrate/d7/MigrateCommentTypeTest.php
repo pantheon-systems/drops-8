@@ -16,12 +16,12 @@ class MigrateCommentTypeTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'comment', 'text'];
+  protected static $modules = ['node', 'comment', 'text'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateCommentTypes();
   }
@@ -54,7 +54,9 @@ class MigrateCommentTypeTest extends MigrateDrupal7TestBase {
       'comment_preview' => 'Preview comment',
       'comment_form_location' => 'Location of comment submission form',
     ];
-    $this->assertArraySubset($comment_fields, $this->migration->getSourcePlugin()->fields());
+    foreach ($comment_fields as $field => $description) {
+      $this->assertEquals($description, $this->migration->getSourcePlugin()->fields()[$field]);
+    }
 
     $this->assertEntity('comment_node_article', 'Article comment');
     $this->assertEntity('comment_node_blog', 'Blog entry comment');

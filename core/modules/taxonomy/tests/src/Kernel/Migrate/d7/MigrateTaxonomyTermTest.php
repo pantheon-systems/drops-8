@@ -13,7 +13,7 @@ use Drupal\taxonomy\TermInterface;
  */
 class MigrateTaxonomyTermTest extends MigrateDrupal7TestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'content_translation',
     'datetime',
@@ -37,7 +37,7 @@ class MigrateTaxonomyTermTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('comment');
     $this->installEntitySchema('file');

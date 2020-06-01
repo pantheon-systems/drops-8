@@ -17,7 +17,7 @@ class ModerationFormTest extends ModerationStateTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'content_moderation',
     'locale',
@@ -32,7 +32,7 @@ class ModerationFormTest extends ModerationStateTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->adminUser);
     $this->createContentTypeFromUi('Moderated content', 'moderated_content', TRUE);

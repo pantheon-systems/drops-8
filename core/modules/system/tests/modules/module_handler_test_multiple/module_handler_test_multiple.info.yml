@@ -2,10 +2,5 @@ name: module handler test multiple
 type: module
 description: Test module used to test adding modules with child module.
 package: Testing
-# version: VERSION
+version: VERSION
 hidden: true
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

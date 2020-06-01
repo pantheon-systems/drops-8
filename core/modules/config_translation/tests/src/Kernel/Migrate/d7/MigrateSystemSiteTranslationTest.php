@@ -14,7 +14,7 @@ class MigrateSystemSiteTranslationTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'config_translation',
   ];
@@ -22,7 +22,7 @@ class MigrateSystemSiteTranslationTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executeMigration('d7_system_site_translation');
   }

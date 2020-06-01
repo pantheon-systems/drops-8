@@ -2,7 +2,7 @@ name: 'Layout Builder'
 type: module
 description: 'Allows users to add and arrange blocks and content fields directly on the content.'
 package: Core
-# version: VERSION
+version: VERSION
 dependencies:
   - drupal:layout_discovery
   - drupal:contextual
@@ -10,8 +10,3 @@ dependencies:
   - drupal:field_ui
   # @todo Discuss removing in https://www.drupal.org/project/drupal/issues/3003610.
   - drupal:block
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

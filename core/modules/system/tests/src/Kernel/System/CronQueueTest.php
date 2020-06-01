@@ -17,7 +17,7 @@ class CronQueueTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system', 'cron_queue_test'];
+  protected static $modules = ['system', 'cron_queue_test'];
 
   /**
    * The database connection.
@@ -36,7 +36,7 @@ class CronQueueTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // These additional tables are necessary because $this->cron->run() calls

@@ -22,9 +22,12 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-master": "2.1.x-dev",
-            "dev-develop": "2.2.x-dev",
-            "dev-release-1.8": "1.8.x-dev"
+            "dev-master": "2.3.x-dev",
+            "dev-develop": "2.4.x-dev"
+        },
+        "laminas": {
+            "config-provider": "Laminas\\Diactoros\\ConfigProvider",
+            "module": "Laminas\\Diactoros"
         }
     },
     "require": {
@@ -39,7 +42,7 @@
         "ext-libxml": "*",
         "http-interop/http-factory-tests": "^0.5.0",
         "laminas/laminas-coding-standard": "~1.0.0",
-        "php-http/psr7-integration-tests": "dev-master",
+        "php-http/psr7-integration-tests": "^1.0",
         "phpunit/phpunit": "^7.5.18"
     },
     "provide": {
@@ -88,6 +91,6 @@
         "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
     },
     "replace": {
-        "zendframework/zend-diactoros": "self.version"
+        "zendframework/zend-diactoros": "^2.2.1"
     }
 }

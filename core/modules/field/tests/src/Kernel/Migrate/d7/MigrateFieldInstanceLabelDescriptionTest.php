@@ -11,14 +11,13 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  * Tests migration field label and description i18n translations.
  *
  * @group migrate_drupal_7
- * @group legacy
  */
 class MigrateFieldInstanceLabelDescriptionTest extends MigrateDrupal7TestBase implements MigrateDumpAlterInterface {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'config_translation',
     'datetime',
@@ -39,7 +38,7 @@ class MigrateFieldInstanceLabelDescriptionTest extends MigrateDrupal7TestBase im
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('node');

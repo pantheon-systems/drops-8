@@ -19,14 +19,22 @@ class DateTimeTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'node', 'language', 'field', 'field_ui', 'datetime', 'options'];
+  protected static $modules = [
+    'block',
+    'node',
+    'language',
+    'field',
+    'field_ui',
+    'datetime',
+    'options',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create admin user and log in admin user.
@@ -177,7 +185,7 @@ class DateTimeTest extends BrowserTestBase {
     $this->drupalCreateContentType(['type' => 'page_with_date', 'name' => 'Page with date']);
 
     $this->drupalGet('admin/structure/types/manage/page_with_date');
-    $this->assertResponse(200, 'Content type created.');
+    $this->assertResponse(200);
 
     $this->drupalGet('admin/structure/types/manage/page_with_date/fields/add-field');
     $edit = [

@@ -2,13 +2,8 @@ name: User
 type: module
 description: 'Manages the user registration and login system.'
 package: Core
-# version: VERSION
+version: VERSION
 required: true
 configure: user.admin_index
 dependencies:
   - drupal:system
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

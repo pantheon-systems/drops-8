@@ -24,7 +24,12 @@ class TaxonomyFieldVidTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['taxonomy', 'taxonomy_test_views', 'text', 'filter'];
+  protected static $modules = [
+    'taxonomy',
+    'taxonomy_test_views',
+    'text',
+    'filter',
+  ];
 
   /**
    * Views used by this test.
@@ -50,7 +55,7 @@ class TaxonomyFieldVidTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installEntitySchema('taxonomy_term');

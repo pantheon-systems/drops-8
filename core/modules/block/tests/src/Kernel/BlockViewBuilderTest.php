@@ -20,7 +20,7 @@ class BlockViewBuilderTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'block_test', 'system', 'user'];
+  protected static $modules = ['block', 'block_test', 'system', 'user'];
 
   /**
    * The block being tested.
@@ -46,7 +46,7 @@ class BlockViewBuilderTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->controller = $this->container

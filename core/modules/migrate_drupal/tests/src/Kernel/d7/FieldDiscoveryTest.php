@@ -23,7 +23,7 @@ class FieldDiscoveryTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'datetime',
     'file',
@@ -67,7 +67,7 @@ class FieldDiscoveryTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->installConfig(static::$modules);
     $node_types = [
@@ -75,6 +75,7 @@ class FieldDiscoveryTest extends MigrateDrupal7TestBase {
       'article' => 'comment_node_article',
       'blog' => 'comment_node_blog',
       'book' => 'comment_node_book',
+      'et' => 'comment_node_et',
       'forum' => 'comment_forum',
       'test_content_type' => 'comment_node_test_content_type',
     ];
@@ -278,9 +279,9 @@ class FieldDiscoveryTest extends MigrateDrupal7TestBase {
     $this->assertArrayHasKey('test_vocabulary', $actual_fields['taxonomy_term']);
     $this->assertArrayHasKey('user', $actual_fields['user']);
     $this->assertArrayHasKey('test_content_type', $actual_fields['node']);
-    $this->assertSame(6, count($actual_fields['node']));
-    $this->assertSame(6, count($actual_fields['comment']));
-    $this->assertSame(22, count($actual_fields['node']['test_content_type']));
+    $this->assertCount(7, $actual_fields['node']);
+    $this->assertCount(6, $actual_fields['comment']);
+    $this->assertCount(22, $actual_fields['node']['test_content_type']);
     foreach ($actual_fields as $entity_type_id => $bundles) {
       foreach ($bundles as $bundle => $fields) {
         foreach ($fields as $field_name => $field_info) {

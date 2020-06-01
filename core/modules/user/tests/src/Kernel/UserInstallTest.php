@@ -17,12 +17,12 @@ class UserInstallTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['user'];
+  protected static $modules = ['user'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->container->get('module_handler')->loadInclude('user', 'install');
     $this->installEntitySchema('user');

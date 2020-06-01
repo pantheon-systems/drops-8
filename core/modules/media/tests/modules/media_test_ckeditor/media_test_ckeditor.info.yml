@@ -2,11 +2,6 @@ name: Media CKEditor plugin test
 description: 'Provides functionality to test the Media Embed CKEditor integration.'
 type: module
 package: Testing
-# version: VERSION
+version: VERSION
 dependencies:
   - drupal:media
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

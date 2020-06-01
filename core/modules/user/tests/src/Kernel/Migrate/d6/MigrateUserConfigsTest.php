@@ -20,7 +20,7 @@ class MigrateUserConfigsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->container->get('router.builder')->rebuild();
     $this->executeMigrations(['d6_user_mail', 'd6_user_settings']);
@@ -54,9 +54,9 @@ class MigrateUserConfigsTest extends MigrateDrupal6TestBase {
    */
   public function testUserSettings() {
     $config = $this->config('user.settings');
-    $this->assertIdentical(TRUE, $config->get('notify.status_blocked'));
-    $this->assertIdentical(FALSE, $config->get('notify.status_activated'));
-    $this->assertIdentical(FALSE, $config->get('verify_mail'));
+    $this->assertTrue($config->get('notify.status_blocked'));
+    $this->assertFalse($config->get('notify.status_activated'));
+    $this->assertFalse($config->get('verify_mail'));
     $this->assertIdentical('admin_only', $config->get('register'));
     $this->assertIdentical('Guest', $config->get('anonymous'));
 

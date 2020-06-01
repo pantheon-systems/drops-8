@@ -49,7 +49,7 @@ class SearchPageRepositoryTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->query = $this->createMock('Drupal\Core\Entity\Query\QueryInterface');
 
     $this->storage = $this->createMock('Drupal\Core\Config\Entity\ConfigEntityStorageInterface');
@@ -107,7 +107,7 @@ class SearchPageRepositoryTest extends UnitTestCase {
       ->method('execute')
       ->will($this->returnValue(['test' => 'test']));
 
-    $this->assertSame(TRUE, $this->searchPageRepository->isSearchActive());
+    $this->assertTrue($this->searchPageRepository->isSearchActive());
   }
 
   /**

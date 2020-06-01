@@ -46,7 +46,7 @@ class LoadTest extends FileManagedUnitTestBase {
     $file = $this->createFile('druplicon.txt', NULL, 'public');
     $by_fid_file = File::load($file->id());
     $this->assertFileHookCalled('load');
-    $this->assertTrue(is_object($by_fid_file), '\Drupal\file\Entity\File::load() returned an object.');
+    $this->assertIsObject($by_fid_file);
     $this->assertEqual($by_fid_file->id(), $file->id(), 'Loading by fid got the same fid.', 'File');
     $this->assertEqual($by_fid_file->getFileUri(), $file->getFileUri(), 'Loading by fid got the correct filepath.', 'File');
     $this->assertEqual($by_fid_file->getFilename(), $file->getFilename(), 'Loading by fid got the correct filename.', 'File');
@@ -66,7 +66,7 @@ class LoadTest extends FileManagedUnitTestBase {
     file_test_reset();
     $by_path_files = \Drupal::entityTypeManager()->getStorage('file')->loadByProperties(['uri' => $file->getFileUri()]);
     $this->assertFileHookCalled('load');
-    $this->assertEqual(1, count($by_path_files), '\Drupal::entityTypeManager()->getStorage(\'file\')->loadByProperties() returned an array of the correct size.');
+    $this->assertCount(1, $by_path_files, '\Drupal::entityTypeManager()->getStorage(\'file\')->loadByProperties() returned an array of the correct size.');
     $by_path_file = reset($by_path_files);
     $this->assertTrue($by_path_file->file_test['loaded'], 'file_test_file_load() was able to modify the file during load.');
     $this->assertEqual($by_path_file->id(), $file->id(), 'Loading by filepath got the correct fid.', 'File');
@@ -75,7 +75,7 @@ class LoadTest extends FileManagedUnitTestBase {
     file_test_reset();
     $by_fid_files = File::loadMultiple([$file->id()]);
     $this->assertFileHooksCalled([]);
-    $this->assertEqual(1, count($by_fid_files), '\Drupal\file\Entity\File::loadMultiple() returned an array of the correct size.');
+    $this->assertCount(1, $by_fid_files, '\Drupal\file\Entity\File::loadMultiple() returned an array of the correct size.');
     $by_fid_file = reset($by_fid_files);
     $this->assertTrue($by_fid_file->file_test['loaded'], 'file_test_file_load() was able to modify the file during load.');
     $this->assertEqual($by_fid_file->getFileUri(), $file->getFileUri(), 'Loading by fid got the correct filepath.', 'File');

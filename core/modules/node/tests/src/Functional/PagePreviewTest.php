@@ -32,7 +32,16 @@ class PagePreviewTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'taxonomy', 'comment', 'image', 'file', 'text', 'node_test', 'menu_ui'];
+  protected static $modules = [
+    'node',
+    'taxonomy',
+    'comment',
+    'image',
+    'file',
+    'text',
+    'node_test',
+    'menu_ui',
+  ];
 
   /**
    * {@inheritdoc}
@@ -46,7 +55,7 @@ class PagePreviewTest extends NodeTestBase {
    */
   protected $fieldName;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->addDefaultCommentField('node', 'page');
 

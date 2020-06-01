@@ -29,14 +29,14 @@ class DisplayFeedTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'node', 'views', 'views_test_rss'];
+  protected static $modules = ['block', 'node', 'views', 'views_test_rss'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'classy';
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->enableViewsTestModule();
@@ -95,7 +95,7 @@ class DisplayFeedTest extends ViewTestBase {
     $this->drupalPlaceBlock('views_block:test_display_feed-test');
     $this->drupalGet('<front>');
     $feed_icon = $this->cssSelect('div.view-id-test_display_feed a.feed-icon');
-    $this->assertContains('test-feed-display.xml', $feed_icon[0]->getAttribute('href'), 'The feed icon was found.');
+    $this->assertStringContainsString('test-feed-display.xml', $feed_icon[0]->getAttribute('href'), 'The feed icon was found.');
 
     // Test feed display attached to page display with arguments.
     $this->drupalGet('test-feed-icon/' . $node->id());
@@ -131,7 +131,7 @@ class DisplayFeedTest extends ViewTestBase {
     $this->createPathAlias('/node/' . $node->id(), '/the-article-alias');
 
     $node_link = $node->toUrl()->setAbsolute()->toString();
-    $this->assertContains('/the-article-alias', $node_link);
+    $this->assertStringContainsString('/the-article-alias', $node_link);
 
     $this->drupalGet('test-feed-display-fields.xml');
     $this->assertEquals($node_title, $this->getSession()->getDriver()->getText('//item/title'));
@@ -161,13 +161,13 @@ class DisplayFeedTest extends ViewTestBase {
     $view = Views::getView('test_attached_disabled');
     $view->setDisplay('page_1');
     $attached_displays = $view->display_handler->getAttachedDisplays();
-    $this->assertTrue(in_array('feed_1', $attached_displays), 'The feed display is attached to the page display.');
+    $this->assertContains('feed_1', $attached_displays, 'The feed display is attached to the page display.');
 
     // Check that the rss header is output on the page display.
     $this->drupalGet('/test-attached-disabled');
     $feed_header = $this->xpath('//link[@rel="alternate"]');
     $this->assertEqual($feed_header[0]->getAttribute('type'), 'application/rss+xml', 'The feed link has the type application/rss+xml.');
-    $this->assertContains('test-attached-disabled.xml', $feed_header[0]->getAttribute('href'), 'Page display contains the correct feed URL.');
+    $this->assertStringContainsString('test-attached-disabled.xml', $feed_header[0]->getAttribute('href'), 'Page display contains the correct feed URL.');
 
     // Disable the feed display.
     $view->displayHandlers->get('feed_1')->setOption('enabled', FALSE);

@@ -15,12 +15,12 @@ class MigrateUploadEntityFormDisplayTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_ui'];
+  protected static $modules = ['menu_ui'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateFields();
   }
@@ -42,7 +42,7 @@ class MigrateUploadEntityFormDisplayTest extends MigrateDrupal6TestBase {
     // Assure this doesn't exist.
     $display = EntityFormDisplay::load('node.article.default');
     $component = $display->getComponent('upload');
-    $this->assertTrue(is_null($component));
+    $this->assertNull($component);
 
     $this->assertIdentical([['node', 'page', 'default', 'upload']], $this->getMigration('d6_upload_entity_form_display')->getIdMap()->lookupDestinationIds(['page']));
   }

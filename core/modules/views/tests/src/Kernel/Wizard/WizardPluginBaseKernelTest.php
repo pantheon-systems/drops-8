@@ -20,7 +20,7 @@ class WizardPluginBaseKernelTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'system', 'user', 'views_ui'];
+  protected static $modules = ['language', 'system', 'user', 'views_ui'];
 
   /**
    * Contains thw wizard plugin manager.
@@ -29,7 +29,7 @@ class WizardPluginBaseKernelTest extends ViewsKernelTestBase {
    */
   protected $wizard;
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->installConfig(['language']);
@@ -63,7 +63,7 @@ class WizardPluginBaseKernelTest extends ViewsKernelTestBase {
 
     $this->wizard->validateView($form, $form_state);
     $view = $this->wizard->createView($form, $form_state);
-    $this->assertTrue($view instanceof ViewUI, 'The created view is a ViewUI object.');
+    $this->assertInstanceOf(ViewUI::class, $view);
     $this->assertEqual($view->get('id'), $random_id);
     $this->assertEqual($view->get('label'), $random_label);
     $this->assertEqual($view->get('description'), $random_description);

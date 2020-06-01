@@ -42,12 +42,12 @@ class EntityTestDatetimeTest extends EntityTestResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['datetime', 'entity_test'];
+  protected static $modules = ['datetime', 'entity_test'];
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     // Add datetime field.

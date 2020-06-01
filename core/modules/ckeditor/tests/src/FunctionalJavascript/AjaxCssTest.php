@@ -16,7 +16,7 @@ class AjaxCssTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['ckeditor', 'ckeditor_test'];
+  protected static $modules = ['ckeditor', 'ckeditor_test'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class AjaxCssTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     FilterFormat::create([

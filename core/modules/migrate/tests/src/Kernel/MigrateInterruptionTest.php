@@ -20,12 +20,12 @@ class MigrateInterruptionTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['migrate', 'migrate_events_test'];
+  protected static $modules = ['migrate', 'migrate_events_test'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::service('event_dispatcher')->addListener(MigrateEvents::POST_ROW_SAVE,
       [$this, 'postRowSaveEventRecorder']);

@@ -14,7 +14,7 @@ class MultipleFileUploadTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['file'];
+  protected static $modules = ['file'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class MultipleFileUploadTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $admin = $this->drupalCreateUser(['administer themes']);
@@ -55,10 +55,10 @@ class MultipleFileUploadTest extends BrowserTestBase {
     $client->request($form->getMethod(), $form->getUri(), $form->getPhpValues(), $edit);
 
     $page = $this->getSession()->getPage();
-    $this->assertNotContains('Only files with the following extensions are allowed', $page->getContent());
-    $this->assertContains('The configuration options have been saved.', $page->getContent());
-    $this->assertContains('file1.wtf', $page->getContent());
-    $this->assertContains('file2.wtf', $page->getContent());
+    $this->assertStringNotContainsString('Only files with the following extensions are allowed', $page->getContent());
+    $this->assertStringContainsString('The configuration options have been saved.', $page->getContent());
+    $this->assertStringContainsString('file1.wtf', $page->getContent());
+    $this->assertStringContainsString('file2.wtf', $page->getContent());
   }
 
 }

@@ -16,6 +16,7 @@ use Symfony\Cmf\Component\Routing\Event\Events;
 use Symfony\Cmf\Component\Routing\Event\RouterGenerateEvent;
 use Symfony\Cmf\Component\Routing\Event\RouterMatchEvent;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\EventDispatcher\LegacyEventDispatcherProxy;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Symfony\Component\Routing\Exception\ResourceNotFoundException;
@@ -88,12 +89,13 @@ class DynamicRouter implements RouterInterface, RequestMatcherInterface, Chained
      *
      * @throws \InvalidArgumentException If the matcher is not a request or url matcher
      */
-    public function __construct(RequestContext $context,
-                                $matcher,
-                                UrlGeneratorInterface $generator,
-                                $uriFilterRegexp = '',
-                                EventDispatcherInterface $eventDispatcher = null,
-                                RouteProviderInterface $provider = null
+    public function __construct(
+        RequestContext $context,
+        $matcher,
+        UrlGeneratorInterface $generator,
+        $uriFilterRegexp = '',
+        EventDispatcherInterface $eventDispatcher = null,
+        RouteProviderInterface $provider = null
     ) {
         $this->context = $context;
         if (!$matcher instanceof RequestMatcherInterface && !$matcher instanceof UrlMatcherInterface) {
@@ -106,6 +108,10 @@ class DynamicRouter implements RouterInterface, RequestMatcherInterface, Chained
         $this->eventDispatcher = $eventDispatcher;
         $this->uriFilterRegexp = $uriFilterRegexp;
         $this->provider = $provider;
+
+        if (class_exists(LegacyEventDispatcherProxy::class)) {
+            $this->eventDispatcher = LegacyEventDispatcherProxy::decorate($eventDispatcher);
+        }
 
         $this->generator->setContext($context);
     }
@@ -156,21 +162,25 @@ class DynamicRouter implements RouterInterface, RequestMatcherInterface, Chained
      * If the generator is not able to generate the url, it must throw the
      * RouteNotFoundException as documented below.
      *
-     * @param string|Route $name          The name of the route or the Route instance
-     * @param mixed        $parameters    An array of parameters
-     * @param bool|string  $referenceType The type of reference to be generated (one of the constants in UrlGeneratorInterface)
+     * The CMF routing system used to allow to pass route objects as $name to generate the route.
+     * Since Symfony 5.0, the UrlGeneratorInterface declares $name as string. We widen the contract
+     * for BC but deprecate passing non-strings.
+     * Instead, Pass the RouteObjectInterface::OBJECT_BASED_ROUTE_NAME as route name and the object
+     * in the parameters with key RouteObjectInterface::ROUTE_OBJECT.
      *
-     * @return string The generated URL
+     * @param string|Route $name The name of the route or the Route instance
      *
      * @throws RouteNotFoundException if route doesn't exist
-     *
-     * @api
      */
     public function generate($name, $parameters = [], $referenceType = UrlGeneratorInterface::ABSOLUTE_PATH)
     {
+        if (is_object($name)) {
+            @trigger_error('Passing an object as route name is deprecated since version 2.3. Pass the `RouteObjectInterface::OBJECT_BASED_ROUTE_NAME` as route name and the object in the parameters with key `RouteObjectInterface::ROUTE_OBJECT', E_USER_DEPRECATED);
+        }
+
         if ($this->eventDispatcher) {
             $event = new RouterGenerateEvent($name, $parameters, $referenceType);
-            $this->eventDispatcher->dispatch(Events::PRE_DYNAMIC_GENERATE, $event);
+            $this->eventDispatcher->dispatch($event, Events::PRE_DYNAMIC_GENERATE);
             $name = $event->getRoute();
             $parameters = $event->getParameters();
             $referenceType = $event->getReferenceType();
@@ -219,7 +229,7 @@ class DynamicRouter implements RouterInterface, RequestMatcherInterface, Chained
         $request = Request::create($pathinfo);
         if ($this->eventDispatcher) {
             $event = new RouterMatchEvent();
-            $this->eventDispatcher->dispatch(Events::PRE_DYNAMIC_MATCH, $event);
+            $this->eventDispatcher->dispatch($event, Events::PRE_DYNAMIC_MATCH);
         }
 
         if (!empty($this->uriFilterRegexp) && !preg_match($this->uriFilterRegexp, $pathinfo)) {
@@ -255,7 +265,7 @@ class DynamicRouter implements RouterInterface, RequestMatcherInterface, Chained
     {
         if ($this->eventDispatcher) {
             $event = new RouterMatchEvent($request);
-            $this->eventDispatcher->dispatch(Events::PRE_DYNAMIC_MATCH_REQUEST, $event);
+            $this->eventDispatcher->dispatch($event, Events::PRE_DYNAMIC_MATCH_REQUEST);
         }
 
         if ($this->uriFilterRegexp

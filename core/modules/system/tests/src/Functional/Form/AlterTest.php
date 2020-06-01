@@ -17,7 +17,7 @@ class AlterTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'form_test'];
+  protected static $modules = ['block', 'form_test'];
 
   /**
    * {@inheritdoc}
@@ -38,7 +38,7 @@ class AlterTest extends BrowserTestBase {
       'system_form_form_test_alter_form_alter() executed.',
     ];
     $content = preg_replace('/\s+/', ' ', Xss::filter($this->getSession()->getPage()->getContent(), []));
-    $this->assert(strpos($content, implode(' ', $expected)) !== FALSE, 'Form alter hooks executed in the expected order.');
+    $this->assertStringContainsString(implode(' ', $expected), $content, 'Form alter hooks executed in the expected order.');
   }
 
 }

@@ -22,7 +22,7 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'menu_link_content',
@@ -37,7 +37,7 @@ class MenuLinkContentTranslationUITest extends ContentTranslationUITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->entityTypeId = 'menu_link_content';
     $this->bundle = 'menu_link_content';
     parent::setUp();

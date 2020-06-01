@@ -20,12 +20,12 @@ class ContentNegotiationRoutingTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['conneg_test', 'path_alias'];
+  protected static $modules = ['conneg_test', 'path_alias'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('path_alias');
@@ -108,7 +108,7 @@ class ContentNegotiationRoutingTest extends KernelTestBase {
       // see the error.
       $this->assertTrue(TRUE, $message);
       $this->assertEqual($response->getStatusCode(), Response::HTTP_OK);
-      $this->assertTrue(strpos($response->headers->get('Content-type'), $content_type) !== FALSE);
+      $this->assertStringContainsString($content_type, $response->headers->get('Content-type'));
     }
   }
 

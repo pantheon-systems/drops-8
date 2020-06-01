@@ -45,7 +45,7 @@ class UnroutedUrlTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->urlAssembler = $this->createMock('Drupal\Core\Utility\UnroutedUrlAssemblerInterface');
@@ -236,7 +236,7 @@ class UnroutedUrlTest extends UnitTestCase {
    */
   public function testGetOptions($uri) {
     $url = Url::fromUri($uri);
-    $this->assertInternalType('array', $url->getOptions());
+    $this->assertIsArray($url->getOptions());
   }
 
 }

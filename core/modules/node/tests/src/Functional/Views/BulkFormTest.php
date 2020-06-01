@@ -19,7 +19,7 @@ class BulkFormTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['node_test_views', 'language'];
+  protected static $modules = ['node_test_views', 'language'];
 
   /**
    * {@inheritdoc}
@@ -43,7 +43,7 @@ class BulkFormTest extends NodeTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     ConfigurableLanguage::createFromLangcode('en-gb')->save();
@@ -88,13 +88,13 @@ class BulkFormTest extends NodeTestBase {
     // Check that all created translations are selected by the test view.
     $view = Views::getView('test_node_bulk_form');
     $view->execute();
-    $this->assertEqual(count($view->result), 10, 'All created translations are selected.');
+    $this->assertCount(10, $view->result, 'All created translations are selected.');
 
     // Check the operations are accessible to the logged in user.
     $this->drupalLogin($this->drupalCreateUser(['administer nodes', 'access content overview', 'bypass node access']));
     $this->drupalGet('test-node-bulk-form');
     $elements = $this->xpath('//select[@id="edit-action"]//option');
-    $this->assertIdentical(count($elements), 8, 'All node operations are found.');
+    $this->assertCount(8, $elements, 'All node operations are found.');
   }
 
   /**

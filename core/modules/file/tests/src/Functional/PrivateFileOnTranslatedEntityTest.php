@@ -15,7 +15,7 @@ class PrivateFileOnTranslatedEntityTest extends FileFieldTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['language', 'content_translation'];
+  protected static $modules = ['language', 'content_translation'];
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,7 @@ class PrivateFileOnTranslatedEntityTest extends FileFieldTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create the "Basic page" node type.
@@ -96,7 +96,7 @@ class PrivateFileOnTranslatedEntityTest extends FileFieldTestBase {
     $node = Node::load($default_language_node->id());
     $node_file = File::load($node->{$this->fieldName}->target_id);
     $this->drupalGet(file_create_url($node_file->getFileUri()));
-    $this->assertResponse(200, 'Confirmed that the file attached to the English node can be downloaded.');
+    $this->assertResponse(200);
 
     // Translate the node into French.
     $this->drupalGet('node/' . $default_language_node->id() . '/translations');
@@ -123,7 +123,7 @@ class PrivateFileOnTranslatedEntityTest extends FileFieldTestBase {
     $french_node = $default_language_node->getTranslation('fr');
     $node_file = File::load($french_node->{$this->fieldName}->target_id);
     $this->drupalGet(file_create_url($node_file->getFileUri()));
-    $this->assertResponse(200, 'Confirmed that the file attached to the French node can be downloaded.');
+    $this->assertResponse(200);
   }
 
 }

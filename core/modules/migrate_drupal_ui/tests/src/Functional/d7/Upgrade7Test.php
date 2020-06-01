@@ -12,8 +12,6 @@ use Drupal\user\Entity\User;
  * The test method is provided by the MigrateUpgradeTestBase class.
  *
  * @group migrate_drupal_ui
- *
- * @group legacy
  */
 class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
 
@@ -22,7 +20,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'file',
     'language',
     'config_translation',
@@ -47,7 +45,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Delete the existing content made to test the ID Conflict form. Migrations
@@ -82,27 +80,27 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'comment' => 4,
       // The 'standard' profile provides the 'comment' comment type, and the
       // migration creates 6 comment types, one per node type.
-      'comment_type' => 7,
+      'comment_type' => 8,
       // Module 'language' comes with 'en', 'und', 'zxx'. Migration adds 'is'
       // and 'fr'.
       'configurable_language' => 5,
       'contact_form' => 3,
       'contact_message' => 0,
       'editor' => 2,
-      'field_config' => 76,
-      'field_storage_config' => 58,
+      'field_config' => 79,
+      'field_storage_config' => 60,
       'file' => 3,
       'filter_format' => 7,
       'image_style' => 6,
-      'language_content_settings' => 24,
-      'node' => 6,
-      'node_type' => 6,
+      'language_content_settings' => 20,
+      'node' => 7,
+      'node_type' => 7,
       'rdf_mapping' => 8,
       'search_page' => 2,
       'shortcut' => 6,
       'shortcut_set' => 2,
       'action' => 19,
-      'menu' => 7,
+      'menu' => 6,
       'taxonomy_term' => 24,
       'taxonomy_vocabulary' => 7,
       'path_alias' => 8,
@@ -112,9 +110,9 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'menu_link_content' => 12,
       'view' => 16,
       'date_format' => 11,
-      'entity_form_display' => 20,
+      'entity_form_display' => 22,
       'entity_form_mode' => 1,
-      'entity_view_display' => 31,
+      'entity_view_display' => 33,
       'entity_view_mode' => 14,
       'base_field_override' => 4,
     ];
@@ -129,7 +127,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
     $counts['comment'] = 5;
     $counts['file'] = 4;
     $counts['menu_link_content'] = 13;
-    $counts['node'] = 7;
+    $counts['node'] = 8;
     $counts['taxonomy_term'] = 25;
     $counts['user'] = 5;
     return $counts;
@@ -202,7 +200,6 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'i18n',
       'i18n_field',
       'i18n_string',
-      'i18n_menu',
       'i18n_taxonomy',
       'i18n_translation',
       'locale',

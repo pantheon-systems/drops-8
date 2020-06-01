@@ -18,7 +18,7 @@ class MigrateLookupTest extends MigrateTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'node',
     'field',
@@ -37,7 +37,7 @@ class MigrateLookupTest extends MigrateTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->setTestLogger();
     $this->migrateLookup = $this->container->get('migrate.lookup');

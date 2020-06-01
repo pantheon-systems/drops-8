@@ -28,7 +28,7 @@ class RelationshipNormalizerTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'field',
     'file',
     'image',
@@ -69,7 +69,7 @@ class RelationshipNormalizerTest extends JsonapiKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Set up the data model.

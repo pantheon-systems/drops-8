@@ -41,7 +41,7 @@ class FilterDateTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'datetime',
     'datetime_test',
     'node',
@@ -59,7 +59,7 @@ class FilterDateTest extends BrowserTestBase {
    *
    * Create nodes with relative dates of yesterday, today, and tomorrow.
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $now = \Drupal::time()->getRequestTime();
@@ -140,13 +140,13 @@ class FilterDateTest extends BrowserTestBase {
     $this->getSession()->getPage()->findField($this->fieldName . '_value')->selectOption(1);
     $this->getSession()->getPage()->pressButton('Apply');
     $results = $this->cssSelect('.view-content .field-content');
-    $this->assertEquals(1, count($results));
+    $this->assertCount(1, $results);
 
     // Filter the Preview by 'not empty'.
     $this->getSession()->getPage()->findField($this->fieldName . '_value')->selectOption(2);
     $this->getSession()->getPage()->pressButton('Apply');
     $results = $this->cssSelect('.view-content .field-content');
-    $this->assertEquals(3, count($results));
+    $this->assertCount(3, $results);
   }
 
 }

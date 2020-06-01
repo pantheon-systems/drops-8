@@ -19,7 +19,7 @@ class EmailFieldTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'entity_test', 'field_ui'];
+  protected static $modules = ['node', 'entity_test', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -40,7 +40,7 @@ class EmailFieldTest extends BrowserTestBase {
    */
   protected $field;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->drupalCreateUser([
@@ -108,7 +108,7 @@ class EmailFieldTest extends BrowserTestBase {
     $display = $display_repository->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $rendered_content = (string) \Drupal::service('renderer')->renderRoot($content);
-    $this->assertContains('href="mailto:test@example.com"', $rendered_content);
+    $this->assertStringContainsString('href="mailto:test@example.com"', $rendered_content);
   }
 
 }

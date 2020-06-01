@@ -18,7 +18,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'aggregator',
     'book',
@@ -51,7 +51,7 @@ class BlockConfigSchemaTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->typedConfig = \Drupal::service('config.typed');

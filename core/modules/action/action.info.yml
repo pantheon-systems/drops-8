@@ -2,10 +2,5 @@ name: Actions
 type: module
 description: 'Allows configuration of tasks to be executed in response to events.'
 package: Core
-# version: VERSION
+version: VERSION
 configure: entity.action.collection
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

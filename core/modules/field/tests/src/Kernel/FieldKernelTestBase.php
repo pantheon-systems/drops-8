@@ -19,7 +19,14 @@ abstract class FieldKernelTestBase extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['user', 'system', 'field', 'text', 'entity_test', 'field_test'];
+  protected static $modules = [
+    'user',
+    'system',
+    'field',
+    'text',
+    'entity_test',
+    'field_test',
+  ];
 
   /**
    * Bag of created field storages and fields.
@@ -156,6 +163,7 @@ abstract class FieldKernelTestBase extends KernelTestBase {
    *
    * @param $cardinality
    *   Number of values to generate.
+   *
    * @return
    *   An array of random values, in the format expected for field values.
    */

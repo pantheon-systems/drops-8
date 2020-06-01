@@ -14,7 +14,7 @@ class BlockContentWizardTest extends BlockContentTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['block_content', 'views_ui'];
+  protected static $modules = ['block_content', 'views_ui'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class BlockContentWizardTest extends BlockContentTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer views']));
     $this->createBlockContentType('Basic block');

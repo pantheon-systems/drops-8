@@ -15,14 +15,19 @@ class SearchDateIntervalTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['language', 'search_date_query_alter', 'node', 'search'];
+  protected static $modules = [
+    'language',
+    'search_date_query_alter',
+    'node',
+    'search',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);

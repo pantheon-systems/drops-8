@@ -22,7 +22,7 @@ class MigrateFieldPluginManagerTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'datetime',
     'system',
     'user',
@@ -39,7 +39,7 @@ class MigrateFieldPluginManagerTest extends MigrateDrupalTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->pluginManager = $this->container->get('plugin.manager.migrate.field');
   }

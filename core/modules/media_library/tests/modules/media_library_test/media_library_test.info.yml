@@ -9,8 +9,3 @@ dependencies:
   - drupal:menu_ui
   - drupal:node
   - drupal:path
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

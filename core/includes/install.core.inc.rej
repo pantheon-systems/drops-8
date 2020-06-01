@@ -1,0 +1,20 @@
+***************
+*** 524,530 ****
+  
+      // Do not install over a configured settings.php.
+      if (Database::getConnectionInfo()) {
+-       throw new AlreadyInstalledException($container->get('string_translation'));
+      }
+    }
+  
+--- 524,533 ----
+  
+      // Do not install over a configured settings.php.
+      if (Database::getConnectionInfo()) {
++       // Commenting out this line to skip over
++       // an error when installing on Pantheon.
++       // @see https://github.com/stevector/drupal-9-project/issues/1
++       // throw new AlreadyInstalledException($container->get('string_translation'));
+      }
+    }
+  

@@ -1,12 +1,7 @@
 name: Test external CKEditor stylesheets
 type: theme
 description: 'A theme that uses an external CKEditor stylesheet.'
-# version: VERSION
+version: VERSION
 base theme: false
 ckeditor_stylesheets:
   - https://fonts.googleapis.com/css?family=Open+Sans
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

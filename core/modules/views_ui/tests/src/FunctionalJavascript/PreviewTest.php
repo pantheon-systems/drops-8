@@ -24,7 +24,7 @@ class PreviewTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'views',
     'views_ui',
@@ -39,7 +39,7 @@ class PreviewTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     ViewTestData::createTestViews(self::class, ['views_test_config']);
@@ -303,7 +303,7 @@ class PreviewTest extends WebDriverTestBase {
     if (!isset($message)) {
       $message = "Class .$class found.";
     }
-    $this->assertTrue(strpos($element->getAttribute('class'), $class) !== FALSE, $message);
+    $this->assertStringContainsString($class, $element->getAttribute('class'), $message);
   }
 
 }

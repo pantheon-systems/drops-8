@@ -15,7 +15,12 @@ class ViewsDataTest extends OptionsTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['options', 'options_test', 'entity_test', 'views'];
+  protected static $modules = [
+    'options',
+    'options_test',
+    'entity_test',
+    'views',
+  ];
 
   /**
    * The field storage.
@@ -27,7 +32,7 @@ class ViewsDataTest extends OptionsTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test');

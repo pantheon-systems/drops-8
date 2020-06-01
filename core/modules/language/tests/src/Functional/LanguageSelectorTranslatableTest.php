@@ -16,7 +16,7 @@ class LanguageSelectorTranslatableTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'node',
@@ -41,7 +41,7 @@ class LanguageSelectorTranslatableTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create user and set permissions.

@@ -16,7 +16,7 @@ use Drupal\field\Entity\FieldStorageConfig;
  */
 class EmailItemTest extends FieldKernelTestBase {
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create an email field storage and field for validation.
@@ -54,8 +54,8 @@ class EmailItemTest extends FieldKernelTestBase {
     // Verify entity has been created properly.
     $id = $entity->id();
     $entity = EntityTest::load($id);
-    $this->assertTrue($entity->field_email instanceof FieldItemListInterface, 'Field implements interface.');
-    $this->assertTrue($entity->field_email[0] instanceof FieldItemInterface, 'Field item implements interface.');
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->field_email);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->field_email[0]);
     $this->assertEqual($entity->field_email->value, $value);
     $this->assertEqual($entity->field_email[0]->value, $value);
 

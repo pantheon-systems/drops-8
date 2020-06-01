@@ -21,7 +21,7 @@ class FileFieldAnonymousSubmissionTest extends FileFieldTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Set up permissions for anonymous attacker user.
     user_role_change_permissions(RoleInterface::ANONYMOUS_ID, [
@@ -40,7 +40,7 @@ class FileFieldAnonymousSubmissionTest extends FileFieldTestBase {
     // Load the node form.
     $this->drupalLogout();
     $this->drupalGet('node/add/article');
-    $this->assertResponse(200, 'Loaded the article node form.');
+    $this->assertResponse(200);
     $this->assertText(strip_tags(t('Create @name', ['@name' => $bundle_label])));
 
     $edit = [
@@ -71,7 +71,7 @@ class FileFieldAnonymousSubmissionTest extends FileFieldTestBase {
     // Load the node form.
     $this->drupalLogout();
     $this->drupalGet('node/add/article');
-    $this->assertResponse(200, 'Loaded the article node form.');
+    $this->assertResponse(200);
     $this->assertText(strip_tags(t('Create @name', ['@name' => $bundle_label])));
 
     // Generate an image file.
@@ -93,7 +93,7 @@ class FileFieldAnonymousSubmissionTest extends FileFieldTestBase {
       $this->assertNotEqual($nid, 0, 'The node ID was extracted from the URL.');
       $node = Node::load($nid);
       $this->assertNotEqual($node, NULL, 'The node was loaded successfully.');
-      $this->assertFileExists(File::load($node->field_image->target_id)->getFileUri(), 'The image was uploaded successfully.');
+      $this->assertFileExists(File::load($node->field_image->target_id)->getFileUri());
     }
   }
 
@@ -128,7 +128,7 @@ class FileFieldAnonymousSubmissionTest extends FileFieldTestBase {
 
     // Load the node form.
     $this->drupalGet('node/add/article');
-    $this->assertResponse(200, 'Loaded the article node form.');
+    $this->assertResponse(200);
     $this->assertText(strip_tags(t('Create @name', ['@name' => $bundle_label])));
 
     // Generate an image file.
@@ -167,7 +167,7 @@ class FileFieldAnonymousSubmissionTest extends FileFieldTestBase {
       $this->assertNotEqual($nid, 0, 'The node ID was extracted from the URL.');
       $node = Node::load($nid);
       $this->assertNotEqual($node, NULL, 'The node was loaded successfully.');
-      $this->assertFileExists(File::load($node->field_image->target_id)->getFileUri(), 'The image was uploaded successfully.');
+      $this->assertFileExists(File::load($node->field_image->target_id)->getFileUri());
     }
   }
 

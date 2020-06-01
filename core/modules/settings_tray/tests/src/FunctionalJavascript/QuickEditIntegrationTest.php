@@ -16,7 +16,7 @@ class QuickEditIntegrationTest extends SettingsTrayTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'block_content',
     'quickedit',
@@ -30,7 +30,7 @@ class QuickEditIntegrationTest extends SettingsTrayTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $user = $this->createUser([
       'administer blocks',

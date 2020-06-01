@@ -21,7 +21,15 @@ class RowEntityRenderersTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['field', 'filter', 'text', 'node', 'user', 'language', 'views_test_language'];
+  protected static $modules = [
+    'field',
+    'filter',
+    'text',
+    'node',
+    'user',
+    'language',
+    'views_test_language',
+  ];
 
   /**
    * Views used by this test.
@@ -64,7 +72,7 @@ class RowEntityRenderersTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->installEntitySchema('node');

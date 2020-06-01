@@ -29,7 +29,13 @@ class TrackerTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'comment', 'tracker', 'history', 'node_test'];
+  protected static $modules = [
+    'block',
+    'comment',
+    'tracker',
+    'history',
+    'node_test',
+  ];
 
   /**
    * {@inheritdoc}
@@ -50,7 +56,7 @@ class TrackerTest extends BrowserTestBase {
    */
   protected $otherUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
@@ -457,8 +463,8 @@ class TrackerTest extends BrowserTestBase {
   public function assertHistoryMetadata($node_id, $node_timestamp, $node_last_comment_timestamp, $library_is_present = TRUE) {
     $settings = $this->getDrupalSettings();
     $this->assertIdentical($library_is_present, isset($settings['ajaxPageState']) && in_array('tracker/history', explode(',', $settings['ajaxPageState']['libraries'])), 'drupal.tracker-history library is present.');
-    $this->assertIdentical(1, count($this->xpath('//table/tbody/tr/td[@data-history-node-id="' . $node_id . '" and @data-history-node-timestamp="' . $node_timestamp . '"]')), 'Tracker table cell contains the data-history-node-id and data-history-node-timestamp attributes for the node.');
-    $this->assertIdentical(1, count($this->xpath('//table/tbody/tr/td[@data-history-node-last-comment-timestamp="' . $node_last_comment_timestamp . '"]')), 'Tracker table cell contains the data-history-node-last-comment-timestamp attribute for the node.');
+    $this->assertCount(1, $this->xpath('//table/tbody/tr/td[@data-history-node-id="' . $node_id . '" and @data-history-node-timestamp="' . $node_timestamp . '"]'), 'Tracker table cell contains the data-history-node-id and data-history-node-timestamp attributes for the node.');
+    $this->assertCount(1, $this->xpath('//table/tbody/tr/td[@data-history-node-last-comment-timestamp="' . $node_last_comment_timestamp . '"]'), 'Tracker table cell contains the data-history-node-last-comment-timestamp attribute for the node.');
   }
 
 }

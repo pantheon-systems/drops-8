@@ -16,12 +16,12 @@ class ThemeTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['theme_test', 'node', 'system'];
+  protected static $modules = ['theme_test', 'node', 'system'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::service('theme_installer')->install(['test_theme']);
   }
@@ -70,7 +70,7 @@ class ThemeTest extends KernelTestBase {
     // suggestionnotimplemented is not an implemented theme hook so \Drupal::theme() service
     // should return FALSE instead of a string.
     $output = \Drupal::theme()->render(['suggestionnotimplemented'], []);
-    $this->assertIdentical($output, FALSE, '\Drupal::theme() returns FALSE when a hook suggestion is not implemented.');
+    $this->assertFalse($output, '\Drupal::theme() returns FALSE when a hook suggestion is not implemented.');
   }
 
   /**
@@ -152,7 +152,7 @@ class ThemeTest extends KernelTestBase {
   public function testFindThemeTemplates() {
     $registry = $this->container->get('theme.registry')->get();
     $templates = drupal_find_theme_templates($registry, '.html.twig', drupal_get_path('theme', 'test_theme'));
-    $this->assertEqual($templates['node__1']['template'], 'node--1', 'Template node--1.tpl.twig was found in test_theme.');
+    $this->assertEqual($templates['node__1']['template'], 'node--1', 'Template node--1.html.twig was found in test_theme.');
   }
 
 }

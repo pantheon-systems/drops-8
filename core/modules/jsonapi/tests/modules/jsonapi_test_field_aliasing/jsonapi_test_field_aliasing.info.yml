@@ -1,8 +1,3 @@
 name: 'JSON:API test field aliasing'
 type: module
 package: Testing
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

@@ -14,7 +14,7 @@ use Drupal\views\Views;
 class ViewsTemplateTest extends ViewsKernelTestBase {
 
   /**
-   * {@inheritdic}
+   * {@inheritdoc}
    */
   public static $testViews = ['test_view_display_template'];
 
@@ -27,7 +27,7 @@ class ViewsTemplateTest extends ViewsKernelTestBase {
     $renderer = $this->container->get('renderer');
 
     // Check that the renderd output uses the correct template file.
-    $this->assertContains('This module defines its own display template.', (string) $renderer->renderRoot($output));
+    $this->assertStringContainsString('This module defines its own display template.', (string) $renderer->renderRoot($output));
   }
 
 }

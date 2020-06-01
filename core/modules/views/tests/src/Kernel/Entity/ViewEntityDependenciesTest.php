@@ -29,12 +29,19 @@ class ViewEntityDependenciesTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'comment', 'user', 'field', 'text', 'search'];
+  protected static $modules = [
+    'node',
+    'comment',
+    'user',
+    'field',
+    'text',
+    'search',
+  ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp(FALSE);
 
     // Install the necessary dependencies for node type creation to work.

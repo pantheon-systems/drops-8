@@ -18,7 +18,7 @@ class EntityTestMapFieldHalJsonAnonTest extends EntityTestMapFieldResourceTestBa
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['hal'];
+  protected static $modules = ['hal'];
 
   /**
    * {@inheritdoc}
@@ -47,7 +47,7 @@ class EntityTestMapFieldHalJsonAnonTest extends EntityTestMapFieldResourceTestBa
     return $normalization + [
       '_links' => [
         'self' => [
-          'href' => '',
+          'href' => $this->baseUrl . '/entity/entity_test_map_field/1?_format=hal_json',
         ],
         'type' => [
           'href' => $this->baseUrl . '/rest/type/entity_test_map_field/entity_test_map_field',

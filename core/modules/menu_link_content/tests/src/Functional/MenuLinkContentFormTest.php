@@ -17,7 +17,7 @@ class MenuLinkContentFormTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'menu_link_content',
   ];
 
@@ -45,7 +45,7 @@ class MenuLinkContentFormTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->adminUser = $this->drupalCreateUser(['administer menu', 'link to any page']);
     $this->basicUser = $this->drupalCreateUser(['administer menu']);

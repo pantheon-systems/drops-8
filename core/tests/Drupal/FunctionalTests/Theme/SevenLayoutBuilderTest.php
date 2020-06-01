@@ -19,7 +19,7 @@ class SevenLayoutBuilderTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'views',
     'layout_builder',
     'layout_builder_views_test',
@@ -33,7 +33,7 @@ class SevenLayoutBuilderTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('page_title_block', ['region' => 'header']);

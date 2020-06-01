@@ -2,11 +2,6 @@ name: 'Custom Menu Links'
 type: module
 description: 'Allows users to create menu links.'
 package: Core
-# version: VERSION
+version: VERSION
 dependencies:
   - drupal:link
-
-# Information added by Drupal.org packaging script on 2020-03-30
-version: '9.0.0-beta2'
-project: 'drupal'
-datestamp: 1585597457

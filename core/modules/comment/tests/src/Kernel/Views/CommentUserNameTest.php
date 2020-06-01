@@ -27,12 +27,12 @@ class CommentUserNameTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['user', 'comment', 'entity_test'];
+  protected static $modules = ['user', 'comment', 'entity_test'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->installEntitySchema('user');
