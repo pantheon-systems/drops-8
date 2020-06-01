@@ -26,7 +26,7 @@ Feature: Update database
     And I wait for the progress bar to finish
     Then I should see "Installation was completed successfully."
     When I follow "Enable newly added modules"
-    Then I should see "Creates a standard conform XML sitemap of your content"
+    Then I should see "Generates standard conform hreflang XML sitemaps of the site content and provides a framework for developing other sitemap types."
     When I check the box "Simple XML Sitemap"
     And I press "Install"
     Then I should see "Module Simple XML Sitemap has been enabled"
