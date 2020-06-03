@@ -60,7 +60,7 @@ function update_manager_download_batch_finished($success, $results) {
   }
   elseif ($success) {
     \Drupal::messenger()->addStatus(t('Updates downloaded successfully.'));
-    $_SESSION['update_manager_update_projects'] = $results['projects'];
+    \Drupal::request()->getSession()->set('update_manager_update_projects', $results['projects']);
     return new RedirectResponse(Url::fromRoute('update.confirmation_page', [], ['absolute' => TRUE])->toString());
   }
   else {
@@ -156,7 +156,7 @@ function update_manager_archive_extract($file, $directory) {
     'filepath' => $file,
   ]);
   if (!$archiver) {
-    throw new Exception(t('Cannot extract %file, not a valid archive.', ['%file' => $file]));
+    throw new Exception("Cannot extract '$file', not a valid archive");
   }
 
   // Remove the directory if it exists, otherwise it might contain a mixture of

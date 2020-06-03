@@ -17,16 +17,10 @@ trait StubTestTrait {
    *   The entity type we are stubbing.
    */
   protected function performStubTest($entity_type_id) {
-    $entity_id = $this->createStub($entity_type_id);
+    $entity_id = $this->createEntityStub($entity_type_id);
     $this->assertNotEmpty($entity_id, 'Stub successfully created');
-    if ($entity_id) {
-      $violations = $this->validateStub($entity_type_id, $entity_id);
-      if (!$this->assertIdentical(count($violations), 0, 'Stub is a valid entity')) {
-        foreach ($violations as $violation) {
-          $this->fail((string) $violation->getMessage());
-        }
-      }
-    }
+    // When validateStub fails, it will return an array with the violations.
+    $this->assertEmpty($this->validateStub($entity_type_id, $entity_id));
   }
 
   /**
@@ -38,7 +32,7 @@ trait StubTestTrait {
    * @return int
    *   ID of the created entity.
    */
-  protected function createStub($entity_type_id) {
+  protected function createEntityStub($entity_type_id) {
     // Create a dummy migration to pass to the destination plugin.
     $definition = [
       'migration_tags' => ['Stub test'],

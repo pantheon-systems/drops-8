@@ -32,7 +32,7 @@ class ViewEditTest extends UITestBase {
     $this->assertLink(t('Delete view'), 0, 'Ensure that the view delete link appears');
 
     $view = $this->container->get('entity_type.manager')->getStorage('view')->load('test_view');
-    $this->assertTrue($view instanceof View);
+    $this->assertInstanceOf(View::class, $view);
     $this->clickLink(t('Delete view'));
     $this->assertUrl('admin/structure/views/view/test_view/delete');
     $this->drupalPostForm(NULL, [], t('Delete'));
@@ -40,7 +40,7 @@ class ViewEditTest extends UITestBase {
 
     $this->assertUrl('admin/structure/views');
     $view = $this->container->get('entity_type.manager')->getStorage('view')->load('test_view');
-    $this->assertFalse($view instanceof View);
+    $this->assertNotInstanceOf(View::class, $view);
   }
 
   /**
@@ -67,7 +67,7 @@ class ViewEditTest extends UITestBase {
     $displays = $view->get('display');
     $this->assertTrue(!empty($displays['test_1']), 'Display data found for new display ID key.');
     $this->assertIdentical($displays['test_1']['id'], 'test_1', 'New display ID matches the display ID key.');
-    $this->assertFalse(array_key_exists('attachment_1', $displays), 'Old display ID not found.');
+    $this->assertArrayNotHasKey('attachment_1', $displays);
 
     // Set to the same machine name and save the View.
     $edit = ['display_id' => 'test_1'];
@@ -77,7 +77,7 @@ class ViewEditTest extends UITestBase {
 
     // Test the form validation with invalid IDs.
     $machine_name_edit_url = 'admin/structure/views/nojs/display/test_view/test_1/display_id';
-    $error_text = t('Display name must be letters, numbers, or underscores only.');
+    $error_text = t('Display machine name must contain only lowercase letters, numbers, or underscores.');
 
     // Test that potential invalid display ID requests are detected
     try {
@@ -85,7 +85,7 @@ class ViewEditTest extends UITestBase {
       $this->fail('Expected error, when setDisplay() called with invalid display ID');
     }
     catch (\Exception $e) {
-      $this->assertContains('setDisplay() called with invalid display ID "fake_display_name".', $e->getMessage());
+      $this->assertStringContainsString('setDisplay() called with invalid display ID "fake_display_name".', $e->getMessage());
     }
 
     $edit = ['display_id' => 'test 1'];
@@ -132,7 +132,7 @@ class ViewEditTest extends UITestBase {
     ];
     foreach ($test_views as $view_name => $display) {
       $this->drupalGet('admin/structure/views/view/' . $view_name);
-      $this->assertResponse(200);
+      $this->assertSession()->statusCodeEquals(200);
       $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/rendering_language';
       $this->assertNoLinkByHref($langcode_url);
       $assert_session->linkNotExistsExact(t('@type language selected for page', ['@type' => t('Content')]));
@@ -148,7 +148,7 @@ class ViewEditTest extends UITestBase {
     // Language options should now exist with entity language the default.
     foreach ($test_views as $view_name => $display) {
       $this->drupalGet('admin/structure/views/view/' . $view_name);
-      $this->assertResponse(200);
+      $this->assertSession()->statusCodeEquals(200);
       $langcode_url = 'admin/structure/views/nojs/display/' . $view_name . '/' . $display . '/rendering_language';
       if ($view_name == 'test_view') {
         $this->assertNoLinkByHref($langcode_url);
@@ -162,7 +162,7 @@ class ViewEditTest extends UITestBase {
       }
 
       $this->drupalGet($langcode_url);
-      $this->assertResponse(200);
+      $this->assertSession()->statusCodeEquals(200);
       if ($view_name == 'test_view') {
         $this->assertText(t('The view is not based on a translatable entity type or the site is not multilingual.'));
       }
@@ -218,7 +218,7 @@ class ViewEditTest extends UITestBase {
         // Check the order for the langcode filter.
         $langcode_url = 'admin/structure/views/nojs/handler/' . $view_name . '/' . $display . '/filter/langcode';
         $this->drupalGet($langcode_url);
-        $this->assertResponse(200);
+        $this->assertSession()->statusCodeEquals(200);
 
         $expected_elements = [
           'all',

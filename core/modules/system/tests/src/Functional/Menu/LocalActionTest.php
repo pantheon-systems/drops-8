@@ -55,7 +55,7 @@ class LocalActionTest extends BrowserTestBase {
     ]);
     // Verify the expected cache tag in the response headers.
     $header_values = explode(' ', $this->drupalGetHeader('x-drupal-cache-tags'));
-    $this->assertTrue(in_array('config:menu_test.links.action', $header_values), "Found 'config:menu_test.links.action' cache tag in header");
+    $this->assertContains('config:menu_test.links.action', $header_values, "Found 'config:menu_test.links.action' cache tag in header");
     /** @var \Drupal\Core\Config\Config $config */
     $config = $this->container->get('config.factory')->getEditable('menu_test.links.action');
     $config->set('title', 'New title');
@@ -82,7 +82,7 @@ class LocalActionTest extends BrowserTestBase {
       list($url, $title) = $action;
       // SimpleXML gives us the unescaped text, not the actual escaped markup,
       // so use a pattern instead to check the raw content.
-      // This behaviour is a bug in libxml, see
+      // This behavior is a bug in libxml, see
       // https://bugs.php.net/bug.php?id=49437.
       $this->assertPattern('@<a [^>]*class="[^"]*button-action[^"]*"[^>]*>' . preg_quote($title, '@') . '</@');
       $this->assertEqual($elements[$index]->getAttribute('href'), $url->toString());

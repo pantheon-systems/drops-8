@@ -171,6 +171,8 @@ function drupal_get_database_types() {
 
   // The internal database driver name is any valid PHP identifier.
   $mask = ExtensionDiscovery::PHP_FUNCTION_PATTERN;
+
+  // Find drivers in the Drupal\Core and Drupal\Driver namespaces.
   /** @var \Drupal\Core\File\FileSystemInterface $file_system */
   $file_system = \Drupal::service('file_system');
   $files = $file_system->scanDirectory(DRUPAL_ROOT . '/core/lib/Drupal/Core/Database/Driver', $mask, ['recurse' => FALSE]);
@@ -179,11 +181,43 @@ function drupal_get_database_types() {
   }
   foreach ($files as $file) {
     if (file_exists($file->uri . '/Install/Tasks.php')) {
-      $drivers[$file->filename] = $file->uri;
+      // The namespace doesn't need to be added here, because
+      // db_installer_object() will find it.
+      $drivers[$file->filename] = NULL;
     }
   }
-  foreach ($drivers as $driver => $file) {
-    $installer = db_installer_object($driver);
+
+  // Find drivers in Drupal module namespaces.
+  /** @var \Composer\Autoload\ClassLoader $class_loader */
+  $class_loader = \Drupal::service('class_loader');
+  // We cannot use the file cache because it does not always exist.
+  $extension_discovery = new ExtensionDiscovery(DRUPAL_ROOT, FALSE, []);
+  $modules = $extension_discovery->scan('module');
+  foreach ($modules as $module) {
+    $module_driver_path = DRUPAL_ROOT . '/' . $module->getPath() . '/src/Driver/Database';
+    if (is_dir($module_driver_path)) {
+      $driver_files = $file_system->scanDirectory($module_driver_path, $mask, ['recurse' => FALSE]);
+      foreach ($driver_files as $driver_file) {
+        $tasks_file = $module_driver_path . '/' . $driver_file->filename . '/Install/Tasks.php';
+        if (file_exists($tasks_file)) {
+          $namespace = 'Drupal\\' . $module->getName() . '\\Driver\\Database\\' . $driver_file->filename;
+
+          // The namespace needs to be added for db_installer_object() to find
+          // it.
+          $drivers[$driver_file->filename] = $namespace;
+
+          // The directory needs to be added to the autoloader, because this is
+          // early in the installation process: the module hasn't been enabled
+          // yet and the database connection info array (including its 'autoload'
+          // key) hasn't been created yet.
+          $class_loader->addPsr4($namespace . '\\', $module->getPath() . '/src/Driver/Database/' . $driver_file->filename);
+        }
+      }
+    }
+  }
+
+  foreach ($drivers as $driver => $namespace) {
+    $installer = db_installer_object($driver, $namespace);
     if ($installer->installable()) {
       $databases[$driver] = $installer;
     }
@@ -269,6 +303,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
               $state = 'candidate_left';
             }
             break;
+
           case 'candidate_left':
             if ($value == '[') {
               $state = 'array_index';
@@ -277,6 +312,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
               $state = 'candidate_right';
             }
             break;
+
           case 'array_index':
             if (_drupal_rewrite_settings_is_array_index($type, $value)) {
               $index = trim($value, '\'"');
@@ -287,6 +323,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
               throw new Exception('invalid array index');
             }
             break;
+
           case 'right_bracket':
             if ($value == ']') {
               if (isset($current[$index])) {
@@ -305,6 +342,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
               throw new Exception('] expected');
             }
             break;
+
           case 'candidate_right':
             if (_drupal_rewrite_settings_is_simple($type, $value)) {
               $value = _drupal_rewrite_settings_dump_one($current);
@@ -317,11 +355,13 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
               $state = 'wait_for_semicolon';
             }
             break;
+
           case 'wait_for_semicolon':
             if ($value == ';') {
               $state = 'default';
             }
             break;
+
           case 'semicolon_skip':
             if ($value == ';') {
               $value = '';
@@ -343,7 +383,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
 
     // Write the new settings file.
     if (file_put_contents($settings_file, $buffer) === FALSE) {
-      throw new Exception(t('Failed to modify %settings. Verify the file permissions.', ['%settings' => $settings_file]));
+      throw new Exception("Failed to modify '$settings_file'. Verify the file permissions.");
     }
     else {
       // In case any $settings variables were written, import them into the
@@ -360,7 +400,7 @@ function drupal_rewrite_settings($settings = [], $settings_file = NULL) {
     }
   }
   else {
-    throw new Exception(t('Failed to open %settings. Verify the file permissions.', ['%settings' => $settings_file]));
+    throw new Exception("Failed to open '$settings_file'. Verify the file permissions.");
   }
 }
 
@@ -521,10 +561,7 @@ function drupal_install_config_directories() {
   // Bail out using a similar error message as in system_requirements().
   if (!\Drupal::service('file_system')->prepareDirectory($config_directories[CONFIG_SYNC_DIRECTORY], FileSystemInterface::CREATE_DIRECTORY)
     && !file_exists($config_directories[CONFIG_SYNC_DIRECTORY])) {
-    throw new Exception(t('The directory %directory could not be created. To proceed with the installation, either create the directory or ensure that the installer has the permissions to create it automatically. For more information, see the <a href=":handbook_url">online handbook</a>.', [
-      '%directory' => config_get_config_directory(CONFIG_SYNC_DIRECTORY),
-      ':handbook_url' => 'https://www.drupal.org/server-permissions',
-    ]));
+    throw new Exception("The directory '" . config_get_config_directory(CONFIG_SYNC_DIRECTORY) . "' could not be created. To proceed with the installation, either create the directory or ensure that the installer has the permissions to create it automatically. For more information, see the <a href='https://www.drupal.org/server-permissions'>online handbook</a>.");
   }
   elseif (is_writable($config_directories[CONFIG_SYNC_DIRECTORY])) {
     // Put a README.txt into the sync config directory. This is required so that
@@ -723,31 +760,37 @@ function drupal_verify_install_file($file, $mask = NULL, $type = 'file', $autofi
               }
             }
             break;
+
           case FILE_READABLE:
             if (!is_readable($file)) {
               $return = FALSE;
             }
             break;
+
           case FILE_WRITABLE:
             if (!is_writable($file)) {
               $return = FALSE;
             }
             break;
+
           case FILE_EXECUTABLE:
             if (!is_executable($file)) {
               $return = FALSE;
             }
             break;
+
           case FILE_NOT_READABLE:
             if (is_readable($file)) {
               $return = FALSE;
             }
             break;
+
           case FILE_NOT_WRITABLE:
             if (is_writable($file)) {
               $return = FALSE;
             }
             break;
+
           case FILE_NOT_EXECUTABLE:
             if (is_executable($file)) {
               $return = FALSE;
@@ -785,9 +828,11 @@ function drupal_install_mkdir($file, $mask, $message = TRUE) {
         case FILE_READABLE:
           $mod |= 0444;
           break;
+
         case FILE_WRITABLE:
           $mod |= 0222;
           break;
+
         case FILE_EXECUTABLE:
           $mod |= 0111;
           break;
@@ -846,26 +891,31 @@ function drupal_install_fix_file($file, $mask, $message = TRUE) {
             $mod |= 0444;
           }
           break;
+
         case FILE_WRITABLE:
           if (!is_writable($file)) {
             $mod |= 0222;
           }
           break;
+
         case FILE_EXECUTABLE:
           if (!is_executable($file)) {
             $mod |= 0111;
           }
           break;
+
         case FILE_NOT_READABLE:
           if (is_readable($file)) {
             $mod &= ~0444;
           }
           break;
+
         case FILE_NOT_WRITABLE:
           if (is_writable($file)) {
             $mod &= ~0222;
           }
           break;
+
         case FILE_NOT_EXECUTABLE:
           if (is_executable($file)) {
             $mod &= ~0111;
@@ -1169,21 +1219,36 @@ function install_profile_info($profile, $langcode = 'en') {
 /**
  * Returns a database installer object.
  *
+ * Before calling this function it is important the database installer object
+ * is autoloadable. Database drivers provided by contributed modules are added
+ * to the autoloader in drupal_get_database_types() and Settings::initialize().
+ *
  * @param $driver
  *   The name of the driver.
+ * @param string $namespace
+ *   (optional) The database driver namespace.
  *
  * @return \Drupal\Core\Database\Install\Tasks
  *   A class defining the requirements and tasks for installing the database.
+ *
+ * @see drupal_get_database_types()
+ * @see \Drupal\Core\Site\Settings::initialize()
  */
-function db_installer_object($driver) {
+function db_installer_object($driver, $namespace = NULL) {
   // We cannot use Database::getConnection->getDriverClass() here, because
   // the connection object is not yet functional.
-  $task_class = "Drupal\\Core\\Database\\Driver\\{$driver}\\Install\\Tasks";
+  if ($namespace) {
+    $task_class = $namespace . "\\Install\\Tasks";
+    return new $task_class();
+  }
+  // Old Drupal 8 style contrib namespace.
+  $task_class = "Drupal\\Driver\\Database\\{$driver}\\Install\\Tasks";
   if (class_exists($task_class)) {
     return new $task_class();
   }
   else {
-    $task_class = "Drupal\\Driver\\Database\\{$driver}\\Install\\Tasks";
+    // Core provided driver.
+    $task_class = "Drupal\\Core\\Database\\Driver\\{$driver}\\Install\\Tasks";
     return new $task_class();
   }
 }

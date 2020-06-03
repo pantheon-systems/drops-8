@@ -73,7 +73,7 @@ class UpdateUploadTest extends UpdateTestBase {
     $updaters = drupal_get_updaters();
     $moduleUpdater = $updaters['module']['class'];
     $installedInfoFilePath = $this->container->get('update.root') . '/' . $moduleUpdater::getRootDirectoryRelativePath() . '/update_test_new_module/update_test_new_module.info.yml';
-    $this->assertFalse(file_exists($installedInfoFilePath), 'The new module does not exist in the filesystem before it is installed with the Update Manager.');
+    $this->assertFileNotExists($installedInfoFilePath);
     $validArchiveFile = __DIR__ . '/../../update_test_new_module/8.x-1.0/update_test_new_module.tar.gz';
     $edit = [
       'files[project_upload]' => $validArchiveFile,
@@ -85,7 +85,7 @@ class UpdateUploadTest extends UpdateTestBase {
     // Check for a success message on the page, and check that the installed
     // module now exists in the expected place in the filesystem.
     $this->assertRaw(t('Installed %project_name successfully', ['%project_name' => 'update_test_new_module']));
-    $this->assertTrue(file_exists($installedInfoFilePath), 'The new module exists in the filesystem after it is installed with the Update Manager.');
+    $this->assertFileExists($installedInfoFilePath);
     // Ensure the links are relative to the site root and not
     // core/authorize.php.
     $this->assertLink(t('Install another module'));
@@ -96,7 +96,7 @@ class UpdateUploadTest extends UpdateTestBase {
     $this->assertLinkByHref(Url::fromRoute('system.admin')->toString());
     // Ensure we can reach the "Install another module" link.
     $this->clickLink(t('Install another module'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->assertUrl('admin/modules/install');
 
     // Check that the module has the correct version before trying to update

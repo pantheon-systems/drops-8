@@ -61,7 +61,7 @@ class UserCancelTest extends BrowserTestBase {
     // Attempt bogus account cancellation request confirmation.
     $timestamp = $account->getLastLoginTime();
     $this->drupalGet("user/" . $account->id() . "/cancel/confirm/$timestamp/" . user_pass_rehash($account, $timestamp));
-    $this->assertResponse(403, 'Bogus cancelling request rejected.');
+    $this->assertSession()->statusCodeEquals(403);
     $user_storage->resetCache([$account->id()]);
     $account = $user_storage->load($account->id());
     $this->assertTrue($account->isActive(), 'User account was not canceled.');
@@ -472,7 +472,7 @@ class UserCancelTest extends BrowserTestBase {
     $this->assertNull($node_storage->load($node->id()), 'Node of the user has been deleted.');
     $this->assertNull(node_revision_load($revision), 'Node revision of the user has been deleted.');
     $node_storage->resetCache([$revision_node->id()]);
-    $this->assertInstanceOf(Node::class, $node_storage->load($revision_node->id()), "Current revision of the user's node was not deleted.");
+    $this->assertInstanceOf(Node::class, $node_storage->load($revision_node->id()));
     \Drupal::entityTypeManager()->getStorage('comment')->resetCache([$comment->id()]);
     $this->assertNull(Comment::load($comment->id()), 'Comment of the user has been deleted.');
 

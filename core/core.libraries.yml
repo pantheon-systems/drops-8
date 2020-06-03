@@ -2,10 +2,10 @@
 
 backbone:
   remote: https://github.com/jashkenas/backbone
-  version: "1.2.3"
+  version: "1.4.0"
   license:
     name: MIT
-    url: https://github.com/jashkenas/backbone/blob/1.2.3/LICENSE
+    url: https://github.com/jashkenas/backbone/blob/1.4.0/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/backbone/backbone-min.js: { weight: -19, minified: true }
@@ -229,7 +229,6 @@ drupal.form:
     - core/jquery
     - core/drupal
     - core/drupal.debounce
-    - core/jquery.cookie
     - core/jquery.once
 
 drupal.machine-name:
@@ -250,6 +249,11 @@ drupal.message:
   dependencies:
     - core/drupal
     - core/drupal.announce
+
+drupal.object.assign:
+  version: VERSION
+  js:
+    misc/polyfills/object.assign.js: { weight: -20 }
 
 drupal.progress:
   version: VERSION
@@ -289,7 +293,6 @@ drupal.tabledrag:
     - core/drupal
     - core/drupalSettings
     - core/jquery.once
-    - core/jquery.cookie
 
 drupal.tableheader:
   version: VERSION
@@ -361,28 +364,23 @@ html5shiv:
 
 jquery:
   remote: https://github.com/jquery/jquery
-  version: "3.4.1"
+  version: "3.5.1"
   license:
     name: MIT
-    url: https://github.com/jquery/jquery/blob/3.4.1/LICENSE.txt
+    url: https://github.com/jquery/jquery/blob/3.5.1/LICENSE.txt
     gpl-compatible: true
   js:
     assets/vendor/jquery/jquery.min.js: { minified: true, weight: -20 }
-    # This includes a security fix, so assign a weight that makes this load as
-    # soon after jquery.min.js is loaded as possible.
-    assets/vendor/jquery/jquery-htmlprefilter-3.5.0.js: { weight: -19 }
 
 jquery.cookie:
-  remote: https://github.com/carhartl/jquery-cookie
-  version: "v1.4.1"
-  license:
-    name: MIT
-    url: https://github.com/carhartl/jquery-cookie/blob/v1.4.1/MIT-LICENSE.txt
-    gpl-compatible: true
+  version: VERSION
   js:
-    assets/vendor/jquery.cookie/jquery.cookie.min.js: { minified: true }
+    misc/jquery.cookie.shim.js: {}
   dependencies:
     - core/jquery
+    - core/drupal
+    - core/js-cookie
+    - core/drupal.object.assign
 
 jquery.farbtastic:
   remote: https://github.com/mattfarina/farbtastic
@@ -428,14 +426,13 @@ jquery.joyride:
     assets/vendor/jquery-joyride/jquery.joyride-2.1.js: { }
   dependencies:
     - core/jquery
-    - core/jquery.cookie
 
 jquery.once:
   remote: https://github.com/RobLoach/jquery-once
-  version: "2.2.0"
+  version: "2.2.3"
   license:
     name: GNU-GPL-2.0-or-later
-    url: https://raw.githubusercontent.com/RobLoach/jquery-once/2.2.0/LICENSE.md
+    url: https://github.com/RobLoach/jquery-once/blob/2.2.3/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/jquery-once/jquery.once.min.js: { weight: -19, minified: true }
@@ -960,10 +957,10 @@ normalize:
 
 picturefill:
   remote: https://github.com/scottjehl/picturefill
-  version: "3.0.1"
+  version: "3.0.3"
   license:
     name: MIT
-    url: https://github.com/scottjehl/picturefill/blob/3.0.1/LICENSE
+    url: https://github.com/scottjehl/picturefill/blob/3.0.3/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/picturefill/picturefill.min.js: { weight: -10, minified: true }
@@ -971,30 +968,30 @@ picturefill:
     - core/matchmedia
 
 popperjs:
-  version: "1.15.0"
+  version: "1.16.0"
   license:
     name: MIT
-    url: https://github.com/FezVrasta/popper.js/blob/v1.15.0/LICENSE.md
+    url: https://github.com/popperjs/popper.js/blob/v1.16.0/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/popperjs/popper.min.js: { minified: true }
 
 sortable:
   remote: https://github.com/SortableJS/Sortable
-  version: "1.10.0"
+  version: "1.10.2"
   license:
     name: MIT
-    url: https://github.com/SortableJS/Sortable/tree/master#mit-license
+    url: https://github.com/SortableJS/Sortable/tree/1.10.2#mit-license
     gpl-compatible: true
   js:
     assets/vendor/sortable/Sortable.min.js: { minified: true }
 
 underscore:
   remote: https://github.com/jashkenas/underscore
-  version: "1.8.3"
+  version: "1.9.1"
   license:
     name: MIT
-    url: https://github.com/jashkenas/underscore/blob/1.8.3/LICENSE
+    url: https://github.com/jashkenas/underscore/blob/1.9.1/LICENSE
     gpl-compatible: true
   js:
     assets/vendor/underscore/underscore-min.js: { weight: -20, minified: true }
@@ -1027,3 +1024,13 @@ drupal.dialog.off_canvas:
     - core/drupal.announce
     - core/drupal.dialog
     - core/drupal.dialog.ajax
+
+js-cookie:
+  remote: https://github.com/js-cookie/js-cookie
+  version: "v3.0.0-rc0"
+  license:
+    name: MIT
+    url: https://github.com/js-cookie/js-cookie/blob/v3.0.0-rc.0/LICENSE
+    gpl-compatible: true
+  js:
+    assets/vendor/js-cookie/js.cookie.min.js: {}

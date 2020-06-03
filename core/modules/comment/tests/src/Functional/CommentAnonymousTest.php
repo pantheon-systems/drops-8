@@ -50,8 +50,8 @@ class CommentAnonymousTest extends CommentTestBase {
     $this->drupalPostForm($this->node->toUrl(), $edit, t('Preview'));
     // Cannot use assertRaw here since both title and body are in the form.
     $preview = (string) $this->cssSelect('.preview')[0]->getHtml();
-    $this->assertTrue(strpos($preview, $title) !== FALSE, 'Anonymous user can preview comment title.');
-    $this->assertTrue(strpos($preview, $body) !== FALSE, 'Anonymous user can preview comment body.');
+    $this->assertStringContainsString($title, $preview, 'Anonymous user can preview comment title.');
+    $this->assertStringContainsString($body, $preview, 'Anonymous user can preview comment body.');
 
     // Preview comments (without `skip comment approval` permission).
     user_role_revoke_permissions(RoleInterface::ANONYMOUS_ID, ['skip comment approval']);
@@ -63,8 +63,8 @@ class CommentAnonymousTest extends CommentTestBase {
     $this->drupalPostForm($this->node->toUrl(), $edit, t('Preview'));
     // Cannot use assertRaw here since both title and body are in the form.
     $preview = (string) $this->cssSelect('.preview')[0]->getHtml();
-    $this->assertTrue(strpos($preview, $title) !== FALSE, 'Anonymous user can preview comment title.');
-    $this->assertTrue(strpos($preview, $body) !== FALSE, 'Anonymous user can preview comment body.');
+    $this->assertStringContainsString($title, $preview, 'Anonymous user can preview comment title.');
+    $this->assertStringContainsString($body, $preview, 'Anonymous user can preview comment body.');
     user_role_grant_permissions(RoleInterface::ANONYMOUS_ID, ['skip comment approval']);
 
     // Post anonymous comment without contact info.
@@ -162,7 +162,7 @@ class CommentAnonymousTest extends CommentTestBase {
 
     // Comment 3 was deleted.
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $anonymous_comment3->id());
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     // Reset.
     user_role_change_permissions(RoleInterface::ANONYMOUS_ID, [
@@ -180,7 +180,7 @@ class CommentAnonymousTest extends CommentTestBase {
 
     // Attempt to view node-comment form while disallowed.
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     user_role_change_permissions(RoleInterface::ANONYMOUS_ID, [
       'access comments' => TRUE,
@@ -203,7 +203,7 @@ class CommentAnonymousTest extends CommentTestBase {
     $this->assertFieldByName('comment_body[0][value]', '', 'Comment field found.');
 
     $this->drupalGet('comment/reply/node/' . $this->node->id() . '/comment/' . $anonymous_comment2->id());
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
   }
 
 }

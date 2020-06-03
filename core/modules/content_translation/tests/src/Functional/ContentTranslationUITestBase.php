@@ -83,7 +83,7 @@ abstract class ContentTranslationUITestBase extends ContentTranslationTestBase {
     $entity = $storage->load($this->entityId);
     $this->assertNotEmpty($entity, 'Entity found in the database.');
     $this->drupalGet($entity->toUrl());
-    $this->assertResponse(200, 'Entity URL is valid.');
+    $this->assertSession()->statusCodeEquals(200);
 
     // Ensure that the content language cache context is not yet added to the
     // page.
@@ -369,15 +369,15 @@ abstract class ContentTranslationUITestBase extends ContentTranslationTestBase {
     $this->drupalPostForm(NULL, [], t('Delete @language translation', ['@language' => $language->getName()]));
     $storage->resetCache([$this->entityId]);
     $entity = $storage->load($this->entityId, TRUE);
-    if ($this->assertTrue(is_object($entity), 'Entity found')) {
-      $translations = $entity->getTranslationLanguages();
-      $this->assertTrue(count($translations) == 2 && empty($translations[$langcode]), 'Translation successfully deleted.');
-    }
+    $this->assertIsObject($entity);
+    $translations = $entity->getTranslationLanguages();
+    $this->assertCount(2, $translations);
+    $this->assertArrayNotHasKey($langcode, $translations);
 
     // Check that the translator cannot delete the original translation.
     $args = [$this->entityTypeId => $entity->id(), 'language' => 'en'];
     $this->drupalGet(Url::fromRoute("entity.$this->entityTypeId.content_translation_delete", $args));
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**

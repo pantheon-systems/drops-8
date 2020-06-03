@@ -179,7 +179,7 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
       $this->fail(new FormattableMarkup("@tag_name was clickable when it shouldn't have been", ['@tag_name' => $tag_name]));
     }
     catch (\Exception $e) {
-      $this->assertContains('is not clickable at point', $e->getMessage());
+      $this->assertStringContainsString('is not clickable at point', $e->getMessage());
     }
   }
 
@@ -291,7 +291,7 @@ class LayoutBuilderDisableInteractionsTest extends WebDriverTestBase {
    *   The element position.
    */
   protected function getElementVerticalPosition($css_selector, $position_type) {
-    $this->assertTrue(in_array($position_type, ['top', 'bottom']), 'Expected position type.');
+    $this->assertContains($position_type, ['top', 'bottom'], 'Expected position type.');
     return (int) $this->getSession()->evaluateScript("document.querySelector('$css_selector').getBoundingClientRect().$position_type + window.pageYOffset");
   }
 

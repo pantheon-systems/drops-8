@@ -27,15 +27,15 @@ class DisplayExtenderTest extends ViewsKernelTestBase {
    */
   public function testDisplayExtenders() {
     $this->config('views.settings')->set('display_extenders', ['display_extender_test'])->save();
-    $this->assertEqual(count(Views::getEnabledDisplayExtenders()), 1, 'Make sure that there is only one enabled display extender.');
+    $this->assertCount(1, Views::getEnabledDisplayExtenders(), 'Make sure that there is only one enabled display extender.');
 
     $view = Views::getView('test_view');
     $view->initDisplay();
 
-    $this->assertEqual(count($view->display_handler->getExtenders()), 1, 'Make sure that only one extender is initialized.');
+    $this->assertCount(1, $view->display_handler->getExtenders(), 'Make sure that only one extender is initialized.');
 
     $display_extender = $view->display_handler->getExtenders()['display_extender_test'];
-    $this->assertTrue($display_extender instanceof DisplayExtenderTestData, 'Make sure the right class got initialized.');
+    $this->assertInstanceOf(DisplayExtenderTestData::class, $display_extender);
 
     $view->preExecute();
     $this->assertTrue($display_extender->testState['preExecute'], 'Make sure the display extender was able to react on preExecute.');
@@ -53,7 +53,8 @@ class DisplayExtenderTest extends ViewsKernelTestBase {
     $errors = $view->validate();
 
     foreach ($view->displayHandlers as $id => $display) {
-      $this->assertTrue(isset($errors[$id]) && in_array('Display extender test error.', $errors[$id]), new FormattableMarkup('Error message found for @id display', ['@id' => $id]));
+      $this->assertArrayHasKey($id, $errors);
+      $this->assertContains('Display extender test error.', $errors[$id], new FormattableMarkup('Error message found for @id display', ['@id' => $id]));
     }
   }
 

@@ -2,6 +2,8 @@
 
 namespace Drupal\Core\Database;
 
+use Drupal\Core\Database\Query\Condition;
+
 /**
  * Base Database API class.
  *
@@ -542,7 +544,7 @@ abstract class Connection {
    * "/ * Exploit * / DROP TABLE node. -- * / UPDATE example SET field2=..."
    * @endcode
    *
-   * Unless the comment is sanitised first, the SQL server would drop the
+   * Unless the comment is sanitized first, the SQL server would drop the
    * node table and ignore the rest of the SQL statement.
    *
    * @param string $comment
@@ -583,7 +585,7 @@ abstract class Connection {
    *   Typically, $options['return'] will be set by a default or by a query
    *   builder, and should not be set by a user.
    *
-   * @return \Drupal\Core\Database\StatementInterface|int|null
+   * @return \Drupal\Core\Database\StatementInterface|int|string|null
    *   This method will return one of the following:
    *   - If either $options['return'] === self::RETURN_STATEMENT, or
    *     $options['return'] is not set (due to self::defaultOptions()),
@@ -592,7 +594,7 @@ abstract class Connection {
    *     returns the number of rows affected by the query
    *     (not the number matched).
    *   - If $options['return'] === self::RETURN_INSERT_ID,
-   *     returns the generated insert ID of the last query.
+   *     returns the generated insert ID of the last query as a string.
    *   - If either $options['return'] === self::RETURN_NULL, or
    *     an exception occurs and $options['throw_exception'] evaluates to FALSE,
    *     returns NULL.
@@ -626,7 +628,11 @@ abstract class Connection {
         // semicolons should only be needed for special cases like defining a
         // function or stored procedure in SQL. Trim any trailing delimiter to
         // minimize false positives.
-        $query = rtrim($query, ";  \t\n\r\0\x0B");
+        $trim_chars = "  \t\n\r\0\x0B";
+        if (empty($options['allow_delimiter_in_query'])) {
+          $trim_chars .= ';';
+        }
+        $query = rtrim($query, $trim_chars);
         if (strpos($query, ';') !== FALSE && empty($options['allow_delimiter_in_query'])) {
           throw new \InvalidArgumentException('; is not supported in SQL strings. Use only one statement at a time.');
         }
@@ -783,6 +789,11 @@ abstract class Connection {
       }
       $driver_class = $this->connectionOptions['namespace'] . '\\' . $class;
       $this->driverClasses[$class] = class_exists($driver_class) ? $driver_class : $class;
+      if ($this->driverClasses[$class] === 'Condition') {
+        // @todo Deprecate the fallback for contrib and custom drivers in 9.1.x
+        //   in https://www.drupal.org/project/drupal/issues/3120036.
+        $this->driverClasses[$class] = Condition::class;
+      }
     }
     return $this->driverClasses[$class];
   }
@@ -942,6 +953,22 @@ abstract class Connection {
       $this->schema = new $class($this);
     }
     return $this->schema;
+  }
+
+  /**
+   * Prepares and returns a CONDITION query object.
+   *
+   * @param string $conjunction
+   *   The operator to use to combine conditions: 'AND' or 'OR'.
+   *
+   * @return \Drupal\Core\Database\Query\Condition
+   *   A new Condition query object.
+   *
+   * @see \Drupal\Core\Database\Query\Condition
+   */
+  public function condition($conjunction) {
+    $class = $this->getDriverClass('Condition');
+    return new $class($conjunction);
   }
 
   /**
@@ -1355,7 +1382,7 @@ abstract class Connection {
    * Returns the type of database driver.
    *
    * This is not necessarily the same as the type of the database itself. For
-   * instance, there could be two MySQL drivers, mysql and mysql_mock. This
+   * instance, there could be two MySQL drivers, mysql and mysqlMock. This
    * function would return different values for each, but both would return
    * "mysql" for databaseType().
    *
@@ -1549,10 +1576,6 @@ abstract class Connection {
   /**
    * Creates an array of database connection options from a URL.
    *
-   * @internal
-   *   This method should not be called. Use
-   *   \Drupal\Core\Database\Database::convertDbUrlToConnectionInfo() instead.
-   *
    * @param string $url
    *   The URL.
    * @param string $root
@@ -1565,6 +1588,10 @@ abstract class Connection {
    * @throws \InvalidArgumentException
    *   Exception thrown when the provided URL does not meet the minimum
    *   requirements.
+   *
+   * @internal
+   *   This method should only be called from
+   *   \Drupal\Core\Database\Database::convertDbUrlToConnectionInfo().
    *
    * @see \Drupal\Core\Database\Database::convertDbUrlToConnectionInfo()
    */
@@ -1611,12 +1638,10 @@ abstract class Connection {
   /**
    * Creates a URL from an array of database connection options.
    *
-   * @internal
-   *   This method should not be called. Use
-   *   \Drupal\Core\Database\Database::getConnectionInfoAsUrl() instead.
-   *
    * @param array $connection_options
-   *   The array of connection options for a database connection.
+   *   The array of connection options for a database connection. An additional
+   *   key of 'module' is added by Database::getConnectionInfoAsUrl() for
+   *   drivers provided my contributed or custom modules for convenience.
    *
    * @return string
    *   The connection info as a URL.
@@ -1624,6 +1649,10 @@ abstract class Connection {
    * @throws \InvalidArgumentException
    *   Exception thrown when the provided array of connection options does not
    *   meet the minimum requirements.
+   *
+   * @internal
+   *   This method should only be called from
+   *   \Drupal\Core\Database\Database::getConnectionInfoAsUrl().
    *
    * @see \Drupal\Core\Database\Database::getConnectionInfoAsUrl()
    */
@@ -1650,6 +1679,11 @@ abstract class Connection {
     }
 
     $db_url .= '/' . $connection_options['database'];
+
+    // Add the module when the driver is provided by a module.
+    if (isset($connection_options['module'])) {
+      $db_url .= '?module=' . $connection_options['module'];
+    }
 
     if (isset($connection_options['prefix']['default']) && $connection_options['prefix']['default'] !== '') {
       $db_url .= '#' . $connection_options['prefix']['default'];

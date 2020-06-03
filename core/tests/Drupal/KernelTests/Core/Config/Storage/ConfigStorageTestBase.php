@@ -60,13 +60,13 @@ abstract class ConfigStorageTestBase extends KernelTestBase {
 
     // Listing all names returns all.
     $names = $this->storage->listAll();
-    $this->assertTrue(in_array('system.performance', $names));
-    $this->assertTrue(in_array($name, $names));
+    $this->assertContains('system.performance', $names);
+    $this->assertContains($name, $names);
 
     // Listing all names with prefix returns names with that prefix only.
     $names = $this->storage->listAll('config_test.');
-    $this->assertFalse(in_array('system.performance', $names));
-    $this->assertTrue(in_array($name, $names));
+    $this->assertNotContains('system.performance', $names);
+    $this->assertContains($name, $names);
 
     // Rename the configuration storage object.
     $new_name = 'config_test.storage_rename';
@@ -138,8 +138,7 @@ abstract class ConfigStorageTestBase extends KernelTestBase {
       $this->fail('Exception not thrown upon deleting from a non-existing storage bin.');
     }
     catch (\Exception $e) {
-      $class = get_class($e);
-      $this->pass($class . ' thrown upon deleting from a non-existing storage bin.');
+      // An exception occurred as expected; just continue.
     }
 
     // Listing on a non-existing storage bin returns an empty array.

@@ -88,12 +88,12 @@ class LanguageListTest extends BrowserTestBase {
 
     // Ensure we can't delete the default language.
     $this->drupalGet('admin/config/regional/language/delete/' . $langcode);
-    $this->assertResponse(403, 'Failed to delete the default language.');
+    $this->assertSession()->statusCodeEquals(403);
 
     // Ensure 'Edit' link works.
     $this->drupalGet('admin/config/regional/language');
     $this->clickLink(t('Edit'));
-    $this->assertTitle(t('Edit language | Drupal'), 'Page title is "Edit language".');
+    $this->assertTitle('Edit language | Drupal');
     // Edit a language.
     $name = $this->randomMachineName(16);
     $edit = [
@@ -128,7 +128,7 @@ class LanguageListTest extends BrowserTestBase {
     $this->assertUrl(Url::fromRoute('entity.configurable_language.collection', [], ['absolute' => TRUE, 'language' => $english])->toString());
     // Verify that language is no longer found.
     $this->drupalGet('admin/config/regional/language/delete/' . $langcode);
-    $this->assertResponse(404, 'Language no longer found.');
+    $this->assertSession()->statusCodeEquals(404);
 
     // Delete French.
     $this->drupalPostForm('admin/config/regional/language/delete/fr', [], t('Delete'));
@@ -140,7 +140,7 @@ class LanguageListTest extends BrowserTestBase {
     $this->assertUrl(Url::fromRoute('entity.configurable_language.collection', [], ['absolute' => TRUE])->toString());
     // Verify that language is no longer found.
     $this->drupalGet('admin/config/regional/language/delete/fr');
-    $this->assertResponse(404, 'Language no longer found.');
+    $this->assertSession()->statusCodeEquals(404);
     // Make sure the "language_count" state has not changed.
 
     // Ensure we can delete the English language. Right now English is the only
@@ -179,7 +179,7 @@ class LanguageListTest extends BrowserTestBase {
 
     // Ensure we can't delete a locked language.
     $this->drupalGet('admin/config/regional/language/delete/und');
-    $this->assertResponse(403, 'Can not delete locked language');
+    $this->assertSession()->statusCodeEquals(403);
 
     // Ensure that NL cannot be set default when it's not available.
     // First create the NL language.

@@ -37,7 +37,7 @@ class ThemeTest extends BrowserTestBase {
    * Ensures preprocess functions run even for suggestion implementations.
    *
    * The theme hook used by this test has its base preprocess function in a
-   * separate file, so this test also ensures that that file is correctly loaded
+   * separate file, so this test also ensures that the file is correctly loaded
    * when needed.
    */
   public function testPreprocessForSuggestions() {
@@ -45,7 +45,7 @@ class ThemeTest extends BrowserTestBase {
     drupal_theme_rebuild();
     for ($i = 0; $i < 2; $i++) {
       $this->drupalGet('theme-test/suggestion');
-      $this->assertText('Theme hook implementor=test_theme_theme_test__suggestion(). Foo=template_preprocess_theme_test', 'Theme hook suggestion ran with data available from a preprocess function for the base hook.');
+      $this->assertText('Theme hook implementor=theme-test--suggestion.html.twig. Foo=template_preprocess_theme_test', 'Theme hook suggestion ran with data available from a preprocess function for the base hook.');
     }
   }
 
@@ -56,7 +56,7 @@ class ThemeTest extends BrowserTestBase {
     $this->drupalGet('theme-test/priority');
 
     // Ensure that the custom theme negotiator was not able to set the theme.
-    $this->assertNoText('Theme hook implementor=test_theme_theme_test__suggestion(). Foo=template_preprocess_theme_test', 'Theme hook suggestion ran with data available from a preprocess function for the base hook.');
+    $this->assertNoText('Theme hook implementor=theme-test--suggestion.html.twig. Foo=template_preprocess_theme_test', 'Theme hook suggestion ran with data available from a preprocess function for the base hook.');
   }
 
   /**
@@ -82,7 +82,7 @@ class ThemeTest extends BrowserTestBase {
     $suggestions = theme_get_suggestions(['user', 'login'], 'page');
     // Set it back to not annoy the batch runner.
     \Drupal::requestStack()->pop();
-    $this->assertTrue(in_array('page__front', $suggestions), 'Front page template was suggested.');
+    $this->assertContains('page__front', $suggestions, 'Front page template was suggested.');
   }
 
   /**
@@ -142,14 +142,6 @@ class ThemeTest extends BrowserTestBase {
   }
 
   /**
-   * Ensures a theme template can override a theme function.
-   */
-  public function testFunctionOverride() {
-    $this->drupalGet('theme-test/function-template-overridden');
-    $this->assertText('Success: Template overrides theme function.', 'Theme function overridden by test_theme template.');
-  }
-
-  /**
    * Tests that the page variable is not prematurely flattened.
    *
    * Some modules check the page array in template_preprocess_html(), so we
@@ -158,7 +150,7 @@ class ThemeTest extends BrowserTestBase {
   public function testPreprocessHtml() {
     $this->drupalGet('');
     $attributes = $this->xpath('/body[@theme_test_page_variable="Page variable is an array."]');
-    $this->assertTrue(count($attributes) == 1, 'In template_preprocess_html(), the page variable is still an array (not rendered yet).');
+    $this->assertCount(1, $attributes, 'In template_preprocess_html(), the page variable is still an array (not rendered yet).');
     $this->assertText('theme test page bottom markup', 'Modules are able to set the page bottom region.');
   }
 
@@ -172,14 +164,14 @@ class ThemeTest extends BrowserTestBase {
     $this->drupalPlaceBlock('system_main_block');
     $this->drupalGet('');
     $elements = $this->cssSelect(".region-sidebar-first.new_class");
-    $this->assertEqual(count($elements), 1, 'New class found.');
+    $this->assertCount(1, $elements, 'New class found.');
   }
 
   /**
    * Ensures suggestion preprocess functions run for default implementations.
    *
    * The theme hook used by this test has its base preprocess function in a
-   * separate file, so this test also ensures that that file is correctly loaded
+   * separate file, so this test also ensures that the file is correctly loaded
    * when needed.
    */
   public function testSuggestionPreprocessForDefaults() {

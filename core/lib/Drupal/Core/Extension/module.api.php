@@ -6,7 +6,6 @@
  */
 
 use Drupal\Core\Database\Database;
-use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Utility\UpdateException;
@@ -180,13 +179,21 @@ function hook_module_preinstall($module) {
  *
  * @param $modules
  *   An array of the modules that were installed.
+ * @param bool $is_syncing
+ *   TRUE if the module is being installed as part of a configuration import. In
+ *   these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
  *
  * @see \Drupal\Core\Extension\ModuleInstaller::install()
  * @see hook_install()
  */
-function hook_modules_installed($modules) {
+function hook_modules_installed($modules, $is_syncing) {
   if (in_array('lousy_module', $modules)) {
     \Drupal::state()->set('mymodule.lousy_module_compatibility', TRUE);
+  }
+  if (!$is_syncing) {
+    \Drupal::service('mymodule.service')->doSomething($modules);
   }
 }
 
@@ -220,15 +227,21 @@ function hook_modules_installed($modules) {
  * Please be sure that anything added or modified in this function that can
  * be removed during uninstall should be removed with hook_uninstall().
  *
+ * @param bool $is_syncing
+ *   TRUE if the module is being installed as part of a configuration import. In
+ *   these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
+ *
+ * @see \Drupal\Core\Config\ConfigInstallerInterface::isSyncing
  * @see hook_schema()
  * @see \Drupal\Core\Extension\ModuleInstaller::install()
  * @see hook_uninstall()
  * @see hook_modules_installed()
  */
-function hook_install() {
-  // Create the styles directory and ensure it's writable.
-  $directory = \Drupal::config('system.file')->get('default_scheme') . '://styles';
-  \Drupal::service('file_system')->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+function hook_install($is_syncing) {
+  // Set general module variables.
+  \Drupal::state()->set('mymodule.foo', 'bar');
 }
 
 /**
@@ -253,14 +266,22 @@ function hook_module_preuninstall($module) {
  *
  * @param $modules
  *   An array of the modules that were uninstalled.
+ * @param bool $is_syncing
+ *   TRUE if the module is being uninstalled as part of a configuration import.
+ *   In these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
  *
  * @see hook_uninstall()
  */
-function hook_modules_uninstalled($modules) {
+function hook_modules_uninstalled($modules, $is_syncing) {
   if (in_array('lousy_module', $modules)) {
     \Drupal::state()->delete('mymodule.lousy_module_compatibility');
   }
   mymodule_cache_rebuild();
+  if (!$is_syncing) {
+    \Drupal::service('mymodule.service')->doSomething($modules);
+  }
 }
 
 /**
@@ -278,13 +299,19 @@ function hook_modules_uninstalled($modules) {
  * tables are removed, allowing your module to query its own tables during
  * this routine.
  *
+ * @param bool $is_syncing
+ *   TRUE if the module is being uninstalled as part of a configuration import.
+ *   In these cases, your hook implementation needs to carefully consider what
+ *   changes, if any, it should make. For example, it should not make any
+ *   changes to configuration objects or entities.
+ *
  * @see hook_install()
  * @see hook_schema()
  * @see hook_modules_uninstalled()
  */
-function hook_uninstall() {
-  // Remove the styles directory and generated images.
-  \Drupal::service('file_system')->deleteRecursive(\Drupal::config('system.file')->get('default_scheme') . '://styles');
+function hook_uninstall($is_syncing) {
+  // Delete remaining general module variables.
+  \Drupal::state()->delete('mymodule.foo');
 }
 
 /**

@@ -94,7 +94,7 @@ class DisplayTest extends ViewTestBase {
 
     $view->setDisplay('display_test_1');
 
-    $this->assertTrue($view->display_handler instanceof DisplayTestPlugin, 'The correct display handler instance is on the view object.');
+    $this->assertInstanceOf(DisplayTestPlugin::class, $view->display_handler);
 
     // Check the test option.
     $this->assertIdentical($view->display_handler->getOption('test_option'), '');
@@ -109,7 +109,7 @@ class DisplayTest extends ViewTestBase {
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
 
-    $this->assertTrue(strpos($output, '<h1></h1>') !== FALSE, 'An empty value for test_option found in output.');
+    $this->assertStringContainsString('<h1></h1>', $output, 'An empty value for test_option found in output.');
 
     // Change this option and check the title of out output.
     $view->display_handler->overrideOption('test_option', 'Test option title');
@@ -119,7 +119,7 @@ class DisplayTest extends ViewTestBase {
     $output = $renderer->renderRoot($output);
 
     // Test we have our custom <h1> tag in the output of the view.
-    $this->assertTrue(strpos($output, '<h1>Test option title</h1>') !== FALSE, 'The test_option value found in display output title.');
+    $this->assertStringContainsString('<h1>Test option title</h1>', $output, 'The test_option value found in display output title.');
 
     // Test that the display category/summary is in the UI.
     $this->drupalGet('admin/structure/views/view/test_view/edit/display_test_1');
@@ -216,7 +216,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node') !== FALSE, 'The read more link with href "/node" was found.');
+    $this->assertStringContainsString('/node', $output, 'The read more link with href "/node" was found.');
 
     // Test more link with leading slash.
     $view->display_handler->setOption('link_display', 'custom_url');
@@ -224,7 +224,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node') !== FALSE, 'The read more link with href "/node" was found.');
+    $this->assertStringContainsString('/node', $output, 'The read more link with href "/node" was found.');
 
     // Test more link with absolute url.
     $view->display_handler->setOption('link_display', 'custom_url');
@@ -232,7 +232,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, 'http://drupal.org') !== FALSE, 'The read more link with href "http://drupal.org" was found.');
+    $this->assertStringContainsString('http://drupal.org', $output, 'The read more link with href "http://drupal.org" was found.');
 
     // Test more link with query parameters in the url.
     $view->display_handler->setOption('link_display', 'custom_url');
@@ -240,7 +240,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node?page=1&amp;foo=bar') !== FALSE, 'The read more link with href "/node?page=1&foo=bar" was found.');
+    $this->assertStringContainsString('/node?page=1&amp;foo=bar', $output, 'The read more link with href "/node?page=1&foo=bar" was found.');
 
     // Test more link with fragment in the url.
     $view->display_handler->setOption('link_display', 'custom_url');
@@ -248,7 +248,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node#target') !== FALSE, 'The read more link with href "/node#target" was found.');
+    $this->assertStringContainsString('/node#target', $output, 'The read more link with href "/node#target" was found.');
 
     // Test more link with arguments.
     $view = Views::getView('test_simple_argument');
@@ -261,7 +261,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node?date=22&amp;foo=bar') !== FALSE, 'The read more link with href "/node?date=22&foo=bar" was found.');
+    $this->assertStringContainsString('/node?date=22&amp;foo=bar', $output, 'The read more link with href "/node?date=22&foo=bar" was found.');
 
     // Test more link with 1 dimension array query parameters with arguments.
     $view = Views::getView('test_simple_argument');
@@ -274,7 +274,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node?f%5B0%5D=foo%3Abar&amp;f%5B1%5D=foo%3A22') !== FALSE, 'The read more link with href "/node?f[0]=foo:bar&f[1]=foo:22" was found.');
+    $this->assertStringContainsString('/node?f%5B0%5D=foo%3Abar&amp;f%5B1%5D=foo%3A22', $output, 'The read more link with href "/node?f[0]=foo:bar&f[1]=foo:22" was found.');
 
     // Test more link with arguments in path.
     $view->display_handler->setOption('link_url', 'node/{{ raw_arguments.age }}?date={{ raw_arguments.age }}&foo=bar');
@@ -282,7 +282,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node/22?date=22&amp;foo=bar') !== FALSE, 'The read more link with href "/node/22?date=22&foo=bar" was found.');
+    $this->assertStringContainsString('/node/22?date=22&amp;foo=bar', $output, 'The read more link with href "/node/22?date=22&foo=bar" was found.');
 
     // Test more link with arguments in fragment.
     $view->display_handler->setOption('link_url', 'node?date={{ raw_arguments.age }}&foo=bar#{{ raw_arguments.age }}');
@@ -290,7 +290,7 @@ class DisplayTest extends ViewTestBase {
     $this->executeView($view);
     $output = $view->preview();
     $output = $renderer->renderRoot($output);
-    $this->assertTrue(strpos($output, '/node?date=22&amp;foo=bar#22') !== FALSE, 'The read more link with href "/node?date=22&foo=bar#22" was found.');
+    $this->assertStringContainsString('/node?date=22&amp;foo=bar#22', $output, 'The read more link with href "/node?date=22&foo=bar#22" was found.');
   }
 
   /**
@@ -298,7 +298,7 @@ class DisplayTest extends ViewTestBase {
    */
   public function testInvalidDisplayPlugins() {
     $this->drupalGet('test_display_invalid');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     // Change the page plugin id to an invalid one. Bypass the entity system
     // so no menu rebuild was executed (so the path is still available).
@@ -307,7 +307,7 @@ class DisplayTest extends ViewTestBase {
     $config->save();
 
     $this->drupalGet('test_display_invalid');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->assertText('The &quot;invalid&quot; plugin does not exist.');
 
     // Rebuild the router, and ensure that the path is not accessible anymore.
@@ -315,7 +315,7 @@ class DisplayTest extends ViewTestBase {
     \Drupal::service('router.builder')->rebuildIfNeeded();
 
     $this->drupalGet('test_display_invalid');
-    $this->assertResponse(404);
+    $this->assertSession()->statusCodeEquals(404);
 
     // Change the display plugin ID back to the correct ID.
     $config = $this->config('views.view.test_display_invalid');
@@ -326,9 +326,8 @@ class DisplayTest extends ViewTestBase {
     $block = $this->drupalPlaceBlock('views_block:test_display_invalid-block_1', ['label' => 'Invalid display']);
 
     $this->drupalGet('<front>');
-    $this->assertResponse(200);
-    $result = $this->xpath('//div[@id = :id]', [':id' => 'block-' . $block->id()]);
-    $this->assertEquals(1, count($result));
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertCount(1, $this->xpath('//div[@id = :id]', [':id' => 'block-' . $block->id()]));
 
     // Change the block plugin ID to an invalid one.
     $config = $this->config('views.view.test_display_invalid');
@@ -338,10 +337,9 @@ class DisplayTest extends ViewTestBase {
     // Test the page is still displayed, the block not present, and has the
     // plugin warning message.
     $this->drupalGet('<front>');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->assertText('The &quot;invalid&quot; plugin does not exist.');
-    $result = $this->xpath('//div[@id = :id]', [':id' => 'block-' . $block->id()]);
-    $this->assertEquals(0, count($result));
+    $this->assertCount(0, $this->xpath('//div[@id = :id]', [':id' => 'block-' . $block->id()]));
   }
 
   /**
@@ -364,7 +362,7 @@ class DisplayTest extends ViewTestBase {
     // Validate display
     $errors = $view->validate();
     // Check that the error messages are shown.
-    $this->assertTrue(count($errors['default']) == 2, 'Error messages found for required relationship');
+    $this->assertCount(2, $errors['default'], 'Error messages found for required relationship');
     $this->assertEqual($errors['default'][0], t('The %handler_type %handler uses a relationship that has been removed.', ['%handler_type' => 'field', '%handler' => 'User: Last login']));
     $this->assertEqual($errors['default'][1], t('The %handler_type %handler uses a relationship that has been removed.', ['%handler_type' => 'field', '%handler' => 'User: Created']));
   }

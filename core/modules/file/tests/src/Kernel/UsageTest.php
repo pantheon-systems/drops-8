@@ -44,7 +44,7 @@ class UsageTest extends FileManagedUnitTestBase {
 
     $usage = $this->container->get('file.usage')->listUsage($file);
 
-    $this->assertEqual(count($usage['testing']), 2, 'Returned the correct number of items.');
+    $this->assertCount(2, $usage['testing'], 'Returned the correct number of items.');
     $this->assertTrue(isset($usage['testing']['foo'][1]), 'Returned the correct id.');
     $this->assertTrue(isset($usage['testing']['bar'][2]), 'Returned the correct id.');
     $this->assertEqual($usage['testing']['foo'][1], 1, 'Returned the correct count.');
@@ -68,7 +68,7 @@ class UsageTest extends FileManagedUnitTestBase {
       ->condition('f.fid', $file->id())
       ->execute()
       ->fetchAllAssoc('id');
-    $this->assertEqual(count($usage), 2, 'Created two records');
+    $this->assertCount(2, $usage, 'Created two records');
     $this->assertEqual($usage[1]->module, 'testing', 'Correct module');
     $this->assertEqual($usage[2]->module, 'testing', 'Correct module');
     $this->assertEqual($usage[1]->type, 'foo', 'Correct type');
@@ -163,7 +163,7 @@ class UsageTest extends FileManagedUnitTestBase {
       ])
       ->condition('fid', $temp_old->id())
       ->execute();
-    $this->assertTrue(file_exists($temp_old->getFileUri()), 'Old temp file was created correctly.');
+    $this->assertFileExists($temp_old->getFileUri());
 
     // Temporary file that is new.
     $temp_new = file_save_data('');
@@ -171,7 +171,7 @@ class UsageTest extends FileManagedUnitTestBase {
       ->fields(['status' => 0])
       ->condition('fid', $temp_new->id())
       ->execute();
-    $this->assertTrue(file_exists($temp_new->getFileUri()), 'New temp file was created correctly.');
+    $this->assertFileExists($temp_new->getFileUri());
 
     // Permanent file that is old.
     $perm_old = file_save_data('');
@@ -179,11 +179,11 @@ class UsageTest extends FileManagedUnitTestBase {
       ->fields(['changed' => REQUEST_TIME - $this->config('system.file')->get('temporary_maximum_age') - 1])
       ->condition('fid', $temp_old->id())
       ->execute();
-    $this->assertTrue(file_exists($perm_old->getFileUri()), 'Old permanent file was created correctly.');
+    $this->assertFileExists($perm_old->getFileUri());
 
     // Permanent file that is new.
     $perm_new = file_save_data('');
-    $this->assertTrue(file_exists($perm_new->getFileUri()), 'New permanent file was created correctly.');
+    $this->assertFileExists($perm_new->getFileUri());
     return [$temp_old, $temp_new, $perm_old, $perm_new];
   }
 
@@ -195,10 +195,10 @@ class UsageTest extends FileManagedUnitTestBase {
 
     // Run cron and then ensure that only the old, temp file was deleted.
     $this->container->get('cron')->run();
-    $this->assertFalse(file_exists($temp_old->getFileUri()), 'Old temp file was correctly removed.');
-    $this->assertTrue(file_exists($temp_new->getFileUri()), 'New temp file was correctly ignored.');
-    $this->assertTrue(file_exists($perm_old->getFileUri()), 'Old permanent file was correctly ignored.');
-    $this->assertTrue(file_exists($perm_new->getFileUri()), 'New permanent file was correctly ignored.');
+    $this->assertFileNotExists($temp_old->getFileUri());
+    $this->assertFileExists($temp_new->getFileUri());
+    $this->assertFileExists($perm_old->getFileUri());
+    $this->assertFileExists($perm_new->getFileUri());
   }
 
   /**
@@ -214,10 +214,10 @@ class UsageTest extends FileManagedUnitTestBase {
 
     // Run cron and then ensure that no file was deleted.
     $this->container->get('cron')->run();
-    $this->assertTrue(file_exists($temp_old->getFileUri()), 'Old temp file was correctly ignored.');
-    $this->assertTrue(file_exists($temp_new->getFileUri()), 'New temp file was correctly ignored.');
-    $this->assertTrue(file_exists($perm_old->getFileUri()), 'Old permanent file was correctly ignored.');
-    $this->assertTrue(file_exists($perm_new->getFileUri()), 'New permanent file was correctly ignored.');
+    $this->assertFileExists($temp_old->getFileUri());
+    $this->assertFileExists($temp_new->getFileUri());
+    $this->assertFileExists($perm_old->getFileUri());
+    $this->assertFileExists($perm_new->getFileUri());
   }
 
   /**
@@ -233,10 +233,10 @@ class UsageTest extends FileManagedUnitTestBase {
 
     // Run cron and then ensure that more files were deleted.
     $this->container->get('cron')->run();
-    $this->assertTrue(file_exists($temp_old->getFileUri()), 'Old temp file was correctly ignored.');
-    $this->assertTrue(file_exists($temp_new->getFileUri()), 'New temp file was correctly ignored.');
-    $this->assertTrue(file_exists($perm_old->getFileUri()), 'Old permanent file was correctly ignored.');
-    $this->assertTrue(file_exists($perm_new->getFileUri()), 'New permanent file was correctly ignored.');
+    $this->assertFileExists($temp_old->getFileUri());
+    $this->assertFileExists($temp_new->getFileUri());
+    $this->assertFileExists($perm_old->getFileUri());
+    $this->assertFileExists($perm_new->getFileUri());
   }
 
   /**

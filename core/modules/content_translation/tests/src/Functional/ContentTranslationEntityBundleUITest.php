@@ -5,13 +5,19 @@ namespace Drupal\Tests\content_translation\Functional;
 use Drupal\Tests\BrowserTestBase;
 
 /**
- * Tests the content translation behaviours on entity bundle UI.
+ * Tests the content translation behaviors on entity bundle UI.
  *
  * @group content_translation
  */
 class ContentTranslationEntityBundleUITest extends BrowserTestBase {
 
-  public static $modules = ['language', 'content_translation', 'node', 'comment', 'field_ui'];
+  public static $modules = [
+    'language',
+    'content_translation',
+    'node',
+    'comment',
+    'field_ui',
+  ];
 
   /**
    * {@inheritdoc}
@@ -25,7 +31,7 @@ class ContentTranslationEntityBundleUITest extends BrowserTestBase {
   }
 
   /**
-   * Tests content types default translation behaviour.
+   * Tests content types default translation behavior.
    */
   public function testContentTypeUI() {
     // Create first content type.

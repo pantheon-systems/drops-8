@@ -1,10 +1,5 @@
 name: 'Configuration entity static cache test'
 type: module
 package: Testing
-# version: VERSION
+version: VERSION
 core: 8.x
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

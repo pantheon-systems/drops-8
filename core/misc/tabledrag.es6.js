@@ -111,9 +111,9 @@
     /**
      * Used to determine up or down direction from last mouse move.
      *
-     * @type {number}
+     * @type {?number}
      */
-    this.oldY = 0;
+    this.oldY = null;
 
     /**
      * Whether anything in the entire table has changed.
@@ -202,10 +202,10 @@
       // manually append 2 indentations in the first draggable row, measure
       // the offset, then remove.
       const indent = Drupal.theme('tableDragIndentation');
-      const testRow = $('<tr/>')
+      const testRow = $('<tr></tr>')
         .addClass('draggable')
         .appendTo(table);
-      const testCell = $('<td/>')
+      const testCell = $('<td></td>')
         .appendTo(testRow)
         .prepend(indent)
         .prepend(indent);
@@ -721,7 +721,7 @@
    * @param {Drupal.tableDrag} self
    *   The drag handle.
    * @param {HTMLElement} item
-   *   The item that that is being dragged.
+   *   The item that is being dragged.
    */
   Drupal.tableDrag.prototype.dragStart = function(event, self, item) {
     // Create a new dragObject recording the pointer information.
@@ -760,6 +760,10 @@
     if (self.oldRowElement) {
       $(self.oldRowElement).removeClass('drag-previous');
     }
+
+    // Set the initial y coordinate so the direction can be calculated in
+    // dragRow().
+    self.oldY = self.pointerCoords(event).y;
   };
 
   /**

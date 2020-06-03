@@ -58,12 +58,15 @@ trait UpdatePathTestTrait {
         $this->fail('The update failed with the following message: "' . reset($failure)->getText() . '"');
       }
 
-      // Ensure that there are no pending updates.
+      // Ensure that there are no pending updates. Clear the schema version
+      // static cache first in case it was accessed before running updates.
+      drupal_get_installed_schema_version(NULL, TRUE);
       foreach (['update', 'post_update'] as $update_type) {
         switch ($update_type) {
           case 'update':
             $all_updates = update_get_update_list();
             break;
+
           case 'post_update':
             $all_updates = \Drupal::service('update.post_update_registry')->getPendingUpdateInformation();
             break;

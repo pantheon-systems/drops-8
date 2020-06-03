@@ -48,7 +48,7 @@ class FieldUIRouteTest extends BrowserTestBase {
 
     // Test manage display tabs and titles.
     $this->drupalGet('admin/config/people/accounts/display/compact');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     $this->drupalGet('admin/config/people/accounts/display');
     $this->assertTitle('Manage display | Drupal');
@@ -62,7 +62,7 @@ class FieldUIRouteTest extends BrowserTestBase {
 
     // Test manage form display tabs and titles.
     $this->drupalGet('admin/config/people/accounts/form-display/register');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     $this->drupalGet('admin/config/people/accounts/form-display');
     $this->assertTitle('Manage form display | Drupal');
@@ -70,11 +70,11 @@ class FieldUIRouteTest extends BrowserTestBase {
 
     $edit = ['display_modes_custom[register]' => TRUE];
     $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('admin/config/people/accounts/form-display/register');
     $this->assertTitle('Manage form display | Drupal');
     $this->assertLocalTasks();
-    $this->assert(count($this->xpath('//ul/li[1]/a[contains(text(), :text)]', [':text' => 'Default'])) == 1, 'Default secondary tab is in first position.');
+    $this->assertCount(1, $this->xpath('//ul/li[1]/a[contains(text(), :text)]', [':text' => 'Default']), 'Default secondary tab is in first position.');
 
     // Create new view mode and verify it's available on the Manage Display
     // screen after enabling it.

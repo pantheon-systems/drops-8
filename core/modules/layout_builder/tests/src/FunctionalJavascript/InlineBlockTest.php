@@ -141,7 +141,7 @@ class InlineBlockTest extends InlineBlockTestBase {
     $this->drupalGet('node/1');
     $assert_session->pageTextContains('The block body');
     $blocks = $this->blockStorage->loadMultiple();
-    $this->assertEquals(count($blocks), 1);
+    $this->assertCount(1, $blocks);
     /* @var \Drupal\Core\Entity\ContentEntityBase $block */
     $block = array_pop($blocks);
     $revision_id = $block->getRevisionId();
@@ -163,7 +163,7 @@ class InlineBlockTest extends InlineBlockTestBase {
       // When discarding the original block body should appear.
       $assert_session->pageTextContains('The block body');
 
-      $this->assertEquals(count($blocks), 1);
+      $this->assertCount(1, $blocks);
       $block = array_pop($blocks);
       $this->assertEquals($block->getRevisionId(), $revision_id);
       $this->assertEquals($block->get('body')->getValue()[0]['value'], 'The block body');
@@ -547,7 +547,6 @@ class InlineBlockTest extends InlineBlockTestBase {
    * Tests 'create and edit custom blocks' permission to edit an existing block.
    */
   public function testEditInlineBlocksPermission() {
-    $assert_session = $this->assertSession();
 
     LayoutBuilderEntityViewDisplay::load('node.bundle_with_section_field.default')
       ->enableLayoutBuilder()

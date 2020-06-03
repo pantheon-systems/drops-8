@@ -58,7 +58,13 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['locale', 'language_test', 'block', 'user', 'content_translation'];
+  public static $modules = [
+    'locale',
+    'language_test',
+    'block',
+    'user',
+    'content_translation',
+  ];
 
   /**
    * {@inheritdoc}
@@ -251,7 +257,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       ->set('negotiation.' . LanguageInterface::TYPE_INTERFACE . '.enabled', array_flip(array_keys($language_interface_method_definitions)))
       ->save();
     $this->drupalGet("$langcode_unknown/admin/config", [], $http_header_browser_fallback);
-    $this->assertResponse(404, "Unknown language path prefix should return 404");
+    $this->assertSession()->statusCodeEquals(404);
 
     // Set preferred langcode for user to NULL.
     $account = $this->loggedInUser;
@@ -406,7 +412,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
     // match.
     Cache::invalidateTags(['route_match']);
     $this->drupalGet('system/files/test/private-file-test.txt');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -548,12 +554,12 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
 
     // Check if configurability persisted.
     $config = $this->config('language.types');
-    $this->assertTrue(in_array('language_interface', $config->get('configurable')), 'Interface language is configurable.');
-    $this->assertTrue(in_array('language_content', $config->get('configurable')), 'Content language is configurable.');
+    $this->assertContains('language_interface', $config->get('configurable'), 'Interface language is configurable.');
+    $this->assertContains('language_content', $config->get('configurable'), 'Content language is configurable.');
 
     // Ensure configuration was saved.
-    $this->assertFalse(array_key_exists('language-url', $config->get('negotiation.language_content.enabled')), 'URL negotiation is not enabled for content.');
-    $this->assertTrue(array_key_exists('language-session', $config->get('negotiation.language_content.enabled')), 'Session negotiation is enabled for content.');
+    $this->assertArrayNotHasKey('language-url', $config->get('negotiation.language_content.enabled'));
+    $this->assertArrayHasKey('language-session', $config->get('negotiation.language_content.enabled'));
   }
 
   /**
@@ -574,7 +580,7 @@ class LanguageUILanguageNegotiationTest extends BrowserTestBase {
       'language_content[configurable]' => FALSE,
     ];
     $this->drupalPostForm('admin/config/regional/language/detection', $edit, t('Save settings'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     // Check if the language switcher block has been removed.
     $block = Block::load($block_id);

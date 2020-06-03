@@ -27,7 +27,14 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'field_ui', 'field_test', 'taxonomy', 'image', 'block'];
+  public static $modules = [
+    'node',
+    'field_ui',
+    'field_test',
+    'taxonomy',
+    'image',
+    'block',
+  ];
 
   /**
    * {@inheritdoc}
@@ -165,10 +172,12 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
           $this->assertIdentical($url, $link->getAttribute('href'));
           $number_of_links_found++;
           break;
+
         case 'Edit storage settings.':
           $this->assertIdentical("$url/storage", $link->getAttribute('href'));
           $number_of_links_found++;
           break;
+
         case 'Delete field.':
           $this->assertIdentical("$url/delete", $link->getAttribute('href'));
           $number_of_links_found++;
@@ -332,7 +341,7 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
     $field_id = 'node.' . $this->contentType . '.' . $this->fieldName;
     $this->drupalGet('admin/structure/types/manage/' . $this->contentType . '/fields/' . $field_id);
     $this->clickLink(t('Delete'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
   }
 
   /**
@@ -578,7 +587,7 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
     $locked = $this->xpath('//tr[@id=:field_name]/td[4]', [':field_name' => $field_name]);
     $this->assertSame('Locked', $locked[0]->getHtml(), 'Field is marked as Locked in the UI');
     $this->drupalGet('admin/structure/types/manage/' . $this->contentType . '/fields/node.' . $this->contentType . '.' . $field_name . '/delete');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**
@@ -608,7 +617,7 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
       ->getFormDisplay('node', $this->contentType)
       ->setComponent($field_name)
       ->save();
-    $this->assertInstanceOf(FieldConfig::class, FieldConfig::load('node.' . $this->contentType . '.' . $field_name), new FormattableMarkup('A field of the field storage %field was created programmatically.', ['%field' => $field_name]));
+    $this->assertInstanceOf(FieldConfig::class, FieldConfig::load('node.' . $this->contentType . '.' . $field_name));
 
     // Check that the newly added field appears on the 'Manage Fields'
     // screen.
@@ -661,7 +670,7 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
     $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.body/storage', [], 'Save field settings', $options);
     // The external redirect should not fire.
     $this->assertUrl('admin/structure/types/manage/article/fields/node.article.body/storage', $options);
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->assertRaw('Attempt to update field <em class="placeholder">Body</em> failed: <em class="placeholder">The internal path component &#039;http://example.com&#039; is external. You are not allowed to specify an external URL together with internal:/.</em>.');
   }
 
@@ -775,10 +784,10 @@ class ManageFieldsFunctionalTest extends BrowserTestBase {
     $field_id = 'node.foo.bar';
 
     $this->drupalGet('admin/structure/types/manage/' . $this->contentType . '/fields/' . $field_id);
-    $this->assertResponse(404);
+    $this->assertSession()->statusCodeEquals(404);
 
     $this->drupalGet('admin/structure/types/manage/' . $this->contentType . '/fields/' . $field_id . '/storage');
-    $this->assertResponse(404);
+    $this->assertSession()->statusCodeEquals(404);
   }
 
 }

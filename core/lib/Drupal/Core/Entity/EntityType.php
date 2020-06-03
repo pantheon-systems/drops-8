@@ -447,6 +447,7 @@ class EntityType extends PluginDefinition implements EntityTypeInterface {
    * {@inheritdoc}
    */
   public function isSubclassOf($class) {
+    @trigger_error(__METHOD__ . '() is deprecated in drupal:8.3.0 and is removed from drupal:10.0.0. Use Drupal\Core\Entity\EntityTypeInterface::entityClassImplements() instead. See https://www.drupal.org/node/2842808', E_USER_DEPRECATED);
     return $this->entityClassImplements($class);
   }
 
@@ -465,6 +466,7 @@ class EntityType extends PluginDefinition implements EntityTypeInterface {
       $handlers = $this->getHandlerClasses();
       return $nested ? $handlers[$handler_type][$nested] : $handlers[$handler_type];
     }
+    return NULL;
   }
 
   /**
@@ -819,8 +821,11 @@ class EntityType extends PluginDefinition implements EntityTypeInterface {
     if (empty($this->label_count)) {
       return $this->formatPlural($count, '@count @label', '@count @label entities', ['@label' => $this->getSingularLabel()], ['context' => 'Entity type label']);
     }
-    $context = isset($this->label_count['context']) ? $this->label_count['context'] : 'Entity type label';
-    return $this->formatPlural($count, $this->label_count['singular'], $this->label_count['plural'], ['context' => $context]);
+    $options = [];
+    if (isset($this->label_count['context'])) {
+      $options['context'] = $this->label_count['context'];
+    }
+    return $this->formatPlural($count, $this->label_count['singular'], $this->label_count['plural'], [], $options);
   }
 
   /**

@@ -20,7 +20,13 @@ class FilterAdminTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['block', 'filter', 'node', 'filter_test_plugin', 'dblog'];
+  public static $modules = [
+    'block',
+    'filter',
+    'node',
+    'filter_test_plugin',
+    'dblog',
+  ];
 
   /**
    * {@inheritdoc}
@@ -157,7 +163,7 @@ class FilterAdminTest extends BrowserTestBase {
 
     // Verify that disabled text format no longer exists.
     $this->drupalGet('admin/config/content/formats/manage/' . $format_id);
-    $this->assertResponse(404, 'Disabled text format no longer exists.');
+    $this->assertSession()->statusCodeEquals(404);
 
     // Attempt to create a format of the same machine name as the disabled
     // format but with a different human readable name.
@@ -197,7 +203,7 @@ class FilterAdminTest extends BrowserTestBase {
     $this->drupalGet('admin/config/content/formats');
     $this->assertNoRaw('admin/config/content/formats/manage/' . $plain . '/disable', 'Disable link for the fallback format not found.');
     $this->drupalGet('admin/config/content/formats/manage/' . $plain . '/disable');
-    $this->assertResponse(403, 'The fallback format cannot be disabled.');
+    $this->assertSession()->statusCodeEquals(403);
 
     // Verify access permissions to Full HTML format.
     $full_format = FilterFormat::load($full);

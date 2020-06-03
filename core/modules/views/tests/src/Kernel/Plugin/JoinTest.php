@@ -54,7 +54,7 @@ class JoinTest extends RelationshipJoinTestBase {
       'field' => 'uid',
     ];
     $join = $this->manager->createInstance('join_test', $configuration);
-    $this->assertTrue($join instanceof JoinTestPlugin, 'The correct join class got loaded.');
+    $this->assertInstanceOf(JoinTestPlugin::class, $join);
 
     $rand_int = rand(0, 1000);
     $join->setJoinValue($rand_int);
@@ -65,7 +65,7 @@ class JoinTest extends RelationshipJoinTestBase {
 
     $tables = $query->getTables();
     $join_info = $tables['users_field_data'];
-    $this->assertTrue(strpos($join_info['condition'], "views_test_data.uid = $rand_int") !== FALSE, 'Make sure that the custom join plugin can extend the join base and alter the result.');
+    $this->assertStringContainsString("views_test_data.uid = $rand_int", $join_info['condition'], 'Make sure that the custom join plugin can extend the join base and alter the result.');
   }
 
   /**
@@ -88,7 +88,7 @@ class JoinTest extends RelationshipJoinTestBase {
       'adjusted' => TRUE,
     ];
     $join = $this->manager->createInstance('standard', $configuration);
-    $this->assertTrue($join instanceof JoinPluginBase, 'The correct join class got loaded.');
+    $this->assertInstanceOf(JoinPluginBase::class, $join);
     $this->assertNull($join->extra, 'The field extra was not overridden.');
     $this->assertTrue($join->adjusted, 'The field adjusted was set correctly.');
 
@@ -144,9 +144,9 @@ class JoinTest extends RelationshipJoinTestBase {
 
     $tables = $query->getTables();
     $join_info = $tables['users3'];
-    $this->assertTrue(strpos($join_info['condition'], "views_test_data.uid = users3.uid") !== FALSE, 'Make sure the join condition appears in the query.');
-    $this->assertTrue(strpos($join_info['condition'], "users3.name = :views_join_condition_0") !== FALSE, 'Make sure the first extra join condition appears in the query and uses the first placeholder.');
-    $this->assertTrue(strpos($join_info['condition'], "users3.name <> :views_join_condition_1") !== FALSE, 'Make sure the second extra join condition appears in the query and uses the second placeholder.');
+    $this->assertStringContainsString("views_test_data.uid = users3.uid", $join_info['condition'], 'Make sure the join condition appears in the query.');
+    $this->assertStringContainsString("users3.name = :views_join_condition_0", $join_info['condition'], 'Make sure the first extra join condition appears in the query and uses the first placeholder.');
+    $this->assertStringContainsString("users3.name <> :views_join_condition_1", $join_info['condition'], 'Make sure the second extra join condition appears in the query and uses the second placeholder.');
     $this->assertEqual(array_values($join_info['arguments']), [$random_name_1, $random_name_2], 'Make sure the arguments are in the right order');
 
     // Test that 'IN' conditions are properly built.
@@ -170,9 +170,9 @@ class JoinTest extends RelationshipJoinTestBase {
 
     $tables = $query->getTables();
     $join_info = $tables['users4'];
-    $this->assertTrue(strpos($join_info['condition'], "views_test_data.uid = users4.uid") !== FALSE, 'Make sure the join condition appears in the query.');
-    $this->assertTrue(strpos($join_info['condition'], "users4.name = :views_join_condition_2") !== FALSE, 'Make sure the first extra join condition appears in the query.');
-    $this->assertTrue(strpos($join_info['condition'], "users4.name IN ( :views_join_condition_3[] )") !== FALSE, 'The IN condition for the join is properly formed.');
+    $this->assertStringContainsString("views_test_data.uid = users4.uid", $join_info['condition'], 'Make sure the join condition appears in the query.');
+    $this->assertStringContainsString("users4.name = :views_join_condition_2", $join_info['condition'], 'Make sure the first extra join condition appears in the query.');
+    $this->assertStringContainsString("users4.name IN ( :views_join_condition_3[] )", $join_info['condition'], 'The IN condition for the join is properly formed.');
     $this->assertEqual($join_info['arguments'][':views_join_condition_3[]'], [$random_name_2, $random_name_3, $random_name_4], 'Make sure the IN arguments are still part of an array.');
 
     // Test that all the conditions are properly built.
@@ -197,10 +197,24 @@ class JoinTest extends RelationshipJoinTestBase {
 
     $tables = $query->getTables();
     $join_info = $tables['users5'];
-    $this->assertTrue(strpos($join_info['condition'], "views_test_data.uid = users5.uid") !== FALSE, 'Make sure the join condition appears in the query.');
-    $this->assertTrue(strpos($join_info['condition'], "users5.langcode = :views_join_condition_4") !== FALSE, 'Make sure the first extra join condition appears in the query.');
-    $this->assertTrue(strpos($join_info['condition'], "views_test_data.status = :views_join_condition_5") !== FALSE, 'Make sure the second extra join condition appears in the query.');
-    $this->assertTrue(strpos($join_info['condition'], "users5.name = views_test_data.name") !== FALSE, 'Make sure the third extra join condition appears in the query.');
+    $this->assertStringContainsString("views_test_data.uid = users5.uid", $join_info['condition'], 'Make sure the join condition appears in the query.');
+    $this->assertStringContainsString("users5.langcode = :views_join_condition_4", $join_info['condition'], 'Make sure the first extra join condition appears in the query.');
+    $this->assertStringContainsString("views_test_data.status = :views_join_condition_5", $join_info['condition'], 'Make sure the second extra join condition appears in the query.');
+    $this->assertStringContainsString("users5.name = views_test_data.name", $join_info['condition'], 'Make sure the third extra join condition appears in the query.');
+    $this->assertEqual(array_values($join_info['arguments']), ['en', 0], 'Make sure the arguments are in the right order');
+
+    // Test that joins using 'left_formula' are properly built.
+    $configuration['left_formula'] = 'MAX(views_test_data.uid)';
+    $join = $this->manager->createInstance('standard', $configuration);
+    $table = ['alias' => 'users6'];
+    $join->buildJoin($query, $table, $view->query);
+
+    $tables = $query->getTables();
+    $join_info = $tables['users6'];
+    $this->assertStringContainsString("MAX(views_test_data.uid) = users6.uid", $join_info['condition'], 'Make sure the join condition appears in the query.');
+    $this->assertStringContainsString("users6.langcode = :views_join_condition_7", $join_info['condition'], 'Make sure the first extra join condition appears in the query.');
+    $this->assertStringContainsString("views_test_data.status = :views_join_condition_8", $join_info['condition'], 'Make sure the second extra join condition appears in the query.');
+    $this->assertStringContainsString("users6.name = views_test_data.name", $join_info['condition'], 'Make sure the third extra join condition appears in the query.');
     $this->assertEqual(array_values($join_info['arguments']), ['en', 0], 'Make sure the arguments are in the right order');
   }
 

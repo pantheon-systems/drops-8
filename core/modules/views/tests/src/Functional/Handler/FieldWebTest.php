@@ -67,7 +67,7 @@ class FieldWebTest extends ViewTestBase {
    */
   public function testClickSorting() {
     $this->drupalGet('test_click_sort');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     // Only the id and name should be click sortable, but not the name.
     $this->assertLinkByHref(Url::fromRoute('<none>', [], ['query' => ['order' => 'id', 'sort' => 'asc']])->toString());
@@ -84,10 +84,14 @@ class FieldWebTest extends ViewTestBase {
 
     // Clicking a click sort should change the order.
     $this->clickLink(t('ID'));
-    $this->assertLinkByHref(Url::fromRoute('<none>', [], ['query' => ['order' => 'id', 'sort' => 'desc']])->toString());
+    $href = Url::fromRoute('<none>', [], ['query' => ['order' => 'id', 'sort' => 'desc']])->toString();
+    $this->assertLinkByHref($href);
     // Check that the output has the expected order (asc).
     $ids = $this->clickSortLoadIdsFromOutput();
     $this->assertEqual($ids, range(1, 5));
+    // Check that the rel attribute has the correct value.
+    $result = $this->xpath('//a[@href="' . $href . '"]');
+    $this->assertEquals('nofollow', $result[0]->getAttribute('rel'));
 
     $this->clickLink(t('ID Sort descending'));
     // Check that the output has the expected order (desc).
@@ -125,7 +129,7 @@ class FieldWebTest extends ViewTestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertSubString($haystack, $needle, $message = '', $group = 'Other') {
-    return $this->assertTrue(strpos($haystack, $needle) !== FALSE, $message, $group);
+    return $this->assertStringContainsString($needle, $haystack, $message);
   }
 
   /**
@@ -143,7 +147,7 @@ class FieldWebTest extends ViewTestBase {
    *   TRUE if the assertion succeeded, FALSE otherwise.
    */
   protected function assertNotSubString($haystack, $needle, $message = '', $group = 'Other') {
-    return $this->assertTrue(strpos($haystack, $needle) === FALSE, $message, $group);
+    return $this->assertStringNotContainsString($needle, $haystack, $message);
   }
 
   /**

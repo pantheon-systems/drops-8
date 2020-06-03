@@ -257,6 +257,11 @@ function claro_element_info_alter(&$type) {
   if (isset($type['managed_file'])) {
     $type['managed_file']['#pre_render'][] = [ClaroPreRender::class, 'managedFile'];
   }
+
+  // Add a pre-render to status_messages to alter the placeholder markup.
+  if (isset($type['status_messages'])) {
+    $type['status_messages']['#pre_render'][] = [ClaroPreRender::class, 'messagePlaceholder'];
+  }
 }
 
 /**
@@ -871,20 +876,6 @@ function claro_preprocess_form_element__password(&$variables) {
     // This is the password confirm form element.
     $variables['attributes']['class'][] = 'password-confirm__confirm';
   }
-}
-
-/**
- * Implements template_preprocess_HOOK() for checkboxes.
- */
-function claro_preprocess_checkboxes(&$variables) {
-  $variables['attributes']['class'][] = 'form-boolean-group';
-}
-
-/**
- * Implements template_preprocess_HOOK() for radios.
- */
-function claro_preprocess_radios(&$variables) {
-  $variables['attributes']['class'][] = 'form-boolean-group';
 }
 
 /**

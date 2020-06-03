@@ -151,6 +151,19 @@ abstract class Tasks {
   }
 
   /**
+   * Checks engine version requirements for the status report.
+   *
+   * This method is called during runtime and update requirements checks.
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup[]
+   *   A list of error messages.
+   */
+  final public function engineVersionRequirementsCheck() {
+    $this->checkEngineVersion();
+    return $this->results['fail'];
+  }
+
+  /**
    * Check if we can connect to the database.
    */
   protected function connect() {
@@ -202,6 +215,13 @@ abstract class Tasks {
    *   The options form array.
    */
   public function getFormOptions(array $database) {
+    // Use reflection to determine the driver name.
+    // @todo https:///www.drupal.org/node/3123240 Provide a better way to get
+    //   the driver name.
+    $reflection = new \ReflectionClass($this);
+    $dir_parts = explode(DIRECTORY_SEPARATOR, dirname(dirname($reflection->getFileName())));
+    $driver = array_pop($dir_parts);
+
     $form['database'] = [
       '#type' => 'textfield',
       '#title' => t('Database name'),
@@ -210,7 +230,7 @@ abstract class Tasks {
       '#required' => TRUE,
       '#states' => [
         'required' => [
-          ':input[name=driver]' => ['value' => $this->pdoDriver],
+          ':input[name=driver]' => ['value' => $driver],
         ],
       ],
     ];
@@ -223,7 +243,7 @@ abstract class Tasks {
       '#required' => TRUE,
       '#states' => [
         'required' => [
-          ':input[name=driver]' => ['value' => $this->pdoDriver],
+          ':input[name=driver]' => ['value' => $driver],
         ],
       ],
     ];

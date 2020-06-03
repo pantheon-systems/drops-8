@@ -1,13 +1,8 @@
 name: File
 type: module
-description: 'Defines a file field type.'
+description: 'Defines a field type for files.'
 package: Field types
-# version: VERSION
+version: VERSION
 core: 8.x
 dependencies:
   - drupal:field
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

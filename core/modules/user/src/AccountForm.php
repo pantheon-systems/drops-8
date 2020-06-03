@@ -252,7 +252,7 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
     // Only show the account setting for Administration pages language to users
     // if one of the detection and selection methods uses it.
     $show_admin_language = FALSE;
-    if ($account->hasPermission('access administration pages') && $this->languageManager instanceof ConfigurableLanguageManagerInterface) {
+    if (($account->hasPermission('access administration pages') || $account->hasPermission('view the administration theme')) && $this->languageManager instanceof ConfigurableLanguageManagerInterface) {
       $negotiator = $this->languageManager->getNegotiator();
       $show_admin_language = $negotiator && $negotiator->isNegotiationMethodEnabled(LanguageNegotiationUserAdmin::METHOD_ID);
     }
@@ -274,6 +274,32 @@ abstract class AccountForm extends ContentEntityForm implements TrustedCallbackI
     // use-cases where this synchronization is not desired, a module can alter
     // or remove this item.
     $form['#entity_builders']['sync_user_langcode'] = '::syncUserLangcode';
+
+    $system_date_config = \Drupal::config('system.date');
+    $form['timezone'] = [
+      '#type' => 'details',
+      '#title' => t('Locale settings'),
+      '#open' => TRUE,
+      '#weight' => 6,
+      '#access' => $system_date_config->get('timezone.user.configurable'),
+    ];
+    if ($self_register && $system_date_config->get('timezone.user.default') != UserInterface::TIMEZONE_SELECT) {
+      $form['timezone']['#access'] = FALSE;
+    }
+    $form['timezone']['timezone'] = [
+      '#type' => 'select',
+      '#title' => t('Time zone'),
+      '#default_value' => $account->getTimezone() ?: $system_date_config->get('timezone.default'),
+      '#options' => system_time_zones($account->id() != $user->id(), TRUE),
+      '#description' => t('Select the desired local time and time zone. Dates and times throughout this site will be displayed using this time zone.'),
+    ];
+
+    // If not set or selected yet, detect timezone for the current user only.
+    $user_input = $form_state->getUserInput();
+    if (!$account->getTimezone() && $account->id() == $user->id() && empty($user_input['timezone'])) {
+      $form['timezone']['#attached']['library'][] = 'core/drupal.timezone';
+      $form['timezone']['timezone']['#attributes'] = ['class' => ['timezone-detect']];
+    }
 
     return parent::form($form, $form_state, $account);
   }
