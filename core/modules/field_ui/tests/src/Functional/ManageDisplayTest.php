@@ -25,7 +25,15 @@ class ManageDisplayTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'field_ui', 'taxonomy', 'search', 'field_test', 'field_third_party_test', 'block'];
+  public static $modules = [
+    'node',
+    'field_ui',
+    'taxonomy',
+    'search',
+    'field_test',
+    'field_third_party_test',
+    'block',
+  ];
 
   /**
    * {@inheritdoc}
@@ -254,9 +262,12 @@ class ManageDisplayTest extends BrowserTestBase {
     $output = (string) \Drupal::service('renderer')->renderRoot($element);
     $this->verbose(t('Rendered node - view mode: @view_mode', ['@view_mode' => $view_mode]) . '<hr />' . $output);
 
-    $method = $not_exists ? 'assertNotContains' : 'assertContains';
-
-    $this->{$method}((string) $text, $output, $message);
+    if ($not_exists) {
+      $this->assertStringNotContainsString((string) $text, $output, $message);
+    }
+    else {
+      $this->assertStringContainsString((string) $text, $output, $message);
+    }
   }
 
   /**

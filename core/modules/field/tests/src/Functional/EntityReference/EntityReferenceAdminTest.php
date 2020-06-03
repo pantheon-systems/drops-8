@@ -28,7 +28,14 @@ class EntityReferenceAdminTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'field_ui', 'path', 'taxonomy', 'block', 'views_ui'];
+  public static $modules = [
+    'node',
+    'field_ui',
+    'path',
+    'taxonomy',
+    'block',
+    'views_ui',
+  ];
 
   /**
    * {@inheritdoc}
@@ -156,7 +163,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
       'field_test_entity_ref_field[1][target_id]' => 'Foo Node (' . $node2->id() . ')',
     ];
     $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     $edit = [
       'title[0][value]' => 'Example',
@@ -203,7 +210,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
       ->condition('vid', 'tags')
       ->accessCheck(FALSE)
       ->execute();
-    $this->assertIdentical(0, count($result), "No taxonomy terms exist with the name '$term_name'.");
+    $this->assertCount(0, $result, "No taxonomy terms exist with the name '$term_name'.");
     $edit = [
       // This must be set before new entities will be auto-created.
       'settings[handler_settings][auto_create]' => 1,
@@ -221,7 +228,7 @@ class EntityReferenceAdminTest extends BrowserTestBase {
       ->condition('vid', 'tags')
       ->accessCheck(FALSE)
       ->execute();
-    $this->assertIdentical(1, count($result), 'Taxonomy term was auto created when set as field default.');
+    $this->assertCount(1, $result, 'Taxonomy term was auto created when set as field default.');
   }
 
   /**

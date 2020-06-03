@@ -30,8 +30,6 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
     'syslog',
     'tracker',
     'update',
-    // Required for translation migrations.
-    'migrate_drupal_multilingual',
     // Test migrations states.
     'migrate_state_finished_test',
     'migrate_state_not_finished_test',
@@ -103,6 +101,7 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       'locale',
       'menu',
       'number',
+      'node',
       'openid',
       'options',
       'overlay',
@@ -168,7 +167,6 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
       'i18n_translation',
       'i18n_user',
       'i18n_variable',
-      'node',
       'picture',
       'migrate_status_active_test',
       'variable',

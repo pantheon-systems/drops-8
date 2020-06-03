@@ -70,7 +70,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     $this->drupalPostForm('admin/config/media/image-styles/add', $edit, t('Create new style'));
     $this->assertRaw(t('Style %name was created.', ['%name' => $style_label]));
     $options = image_style_options();
-    $this->assertTrue(array_key_exists($style_name, $options), new FormattableMarkup('Array key %key exists.', ['%key' => $style_name]));
+    $this->assertArrayHasKey($style_name, $options);
   }
 
   /**
@@ -152,7 +152,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
 
     // Ensure that the image style URI matches our expected path.
     $style_uri_path = $style->toUrl()->toString();
-    $this->assertTrue(strpos($style_uri_path, $style_path) !== FALSE, 'The image style URI is correct.');
+    $this->assertStringContainsString($style_path, $style_uri_path, 'The image style URI is correct.');
 
     // Confirm that all effects on the image style have settings that match
     // what was saved.
@@ -216,8 +216,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
 
     // Check that the URL was updated.
     $this->drupalGet($style_path);
-    $this->assertTitle(t('Edit style @name | Drupal', ['@name' => $style_label]));
-    $this->assertResponse(200, new FormattableMarkup('Image style %original renamed to %new', ['%original' => $style->id(), '%new' => $style_name]));
+    $this->assertTitle("Edit style $style_label | Drupal");
 
     // Check that the available image effects are properly sorted.
     $option = $this->xpath('//select[@id=:id]//option', [':id' => 'edit-new--2']);
@@ -252,7 +251,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     // Delete the 'image_crop' effect from the style.
     $this->drupalPostForm($style_path . '/effects/' . $uuids['image_crop'] . '/delete', [], t('Delete'));
     // Confirm that the form submission was successful.
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $image_crop_effect = $style->getEffect($uuids['image_crop']);
     $this->assertRaw(t('The image effect %name has been deleted.', ['%name' => $image_crop_effect->label()]));
     // Confirm that there is no longer a link to the effect.
@@ -278,7 +277,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     $this->drupalPostForm(NULL, $edit, t('Add effect'));
     $entity_type_manager = $this->container->get('entity_type.manager');
     $style = $entity_type_manager->getStorage('image_style')->loadUnchanged($style_name);
-    $this->assertEqual(count($style->getEffects()), 6, 'Rotate effect with transparent background was added.');
+    $this->assertCount(6, $style->getEffects(), 'Rotate effect with transparent background was added.');
 
     // Style deletion form.
 
@@ -287,7 +286,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
 
     // Confirm the style directory has been removed.
     $directory = 'public://styles/' . $style_name;
-    $this->assertFalse(is_dir($directory), new FormattableMarkup('Image style %style directory removed on style deletion.', ['%style' => $style->label()]));
+    $this->assertDirectoryNotExists($directory);
 
     $this->assertNull(ImageStyle::load($style_name), new FormattableMarkup('Image style %style successfully deleted.', ['%style' => $style->label()]));
 
@@ -419,7 +418,7 @@ class ImageAdminStylesTest extends ImageFieldTestBase {
     // Try to edit a nonexistent effect.
     $uuid = $this->container->get('uuid');
     $this->drupalGet('admin/config/media/image-styles/manage/' . $style_name . '/effects/' . $uuid->generate());
-    $this->assertResponse(404);
+    $this->assertSession()->statusCodeEquals(404);
   }
 
   /**

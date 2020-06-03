@@ -36,7 +36,7 @@ class SystemAuthorizeTest extends BrowserTestBase {
    * Initializing authorize.php needs to happen in the child Drupal
    * installation, not the parent. So, we visit a menu callback provided by
    * system_test.module which calls system_authorized_init() to initialize the
-   * $_SESSION inside the test site, not the framework site. This callback
+   * user's session inside the test site, not the framework site. This callback
    * redirects to authorize.php when it's done initializing.
    *
    * @see system_authorized_init()
@@ -51,7 +51,7 @@ class SystemAuthorizeTest extends BrowserTestBase {
   public function testFileTransferHooks() {
     $page_title = $this->randomMachineName(16);
     $this->drupalGetAuthorizePHP($page_title);
-    $this->assertTitle(strtr('@title | Drupal', ['@title' => $page_title]), 'authorize.php page title is correct.');
+    $this->assertTitle("$page_title | Drupal");
     $this->assertNoText('It appears you have reached this page in error.');
     $this->assertText('To continue, provide your server connection details');
     // Make sure we see the new connection method added by system_test.

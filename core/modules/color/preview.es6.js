@@ -14,11 +14,11 @@
      * The callback for when the color preview has been attached.
      *
      * @param {Element} context
-     *   The context to initiate the color behaviour.
+     *   The context to initiate the color behavior.
      * @param {object} settings
      *   Settings for the color functionality.
      * @param {HTMLFormElement} form
-     *   The form to initiate the color behaviour on.
+     *   The form to initiate the color behavior on.
      * @param {object} farb
      *   The farbtastic object.
      * @param {number} height
@@ -65,18 +65,14 @@
         colorStart = farb.unpack(
           form
             .find(
-              `.color-palette input[name="palette[${
-                settings.gradients[i].colors[0]
-              }]"]`,
+              `.color-palette input[name="palette[${settings.gradients[i].colors[0]}]"]`,
             )
             .val(),
         );
         colorEnd = farb.unpack(
           form
             .find(
-              `.color-palette input[name="palette[${
-                settings.gradients[i].colors[1]
-              }]"]`,
+              `.color-palette input[name="palette[${settings.gradients[i].colors[1]}]"]`,
             )
             .val(),
         );

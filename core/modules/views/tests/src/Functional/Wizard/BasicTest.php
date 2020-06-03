@@ -40,7 +40,7 @@ class BasicTest extends WizardTestBase {
     $view1['description'] = $this->randomMachineName(16);
     $view1['page[create]'] = FALSE;
     $this->drupalPostForm('admin/structure/views/add', $view1, t('Save and edit'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('admin/structure/views');
     $this->assertText($view1['label']);
     $this->assertText($view1['description']);
@@ -71,7 +71,7 @@ class BasicTest extends WizardTestBase {
     $view2['page[feed_properties][path]'] = $this->randomMachineName(16);
     $this->drupalPostForm('admin/structure/views/add', $view2, t('Save and edit'));
     $this->drupalGet($view2['page[path]']);
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     // Since the view has a page, we expect to be automatically redirected to
     // it.
@@ -83,7 +83,7 @@ class BasicTest extends WizardTestBase {
     // Check if we have the feed.
     $this->assertLinkByHref(Url::fromRoute('view.' . $view2['id'] . '.feed_1')->toString());
     $elements = $this->cssSelect('link[href="' . Url::fromRoute('view.' . $view2['id'] . '.feed_1', [], ['absolute' => TRUE])->toString() . '"]');
-    $this->assertEqual(count($elements), 1, 'Feed found.');
+    $this->assertCount(1, $elements, 'Feed found.');
     $this->drupalGet($view2['page[feed_properties][path]']);
     // Because the response is XML we can't use the page which depends on an
     // HTML tag being present.
@@ -122,7 +122,7 @@ class BasicTest extends WizardTestBase {
     $view3['block[title]'] = $this->randomMachineName(16);
     $this->drupalPostForm('admin/structure/views/add', $view3, t('Save and edit'));
     $this->drupalGet($view3['page[path]']);
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     // Make sure the view only displays the node we expect.
     $this->assertUrl($view3['page[path]']);
@@ -171,9 +171,9 @@ class BasicTest extends WizardTestBase {
     // Check that the REST export path works. JSON will work, as all core
     // formats will be allowed. JSON and XML by default.
     $this->drupalGet($view4['rest_export[path]'], ['query' => ['_format' => 'json']]);
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $data = Json::decode($this->getSession()->getPage()->getContent());
-    $this->assertEqual(count($data), 1, 'Only the node of type page is exported.');
+    $this->assertCount(1, $data, 'Only the node of type page is exported.');
     $node = reset($data);
     $this->assertEqual($node['nid'][0]['value'], $node1->id(), 'The node of type page is exported.');
 

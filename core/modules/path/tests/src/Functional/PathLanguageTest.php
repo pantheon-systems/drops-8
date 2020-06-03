@@ -14,7 +14,12 @@ class PathLanguageTest extends PathTestBase {
    *
    * @var array
    */
-  public static $modules = ['path', 'locale', 'locale_test', 'content_translation'];
+  public static $modules = [
+    'path',
+    'locale',
+    'locale_test',
+    'content_translation',
+  ];
 
   /**
    * {@inheritdoc}
@@ -124,7 +129,7 @@ class PathLanguageTest extends PathTestBase {
     $languages = $this->container->get('language_manager')->getLanguages();
     $url = $english_node_french_translation->toUrl('canonical', ['language' => $languages['fr']])->toString();
 
-    $this->assertContains($edit['path[0][alias]'], $url, 'URL contains the path alias.');
+    $this->assertStringContainsString($edit['path[0][alias]'], $url, 'URL contains the path alias.');
 
     // Confirm that the alias works even when changing language negotiation
     // options. Enable User language detection and selection over URL one.
@@ -168,7 +173,7 @@ class PathLanguageTest extends PathTestBase {
     // situation only aliases in the default language and language neutral ones
     // should keep working.
     $this->drupalGet($french_alias);
-    $this->assertResponse(404, 'Alias for French translation is unavailable when URL language negotiation is disabled.');
+    $this->assertSession()->statusCodeEquals(404);
 
     // The alias manager has an internal path lookup cache. Check to see that
     // it has the appropriate contents at this point.

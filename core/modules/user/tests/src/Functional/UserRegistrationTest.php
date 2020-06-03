@@ -34,10 +34,11 @@ class UserRegistrationTest extends BrowserTestBase {
     // Require email verification.
     $config->set('verify_mail', TRUE)->save();
 
-    // Set registration to administrator only.
+    // Set registration to administrator only and ensure the user registration
+    // page is inaccessible.
     $config->set('register', UserInterface::REGISTER_ADMINISTRATORS_ONLY)->save();
     $this->drupalGet('user/register');
-    $this->assertResponse(403, 'Registration page is inaccessible when only administrators can create accounts.');
+    $this->assertSession()->statusCodeEquals(403);
 
     // Allow registration by site visitors without administrator approval.
     $config->set('register', UserInterface::REGISTER_VISITORS)->save();
@@ -54,7 +55,7 @@ class UserRegistrationTest extends BrowserTestBase {
     $this->assertTrue($new_user->isActive(), 'New account is active after registration.');
     $resetURL = user_pass_reset_url($new_user);
     $this->drupalGet($resetURL);
-    $this->assertTitle(t('Set password | Drupal'), 'Page title is "Set password".');
+    $this->assertTitle('Set password | Drupal');
 
     // Allow registration by site visitors, but require administrator approval.
     $config->set('register', UserInterface::REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)->save();
@@ -211,7 +212,7 @@ class UserRegistrationTest extends BrowserTestBase {
 
     // Create one account.
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     $user_storage = \Drupal::entityTypeManager()->getStorage('user');
 
@@ -224,7 +225,7 @@ class UserRegistrationTest extends BrowserTestBase {
     $edit['pass[pass2]'] = $edit['pass[pass1]'] = $this->randomMachineName();
 
     $this->drupalPostForm('user/register', $edit, t('Create new account'));
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     $this->assertNotEmpty($user_storage->loadByProperties(['name' => $edit['name']]));
   }

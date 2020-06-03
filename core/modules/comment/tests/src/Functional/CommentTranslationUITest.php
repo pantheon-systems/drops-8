@@ -55,7 +55,12 @@ class CommentTranslationUITest extends ContentTranslationUITestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'content_translation', 'node', 'comment'];
+  public static $modules = [
+    'language',
+    'content_translation',
+    'node',
+    'comment',
+  ];
 
   protected function setUp() {
     $this->entityTypeId = 'comment';
@@ -201,7 +206,7 @@ class CommentTranslationUITest extends ContentTranslationUITestBase {
 
     // Verify translation links.
     $this->drupalGet('admin/content/comment');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->assertLinkByHref('comment/' . $cid_translatable . '/translations');
     $this->assertNoLinkByHref('comment/' . $cid_untranslatable . '/translations');
   }

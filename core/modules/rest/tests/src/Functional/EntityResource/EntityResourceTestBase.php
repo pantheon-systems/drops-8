@@ -863,7 +863,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
     $response = $this->request('POST', $url, $request_options);
     $this->assertSame(415, $response->getStatusCode());
     $this->assertSame(['text/html; charset=UTF-8'], $response->getHeader('Content-Type'));
-    $this->assertContains('A client error happened', (string) $response->getBody());
+    $this->assertStringContainsString('A client error happened', (string) $response->getBody());
 
     $url->setOption('query', ['_format' => static::$format]);
 
@@ -997,7 +997,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
 
       $response = $this->request('POST', $url, $request_options);
       $this->assertSame(500, $response->getStatusCode());
-      $this->assertContains('Internal Server Error', (string) $response->getBody());
+      $this->assertStringContainsString('Internal Server Error', (string) $response->getBody());
 
       // 201 when successfully creating an entity with a new UUID.
       $normalized_entity = $this->getModifiedEntityForPostTesting();
@@ -1071,7 +1071,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
       $this->assertSame(405, $response->getStatusCode());
       $this->assertSame(['GET, POST, HEAD'], $response->getHeader('Allow'));
       $this->assertSame(['text/html; charset=UTF-8'], $response->getHeader('Content-Type'));
-      $this->assertContains('A client error happened', (string) $response->getBody());
+      $this->assertStringContainsString('A client error happened', (string) $response->getBody());
     }
     else {
       $this->assertSame(404, $response->getStatusCode());
@@ -1097,7 +1097,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
     $response = $this->request('PATCH', $url, $request_options);
     $this->assertSame(415, $response->getStatusCode());
     $this->assertSame(['text/html; charset=UTF-8'], $response->getHeader('Content-Type'));
-    $this->assertContains('A client error happened', (string) $response->getBody());
+    $this->assertStringContainsString('A client error happened', (string) $response->getBody());
 
     $url->setOption('query', ['_format' => static::$format]);
 
@@ -1313,7 +1313,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
       $this->assertSame(405, $response->getStatusCode());
       $this->assertSame(['GET, POST, HEAD'], $response->getHeader('Allow'));
       $this->assertSame(['text/html; charset=UTF-8'], $response->getHeader('Content-Type'));
-      $this->assertContains('A client error happened', (string) $response->getBody());
+      $this->assertStringContainsString('A client error happened', (string) $response->getBody());
     }
     else {
       $this->assertSame(404, $response->getStatusCode());
@@ -1413,7 +1413,7 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
     };
     $keys_are_field_names = Inspector::assertAllStrings(array_keys(static::$patchProtectedFieldNames));
     $values_are_expected_access_denied_reasons = Inspector::assertAll($is_null_or_string, static::$patchProtectedFieldNames);
-    $this->assertTrue($keys_are_field_names && $values_are_expected_access_denied_reasons, 'In Drupal 8.6, the structure of $patchProtectectedFieldNames changed. It used to be an array with field names as values. Now those values are the keys, and their values should be either NULL or a string: a string containing the reason for why the field cannot be PATCHed, or NULL otherwise.');
+    $this->assertTrue($keys_are_field_names && $values_are_expected_access_denied_reasons, 'In Drupal 8.6, the structure of $patchProtectedFieldNames changed. It used to be an array with field names as values. Now those values are the keys, and their values should be either NULL or a string: a string containing the reason for why the field cannot be PATCHed, or NULL otherwise.');
   }
 
   /**
@@ -1467,17 +1467,20 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
           // is valid, we only care that it's different.
           $field->setValue(['target_id' => 99999]);
           break;
+
         case BooleanItem::class:
           // BooleanItem::generateSampleValue() picks either 0 or 1. So a 50%
           // chance of not picking a different value.
           $field->value = ((int) $field->value) === 1 ? '0' : '1';
           break;
+
         case PathItem::class:
           // PathItem::generateSampleValue() doesn't set a PID, which causes
           // PathItem::postSave() to fail. Keep the PID (and other properties),
           // just modify the alias.
           $field->alias = str_replace(' ', '-', strtolower((new Random())->sentences(3)));
           break;
+
         default:
           $original_field = clone $field;
           while ($field->equals($original_field)) {
@@ -1510,9 +1513,11 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
           $normalization[$label_field][1]['value'] = 'Second Title';
         }
         break;
+
       case 'id':
         $normalization[$entity_type->getKey('id')][0]['value'] = $this->anotherEntity->id();
         break;
+
       case 'uuid':
         $normalization[$entity_type->getKey('uuid')][0]['value'] = $this->anotherEntity->uuid();
         break;
@@ -1548,10 +1553,10 @@ abstract class EntityResourceTestBase extends ResourceTestBase {
       $this->assertSame(406, $response->getStatusCode());
       $actual_link_header = $response->getHeader('Link');
       if ($actual_link_header) {
-        $this->assertTrue(is_array($actual_link_header));
+        $this->assertIsArray($actual_link_header);
         $expected_type = explode(';', static::$mimeType)[0];
-        $this->assertContains('?_format=' . static::$format . '>; rel="alternate"; type="' . $expected_type . '"', $actual_link_header[0]);
-        $this->assertContains('?_format=foobar>; rel="alternate"', $actual_link_header[0]);
+        $this->assertStringContainsString('?_format=' . static::$format . '>; rel="alternate"; type="' . $expected_type . '"', $actual_link_header[0]);
+        $this->assertStringContainsString('?_format=foobar>; rel="alternate"', $actual_link_header[0]);
       }
     }
   }

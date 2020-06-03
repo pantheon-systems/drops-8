@@ -22,7 +22,7 @@
         "symfony/console": "~3.4.0",
         "symfony/dependency-injection": "~3.4.26",
         "symfony/event-dispatcher": "~3.4.0",
-        "symfony/http-foundation": "~3.4.27",
+        "symfony/http-foundation": "~3.4.35",
         "symfony/http-kernel": "~3.4.14",
         "symfony/routing": "~3.4.0",
         "symfony/serializer": "~3.4.0",
@@ -38,15 +38,16 @@
         "guzzlehttp/guzzle": "^6.3",
         "symfony-cmf/routing": "^1.4",
         "easyrdf/easyrdf": "^0.9",
-        "zendframework/zend-feed": "^2.12",
+        "laminas/laminas-feed": "^2.12",
         "stack/builder": "^1.0",
         "egulias/email-validator": "^2.0",
         "masterminds/html5": "^2.1",
         "symfony/psr-http-message-bridge": "^1.1.2",
-        "zendframework/zend-diactoros": "^1.8",
+        "laminas/laminas-diactoros": "^1.8",
         "composer/semver": "^1.0",
         "asm89/stack-cors": "^1.1",
-        "pear/archive_tar": "^1.4.9"
+        "pear/archive_tar": "^1.4.9",
+        "psr/log": "^1.0"
     },
     "conflict": {
         "drupal/pathauto": "<1.6",

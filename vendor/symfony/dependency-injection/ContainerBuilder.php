@@ -213,7 +213,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
             return $this->extensionsByNs[$name];
         }
 
-        throw new LogicException(sprintf('Container extension "%s" is not registered', $name));
+        throw new LogicException(sprintf('Container extension "%s" is not registered.', $name));
     }
 
     /**
@@ -474,7 +474,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
         if (\func_num_args() >= 3) {
             $priority = func_get_arg(2);
         } else {
-            if (__CLASS__ !== \get_class($this)) {
+            if (__CLASS__ !== static::class) {
                 $r = new \ReflectionMethod($this, __FUNCTION__);
                 if (__CLASS__ !== $r->getDeclaringClass()->getName()) {
                     @trigger_error(sprintf('Method %s() will have a third `int $priority = 0` argument in version 4.0. Not defining it is deprecated since Symfony 3.2.', __METHOD__), E_USER_DEPRECATED);
@@ -866,7 +866,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
         $alias = $this->normalizeId($alias);
 
         if ('' === $alias || '\\' === substr($alias, -1) || \strlen($alias) !== strcspn($alias, "\0\r\n'")) {
-            throw new InvalidArgumentException(sprintf('Invalid alias id: "%s"', $alias));
+            throw new InvalidArgumentException(sprintf('Invalid alias id: "%s".', $alias));
         }
 
         if (\is_string($id)) {
@@ -1017,13 +1017,13 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
     public function setDefinition($id, Definition $definition)
     {
         if ($this->isCompiled()) {
-            throw new BadMethodCallException('Adding definition to a compiled container is not allowed');
+            throw new BadMethodCallException('Adding definition to a compiled container is not allowed.');
         }
 
         $id = $this->normalizeId($id);
 
         if ('' === $id || '\\' === substr($id, -1) || \strlen($id) !== strcspn($id, "\0\r\n'")) {
-            throw new InvalidArgumentException(sprintf('Invalid service id: "%s"', $id));
+            throw new InvalidArgumentException(sprintf('Invalid service id: "%s".', $id));
         }
 
         unset($this->aliasDefinitions[$id], $this->removedIds[$id]);
@@ -1152,7 +1152,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
             if (\is_array($factory)) {
                 $factory = [$this->doResolveServices($parameterBag->resolveValue($factory[0]), $inlineServices, $isConstructorArgument), $factory[1]];
             } elseif (!\is_string($factory)) {
-                throw new RuntimeException(sprintf('Cannot create service "%s" because of invalid factory', $id));
+                throw new RuntimeException(sprintf('Cannot create service "%s" because of invalid factory.', $id));
             }
         }
 
@@ -1439,7 +1439,7 @@ class ContainerBuilder extends Container implements TaggedContainerInterface
                         $completed = true;
                     } else {
                         if (!\is_string($resolved) && !is_numeric($resolved)) {
-                            throw new RuntimeException(sprintf('A string value must be composed of strings and/or numbers, but found parameter "env(%s)" of type %s inside string value "%s".', $env, \gettype($resolved), $this->resolveEnvPlaceholders($value)));
+                            throw new RuntimeException(sprintf('A string value must be composed of strings and/or numbers, but found parameter "env(%s)" of type "%s" inside string value "%s".', $env, \gettype($resolved), $this->resolveEnvPlaceholders($value)));
                         }
                         $value = str_ireplace($placeholder, $resolved, $value);
                     }

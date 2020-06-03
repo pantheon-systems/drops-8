@@ -24,7 +24,12 @@ class BrowserTestBaseTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['test_page_test', 'form_test', 'system_test', 'node'];
+  public static $modules = [
+    'test_page_test',
+    'form_test',
+    'system_test',
+    'node',
+  ];
 
   /**
    * {@inheritdoc}
@@ -47,8 +52,8 @@ class BrowserTestBaseTest extends BrowserTestBase {
 
     // Check that returned plain text is correct.
     $text = $this->getTextContent();
-    $this->assertContains('Test page text.', $text);
-    $this->assertNotContains('</html>', $text);
+    $this->assertStringContainsString('Test page text.', $text);
+    $this->assertStringNotContainsString('</html>', $text);
 
     // Response includes cache tags that we can assert.
     $this->assertSession()->responseHeaderEquals('X-Drupal-Cache-Tags', 'http_response rendered');
@@ -164,13 +169,13 @@ class BrowserTestBaseTest extends BrowserTestBase {
   public function testClickLink() {
     $this->drupalGet('test-page');
     $this->clickLink('Visually identical test links');
-    $this->assertContains('user/login', $this->getSession()->getCurrentUrl());
+    $this->assertStringContainsString('user/login', $this->getSession()->getCurrentUrl());
     $this->drupalGet('test-page');
     $this->clickLink('Visually identical test links', 0);
-    $this->assertContains('user/login', $this->getSession()->getCurrentUrl());
+    $this->assertStringContainsString('user/login', $this->getSession()->getCurrentUrl());
     $this->drupalGet('test-page');
     $this->clickLink('Visually identical test links', 1);
-    $this->assertContains('user/register', $this->getSession()->getCurrentUrl());
+    $this->assertStringContainsString('user/register', $this->getSession()->getCurrentUrl());
   }
 
   public function testError() {
@@ -248,7 +253,7 @@ class BrowserTestBaseTest extends BrowserTestBase {
    * Tests legacy getRawContent().
    *
    * @group legacy
-   * @expectedDeprecation AssertLegacyTrait::getRawContent() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->getSession()->getPage()->getContent() instead. See http://drupal.org/node/2735045
+   * @expectedDeprecation AssertLegacyTrait::getRawContent() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->getSession()->getPage()->getContent() instead. See https://www.drupal.org/node/3129738
    */
   public function testGetRawContent() {
     $this->drupalGet('test-encoded');
@@ -651,7 +656,7 @@ class BrowserTestBaseTest extends BrowserTestBase {
    */
   public function testInstall() {
     $htaccess_filename = $this->tempFilesDirectory . '/.htaccess';
-    $this->assertTrue(file_exists($htaccess_filename), "$htaccess_filename exists");
+    $this->assertFileExists($htaccess_filename);
   }
 
   /**

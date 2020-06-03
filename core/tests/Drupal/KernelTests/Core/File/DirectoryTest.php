@@ -42,7 +42,7 @@ class DirectoryTest extends FileTestBase {
     $child = $this->randomMachineName();
 
     // Files directory already exists.
-    $this->assertTrue(is_dir($directory), t('Files directory already exists.'), 'File');
+    $this->assertDirectoryExists($directory);
     // Make files directory writable only.
     $old_mode = fileperms($directory);
 
@@ -54,8 +54,8 @@ class DirectoryTest extends FileTestBase {
     $this->assertTrue($file_system->mkdir($child_path, 0775, TRUE), t('No error reported when creating new local directories.'), 'File');
 
     // Ensure new directories also exist.
-    $this->assertTrue(is_dir($parent_path), t('New parent directory actually exists.'), 'File');
-    $this->assertTrue(is_dir($child_path), t('New child directory actually exists.'), 'File');
+    $this->assertDirectoryExists($parent_path);
+    $this->assertDirectoryExists($child_path);
 
     // Check that new directory permissions were set properly.
     $this->assertDirectoryPermissions($parent_path, 0775);
@@ -77,7 +77,7 @@ class DirectoryTest extends FileTestBase {
     // A directory to operate on.
     $default_scheme = 'public';
     $directory = $default_scheme . '://' . $this->randomMachineName() . '/' . $this->randomMachineName();
-    $this->assertFalse(is_dir($directory), 'Directory does not exist prior to testing.');
+    $this->assertDirectoryNotExists($directory);
 
     // Non-existent directory.
     /** @var \Drupal\Core\File\FileSystemInterface $file_system */
@@ -88,7 +88,7 @@ class DirectoryTest extends FileTestBase {
     $this->assertTrue($file_system->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY), 'No error reported when creating a new directory.', 'File');
 
     // Make sure directory actually exists.
-    $this->assertTrue(is_dir($directory), 'Directory actually exists.', 'File');
+    $this->assertDirectoryExists($directory);
     $file_system = \Drupal::service('file_system');
     if (substr(PHP_OS, 0, 3) != 'WIN') {
       // PHP on Windows doesn't support any kind of useful read-only mode for
@@ -110,15 +110,15 @@ class DirectoryTest extends FileTestBase {
 
     // Remove .htaccess file to then test that it gets re-created.
     @$file_system->unlink($default_scheme . '://.htaccess');
-    $this->assertFalse(is_file($default_scheme . '://.htaccess'), 'Successfully removed the .htaccess file in the files directory.', 'File');
+    $this->assertFileNotExists($default_scheme . '://.htaccess');
     $this->container->get('file.htaccess_writer')->ensure();
-    $this->assertTrue(is_file($default_scheme . '://.htaccess'), 'Successfully re-created the .htaccess file in the files directory.', 'File');
+    $this->assertFileExists($default_scheme . '://.htaccess');
 
     // Remove .htaccess file again to test that it is re-created by a cron run.
     @$file_system->unlink($default_scheme . '://.htaccess');
-    $this->assertFalse(is_file($default_scheme . '://.htaccess'), 'Successfully removed the .htaccess file in the files directory.', 'File');
+    $this->assertFileNotExists($default_scheme . '://.htaccess');
     system_cron();
-    $this->assertTrue(is_file($default_scheme . '://.htaccess'), 'Successfully re-created the .htaccess file in the files directory.', 'File');
+    $this->assertFileExists($default_scheme . '://.htaccess');
 
     // Verify contents of .htaccess file.
     $file = file_get_contents($default_scheme . '://.htaccess');

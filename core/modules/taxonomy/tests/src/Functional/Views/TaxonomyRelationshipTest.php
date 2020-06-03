@@ -95,16 +95,23 @@ class TaxonomyRelationshipTest extends TaxonomyTestBase {
 
       // Also check that we have the correct result entity.
       $this->assertEqual($row->_entity->id(), $this->terms[$index]->id());
-      $this->assertTrue($row->_entity instanceof TermInterface);
+      $this->assertInstanceOf(TermInterface::class, $row->_entity);
 
       if (!$index) {
-        $this->assertTrue($row->_relationship_entities['parent'] instanceof TermInterface);
+        $this->assertInstanceOf(TermInterface::class, $row->_relationship_entities['parent']);
         $this->assertEqual($row->_relationship_entities['parent']->id(), $this->term2->id());
         $this->assertEqual($row->taxonomy_term_field_data_taxonomy_term__parent_tid, $this->term2->id());
       }
-      $this->assertTrue($row->_relationship_entities['nid'] instanceof NodeInterface);
+      $this->assertInstanceOf(NodeInterface::class, $row->_relationship_entities['nid']);
       $this->assertEqual($row->_relationship_entities['nid']->id(), $this->nodes[$index]->id());
     }
+
+    // Test node fields are available through relationship.
+    \Drupal::service('module_installer')->install(['views_ui']);
+    $this->drupalLogin($this->createUser(['administer views']));
+    $this->drupalGet('admin/structure/views/view/test_taxonomy_term_relationship');
+    $this->click('#views-add-field');
+    $this->assertSession()->pageTextContains('Body');
   }
 
 }

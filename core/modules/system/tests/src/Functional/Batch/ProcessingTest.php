@@ -101,7 +101,7 @@ class ProcessingTest extends BrowserTestBase {
     $expected_stack = array_merge($this->_resultStack('batch_4'), $this->_resultStack('batch_7'));
     $this->assertEquals($expected_stack, batch_test_stack(), 'Execution order was correct.');
     $batch = \Drupal::state()->get('batch_test_nested_order_multiple_batches');
-    $this->assertEquals(5, count($batch['sets']));
+    $this->assertCount(5, $batch['sets']);
     // Ensure correct queue mapping.
     foreach ($batch['sets'] as $index => $batch_set) {
       $this->assertEquals('drupal_batch:' . $batch['id'] . ':' . $index, $batch_set['queue']['name']);
@@ -143,7 +143,7 @@ class ProcessingTest extends BrowserTestBase {
     $this->drupalGet('batch-test/multistep', ['query' => ['big_tree' => 'small_axe']]);
     $this->drupalPostForm(NULL, [], 'Submit');
     $this->assertText('step 2', 'Form is displayed in step 2.');
-    $this->assertContains('batch-test/multistep?big_tree=small_axe', $this->getUrl(), 'Query argument was persisted and another extra argument was added.');
+    $this->assertStringContainsString('batch-test/multistep?big_tree=small_axe', $this->getUrl(), 'Query argument was persisted and another extra argument was added.');
   }
 
   /**

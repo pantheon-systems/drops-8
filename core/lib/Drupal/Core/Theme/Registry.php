@@ -135,6 +135,13 @@ class Registry implements DestructableInterface {
   protected $themeHandler;
 
   /**
+   * The theme initialization.
+   *
+   * @var \Drupal\Core\Theme\ThemeInitializationInterface
+   */
+  protected $themeInitialization;
+
+  /**
    * The theme manager.
    *
    * @var \Drupal\Core\Theme\ThemeManagerInterface
@@ -488,6 +495,7 @@ class Registry implements DestructableInterface {
         // if the theme hook specifies a function callback instead, check to
         // ensure the function actually exists.
         if (isset($info['function'])) {
+          @trigger_error(sprintf('Theme functions are deprecated in drupal:8.0.0 and are removed from drupal:10.0.0. Use Twig templates instead of %s(). See https://www.drupal.org/node/1831138', $info['function']), E_USER_DEPRECATED);
           if (!function_exists($info['function'])) {
             throw new \BadFunctionCallException(sprintf(
               'Theme hook "%s" refers to a theme function callback that does not exist: "%s"',

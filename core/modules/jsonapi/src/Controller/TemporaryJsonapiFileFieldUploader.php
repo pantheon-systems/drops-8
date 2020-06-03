@@ -287,6 +287,10 @@ class TemporaryJsonapiFileFieldUploader {
     $file_data = fopen('php://input', 'rb');
 
     $temp_file_path = $this->fileSystem->tempnam('temporary://', 'file');
+    if ($temp_file_path === FALSE) {
+      $this->logger->error('Temporary file could not be created for file upload.');
+      throw new HttpException(500, 'Temporary file could not be created');
+    }
     $temp_file = fopen($temp_file_path, 'wb');
 
     if ($temp_file) {
@@ -425,7 +429,7 @@ class TemporaryJsonapiFileFieldUploader {
    * Retrieves the upload validators for a field definition.
    *
    * This is copied from \Drupal\file\Plugin\Field\FieldType\FileItem as there
-   * is no entity instance available here that that a FileItem would exist for.
+   * is no entity instance available here that a FileItem would exist for.
    *
    * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *   The field definition for which to get validators.

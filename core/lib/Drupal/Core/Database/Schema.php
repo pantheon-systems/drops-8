@@ -2,7 +2,6 @@
 
 namespace Drupal\Core\Database;
 
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\Query\PlaceholderInterface;
 
 /**
@@ -150,7 +149,7 @@ abstract class Schema implements PlaceholderInterface {
     // Retrieve the table name and schema
     $table_info = $this->getPrefixInfo($table_name, $add_prefix);
 
-    $condition = new Condition('AND');
+    $condition = $this->connection->condition('AND');
     $condition->condition('table_catalog', $info['database']);
     $condition->condition('table_schema', $table_info['schema']);
     $condition->condition('table_name', $table_info['table'], $operator);
@@ -650,7 +649,7 @@ abstract class Schema implements PlaceholderInterface {
    */
   public function createTable($name, $table) {
     if ($this->tableExists($name)) {
-      throw new SchemaObjectExistsException(t('Table @name already exists.', ['@name' => $name]));
+      throw new SchemaObjectExistsException("Table '$name' already exists.");
     }
     $statements = $this->createTableSql($name, $table);
     foreach ($statements as $statement) {

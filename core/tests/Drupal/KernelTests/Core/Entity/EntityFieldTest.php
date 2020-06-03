@@ -117,8 +117,8 @@ class EntityFieldTest extends EntityKernelTestBase {
     $langcode = 'en';
 
     // Access the name field.
-    $this->assertTrue($entity->name instanceof FieldItemListInterface, new FormattableMarkup('%entity_type: Field implements interface', ['%entity_type' => $entity_type]));
-    $this->assertTrue($entity->name[0] instanceof FieldItemInterface, new FormattableMarkup('%entity_type: Field item implements interface', ['%entity_type' => $entity_type]));
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->name);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->name[0]);
 
     $this->assertEqual($this->entityName, $entity->name->value, new FormattableMarkup('%entity_type: Name value can be read.', ['%entity_type' => $entity_type]));
     $this->assertEqual($this->entityName, $entity->name[0]->value, new FormattableMarkup('%entity_type: Name value can be read through list access.', ['%entity_type' => $entity_type]));
@@ -135,8 +135,8 @@ class EntityFieldTest extends EntityKernelTestBase {
     $this->assertEqual($new_name, $entity->name->value, new FormattableMarkup('%entity_type: Name can be updated and read through list access.', ['%entity_type' => $entity_type]));
 
     // Access the user field.
-    $this->assertTrue($entity->user_id instanceof FieldItemListInterface, new FormattableMarkup('%entity_type: Field implements interface', ['%entity_type' => $entity_type]));
-    $this->assertTrue($entity->user_id[0] instanceof FieldItemInterface, new FormattableMarkup('%entity_type: Field item implements interface', ['%entity_type' => $entity_type]));
+    $this->assertInstanceOf(FieldItemListInterface::class, $entity->user_id);
+    $this->assertInstanceOf(FieldItemInterface::class, $entity->user_id[0]);
 
     $this->assertEqual($this->entityUser->id(), $entity->user_id->target_id, new FormattableMarkup('%entity_type: User id can be read.', ['%entity_type' => $entity_type]));
     $this->assertEqual($this->entityUser->getAccountName(), $entity->user_id->entity->name->value, new FormattableMarkup('%entity_type: User name can be read.', ['%entity_type' => $entity_type]));
@@ -228,7 +228,7 @@ class EntityFieldTest extends EntityKernelTestBase {
       }
       $this->assertTrue(isset($entity->name), new FormattableMarkup('%entity_type: Name field is set.', ['%entity_type' => $entity_type]));
       $this->assertTrue($entity->name->isEmpty(), new FormattableMarkup('%entity_type: Name field is set.', ['%entity_type' => $entity_type]));
-      $this->assertIdentical(count($entity->name), 0, new FormattableMarkup('%entity_type: Name field contains no items.', ['%entity_type' => $entity_type]));
+      $this->assertCount(0, $entity->name, new FormattableMarkup('%entity_type: Name field contains no items.', ['%entity_type' => $entity_type]));
       $this->assertIdentical($entity->name->getValue(), [], new FormattableMarkup('%entity_type: Name field value is an empty array.', ['%entity_type' => $entity_type]));
       $this->assertFalse(isset($entity->name[0]), new FormattableMarkup('%entity_type: Name field item is not set.', ['%entity_type' => $entity_type]));
       $this->assertFalse(isset($entity->name[0]->value), new FormattableMarkup('%entity_type: First name item value is not set.', ['%entity_type' => $entity_type]));
@@ -303,13 +303,13 @@ class EntityFieldTest extends EntityKernelTestBase {
     unset($entity->name[3]);
 
     // Test removing and empty-ing list items.
-    $this->assertEqual(count($entity->name), 3, new FormattableMarkup('%entity_type: List has 3 items.', ['%entity_type' => $entity_type]));
+    $this->assertCount(3, $entity->name, new FormattableMarkup('%entity_type: List has 3 items.', ['%entity_type' => $entity_type]));
     unset($entity->name[1]);
-    $this->assertEqual(count($entity->name), 2, new FormattableMarkup('%entity_type: Second list item has been removed.', ['%entity_type' => $entity_type]));
+    $this->assertCount(2, $entity->name, new FormattableMarkup('%entity_type: Second list item has been removed.', ['%entity_type' => $entity_type]));
     $this->assertEqual($entity->name[1]->value, 'Third name', new FormattableMarkup('%entity_type: The subsequent items have been shifted up.', ['%entity_type' => $entity_type]));
     $this->assertEqual($entity->name[1]->getName(), 1, new FormattableMarkup('%entity_type: The items names have been updated to their new delta.', ['%entity_type' => $entity_type]));
     $entity->name[1] = NULL;
-    $this->assertEqual(count($entity->name), 2, new FormattableMarkup('%entity_type: Assigning NULL does not reduce array count.', ['%entity_type' => $entity_type]));
+    $this->assertCount(2, $entity->name, new FormattableMarkup('%entity_type: Assigning NULL does not reduce array count.', ['%entity_type' => $entity_type]));
     $this->assertTrue($entity->name[1]->isEmpty(), new FormattableMarkup('%entity_type: Assigning NULL empties the item.', ['%entity_type' => $entity_type]));
 
     // Test using isEmpty().
@@ -318,15 +318,15 @@ class EntityFieldTest extends EntityKernelTestBase {
     $entity->name->value = NULL;
     $this->assertTrue($entity->name[0]->isEmpty(), new FormattableMarkup('%entity_type: Name item is empty.', ['%entity_type' => $entity_type]));
     $this->assertTrue($entity->name->isEmpty(), new FormattableMarkup('%entity_type: Name field is empty.', ['%entity_type' => $entity_type]));
-    $this->assertEqual(count($entity->name), 1, new FormattableMarkup('%entity_type: Empty item is considered when counting.', ['%entity_type' => $entity_type]));
+    $this->assertCount(1, $entity->name, new FormattableMarkup('%entity_type: Empty item is considered when counting.', ['%entity_type' => $entity_type]));
     $this->assertEqual(count(iterator_to_array($entity->name->getIterator())), count($entity->name), new FormattableMarkup('%entity_type: Count matches iterator count.', ['%entity_type' => $entity_type]));
     $this->assertTrue($entity->name->getValue() === [0 => ['value' => NULL]], new FormattableMarkup('%entity_type: Name field value contains a NULL value.', ['%entity_type' => $entity_type]));
 
     // Test using filterEmptyItems().
     $entity->name = [NULL, 'foo'];
-    $this->assertEqual(count($entity->name), 2, new FormattableMarkup('%entity_type: List has 2 items.', ['%entity_type' => $entity_type]));
+    $this->assertCount(2, $entity->name, new FormattableMarkup('%entity_type: List has 2 items.', ['%entity_type' => $entity_type]));
     $entity->name->filterEmptyItems();
-    $this->assertEqual(count($entity->name), 1, new FormattableMarkup('%entity_type: The empty item was removed.', ['%entity_type' => $entity_type]));
+    $this->assertCount(1, $entity->name, new FormattableMarkup('%entity_type: The empty item was removed.', ['%entity_type' => $entity_type]));
     $this->assertEqual($entity->name[0]->value, 'foo', new FormattableMarkup('%entity_type: The items were renumbered.', ['%entity_type' => $entity_type]));
     $this->assertEqual($entity->name[0]->getName(), 0, new FormattableMarkup('%entity_type: The deltas were updated in the items.', ['%entity_type' => $entity_type]));
 
@@ -390,7 +390,7 @@ class EntityFieldTest extends EntityKernelTestBase {
 
     // Access the name field.
     $this->assertEqual(1, $entity->id->value, new FormattableMarkup('%entity_type: ID value can be read.', ['%entity_type' => $entity_type]));
-    $this->assertTrue(is_string($entity->uuid->value), new FormattableMarkup('%entity_type: UUID value can be read.', ['%entity_type' => $entity_type]));
+    $this->assertIsString($entity->uuid->value);
     $this->assertEqual('en', $entity->{$langcode_key}->value, new FormattableMarkup('%entity_type: Language code can be read.', ['%entity_type' => $entity_type]));
     $this->assertEqual(\Drupal::languageManager()->getLanguage('en'), $entity->{$langcode_key}->language, new FormattableMarkup('%entity_type: Language object can be read.', ['%entity_type' => $entity_type]));
     $this->assertEqual($this->entityUser->id(), $entity->user_id->target_id, new FormattableMarkup('%entity_type: User id can be read.', ['%entity_type' => $entity_type]));
@@ -423,12 +423,12 @@ class EntityFieldTest extends EntityKernelTestBase {
     $this->assertEqual($definitions['field_test_text']->getType(), 'text', $entity_type . ': Test-text-field field found.');
 
     // Test deriving further metadata.
-    $this->assertTrue($definitions['name'] instanceof FieldDefinitionInterface);
+    $this->assertInstanceOf(FieldDefinitionInterface::class, $definitions['name']);
     $field_item_definition = $definitions['name']->getItemDefinition();
-    $this->assertTrue($field_item_definition instanceof ComplexDataDefinitionInterface);
+    $this->assertInstanceOf(ComplexDataDefinitionInterface::class, $field_item_definition);
     $this->assertEqual($field_item_definition->getDataType(), 'field_item:string');
     $value_definition = $field_item_definition->getPropertyDefinition('value');
-    $this->assertTrue($value_definition instanceof DataDefinitionInterface);
+    $this->assertInstanceOf(DataDefinitionInterface::class, $value_definition);
     $this->assertEqual($value_definition->getDataType(), 'string');
 
     // Test deriving metadata from references.
@@ -443,12 +443,12 @@ class EntityFieldTest extends EntityKernelTestBase {
       ->getPropertyDefinition('entity')
       ->getTargetDefinition();
 
-    $this->assertTrue($reference_definition instanceof EntityDataDefinitionInterface, 'Definition of the referenced user retrieved.');
+    $this->assertInstanceOf(EntityDataDefinitionInterface::class, $reference_definition);
     $this->assertEqual($reference_definition->getEntityTypeId(), 'user', 'Referenced entity is of type "user".');
 
     // Test propagating down.
     $name_definition = $reference_definition->getPropertyDefinition('name');
-    $this->assertTrue($name_definition instanceof FieldDefinitionInterface);
+    $this->assertInstanceOf(FieldDefinitionInterface::class, $name_definition);
     $this->assertEqual($name_definition->getPropertyDefinition('value')->getDataType(), 'string');
 
     // Test introspecting an entity object.
@@ -522,13 +522,13 @@ class EntityFieldTest extends EntityKernelTestBase {
     $entity = $this->createTestEntity($entity_type);
 
     foreach ($entity as $name => $field) {
-      $this->assertTrue($field instanceof FieldItemListInterface, $entity_type . ": Field $name implements interface.");
+      $this->assertInstanceOf(FieldItemListInterface::class, $field);
 
       foreach ($field as $delta => $item) {
-        $this->assertTrue($field[0] instanceof FieldItemInterface, $entity_type . ": Item $delta of field $name implements interface.");
+        $this->assertInstanceOf(FieldItemInterface::class, $field[0]);
 
         foreach ($item as $value_name => $value_property) {
-          $this->assertTrue($value_property instanceof TypedDataInterface, $entity_type . ": Value $value_name of item $delta of field $name implements interface.");
+          $this->assertInstanceOf(TypedDataInterface::class, $value_property);
 
           $value = $value_property->getValue();
           $this->assertTrue(!isset($value) || is_scalar($value) || $value instanceof EntityInterface, $entity_type . ": Value $value_name of item $delta of field $name is a primitive or an entity.");

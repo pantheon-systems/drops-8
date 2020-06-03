@@ -68,10 +68,10 @@ class TextFieldTest extends StringFieldTest {
       $entity->{$field_name}->value = str_repeat('x', $i);
       $violations = $entity->{$field_name}->validate();
       if ($i <= $max_length) {
-        $this->assertEqual(count($violations), 0, "Length $i does not cause validation error when max_length is $max_length");
+        $this->assertCount(0, $violations, "Length $i does not cause validation error when max_length is $max_length");
       }
       else {
-        $this->assertEqual(count($violations), 1, "Length $i causes validation error when max_length is $max_length");
+        $this->assertCount(1, $violations, "Length $i causes validation error when max_length is $max_length");
       }
     }
   }
@@ -127,12 +127,12 @@ class TextFieldTest extends StringFieldTest {
     $test_file = current($this->drupalGetTestFiles('text'));
     $edit['files[file_field_0]'] = \Drupal::service('file_system')->realpath($test_file->uri);
     $this->drupalPostForm('entity_test/add', $edit, 'Upload');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $edit = [
       'text_long[0][value]' => 'Long text',
     ];
     $this->drupalPostForm(NULL, $edit, 'Save');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('entity_test/1');
     $this->assertText('Long text');
   }
@@ -214,8 +214,8 @@ class TextFieldTest extends StringFieldTest {
     $display = $display_repository->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $rendered_entity = \Drupal::service('renderer')->renderRoot($content);
-    $this->assertNotContains($value, (string) $rendered_entity);
-    $this->assertContains(Html::escape($value), (string) $rendered_entity);
+    $this->assertStringNotContainsString($value, (string) $rendered_entity);
+    $this->assertStringContainsString(Html::escape($value), (string) $rendered_entity);
 
     // Create a new text format that does not escape HTML, and grant the user
     // access to it.
@@ -253,7 +253,7 @@ class TextFieldTest extends StringFieldTest {
     $display = $display_repository->getViewDisplay($entity->getEntityTypeId(), $entity->bundle(), 'full');
     $content = $display->build($entity);
     $rendered_entity = \Drupal::service('renderer')->renderRoot($content);
-    $this->assertContains($value, (string) $rendered_entity);
+    $this->assertStringContainsString($value, (string) $rendered_entity);
   }
 
 }

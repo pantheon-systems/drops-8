@@ -29,7 +29,13 @@ class TrackerTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'comment', 'tracker', 'history', 'node_test'];
+  public static $modules = [
+    'block',
+    'comment',
+    'tracker',
+    'history',
+    'node_test',
+  ];
 
   /**
    * {@inheritdoc}
@@ -206,7 +212,7 @@ class TrackerTest extends BrowserTestBase {
     $this->assertNoLink($unpublished->label());
     // Verify that title and tab title have been set correctly.
     $this->assertText('Activity', 'The user activity tab has the name "Activity".');
-    $this->assertTitle(t('@name | @site', ['@name' => $this->user->getAccountName(), '@site' => $this->config('system.site')->get('name')]), 'The user tracker page has the correct page title.');
+    $this->assertTitle($this->user->getAccountName() . ' | Drupal');
 
     // Verify that unpublished comments are removed from the tracker.
     $admin_user = $this->drupalCreateUser(['post comments', 'administer comments', 'access user profiles']);
@@ -457,8 +463,8 @@ class TrackerTest extends BrowserTestBase {
   public function assertHistoryMetadata($node_id, $node_timestamp, $node_last_comment_timestamp, $library_is_present = TRUE) {
     $settings = $this->getDrupalSettings();
     $this->assertIdentical($library_is_present, isset($settings['ajaxPageState']) && in_array('tracker/history', explode(',', $settings['ajaxPageState']['libraries'])), 'drupal.tracker-history library is present.');
-    $this->assertIdentical(1, count($this->xpath('//table/tbody/tr/td[@data-history-node-id="' . $node_id . '" and @data-history-node-timestamp="' . $node_timestamp . '"]')), 'Tracker table cell contains the data-history-node-id and data-history-node-timestamp attributes for the node.');
-    $this->assertIdentical(1, count($this->xpath('//table/tbody/tr/td[@data-history-node-last-comment-timestamp="' . $node_last_comment_timestamp . '"]')), 'Tracker table cell contains the data-history-node-last-comment-timestamp attribute for the node.');
+    $this->assertCount(1, $this->xpath('//table/tbody/tr/td[@data-history-node-id="' . $node_id . '" and @data-history-node-timestamp="' . $node_timestamp . '"]'), 'Tracker table cell contains the data-history-node-id and data-history-node-timestamp attributes for the node.');
+    $this->assertCount(1, $this->xpath('//table/tbody/tr/td[@data-history-node-last-comment-timestamp="' . $node_last_comment_timestamp . '"]'), 'Tracker table cell contains the data-history-node-last-comment-timestamp attribute for the node.');
   }
 
 }

@@ -134,7 +134,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $with_backslash = ['foo' => '\Drupal\foo\Bar'];
     $backend->set('test1', $with_backslash);
     $cached = $backend->get('test1');
-    $this->assert(is_object($cached), "Backend returned an object for cache id test1.");
+    $this->assertIsObject($cached);
     $this->assertSame($with_backslash, $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
     // We need to round because microtime may be rounded up in the backend.
@@ -144,7 +144,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $this->assertSame(FALSE, $backend->get('test2'), "Backend does not contain data for cache id test2.");
     $backend->set('test2', ['value' => 3], REQUEST_TIME + 3);
     $cached = $backend->get('test2');
-    $this->assert(is_object($cached), "Backend returned an object for cache id test2.");
+    $this->assertIsObject($cached);
     $this->assertSame(['value' => 3], $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
     $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
@@ -153,7 +153,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $backend->set('test3', 'foobar', REQUEST_TIME - 3);
     $this->assertFalse($backend->get('test3'), 'Invalid item not returned.');
     $cached = $backend->get('test3', TRUE);
-    $this->assert(is_object($cached), 'Backend returned an object for cache id test3.');
+    $this->assertIsObject($cached);
     $this->assertFalse($cached->valid, 'Item is marked as valid.');
     $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
     $this->assertEqual($cached->expire, REQUEST_TIME - 3, 'Expire time is correct.');
@@ -162,7 +162,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $with_eof = ['foo' => "\nEOF\ndata"];
     $backend->set('test4', $with_eof);
     $cached = $backend->get('test4');
-    $this->assert(is_object($cached), "Backend returned an object for cache id test4.");
+    $this->assertIsObject($cached);
     $this->assertSame($with_eof, $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
     $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
@@ -172,7 +172,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $with_eof_and_semicolon = ['foo' => "\nEOF;\ndata"];
     $backend->set('test5', $with_eof_and_semicolon);
     $cached = $backend->get('test5');
-    $this->assert(is_object($cached), "Backend returned an object for cache id test5.");
+    $this->assertIsObject($cached);
     $this->assertSame($with_eof_and_semicolon, $cached->data);
     $this->assertTrue($cached->valid, 'Item is marked as valid.');
     $this->assertTrue($cached->created >= REQUEST_TIME && $cached->created <= round(microtime(TRUE), 3), 'Created time is correct.');
@@ -181,7 +181,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $with_variable = ['foo' => '$bar'];
     $backend->set('test6', $with_variable);
     $cached = $backend->get('test6');
-    $this->assert(is_object($cached), "Backend returned an object for cache id test6.");
+    $this->assertIsObject($cached);
     $this->assertSame($with_variable, $cached->data);
 
     // Make sure that a cached object is not affected by changing the original.
@@ -194,7 +194,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     // Add a property to the original. It should not appear in the cached data.
     $data->this_should_not_be_in_the_cache = TRUE;
     $cached = $backend->get('test7');
-    $this->assert(is_object($cached), "Backend returned an object for cache id test7.");
+    $this->assertIsObject($cached);
     $this->assertEqual($expected_data, $cached->data);
     $this->assertFalse(isset($cached->data->this_should_not_be_in_the_cache));
     // Add a property to the cache data. It should not appear when we fetch
@@ -216,10 +216,10 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     // Calling ::set() with invalid cache tags. This should fail an assertion.
     try {
       $backend->set('assertion_test', 'value', Cache::PERMANENT, ['node' => [3, 5, 7]]);
-      $this->fail('::set() was called with invalid cache tags, runtime assertion did not fail.');
+      $this->fail('::set() was called with invalid cache tags, but runtime assertion did not fail.');
     }
     catch (\AssertionError $e) {
-      $this->pass('::set() was called with invalid cache tags, runtime assertion failed.');
+      // Do nothing; continue testing in extending classes.
     }
   }
 
@@ -231,16 +231,16 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
 
     $this->assertSame(FALSE, $backend->get('test1'), "Backend does not contain data for cache id test1.");
     $backend->set('test1', 7);
-    $this->assert(is_object($backend->get('test1')), "Backend returned an object for cache id test1.");
+    $this->assertIsObject($backend->get('test1'));
 
     $this->assertSame(FALSE, $backend->get('test2'), "Backend does not contain data for cache id test2.");
     $backend->set('test2', 3);
-    $this->assert(is_object($backend->get('test2')), "Backend returned an object for cache id %cid.");
+    $this->assertIsObject($backend->get('test2'));
 
     $backend->delete('test1');
     $this->assertSame(FALSE, $backend->get('test1'), "Backend does not contain data for cache id test1 after deletion.");
 
-    $this->assert(is_object($backend->get('test2')), "Backend still has an object for cache id test2.");
+    $this->assertIsObject($backend->get('test2'));
 
     $backend->delete('test2');
     $this->assertSame(FALSE, $backend->get('test2'), "Backend does not contain data for cache id test2 after deletion.");
@@ -274,7 +274,7 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     // Retrieve and test cache objects.
     foreach ($variables as $cid => $value) {
       $object = $backend->get($cid);
-      $this->assert(is_object($object), sprintf("Backend returned an object for cache id %s.", $cid));
+      $this->assertIsObject($object, sprintf("Backend returned an object for cache id %s.", $cid));
       $this->assertSame($value, $object->data, sprintf("Data of cached id %s kept is identical in type and value", $cid));
     }
   }
@@ -328,13 +328,13 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $this->assertIdentical($ret['test6']->data, 13, "Existing cache id test6 has the correct value.");
     $this->assertIdentical($ret['test7']->data, 17, "Existing cache id test7 has the correct value.");
     // Test $cids array - ensure it contains cache id's that do not exist.
-    $this->assert(in_array('test19', $cids), "Nonexistent cache id test19 is in cids array.");
-    $this->assert(in_array('test21', $cids), "Nonexistent cache id test21 is in cids array.");
+    $this->assertContains('test19', $cids, "Nonexistent cache id test19 is in cids array.");
+    $this->assertContains('test21', $cids, "Nonexistent cache id test21 is in cids array.");
     // Test $cids array - ensure it does not contain cache id's that exist.
-    $this->assertFalse(in_array('test2', $cids), "Existing cache id test2 is not in cids array.");
-    $this->assertFalse(in_array('test3', $cids), "Existing cache id test3 is not in cids array.");
-    $this->assertFalse(in_array('test6', $cids), "Existing cache id test6 is not in cids array.");
-    $this->assertFalse(in_array('test7', $cids), "Existing cache id test7 is not in cids array.");
+    $this->assertNotContains('test2', $cids, "Existing cache id test2 is not in cids array.");
+    $this->assertNotContains('test3', $cids, "Existing cache id test3 is not in cids array.");
+    $this->assertNotContains('test6', $cids, "Existing cache id test6 is not in cids array.");
+    $this->assertNotContains('test7', $cids, "Existing cache id test7 is not in cids array.");
 
     // Test a second time after deleting and setting new keys which ensures that
     // if the backend uses statics it does not cause unexpected results.
@@ -357,13 +357,13 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
     $this->assertIdentical($ret['test7']->data, 17, "Existing cache id test7 has the correct value.");
     $this->assertIdentical($ret['test19']->data, 57, "Added cache id test19 has the correct value.");
     // Test $cids array - ensure it contains cache id's that do not exist.
-    $this->assert(in_array('test3', $cids), "Deleted cache id test3 is in cids array.");
-    $this->assert(in_array('test6', $cids), "Deleted cache id test6 is in cids array.");
-    $this->assert(in_array('test21', $cids), "Nonexistent cache id test21 is in cids array.");
+    $this->assertContains('test3', $cids, "Deleted cache id test3 is in cids array.");
+    $this->assertContains('test6', $cids, "Deleted cache id test6 is in cids array.");
+    $this->assertContains('test21', $cids, "Nonexistent cache id test21 is in cids array.");
     // Test $cids array - ensure it does not contain cache id's that exist.
-    $this->assertFalse(in_array('test2', $cids), "Existing cache id test2 is not in cids array.");
-    $this->assertFalse(in_array('test7', $cids), "Existing cache id test7 is not in cids array.");
-    $this->assertFalse(in_array('test19', $cids), "Added cache id test19 is not in cids array.");
+    $this->assertNotContains('test2', $cids, "Existing cache id test2 is not in cids array.");
+    $this->assertNotContains('test7', $cids, "Existing cache id test7 is not in cids array.");
+    $this->assertNotContains('test19', $cids, "Added cache id test19 is not in cids array.");
 
     // Test with a long $cid and non-numeric array key.
     $cids = ['key:key' => $long_cid];
@@ -418,10 +418,10 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
         'exception_test_3' => ['data' => 3, 'tags' => ['node' => [3, 5, 7]]],
       ];
       $backend->setMultiple($items);
-      $this->fail('::setMultiple() was called with invalid cache tags, runtime assertion did not fail.');
+      $this->fail('::setMultiple() was called with invalid cache tags, but runtime assertion did not fail.');
     }
     catch (\AssertionError $e) {
-      $this->pass('::setMultiple() was called with invalid cache tags, runtime assertion failed.');
+      // Do nothing; continue testing in extending classes.
     }
   }
 
@@ -507,18 +507,18 @@ abstract class GenericCacheBackendUnitTestBase extends KernelTestBase {
 
     $cids = $reference;
     $ret = $backend->getMultiple($cids);
-    $this->assertEqual(count($ret), 4, 'Four items returned.');
+    $this->assertCount(4, $ret, 'Four items returned.');
 
     $backend->invalidate('test1');
     $backend->invalidateMultiple(['test2', 'test3']);
 
     $cids = $reference;
     $ret = $backend->getMultiple($cids);
-    $this->assertEqual(count($ret), 1, 'Only one item element returned.');
+    $this->assertCount(1, $ret, 'Only one item element returned.');
 
     $cids = $reference;
     $ret = $backend->getMultiple($cids, TRUE);
-    $this->assertEqual(count($ret), 4, 'Four items returned.');
+    $this->assertCount(4, $ret, 'Four items returned.');
 
     // Calling invalidateMultiple() with an empty array should not cause an
     // error.

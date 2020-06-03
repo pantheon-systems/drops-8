@@ -5,6 +5,8 @@
  * Code required only when comparing available updates to existing data.
  */
 
+use Drupal\update\UpdateFetcherInterface;
+use Drupal\update\UpdateManagerInterface;
 use Drupal\update\ModuleVersion;
 use Drupal\update\ProjectCoreCompatibility;
 
@@ -122,7 +124,7 @@ function update_calculate_project_data($available) {
       }
     }
     else {
-      $projects[$project]['status'] = UPDATE_UNKNOWN;
+      $projects[$project]['status'] = UpdateFetcherInterface::UNKNOWN;
       $projects[$project]['reason'] = t('No available releases found');
     }
   }
@@ -214,7 +216,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
   if (isset($available['project_status'])) {
     switch ($available['project_status']) {
       case 'insecure':
-        $project_data['status'] = UPDATE_NOT_SECURE;
+        $project_data['status'] = UpdateManagerInterface::NOT_SECURE;
         if (empty($project_data['extra'])) {
           $project_data['extra'] = [];
         }
@@ -223,9 +225,10 @@ function update_calculate_project_update_status(&$project_data, $available) {
           'data' => t('This project has been labeled insecure by the Drupal security team, and is no longer available for download. Immediately disabling everything included by this project is strongly recommended!'),
         ];
         break;
+
       case 'unpublished':
       case 'revoked':
-        $project_data['status'] = UPDATE_REVOKED;
+        $project_data['status'] = UpdateManagerInterface::REVOKED;
         if (empty($project_data['extra'])) {
           $project_data['extra'] = [];
         }
@@ -234,8 +237,9 @@ function update_calculate_project_update_status(&$project_data, $available) {
           'data' => t('This project has been revoked, and is no longer available for download. Disabling everything included by this project is strongly recommended!'),
         ];
         break;
+
       case 'unsupported':
-        $project_data['status'] = UPDATE_NOT_SUPPORTED;
+        $project_data['status'] = UpdateManagerInterface::NOT_SUPPORTED;
         if (empty($project_data['extra'])) {
           $project_data['extra'] = [];
         }
@@ -244,8 +248,9 @@ function update_calculate_project_update_status(&$project_data, $available) {
           'data' => t('This project is no longer supported, and is no longer available for download. Disabling everything included by this project is strongly recommended!'),
         ];
         break;
+
       case 'not-fetched':
-        $project_data['status'] = UPDATE_NOT_FETCHED;
+        $project_data['status'] = UpdateFetcherInterface::NOT_FETCHED;
         $project_data['reason'] = t('Failed to get available update data.');
         break;
 
@@ -266,7 +271,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
   // Figure out the target major version.
   // Off Drupal.org, '0' could be a valid version string, so don't use empty().
   if (!isset($project_data['existing_version']) || $project_data['existing_version'] === '') {
-    $project_data['status'] = UPDATE_UNKNOWN;
+    $project_data['status'] = UpdateFetcherInterface::UNKNOWN;
     $project_data['reason'] = t('Empty version');
     return;
   }
@@ -275,7 +280,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
   }
   catch (UnexpectedValueException $exception) {
     // If the version has an unexpected value we can't determine updates.
-    $project_data['status'] = UPDATE_UNKNOWN;
+    $project_data['status'] = UpdateFetcherInterface::UNKNOWN;
     $project_data['reason'] = t('Invalid version: @existing_version', ['@existing_version' => $project_data['existing_version']]);
     return;
   }
@@ -300,7 +305,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
     // We know the current release is unsupported since it is not in
     // 'supported_branches' list. We should use the next valid supported
     // branch for the target major version.
-    $project_data['status'] = UPDATE_NOT_SUPPORTED;
+    $project_data['status'] = UpdateManagerInterface::NOT_SUPPORTED;
     foreach ($supported_branches as $supported_branch) {
       try {
         $target_major = ModuleVersion::createFromSupportBranch($supported_branch)->getMajorVersion();
@@ -314,6 +319,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
       // If there are no valid support branches, use the current major.
       $target_major = $existing_major;
     }
+
   }
   else {
     // Malformed XML file? Stick with the current branch.
@@ -329,12 +335,12 @@ function update_calculate_project_update_status(&$project_data, $available) {
   // what they have is unsupported and let them figure it out.
   $target_major = max($existing_major, $target_major);
 
-  // If the project is marked as UPDATE_FETCH_PENDING, it means that the
-  // data we currently have (if any) is stale, and we've got a task queued
-  // up to (re)fetch the data. In that case, we mark it as such, merge in
-  // whatever data we have (e.g. project title and link), and move on.
-  if (!empty($available['fetch_status']) && $available['fetch_status'] == UPDATE_FETCH_PENDING) {
-    $project_data['status'] = UPDATE_FETCH_PENDING;
+  // If the project is marked as UpdateFetcherInterface::FETCH_PENDING, it
+  // means that the data we currently have (if any) is stale, and we've got a
+  // task queued up to (re)fetch the data. In that case, we mark it as such,
+  // merge in whatever data we have (e.g. project title and link), and move on.
+  if (!empty($available['fetch_status']) && $available['fetch_status'] == UpdateFetcherInterface::FETCH_PENDING) {
+    $project_data['status'] = UpdateFetcherInterface::FETCH_PENDING;
     $project_data['reason'] = t('No available update data');
     $project_data['fetch_status'] = $available['fetch_status'];
     return;
@@ -342,7 +348,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
 
   // Defend ourselves from XML history files that contain no releases.
   if (empty($available['releases'])) {
-    $project_data['status'] = UPDATE_UNKNOWN;
+    $project_data['status'] = UpdateFetcherInterface::UNKNOWN;
     $project_data['reason'] = t('No available releases found');
     return;
   }
@@ -361,10 +367,10 @@ function update_calculate_project_update_status(&$project_data, $available) {
     if ($project_data['existing_version'] === $version) {
       if (isset($release['terms']['Release type']) &&
           in_array('Insecure', $release['terms']['Release type'])) {
-        $project_data['status'] = UPDATE_NOT_SECURE;
+        $project_data['status'] = UpdateManagerInterface::NOT_SECURE;
       }
       elseif ($release['status'] == 'unpublished') {
-        $project_data['status'] = UPDATE_REVOKED;
+        $project_data['status'] = UpdateManagerInterface::REVOKED;
         if (empty($project_data['extra'])) {
           $project_data['extra'] = [];
         }
@@ -376,7 +382,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
       }
       elseif (isset($release['terms']['Release type']) &&
               in_array('Unsupported', $release['terms']['Release type'])) {
-        $project_data['status'] = UPDATE_NOT_SUPPORTED;
+        $project_data['status'] = UpdateManagerInterface::NOT_SUPPORTED;
         if (empty($project_data['extra'])) {
           $project_data['extra'] = [];
         }
@@ -387,13 +393,14 @@ function update_calculate_project_update_status(&$project_data, $available) {
         ];
       }
     }
-
-    // Otherwise, ignore unpublished, insecure, or unsupported releases.
-    if ($release['status'] == 'unpublished' ||
-        !$is_in_supported_branch($release['version']) ||
-        (isset($release['terms']['Release type']) &&
-         (in_array('Insecure', $release['terms']['Release type']) ||
-          in_array('Unsupported', $release['terms']['Release type'])))) {
+    // Other than the currently installed release, ignore unpublished, insecure,
+    // or unsupported updates.
+    elseif ($release['status'] == 'unpublished' ||
+            !$is_in_supported_branch($release['version']) ||
+            (isset($release['terms']['Release type']) &&
+             (in_array('Insecure', $release['terms']['Release type']) ||
+              in_array('Unsupported', $release['terms']['Release type'])))
+    ) {
       continue;
     }
 
@@ -498,7 +505,7 @@ function update_calculate_project_update_status(&$project_data, $available) {
   // If we don't know what to recommend, there's nothing we can report.
   // Bail out early.
   if (!isset($project_data['recommended'])) {
-    $project_data['status'] = UPDATE_UNKNOWN;
+    $project_data['status'] = UpdateFetcherInterface::UNKNOWN;
     $project_data['reason'] = t('No available releases found');
     return;
   }
@@ -520,29 +527,29 @@ function update_calculate_project_update_status(&$project_data, $available) {
   switch ($project_data['install_type']) {
     case 'official':
       if ($project_data['existing_version'] === $project_data['recommended'] || $project_data['existing_version'] === $project_data['latest_version']) {
-        $project_data['status'] = UPDATE_CURRENT;
+        $project_data['status'] = UpdateManagerInterface::CURRENT;
       }
       else {
-        $project_data['status'] = UPDATE_NOT_CURRENT;
+        $project_data['status'] = UpdateManagerInterface::NOT_CURRENT;
       }
       break;
 
     case 'dev':
       $latest = $available['releases'][$project_data['latest_dev']];
       if (empty($project_data['datestamp'])) {
-        $project_data['status'] = UPDATE_NOT_CHECKED;
+        $project_data['status'] = UpdateFetcherInterface::NOT_CHECKED;
         $project_data['reason'] = t('Unknown release date');
       }
       elseif (($project_data['datestamp'] + 100 > $latest['date'])) {
-        $project_data['status'] = UPDATE_CURRENT;
+        $project_data['status'] = UpdateManagerInterface::CURRENT;
       }
       else {
-        $project_data['status'] = UPDATE_NOT_CURRENT;
+        $project_data['status'] = UpdateManagerInterface::NOT_CURRENT;
       }
       break;
 
     default:
-      $project_data['status'] = UPDATE_UNKNOWN;
+      $project_data['status'] = UpdateFetcherInterface::UNKNOWN;
       $project_data['reason'] = t('Invalid info');
   }
 }

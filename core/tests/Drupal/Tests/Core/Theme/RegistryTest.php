@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Tests\Core\Theme\RegistryTest.
- */
-
 namespace Drupal\Tests\Core\Theme;
 
 use Drupal\Core\Theme\ActiveTheme;
@@ -18,9 +13,9 @@ use Drupal\Tests\UnitTestCase;
 class RegistryTest extends UnitTestCase {
 
   /**
-   * The tested theme registry.
+   * The mocked theme registry.
    *
-   * @var \Drupal\Tests\Core\Theme\TestRegistry
+   * @var \Drupal\Core\Theme\Registry|PHPUnit\Framework\MockObject\MockObject
    */
   protected $registry;
 
@@ -151,27 +146,17 @@ class RegistryTest extends UnitTestCase {
     $this->assertArrayHasKey('theme_test_suggestion_provided', $registry);
     $this->assertArrayHasKey('theme_test_specific_suggestions', $registry);
     $this->assertArrayHasKey('theme_test_suggestions', $registry);
-    $this->assertArrayHasKey('theme_test_function_suggestions', $registry);
     $this->assertArrayHasKey('theme_test_foo', $registry);
     $this->assertArrayHasKey('theme_test_render_element', $registry);
-    $this->assertArrayHasKey('theme_test_render_element_children', $registry);
-    $this->assertArrayHasKey('theme_test_function_template_override', $registry);
 
-    $this->assertArrayNotHasKey('test_theme_not_existing_function', $registry);
-    $this->assertFalse(in_array('test_stable_preprocess_theme_test_render_element', $registry['theme_test_render_element']['preprocess functions']));
-
-    $info = $registry['theme_test_function_suggestions'];
-    $this->assertEquals('module', $info['type']);
-    $this->assertEquals('core/modules/system/tests/modules/theme_test', $info['theme path']);
-    $this->assertEquals('theme_theme_test_function_suggestions', $info['function']);
-    $this->assertEquals([], $info['variables']);
+    $this->assertNotContains('test_stable_preprocess_theme_test_render_element', $registry['theme_test_render_element']['preprocess functions']);
 
     // The second call will initialize with the second theme. Ensure that this
     // returns a different object and the discovery for the second theme's
     // preprocess function worked.
     $other_registry = $this->registry->get();
     $this->assertNotSame($registry, $other_registry);
-    $this->assertTrue(in_array('test_stable_preprocess_theme_test_render_element', $other_registry['theme_test_render_element']['preprocess functions']));
+    $this->assertContains('test_stable_preprocess_theme_test_render_element', $other_registry['theme_test_render_element']['preprocess functions']);
   }
 
   /**
@@ -200,7 +185,7 @@ class RegistryTest extends UnitTestCase {
       ->method('getModuleList')
       ->willReturn([]);
 
-    $class = new \ReflectionClass(TestRegistry::class);
+    $class = new \ReflectionClass(Registry::class);
     $reflection_method = $class->getMethod('postProcessExtension');
     $reflection_method->setAccessible(TRUE);
     $reflection_method->invokeArgs($this->registry, [&$hooks, $theme->reveal()]);
@@ -486,18 +471,18 @@ class RegistryTest extends UnitTestCase {
   }
 
   protected function setupTheme() {
-    $this->registry = new TestRegistry($this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $this->themeInitialization);
+    $this->registry = $this->getMockBuilder(Registry::class)
+      ->setMethods(['getPath'])
+      ->setConstructorArgs([$this->root, $this->cache, $this->lock, $this->moduleHandler, $this->themeHandler, $this->themeInitialization])
+      ->getMock();
+    $this->registry->expects($this->any())
+      ->method('getPath')
+      ->willReturnCallback(function ($module) {
+        if ($module == 'theme_test') {
+          return 'core/modules/system/tests/modules/theme_test';
+        }
+      });
     $this->registry->setThemeManager($this->themeManager);
-  }
-
-}
-
-class TestRegistry extends Registry {
-
-  protected function getPath($module) {
-    if ($module == 'theme_test') {
-      return 'core/modules/system/tests/modules/theme_test';
-    }
   }
 
 }

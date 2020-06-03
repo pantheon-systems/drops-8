@@ -2,11 +2,6 @@ name: module cache bin tests
 type: module
 description: Test cache bins defined by modules.
 package: Testing
-# version: VERSION
+version: VERSION
 core: 8.x
 hidden: true
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

@@ -102,7 +102,9 @@
     if (xmlhttp.status) {
       statusCode = `\n${Drupal.t('An AJAX HTTP error occurred.')}\n${Drupal.t(
         'HTTP Result Code: !status',
-        { '!status': xmlhttp.status },
+        {
+          '!status': xmlhttp.status,
+        },
       )}`;
     } else {
       statusCode = `\n${Drupal.t(
@@ -1131,12 +1133,14 @@
     (response.effect || ajax.effect) !== 'none' &&
     $newContent.filter(
       i =>
-        !// We can not consider HTML comments or whitespace text as separate
-        // roots, since they do not cause visual regression with effect.
-        (
-          $newContent[i].nodeName === '#comment' ||
-          ($newContent[i].nodeName === '#text' &&
-            /^(\s|\n|\r)*$/.test($newContent[i].textContent))
+        !(
+          // We can not consider HTML comments or whitespace text as separate
+          // roots, since they do not cause visual regression with effect.
+          (
+            $newContent[i].nodeName === '#comment' ||
+            ($newContent[i].nodeName === '#text' &&
+              /^(\s|\n|\r)*$/.test($newContent[i].textContent))
+          )
         ),
     ).length > 1
       ? Drupal.theme('ajaxWrapperMultipleRootElements', $newContent)
@@ -1534,10 +1538,6 @@
     /**
      * Command to add css.
      *
-     * Uses the proprietary addImport method if available as browsers which
-     * support that method ignore @import statements in dynamically added
-     * stylesheets.
-     *
      * @param {Drupal.Ajax} [ajax]
      *   {@link Drupal.Ajax} object created by {@link Drupal.ajax}.
      * @param {object} response
@@ -1548,21 +1548,7 @@
      *   The XMLHttpRequest status.
      */
     add_css(ajax, response, status) {
-      // Add the styles in the normal way.
       $('head').prepend(response.data);
-      // Add imports in the styles using the addImport method if available.
-      let match;
-      const importMatch = /^@import url\("(.*)"\);$/gim;
-      if (
-        document.styleSheets[0].addImport &&
-        importMatch.test(response.data)
-      ) {
-        importMatch.lastIndex = 0;
-        do {
-          match = importMatch.exec(response.data);
-          document.styleSheets[0].addImport(match[1]);
-        } while (match);
-      }
     },
 
     /**

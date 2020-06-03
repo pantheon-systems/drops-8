@@ -35,7 +35,7 @@ class BlockContentListTest extends BlockContentTestBase {
     $this->drupalGet('admin/structure/block/block-content');
 
     // Test for the page title.
-    $this->assertTitle(t('Custom block library') . ' | Drupal');
+    $this->assertTitle('Custom block library | Drupal');
 
     // Test for the table.
     $element = $this->xpath('//div[@class="layout-content"]//table');
@@ -43,7 +43,7 @@ class BlockContentListTest extends BlockContentTestBase {
 
     // Test the table header.
     $elements = $this->xpath('//div[@class="layout-content"]//table/thead/tr/th');
-    $this->assertEqual(count($elements), 2, 'Correct number of table header cells found.');
+    $this->assertCount(2, $elements, 'Correct number of table header cells found.');
 
     // Test the contents of each th cell.
     $expected_items = [t('Block description'), t('Operations')];
@@ -57,7 +57,7 @@ class BlockContentListTest extends BlockContentTestBase {
     $link_text = t('Add custom block');
     $this->assertLink($link_text);
     $this->clickLink($link_text);
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
     $edit = [];
     $edit['info[0][value]'] = $label;
     $edit['body[0][value]'] = $this->randomMachineName(16);
@@ -69,7 +69,7 @@ class BlockContentListTest extends BlockContentTestBase {
 
     // Check the number of table row cells.
     $elements = $this->xpath('//div[@class="layout-content"]//table/tbody/tr[@class="odd"]/td');
-    $this->assertEqual(count($elements), 2, 'Correct number of table row cells found.');
+    $this->assertCount(2, $elements, 'Correct number of table row cells found.');
     // Check the contents of each row cell. The first cell contains the label,
     // the second contains the machine name, and the third contains the
     // operations list.
@@ -84,8 +84,8 @@ class BlockContentListTest extends BlockContentTestBase {
     if (!empty($block)) {
       $this->assertLinkByHref('block/' . $block->id());
       $this->clickLink(t('Edit'));
-      $this->assertResponse(200);
-      $this->assertTitle(strip_tags(t('Edit custom block %label', ['%label' => $label]) . ' | Drupal'));
+      $this->assertSession()->statusCodeEquals(200);
+      $this->assertTitle("Edit custom block $label | Drupal");
       $edit = ['info[0][value]' => $new_label];
       $this->drupalPostForm(NULL, $edit, t('Save'));
     }
@@ -101,8 +101,8 @@ class BlockContentListTest extends BlockContentTestBase {
     $this->assertLinkByHref('block/' . $block->id() . '/delete');
     $delete_text = t('Delete');
     $this->clickLink($delete_text);
-    $this->assertResponse(200);
-    $this->assertTitle(strip_tags(t('Are you sure you want to delete the custom block %label?', ['%label' => $new_label]) . ' | Drupal'));
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertTitle("Are you sure you want to delete the custom block $new_label? | Drupal");
     $this->drupalPostForm(NULL, [], $delete_text);
 
     // Verify that the text of the label and machine name does not appear in

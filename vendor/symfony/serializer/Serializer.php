@@ -109,7 +109,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
     final public function serialize($data, $format, array $context = [])
     {
         if (!$this->supportsEncoding($format, $context)) {
-            throw new NotEncodableValueException(sprintf('Serialization for the format %s is not supported', $format));
+            throw new NotEncodableValueException(sprintf('Serialization for the format "%s" is not supported.', $format));
         }
 
         if ($this->encoder->needsNormalization($format, $context)) {
@@ -125,7 +125,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
     final public function deserialize($data, $type, $format, array $context = [])
     {
         if (!$this->supportsDecoding($format, $context)) {
-            throw new NotEncodableValueException(sprintf('Deserialization for the format %s is not supported', $format));
+            throw new NotEncodableValueException(sprintf('Deserialization for the format "%s" is not supported.', $format));
         }
 
         $data = $this->decode($data, $format, $context);
@@ -161,10 +161,10 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
                 throw new LogicException('You must register at least one normalizer to be able to normalize objects.');
             }
 
-            throw new NotNormalizableValueException(sprintf('Could not normalize object of type %s, no supporting normalizer found.', \get_class($data)));
+            throw new NotNormalizableValueException(sprintf('Could not normalize object of type "%s", no supporting normalizer found.', \get_class($data)));
         }
 
-        throw new NotNormalizableValueException(sprintf('An unexpected value could not be normalized: %s', !\is_resource($data) ? var_export($data, true) : sprintf('%s resource', get_resource_type($data))));
+        throw new NotNormalizableValueException('An unexpected value could not be normalized: '.(!\is_resource($data) ? var_export($data, true) : sprintf('%s resource', get_resource_type($data))));
     }
 
     /**
@@ -182,7 +182,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
             return $normalizer->denormalize($data, $type, $format, $context);
         }
 
-        throw new NotNormalizableValueException(sprintf('Could not denormalize object of type %s, no supporting normalizer found.', $type));
+        throw new NotNormalizableValueException(sprintf('Could not denormalize object of type "%s", no supporting normalizer found.', $type));
     }
 
     /**
@@ -193,7 +193,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
         if (\func_num_args() > 2) {
             $context = func_get_arg(2);
         } else {
-            if (__CLASS__ !== \get_class($this)) {
+            if (__CLASS__ !== static::class) {
                 $r = new \ReflectionMethod($this, __FUNCTION__);
                 if (__CLASS__ !== $r->getDeclaringClass()->getName()) {
                     @trigger_error(sprintf('The "%s()" method will have a third `$context = []` argument in version 4.0. Not defining it is deprecated since Symfony 3.3.', __METHOD__), E_USER_DEPRECATED);
@@ -214,7 +214,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
         if (\func_num_args() > 3) {
             $context = func_get_arg(3);
         } else {
-            if (__CLASS__ !== \get_class($this)) {
+            if (__CLASS__ !== static::class) {
                 $r = new \ReflectionMethod($this, __FUNCTION__);
                 if (__CLASS__ !== $r->getDeclaringClass()->getName()) {
                     @trigger_error(sprintf('The "%s()" method will have a fourth `$context = []` argument in version 4.0. Not defining it is deprecated since Symfony 3.3.', __METHOD__), E_USER_DEPRECATED);
@@ -292,7 +292,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
         if (\func_num_args() > 1) {
             $context = func_get_arg(1);
         } else {
-            if (__CLASS__ !== \get_class($this)) {
+            if (__CLASS__ !== static::class) {
                 $r = new \ReflectionMethod($this, __FUNCTION__);
                 if (__CLASS__ !== $r->getDeclaringClass()->getName()) {
                     @trigger_error(sprintf('The "%s()" method will have a second `$context = []` argument in version 4.0. Not defining it is deprecated since Symfony 3.3.', __METHOD__), E_USER_DEPRECATED);
@@ -313,7 +313,7 @@ class Serializer implements SerializerInterface, NormalizerInterface, Denormaliz
         if (\func_num_args() > 1) {
             $context = func_get_arg(1);
         } else {
-            if (__CLASS__ !== \get_class($this)) {
+            if (__CLASS__ !== static::class) {
                 $r = new \ReflectionMethod($this, __FUNCTION__);
                 if (__CLASS__ !== $r->getDeclaringClass()->getName()) {
                     @trigger_error(sprintf('The "%s()" method will have a second `$context = []` argument in version 4.0. Not defining it is deprecated since Symfony 3.3.', __METHOD__), E_USER_DEPRECATED);

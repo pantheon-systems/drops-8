@@ -470,13 +470,13 @@ class LocaleConfigSubscriberTest extends KernelTestBase {
       'language' => $langcode,
       'translated' => TRUE,
     ]);
-    $this->assertIdentical(1, count($strings));
+    $this->assertCount(1, $strings);
     $string = reset($strings);
-    $this->assertTrue($string instanceof StringInterface);
+    $this->assertInstanceOf(StringInterface::class, $string);
     /** @var \Drupal\locale\StringInterface $string */
     $this->assertIdentical($translation, $string->getString());
     $this->assertTrue($string->isTranslation());
-    $this->assertTrue($string instanceof TranslationString);
+    $this->assertInstanceOf(TranslationString::class, $string);
     /** @var \Drupal\locale\TranslationString $string */
     // Make sure the string is marked as customized so that it does not get
     // overridden when the string translations are updated.

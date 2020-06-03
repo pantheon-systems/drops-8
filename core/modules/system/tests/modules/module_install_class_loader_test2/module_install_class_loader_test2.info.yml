@@ -3,11 +3,6 @@ description: 'Support module for tests that the class loader behaves as expected
 type: module
 package: Testing
 core: 8.x
-# version: VERSION
+version: VERSION
 dependencies:
   - drupal:module_install_class_loader_test1
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

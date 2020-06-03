@@ -215,11 +215,13 @@ class FieldStorageCrudTest extends FieldKernelTestBase {
     // Check that 'single column' criteria works.
     $field_storage_config_storage = \Drupal::entityTypeManager()->getStorage('field_storage_config');
     $fields = $field_storage_config_storage->loadByProperties(['field_name' => $field_storage_definition['field_name']]);
-    $this->assertTrue(count($fields) == 1 && isset($fields[$id]), 'The field was properly read.');
+    $this->assertCount(1, $fields, 'The field was properly read.');
+    $this->assertArrayHasKey($id, $fields, 'The field has the correct key.');
 
     // Check that 'multi column' criteria works.
     $fields = $field_storage_config_storage->loadByProperties(['field_name' => $field_storage_definition['field_name'], 'type' => $field_storage_definition['type']]);
-    $this->assertTrue(count($fields) == 1 && isset($fields[$id]), 'The field was properly read.');
+    $this->assertCount(1, $fields, 'The field was properly read.');
+    $this->assertArrayHasKey($id, $fields, 'The field has the correct key.');
     $fields = $field_storage_config_storage->loadByProperties(['field_name' => $field_storage_definition['field_name'], 'type' => 'foo']);
     $this->assertTrue(empty($fields), 'No field was found.');
 
@@ -322,12 +324,12 @@ class FieldStorageCrudTest extends FieldKernelTestBase {
 
     // Make sure that the field storage is deleted as it had no data.
     $field_storages = $field_storage_config_storage->loadByProperties(['field_name' => $field_storage_definition['field_name'], 'include_deleted' => TRUE]);
-    $this->assertEquals(0, count($field_storages), 'Field storage was deleted');
+    $this->assertCount(0, $field_storages, 'Field storage was deleted');
 
     // Make sure that this field is marked as deleted when it is
     // specifically loaded.
     $fields = \Drupal::entityTypeManager()->getStorage('field_config')->loadByProperties(['entity_type' => 'entity_test', 'field_name' => $field_definition['field_name'], 'bundle' => $field_definition['bundle'], 'include_deleted' => TRUE]);
-    $this->assertEquals(0, count($fields), 'Field storage was deleted');
+    $this->assertCount(0, $fields, 'Field storage was deleted');
 
     // Try to load the storage normally and make sure it does not show up.
     $field_storage = FieldStorageConfig::load('entity_test.' . $field_storage_definition['field_name']);
@@ -381,6 +383,42 @@ class FieldStorageCrudTest extends FieldKernelTestBase {
     catch (FieldException $e) {
       $this->pass('Cannot update a field to a different type.');
     }
+  }
+
+  /**
+   * Test changing a field storage type.
+   */
+  public function testUpdateEntityType() {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_type',
+      'entity_type' => 'entity_test',
+      'type' => 'decimal',
+    ]);
+    $field_storage->save();
+
+    $this->expectException(FieldException::class);
+    $this->expectExceptionMessage('Cannot change the field type for an existing field storage. The field storage entity_test.field_type has the type decimal.');
+
+    $field_storage->set('type', 'foobar');
+    $field_storage->save();
+  }
+
+  /**
+   * Test changing a field storage entity type.
+   */
+  public function testUpdateEntityTargetType() {
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_type',
+      'entity_type' => 'entity_test',
+      'type' => 'decimal',
+    ]);
+    $field_storage->save();
+
+    $this->expectException(FieldException::class);
+    $this->expectExceptionMessage('Cannot change the entity type for an existing field storage. The field storage foobar.field_type has the type entity_test.');
+
+    $field_storage->set('entity_type', 'foobar');
+    $field_storage->save();
   }
 
   /**

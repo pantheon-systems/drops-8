@@ -6,7 +6,7 @@ use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Test\AssertMailTrait;
 use Drupal\Core\Url;
-use Drupal\Tests\system\Functional\Cache\PageCacheTagsTestBase;
+use Drupal\Tests\BrowserTestBase;
 use Drupal\user\Entity\User;
 
 /**
@@ -14,7 +14,7 @@ use Drupal\user\Entity\User;
  *
  * @group user
  */
-class UserPasswordResetTest extends PageCacheTagsTestBase {
+class UserPasswordResetTest extends BrowserTestBase {
 
   use AssertMailTrait {
     getMails as drupalGetMails;
@@ -45,6 +45,10 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
   protected function setUp() {
     parent::setUp();
 
+    // Enable page caching.
+    $config = $this->config('system.performance');
+    $config->set('cache.page.max_age', 3600);
+    $config->save();
     $this->drupalPlaceBlock('system_menu_block:account');
 
     // Create a user.
@@ -73,7 +77,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     // Verify that accessing the password reset form without having the session
     // variables set results in an access denied message.
     $this->drupalGet(Url::fromRoute('user.reset.form', ['uid' => $this->account->id()]));
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     // Try to reset the password for an invalid account.
     $this->drupalGet('user/password');
@@ -101,12 +105,12 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     // Check the one-time login page.
     $this->assertText($this->account->getAccountName(), 'One-time login page contains the correct username.');
     $this->assertText(t('This login can be used only once.'), 'Found warning about one-time login.');
-    $this->assertTitle(t('Reset password | Drupal'), 'Page title is "Reset password".');
+    $this->assertTitle('Reset password | Drupal');
 
     // Check successful login.
     $this->drupalPostForm(NULL, NULL, t('Log in'));
     $this->assertLink(t('Log out'));
-    $this->assertTitle(t('@name | @site', ['@name' => $this->account->getAccountName(), '@site' => $this->config('system.site')->get('name')]), 'Logged in using password reset link.');
+    $this->assertTitle($this->account->getAccountName() . ' | Drupal');
 
     // Change the forgotten password.
     $password = user_password();
@@ -131,7 +135,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $edit = ['name' => $this->account->getEmail()];
     $this->drupalPostForm(NULL, $edit, t('Submit'));
     $this->assertValidPasswordReset($edit['name']);
-    $this->assertTrue(count($this->drupalGetMails(['id' => 'user_password_reset'])) === $before + 1, 'Email sent when requesting password reset using email address.');
+    $this->assertCount($before + 1, $this->drupalGetMails(['id' => 'user_password_reset']), 'Email sent when requesting password reset using email address.');
 
     // Visit the user edit page without pass-reset-token and make sure it does
     // not cause an error.
@@ -155,7 +159,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $blocked_account = $this->drupalCreateUser()->block();
     $blocked_account->save();
     $this->drupalGet("user/reset/" . $blocked_account->id() . "/$timestamp/" . user_pass_rehash($blocked_account, $timestamp));
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     // Verify a blocked user can not request a new password.
     $this->drupalGet('user/password');
@@ -164,7 +168,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $edit = ['name' => $blocked_account->getAccountName()];
     $this->drupalPostForm(NULL, $edit, t('Submit'));
     $this->assertRaw(t('%name is blocked or has not been activated yet.', ['%name' => $blocked_account->getAccountName()]), 'Notified user blocked accounts can not request a new password');
-    $this->assertTrue(count($this->drupalGetMails(['id' => 'user_password_reset'])) === $before, 'No email was sent when requesting password reset for a blocked account');
+    $this->assertCount($before, $this->drupalGetMails(['id' => 'user_password_reset']), 'No email was sent when requesting password reset for a blocked account');
 
     // Verify a password reset link is invalidated when the user's email address changes.
     $this->drupalGet('user/password');
@@ -185,7 +189,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $reset_url = $this->getResetURL();
     $this->drupalGet($reset_url . '/login');
     $this->assertLink(t('Log out'));
-    $this->assertTitle(t('@name | @site', ['@name' => $this->account->getAccountName(), '@site' => $this->config('system.site')->get('name')]), 'Logged in using password reset link.');
+    $this->assertTitle($this->account->getAccountName() . ' | Drupal');
 
     // Ensure blocked and deleted accounts can't access the user.reset.login
     // route.
@@ -194,11 +198,11 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $blocked_account = $this->drupalCreateUser()->block();
     $blocked_account->save();
     $this->drupalGet("user/reset/" . $blocked_account->id() . "/$timestamp/" . user_pass_rehash($blocked_account, $timestamp) . '/login');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
 
     $blocked_account->delete();
     $this->drupalGet("user/reset/" . $blocked_account->id() . "/$timestamp/" . user_pass_rehash($blocked_account, $timestamp) . '/login');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**
@@ -259,9 +263,9 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     // user.reset.form routes.
     $timestamp = REQUEST_TIME - 1;
     $this->drupalGet("user/reset/" . $this->account->id() . "/$timestamp/" . user_pass_rehash($this->account, $timestamp) . '/login');
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
     $this->drupalGet("user/reset/" . $this->account->id());
-    $this->assertResponse(403);
+    $this->assertSession()->statusCodeEquals(403);
   }
 
   /**
@@ -355,7 +359,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
     $reset_url = $this->getResetURL();
     $this->drupalGet($reset_url . '/login');
     $this->assertLink(t('Log out'));
-    $this->assertTitle(t('@name | @site', ['@name' => $this->account->getAccountName(), '@site' => $this->config('system.site')->get('name')]), 'Logged in using password reset link.');
+    $this->assertTitle($this->account->getAccountName() . ' | Drupal');
     $this->drupalLogout();
 
     // The next request should *not* trigger flood control, since a successful
@@ -383,7 +387,7 @@ class UserPasswordResetTest extends PageCacheTagsTestBase {
   public function assertNoValidPasswordReset($name) {
     // Make sure the error text is displayed and no email sent.
     $this->assertText(t('@name is not recognized as a username or an email address.', ['@name' => $name]), 'Validation error message shown when trying to request password for invalid account.');
-    $this->assertEqual(count($this->drupalGetMails(['id' => 'user_password_reset'])), 0, 'No e-mail was sent when requesting a password for an invalid account.');
+    $this->assertCount(0, $this->drupalGetMails(['id' => 'user_password_reset']), 'No e-mail was sent when requesting a password for an invalid account.');
   }
 
   /**

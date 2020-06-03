@@ -45,7 +45,7 @@ class CommentFieldsTest extends CommentTestBase {
     // Check that the 'comment_body' field is not deleted since it is persisted
     // even if it has no fields.
     $field_storage = FieldStorageConfig::loadByName('comment', 'comment_body');
-    $this->assertInstanceOf(FieldStorageConfig::class, $field_storage, 'The comment_body field storage was not deleted');
+    $this->assertInstanceOf(FieldStorageConfig::class, $field_storage);
 
     // Create a new content type.
     $type_name = 'test_node_type_2';
@@ -55,7 +55,7 @@ class CommentFieldsTest extends CommentTestBase {
     // Check that the 'comment_body' field exists and has an instance on the
     // new comment bundle.
     $field_storage = FieldStorageConfig::loadByName('comment', 'comment_body');
-    $this->assertInstanceOf(FieldStorageConfig::class, $field_storage, 'The comment_body field exists');
+    $this->assertInstanceOf(FieldStorageConfig::class, $field_storage);
     $field = FieldConfig::loadByName('comment', 'comment', 'comment_body');
     $this->assertTrue(isset($field), new FormattableMarkup('The comment_body field is present for comments on type @type', ['@type' => $type_name]));
 
@@ -86,13 +86,13 @@ class CommentFieldsTest extends CommentTestBase {
 
     $this->drupalGet('node/' . $node->nid->value);
     $elements = $this->cssSelect('.field--type-comment');
-    $this->assertEqual(2, count($elements), 'There are two comment fields on the node.');
+    $this->assertCount(2, $elements, 'There are two comment fields on the node.');
 
     // Delete the first comment field.
     FieldStorageConfig::loadByName('node', 'comment')->delete();
     $this->drupalGet('node/' . $node->nid->value);
     $elements = $this->cssSelect('.field--type-comment');
-    $this->assertEqual(1, count($elements), 'There is one comment field on the node.');
+    $this->assertCount(1, $elements, 'There is one comment field on the node.');
   }
 
   /**

@@ -47,7 +47,7 @@ class ConfigImportUploadTest extends BrowserTestBase {
   public function testImport() {
     // Verify access to the config upload form.
     $this->drupalGet('admin/config/development/configuration/full/import');
-    $this->assertResponse(200);
+    $this->assertSession()->statusCodeEquals(200);
 
     // Attempt to upload a non-tar file.
     $text_file = $this->getTestFiles('text')[0];
@@ -63,7 +63,7 @@ class ConfigImportUploadTest extends BrowserTestBase {
     // Ensure submit button for \Drupal\config\Form\ConfigImportForm is
     // disabled.
     $submit_is_disabled = $this->cssSelect('form.config-import-form input[type="submit"]:disabled');
-    $this->assertTrue(count($submit_is_disabled) === 1, 'The submit button is disabled.');
+    $this->assertCount(1, $submit_is_disabled, 'The submit button is disabled.');
   }
 
 }

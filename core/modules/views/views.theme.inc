@@ -139,7 +139,9 @@ function template_preprocess_views_view_fields(&$variables) {
       }
 
       if (!empty($variables['options']['separator']) && $previous_inline && $object->inline && $object->content) {
-        $object->separator = Xss::filterAdmin($variables['options']['separator']);
+        $object->separator = [
+          '#markup' => $variables['options']['separator'],
+        ];
       }
 
       $object->class = Html::cleanCssIdentifier($id);
@@ -658,8 +660,23 @@ function template_preprocess_views_view_table(&$variables) {
     $variables['caption_needed'] = FALSE;
   }
 
+  // For backwards compatibility, initialize the 'summary' and 'description'
+  // variables, although core templates now all use 'summary_element' instead.
   $variables['summary'] = $handler->options['summary'];
   $variables['description'] = $handler->options['description'];
+  $variables['summary_element'] = [
+    '#type' => 'details',
+    '#title' => $handler->options['summary'],
+    // To ensure that the description is properly escaped during rendering, use
+    // an 'inline_template' to let Twig do its magic, instead of 'markup'.
+    'description' => [
+      '#type' => 'inline_template',
+      '#template' => '{{ description }}',
+      '#context' => [
+        'description' => $handler->options['description'],
+      ],
+    ],
+  ];
   $variables['caption_needed'] |= !empty($variables['summary']) || !empty($variables['description']);
 
   $variables['responsive'] = FALSE;

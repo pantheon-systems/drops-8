@@ -21,7 +21,7 @@ class ContainerBuilderTest extends UnitTestCase {
     $container->register('bar', 'Drupal\Tests\Core\DependencyInjection\Fixture\BarClass');
 
     $result = $container->get('bar');
-    $this->assertTrue($result instanceof BarClass);
+    $this->assertInstanceOf(BarClass::class, $result);
   }
 
   /**
@@ -131,7 +131,7 @@ class ContainerBuilderTest extends UnitTestCase {
    * @preserveGlobalState disabled
    */
   public function testConstructor() {
-    class_alias(testInterface::class, 'Symfony\Component\Config\Resource\ResourceInterface');
+    class_alias(TestInterface::class, 'Symfony\Component\Config\Resource\ResourceInterface');
     $container = new ContainerBuilder();
     $this->assertFalse($container->isTrackingResources());
   }
@@ -143,5 +143,5 @@ class ContainerBuilderTest extends UnitTestCase {
  *
  * @see \Drupal\Tests\Core\DependencyInjection\ContainerBuilderTest::testConstructor()
  */
-interface testInterface {
+interface TestInterface {
 }

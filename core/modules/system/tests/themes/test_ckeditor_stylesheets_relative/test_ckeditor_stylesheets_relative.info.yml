@@ -1,14 +1,9 @@
 name: Test relative CKEditor stylesheets
 type: theme
 description: 'A theme that uses a relative CKEditor stylesheet.'
-# version: VERSION
+version: VERSION
 base theme: false
 core: 8.x
 
 ckeditor_stylesheets:
   - css/yokotsoko.css
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103
