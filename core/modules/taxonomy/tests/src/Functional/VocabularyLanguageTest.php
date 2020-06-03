@@ -12,14 +12,14 @@ use Drupal\language\Entity\ContentLanguageSettings;
  */
 class VocabularyLanguageTest extends TaxonomyTestBase {
 
-  public static $modules = ['language'];
+  protected static $modules = ['language'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create an administrative user.

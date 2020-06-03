@@ -44,7 +44,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'entity_test',
@@ -52,7 +52,7 @@ class ContentTranslationSyncImageTest extends ContentTranslationTestBase {
     'field_ui',
   ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->files = $this->drupalGetTestFiles('image');
   }

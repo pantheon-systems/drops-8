@@ -19,7 +19,7 @@ class BooleanFieldTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'field_ui',
     'options',
@@ -48,7 +48,7 @@ class BooleanFieldTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->drupalCreateUser([

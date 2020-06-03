@@ -17,7 +17,7 @@ class MessageEntityTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'contact',
     'field',
@@ -25,7 +25,7 @@ class MessageEntityTest extends EntityKernelTestBase {
     'contact_test',
   ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['contact', 'contact_test']);
   }

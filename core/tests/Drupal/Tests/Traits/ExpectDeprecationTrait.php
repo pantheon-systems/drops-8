@@ -30,24 +30,6 @@ trait ExpectDeprecationTrait {
   }
 
   /**
-   * Sets an expected deprecation message.
-   *
-   * @param string $message
-   *   The expected deprecation message.
-   *
-   * @deprecated in drupal:8.8.5 and is removed from drupal:9.0.0. Use
-   *   ::addExpectedDeprecationMessage() instead.
-   *
-   * @see https://www.drupal.org/node/3106024
-   */
-  protected function expectDeprecation($message) {
-    if (strpos($message, 'ExpectDeprecationTrait::expectDeprecation') === FALSE) {
-      @trigger_error('ExpectDeprecationTrait::expectDeprecation is deprecated in drupal:8.8.5 and is removed from drupal:9.0.0. Use ::addExpectedDeprecationMessage() instead. See https://www.drupal.org/node/3106024', E_USER_DEPRECATED);
-    }
-    $this->addExpectedDeprecationMessage($message);
-  }
-
-  /**
    * Sets expected deprecation messages.
    *
    * @param string[] $messages

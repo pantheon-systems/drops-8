@@ -16,14 +16,14 @@ class NodeTypeInitialLanguageTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'field_ui'];
+  protected static $modules = ['language', 'field_ui'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $web_user = $this->drupalCreateUser(['bypass node access', 'administer content types', 'administer node fields', 'administer node form display', 'administer node display', 'administer languages']);

@@ -56,7 +56,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->database = $this->getDatabase([]);
   }
 
@@ -194,7 +194,7 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
     $message = $this->createMock('Drupal\migrate\MigrateMessageInterface');
     $id_map = $this->getIdMap();
     $id_map->setMessage($message);
-    $this->assertAttributeEquals($message, 'message', $id_map);
+    $this->assertEquals($message, $id_map->message);
   }
 
   /**
@@ -338,17 +338,6 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       $this->assertEquals(MigrationInterface::MESSAGE_WARNING, $message_row->level);
     }
     $this->assertEquals($count, 1);
-  }
-
-  /**
-   * Tests the SQL ID map get message iterator method.
-   *
-   * @group legacy
-   *
-   * @expectedDeprecation getMessageIterator() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use getMessages() instead. See https://www.drupal.org/node/3060969
-   */
-  public function testGetMessageIterator() {
-    $this->getIdMap()->getMessageIterator();
   }
 
   /**
@@ -558,31 +547,6 @@ class MigrateSqlIdMapTest extends MigrateTestCase {
       ->fields([TestSqlIdMap::SOURCE_IDS_HASH => uniqid()])
       ->execute();
     $this->assertNotEquals([[101, 'en']], $id_map->lookupDestinationIds([1, 'en']));
-  }
-
-  /**
-   * Tests lookupDestinationId().
-   *
-   * @group legacy
-   * @expectedDeprecation Drupal\migrate\Plugin\migrate\id_map\Sql::lookupDestinationId() is deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use Sql::lookupDestinationIds() instead. See https://www.drupal.org/node/2725809
-   */
-  public function testLookupDestinationId() {
-    // Simple map with one source and one destination ID.
-    $id_map = $this->setupRows(['nid'], ['nid'], [
-      [1, 101],
-      [2, 102],
-      [3, 103],
-    ]);
-
-    // Lookup nothing, gives nothing.
-    $this->assertEquals([], $id_map->lookupDestinationId([]));
-
-    // Lookup by complete non-associative list.
-    $this->assertEquals([101], $id_map->lookupDestinationId([1]));
-    $this->assertEquals([], $id_map->lookupDestinationId([99]));
-
-    // Lookup by complete associative list.
-    $this->assertEquals([101], $id_map->lookupDestinationId(['nid' => 1]));
   }
 
   /**

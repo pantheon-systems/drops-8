@@ -59,12 +59,12 @@ class EntityReferenceFieldTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_reference_test', 'entity_test_update'];
+  protected static $modules = ['entity_reference_test', 'entity_test_update'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test_rev');

@@ -36,7 +36,7 @@ class SessionHttpsTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['session_test'];
+  protected static $modules = ['session_test'];
 
   /**
    * {@inheritdoc}
@@ -46,7 +46,7 @@ class SessionHttpsTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $request = Request::createFromGlobals();

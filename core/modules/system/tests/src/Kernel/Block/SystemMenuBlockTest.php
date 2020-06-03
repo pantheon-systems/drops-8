@@ -7,7 +7,6 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\system\Entity\Menu;
 use Drupal\block\Entity\Block;
 use Drupal\Core\Render\Element;
-use Drupal\system\Plugin\Block\SystemMenuBlock;
 use Drupal\system\Tests\Routing\MockRouteProvider;
 use Drupal\Tests\Core\Menu\MenuLinkMock;
 use Drupal\user\Entity\User;
@@ -33,7 +32,7 @@ class SystemMenuBlockTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'block',
     'menu_test',
@@ -81,7 +80,7 @@ class SystemMenuBlockTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installSchema('system', 'sequences');
     $this->installEntitySchema('user');
@@ -352,20 +351,6 @@ class SystemMenuBlockTest extends KernelTestBase {
         ],
       ],
     ];
-  }
-
-  /**
-   * @deprecationMessage The menu.active_trail service must be passed to SystemMenuBlock::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/2669550.
-   * @group legacy
-   */
-  public function testConstructorDeprecation() {
-    $block = new SystemMenuBlock([], 'test', ['provider' => 'test'], $this->container->get('menu.link_tree'));
-
-    // Ensure the BC layer injects the correct object.
-    $reflection_object = new \ReflectionObject($block);
-    $reflection_property = $reflection_object->getProperty('menuActiveTrail');
-    $reflection_property->setAccessible(TRUE);
-    $this->assertSame($reflection_property->getValue($block), $this->container->get('menu.active_trail'));
   }
 
   /**

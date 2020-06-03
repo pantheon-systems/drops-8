@@ -17,7 +17,7 @@ class FileEntityFormatterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['file', 'user'];
+  protected static $modules = ['file', 'user'];
 
   /**
    * The files.
@@ -29,7 +29,7 @@ class FileEntityFormatterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('file');

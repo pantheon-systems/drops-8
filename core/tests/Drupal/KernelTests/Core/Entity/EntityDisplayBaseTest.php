@@ -18,7 +18,7 @@ class EntityDisplayBaseTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'entity_test_third_party',
     'field',
@@ -30,7 +30,7 @@ class EntityDisplayBaseTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('comment');
     $this->installEntitySchema('entity_test');

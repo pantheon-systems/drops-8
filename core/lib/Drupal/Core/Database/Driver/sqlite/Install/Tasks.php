@@ -13,6 +13,14 @@ use Drupal\Core\Database\Install\Tasks as InstallTasks;
 class Tasks extends InstallTasks {
 
   /**
+   * Minimum required SQLite version.
+   *
+   * Use to build sqlite library with json1 option for JSON datatype support.
+   * @see https://www.sqlite.org/json1.html
+   */
+  const SQLITE_MINIMUM_VERSION = '3.26';
+
+  /**
    * {@inheritdoc}
    */
   protected $pdoDriver = 'sqlite';
@@ -28,7 +36,7 @@ class Tasks extends InstallTasks {
    * {@inheritdoc}
    */
   public function minimumVersion() {
-    return '3.7.11';
+    return static::SQLITE_MINIMUM_VERSION;
   }
 
   /**
@@ -43,7 +51,7 @@ class Tasks extends InstallTasks {
     // Make the text more accurate for SQLite.
     $form['database']['#title'] = t('Database file');
     $form['database']['#description'] = t('The absolute path to the file where @drupal data will be stored. This must be writable by the web server and should exist outside of the web root.', ['@drupal' => drupal_install_profile_distribution_name()]);
-    $default_database = \Drupal::service('site.path') . '/files/.ht.sqlite';
+    $default_database = \Drupal::getContainer()->getParameter('site.path') . '/files/.ht.sqlite';
     $form['database']['#default_value'] = empty($database['database']) ? $default_database : $database['database'];
     return $form;
   }

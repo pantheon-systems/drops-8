@@ -16,7 +16,7 @@ class ShortcutSetsTest extends ShortcutTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['block'];
+  protected static $modules = ['block'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class ShortcutSetsTest extends ShortcutTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('local_actions_block');

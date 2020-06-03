@@ -14,6 +14,7 @@ namespace Symfony\Component\Validator\Constraints;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Exception\UnexpectedValueException;
 
 /**
  * Validates whether the value is a valid UUID (also known as GUID).
@@ -75,10 +76,14 @@ class UuidValidator extends ConstraintValidator
         }
 
         if (!is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
-            throw new UnexpectedTypeException($value, 'string');
+            throw new UnexpectedValueException($value, 'string');
         }
 
         $value = (string) $value;
+
+        if (null !== $constraint->normalizer) {
+            $value = ($constraint->normalizer)($value);
+        }
 
         if ($constraint->strict) {
             $this->validateStrict($value, $constraint);
@@ -89,7 +94,7 @@ class UuidValidator extends ConstraintValidator
         $this->validateLoose($value, $constraint);
     }
 
-    private function validateLoose($value, Uuid $constraint)
+    private function validateLoose(string $value, Uuid $constraint)
     {
         // Error priority:
         // 1. ERROR_INVALID_CHARACTERS
@@ -160,7 +165,7 @@ class UuidValidator extends ConstraintValidator
         }
     }
 
-    private function validateStrict($value, Uuid $constraint)
+    private function validateStrict(string $value, Uuid $constraint)
     {
         // Error priority:
         // 1. ERROR_INVALID_CHARACTERS

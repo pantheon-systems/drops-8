@@ -19,7 +19,7 @@ class OptionsWidgetsTest extends FieldTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'options',
     'entity_test',
@@ -54,7 +54,7 @@ class OptionsWidgetsTest extends FieldTestBase {
    */
   protected $float;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Field storage with cardinality 1.

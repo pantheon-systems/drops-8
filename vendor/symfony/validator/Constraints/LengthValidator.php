@@ -14,6 +14,7 @@ namespace Symfony\Component\Validator\Constraints;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Exception\UnexpectedValueException;
 
 /**
  * @author Bernhard Schussek <bschussek@gmail.com>
@@ -29,15 +30,23 @@ class LengthValidator extends ConstraintValidator
             throw new UnexpectedTypeException($constraint, Length::class);
         }
 
-        if (null === $value || '' === $value) {
+        if (null !== $constraint->min && null === $constraint->allowEmptyString) {
+            @trigger_error(sprintf('Using the "%s" constraint with the "min" option without setting the "allowEmptyString" one is deprecated and defaults to true. In 5.0, it will become optional and default to false.', Length::class), E_USER_DEPRECATED);
+        }
+
+        if (null === $value || ('' === $value && ($constraint->allowEmptyString ?? true))) {
             return;
         }
 
         if (!is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
-            throw new UnexpectedTypeException($value, 'string');
+            throw new UnexpectedValueException($value, 'string');
         }
 
         $stringValue = (string) $value;
+
+        if (null !== $constraint->normalizer) {
+            $stringValue = ($constraint->normalizer)($stringValue);
+        }
 
         try {
             $invalidCharset = !@mb_check_encoding($stringValue, $constraint->charset);

@@ -24,7 +24,7 @@ class ShortcutTranslationUITest extends ContentTranslationUITestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'link',
@@ -40,7 +40,7 @@ class ShortcutTranslationUITest extends ContentTranslationUITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->entityTypeId = 'shortcut';
     $this->bundle = 'default';
     parent::setUp();

@@ -25,6 +25,7 @@ global:
       css/components/fields/recipe-instruction.css: {}
       css/components/fields/summary.css: {}
       css/components/forms/buttons.css: {}
+      css/components/forms/container-inline.module.css: {}
       css/components/views/promoted-items.css: {}
       css/components/views/frontpage.css: {}
       css/components/navigation/menu-footer/menu-footer.css: {}
@@ -75,6 +76,12 @@ two-columns:
   css:
     layout:
       css/layout/layout-2-col.css: {}
+
+user:
+  version: VERSION
+  css:
+    component:
+      css/components/user/user.css: { weight: -10 }
 
 webfonts-open-sans:
   remote: https://fonts.google.com
@@ -130,6 +137,12 @@ oneplusfourgrid_section:
   css:
     theme:
       layouts/oneplusfourgrid_section/oneplusfourgrid_section.css: {}
+
+filter:
+  version: VERSION
+  css:
+    component:
+      css/theme/filter.admin.css: {}
 
 classy.base:
   version: VERSION
@@ -189,12 +202,6 @@ classy.forum:
     component:
       css/classy/components/forum.css: { weight: -10 }
 
-classy.image-widget:
-  version: VERSION
-  css:
-    component:
-      css/classy/components/image-widget.css: {}
-
 classy.indented:
   version: VERSION
   css:
@@ -235,9 +242,3 @@ classy.search-results:
   css:
     component:
       css/classy/components/search-results.css: {}
-
-classy.user:
-  version: VERSION
-  css:
-    component:
-      css/classy/components/user.css: { weight: -10 }

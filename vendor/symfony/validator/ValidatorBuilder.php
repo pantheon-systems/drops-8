@@ -15,9 +15,10 @@ use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\CachedReader;
 use Doctrine\Common\Annotations\Reader;
 use Doctrine\Common\Cache\ArrayCache;
-use Symfony\Component\Translation\IdentityTranslator;
-use Symfony\Component\Translation\TranslatorInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Component\Translation\TranslatorInterface as LegacyTranslatorInterface;
 use Symfony\Component\Validator\Context\ExecutionContextFactory;
+use Symfony\Component\Validator\Exception\LogicException;
 use Symfony\Component\Validator\Exception\ValidatorException;
 use Symfony\Component\Validator\Mapping\Cache\CacheInterface;
 use Symfony\Component\Validator\Mapping\Factory\LazyLoadingMetadataFactory;
@@ -28,7 +29,16 @@ use Symfony\Component\Validator\Mapping\Loader\LoaderInterface;
 use Symfony\Component\Validator\Mapping\Loader\StaticMethodLoader;
 use Symfony\Component\Validator\Mapping\Loader\XmlFileLoader;
 use Symfony\Component\Validator\Mapping\Loader\YamlFileLoader;
+use Symfony\Component\Validator\Util\LegacyTranslatorProxy;
 use Symfony\Component\Validator\Validator\RecursiveValidator;
+use Symfony\Contracts\Translation\LocaleAwareInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
+use Symfony\Contracts\Translation\TranslatorTrait;
+
+// Help opcache.preload discover always-needed symbols
+class_exists(TranslatorInterface::class);
+class_exists(LocaleAwareInterface::class);
+class_exists(TranslatorTrait::class);
 
 /**
  * The default implementation of {@link ValidatorBuilderInterface}.
@@ -38,6 +48,7 @@ use Symfony\Component\Validator\Validator\RecursiveValidator;
 class ValidatorBuilder implements ValidatorBuilderInterface
 {
     private $initializers = [];
+    private $loaders = [];
     private $xmlMappings = [];
     private $yamlMappings = [];
     private $methodMappings = [];
@@ -58,9 +69,9 @@ class ValidatorBuilder implements ValidatorBuilderInterface
     private $validatorFactory;
 
     /**
-     * @var CacheInterface|null
+     * @var CacheItemPoolInterface|null
      */
-    private $metadataCache;
+    private $mappingCache;
 
     /**
      * @var TranslatorInterface|null
@@ -186,8 +197,8 @@ class ValidatorBuilder implements ValidatorBuilderInterface
         }
 
         if (null === $annotationReader) {
-            if (!class_exists('Doctrine\Common\Annotations\AnnotationReader') || !class_exists('Doctrine\Common\Cache\ArrayCache')) {
-                throw new \RuntimeException('Enabling annotation based constraint mapping requires the packages doctrine/annotations and doctrine/cache to be installed.');
+            if (!class_exists(AnnotationReader::class) || !class_exists(ArrayCache::class)) {
+                throw new LogicException('Enabling annotation based constraint mapping requires the packages doctrine/annotations and doctrine/cache to be installed.');
             }
 
             $annotationReader = new CachedReader(new AnnotationReader(), new ArrayCache());
@@ -223,15 +234,37 @@ class ValidatorBuilder implements ValidatorBuilderInterface
     }
 
     /**
-     * {@inheritdoc}
+     * Sets the cache for caching class metadata.
+     *
+     * @return $this
+     *
+     * @deprecated since Symfony 4.4.
      */
     public function setMetadataCache(CacheInterface $cache)
     {
+        @trigger_error(sprintf('%s is deprecated since Symfony 4.4. Use setMappingCache() instead.', __METHOD__), E_USER_DEPRECATED);
+
         if (null !== $this->metadataFactory) {
             throw new ValidatorException('You cannot set a custom metadata cache after setting a custom metadata factory. Configure your metadata factory instead.');
         }
 
-        $this->metadataCache = $cache;
+        $this->mappingCache = $cache;
+
+        return $this;
+    }
+
+    /**
+     * Sets the cache for caching class metadata.
+     *
+     * @return $this
+     */
+    public function setMappingCache(CacheItemPoolInterface $cache)
+    {
+        if (null !== $this->metadataFactory) {
+            throw new ValidatorException('You cannot set a custom mapping cache after setting a custom metadata factory. Configure your metadata factory instead.');
+        }
+
+        $this->mappingCache = $cache;
 
         return $this;
     }
@@ -248,10 +281,16 @@ class ValidatorBuilder implements ValidatorBuilderInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @final since Symfony 4.2
      */
-    public function setTranslator(TranslatorInterface $translator)
+    public function setTranslator(LegacyTranslatorInterface $translator)
     {
         $this->translator = $translator;
+
+        while ($this->translator instanceof LegacyTranslatorProxy) {
+            $this->translator = $this->translator->getTranslator();
+        }
 
         return $this;
     }
@@ -262,6 +301,16 @@ class ValidatorBuilder implements ValidatorBuilderInterface
     public function setTranslationDomain($translationDomain)
     {
         $this->translationDomain = $translationDomain;
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function addLoader(LoaderInterface $loader)
+    {
+        $this->loaders[] = $loader;
 
         return $this;
     }
@@ -289,7 +338,7 @@ class ValidatorBuilder implements ValidatorBuilderInterface
             $loaders[] = new AnnotationLoader($this->annotationReader);
         }
 
-        return $loaders;
+        return array_merge($loaders, $this->loaders);
     }
 
     /**
@@ -309,14 +358,16 @@ class ValidatorBuilder implements ValidatorBuilderInterface
                 $loader = $loaders[0];
             }
 
-            $metadataFactory = new LazyLoadingMetadataFactory($loader, $this->metadataCache);
+            $metadataFactory = new LazyLoadingMetadataFactory($loader, $this->mappingCache);
         }
 
         $validatorFactory = $this->validatorFactory ?: new ConstraintValidatorFactory();
         $translator = $this->translator;
 
         if (null === $translator) {
-            $translator = new IdentityTranslator();
+            $translator = new class() implements TranslatorInterface, LocaleAwareInterface {
+                use TranslatorTrait;
+            };
             // Force the locale to be 'en' when no translator is provided rather than relying on the Intl default locale
             // This avoids depending on Intl or the stub implementation being available. It also ensures that Symfony
             // validation messages are pluralized properly even when the default locale gets changed because they are in

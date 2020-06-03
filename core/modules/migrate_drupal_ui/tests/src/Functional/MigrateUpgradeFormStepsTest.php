@@ -20,7 +20,7 @@ class MigrateUpgradeFormStepsTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['migrate_drupal_ui'];
+  protected static $modules = ['migrate_drupal_ui'];
 
   /**
    * {@inheritdoc}
@@ -30,7 +30,7 @@ class MigrateUpgradeFormStepsTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Log in as user 1. Migrations in the UI can only be performed as user 1.
     $this->drupalLogin($this->rootUser);

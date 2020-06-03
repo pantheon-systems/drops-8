@@ -19,7 +19,7 @@ class ConfigImportUITest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'config',
     'config_test',
     'config_import_test',
@@ -39,7 +39,7 @@ class ConfigImportUITest extends BrowserTestBase {
    */
   protected $webUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->webUser = $this->drupalCreateUser(['synchronize configuration']);
@@ -63,7 +63,7 @@ class ConfigImportUITest extends BrowserTestBase {
     // Create updated configuration object.
     $new_site_name = 'Config import test ' . $this->randomString();
     $this->prepareSiteNameUpdate($new_site_name);
-    $this->assertIdentical($sync->exists($name), TRUE, $name . ' found.');
+    $this->assertTrue($sync->exists($name), $name . ' found.');
 
     // Create new config entity.
     $original_dynamic_data = [
@@ -80,7 +80,7 @@ class ConfigImportUITest extends BrowserTestBase {
       'protected_property' => '',
     ];
     $sync->write($dynamic_name, $original_dynamic_data);
-    $this->assertIdentical($sync->exists($dynamic_name), TRUE, $dynamic_name . ' found.');
+    $this->assertTrue($sync->exists($dynamic_name), $dynamic_name . ' found.');
 
     // Enable the Automated Cron and Ban modules during import. The Ban
     // module is used because it creates a table during the install.
@@ -90,8 +90,8 @@ class ConfigImportUITest extends BrowserTestBase {
     $core_extension['module']['automated_cron'] = 0;
     $core_extension['module']['ban'] = 0;
     $core_extension['module'] = module_config_sort($core_extension['module']);
-    // Bartik is a subtheme of classy so classy must be enabled.
-    $core_extension['theme']['classy'] = 0;
+    // Bartik is a subtheme of Stable so Stable must be enabled.
+    $core_extension['theme']['stable'] = 0;
     $core_extension['theme']['bartik'] = 0;
     $sync->write('core.extension', $core_extension);
 
@@ -499,7 +499,7 @@ class ConfigImportUITest extends BrowserTestBase {
    */
   public function testExtensionValidation() {
     \Drupal::service('module_installer')->install(['node']);
-    \Drupal::service('theme_installer')->install(['bartik']);
+    \Drupal::service('theme_installer')->install(['test_subtheme']);
     $this->rebuildContainer();
 
     $sync = $this->container->get('config.storage.sync');
@@ -509,10 +509,10 @@ class ConfigImportUITest extends BrowserTestBase {
     unset($core['module']['text']);
     $module_data = $this->container->get('extension.list.module')->getList();
     $this->assertTrue(isset($module_data['node']->requires['text']), 'The Node module depends on the Text module.');
-    // Bartik depends on classy.
-    unset($core['theme']['classy']);
+    // Bartik depends on Stable.
+    unset($core['theme']['test_basetheme']);
     $theme_data = \Drupal::service('theme_handler')->rebuildThemeData();
-    $this->assertTrue(isset($theme_data['bartik']->requires['classy']), 'The Bartik theme depends on the Classy theme.');
+    $this->assertTrue(isset($theme_data['test_subtheme']->requires['test_basetheme']), 'The Test Subtheme theme depends on the Test Basetheme theme.');
     // This module does not exist.
     $core['module']['does_not_exist'] = 0;
     // This theme does not exist.
@@ -522,7 +522,7 @@ class ConfigImportUITest extends BrowserTestBase {
     $this->drupalPostForm('admin/config/development/configuration', [], t('Import all'));
     $this->assertText('The configuration cannot be imported because it failed validation for the following reasons:');
     $this->assertText('Unable to uninstall the Text module since the Node module is installed.');
-    $this->assertText('Unable to uninstall the Classy theme since the Bartik theme is installed.');
+    $this->assertText('Unable to uninstall the Theme test base theme theme since the Theme test subtheme theme is installed.');
     $this->assertText('Unable to install the does_not_exist module since it does not exist.');
     $this->assertText('Unable to install the does_not_exist theme since it does not exist.');
   }

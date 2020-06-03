@@ -18,7 +18,7 @@ class FileListingTest extends FileFieldTestBase {
    *
    * @var array
    */
-  public static $modules = ['views', 'file', 'image', 'entity_test'];
+  protected static $modules = ['views', 'file', 'image', 'entity_test'];
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,7 @@ class FileListingTest extends FileFieldTestBase {
    */
   protected $baseUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // This test expects unused managed files to be marked as a temporary file.
@@ -50,6 +50,7 @@ class FileListingTest extends FileFieldTestBase {
    *
    * @param $usage array
    *   Array of file usage information as returned from file_usage subsystem.
+   *
    * @return int
    *   Total usage count.
    */

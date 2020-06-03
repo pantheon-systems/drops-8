@@ -24,7 +24,7 @@ class SaveUploadTest extends FileManagedTestBase {
    *
    * @var array
    */
-  public static $modules = ['dblog'];
+  protected static $modules = ['dblog'];
 
   /**
    * {@inheritdoc}
@@ -59,7 +59,7 @@ class SaveUploadTest extends FileManagedTestBase {
    */
   protected $imageExtension;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $account = $this->drupalCreateUser(['access site reports']);
     $this->drupalLogin($account);

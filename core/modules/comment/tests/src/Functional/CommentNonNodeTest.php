@@ -26,7 +26,7 @@ class CommentNonNodeTest extends BrowserTestBase {
   use FieldUiTestTrait;
   use CommentTestTrait;
 
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'user',
     'field_ui',
@@ -56,7 +56,7 @@ class CommentNonNodeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('system_breadcrumb_block');
     $this->drupalPlaceBlock('page_title_block');

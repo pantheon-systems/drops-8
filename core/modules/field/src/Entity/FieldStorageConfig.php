@@ -377,9 +377,9 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
     // invokes hook_field_storage_config_update_forbid().
     $module_handler->invokeAll('field_storage_config_update_forbid', [$this, $this->original]);
 
-    // Notify the entity manager. A listener can reject the definition
-    // update as invalid by raising an exception, which stops execution before
-    // the definition is written to config.
+    // Notify the field storage definition listener. A listener can reject the
+    // definition update as invalid by raising an exception, which stops
+    // execution before the definition is written to config.
     \Drupal::service('field_storage_definition.listener')->onFieldStorageDefinitionUpdate($this, $this->original);
   }
 
@@ -691,13 +691,6 @@ class FieldStorageConfig extends ConfigEntityBase implements FieldStorageConfigI
    */
   public function getTargetEntityTypeId() {
     return $this->entity_type;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function isQueryable() {
-    return TRUE;
   }
 
   /**

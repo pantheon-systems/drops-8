@@ -66,7 +66,7 @@ class Command
      *
      * @throws LogicException When the command name is empty
      */
-    public function __construct($name = null)
+    public function __construct(string $name = null)
     {
         $this->definition = new InputDefinition();
 
@@ -150,7 +150,7 @@ class Command
      * execute() method, you set the code to execute by passing
      * a Closure to the setCode() method.
      *
-     * @return int|null null or 0 if everything went fine, or an error code
+     * @return int 0 if everything went fine, or an exit code
      *
      * @throws LogicException When this abstract method is not implemented
      *
@@ -250,9 +250,13 @@ class Command
         $input->validate();
 
         if ($this->code) {
-            $statusCode = \call_user_func($this->code, $input, $output);
+            $statusCode = ($this->code)($input, $output);
         } else {
             $statusCode = $this->execute($input, $output);
+
+            if (!\is_int($statusCode)) {
+                @trigger_error(sprintf('Return value of "%s::execute()" should always be of the type int since Symfony 4.4, %s returned.', static::class, \gettype($statusCode)), E_USER_DEPRECATED);
+            }
         }
 
         return is_numeric($statusCode) ? (int) $statusCode : 0;
@@ -277,15 +281,7 @@ class Command
         if ($code instanceof \Closure) {
             $r = new \ReflectionFunction($code);
             if (null === $r->getClosureThis()) {
-                if (\PHP_VERSION_ID < 70000) {
-                    // Bug in PHP5: https://bugs.php.net/64761
-                    // This means that we cannot bind static closures and therefore we must
-                    // ignore any errors here.  There is no way to test if the closure is
-                    // bindable.
-                    $code = @\Closure::bind($code, $this);
-                } else {
-                    $code = \Closure::bind($code, $this);
-                }
+                $code = \Closure::bind($code, $this);
             }
         }
 
@@ -655,11 +651,9 @@ class Command
      *
      * It must be non-empty and parts can optionally be separated by ":".
      *
-     * @param string $name
-     *
      * @throws InvalidArgumentException When the name is invalid
      */
-    private function validateName($name)
+    private function validateName(string $name)
     {
         if (!preg_match('/^[^\:]++(\:[^\:]++)*$/', $name)) {
             throw new InvalidArgumentException(sprintf('Command name "%s" is invalid.', $name));

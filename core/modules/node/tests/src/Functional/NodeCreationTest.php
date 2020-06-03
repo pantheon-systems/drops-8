@@ -21,14 +21,18 @@ class NodeCreationTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['node_test_exception', 'dblog', 'test_page_test'];
+  protected static $modules = [
+    'node_test_exception',
+    'dblog',
+    'test_page_test',
+  ];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $web_user = $this->drupalCreateUser(['create page content', 'edit own page content']);

@@ -18,7 +18,7 @@ class FieldUIRouteTest extends BrowserTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['block', 'entity_test', 'field_ui'];
+  protected static $modules = ['block', 'entity_test', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class FieldUIRouteTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->rootUser);

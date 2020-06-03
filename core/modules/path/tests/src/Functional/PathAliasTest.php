@@ -19,14 +19,14 @@ class PathAliasTest extends PathTestBase {
    *
    * @var array
    */
-  public static $modules = ['path'];
+  protected static $modules = ['path'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create test user and log in.

@@ -20,7 +20,7 @@ class PendingRevisionTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'taxonomy',
     'node',
     'user',
@@ -32,7 +32,7 @@ class PendingRevisionTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');

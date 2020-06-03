@@ -27,7 +27,7 @@ class MenuLinkContentCacheabilityBubblingTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'menu_link_content',
     'system',
     'link',
@@ -39,7 +39,7 @@ class MenuLinkContentCacheabilityBubblingTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->setUpCurrentUser(['uid' => 0]);

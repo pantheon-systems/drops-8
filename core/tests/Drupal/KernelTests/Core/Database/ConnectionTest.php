@@ -2,7 +2,6 @@
 
 namespace Drupal\KernelTests\Core\Database;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Database\DatabaseExceptionWrapper;
 use Drupal\Core\Database\Query\Condition;
@@ -100,7 +99,7 @@ class ConnectionTest extends DatabaseTestBase {
     Database::addConnectionInfo('default', 'replica', $connection_info['default']);
     $db2 = Database::getConnection('replica', 'default');
     // Getting a driver class ensures the namespace option is set.
-    $this->assertEquals($db->getDriverClass('select'), $db2->getDriverClass('select'));
+    $this->assertEquals($db->getDriverClass('Select'), $db2->getDriverClass('Select'));
     $connectionOptions2 = $db2->getConnectionOptions();
 
     // Get a fresh copy of the default connection options.
@@ -154,25 +153,6 @@ class ConnectionTest extends DatabaseTestBase {
     }
     catch (\InvalidArgumentException $e) {
       $this->pass('Exception thrown for multiple statements.');
-    }
-  }
-
-  /**
-   * Test the escapeTable(), escapeField() and escapeAlias() methods with all possible reserved words in PostgreSQL.
-   */
-  public function testPostgresqlReservedWords() {
-    if (Database::getConnection()->databaseType() !== 'pgsql') {
-      $this->markTestSkipped("This test only runs for PostgreSQL");
-    }
-
-    $db = Database::getConnection('default', 'default');
-    $stmt = $db->query("SELECT word FROM pg_get_keywords() WHERE catcode IN ('R', 'T')");
-    $stmt->execute();
-    foreach ($stmt->fetchAllAssoc('word') as $word => $row) {
-      $expected = '"' . $word . '"';
-      $this->assertIdentical($db->escapeTable($word), $expected, new FormattableMarkup('The reserved word %word was correctly escaped when used as a table name.', ['%word' => $word]));
-      $this->assertIdentical($db->escapeField($word), $expected, new FormattableMarkup('The reserved word %word was correctly escaped when used as a column name.', ['%word' => $word]));
-      $this->assertIdentical($db->escapeAlias($word), $expected, new FormattableMarkup('The reserved word %word was correctly escaped when used as an alias.', ['%word' => $word]));
     }
   }
 

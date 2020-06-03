@@ -19,7 +19,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'basic_auth',
   ];
 
@@ -56,7 +56,7 @@ class JsonApiFunctionalTest extends JsonApiFunctionalTestBase {
       'query' => ['page' => ['offset' => 3]] + $default_sort,
     ]));
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertEquals(OffsetPage::SIZE_MAX, count($collection_output['data']));
+    $this->assertCount(OffsetPage::SIZE_MAX, $collection_output['data']);
     $this->assertStringContainsString('page%5Boffset%5D=53', $collection_output['links']['next']['href']);
     // 3. Load all articles (1st page, 2 items)
     $collection_output = Json::decode($this->drupalGet('/jsonapi/node/article', [

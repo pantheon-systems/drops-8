@@ -27,7 +27,7 @@ class ExposedFormCheckboxesTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'views_ui', 'taxonomy'];
+  protected static $modules = ['node', 'views_ui', 'taxonomy'];
 
   /**
    * {@inheritdoc}
@@ -51,7 +51,7 @@ class ExposedFormCheckboxesTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp(FALSE);
 
     // Create a vocabulary and entity reference field so we can test the "is all

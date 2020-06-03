@@ -13,7 +13,6 @@ use Drupal\layout_builder\Entity\LayoutBuilderEntityViewDisplay;
 use Drupal\layout_builder\Plugin\SectionStorage\OverridesSectionStorage;
 use Drupal\layout_builder\Section;
 use Drupal\layout_builder\SectionComponent;
-use Drupal\layout_builder\SectionListInterface;
 use Drupal\Tests\user\Traits\UserCreationTrait;
 
 /**
@@ -48,7 +47,7 @@ class OverridesSectionStorageTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->setUpCurrentUser();
@@ -110,9 +109,9 @@ class OverridesSectionStorageTest extends KernelTestBase {
     // Perform the same checks again but with a non default translation which
     // should always deny access.
     $result = $this->plugin->access('view');
-    $this->assertSame(FALSE, $result);
+    $this->assertFalse($result);
     $result = $this->plugin->access('view', $account);
-    $this->assertSame(FALSE, $result);
+    $this->assertFalse($result);
   }
 
   /**
@@ -206,19 +205,6 @@ class OverridesSectionStorageTest extends KernelTestBase {
     $result = $this->plugin->getContextsDuringPreview();
     $this->assertEquals($expected, array_keys($result));
     $this->assertSame($context, $result['layout_builder.entity']);
-  }
-
-  /**
-   * @covers ::setSectionList
-   *
-   * @expectedDeprecation \Drupal\layout_builder\SectionStorageInterface::setSectionList() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. This method should no longer be used. The section list should be derived from context. See https://www.drupal.org/node/3016262.
-   * @group legacy
-   */
-  public function testSetSectionList() {
-    $section_list = $this->prophesize(SectionListInterface::class);
-    $this->expectException(\Exception::class);
-    $this->expectExceptionMessage('\Drupal\layout_builder\SectionStorageInterface::setSectionList() must no longer be called. The section list should be derived from context. See https://www.drupal.org/node/3016262.');
-    $this->plugin->setSectionList($section_list->reveal());
   }
 
   /**

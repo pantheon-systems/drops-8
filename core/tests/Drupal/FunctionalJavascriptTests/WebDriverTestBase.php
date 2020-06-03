@@ -5,8 +5,6 @@ namespace Drupal\FunctionalJavascriptTests;
 use Behat\Mink\Exception\DriverException;
 use Drupal\Tests\BrowserTestBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Zumba\GastonJS\Exception\DeadClient;
-use Zumba\Mink\Driver\PhantomJSDriver;
 
 /**
  * Runs a browser test using a driver that supports Javascript.
@@ -29,8 +27,6 @@ abstract class WebDriverTestBase extends BrowserTestBase {
 
   /**
    * {@inheritdoc}
-   *
-   * To use a legacy phantomjs based approach, please use PhantomJSDriver::class.
    */
   protected $minkDefaultDriverClass = DrupalSelenium2Driver::class;
 
@@ -38,26 +34,13 @@ abstract class WebDriverTestBase extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected function initMink() {
-    if ($this->minkDefaultDriverClass === DrupalSelenium2Driver::class) {
-      $this->minkDefaultDriverArgs = ['chrome', NULL, 'http://localhost:4444'];
+    if (!is_a($this->minkDefaultDriverClass, DrupalSelenium2Driver::class, TRUE)) {
+      throw new \UnexpectedValueException(sprintf("%s has to be an instance of %s", $this->minkDefaultDriverClass, DrupalSelenium2Driver::class));
     }
-    elseif ($this->minkDefaultDriverClass === PhantomJSDriver::class) {
-      // Set up the template cache used by the PhantomJS mink driver.
-      $path = $this->tempFilesDirectory . DIRECTORY_SEPARATOR . 'browsertestbase-templatecache';
-      $this->minkDefaultDriverArgs = [
-        'http://127.0.0.1:8510',
-        $path,
-      ];
-      if (!file_exists($path)) {
-        mkdir($path);
-      }
-    }
+    $this->minkDefaultDriverArgs = ['chrome', NULL, 'http://localhost:4444'];
 
     try {
       return parent::initMink();
-    }
-    catch (DeadClient $e) {
-      $this->markTestSkipped('PhantomJS is either not installed or not running. Start it via phantomjs --ssl-protocol=any --ignore-ssl-errors=true vendor/jcalderonzumba/gastonjs/src/Client/main.js 8510 1024 768&');
     }
     catch (DriverException $e) {
       if ($this->minkDefaultDriverClass === DrupalSelenium2Driver::class) {
@@ -125,44 +108,9 @@ abstract class WebDriverTestBase extends BrowserTestBase {
     */
   protected function getMinkDriverArgs() {
     if ($this->minkDefaultDriverClass === DrupalSelenium2Driver::class) {
-      return getenv('MINK_DRIVER_ARGS_WEBDRIVER') ?: getenv('MINK_DRIVER_ARGS_PHANTOMJS') ?: parent::getMinkDriverArgs();
-    }
-    elseif ($this->minkDefaultDriverClass === PhantomJSDriver::class) {
-      return getenv('MINK_DRIVER_ARGS_PHANTOMJS') ?: parent::getMinkDriverArgs();
+      return getenv('MINK_DRIVER_ARGS_WEBDRIVER') ?: parent::getMinkDriverArgs();
     }
     return parent::getMinkDriverArgs();
-  }
-
-  /**
-   * Asserts that the element with the given CSS selector is visible.
-   *
-   * @param string $css_selector
-   *   The CSS selector identifying the element to check.
-   * @param string $message
-   *   Optional message to show alongside the assertion.
-   *
-   * @deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use
-   *   \Behat\Mink\Element\NodeElement::isVisible() instead.
-   */
-  protected function assertElementVisible($css_selector, $message = '') {
-    $this->assertTrue($this->getSession()->getDriver()->isVisible($this->cssSelectToXpath($css_selector)), $message);
-    @trigger_error('The ' . __METHOD__ . ' method is deprecated since version 8.1.0 and will be removed in 9.0.0. Use \Behat\Mink\Element\NodeElement::isVisible() instead.', E_USER_DEPRECATED);
-  }
-
-  /**
-   * Asserts that the element with the given CSS selector is not visible.
-   *
-   * @param string $css_selector
-   *   The CSS selector identifying the element to check.
-   * @param string $message
-   *   Optional message to show alongside the assertion.
-   *
-   * @deprecated in drupal:8.1.0 and is removed from drupal:9.0.0. Use
-   *   \Behat\Mink\Element\NodeElement::isVisible() instead.
-   */
-  protected function assertElementNotVisible($css_selector, $message = '') {
-    $this->assertFalse($this->getSession()->getDriver()->isVisible($this->cssSelectToXpath($css_selector)), $message);
-    @trigger_error('The ' . __METHOD__ . ' method is deprecated since version 8.1.0 and will be removed in 9.0.0. Use \Behat\Mink\Element\NodeElement::isVisible() instead.', E_USER_DEPRECATED);
   }
 
   /**
@@ -190,8 +138,8 @@ abstract class WebDriverTestBase extends BrowserTestBase {
    * Creates a screenshot.
    *
    * @param string $filename
-   *   The file name of the resulting screenshot. If using the default phantomjs
-   *   driver then this should be a JPG filename.
+   *   The file name of the resulting screenshot including a writeable path. For
+   *   example, /tmp/test_screenshot.jpg.
    * @param bool $set_background_color
    *   (optional) By default this method will set the background color to white.
    *   Set to FALSE to override this behavior.

@@ -29,7 +29,7 @@ class ContactSitewideTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'text',
     'contact',
     'field_ui',
@@ -47,7 +47,7 @@ class ContactSitewideTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('system_breadcrumb_block');
     $this->drupalPlaceBlock('local_actions_block');

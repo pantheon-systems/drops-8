@@ -76,7 +76,7 @@ class EntityTypeTest extends UnitTestCase {
   public function testGetKey($entity_keys, $expected) {
     $entity_type = $this->setUpEntityType(['entity_keys' => $entity_keys]);
     $this->assertSame($expected['bundle'], $entity_type->getKey('bundle'));
-    $this->assertSame(FALSE, $entity_type->getKey('bananas'));
+    $this->assertFalse($entity_type->getKey('bananas'));
   }
 
   /**
@@ -88,7 +88,7 @@ class EntityTypeTest extends UnitTestCase {
     $entity_type = $this->setUpEntityType(['entity_keys' => $entity_keys]);
     $this->assertSame(!empty($expected['bundle']), $entity_type->hasKey('bundle'));
     $this->assertSame(!empty($expected['id']), $entity_type->hasKey('id'));
-    $this->assertSame(FALSE, $entity_type->hasKey('bananas'));
+    $this->assertFalse($entity_type->hasKey('bananas'));
   }
 
   /**
@@ -494,8 +494,8 @@ class EntityTypeTest extends UnitTestCase {
    */
   public function testEntityClassImplements() {
     $entity_type = $this->setUpEntityType(['class' => EntityFormMode::class]);
-    $this->assertSame(TRUE, $entity_type->entityClassImplements(ConfigEntityInterface::class));
-    $this->assertSame(FALSE, $entity_type->entityClassImplements(\DateTimeInterface::class));
+    $this->assertTrue($entity_type->entityClassImplements(ConfigEntityInterface::class));
+    $this->assertFalse($entity_type->entityClassImplements(\DateTimeInterface::class));
   }
 
   /**
@@ -505,8 +505,8 @@ class EntityTypeTest extends UnitTestCase {
    */
   public function testIsSubClassOf() {
     $entity_type = $this->setUpEntityType(['class' => EntityFormMode::class]);
-    $this->assertSame(TRUE, $entity_type->isSubclassOf(ConfigEntityInterface::class));
-    $this->assertSame(FALSE, $entity_type->isSubclassOf(\DateTimeInterface::class));
+    $this->assertTrue($entity_type->isSubclassOf(ConfigEntityInterface::class));
+    $this->assertFalse($entity_type->isSubclassOf(\DateTimeInterface::class));
   }
 
   /**
@@ -525,49 +525,6 @@ class EntityTypeTest extends UnitTestCase {
     $entity_type = unserialize(serialize($entity_type));
 
     $this->assertEquals('example_entity_type', $entity_type->id());
-  }
-
-  /**
-   * @covers ::getLabelCallback
-   *
-   * @group legacy
-   *
-   * @deprecatedMessage EntityType::getLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
-   */
-  public function testGetLabelCallack() {
-    $entity_type = $this->setUpEntityType(['label_callback' => 'label_function']);
-    $this->assertSame('label_function', $entity_type->getLabelCallback());
-
-    $entity_type = $this->setUpEntityType([]);
-    $this->assertNull($entity_type->getLabelCallback());
-  }
-
-  /**
-   * @covers ::setLabelCallback
-   *
-   * @group legacy
-   *
-   * @deprecatedMessage EntityType::setLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
-   */
-  public function testSetLabelCallack() {
-    $entity_type = $this->setUpEntityType([]);
-    $entity_type->setLabelCallback('label_function');
-    $this->assertSame('label_function', $entity_type->get('label_callback'));
-  }
-
-  /**
-   * @covers ::hasLabelCallback
-   *
-   * @group legacy
-   *
-   * @deprecatedMessage EntityType::hasLabelCallback() is deprecated in drupal:8.0.0 and is removed from drupal:9.0.0. Override the EntityInterface::label() method instead for dynamic labels. See https://www.drupal.org/node/3050794
-   */
-  public function testHasLabelCallack() {
-    $entity_type = $this->setUpEntityType(['label_callback' => 'label_function']);
-    $this->assertTrue($entity_type->hasLabelCallback());
-
-    $entity_type = $this->setUpEntityType([]);
-    $this->assertFalse($entity_type->hasLabelCallback());
   }
 
 }

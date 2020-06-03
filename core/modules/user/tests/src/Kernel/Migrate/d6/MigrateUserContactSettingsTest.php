@@ -14,12 +14,12 @@ class MigrateUserContactSettingsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['contact'];
+  protected static $modules = ['contact'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateUsers(FALSE);
     $this->installSchema('user', ['users_data']);

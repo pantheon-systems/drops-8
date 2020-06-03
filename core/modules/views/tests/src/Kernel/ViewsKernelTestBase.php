@@ -28,7 +28,7 @@ abstract class ViewsKernelTestBase extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'path_alias',
     'system',
     'views',

@@ -45,12 +45,12 @@ class DbLogResourceTest extends ResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['hal', 'dblog'];
+  protected static $modules = ['hal', 'dblog'];
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $auth = isset(static::$auth) ? [static::$auth] : [];
@@ -79,7 +79,7 @@ class DbLogResourceTest extends ResourceTestBase {
     $this->setUpAuthorization('GET');
 
     $response = $this->request('GET', $url, $request_options);
-    $this->assertResourceResponse(200, FALSE, $response, ['config:rest.resource.dblog', 'config:rest.settings', 'http_response'], ['user.permissions'], FALSE, 'MISS');
+    $this->assertResourceResponse(200, FALSE, $response, ['config:rest.resource.dblog', 'http_response'], ['user.permissions'], FALSE, 'MISS');
     $log = Json::decode((string) $response->getBody());
     $this->assertEqual($log['wid'], $id, 'Log ID is correct.');
     $this->assertEqual($log['type'], 'rest', 'Type of log message is correct.');

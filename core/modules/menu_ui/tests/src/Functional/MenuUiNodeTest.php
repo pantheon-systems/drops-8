@@ -26,7 +26,7 @@ class MenuUiNodeTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'menu_ui',
     'test_page_test',
     'node',
@@ -41,7 +41,7 @@ class MenuUiNodeTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('system_menu_block:main');

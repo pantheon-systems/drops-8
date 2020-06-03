@@ -29,7 +29,7 @@ class LinkFieldTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'link',
     'node',
@@ -55,7 +55,7 @@ class LinkFieldTest extends BrowserTestBase {
    */
   protected $field;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->drupalCreateUser([

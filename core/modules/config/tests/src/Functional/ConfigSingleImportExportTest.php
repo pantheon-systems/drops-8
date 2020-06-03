@@ -17,7 +17,7 @@ class ConfigSingleImportExportTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'config',
     'config_test',
@@ -31,7 +31,7 @@ class ConfigSingleImportExportTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('page_title_block');

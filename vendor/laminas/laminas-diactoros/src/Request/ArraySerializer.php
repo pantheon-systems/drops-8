@@ -6,12 +6,15 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros\Request;
 
+use Laminas\Diactoros\Exception;
 use Laminas\Diactoros\Request;
 use Laminas\Diactoros\Stream;
 use Psr\Http\Message\RequestInterface;
-use UnexpectedValueException;
+use Throwable;
 
 use function sprintf;
 
@@ -26,11 +29,8 @@ final class ArraySerializer
 {
     /**
      * Serialize a request message to an array.
-     *
-     * @param RequestInterface $request
-     * @return array
      */
-    public static function toArray(RequestInterface $request)
+    public static function toArray(RequestInterface $request) : array
     {
         return [
             'method'           => $request->getMethod(),
@@ -45,11 +45,9 @@ final class ArraySerializer
     /**
      * Deserialize a request array to a request instance.
      *
-     * @param array $serializedRequest
-     * @return Request
-     * @throws UnexpectedValueException when cannot deserialize response
+     * @throws Exception\DeserializationException when cannot deserialize response
      */
-    public static function fromArray(array $serializedRequest)
+    public static function fromArray(array $serializedRequest) : Request
     {
         try {
             $uri             = self::getValueFromKey($serializedRequest, 'uri');
@@ -63,19 +61,16 @@ final class ArraySerializer
             return (new Request($uri, $method, $body, $headers))
                 ->withRequestTarget($requestTarget)
                 ->withProtocolVersion($protocolVersion);
-        } catch (\Exception $exception) {
-            throw new UnexpectedValueException('Cannot deserialize request', null, $exception);
+        } catch (Throwable $exception) {
+            throw Exception\DeserializationException::forRequestFromArray($exception);
         }
     }
 
     /**
-     * @param array $data
-     * @param string $key
-     * @param string $message
      * @return mixed
-     * @throws UnexpectedValueException
+     * @throws Exception\DeserializationException
      */
-    private static function getValueFromKey(array $data, $key, $message = null)
+    private static function getValueFromKey(array $data, string $key, string $message = null)
     {
         if (isset($data[$key])) {
             return $data[$key];
@@ -83,6 +78,6 @@ final class ArraySerializer
         if ($message === null) {
             $message = sprintf('Missing "%s" key in serialized request', $key);
         }
-        throw new UnexpectedValueException($message);
+        throw new Exception\DeserializationException($message);
     }
 }

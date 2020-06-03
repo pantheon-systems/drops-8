@@ -20,12 +20,12 @@ class ContentNegotiationRoutingTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['conneg_test', 'path_alias'];
+  protected static $modules = ['conneg_test', 'path_alias'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('path_alias');

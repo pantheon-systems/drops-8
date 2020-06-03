@@ -16,14 +16,14 @@ class VocabularyPermissionsTest extends TaxonomyTestBase {
    *
    * @var array
    */
-  public static $modules = ['help'];
+  protected static $modules = ['help'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('page_title_block');

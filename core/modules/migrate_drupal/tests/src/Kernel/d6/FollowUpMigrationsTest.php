@@ -15,7 +15,7 @@ class FollowUpMigrationsTest extends MigrateNodeTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'content_translation',
     'language',
     'menu_ui',
@@ -26,7 +26,7 @@ class FollowUpMigrationsTest extends MigrateNodeTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executeMigrations([
       'language',

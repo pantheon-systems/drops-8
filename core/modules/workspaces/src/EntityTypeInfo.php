@@ -124,9 +124,7 @@ class EntityTypeInfo implements ContainerInjectionInterface {
    */
   public function entityBaseFieldInfo(EntityTypeInterface $entity_type) {
     if ($this->workspaceManager->isEntityTypeSupported($entity_type)) {
-      // Disable the BC layer to prevent a recursion, this only needs the
-      // workspace key that is always set.
-      $field_name = $entity_type->getRevisionMetadataKeys(FALSE)['workspace'];
+      $field_name = $entity_type->getRevisionMetadataKey('workspace');
       $fields[$field_name] = BaseFieldDefinition::create('entity_reference')
         ->setLabel(new TranslatableMarkup('Workspace'))
         ->setDescription(new TranslatableMarkup('Indicates the workspace that this revision belongs to.'))

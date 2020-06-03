@@ -12,17 +12,6 @@ backbone:
   dependencies:
     - core/underscore
 
-classList:
-  remote: https://github.com/eligrey/classList.js
-  version: "2014-12-13"
-  license:
-    name: Public Domain
-    url: https://github.com/eligrey/classList.js/blob/2014-12-13/LICENSE.md
-    gpl-compatible: true
-  js:
-    assets/vendor/classList/classList.min.js: { weight: -21, browsers: { IE: 'lte IE 9', '!IE': false }, minified: true }
-  deprecated: The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use the the native browser implementation instead. See https://www.drupal.org/node/3089511
-
 ckeditor:
   remote: https://github.com/ckeditor/ckeditor-dev
   version: "4.14.0"
@@ -32,17 +21,6 @@ ckeditor:
     gpl-compatible: true
   js:
     assets/vendor/ckeditor/ckeditor.js: { preprocess: false, minified: true }
-
-domready:
-  remote: https://github.com/ded/domready
-  version: "1.0.8"
-  license:
-    name: MIT
-    url: https://github.com/ded/domready/blob/v1.0.8/LICENSE
-    gpl-compatible: true
-  js:
-    assets/vendor/domready/ready.min.js: { weight: -21, minified: true }
-  deprecated: The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3086669
 
 drupal:
   version: VERSION
@@ -79,7 +57,6 @@ drupal.active-link:
   dependencies:
     - core/drupal
     - core/drupalSettings
-    - core/classList
 
 drupal.ajax:
   version: VERSION
@@ -117,6 +94,11 @@ drupal.autocomplete:
     - core/drupalSettings
     - core/drupal.ajax
     - core/jquery.ui.autocomplete
+
+drupal.array.find:
+  version: VERSION
+  js:
+    misc/polyfills/array.find.js: { weight: -20 }
 
 drupal.batch:
   version: VERSION
@@ -157,7 +139,6 @@ drupal.date:
     - core/drupal
     - core/modernizr
     - core/jquery.once
-    - core/jquery.ui.datepicker
 
 drupal.debounce:
   version: VERSION
@@ -347,20 +328,15 @@ drupal.vertical-tabs:
     - core/drupal
     - core/drupalSettings
     - core/drupal.form
-    - core/matchmedia
 
-html5shiv:
-  # Block the page from being loaded until html5shiv is initialized.
-  header: true
-  remote: https://github.com/aFarkas/html5shiv
-  version: "3.7.3"
+es6-promise:
+  version: "4.2.8"
   license:
-    name: GNU-GPL-2.0-or-later
-    url: http://www.gnu.org/licenses/gpl-2.0.html
+    name: MIT
+    url: https://github.com/stefanpenner/es6-promise/blob/v4.2.8/LICENSE
     gpl-compatible: true
   js:
-    assets/vendor/html5shiv/html5shiv.min.js: { weight: -22, browsers: { IE: 'lte IE 8', '!IE': false }, minified: true }
-  deprecated: The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3086383
+    assets/vendor/es6-promise/es6-promise.auto.min.js: { weight: -20, minified: true }
 
 jquery:
   remote: https://github.com/jquery/jquery
@@ -380,7 +356,7 @@ jquery.cookie:
     - core/jquery
     - core/drupal
     - core/js-cookie
-    - core/drupal.object.assign
+  deprecated: The %library_id% asset library is deprecated in Drupal 9.0.0 and will be removed in Drupal 10.0.0. Use the core/js-cookie library instead. See https://www.drupal.org/node/3104677
 
 jquery.farbtastic:
   remote: https://github.com/mattfarina/farbtastic
@@ -440,7 +416,6 @@ jquery.once:
     - core/jquery
 
 jquery.ui:
-  remote: https://github.com/jquery/jquery-ui
   version: &jquery_ui_version 1.12.1
   license: &jquery_ui_license
     name: Public Domain
@@ -471,19 +446,6 @@ jquery.ui:
   dependencies:
     - core/jquery
 
-jquery.ui.accordion:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/accordion-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/accordion.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-  deprecated: &jquery_ui_unused_deprecated The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3067969
-
 jquery.ui.autocomplete:
   version: *jquery_ui_version
   license: *jquery_ui_license
@@ -502,68 +464,36 @@ jquery.ui.button:
   version: *jquery_ui_version
   license: *jquery_ui_license
   js:
+    assets/vendor/jquery.ui/ui/widgets/checkboxradio-min.js: { minified: true }
+    assets/vendor/jquery.ui/ui/widgets/controlgroup-min.js: { minified: true }
     assets/vendor/jquery.ui/ui/widgets/button-min.js: { minified: true }
   css:
     component:
-      assets/vendor/jquery.ui/themes/base/button.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-    - core/jquery.ui.checkboxradio
-    - core/jquery.ui.controlgroup
-
-jquery.ui.checkboxradio:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/form-reset-mixin-min.js: { minified: true }
-    assets/vendor/jquery.ui/ui/widgets/checkboxradio-min.js: { minified: true }
-  css:
-    component:
       assets/vendor/jquery.ui/themes/base/checkboxradio.css: {}
+      assets/vendor/jquery.ui/themes/base/controlgroup.css: {}
       assets/vendor/jquery.ui/themes/base/button.css: {}
   dependencies:
     - core/jquery.ui
     - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.controlgroup:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/controlgroup-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/controlgroup.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.datepicker:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/datepicker-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/datepicker.css: {}
-  dependencies:
-    - core/jquery.ui
-  deprecated: The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3081864
 
 jquery.ui.dialog:
   version: *jquery_ui_version
   license: *jquery_ui_license
   js:
+    assets/vendor/jquery.ui/ui/form-reset-mixin-min.js: { minified: true }
+    assets/vendor/jquery.ui/ui/widgets/checkboxradio-min.js: { minified: true }
+    assets/vendor/jquery.ui/ui/widgets/controlgroup-min.js: { minified: true }
+    assets/vendor/jquery.ui/ui/widgets/button-min.js: { minified: true }
     assets/vendor/jquery.ui/ui/widgets/dialog-min.js: { minified: true }
   css:
     component:
+      assets/vendor/jquery.ui/themes/base/checkboxradio.css: {}
+      assets/vendor/jquery.ui/themes/base/controlgroup.css: {}
+      assets/vendor/jquery.ui/themes/base/button.css: {}
       assets/vendor/jquery.ui/themes/base/dialog.css: {}
   dependencies:
     - core/jquery.ui
     - core/jquery.ui.widget
-    - core/jquery.ui.button
     - core/jquery.ui.draggable
     - core/jquery.ui.mouse
     - core/jquery.ui.position
@@ -578,162 +508,6 @@ jquery.ui.draggable:
     - core/jquery.ui
     - core/jquery.ui.mouse
     - core/jquery.ui.widget
-
-jquery.ui.droppable:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/droppable-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-    - core/jquery.ui.mouse
-    - core/jquery.ui.draggable
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.core:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effect-min.js: { weight: -9, minified: true }
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.blind:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-blind-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.bounce:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-bounce-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.clip:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-clip-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.drop:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-drop-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.explode:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-explode-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.fade:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-fade-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.fold:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-fold-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.highlight:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-highlight-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.puff:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-puff-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-    - core/jquery.ui.effects.scale
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.pulsate:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-pulsate-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.scale:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-scale-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-    - core/jquery.ui.effects.size
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.shake:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-shake-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.size:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-size-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.slide:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-slide-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.effects.transfer:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/effects/effect-transfer-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui.effects.core
-  deprecated: *jquery_ui_unused_deprecated
 
 jquery.ui.menu:
   version: *jquery_ui_version
@@ -765,19 +539,6 @@ jquery.ui.position:
   dependencies:
     - core/jquery.ui
 
-jquery.ui.progressbar:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/progressbar-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/progressbar.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
 jquery.ui.resizable:
   version: *jquery_ui_version
   license: *jquery_ui_license
@@ -791,118 +552,6 @@ jquery.ui.resizable:
     - core/jquery.ui.widget
     - core/jquery.ui.mouse
 
-jquery.ui.selectable:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/selectable-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/selectable.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.mouse
-    - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.selectmenu:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/form-reset-mixin-min.js: { minified: true }
-    assets/vendor/jquery.ui/ui/widgets/selectmenu-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/selectmenu.css: {}
-      assets/vendor/jquery.ui/themes/base/button.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.menu
-    - core/jquery.ui.position
-    - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.slider:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/slider-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/slider.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.mouse
-    - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.sortable:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/sortable-min.js: { minified: true }
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.mouse
-    - core/jquery.ui.widget
-  deprecated: The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3084730
-
-jquery.ui.spinner:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/spinner-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/spinner.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-    - core/jquery.ui.button
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.tabs:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/tabs-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/tabs.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.tooltip:
-  version: *jquery_ui_version
-  license: *jquery_ui_license
-  js:
-    assets/vendor/jquery.ui/ui/widgets/tooltip-min.js: { minified: true }
-  css:
-    component:
-      assets/vendor/jquery.ui/themes/base/tooltip.css: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.widget
-    - core/jquery.ui.position
-  deprecated: *jquery_ui_unused_deprecated
-
-jquery.ui.touch-punch:
-  remote: https://github.com/furf/jquery-ui-touch-punch
-  version: "0.2.3"
-  license:
-    name: GNU-GPL-2.0-or-later
-    url: https://github.com/furf/jquery-ui-touch-punch
-    gpl-compatible: true
-  js:
-    assets/vendor/jquery-ui-touch-punch/jquery.ui.touch-punch.js: {}
-  dependencies:
-    - core/jquery.ui
-    - core/jquery.ui.mouse
-    - core/jquery.ui.widget
-  deprecated: The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3084730
-
 jquery.ui.widget:
   version: *jquery_ui_version
   license: *jquery_ui_license
@@ -910,26 +559,6 @@ jquery.ui.widget:
     assets/vendor/jquery.ui/ui/widget-min.js: { weight: -10, minified: true }
   dependencies:
     - core/jquery.ui
-
-matchmedia:
-  remote: https://github.com/paulirish/matchMedia.js
-  version: &matchmedia_version 0.2.0
-  license: &matchmedia_license
-    name: MIT
-    url: https://github.com/paulirish/matchMedia.js/blob/0.2.0/LICENSE.txt
-    gpl-compatible: true
-  js:
-    assets/vendor/matchMedia/matchMedia.min.js: { minified: true }
-  deprecated: &matchmedia_deprecated The "%library_id%" asset library is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. See https://www.drupal.org/node/3086653
-
-matchmedia.addListener:
-  version: *matchmedia_version
-  license: *matchmedia_license
-  js:
-    assets/vendor/matchMedia/matchMedia.addListener.min.js: { minified: true }
-  dependencies:
-    - core/matchmedia
-  deprecated: *matchmedia_deprecated
 
 modernizr:
   # Block the page from being loaded until Modernizr is initialized.
@@ -939,16 +568,17 @@ modernizr:
     name: MIT
     url: http://modernizr.com/license/
     gpl-compatible: true
-  version: "v3.3.1"
+  version: "3.8.0"
   js:
     assets/vendor/modernizr/modernizr.min.js: { preprocess: 0, weight: -21, minified: true }
+    misc/modernizr-additional-tests.js: { preprocess: 0, weight: -20 }
 
 normalize:
   remote: https://github.com/necolas/normalize.css
-  version: "3.0.3"
+  version: "8.0.1"
   license:
     name: MIT
-    url: https://github.com/necolas/normalize.css/blob/master/LICENSE.md
+    url: https://github.com/necolas/normalize.css/blob/8.0.1/LICENSE.md
     gpl-compatible: true
   css:
     base:
@@ -964,17 +594,19 @@ picturefill:
     gpl-compatible: true
   js:
     assets/vendor/picturefill/picturefill.min.js: { weight: -10, minified: true }
-  dependencies:
-    - core/matchmedia
 
 popperjs:
-  version: "1.16.0"
+  version: "2.0.6"
   license:
     name: MIT
-    url: https://github.com/popperjs/popper.js/blob/v1.16.0/LICENSE.md
+    url: https://github.com/popperjs/popper-core/blob/v2.0.6/LICENSE.md
     gpl-compatible: true
   js:
     assets/vendor/popperjs/popper.min.js: { minified: true }
+  dependencies:
+    - core/drupal.array.find
+    - core/es6-promise
+    - core/drupal.object.assign
 
 sortable:
   remote: https://github.com/SortableJS/Sortable

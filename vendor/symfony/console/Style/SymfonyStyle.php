@@ -11,12 +11,15 @@
 
 namespace Symfony\Component\Console\Style;
 
+use Symfony\Component\Console\Exception\InvalidArgumentException;
 use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Helper\Helper;
 use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Console\Helper\SymfonyQuestionHelper;
 use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableCell;
+use Symfony\Component\Console\Helper\TableSeparator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -154,7 +157,7 @@ class SymfonyStyle extends OutputStyle
      */
     public function warning($message)
     {
-        $this->block($message, 'WARNING', 'fg=white;bg=red', ' ', true);
+        $this->block($message, 'WARNING', 'fg=black;bg=yellow', ' ', true);
     }
 
     /**
@@ -184,6 +187,69 @@ class SymfonyStyle extends OutputStyle
         $table = new Table($this);
         $table->setHeaders($headers);
         $table->setRows($rows);
+        $table->setStyle($style);
+
+        $table->render();
+        $this->newLine();
+    }
+
+    /**
+     * Formats a horizontal table.
+     */
+    public function horizontalTable(array $headers, array $rows)
+    {
+        $style = clone Table::getStyleDefinition('symfony-style-guide');
+        $style->setCellHeaderFormat('<info>%s</info>');
+
+        $table = new Table($this);
+        $table->setHeaders($headers);
+        $table->setRows($rows);
+        $table->setStyle($style);
+        $table->setHorizontal(true);
+
+        $table->render();
+        $this->newLine();
+    }
+
+    /**
+     * Formats a list of key/value horizontally.
+     *
+     * Each row can be one of:
+     * * 'A title'
+     * * ['key' => 'value']
+     * * new TableSeparator()
+     *
+     * @param string|array|TableSeparator ...$list
+     */
+    public function definitionList(...$list)
+    {
+        $style = clone Table::getStyleDefinition('symfony-style-guide');
+        $style->setCellHeaderFormat('<info>%s</info>');
+
+        $table = new Table($this);
+        $headers = [];
+        $row = [];
+        foreach ($list as $value) {
+            if ($value instanceof TableSeparator) {
+                $headers[] = $value;
+                $row[] = $value;
+                continue;
+            }
+            if (\is_string($value)) {
+                $headers[] = new TableCell($value, ['colspan' => 2]);
+                $row[] = null;
+                continue;
+            }
+            if (!\is_array($value)) {
+                throw new InvalidArgumentException('Value should be an array, string, or an instance of TableSeparator.');
+            }
+            $headers[] = key($value);
+            $row[] = current($value);
+        }
+
+        $table->setHeaders($headers);
+        $table->setRows([$row]);
+        $table->setHorizontal();
         $table->setStyle($style);
 
         $table->render();
@@ -306,8 +372,14 @@ class SymfonyStyle extends OutputStyle
      */
     public function writeln($messages, $type = self::OUTPUT_NORMAL)
     {
-        parent::writeln($messages, $type);
-        $this->bufferedOutput->writeln($this->reduceBuffer($messages), $type);
+        if (!is_iterable($messages)) {
+            $messages = [$messages];
+        }
+
+        foreach ($messages as $message) {
+            parent::writeln($message, $type);
+            $this->writeBuffer($message, true, $type);
+        }
     }
 
     /**
@@ -315,8 +387,14 @@ class SymfonyStyle extends OutputStyle
      */
     public function write($messages, $newline = false, $type = self::OUTPUT_NORMAL)
     {
-        parent::write($messages, $newline, $type);
-        $this->bufferedOutput->write($this->reduceBuffer($messages), $newline, $type);
+        if (!is_iterable($messages)) {
+            $messages = [$messages];
+        }
+
+        foreach ($messages as $message) {
+            parent::write($message, $newline, $type);
+            $this->writeBuffer($message, $newline, $type);
+        }
     }
 
     /**
@@ -338,10 +416,7 @@ class SymfonyStyle extends OutputStyle
         return new self($this->input, $this->getErrorOutput());
     }
 
-    /**
-     * @return ProgressBar
-     */
-    private function getProgressBar()
+    private function getProgressBar(): ProgressBar
     {
         if (!$this->progressBar) {
             throw new RuntimeException('The ProgressBar is not started.');
@@ -350,7 +425,7 @@ class SymfonyStyle extends OutputStyle
         return $this->progressBar;
     }
 
-    private function autoPrependBlock()
+    private function autoPrependBlock(): void
     {
         $chars = substr(str_replace(PHP_EOL, "\n", $this->bufferedOutput->fetch()), -2);
 
@@ -363,7 +438,7 @@ class SymfonyStyle extends OutputStyle
         $this->newLine(2 - substr_count($chars, "\n"));
     }
 
-    private function autoPrependText()
+    private function autoPrependText(): void
     {
         $fetched = $this->bufferedOutput->fetch();
         //Prepend new line if last char isn't EOL:
@@ -372,16 +447,14 @@ class SymfonyStyle extends OutputStyle
         }
     }
 
-    private function reduceBuffer($messages)
+    private function writeBuffer(string $message, bool $newLine, int $type): void
     {
         // We need to know if the two last chars are PHP_EOL
         // Preserve the last 4 chars inserted (PHP_EOL on windows is two chars) in the history buffer
-        return array_map(function ($value) {
-            return substr($value, -4);
-        }, array_merge([$this->bufferedOutput->fetch()], (array) $messages));
+        $this->bufferedOutput->write(substr($message, -4), $newLine, $type);
     }
 
-    private function createBlock($messages, $type = null, $style = null, $prefix = ' ', $padding = false, $escape = false)
+    private function createBlock(iterable $messages, string $type = null, string $style = null, string $prefix = ' ', bool $padding = false, bool $escape = false): array
     {
         $indentLength = 0;
         $prefixLength = Helper::strlenWithoutDecoration($this->getFormatter(), $prefix);

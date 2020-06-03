@@ -23,7 +23,7 @@ class LayoutBuilderNestedFormUiTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'node',
     'layout_builder',
@@ -40,7 +40,7 @@ class LayoutBuilderNestedFormUiTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('local_tasks_block');

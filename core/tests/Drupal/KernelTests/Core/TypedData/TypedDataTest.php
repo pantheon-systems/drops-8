@@ -38,9 +38,9 @@ class TypedDataTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system', 'field', 'file', 'user'];
+  protected static $modules = ['system', 'field', 'file', 'user'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setup();
 
     $this->installEntitySchema('file');
@@ -594,7 +594,7 @@ class TypedDataTest extends KernelTestBase {
     // Test translating violation messages when pluralization is used.
     $definition = DataDefinition::create('string')
       ->setConstraints([
-        'Length' => ['min' => 10],
+        'Length' => ['min' => 10, 'allowEmptyString' => FALSE],
       ]);
     $violations = $this->typedDataManager->create($definition, "short")->validate();
     $this->assertEqual($violations->count(), 1);

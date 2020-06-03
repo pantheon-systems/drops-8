@@ -14,7 +14,7 @@ class FieldLayoutTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'field_layout',
     'field_ui',
     'node',
@@ -29,7 +29,7 @@ class FieldLayoutTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->createContentType([

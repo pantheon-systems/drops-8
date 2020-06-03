@@ -13,9 +13,28 @@ form {
   margin: 0;
   padding: 0;
 }
+/**
+ * Prevent regression due to explicit line-height applied to these elements in
+ * normalize.css 7.0.0.
+ */
+button {
+  line-height: 1.21875rem;
+}
+input {
+  line-height: normal;
+}
+select {
+  line-height: 1.5;
+}
+/**
+ * 1. Prevent regression due to fieldset styling that was removed in
+ *    normalize.css 6.0.0.
+ */
 fieldset {
   min-width: 0;
   margin: 1em 0;
+  padding: 0.35em 0.625em 0.75em; /* 1 */
+  border: 1px solid #c0c0c0; /* 1 */
 }
 details,
 fieldset,
@@ -74,6 +93,15 @@ input {
 input,
 textarea {
   font-size: 0.929em;
+}
+
+/**
+ * Prevent regression due to -webkit-appearance being set to button and
+ * font-family being set to inherit normalize.css 4.1.0.
+ */
+::-webkit-file-upload-button {
+  -webkit-appearance: push-button;
+  font-family: "Lucida Grande", "Lucida Sans Unicode", Verdana, sans-serif;
 }
 
 /**

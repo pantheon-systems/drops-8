@@ -14,7 +14,7 @@ class MultipleFileUploadTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['file'];
+  protected static $modules = ['file'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class MultipleFileUploadTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $admin = $this->drupalCreateUser(['administer themes']);

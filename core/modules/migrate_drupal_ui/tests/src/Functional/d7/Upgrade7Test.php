@@ -12,8 +12,6 @@ use Drupal\user\Entity\User;
  * The test method is provided by the MigrateUpgradeTestBase class.
  *
  * @group migrate_drupal_ui
- *
- * @group legacy
  */
 class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
 
@@ -22,7 +20,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'file',
     'language',
     'config_translation',
@@ -47,7 +45,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Delete the existing content made to test the ID Conflict form. Migrations

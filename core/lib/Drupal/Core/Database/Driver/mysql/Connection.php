@@ -64,275 +64,9 @@ class Connection extends DatabaseConnection {
   const MIN_MAX_ALLOWED_PACKET = 1024;
 
   /**
-   * The list of MySQL reserved key words.
-   *
-   * @link https://dev.mysql.com/doc/refman/8.0/en/keywords.html
+   * {@inheritdoc}
    */
-  private $reservedKeyWords = [
-    'accessible',
-    'add',
-    'admin',
-    'all',
-    'alter',
-    'analyze',
-    'and',
-    'as',
-    'asc',
-    'asensitive',
-    'before',
-    'between',
-    'bigint',
-    'binary',
-    'blob',
-    'both',
-    'by',
-    'call',
-    'cascade',
-    'case',
-    'change',
-    'char',
-    'character',
-    'check',
-    'collate',
-    'column',
-    'condition',
-    'constraint',
-    'continue',
-    'convert',
-    'create',
-    'cross',
-    'cube',
-    'cume_dist',
-    'current_date',
-    'current_time',
-    'current_timestamp',
-    'current_user',
-    'cursor',
-    'database',
-    'databases',
-    'day_hour',
-    'day_microsecond',
-    'day_minute',
-    'day_second',
-    'dec',
-    'decimal',
-    'declare',
-    'default',
-    'delayed',
-    'delete',
-    'dense_rank',
-    'desc',
-    'describe',
-    'deterministic',
-    'distinct',
-    'distinctrow',
-    'div',
-    'double',
-    'drop',
-    'dual',
-    'each',
-    'else',
-    'elseif',
-    'empty',
-    'enclosed',
-    'escaped',
-    'except',
-    'exists',
-    'exit',
-    'explain',
-    'false',
-    'fetch',
-    'first_value',
-    'float',
-    'float4',
-    'float8',
-    'for',
-    'force',
-    'foreign',
-    'from',
-    'fulltext',
-    'function',
-    'generated',
-    'get',
-    'grant',
-    'group',
-    'grouping',
-    'groups',
-    'having',
-    'high_priority',
-    'hour_microsecond',
-    'hour_minute',
-    'hour_second',
-    'if',
-    'ignore',
-    'in',
-    'index',
-    'infile',
-    'inner',
-    'inout',
-    'insensitive',
-    'insert',
-    'int',
-    'int1',
-    'int2',
-    'int3',
-    'int4',
-    'int8',
-    'integer',
-    'interval',
-    'into',
-    'io_after_gtids',
-    'io_before_gtids',
-    'is',
-    'iterate',
-    'join',
-    'json_table',
-    'key',
-    'keys',
-    'kill',
-    'lag',
-    'last_value',
-    'lead',
-    'leading',
-    'leave',
-    'left',
-    'like',
-    'limit',
-    'linear',
-    'lines',
-    'load',
-    'localtime',
-    'localtimestamp',
-    'lock',
-    'long',
-    'longblob',
-    'longtext',
-    'loop',
-    'low_priority',
-    'master_bind',
-    'master_ssl_verify_server_cert',
-    'match',
-    'maxvalue',
-    'mediumblob',
-    'mediumint',
-    'mediumtext',
-    'middleint',
-    'minute_microsecond',
-    'minute_second',
-    'mod',
-    'modifies',
-    'natural',
-    'not',
-    'no_write_to_binlog',
-    'nth_value',
-    'ntile',
-    'null',
-    'numeric',
-    'of',
-    'on',
-    'optimize',
-    'optimizer_costs',
-    'option',
-    'optionally',
-    'or',
-    'order',
-    'out',
-    'outer',
-    'outfile',
-    'over',
-    'partition',
-    'percent_rank',
-    'persist',
-    'persist_only',
-    'precision',
-    'primary',
-    'procedure',
-    'purge',
-    'range',
-    'rank',
-    'read',
-    'reads',
-    'read_write',
-    'real',
-    'recursive',
-    'references',
-    'regexp',
-    'release',
-    'rename',
-    'repeat',
-    'replace',
-    'require',
-    'resignal',
-    'restrict',
-    'return',
-    'revoke',
-    'right',
-    'rlike',
-    'row',
-    'rows',
-    'row_number',
-    'schema',
-    'schemas',
-    'second_microsecond',
-    'select',
-    'sensitive',
-    'separator',
-    'set',
-    'show',
-    'signal',
-    'smallint',
-    'spatial',
-    'specific',
-    'sql',
-    'sqlexception',
-    'sqlstate',
-    'sqlwarning',
-    'sql_big_result',
-    'sql_calc_found_rows',
-    'sql_small_result',
-    'ssl',
-    'starting',
-    'stored',
-    'straight_join',
-    'system',
-    'table',
-    'terminated',
-    'then',
-    'tinyblob',
-    'tinyint',
-    'tinytext',
-    'to',
-    'trailing',
-    'trigger',
-    'true',
-    'undo',
-    'union',
-    'unique',
-    'unlock',
-    'unsigned',
-    'update',
-    'usage',
-    'use',
-    'using',
-    'utc_date',
-    'utc_time',
-    'utc_timestamp',
-    'values',
-    'varbinary',
-    'varchar',
-    'varcharacter',
-    'varying',
-    'virtual',
-    'when',
-    'where',
-    'while',
-    'window',
-    'with',
-    'write',
-    'xor',
-    'year_month',
-    'zerofill',
-  ];
+  protected $identifierQuotes = ['"', '"'];
 
   /**
    * Constructs a Connection object.
@@ -470,49 +204,6 @@ class Connection extends DatabaseConnection {
   /**
    * {@inheritdoc}
    */
-  public function escapeField($field) {
-    $field = parent::escapeField($field);
-    return $this->quoteIdentifier($field);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function escapeAlias($field) {
-    // Quote fields so that MySQL reserved words like 'function' can be used
-    // as aliases.
-    $field = parent::escapeAlias($field);
-    return $this->quoteIdentifier($field);
-  }
-
-  /**
-   * Quotes an identifier if it matches a MySQL reserved keyword.
-   *
-   * @param string $identifier
-   *   The field to check.
-   *
-   * @return string
-   *   The identifier, quoted if it matches a MySQL reserved keyword.
-   */
-  private function quoteIdentifier($identifier) {
-    // Quote identifiers so that MySQL reserved words like 'function' can be
-    // used as column names. Sometimes the 'table.column_name' format is passed
-    // in. For example,
-    // \Drupal\Core\Entity\Sql\SqlContentEntityStorage::buildQuery() adds a
-    // condition on "base.uid" while loading user entities.
-    if (strpos($identifier, '.') !== FALSE) {
-      list($table, $identifier) = explode('.', $identifier, 2);
-    }
-    if (in_array(strtolower($identifier), $this->reservedKeyWords, TRUE)) {
-      // Quote the string for MySQL reserved keywords.
-      $identifier = '"' . $identifier . '"';
-    }
-    return isset($table) ? $table . '.' . $identifier : $identifier;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function serialize() {
     // Cleanup the connection, much like __destruct() does it as well.
     if ($this->needsCleanup) {
@@ -544,6 +235,53 @@ class Connection extends DatabaseConnection {
 
   public function driver() {
     return 'mysql';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function version() {
+    if ($this->isMariaDb()) {
+      return $this->getMariaDbVersionMatch();
+    }
+
+    return $this->getServerVersion();
+  }
+
+  /**
+   * Determines whether the MySQL distribution is MariaDB or not.
+   *
+   * @return bool
+   *   Returns TRUE if the distribution is MariaDB, or FALSE if not.
+   */
+  public function isMariaDb(): bool {
+    return (bool) $this->getMariaDbVersionMatch();
+  }
+
+  /**
+   * Gets the MariaDB portion of the server version.
+   *
+   * @return string
+   *   The MariaDB portion of the server version if present, or NULL if not.
+   */
+  protected function getMariaDbVersionMatch(): ?string {
+    // MariaDB may prefix its version string with '5.5.5-', which should be
+    // ignored.
+    // @see https://github.com/MariaDB/server/blob/f6633bf058802ad7da8196d01fd19d75c53f7274/include/mysql_com.h#L42.
+    $regex = '/^(?:5\.5\.5-)?(\d+\.\d+\.\d+.*-mariadb.*)/i';
+
+    preg_match($regex, $this->getServerVersion(), $matches);
+    return (empty($matches[1])) ? NULL : $matches[1];
+  }
+
+  /**
+   * Gets the server version.
+   *
+   * @return string
+   *   The PDO server version.
+   */
+  protected function getServerVersion(): string {
+    return $this->connection->getAttribute(\PDO::ATTR_SERVER_VERSION);
   }
 
   public function databaseType() {

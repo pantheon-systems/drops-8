@@ -17,7 +17,7 @@ abstract class ContentTranslationPendingRevisionTestBase extends ContentTranslat
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'content_moderation',

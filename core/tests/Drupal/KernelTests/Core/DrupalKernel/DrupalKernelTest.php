@@ -2,26 +2,28 @@
 
 namespace Drupal\KernelTests\Core\DrupalKernel;
 
+use Composer\Autoload\ClassLoader;
 use Drupal\Core\DrupalKernel;
 use Drupal\KernelTests\KernelTestBase;
+use org\bovigo\vfs\vfsStream;
+use Prophecy\Argument;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Tests DIC compilation to disk.
  *
  * @group DrupalKernel
+ * @coversDefaultClass \Drupal\Core\DrupalKernel
  */
 class DrupalKernelTest extends KernelTestBase {
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
-    // DrupalKernel relies on global $config_directories and requires those
-    // directories to exist. Therefore, create the directories, but do not
-    // invoke KernelTestBase::setUp(), since that would set up further
-    // environment aspects, which would distort this test, because it tests
-    // the DrupalKernel (re-)building itself.
+  protected function setUp(): void {
+    // Do not invoke KernelTestBase::setUp(), since that would set up further
+    // environment aspects, which would distort this test, because it tests the
+    // DrupalKernel (re-)building itself.
     $this->root = static::getDrupalRoot();
     $this->bootEnvironment();
   }
@@ -192,23 +194,63 @@ class DrupalKernelTest extends KernelTestBase {
   }
 
   /**
-   * @group legacy
-   * @expectedDeprecation Drupal\Core\DrupalKernel::prepareLegacyRequest is deprecated drupal:8.0.0 and is removed from drupal:9.0.0. Use DrupalKernel::boot() and DrupalKernel::preHandle() instead. See https://www.drupal.org/node/3070678
+   * Data provider for self::testClassLoaderAutoDetect
+   * @return array
    */
-  public function testPrepareLegacyRequest() {
-    $request = Request::createFromGlobals();
-    // Manually create kernel to avoid replacing settings.
-    $class_loader = require $this->root . '/autoload.php';
-    $kernel = DrupalKernel::createFromRequest($request, $class_loader, 'testing');
-    $this->setSetting('container_yamls', []);
-    $this->setSetting('hash_salt', $this->databasePrefix);
+  public function providerClassLoaderAutoDetect() {
+    return [
+      'TRUE' => [TRUE],
+      'FALSE' => [FALSE],
+    ];
+  }
 
-    $this->assertNull($kernel->getContainer());
-    // Restore the usual PHPUnit error handler for deprecation testing.
-    restore_error_handler();
-    $kernel->prepareLegacyRequest($request);
+  /**
+   * Tests class_loader_auto_detect setting.
+   *
+   * This test runs in a separate process since it registers class loaders and
+   * results in statics being set.
+   *
+   * @runInSeparateProcess
+   * @preserveGlobalState disabled
+   * @covers ::boot
+   * @dataProvider providerClassLoaderAutoDetect
+   *
+   * @param bool $value
+   *   The value to set class_loader_auto_detect to.
+   */
+  public function testClassLoaderAutoDetect($value) {
+    // Create a virtual file system containing items that should be
+    // excluded. Exception being modules directory.
+    vfsStream::setup('root', NULL, [
+      'sites' => [
+        'default' => [],
+      ],
+      'core' => [
+        'lib' => [
+          'Drupal' => [
+            'Core' => [],
+            'Component' => [],
+          ],
+        ],
+      ],
+    ]);
 
-    $this->assertSame($request, $kernel->getContainer()->get('request_stack')->getMasterRequest());
+    $this->setSetting('class_loader_auto_detect', $value);
+    $classloader = $this->prophesize(ClassLoader::class);
+
+    // Assert that we call the setApcuPrefix on the classloader if
+    // class_loader_auto_detect is set to TRUE;
+    if ($value) {
+      $classloader->setApcuPrefix(Argument::type('string'))->shouldBeCalled();
+    }
+    else {
+      $classloader->setApcuPrefix(Argument::type('string'))->shouldNotBeCalled();
+    }
+
+    // Create a kernel suitable for testing.
+    $kernel = new DrupalKernel('test', $classloader->reveal(), FALSE, vfsStream::url('root'));
+    $kernel->setSitePath(vfsStream::url('root/sites/default'));
+    $kernel->boot();
   }
 
 }

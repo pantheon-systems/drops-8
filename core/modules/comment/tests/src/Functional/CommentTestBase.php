@@ -24,7 +24,7 @@ abstract class CommentTestBase extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'block',
     'comment',
     'node',

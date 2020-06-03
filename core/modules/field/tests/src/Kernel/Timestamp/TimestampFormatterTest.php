@@ -20,7 +20,13 @@ class TimestampFormatterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'field', 'text', 'entity_test', 'user'];
+  protected static $modules = [
+    'system',
+    'field',
+    'text',
+    'entity_test',
+    'user',
+  ];
 
   /**
    * @var string
@@ -45,7 +51,7 @@ class TimestampFormatterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['system']);

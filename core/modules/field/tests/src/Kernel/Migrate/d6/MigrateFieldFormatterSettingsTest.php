@@ -15,12 +15,12 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_ui', 'node'];
+  protected static $modules = ['menu_ui', 'node'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateFields();
   }

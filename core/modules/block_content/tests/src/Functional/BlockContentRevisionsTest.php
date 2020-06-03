@@ -4,7 +4,6 @@ namespace Drupal\Tests\block_content\Functional;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\block_content\Entity\BlockContent;
-use Drupal\user\Entity\User;
 use Drupal\user\UserInterface;
 
 /**
@@ -34,11 +33,8 @@ class BlockContentRevisionsTest extends BlockContentTestBase {
   /**
    * Sets the test up.
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
-
-    /** @var \Drupal\user\Entity\UserInterface $user */
-    $user = User::load(1);
 
     // Create initial block.
     $block = $this->createBlockContent('initial');

@@ -40,7 +40,7 @@ class ModuleRequiredByThemesUninstallValidatorTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->moduleExtensionList = $this->prophesize(ModuleExtensionList::class);
     $this->themeExtensionList = $this->prophesize(ThemeExtensionList::class);
@@ -157,5 +157,5 @@ class ModuleRequiredByThemesUninstallValidatorTest extends UnitTestCase {
 }
 
 if (!defined('DRUPAL_MINIMUM_PHP')) {
-  define('DRUPAL_MINIMUM_PHP', '7.0.8');
+  define('DRUPAL_MINIMUM_PHP', '7.3.0');
 }

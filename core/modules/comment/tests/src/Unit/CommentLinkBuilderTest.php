@@ -68,7 +68,7 @@ class CommentLinkBuilderTest extends UnitTestCase {
   /**
    * Prepares mocks for the test.
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->commentManager = $this->createMock('\Drupal\comment\CommentManagerInterface');
     $this->stringTranslation = $this->getStringTranslationStub();
     $this->entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
@@ -313,9 +313,6 @@ class CommentLinkBuilderTest extends UnitTestCase {
     $node->expects($this->any())
       ->method('toUrl')
       ->willReturn($url);
-    $node->expects($this->any())
-      ->method('url')
-      ->willReturn(['route_name' => 'node.view']);
 
     return $node;
   }

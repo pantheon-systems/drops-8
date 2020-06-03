@@ -25,7 +25,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_test', 'user', 'block'];
+  protected static $modules = ['entity_test', 'user', 'block'];
 
   /**
    * Views used by this test.
@@ -37,7 +37,7 @@ class AreaEntityTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
   }
 

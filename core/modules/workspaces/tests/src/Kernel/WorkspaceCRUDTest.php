@@ -45,7 +45,7 @@ class WorkspaceCRUDTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'user',
     'system',
     'workspaces',
@@ -59,7 +59,7 @@ class WorkspaceCRUDTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->setUpCurrentUser();

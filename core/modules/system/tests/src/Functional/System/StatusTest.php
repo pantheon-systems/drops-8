@@ -16,7 +16,7 @@ class StatusTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['update_test_postupdate'];
+  protected static $modules = ['update_test_postupdate'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class StatusTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Unset the sync directory in settings.php to trigger the error.
@@ -63,7 +63,7 @@ class StatusTest extends BrowserTestBase {
     // If a module is fully installed no pending updates exists.
     $this->assertNoText(t('Out of date'));
 
-    // The global $config_directories is not properly formed.
+    // The setting config_sync_directory is not properly formed.
     $this->assertRaw(t("Your %file file must define the %setting setting", ['%file' => $this->siteDirectory . '/settings.php', '%setting' => "\$settings['config_sync_directory']"]));
 
     // Set the schema version of update_test_postupdate to a lower version, so

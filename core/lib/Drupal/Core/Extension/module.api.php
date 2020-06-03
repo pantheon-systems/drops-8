@@ -574,9 +574,6 @@ function hook_install_tasks_alter(&$tasks, $install_state) {
  *   \Drupal::entityDefinitionUpdateManager()::getFieldStorageDefinition(). When
  *   adding a new definition always replicate it in the update function body as
  *   you would do with a schema definition.
- * - Never call \Drupal::entityDefinitionUpdateManager()::applyUpdates() in an
- *   update function, as it will apply updates for any module not only yours,
- *   which will lead to unpredictable results.
  * - Be careful about API functions and especially CRUD operations that you use
  *   in your update function. If they invoke hooks or use services, they may
  *   not behave as expected, and it may actually not be appropriate to use the
@@ -635,8 +632,6 @@ function hook_install_tasks_alter(&$tasks, $install_state) {
  * @see hook_update_last_removed()
  * @see update_get_update_list()
  * @see \Drupal\Core\Entity\EntityDefinitionUpdateManagerInterface
- * @see node_update_8001
- * @see system_update_8004
  * @see https://www.drupal.org/node/2535316
  */
 function hook_update_N(&$sandbox) {
@@ -751,25 +746,10 @@ function hook_post_update_NAME(&$sandbox) {
 
   $result = t('Node %nid saved', ['%nid' => $node->id()]);
 
-  // Example of disabling blocks with missing condition contexts. Note: The
-  // block itself is in a state which is valid at that point.
-  // @see block_update_8001()
-  // @see block_post_update_disable_blocks_with_missing_contexts()
-  $block_update_8001 = \Drupal::keyValue('update_backup')->get('block_update_8001', []);
-
-  $block_ids = array_keys($block_update_8001);
-  $block_storage = \Drupal::entityTypeManager()->getStorage('block');
-  $blocks = $block_storage->loadMultiple($block_ids);
-  /** @var $blocks \Drupal\block\BlockInterface[] */
-  foreach ($blocks as $block) {
-    // This block has had conditions removed due to an inability to resolve
-    // contexts in block_update_8001() so disable it.
-
-    // Disable currently enabled blocks.
-    if ($block_update_8001[$block->id()]['status']) {
-      $block->setStatus(FALSE);
-      $block->save();
-    }
+  // Example of updating some config.
+  if (\Drupal::moduleHandler()->moduleExists('taxonomy')) {
+    // Update the dependencies of all Vocabulary configuration entities.
+    \Drupal::classResolver(\Drupal\Core\Config\Entity\ConfigEntityUpdater::class)->update($sandbox, 'taxonomy_vocabulary');
   }
 
   return $result;

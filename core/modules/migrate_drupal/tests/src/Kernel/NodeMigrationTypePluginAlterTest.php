@@ -18,12 +18,12 @@ class NodeMigrationTypePluginAlterTest extends MigrateTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['migrate_drupal', 'node'];
+  protected static $modules = ['migrate_drupal', 'node'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->setupDb();
   }

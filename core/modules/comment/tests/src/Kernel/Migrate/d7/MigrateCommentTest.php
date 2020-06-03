@@ -17,7 +17,7 @@ class MigrateCommentTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'content_translation',
     'datetime',
@@ -35,7 +35,7 @@ class MigrateCommentTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('comment');
     $this->installEntitySchema('taxonomy_term');

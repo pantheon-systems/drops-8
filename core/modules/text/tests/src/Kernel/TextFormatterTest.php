@@ -34,12 +34,12 @@ class TextFormatterTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['text'];
+  protected static $modules = ['text'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     FilterFormat::create([

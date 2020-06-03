@@ -36,7 +36,7 @@ class TermTranslationTest extends TaxonomyTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['taxonomy', 'language', 'content_translation'];
+  protected static $modules = ['taxonomy', 'language', 'content_translation'];
 
   /**
    * {@inheritdoc}
@@ -46,7 +46,7 @@ class TermTranslationTest extends TaxonomyTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->setupLanguages();
     $this->vocabulary = $this->createVocabulary();

@@ -17,7 +17,7 @@ class MigrateRollbackEntityConfigTest extends MigrateTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'field',
     'taxonomy',
     'text',
@@ -30,7 +30,7 @@ class MigrateRollbackEntityConfigTest extends MigrateTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('taxonomy_vocabulary');

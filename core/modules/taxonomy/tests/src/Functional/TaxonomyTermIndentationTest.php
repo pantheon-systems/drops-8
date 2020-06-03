@@ -14,7 +14,7 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
    *
    * @var array
    */
-  public static $modules = ['taxonomy'];
+  protected static $modules = ['taxonomy'];
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class TaxonomyTermIndentationTest extends TaxonomyTestBase {
    */
   protected $vocabulary;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalLogin($this->drupalCreateUser(['administer taxonomy', 'bypass node access']));
     $this->vocabulary = $this->createVocabulary();

@@ -11,7 +11,7 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['block'];
+  protected static $modules = ['block'];
 
   /**
    * {@inheritdoc}
@@ -132,10 +132,6 @@ abstract class BlockResourceTestBase extends EntityResourceTestBase {
    * {@inheritdoc}
    */
   protected function getExpectedUnauthorizedAccessMessage($method) {
-    if ($this->config('rest.settings')->get('bc_entity_resource_permissions')) {
-      return parent::getExpectedUnauthorizedAccessMessage($method);
-    }
-
     switch ($method) {
       case 'GET':
         return "The block visibility condition 'user_role' denied access.";

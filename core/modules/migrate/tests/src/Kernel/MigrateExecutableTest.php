@@ -11,12 +11,12 @@ use Drupal\migrate\Plugin\MigrationInterface;
  */
 class MigrateExecutableTest extends MigrateTestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'entity_test',
     'user',
   ];
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installEntitySchema('entity_test');

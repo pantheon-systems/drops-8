@@ -13,7 +13,7 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'comment',
     'datetime',
     'image',
@@ -28,7 +28,7 @@ class MigrateFieldFormatterSettingsTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->migrateFields();
     $this->executeMigrations([

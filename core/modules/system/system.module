@@ -7,18 +7,14 @@
 
 use Drupal\Component\FileSecurity\FileSecurity;
 use Drupal\Component\Gettext\PoItem;
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Asset\AttachedAssetsInterface;
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Query\AlterableInterface;
-use Drupal\Core\Extension\Dependency;
 use Drupal\Core\Extension\Extension;
 use Drupal\Core\Entity\ContentEntityTypeInterface;
-use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
-use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
 use Drupal\Core\File\Exception\FileException;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Form\FormStateInterface;
@@ -29,41 +25,9 @@ use Drupal\Core\PageCache\RequestPolicyInterface;
 use Drupal\Core\Queue\QueueGarbageCollectionInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Routing\StackedRouteMatchInterface;
-use Drupal\Core\Site\Settings;
 use Drupal\Core\Url;
-use Drupal\path_alias\PathAliasInterface;
 use GuzzleHttp\Exception\RequestException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-
-/**
- * New users will be set to the default time zone at registration.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\user\UserInterface::TIMEZONE_DEFAULT instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const DRUPAL_USER_TIMEZONE_DEFAULT = 0;
-
-/**
- * New users will get an empty time zone at registration.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\user\UserInterface::TIMEZONE_EMPTY instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const DRUPAL_USER_TIMEZONE_EMPTY = 1;
-
-/**
- * New users will select their own timezone at registration.
- *
- * @deprecated in drupal:8.3.0 and is removed from drupal:9.0.0.
- *   Use \Drupal\user\UserInterface::TIMEZONE_SELECT instead.
- *
- * @see https://www.drupal.org/node/2831620
- */
-const DRUPAL_USER_TIMEZONE_SELECT = 2;
 
 /**
  * Disabled option on forms and settings
@@ -473,6 +437,7 @@ function template_preprocess_entity_add_list(&$variables) {
  *   object created by authorize.php when the user authorizes the operation.
  * @param $page_title
  *   Optional string to use as the page title once redirected to authorize.php.
+ *
  * @return
  *   Nothing, this function just initializes variables in the user's session.
  */
@@ -500,6 +465,7 @@ function system_authorized_init($callback, $file, $arguments = [], $page_title =
  *
  * @param array $options
  *   Optional array of options to set on the \Drupal\Core\Url object.
+ *
  * @return \Drupal\Core\Url
  *   The full URL to authorize.php, using HTTPS if available.
  *
@@ -814,39 +780,6 @@ function system_form_alter(&$form, FormStateInterface $form_state) {
 }
 
 /**
- * Add the time zone field to the user edit and register forms.
- *
- * @internal
- *   This functions exists only to be used by System module's form alters which
- *   have been removed.
- *
- * @see https://www.drupal.org/node/3113062
- */
-function system_user_timezone(&$form, FormStateInterface $form_state) {
-  $user = \Drupal::currentUser();
-
-  $account = $form_state->getFormObject()->getEntity();
-  $form['timezone'] = [
-    '#type' => 'details',
-    '#title' => t('Locale settings'),
-    '#open' => TRUE,
-    '#weight' => 6,
-  ];
-  $form['timezone']['timezone'] = [
-    '#type' => 'select',
-    '#title' => t('Time zone'),
-    '#default_value' => $account->getTimezone() ? $account->getTimezone() : \Drupal::config('system.date')->get('timezone.default'),
-    '#options' => system_time_zones($account->id() != $user->id(), TRUE),
-    '#description' => t('Select the desired local time and time zone. Dates and times throughout this site will be displayed using this time zone.'),
-  ];
-  $user_input = $form_state->getUserInput();
-  if (!$account->getTimezone() && $account->id() == $user->id() && empty($user_input['timezone'])) {
-    $form['timezone']['#attached']['library'][] = 'core/drupal.timezone';
-    $form['timezone']['timezone']['#attributes'] = ['class' => ['timezone-detect']];
-  }
-}
-
-/**
  * Implements hook_preprocess_HOOK() for block templates.
  */
 function system_preprocess_block(&$variables) {
@@ -920,110 +853,6 @@ function system_check_directory($form_element, FormStateInterface $form_state) {
 }
 
 /**
- * Returns an array of information about enabled modules or themes.
- *
- * This function returns the contents of the .info.yml file for each installed
- * module or theme.
- *
- * @param $type
- *   Either 'module' or 'theme'.
- * @param $name
- *   (optional) The name of a module or theme whose information shall be
- *   returned. If omitted, all records for the provided $type will be returned.
- *   If $name does not exist in the provided $type or is not enabled, an empty
- *   array will be returned.
- *
- * @return
- *   An associative array of module or theme information keyed by name, or only
- *   information for $name, if given. If no records are available, an empty
- *   array is returned.
- *
- * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use
- *   \Drupal::service('extension.list.$type')->getExtensionInfo() or
- *   \Drupal::service('extension.list.$type')->getAllInstalledInfo() instead.
- *
- * @see https://www.drupal.org/node/2709919
- * @see \Drupal\Core\Extension\ModuleExtensionList::getList()
- * @see \Drupal\Core\Extension\ThemeExtensionList
- */
-function system_get_info($type, $name = NULL) {
-  @trigger_error("system_get_info() is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use \Drupal::service('extension.list.$type')->getExtensionInfo() or \Drupal::service('extension.list.$type')->getAllInstalledInfo() instead. See https://www.drupal.org/node/2709919", E_USER_DEPRECATED);
-  /** @var \Drupal\Core\Extension\ExtensionList $extension_list */
-  $extension_list = \Drupal::service('extension.list.' . $type);
-  if (isset($name)) {
-    try {
-      return $extension_list->getExtensionInfo($name);
-    }
-    catch (\InvalidArgumentException $e) {
-      return [];
-    }
-  }
-  return $extension_list->getAllInstalledInfo();
-}
-
-/**
- * Ensures that dependencies of required modules are also required.
- *
- * @param \Drupal\Core\Extension\Extension $module
- *   The module info.
- * @param \Drupal\Core\Extension\Extension[] $modules
- *   The array of all module info.
- *
- * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. This
- *   function is no longer used in Drupal core.
- *
- * @see https://www.drupal.org/node/2709919
- */
-function _system_rebuild_module_data_ensure_required($module, &$modules) {
-  @trigger_error("_system_rebuild_module_data_ensure_required() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. This function is no longer used in Drupal core. See https://www.drupal.org/node/2709919", E_USER_DEPRECATED);
-  if (!empty($module->info['required'])) {
-    foreach ($module->info['dependencies'] as $dependency) {
-      $dependency_name = Dependency::createFromString($dependency)->getName();
-      if (!isset($modules[$dependency_name]->info['required'])) {
-        $modules[$dependency_name]->info['required'] = TRUE;
-        $modules[$dependency_name]->info['explanation'] = t('Dependency of required module @module', ['@module' => $module->info['name']]);
-        // Ensure any dependencies it has are required.
-        _system_rebuild_module_data_ensure_required($modules[$dependency_name], $modules);
-      }
-    }
-  }
-}
-
-/**
- * Helper function to scan and collect module .info.yml data.
- *
- * @return \Drupal\Core\Extension\Extension[]
- *   An associative array of module information.
- *
- * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0.
- *   Use \Drupal::service('extension.list.module')->reset()->getList()
- *   instead. Note: You probably don't need the reset() method.
- *
- * @see https://www.drupal.org/node/2709919
- */
-function _system_rebuild_module_data() {
-  @trigger_error("_system_rebuild_module_data() is deprecated in Drupal 8.5.0 and will be removed before Drupal 9.0.0. Instead, you should use \\Drupal::service('extension.list.module')->reset()->getList(). See https://www.drupal.org/node/2709919", E_USER_DEPRECATED);
-  return \Drupal::service('extension.list.module')->reset()->getList();
-}
-
-/**
- * Rebuild, save, and return data about all currently available modules.
- *
- * @return \Drupal\Core\Extension\Extension[]
- *   Array of all available modules and their data.
- *
- * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0.
- *   Use \Drupal::service('extension.list.module')->getList() instead.
- *   Note: use reset() only when you really need to rescan and rebuild the list.
- *
- * @see https://www.drupal.org/node/2709919
- */
-function system_rebuild_module_data() {
-  @trigger_error('system_rebuild_module_data() is deprecated in Drupal 8.8.0 and will be removed before Drupal 9.0.0. Instead, you should use \Drupal::service("extension.list.module")->getList(). See https://www.drupal.org/node/2709919', E_USER_DEPRECATED);
-  return \Drupal::service('extension.list.module')->reset()->getList();
-}
-
-/**
  * Get a list of available regions from a specified theme.
  *
  * @param \Drupal\Core\Extension\Extension|string $theme
@@ -1031,6 +860,7 @@ function system_rebuild_module_data() {
  * @param $show
  *   Possible values: REGIONS_ALL or REGIONS_VISIBLE. Visible excludes hidden
  *   regions.
+ *
  * @return
  *   An array of regions in the form $region['name'] = 'description'.
  */
@@ -1096,6 +926,7 @@ function system_system_info_alter(&$info, Extension $file, $type) {
  *
  * @param $theme
  *   The name of a theme.
+ *
  * @return
  *   A string that is the region name.
  */
@@ -1421,57 +1252,5 @@ function system_modules_uninstalled($modules) {
       $entity_type->setRevisionMetadataKey('workspace', NULL);
       $entity_definition_update_manager->updateEntityType($entity_type);
     }
-  }
-}
-
-/**
- * Implements hook_ENTITY_TYPE_presave() for entity_form_display entities.
- *
- * Provides a BC layer for modules providing old configurations.
- *
- * @todo Remove this hook in Drupal 9.0.x https://www.drupal.org/project/drupal/issues/3086388
- */
-function system_entity_form_display_presave(EntityFormDisplayInterface $display) {
-  /** @var \Drupal\Core\Field\WidgetPluginManager $field_widget_manager */
-  $field_widget_manager = \Drupal::service('plugin.manager.field.widget');
-
-  foreach ($display->getComponents() as $field_name => $component) {
-    if (empty($component['type'])) {
-      continue;
-    }
-
-    $plugin_definition = $field_widget_manager->getDefinition($component['type'], FALSE);
-    if (!is_a($plugin_definition['class'], EntityReferenceAutocompleteWidget::class, TRUE)) {
-      continue;
-    }
-
-    if (!isset($component['settings']['match_limit'])) {
-      @trigger_error(sprintf('Any entity_reference_autocomplete component of an entity_form_display must have a match_limit setting. The %s field on the %s form display is missing it. This BC layer will be removed before 9.0.0. See https://www.drupal.org/node/2863188', $field_name, $display->id()), E_USER_DEPRECATED);
-      $component['settings']['match_limit'] = 10;
-      $display->setComponent($field_name, $component);
-    }
-  }
-}
-
-/**
- * Implements hook_ENTITY_TYPE_presave().
- */
-function system_path_alias_presave(PathAliasInterface $path_alias) {
-  // Prevent path aliases from being saved if the "url_alias" migration was not
-  // performed yet. This avoids the risk of introducing duplicate aliases or get
-  // the new path alias schema in an inconsistent state.
-  if (Settings::get('system.path_alias_schema_check', TRUE) && drupal_get_installed_schema_version('system') < 8804) {
-    /** @var \Drupal\system\Access\DbUpdateAccessCheck $db_update_access */
-    $db_update_access = \Drupal::service('access_check.db_update');
-    if ($db_update_access->access(\Drupal::currentUser())->isAllowed()) {
-      $args = [':url' => Url::fromUri('base://update.php')->toString()];
-      \Drupal::messenger()->addError(t('Path aliases cannot be saved until <a href=":url">database updates</a> are performed.', $args));
-    }
-    else {
-      \Drupal::messenger()->addError(t('Path aliases cannot be saved until <em>database updates</em> are performed.'));
-    }
-    $message = 'Path alias "@alias" ("@path") could not be saved because the "system_update_8804" database update was not applied yet.';
-    $args = ['@path' => $path_alias->getPath(), '@alias' => $path_alias->getAlias()];
-    throw new \LogicException(new FormattableMarkup($message, $args));
   }
 }

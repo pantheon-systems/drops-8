@@ -15,7 +15,7 @@ class SessionTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['menu_link_content', 'block'];
+  protected static $modules = ['menu_link_content', 'block'];
 
   /**
    * {@inheritdoc}
@@ -25,7 +25,7 @@ class SessionTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $account = $this->drupalCreateUser();

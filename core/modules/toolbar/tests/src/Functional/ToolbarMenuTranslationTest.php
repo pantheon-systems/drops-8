@@ -23,7 +23,7 @@ class ToolbarMenuTranslationTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'toolbar',
     'toolbar_test',
     'locale',
@@ -35,7 +35,7 @@ class ToolbarMenuTranslationTest extends BrowserTestBase {
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create an administrative user and log it in.

@@ -158,24 +158,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   }
 
   /**
-   * Gets the base field definitions for a content entity type.
-   *
-   * @return \Drupal\Core\Field\FieldDefinitionInterface[]
-   *   The array of base field definitions for the entity type, keyed by field
-   *   name.
-   *
-   * @deprecated in drupal:8.7.0 and is removed from drupal:9.0.0.
-   *   Use \Drupal\Core\Entity\EntityFieldManagerInterface::getActiveFieldStorageDefinitions()
-   *   instead.
-   *
-   * @see https://www.drupal.org/node/3040966
-   */
-  public function getFieldStorageDefinitions() {
-    @trigger_error('SqlContentEntityStorage::getFieldStorageDefinitions() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Entity\EntityFieldManagerInterface::getActiveFieldStorageDefinitions() instead. See https://www.drupal.org/node/3040966.', E_USER_DEPRECATED);
-    return $this->entityFieldManager->getBaseFieldDefinitions($this->entityTypeId);
-  }
-
-  /**
    * Constructs a SqlContentEntityStorage object.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
@@ -188,21 +170,17 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    *   The cache backend to be used.
    * @param \Drupal\Core\Language\LanguageManagerInterface $language_manager
    *   The language manager.
-   * @param \Drupal\Core\Cache\MemoryCache\MemoryCacheInterface|null $memory_cache
+   * @param \Drupal\Core\Cache\MemoryCache\MemoryCacheInterface $memory_cache
    *   The memory cache backend to be used.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
    *   The entity type bundle info.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
    *   The entity type manager.
    */
-  public function __construct(EntityTypeInterface $entity_type, Connection $database, EntityFieldManagerInterface $entity_field_manager, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, MemoryCacheInterface $memory_cache = NULL, EntityTypeBundleInfoInterface $entity_type_bundle_info = NULL, EntityTypeManagerInterface $entity_type_manager = NULL) {
+  public function __construct(EntityTypeInterface $entity_type, Connection $database, EntityFieldManagerInterface $entity_field_manager, CacheBackendInterface $cache, LanguageManagerInterface $language_manager, MemoryCacheInterface $memory_cache, EntityTypeBundleInfoInterface $entity_type_bundle_info, EntityTypeManagerInterface $entity_type_manager) {
     parent::__construct($entity_type, $entity_field_manager, $cache, $memory_cache, $entity_type_bundle_info);
     $this->database = $database;
     $this->languageManager = $language_manager;
-    if (!$entity_type_manager) {
-      @trigger_error('Calling SqlContentEntityStorage::__construct() with the $entity_type_manager argument is supported in drupal:8.7.0 and will be required before drupal:9.0.0. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-      $entity_type_manager = \Drupal::entityTypeManager();
-    }
     $this->entityTypeManager = $entity_type_manager;
     $this->entityType = $this->entityTypeManager->getActiveDefinition($entity_type->id());
     $this->fieldStorageDefinitions = $this->entityFieldManager->getActiveFieldStorageDefinitions($entity_type->id());
@@ -631,17 +609,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
   /**
    * {@inheritdoc}
    */
-  protected function doLoadRevisionFieldItems($revision_id) {
-    @trigger_error('"\Drupal\Core\Entity\ContentEntityStorageBase::doLoadRevisionFieldItems()" is deprecated in Drupal 8.5.x and will be removed before Drupal 9.0.0. "\Drupal\Core\Entity\ContentEntityStorageBase::doLoadMultipleRevisionsFieldItems()" should be implemented instead. See https://www.drupal.org/node/2924915.', E_USER_DEPRECATED);
-
-    $revisions = $this->doLoadMultipleRevisionsFieldItems([$revision_id]);
-
-    return !empty($revisions) ? reset($revisions) : NULL;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   protected function doLoadMultipleRevisionsFieldItems($revision_ids) {
     $revisions = [];
 
@@ -728,10 +695,7 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
     $query->addTag($this->entityTypeId . '_load_multiple');
 
     if ($revision_ids) {
-      if (!is_array($revision_ids)) {
-        @trigger_error('Passing a single revision ID to "\Drupal\Core\Entity\Sql\SqlContentEntityStorage::buildQuery()" is deprecated in Drupal 8.5.x and will be removed before Drupal 9.0.0. An array of revision IDs should be given instead. See https://www.drupal.org/node/2924915.', E_USER_DEPRECATED);
-      }
-      $query->join($this->revisionTable, 'revision', "revision.{$this->idKey} = base.{$this->idKey} AND revision.{$this->revisionKey} IN (:revisionIds[])", [':revisionIds[]' => (array) $revision_ids]);
+      $query->join($this->revisionTable, 'revision', "revision.{$this->idKey} = base.{$this->idKey} AND revision.{$this->revisionKey} IN (:revisionIds[])", [':revisionIds[]' => $revision_ids]);
     }
     elseif ($this->revisionTable) {
       $query->join($this->revisionTable, 'revision', "revision.{$this->revisionKey} = base.{$this->revisionKey}");
@@ -1112,9 +1076,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
    *
    * @return bool
    *   TRUE if the column is serial, FALSE otherwise.
-   *
-   * @see \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema::processBaseTable()
-   * @see \Drupal\Core\Entity\Sql\SqlContentEntityStorageSchema::processRevisionTable()
    */
   protected function isColumnSerial($table_name, $schema_name) {
     $result = FALSE;
@@ -1808,24 +1769,6 @@ class SqlContentEntityStorage extends ContentEntityStorageBase implements SqlEnt
       $count = $query->execute()->fetchField();
     }
     return $as_bool ? (bool) $count : (int) $count;
-  }
-
-  /**
-   * Determines whether the passed field has been already deleted.
-   *
-   * @param \Drupal\Core\Field\FieldStorageDefinitionInterface $storage_definition
-   *   The field storage definition.
-   *
-   * @return bool
-   *   Whether the field has been already deleted.
-   *
-   * @deprecated in drupal:8.5.0 and is removed from drupal:9.0.0. Use
-   *   \Drupal\Core\Field\FieldStorageDefinitionInterface::isDeleted() instead.
-   *
-   * @see https://www.drupal.org/node/2907785
-   */
-  protected function storageDefinitionIsDeleted(FieldStorageDefinitionInterface $storage_definition) {
-    return $storage_definition->isDeleted();
   }
 
 }

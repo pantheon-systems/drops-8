@@ -21,7 +21,7 @@ class MenuLinksTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'link',
     'menu_link_content',
     'router_test',
@@ -39,7 +39,7 @@ class MenuLinksTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->menuLinkManager = \Drupal::service('plugin.manager.menu.link');

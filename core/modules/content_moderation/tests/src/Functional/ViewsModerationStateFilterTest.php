@@ -23,7 +23,7 @@ class ViewsModerationStateFilterTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'content_moderation',
     'workflows',
@@ -42,7 +42,7 @@ class ViewsModerationStateFilterTest extends ViewTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp(FALSE);
 
     NodeType::create([

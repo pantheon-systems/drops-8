@@ -20,7 +20,7 @@ class EntityFormDisplayTest extends KernelTestBase {
    *
    * @var string[]
    */
-  public static $modules = [
+  protected static $modules = [
     'field_ui',
     'field',
     'entity_test',
@@ -29,7 +29,7 @@ class EntityFormDisplayTest extends KernelTestBase {
     'text',
   ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('entity_test');
   }

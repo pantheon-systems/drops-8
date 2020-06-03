@@ -33,12 +33,12 @@ class ViewsThemeIntegrationTest extends ViewTestBase {
    *
    * @see \Drupal\simpletest\WebTestBase::setup()
    */
-  public static $modules = ['views', 'theme_test'];
+  protected static $modules = ['views', 'theme_test'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->enableViewsTestModule();

@@ -14,7 +14,7 @@ class PathMediaFormTest extends PathTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['media', 'media_test_source'];
+  protected static $modules = ['media', 'media_test_source'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class PathMediaFormTest extends PathTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create test user and log in.

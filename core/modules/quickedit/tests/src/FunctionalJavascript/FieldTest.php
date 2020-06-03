@@ -21,7 +21,7 @@ class FieldTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'ckeditor',
     'contextual',
@@ -36,7 +36,7 @@ class FieldTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a text format and associate CKEditor.

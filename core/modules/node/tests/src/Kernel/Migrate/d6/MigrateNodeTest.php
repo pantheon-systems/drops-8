@@ -19,7 +19,7 @@ class MigrateNodeTest extends MigrateNodeTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'menu_ui',
@@ -28,7 +28,7 @@ class MigrateNodeTest extends MigrateNodeTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->setUpMigratedFiles();
     $this->installSchema('file', ['file_usage']);
@@ -58,7 +58,7 @@ class MigrateNodeTest extends MigrateNodeTestBase {
     $this->assertIdentical('story', $node->getType(), 'Node has the correct bundle.');
     $this->assertIdentical('Test title', $node->getTitle(), 'Node has the correct title.');
     $this->assertIdentical('1390095702', $node->getCreatedTime(), 'Node has the correct created time.');
-    $this->assertIdentical(FALSE, $node->isSticky());
+    $this->assertFalse($node->isSticky());
     $this->assertIdentical('1', $node->getOwnerId());
     $this->assertIdentical('1390095702', $node->getRevisionCreationTime());
 

@@ -16,7 +16,7 @@ class NodeFormSaveChangedTimeTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
   ];
 
@@ -35,7 +35,7 @@ class NodeFormSaveChangedTimeTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a node type.

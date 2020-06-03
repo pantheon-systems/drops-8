@@ -19,7 +19,7 @@ abstract class OptionsTestBase extends ViewsKernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'options',
     'options_test_views',
     'node',

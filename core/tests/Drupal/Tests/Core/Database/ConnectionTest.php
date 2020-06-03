@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\Core\Database;
 
+use Composer\Autoload\ClassLoader;
 use Drupal\Tests\Core\Database\Stub\StubConnection;
 use Drupal\Tests\Core\Database\Stub\StubPDO;
 use Drupal\Tests\UnitTestCase;
@@ -9,6 +10,7 @@ use Drupal\Tests\UnitTestCase;
 /**
  * Tests the Connection class.
  *
+ * @coversDefaultClass \Drupal\Core\Database\Connection
  * @group Database
  */
 class ConnectionTest extends UnitTestCase {
@@ -77,15 +79,26 @@ class ConnectionTest extends UnitTestCase {
         'SELECT * FROM test_table',
         'test_',
         'SELECT * FROM {table}',
+        ['', ''],
       ],
       [
-        'SELECT * FROM first_table JOIN second_thingie',
+        'SELECT * FROM "first_table" JOIN "second"."thingie"',
         [
           'table' => 'first_',
-          'thingie' => 'second_',
+          'thingie' => 'second.',
         ],
         'SELECT * FROM {table} JOIN {thingie}',
       ],
+      [
+        'SELECT * FROM [first_table] JOIN [second].[thingie]',
+        [
+          'table' => 'first_',
+          'thingie' => 'second.',
+        ],
+        'SELECT * FROM {table} JOIN {thingie}',
+        ['[', ']'],
+      ],
+
     ];
   }
 
@@ -94,47 +107,10 @@ class ConnectionTest extends UnitTestCase {
    *
    * @dataProvider providerTestPrefixTables
    */
-  public function testPrefixTables($expected, $prefix_info, $query) {
+  public function testPrefixTables($expected, $prefix_info, $query, array $quote_identifier = ['"', '"']) {
     $mock_pdo = $this->createMock('Drupal\Tests\Core\Database\Stub\StubPDO');
-    $connection = new StubConnection($mock_pdo, ['prefix' => $prefix_info]);
+    $connection = new StubConnection($mock_pdo, ['prefix' => $prefix_info], $quote_identifier);
     $this->assertEquals($expected, $connection->prefixTables($query));
-  }
-
-  /**
-   * Dataprovider for testEscapeMethods().
-   *
-   * @return array
-   *   Array of arrays with the following elements:
-   *   - Expected escaped string.
-   *   - String to escape.
-   */
-  public function providerEscapeMethods() {
-    return [
-      ['thing', 'thing'],
-      ['_item', '_item'],
-      ['item_', 'item_'],
-      ['_item_', '_item_'],
-      ['', '!@#$%^&*()-=+'],
-      ['123', '!1@2#3'],
-    ];
-  }
-
-  /**
-   * Test the various escaping methods.
-   *
-   * All tested together since they're basically the same method
-   * with different names.
-   *
-   * @dataProvider providerEscapeMethods
-   * @todo Separate test method for each escape method?
-   */
-  public function testEscapeMethods($expected, $name) {
-    $mock_pdo = $this->createMock('Drupal\Tests\Core\Database\Stub\StubPDO');
-    $connection = new StubConnection($mock_pdo, []);
-    $this->assertEquals($expected, $connection->escapeDatabase($name));
-    $this->assertEquals($expected, $connection->escapeTable($name));
-    $this->assertEquals($expected, $connection->escapeField($name));
-    $this->assertEquals($expected, $connection->escapeAlias($name));
   }
 
   /**
@@ -143,7 +119,6 @@ class ConnectionTest extends UnitTestCase {
    * @return array
    *   Array of arrays with the following elements:
    *   - Expected namespaced class name.
-   *   - Driver.
    *   - Namespace.
    *   - Class name without namespace.
    */
@@ -159,23 +134,155 @@ class ConnectionTest extends UnitTestCase {
         NULL,
         'Select',
       ],
+      // Tests with the corefake database driver. This driver has no custom
+      // driver classes.
       [
-        'Drupal\\Tests\\Core\\Database\\Stub\\Driver\\Schema',
-        'Drupal\\Tests\\Core\\Database\\Stub\\Driver',
+        'Drupal\Core\Database\Query\Condition',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Condition',
+      ],
+      [
+        'Drupal\Core\Database\Query\Delete',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Delete',
+      ],
+      [
+        'Drupal\Core\Database\Query\Insert',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Insert',
+      ],
+      [
+        'Drupal\Core\Database\Query\Merge',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Merge',
+      ],
+      [
+        'Drupal\Core\Database\Schema',
+        'Drupal\corefake\Driver\Database\corefake',
         'Schema',
+      ],
+      [
+        'Drupal\Core\Database\Query\Select',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Select',
+      ],
+      [
+        'Drupal\Core\Database\Transaction',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Transaction',
+      ],
+      [
+        'Drupal\Core\Database\Query\Truncate',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Truncate',
+      ],
+      [
+        'Drupal\Core\Database\Query\Update',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Update',
+      ],
+      [
+        'Drupal\Core\Database\Query\Upsert',
+        'Drupal\corefake\Driver\Database\corefake',
+        'Upsert',
+      ],
+      // Tests with the corefakeWithAllCustomClasses database driver. This
+      // driver has custom driver classes for all classes.
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Condition',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Condition',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Delete',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Delete',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Insert',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Insert',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Merge',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Merge',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Schema',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Schema',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Select',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Select',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Transaction',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Transaction',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Truncate',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Truncate',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Update',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Update',
+      ],
+      [
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses\Upsert',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Upsert',
+      ],
+      [
+        'Drupal\Core\Database\Query\PagerSelectExtender',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Drupal\Core\Database\Query\PagerSelectExtender',
+      ],
+      [
+        '\Drupal\Core\Database\Query\PagerSelectExtender',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        '\Drupal\Core\Database\Query\PagerSelectExtender',
+      ],
+      [
+        'Drupal\Core\Database\Query\TableSortExtender',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Drupal\Core\Database\Query\TableSortExtender',
+      ],
+      [
+        '\Drupal\Core\Database\Query\TableSortExtender',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        '\Drupal\Core\Database\Query\TableSortExtender',
+      ],
+      [
+        'Drupal\search\SearchQuery',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        'Drupal\search\SearchQuery',
+      ],
+      [
+        '\Drupal\search\SearchQuery',
+        'Drupal\corefake\Driver\Database\corefakeWithAllCustomClasses',
+        '\Drupal\search\SearchQuery',
       ],
     ];
   }
 
   /**
-   * Test getDriverClass().
-   *
+   * @covers ::getDriverClass
    * @dataProvider providerGetDriverClass
    */
   public function testGetDriverClass($expected, $namespace, $class) {
+    $additional_class_loader = new ClassLoader();
+    $additional_class_loader->addPsr4("Drupal\\corefake\\Driver\\Database\\corefake\\", __DIR__ . "/../../../../../tests/fixtures/database_drivers/module/corefake/src/Driver/Database/corefake");
+    $additional_class_loader->addPsr4("Drupal\\corefake\\Driver\\Database\\corefakeWithAllCustomClasses\\", __DIR__ . "/../../../../../tests/fixtures/database_drivers/module/corefake/src/Driver/Database/corefakeWithAllCustomClasses");
+    $additional_class_loader->register(TRUE);
+
     $mock_pdo = $this->createMock('Drupal\Tests\Core\Database\Stub\StubPDO');
     $connection = new StubConnection($mock_pdo, ['namespace' => $namespace]);
-    // Set the driver using our stub class' public property.
     $this->assertEquals($expected, $connection->getDriverClass($class));
   }
 
@@ -223,7 +330,10 @@ class ConnectionTest extends UnitTestCase {
       $connection->schema()
     );
     $connection->destroy();
-    $this->assertAttributeEquals(NULL, 'schema', $connection);
+
+    $reflected_schema = (new \ReflectionObject($connection))->getProperty('schema');
+    $reflected_schema->setAccessible(TRUE);
+    $this->assertNull($reflected_schema->getValue($connection));
   }
 
   /**
@@ -299,6 +409,174 @@ class ConnectionTest extends UnitTestCase {
   }
 
   /**
+   * Data provider for testEscapeTable.
+   *
+   * @return array
+   *   An indexed array of where each value is an array of arguments to pass to
+   *   testEscapeField. The first value is the expected value, and the second
+   *   value is the value to test.
+   */
+  public function providerEscapeTables() {
+    return [
+      ['nocase', 'nocase'],
+      ['camelCase', 'camelCase'],
+      ['backtick', '`backtick`', ['`', '`']],
+      ['brackets', '[brackets]', ['[', ']']],
+      ['camelCase', '"camelCase"'],
+      ['camelCase', 'camel/Case'],
+      // Sometimes, table names are following the pattern database.schema.table.
+      ['camelCase.nocase.nocase', 'camelCase.nocase.nocase'],
+      ['nocase.camelCase.nocase', 'nocase.camelCase.nocase'],
+      ['nocase.nocase.camelCase', 'nocase.nocase.camelCase'],
+      ['camelCase.camelCase.camelCase', 'camelCase.camelCase.camelCase'],
+    ];
+  }
+
+  /**
+   * @covers ::escapeTable
+   * @dataProvider providerEscapeTables
+   */
+  public function testEscapeTable($expected, $name, array $identifier_quote = ['"', '"']) {
+    $mock_pdo = $this->createMock(StubPDO::class);
+    $connection = new StubConnection($mock_pdo, [], $identifier_quote);
+
+    $this->assertEquals($expected, $connection->escapeTable($name));
+  }
+
+  /**
+   * Data provider for testEscapeAlias.
+   *
+   * @return array
+   *   Array of arrays with the following elements:
+   *   - Expected escaped string.
+   *   - String to escape.
+   */
+  public function providerEscapeAlias() {
+    return [
+      ['!nocase!', 'nocase', ['!', '!']],
+      ['`backtick`', 'backtick', ['`', '`']],
+      ['nocase', 'nocase', ['', '']],
+      ['[brackets]', 'brackets', ['[', ']']],
+      ['"camelCase"', '"camelCase"'],
+      ['"camelCase"', 'camelCase'],
+      ['"camelCase"', 'camel.Case'],
+    ];
+  }
+
+  /**
+   * @covers ::escapeAlias
+   * @dataProvider providerEscapeAlias
+   */
+  public function testEscapeAlias($expected, $name, array $identifier_quote = ['"', '"']) {
+    $mock_pdo = $this->createMock(StubPDO::class);
+    $connection = new StubConnection($mock_pdo, [], $identifier_quote);
+
+    $this->assertEquals($expected, $connection->escapeAlias($name));
+  }
+
+  /**
+   * Data provider for testEscapeField.
+   *
+   * @return array
+   *   Array of arrays with the following elements:
+   *   - Expected escaped string.
+   *   - String to escape.
+   */
+  public function providerEscapeFields() {
+    return [
+      ['/title/', 'title', ['/', '/']],
+      ['`backtick`', 'backtick', ['`', '`']],
+      ['test.title', 'test.title', ['', '']],
+      ['"isDefaultRevision"', 'isDefaultRevision'],
+      ['"isDefaultRevision"', '"isDefaultRevision"'],
+      ['"entity_test"."isDefaultRevision"', 'entity_test.isDefaultRevision'],
+      ['"entity_test"."isDefaultRevision"', '"entity_test"."isDefaultRevision"'],
+      ['"entityTest"."isDefaultRevision"', '"entityTest"."isDefaultRevision"'],
+      ['"entityTest"."isDefaultRevision"', 'entityTest.isDefaultRevision'],
+      ['[entityTest].[isDefaultRevision]', 'entityTest.isDefaultRevision', ['[', ']']],
+    ];
+  }
+
+  /**
+   * @covers ::escapeField
+   * @dataProvider providerEscapeFields
+   */
+  public function testEscapeField($expected, $name, array $identifier_quote = ['"', '"']) {
+    $mock_pdo = $this->createMock(StubPDO::class);
+    $connection = new StubConnection($mock_pdo, [], $identifier_quote);
+
+    $this->assertEquals($expected, $connection->escapeField($name));
+  }
+
+  /**
+   * Data provider for testEscapeDatabase.
+   *
+   * @return array
+   *   An indexed array of where each value is an array of arguments to pass to
+   *   testEscapeField. The first value is the expected value, and the second
+   *   value is the value to test.
+   */
+  public function providerEscapeDatabase() {
+    return [
+      ['/name/', 'name', ['/', '/']],
+      ['`backtick`', 'backtick', ['`', '`']],
+      ['testname', 'test.name', ['', '']],
+      ['"name"', 'name'],
+      ['[name]', 'name', ['[', ']']],
+    ];
+  }
+
+  /**
+   * @covers ::escapeDatabase
+   * @dataProvider providerEscapeDatabase
+   */
+  public function testEscapeDatabase($expected, $name, array $identifier_quote = ['"', '"']) {
+    $mock_pdo = $this->createMock(StubPDO::class);
+    $connection = new StubConnection($mock_pdo, [], $identifier_quote);
+
+    $this->assertEquals($expected, $connection->escapeDatabase($name));
+  }
+
+  /**
+   * @covers ::__construct
+   * @expectedDeprecation In drupal:10.0.0 not setting the $identifierQuotes property in the concrete Connection class will result in an RuntimeException. See https://www.drupal.org/node/2986894
+   * @group legacy
+   */
+  public function testIdentifierQuotesDeprecation() {
+    $mock_pdo = $this->createMock(StubPDO::class);
+    new StubConnection($mock_pdo, [], NULL);
+  }
+
+  /**
+   * @covers ::__construct
+   */
+  public function testIdentifierQuotesAssertCount() {
+    $this->expectException(\AssertionError::class);
+    $this->expectExceptionMessage('\Drupal\Core\Database\Connection::$identifierQuotes must contain 2 string values');
+    $mock_pdo = $this->createMock(StubPDO::class);
+    new StubConnection($mock_pdo, [], ['"']);
+  }
+
+  /**
+   * @covers ::__construct
+   */
+  public function testIdentifierQuotesAssertString() {
+    $this->expectException(\AssertionError::class);
+    $this->expectExceptionMessage('\Drupal\Core\Database\Connection::$identifierQuotes must contain 2 string values');
+    $mock_pdo = $this->createMock(StubPDO::class);
+    new StubConnection($mock_pdo, [], [0, '1']);
+  }
+
+  /**
+   * @covers ::__construct
+   */
+  public function testNamespaceDefault() {
+    $mock_pdo = $this->createMock(StubPDO::class);
+    $connection = new StubConnection($mock_pdo, []);
+    $this->assertSame('Drupal\Tests\Core\Database\Stub', $connection->getConnectionOptions()['namespace']);
+  }
+
+  /**
    * Test rtrim() of query strings.
    *
    * @dataProvider provideQueriesToTrim
@@ -349,7 +627,7 @@ class ConnectionTest extends UnitTestCase {
         'SELECT * FROM test; ',
         ['allow_delimiter_in_query' => TRUE],
       ],
-    ];
+   ];
   }
 
 }

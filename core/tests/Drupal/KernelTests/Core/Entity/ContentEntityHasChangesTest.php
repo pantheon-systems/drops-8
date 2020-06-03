@@ -22,12 +22,12 @@ class ContentEntityHasChangesTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'user', 'entity_test'];
+  protected static $modules = ['system', 'user', 'entity_test'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');

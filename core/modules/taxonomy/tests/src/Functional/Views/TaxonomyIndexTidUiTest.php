@@ -36,7 +36,7 @@ class TaxonomyIndexTidUiTest extends UITestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'taxonomy',
     'views',
@@ -54,7 +54,7 @@ class TaxonomyIndexTidUiTest extends UITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->adminUser = $this->drupalCreateUser(['administer taxonomy', 'administer views']);

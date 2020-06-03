@@ -29,7 +29,7 @@ class FieldDropbuttonTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'user',
     'node',
@@ -70,7 +70,7 @@ class FieldDropbuttonTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp(FALSE);
     $this->installEntitySchema('node');
     $this->installEntitySchema('user');

@@ -3,4 +3,3 @@ type: module
 description: 'Caches pages, including those with dynamic content, for all users.'
 package: Core
 version: VERSION
-core: 8.x

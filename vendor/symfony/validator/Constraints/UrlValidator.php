@@ -15,6 +15,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidator;
 use Symfony\Component\Validator\Exception\InvalidOptionsException;
 use Symfony\Component\Validator\Exception\UnexpectedTypeException;
+use Symfony\Component\Validator\Exception\UnexpectedValueException;
 
 /**
  * @author Bernhard Schussek <bschussek@gmail.com>
@@ -34,9 +35,9 @@ class UrlValidator extends ConstraintValidator
                 \]  # an IPv6 address
             )
             (:[0-9]+)?                              # a port (optional)
-            (?:/ (?:[\pL\pN\-._\~!$&\'()*+,;=:@]|%%[0-9A-Fa-f]{2})* )*      # a path
-            (?:\? (?:[\pL\pN\-._\~!$&\'()*+,;=:@/?]|%%[0-9A-Fa-f]{2})* )?   # a query (optional)
-            (?:\# (?:[\pL\pN\-._\~!$&\'()*+,;=:@/?]|%%[0-9A-Fa-f]{2})* )?   # a fragment (optional)
+            (?:/ (?:[\pL\pN\-._\~!$&\'()*+,;=:@]|%%[0-9A-Fa-f]{2})* )*          # a path
+            (?:\? (?:[\pL\pN\-._\~!$&\'\[\]()*+,;=:@/?]|%%[0-9A-Fa-f]{2})* )?   # a query (optional)
+            (?:\# (?:[\pL\pN\-._\~!$&\'()*+,;=:@/?]|%%[0-9A-Fa-f]{2})* )?       # a fragment (optional)
         $~ixu';
 
     /**
@@ -53,7 +54,7 @@ class UrlValidator extends ConstraintValidator
         }
 
         if (!is_scalar($value) && !(\is_object($value) && method_exists($value, '__toString'))) {
-            throw new UnexpectedTypeException($value, 'string');
+            throw new UnexpectedValueException($value, 'string');
         }
 
         $value = (string) $value;
@@ -61,7 +62,12 @@ class UrlValidator extends ConstraintValidator
             return;
         }
 
-        $pattern = sprintf(static::PATTERN, implode('|', $constraint->protocols));
+        if (null !== $constraint->normalizer) {
+            $value = ($constraint->normalizer)($value);
+        }
+
+        $pattern = $constraint->relativeProtocol ? str_replace('(%s):', '(?:(%s):)?', static::PATTERN) : static::PATTERN;
+        $pattern = sprintf($pattern, implode('|', $constraint->protocols));
 
         if (!preg_match($pattern, $value)) {
             $this->context->buildViolation($constraint->message)
@@ -73,12 +79,6 @@ class UrlValidator extends ConstraintValidator
         }
 
         if ($constraint->checkDNS) {
-            // backwards compatibility
-            if (true === $constraint->checkDNS) {
-                $constraint->checkDNS = Url::CHECK_DNS_TYPE_ANY;
-                @trigger_error(sprintf('Use of the boolean TRUE for the "checkDNS" option in %s is deprecated.  Use Url::CHECK_DNS_TYPE_ANY instead.', Url::class), E_USER_DEPRECATED);
-            }
-
             if (!\in_array($constraint->checkDNS, [
                 Url::CHECK_DNS_TYPE_ANY,
                 Url::CHECK_DNS_TYPE_A,

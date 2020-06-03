@@ -16,7 +16,7 @@ class TourHelpPageTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['help', 'tour', 'locale', 'language'];
+  protected static $modules = ['help', 'tour', 'locale', 'language'];
 
   /**
    * {@inheritdoc}
@@ -40,7 +40,7 @@ class TourHelpPageTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create users. For the Tour user, include permissions for the language

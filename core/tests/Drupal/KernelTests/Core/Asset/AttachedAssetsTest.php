@@ -38,12 +38,12 @@ class AttachedAssetsTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['language', 'simpletest', 'common_test', 'system'];
+  protected static $modules = ['language', 'common_test', 'system'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->container->get('router.builder')->rebuild();
 
@@ -211,8 +211,8 @@ class AttachedAssetsTest extends KernelTestBase {
     $this->assertTrue(isset($parsed_settings['path']['baseUrl']), 'drupalSettings.path.baseUrl is present.');
     $this->assertIdentical($parsed_settings['path']['pathPrefix'], 'yarhar', 'drupalSettings.path.pathPrefix is present and has the correct (overridden) value.');
     $this->assertIdentical($parsed_settings['path']['currentPath'], '', 'drupalSettings.path.currentPath is present and has the correct value.');
-    $this->assertIdentical($parsed_settings['path']['currentPathIsAdmin'], FALSE, 'drupalSettings.path.currentPathIsAdmin is present and has the correct value.');
-    $this->assertIdentical($parsed_settings['path']['isFront'], FALSE, 'drupalSettings.path.isFront is present and has the correct value.');
+    $this->assertFalse($parsed_settings['path']['currentPathIsAdmin'], 'drupalSettings.path.currentPathIsAdmin is present and has the correct value.');
+    $this->assertFalse($parsed_settings['path']['isFront'], 'drupalSettings.path.isFront is present and has the correct value.');
     $this->assertIdentical($parsed_settings['path']['currentLanguage'], 'en', 'drupalSettings.path.currentLanguage is present and has the correct value.');
 
     // Tests whether altering JavaScript settings via hook_js_settings_alter()
@@ -383,21 +383,21 @@ class AttachedAssetsTest extends KernelTestBase {
   /**
    * Tests altering a JavaScript's weight via hook_js_alter().
    *
-   * @see simpletest_js_alter()
+   * @see common_test_js_alter()
    */
   public function testAlter() {
-    // Add both tableselect.js and simpletest.js.
+    // Add both tableselect.js and alter.js.
     $build['#attached']['library'][] = 'core/drupal.tableselect';
-    $build['#attached']['library'][] = 'simpletest/drupal.simpletest';
+    $build['#attached']['library'][] = 'common_test/hook_js_alter';
     $assets = AttachedAssets::createFromRenderArray($build);
 
-    // Render the JavaScript, testing if simpletest.js was altered to be before
-    // tableselect.js. See simpletest_js_alter() to see where this alteration
+    // Render the JavaScript, testing if alter.js was altered to be before
+    // tableselect.js. See common_test_js_alter() to see where this alteration
     // takes place.
     $js = $this->assetResolver->getJsAssets($assets, FALSE)[1];
     $js_render_array = \Drupal::service('asset.js.collection_renderer')->render($js);
     $rendered_js = $this->renderer->renderPlain($js_render_array);
-    $this->assertTrue(strpos($rendered_js, 'simpletest.js') < strpos($rendered_js, 'core/misc/tableselect.js'), 'Altering JavaScript weight through the alter hook.');
+    $this->assertTrue(strpos($rendered_js, 'alter.js') < strpos($rendered_js, 'core/misc/tableselect.js'), 'Altering JavaScript weight through the alter hook.');
   }
 
   /**

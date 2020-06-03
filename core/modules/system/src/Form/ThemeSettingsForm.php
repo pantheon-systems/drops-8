@@ -82,17 +82,13 @@ class ThemeSettingsForm extends ConfigFormBase {
    * @param \Drupal\Core\File\FileSystemInterface $file_system
    *   The file system.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, MimeTypeGuesserInterface $mime_type_guesser, ThemeManagerInterface $theme_manager, FileSystemInterface $file_system = NULL) {
+  public function __construct(ConfigFactoryInterface $config_factory, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, MimeTypeGuesserInterface $mime_type_guesser, ThemeManagerInterface $theme_manager, FileSystemInterface $file_system) {
     parent::__construct($config_factory);
 
     $this->moduleHandler = $module_handler;
     $this->themeHandler = $theme_handler;
     $this->mimeTypeGuesser = $mime_type_guesser;
     $this->themeManager = $theme_manager;
-    if (!$file_system) {
-      @trigger_error('The file_system service must be passed to ThemeSettingsForm::__construct(), it is required before Drupal 9.0.0. See https://www.drupal.org/node/3006851.', E_USER_DEPRECATED);
-      $file_system = \Drupal::service('file_system');
-    }
     $this->fileSystem = $file_system;
   }
 
@@ -514,6 +510,7 @@ class ThemeSettingsForm extends ConfigFormBase {
    * @param string $path
    *   A path relative to the Drupal root or to the public files directory, or
    *   a stream wrapper URI.
+   *
    * @return mixed
    *   A valid path that can be displayed through the theme system, or FALSE if
    *   the path could not be validated.

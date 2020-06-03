@@ -38,9 +38,9 @@ class DateTimeItemTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['datetime'];
+  protected static $modules = ['datetime'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a field with settings to validate.

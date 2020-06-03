@@ -19,7 +19,12 @@ class BlockUiTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'block_test', 'help', 'condition_test'];
+  protected static $modules = [
+    'block',
+    'block_test',
+    'help',
+    'condition_test',
+  ];
 
   /**
    * {@inheritdoc}
@@ -47,7 +52,7 @@ class BlockUiTest extends BrowserTestBase {
    */
   protected $adminUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Create and log in an administrative user.
     $this->adminUser = $this->drupalCreateUser([

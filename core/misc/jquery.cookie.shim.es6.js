@@ -12,6 +12,8 @@
  */
 
 (($, Drupal, cookies) => {
+  const deprecatedMessageSuffix = `is deprecated in Drupal 9.0.0 and will be removed in Drupal 10.0.0. Use the core/js-cookie library instead. See https://www.drupal.org/node/3104677`;
+
   /**
    * Determines if an object is a function.
    *
@@ -124,16 +126,22 @@
    *   Returns the cookie name, value, and other properties based on the
    *   return value of the document.cookie setter.
    *
+   * @deprecated in Drupal 9.0.0 and is removed from Drupal 10.0.0.
+   *   Use the core/js-cookie library instead.
+   *
    * @see https://www.drupal.org/node/3104677
    * @see https://github.com/js-cookie/js-cookie/blob/v3.0.0-rc.0/README.md
    */
   $.cookie = (key, value = undefined, options = undefined) => {
+    Drupal.deprecationError({
+      message: `jQuery.cookie() ${deprecatedMessageSuffix}`,
+    });
     // Key should be only encoded if it exists and when not in a raw mode.
     key = key && !$.cookie.raw ? encodeURIComponent(key) : key;
     if (value !== undefined && !isFunction(value)) {
       // The caller is setting a cookie value and not trying to retrieve the
       // cookie value using a converter callback.
-      const attributes = Object.assign({}, $.cookie.defaults, options);
+      const attributes = { ...$.cookie.defaults, ...options };
 
       if (typeof attributes.expires === 'string' && attributes.expires !== '') {
         attributes.expires = new Date(attributes.expires);
@@ -187,7 +195,7 @@
    *   There is no default value for the expires option. The default expiration
    *   is set to an empty string.
    */
-  $.cookie.defaults = Object.assign({ path: '' }, cookies.defaults);
+  $.cookie.defaults = { path: '', ...cookies.defaults };
 
   /**
    * @prop {boolean} json
@@ -214,11 +222,17 @@
    * @return {boolean}
    *   Returns true when the cookie is successfully removed.
    *
+   * @deprecated in Drupal 9.0.0 and is removed from Drupal 10.0.0.
+   *   Use the core/js-cookie library instead.
+   *
    * @see https://www.drupal.org/node/3104677
    * @see https://github.com/js-cookie/js-cookie/blob/v3.0.0-rc.0/README.md
    */
   $.removeCookie = (key, options) => {
-    cookies.remove(key, Object.assign({}, $.cookie.defaults, options));
+    Drupal.deprecationError({
+      message: `jQuery.removeCookie() ${deprecatedMessageSuffix}`,
+    });
+    cookies.remove(key, { ...$.cookie.defaults, ...options });
     return !cookies.get(key);
   };
 })(jQuery, Drupal, window.Cookies);

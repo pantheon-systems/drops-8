@@ -7,19 +7,18 @@ use Drupal\comment\Entity\CommentType;
 use Drupal\comment\Tests\CommentTestTrait;
 use Drupal\Core\Cache\Cache;
 use Drupal\entity_test\Entity\EntityTest;
-use Drupal\Tests\rest\Functional\BcTimestampNormalizerUnixTestTrait;
 use Drupal\Tests\rest\Functional\EntityResource\EntityResourceTestBase;
 use Drupal\user\Entity\User;
 use GuzzleHttp\RequestOptions;
 
 abstract class CommentResourceTestBase extends EntityResourceTestBase {
 
-  use CommentTestTrait, BcTimestampNormalizerUnixTestTrait;
+  use CommentTestTrait;
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['comment', 'entity_test'];
+  protected static $modules = ['comment', 'entity_test'];
 
   /**
    * {@inheritdoc}
@@ -153,10 +152,16 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
         ],
       ],
       'created' => [
-        $this->formatExpectedTimestampItemValues(123456789),
+        [
+          'value' => (new \DateTime())->setTimestamp(123456789)->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
+          'format' => \DateTime::RFC3339,
+        ],
       ],
       'changed' => [
-        $this->formatExpectedTimestampItemValues($this->entity->getChangedTime()),
+        [
+          'value' => (new \DateTime())->setTimestamp((int) $this->entity->getChangedTime())->setTimezone(new \DateTimeZone('UTC'))->format(\DateTime::RFC3339),
+          'format' => \DateTime::RFC3339,
+        ],
       ],
       'default_langcode' => [
         [
@@ -311,10 +316,6 @@ abstract class CommentResourceTestBase extends EntityResourceTestBase {
    * {@inheritdoc}
    */
   protected function getExpectedUnauthorizedAccessMessage($method) {
-    if ($this->config('rest.settings')->get('bc_entity_resource_permissions')) {
-      return parent::getExpectedUnauthorizedAccessMessage($method);
-    }
-
     switch ($method) {
       case 'GET';
         return "The 'access comments' permission is required and the comment must be published.";

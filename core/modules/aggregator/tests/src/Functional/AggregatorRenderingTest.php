@@ -17,14 +17,14 @@ class AggregatorRenderingTest extends AggregatorTestBase {
    *
    * @var array
    */
-  public static $modules = ['block', 'test_page_test'];
+  protected static $modules = ['block', 'test_page_test'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('page_title_block');

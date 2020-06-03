@@ -14,12 +14,12 @@ class ClassyTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'twig_theme_test'];
+  protected static $modules = ['system', 'twig_theme_test'];
 
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     // Use the classy theme.

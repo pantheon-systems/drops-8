@@ -7,7 +7,7 @@ use Drupal\Core\Ajax\InsertCommand;
 use Drupal\Core\EventSubscriber\AjaxResponseSubscriber;
 use Drupal\KernelTests\KernelTestBase;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Event\FilterResponseEvent;
+use Symfony\Component\HttpKernel\Event\ResponseEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
@@ -20,7 +20,12 @@ class CommandsTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'node', 'ajax_test', 'ajax_forms_test'];
+  protected static $modules = [
+    'system',
+    'node',
+    'ajax_test',
+    'ajax_forms_test',
+  ];
 
   /**
    * Regression test: Settings command exists regardless of JS aggregation.
@@ -35,7 +40,7 @@ class CommandsTest extends KernelTestBase {
 
       $ajax_response_attachments_processor = \Drupal::service('ajax_response.attachments_processor');
       $subscriber = new AjaxResponseSubscriber($ajax_response_attachments_processor);
-      $event = new FilterResponseEvent(
+      $event = new ResponseEvent(
         \Drupal::service('http_kernel'),
         new Request(),
         HttpKernelInterface::MASTER_REQUEST,

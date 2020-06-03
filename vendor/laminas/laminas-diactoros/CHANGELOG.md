@@ -2,6 +2,418 @@
 
 All notable changes to this project will be documented in this file, in reverse chronological order by release.
 
+## 2.3.0 - 2020-04-27
+
+### Added
+
+- [#37](https://github.com/laminas/laminas-diactoros/pull/37) adds a ConfigProvider and Module, allowing the package to be autoregistered within Mezzio and MVC applications. Each provides configuration mapping PSR-17 HTTP message factory interfaces to the Diactoros implementations of them.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 2.2.3 - 2020-03-29
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Fixed `replace` version constraint in composer.json so repository can be used as replacement of `zendframework/zend-diactoros:^2.2.1`.
+
+## 2.2.2 - 2020-01-07
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [#30](https://github.com/laminas/laminas-diactoros/pull/30) adds missing `return` statements to the various `src/functions/*.legacy.php` function files to ensure they work correctly when used.
+
+## 2.2.1 - 2019-11-13
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- [zendframework/zend-diactoros#379](https://github.com/zendframework/zend-diactoros/pull/379) removes extension of `SplFileInfo` by the `UploadedFile` class. The signatures of `getSize()` are potentially incompatible, and `UploadedFile` is intended to work with arbitrary PHP and PSR-7 streams, whereas `SplFileInfo` can only model files on the filesystem. While this is technically a BC break, we are treating it as a bugfix, as the class was broken for many use cases.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 2.2.0 - 2019-11-12
+
+### Added
+
+- [zendframework/zend-diactoros#376](https://github.com/zendframework/zend-diactoros/pull/376) adds support for using the X-Forwarded-Host header for determining the originally requested host name when marshaling the server request.
+
+### Changed
+
+- [zendframework/zend-diactoros#378](https://github.com/zendframework/zend-diactoros/pull/378) updates the `UploadedFile` class to extend `SplFileInfo`, allowing developers to make use of those features in their applications.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 2.2.0  - 2019-11-08
+
+### Added
+
+- [zendframework/zend-diactoros#377](https://github.com/zendframework/zend-diactoros/issues/377) enables UploadedFile to stand in and be used as an SplFileInfo object.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 2.1.5 - 2019-10-10
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#372](https://github.com/zendframework/zend-diactoros/pull/372) fixes issues that occur in the `Laminas\Diactoros\Uri` class when invalid UTF-8 characters are present the user-info, path, or query string, ensuring they are URL-encoded before being consumed. Previously, such characters could result in a fatal error, which was particularly problematic when marshaling the request URI for an application request cycle.
+
+## 2.1.4 - 2019-10-08
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#370](https://github.com/zendframework/zend-diactoros/pull/370) updates `Laminas\Diactoros\marshalHeadersFromSapi()` to ensure all underscores in header name keys are converted to dashes (fixing issues with header names such as `CONTENT_SECURITY_POLICY`, which would previously resolve improperly to `content-security_policy`).
+
+- [zendframework/zend-diactoros#370](https://github.com/zendframework/zend-diactoros/pull/370) updates `Laminas\Diactoros\marshalHeadersFromSapi()` to ignore header names from the `$server` array that resolve to integers; previously, it would raise a fatal error.
+
+## 2.1.3 - 2019-07-10
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#363](https://github.com/zendframework/zend-diactoros/issues/363) modifies detection of HTTPS schemas via the `$_SERVER['HTTPS']` value
+  such that an empty HTTPS-key will result in a scheme of `http` and not
+  `https`.
+
+## 2.1.2 - 2019-04-29
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#355](https://github.com/zendframework/zend-diactoros/pull/355) adds `phpdbg` to the list of accepted non-SAPI enviornments for purposes
+  of calling `UploadedFile::moveTo()`.
+
+## 2.1.1 - 2019-01-05
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#349](https://github.com/zendframework/zend-diactoros/pull/349) fixes an issue when marshaling headers with values of `0` or `0` from the SAPI, ensuring they are detected and injected into the ServerRequest properly.
+
+## 2.1.0 - 2018-12-20
+
+### Added
+
+- [zendframework/zend-diactoros#345](https://github.com/zendframework/zend-diactoros/pull/345) adds support for PHP 7.3.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- Nothing.
+
+## 2.0.3 - 2019-01-05
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#349](https://github.com/zendframework/zend-diactoros/pull/349) fixes an issue when marshaling headers with values of `0` or `0` from the
+  SAPI, ensuring they are detected and injected into the ServerRequest properly.
+
+## 2.0.2 - 2018-12-20
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#344](https://github.com/zendframework/zend-diactoros/pull/344) provides a fix to ensure that headers with a value of "0" are retained.
+
+## 2.0.1 - 2018-12-03
+
+### Added
+
+- Nothing.
+
+### Changed
+
+- Nothing.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- Nothing.
+
+### Fixed
+
+- [zendframework/zend-diactoros#337](https://github.com/zendframework/zend-diactoros/pull/337) ensures that the `ServerRequestFactory::createServerRequest()` method
+  creates a `php://temp` stream instead of a `php::input` stream, in compliance
+  with the PSR-17 specification.
+
+## 2.0.0 - 2018-09-27
+
+### Added
+
+- [zendframework/zend-diactoros#326](https://github.com/zendframework/zend-diactoros/pull/326) adds [PSR-17](https://www.php-fig.org/psr/psr-17/) HTTP Message Factory implementations, including:
+
+  - `Laminas\Diactoros\RequestFactory`
+  - `Laminas\Diactoros\ResponseFactory`
+  - `Laminas\Diactoros\ServerRequestFactory`
+  - `Laminas\Diactoros\StreamFactory`
+  - `Laminas\Diactoros\UploadedFileFactory`
+  - `Laminas\Diactoros\UriFactory`
+
+  These factories may be used to produce the associated instances; we encourage
+  users to rely on the PSR-17 factory interfaces to allow exchanging PSR-7
+  implementations within their applications.
+
+- [zendframework/zend-diactoros#328](https://github.com/zendframework/zend-diactoros/pull/328) adds a package-level exception interface, `Laminas\Diactoros\Exception\ExceptionInterface`,
+  and several implementations for specific exceptions raised within the package.
+  These include:
+
+  - `Laminas\Diactoros\Exception\DeserializationException` (extends `UnexpectedValueException`)
+  - `Laminas\Diactoros\Exception\InvalidArgumentException` (extends `InvalidArgumentException`)
+  - `Laminas\Diactoros\Exception\InvalidStreamPointerPositionException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\SerializationException` (extends `UnexpectedValueException`)
+  - `Laminas\Diactoros\Exception\UnreadableStreamException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\UnrecognizedProtocolVersionException` (extends `UnexpectedValueException`)
+  - `Laminas\Diactoros\Exception\UnrewindableStreamException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\UnseekableStreamException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\UntellableStreamException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\UnwritableStreamException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\UploadedFileAlreadyMovedException` (extends `RuntimeException`)
+  - `Laminas\Diactoros\Exception\UploadedFileErrorException` (extends `RuntimeException`)
+
+### Changed
+
+- [zendframework/zend-diactoros#329](https://github.com/zendframework/zend-diactoros/pull/329) adds return type hints and scalar parameter type hints wherever possible.
+  The changes were done to help improve code quality, in part by reducing manual
+  type checking. If you are extending any classes, you may need to update your
+  signatures; check the signatures of the class(es) you are extending for changes.
+
+- [zendframework/zend-diactoros#162](https://github.com/zendframework/zend-diactoros/pull/162) modifies `Serializer\Request` such that it now no longer raises an `UnexpectedValueException` via its `toString()` method
+  when an unexpected HTTP method is encountered; this can be done safely, as the value can never
+  be invalid due to other changes in the same patch.
+
+- [zendframework/zend-diactoros#162](https://github.com/zendframework/zend-diactoros/pull/162) modifies `RequestTrait` such that it now invalidates non-string method arguments to either
+  the constructor or `withMethod()`, raising an `InvalidArgumentException` for any that do not validate.
+
+### Deprecated
+
+- Nothing.
+
+### Removed
+
+- [zendframework/zend-diactoros#308](https://github.com/zendframework/zend-diactoros/pull/308) removes the following methods from the `ServerRequestFactory` class:
+  - `normalizeServer()` (use `Laminas\Diactoros\normalizeServer()` instead)
+  - `marshalHeaders()` (use `Laminas\Diactoros\marshalHeadersFromSapi()` instead)
+  - `marshalUriFromServer()` (use `Laminas\Diactoros\marshalUriFromSapi()` instead)
+  - `marshalRequestUri()` (use `Uri::getPath()` from the `Uri` instance returned by `marshalUriFromSapi()` instead)
+  - `marshalHostAndPortFromHeaders()` (use `Uri::getHost()` and `Uri::getPort()` from the `Uri` instances returned by `marshalUriFromSapi()` instead)
+  - `stripQueryString()` (use `explode("?", $path, 2)[0]` instead)
+  - `normalizeFiles()` (use `Laminas\Diactoros\normalizeUploadedFiles()` instead)
+
+- [zendframework/zend-diactoros#295](https://github.com/zendframework/zend-diactoros/pull/295) removes `Laminas\Diactoros\Server`. You can use the `RequestHandlerRunner` class from
+  [laminas/laminas-httphandlerrunner](https://docs.laminas.dev/laminas-httphandlerrunner) to provide these capabilities instead.
+
+- [zendframework/zend-diactoros#295](https://github.com/zendframework/zend-diactoros/pull/295) removes `Laminas\Diactoros\Response\EmitterInterface` and the various emitter implementations.
+  These can now be found in the package [laminas/laminas-httphandlerrunner](https://docs.laminas.dev/laminas-httphandlerrunner/), which also provides
+  a PSR-7-implementation agnostic way of using them.
+
+### Fixed
+
+- Nothing.
+
 ## 1.8.7 - 2019-08-06
 
 ### Added
@@ -341,7 +753,7 @@ All notable changes to this project will be documented in this file, in reverse 
 
 - [zendframework/zend-diactoros#293](https://github.com/zendframework/zend-diactoros/pull/293) updates
   `Uri::getHost()` to cast the value via `strtolower()` before returning it.
-  While this represents a change, it is fixing a bug in our implementation: 
+  While this represents a change, it is fixing a bug in our implementation:
   the PSR-7 specification for the method, which follows IETF RFC 3986 section
   3.2.2, requires that the host name be normalized to lowercase.
 

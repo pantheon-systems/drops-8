@@ -25,7 +25,7 @@ class ContactPersonalTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['contact', 'dblog'];
+  protected static $modules = ['contact', 'dblog'];
 
   /**
    * {@inheritdoc}
@@ -53,7 +53,7 @@ class ContactPersonalTest extends BrowserTestBase {
    */
   private $contactUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create an admin user.

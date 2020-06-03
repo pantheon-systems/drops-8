@@ -7,8 +7,8 @@ use Drupal\Core\Authentication\AuthenticationProviderFilterInterface;
 use Drupal\Core\Authentication\AuthenticationProviderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
-use Symfony\Component\HttpKernel\Event\GetResponseEvent;
-use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -65,12 +65,12 @@ class AuthenticationSubscriber implements EventSubscriberInterface {
   /**
    * Authenticates user on request.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
    *   The request event.
    *
    * @see \Drupal\Core\Authentication\AuthenticationProviderInterface::authenticate()
    */
-  public function onKernelRequestAuthenticate(GetResponseEvent $event) {
+  public function onKernelRequestAuthenticate(RequestEvent $event) {
     if ($event->isMasterRequest()) {
       $request = $event->getRequest();
       if ($this->authenticationProvider->applies($request)) {
@@ -86,10 +86,10 @@ class AuthenticationSubscriber implements EventSubscriberInterface {
   /**
    * Denies access if authentication provider is not allowed on this route.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
    *   The request event.
    */
-  public function onKernelRequestFilterProvider(GetResponseEvent $event) {
+  public function onKernelRequestFilterProvider(RequestEvent $event) {
     if (isset($this->filter) && $event->isMasterRequest()) {
       $request = $event->getRequest();
       if ($this->authenticationProvider->applies($request) && !$this->filter->appliesToRoutedRequest($request, TRUE)) {
@@ -105,17 +105,17 @@ class AuthenticationSubscriber implements EventSubscriberInterface {
    * authentication methods (e.g. basic auth) require that a challenge is sent
    * to the client.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\ExceptionEvent $event
    *   The exception event.
    */
-  public function onExceptionSendChallenge(GetResponseForExceptionEvent $event) {
+  public function onExceptionSendChallenge(ExceptionEvent $event) {
     if (isset($this->challengeProvider) && $event->isMasterRequest()) {
       $request = $event->getRequest();
-      $exception = $event->getException();
+      $exception = $event->getThrowable();
       if ($exception instanceof AccessDeniedHttpException && !$this->authenticationProvider->applies($request) && (!isset($this->filter) || $this->filter->appliesToRoutedRequest($request, FALSE))) {
         $challenge_exception = $this->challengeProvider->challengeException($request, $exception);
         if ($challenge_exception) {
-          $event->setException($challenge_exception);
+          $event->setThrowable($challenge_exception);
         }
       }
     }
@@ -124,14 +124,14 @@ class AuthenticationSubscriber implements EventSubscriberInterface {
   /**
    * Detect disallowed authentication methods on access denied exceptions.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\ExceptionEvent $event
    */
-  public function onExceptionAccessDenied(GetResponseForExceptionEvent $event) {
+  public function onExceptionAccessDenied(ExceptionEvent $event) {
     if (isset($this->filter) && $event->isMasterRequest()) {
       $request = $event->getRequest();
-      $exception = $event->getException();
+      $exception = $event->getThrowable();
       if ($exception instanceof AccessDeniedHttpException && $this->authenticationProvider->applies($request) && !$this->filter->appliesToRoutedRequest($request, TRUE)) {
-        $event->setException(new AccessDeniedHttpException('The used authentication method is not allowed on this route.', $exception));
+        $event->setThrowable(new AccessDeniedHttpException('The used authentication method is not allowed on this route.', $exception));
       }
     }
   }

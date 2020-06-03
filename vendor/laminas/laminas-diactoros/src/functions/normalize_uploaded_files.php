@@ -6,9 +6,10 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros;
 
-use InvalidArgumentException;
 use Psr\Http\Message\UploadedFileInterface;
 
 use function is_array;
@@ -19,11 +20,10 @@ use function is_array;
  * Transforms each value into an UploadedFile instance, and ensures that nested
  * arrays are normalized.
  *
- * @param array $files
  * @return UploadedFileInterface[]
- * @throws InvalidArgumentException for unrecognized values
+ * @throws Exception\InvalidArgumentException for unrecognized values
  */
-function normalizeUploadedFiles(array $files)
+function normalizeUploadedFiles(array $files) : array
 {
     /**
      * Traverse a nested tree of uploaded file specifications.
@@ -41,7 +41,7 @@ function normalizeUploadedFiles(array $files)
         array $errorTree,
         array $nameTree = null,
         array $typeTree = null
-    ) use (&$recursiveNormalize) {
+    ) use (&$recursiveNormalize) : array {
         $normalized = [];
         foreach ($tmpNameTree as $key => $value) {
             if (is_array($value)) {
@@ -50,8 +50,8 @@ function normalizeUploadedFiles(array $files)
                     $tmpNameTree[$key],
                     $sizeTree[$key],
                     $errorTree[$key],
-                    isset($nameTree[$key]) ? $nameTree[$key] : null,
-                    isset($typeTree[$key]) ? $typeTree[$key] : null
+                    $nameTree[$key] ?? null,
+                    $typeTree[$key] ?? null
                 );
                 continue;
             }
@@ -59,8 +59,8 @@ function normalizeUploadedFiles(array $files)
                 'tmp_name' => $tmpNameTree[$key],
                 'size' => $sizeTree[$key],
                 'error' => $errorTree[$key],
-                'name' => isset($nameTree[$key]) ? $nameTree[$key] : null,
-                'type' => isset($typeTree[$key]) ? $typeTree[$key] : null
+                'name' => $nameTree[$key] ?? null,
+                'type' => $typeTree[$key] ?? null,
             ]);
         }
         return $normalized;
@@ -80,12 +80,12 @@ function normalizeUploadedFiles(array $files)
      * @param array $files
      * @return UploadedFile[]
      */
-    $normalizeUploadedFileSpecification = function (array $files = []) use (&$recursiveNormalize) {
+    $normalizeUploadedFileSpecification = function (array $files = []) use (&$recursiveNormalize) : array {
         if (! isset($files['tmp_name']) || ! is_array($files['tmp_name'])
             || ! isset($files['size']) || ! is_array($files['size'])
             || ! isset($files['error']) || ! is_array($files['error'])
         ) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 '$files provided to %s MUST contain each of the keys "tmp_name",'
                 . ' "size", and "error", with each represented as an array;'
                 . ' one or more were missing or non-array values',
@@ -97,8 +97,8 @@ function normalizeUploadedFiles(array $files)
             $files['tmp_name'],
             $files['size'],
             $files['error'],
-            isset($files['name']) ? $files['name'] : null,
-            isset($files['type']) ? $files['type'] : null
+            $files['name'] ?? null,
+            $files['type'] ?? null
         );
     };
 
@@ -124,7 +124,7 @@ function normalizeUploadedFiles(array $files)
             continue;
         }
 
-        throw new InvalidArgumentException('Invalid value in files specification');
+        throw new Exception\InvalidArgumentException('Invalid value in files specification');
     }
     return $normalized;
 }

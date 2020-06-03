@@ -17,7 +17,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 class DateTest extends UnitTestCase {
 
   /**
-   * The mocked entity manager.
+   * The mocked entity type manager.
    *
    * @var \Drupal\Core\Entity\EntityTypeManagerInterface|\PHPUnit\Framework\MockObject\MockObject
    */
@@ -58,7 +58,7 @@ class DateTest extends UnitTestCase {
    */
   protected $dateFormatterStub;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $entity_storage = $this->createMock('Drupal\Core\Entity\EntityStorageInterface');
@@ -421,20 +421,6 @@ class DateTest extends UnitTestCase {
     $build = [];
     CacheableMetadata::createFromObject($object)->applyTo($build);
     $this->assertEquals($max_age, $build['#cache']['max-age']);
-  }
-
-  /**
-   * Tests FormattedDateDiff.
-   *
-   * @covers \Drupal\Core\Datetime\FormattedDateDiff::getMaxAge
-   * @group legacy
-   * @expectedDeprecation Drupal\Core\Datetime\FormattedDateDiff::getMaxAge() is deprecated in drupal:8.1.9 and is removed from drupal:9.0.0. Use \Drupal\Core\Datetime\FormattedDateDiff::getCacheMaxAge() instead. See https://www.drupal.org/node/2783545
-   */
-  public function testLegacyMaxAgeFormattedDateDiff() {
-    $string = '10 minutes';
-    $max_age = 60;
-    $object = new FormattedDateDiff($string, $max_age);
-    $this->assertSame($object->getCacheMaxAge(), $object->getMaxAge());
   }
 
   /**

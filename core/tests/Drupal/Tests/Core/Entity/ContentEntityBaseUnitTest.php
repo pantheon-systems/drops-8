@@ -127,7 +127,7 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->id = 1;
     $values = [
       'id' => $this->id,
@@ -470,31 +470,6 @@ class ContentEntityBaseUnitTest extends UnitTestCase {
     $this->assertEquals(AccessResult::allowed(), $this->entity->access($operation, NULL, TRUE));
     $this->assertTrue($this->entity->access('create'));
     $this->assertEquals(AccessResult::allowed(), $this->entity->access('create', NULL, TRUE));
-  }
-
-  /**
-   * @covers ::label
-   *
-   * @group legacy
-   */
-  public function testLabel() {
-
-    $this->addExpectedDeprecationMessage('Entity type ' . $this->entityTypeId . ' defines a label callback. Support for that is deprecated in drupal:8.0.0 and will be removed in drupal:9.0.0. Override the EntityInterface::label() method instead. See https://www.drupal.org/node/3050794');
-
-    // Make a mock with one method that we use as the entity's label callback.
-    // We check that it is called, and that the entity's label is the callback's
-    // return value.
-    $callback_label = $this->randomMachineName();
-    $callback_container = $this->createMock(get_class());
-    $callback_container->expects($this->once())
-      ->method(__FUNCTION__)
-      ->will($this->returnValue($callback_label));
-    $this->entityType->expects($this->once())
-      ->method('get')
-      ->with('label_callback')
-      ->will($this->returnValue([$callback_container, __FUNCTION__]));
-
-    $this->assertSame($callback_label, $this->entity->label());
   }
 
   /**

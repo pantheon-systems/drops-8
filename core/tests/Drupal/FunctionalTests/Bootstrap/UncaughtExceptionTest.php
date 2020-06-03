@@ -38,7 +38,7 @@ class UncaughtExceptionTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['error_service_test', 'error_test'];
+  protected static $modules = ['error_service_test', 'error_test'];
 
   /**
    * {@inheritdoc}
@@ -48,7 +48,7 @@ class UncaughtExceptionTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $settings_filename = $this->siteDirectory . '/settings.php';

@@ -14,7 +14,7 @@ class RemoteFileDeleteTest extends FileDeleteTest {
    *
    * @var array
    */
-  public static $modules = ['file_test'];
+  protected static $modules = ['file_test'];
 
   /**
    * A stream wrapper scheme to register for the test.
@@ -30,7 +30,7 @@ class RemoteFileDeleteTest extends FileDeleteTest {
    */
   protected $classname = 'Drupal\file_test\StreamWrapper\DummyRemoteStreamWrapper';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->config('system.file')->set('default_scheme', 'dummy-remote')->save();
   }

@@ -35,19 +35,19 @@ class DatabaseTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->additionalClassloader = new ClassLoader();
     $this->additionalClassloader->register();
     // Mock the container so we don't need to mock drupal_valid_test_ua().
     // @see \Drupal\Core\Extension\ExtensionDiscovery::scan()
-    $this->root = dirname(dirname(dirname(dirname(dirname(dirname(__DIR__))))));
+    $this->root = dirname(__DIR__, 6);
     $container = $this->createMock(ContainerInterface::class);
     $container->expects($this->any())
       ->method('has')
       ->with('kernel')
       ->willReturn(TRUE);
     $container->expects($this->any())
-      ->method('get')
+      ->method('getParameter')
       ->with('site.path')
       ->willReturn('');
     \Drupal::setContainer($container);

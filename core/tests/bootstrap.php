@@ -8,23 +8,14 @@
  */
 
 use Drupal\Component\Assertion\Handle;
-use PHPUnit\Framework\AssertionFailedError;
-use PHPUnit\Framework\Constraint\Count;
-use PHPUnit\Framework\Error\Error;
-use PHPUnit\Framework\Error\Warning;
-use PHPUnit\Framework\ExpectationFailedException;
-use PHPUnit\Framework\Exception;
-use PHPUnit\Framework\MockObject\Matcher\InvokedRecorder;
-use PHPUnit\Framework\SkippedTestError;
-use PHPUnit\Framework\TestCase;
-use PHPUnit\Util\Test;
-use PHPUnit\Util\Xml;
+use Drupal\TestTools\PhpUnitCompatibility\PhpUnit8\ClassWriter;
 
 /**
  * Finds all valid extension directories recursively within a given directory.
  *
  * @param string $scan_directory
  *   The directory that should be recursively scanned.
+ *
  * @return array
  *   An associative array of extension directories found within the scanned
  *   directory, keyed by extension name.
@@ -55,7 +46,7 @@ function drupal_phpunit_find_extension_directories($scan_directory) {
  */
 function drupal_phpunit_contrib_extension_directory_roots($root = NULL) {
   if ($root === NULL) {
-    $root = dirname(dirname(__DIR__));
+    $root = dirname(__DIR__, 2);
   }
   $paths = [
     $root . '/core/modules',
@@ -161,7 +152,9 @@ function drupal_phpunit_populate_class_loader() {
 }
 
 // Do class loader population.
-drupal_phpunit_populate_class_loader();
+$loader = drupal_phpunit_populate_class_loader();
+
+ClassWriter::mutateTestBase($loader);
 
 // Set sane locale settings, to ensure consistent string, dates, times and
 // numbers handling.
@@ -184,18 +177,3 @@ date_default_timezone_set('Australia/Sydney');
 // thrown if an assert fails, but this call does not turn runtime assertions on
 // if they weren't on already.
 Handle::register();
-
-// PHPUnit 4 to PHPUnit 6 bridge. Tests written for PHPUnit 4 need to work on
-// PHPUnit 6 with a minimum of fuss.
-// @todo provided for BC; remove in Drupal 9.
-class_alias(AssertionFailedError::class, '\PHPUnit_Framework_AssertionFailedError');
-class_alias(Count::class, '\PHPUnit_Framework_Constraint_Count');
-class_alias(Error::class, '\PHPUnit_Framework_Error');
-class_alias(Warning::class, '\PHPUnit_Framework_Error_Warning');
-class_alias(ExpectationFailedException::class, '\PHPUnit_Framework_ExpectationFailedException');
-class_alias(Exception::class, '\PHPUnit_Framework_Exception');
-class_alias(InvokedRecorder::class, '\PHPUnit_Framework_MockObject_Matcher_InvokedRecorder');
-class_alias(SkippedTestError::class, '\PHPUnit_Framework_SkippedTestError');
-class_alias(TestCase::class, '\PHPUnit_Framework_TestCase');
-class_alias(Test::class, '\PHPUnit_Util_Test');
-class_alias(Xml::class, '\PHPUnit_Util_XML');

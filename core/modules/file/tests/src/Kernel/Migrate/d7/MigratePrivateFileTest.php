@@ -17,14 +17,14 @@ class MigratePrivateFileTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['file'];
+  protected static $modules = ['file'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
-    $this->setSetting('file_private_path', $this->container->get('site.path') . '/private');
+    $this->setSetting('file_private_path', $this->container->getParameter('site.path') . '/private');
     $this->fileMigrationSetup();
   }
 

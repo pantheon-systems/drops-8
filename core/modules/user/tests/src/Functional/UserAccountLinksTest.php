@@ -16,7 +16,7 @@ class UserAccountLinksTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['menu_ui', 'block', 'test_page_test'];
+  protected static $modules = ['menu_ui', 'block', 'test_page_test'];
 
   /**
    * {@inheritdoc}
@@ -26,7 +26,7 @@ class UserAccountLinksTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->drupalPlaceBlock('system_menu_block:account');
     // Make test-page default.

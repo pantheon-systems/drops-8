@@ -29,7 +29,7 @@ class ConfigImportRenameValidationTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'user',
     'node',
@@ -41,7 +41,7 @@ class ConfigImportRenameValidationTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');

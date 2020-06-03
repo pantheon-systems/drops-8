@@ -37,7 +37,7 @@ class Logger extends AbstractLogger
     private $formatter;
     private $handle;
 
-    public function __construct($minLevel = null, $output = null, callable $formatter = null)
+    public function __construct(string $minLevel = null, $output = null, callable $formatter = null)
     {
         if (null === $minLevel) {
             $minLevel = null === $output || 'php://stdout' === $output || 'php://stderr' === $output ? LogLevel::ERROR : LogLevel::WARNING;
@@ -65,6 +65,8 @@ class Logger extends AbstractLogger
 
     /**
      * {@inheritdoc}
+     *
+     * @return void
      */
     public function log($level, $message, array $context = [])
     {
@@ -84,13 +86,7 @@ class Logger extends AbstractLogger
         }
     }
 
-    /**
-     * @param string $level
-     * @param string $message
-     *
-     * @return string
-     */
-    private function format($level, $message, array $context, $prefixDate = true)
+    private function format(string $level, string $message, array $context, bool $prefixDate = true): string
     {
         if (false !== strpos($message, '{')) {
             $replacements = [];

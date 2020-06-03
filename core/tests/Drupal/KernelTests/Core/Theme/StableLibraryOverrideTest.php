@@ -49,12 +49,12 @@ class StableLibraryOverrideTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system', 'user', 'path_alias'];
+  protected static $modules = ['system', 'user', 'path_alias'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->container->get('theme_installer')->install(['stable']);

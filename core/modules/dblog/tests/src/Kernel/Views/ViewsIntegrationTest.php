@@ -26,7 +26,7 @@ class ViewsIntegrationTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['dblog', 'dblog_test_views', 'user'];
+  protected static $modules = ['dblog', 'dblog_test_views', 'user'];
 
   /**
    * {@inheritdoc}
@@ -36,7 +36,7 @@ class ViewsIntegrationTest extends ViewsKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->installEntitySchema('user');

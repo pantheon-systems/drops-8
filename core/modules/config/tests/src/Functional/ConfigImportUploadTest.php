@@ -27,14 +27,14 @@ class ConfigImportUploadTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['config'];
+  protected static $modules = ['config'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->webUser = $this->drupalCreateUser(['import configuration']);

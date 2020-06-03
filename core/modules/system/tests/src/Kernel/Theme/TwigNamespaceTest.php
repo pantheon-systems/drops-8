@@ -17,7 +17,7 @@ class TwigNamespaceTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'twig_theme_test',
     'twig_namespace_a',
     'twig_namespace_b',
@@ -29,7 +29,7 @@ class TwigNamespaceTest extends KernelTestBase {
    */
   protected $twig;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::service('theme_installer')->install(['test_theme', 'bartik']);
     $this->twig = \Drupal::service('twig');

@@ -16,7 +16,7 @@ class ColorConfigSchemaTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['color'];
+  protected static $modules = ['color'];
 
   /**
    * {@inheritdoc}
@@ -33,7 +33,7 @@ class ColorConfigSchemaTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::service('theme_installer')->install(['bartik']);
 
