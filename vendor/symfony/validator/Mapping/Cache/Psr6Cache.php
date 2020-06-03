@@ -14,10 +14,14 @@ namespace Symfony\Component\Validator\Mapping\Cache;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Validator\Mapping\ClassMetadata;
 
+@trigger_error(sprintf('The "%s" class is deprecated since Symfony 4.4.', Psr6Cache::class), E_USER_DEPRECATED);
+
 /**
  * PSR-6 adapter.
  *
  * @author Kévin Dunglas <dunglas@gmail.com>
+ *
+ * @deprecated since Symfony 4.4.
  */
 class Psr6Cache implements CacheInterface
 {
@@ -63,12 +67,8 @@ class Psr6Cache implements CacheInterface
 
     /**
      * Replaces backslashes by dots in a class name.
-     *
-     * @param string $class
-     *
-     * @return string
      */
-    private function escapeClassName($class)
+    private function escapeClassName(string $class): string
     {
         if (false !== strpos($class, '@')) {
             // anonymous class: replace all PSR6-reserved characters

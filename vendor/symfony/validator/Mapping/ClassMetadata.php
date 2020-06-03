@@ -108,12 +108,7 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
      */
     private $reflClass;
 
-    /**
-     * Constructs a metadata for the given class.
-     *
-     * @param string $class
-     */
-    public function __construct($class)
+    public function __construct(string $class)
     {
         $this->name = $class;
         // class name without namespace
@@ -205,8 +200,7 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
     /**
      * Adds a constraint to the given property.
      *
-     * @param string     $property   The name of the property
-     * @param Constraint $constraint The constraint
+     * @param string $property The name of the property
      *
      * @return $this
      */
@@ -246,8 +240,7 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
      * The name of the getter is assumed to be the name of the property with an
      * uppercased first letter and either the prefix "get" or "is".
      *
-     * @param string     $property   The name of the property
-     * @param Constraint $constraint The constraint
+     * @param string $property The name of the property
      *
      * @return $this
      */
@@ -269,9 +262,8 @@ class ClassMetadata extends GenericMetadata implements ClassMetadataInterface
     /**
      * Adds a constraint to the getter of the given property.
      *
-     * @param string     $property   The name of the property
-     * @param string     $method     The name of the getter method
-     * @param Constraint $constraint The constraint
+     * @param string $property The name of the property
+     * @param string $method   The name of the getter method
      *
      * @return $this
      */

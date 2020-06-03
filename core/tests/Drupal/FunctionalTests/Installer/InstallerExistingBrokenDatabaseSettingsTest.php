@@ -66,7 +66,7 @@ class InstallerExistingBrokenDatabaseSettingsTest extends InstallerTestBase {
     $this->assertSession()->titleEquals('Requirements problem | Drupal');
     $this->assertSession()->pageTextContains('Database settings');
     $this->assertSession()->pageTextContains('Resolve all issues below to continue the installation. For help configuring your database server,');
-    $this->assertSession()->pageTextContains('The database server version 5.5.2 is less than the minimum required version');
+    $this->assertSession()->pageTextContains('The database server version 10.2.31-MariaDB-1:10.2.31+maria~bionic-log is less than the minimum required version');
   }
 
 }

@@ -17,7 +17,7 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'responsive_image',
     'responsive_image_test_module',
   ];
@@ -30,7 +30,7 @@ class ResponsiveImageAdminUITest extends BrowserTestBase {
   /**
    * Drupal\simpletest\WebTestBase\setUp().
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalLogin($this->drupalCreateUser([

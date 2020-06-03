@@ -17,7 +17,7 @@ class LanguageBrowserDetectionAcceptLanguageTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'locale',
     'content_translation',
@@ -32,7 +32,7 @@ class LanguageBrowserDetectionAcceptLanguageTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // User to manage languages.
     $admin = $this->drupalCreateUser([], NULL, TRUE);

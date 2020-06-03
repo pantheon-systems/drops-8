@@ -5,8 +5,8 @@
   "homepage": "https://www.drupal.org/project/drupal",
   "license": "GPL-2.0-or-later",
   "require": {
-    "php": ">=7.0.8",
-    "symfony/validator": ">=3.4 <4.0.0"
+    "php": ">=7.3.0",
+    "symfony/validator": "^4.4"
   },
   "autoload": {
     "psr-4": {

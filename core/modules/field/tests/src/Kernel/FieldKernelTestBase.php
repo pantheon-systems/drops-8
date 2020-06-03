@@ -19,7 +19,7 @@ abstract class FieldKernelTestBase extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'user',
     'system',
     'field',
@@ -163,6 +163,7 @@ abstract class FieldKernelTestBase extends KernelTestBase {
    *
    * @param $cardinality
    *   Number of values to generate.
+   *
    * @return
    *   An array of random values, in the format expected for field values.
    */

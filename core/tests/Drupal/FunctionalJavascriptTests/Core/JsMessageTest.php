@@ -15,7 +15,7 @@ class JsMessageTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['js_message_test'];
+  protected static $modules = ['js_message_test'];
 
   /**
    * {@inheritdoc}
@@ -25,7 +25,7 @@ class JsMessageTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable the theme.

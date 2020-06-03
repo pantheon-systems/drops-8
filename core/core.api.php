@@ -477,7 +477,7 @@
  *   class: Drupal\Core\Cache\CacheBackendInterface
  *   tags:
  *     - { name: cache.bin }
- *   factory: cache_factory:get
+ *   factory: ['@cache_factory', 'get']
  *   arguments: [nameofbin]
  * @endcode
  * See the @link container Services topic @endlink for more on defining
@@ -772,7 +772,7 @@
  *     class: Drupal\Core\Cache\CacheBackendInterface
  *     tags:
  *       - { name: cache.bin }
- *     factory: cache_factory:get
+ *     factory: ['@cache_factory', 'get']
  *     arguments: [entity]
  * @endcode
  *
@@ -818,8 +818,8 @@
  *   special methods for accessing commonly-used services, or you can call a
  *   generic method to access any service. Examples:
  *   @code
- *   // Retrieve the entity.manager service object (special method exists).
- *   $manager = \Drupal::entityManager();
+ *   // Retrieve the entity_type.manager service object (special method exists).
+ *   $entity_type_manager = \Drupal::entityTypeManager();
  *   // Retrieve the service object for machine name 'foo.bar'.
  *   $foobar = \Drupal::service('foo.bar');
  *   @endcode

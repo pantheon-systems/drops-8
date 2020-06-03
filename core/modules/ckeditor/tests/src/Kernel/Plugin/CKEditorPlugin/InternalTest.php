@@ -18,7 +18,7 @@ class InternalTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'ckeditor',
     'ckeditor_test',
     'filter',
@@ -49,7 +49,7 @@ class InternalTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('editor');
     $this->installEntitySchema('filter_format');

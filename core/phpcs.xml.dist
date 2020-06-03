@@ -43,6 +43,7 @@
     <exclude name="Drupal.Commenting.ClassComment.Missing"/>
   </rule>
   <rule ref="Drupal.Commenting.DataTypeNamespace"/>
+  <rule ref="Drupal.Commenting.Deprecated"/>
   <rule ref="Drupal.Commenting.DocComment">
     <!-- Sniff for these errors: SpacingAfterTagGroup, WrongEnd, SpacingBetween,
       ContentAfterOpen, SpacingBeforeShort, TagValueIndent, ShortStartSpace,
@@ -59,7 +60,6 @@
     <exclude name="Drupal.Commenting.DocComment.TagsNotGrouped"/>
     <exclude name="Drupal.Commenting.DocComment.ParamGroup"/>
     <exclude name="Drupal.Commenting.DocComment.ShortSingleLine"/>
-    <exclude name="Drupal.Commenting.DocComment.TagGroupSpacing"/>
     <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
   </rule>
   <rule ref="Drupal.Commenting.DocCommentStar"/>
@@ -148,6 +148,7 @@
   <!-- Drupal Practice sniffs -->
   <rule ref="DrupalPractice.Commenting.ExpectedException"/>
   <rule ref="DrupalPractice.General.ExceptionT"/>
+  <rule ref="DrupalPractice.InfoFiles.NamespacedDependency"/>
 
   <!-- Generic sniffs -->
   <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>

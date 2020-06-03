@@ -5,7 +5,7 @@ namespace Drupal\Tests\Composer\Plugin\Scaffold\Integration;
 use Drupal\Composer\Plugin\Scaffold\Operations\SkipOp;
 use Drupal\Composer\Plugin\Scaffold\ScaffoldOptions;
 use Drupal\Tests\Composer\Plugin\Scaffold\Fixtures;
-use Drupal\Tests\PhpunitCompatibilityTrait;
+use Drupal\Tests\Traits\PHPUnit8Warnings;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,7 +14,7 @@ use PHPUnit\Framework\TestCase;
  * @group Scaffold
  */
 class SkipOpTest extends TestCase {
-  use PhpunitCompatibilityTrait;
+  use PHPUnit8Warnings;
 
   /**
    * @covers ::process

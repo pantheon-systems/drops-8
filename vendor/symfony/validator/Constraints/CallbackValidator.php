@@ -43,7 +43,7 @@ class CallbackValidator extends ConstraintValidator
                 throw new ConstraintDefinitionException(json_encode($method).' targeted by Callback constraint is not a valid callable.');
             }
 
-            \call_user_func($method, $object, $this->context, $constraint->payload);
+            $method($object, $this->context, $constraint->payload);
         } elseif (null !== $object) {
             if (!method_exists($object, $method)) {
                 throw new ConstraintDefinitionException(sprintf('Method "%s" targeted by Callback constraint does not exist in class "%s".', $method, \get_class($object)));

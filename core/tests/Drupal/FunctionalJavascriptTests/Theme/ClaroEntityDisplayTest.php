@@ -22,12 +22,12 @@ class ClaroEntityDisplayTest extends EntityDisplayTest {
    *
    * @var string[]
    */
-  public static $modules = ['shortcut'];
+  protected static $modules = ['shortcut'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->container->get('theme_installer')->install(['claro']);
     $this->config('system.theme')->set('default', 'claro')->save();

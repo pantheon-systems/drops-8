@@ -29,7 +29,7 @@ class FilterDateTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'views_ui', 'datetime'];
+  protected static $modules = ['node', 'views_ui', 'datetime'];
 
   /**
    * {@inheritdoc}
@@ -43,7 +43,7 @@ class FilterDateTest extends ViewTestBase {
    */
   public $dateFormatter;
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
     $this->dateFormatter = $this->container->get('date.formatter');
 

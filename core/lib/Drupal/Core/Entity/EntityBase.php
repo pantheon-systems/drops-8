@@ -65,22 +65,6 @@ abstract class EntityBase implements EntityInterface {
   }
 
   /**
-   * Gets the entity manager.
-   *
-   * @return \Drupal\Core\Entity\EntityManagerInterface
-   *
-   * @deprecated in drupal:8.0.0 and is removed from drupal:9.0.0.
-   *   Use \Drupal::entityTypeManager() instead in most cases. If the needed
-   *   method is not on \Drupal\Core\Entity\EntityTypeManagerInterface, see the
-   *   deprecated \Drupal\Core\Entity\EntityManager to find the
-   *   correct interface or service.
-   */
-  protected function entityManager() {
-    @trigger_error('Entity::getEntityManager() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use ::getEntityTypeManager() instead. See https://www.drupal.org/node/2549139.', E_USER_DEPRECATED);
-    return \Drupal::entityManager();
-  }
-
-  /**
    * Gets the entity type manager.
    *
    * @return \Drupal\Core\Entity\EntityTypeManagerInterface
@@ -164,24 +148,9 @@ abstract class EntityBase implements EntityInterface {
    * {@inheritdoc}
    */
   public function label() {
-    $label = NULL;
-    $entity_type = $this->getEntityType();
-    if (($label_callback = $entity_type->get('label_callback')) && is_callable($label_callback)) {
-      @trigger_error('Entity type ' . $this->getEntityTypeId() . ' defines a label callback. Support for that is deprecated in drupal:8.0.0 and will be removed in drupal:9.0.0. Override the EntityInterface::label() method instead. See https://www.drupal.org/node/3050794', E_USER_DEPRECATED);
-      $label = call_user_func($label_callback, $this);
+    if (($label_key = $this->getEntityType()->getKey('label')) && isset($this->{$label_key})) {
+      return $this->{$label_key};
     }
-    elseif (($label_key = $entity_type->getKey('label')) && isset($this->{$label_key})) {
-      $label = $this->{$label_key};
-    }
-    return $label;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function urlInfo($rel = 'canonical', array $options = []) {
-    @trigger_error('EntityInterface::urlInfo() is deprecated in Drupal 8.0.0 and will be removed in Drupal 9.0.0. EntityInterface::toUrl() instead. See https://www.drupal.org/node/2614344', E_USER_DEPRECATED);
-    return $this->toUrl($rel, $options);
   }
 
   /**
@@ -268,14 +237,6 @@ abstract class EntityBase implements EntityInterface {
   /**
    * {@inheritdoc}
    */
-  public function link($text = NULL, $rel = 'canonical', array $options = []) {
-    @trigger_error("EntityInterface::link() is deprecated in Drupal 8.0.0 and will be removed in Drupal 9.0.0. Use EntityInterface::toLink()->toString() instead. Note, the default relationship for configuration entities changes from 'edit-form' to 'canonical'. See https://www.drupal.org/node/2614344", E_USER_DEPRECATED);
-    return $this->toLink($text, $rel, $options)->toString();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function toLink($text = NULL, $rel = 'canonical', array $options = []) {
     if (!isset($text)) {
       $text = $this->label();
@@ -284,23 +245,6 @@ abstract class EntityBase implements EntityInterface {
     $options += $url->getOptions();
     $url->setOptions($options);
     return new Link($text, $url);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function url($rel = 'canonical', $options = []) {
-    @trigger_error('EntityInterface::url() is deprecated in Drupal 8.0.0 and will be removed in Drupal 9.0.0. EntityInterface::toUrl() instead. Note, a \Drupal\Core\Url object is returned. See https://www.drupal.org/node/2614344', E_USER_DEPRECATED);
-    // While self::toUrl() will throw an exception if the entity has no id,
-    // the expected result for a URL is always a string.
-    if ($this->id() === NULL || !$this->hasLinkTemplate($rel)) {
-      return '';
-    }
-
-    $uri = $this->toUrl($rel);
-    $options += $uri->getOptions();
-    $uri->setOptions($options);
-    return $uri->toString();
   }
 
   /**

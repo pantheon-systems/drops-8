@@ -14,7 +14,7 @@ class PathLanguageTest extends PathTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'path',
     'locale',
     'locale_test',
@@ -33,7 +33,7 @@ class PathLanguageTest extends PathTestBase {
    */
   protected $webUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $permissions = [

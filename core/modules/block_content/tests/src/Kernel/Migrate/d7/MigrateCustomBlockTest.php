@@ -13,7 +13,7 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateCustomBlockTest extends MigrateDrupal7TestBase {
 
-  public static $modules = [
+  protected static $modules = [
     'block_content',
     'filter',
     'text',
@@ -22,7 +22,7 @@ class MigrateCustomBlockTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('block_content');
     $this->installConfig(static::$modules);

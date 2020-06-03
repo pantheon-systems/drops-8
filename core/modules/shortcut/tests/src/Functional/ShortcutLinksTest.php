@@ -26,7 +26,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
    *
    * @var array
    */
-  public static $modules = ['router_test', 'views', 'block'];
+  protected static $modules = ['router_test', 'views', 'block'];
 
   /**
    * {@inheritdoc}
@@ -36,7 +36,7 @@ class ShortcutLinksTest extends ShortcutTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('page_title_block');

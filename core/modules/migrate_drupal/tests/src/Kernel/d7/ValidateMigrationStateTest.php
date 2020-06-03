@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\migrate_drupal\Kernel\d7;
 
-use Drupal\Tests\DeprecatedModulesTestTrait;
 use Drupal\Tests\migrate_drupal\Traits\ValidateMigrationStateTestTrait;
 
 /**
@@ -12,13 +11,12 @@ use Drupal\Tests\migrate_drupal\Traits\ValidateMigrationStateTestTrait;
  */
 class ValidateMigrationStateTest extends MigrateDrupal7TestBase {
 
-  use DeprecatedModulesTestTrait;
   use ValidateMigrationStateTestTrait;
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     // Test migrations states.
     'migrate_state_finished_test',
     'migrate_state_not_finished_test',

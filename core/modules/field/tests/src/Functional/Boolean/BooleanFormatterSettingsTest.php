@@ -18,7 +18,7 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['field', 'field_ui', 'text', 'node', 'user'];
+  protected static $modules = ['field', 'field_ui', 'text', 'node', 'user'];
 
   /**
    * {@inheritdoc}
@@ -42,7 +42,7 @@ class BooleanFormatterSettingsTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a content type. Use Node because it has Field UI pages that work.

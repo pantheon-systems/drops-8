@@ -14,7 +14,7 @@ class AjaxFormPageCacheTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['ajax_test', 'ajax_forms_test'];
+  protected static $modules = ['ajax_test', 'ajax_forms_test'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +24,7 @@ class AjaxFormPageCacheTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $config = $this->config('system.performance');

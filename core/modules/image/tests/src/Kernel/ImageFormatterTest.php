@@ -23,7 +23,7 @@ class ImageFormatterTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['file', 'image'];
+  protected static $modules = ['file', 'image'];
 
   /**
    * @var string
@@ -48,7 +48,7 @@ class ImageFormatterTest extends FieldKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installConfig(['field']);

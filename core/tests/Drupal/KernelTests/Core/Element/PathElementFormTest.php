@@ -30,12 +30,12 @@ class PathElementFormTest extends KernelTestBase implements FormInterface {
    *
    * @var array
    */
-  public static $modules = ['system', 'user'];
+  protected static $modules = ['system', 'user'];
 
   /**
    * Sets up the test.
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installSchema('system', ['sequences', 'key_value_expire']);
     $this->installEntitySchema('user');

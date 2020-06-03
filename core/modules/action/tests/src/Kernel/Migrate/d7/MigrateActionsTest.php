@@ -12,12 +12,12 @@ use Drupal\Tests\migrate_drupal\Kernel\d7\MigrateDrupal7TestBase;
  */
 class MigrateActionsTest extends MigrateDrupal7TestBase {
 
-  public static $modules = ['action', 'comment', 'node'];
+  protected static $modules = ['action', 'comment', 'node'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->executeMigration('d7_action');
   }

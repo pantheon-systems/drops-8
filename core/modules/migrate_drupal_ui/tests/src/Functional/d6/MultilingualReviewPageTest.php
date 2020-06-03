@@ -11,15 +11,13 @@ use Drupal\Tests\migrate_drupal_ui\Functional\MultilingualReviewPageTestBase;
  *
  * @group migrate_drupal_6
  * @group migrate_drupal_ui
- *
- * @group legacy
  */
 class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
 
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'config_translation',
@@ -35,15 +33,13 @@ class MultilingualReviewPageTest extends MultilingualReviewPageTestBase {
     'migrate_state_finished_test',
     'migrate_state_not_finished_test',
     // Test missing migrate_drupal.yml.
-    'migrate_state_no_file_test',
-    // Test missing migrate_drupal.yml.
     'migrate_state_no_upgrade_path',
   ];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->loadFixture(drupal_get_path('module', 'migrate_drupal') . '/tests/fixtures/drupal6.php');
   }

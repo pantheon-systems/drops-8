@@ -3,7 +3,6 @@ type: module
 description: 'Provides a user interface for creating and managing views.'
 package: Core
 version: VERSION
-core: 8.x
 configure: entity.view.collection
 dependencies:
   - drupal:views

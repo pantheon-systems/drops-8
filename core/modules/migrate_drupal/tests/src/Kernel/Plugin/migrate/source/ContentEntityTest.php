@@ -32,7 +32,7 @@ class ContentEntityTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'user',
     'migrate',
     'migrate_drupal',
@@ -95,7 +95,7 @@ class ContentEntityTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('node');
     $this->installEntitySchema('file');
@@ -107,7 +107,7 @@ class ContentEntityTest extends KernelTestBase {
     $this->installSchema('user', 'users_data');
     $this->installSchema('file', 'file_usage');
     $this->installSchema('node', ['node_access']);
-    $this->installConfig($this->modules);
+    $this->installConfig(static::$modules);
 
     ConfigurableLanguage::createFromLangcode('fr')->save();
 

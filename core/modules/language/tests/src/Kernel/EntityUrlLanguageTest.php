@@ -22,7 +22,7 @@ class EntityUrlLanguageTest extends LanguageTestBase {
    *
    * @var array
    */
-  public static $modules = ['entity_test', 'user'];
+  protected static $modules = ['entity_test', 'user'];
 
   /**
    * The entity being used for testing.
@@ -31,7 +31,7 @@ class EntityUrlLanguageTest extends LanguageTestBase {
    */
   protected $entity;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test');

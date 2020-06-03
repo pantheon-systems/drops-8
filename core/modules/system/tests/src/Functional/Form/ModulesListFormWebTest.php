@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\system\Functional\Form;
 
+use Drupal\Core\Serialization\Yaml;
 use Drupal\Tests\BrowserTestBase;
 
 /**
@@ -14,7 +15,7 @@ class ModulesListFormWebTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['system_test', 'help'];
+  protected static $modules = ['system_test', 'help'];
 
   /**
    * {@inheritdoc}
@@ -24,7 +25,7 @@ class ModulesListFormWebTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     \Drupal::state()->set('system_test.module_hidden', FALSE);
     $this->drupalLogin($this->drupalCreateUser(['administer modules', 'administer permissions']));
@@ -45,29 +46,67 @@ class ModulesListFormWebTest extends BrowserTestBase {
     // Check that system_test's help link was rendered correctly.
     $this->assertFieldByXPath("//a[contains(@href, '/admin/help/system_test') and @title='Help']");
 
-    // Ensure that the Testing module's machine name is printed. Testing module
-    // is used because its machine name is different than its human readable
-    // name.
-    $this->assertText('simpletest');
+    // Ensure that the Database Logging module's machine name is printed. This
+    // module is used because its machine name is different than its human
+    // readable name.
+    $this->assertText('dblog');
   }
 
+  /**
+   * Tests the module form with modules with invalid info.yml files.
+   */
   public function testModulesListFormWithInvalidInfoFile() {
-    $broken_info_yml = <<<BROKEN
-name: Module With Broken Info file
-type: module
-BROKEN;
-    $path = \Drupal::service('site.path') . "/modules/broken";
+    $path = \Drupal::getContainer()->getParameter('site.path') . "/modules/broken";
     mkdir($path, 0777, TRUE);
-    file_put_contents("$path/broken.info.yml", $broken_info_yml);
+    $file_path = "$path/broken.info.yml";
 
-    $this->drupalGet('admin/modules');
+    $broken_infos = [
+      [
+        'yml' => <<<BROKEN
+name: Module with no core_version_requirement or core
+type: module
+BROKEN,
+        'expected_error' => "The 'core_version_requirement' key must be present in $file_path",
+      ],
+      [
+        'yml' => <<<BROKEN
+name: Module no core_version_requirement and invalid core
+type: module
+core: 9.x
+BROKEN,
+        'expected_error' => "'core: 9.x' is not supported. Use 'core_version_requirement' to specify core compatibility. Only 'core: 8.x' is supported to provide backwards compatibility for Drupal 8 when needed in $file_path",
+      ],
+      [
+        'yml' => <<<BROKEN
+name: Module with core_version_requirement and invalid core
+type: module
+core: 9.x
+core_version_requirement: ^8 || ^9
+BROKEN,
+        'expected_error' => "'core: 9.x' is not supported. Use 'core_version_requirement' to specify core compatibility. Only 'core: 8.x' is supported to provide backwards compatibility for Drupal 8 when needed in $file_path",
+      ],
+    ];
 
-    // Confirm that the error message is shown.
-    $this->assertSession()
-      ->pageTextContains("The 'core' or the 'core_version_requirement' key must be present in " . $path . '/broken.info.yml');
+    foreach ($broken_infos as $broken_info) {
+      file_put_contents($file_path, $broken_info['yml']);
 
-    // Check that the module filter text box is available.
-    $this->assertSession()->elementExists('xpath', '//input[@name="text"]');
+      $this->drupalGet('admin/modules');
+      $this->assertSession()->statusCodeEquals(200);
+
+      $this->assertSession()
+        ->pageTextContains('Modules could not be listed due to an error: ' . $broken_info['expected_error']);
+
+      // Check that the module filter text box is available.
+      $this->assertSession()->elementExists('xpath', '//input[@name="text"]');
+
+      unlink($file_path);
+      $this->drupalGet('admin/modules');
+      $this->assertSession()->statusCodeEquals(200);
+
+      // Check that the module filter text box is available.
+      $this->assertSession()->elementExists('xpath', '//input[@name="text"]');
+      $this->assertSession()->pageTextNotContains('Modules could not be listed due to an error');
+    }
   }
 
   /**
@@ -79,9 +118,60 @@ BROKEN;
     // Confirm that 'Test Theme Depending on Modules' is listed as being
     // required by the module 'Test Module Required by Theme'.
     $this->assertCount(1, $module_theme_depends_on_description);
-
     // Confirm that the required by message does not appear anywhere else.
     $this->assertSession()->pageTextContains('Test Theme Depending on Modules (Theme) (Disabled)');
+  }
+
+  /**
+   * Tests that incompatible modules message is shown.
+   */
+  public function testInstalledIncompatibleModule() {
+    $incompatible_modules_message = 'There are errors with some installed modules. Visit the status report page for more information.';
+    $path = \Drupal::getContainer()->getParameter('site.path') . "/modules/changing_module";
+    mkdir($path, 0777, TRUE);
+    $file_path = "$path/changing_module.info.yml";
+    $info = [
+      'name' => 'Module that changes',
+      'type' => 'module',
+    ];
+    $compatible_info = $info + ['core_version_requirement' => '*'];
+
+    file_put_contents($file_path, Yaml::encode($compatible_info));
+    $edit = ['modules[changing_module][enable]' => 'changing_module'];
+    $this->drupalGet('admin/modules');
+    $this->drupalPostForm('admin/modules', $edit, t('Install'));
+    $this->assertText('Module Module that changes has been enabled.');
+
+    $incompatible_updates = [
+      [
+        'core_version_requirement' => '^1',
+      ],
+      [
+        'core' => '8.x',
+      ],
+    ];
+    foreach ($incompatible_updates as $incompatible_update) {
+      $incompatible_info = $info + $incompatible_update;
+      file_put_contents($file_path, Yaml::encode($incompatible_info));
+      $this->drupalGet('admin/modules');
+      $this->assertText($incompatible_modules_message);
+
+      file_put_contents($file_path, Yaml::encode($compatible_info));
+      $this->drupalGet('admin/modules');
+      $this->assertNoText($incompatible_modules_message);
+    }
+    // Uninstall the module and ensure that incompatible modules message is not
+    // displayed for modules that are not installed.
+    $edit = ['uninstall[changing_module]' => 'changing_module'];
+    $this->drupalPostForm('admin/modules/uninstall', $edit, t('Uninstall'));
+    $this->drupalPostForm(NULL, NULL, t('Uninstall'));
+    $this->assertText('The selected modules have been uninstalled.');
+    foreach ($incompatible_updates as $incompatible_update) {
+      $incompatible_info = $info + $incompatible_update;
+      file_put_contents($file_path, Yaml::encode($incompatible_info));
+      $this->drupalGet('admin/modules');
+      $this->assertNoText($incompatible_modules_message);
+    }
   }
 
 }

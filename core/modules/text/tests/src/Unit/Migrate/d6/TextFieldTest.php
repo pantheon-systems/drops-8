@@ -11,7 +11,6 @@ use Prophecy\Argument;
 /**
  * @coversDefaultClass \Drupal\text\Plugin\migrate\field\d6\TextField
  * @group text
- * @group legacy
  */
 class TextFieldTest extends UnitTestCase {
 
@@ -28,7 +27,7 @@ class TextFieldTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->plugin = new TextField([], 'text', []);
 
     $migration = $this->prophesize(MigrationInterface::class);
@@ -43,33 +42,6 @@ class TextFieldTest extends UnitTestCase {
       });
 
     $this->migration = $migration->reveal();
-  }
-
-  /**
-   * Calls the deprecated processFieldValues() method to test BC.
-   *
-   * @covers ::processFieldValues
-   *
-   * @depends testFilteredTextValueProcessPipeline
-   */
-  public function testProcessFilteredTextFieldValues() {
-    $field_info = [
-      'widget_type' => 'text_textfield',
-    ];
-    $this->plugin->processFieldValues($this->migration, 'body', $field_info);
-
-    $process = $this->migration->getProcess();
-    $this->assertSame('sub_process', $process['plugin']);
-    $this->assertSame('body', $process['source']);
-    $this->assertSame('value', $process['process']['value']);
-
-    // Ensure that filter format IDs will be looked up in the filter format
-    // migrations.
-    $lookup = $process['process']['format'][2];
-    $this->assertSame('migration_lookup', $lookup['plugin']);
-    $this->assertContains('d6_filter_format', $lookup['migration']);
-    $this->assertContains('d7_filter_format', $lookup['migration']);
-    $this->assertSame('format', $lookup['source']);
   }
 
   /**
@@ -96,35 +68,6 @@ class TextFieldTest extends UnitTestCase {
   }
 
   /**
-   * Calls the deprecated processFieldValues() method to test BC.
-   *
-   * @covers ::processFieldValues
-   *
-   * @depends testBooleanTextImplicitValueProcessPipeline
-   */
-  public function testProcessBooleanTextImplicitValues() {
-    $info = [
-      'widget_type' => 'optionwidgets_onoff',
-      'global_settings' => [
-        'allowed_values' => "foo\nbar",
-      ],
-    ];
-    $this->plugin->processFieldValues($this->migration, 'field', $info);
-
-    $expected = [
-      'value' => [
-        'plugin' => 'static_map',
-        'source' => 'value',
-        'default_value' => 0,
-        'map' => [
-          'bar' => 1,
-        ],
-      ],
-    ];
-    $this->assertSame($expected, $this->migration->getProcess()['process']);
-  }
-
-  /**
    * @covers ::defineValueProcessPipeline
    */
   public function testBooleanTextImplicitValueProcessPipeline() {
@@ -143,35 +86,6 @@ class TextFieldTest extends UnitTestCase {
         'default_value' => 0,
         'map' => [
           'bar' => 1,
-        ],
-      ],
-    ];
-    $this->assertSame($expected, $this->migration->getProcess()['process']);
-  }
-
-  /**
-   * Calls the deprecated processFieldValues() method to test BC.
-   *
-   * @covers ::processFieldValues
-   *
-   * @depends testBooleanTextExplicitValueProcessPipeline
-   */
-  public function testProcessBooleanTextExplicitValues() {
-    $info = [
-      'widget_type' => 'optionwidgets_onoff',
-      'global_settings' => [
-        'allowed_values' => "foo|Foo\nbaz|Baz",
-      ],
-    ];
-    $this->plugin->processFieldValues($this->migration, 'field', $info);
-
-    $expected = [
-      'value' => [
-        'plugin' => 'static_map',
-        'source' => 'value',
-        'default_value' => 0,
-        'map' => [
-          'baz' => 1,
         ],
       ],
     ];

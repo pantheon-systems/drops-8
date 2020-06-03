@@ -234,6 +234,26 @@ module.exports = {
       })
       .drupalLogAndEnd({ onlyOnError: false });
   },
+  'Test jquery.cookie Shim $.cookie deprecation message': browser => {
+    browser
+      .drupalRelativeURL('/js_cookie_with_shim_test')
+      .waitForElementVisible('.js_cookie_test_add_button', 1000)
+      .click('.js_cookie_test_add_button')
+      .assert.deprecationErrorExists(
+        `jQuery.cookie() ${deprecatedMessageSuffix}`,
+      )
+      .drupalLogAndEnd({ onlyOnError: false });
+  },
+  'Test jquery.cookie Shim $.removeCookie deprecation message': browser => {
+    browser
+      .drupalRelativeURL('/js_cookie_with_shim_test')
+      .waitForElementVisible('.js_cookie_test_remove_button', 1000)
+      .click('.js_cookie_test_remove_button')
+      .assert.deprecationErrorExists(
+        `jQuery.removeCookie() ${deprecatedMessageSuffix}`,
+      )
+      .drupalLogAndEnd({ onlyOnError: false });
+  },
   'Test jquery.cookie Shim expires option as Date instance': browser => {
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);

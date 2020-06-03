@@ -20,7 +20,7 @@ class BlockExposedFilterAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'views', 'block', 'views_test_config'];
+  protected static $modules = ['node', 'views', 'block', 'views_test_config'];
 
   public static $testViews = ['test_block_exposed_ajax', 'test_block_exposed_ajax_with_page'];
 
@@ -32,7 +32,7 @@ class BlockExposedFilterAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     ViewTestData::createTestViews(self::class, ['views_test_config']);
     $this->createContentType(['type' => 'page']);

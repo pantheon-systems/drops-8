@@ -18,7 +18,7 @@ class PathNoCanonicalLinkTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'path',
     'content_translation_test',
     'language',
@@ -27,7 +27,7 @@ class PathNoCanonicalLinkTest extends KernelTestBase {
     'system',
   ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test');

@@ -68,7 +68,7 @@ class SharedTempStoreTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->keyValue = $this->createMock('Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface');
@@ -274,36 +274,6 @@ class SharedTempStoreTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::getMetadata
-   * @expectedDeprecation Using the "owner" public property of a TempStore lock is deprecated in Drupal 8.7.0 and will not be allowed in Drupal 9.0.0. Use \Drupal\Core\TempStore\Lock::getOwnerId() instead. See https://www.drupal.org/node/3025869.
-   * @group legacy
-   */
-  public function testGetMetadataOwner() {
-    $this->keyValue->expects($this->once())
-      ->method('get')
-      ->with('test')
-      ->will($this->returnValue($this->ownObject));
-
-    $metadata = $this->tempStore->getMetadata('test');
-    $this->assertSame(1, $metadata->owner);
-  }
-
-  /**
-   * @covers ::getMetadata
-   * @expectedDeprecation Using the "updated" public property of a TempStore lock is deprecated in Drupal 8.7.0 and will not be allowed in Drupal 9.0.0. Use \Drupal\Core\TempStore\Lock::getUpdated() instead. See https://www.drupal.org/node/3025869.
-   * @group legacy
-   */
-  public function testGetMetadataUpdated() {
-    $this->keyValue->expects($this->once())
-      ->method('get')
-      ->with('test')
-      ->will($this->returnValue($this->ownObject));
-
-    $metadata = $this->tempStore->getMetadata('test');
-    $this->assertSame($metadata->getUpdated(), $metadata->updated);
-  }
-
-  /**
    * Tests the delete() method.
    *
    * @covers ::delete
@@ -406,7 +376,9 @@ class SharedTempStoreTest extends UnitTestCase {
     $store = unserialize(serialize($this->tempStore));
     $this->assertInstanceOf(SharedTempStore::class, $store);
 
-    $request_stack = $this->getObjectAttribute($store, 'requestStack');
+    $reflected_request_stack = (new \ReflectionObject($store))->getProperty('requestStack');
+    $reflected_request_stack->setAccessible(TRUE);
+    $request_stack = $reflected_request_stack->getValue($store);
     $this->assertEquals($this->requestStack, $request_stack);
     $this->assertSame($unserializable_request, $request_stack->pop());
   }

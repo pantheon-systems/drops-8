@@ -13,8 +13,10 @@ namespace Symfony\Component\Serializer\Mapping\Loader;
 
 use Symfony\Component\Serializer\Exception\MappingException;
 use Symfony\Component\Serializer\Mapping\AttributeMetadata;
+use Symfony\Component\Serializer\Mapping\ClassDiscriminatorMapping;
 use Symfony\Component\Serializer\Mapping\ClassMetadataInterface;
 use Symfony\Component\Yaml\Parser;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * YAML File Loader.
@@ -83,7 +85,30 @@ class YamlFileLoader extends FileLoader
 
                     $attributeMetadata->setMaxDepth($data['max_depth']);
                 }
+
+                if (isset($data['serialized_name'])) {
+                    if (!\is_string($data['serialized_name']) || empty($data['serialized_name'])) {
+                        throw new MappingException(sprintf('The "serialized_name" value must be a non-empty string in "%s" for the attribute "%s" of the class "%s".', $this->file, $attribute, $classMetadata->getName()));
+                    }
+
+                    $attributeMetadata->setSerializedName($data['serialized_name']);
+                }
             }
+        }
+
+        if (isset($yaml['discriminator_map'])) {
+            if (!isset($yaml['discriminator_map']['type_property'])) {
+                throw new MappingException(sprintf('The "type_property" key must be set for the discriminator map of the class "%s" in "%s".', $classMetadata->getName(), $this->file));
+            }
+
+            if (!isset($yaml['discriminator_map']['mapping'])) {
+                throw new MappingException(sprintf('The "mapping" key must be set for the discriminator map of the class "%s" in "%s".', $classMetadata->getName(), $this->file));
+            }
+
+            $classMetadata->setClassDiscriminatorMapping(new ClassDiscriminatorMapping(
+                $yaml['discriminator_map']['type_property'],
+                $yaml['discriminator_map']['mapping']
+            ));
         }
 
         return true;
@@ -103,7 +128,7 @@ class YamlFileLoader extends FileLoader
         return array_keys($this->classes);
     }
 
-    private function getClassesFromYaml()
+    private function getClassesFromYaml(): array
     {
         if (!stream_is_local($this->file)) {
             throw new MappingException(sprintf('This is not a local file "%s".', $this->file));
@@ -113,7 +138,7 @@ class YamlFileLoader extends FileLoader
             $this->yamlParser = new Parser();
         }
 
-        $classes = $this->yamlParser->parseFile($this->file);
+        $classes = $this->yamlParser->parseFile($this->file, Yaml::PARSE_CONSTANT);
 
         if (empty($classes)) {
             return [];

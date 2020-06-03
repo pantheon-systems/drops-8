@@ -15,7 +15,7 @@ class ViewsListingTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'views', 'views_ui'];
+  protected static $modules = ['node', 'views', 'views_ui'];
 
   /**
    * {@inheritdoc}
@@ -25,7 +25,7 @@ class ViewsListingTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $admin_user = $this->drupalCreateUser([
@@ -133,6 +133,7 @@ class ViewsListingTest extends WebDriverTestBase {
    * Removes any non-visible elements from the passed array.
    *
    * @param array $elements
+   *
    * @return array
    */
   protected function filterVisibleElements($elements) {

@@ -15,7 +15,7 @@ QUICKSTART
 ----------------------
 
 Prerequisites:
-- PHP 7.0.8 (or greater) (https://php.net).
+- PHP 7.3.0 (or greater) (https://php.net).
 
 In the instructions below, replace the version x.y.z with the specific version
 you wish to download. Example: 8.6.0.zip. You can find the latest stable version
@@ -46,18 +46,18 @@ REQUIREMENTS AND NOTES
 Drupal requires:
 
 - A web server with PHP support, for example:
-  - Apache 2.0 (or greater) (http://httpd.apache.org/).
+  - Apache 2.4.7 (or greater) (http://httpd.apache.org/).
   - Nginx 1.1 (or greater) (http://nginx.com/).
-- PHP 7.0.8 (or greater) (http://php.net/). For better security support it is
-  recommended to update to at least 7.2.17.
+- PHP 7.3.0 (or greater) (http://php.net/). For better security support it is
+  recommended to update to at least 7.3.13.
 - One of the following databases:
-  - MySQL 5.5.3 (or greater) (http://www.mysql.com/).
-  - MariaDB 5.5.20 (or greater) (https://mariadb.org/). MariaDB is a fully
+  - MySQL 5.7.8 (or greater) (http://www.mysql.com/).
+  - MariaDB 10.3.7 (or greater) (https://mariadb.org/). MariaDB is a fully
     compatible drop-in replacement for MySQL.
-  - Percona Server 5.5.8 (or greater) (http://www.percona.com/). Percona
+  - Percona Server 5.7.8 (or greater) (http://www.percona.com/). Percona
     Server is a backwards-compatible replacement for MySQL.
-  - PostgreSQL 9.1.2 (or greater) (http://www.postgresql.org/).
-  - SQLite 3.7.11 (or greater) (http://www.sqlite.org/).
+  - PostgreSQL 10 (or greater) (http://www.postgresql.org/).
+  - SQLite 3.26 (or greater) (http://www.sqlite.org/).
 
 For more detailed information about Drupal requirements, including a list of
 PHP extensions and configurations that are required, see "System requirements"

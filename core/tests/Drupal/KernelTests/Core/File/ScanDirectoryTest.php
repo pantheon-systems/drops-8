@@ -15,7 +15,7 @@ class ScanDirectoryTest extends FileTestBase {
    *
    * @var array
    */
-  public static $modules = ['file_test'];
+  protected static $modules = ['file_test'];
 
   /**
    * @var string
@@ -32,7 +32,7 @@ class ScanDirectoryTest extends FileTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Hardcode the location of the fixtures files as it is already known
     // and shouldn't change, and we don't yet have a way to retrieve their

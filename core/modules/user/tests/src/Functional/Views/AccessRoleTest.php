@@ -55,8 +55,8 @@ class AccessRoleTest extends AccessTestBase {
     $this->assertInstanceOf(Role::class, $access_plugin);
 
     // Test the access() method on the access plugin.
-    $this->assertSame(FALSE, $executable->display_handler->access($this->webUser));
-    $this->assertSame(TRUE, $executable->display_handler->access($this->normalUser));
+    $this->assertFalse($executable->display_handler->access($this->webUser));
+    $this->assertTrue($executable->display_handler->access($this->normalUser));
 
     $this->drupalLogin($this->webUser);
     $this->drupalGet('test-role');

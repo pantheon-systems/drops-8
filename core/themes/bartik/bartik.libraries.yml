@@ -9,6 +9,7 @@ global-styling:
       css/components/breadcrumb.css: {}
       css/components/captions.css: {}
       css/components/comments.css: {}
+      css/components/container-inline.module.css: {}
       css/components/contextual.css: {}
       css/components/demo-block.css: {}
       # @see https://www.drupal.org/node/2389735
@@ -114,6 +115,18 @@ classy.base:
       css/classy/components/textarea.css: { weight: -10 }
       css/classy/components/ui-dialog.css: { weight: -10 }
 
+user:
+  version: VERSION
+  css:
+    component:
+      css/components/user.css: { weight: -10 }
+
+filter:
+  version: VERSION
+  css:
+    component:
+      css/theme/filter.admin.css: {}
+
 classy.book-navigation:
   version: VERSION
   css:
@@ -143,18 +156,6 @@ classy.forum:
   css:
     component:
       css/classy/components/forum.css: { weight: -10 }
-
-classy.image-widget:
-  version: VERSION
-  css:
-    component:
-      css/classy/components/image-widget.css: {}
-
-classy.indented:
-  version: VERSION
-  css:
-    component:
-      css/classy/components/indented.css: {}
 
 classy.media_embed_ckeditor_theme:
   version: VERSION
@@ -196,9 +197,3 @@ classy.search-results:
   css:
     component:
       css/classy/components/search-results.css: {}
-
-classy.user:
-  version: VERSION
-  css:
-    component:
-      css/classy/components/user.css: { weight: -10 }

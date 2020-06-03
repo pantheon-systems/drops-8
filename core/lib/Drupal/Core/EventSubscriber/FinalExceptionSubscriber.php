@@ -8,7 +8,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Utility\Error;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent;
+use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
@@ -73,11 +73,11 @@ class FinalExceptionSubscriber implements EventSubscriberInterface {
   /**
    * Handles exceptions for this subscriber.
    *
-   * @param \Symfony\Component\HttpKernel\Event\GetResponseForExceptionEvent $event
+   * @param \Symfony\Component\HttpKernel\Event\ExceptionEvent $event
    *   The event to process.
    */
-  public function onException(GetResponseForExceptionEvent $event) {
-    $exception = $event->getException();
+  public function onException(ExceptionEvent $event) {
+    $exception = $event->getThrowable();
     $error = Error::decodeException($exception);
 
     // Display the message if the current error reporting level allows this type

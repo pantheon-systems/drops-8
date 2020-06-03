@@ -16,7 +16,7 @@ class UninstallKernelTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'user',
     'field',
@@ -28,7 +28,7 @@ class UninstallKernelTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installSchema('user', ['users_data']);

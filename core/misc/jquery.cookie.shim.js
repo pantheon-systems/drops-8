@@ -5,7 +5,15 @@
 * @preserve
 **/
 
+function ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { var symbols = Object.getOwnPropertySymbols(object); if (enumerableOnly) symbols = symbols.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); keys.push.apply(keys, symbols); } return keys; }
+
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { ownKeys(Object(source), true).forEach(function (key) { _defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { ownKeys(Object(source)).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 (function ($, Drupal, cookies) {
+  var deprecatedMessageSuffix = "is deprecated in Drupal 9.0.0 and will be removed in Drupal 10.0.0. Use the core/js-cookie library instead. See https://www.drupal.org/node/3104677";
+
   var isFunction = function isFunction(obj) {
     return Object.prototype.toString.call(obj) === '[object Function]';
   };
@@ -34,10 +42,13 @@
   $.cookie = function (key) {
     var value = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : undefined;
     var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : undefined;
-
+    Drupal.deprecationError({
+      message: "jQuery.cookie() ".concat(deprecatedMessageSuffix)
+    });
     key = key && !$.cookie.raw ? encodeURIComponent(key) : key;
+
     if (value !== undefined && !isFunction(value)) {
-      var attributes = Object.assign({}, $.cookie.defaults, options);
+      var attributes = _objectSpread(_objectSpread({}, $.cookie.defaults), options);
 
       if (typeof attributes.expires === 'string' && attributes.expires !== '') {
         attributes.expires = new Date(attributes.expires);
@@ -48,9 +59,7 @@
           return encodeURIComponent(cookieValue);
         }
       });
-
       value = $.cookie.json && !$.cookie.raw ? JSON.stringify(value) : String(value);
-
       return cookieSetter.set(key, value, attributes);
     }
 
@@ -71,18 +80,20 @@
         delete results[resultKey];
       }
     });
-
     return results;
   };
 
-  $.cookie.defaults = Object.assign({ path: '' }, cookies.defaults);
-
+  $.cookie.defaults = _objectSpread({
+    path: ''
+  }, cookies.defaults);
   $.cookie.json = false;
-
   $.cookie.raw = false;
 
   $.removeCookie = function (key, options) {
-    cookies.remove(key, Object.assign({}, $.cookie.defaults, options));
+    Drupal.deprecationError({
+      message: "jQuery.removeCookie() ".concat(deprecatedMessageSuffix)
+    });
+    cookies.remove(key, _objectSpread(_objectSpread({}, $.cookie.defaults), options));
     return !cookies.get(key);
   };
 })(jQuery, Drupal, window.Cookies);

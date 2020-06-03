@@ -20,7 +20,7 @@ class QuickEditImageTest extends QuickEditJavascriptTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'image', 'field_ui'];
+  protected static $modules = ['node', 'image', 'field_ui'];
 
   /**
    * {@inheritdoc}
@@ -37,7 +37,7 @@ class QuickEditImageTest extends QuickEditJavascriptTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create the Article node type.

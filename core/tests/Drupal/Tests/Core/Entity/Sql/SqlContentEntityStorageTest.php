@@ -114,7 +114,7 @@ class SqlContentEntityStorageTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $this->entityType = $this->createMock('Drupal\Core\Entity\ContentEntityTypeInterface');
     $this->entityType->expects($this->any())
       ->method('id')
@@ -384,7 +384,6 @@ class SqlContentEntityStorageTest extends UnitTestCase {
       ->will($this->returnValueMap([
         // SqlContentEntityStorageSchema::initializeBaseTable()
         ['revision', FALSE],
-        // SqlContentEntityStorageSchema::processBaseTable()
         ['id', TRUE],
       ]));
     $this->entityType->expects($this->any())
@@ -397,7 +396,6 @@ class SqlContentEntityStorageTest extends UnitTestCase {
         ['bundle', NULL],
         // SqlContentEntityStorageSchema::initializeBaseTable()
         ['id' => 'id'],
-        // SqlContentEntityStorageSchema::processBaseTable()
         ['id' => 'id'],
       ]));
 
@@ -1450,18 +1448,6 @@ class SqlContentEntityStorageTest extends UnitTestCase {
     ];
     $this->assertEquals([], $method->invoke($this->entityStorage, $invalid_ids));
 
-  }
-
-  /**
-   * @covers ::getFieldStorageDefinitions
-   *
-   * @expectedDeprecation SqlContentEntityStorage::getFieldStorageDefinitions() is deprecated in Drupal 8.7.0 and will be removed before Drupal 9.0.0. Use \Drupal\Core\Entity\EntityFieldManagerInterface::getActiveFieldStorageDefinitions() instead. See https://www.drupal.org/node/3040966.
-   *
-   * @group legacy
-   */
-  public function testGetFieldStorageDefinitions() {
-    $this->setUpEntityStorage();
-    $this->entityStorage->getFieldStorageDefinitions();
   }
 
   /**

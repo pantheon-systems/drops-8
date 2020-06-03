@@ -16,7 +16,7 @@ class ConfigDiffTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['config_test', 'system'];
+  protected static $modules = ['config_test', 'system'];
 
   /**
    * Tests calculating the difference between two sets of configuration.
@@ -146,11 +146,11 @@ class ConfigDiffTest extends KernelTestBase {
    * @param string $type
    *   The type of edit that is being asserted.
    * @param mixed $orig
-   *   (optional) The original value of the edit. If not supplied, assertion is
-   *   skipped.
+   *   (optional) The original value of the edit. If not supplied, assertion
+   *   is skipped.
    * @param mixed $closing
-   *   (optional) The closing value of the edit. If not supplied, assertion is
-   *   skipped.
+   *   (optional) The closing value of the edit. If not supplied, assertion
+   *   is skipped.
    */
   protected function assertYamlEdit(array $edits, $field, $type, $orig = NULL, $closing = NULL) {
     $match = FALSE;

@@ -18,7 +18,7 @@ class EntityDefaultLanguageTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'node',
     'field',
@@ -30,7 +30,7 @@ class EntityDefaultLanguageTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('user');

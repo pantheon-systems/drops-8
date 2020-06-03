@@ -17,7 +17,7 @@ class WorkflowDependenciesTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = [
+  protected static $modules = [
     'system',
     'workflows',
     'workflow_type_test',

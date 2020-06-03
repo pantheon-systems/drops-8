@@ -6,15 +6,14 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros;
 
 /**
  * Retrieve the request method from the SAPI parameters.
- *
- * @param array $server
- * @return string
  */
-function marshalMethodFromSapi(array $server)
+function marshalMethodFromSapi(array $server) : string
 {
-    return isset($server['REQUEST_METHOD']) ? $server['REQUEST_METHOD'] : 'GET';
+    return $server['REQUEST_METHOD'] ?? 'GET';
 }

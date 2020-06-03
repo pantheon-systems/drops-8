@@ -17,7 +17,7 @@ class LanguageLocaleListTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'locale'];
+  protected static $modules = ['language', 'locale'];
 
   /**
    * {@inheritdoc}
@@ -27,7 +27,7 @@ class LanguageLocaleListTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     // Add a default locale storage for all these tests.
     $this->storage = $this->container->get('locale.storage');

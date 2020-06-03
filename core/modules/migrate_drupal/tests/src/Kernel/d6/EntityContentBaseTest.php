@@ -17,12 +17,12 @@ class EntityContentBaseTest extends MigrateDrupal6TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['migrate_overwrite_test'];
+  protected static $modules = ['migrate_overwrite_test'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a field on the user entity so that we can test nested property

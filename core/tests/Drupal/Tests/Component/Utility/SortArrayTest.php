@@ -3,7 +3,6 @@
 namespace Drupal\Tests\Component\Utility;
 
 use Drupal\Component\Utility\SortArray;
-use Drupal\Tests\PhpunitCompatibilityTrait;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -14,8 +13,6 @@ use PHPUnit\Framework\TestCase;
  * @coversDefaultClass \Drupal\Component\Utility\SortArray
  */
 class SortArrayTest extends TestCase {
-
-  use PhpunitCompatibilityTrait;
 
   /**
    * Tests SortArray::sortByWeightElement() input against expected output.

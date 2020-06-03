@@ -6,22 +6,15 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros;
 
-use InvalidArgumentException;
-use Psr\Http\Message\UploadedFileInterface;
-use stdClass;
-use UnexpectedValueException;
+use Psr\Http\Message\ServerRequestFactoryInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
-use function array_change_key_case;
 use function array_key_exists;
-use function explode;
-use function implode;
-use function is_array;
 use function is_callable;
-use function strtolower;
-
-use const CASE_LOWER;
 
 /**
  * Class for marshaling a request object from the current PHP environment.
@@ -31,7 +24,7 @@ use const CASE_LOWER;
  * @copyright Copyright (c) 2005-2015 Laminas (https://www.zend.com)
  * @license   https://getlaminas.org/license/new-bsd New BSD License
  */
-abstract class ServerRequestFactory
+class ServerRequestFactory implements ServerRequestFactoryInterface
 {
     /**
      * Function to use to get apache request headers; present only to simplify mocking.
@@ -56,7 +49,6 @@ abstract class ServerRequestFactory
      * @param array $cookies $_COOKIE superglobal
      * @param array $files $_FILES superglobal
      * @return ServerRequest
-     * @throws InvalidArgumentException for invalid file values
      */
     public static function fromGlobals(
         array $server = null,
@@ -64,7 +56,7 @@ abstract class ServerRequestFactory
         array $body = null,
         array $cookies = null,
         array $files = null
-    ) {
+    ) : ServerRequest {
         $server = normalizeServer(
             $server ?: $_SERVER,
             is_callable(self::$apacheRequestHeaders) ? self::$apacheRequestHeaders : null
@@ -91,151 +83,18 @@ abstract class ServerRequestFactory
     }
 
     /**
-     * Access a value in an array, returning a default value if not found
-     *
-     * @deprecated since 1.8.0; no longer used internally.
-     * @param string $key
-     * @param array $values
-     * @param mixed $default
-     * @return mixed
+     * {@inheritDoc}
      */
-    public static function get($key, array $values, $default = null)
+    public function createServerRequest(string $method, $uri, array $serverParams = []) : ServerRequestInterface
     {
-        if (array_key_exists($key, $values)) {
-            return $values[$key];
-        }
+        $uploadedFiles = [];
 
-        return $default;
-    }
-
-    /**
-     * Search for a header value.
-     *
-     * Does a case-insensitive search for a matching header.
-     *
-     * If found, it is returned as a string, using comma concatenation.
-     *
-     * If not, the $default is returned.
-     *
-     * @deprecated since 1.8.0; no longer used internally.
-     * @param string $header
-     * @param array $headers
-     * @param mixed $default
-     * @return string
-     */
-    public static function getHeader($header, array $headers, $default = null)
-    {
-        $header  = strtolower($header);
-        $headers = array_change_key_case($headers, CASE_LOWER);
-        if (array_key_exists($header, $headers)) {
-            $value = is_array($headers[$header]) ? implode(', ', $headers[$header]) : $headers[$header];
-            return $value;
-        }
-
-        return $default;
-    }
-
-    /**
-     * Marshal the $_SERVER array
-     *
-     * Pre-processes and returns the $_SERVER superglobal.
-     *
-     * @deprected since 1.8.0; use Laminas\Diactoros\normalizeServer() instead.
-     * @param array $server
-     * @return array
-     */
-    public static function normalizeServer(array $server)
-    {
-        return normalizeServer(
-            $server ?: $_SERVER,
-            is_callable(self::$apacheRequestHeaders) ? self::$apacheRequestHeaders : null
+        return new ServerRequest(
+            $serverParams,
+            $uploadedFiles,
+            $uri,
+            $method,
+            'php://temp'
         );
-    }
-
-    /**
-     * Normalize uploaded files
-     *
-     * Transforms each value into an UploadedFileInterface instance, and ensures
-     * that nested arrays are normalized.
-     *
-     * @deprecated since 1.8.0; use \Laminas\Diactoros\normalizeUploadedFiles instead.
-     * @param array $files
-     * @return array
-     * @throws InvalidArgumentException for unrecognized values
-     */
-    public static function normalizeFiles(array $files)
-    {
-        return normalizeUploadedFiles($files);
-    }
-
-    /**
-     * Marshal headers from $_SERVER
-     *
-     * @deprecated since 1.8.0; use Laminas\Diactoros\marshalHeadersFromSapi().
-     * @param array $server
-     * @return array
-     */
-    public static function marshalHeaders(array $server)
-    {
-        return marshalHeadersFromSapi($server);
-    }
-
-    /**
-     * Marshal the URI from the $_SERVER array and headers
-     *
-     * @deprecated since 1.8.0; use Laminas\Diactoros\marshalUriFromSapi() instead.
-     * @param array $server
-     * @param array $headers
-     * @return Uri
-     */
-    public static function marshalUriFromServer(array $server, array $headers)
-    {
-        return marshalUriFromSapi($server, $headers);
-    }
-
-    /**
-     * Marshal the host and port from HTTP headers and/or the PHP environment
-     *
-     * @deprecated since 1.8.0; use Laminas\Diactoros\marshalUriFromSapi() instead,
-     *     and pull the host and port from the Uri instance that function
-     *     returns.
-     * @param stdClass $accumulator
-     * @param array $server
-     * @param array $headers
-     */
-    public static function marshalHostAndPortFromHeaders(stdClass $accumulator, array $server, array $headers)
-    {
-        $uri = marshalUriFromSapi($server, $headers);
-        $accumulator->host = $uri->getHost();
-        $accumulator->port = $uri->getPort();
-    }
-
-    /**
-     * Detect the base URI for the request
-     *
-     * Looks at a variety of criteria in order to attempt to autodetect a base
-     * URI, including rewrite URIs, proxy URIs, etc.
-     *
-     * @deprecated since 1.8.0; use Laminas\Diactoros\marshalUriFromSapi() instead,
-     *     and pull the path from the Uri instance that function returns.
-     * @param array $server
-     * @return string
-     */
-    public static function marshalRequestUri(array $server)
-    {
-        $uri = marshalUriFromSapi($server, []);
-        return $uri->getPath();
-    }
-
-    /**
-     * Strip the query string from a path
-     *
-     * @deprecated since 1.8.0; no longer used internally.
-     * @param mixed $path
-     * @return string
-     */
-    public static function stripQueryString($path)
-    {
-        return explode('?', $path, 2)[0];
     }
 }

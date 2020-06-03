@@ -15,9 +15,13 @@ class EntityNonRevisionableTranslatableFieldTest extends EntityKernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['entity_test', 'language', 'content_translation'];
+  protected static $modules = [
+    'entity_test',
+    'language',
+    'content_translation',
+  ];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('entity_test_mulrev');

@@ -21,7 +21,7 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['locale', 'dblog'];
+  protected static $modules = ['locale', 'dblog'];
 
   /**
    * {@inheritdoc}
@@ -46,7 +46,7 @@ class LocaleImportFunctionalTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Copy test po files to the translations directory.

@@ -19,7 +19,7 @@ class ExposedFilterAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'views', 'views_test_modal'];
+  protected static $modules = ['node', 'views', 'views_test_modal'];
 
   /**
    * {@inheritdoc}
@@ -29,7 +29,7 @@ class ExposedFilterAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Enable AJAX on the /admin/content View.

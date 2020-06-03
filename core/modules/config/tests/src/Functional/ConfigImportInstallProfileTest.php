@@ -23,7 +23,7 @@ class ConfigImportInstallProfileTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['config'];
+  protected static $modules = ['config'];
 
   /**
    * {@inheritdoc}
@@ -37,7 +37,7 @@ class ConfigImportInstallProfileTest extends BrowserTestBase {
    */
   protected $webUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->webUser = $this->drupalCreateUser(['synchronize configuration']);

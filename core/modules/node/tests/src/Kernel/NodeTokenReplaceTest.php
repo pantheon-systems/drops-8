@@ -22,12 +22,12 @@ class NodeTokenReplaceTest extends TokenReplaceKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'filter'];
+  protected static $modules = ['node', 'filter'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['filter', 'node']);
 

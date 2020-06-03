@@ -15,12 +15,12 @@ class MigrateAggregatorFeedTest extends MigrateDrupal7TestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['aggregator'];
+  protected static $modules = ['aggregator'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('aggregator_feed');
     $this->executeMigration('d7_aggregator_feed');

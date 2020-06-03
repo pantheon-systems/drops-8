@@ -6,9 +6,11 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros\Response;
 
-use InvalidArgumentException;
+use Laminas\Diactoros\Exception;
 use Laminas\Diactoros\Response;
 use Laminas\Diactoros\Stream;
 use Psr\Http\Message\StreamInterface;
@@ -38,11 +40,11 @@ class XmlResponse extends Response
      * @param string|StreamInterface $xml String or stream for the message body.
      * @param int $status Integer status code for the response; 200 by default.
      * @param array $headers Array of headers to use at initialization.
-     * @throws InvalidArgumentException if $text is neither a string or stream.
+     * @throws Exception\InvalidArgumentException if $text is neither a string or stream.
      */
     public function __construct(
         $xml,
-        $status = 200,
+        int $status = 200,
         array $headers = []
     ) {
         parent::__construct(
@@ -56,17 +58,16 @@ class XmlResponse extends Response
      * Create the message body.
      *
      * @param string|StreamInterface $xml
-     * @return StreamInterface
-     * @throws InvalidArgumentException if $xml is neither a string or stream.
+     * @throws Exception\InvalidArgumentException if $xml is neither a string or stream.
      */
-    private function createBody($xml)
+    private function createBody($xml) : StreamInterface
     {
         if ($xml instanceof StreamInterface) {
             return $xml;
         }
 
         if (! is_string($xml)) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 'Invalid content (%s) provided to %s',
                 (is_object($xml) ? get_class($xml) : gettype($xml)),
                 __CLASS__

@@ -19,7 +19,7 @@ class HandlerTest extends UITestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node_test_views'];
+  protected static $modules = ['node_test_views'];
 
   /**
    * {@inheritdoc}
@@ -36,7 +36,7 @@ class HandlerTest extends UITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
     $this->placeBlock('page_title_block');

@@ -18,7 +18,7 @@ class LocaleConfigSubscriberTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['language', 'locale', 'system', 'locale_test'];
+  protected static $modules = ['language', 'locale', 'system', 'locale_test'];
 
   /**
    * The configurable language manager used in this test.
@@ -51,7 +51,7 @@ class LocaleConfigSubscriberTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->setUpDefaultLanguage();

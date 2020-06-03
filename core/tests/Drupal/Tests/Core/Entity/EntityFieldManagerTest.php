@@ -145,7 +145,7 @@ class EntityFieldManagerTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->container = $this->prophesize(ContainerInterface::class);
@@ -470,7 +470,7 @@ class EntityFieldManagerTest extends UnitTestCase {
   public function testGetFieldDefinitionsProvider() {
     $this->setUpEntityWithFieldDefinition(TRUE);
 
-    $module = 'entity_manager_test_module';
+    $module = 'entity_field_manager_test_module';
 
     // @todo Mock FieldDefinitionInterface once it exposes a proper provider
     //   setter. See https://www.drupal.org/node/2225961.

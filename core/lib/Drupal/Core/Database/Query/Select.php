@@ -121,16 +121,16 @@ class Select extends Query implements SelectInterface {
   /**
    * Constructs a Select object.
    *
+   * @param \Drupal\Core\Database\Connection $connection
+   *   Database connection object.
    * @param string $table
    *   The name of the table that is being queried.
    * @param string $alias
    *   The alias for the table.
-   * @param \Drupal\Core\Database\Connection $connection
-   *   Database connection object.
    * @param array $options
    *   Array of query options.
    */
-  public function __construct($table, $alias, Connection $connection, $options = []) {
+  public function __construct(Connection $connection, $table, $alias = NULL, $options = []) {
     $options['return'] = Database::RETURN_STATEMENT;
     parent::__construct($connection, $options);
     $conjunction = isset($options['conjunction']) ? $options['conjunction'] : 'AND';
@@ -615,13 +615,6 @@ class Select extends Query implements SelectInterface {
   /**
    * {@inheritdoc}
    */
-  public function rightJoin($table, $alias = NULL, $condition = NULL, $arguments = []) {
-    return $this->addJoin('RIGHT OUTER', $table, $alias, $condition, $arguments);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function addJoin($type, $table, $alias = NULL, $condition = NULL, $arguments = []) {
     if (empty($alias)) {
       if ($table instanceof SelectInterface) {
@@ -820,7 +813,8 @@ class Select extends Query implements SelectInterface {
     foreach ($this->fields as $field) {
       // Always use the AS keyword for field aliases, as some
       // databases require it (e.g., PostgreSQL).
-      $fields[] = (isset($field['table']) ? $this->connection->escapeTable($field['table']) . '.' : '') . $this->connection->escapeField($field['field']) . ' AS ' . $this->connection->escapeAlias($field['alias']);
+      $table = isset($field['table']) ? $field['table'] . '.' : '';
+      $fields[] = $this->connection->escapeField($table . $field['field']) . ' AS ' . $this->connection->escapeAlias($field['alias']);
     }
     foreach ($this->expressions as $expression) {
       $fields[] = $expression['expression'] . ' AS ' . $this->connection->escapeAlias($expression['alias']);
@@ -852,7 +846,7 @@ class Select extends Query implements SelectInterface {
 
       // Don't use the AS keyword for table aliases, as some
       // databases don't support it (e.g., Oracle).
-      $query .= $table_string . ' ' . $this->connection->escapeTable($table['alias']);
+      $query .= $table_string . ' ' . $this->connection->escapeAlias($table['alias']);
 
       if (!empty($table['condition'])) {
         $query .= ' ON ' . (string) $table['condition'];

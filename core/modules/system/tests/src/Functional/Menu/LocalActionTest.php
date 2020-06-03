@@ -18,7 +18,7 @@ class LocalActionTest extends BrowserTestBase {
    *
    * @var string[]
    */
-  public static $modules = ['block', 'menu_test'];
+  protected static $modules = ['block', 'menu_test'];
 
   /**
    * {@inheritdoc}
@@ -28,7 +28,7 @@ class LocalActionTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->drupalPlaceBlock('local_actions_block');

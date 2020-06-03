@@ -10,7 +10,12 @@ namespace Drupal\FunctionalJavascriptTests;
  */
 class JavascriptDeprecationTest extends WebDriverTestBase {
 
-  public static $modules = ['js_deprecation_test'];
+  protected static $modules = ['js_deprecation_test'];
+
+  /**
+   * {@inheritdoc}
+   */
+  protected $defaultTheme = 'stark';
 
   /**
    * @expectedDeprecation Javascript Deprecation: This function is deprecated for testing purposes.

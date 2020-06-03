@@ -76,6 +76,8 @@ abstract class InstallerTestBase extends BrowserTestBase {
    * {@inheritdoc}
    */
   protected function setUp() {
+    parent::setUpAppRoot();
+
     $this->isInstalled = FALSE;
 
     $this->setupBaseUrl();
@@ -137,7 +139,7 @@ abstract class InstallerTestBase extends BrowserTestBase {
       ->set('http_handler_stack', $handler_stack);
 
     $this->container
-      ->set('app.root', DRUPAL_ROOT);
+      ->setParameter('app.root', DRUPAL_ROOT);
     \Drupal::setContainer($this->container);
 
     // Setup Mink.
@@ -169,9 +171,8 @@ abstract class InstallerTestBase extends BrowserTestBase {
     if ($this->isInstalled) {
       // Import new settings.php written by the installer.
       $request = Request::createFromGlobals();
-      $class_loader = require $this->container->get('app.root') . '/autoload.php';
-      Settings::initialize($this->container->get('app.root'), DrupalKernel::findSitePath($request), $class_loader);
-      $this->configDirectories['sync'] = Settings::get('config_sync_directory');
+      $class_loader = require $this->container->getParameter('app.root') . '/autoload.php';
+      Settings::initialize($this->container->getParameter('app.root'), DrupalKernel::findSitePath($request), $class_loader);
 
       // After writing settings.php, the installer removes write permissions
       // from the site directory. To allow drupal_generate_test_ua() to write
@@ -179,7 +180,7 @@ abstract class InstallerTestBase extends BrowserTestBase {
       // directory has to be writable.
       // BrowserTestBase::tearDown() will delete the entire test site directory.
       // Not using File API; a potential error must trigger a PHP warning.
-      chmod($this->container->get('app.root') . '/' . $this->siteDirectory, 0777);
+      chmod($this->container->getParameter('app.root') . '/' . $this->siteDirectory, 0777);
       $this->kernel = DrupalKernel::createFromRequest($request, $class_loader, 'prod', FALSE);
       $this->kernel->boot();
       $this->kernel->preHandle($request);

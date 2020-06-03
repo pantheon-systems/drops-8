@@ -26,14 +26,14 @@ class DisplayTest extends ViewTestBase {
    *
    * @var array
    */
-  public static $modules = ['views_ui', 'node', 'block'];
+  protected static $modules = ['views_ui', 'node', 'block'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp();
 
     $this->enableViewsTestModule();

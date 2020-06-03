@@ -35,11 +35,8 @@ class MigrateNoMigrateDrupalTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
-    // Ensures that code from the migrate_drupal module can not be autoloaded
-    // while testing on DrupalCI.
-    $this->writeSettings(['settings' => ['deployment_identifier' => (object) ['value' => 'force-new-apcu-key', 'required' => TRUE]]]);
     $this->createContentType(['type' => 'no_migrate_drupal']);
   }
 

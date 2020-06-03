@@ -18,9 +18,9 @@ class RenderElementTypesTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['system', 'router_test'];
+  protected static $modules = ['system', 'router_test'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installConfig(['system']);
     \Drupal::service('router.builder')->rebuild();

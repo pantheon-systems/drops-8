@@ -66,7 +66,7 @@ class Drupal6SqlBaseTest extends MigrateTestCase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $plugin = 'placeholder_id';
     /** @var \Drupal\Core\State\StateInterface $state */
     $state = $this->createMock('Drupal\Core\State\StateInterface');
@@ -123,7 +123,7 @@ class Drupal6SqlBaseTest extends MigrateTestCase {
     $this->assertEquals('my_default', $this->base->variableGetWrapper('non_existent_variable', 'my_default'));
 
     // Test non-default.
-    $this->assertSame(TRUE, $this->base->variableGetWrapper('my_variable', FALSE));
+    $this->assertTrue($this->base->variableGetWrapper('my_variable', FALSE));
   }
 
 }

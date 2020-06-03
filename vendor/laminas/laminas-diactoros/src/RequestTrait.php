@@ -6,9 +6,11 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros;
 
-use InvalidArgumentException;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 
@@ -38,7 +40,7 @@ trait RequestTrait
     /**
      * @var string
      */
-    private $method = '';
+    private $method = 'GET';
 
     /**
      * The request-target, if it has been provided or calculated.
@@ -61,13 +63,18 @@ trait RequestTrait
      * @param null|string $method HTTP method for the request, if any.
      * @param string|resource|StreamInterface $body Message body, if any.
      * @param array $headers Headers for the message, if any.
-     * @throws InvalidArgumentException for any invalid value.
+     * @throws Exception\InvalidArgumentException for any invalid value.
      */
-    private function initialize($uri = null, $method = null, $body = 'php://memory', array $headers = [])
-    {
-        $this->validateMethod($method);
+    private function initialize(
+        $uri = null,
+        string $method = null,
+        $body = 'php://memory',
+        array $headers = []
+    ) : void {
+        if ($method !== null) {
+            $this->setMethod($method);
+        }
 
-        $this->method = $method ?: '';
         $this->uri    = $this->createUri($uri);
         $this->stream = $this->getStream($body, 'wb+');
 
@@ -94,10 +101,9 @@ trait RequestTrait
      * Otherwise, it raises an exception.
      *
      * @param null|string|UriInterface $uri
-     * @return UriInterface
-     * @throws InvalidArgumentException
+     * @throws Exception\InvalidArgumentException
      */
-    private function createUri($uri)
+    private function createUri($uri) : UriInterface
     {
         if ($uri instanceof UriInterface) {
             return $uri;
@@ -108,7 +114,7 @@ trait RequestTrait
         if ($uri === null) {
             return new Uri();
         }
-        throw new InvalidArgumentException(
+        throw new Exception\InvalidArgumentException(
             'Invalid URI provided; must be null, a string, or a Psr\Http\Message\UriInterface instance'
         );
     }
@@ -126,10 +132,8 @@ trait RequestTrait
      *
      * If no URI is available, and no request-target has been specifically
      * provided, this method MUST return the string "/".
-     *
-     * @return string
      */
-    public function getRequestTarget()
+    public function getRequestTarget() : string
     {
         if (null !== $this->requestTarget) {
             return $this->requestTarget;
@@ -161,14 +165,13 @@ trait RequestTrait
      *
      * @link http://tools.ietf.org/html/rfc7230#section-2.7 (for the various
      *     request-target forms allowed in request messages)
-     * @param mixed $requestTarget
-     * @return static
-     * @throws InvalidArgumentException if the request target is invalid.
+     * @param string $requestTarget
+     * @throws Exception\InvalidArgumentException if the request target is invalid.
      */
-    public function withRequestTarget($requestTarget)
+    public function withRequestTarget($requestTarget) : RequestInterface
     {
         if (preg_match('#\s#', $requestTarget)) {
-            throw new InvalidArgumentException(
+            throw new Exception\InvalidArgumentException(
                 'Invalid request target provided; cannot contain whitespace'
             );
         }
@@ -183,7 +186,7 @@ trait RequestTrait
      *
      * @return string Returns the request method.
      */
-    public function getMethod()
+    public function getMethod() : string
     {
         return $this->method;
     }
@@ -200,14 +203,12 @@ trait RequestTrait
      * changed request method.
      *
      * @param string $method Case-insensitive method.
-     * @return static
-     * @throws InvalidArgumentException for invalid HTTP methods.
+     * @throws Exception\InvalidArgumentException for invalid HTTP methods.
      */
-    public function withMethod($method)
+    public function withMethod($method) : RequestInterface
     {
-        $this->validateMethod($method);
         $new = clone $this;
-        $new->method = $method;
+        $new->setMethod($method);
         return $new;
     }
 
@@ -220,7 +221,7 @@ trait RequestTrait
      * @return UriInterface Returns a UriInterface instance
      *     representing the URI of the request, if any.
      */
-    public function getUri()
+    public function getUri() : UriInterface
     {
         return $this->uri;
     }
@@ -248,9 +249,8 @@ trait RequestTrait
      * @link http://tools.ietf.org/html/rfc3986#section-4.3
      * @param UriInterface $uri New request URI to use.
      * @param bool $preserveHost Preserve the original state of the Host header.
-     * @return static
      */
-    public function withUri(UriInterface $uri, $preserveHost = false)
+    public function withUri(UriInterface $uri, $preserveHost = false) : RequestInterface
     {
         $new = clone $this;
         $new->uri = $uri;
@@ -285,38 +285,33 @@ trait RequestTrait
     }
 
     /**
-     * Validate the HTTP method
+     * Set and validate the HTTP method
      *
-     * @param null|string $method
-     * @throws InvalidArgumentException on invalid HTTP method.
+     * @param string $method
+     * @throws Exception\InvalidArgumentException on invalid HTTP method.
      */
-    private function validateMethod($method)
+    private function setMethod($method) : void
     {
-        if (null === $method) {
-            return;
-        }
-
         if (! is_string($method)) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 'Unsupported HTTP method; must be a string, received %s',
-                (is_object($method) ? get_class($method) : gettype($method))
+                is_object($method) ? get_class($method) : gettype($method)
             ));
         }
 
         if (! preg_match('/^[!#$%&\'*+.^_`\|~0-9a-z-]+$/i', $method)) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 'Unsupported HTTP method "%s" provided',
                 $method
             ));
         }
+        $this->method = $method;
     }
 
     /**
      * Retrieve the host from the URI instance
-     *
-     * @return string
      */
-    private function getHostFromUri()
+    private function getHostFromUri() : string
     {
         $host  = $this->uri->getHost();
         $host .= $this->uri->getPort() ? ':' . $this->uri->getPort() : '';

@@ -48,6 +48,7 @@ class Schema extends DatabaseSchema {
    *   The name of the table to create.
    * @param $table
    *   A Schema API table definition array.
+   *
    * @return
    *   An array of SQL statements to create the table.
    */
@@ -165,6 +166,7 @@ class Schema extends DatabaseSchema {
    *   The field specification, as per the schema data structure format.
    */
   protected function createFieldSql($name, $spec) {
+    $name = $this->connection->escapeField($name);
     if (!empty($spec['auto_increment'])) {
       $sql = $name . " INTEGER PRIMARY KEY AUTOINCREMENT";
       if (!empty($spec['unsigned'])) {
@@ -784,38 +786,6 @@ class Schema extends DatabaseSchema {
     $schema = $this->introspectSchema($table);
     unset($schema['fields']);
     return $schema;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function fieldSetDefault($table, $field, $default) {
-    @trigger_error('fieldSetDefault() is deprecated in drupal:8.7.0 and will be removed before drupal:9.0.0. Instead, call ::changeField() passing a full field specification. See https://www.drupal.org/node/2999035', E_USER_DEPRECATED);
-    if (!$this->fieldExists($table, $field)) {
-      throw new SchemaObjectDoesNotExistException("Cannot set default value of field '$table.$field': field doesn't exist.");
-    }
-
-    $old_schema = $this->introspectSchema($table);
-    $new_schema = $old_schema;
-
-    $new_schema['fields'][$field]['default'] = $default;
-    $this->alterTable($table, $old_schema, $new_schema);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function fieldSetNoDefault($table, $field) {
-    @trigger_error('fieldSetNoDefault() is deprecated in drupal:8.7.0 and will be removed before drupal:9.0.0. Instead, call ::changeField() passing a full field specification. See https://www.drupal.org/node/2999035', E_USER_DEPRECATED);
-    if (!$this->fieldExists($table, $field)) {
-      throw new SchemaObjectDoesNotExistException("Cannot remove default value of field '$table.$field': field doesn't exist.");
-    }
-
-    $old_schema = $this->introspectSchema($table);
-    $new_schema = $old_schema;
-
-    unset($new_schema['fields'][$field]['default']);
-    $this->alterTable($table, $old_schema, $new_schema);
   }
 
   /**

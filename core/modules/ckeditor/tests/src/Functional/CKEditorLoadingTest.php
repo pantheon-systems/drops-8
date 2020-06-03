@@ -18,7 +18,7 @@ class CKEditorLoadingTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['filter', 'editor', 'ckeditor', 'node'];
+  protected static $modules = ['filter', 'editor', 'ckeditor', 'node'];
 
   /**
    * {@inheritdoc}
@@ -39,7 +39,7 @@ class CKEditorLoadingTest extends BrowserTestBase {
    */
   protected $normalUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create text format, associate CKEditor.

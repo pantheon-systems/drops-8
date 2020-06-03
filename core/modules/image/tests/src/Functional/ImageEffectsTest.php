@@ -17,7 +17,7 @@ class ImageEffectsTest extends ToolkitTestBase {
    *
    * @var array
    */
-  public static $modules = ['image', 'image_test', 'image_module_test'];
+  protected static $modules = ['image', 'image_test', 'image_module_test'];
 
   /**
    * {@inheritdoc}
@@ -31,7 +31,7 @@ class ImageEffectsTest extends ToolkitTestBase {
    */
   protected $manager;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->manager = $this->container->get('plugin.manager.image.effect');
   }

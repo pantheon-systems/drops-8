@@ -30,14 +30,12 @@ namespace Symfony\Component\Serializer\Normalizer;
  */
 class PropertyNormalizer extends AbstractObjectNormalizer
 {
-    private $cache = [];
-
     /**
      * {@inheritdoc}
      */
     public function supportsNormalization($data, $format = null)
     {
-        return parent::supportsNormalization($data, $format) && (isset($this->cache[$type = \get_class($data)]) ? $this->cache[$type] : $this->cache[$type] = $this->supports($type));
+        return parent::supportsNormalization($data, $format) && $this->supports(\get_class($data));
     }
 
     /**
@@ -45,17 +43,21 @@ class PropertyNormalizer extends AbstractObjectNormalizer
      */
     public function supportsDenormalization($data, $type, $format = null)
     {
-        return parent::supportsDenormalization($data, $type, $format) && (isset($this->cache[$type]) ? $this->cache[$type] : $this->cache[$type] = $this->supports($type));
+        return parent::supportsDenormalization($data, $type, $format) && $this->supports($type);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function hasCacheableSupportsMethod(): bool
+    {
+        return __CLASS__ === static::class;
     }
 
     /**
      * Checks if the given class has any non-static property.
-     *
-     * @param string $class
-     *
-     * @return bool
      */
-    private function supports($class)
+    private function supports(string $class): bool
     {
         $class = new \ReflectionClass($class);
 
@@ -168,13 +170,10 @@ class PropertyNormalizer extends AbstractObjectNormalizer
 
     /**
      * @param string|object $classOrObject
-     * @param string        $attribute
-     *
-     * @return \ReflectionProperty
      *
      * @throws \ReflectionException
      */
-    private function getReflectionProperty($classOrObject, $attribute)
+    private function getReflectionProperty($classOrObject, string $attribute): \ReflectionProperty
     {
         $reflectionClass = new \ReflectionClass($classOrObject);
         while (true) {

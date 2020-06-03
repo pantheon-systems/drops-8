@@ -32,7 +32,7 @@ class PagePreviewTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'node',
     'taxonomy',
     'comment',
@@ -55,7 +55,7 @@ class PagePreviewTest extends NodeTestBase {
    */
   protected $fieldName;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->addDefaultCommentField('node', 'page');
 

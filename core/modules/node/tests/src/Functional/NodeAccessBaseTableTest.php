@@ -17,7 +17,7 @@ class NodeAccessBaseTableTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = ['node_access_test', 'views'];
+  protected static $modules = ['node_access_test', 'views'];
 
   /**
    * {@inheritdoc}
@@ -66,7 +66,7 @@ class NodeAccessBaseTableTest extends NodeTestBase {
    */
   protected $nidsVisible;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     node_access_test_add_field(NodeType::load('article'));

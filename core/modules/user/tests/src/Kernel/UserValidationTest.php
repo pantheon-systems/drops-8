@@ -22,12 +22,12 @@ class UserValidationTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['field', 'user', 'system'];
+  protected static $modules = ['field', 'user', 'system'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('user');
     $this->installSchema('system', ['sequences']);

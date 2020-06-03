@@ -19,7 +19,7 @@ class ConfigEntityQueryTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['config_test'];
+  protected static $modules = ['config_test'];
 
   /**
    * Stores the search results for alter comparison.
@@ -49,7 +49,7 @@ class ConfigEntityQueryTest extends KernelTestBase {
    */
   protected $entities;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->entities = [];

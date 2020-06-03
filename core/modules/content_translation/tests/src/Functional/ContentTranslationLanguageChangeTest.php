@@ -22,7 +22,7 @@ class ContentTranslationLanguageChangeTest extends NodeTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'language',
     'content_translation',
     'content_translation_test',
@@ -40,7 +40,7 @@ class ContentTranslationLanguageChangeTest extends NodeTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $langcodes = ['de', 'fr'];
     foreach ($langcodes as $langcode) {

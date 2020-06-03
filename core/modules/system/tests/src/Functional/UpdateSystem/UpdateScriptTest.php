@@ -17,7 +17,7 @@ class UpdateScriptTest extends BrowserTestBase {
 
   use RequirementsPageTrait;
 
-  const HANDBOOK_MESSAGE = 'Review the suggestions for resolving this incompatibility to repair your installation, and then re-run update.php.';
+  protected const HANDBOOK_MESSAGE = 'Review the suggestions for resolving this incompatibility to repair your installation, and then re-run update.php.';
 
   /**
    * Modules to enable.
@@ -63,7 +63,7 @@ class UpdateScriptTest extends BrowserTestBase {
    */
   private $updateUser;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->updateUrl = Url::fromRoute('system.db_update');
     $this->statusReportUrl = Url::fromRoute('system.status');
@@ -275,17 +275,6 @@ class UpdateScriptTest extends BrowserTestBase {
     $incompatible_module_message = "The following module is installed, but it is incompatible with Drupal " . \Drupal::VERSION . ":";
     $incompatible_theme_message = "The following theme is installed, but it is incompatible with Drupal " . \Drupal::VERSION . ":";
     return [
-      'module: core key incompatible' => [
-        [
-          'core_version_requirement' => '^8 || ^9',
-          'type' => 'module',
-        ],
-        [
-          'core' => '7.x',
-          'type' => 'module',
-        ],
-        $incompatible_module_message,
-      ],
       'module: core_version_requirement key incompatible' => [
         [
           'core_version_requirement' => '^8 || ^9',
@@ -296,17 +285,6 @@ class UpdateScriptTest extends BrowserTestBase {
           'type' => 'module',
         ],
         $incompatible_module_message,
-      ],
-      'theme: core key incompatible' => [
-        [
-          'core_version_requirement' => '^8 || ^9',
-          'type' => 'theme',
-        ],
-        [
-          'core' => '7.x',
-          'type' => 'theme',
-        ],
-        $incompatible_theme_message,
       ],
       'theme: core_version_requirement key incompatible' => [
         [
@@ -344,6 +322,28 @@ class UpdateScriptTest extends BrowserTestBase {
           'php' => 1000000000,
         ],
         'The following theme is installed, but it is incompatible with PHP ' . phpversion() . ":",
+      ],
+      'module: core_version_requirement key missing' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'module',
+        ],
+        [
+          'core' => '8.x',
+          'type' => 'module',
+        ],
+        $incompatible_module_message,
+      ],
+      'theme: core_version_requirement key missing' => [
+        [
+          'core_version_requirement' => '^8 || ^9',
+          'type' => 'theme',
+        ],
+        [
+          'core' => '8.x',
+          'type' => 'theme',
+        ],
+        $incompatible_theme_message,
       ],
     ];
   }

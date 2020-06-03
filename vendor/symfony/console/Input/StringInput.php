@@ -30,7 +30,7 @@ class StringInput extends ArgvInput
     /**
      * @param string $input A string representing the parameters from the CLI
      */
-    public function __construct($input)
+    public function __construct(string $input)
     {
         parent::__construct([]);
 
@@ -40,13 +40,9 @@ class StringInput extends ArgvInput
     /**
      * Tokenizes a string.
      *
-     * @param string $input The input to tokenize
-     *
-     * @return array An array of tokens
-     *
      * @throws InvalidArgumentException When unable to parse input (should never happen)
      */
-    private function tokenize($input)
+    private function tokenize(string $input): array
     {
         $tokens = [];
         $length = \strlen($input);

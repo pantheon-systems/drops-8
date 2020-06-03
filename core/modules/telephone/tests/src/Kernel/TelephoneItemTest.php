@@ -21,9 +21,9 @@ class TelephoneItemTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['telephone'];
+  protected static $modules = ['telephone'];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a telephone field storage and field for validation.

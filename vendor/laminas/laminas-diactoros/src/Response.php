@@ -6,9 +6,10 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros;
 
-use InvalidArgumentException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 
@@ -125,9 +126,9 @@ class Response implements ResponseInterface
      * @param string|resource|StreamInterface $body Stream identifier and/or actual stream resource
      * @param int $status Status code for the response, if any.
      * @param array $headers Headers for the response, if any.
-     * @throws InvalidArgumentException on any invalid element.
+     * @throws Exception\InvalidArgumentException on any invalid element.
      */
-    public function __construct($body = 'php://memory', $status = 200, array $headers = [])
+    public function __construct($body = 'php://memory', int $status = 200, array $headers = [])
     {
         $this->setStatusCode($status);
         $this->stream = $this->getStream($body, 'wb+');
@@ -137,7 +138,7 @@ class Response implements ResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function getStatusCode()
+    public function getStatusCode() : int
     {
         return $this->statusCode;
     }
@@ -145,7 +146,7 @@ class Response implements ResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function getReasonPhrase()
+    public function getReasonPhrase() : string
     {
         return $this->reasonPhrase;
     }
@@ -153,7 +154,7 @@ class Response implements ResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function withStatus($code, $reasonPhrase = '')
+    public function withStatus($code, $reasonPhrase = '') : Response
     {
         $new = clone $this;
         $new->setStatusCode($code, $reasonPhrase);
@@ -165,16 +166,16 @@ class Response implements ResponseInterface
      *
      * @param int $code
      * @param string $reasonPhrase
-     * @throws InvalidArgumentException on an invalid status code.
+     * @throws Exception\InvalidArgumentException on an invalid status code.
      */
-    private function setStatusCode($code, $reasonPhrase = '')
+    private function setStatusCode($code, $reasonPhrase = '') : void
     {
         if (! is_numeric($code)
             || is_float($code)
             || $code < static::MIN_STATUS_CODE_VALUE
             || $code > static::MAX_STATUS_CODE_VALUE
         ) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 'Invalid status code "%s"; must be an integer between %d and %d, inclusive',
                 is_scalar($code) ? $code : gettype($code),
                 static::MIN_STATUS_CODE_VALUE,
@@ -183,7 +184,7 @@ class Response implements ResponseInterface
         }
 
         if (! is_string($reasonPhrase)) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 'Unsupported response reason phrase; must be a string, received %s',
                 is_object($reasonPhrase) ? get_class($reasonPhrase) : gettype($reasonPhrase)
             ));

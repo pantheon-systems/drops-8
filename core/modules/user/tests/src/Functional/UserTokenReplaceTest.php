@@ -22,7 +22,7 @@ class UserTokenReplaceTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['language', 'user_hooks_test'];
+  protected static $modules = ['language', 'user_hooks_test'];
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,7 @@ class UserTokenReplaceTest extends BrowserTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     ConfigurableLanguage::createFromLangcode('de')->save();
   }

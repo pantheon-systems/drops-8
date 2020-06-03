@@ -22,7 +22,7 @@ class FilterUITest extends UITestBase {
    *
    * @var array
    */
-  public static $modules = ['views_ui', 'node'];
+  protected static $modules = ['views_ui', 'node'];
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,7 @@ class FilterUITest extends UITestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp($import_test_views = TRUE) {
+  protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
     $this->drupalCreateContentType(['type' => 'page']);
   }

@@ -17,12 +17,12 @@ class FeedValidationTest extends EntityKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['aggregator', 'options'];
+  protected static $modules = ['aggregator', 'options'];
 
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->installEntitySchema('aggregator_feed');
   }

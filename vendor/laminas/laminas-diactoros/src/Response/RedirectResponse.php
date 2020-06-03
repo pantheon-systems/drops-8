@@ -6,9 +6,11 @@
  * @license   https://github.com/laminas/laminas-diactoros/blob/master/LICENSE.md New BSD License
  */
 
+declare(strict_types=1);
+
 namespace Laminas\Diactoros\Response;
 
-use InvalidArgumentException;
+use Laminas\Diactoros\Exception;
 use Laminas\Diactoros\Response;
 use Psr\Http\Message\UriInterface;
 
@@ -35,10 +37,10 @@ class RedirectResponse extends Response
      * @param int $status Integer status code for the redirect; 302 by default.
      * @param array $headers Array of headers to use at initialization.
      */
-    public function __construct($uri, $status = 302, array $headers = [])
+    public function __construct($uri, int $status = 302, array $headers = [])
     {
         if (! is_string($uri) && ! $uri instanceof UriInterface) {
-            throw new InvalidArgumentException(sprintf(
+            throw new Exception\InvalidArgumentException(sprintf(
                 'Uri provided to %s MUST be a string or Psr\Http\Message\UriInterface instance; received "%s"',
                 __CLASS__,
                 (is_object($uri) ? get_class($uri) : gettype($uri))

@@ -20,14 +20,14 @@ class NodeFieldMultilingualTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['node', 'language'];
+  protected static $modules = ['node', 'language'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'classy';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create Basic page node type.

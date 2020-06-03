@@ -18,6 +18,7 @@ use Drupal\Core\Test\RunTests\TestFileParser;
 use Drupal\Core\Test\TestDatabase;
 use Drupal\Core\Test\TestRunnerKernel;
 use Drupal\Core\Test\TestDiscovery;
+use Drupal\TestTools\PhpUnitCompatibility\PhpUnit8\ClassWriter;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Runner\Version;
 use Symfony\Component\Console\Output\ConsoleOutput;
@@ -65,10 +66,12 @@ if ($args['list']) {
   // Display all available tests organized by one @group annotation.
   echo "\nAvailable test groups & classes\n";
   echo "-------------------------------\n\n";
+  $test_discovery = new TestDiscovery(
+    \Drupal::service('app.root'),
+    \Drupal::service('class_loader')
+  );
   try {
-    // @todo Use \Drupal\Core\Test\TestDiscovery when we no longer need BC for
-    //   hook_simpletest_alter().
-    $groups = \Drupal::service('test_discovery')->getTestClasses($args['module']);
+    $groups = $test_discovery->getTestClasses($args['module']);
   }
   catch (Exception $e) {
     error_log((string) $e);
@@ -96,17 +99,10 @@ if ($args['list']) {
 // @see https://www.drupal.org/node/2569585
 if ($args['list-files'] || $args['list-files-json']) {
   // List all files which could be run as tests.
-  $test_discovery = NULL;
-  try {
-    // @todo Use \Drupal\Core\Test\TestDiscovery when we no longer need BC for
-    //   hook_simpletest_alter().
-    $test_discovery = \Drupal::service('test_discovery');
-  }
-  catch (Exception $e) {
-    error_log((string) $e);
-    echo (string) $e;
-    exit(SIMPLETEST_SCRIPT_EXIT_EXCEPTION);
-  }
+  $test_discovery = new TestDiscovery(
+    \Drupal::service('app.root'),
+    \Drupal::service('class_loader')
+  );
   // TestDiscovery::findAllClassFiles() gives us a classmap similar to a
   // Composer 'classmap' array.
   $test_classes = $test_discovery->findAllClassFiles();
@@ -181,12 +177,7 @@ simpletest_script_reporter_timer_stop();
 TestDatabase::releaseAllTestLocks();
 
 // Display results before database is cleared.
-if ($args['browser']) {
-  simpletest_script_open_browser();
-}
-else {
-  simpletest_script_reporter_display_results();
-}
+simpletest_script_reporter_display_results();
 
 if ($args['xml']) {
   simpletest_script_reporter_write_xml_results();
@@ -321,10 +312,6 @@ All arguments are long options.
               test database and configuration directories. Use in combination
               with --repeat for debugging random test failures.
 
-  --browser   Deprecated, use --verbose instead. This enforces --keep-results and
-              if you want to also view any pages rendered in the simpletest
-              browser you need to add --verbose to the command line.
-
   --non-html  Removes escaping from output. Useful for reading results on the
               CLI.
 
@@ -402,7 +389,6 @@ function simpletest_script_parse_args() {
     'repeat' => 1,
     'die-on-fail' => FALSE,
     'suppress-deprecations' => FALSE,
-    'browser' => FALSE,
     // Used internally.
     'test-id' => 0,
     'execute-test' => '',
@@ -453,10 +439,6 @@ function simpletest_script_parse_args() {
     exit(SIMPLETEST_SCRIPT_EXIT_FAILURE);
   }
 
-  if ($args['browser']) {
-    simpletest_script_print_error('The --browser option is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use --verbose instead. See https://www.drupal.org/node/3083549');
-    $args['keep-results'] = TRUE;
-  }
   return [$args, $count];
 }
 
@@ -509,6 +491,7 @@ function simpletest_script_init() {
   $autoloader = require_once __DIR__ . '/../../autoload.php';
   // The PHPUnit compatibility layer needs to be available to autoload tests.
   $autoloader->add('Drupal\\TestTools', __DIR__ . '/../tests');
+  ClassWriter::mutateTestBase($autoloader);
 
   // Get URL from arguments.
   if (!empty($args['url'])) {
@@ -1040,10 +1023,10 @@ function simpletest_script_cleanup($test_id, $test_class, $exitcode) {
 function simpletest_script_get_test_list() {
   global $args;
 
-  // @todo Use \Drupal\Core\Test\TestDiscovery when we no longer need BC for
-  //   hook_simpletest_alter().
-  /** $test_discovery \Drupal\simpletest\TestDiscovery */
-  $test_discovery = \Drupal::service('test_discovery');
+  $test_discovery = new TestDiscovery(
+    \Drupal::service('app.root'),
+    \Drupal::service('class_loader')
+  );
   $types_processed = empty($args['types']);
   $test_list = [];
   if ($args['all'] || $args['module']) {
@@ -1524,25 +1507,4 @@ function simpletest_script_load_messages_by_test_id($test_ids) {
   }
 
   return $results;
-}
-
-/**
- * Display test results.
- *
- * @deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. This function
- *   supports the --browser option in this script. Use the --verbose option
- *   instead.
- *
- * @see https://www.drupal.org/node/3083549
- *
- * @todo Remove this in https://www.drupal.org/project/drupal/issues/3075490.
- */
-function simpletest_script_open_browser() {
-  // Note: the user already has received a message about the deprecation in CLI
-  // so we trigger an error just in case this method has been used as API.
-  @trigger_error('The --browser option is deprecated in drupal:8.8.0 and is removed from drupal:9.0.0. Use --verbose instead. See https://www.drupal.org/node/3083549', E_USER_DEPRECATED);
-  if (function_exists('_simpletest_run_tests_script_open_browser')) {
-    return _simpletest_run_tests_script_open_browser();
-  }
-  simpletest_script_print_error('In order to use the --browser option the Simpletest module must be available. See https://www.drupal.org/node/3083549.');
 }

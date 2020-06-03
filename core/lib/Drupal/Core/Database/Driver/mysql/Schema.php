@@ -87,6 +87,7 @@ class Schema extends DatabaseSchema {
    *   The name of the table to create.
    * @param $table
    *   A Schema API table definition array.
+   *
    * @return
    *   An array of SQL statements to create the table.
    */
@@ -138,9 +139,6 @@ class Schema extends DatabaseSchema {
 
   /**
    * Create an SQL string for a field to be used in table creation or alteration.
-   *
-   * Before passing a field out of a schema definition into this function it has
-   * to be processed by _db_process_field().
    *
    * @param string $name
    *   Name of the field.
@@ -483,30 +481,6 @@ class Schema extends DatabaseSchema {
 
     $this->connection->query('ALTER TABLE {' . $table . '} DROP `' . $field . '`');
     return TRUE;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function fieldSetDefault($table, $field, $default) {
-    @trigger_error('fieldSetDefault() is deprecated in drupal:8.7.0 and will be removed before drupal:9.0.0. Instead, call ::changeField() passing a full field specification. See https://www.drupal.org/node/2999035', E_USER_DEPRECATED);
-    if (!$this->fieldExists($table, $field)) {
-      throw new SchemaObjectDoesNotExistException("Cannot set default value of field '$table.$field': field doesn't exist.");
-    }
-
-    $this->connection->query('ALTER TABLE {' . $table . '} ALTER COLUMN `' . $field . '` SET DEFAULT ' . $this->escapeDefaultValue($default));
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function fieldSetNoDefault($table, $field) {
-    @trigger_error('fieldSetNoDefault() is deprecated in drupal:8.7.0 and will be removed before drupal:9.0.0. Instead, call ::changeField() passing a full field specification. See https://www.drupal.org/node/2999035', E_USER_DEPRECATED);
-    if (!$this->fieldExists($table, $field)) {
-      throw new SchemaObjectDoesNotExistException("Cannot remove default value of field '$table.$field': field doesn't exist.");
-    }
-
-    $this->connection->query('ALTER TABLE {' . $table . '} ALTER COLUMN `' . $field . '` DROP DEFAULT');
   }
 
   /**

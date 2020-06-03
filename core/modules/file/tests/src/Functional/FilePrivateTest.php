@@ -20,14 +20,14 @@ class FilePrivateTest extends FileFieldTestBase {
    *
    * @var array
    */
-  public static $modules = ['node_access_test', 'field_test'];
+  protected static $modules = ['node_access_test', 'field_test'];
 
   /**
    * {@inheritdoc}
    */
   protected $defaultTheme = 'stark';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     node_access_test_add_field(NodeType::load('article'));
     node_access_rebuild();

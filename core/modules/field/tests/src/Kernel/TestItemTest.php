@@ -21,7 +21,7 @@ class TestItemTest extends FieldKernelTestBase {
    *
    * @var array
    */
-  public static $modules = ['field_test'];
+  protected static $modules = ['field_test'];
 
   /**
    * The name of the field to use in this test.
@@ -30,7 +30,7 @@ class TestItemTest extends FieldKernelTestBase {
    */
   protected $fieldName = 'field_test';
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Create a 'test_field' field and storage for validation.

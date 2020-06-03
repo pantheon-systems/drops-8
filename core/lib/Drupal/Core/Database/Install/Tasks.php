@@ -3,6 +3,7 @@
 namespace Drupal\Core\Database\Install;
 
 use Drupal\Core\Database\Database;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
  * Database installer structure.
@@ -200,7 +201,22 @@ abstract class Tasks {
    */
   protected function checkEngineVersion() {
     // Ensure that the database server has the right version.
-    if ($this->minimumVersion() && version_compare(Database::getConnection()->version(), $this->minimumVersion(), '<')) {
+    // We append '-AnyName' to the minimum version for comparison purposes, so
+    // that engines that append a package name or other build information to
+    // their version strings still pass. For example, MariaDB might report its
+    // version as '10.2.7-MariaDB' or '10.2.7+maria' or similar.
+    // version_compare() treats '-' and '+' as equivalent, and non-numeric
+    // parts other than conventional stability specifiers (dev, alpha, beta,
+    // etc.) as equal to each other and less than numeric parts and stability
+    // specifiers. In other words, 10.2.7-MariaDB, 10.2.7+maria, and
+    // 10.2.7-AnyName are all equal to each other and less than 10.2.7-alpha.
+    // This means that by appending '-AnyName' for the comparison check, that
+    // alpha and other pre-release versions of the minimum will pass this
+    // check, which isn't ideal; however, people running pre-release versions
+    // of database servers should know what they're doing, whether Drupal warns
+    // them or not.
+    // @see https://www.php.net/manual/en/function.version-compare.php
+    if ($this->minimumVersion() && version_compare(Database::getConnection()->version(), $this->minimumVersion() . '-AnyName', '<')) {
       $this->fail(t("The database server version %version is less than the minimum required version %minimum_version.", ['%version' => Database::getConnection()->version(), '%minimum_version' => $this->minimumVersion()]));
     }
   }
@@ -219,7 +235,7 @@ abstract class Tasks {
     // @todo https:///www.drupal.org/node/3123240 Provide a better way to get
     //   the driver name.
     $reflection = new \ReflectionClass($this);
-    $dir_parts = explode(DIRECTORY_SEPARATOR, dirname(dirname($reflection->getFileName())));
+    $dir_parts = explode(DIRECTORY_SEPARATOR, dirname($reflection->getFileName(), 2));
     $driver = array_pop($dir_parts);
 
     $form['database'] = [
@@ -318,6 +334,36 @@ abstract class Tasks {
     }
 
     return $errors;
+  }
+
+  /**
+   * Translates a string to the current language or to a given language.
+   *
+   * @see \Drupal\Core\StringTranslation\TranslatableMarkup::__construct()
+   */
+  protected function t($string, array $args = [], array $options = []) {
+    return new TranslatableMarkup($string, $args, $options);
+  }
+
+  /**
+   * Determines if there is an active connection.
+   *
+   * @return bool
+   *   TRUE if there is at least one database connection established, FALSE
+   *   otherwise.
+   */
+  protected function isConnectionActive() {
+    return Database::isActiveConnection();
+  }
+
+  /**
+   * Returns the database connection.
+   *
+   * @return \Drupal\Core\Database\Connection
+   *   The database connection.
+   */
+  protected function getConnection() {
+    return Database::getConnection();
   }
 
 }

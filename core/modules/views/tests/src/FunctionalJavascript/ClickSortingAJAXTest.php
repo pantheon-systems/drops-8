@@ -20,7 +20,7 @@ class ClickSortingAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  public static $modules = ['node', 'views', 'views_test_config'];
+  protected static $modules = ['node', 'views', 'views_test_config'];
 
   /**
    * {@inheritdoc}
@@ -32,7 +32,7 @@ class ClickSortingAJAXTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     ViewTestData::createTestViews(self::class, ['views_test_config']);

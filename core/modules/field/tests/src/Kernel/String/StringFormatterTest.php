@@ -22,7 +22,7 @@ class StringFormatterTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = [
+  protected static $modules = [
     'field',
     'text',
     'entity_test',
@@ -61,7 +61,7 @@ class StringFormatterTest extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     // Configure the theme system.
