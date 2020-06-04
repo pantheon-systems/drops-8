@@ -2,10 +2,5 @@ name: 'System incompatible core 1.x version test'
 type: module
 description: 'Support module for testing system core incompatibility.'
 package: Testing
-# version: 1.0.0
+version: 1.0.0
 core: 1.x
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

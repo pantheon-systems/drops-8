@@ -1,7 +1,7 @@
 name: 'Testing install profile all dependencies'
 type: profile
 description: 'Profile for testing that install profiles can require a module.'
-# version: VERSION
+version: VERSION
 core: 8.x
 hidden: true
 dependencies:
@@ -10,8 +10,3 @@ dependencies:
 install: []
 themes:
   - classy
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

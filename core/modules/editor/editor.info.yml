@@ -2,14 +2,9 @@ name: 'Text Editor'
 type: module
 description: 'Provides a means to associate text formats with text editor libraries such as WYSIWYGs or toolbars.'
 package: Core
-# version: VERSION
+version: VERSION
 core: 8.x
 dependencies:
   - drupal:filter
   - drupal:file
 configure: filter.admin_overview
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

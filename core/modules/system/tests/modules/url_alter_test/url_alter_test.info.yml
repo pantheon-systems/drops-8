@@ -3,9 +3,4 @@ type: module
 description: 'A support module to test altering the inbound and outbound path.'
 core: 8.x
 package: Testing
-# version: VERSION
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103
+version: VERSION

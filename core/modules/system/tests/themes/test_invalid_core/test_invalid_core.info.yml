@@ -2,10 +2,5 @@ name: 'Theme test with invalid core version'
 type: theme
 base theme: stable
 description: 'Test theme which has an invalid core version.'
-# version: VERSION
+version: VERSION
 core: 7.x
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103
