@@ -2,12 +2,7 @@ name: 'Workflow Third Party Settings Test'
 type: module
 description: 'Allows third party settings on workflows to be tested.'
 package: Testing
-# version: VERSION
+version: VERSION
 core: 8.x
 dependencies:
   - drupal:workflows
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

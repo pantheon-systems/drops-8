@@ -2,12 +2,7 @@ name: 'System incompatible core version dependencies test'
 type: module
 description: 'Support module for testing system dependencies.'
 package: Testing
-# version: VERSION
+version: VERSION
 core: 8.x
 dependencies:
   - drupal:system_incompatible_core_version_test
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

@@ -2,11 +2,6 @@ name: 'Workspace Update Test'
 type: module
 description: 'Provides supporting code for testing workspaces during database updates.'
 package: Testing
-# version: VERSION
+version: VERSION
 dependencies:
   - drupal:workspaces
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103

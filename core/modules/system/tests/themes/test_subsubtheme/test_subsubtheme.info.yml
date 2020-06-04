@@ -1,11 +1,6 @@
 name: 'Theme test subsubtheme'
 type: theme
 description: 'Test theme which uses test_subtheme as the base theme.'
-# version: VERSION
+version: VERSION
 core: 8.x
 base theme: test_subtheme
-
-# Information added by Drupal.org packaging script on 2020-05-20
-version: '8.8.6'
-project: 'drupal'
-datestamp: 1589989103
