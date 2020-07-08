@@ -51,7 +51,10 @@ class TermTest extends TaxonomyTestBase {
     $this->drupalPlaceBlock('local_tasks_block');
     $this->drupalPlaceBlock('page_title_block');
 
-    $this->drupalLogin($this->drupalCreateUser(['administer taxonomy', 'bypass node access']));
+    $this->drupalLogin($this->drupalCreateUser([
+      'administer taxonomy',
+      'bypass node access',
+    ]));
     $this->vocabulary = $this->createVocabulary();
 
     $field_name = 'taxonomy_' . $this->vocabulary->id();
@@ -355,7 +358,7 @@ class TermTest extends TaxonomyTestBase {
     // Check that the term is still present at admin UI after edit.
     $this->drupalGet('admin/structure/taxonomy/manage/' . $this->vocabulary->id() . '/overview');
     $this->assertText($edit['name[0][value]'], 'The randomly generated term name is present.');
-    $this->assertLink(t('Edit'));
+    $this->assertSession()->linkExists(t('Edit'));
 
     // Check the term link can be clicked through to the term page.
     $this->clickLink($edit['name[0][value]']);
@@ -601,7 +604,7 @@ class TermTest extends TaxonomyTestBase {
     $this->assertCount(2, $breadcrumbs, 'The breadcrumbs are present on the page.');
     $this->assertIdentical($breadcrumbs[0]->getText(), 'Home', 'First breadcrumb text is Home');
     $this->assertIdentical($breadcrumbs[1]->getText(), $term->label(), 'Second breadcrumb text is term name on term edit page.');
-    $this->assertEscaped($breadcrumbs[1]->getText(), 'breadcrumbs displayed and escaped.');
+    $this->assertEscaped($breadcrumbs[1]->getText());
 
     // Check the breadcrumb on the term delete page.
     $this->drupalGet('taxonomy/term/' . $term->id() . '/delete');
@@ -609,7 +612,7 @@ class TermTest extends TaxonomyTestBase {
     $this->assertCount(2, $breadcrumbs, 'The breadcrumbs are present on the page.');
     $this->assertIdentical($breadcrumbs[0]->getText(), 'Home', 'First breadcrumb text is Home');
     $this->assertIdentical($breadcrumbs[1]->getText(), $term->label(), 'Second breadcrumb text is term name on term delete page.');
-    $this->assertEscaped($breadcrumbs[1]->getText(), 'breadcrumbs displayed and escaped.');
+    $this->assertEscaped($breadcrumbs[1]->getText());
   }
 
 }

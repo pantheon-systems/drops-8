@@ -35,7 +35,12 @@ class SearchNodePunctuationTest extends BrowserTestBase {
 
     node_access_rebuild();
     // Create a test user and log in.
-    $this->testUser = $this->drupalCreateUser(['access content', 'search content', 'use advanced search', 'access user profiles']);
+    $this->testUser = $this->drupalCreateUser([
+      'access content',
+      'search content',
+      'use advanced search',
+      'access user profiles',
+    ]);
     $this->drupalLogin($this->testUser);
   }
 
@@ -59,7 +64,7 @@ class SearchNodePunctuationTest extends BrowserTestBase {
 
     // Check if the author is linked correctly to the user profile page.
     $username = $node->getOwner()->getAccountName();
-    $this->assertLink($username);
+    $this->assertSession()->linkExists($username);
 
     // Search for "&" and verify entities are not broken up in the output.
     $edit = ['keys' => '&'];

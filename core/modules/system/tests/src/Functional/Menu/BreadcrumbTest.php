@@ -154,9 +154,9 @@ class BreadcrumbTest extends BrowserTestBase {
     $trail = $home;
     $this->assertBreadcrumb("node/$nid1", $trail);
     // Also verify that the node does not appear elsewhere (e.g., menu trees).
-    $this->assertNoLink($node1->getTitle());
+    $this->assertSession()->linkNotExists($node1->getTitle());
     // Also verify that the node does not appear elsewhere (e.g., menu trees).
-    $this->assertNoLink($node1->getTitle());
+    $this->assertSession()->linkNotExists($node1->getTitle());
 
     $trail += [
       "node/$nid1" => $node1->getTitle(),
@@ -286,7 +286,8 @@ class BreadcrumbTest extends BrowserTestBase {
         $link_path => $link->getTitle(),
       ];
       $this->assertBreadcrumb($link_path, $trail, $term->getName(), $tree);
-      $this->assertEscaped($parent->getTitle(), 'Tagged node found.');
+      // Ensure that the tagged node is found.
+      $this->assertEscaped($parent->getTitle());
 
       // Additionally make sure that this link appears only once; i.e., the
       // untranslated menu links automatically generated from menu router items

@@ -49,7 +49,20 @@ class ManageDisplayTest extends BrowserTestBase {
     $this->drupalPlaceBlock('local_tasks_block');
 
     // Create a test user.
-    $admin_user = $this->drupalCreateUser(['access content', 'administer content types', 'administer node fields', 'administer node form display', 'administer node display', 'administer taxonomy', 'administer taxonomy_term fields', 'administer taxonomy_term display', 'administer users', 'administer account settings', 'administer user display', 'bypass node access']);
+    $admin_user = $this->drupalCreateUser([
+      'access content',
+      'administer content types',
+      'administer node fields',
+      'administer node form display',
+      'administer node display',
+      'administer taxonomy',
+      'administer taxonomy_term fields',
+      'administer taxonomy_term display',
+      'administer users',
+      'administer account settings',
+      'administer user display',
+      'bypass node access',
+    ]);
     $this->drupalLogin($admin_user);
 
     // Create content type, with underscores.
@@ -149,12 +162,12 @@ class ManageDisplayTest extends BrowserTestBase {
   public function testViewModeLocalTasks() {
     $manage_display = 'admin/structure/types/manage/' . $this->type . '/display';
     $this->drupalGet($manage_display);
-    $this->assertNoLink('Full content');
-    $this->assertLink('Teaser');
+    $this->assertSession()->linkNotExists('Full content');
+    $this->assertSession()->linkExists('Teaser');
 
     $this->drupalGet($manage_display . '/teaser');
-    $this->assertNoLink('Full content');
-    $this->assertLink('Default');
+    $this->assertSession()->linkNotExists('Full content');
+    $this->assertSession()->linkExists('Default');
   }
 
   /**
