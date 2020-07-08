@@ -49,7 +49,11 @@ class HelpTest extends BrowserTestBase {
     parent::setUp();
 
     // Create users.
-    $this->adminUser = $this->drupalCreateUser(['access administration pages', 'view the administration theme', 'administer permissions']);
+    $this->adminUser = $this->drupalCreateUser([
+      'access administration pages',
+      'view the administration theme',
+      'administer permissions',
+    ]);
     $this->anyUser = $this->drupalCreateUser([]);
   }
 
@@ -82,7 +86,7 @@ class HelpTest extends BrowserTestBase {
 
     // Make sure links are properly added for modules implementing hook_help().
     foreach ($this->getModuleList() as $module => $name) {
-      $this->assertLink($name, 0, new FormattableMarkup('Link properly added to @name (admin/help/@module)', ['@module' => $module, '@name' => $name]));
+      $this->assertSession()->linkExists($name, 0, new FormattableMarkup('Link properly added to @name (admin/help/@module)', ['@module' => $module, '@name' => $name]));
     }
 
     // Ensure that module which does not provide an module overview page is
@@ -99,7 +103,7 @@ class HelpTest extends BrowserTestBase {
     $pos = $start;
     $list = ['Block', 'Color', 'Custom Block', 'History', 'Text Editor'];
     foreach ($list as $name) {
-      $this->assertLink($name);
+      $this->assertSession()->linkExists($name);
       $new_pos = strpos($page_text, $name, $start);
       $this->assertTrue($new_pos > $pos, 'Order of ' . $name . ' is correct on page');
       $pos = $new_pos;
@@ -135,12 +139,12 @@ class HelpTest extends BrowserTestBase {
           $this->assertText(t('@module administration pages', ['@module' => $name]));
         }
         foreach ($admin_tasks as $task) {
-          $this->assertLink($task['title']);
+          $this->assertSession()->linkExists($task['title']);
           // Ensure there are no double escaped '&' or '<' characters.
-          $this->assertNoEscaped('&amp;', 'The help text does not have double escaped &amp;.');
-          $this->assertNoEscaped('&lt;', 'The help text does not have double escaped &lt;.');
+          $this->assertNoEscaped('&amp;');
+          $this->assertNoEscaped('&lt;');
           // Ensure there are no escaped '<' characters.
-          $this->assertNoEscaped('<', 'The help text does not have single escaped &lt;.');
+          $this->assertNoEscaped('<');
         }
         // Ensure there are no double escaped '&' or '<' characters.
         $this->assertNoEscaped('&amp;');

@@ -49,7 +49,17 @@ class ContentTranslationSettingsTest extends BrowserTestBase {
     $this->addDefaultCommentField('node', 'article', 'comment_article', CommentItemInterface::OPEN, 'comment_article');
     $this->addDefaultCommentField('node', 'page', 'comment_page');
 
-    $admin_user = $this->drupalCreateUser(['access administration pages', 'administer languages', 'administer content translation', 'administer content types', 'administer node fields', 'administer comment fields', 'administer comments', 'administer comment types', 'administer account settings']);
+    $admin_user = $this->drupalCreateUser([
+      'access administration pages',
+      'administer languages',
+      'administer content translation',
+      'administer content types',
+      'administer node fields',
+      'administer comment fields',
+      'administer comments',
+      'administer comment types',
+      'administer account settings',
+    ]);
     $this->drupalLogin($admin_user);
   }
 
@@ -59,7 +69,7 @@ class ContentTranslationSettingsTest extends BrowserTestBase {
   public function testSettingsUI() {
     // Check for the content_translation_menu_links_discovered_alter() changes.
     $this->drupalGet('admin/config');
-    $this->assertLink('Content language and translation');
+    $this->assertSession()->linkExists('Content language and translation');
     $this->assertText('Configure language and translation support for content.');
     // Test that the translation settings are ignored if the bundle is marked
     // translatable but the entity type is not.

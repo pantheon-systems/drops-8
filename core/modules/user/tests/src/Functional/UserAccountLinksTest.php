@@ -78,7 +78,10 @@ class UserAccountLinksTest extends BrowserTestBase {
    */
   public function testDisabledAccountLink() {
     // Create an admin user and log in.
-    $this->drupalLogin($this->drupalCreateUser(['access administration pages', 'administer menu']));
+    $this->drupalLogin($this->drupalCreateUser([
+      'access administration pages',
+      'administer menu',
+    ]));
 
     // Verify that the 'My account' link exists before we check for its
     // disappearance.
@@ -134,7 +137,7 @@ class UserAccountLinksTest extends BrowserTestBase {
     // Check the page title for registered users is "My Account" in menus.
     $this->drupalLogin($this->drupalCreateUser());
     // After login, the client is redirected to /user.
-    $this->assertLink(t('My account'), 0, "Page title of /user is 'My Account' in menus for registered users");
+    $this->assertSession()->linkExists(t('My account'), 0, "Page title of /user is 'My Account' in menus for registered users");
     $this->assertLinkByHref(\Drupal::urlGenerator()->generate('user.page'), 0);
   }
 

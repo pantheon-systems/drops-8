@@ -37,7 +37,15 @@ class SearchLanguageTest extends BrowserTestBase {
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
 
     // Create and log in user.
-    $test_user = $this->drupalCreateUser(['access content', 'search content', 'use advanced search', 'administer nodes', 'administer languages', 'access administration pages', 'administer site configuration']);
+    $test_user = $this->drupalCreateUser([
+      'access content',
+      'search content',
+      'use advanced search',
+      'administer nodes',
+      'administer languages',
+      'access administration pages',
+      'administer site configuration',
+    ]);
     $this->drupalLogin($test_user);
 
     // Add a new language.
@@ -121,12 +129,12 @@ class SearchLanguageTest extends BrowserTestBase {
     $edit = ['keys' => 'node', 'language[es]' => TRUE];
     $this->drupalPostForm('search/node', $edit, 'edit-submit--2');
     // Check for Spanish results.
-    $this->assertLink('Second node this is the Spanish title', 0, 'Second node Spanish title found in search results');
-    $this->assertLink('Third node es', 0, 'Third node Spanish found in search results');
+    $this->assertSession()->linkExists('Second node this is the Spanish title', 0, 'Second node Spanish title found in search results');
+    $this->assertSession()->linkExists('Third node es', 0, 'Third node Spanish found in search results');
     // Ensure that results don't contain other language nodes.
-    $this->assertNoLink('First node en', 'Search results do not contain first English node');
-    $this->assertNoLink('Second node en', 'Search results do not contain second English node');
-    $this->assertNoLink('Third node en', 'Search results do not contain third English node');
+    $this->assertSession()->linkNotExists('First node en', 'Search results do not contain first English node');
+    $this->assertSession()->linkNotExists('Second node en', 'Search results do not contain second English node');
+    $this->assertSession()->linkNotExists('Third node en', 'Search results do not contain third English node');
 
     // Change the default language and delete English.
     $path = 'admin/config/regional/language';

@@ -45,7 +45,14 @@ class SearchMultilingualTest extends ViewTestBase {
   public function testMultilingualSearchFilter() {
     // Create a user with admin for languages, content, and content types, plus
     // the ability to access content and searches.
-    $user = $this->drupalCreateUser(['administer nodes', 'administer content types', 'administer languages', 'administer content translation', 'access content', 'search content']);
+    $user = $this->drupalCreateUser([
+      'administer nodes',
+      'administer content types',
+      'administer languages',
+      'administer content translation',
+      'access content',
+      'search content',
+    ]);
     $this->drupalLogin($user);
 
     // Add Spanish language programmatically.
@@ -87,8 +94,8 @@ class SearchMultilingualTest extends ViewTestBase {
     // translated node, which has 'pizza' in the title, but not the English
     // one, which does not have the word 'pizza' in it.
     $this->drupalGet('test-filter');
-    $this->assertLink('pizza', 0, 'Found translation with matching title');
-    $this->assertNoLink('sandwich', 'Did not find translation with non-matching title');
+    $this->assertSession()->linkExists('pizza', 0, 'Found translation with matching title');
+    $this->assertSession()->linkNotExists('sandwich', 'Did not find translation with non-matching title');
   }
 
 }
