@@ -32,7 +32,11 @@ class UpdateUploadTest extends UpdateTestBase {
 
   protected function setUp(): void {
     parent::setUp();
-    $admin_user = $this->drupalCreateUser(['administer modules', 'administer software updates', 'administer site configuration']);
+    $admin_user = $this->drupalCreateUser([
+      'administer modules',
+      'administer software updates',
+      'administer site configuration',
+    ]);
     $this->drupalLogin($admin_user);
   }
 
@@ -88,11 +92,11 @@ class UpdateUploadTest extends UpdateTestBase {
     $this->assertFileExists($installedInfoFilePath);
     // Ensure the links are relative to the site root and not
     // core/authorize.php.
-    $this->assertLink(t('Install another module'));
+    $this->assertSession()->linkExists(t('Install another module'));
     $this->assertLinkByHref(Url::fromRoute('update.module_install')->toString());
-    $this->assertLink(t('Enable newly added modules'));
+    $this->assertSession()->linkExists(t('Enable newly added modules'));
     $this->assertLinkByHref(Url::fromRoute('system.modules_list')->toString());
-    $this->assertLink(t('Administration pages'));
+    $this->assertSession()->linkExists(t('Administration pages'));
     $this->assertLinkByHref(Url::fromRoute('system.admin')->toString());
     // Ensure we can reach the "Install another module" link.
     $this->clickLink(t('Install another module'));

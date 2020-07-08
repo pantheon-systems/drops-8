@@ -129,7 +129,11 @@ class ContentTranslationWorkflowsTest extends ContentTranslationTestBase {
     $ops = ['create' => t('Add'), 'update' => t('Edit'), 'delete' => t('Delete')];
     $translations_url = $this->entity->toUrl('drupal:content-translation-overview');
     foreach ($ops as $current_op => $item) {
-      $user = $this->drupalCreateUser([$this->getTranslatePermission(), "$current_op content translations", 'view test entity']);
+      $user = $this->drupalCreateUser([
+        $this->getTranslatePermission(),
+        "$current_op content translations",
+        'view test entity',
+      ]);
       $this->drupalLogin($user);
       $this->drupalGet($translations_url);
 
@@ -142,10 +146,10 @@ class ContentTranslationWorkflowsTest extends ContentTranslationTestBase {
 
       foreach ($ops as $op => $label) {
         if ($op != $current_op) {
-          $this->assertNoLink($label, new FormattableMarkup('No %op link found.', ['%op' => $label]));
+          $this->assertSession()->linkNotExists($label, new FormattableMarkup('No %op link found.', ['%op' => $label]));
         }
         else {
-          $this->assertLink($label, 0, new FormattableMarkup('%op link found.', ['%op' => $label]));
+          $this->assertSession()->linkExists($label, 0, new FormattableMarkup('%op link found.', ['%op' => $label]));
         }
       }
     }

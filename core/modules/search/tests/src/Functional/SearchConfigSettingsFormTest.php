@@ -52,7 +52,16 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
     $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
 
     // Log in as a user that can create and search content.
-    $this->searchUser = $this->drupalCreateUser(['search content', 'administer search', 'administer nodes', 'bypass node access', 'access user profiles', 'administer users', 'administer blocks', 'access site reports']);
+    $this->searchUser = $this->drupalCreateUser([
+      'search content',
+      'administer search',
+      'administer nodes',
+      'bypass node access',
+      'access user profiles',
+      'administer users',
+      'administer blocks',
+      'access site reports',
+    ]);
     $this->drupalLogin($this->searchUser);
 
     // Add a single piece of content and index it.
@@ -104,7 +113,7 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
     $text = $this->randomMachineName(5);
     $this->drupalPostForm('search/node', ['keys' => $text], t('Search'));
     $this->drupalGet('admin/reports/dblog');
-    $this->assertNoLink('Searched Content for ' . $text . '.', 'Search was not logged');
+    $this->assertSession()->linkNotExists('Searched Content for ' . $text . '.', 'Search was not logged');
 
     // Turn on logging.
     $edit = ['logging' => TRUE];
@@ -112,7 +121,7 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
     $text = $this->randomMachineName(5);
     $this->drupalPostForm('search/node', ['keys' => $text], t('Search'));
     $this->drupalGet('admin/reports/dblog');
-    $this->assertLink('Searched Content for ' . $text . '.', 0, 'Search was logged');
+    $this->assertSession()->linkExists('Searched Content for ' . $text . '.', 0, 'Search was logged');
 
   }
 
@@ -314,7 +323,7 @@ class SearchConfigSettingsFormTest extends BrowserTestBase {
     // Disable the first search page.
     $this->clickLink(t('Disable'));
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertNoLink(t('Disable'));
+    $this->assertSession()->linkNotExists(t('Disable'));
     $this->verifySearchPageOperations($first_id, TRUE, TRUE, FALSE, TRUE);
     $this->verifySearchPageOperations($second_id, TRUE, FALSE, FALSE, FALSE);
 
