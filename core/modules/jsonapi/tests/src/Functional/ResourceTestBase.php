@@ -1253,7 +1253,7 @@ abstract class ResourceTestBase extends BrowserTestBase {
     $cacheability = static::getExpectedCollectionCacheability($this->account, $collection, NULL, $filtered);
     $cacheability->setCacheMaxAge($merged_response->getCacheableMetadata()->getCacheMaxAge());
 
-    $collection_response = ResourceResponse::create($merged_document);
+    $collection_response = new ResourceResponse($merged_document);
     $collection_response->addCacheableDependency($cacheability);
 
     if (is_null($included_paths)) {
@@ -1279,7 +1279,7 @@ abstract class ResourceTestBase extends BrowserTestBase {
   }
 
   /**
-   * Tests GETing related resource of an individual resource.
+   * Tests GET of the related resource of an individual resource.
    *
    * Expected responses are built by making requests to 'relationship' routes.
    * Using the fetched resource identifiers, if any, all targeted resources are
@@ -2135,7 +2135,7 @@ abstract class ResourceTestBase extends BrowserTestBase {
 
     // DX: 415 when no Content-Type request header.
     $response = $this->request('PATCH', $url, $request_options);
-    $this->assertsame(415, $response->getStatusCode());
+    $this->assertSame(415, $response->getStatusCode());
 
     $request_options[RequestOptions::HEADERS]['Content-Type'] = 'application/vnd.api+json';
 

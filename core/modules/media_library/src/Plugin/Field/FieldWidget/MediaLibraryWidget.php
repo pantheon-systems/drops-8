@@ -333,6 +333,7 @@ class MediaLibraryWidget extends WidgetBase implements ContainerFactoryPluginInt
       return $element;
     }
 
+    $multiple_items = FALSE;
     if (empty($referenced_entities)) {
       $element['#field_prefix']['empty_selection'] = [
         '#markup' => $this->t('No media items are selected.'),
@@ -342,10 +343,12 @@ class MediaLibraryWidget extends WidgetBase implements ContainerFactoryPluginInt
       // @todo Use a <button> link here, and delete
       // seven_preprocess_fieldset__media_library_widget(), when
       // https://www.drupal.org/project/drupal/issues/2999549 lands.
+      $multiple_items = count($referenced_entities) > 1;
       $element['#field_prefix']['weight_toggle'] = [
         '#type' => 'html_tag',
         '#tag' => 'button',
         '#value' => $this->t('Show media item weights'),
+        '#access' => $multiple_items,
         '#attributes' => [
           'class' => [
             'link',
@@ -416,6 +419,7 @@ class MediaLibraryWidget extends WidgetBase implements ContainerFactoryPluginInt
           '#type' => 'number',
           '#theme' => 'input__number__media_library_item_weight',
           '#title' => $this->t('Weight'),
+          '#access' => $multiple_items,
           '#default_value' => $delta,
           '#attributes' => [
             'class' => [
@@ -465,6 +469,10 @@ class MediaLibraryWidget extends WidgetBase implements ContainerFactoryPluginInt
     // tamper-proof hash in a consistent way.
     if (!$entity->isNew()) {
       $opener_parameters['entity_id'] = (string) $entity->id();
+
+      if ($entity->getEntityType()->isRevisionable()) {
+        $opener_parameters['revision_id'] = (string) $entity->getRevisionId();
+      }
     }
     $state = MediaLibraryState::create('media_library.opener.field_widget', $allowed_media_type_ids, $selected_type_id, $remaining, $opener_parameters);
 
@@ -500,8 +508,19 @@ class MediaLibraryWidget extends WidgetBase implements ContainerFactoryPluginInt
     // JavaScript by adding the 'data-disabled-focus' attribute.
     // @see Drupal.behaviors.MediaLibraryWidgetDisableButton
     if (!$cardinality_unlimited && $remaining === 0) {
-      $element['open_button']['#attributes']['data-disabled-focus'] = 'true';
-      $element['open_button']['#attributes']['class'][] = 'visually-hidden';
+      $triggering_element = $form_state->getTriggeringElement();
+      if ($triggering_element && ($trigger_parents = $triggering_element['#array_parents']) && end($trigger_parents) === 'media_library_update_widget') {
+        // The widget is being rebuilt from a selection change.
+        $element['open_button']['#attributes']['data-disabled-focus'] = 'true';
+        $element['open_button']['#attributes']['class'][] = 'visually-hidden';
+      }
+      else {
+        // The widget is being built without a selection change, so we can just
+        // set the item to disabled now, there is no need to set the focus
+        // first.
+        $element['open_button']['#disabled'] = TRUE;
+        $element['open_button']['#attributes']['class'][] = 'visually-hidden';
+      }
     }
 
     // This hidden field and button are used to add new items to the widget.
