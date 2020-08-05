@@ -15,13 +15,20 @@ class EntityReferenceWidgetTest extends MediaLibraryTestBase {
   protected static $modules = ['field_ui'];
 
   /**
+   * Test media items.
+   *
+   * @var \Drupal\media\MediaInterface[]
+   */
+  protected $mediaItems = [];
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
     parent::setUp();
 
     // Create a few example media items for use in selection.
-    $this->createMediaItems([
+    $this->mediaItems = $this->createMediaItems([
       'type_one' => [
         'Horse',
         'Bear',
@@ -46,6 +53,31 @@ class EntityReferenceWidgetTest extends MediaLibraryTestBase {
       'administer node form display',
     ]);
     $this->drupalLogin($user);
+  }
+
+  /**
+   * Tests that disabled media items don't capture focus on page load.
+   */
+  public function testFocusNotAppliedWithoutSelectionChange() {
+    // Create a node with the maximum number of values for the field_twin_media
+    // field.
+    $node = $this->drupalCreateNode([
+      'type' => 'basic_page',
+      'field_twin_media' => [
+        $this->mediaItems['Horse'],
+        $this->mediaItems['Bear'],
+      ],
+    ]);
+    $this->drupalGet($node->toUrl('edit-form'));
+    $open_button = $this->assertElementExistsAfterWait('css', '.js-media-library-open-button[name^="field_twin_media"]');
+    // The open button should be disabled, but not have the
+    // 'data-disabled-focus' attribute.
+    $this->assertFalse($open_button->hasAttribute('data-disabled-focus'));
+    $this->assertTrue($open_button->hasAttribute('disabled'));
+    // The button should be disabled.
+    $this->assertJsCondition('jQuery("#field_twin_media-media-library-wrapper .js-media-library-open-button").is(":disabled")');
+    // The button should not have focus.
+    $this->assertJsCondition('jQuery("#field_twin_media-media-library-wrapper .js-media-library-open-button").not(":focus")');
   }
 
   /**
@@ -191,11 +223,10 @@ class EntityReferenceWidgetTest extends MediaLibraryTestBase {
     // Assert the focus is set back on the open button of the media field.
     $this->assertJsCondition('jQuery("#field_twin_media-media-library-wrapper .js-media-library-open-button").is(":focus")');
 
-    // Assert that we can toggle the visibility of the weight inputs.
+    // The toggle for weight inputs' visibility should not be available when the
+    // field contains a single item.
     $wrapper = $assert_session->elementExists('css', '.field--name-field-twin-media');
-    $wrapper->pressButton('Show media item weights');
-    $assert_session->fieldExists('Weight', $wrapper)->click();
-    $wrapper->pressButton('Hide media item weights');
+    $assert_session->elementNotExists('named', ['button', 'Show media item weights'], $wrapper);
 
     // Remove the selected item.
     $button = $assert_session->buttonExists('Remove', $wrapper);
@@ -212,6 +243,14 @@ class EntityReferenceWidgetTest extends MediaLibraryTestBase {
     $this->openMediaLibraryForField('field_twin_media');
     $page->checkField('Select Dog');
     $this->pressInsertSelected('Added one media item.');
+    // Assert that we can toggle the visibility of the weight inputs when the
+    // field contains more than one item.
+    $wrapper = $assert_session->elementExists('css', '.field--name-field-twin-media');
+    $wrapper->pressButton('Show media item weights');
+    // Ensure that the styling doesn't accidentally render the weight field
+    // unusable.
+    $assert_session->fieldExists('Weight', $wrapper)->click();
+    $wrapper->pressButton('Hide media item weights');
 
     // Assert the same has been added twice and remove the items again.
     $this->waitForElementsCount('css', '.field--name-field-twin-media [data-media-library-item-delta]', 2);

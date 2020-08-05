@@ -228,7 +228,6 @@ class ConfigSchemaTest extends KernelTestBase {
 
     $this->assertEqual($definition, $expected, 'Retrieved the right metadata for the first effect of image.style.medium');
 
-    $a = \Drupal::config('config_test.dynamic.third_party');
     $test = \Drupal::service('config.typed')->get('config_test.dynamic.third_party')->get('third_party_settings.config_schema_test');
     $definition = $test->getDataDefinition()->toArray();
     $expected = [];
@@ -560,36 +559,30 @@ class ConfigSchemaTest extends KernelTestBase {
     // Ensure that keys can not be added or removed by
     // hook_config_schema_info_alter().
     \Drupal::state()->set('config_schema_test_exception_remove', TRUE);
-    $message = 'Expected ConfigSchemaAlterException thrown.';
     try {
       $typed_config->getDefinitions();
-      $this->fail($message);
+      $this->fail('Expected ConfigSchemaAlterException thrown.');
     }
     catch (ConfigSchemaAlterException $e) {
-      $this->pass($message);
       $this->assertEqual($e->getMessage(), 'Invoking hook_config_schema_info_alter() has removed (config_schema_test.hook) schema definitions');
     }
 
     \Drupal::state()->set('config_schema_test_exception_add', TRUE);
-    $message = 'Expected ConfigSchemaAlterException thrown.';
     try {
       $typed_config->getDefinitions();
-      $this->fail($message);
+      $this->fail('Expected ConfigSchemaAlterException thrown.');
     }
     catch (ConfigSchemaAlterException $e) {
-      $this->pass($message);
-      $this->assertEqual($e->getMessage(), 'Invoking hook_config_schema_info_alter() has added (config_schema_test.hook_added_defintion) and removed (config_schema_test.hook) schema definitions');
+      $this->assertEqual($e->getMessage(), 'Invoking hook_config_schema_info_alter() has added (config_schema_test.hook_added_definition) and removed (config_schema_test.hook) schema definitions');
     }
 
     \Drupal::state()->set('config_schema_test_exception_remove', FALSE);
-    $message = 'Expected ConfigSchemaAlterException thrown.';
     try {
       $typed_config->getDefinitions();
-      $this->fail($message);
+      $this->fail('Expected ConfigSchemaAlterException thrown.');
     }
     catch (ConfigSchemaAlterException $e) {
-      $this->pass($message);
-      $this->assertEqual($e->getMessage(), 'Invoking hook_config_schema_info_alter() has added (config_schema_test.hook_added_defintion) schema definitions');
+      $this->assertEqual($e->getMessage(), 'Invoking hook_config_schema_info_alter() has added (config_schema_test.hook_added_definition) schema definitions');
     }
 
     // Tests that hook_config_schema_info_alter() can add additional metadata to
@@ -733,10 +726,10 @@ class ConfigSchemaTest extends KernelTestBase {
     $typed_values = [
       'tests' => [
         [
-          'id' => 'cat:persion.dog',
+          'id' => 'cat:persian.dog',
           'foo' => 'cat',
           'bar' => 'dog',
-          'breed' => 'persion',
+          'breed' => 'persian',
         ],
       ],
     ];

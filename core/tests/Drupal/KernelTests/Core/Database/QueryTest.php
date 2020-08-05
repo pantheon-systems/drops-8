@@ -13,10 +13,10 @@ class QueryTest extends DatabaseTestBase {
    * Tests that we can pass an array of values directly in the query.
    */
   public function testArraySubstitution() {
-    $names = $this->connection->query('SELECT name FROM {test} WHERE age IN ( :ages[] ) ORDER BY age', [':ages[]' => [25, 26, 27]])->fetchAll();
+    $names = $this->connection->query('SELECT [name] FROM {test} WHERE [age] IN ( :ages[] ) ORDER BY [age]', [':ages[]' => [25, 26, 27]])->fetchAll();
     $this->assertCount(3, $names, 'Correct number of names returned');
 
-    $names = $this->connection->query('SELECT name FROM {test} WHERE age IN ( :ages[] ) ORDER BY age', [':ages[]' => [25]])->fetchAll();
+    $names = $this->connection->query('SELECT [name] FROM {test} WHERE [age] IN ( :ages[] ) ORDER BY [age]', [':ages[]' => [25]])->fetchAll();
     $this->assertCount(1, $names, 'Correct number of names returned');
   }
 
@@ -25,11 +25,11 @@ class QueryTest extends DatabaseTestBase {
    */
   public function testScalarSubstitution() {
     try {
-      $names = $this->connection->query('SELECT name FROM {test} WHERE age IN ( :ages[] ) ORDER BY age', [':ages[]' => 25])->fetchAll();
+      $names = $this->connection->query('SELECT [name] FROM {test} WHERE [age] IN ( :ages[] ) ORDER BY [age]', [':ages[]' => 25])->fetchAll();
       $this->fail('Array placeholder with scalar argument should result in an exception.');
     }
-    catch (\InvalidArgumentException $e) {
-      $this->pass('Array placeholder with scalar argument should result in an exception.');
+    catch (\Exception $e) {
+      $this->assertInstanceOf(\InvalidArgumentException::class, $e);
     }
 
   }
@@ -44,11 +44,11 @@ class QueryTest extends DatabaseTestBase {
       '1' => '',
     ];
     try {
-      $this->connection->query("SELECT * FROM {test} WHERE name = :name", [':name' => $condition])->fetchObject();
+      $this->connection->query("SELECT * FROM {test} WHERE [name] = :name", [':name' => $condition])->fetchObject();
       $this->fail('SQL injection attempt via array arguments should result in a database exception.');
     }
     catch (\InvalidArgumentException $e) {
-      $this->pass('SQL injection attempt via array arguments should result in a database exception.');
+      // Expected exception; just continue testing.
     }
 
     // Test that the insert query that was used in the SQL injection attempt did
@@ -85,7 +85,7 @@ class QueryTest extends DatabaseTestBase {
       $this->fail('Should not be able to attempt SQL injection via condition operator.');
     }
     catch (\ErrorException $e) {
-      $this->pass('SQL injection attempt via condition arguments should result in a database exception.');
+      // Expected exception; just continue testing.
     }
 
     // Test that the insert query that was used in the SQL injection attempt did
@@ -113,7 +113,7 @@ class QueryTest extends DatabaseTestBase {
       $this->fail('Should not be able to attempt SQL injection via operator.');
     }
     catch (\ErrorException $e) {
-      $this->pass('SQL injection attempt via condition arguments should result in a database exception.');
+      // Expected exception; just continue testing.
     }
 
     // Attempt SQLi via union query - uppercase tablename.
@@ -130,7 +130,7 @@ class QueryTest extends DatabaseTestBase {
       $this->fail('Should not be able to attempt SQL injection via operator.');
     }
     catch (\ErrorException $e) {
-      $this->pass('SQL injection attempt via condition arguments should result in a database exception.');
+      // Expected exception; just continue testing.
     }
     restore_error_handler();
   }

@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit676dad056f5f2035ddce176d888b9940
+class ComposerStaticInit65645f187e79f42f9473bb6f222a67d8
 {
     public static $files = array (
         '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
@@ -833,6 +833,7 @@ class ComposerStaticInit676dad056f5f2035ddce176d888b9940
         'Drupal\\Core\\Block\\BlockManager' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/BlockManager.php',
         'Drupal\\Core\\Block\\BlockManagerInterface' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/BlockManagerInterface.php',
         'Drupal\\Core\\Block\\BlockPluginInterface' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/BlockPluginInterface.php',
+        'Drupal\\Core\\Block\\BlockPluginTrait' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/BlockPluginTrait.php',
         'Drupal\\Core\\Block\\MainContentBlockPluginInterface' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/MainContentBlockPluginInterface.php',
         'Drupal\\Core\\Block\\MessagesBlockPluginInterface' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/MessagesBlockPluginInterface.php',
         'Drupal\\Core\\Block\\Plugin\\Block\\Broken' => __DIR__ . '/../..' . '/core/lib/Drupal/Core/Block/Plugin/Block/Broken.php',
@@ -4167,11 +4168,11 @@ class ComposerStaticInit676dad056f5f2035ddce176d888b9940
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit676dad056f5f2035ddce176d888b9940::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit676dad056f5f2035ddce176d888b9940::$prefixDirsPsr4;
-            $loader->prefixesPsr0 = ComposerStaticInit676dad056f5f2035ddce176d888b9940::$prefixesPsr0;
-            $loader->fallbackDirsPsr0 = ComposerStaticInit676dad056f5f2035ddce176d888b9940::$fallbackDirsPsr0;
-            $loader->classMap = ComposerStaticInit676dad056f5f2035ddce176d888b9940::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit65645f187e79f42f9473bb6f222a67d8::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit65645f187e79f42f9473bb6f222a67d8::$prefixDirsPsr4;
+            $loader->prefixesPsr0 = ComposerStaticInit65645f187e79f42f9473bb6f222a67d8::$prefixesPsr0;
+            $loader->fallbackDirsPsr0 = ComposerStaticInit65645f187e79f42f9473bb6f222a67d8::$fallbackDirsPsr0;
+            $loader->classMap = ComposerStaticInit65645f187e79f42f9473bb6f222a67d8::$classMap;
 
         }, null, ClassLoader::class);
     }

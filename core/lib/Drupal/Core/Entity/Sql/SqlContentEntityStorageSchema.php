@@ -835,8 +835,19 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
 
     // Add the bundle column.
     if ($bundle = $this->entityType->getKey('bundle')) {
-      if ($base_table) {
-        $select->join($base_table, 'base_table', "entity_table.{$this->entityType->getKey('id')} = %alias.{$this->entityType->getKey('id')}");
+      // The bundle field is not stored in the revision table, so we need to
+      // join the data (or base) table and retrieve it from there.
+      if ($base_table && $base_table !== $table_name) {
+        $join_condition = "entity_table.{$this->entityType->getKey('id')} = %alias.{$this->entityType->getKey('id')}";
+
+        // If the entity type is translatable, we also need to add the langcode
+        // to the join, otherwise we'll get duplicate rows for each language.
+        if ($this->entityType->isTranslatable()) {
+          $langcode = $this->entityType->getKey('langcode');
+          $join_condition .= " AND entity_table.{$langcode} = %alias.{$langcode}";
+        }
+
+        $select->join($base_table, 'base_table', $join_condition);
         $select->addField('base_table', $bundle, 'bundle');
       }
       else {
@@ -2322,7 +2333,11 @@ class SqlContentEntityStorageSchema implements DynamicallyFieldableEntityStorage
       // A dedicated table only contain rows for actual field values, and no
       // rows for entities where the field is empty. Thus, we can safely
       // enforce 'not null' on the columns for the field's required properties.
-      $data_schema['fields'][$real_name]['not null'] = $properties[$column_name]->isRequired();
+      // Fields can have dynamic properties, so we need to make sure that the
+      // property is statically defined.
+      if (isset($properties[$column_name])) {
+        $data_schema['fields'][$real_name]['not null'] = $properties[$column_name]->isRequired();
+      }
     }
 
     // Add indexes.
