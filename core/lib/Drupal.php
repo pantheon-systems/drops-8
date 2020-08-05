@@ -82,7 +82,7 @@ class Drupal {
   /**
    * The current system version.
    */
-  const VERSION = '8.9.2';
+  const VERSION = '8.9.3';
 
   /**
    * Core API compatibility.
@@ -606,8 +606,8 @@ class Drupal {
    * This method is a convenience wrapper for the link generator service's
    * generate() method.
    *
-   * @param string $text
-   *   The link text for the anchor tag.
+   * @param string|array|\Drupal\Component\Render\MarkupInterface $text
+   *   The link text for the anchor tag as a translated string or render array.
    * @param \Drupal\Core\Url $url
    *   The URL object used for the link.
    *

@@ -553,6 +553,7 @@ return array(
     'Drupal\\Core\\Block\\BlockManager' => $baseDir . '/core/lib/Drupal/Core/Block/BlockManager.php',
     'Drupal\\Core\\Block\\BlockManagerInterface' => $baseDir . '/core/lib/Drupal/Core/Block/BlockManagerInterface.php',
     'Drupal\\Core\\Block\\BlockPluginInterface' => $baseDir . '/core/lib/Drupal/Core/Block/BlockPluginInterface.php',
+    'Drupal\\Core\\Block\\BlockPluginTrait' => $baseDir . '/core/lib/Drupal/Core/Block/BlockPluginTrait.php',
     'Drupal\\Core\\Block\\MainContentBlockPluginInterface' => $baseDir . '/core/lib/Drupal/Core/Block/MainContentBlockPluginInterface.php',
     'Drupal\\Core\\Block\\MessagesBlockPluginInterface' => $baseDir . '/core/lib/Drupal/Core/Block/MessagesBlockPluginInterface.php',
     'Drupal\\Core\\Block\\Plugin\\Block\\Broken' => $baseDir . '/core/lib/Drupal/Core/Block/Plugin/Block/Broken.php',
