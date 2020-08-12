@@ -25,7 +25,7 @@
  * not to any Drupal files.
  */
 if (!defined("PANTHEON_VERSION")) {
-  define("PANTHEON_VERSION", "3");
+  define("PANTHEON_VERSION", "4");
 }
 
 /**
@@ -146,7 +146,7 @@ if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
  *
  */
 if (isset($_ENV['PANTHEON_ENVIRONMENT'])) {
-  $settings["file_temp_path"] = $_SERVER['HOME'] .'/tmp';
+  $settings["file_temp_path"] = sys_get_temp_dir();
 }
 
 /**
