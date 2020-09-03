@@ -664,11 +664,11 @@
         },
         {
             "name": "drupal/core",
-            "version": "8.8.8",
+            "version": "8.8.9",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drupal/core/zipball/c067109fcdf86184a7c75081fd8f1d81e4e23f56",
-                "reference": "c067109fcdf86184a7c75081fd8f1d81e4e23f56",
+                "url": "https://api.github.com/repos/drupal/core/zipball/c8270789d71767c6482ccb6cc6e51f5ca4302cbc",
+                "reference": "c8270789d71767c6482ccb6cc6e51f5ca4302cbc",
                 "shasum": ""
             },
             "require": {
@@ -895,12 +895,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core.git",
-                "reference": "c067109fcdf86184a7c75081fd8f1d81e4e23f56"
+                "reference": "c8270789d71767c6482ccb6cc6e51f5ca4302cbc"
             }
         },
         {
             "name": "drupal/core-composer-scaffold",
-            "version": "8.8.8",
+            "version": "8.8.9",
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-composer-scaffold/zipball/4825cb5234c28dff79ad298db582dfb23ff4ca59",
@@ -945,7 +945,7 @@
         },
         {
             "name": "drupal/core-project-message",
-            "version": "8.8.8",
+            "version": "8.8.9",
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-project-message/zipball/10be18c6a401de8e243777de6a74cb45a7ecacad",
@@ -981,11 +981,11 @@
         },
         {
             "name": "drupal/core-recommended",
-            "version": "8.8.8",
+            "version": "8.8.9",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/drupal/core-recommended/zipball/69f4e74170c35f2069baafbbb5b7717fe5ddbb66",
-                "reference": "69f4e74170c35f2069baafbbb5b7717fe5ddbb66",
+                "url": "https://api.github.com/repos/drupal/core-recommended/zipball/d95b9de11149301b6151114bdba49894c235e600",
+                "reference": "d95b9de11149301b6151114bdba49894c235e600",
                 "shasum": ""
             },
             "require": {
@@ -997,7 +997,7 @@
                 "doctrine/common": "v2.7.3",
                 "doctrine/inflector": "v1.2.0",
                 "doctrine/lexer": "1.0.2",
-                "drupal/core": "8.8.8",
+                "drupal/core": "8.8.9",
                 "easyrdf/easyrdf": "0.9.1",
                 "egulias/email-validator": "2.1.11",
                 "guzzlehttp/guzzle": "6.3.3",
@@ -1021,7 +1021,7 @@
                 "symfony/dependency-injection": "v3.4.35",
                 "symfony/event-dispatcher": "v3.4.35",
                 "symfony/http-foundation": "v3.4.35",
-                "symfony/http-kernel": "v3.4.35",
+                "symfony/http-kernel": "v3.4.44",
                 "symfony/polyfill-ctype": "v1.12.0",
                 "symfony/polyfill-iconv": "v1.12.0",
                 "symfony/polyfill-mbstring": "v1.12.0",
@@ -1053,12 +1053,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/drupal/core-recommended.git",
-                "reference": "69f4e74170c35f2069baafbbb5b7717fe5ddbb66"
+                "reference": "d95b9de11149301b6151114bdba49894c235e600"
             }
         },
         {
             "name": "drupal/core-vendor-hardening",
-            "version": "8.8.8",
+            "version": "8.8.9",
             "dist": {
                 "type": "zip",
                 "url": "https://api.github.com/repos/drupal/core-vendor-hardening/zipball/1b41da0867c3c9b870db95e94a5adaf4dbbc909b",
@@ -2389,16 +2389,16 @@
         },
         {
             "name": "symfony/http-kernel",
-            "version": "v3.4.35",
+            "version": "v3.4.44",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/http-kernel.git",
-                "reference": "e1764b3de00ec5636dd03d02fd44bcb1147d70d9"
+                "reference": "27dcaa8c6b18c75df9f37badeb4d3564ffaa1326"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/http-kernel/zipball/e1764b3de00ec5636dd03d02fd44bcb1147d70d9",
-                "reference": "e1764b3de00ec5636dd03d02fd44bcb1147d70d9",
+                "url": "https://api.github.com/repos/symfony/http-kernel/zipball/27dcaa8c6b18c75df9f37badeb4d3564ffaa1326",
+                "reference": "27dcaa8c6b18c75df9f37badeb4d3564ffaa1326",
                 "shasum": ""
             },
             "require": {
@@ -2475,7 +2475,21 @@
             ],
             "description": "Symfony HttpKernel Component",
             "homepage": "https://symfony.com",
-            "time": "2019-11-13T08:44:50+00:00"
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2020-08-31T05:53:42+00:00"
         },
         {
             "name": "symfony/polyfill-ctype",
