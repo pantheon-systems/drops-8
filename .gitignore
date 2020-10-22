@@ -112,6 +112,8 @@ upstream/web/
 /web/sites/default/default.services.yml
 /web/sites/default/default.services.pantheon.preproduction.yml
 /web/sites/default/default.settings.php
+/web/sites/default/config/.htaccess
+/web/sites/default/config/README
 /web/sites/development.services.yml
 /web/sites/example.settings.local.php
 /web/sites/example.sites.php

@@ -10,12 +10,11 @@
         },
         {
             "type": "path",
-            "url": "upstream"
+            "url": "upstream-configuration"
         }
     ],
     "require": {
-        "composer/installers": "^1.8",
-        "internal/upstream-configuration": "*"
+        "pantheon-upstreams/upstream-configuration": "*"
     },
     "conflict": {
             "drupal/drupal": "*"
@@ -60,7 +59,7 @@
         "preferred-install": "dist",
         "sort-packages": true,
         "platform": {
-            "php": "7.3"
+            "php": "7.4"
         }
     }
 }
