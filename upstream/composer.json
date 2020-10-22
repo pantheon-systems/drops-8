@@ -1,0 +1,20 @@
+{
+    "name": "internal/upstream-configuration",
+    "type": "project",
+    "version": "1.0.0",
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://packages.drupal.org/8"
+        }
+    ],
+    "require": {
+        "php": ">=7.1",
+        "drupal/core-composer-scaffold": "^9",
+        "drupal/core-recommended": "^9",
+        "pantheon-systems/drupal-integrations": "^8",
+        "drush/drush": "^10",
+        "cweagans/composer-patches": "^1.0",
+        "zaporylie/composer-drupal-optimizations": "^1.1"
+    }
+}

@@ -1,0 +1,8 @@
+api_version: 1
+web_docroot: true
+enforce_https: transitional
+php_version: 7.3
+drush_version: 10
+build_step_demo: true
+protected_web_paths:
+  - /private

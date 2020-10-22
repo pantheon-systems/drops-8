@@ -1,0 +1,16 @@
+diff --git a/core/includes/install.core.inc b/core/includes/install.core.inc
+index a155778e83..2149e01487 100644
+--- a/core/includes/install.core.inc
++++ b/core/includes/install.core.inc
+@@ -524,7 +524,10 @@ function install_begin_request($class_loader, &$install_state) {
+ 
+     // Do not install over a configured settings.php.
+     if (Database::getConnectionInfo()) {
+-      throw new AlreadyInstalledException($container->get('string_translation'));
++      // Commenting out this line to skip over
++      // an error when installing on Pantheon.
++      // @see https://github.com/stevector/drupal-9-project/issues/1
++      // throw new AlreadyInstalledException($container->get('string_translation'));
+     }
+   }
+ 
