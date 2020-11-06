@@ -63,9 +63,9 @@ web/sites/*/services*.yml
 # ------------------------------------------------------------------
 /drush/Commands/contrib/
 /web/core/
-/web/modules/contrib/
-/web/themes/contrib/
-/web/profiles/contrib/
+/web/modules/composer/
+/web/themes/composer/
+/web/profiles/composer/
 /web/libraries/
 /web/private/scripts/quicksilver
 

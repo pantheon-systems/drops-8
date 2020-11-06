@@ -26,9 +26,9 @@
         "installer-paths": {
             "web/core": ["type:drupal-core"],
             "web/libraries/{$name}": ["type:drupal-library"],
-            "web/modules/contrib/{$name}": ["type:drupal-module"],
-            "web/profiles/contrib/{$name}": ["type:drupal-profile"],
-            "web/themes/contrib/{$name}": ["type:drupal-theme"],
+            "web/modules/composer/{$name}": ["type:drupal-module"],
+            "web/profiles/composer/{$name}": ["type:drupal-profile"],
+            "web/themes/composer/{$name}": ["type:drupal-theme"],
             "drush/Commands/contrib/{$name}": ["type:drupal-drush"],
             "web/private/scripts/quicksilver/{$name}/": ["type:quicksilver-script"]
         },
