@@ -5,17 +5,19 @@
 # To ignore all paths that composer manages when using this project template,
 # remove all double-hashed () lines.
 
+web/sites/default/default.services.pantheon.preproduction.yml
+web/sites/default/default.services.yml
+web/sites/default/default.settings.php
+web/sites/default/settings.pantheon.php
+web/sites/development.services.yml
+web/sites/example.settings.local.php
 
-# Ignore configuration files that may contain sensitive information.
-#
-# Typically, settings.php and related files are not committed to the
-# repository because they contain information such as the database
-# credentials that could be used to compromise a site. Sometimes,
-# a settings.php might be committed to the repository if it reads
-# sensitive information from environment variables or other sources.
-# ------------------------------------------------------------------
-/web/sites/*/settings*.php
-/web/sites/*/services*.yml
+# Pantheon commits a settings.php for environment-specific settings.
+# Place local settings in settings.local.php
+web/sites/*/settings.local.php
+web/sites/*/services*.yml
+!web/sites/*/services.pantheon.*.yml
+!web/sites/*/services.yml
 
 # Ignore paths that contain user-generated content.
 /web/sites/*/files
@@ -61,9 +63,9 @@
 # ------------------------------------------------------------------
 /drush/Commands/contrib/
 /web/core/
-/web/modules/contrib/
-/web/themes/contrib/
-/web/profiles/contrib/
+/web/modules/composer/
+/web/themes/composer/
+/web/profiles/composer/
 /web/libraries/
 /web/private/scripts/quicksilver
 
