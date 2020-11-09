@@ -1,0 +1,34 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.alexa:
+  type: label
+  label: 'Site validation: Alexa'
+metatag.metatag_tag.baidu:
+  type: label
+  label: 'Site validation: Baidu'
+metatag.metatag_tag.bing:
+  type: label
+  label: 'Site validation: Bing'
+metatag.metatag_tag.google:
+  type: label
+  label: 'Site validation: Google'
+metatag.metatag_tag.norton_safe_web:
+  type: label
+  label: 'Site validation: Norton Safe Web'
+metatag.metatag_tag.pinterest:
+  type: label
+  label: 'Site validation: Pinterest'
+metatag.metatag_tag.pocket:
+  type: label
+  label: 'Site validation: Pocket'
+metatag.metatag_tag.yahoo:
+  type: label
+  label: 'Site validation: Yahoo'
+metatag.metatag_tag.yandex:
+  type: label
+  label: 'Site validation: Yandex'
+metatag.metatag_tag.zoom_domain_verification:
+  type: label
+  label: 'Site validation: Zoom'

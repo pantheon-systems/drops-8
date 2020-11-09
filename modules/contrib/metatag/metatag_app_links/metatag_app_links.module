@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_app_links.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_app_links_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_app_links module.
+    case 'help.page.metatag_app_links':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides support for applinks.org meta tags.') . '</p>';
+      return $output;
+
+    default:
+  }
+}

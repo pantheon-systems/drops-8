@@ -1,0 +1,6 @@
+name: mp-drupal-8-one
+recipe: pantheon
+config:
+  framework: drupal8
+  site: mp-drupal-8-one
+  id: fe0bf723-2172-49b6-a06d-a89939af8bf3

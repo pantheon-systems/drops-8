@@ -1,0 +1,19 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.google_plus_name:
+  type: label
+  label: 'Google Plus: name'
+metatag.metatag_tag.google_plus_image:
+  type: label
+  label: 'Google Plus: image'
+metatag.metatag_tag.google_plus_description:
+  type: text
+  label: 'Google Plus: description'
+metatag.metatag_tag.google_plus_publisher:
+  type: label
+  label: 'Publisher URL'
+metatag.metatag_tag.google_plus_author:
+  type: label
+  label: 'Author'

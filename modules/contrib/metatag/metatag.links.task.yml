@@ -1,0 +1,10 @@
+metatag_defaults:
+  route_name: 'entity.metatag_defaults.collection'
+  base_route: 'entity.metatag_defaults.collection'
+  title: 'Metatag defaults'
+  weight: 0
+metatag.settings:
+  route_name: 'metatag.settings'
+  base_route: 'entity.metatag_defaults.collection'
+  title: 'Settings'
+  weight: 10

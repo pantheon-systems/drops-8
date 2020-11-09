@@ -1,0 +1,72 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_test_integration.module.
+ */
+
+/**
+ * Implements hook_metatags_attachments_alter().
+ */
+function metatag_test_integration_metatags_attachments_alter(array &$attachments) {
+  $title = "This is the title I want | [site:name] | Yeah!";
+  if (isset($title)) {
+    _metatag_test_integration_replace_tag('title', \Drupal::token()->replace($title), $attachments);
+  }
+}
+
+/**
+ * Replaces meta tag in html head with given content.
+ *
+ * @param string $name
+ *   The name of the tag to replace.
+ * @param string $content
+ *   The content to use.
+ * @param array $attachments
+ *   The array of attachments to act on.
+ */
+function _metatag_test_integration_replace_tag($name, $content, array &$attachments) {
+  if (empty($attachments['#attached'])) {
+    $attachments['#attached'] = [];
+  }
+
+  if (empty($attachments['#attached']['html_head'])) {
+    $attachments['#attached']['html_head'] = [];
+  }
+
+  $index = _metatag_test_integration_find_tag($name, $attachments);
+
+  if ($index > -1) {
+    $attachments['#attached']['html_head'][$index][0]['#attributes']['content'] = $content;
+  }
+  else {
+    $attachments['#attached']['html_head'][] = [
+      0 => [
+        '#attributes' => ['name' => $name, 'content' => $content],
+        '#tag' => 'meta',
+      ],
+      1 => 'description',
+    ];
+  }
+}
+
+/**
+ * Finds the index of a meta tag in the html head.
+ *
+ * @param string $name
+ *   The name of the tag to find.
+ * @param array $attachments
+ *   The array of attachments to search.
+ *
+ * @return int
+ *   The position in the attachment array that the tag is found in. -1 if the
+ *   tag is not set.
+ */
+function _metatag_test_integration_find_tag($name, array $attachments) {
+  foreach ($attachments['#attached']['html_head'] as $index => $attachment) {
+    if ($attachment[1] == $name) {
+      return $index;
+    }
+  }
+  return -1;
+}

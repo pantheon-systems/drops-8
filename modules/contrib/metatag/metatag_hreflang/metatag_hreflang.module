@@ -1,0 +1,54 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_hreflang.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_hreflang_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_hreflang module.
+    case 'help.page.metatag_hreflang':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides support for the hreflang meta tag with some extra logic to simplify it.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_page_attachments_alter().
+ */
+function metatag_hreflang_page_attachments_alter(array &$attachments) {
+  // Only bother doing anything if both the "html_head" and "html_head_link"
+  // structures are present in the output.
+  if (!empty($attachments['#attached']['html_head'])) {
+    if (!empty($attachments['#attached']['html_head_link'])) {
+      // Get all defined hreflang_per_language values from html_head.
+      $hreflang_per_language = [];
+      foreach ($attachments['#attached']['html_head'] as $element) {
+        // Check for Metatag's identifier "hreflang_per_language".
+        if (!empty($element[1])) {
+          if (strpos($element[1], 'hreflang_per_language') !== false) {
+            $hreflang_per_language[] = $element[0]['#attributes']['hreflang'];
+          }
+        }
+      }
+
+      // Remove default links coming from content_translation if already defined
+      // by Metatag.
+      foreach ($attachments['#attached']['html_head_link'] as $key => $element) {
+        if (isset($element[0]['hreflang']) && in_array($element[0]['hreflang'], $hreflang_per_language)) {
+          unset($attachments['#attached']['html_head_link'][$key]);
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,786 @@
+<?php
+
+/**
+ * @file
+ * Enhances the token API in core: adds a browseable UI, missing tokens, etc.
+ */
+
+use Drupal\Component\Render\PlainTextOutput;
+use Drupal\Core\Block\BlockPluginInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Menu\MenuLinkInterface;
+use Drupal\Core\Render\BubbleableMetadata;
+use Drupal\Core\Render\Element;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\TypedData\TranslatableInterface;
+use Drupal\menu_link_content\Entity\MenuLinkContent;
+use Drupal\menu_link_content\MenuLinkContentInterface;
+use Drupal\node\Entity\Node;
+use Drupal\node\NodeInterface;
+
+/**
+ * Implements hook_help().
+ */
+function token_help($route_name, RouteMatchInterface $route_match) {
+  if ($route_name == 'help.page.token') {
+    $token_tree = \Drupal::service('token.tree_builder')->buildAllRenderable([
+      'click_insert' => FALSE,
+      'show_restricted' => TRUE,
+      'show_nested' => FALSE,
+    ]);
+    $output = '<h3>' . t('About') . '</h3>';
+    $output .= '<p>' . t('The <a href=":project">Token</a> module provides a user interface for the site token system. It also adds some additional tokens that are used extensively during site development. Tokens are specially formatted chunks of text that serve as placeholders for a dynamically generated value. For more information, covering both the token system and the additional tools provided by the Token module, see the <a href=":online">online documentation</a>.', [':online' => 'https://www.drupal.org/documentation/modules/token', ':project' => 'https://www.drupal.org/project/token']) . '</p>';
+    $output .= '<h3>' . t('Uses') . '</h3>';
+    $output .= '<p>' . t('Your website uses a shared token system for exposing and using placeholder tokens and their appropriate replacement values. This allows for any module to provide placeholder tokens for strings without having to reinvent the wheel. It also ensures consistency in the syntax used for tokens, making the system as a whole easier for end users to use.') . '</p>';
+    $output .= '<dl>';
+    $output .= '<dt>' . t('The list of the currently available tokens on this site are shown below.') . '</dt>';
+    $output .= '<dd>' . \Drupal::service('renderer')->render($token_tree) . '</dd>';
+    $output .= '</dl>';
+    return $output;
+  }
+}
+
+/**
+ * Return an array of the core modules supported by token.module.
+ */
+function _token_core_supported_modules() {
+  return ['book', 'field', 'menu_ui'];
+}
+
+/**
+ * Implements hook_theme().
+ */
+function token_theme() {
+  $info['token_tree_link'] = [
+    'variables' => [
+      'token_types' => [],
+      'global_types' => TRUE,
+      'click_insert' => TRUE,
+      'show_restricted' => FALSE,
+      'show_nested' => FALSE,
+      'recursion_limit' => 3,
+      'text' => NULL,
+      'options' => [],
+    ],
+    'file' => 'token.pages.inc',
+  ];
+
+  return $info;
+}
+
+/**
+ * Implements hook_block_view_alter().
+ */
+function token_block_view_alter(&$build, BlockPluginInterface $block) {
+  if (isset($build['#configuration'])) {
+    $label = $build['#configuration']['label'];
+    if ($label != '<none>') {
+      // The label is automatically escaped, avoid escaping it twice.
+      // @todo https://www.drupal.org/node/2580723 will add a method or option
+      //   to the token API to do this, use that when available.
+      $bubbleable_metadata = BubbleableMetadata::createFromRenderArray($build);
+      $build['#configuration']['label'] = PlainTextOutput::renderFromHtml(\Drupal::token()->replace($label, [], [], $bubbleable_metadata));
+      $bubbleable_metadata->applyTo($build);
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function token_form_block_form_alter(&$form, FormStateInterface $form_state) {
+  $token_tree = [
+    '#theme' => 'token_tree_link',
+    '#token_types' => [],
+  ];
+  $rendered_token_tree = \Drupal::service('renderer')->render($token_tree);
+  $form['settings']['label']['#description'] = t('This field supports tokens. @browse_tokens_link', [
+    '@browse_tokens_link' => $rendered_token_tree,
+  ]);
+  $form['settings']['label']['#element_validate'][] = 'token_element_validate';
+  $form['settings']['label'] += ['#token_types' => []];
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function token_field_info_alter(&$info) {
+  $defaults = [
+    'taxonomy_term_reference' => 'taxonomy_term_reference_plain',
+    'number_integer' => 'number_unformatted',
+    'number_decimal' => 'number_unformatted',
+    'number_float' => 'number_unformatted',
+    'file' => 'file_url_plain',
+    'image' => 'file_url_plain',
+    'text' => 'text_default',
+    'text_long' => 'text_default',
+    'text_with_summary' => 'text_default',
+    'list_integer' => 'list_default',
+    'list_float' => 'list_default',
+    'list_string' => 'list_default',
+    'list_boolean' => 'list_default',
+  ];
+  foreach ($defaults as $field_type => $default_token_formatter) {
+    if (isset($info[$field_type])) {
+      $info[$field_type] += ['default_token_formatter' => $default_token_formatter];
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert().
+ */
+function token_date_format_insert() {
+  token_clear_cache();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function token_date_format_delete() {
+  token_clear_cache();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave().
+ */
+function token_field_config_presave($instance) {
+  token_clear_cache();
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_delete().
+ */
+function token_field_config_delete($instance) {
+  token_clear_cache();
+}
+
+/**
+ * Clear token caches and static variables.
+ */
+function token_clear_cache() {
+  \Drupal::token()->resetInfo();
+  \Drupal::service('token.entity_mapper')->resetInfo();
+  drupal_static_reset('token_menu_link_load_all_parents');
+  drupal_static_reset('token_book_link_load');
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ *
+ * Because some token types to do not match their entity type names, we have to
+ * map them to the proper type. This is purely for other modules' benefit.
+ *
+ * @see \Drupal\token\TokenEntityMapperInterface::getEntityTypeMappings()
+ * @see http://drupal.org/node/737726
+ */
+function token_entity_type_alter(array &$entity_types) {
+  $devel_exists = \Drupal::moduleHandler()->moduleExists('devel');
+  /* @var $entity_types EntityTypeInterface[] */
+  foreach ($entity_types as $entity_type_id => $entity_type) {
+    if (!$entity_type->get('token_type')) {
+      // Fill in default token types for entities.
+      switch ($entity_type_id) {
+        case 'taxonomy_term':
+        case 'taxonomy_vocabulary':
+          // Stupid taxonomy token types...
+          $entity_type->set('token_type', str_replace('taxonomy_', '', $entity_type_id));
+          break;
+
+        default:
+          // By default the token type is the same as the entity type.
+          $entity_type->set('token_type', $entity_type_id);
+          break;
+      }
+    }
+
+    if ($devel_exists
+      && $entity_type->hasViewBuilderClass()
+      && ($canonical = $entity_type->getLinkTemplate('canonical'))
+      && !$entity_type->hasLinkTemplate('token-devel')) {
+      $entity_type->setLinkTemplate('token-devel', $canonical . '/devel/token');
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ *
+ * Adds missing token support for core modules.
+ */
+function token_module_implements_alter(&$implementations, $hook) {
+  \Drupal::moduleHandler()->loadInclude('token', 'inc', 'token.tokens');
+
+  if ($hook == 'tokens' || $hook == 'token_info' || $hook == 'token_info_alter' || $hook == 'tokens_alter') {
+    foreach (_token_core_supported_modules() as $module) {
+      if (\Drupal::moduleHandler()->moduleExists($module) && function_exists($module . '_' . $hook)) {
+        $implementations[$module] = TRUE;
+      }
+    }
+    // Move token.module to get included first since it is responsible for
+    // other modules.
+    if (isset($implementations['token'])) {
+      unset($implementations['token']);
+      $implementations = array_merge(['token' => 'tokens'], $implementations);
+    }
+  }
+}
+
+/**
+ * Return the module responsible for a token.
+ *
+ * @param string $type
+ *   The token type.
+ * @param string $name
+ *   The token name.
+ *
+ * @return mixed
+ *   The value of $info['tokens'][$type][$name]['module'] from token info, or
+ *   NULL if the value does not exist.
+ */
+function _token_module($type, $name) {
+  $token_info = \Drupal::token()->getTokenInfo($type, $name);
+  return isset($token_info['module']) ? $token_info['module'] : NULL;
+}
+
+/**
+ * Validate a form element that should have tokens in it.
+ *
+ * Form elements that want to add this validation should have the #token_types
+ * parameter defined.
+ *
+ * For example:
+ * @code
+ * $form['my_node_text_element'] = [
+ *   '#type' => 'textfield',
+ *   '#title' => t('Some text to token-ize that has a node context.'),
+ *   '#default_value' => 'The title of this node is [node:title].',
+ *   '#element_validate' => ['token_element_validate'],
+ *   '#token_types' => ['node'],
+ *   '#min_tokens' => 1,
+ *   '#max_tokens' => 10,
+ * ];
+ * @endcode
+ */
+function token_element_validate($element, FormStateInterface $form_state) {
+  $value = isset($element['#value']) ? $element['#value'] : $element['#default_value'];
+
+  if (!mb_strlen($value)) {
+    // Empty value needs no further validation since the element should depend
+    // on using the '#required' FAPI property.
+    return $element;
+  }
+
+  $tokens = \Drupal::token()->scan($value);
+  $title = empty($element['#title']) ? $element['#parents'][0] : $element['#title'];
+
+  // Validate if an element must have a minimum number of tokens.
+  if (isset($element['#min_tokens']) && count($tokens) < $element['#min_tokens']) {
+    $error = \Drupal::translation()->formatPlural($element['#min_tokens'], '%name must contain at least one token.', '%name must contain at least @count tokens.', ['%name' => $title]);
+    $form_state->setError($element, $error);
+  }
+
+  // Validate if an element must have a maximum number of tokens.
+  if (isset($element['#max_tokens']) && count($tokens) > $element['#max_tokens']) {
+    $error = \Drupal::translation()->formatPlural($element['#max_tokens'], '%name must contain at most one token.', '%name must contain at most @count tokens.', ['%name' => $title]);
+    $form_state->setError($element, $error);
+  }
+
+  // Check if the field defines specific token types.
+  if (isset($element['#token_types'])) {
+    $invalid_tokens = \Drupal::token()->getInvalidTokensByContext($tokens, $element['#token_types']);
+    if ($invalid_tokens) {
+      $form_state->setError($element, t('%name is using the following invalid tokens: @invalid-tokens.', ['%name' => $title, '@invalid-tokens' => implode(', ', $invalid_tokens)]));
+    }
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function token_form_field_config_edit_form_alter(&$form, FormStateInterface $form_state) {
+  $field_config = $form_state->getFormObject()->getEntity();
+  $field_storage = $field_config->getFieldStorageDefinition();
+  if ($field_storage->isLocked()) {
+    return;
+  }
+  $field_type = $field_storage->getType();
+  if (($field_type == 'file' || $field_type == 'image') && isset($form['settings']['file_directory'])) {
+    // GAH! We can only support global tokens in the upload file directory path.
+    $form['settings']['file_directory']['#element_validate'][] = 'token_element_validate';
+    // Date support needs to be implicitly added, as while technically it's not
+    // a global token, it is a not only used but is the default value.
+    // https://www.drupal.org/node/2642160
+    $form['settings']['file_directory'] += ['#token_types' => ['date']];
+    $form['settings']['file_directory']['#description'] .= ' ' . t('This field supports tokens.');
+  }
+
+  // Note that the description is tokenized via token_field_widget_form_alter().
+  $form['description']['#element_validate'][] = 'token_element_validate';
+  $form['description'] += ['#token_types' => []];
+
+  $form['token_tree'] = [
+    '#theme' => 'token_tree_link',
+    '#token_types' => [],
+    '#weight' => $form['description']['#weight'] + 0.5,
+  ];
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ *
+ * Alters the configure action form to add token context validation and
+ * adds the token tree for a better token UI and selection.
+ */
+function token_form_action_form_alter(&$form, $form_state) {
+  if (isset($form['plugin'])) {
+    switch ($form['plugin']['#value']) {
+      case 'action_message_action':
+      case 'action_send_email_action':
+      case 'action_goto_action':
+        $form['token_tree'] = [
+          '#theme' => 'token_tree_link',
+          '#token_types' => 'all',
+          '#weight' => 100,
+        ];
+        $form['actions']['#weight'] = 101;
+        // @todo Add token validation to the action fields that can use tokens.
+        break;
+    }
+  }
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Alters the user e-mail fields to add token context validation and
+ * adds the token tree for a better token UI and selection.
+ */
+function token_form_user_admin_settings_alter(&$form, FormStateInterface $form_state) {
+  $email_token_help = t('Available variables are: [site:name], [site:url], [user:display-name], [user:account-name], [user:mail], [site:login-url], [site:url-brief], [user:edit-url], [user:one-time-login-url], [user:cancel-url].');
+
+  foreach (Element::children($form) as $key) {
+    $element = &$form[$key];
+
+    // Remove the crummy default token help text.
+    if (!empty($element['#description'])) {
+      $element['#description'] = trim(str_replace($email_token_help, t('The list of available tokens that can be used in e-mails is provided below.'), $element['#description']));
+    }
+
+    switch ($key) {
+      case 'email_admin_created':
+      case 'email_pending_approval':
+      case 'email_no_approval_required':
+      case 'email_password_reset':
+      case 'email_cancel_confirm':
+        // Do nothing, but allow execution to continue.
+        break;
+
+      case 'email_activated':
+      case 'email_blocked':
+      case 'email_canceled':
+        // These fieldsets have their e-mail elements inside a 'settings'
+        // sub-element, so switch to that element instead.
+        $element = &$form[$key]['settings'];
+        break;
+
+      default:
+        continue 2;
+    }
+
+    foreach (Element::children($element) as $sub_key) {
+      if (!isset($element[$sub_key]['#type'])) {
+        continue;
+      }
+      elseif ($element[$sub_key]['#type'] == 'textfield' && substr($sub_key, -8) === '_subject') {
+        // Add validation to subject textfields.
+        $element[$sub_key]['#element_validate'][] = 'token_element_validate';
+        $element[$sub_key] += ['#token_types' => ['user']];
+      }
+      elseif ($element[$sub_key]['#type'] == 'textarea' && substr($sub_key, -5) === '_body') {
+        // Add validation to body textareas.
+        $element[$sub_key]['#element_validate'][] = 'token_element_validate';
+        $element[$sub_key] += ['#token_types' => ['user']];
+      }
+    }
+  }
+
+  // Add the token tree UI.
+  $form['email']['token_tree'] = [
+    '#theme' => 'token_tree_link',
+    '#token_types' => ['user'],
+    '#show_restricted' => TRUE,
+    '#show_nested' => FALSE,
+    '#weight' => 90,
+  ];
+}
+
+/**
+ * Prepare a string for use as a valid token name.
+ *
+ * @param $name
+ *   The token name to clean.
+ * @return
+ *   The cleaned token name.
+ */
+function token_clean_token_name($name) {
+  static $names = [];
+
+  if (!isset($names[$name])) {
+    $cleaned_name = strtr($name, [' ' => '-', '_' => '-', '/' => '-', '[' => '-', ']' => '']);
+    $cleaned_name = preg_replace('/[^\w\-]/i', '', $cleaned_name);
+    $cleaned_name = trim($cleaned_name, '-');
+    $names[$name] = $cleaned_name;
+  }
+
+  return $names[$name];
+}
+
+/**
+ * Do not use this function yet. Its API has not been finalized.
+ */
+function token_render_array(array $array, array $options = []) {
+  $rendered = [];
+
+  /** @var \Drupal\Core\Render\RendererInterface $renderer */
+  $renderer = \Drupal::service('renderer');
+
+  foreach (token_element_children($array) as $key) {
+    $value = $array[$key];
+    $rendered[] = is_array($value) ? $renderer->renderPlain($value) : (string) $value;
+  }
+  $join = isset($options['join']) ? $options['join'] : ', ';
+  return implode($join, $rendered);
+}
+
+/**
+ * Do not use this function yet. Its API has not been finalized.
+ */
+function token_render_array_value($value, array $options = []) {
+  /** @var \Drupal\Core\Render\RendererInterface $renderer */
+  $renderer = \Drupal::service('renderer');
+
+  $rendered = is_array($value) ? $renderer->renderPlain($value) : (string) $value;
+  return $rendered;
+}
+
+/**
+ * Copy of drupal_render_cache_get() that does not care about request method.
+ */
+function token_render_cache_get($elements) {
+  if (!$cid = drupal_render_cid_create($elements)) {
+    return FALSE;
+  }
+  $bin = isset($elements['#cache']['bin']) ? $elements['#cache']['bin'] : 'render';
+
+  if (!empty($cid) && $cache = \Drupal::cache($bin)->get($cid)) {
+    // Add additional libraries, JavaScript, CSS and other data attached
+    // to this element.
+    if (isset($cache->data['#attached'])) {
+      drupal_process_attached($cache->data);
+    }
+    // Return the rendered output.
+    return $cache->data['#markup'];
+  }
+  return FALSE;
+}
+
+/**
+ * Coyp of drupal_render_cache_set() that does not care about request method.
+ */
+function token_render_cache_set(&$markup, $elements) {
+  // This should only run of drupal_render_cache_set() did not.
+  if (in_array(\Drupal::request()->server->get('REQUEST_METHOD'), ['GET', 'HEAD'])) {
+    return FALSE;
+  }
+
+  $original_method = \Drupal::request()->server->get('REQUEST_METHOD');
+  \Drupal::request()->server->set('REQUEST_METHOD', 'GET');
+  drupal_render_cache_set($markup, $elements);
+  \Drupal::request()->server->set('REQUEST_METHOD', $original_method);
+}
+
+/**
+ * Loads menu link titles for all purents of a menu link plugin ID.
+ *
+ * @param string $plugin_id
+ *   The menu link plugin ID.
+ * @param string $langcode
+ *   The language code.
+ *
+ * @return string[]
+ *   List of menu link parent titles.
+ */
+function token_menu_link_load_all_parents($plugin_id, $langcode) {
+  $cache = &drupal_static(__FUNCTION__, []);
+
+  if (!isset($cache[$plugin_id][$langcode])) {
+    $cache[$plugin_id][$langcode] = [];
+    /** @var \Drupal\Core\Menu\MenuLinkManagerInterface $menu_link_manager */
+    $menu_link_manager = \Drupal::service('plugin.manager.menu.link');
+    $parent_ids = $menu_link_manager->getParentIds($plugin_id);
+    // Remove the current plugin ID from the parents.
+    unset($parent_ids[$plugin_id]);
+    foreach ($parent_ids as $parent_id) {
+      $parent = $menu_link_manager->createInstance($parent_id);
+      $cache[$plugin_id][$langcode] = [$parent_id => token_menu_link_translated_title($parent, $langcode)] + $cache[$plugin_id][$langcode];
+    }
+  }
+
+  return $cache[$plugin_id][$langcode];
+}
+
+/**
+ * Returns the translated link of a menu title.
+ *
+ * If the underlying entity is a content menu item, load it to get the
+ * translated menu item title.
+ *
+ * @todo Remove this when there is a better way to get a translated menu
+ *   item title in core: https://www.drupal.org/node/2795143
+ *
+ * @param \Drupal\Core\Menu\MenuLinkInterface $menu_link
+ *   The menu link.
+ * @param string|null $langcode
+ *   (optional) The langcode, defaults to the current language.
+ *
+ * @return string
+ *   The menu link title.
+ */
+function token_menu_link_translated_title(MenuLinkInterface $menu_link, $langcode = NULL) {
+  $metadata = $menu_link->getMetaData();
+  if (isset($metadata['entity_id']) && $menu_link->getProvider() == 'menu_link_content') {
+    /** @var \Drupal\menu_link_content\MenuLinkContentInterface $entity */
+    $entity = \Drupal::entityTypeManager()->getStorage('menu_link_content')->load($metadata['entity_id']);
+    $entity = \Drupal::service('entity.repository')->getTranslationFromContext($entity, $langcode);
+    return $entity->getTitle();
+  }
+  return $menu_link->getTitle();
+}
+
+/**
+ * Loads all the parents of the term in the specified language.
+ *
+ * @param int $tid
+ *   The term id.
+ * @param string $langcode
+ *   The language code.
+ *
+ * @return string[]
+ *   The term parents collection.
+ */
+function token_taxonomy_term_load_all_parents($tid, $langcode) {
+  $cache = &drupal_static(__FUNCTION__, []);
+
+  if (!is_numeric($tid)) {
+    return [];
+  }
+
+  if (!isset($cache[$langcode][$tid])) {
+    $cache[$langcode][$tid] = [];
+    /** @var \Drupal\taxonomy\TermStorageInterface $term_storage */
+    $term_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+    $parents = $term_storage->loadAllParents($tid);
+    // Remove this term from the array.
+    array_shift($parents);
+    $parents = array_reverse($parents);
+    foreach ($parents as $term) {
+      $translation = \Drupal::service('entity.repository')->getTranslationFromContext($term, $langcode);
+      $cache[$langcode][$tid][$term->id()] = $translation->label();
+    }
+  }
+
+  return $cache[$langcode][$tid];
+}
+
+function token_element_children(&$elements, $sort = FALSE) {
+  // Do not attempt to sort elements which have already been sorted.
+  $sort = isset($elements['#sorted']) ? !$elements['#sorted'] : $sort;
+
+  // Filter out properties from the element, leaving only children.
+  $children = [];
+  $sortable = FALSE;
+  foreach ($elements as $key => $value) {
+    if ($key === '' || $key[0] !== '#') {
+      $children[$key] = $value;
+      if (is_array($value) && isset($value['#weight'])) {
+        $sortable = TRUE;
+      }
+    }
+  }
+  // Sort the children if necessary.
+  if ($sort && $sortable) {
+    uasort($children, 'Drupal\Component\Utility\SortArray::sortByWeightProperty');
+    // Put the sorted children back into $elements in the correct order, to
+    // preserve sorting if the same element is passed through
+    // element_children() twice.
+    foreach ($children as $key => $child) {
+      unset($elements[$key]);
+      $elements[$key] = $child;
+    }
+    $elements['#sorted'] = TRUE;
+  }
+
+  return array_keys($children);
+}
+
+/**
+ * Loads all the parents of the book page.
+ *
+ * @param array $book
+ *   The book data. The 'nid' key points to the current page of the book.
+ *   The 'p1' ... 'p9' keys point to parents of the page, if they exist, with 'p1'
+ *   pointing to the book itself and the last defined pX to the current page.
+ *
+ * @return string[]
+ *   List of node titles of the book parents.
+ */
+function token_book_load_all_parents(array $book) {
+  $cache = &drupal_static(__FUNCTION__, []);
+
+  if (empty($book['nid'])) {
+    return [];
+  }
+  $nid = $book['nid'];
+
+  if (!isset($cache[$nid])) {
+    $cache[$nid] = [];
+    $i = 1;
+    while ($book["p$i"] != $nid) {
+      $cache[$nid][] = Node::load($book["p$i"])->getTitle();
+      $i++;
+    }
+  }
+
+  return $cache[$nid];
+}
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function token_entity_base_field_info(EntityTypeInterface $entity_type) {
+  // We add a pseudo entity-reference field to track the menu entry created
+  // from the node add/edit form so that tokens generated at that time that
+  // reference the menu link can access the yet to be saved menu link.
+  // @todo Revisit when https://www.drupal.org/node/2315773 is resolved.
+  if ($entity_type->id() === 'node' && \Drupal::moduleHandler()->moduleExists('menu_ui')) {
+    $fields['menu_link'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(t('Menu link'))
+      ->setDescription(t('Computed menu link for the node (only available during node saving).'))
+      ->setRevisionable(TRUE)
+      ->setSetting('target_type', 'menu_link_content')
+      ->setClass('\Drupal\token\MenuLinkFieldItemList')
+      ->setTranslatable(TRUE)
+      ->setInternal(TRUE)
+      ->setDisplayOptions('view', [
+        'label' => 'hidden',
+        'region' => 'hidden',
+      ])
+      ->setComputed(TRUE)
+      ->setDisplayOptions('form', [
+        'region' => 'hidden',
+      ]);
+
+    return $fields;
+  }
+  return [];
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter() for node_form.
+ *
+ * Populates menu_link field on nodes from the menu item on unsaved nodes.
+ *
+ * @see menu_ui_form_node_form_submit()
+ * @see token_entity_base_field_info()
+ */
+function token_form_node_form_alter(&$form, FormStateInterface $form_state) {
+  if (!\Drupal::moduleHandler()->moduleExists('menu_ui')) {
+    return;
+  }
+  $form['#entity_builders'][] = 'token_node_menu_link_submit';
+}
+
+/**
+ * Entity builder.
+ */
+function token_node_menu_link_submit($entity_type, NodeInterface $node, &$form, FormStateInterface $form_state) {
+  // Entity builders run twice, once during validation and again during
+  // submission, so we only run this code after validation has been performed.
+  if (!$form_state->isValueEmpty('menu') && $form_state->getTemporaryValue('entity_validated')) {
+    $values = $form_state->getValue('menu');
+    if (!empty($values['enabled']) && trim($values['title'])) {
+      if (!empty($values['menu_parent'])) {
+        list($menu_name, $parent) = explode(':', $values['menu_parent'], 2);
+        $values['menu_name'] = $menu_name;
+        $values['parent'] = $parent;
+      }
+      // Construct an unsaved entity.
+      if ($entity_id = $form_state->getValue(['menu', 'entity_id'])) {
+        // Use the existing menu_link_content entity.
+        $entity = MenuLinkContent::load($entity_id);
+        // If the loaded MenuLinkContent doesn't have a translation for the
+        // Node's active langcode, create a new translation.
+        if ($entity->isTranslatable()) {
+          if (!$entity->hasTranslation($node->language()->getId())) {
+            $entity = $entity->addTranslation($node->language()->getId(), $entity->toArray());
+          }
+          else {
+            $entity = $entity->getTranslation($node->language()->getId());
+          }
+        }
+      }
+      else {
+        if ($node->isNew()) {
+          // Create a new menu_link_content entity.
+          $entity = MenuLinkContent::create([
+            // Lets just reference the UUID for now, the link is not important for
+            // token generation.
+            'link' => ['uri' => 'internal:/node/' . $node->uuid()],
+            'langcode' => $node->language()->getId(),
+          ]);
+        }
+        else {
+          // Create a new menu_link_content entity.
+          $entity = MenuLinkContent::create([
+            'link' => ['uri' => 'entity:node/' . $node->id()],
+            'langcode' => $node->language()->getId(),
+          ]);
+        }
+      }
+      $entity->title->value = trim($values['title']);
+      $entity->description->value = trim($values['description']);
+      $entity->menu_name->value = $values['menu_name'];
+      $entity->parent->value = $values['parent'];
+      $entity->weight->value = isset($values['weight']) ? $values['weight'] : 0;
+      $entity->isDefaultRevision($node->isDefaultRevision());
+      $entity->save();
+      $node->menu_link = $entity;
+      // Leave this for _menu_ui_node_save() to pick up so we don't end up with
+      // duplicate menu-links.
+      $form_state->setValue(['menu', 'entity_id'], $entity->id());
+    }
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_insert for node entities.
+ */
+function token_node_insert(NodeInterface $node) {
+  if ($node->hasField('menu_link') && $menu_link = $node->menu_link->entity) {
+    // Update the menu-link to point to the now saved node.
+    $menu_link->link = 'entity:node/' . $node->id();
+    $menu_link->save();
+  }
+}
+
+/**
+ * Implements hook_ENTITY_TYPE_presave() for menu_link_content.
+ */
+function token_menu_link_content_presave(MenuLinkContentInterface $menu_link_content) {
+  drupal_static_reset('token_menu_link_load_all_parents');
+}

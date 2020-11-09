@@ -1,0 +1,38 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_open_graph.module.
+ */
+
+/**
+ * Implements template_preprocess_html().
+ */
+function metatag_open_graph_preprocess_html(&$variables) {
+  if (!metatag_is_current_route_supported()) {
+    return;
+  }
+
+  // Add XML namespaces if the RDF module is not enabled as it adds these two
+  // automatically.
+  if (!isset($variables['html_attributes'])) {
+    $variables['html_attributes'] = [];
+  }
+  $namespaces = [];
+  if (!\Drupal::moduleHandler()->moduleExists('rdf')) {
+    $namespaces = [
+      'prefix' => 'og: https://ogp.me/ns#',
+    ];
+  }
+
+  // Namespaces for Google+.
+  if (isset($variables['itemtype'])) {
+    $namespaces['itemscope'] = '';
+    $namespaces['itemtype'] = "https://schema.org/{$variables['itemtype']}";
+  }
+
+  // Append each namespace.
+  foreach ($namespaces as $namespace => $uri) {
+    $variables['html_attributes'][$namespace] = $uri;
+  }
+}

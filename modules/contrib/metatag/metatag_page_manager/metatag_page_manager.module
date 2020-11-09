@@ -1,0 +1,106 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_page_manager.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\page_manager\Entity\PageVariant;
+use Drupal\metatag\Entity\MetatagDefaults;
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function metatag_page_manager_form_metatag_defaults_add_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $variants_options['Page Variants'] = _metatag_page_manager_get_variants();
+  $form['id']['#options'] = array_merge($form['id']['#options'], $variants_options);
+}
+
+/**
+ * Implements hook_page_attachments().
+ */
+function metatag_page_manager_page_attachments(array &$attachments) {
+  // Fetch entity from request.
+  $entity = \Drupal::request()->attributes->get('_entity');
+  if ($entity) {
+
+    $key = $entity->getEntityType()->id() . '__' . $entity->id();
+    // Get default metatags.
+    $metatag_defaults = metatag_get_default_tags();
+    // Load page variant metatags.
+    $metatag_variant = MetatagDefaults::load($key);
+    if ($metatag_variant) {
+      // Overwrite the metatag defaults with the tags of the page variant.
+      $metatag_defaults = array_merge($metatag_defaults, $metatag_variant->get('tags'));
+
+      // Set the metatag in the static metatag attachments parameter so the
+      // metatag module wouldn't overwrite them.
+      $metatag_attachments = &drupal_static('metatag_attachments');
+
+      $metatag_manager = \Drupal::service('metatag.manager');
+      $metatag_attachments = $metatag_manager->generateElements($metatag_defaults, $entity);
+
+      // If any Metatag items were found, append them.
+      if (!empty($metatag_attachments['#attached']['html_head'])) {
+        if (empty($attachments['#attached'])) {
+          $attachments['#attached'] = [];
+        }
+        if (empty($attachments['#attached']['html_head'])) {
+          $attachments['#attached']['html_head'] = [];
+        }
+        foreach ($metatag_attachments['#attached']['html_head'] as $item) {
+          $attachments['#attached']['html_head'][] = $item;
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Returns all available page variants.
+ *
+ * @return string[]
+ *   A list of page variants keyed by label.
+ */
+function _metatag_page_manager_get_variants() {
+  /** @var \Drupal\page_manager\Entity\PageVariant[] $variants */
+  $variants = PageVariant::loadMultiple();
+  $variant_options = [];
+  // Load all metatag defaults so we can filter the variants which already have
+  // a metatag default configured.
+  $metatag_defaults = MetatagDefaults::loadMultiple();
+  foreach ($variants as $key => $variant) {
+    $id = $variant->getEntityType()->id() . '__' . $key;
+    if (!isset($metatag_defaults[$id])) {
+      $label = $variant->getPage()->label() . ' : ' . $variant->label();
+      $variant_options[$id] = $label;
+    }
+  }
+  return $variant_options;
+}
+
+/**
+ * Implements hook_metatag_alter().
+ */
+function metatag_page_manager_metatags_alter(array &$metatags, array &$context) {
+  if (!$context['entity'] instanceof PageVariant) {
+    return;
+  }
+
+  $key = $context['entity']->getEntityType()->id() . '__' . $context['entity']->id();
+  $metatag_variant = MetatagDefaults::load($key);
+  if ($metatag_variant) {
+    $metatags = array_merge($metatags, $metatag_variant->get('tags'));
+  }
+}
+
+/**
+ * Implements hook_metatag_route_entity().
+ */
+function metatag_page_manager_metatag_route_entity(RouteMatchInterface $route_match) {
+  if ($variant = $route_match->getParameter('page_manager_page_variant')) {
+    return $variant;
+  }
+}

@@ -1,0 +1,16 @@
+# Schema for metatag.
+field.value.metatag:
+  type: mapping
+  label: 'Default value'
+  mapping:
+    value:
+      type: string
+      label: 'Metatags'
+
+field.widget.settings.metatag_firehose:
+  type: mapping
+  label: 'Advanced meta tags form'
+  mapping:
+    sidebar:
+      type: boolean
+      label: 'Place field in sidebar'

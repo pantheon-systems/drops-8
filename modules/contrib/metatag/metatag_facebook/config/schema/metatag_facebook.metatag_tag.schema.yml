@@ -1,0 +1,13 @@
+# The 'type' should be "label" for short meta tags and "text" for ones which
+# could get longer, especially ones which use a textarea field instead of a
+# textfield.
+
+metatag.metatag_tag.fb_admins:
+  type: label
+  label: 'Facebook Admins'
+metatag.metatag_tag.fb_app_id:
+  type: label
+  label: 'Facebook App ID'
+metatag.metatag_tag.fb_pages:
+  type: label
+  label: 'Facebook Pages'

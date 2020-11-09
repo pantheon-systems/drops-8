@@ -1,0 +1,9 @@
+type: module
+name: Token
+description: Provides a user interface for the Token API and some missing core tokens.
+core_version_requirement: ^8.8 || ^9
+
+# Information added by Drupal.org packaging script on 2020-04-26
+version: '8.x-1.7'
+project: 'token'
+datestamp: 1587893591

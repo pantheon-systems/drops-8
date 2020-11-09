@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * Contains metatag_google_cse.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function metatag_google_cse_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the metatag_google_cse module.
+    case 'help.page.metatag_google_cse':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides support for meta tags used for Google Custom Search Engine.') . '</p>';
+      return $output;
+
+    default:
+  }
+}

@@ -1,0 +1,4 @@
+'administer meta tags':
+  title: Administer meta tags
+  description: Control the main settings pages and modify per-object meta tags.
+  'restrict access': TRUE
