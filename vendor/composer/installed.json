@@ -665,17 +665,17 @@
     },
     {
         "name": "drupal/core",
-        "version": "8.8.11",
-        "version_normalized": "8.8.11.0",
+        "version": "8.8.12",
+        "version_normalized": "8.8.12.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core.git",
-            "reference": "049a282977f56cf58aa2fb70bb9be9ca6c87d250"
+            "reference": "9cbfd3b0e955bc34649bdc471b9a702650887f73"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core/zipball/049a282977f56cf58aa2fb70bb9be9ca6c87d250",
-            "reference": "049a282977f56cf58aa2fb70bb9be9ca6c87d250",
+            "url": "https://api.github.com/repos/drupal/core/zipball/9cbfd3b0e955bc34649bdc471b9a702650887f73",
+            "reference": "9cbfd3b0e955bc34649bdc471b9a702650887f73",
             "shasum": ""
         },
         "require": {
@@ -700,7 +700,7 @@
             "ext-xml": "*",
             "guzzlehttp/guzzle": "^6.3",
             "masterminds/html5": "^2.1",
-            "pear/archive_tar": "^1.4.9",
+            "pear/archive_tar": "^1.4.11",
             "php": ">=7.0.8",
             "stack/builder": "^1.0",
             "symfony-cmf/routing": "^1.4",
@@ -903,8 +903,8 @@
     },
     {
         "name": "drupal/core-composer-scaffold",
-        "version": "8.8.11",
-        "version_normalized": "8.8.11.0",
+        "version": "8.8.12",
+        "version_normalized": "8.8.12.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-composer-scaffold.git",
@@ -950,8 +950,8 @@
     },
     {
         "name": "drupal/core-project-message",
-        "version": "8.8.11",
-        "version_normalized": "8.8.11.0",
+        "version": "8.8.12",
+        "version_normalized": "8.8.12.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-project-message.git",
@@ -988,17 +988,17 @@
     },
     {
         "name": "drupal/core-recommended",
-        "version": "8.8.11",
-        "version_normalized": "8.8.11.0",
+        "version": "8.8.12",
+        "version_normalized": "8.8.12.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-recommended.git",
-            "reference": "56137126dd3ee7ec332c532f5dd4cbe5c26950f8"
+            "reference": "4a3b2899aa32076fdb3c811b0b115346151a57e2"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/drupal/core-recommended/zipball/56137126dd3ee7ec332c532f5dd4cbe5c26950f8",
-            "reference": "56137126dd3ee7ec332c532f5dd4cbe5c26950f8",
+            "url": "https://api.github.com/repos/drupal/core-recommended/zipball/4a3b2899aa32076fdb3c811b0b115346151a57e2",
+            "reference": "4a3b2899aa32076fdb3c811b0b115346151a57e2",
             "shasum": ""
         },
         "require": {
@@ -1010,7 +1010,7 @@
             "doctrine/common": "v2.7.3",
             "doctrine/inflector": "v1.2.0",
             "doctrine/lexer": "1.0.2",
-            "drupal/core": "8.8.11",
+            "drupal/core": "8.8.12",
             "easyrdf/easyrdf": "0.9.1",
             "egulias/email-validator": "2.1.11",
             "guzzlehttp/guzzle": "6.3.3",
@@ -1018,7 +1018,7 @@
             "guzzlehttp/psr7": "1.6.1",
             "masterminds/html5": "2.3.0",
             "paragonie/random_compat": "v9.99.99",
-            "pear/archive_tar": "1.4.9",
+            "pear/archive_tar": "1.4.11",
             "pear/console_getopt": "v1.4.2",
             "pear/pear-core-minimal": "v1.10.9",
             "pear/pear_exception": "v1.0.0",
@@ -1066,8 +1066,8 @@
     },
     {
         "name": "drupal/core-vendor-hardening",
-        "version": "8.8.11",
-        "version_normalized": "8.8.11.0",
+        "version": "8.8.12",
+        "version_normalized": "8.8.12.0",
         "source": {
             "type": "git",
             "url": "https://github.com/drupal/core-vendor-hardening.git",
@@ -1535,17 +1535,17 @@
     },
     {
         "name": "pear/archive_tar",
-        "version": "1.4.9",
-        "version_normalized": "1.4.9.0",
+        "version": "1.4.11",
+        "version_normalized": "1.4.11.0",
         "source": {
             "type": "git",
             "url": "https://github.com/pear/Archive_Tar.git",
-            "reference": "c5b00053770e1d72128252c62c2c1a12c26639f0"
+            "reference": "17d355cb7d3c4ff08e5729f29cd7660145208d9d"
         },
         "dist": {
             "type": "zip",
-            "url": "https://api.github.com/repos/pear/Archive_Tar/zipball/c5b00053770e1d72128252c62c2c1a12c26639f0",
-            "reference": "c5b00053770e1d72128252c62c2c1a12c26639f0",
+            "url": "https://api.github.com/repos/pear/Archive_Tar/zipball/17d355cb7d3c4ff08e5729f29cd7660145208d9d",
+            "reference": "17d355cb7d3c4ff08e5729f29cd7660145208d9d",
             "shasum": ""
         },
         "require": {
@@ -1560,7 +1560,7 @@
             "ext-xz": "Lzma2 compression support.",
             "ext-zlib": "Gzip compression support."
         },
-        "time": "2019-12-04T10:17:28+00:00",
+        "time": "2020-11-19T22:10:24+00:00",
         "type": "library",
         "extra": {
             "branch-alias": {
