@@ -22,7 +22,6 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "extra": {
-        "enable-patching": true,
         "installer-paths": {
             "web/core": ["type:drupal-core"],
             "web/libraries/{$name}": ["type:drupal-library"],
@@ -31,11 +30,6 @@
             "web/themes/composer/{$name}": ["type:drupal-theme"],
             "drush/Commands/contrib/{$name}": ["type:drupal-drush"],
             "web/private/scripts/quicksilver/{$name}/": ["type:quicksilver-script"]
-        },
-        "patches": {
-            "drupal/core": {
-                "db version": "https://raw.githubusercontent.com/stevector/drupal-9-project/master/patches/issue-2--mariadb-version.patch"
-            }
         },
         "composer-exit-on-patch-failure": true,
         "patchLevel": {
