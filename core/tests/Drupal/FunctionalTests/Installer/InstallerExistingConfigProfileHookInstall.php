@@ -32,7 +32,6 @@ EOF;
    */
   protected function setUpSettings() {
     // There are errors therefore there is nothing to do here.
-    return;
   }
 
   /**
@@ -40,7 +39,6 @@ EOF;
    */
   protected function setUpSite() {
     // There are errors therefore there is nothing to do here.
-    return;
   }
 
   /**
@@ -56,7 +54,7 @@ EOF;
    * Confirms the installation has failed and the expected error is displayed.
    */
   public function testConfigSync() {
-    $this->assertTitle('Requirements problem | Drupal');
+    $this->assertSession()->titleEquals('Requirements problem | Drupal');
     $this->assertText($this->profile);
     $this->assertText('The selected profile has a hook_install() implementation and therefore can not be installed from configuration.');
   }

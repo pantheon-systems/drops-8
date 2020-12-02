@@ -36,7 +36,7 @@ class FieldUITest extends UITestBase {
 
     // Hides the field and check whether the hidden label is appended.
     $edit_handler_url = 'admin/structure/views/nojs/handler/test_view/default/field/name';
-    $this->drupalPostForm($edit_handler_url, ['options[exclude]' => TRUE], t('Apply'));
+    $this->drupalPostForm($edit_handler_url, ['options[exclude]' => TRUE], 'Apply');
 
     $this->assertText('Views test: Name [' . t('hidden') . ']');
 
@@ -64,15 +64,15 @@ class FieldUITest extends UITestBase {
 
     // Ensure that dialog titles are not escaped.
     $edit_groupby_url = 'admin/structure/views/nojs/handler/test_view/default/field/name';
-    $this->assertNoLinkByHref($edit_groupby_url, 0, 'No aggregation link found.');
+    $this->assertSession()->linkByHrefNotExists($edit_groupby_url, 0, 'No aggregation link found.');
 
     // Enable aggregation on the view.
     $edit = [
       'group_by' => TRUE,
     ];
-    $this->drupalPostForm('/admin/structure/views/nojs/display/test_view/default/group_by', $edit, t('Apply'));
+    $this->drupalPostForm('/admin/structure/views/nojs/display/test_view/default/group_by', $edit, 'Apply');
 
-    $this->assertLinkByHref($edit_groupby_url, 0, 'Aggregation link found.');
+    $this->assertSession()->linkByHrefExists($edit_groupby_url, 0, 'Aggregation link found.');
 
     $edit_handler_url = '/admin/structure/views/ajax/handler-group/test_view/default/field/name';
     $this->drupalGet($edit_handler_url);
@@ -95,7 +95,7 @@ class FieldUITest extends UITestBase {
     $view['page[style][style_plugin]'] = 'default';
     $view['page[title]'] = $this->randomMachineName(16);
     $view['page[path]'] = $view['id'];
-    $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view, 'Save and edit');
 
     $view = Views::getView($view['id']);
     $view->initHandlers();

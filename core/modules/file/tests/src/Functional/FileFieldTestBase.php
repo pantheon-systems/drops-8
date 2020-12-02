@@ -26,7 +26,7 @@ abstract class FileFieldTestBase extends BrowserTestBase {
   protected static $modules = ['node', 'file', 'file_module_test', 'field_ui'];
 
   /**
-   * An user with administration permissions.
+   * A user with administration permissions.
    *
    * @var \Drupal\user\UserInterface
    */
@@ -175,11 +175,11 @@ abstract class FileFieldTestBase extends BrowserTestBase {
       }
       else {
         $page->attachFileToField($name, $file_path);
-        $this->drupalPostForm(NULL, [], t('Upload'));
+        $this->submitForm([], 'Upload');
       }
     }
 
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
 
     return $nid;
   }
@@ -194,8 +194,8 @@ abstract class FileFieldTestBase extends BrowserTestBase {
       'revision' => (string) (int) $new_revision,
     ];
 
-    $this->drupalPostForm('node/' . $nid . '/edit', [], t('Remove'));
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm('node/' . $nid . '/edit', [], 'Remove');
+    $this->submitForm($edit, 'Save');
   }
 
   /**
@@ -207,8 +207,8 @@ abstract class FileFieldTestBase extends BrowserTestBase {
       'revision' => (string) (int) $new_revision,
     ];
 
-    $this->drupalPostForm('node/' . $nid . '/edit', [], t('Remove'));
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm('node/' . $nid . '/edit', [], 'Remove');
+    $this->submitForm($edit, 'Save');
   }
 
   /**

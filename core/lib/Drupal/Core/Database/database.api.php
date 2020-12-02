@@ -175,7 +175,7 @@ use Drupal\Core\Database\Query\SelectInterface;
  *   try {
  *     $id = $connection->insert('example')
  *       ->fields(array(
- *         'field1' => 'mystring',
+ *         'field1' => 'string',
  *         'field2' => 5,
  *       ))
  *       ->execute();
@@ -432,7 +432,7 @@ function hook_query_alter(Drupal\Core\Database\Query\AlterableInterface $query) 
  *   a listing (e.g., from Views) and therefore require access control.
  *
  * @param $query
- *   An Query object describing the composite parts of a SQL query.
+ *   A Query object describing the composite parts of a SQL query.
  *
  * @see hook_query_alter()
  * @see node_query_node_access_alter()

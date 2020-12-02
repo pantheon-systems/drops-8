@@ -26,7 +26,7 @@ class ClaroPreRender implements TrustedCallbackInterface {
     }
 
     // Wrap single-cardinality widgets with a details element.
-    $single_file_widget = !empty($element['#cardinality']) && $element['#cardinality'] === 1;
+    $single_file_widget = empty($element['#do_not_wrap_in_details']) && !empty($element['#cardinality']) && $element['#cardinality'] === 1;
     if ($single_file_widget && empty($element['#single_wrapped'])) {
       $element['#theme_wrappers']['details'] = [
         '#title' => $element['#title'],
@@ -110,17 +110,11 @@ class ClaroPreRender implements TrustedCallbackInterface {
   }
 
   /**
-   * Prerender callback for Dropbutton element.
-   *
-   * @todo Revisit after https://www.drupal.org/node/3057581 is added.
+   * Prerender callback for the Operations element.
    */
-  public static function dropButton($element) {
-    if (!empty($element['#dropbutton_type']) && is_string($element['#dropbutton_type'])) {
-      $supported_types = ['small', 'extrasmall'];
-
-      if (in_array($element['#dropbutton_type'], $supported_types)) {
-        $element['#attributes']['class'][] = 'dropbutton--' . $element['#dropbutton_type'];
-      }
+  public static function operations($element) {
+    if (empty($element['#dropbutton_type'])) {
+      $element['#dropbutton_type'] = 'extrasmall';
     }
     return $element;
   }
@@ -199,7 +193,7 @@ class ClaroPreRender implements TrustedCallbackInterface {
     return [
       'managedFile',
       'verticalTabs',
-      'dropButton',
+      'operations',
       'container',
       'textFormat',
       'messagePlaceholder',

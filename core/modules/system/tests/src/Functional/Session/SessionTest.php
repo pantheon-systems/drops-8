@@ -51,7 +51,8 @@ class SessionTest extends BrowserTestBase {
     // Start a new session by setting a message.
     $this->drupalGet('session-test/set-message');
     $this->assertSessionCookie(TRUE);
-    $this->assertRegExp('/HttpOnly/i', $this->drupalGetHeader('Set-Cookie', TRUE), 'Session cookie is set as HttpOnly.');
+    // Verify that the session cookie is set as HttpOnly.
+    $this->assertSession()->responseHeaderMatches('Set-Cookie', '/HttpOnly/i');
 
     // Verify that the session is regenerated if a module calls exit
     // in hook_user_login().
@@ -69,7 +70,7 @@ class SessionTest extends BrowserTestBase {
       'name' => $user->getAccountName(),
       'pass' => $user->passRaw,
     ];
-    $this->drupalPostForm('user/login', $edit, t('Log in'));
+    $this->drupalPostForm('user/login', $edit, 'Log in');
     $this->drupalGet('user');
     $pass = $this->assertText($user->getAccountName(), new FormattableMarkup('Found name: %name', ['%name' => $user->getAccountName()]), 'User login');
     $this->_logged_in = $pass;
@@ -187,30 +188,32 @@ class SessionTest extends BrowserTestBase {
     $this->assertSessionCookie(FALSE);
     // @todo Reinstate when REQUEST and RESPONSE events fire for cached pages.
     // $this->assertSessionEmpty(TRUE);
-    $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'MISS', 'Page was not cached.');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'MISS');
 
     // Start a new session by setting a message.
     $this->drupalGet('session-test/set-message');
     $this->assertSessionCookie(TRUE);
-    $this->assertNotEmpty($this->drupalGetHeader('Set-Cookie'), 'New session was started.');
+    $this->assertNotNull($this->getSession()->getResponseHeader('Set-Cookie'));
 
     // Display the message, during the same request the session is destroyed
     // and the session cookie is unset.
     $this->drupalGet('');
     $this->assertSessionCookie(FALSE);
     $this->assertSessionEmpty(FALSE);
-    $this->assertNull($this->drupalGetHeader('X-Drupal-Cache'), 'Caching was bypassed.');
-    $this->assertText(t('This is a dummy message.'), 'Message was displayed.');
-    $this->assertRegExp('/SESS\w+=deleted/', $this->drupalGetHeader('Set-Cookie'), 'Session cookie was deleted.');
+    // Verify that caching was bypassed.
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
+    $this->assertText('This is a dummy message.', 'Message was displayed.');
+    // Verify that session cookie was deleted.
+    $this->assertSession()->responseHeaderMatches('Set-Cookie', '/SESS\w+=deleted/');
 
     // Verify that session was destroyed.
     $this->drupalGet('');
     $this->assertSessionCookie(FALSE);
     // @todo Reinstate when REQUEST and RESPONSE events fire for cached pages.
     // $this->assertSessionEmpty(TRUE);
-    $this->assertNoText(t('This is a dummy message.'), 'Message was not cached.');
-    $this->assertEqual($this->drupalGetHeader('X-Drupal-Cache'), 'HIT', 'Page was cached.');
-    $this->assertNull($this->drupalGetHeader('Set-Cookie'), 'New session was not started.');
+    $this->assertNoText('This is a dummy message.', 'Message was not cached.');
+    $this->assertSession()->responseHeaderEquals('X-Drupal-Cache', 'HIT');
+    $this->assertSession()->responseHeaderDoesNotExist('Set-Cookie');
 
     // Verify that no session is created if drupal_save_session(FALSE) is called.
     $this->drupalGet('session-test/set-message-but-do-not-save');
@@ -222,7 +225,7 @@ class SessionTest extends BrowserTestBase {
     $this->assertSessionCookie(FALSE);
     // @todo Reinstate when REQUEST and RESPONSE events fire for cached pages.
     // $this->assertSessionEmpty(TRUE);
-    $this->assertNoText(t('This is a dummy message.'), 'The message was not saved.');
+    $this->assertNoText('This is a dummy message.', 'The message was not saved.');
   }
 
   /**
@@ -298,7 +301,8 @@ class SessionTest extends BrowserTestBase {
     // from persisting.
     $this->mink->resetSessions();
     $this->drupalGet('session-test/id-from-cookie');
-    $this->assertRaw("session_id:\n", 'Session ID is blank as sent from cookie header.');
+    // Verify that session ID is blank as sent from cookie header.
+    $this->assertRaw("session_id:\n");
     // Assert that we have an anonymous session now.
     $this->drupalGet('session-test/is-logged-in');
     $this->assertSession()->statusCodeEquals(403);
@@ -369,10 +373,10 @@ class SessionTest extends BrowserTestBase {
    */
   public function assertSessionEmpty($empty) {
     if ($empty) {
-      $this->assertIdentical($this->drupalGetHeader('X-Session-Empty'), '1', 'Session was empty.');
+      $this->assertSession()->responseHeaderEquals('X-Session-Empty', '1');
     }
     else {
-      $this->assertIdentical($this->drupalGetHeader('X-Session-Empty'), '0', 'Session was not empty.');
+      $this->assertSession()->responseHeaderEquals('X-Session-Empty', '0');
     }
   }
 

@@ -89,10 +89,7 @@ class DbDumpTest extends KernelTestBase {
     }
 
     // Create some schemas so our export contains tables.
-    $this->installSchema('system', [
-      'key_value_expire',
-      'sessions',
-    ]);
+    $this->installSchema('system', ['sessions']);
     $this->installSchema('dblog', ['watchdog']);
     $this->installEntitySchema('block_content');
     $this->installEntitySchema('user');
@@ -110,6 +107,7 @@ class DbDumpTest extends KernelTestBase {
     $storage->write('test_config', $this->data);
 
     // Create user account with some potential syntax issues.
+    // cspell:disable-next-line
     $account = User::create(['mail' => 'q\'uote$dollar@example.com', 'name' => '$dollar']);
     $account->save();
 
@@ -133,7 +131,6 @@ class DbDumpTest extends KernelTestBase {
       'cache_discovery',
       'cache_entity',
       'file_managed',
-      'key_value_expire',
       'menu_link_content',
       'menu_link_content_data',
       'menu_link_content_revision',
@@ -171,6 +168,7 @@ class DbDumpTest extends KernelTestBase {
     $this->assertRegExp('/' . $pattern . '/', $command_tester->getDisplay(), 'Generated data is found in the exported script.');
 
     // Check that the user account name and email address was properly escaped.
+    // cspell:disable-next-line
     $pattern = preg_quote('"q\'uote\$dollar@example.com"');
     $this->assertRegExp('/' . $pattern . '/', $command_tester->getDisplay(), 'The user account email address was properly escaped in the exported script.');
     $pattern = preg_quote('\'$dollar\'');
@@ -211,7 +209,7 @@ class DbDumpTest extends KernelTestBase {
     }
 
     // Ensure the test config has been replaced.
-    $config = unserialize($connection->query("SELECT data FROM {config} WHERE name = 'test_config'")->fetchField());
+    $config = unserialize($connection->select('config', 'c')->fields('c', ['data'])->condition('name', 'test_config')->execute()->fetchField());
     $this->assertIdentical($config, $this->data, 'Script has properly restored the config table data.');
 
     // Ensure the cache data was not exported.

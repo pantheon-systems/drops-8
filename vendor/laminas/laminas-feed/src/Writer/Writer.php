@@ -60,6 +60,8 @@ class Writer
      * Set plugin loader for use with Extensions
      *
      * @param ExtensionManagerInterface
+     *
+     * @return void
      */
     public static function setExtensionManager(ExtensionManagerInterface $extensionManager)
     {

@@ -134,8 +134,8 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     // From the manage display page, go to manage the layout.
     $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default');
-    $this->drupalPostForm(NULL, ['layout[enabled]' => TRUE], 'Save');
-    $this->drupalPostForm(NULL, ['layout[allow_custom]' => TRUE], 'Save');
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
+    $this->submitForm(['layout[allow_custom]' => TRUE], 'Save');
     // @todo This should not be necessary.
     $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
 
@@ -182,8 +182,8 @@ class LayoutBuilderTest extends BrowserTestBase {
     ]));
 
     $this->drupalGet('admin/config/people/accounts/display/default');
-    $this->drupalPostForm(NULL, ['layout[enabled]' => TRUE], 'Save');
-    $this->drupalPostForm(NULL, ['layout[allow_custom]' => TRUE], 'Save');
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
+    $this->submitForm(['layout[allow_custom]' => TRUE], 'Save');
 
     $page->clickLink('Manage layout');
     $assert_session->pageTextContains('You are editing the layout template for all users.');
@@ -216,8 +216,8 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     // From the manage display page, go to manage the layout.
     $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default');
-    $this->drupalPostForm(NULL, ['layout[enabled]' => TRUE], 'Save');
-    $this->drupalPostForm(NULL, ['layout[allow_custom]' => TRUE], 'Save');
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
+    $this->submitForm(['layout[allow_custom]' => TRUE], 'Save');
     // @todo This should not be necessary.
     $this->container->get('entity_field.manager')->clearCachedFieldDefinitions();
 
@@ -275,7 +275,7 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->linkNotExists('Manage layout');
     $assert_session->fieldDisabled('layout[allow_custom]');
 
-    $this->drupalPostForm(NULL, ['layout[enabled]' => TRUE], 'Save');
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
     $assert_session->linkExists('Manage layout');
     $this->clickLink('Manage layout');
     $assert_session->addressEquals("$field_ui_prefix/display/default/layout");
@@ -448,6 +448,23 @@ class LayoutBuilderTest extends BrowserTestBase {
   }
 
   /**
+   * Test decorating controller.entity_form while layout_builder is installed.
+   */
+  public function testHtmlEntityFormControllerDecoration() {
+    $assert_session = $this->assertSession();
+
+    $this->drupalLogin($this->drupalCreateUser([
+      'configure any layout',
+      'administer node display',
+    ]));
+
+    // Install module that decorates controller.entity_form.
+    \Drupal::service('module_installer')->install(['layout_builder_decoration_test']);
+    $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default');
+    $assert_session->pageTextContains('Manage Display');
+  }
+
+  /**
    * Test that layout builder checks entity view access.
    */
   public function testAccess() {
@@ -555,11 +572,11 @@ class LayoutBuilderTest extends BrowserTestBase {
     // Create a new menu.
     $this->drupalGet('admin/structure/menu/add');
     $page->fillField('label', 'My Menu');
-    $page->fillField('id', 'mymenu');
+    $page->fillField('id', 'my-menu');
     $page->pressButton('Save');
     $this->drupalGet('admin/structure/menu/add');
     $page->fillField('label', 'My Menu');
-    $page->fillField('id', 'myothermenu');
+    $page->fillField('id', 'my-other-menu');
     $page->pressButton('Save');
 
     $page->clickLink('Add link');
@@ -578,7 +595,7 @@ class LayoutBuilderTest extends BrowserTestBase {
     $assert_session->elementExists('css', '.layout--layout-test-dependencies-plugin');
     $assert_session->elementExists('css', '.field--name-body');
     $page->pressButton('Save layout');
-    $this->drupalPostForm('admin/structure/menu/manage/myothermenu/delete', [], 'Delete');
+    $this->drupalPostForm('admin/structure/menu/manage/my-other-menu/delete', [], 'Delete');
     $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default/layout');
     $assert_session->elementNotExists('css', '.layout--layout-test-dependencies-plugin');
     $assert_session->elementExists('css', '.field--name-body');
@@ -600,17 +617,17 @@ class LayoutBuilderTest extends BrowserTestBase {
     // Assert that the blocks are visible, and save the layout.
     $assert_session->pageTextContains('Powered by Drupal');
     $assert_session->pageTextContains('My Menu');
-    $assert_session->elementExists('css', '.block.menu--mymenu');
+    $assert_session->elementExists('css', '.block.menu--my-menu');
     $page->pressButton('Save layout');
 
     // Delete the menu.
-    $this->drupalPostForm('admin/structure/menu/manage/mymenu/delete', [], 'Delete');
+    $this->drupalPostForm('admin/structure/menu/manage/my-menu/delete', [], 'Delete');
 
     // Ensure that the menu block is gone, but that the other block remains.
     $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default/layout');
     $assert_session->pageTextContains('Powered by Drupal');
     $assert_session->pageTextNotContains('My Menu');
-    $assert_session->elementNotExists('css', '.block.menu--mymenu');
+    $assert_session->elementNotExists('css', '.block.menu--my-menu');
   }
 
   /**
@@ -887,6 +904,23 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     $this->drupalGet('node');
     $assert_session->linkExists('Read more');
+
+    // Consider an extra field hidden by default. Make sure it's not displayed.
+    $this->drupalGet('node/1');
+    $assert_session->pageTextNotContains('Extra Field 2 is hidden by default.');
+
+    // View the layout and add the extra field that is not visible by default.
+    $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default/layout');
+    $assert_session->pageTextNotContains('Extra Field 2');
+    $page->clickLink('Add block');
+    $page->clickLink('Extra Field 2');
+    $page->pressButton('Add block');
+    $assert_session->pageTextContains('Extra Field 2');
+    $page->pressButton('Save layout');
+
+    // Confirm that the newly added extra field is visible.
+    $this->drupalGet('node/1');
+    $assert_session->pageTextContains('Extra Field 2 is hidden by default.');
   }
 
   /**
@@ -1149,8 +1183,8 @@ class LayoutBuilderTest extends BrowserTestBase {
 
     // From the manage display page, go to manage the layout.
     $this->drupalGet('admin/structure/types/manage/bundle_with_section_field/display/default');
-    $this->drupalPostForm(NULL, ['layout[enabled]' => TRUE], 'Save');
-    $this->drupalPostForm(NULL, ['layout[allow_custom]' => TRUE], 'Save');
+    $this->submitForm(['layout[enabled]' => TRUE], 'Save');
+    $this->submitForm(['layout[allow_custom]' => TRUE], 'Save');
     $page->clickLink('Manage layout');
 
     $breadcrumb_titles = [];

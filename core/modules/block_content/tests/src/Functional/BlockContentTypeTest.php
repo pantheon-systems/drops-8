@@ -68,7 +68,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
       'id' => 'foo',
       'label' => 'title for foo',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     $block_type = BlockContentType::load('foo');
     $this->assertInstanceOf(BlockContentType::class, $block_type);
 
@@ -112,7 +112,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
 
     // Verify that title and body fields are displayed.
     $this->drupalGet('block/add/basic');
-    $this->assertRaw('Block description', 'Block info field was found.');
+    $this->assertRaw('Block description');
     $this->assertNotEmpty($this->cssSelect('#edit-body-0-value'), 'Body field was found.');
 
     // Change the block type name.
@@ -120,8 +120,8 @@ class BlockContentTypeTest extends BlockContentTestBase {
       'label' => 'Bar',
     ];
     $this->drupalGet('admin/structure/block/block-content/manage/basic');
-    $this->assertTitle('Edit basic custom block type | Drupal');
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->assertSession()->titleEquals('Edit basic custom block type | Drupal');
+    $this->submitForm($edit, 'Save');
     $front_page_path = Url::fromRoute('<front>')->toString();
     $this->assertBreadcrumb('admin/structure/block/block-content/manage/basic/fields', [
       $front_page_path => 'Home',
@@ -132,14 +132,15 @@ class BlockContentTypeTest extends BlockContentTestBase {
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     $this->drupalGet('block/add');
-    $this->assertRaw('Bar', 'New name was displayed.');
+    $this->assertRaw('Bar');
     $this->clickLink('Bar');
-    $this->assertUrl(Url::fromRoute('block_content.add_form', ['block_content_type' => 'basic'], ['absolute' => TRUE])->toString(), [], 'Original machine name was used in URL.');
+    // Verify that the original machine name was used in the URL.
+    $this->assertSession()->addressEquals(Url::fromRoute('block_content.add_form', ['block_content_type' => 'basic']));
 
     // Remove the body field.
-    $this->drupalPostForm('admin/structure/block/block-content/manage/basic/fields/block_content.basic.body/delete', [], t('Delete'));
+    $this->drupalPostForm('admin/structure/block/block-content/manage/basic/fields/block_content.basic.body/delete', [], 'Delete');
     // Resave the settings for this type.
-    $this->drupalPostForm('admin/structure/block/block-content/manage/basic', [], t('Save'));
+    $this->drupalPostForm('admin/structure/block/block-content/manage/basic', [], 'Save');
     // Check that the body field doesn't exist.
     $this->drupalGet('block/add/basic');
     $this->assertEmpty($this->cssSelect('#edit-body-0-value'), 'Body field was not found.');
@@ -162,20 +163,18 @@ class BlockContentTypeTest extends BlockContentTestBase {
     // Attempt to delete the block type, which should not be allowed.
     $this->drupalGet('admin/structure/block/block-content/manage/' . $type->id() . '/delete');
     $this->assertRaw(
-      t('%label is used by 1 custom block on your site. You can not remove this block type until you have removed all of the %label blocks.', ['%label' => $type->label()]),
-      'The block type will not be deleted until all blocks of that type are removed.'
+      t('%label is used by 1 custom block on your site. You can not remove this block type until you have removed all of the %label blocks.', ['%label' => $type->label()])
     );
-    $this->assertNoText(t('This action cannot be undone.'), 'The block type deletion confirmation form is not available.');
+    $this->assertNoText('This action cannot be undone.', 'The block type deletion confirmation form is not available.');
 
     // Delete the block.
     $block->delete();
     // Attempt to delete the block type, which should now be allowed.
     $this->drupalGet('admin/structure/block/block-content/manage/' . $type->id() . '/delete');
     $this->assertRaw(
-      t('Are you sure you want to delete the custom block type %type?', ['%type' => $type->id()]),
-      'The block type is available for deletion.'
+      t('Are you sure you want to delete the custom block type %type?', ['%type' => $type->id()])
     );
-    $this->assertText(t('This action cannot be undone.'), 'The custom block type deletion confirmation form is available.');
+    $this->assertText('This action cannot be undone.', 'The custom block type deletion confirmation form is available.');
   }
 
   /**
@@ -202,7 +201,6 @@ class BlockContentTypeTest extends BlockContentTestBase {
       // Change the default theme.
       $theme_settings->set('default', $default_theme)->save();
       $this->drupalPlaceBlock('local_actions_block');
-      \Drupal::service('router.builder')->rebuild();
 
       // For each installed theme, go to its block page and test the redirects.
       foreach (['bartik', 'seven', 'stark'] as $theme) {
@@ -215,7 +213,7 @@ class BlockContentTypeTest extends BlockContentTestBase {
         // The seven theme has markup inside the link, we cannot use clickLink().
         if ($default_theme == 'seven') {
           $options = $theme != $default_theme ? ['query' => ['theme' => $theme]] : [];
-          $this->assertLinkByHref(Url::fromRoute('block_content.add_form', ['block_content_type' => 'foo'], $options)->toString());
+          $this->assertSession()->linkByHrefExists(Url::fromRoute('block_content.add_form', ['block_content_type' => 'foo'], $options)->toString());
           $this->drupalGet('block/add/foo', $options);
         }
         else {
@@ -223,13 +221,13 @@ class BlockContentTypeTest extends BlockContentTestBase {
         }
         // Create a new block.
         $edit = ['info[0][value]' => $this->randomMachineName(8)];
-        $this->drupalPostForm(NULL, $edit, t('Save'));
+        $this->submitForm($edit, 'Save');
         $blocks = $storage->loadByProperties(['info' => $edit['info[0][value]']]);
         if (!empty($blocks)) {
           $block = reset($blocks);
-          $this->assertUrl(Url::fromRoute('block.admin_add', ['plugin_id' => 'block_content:' . $block->uuid(), 'theme' => $theme], ['absolute' => TRUE])->toString());
-          $this->drupalPostForm(NULL, ['region' => 'content'], t('Save block'));
-          $this->assertUrl(Url::fromRoute('block.admin_display_theme', ['theme' => $theme], ['absolute' => TRUE, 'query' => ['block-placement' => Html::getClass($edit['info[0][value]'])]])->toString());
+          $this->assertSession()->addressEquals(Url::fromRoute('block.admin_add', ['plugin_id' => 'block_content:' . $block->uuid(), 'theme' => $theme]));
+          $this->submitForm(['region' => 'content'], 'Save block');
+          $this->assertSession()->addressEquals(Url::fromRoute('block.admin_display_theme', ['theme' => $theme], ['query' => ['block-placement' => Html::getClass($edit['info[0][value]'])]]));
         }
         else {
           $this->fail('Could not load created block.');
@@ -243,10 +241,10 @@ class BlockContentTypeTest extends BlockContentTestBase {
     $this->clickLink(t('Add custom block'));
     $this->clickLink('foo');
     $edit = ['info[0][value]' => $this->randomMachineName(8)];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     $blocks = $storage->loadByProperties(['info' => $edit['info[0][value]']]);
     if (!empty($blocks)) {
-      $this->assertUrl(Url::fromRoute('entity.block_content.collection', [], ['absolute' => TRUE])->toString());
+      $this->assertSession()->addressEquals(Url::fromRoute('entity.block_content.collection'));
     }
     else {
       $this->fail('Could not load created block.');

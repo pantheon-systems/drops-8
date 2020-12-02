@@ -271,7 +271,7 @@ abstract class EntityBase implements EntityInterface {
       $parameter_name = $this->getEntityType()->getBundleEntityType() ?: $this->getEntityType()->getKey('bundle');
       $uri_route_parameters[$parameter_name] = $this->bundle();
     }
-    if ($rel === 'revision' && $this instanceof RevisionableInterface) {
+    if ($this instanceof RevisionableInterface && strpos($rel, 'revision') === 0) {
       $uri_route_parameters[$this->getEntityTypeId() . '_revision'] = $this->getRevisionId();
     }
 
@@ -484,7 +484,7 @@ abstract class EntityBase implements EntityInterface {
   public static function load($id) {
     $entity_type_repository = \Drupal::service('entity_type.repository');
     $entity_type_manager = \Drupal::entityTypeManager();
-    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass(get_called_class()));
+    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass(static::class));
     return $storage->load($id);
   }
 
@@ -494,7 +494,7 @@ abstract class EntityBase implements EntityInterface {
   public static function loadMultiple(array $ids = NULL) {
     $entity_type_repository = \Drupal::service('entity_type.repository');
     $entity_type_manager = \Drupal::entityTypeManager();
-    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass(get_called_class()));
+    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass(static::class));
     return $storage->loadMultiple($ids);
   }
 
@@ -504,7 +504,7 @@ abstract class EntityBase implements EntityInterface {
   public static function create(array $values = []) {
     $entity_type_repository = \Drupal::service('entity_type.repository');
     $entity_type_manager = \Drupal::entityTypeManager();
-    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass(get_called_class()));
+    $storage = $entity_type_manager->getStorage($entity_type_repository->getEntityTypeFromClass(static::class));
     return $storage->create($values);
   }
 

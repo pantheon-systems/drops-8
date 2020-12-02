@@ -88,7 +88,7 @@ class RssTest extends TaxonomyTestBase {
     $edit = [
       "display_modes_custom[rss]" => '1',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
 
     // Change the format to 'RSS category'.
     $this->drupalGet("admin/structure/types/manage/article/display/rss");
@@ -96,13 +96,13 @@ class RssTest extends TaxonomyTestBase {
       "fields[taxonomy_" . $this->vocabulary->id() . "][type]" => 'entity_reference_rss_category',
       "fields[taxonomy_" . $this->vocabulary->id() . "][region]" => 'content',
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
 
     // Post an article.
     $edit = [];
     $edit['title[0][value]'] = $this->randomMachineName();
     $edit[$this->fieldName . '[]'] = $term1->id();
-    $this->drupalPostForm('node/add/article', $edit, t('Save'));
+    $this->drupalPostForm('node/add/article', $edit, 'Save');
 
     // Check that the term is displayed when the RSS feed is viewed.
     $this->drupalGet('rss.xml');
@@ -111,11 +111,11 @@ class RssTest extends TaxonomyTestBase {
       'domain="' . $term1->toUrl('canonical', ['absolute' => TRUE])->toString() . '"',
       $term1->getName()
     );
-    $this->assertRaw($test_element, 'Term is displayed when viewing the rss feed.');
+    $this->assertRaw($test_element);
 
     // Test that the feed icon exists for the term.
     $this->drupalGet("taxonomy/term/{$term1->id()}");
-    $this->assertLinkByHref("taxonomy/term/{$term1->id()}/feed");
+    $this->assertSession()->linkByHrefExists("taxonomy/term/{$term1->id()}/feed");
 
     // Test that the feed page exists for the term.
     $this->drupalGet("taxonomy/term/{$term1->id()}/feed");
@@ -138,7 +138,7 @@ class RssTest extends TaxonomyTestBase {
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $raw_xml = '<title>' . $node->label() . '</title>';
     $this->drupalGet('taxonomy/term/all/feed');
-    $this->assertRaw($raw_xml, "Raw text '$raw_xml' is found.");
+    $this->assertRaw($raw_xml);
     // Unpublish the article and check that it is not shown in the feed.
     $node->setUnpublished()->save();
     $this->drupalGet('taxonomy/term/all/feed');

@@ -93,8 +93,8 @@ class LocaleTranslatedSchemaDefinitionTest extends BrowserTestBase {
     $this->drupalGet($update_url . '/selection', ['external' => TRUE]);
     $this->updateRequirementsProblem();
     $this->drupalGet($update_url . '/selection', ['external' => TRUE]);
-    $this->assertRaw('messages--status', 'No pending updates.');
-    $this->assertNoLinkByHref('fr/update.php/run', 'No link to run updates.');
+    $this->assertRaw('messages--status');
+    $this->assertSession()->linkByHrefNotExists('fr/update.php/run', 'No link to run updates.');
   }
 
 }

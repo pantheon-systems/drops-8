@@ -81,7 +81,7 @@ class ForumUninstallTest extends BrowserTestBase {
     $this->assertText('To uninstall Forum, first delete all Forum content');
 
     // Delete the node.
-    $this->drupalPostForm('node/' . $node->id() . '/delete', [], t('Delete'));
+    $this->drupalPostForm('node/' . $node->id() . '/delete', [], 'Delete');
 
     // Attempt to uninstall forum.
     $this->drupalGet('admin/modules/uninstall');
@@ -97,16 +97,16 @@ class ForumUninstallTest extends BrowserTestBase {
 
     // Ensure that the forum node type can not be deleted.
     $this->drupalGet('admin/structure/types/manage/forum');
-    $this->assertSession()->linkNotExists(t('Delete'));
+    $this->assertSession()->linkNotExists('Delete');
 
     // Now attempt to uninstall forum.
     $this->drupalGet('admin/modules/uninstall');
     // Assert forum is no longer required.
-    $this->assertFieldByName('uninstall[forum]');
+    $this->assertSession()->fieldExists('uninstall[forum]');
     $this->drupalPostForm('admin/modules/uninstall', [
       'uninstall[forum]' => 1,
-    ], t('Uninstall'));
-    $this->drupalPostForm(NULL, [], t('Uninstall'));
+    ], 'Uninstall');
+    $this->submitForm([], 'Uninstall');
 
     // Check that the field is now deleted.
     $field_storage = FieldStorageConfig::loadByName('node', 'taxonomy_forums');
@@ -119,11 +119,11 @@ class ForumUninstallTest extends BrowserTestBase {
       'title_label' => 'title for forum',
       'type' => 'forum',
     ];
-    $this->drupalPostForm('admin/structure/types/add', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/add', $edit, 'Save content type');
     $this->assertTrue((bool) NodeType::load('forum'), 'Node type with machine forum created.');
     $this->drupalGet('admin/structure/types/manage/forum');
     $this->clickLink(t('Delete'));
-    $this->drupalPostForm(NULL, [], t('Delete'));
+    $this->submitForm([], 'Delete');
     $this->assertSession()->statusCodeEquals(200);
     $this->assertFalse((bool) NodeType::load('forum'), 'Node type with machine forum deleted.');
 

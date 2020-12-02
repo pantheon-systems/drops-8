@@ -67,8 +67,10 @@ class Feed
     /**
      * Set a block value of "yes" or "no". You may also set an empty string.
      *
-     * @param  string
-     * @return $this
+     * @param string
+     *
+     * @return self
+     *
      * @throws Writer\Exception\InvalidArgumentException
      */
     public function setPlayPodcastBlock($value)

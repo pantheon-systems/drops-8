@@ -5,6 +5,8 @@ namespace Drupal\Tests\migrate\Unit\process;
 use Drupal\migrate\MigrateException;
 use Drupal\migrate\Plugin\migrate\process\Substr;
 
+// cspell:ignore aptain
+
 /**
  * Tests the substr plugin.
  *

@@ -43,7 +43,7 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->assertText('No fields are present yet.');
 
     $this->drupalGet('admin/config/people/accounts/fields');
-    $this->assertTitle('Manage fields | Drupal');
+    $this->assertSession()->titleEquals('Manage fields | Drupal');
     $this->assertLocalTasks();
 
     // Test manage display tabs and titles.
@@ -51,13 +51,13 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
 
     $this->drupalGet('admin/config/people/accounts/display');
-    $this->assertTitle('Manage display | Drupal');
+    $this->assertSession()->titleEquals('Manage display | Drupal');
     $this->assertLocalTasks();
 
     $edit = ['display_modes_custom[compact]' => TRUE];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     $this->drupalGet('admin/config/people/accounts/display/compact');
-    $this->assertTitle('Manage display | Drupal');
+    $this->assertSession()->titleEquals('Manage display | Drupal');
     $this->assertLocalTasks();
 
     // Test manage form display tabs and titles.
@@ -65,14 +65,14 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(403);
 
     $this->drupalGet('admin/config/people/accounts/form-display');
-    $this->assertTitle('Manage form display | Drupal');
+    $this->assertSession()->titleEquals('Manage form display | Drupal');
     $this->assertLocalTasks();
 
     $edit = ['display_modes_custom[register]' => TRUE];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
     $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('admin/config/people/accounts/form-display/register');
-    $this->assertTitle('Manage form display | Drupal');
+    $this->assertSession()->titleEquals('Manage form display | Drupal');
     $this->assertLocalTasks();
     $this->assertCount(1, $this->xpath('//ul/li[1]/a[contains(text(), :text)]', [':text' => 'Default']), 'Default secondary tab is in first position.');
 
@@ -86,7 +86,7 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->container->get('router.builder')->rebuildIfNeeded();
 
     $edit = ['display_modes_custom[test]' => TRUE];
-    $this->drupalPostForm('admin/config/people/accounts/display', $edit, t('Save'));
+    $this->drupalPostForm('admin/config/people/accounts/display', $edit, 'Save');
     $this->assertSession()->linkExists('Test');
 
     // Create new form mode and verify it's available on the Manage Form
@@ -99,7 +99,7 @@ class FieldUIRouteTest extends BrowserTestBase {
     $this->container->get('router.builder')->rebuildIfNeeded();
 
     $edit = ['display_modes_custom[test]' => TRUE];
-    $this->drupalPostForm('admin/config/people/accounts/form-display', $edit, t('Save'));
+    $this->drupalPostForm('admin/config/people/accounts/form-display', $edit, 'Save');
     $this->assertSession()->linkExists('Test');
   }
 

@@ -74,8 +74,8 @@ class Tasks extends InstallTasks {
         $connection_info = Database::getConnectionInfo();
         $database = $connection_info['default']['database'];
 
-        // We cannot use file_directory_temp() here because we haven't yet
-        // successfully connected to the database.
+        // We cannot use \Drupal::service('file_system')->getTempDirectory()
+        // here because we haven't yet successfully connected to the database.
         $connection_info['default']['database'] = \Drupal::service('file_system')->tempnam(sys_get_temp_dir(), 'sqlite');
 
         // In order to change the Database::$databaseInfo array, need to remove
@@ -103,8 +103,8 @@ class Tasks extends InstallTasks {
         }
       }
       else {
-        // Database connection failed for some other reason than the database
-        // not existing.
+        // Database connection failed for some other reason than a non-existent
+        // database.
         $this->fail(t('Failed to connect to database. The database engine reports the following message: %error.<ul><li>Does the database file exist?</li><li>Does web server have permission to write to the database file?</li>Does the web server have permission to write to the directory the database file should be created in?</li></ul>', ['%error' => $e->getMessage()]));
         return FALSE;
       }

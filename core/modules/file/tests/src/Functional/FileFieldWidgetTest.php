@@ -97,20 +97,20 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Ensure the edit page has a remove button instead of an upload button.
     $this->drupalGet("node/$nid/edit");
-    $this->assertNoFieldByXPath('//input[@type="submit"]', t('Upload'), 'Node with file does not display the "Upload" button.');
-    $this->assertFieldByXpath('//input[@type="submit"]', t('Remove'), 'Node with file displays the "Remove" button.');
-    $this->drupalPostForm(NULL, [], t('Remove'));
+    $this->assertSession()->buttonNotExists('Upload');
+    $this->assertSession()->buttonExists('Remove');
+    $this->submitForm([], 'Remove');
 
     // Ensure the page now has an upload button instead of a remove button.
-    $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), 'After clicking the "Remove" button, it is no longer displayed.');
-    $this->assertFieldByXpath('//input[@type="submit"]', t('Upload'), 'After clicking the "Remove" button, the "Upload" button is displayed.');
+    $this->assertSession()->buttonNotExists('Remove');
+    $this->assertSession()->buttonExists('Upload');
     // Test label has correct 'for' attribute.
     $input = $this->xpath('//input[@name="files[' . $field_name . '_0]"]');
     $label = $this->xpath('//label[@for="' . $input[0]->getAttribute('id') . '"]');
     $this->assertTrue(isset($label[0]), 'Label for upload found.');
 
     // Save the node and ensure it does not have the file.
-    $this->drupalPostForm(NULL, [], t('Save'));
+    $this->submitForm([], 'Save');
     $node = $node_storage->loadUnchanged($nid);
     $this->assertTrue(empty($node->{$field_name}->target_id), 'File was successfully removed from the node.');
   }
@@ -146,10 +146,10 @@ class FileFieldWidgetTest extends FileFieldTestBase {
         $edit = ['files[' . $each_field_name . '_' . $delta . '][]' => \Drupal::service('file_system')->realpath($test_file->getFileUri())];
         // If the Upload button doesn't exist, drupalPostForm() will
         // automatically fail with an assertion message.
-        $this->drupalPostForm(NULL, $edit, t('Upload'));
+        $this->submitForm($edit, 'Upload');
       }
     }
-    $this->assertNoFieldByXpath('//input[@type="submit"]', t('Upload'), 'After uploading 3 files for each field, the "Upload" button is no longer displayed.');
+    $this->assertSession()->buttonNotExists('Upload');
 
     $num_expected_remove_buttons = 6;
 
@@ -197,10 +197,10 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     }
 
     // Ensure the page now has no Remove buttons.
-    $this->assertNoFieldByXPath('//input[@type="submit"]', t('Remove'), 'After removing all files, there is no "Remove" button displayed.');
+    $this->assertSession()->buttonNotExists('Remove');
 
     // Save the node and ensure it does not have any files.
-    $this->drupalPostForm(NULL, ['title[0][value]' => $this->randomMachineName()], t('Save'));
+    $this->submitForm(['title[0][value]' => $this->randomMachineName()], 'Save');
     preg_match('/node\/([0-9])/', $this->getUrl(), $matches);
     $nid = $matches[1];
     $node = $node_storage->loadUnchanged($nid);
@@ -221,24 +221,24 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $client->request($form->getMethod(), $form->getUri(), $form->getPhpValues(), $edit);
 
     $node = $node_storage->loadUnchanged($nid);
-    $this->assertEqual(count($node->{$field_name}), $cardinality, 'More files than allowed could not be saved to node.');
+    $this->assertCount($cardinality, $node->{$field_name}, 'More files than allowed could not be saved to node.');
 
     $upload_files_node_creation = [$test_file, $test_file];
     // Try to upload multiple files, but fewer than the maximum.
     $nid = $this->uploadNodeFiles($upload_files_node_creation, $field_name, $type_name, TRUE, []);
     $node = $node_storage->loadUnchanged($nid);
-    $this->assertEqual(count($node->{$field_name}), count($upload_files_node_creation), 'Node was successfully saved with multiple files.');
+    $this->assertSame(count($upload_files_node_creation), count($node->{$field_name}), 'Node was successfully saved with multiple files.');
 
     // Try to upload exactly the allowed number of files on revision.
     $this->uploadNodeFile($test_file, $field_name, $node->id(), 1, [], TRUE);
     $node = $node_storage->loadUnchanged($nid);
-    $this->assertEqual(count($node->{$field_name}), $cardinality, 'Node was successfully revised to maximum number of files.');
+    $this->assertCount($cardinality, $node->{$field_name}, 'Node was successfully revised to maximum number of files.');
 
     // Try to upload exactly the allowed number of files, new node.
     $upload_files = [$test_file, $test_file, $test_file];
     $nid = $this->uploadNodeFiles($upload_files, $field_name, $type_name, TRUE, []);
     $node = $node_storage->loadUnchanged($nid);
-    $this->assertEqual(count($node->{$field_name}), $cardinality, 'Node was successfully saved with maximum number of files.');
+    $this->assertCount($cardinality, $node->{$field_name}, 'Node was successfully saved with maximum number of files.');
   }
 
   /**
@@ -259,7 +259,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Change the field setting to make its files private, and upload a file.
     $edit = ['settings[uri_scheme]' => 'private'];
-    $this->drupalPostForm("admin/structure/types/manage/$type_name/fields/$field_id/storage", $edit, t('Save field settings'));
+    $this->drupalPostForm("admin/structure/types/manage/$type_name/fields/$field_id/storage", $edit, 'Save field settings');
     $nid = $this->uploadNodeFile($test_file, $field_name, $type_name);
     $node = $node_storage->loadUnchanged($nid);
     $node_file = File::load($node->{$field_name}->target_id);
@@ -272,12 +272,12 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     // Ensure we can't change 'uri_scheme' field settings while there are some
     // entities with uploaded files.
     $this->drupalGet("admin/structure/types/manage/$type_name/fields/$field_id/storage");
-    $this->assertFieldByXpath('//input[@id="edit-settings-uri-scheme-public" and @disabled="disabled"]', 'public', 'Upload destination setting disabled.');
+    $this->assertSession()->fieldDisabled("edit-settings-uri-scheme-public");
 
     // Delete node and confirm that setting could be changed.
     $node->delete();
     $this->drupalGet("admin/structure/types/manage/$type_name/fields/$field_id/storage");
-    $this->assertFieldByXpath('//input[@id="edit-settings-uri-scheme-public" and not(@disabled)]', 'public', 'Upload destination setting enabled.');
+    $this->assertSession()->fieldEnabled("edit-settings-uri-scheme-public");
   }
 
   /**
@@ -310,7 +310,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     $edit = [
       'title[0][value]' => $this->randomMachineName(),
     ];
-    $this->drupalPostForm('node/add/article', $edit, t('Save'));
+    $this->drupalPostForm('node/add/article', $edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
 
     // Add a comment with a file.
@@ -319,7 +319,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
       'files[field_' . $name . '_' . 0 . ']' => \Drupal::service('file_system')->realpath($text_file->getFileUri()),
       'comment_body[0][value]' => $comment_body = $this->randomMachineName(),
     ];
-    $this->drupalPostForm('node/' . $node->id(), $edit, t('Save'));
+    $this->drupalPostForm('node/' . $node->id(), $edit, 'Save');
 
     // Get the comment ID.
     preg_match('/comment-([0-9]+)/', $this->getUrl(), $matches);
@@ -345,7 +345,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
     // Unpublishes node.
     $this->drupalLogin($this->adminUser);
     $edit = ['status[value]' => FALSE];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
 
     // Ensures normal user can no longer download the file.
     $this->drupalLogin($user);
@@ -373,15 +373,15 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Upload file with incorrect extension, check for validation error.
     $edit[$name] = \Drupal::service('file_system')->realpath($test_file_image->getFileUri());
-    $this->drupalPostForm(NULL, $edit, t('Upload'));
+    $this->submitForm($edit, 'Upload');
 
     $error_message = t('Only files with the following extensions are allowed: %files-allowed.', ['%files-allowed' => 'txt']);
-    $this->assertRaw($error_message, t('Validation error when file with wrong extension uploaded (JSMode=%type).', ['%type' => $type]));
+    $this->assertRaw($error_message);
 
     // Upload file with correct extension, check that error message is removed.
     $edit[$name] = \Drupal::service('file_system')->realpath($test_file_text->getFileUri());
-    $this->drupalPostForm(NULL, $edit, t('Upload'));
-    $this->assertNoRaw($error_message, t('Validation error removed when file with correct extension uploaded (JSMode=%type).', ['%type' => $type]));
+    $this->submitForm($edit, 'Upload');
+    $this->assertNoRaw($error_message);
   }
 
   /**
@@ -403,11 +403,11 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Upload a file.
     $edit['files[' . $field_name . '_0][]'] = $this->container->get('file_system')->realpath($file->getFileUri());
-    $this->drupalPostForm(NULL, $edit, "{$field_name}_0_upload_button");
+    $this->submitForm($edit, "{$field_name}_0_upload_button");
 
     $elements = $this->xpath($xpath);
 
-    // If the field has at least a item, the table should be visible.
+    // If the field has at least one item, the table should be visible.
     $this->assertCount(1, $elements);
 
     // Test for AJAX error when using progress bar on file field widget.
@@ -502,7 +502,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     // Attach a file to a node.
     $edit['files[' . $field_name . '_0]'] = $this->container->get('file_system')->realpath($test_file->getFileUri());
-    $this->drupalPostForm(Url::fromRoute('node.add', ['node_type' => $type_name]), $edit, t('Save'));
+    $this->drupalPostForm(Url::fromRoute('node.add', ['node_type' => $type_name]), $edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
 
     /** @var \Drupal\file\FileInterface $node_file */
@@ -521,7 +521,7 @@ class FileFieldWidgetTest extends FileFieldTestBase {
 
     $file_id_field = $this->assertSession()->hiddenFieldExists($field_name . '[0][fids]');
     $file_id_field->setValue((string) $victim_tmp_file->id());
-    $this->drupalPostForm(NULL, [], 'Remove');
+    $this->submitForm([], 'Remove');
 
     // The victim's temporary file should not be removed by the attacker's
     // POST request.

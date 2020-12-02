@@ -68,10 +68,10 @@ class MenuRouterTest extends BrowserTestBase {
     $this->assertSession()->linkExists('Local task A');
     $this->assertSession()->linkExists('Local task B');
     $this->assertSession()->linkNotExists('Local task C');
-    $this->assertEscaped("<script>alert('Welcome to the jungle!')</script>");
+    $this->assertSession()->assertEscaped("<script>alert('Welcome to the jungle!')</script>");
     // Confirm correct local task href.
-    $this->assertLinkByHref(Url::fromRoute('menu_test.router_test1', ['bar' => $machine_name])->toString());
-    $this->assertLinkByHref(Url::fromRoute('menu_test.router_test2', ['bar' => $machine_name])->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('menu_test.router_test1', ['bar' => $machine_name])->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('menu_test.router_test2', ['bar' => $machine_name])->toString());
   }
 
   /**
@@ -80,7 +80,7 @@ class MenuRouterTest extends BrowserTestBase {
   protected function doTestTitleCallbackFalse() {
     $this->drupalGet('test-page');
     $this->assertText('A title with @placeholder', 'Raw text found on the page');
-    $this->assertNoText(t('A title with @placeholder', ['@placeholder' => 'some other text']), 'Text with placeholder substitutions not found.');
+    $this->assertNoText('A title with some other text', 'Text with placeholder substitutions not found.');
   }
 
   /**
@@ -89,10 +89,10 @@ class MenuRouterTest extends BrowserTestBase {
   protected function doTestTitleMenuCallback() {
     // Verify that the menu router item title is not visible.
     $this->drupalGet('');
-    $this->assertNoText(t('Menu Callback Title'));
+    $this->assertNoText('Menu Callback Title');
     // Verify that the menu router item title is output as page title.
     $this->drupalGet('menu_callback_title');
-    $this->assertText(t('Menu Callback Title'));
+    $this->assertText('Menu Callback Title');
   }
 
   /**
@@ -101,7 +101,7 @@ class MenuRouterTest extends BrowserTestBase {
   protected function doTestDescriptionMenuItems() {
     // Verify that the menu router item title is output as page title.
     $this->drupalGet('menu_callback_description');
-    $this->assertText(t('Menu item description text'));
+    $this->assertText('Menu item description text');
   }
 
   /**
@@ -139,9 +139,8 @@ class MenuRouterTest extends BrowserTestBase {
     $this->assertEqual($menu_link->getPluginId(), 'menu_test.custom', 'Menu links added at hook_menu_links_discovered_alter() obtain the machine name from the $links key.');
     // Make sure that rebuilding the menu tree does not produce duplicates of
     // links added by hook_menu_links_discovered_alter().
-    \Drupal::service('router.builder')->rebuild();
     $this->drupalGet('menu-test');
-    $this->assertUniqueText('Custom link', 'Menu links added by hook_menu_links_discovered_alter() do not duplicate after a menu rebuild.');
+    $this->assertSession()->pageTextContainsOnce('Custom link');
   }
 
   /**
@@ -178,14 +177,13 @@ class MenuRouterTest extends BrowserTestBase {
    */
   protected function doTestMenuOnRoute() {
     \Drupal::service('module_installer')->install(['router_test']);
-    \Drupal::service('router.builder')->rebuild();
     $this->resetAll();
 
     $this->drupalGet('router_test/test2');
-    $this->assertLinkByHref('menu_no_title_callback');
-    $this->assertLinkByHref('menu-title-test/case1');
-    $this->assertLinkByHref('menu-title-test/case2');
-    $this->assertLinkByHref('menu-title-test/case3');
+    $this->assertSession()->linkByHrefExists('menu_no_title_callback');
+    $this->assertSession()->linkByHrefExists('menu-title-test/case1');
+    $this->assertSession()->linkByHrefExists('menu-title-test/case2');
+    $this->assertSession()->linkByHrefExists('menu-title-test/case3');
   }
 
   /**
@@ -198,10 +196,11 @@ class MenuRouterTest extends BrowserTestBase {
       // Characters that look like a percent-escaped string.
       "%23%25%26%2B%2F%3F" .
       // Characters from various non-ASCII alphabets.
+      // cSpell:disable-next-line
       "éøïвβ中國書۞";
     $this->drupalGet($path);
     $this->assertRaw('This is the menuTestCallback content.');
-    $this->assertNoText(t('The website encountered an unexpected error. Please try again later.'));
+    $this->assertNoText('The website encountered an unexpected error. Please try again later.');
   }
 
   /**
@@ -212,7 +211,7 @@ class MenuRouterTest extends BrowserTestBase {
   public function testMaintenanceModeLoginPaths() {
     $this->container->get('state')->set('system.maintenance_mode', TRUE);
 
-    $offline_message = t('@site is currently under maintenance. We should be back shortly. Thank you for your patience.', ['@site' => $this->config('system.site')->get('name')]);
+    $offline_message = $this->config('system.site')->get('name') . ' is currently under maintenance. We should be back shortly. Thank you for your patience.';
     $this->drupalGet('test-page');
     $this->assertText($offline_message);
     $this->drupalGet('menu_login_callback');
@@ -231,11 +230,11 @@ class MenuRouterTest extends BrowserTestBase {
 
     $this->drupalGet('user/login');
     // Check that we got to 'user'.
-    $this->assertUrl($this->loggedInUser->toUrl('canonical', ['absolute' => TRUE])->toString());
+    $this->assertSession()->addressEquals($this->loggedInUser->toUrl('canonical'));
 
     // user/register should redirect to user/UID/edit.
     $this->drupalGet('user/register');
-    $this->assertUrl($this->loggedInUser->toUrl('edit-form', ['absolute' => TRUE])->toString());
+    $this->assertSession()->addressEquals($this->loggedInUser->toUrl('edit-form'));
   }
 
   /**
@@ -270,7 +269,7 @@ class MenuRouterTest extends BrowserTestBase {
   protected function doTestThemeCallbackAdministrative() {
     $this->drupalGet('menu-test/theme-callback/use-admin-theme');
     $this->assertText('Active theme: seven. Actual theme: seven.', 'The administrative theme can be correctly set in a theme negotiation.');
-    $this->assertRaw('seven/css/base/elements.css', "The administrative theme's CSS appears on the page.");
+    $this->assertRaw('seven/css/base/elements.css');
   }
 
   /**
@@ -282,14 +281,16 @@ class MenuRouterTest extends BrowserTestBase {
     // For a regular user, the fact that the site is in maintenance mode means
     // we expect the theme callback system to be bypassed entirely.
     $this->drupalGet('menu-test/theme-callback/use-admin-theme');
-    $this->assertRaw('bartik/css/base/elements.css', "The maintenance theme's CSS appears on the page.");
+    // Check that the maintenance theme's CSS appears on the page.
+    $this->assertRaw('bartik/css/base/elements.css');
 
     // An administrator, however, should continue to see the requested theme.
     $admin_user = $this->drupalCreateUser(['access site in maintenance mode']);
     $this->drupalLogin($admin_user);
     $this->drupalGet('menu-test/theme-callback/use-admin-theme');
     $this->assertText('Active theme: seven. Actual theme: seven.', 'The theme negotiation system is correctly triggered for an administrator when the site is in maintenance mode.');
-    $this->assertRaw('seven/css/base/elements.css', "The administrative theme's CSS appears on the page.");
+    // Check that the administrative theme's CSS appears on the page.
+    $this->assertRaw('seven/css/base/elements.css');
 
     $this->container->get('state')->set('system.maintenance_mode', FALSE);
   }
@@ -301,7 +302,8 @@ class MenuRouterTest extends BrowserTestBase {
     // Request a theme that is not installed.
     $this->drupalGet('menu-test/theme-callback/use-test-theme');
     $this->assertText('Active theme: bartik. Actual theme: bartik.', 'The theme negotiation system falls back on the default theme when a theme that is not installed is requested.');
-    $this->assertRaw('bartik/css/base/elements.css', "The default theme's CSS appears on the page.");
+    // Check that the default theme's CSS appears on the page.
+    $this->assertRaw('bartik/css/base/elements.css');
 
     // Now install the theme and request it again.
     /** @var \Drupal\Core\Extension\ThemeInstallerInterface $theme_installer */
@@ -310,7 +312,8 @@ class MenuRouterTest extends BrowserTestBase {
 
     $this->drupalGet('menu-test/theme-callback/use-test-theme');
     $this->assertText('Active theme: test_theme. Actual theme: test_theme.', 'The theme negotiation system uses an optional theme once it has been installed.');
-    $this->assertRaw('test_theme/kitten.css', "The optional theme's CSS appears on the page.");
+    // Check that the optional theme's CSS appears on the page.
+    $this->assertRaw('test_theme/kitten.css');
 
     $theme_installer->uninstall(['test_theme']);
   }
@@ -321,7 +324,8 @@ class MenuRouterTest extends BrowserTestBase {
   protected function doTestThemeCallbackFakeTheme() {
     $this->drupalGet('menu-test/theme-callback/use-fake-theme');
     $this->assertText('Active theme: bartik. Actual theme: bartik.', 'The theme negotiation system falls back on the default theme when a theme that does not exist is requested.');
-    $this->assertRaw('bartik/css/base/elements.css', "The default theme's CSS appears on the page.");
+    // Check that the default theme's CSS appears on the page.
+    $this->assertRaw('bartik/css/base/elements.css');
   }
 
   /**
@@ -330,7 +334,8 @@ class MenuRouterTest extends BrowserTestBase {
   protected function doTestThemeCallbackNoThemeRequested() {
     $this->drupalGet('menu-test/theme-callback/no-theme-requested');
     $this->assertText('Active theme: bartik. Actual theme: bartik.', 'The theme negotiation system falls back on the default theme when no theme is requested.');
-    $this->assertRaw('bartik/css/base/elements.css', "The default theme's CSS appears on the page.");
+    // Check that the default theme's CSS appears on the page.
+    $this->assertRaw('bartik/css/base/elements.css');
   }
 
 }

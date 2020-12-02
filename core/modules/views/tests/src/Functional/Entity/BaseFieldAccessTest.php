@@ -21,7 +21,7 @@ class BaseFieldAccessTest extends ViewTestBase {
   public static $testViews = ['test_entity_test_protected_access'];
 
   /**
-   * Modules to enable
+   * Modules to enable.
    *
    * @var array
    */
@@ -40,7 +40,7 @@ class BaseFieldAccessTest extends ViewTestBase {
   protected function setUp($import_test_views = TRUE): void {
     parent::setUp($import_test_views);
 
-    ViewTestData::createTestViews(get_class($this), ['comment_test_views']);
+    ViewTestData::createTestViews(static::class, ['comment_test_views']);
     \Drupal::state()->set('entity_test.views_data', [
       'entity_test' => [
         'test_text_access' => [

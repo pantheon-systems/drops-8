@@ -39,7 +39,7 @@ Release managers
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 
 Committer team facilitators
-- (provisional) Pamela Barone 'pameeela' https://www.drupal.org/u/pameeela
+- Pamela Barone 'pameeela' https://www.drupal.org/u/pameeela
 
 Subsystem maintainers
 ---------------------
@@ -313,6 +313,12 @@ Node Access
 - Moshe Weitzman 'moshe weitzman' https://www.drupal.org/u/moshe-weitzman
 - Jess Myrbo 'xjm' https://www.drupal.org/u/xjm
 
+Olivero
+- Mike Herchel 'mherchel' https://www.drupal.org/u/mherchel
+- Putra Bonaccorsi 'proeung' https://www.drupal.org/u/proeung
+- Jen Witkowski 'jwitkowski79' https://www.drupal.org/u/jwitkowski79
+- Konstantin Shupenko 'kostyashupenko' https://www.drupal.org/u/kostyashupenko
+
 Options
 - ?
 
@@ -401,6 +407,7 @@ Testing framework
 - Alex Pott 'alexpott' https://www.drupal.org/u/alexpott
 - Sascha Grossenbacher 'Berdir' https://www.drupal.org/u/berdir
 - Daniel Wehner 'dawehner' https://www.drupal.org/u/dawehner
+- Alberto M. 'mondrake' https://www.drupal.org/u/mondrake
 
 Text Field
 - ?
@@ -459,6 +466,7 @@ Accessibility
 - Rain Breaw Michaels 'rainbreaw' https://www.drupal.org/u/rainbreaw
 - Mike Gifford 'mgifford' https://www.drupal.org/u/mgifford
 - Andrew Macpherson 'andrewmacpherson' https://www.drupal.org/u/andrewmacpherson
+- (provisional) Ben Mullins 'bnjmnm' https://www.drupal.org/u/bnjmnm
 
 Documentation
 - ?

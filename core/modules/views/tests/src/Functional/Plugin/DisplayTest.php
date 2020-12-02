@@ -132,7 +132,7 @@ class DisplayTest extends ViewTestBase {
     $this->clickLink('Test option title');
 
     $test_option = $this->randomString();
-    $this->drupalPostForm(NULL, ['test_option' => $test_option], t('Apply'));
+    $this->submitForm(['test_option' => $test_option], 'Apply');
 
     // Check the new value has been saved by checking the UI summary text.
     $this->drupalGet('admin/structure/views/view/test_view/edit/display_test_1');
@@ -373,7 +373,7 @@ class DisplayTest extends ViewTestBase {
   public function testOutputIsEmpty() {
     $view = Views::getView('test_display_empty');
     $this->executeView($view);
-    $this->assertTrue(count($view->result) > 0, 'Ensure the result of the view is not empty.');
+    $this->assertNotEmpty($view->result);
     $this->assertFalse($view->display_handler->outputIsEmpty(), 'Ensure the view output is marked as not empty.');
     $view->destroy();
 
@@ -415,7 +415,6 @@ class DisplayTest extends ViewTestBase {
    */
   public function testTranslationSetting() {
     \Drupal::service('module_installer')->install(['file']);
-    \Drupal::service('router.builder')->rebuild();
 
     // By default there should be no language settings.
     $this->checkTranslationSetting();

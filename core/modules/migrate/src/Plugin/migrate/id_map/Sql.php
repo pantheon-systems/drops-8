@@ -198,7 +198,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
    *   The source identifiers
    *
    * @return string
-   *   An hash containing the hashed values of the source identifiers.
+   *   A hash containing the hashed values of the source identifiers.
    */
   public function getSourceIdsHash(array $source_id_values) {
     // When looking up the destination ID we require an array with both the
@@ -680,7 +680,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
     }
     $keys = [$this::SOURCE_IDS_HASH => $this->getSourceIdsHash($source_id_values)];
     // Notify anyone listening of the map row we're about to save.
-    $this->eventDispatcher->dispatch(MigrateEvents::MAP_SAVE, new MigrateMapSaveEvent($this, $fields));
+    $this->eventDispatcher->dispatch(new MigrateMapSaveEvent($this, $fields), MigrateEvents::MAP_SAVE);
     $this->getDatabase()->merge($this->mapTableName())
       ->key($keys)
       ->fields($fields)
@@ -705,8 +705,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
       ->execute();
 
     // Notify anyone listening of the message we've saved.
-    $this->eventDispatcher->dispatch(MigrateEvents::IDMAP_MESSAGE,
-      new MigrateIdMapMessageEvent($this->migration, $source_id_values, $message, $level));
+    $this->eventDispatcher->dispatch(new MigrateIdMapMessageEvent($this->migration, $source_id_values, $message, $level), MigrateEvents::IDMAP_MESSAGE);
   }
 
   /**
@@ -820,7 +819,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
       $map_query = $this->getDatabase()->delete($this->mapTableName());
       $map_query->condition($this::SOURCE_IDS_HASH, $this->getSourceIdsHash($source_id_values));
       // Notify anyone listening of the map row we're about to delete.
-      $this->eventDispatcher->dispatch(MigrateEvents::MAP_DELETE, new MigrateMapDeleteEvent($this, $source_id_values));
+      $this->eventDispatcher->dispatch(new MigrateMapDeleteEvent($this, $source_id_values), MigrateEvents::MAP_DELETE);
       $map_query->execute();
     }
     $message_query = $this->getDatabase()->delete($this->messageTableName());
@@ -840,7 +839,7 @@ class Sql extends PluginBase implements MigrateIdMapInterface, ContainerFactoryP
         $map_query->condition($destination_id, $destination_id_values[$field_name]);
       }
       // Notify anyone listening of the map row we're about to delete.
-      $this->eventDispatcher->dispatch(MigrateEvents::MAP_DELETE, new MigrateMapDeleteEvent($this, $source_id_values));
+      $this->eventDispatcher->dispatch(new MigrateMapDeleteEvent($this, $source_id_values), MigrateEvents::MAP_DELETE);
       $map_query->execute();
 
       $message_query->condition($this::SOURCE_IDS_HASH, $this->getSourceIdsHash($source_id_values));

@@ -59,7 +59,7 @@ class MenuDeleteForm extends EntityDeleteForm {
     $caption = '';
     $num_links = $this->menuLinkManager->countMenuLinks($this->entity->id());
     if ($num_links) {
-      $caption .= '<p>' . $this->formatPlural($num_links, '<strong>Warning:</strong> There is currently 1 menu link in %title. It will be deleted (system-defined items will be reset).', '<strong>Warning:</strong> There are currently @count menu links in %title. They will be deleted (system-defined links will be reset).', ['%title' => $this->entity->label()]) . '</p>';
+      $caption .= '<p>' . $this->formatPlural($num_links, '<strong>Warning:</strong> There is currently 1 menu link in %title. It will be deleted (system-defined links will be reset).', '<strong>Warning:</strong> There are currently @count menu links in %title. They will be deleted (system-defined links will be reset).', ['%title' => $this->entity->label()]) . '</p>';
     }
     $caption .= '<p>' . t('This action cannot be undone.') . '</p>';
     return $caption;
@@ -83,7 +83,7 @@ class MenuDeleteForm extends EntityDeleteForm {
 
     // Delete all links to the overview page for this menu.
     // @todo Add a more generic helper function to the menu link plugin
-    //   manager to remove links to a entity or other ID used as a route
+    //   manager to remove links to an entity or other ID used as a route
     //   parameter that is being removed. Also, consider moving this to
     //   menu_ui.module as part of a generic response to entity deletion.
     //   https://www.drupal.org/node/2310329

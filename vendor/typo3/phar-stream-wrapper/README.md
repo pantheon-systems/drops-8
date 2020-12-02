@@ -7,7 +7,7 @@
 ## Abstract & History
 
 Based on Sam Thomas' findings concerning
-[insecure deserialization in combination with obfuscation strategies](https://blog.secarma.co.uk/labs/near-phar-dangerous-unserialization-wherever-you-are)
+[insecure deserialization in combination with obfuscation strategies](https://www.secarma.com/labs/near-phar-dangerous-unserialization-wherever-you-are.html)
 allowing to hide Phar files inside valid image resources, the TYPO3 project
 decided back then to introduce a `PharStreamWrapper` to intercept invocations
 of the `phar://` stream in PHP and only allow usage for defined locations in

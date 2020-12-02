@@ -143,7 +143,7 @@ class Atom extends AbstractFeed
     /**
      * Get the feed lastBuild date. This is not implemented in Atom.
      *
-     * @return null|string
+     * @return void
      */
     public function getLastBuildDate()
     {
@@ -329,7 +329,7 @@ class Atom extends AbstractFeed
     }
 
     /**
-     * Get an array of any supported Pusubhubbub endpoints
+     * Get an array of any supported PubSubHubbub endpoints
      *
      * @return null|array
      */
@@ -388,6 +388,8 @@ class Atom extends AbstractFeed
 
     /**
      * Register the default namespaces for the current feed format
+     *
+     * @return void
      */
     protected function registerNamespaces()
     {

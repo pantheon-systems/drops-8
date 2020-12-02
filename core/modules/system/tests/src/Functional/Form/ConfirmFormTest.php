@@ -29,27 +29,28 @@ class ConfirmFormTest extends BrowserTestBase {
     // Test the building of the form.
     $this->drupalGet('form-test/confirm-form');
     $site_name = $this->config('system.site')->get('name');
-    $this->assertTitle("ConfirmFormTestForm::getQuestion(). | $site_name");
-    $this->assertText(t('ConfirmFormTestForm::getDescription().'), 'The description was used.');
-    $this->assertFieldByXPath('//input[@id="edit-submit"]', t('ConfirmFormTestForm::getConfirmText().'), 'The confirm text was used.');
+    $this->assertSession()->titleEquals("ConfirmFormTestForm::getQuestion(). | $site_name");
+    $this->assertText('ConfirmFormTestForm::getDescription().', 'The description was used.');
+    $this->assertSession()->buttonExists('ConfirmFormTestForm::getConfirmText().');
 
     // Test cancelling the form.
     $this->clickLink(t('ConfirmFormTestForm::getCancelText().'));
-    $this->assertUrl('form-test/autocomplete', [], "The form's cancel link was followed.");
+    $this->assertSession()->addressEquals('form-test/autocomplete');
 
     // Test submitting the form.
-    $this->drupalPostForm('form-test/confirm-form', NULL, t('ConfirmFormTestForm::getConfirmText().'));
+    $this->drupalPostForm('form-test/confirm-form', [], 'ConfirmFormTestForm::getConfirmText().');
     $this->assertText('The ConfirmFormTestForm::submitForm() method was used for this form.');
-    $this->assertUrl('', [], "The form's redirect was followed.");
+    $this->assertSession()->addressEquals('');
 
     // Test submitting the form with a destination.
-    $this->drupalPostForm('form-test/confirm-form', NULL, t('ConfirmFormTestForm::getConfirmText().'), ['query' => ['destination' => 'admin/config']]);
-    $this->assertUrl('admin/config', [], "The form's redirect was not followed, the destination query string was followed.");
+    $this->drupalPostForm('form-test/confirm-form', [], 'ConfirmFormTestForm::getConfirmText().', ['query' => ['destination' => 'admin/config']]);
+    $this->assertSession()->addressEquals('admin/config');
 
     // Test cancelling the form with a complex destination.
     $this->drupalGet('form-test/confirm-form-array-path');
     $this->clickLink(t('ConfirmFormArrayPathTestForm::getCancelText().'));
-    $this->assertUrl('form-test/confirm-form', ['query' => ['destination' => 'admin/config']], "The form's complex cancel link was followed.");
+    // Verify that the form's complex cancel link was followed.
+    $this->assertSession()->addressEquals('form-test/confirm-form?destination=admin/config');
   }
 
   /**

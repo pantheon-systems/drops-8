@@ -11,7 +11,7 @@ use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 
 /**
- * Tests the raw string formatter
+ * Tests the raw string formatter.
  *
  * @group field
  */
@@ -58,7 +58,6 @@ class RawStringFormatterTest extends KernelTestBase {
 
     // Configure the theme system.
     $this->installConfig(['system', 'field']);
-    \Drupal::service('router.builder')->rebuild();
     $this->installEntitySchema('entity_test');
 
     $this->entityType = 'entity_test';

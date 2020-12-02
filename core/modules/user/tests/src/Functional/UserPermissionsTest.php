@@ -72,8 +72,8 @@ class UserPermissionsTest extends BrowserTestBase {
     $this->assertFalse($account->hasPermission('administer users'), 'User does not have "administer users" permission.');
     $edit = [];
     $edit[$rid . '[administer users]'] = TRUE;
-    $this->drupalPostForm('admin/people/permissions', $edit, t('Save permissions'));
-    $this->assertText(t('The changes have been saved.'), 'Successful save message displayed.');
+    $this->drupalPostForm('admin/people/permissions', $edit, 'Save permissions');
+    $this->assertText('The changes have been saved.', 'Successful save message displayed.');
     $storage->resetCache();
     $this->assertTrue($account->hasPermission('administer users'), 'User now has "administer users" permission.');
     $current_permissions_hash = $permissions_hash_generator->generate($account);
@@ -85,8 +85,8 @@ class UserPermissionsTest extends BrowserTestBase {
     $this->assertTrue($account->hasPermission('access user profiles'), 'User has "access user profiles" permission.');
     $edit = [];
     $edit[$rid . '[access user profiles]'] = FALSE;
-    $this->drupalPostForm('admin/people/permissions', $edit, t('Save permissions'));
-    $this->assertText(t('The changes have been saved.'), 'Successful save message displayed.');
+    $this->drupalPostForm('admin/people/permissions', $edit, 'Save permissions');
+    $this->assertText('The changes have been saved.', 'Successful save message displayed.');
     $storage->resetCache();
     $this->assertFalse($account->hasPermission('access user profiles'), 'User no longer has "access user profiles" permission.');
     $current_permissions_hash = $permissions_hash_generator->generate($account);
@@ -109,14 +109,14 @@ class UserPermissionsTest extends BrowserTestBase {
     $this->drupalGet('admin/config/people/accounts');
 
     // Verify that the administration role is none by default.
-    $this->assertOptionSelected('edit-user-admin-role', '', 'Administration role defaults to none.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-user-admin-role', '')->isSelected());
 
     $this->assertFalse(Role::load($this->rid)->isAdmin());
 
     // Set the user's role to be the administrator role.
     $edit = [];
     $edit['user_admin_role'] = $this->rid;
-    $this->drupalPostForm('admin/config/people/accounts', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/people/accounts', $edit, 'Save configuration');
 
     \Drupal::entityTypeManager()->getStorage('user_role')->resetCache();
     $this->assertTrue(Role::load($this->rid)->isAdmin());
@@ -130,7 +130,7 @@ class UserPermissionsTest extends BrowserTestBase {
     // Ensure that selecting '- None -' removes the admin role.
     $edit = [];
     $edit['user_admin_role'] = '';
-    $this->drupalPostForm('admin/config/people/accounts', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/people/accounts', $edit, 'Save configuration');
 
     \Drupal::entityTypeManager()->getStorage('user_role')->resetCache();
     \Drupal::configFactory()->reset();
@@ -141,7 +141,7 @@ class UserPermissionsTest extends BrowserTestBase {
     Role::create(['id' => 'admin_role_0', 'is_admin' => TRUE, 'label' => 'Admin role 0'])->save();
     Role::create(['id' => 'admin_role_1', 'is_admin' => TRUE, 'label' => 'Admin role 1'])->save();
     $this->drupalGet('admin/config/people/accounts');
-    $this->assertNoFieldByName('user_admin_role');
+    $this->assertSession()->fieldNotExists('user_admin_role');
   }
 
   /**

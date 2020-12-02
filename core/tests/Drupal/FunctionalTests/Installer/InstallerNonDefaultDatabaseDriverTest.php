@@ -44,14 +44,14 @@ class InstallerNonDefaultDatabaseDriverTest extends InstallerTestBase {
     $settings[$this->testDriverName] = $settings[$driver];
     unset($settings[$driver]);
     $edit = $this->translatePostValues($settings);
-    $this->drupalPostForm(NULL, $edit, $this->translations['Save and continue']);
+    $this->submitForm($edit, $this->translations['Save and continue']);
   }
 
   /**
    * Confirms that the installation succeeded.
    */
   public function testInstalled() {
-    $this->assertUrl('user/1');
+    $this->assertSession()->addressEquals('user/1');
     $this->assertSession()->statusCodeEquals(200);
 
     // Assert that in the settings.php the database connection array has the

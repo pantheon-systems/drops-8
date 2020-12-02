@@ -11,7 +11,7 @@ use Drupal\Core\DependencyInjection\DependencySerializationTrait;
  *
  * @ingroup queue
  */
-class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInterface {
+class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInterface, DelayableQueueInterface {
 
   use DependencySerializationTrait;
 
@@ -89,7 +89,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
         'data' => serialize($data),
         // We cannot rely on REQUEST_TIME because many items might be created
         // by a single request which takes longer than 1 second.
-        'created' => time(),
+        'created' => \Drupal::time()->getCurrentTime(),
       ]);
     // Return the new serial ID, or FALSE on failure.
     return $query->execute();
@@ -100,7 +100,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
    */
   public function numberOfItems() {
     try {
-      return (int) $this->connection->query('SELECT COUNT(item_id) FROM {' . static::TABLE_NAME . '} WHERE name = :name', [':name' => $this->name])
+      return (int) $this->connection->query('SELECT COUNT([item_id]) FROM {' . static::TABLE_NAME . '} WHERE [name] = :name', [':name' => $this->name])
         ->fetchField();
     }
     catch (\Exception $e) {
@@ -120,7 +120,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
     // are no unclaimed items left.
     while (TRUE) {
       try {
-        $item = $this->connection->queryRange('SELECT data, created, item_id FROM {' . static::TABLE_NAME . '} q WHERE expire = 0 AND name = :name ORDER BY created, item_id ASC', 0, 1, [':name' => $this->name])->fetchObject();
+        $item = $this->connection->queryRange('SELECT [data], [created], [item_id] FROM {' . static::TABLE_NAME . '} q WHERE [expire] = 0 AND [name] = :name ORDER BY [created], [item_id] ASC', 0, 1, [':name' => $this->name])->fetchObject();
       }
       catch (\Exception $e) {
         $this->catchException($e);
@@ -140,7 +140,7 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
       // should really expire.
       $update = $this->connection->update(static::TABLE_NAME)
         ->fields([
-          'expire' => time() + $lease_time,
+          'expire' => \Drupal::time()->getCurrentTime() + $lease_time,
         ])
         ->condition('item_id', $item->item_id)
         ->condition('expire', 0);
@@ -167,6 +167,33 @@ class DatabaseQueue implements ReliableQueueInterface, QueueGarbageCollectionInt
     catch (\Exception $e) {
       $this->catchException($e);
       // If the table doesn't exist we should consider the item released.
+      return TRUE;
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function delayItem($item, int $delay) {
+    // Only allow a positive delay interval.
+    if ($delay < 0) {
+      throw new \InvalidArgumentException('$delay must be non-negative');
+    }
+
+    try {
+      // Add the delay relative to the current time.
+      $expire = \Drupal::time()->getCurrentTime() + $delay;
+      // Update the expiry time of this item.
+      $update = $this->connection->update(static::TABLE_NAME)
+        ->fields([
+          'expire' => $expire,
+        ])
+        ->condition('item_id', $item->item_id);
+      return $update->execute();
+    }
+    catch (\Exception $e) {
+      $this->catchException($e);
+      // If the table doesn't exist we should consider the item nonexistent.
       return TRUE;
     }
   }

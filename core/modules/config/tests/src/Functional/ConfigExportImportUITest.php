@@ -91,8 +91,8 @@ class ConfigExportImportUITest extends BrowserTestBase {
   public function testExportImport() {
     // After installation there is no snapshot and nothing to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertNoText(t('Warning message'));
-    $this->assertText(t('There are no configuration changes to import.'));
+    $this->assertNoText('Warning message');
+    $this->assertText('There are no configuration changes to import.');
 
     $this->originalSlogan = $this->config('system.site')->get('slogan');
     $this->newSlogan = $this->randomString(16);
@@ -136,7 +136,7 @@ class ConfigExportImportUITest extends BrowserTestBase {
       ->save();
 
     $this->drupalGet('node/add/' . $this->contentType->id());
-    $this->assertFieldByName("{$this->fieldName}[0][value]", '', 'Widget is displayed');
+    $this->assertSession()->fieldValueEquals("{$this->fieldName}[0][value]", '');
 
     // Export the configuration.
     $this->drupalPostForm('admin/config/development/configuration/full/export', [], 'Export');
@@ -161,32 +161,32 @@ class ConfigExportImportUITest extends BrowserTestBase {
       }
     }
     $this->drupalGet('node/add/' . $this->contentType->id());
-    $this->assertNoFieldByName("{$this->fieldName}[0][value]", '', 'Widget is not displayed');
+    $this->assertSession()->fieldNotExists("{$this->fieldName}[0][value]");
 
     // Import the configuration.
     $filename = 'temporary://' . $this->randomMachineName();
     file_put_contents($filename, $this->tarball);
     $this->drupalPostForm('admin/config/development/configuration/full/import', ['files[import_tarball]' => $filename], 'Upload');
     // There is no snapshot yet because an import has never run.
-    $this->assertNoText(t('Warning message'));
-    $this->assertNoText(t('There are no configuration changes to import.'));
+    $this->assertNoText('Warning message');
+    $this->assertNoText('There are no configuration changes to import.');
     $this->assertText($this->contentType->label());
 
-    $this->drupalPostForm(NULL, [], 'Import all');
-    // After importing the snapshot has been updated an there are no warnings.
-    $this->assertNoText(t('Warning message'));
-    $this->assertText(t('There are no configuration changes to import.'));
+    $this->submitForm([], 'Import all');
+    // After importing the snapshot has been updated and there are no warnings.
+    $this->assertNoText('Warning message');
+    $this->assertText('There are no configuration changes to import.');
 
     $this->assertEquals($this->newSlogan, $this->config('system.site')->get('slogan'));
 
     $this->drupalGet('node/add');
-    $this->assertFieldByName("{$this->fieldName}[0][value]", '', 'Widget is displayed');
+    $this->assertSession()->fieldValueEquals("{$this->fieldName}[0][value]", '');
 
     $this->config('system.site')
       ->set('slogan', $this->originalSlogan)
       ->save();
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertText(t('Warning message'));
+    $this->assertText('Warning message');
     $this->assertText('The following items in your active configuration have changes since the last import that may be lost on the next import.');
     // Ensure the item is displayed as part of a list (to avoid false matches
     // on the rest of the page) and that the list markup is not escaped.
@@ -195,9 +195,9 @@ class ConfigExportImportUITest extends BrowserTestBase {
     // active and snapshot should no longer exist.
     \Drupal::service('config.storage.sync')->deleteAll();
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertNoText(t('Warning message'));
+    $this->assertNoText('Warning message');
     $this->assertNoText('The following items in your active configuration have changes since the last import that may be lost on the next import.');
-    $this->assertText(t('There are no configuration changes to import.'));
+    $this->assertText('There are no configuration changes to import.');
     // Write a file to sync. The warning about differences between the active
     // and snapshot should now exist.
     /** @var \Drupal\Core\Config\StorageInterface $sync */
@@ -207,7 +207,7 @@ class ConfigExportImportUITest extends BrowserTestBase {
     $this->copyConfig($this->container->get('config.storage'), $sync);
     $sync->write('system.site', $data);
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertText(t('Warning message'));
+    $this->assertText('Warning message');
     $this->assertText('The following items in your active configuration have changes since the last import that may be lost on the next import.');
     // Ensure the item is displayed as part of a list (to avoid false matches
     // on the rest of the page) and that the list markup is not escaped.
@@ -278,24 +278,24 @@ class ConfigExportImportUITest extends BrowserTestBase {
     $this->drupalPostForm('admin/config/development/configuration/full/import', ['files[import_tarball]' => $filename], 'Upload');
     // Verify that there are configuration differences to import.
     $this->drupalGet('admin/config/development/configuration');
-    $this->assertNoText(t('There are no configuration changes to import.'));
-    $this->assertText(t('@collection configuration collection', ['@collection' => 'collection.test1']));
-    $this->assertText(t('@collection configuration collection', ['@collection' => 'collection.test2']));
+    $this->assertNoText('There are no configuration changes to import.');
+    $this->assertText('collection.test1 configuration collection');
+    $this->assertText('collection.test2 configuration collection');
     $this->assertText('config_test.create');
-    $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.create');
+    $this->assertSession()->linkByHrefExists('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.create');
     $this->assertText('config_test.update');
-    $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.update');
+    $this->assertSession()->linkByHrefExists('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.update');
     $this->assertText('config_test.delete');
-    $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.delete');
+    $this->assertSession()->linkByHrefExists('admin/config/development/configuration/sync/diff_collection/collection.test1/config_test.delete');
     $this->assertText('config_test.another_create');
-    $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test2/config_test.another_create');
+    $this->assertSession()->linkByHrefExists('admin/config/development/configuration/sync/diff_collection/collection.test2/config_test.another_create');
     $this->assertText('config_test.another_update');
-    $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test2/config_test.another_update');
+    $this->assertSession()->linkByHrefExists('admin/config/development/configuration/sync/diff_collection/collection.test2/config_test.another_update');
     $this->assertText('config_test.another_delete');
-    $this->assertLinkByHref('admin/config/development/configuration/sync/diff_collection/collection.test2/config_test.another_delete');
+    $this->assertSession()->linkByHrefExists('admin/config/development/configuration/sync/diff_collection/collection.test2/config_test.another_delete');
 
-    $this->drupalPostForm(NULL, [], 'Import all');
-    $this->assertText(t('There are no configuration changes to import.'));
+    $this->submitForm([], 'Import all');
+    $this->assertText('There are no configuration changes to import.');
 
     // Test data in collections.
     $data = $test1_storage->read('config_test.create');

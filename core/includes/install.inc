@@ -619,9 +619,8 @@ function drupal_install_system($install_state) {
     ->set('profile', $install_state['parameters']['profile'])
     ->save();
 
-  // Install System module and rebuild the newly available routes.
+  // Install System module.
   $kernel->getContainer()->get('module_installer')->install(['system'], FALSE);
-  \Drupal::service('router.builder')->rebuild();
 
   // Ensure default language is saved.
   if (isset($install_state['parameters']['langcode'])) {
@@ -1099,7 +1098,7 @@ function install_profile_info($profile, $langcode = 'en') {
       'description' => '',
       'version' => NULL,
       'hidden' => FALSE,
-      'php' => DRUPAL_MINIMUM_PHP,
+      'php' => \Drupal::MINIMUM_PHP,
       'config_install_path' => NULL,
     ];
     $profile_path = drupal_get_path('profile', $profile);

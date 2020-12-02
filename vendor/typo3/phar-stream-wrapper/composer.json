@@ -6,12 +6,13 @@
     "homepage": "https://typo3.org/",
     "keywords": ["php", "phar", "stream-wrapper", "security"],
     "require": {
-        "php": "^7.0",
+        "php": "^7.0 || ^8.0",
         "ext-json": "*"
     },
     "require-dev": {
         "ext-xdebug": "*",
-        "phpunit/phpunit": "^6.5"
+        "phpspec/prophecy": "^1.10",
+        "symfony/phpunit-bridge": "^5.1"
     },
     "suggest": {
         "ext-fileinfo": "For PHP builtin file type guessing, otherwise uses internal processing"

@@ -40,7 +40,6 @@ class FormCacheTest extends KernelTestBase {
 
   protected function setUp(): void {
     parent::setUp();
-    $this->installSchema('system', ['key_value_expire']);
 
     $this->formBuildId = $this->randomMachineName();
     $this->form = [
@@ -85,7 +84,7 @@ class FormCacheTest extends KernelTestBase {
    * Tests the form cache without a logged-in user.
    */
   public function testNoCacheToken() {
-    // Switch to a anonymous user account.
+    // Switch to an anonymous user account.
     $account_switcher = \Drupal::service('account_switcher');
     $account_switcher->switchTo(new AnonymousUserSession());
 

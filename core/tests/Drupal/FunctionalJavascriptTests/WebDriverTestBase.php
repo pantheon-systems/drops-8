@@ -4,10 +4,11 @@ namespace Drupal\FunctionalJavascriptTests;
 
 use Behat\Mink\Exception\DriverException;
 use Drupal\Tests\BrowserTestBase;
+use PHPUnit\Runner\BaseTestRunner;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Runs a browser test using a driver that supports Javascript.
+ * Runs a browser test using a driver that supports JavaScript.
  *
  * Base class for testing browser interaction implemented in JavaScript.
  *
@@ -81,6 +82,11 @@ abstract class WebDriverTestBase extends BrowserTestBase {
    */
   protected function tearDown() {
     if ($this->mink) {
+      $status = $this->getStatus();
+      if ($status === BaseTestRunner::STATUS_ERROR || $status === BaseTestRunner::STATUS_WARNING || $status === BaseTestRunner::STATUS_FAILURE) {
+        // Ensure we capture the output at point of failure.
+        @$this->htmlOutput();
+      }
       // Wait for all requests to finish. It is possible that an AJAX request is
       // still on-going.
       $result = $this->getSession()->wait(5000, '(typeof(jQuery)=="undefined" || (0 === jQuery.active && 0 === jQuery(\':animated\').length))');
@@ -129,7 +135,7 @@ abstract class WebDriverTestBase extends BrowserTestBase {
    * @see \Behat\Mink\Driver\DriverInterface::evaluateScript()
    */
   protected function assertJsCondition($condition, $timeout = 10000, $message = '') {
-    $message = $message ?: "Javascript condition met:\n" . $condition;
+    $message = $message ?: "JavaScript condition met:\n" . $condition;
     $result = $this->getSession()->getDriver()->wait($timeout, $condition);
     $this->assertTrue($result, $message);
   }

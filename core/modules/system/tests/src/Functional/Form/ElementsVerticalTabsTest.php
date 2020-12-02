@@ -59,7 +59,9 @@ class ElementsVerticalTabsTest extends BrowserTestBase {
     $content = $this->getSession()->getPage()->getContent();
     $position1 = strpos($content, 'core/misc/vertical-tabs.js');
     $position2 = strpos($content, 'core/misc/collapse.js');
-    $this->assertTrue($position1 !== FALSE && $position2 !== FALSE && $position1 < $position2, 'vertical-tabs.js is included before collapse.js');
+    $this->assertNotFalse($position1);
+    $this->assertNotFalse($position2);
+    $this->assertGreaterThan($position1, $position2, 'vertical-tabs.js is included before collapse.js');
   }
 
   /**
@@ -95,7 +97,9 @@ class ElementsVerticalTabsTest extends BrowserTestBase {
    * Ensures that vertical tab form values are cleaned.
    */
   public function testDefaultTabCleaned() {
-    $values = Json::decode($this->drupalPostForm('form_test/form-state-values-clean', [], t('Submit')));
+    $this->drupalGet('form_test/form-state-values-clean');
+    $this->submitForm([], 'Submit');
+    $values = Json::decode($this->getSession()->getPage()->getContent());
     $this->assertFalse(isset($values['vertical_tabs__active_tab']), new FormattableMarkup('%element was removed.', ['%element' => 'vertical_tabs__active_tab']));
   }
 

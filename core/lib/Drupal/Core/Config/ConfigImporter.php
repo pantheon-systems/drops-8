@@ -23,7 +23,7 @@ use Symfony\Component\EventDispatcher\EventDispatcherInterface;
  *
  * @see \Drupal\Core\Config\StorageComparerInterface
  *
- * The ConfigImporter has a identifier which is used to construct event names.
+ * The ConfigImporter has an identifier which is used to construct event names.
  * The events fired during an import are:
  * - ConfigEvents::IMPORT_VALIDATE: Events listening can throw a
  *   \Drupal\Core\Config\ConfigImporterException to prevent an import from
@@ -640,7 +640,7 @@ class ConfigImporter {
     if (!empty($missing_content)) {
       $event = new MissingContentEvent($missing_content);
       // Fire an event to allow listeners to create the missing content.
-      $this->eventDispatcher->dispatch(ConfigEvents::IMPORT_MISSING_CONTENT, $event);
+      $this->eventDispatcher->dispatch($event, ConfigEvents::IMPORT_MISSING_CONTENT);
       $sandbox['missing_content']['data'] = $event->getMissingContent();
     }
     $current_count = count($sandbox['missing_content']['data']);
@@ -660,7 +660,7 @@ class ConfigImporter {
    *   The batch context.
    */
   protected function finish(&$context) {
-    $this->eventDispatcher->dispatch(ConfigEvents::IMPORT, new ConfigImporterEvent($this));
+    $this->eventDispatcher->dispatch(new ConfigImporterEvent($this), ConfigEvents::IMPORT);
     // The import is now complete.
     $this->lock->release(static::LOCK_NAME);
     $this->reset();
@@ -742,7 +742,7 @@ class ConfigImporter {
           $this->logError($this->t('Rename operation for simple configuration. Existing configuration @old_name and staged configuration @new_name.', ['@old_name' => $names['old_name'], '@new_name' => $names['new_name']]));
         }
       }
-      $this->eventDispatcher->dispatch(ConfigEvents::IMPORT_VALIDATE, new ConfigImporterEvent($this));
+      $this->eventDispatcher->dispatch(new ConfigImporterEvent($this), ConfigEvents::IMPORT_VALIDATE);
       if (count($this->getErrors())) {
         $errors = array_merge(['There were errors validating the config synchronization.'], $this->getErrors());
         throw new ConfigImporterException(implode(PHP_EOL, $errors));
@@ -1039,7 +1039,7 @@ class ConfigImporter {
   }
 
   /**
-   * Determines if a import is already running.
+   * Determines if an import is already running.
    *
    * @return bool
    *   TRUE if an import is already running, FALSE if not.

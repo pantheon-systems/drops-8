@@ -54,8 +54,7 @@ class LocalActionTest extends BrowserTestBase {
       [Url::fromRoute('menu_test.local_action5'), 'Original title'],
     ]);
     // Verify the expected cache tag in the response headers.
-    $header_values = explode(' ', $this->drupalGetHeader('x-drupal-cache-tags'));
-    $this->assertContains('config:menu_test.links.action', $header_values, "Found 'config:menu_test.links.action' cache tag in header");
+    $this->assertSession()->responseHeaderContains('x-drupal-cache-tags', 'config:menu_test.links.action');
     /** @var \Drupal\Core\Config\Config $config */
     $config = $this->container->get('config.factory')->getEditable('menu_test.links.action');
     $config->set('title', 'New title');
@@ -84,7 +83,7 @@ class LocalActionTest extends BrowserTestBase {
       // so use a pattern instead to check the raw content.
       // This behavior is a bug in libxml, see
       // https://bugs.php.net/bug.php?id=49437.
-      $this->assertPattern('@<a [^>]*class="[^"]*button-action[^"]*"[^>]*>' . preg_quote($title, '@') . '</@');
+      $this->assertSession()->responseMatches('@<a [^>]*class="[^"]*button-action[^"]*"[^>]*>' . preg_quote($title, '@') . '</@');
       $this->assertEqual($elements[$index]->getAttribute('href'), $url->toString());
       $index++;
     }

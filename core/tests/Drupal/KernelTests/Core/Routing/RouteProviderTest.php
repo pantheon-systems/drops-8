@@ -207,6 +207,7 @@ class RouteProviderTest extends KernelTestBase {
    * Data provider for testMixedCasePaths()
    */
   public function providerMixedCaseRoutePaths() {
+    // cSpell:disable
     return [
       ['/path/one', 'route_a'],
       ['/path/two', NULL],
@@ -221,6 +222,7 @@ class RouteProviderTest extends KernelTestBase {
       ['/place/meΦω', 'route_e', 'HEAD'],
       ['/place/meφΩ', 'route_e', 'HEAD'],
     ];
+    // cSpell:enable
   }
 
   /**
@@ -284,10 +286,37 @@ class RouteProviderTest extends KernelTestBase {
 
     $request = Request::create($path);
     $routes = $provider->getRouteCollectionForRequest($request);
-    $this->assertEquals($number, count($routes), 'The correct number of routes was found.');
+    $this->assertCount($number, $routes, 'The correct number of routes was found.');
     if ($expected_route_name) {
       $route_name = key(current($routes));
       $this->assertEquals($expected_route_name, $route_name, 'The expected route name was found.');
+    }
+  }
+
+  /**
+   * Confirms RouteProvider::getAllRoutes() extracts information correctly from the database.
+   */
+  public function testGetAllRoutes() {
+    $connection = Database::getConnection();
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
+
+    $this->fixtures->createTables($connection);
+
+    $dumper = new MatcherDumper($connection, $this->state, 'test_routes');
+    $dumper->addRoutes($this->fixtures->SampleRouteCollection());
+    $dumper->dump();
+
+    $sample_routes = $this->fixtures->staticSampleRouteCollection();
+    $expected_route_count = count($sample_routes);
+
+    $returned_routes = $provider->getAllRoutes();
+
+    $this->assertInstanceOf(\Iterator::class, $returned_routes);
+    $this->assertEqual($expected_route_count, count($returned_routes));
+
+    foreach ($returned_routes as $route_name => $route) {
+      $this->assertArrayHasKey($route_name, $sample_routes);
+      $this->assertEquals($route->getPath(), $sample_routes[$route_name]['path']);
     }
   }
 
@@ -705,8 +734,11 @@ class RouteProviderTest extends KernelTestBase {
 
   /**
    * Tests getRoutesPaged().
+   *
+   * @group legacy
    */
   public function testGetRoutesPaged() {
+    $this->expectDeprecation('Drupal\Core\Routing\RouteProvider::getRoutesPaged() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. No direct replacement is provided. See https://www.drupal.org/node/3151009');
     $connection = Database::getConnection();
     $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
 
@@ -728,6 +760,23 @@ class RouteProviderTest extends KernelTestBase {
     // Query a limited sets of routes.
     $routes = $provider->getRoutesPaged(1, 2);
     $this->assertEqual(array_keys($routes), array_slice(array_keys($fixture_routes), 1, 2));
+  }
+
+  /**
+   * Tests getRoutesCount().
+   *
+   * @group legacy
+   */
+  public function testGetRoutesCount() {
+    $this->expectDeprecation('Drupal\Core\Routing\RouteProvider::getRoutesCount() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. No direct replacement is provided. See https://www.drupal.org/node/3151009');
+    $connection = Database::getConnection();
+    $provider = new RouteProvider($connection, $this->state, $this->currentPath, $this->cache, $this->pathProcessor, $this->cacheTagsInvalidator, 'test_routes');
+
+    $this->fixtures->createTables($connection);
+    $dumper = new MatcherDumper($connection, $this->state, 'test_routes');
+    $dumper->addRoutes($this->fixtures->sampleRouteCollection());
+    $dumper->dump();
+    $this->assertEqual($provider->getRoutesCount(), 5);
   }
 
 }

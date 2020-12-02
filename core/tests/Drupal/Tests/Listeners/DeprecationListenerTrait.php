@@ -2,8 +2,6 @@
 
 namespace Drupal\Tests\Listeners;
 
-use Drupal\Tests\Traits\ExpectDeprecationTrait;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Util\Test;
 
 /**
@@ -15,25 +13,12 @@ use PHPUnit\Util\Test;
  */
 trait DeprecationListenerTrait {
 
-  use ExpectDeprecationTrait;
-
   /**
    * The previous error handler.
    *
    * @var callable
    */
   private $previousHandler;
-
-  protected function deprecationStartTest($test) {
-    if ($test instanceof TestCase) {
-      if ('disabled' !== getenv('SYMFONY_DEPRECATIONS_HELPER')) {
-        $this->registerErrorHandler($test);
-      }
-      if ($this->willBeIsolated($test)) {
-        putenv('DRUPAL_EXPECTED_DEPRECATIONS_SERIALIZE=' . tempnam(sys_get_temp_dir(), 'exdep'));
-      }
-    }
-  }
 
   /**
    * Reacts to the end of a test.
@@ -45,13 +30,6 @@ trait DeprecationListenerTrait {
    */
   protected function deprecationEndTest($test, $time) {
     /** @var \PHPUnit\Framework\Test $test */
-    if ($file = getenv('DRUPAL_EXPECTED_DEPRECATIONS_SERIALIZE')) {
-      putenv('DRUPAL_EXPECTED_DEPRECATIONS_SERIALIZE');
-      $expected_deprecations = file_get_contents($file);
-      if ($expected_deprecations) {
-        $test->expectedDeprecations(unserialize($expected_deprecations));
-      }
-    }
     if ($file = getenv('SYMFONY_DEPRECATIONS_SERIALIZE')) {
       $method = $test->getName(FALSE);
       if (strpos($method, 'testLegacy') === 0
@@ -78,26 +56,6 @@ trait DeprecationListenerTrait {
         file_put_contents($file, serialize($deprecations));
       }
     }
-  }
-
-  /**
-   * Determines if a test is isolated.
-   *
-   * @param \PHPUnit\Framework\TestCase $test
-   *   The test to check.
-   *
-   * @return bool
-   *   TRUE if the isolated, FALSE if not.
-   */
-  private function willBeIsolated($test) {
-    if ($test->isInIsolation()) {
-      return FALSE;
-    }
-
-    $r = new \ReflectionProperty($test, 'runTestInSeparateProcess');
-    $r->setAccessible(TRUE);
-
-    return $r->getValue($test);
   }
 
   /**
@@ -145,27 +103,44 @@ trait DeprecationListenerTrait {
       // The following Symfony deprecations are introduced in the Symfony 4
       // development cycle. They will need to be resolved prior to Symfony 5
       // compatibility.
-      'Support for mapping keys in multi-line blocks is deprecated since Symfony 4.3 and will throw a ParseException in 5.0.',
       'The "Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesser" class is deprecated since Symfony 4.3, use "Symfony\Component\Mime\MimeTypes" instead.',
       'The "Drupal\Core\File\MimeType\MimeTypeGuesser" class implements "Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface" that is deprecated since Symfony 4.3, use {@link MimeTypesInterface} instead.',
       'The "Symfony\Component\HttpFoundation\File\MimeType\FileBinaryMimeTypeGuesser" class is deprecated since Symfony 4.3, use "Symfony\Component\Mime\FileBinaryMimeTypeGuesser" instead.',
       'The "Symfony\Component\HttpFoundation\File\MimeType\FileinfoMimeTypeGuesser" class is deprecated since Symfony 4.3, use "Symfony\Component\Mime\FileinfoMimeTypeGuesser" instead.',
-      'The signature of the "Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher::dispatch()" method should be updated to "dispatch($event, string $eventName = null)", not doing so is deprecated since Symfony 4.3.',
-      'Calling the "Symfony\Component\EventDispatcher\EventDispatcherInterface::dispatch()" method with the event name as the first argument is deprecated since Symfony 4.3, pass it as the second argument and provide the event object as the first argument instead.',
+      'The "Drupal\Tests\Core\DependencyInjection\Compiler\LegacyMimeTypeGuesser" class implements "Symfony\Component\HttpFoundation\File\MimeType\MimeTypeGuesserInterface" that is deprecated since Symfony 4.3, use {@link MimeTypesInterface} instead.',
       'The "Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher::dispatch()" method will require a new "string|null $eventName" argument in the next major version of its interface "Symfony\Contracts\EventDispatcher\EventDispatcherInterface", not defining it is deprecated.',
       'The "Drupal\Component\EventDispatcher\ContainerAwareEventDispatcher::dispatch()" method will require a new "string|null $eventName" argument in the next major version of its parent class "Symfony\Contracts\EventDispatcher\EventDispatcherInterface", not defining it is deprecated.',
-      'Passing a command as string when creating a "Symfony\Component\Process\Process" instance is deprecated since Symfony 4.2, pass it as an array of its arguments instead, or use the "Process::fromShellCommandline()" constructor if you need features provided by the shell.',
       // The following deprecation is listed for Twig 2 compatibility when unit
       // testing using \Symfony\Component\ErrorHandler\DebugClassLoader.
       'The "Twig\Environment::getTemplateClass()" method is considered internal. It may change without further notice. You should not extend it from "Drupal\Core\Template\TwigEnvironment".',
       '"Symfony\Component\DomCrawler\Crawler::text()" will normalize whitespaces by default in Symfony 5.0, set the second "$normalizeWhitespace" argument to false to retrieve the non-normalized version of the text.',
       // PHPUnit 8.
-      "The \"Drupal\Tests\Listeners\AfterSymfonyListener\" class implements \"PHPUnit\Framework\TestListener\" that is deprecated Use the `TestHook` interfaces instead.",
-      "The \"Drupal\Tests\Listeners\AfterSymfonyListener\" class uses \"PHPUnit\Framework\TestListenerDefaultImplementation\" that is deprecated The `TestListener` interface is deprecated.",
       "The \"PHPUnit\TextUI\ResultPrinter\" class is considered internal This class is not covered by the backward compatibility promise for PHPUnit. It may change without further notice. You should not use it from \"Drupal\Tests\Listeners\HtmlOutputPrinter\".",
       "The \"Drupal\Tests\Listeners\DrupalListener\" class implements \"PHPUnit\Framework\TestListener\" that is deprecated Use the `TestHook` interfaces instead.",
       "The \"Drupal\Tests\Listeners\DrupalListener\" class uses \"PHPUnit\Framework\TestListenerDefaultImplementation\" that is deprecated The `TestListener` interface is deprecated.",
       "The \"PHPUnit\Framework\TestSuite\" class is considered internal This class is not covered by the backward compatibility promise for PHPUnit. It may change without further notice. You should not use it from \"Drupal\Tests\TestSuites\TestSuiteBase\".",
+      // Simpletest's legacy assertion methods.
+      'UiHelperTrait::drupalPostForm() is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Use $this->submitForm() instead. See https://www.drupal.org/node/3168858',
+      'AssertLegacyTrait::assertEqual() is deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertEquals() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertNotEqual() is deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertNotEquals() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertIdentical() is deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertSame() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertNotIdentical() is deprecated in drupal:8.0.0 and is removed from drupal:10.0.0. Use $this->assertNotSame() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertText() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() or $this->assertSession()->pageTextContains() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertNoText() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseNotContains() or $this->assertSession()->pageTextNotContains() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertRaw() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseContains() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertNoRaw() is deprecated in drupal:8.2.0 and is removed from drupal:10.0.0. Use $this->assertSession()->responseNotContains() instead. See https://www.drupal.org/node/3129738',
+      'AssertLegacyTrait::assertFieldsByValue() is deprecated in drupal:8.3.0 and is removed from drupal:10.0.0. Use iteration over the fields yourself instead and directly check the values in the test. See https://www.drupal.org/node/3129738',
+      // PHPUnit 9.
+      "The \"PHPUnit\TextUI\DefaultResultPrinter\" class is considered internal This class is not covered by the backward compatibility promise for PHPUnit. It may change without further notice. You should not use it from \"Drupal\Tests\Listeners\HtmlOutputPrinter\".",
+      'assertFileNotExists() is deprecated and will be removed in PHPUnit 10. Refactor your code to use assertFileDoesNotExist() instead.',
+      'assertRegExp() is deprecated and will be removed in PHPUnit 10. Refactor your code to use assertMatchesRegularExpression() instead.',
+      'assertNotRegExp() is deprecated and will be removed in PHPUnit 10. Refactor your code to use assertDoesNotMatchRegularExpression() instead.',
+      'assertDirectoryNotExists() is deprecated and will be removed in PHPUnit 10. Refactor your code to use assertDirectoryDoesNotExist() instead.',
+      'Support for using expectException() with PHPUnit\\Framework\\Error\\Warning is deprecated and will be removed in PHPUnit 10. Use expectWarning() instead.',
+      'Support for using expectException() with PHPUnit\\Framework\\Error\\Error is deprecated and will be removed in PHPUnit 10. Use expectError() instead.',
+      'assertDirectoryNotIsWritable() is deprecated and will be removed in PHPUnit 10. Refactor your code to use assertDirectoryIsNotWritable() instead.',
+      'assertFileNotIsWritable() is deprecated and will be removed in PHPUnit 10. Refactor your code to use assertFileIsNotWritable() instead.',
+      'The at() matcher has been deprecated. It will be removed in PHPUnit 10. Please refactor your test to not rely on the order in which methods are invoked.',
     ];
   }
 
@@ -175,7 +150,10 @@ trait DeprecationListenerTrait {
    * @see \Symfony\Bridge\PhpUnit\DeprecationErrorHandler
    * @see \Symfony\Bridge\PhpUnit\Legacy\SymfonyTestsListenerTrait
    */
-  protected function registerErrorHandler($test) {
+  protected function registerErrorHandler() {
+    if ($this->previousHandler || 'disabled' === getenv('SYMFONY_DEPRECATIONS_HELPER')) {
+      return;
+    }
     $deprecation_handler = function ($type, $msg, $file, $line, $context = []) {
       // Skip listed deprecations.
       if ($type === E_USER_DEPRECATED && static::isDeprecationSkipped($msg)) {
@@ -184,28 +162,18 @@ trait DeprecationListenerTrait {
       return call_user_func($this->previousHandler, $type, $msg, $file, $line, $context);
     };
 
-    if ($this->previousHandler) {
-      set_error_handler($deprecation_handler);
-      return;
-    }
     $this->previousHandler = set_error_handler($deprecation_handler);
+  }
 
-    // Register another listener so that we can remove the error handler before
-    // Symfony's DeprecationErrorHandler checks that it is the currently
-    // registered handler. Note this is done like this to ensure the error
-    // handler is removed after SymfonyTestsListenerTrait::endTest() is called.
-    // SymfonyTestsListenerTrait has its own error handler that needs to be
-    // removed before this one.
-    $test_result_object = $test->getTestResultObject();
-    // It's possible that a test does not have a result object. This can happen
-    // when a test class does not have any test methods.
-    if ($test_result_object) {
-      $reflection_class = new \ReflectionClass($test_result_object);
-      $reflection_property = $reflection_class->getProperty('listeners');
-      $reflection_property->setAccessible(TRUE);
-      $listeners = $reflection_property->getValue($test_result_object);
-      $listeners[] = new AfterSymfonyListener();
-      $reflection_property->setValue($test_result_object, $listeners);
+  /**
+   * Removes the error handler if registered.
+   *
+   * @see \Drupal\Tests\Listeners\DeprecationListenerTrait::registerErrorHandler()
+   */
+  protected function removeErrorHandler(): void {
+    if ($this->previousHandler) {
+      $this->previousHandler = NULL;
+      restore_error_handler();
     }
   }
 

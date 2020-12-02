@@ -4,7 +4,6 @@ namespace Drupal\KernelTests\Core\Database;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Database\Database;
-use Drupal\Core\Database\Query\Condition;
 use Drupal\Core\Database\RowCountException;
 use Drupal\user\Entity\User;
 
@@ -37,9 +36,10 @@ class SelectComplexTest extends DatabaseTestBase {
 
     $num_records = 0;
     $last_priority = 0;
+    // Verify that the results are returned in the correct order.
     foreach ($result as $record) {
       $num_records++;
-      $this->assertTrue($record->$priority_field >= $last_priority, 'Results returned in correct order.');
+      $this->assertGreaterThanOrEqual($last_priority, $record->$priority_field);
       $this->assertNotEqual($record->$name_field, 'Ringo', 'Taskless person not selected.');
       $last_priority = $record->$priority_field;
     }
@@ -63,9 +63,10 @@ class SelectComplexTest extends DatabaseTestBase {
     $num_records = 0;
     $last_name = 0;
 
+    // Verify that the results are returned in the correct order.
     foreach ($result as $record) {
       $num_records++;
-      $this->assertTrue(strcmp($record->$name_field, $last_name) >= 0, 'Results returned in correct order.');
+      $this->assertGreaterThanOrEqual(0, strcmp($record->$name_field, $last_name));
     }
 
     $this->assertEqual($num_records, 8, 'Returned the correct number of rows.');
@@ -85,9 +86,10 @@ class SelectComplexTest extends DatabaseTestBase {
     $num_records = 0;
     $last_count = 0;
     $records = [];
+    // Verify that the results are returned in the correct order.
     foreach ($result as $record) {
       $num_records++;
-      $this->assertTrue($record->$count_field >= $last_count, 'Results returned in correct order.');
+      $this->assertGreaterThanOrEqual($last_count, $record->$count_field);
       $last_count = $record->$count_field;
       $records[$record->$task_field] = $record->$count_field;
     }
@@ -122,10 +124,11 @@ class SelectComplexTest extends DatabaseTestBase {
     $num_records = 0;
     $last_count = 0;
     $records = [];
+    // Verify that the results are returned in the correct order.
     foreach ($result as $record) {
       $num_records++;
-      $this->assertTrue($record->$count_field >= 2, 'Record has the minimum count.');
-      $this->assertTrue($record->$count_field >= $last_count, 'Results returned in correct order.');
+      $this->assertGreaterThanOrEqual(2, $record->$count_field);
+      $this->assertGreaterThanOrEqual($last_count, $record->$count_field);
       $last_count = $record->$count_field;
       $records[$record->$task_field] = $record->$count_field;
     }
@@ -313,7 +316,7 @@ class SelectComplexTest extends DatabaseTestBase {
     $query = $this->connection->select('test');
     $query->addField('test', 'job');
     $query->condition('name', 'Paul');
-    $query->condition((new Condition('OR'))->condition('age', 26)->condition('age', 27));
+    $query->condition(($this->connection->condition('OR'))->condition('age', 26)->condition('age', 27));
 
     $job = $query->execute()->fetchField();
     $this->assertEqual($job, 'Songwriter', 'Correct data retrieved.');
@@ -325,12 +328,12 @@ class SelectComplexTest extends DatabaseTestBase {
   public function testJoinTwice() {
     $query = $this->connection->select('test')->fields('test');
     $alias = $query->join('test', 'test', 'test.job = %alias.job');
-    $query->addField($alias, 'name', 'othername');
-    $query->addField($alias, 'job', 'otherjob');
+    $query->addField($alias, 'name', 'other_name');
+    $query->addField($alias, 'job', 'other_job');
     $query->where("$alias.name <> test.name");
     $crowded_job = $query->execute()->fetch();
-    $this->assertEqual($crowded_job->job, $crowded_job->otherjob, 'Correctly joined same table twice.');
-    $this->assertNotEqual($crowded_job->name, $crowded_job->othername, 'Correctly joined same table twice.');
+    $this->assertEqual($crowded_job->job, $crowded_job->other_job, 'Correctly joined same table twice.');
+    $this->assertNotEqual($crowded_job->name, $crowded_job->other_name, 'Correctly joined same table twice.');
   }
 
   /**
@@ -396,7 +399,7 @@ class SelectComplexTest extends DatabaseTestBase {
   public function testJoinConditionObject() {
     // Same test as testDefaultJoin, but with a Condition object.
     $query = $this->connection->select('test_task', 't');
-    $join_cond = (new Condition('AND'))->where('t.pid = p.id');
+    $join_cond = ($this->connection->condition('AND'))->where('t.pid = p.id');
     $people_alias = $query->join('test', 'p', $join_cond);
     $name_field = $query->addField($people_alias, 'name', 'name');
     $query->addField('t', 'task', 'task');
@@ -409,7 +412,8 @@ class SelectComplexTest extends DatabaseTestBase {
     $last_priority = 0;
     foreach ($result as $record) {
       $num_records++;
-      $this->assertTrue($record->$priority_field >= $last_priority, 'Results returned in correct order.');
+      // Verify that the results are returned in the correct order.
+      $this->assertGreaterThanOrEqual($last_priority, $record->$priority_field);
       $this->assertNotEqual($record->$name_field, 'Ringo', 'Taskless person not selected.');
       $last_priority = $record->$priority_field;
     }
@@ -419,7 +423,7 @@ class SelectComplexTest extends DatabaseTestBase {
     // Test a condition object that creates placeholders.
     $t1_name = 'John';
     $t2_name = 'George';
-    $join_cond = (new Condition('AND'))
+    $join_cond = ($this->connection->condition('AND'))
       ->condition('t1.name', $t1_name)
       ->condition('t2.name', $t2_name);
     $query = $this->connection->select('test', 't1');

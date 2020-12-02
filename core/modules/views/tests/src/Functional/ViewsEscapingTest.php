@@ -22,13 +22,13 @@ class ViewsEscapingTest extends ViewTestBase {
   protected $defaultTheme = 'stark';
 
   /**
-   * Used by WebTestBase::setup()
+   * Used by WebTestBase::setUp()
    *
    * We need theme_test for testing against test_basetheme and test_subtheme.
    *
    * @var array
    *
-   * @see \Drupal\simpletest\WebTestBase::setup()
+   * @see \Drupal\simpletest\WebTestBase::setUp()
    */
   protected static $modules = ['views', 'theme_test'];
 
@@ -49,7 +49,7 @@ class ViewsEscapingTest extends ViewTestBase {
     $this->drupalGet('test_page_display_200');
 
     // Assert that there are no escaped '<'s characters.
-    $this->assertNoEscaped('<');
+    $this->assertSession()->assertNoEscaped('<');
 
     // Install theme to test with template system.
     \Drupal::service('theme_installer')->install(['views_test_theme']);
@@ -66,7 +66,7 @@ class ViewsEscapingTest extends ViewTestBase {
     $this->assertText('force', 'The force is strong with this one');
 
     // Assert that there are no escaped '<'s characters.
-    $this->assertNoEscaped('<');
+    $this->assertSession()->assertNoEscaped('<');
   }
 
   /**
@@ -77,13 +77,13 @@ class ViewsEscapingTest extends ViewTestBase {
     $this->drupalGet('test_field_header');
 
     // Assert that there are no escaped '<'s characters.
-    $this->assertNoEscaped('<');
+    $this->assertSession()->assertNoEscaped('<');
 
     // Test with a field header label having a XSS test as a wrapper.
     $this->drupalGet('test_field_header_xss');
 
-    // Assert that XSS test is escaped.
-    $this->assertNoRaw('<script>alert("XSS")</script>', 'Harmful tags are escaped in header label.');
+    // Assert that harmful tags are escaped in header label.
+    $this->assertNoRaw('<script>alert("XSS")</script>');
   }
 
 }

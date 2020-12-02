@@ -2,7 +2,7 @@
 
 namespace Drupal\Core\EventSubscriber;
 
-use Symfony\Cmf\Component\Routing\RouteProviderInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -12,7 +12,7 @@ use Symfony\Component\Routing\Route;
 /**
  * Handles options requests.
  *
- * Therefore it sends a options response using all methods on all possible
+ * Therefore it sends an options response using all methods on all possible
  * routes.
  */
 class OptionsRequestSubscriber implements EventSubscriberInterface {
@@ -20,14 +20,14 @@ class OptionsRequestSubscriber implements EventSubscriberInterface {
   /**
    * The route provider.
    *
-   * @var \Symfony\Cmf\Component\Routing\RouteProviderInterface
+   * @var \Drupal\Core\Routing\RouteProviderInterface
    */
   protected $routeProvider;
 
   /**
    * Creates a new OptionsRequestSubscriber instance.
    *
-   * @param \Symfony\Cmf\Component\Routing\RouteProviderInterface $route_provider
+   * @param \Drupal\Core\Routing\RouteProviderInterface $route_provider
    *   The route provider.
    */
   public function __construct(RouteProviderInterface $route_provider) {

@@ -64,40 +64,69 @@ class PagerTest extends ViewTestBase {
     $edit = [
       'pager[type]' => 'some',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, 'Apply');
 
-    $this->assertFieldByXPath('//input[@name="pager_options[items_per_page]" and @type="number" and @min="0"]', 10, '"Items per page" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[offset]" and @type="number" and @min="0"]', 0, '"Offset" field was found.');
+    $items_per_page = $this->assertSession()->fieldExists("pager_options[items_per_page]");
+    $this->assertSession()->fieldValueEquals("pager_options[items_per_page]", 10);
+    $this->assertSame('number', $items_per_page->getAttribute('type'));
+    $this->assertEquals(0, $items_per_page->getAttribute('min'));
+
+    $offset = $this->assertSession()->fieldExists("pager_options[offset]");
+    $this->assertSession()->fieldValueEquals("pager_options[offset]", 0);
+    $this->assertSame('number', $offset->getAttribute('type'));
+    $this->assertEquals(0, $offset->getAttribute('min'));
 
     $edit = [
       'pager[type]' => 'none',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, 'Apply');
 
-    $this->assertFieldByXPath('//input[@name="pager_options[offset]" and @type="number" and @min="0"]', 0, '"Offset" field was found.');
+    $offset = $this->assertSession()->fieldExists("pager_options[offset]");
+    $this->assertSession()->fieldValueEquals("pager_options[offset]", 0);
+    $this->assertSame('number', $offset->getAttribute('type'));
+    $this->assertEquals(0, $offset->getAttribute('min'));
 
     $edit = [
       'pager[type]' => 'full',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, 'Apply');
 
-    $this->assertFieldByXPath('//input[@name="pager_options[items_per_page]" and @type="number" and @min="0"]', 10, '"Items to display" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[offset]" and @type="number" and @min="0"]', 0, '"Offset" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[id]" and @type="number" and @min="0"]', 0, '"Pager ID" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[total_pages]" and @type="number" and @min="0"]', '', '"Number of pages" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[quantity]" and @type="number" and @min="0"]', 9, '"Number of pager links" field was found.');
+    $items_per_page = $this->assertSession()->fieldExists("pager_options[items_per_page]");
+    $this->assertSession()->fieldValueEquals("pager_options[items_per_page]", 10);
+    $this->assertSame('number', $items_per_page->getAttribute('type'));
+    $this->assertEquals(0, $items_per_page->getAttribute('min'));
+
+    $offset = $this->assertSession()->fieldExists("pager_options[offset]");
+    $this->assertSession()->fieldValueEquals("pager_options[offset]", 0);
+    $this->assertSame('number', $offset->getAttribute('type'));
+    $this->assertEquals(0, $offset->getAttribute('min'));
+
+    $id = $this->assertSession()->fieldExists("pager_options[id]");
+    $this->assertSession()->fieldValueEquals("pager_options[id]", 0);
+    $this->assertSame('number', $id->getAttribute('type'));
+    $this->assertEquals(0, $id->getAttribute('min'));
+
+    $total_pages = $this->assertSession()->fieldExists("pager_options[total_pages]");
+    $this->assertSession()->fieldValueEquals("pager_options[total_pages]", '');
+    $this->assertSame('number', $total_pages->getAttribute('type'));
+    $this->assertEquals(0, $total_pages->getAttribute('min'));
+
+    $quantity = $this->assertSession()->fieldExists("pager_options[quantity]");
+    $this->assertSession()->fieldValueEquals("pager_options[quantity]", 9);
+    $this->assertSame('number', $quantity->getAttribute('type'));
+    $this->assertEquals(0, $quantity->getAttribute('min'));
 
     $edit = [
       'pager_options[items_per_page]' => 20,
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager_options', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager_options', $edit, 'Apply');
     $this->assertText('20 items');
 
     // Change type and check whether the type is new type is stored.
     $edit = [
       'pager[type]' => 'mini',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_view/default/pager', $edit, 'Apply');
     $this->drupalGet('admin/structure/views/view/test_view/edit');
     $this->assertText('Mini', 'Changed pager plugin, should change some text');
 
@@ -112,50 +141,65 @@ class PagerTest extends ViewTestBase {
     $edit = [
       'pager[type]' => 'full',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/default/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/default/pager', $edit, 'Apply');
     $this->drupalGet('admin/structure/views/view/test_store_pager_settings/edit');
     $this->assertText('Full');
 
     $edit = [
       'pager_options[items_per_page]' => 20,
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/default/pager_options', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/default/pager_options', $edit, 'Apply');
     $this->assertText('20 items');
 
     // add new display and test the settings again, by override it.
     $edit = [];
     // Add a display and override the pager settings.
-    $this->drupalPostForm('admin/structure/views/view/test_store_pager_settings/edit', $edit, t('Add Page'));
+    $this->drupalPostForm('admin/structure/views/view/test_store_pager_settings/edit', $edit, 'Add Page');
     $edit = [
       'override[dropdown]' => 'page_1',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/page_1/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/page_1/pager', $edit, 'Apply');
 
     $edit = [
       'pager[type]' => 'mini',
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/page_1/pager', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/page_1/pager', $edit, 'Apply');
     $this->drupalGet('admin/structure/views/view/test_store_pager_settings/edit/page_1');
     $this->assertText('Mini', 'Changed pager plugin, should change some text');
 
     $edit = [
       'pager_options[items_per_page]' => 10,
     ];
-    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/default/pager_options', $edit, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/display/test_store_pager_settings/default/pager_options', $edit, 'Apply');
     $this->assertText('10 items', 'The default value has been changed.');
     $this->drupalGet('admin/structure/views/view/test_store_pager_settings/edit/page_1');
     $this->assertText('20 items', 'The original value remains unchanged.');
 
     // Test that the override element is only displayed on pager plugin selection form.
     $this->drupalGet('admin/structure/views/nojs/display/test_store_pager_settings/page_1/pager');
-    $this->assertFieldByName('override[dropdown]', 'page_1', 'The override element is displayed on plugin selection form.');
+    $this->assertSession()->fieldValueEquals('override[dropdown]', 'page_1');
     $this->drupalGet('admin/structure/views/nojs/display/test_store_pager_settings/page_1/pager_options');
-    $this->assertNoFieldByName('override[dropdown]', NULL, 'The override element is not displayed on plugin settings form.');
+    $this->assertSession()->fieldNotExists('override[dropdown]');
 
-    $this->assertFieldByXPath('//input[@name="pager_options[items_per_page]" and @type="number" and @min="0"]', 20, '"Items per page" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[offset]" and @type="number" and @min="0"]', 0, '"Offset" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[id]" and @type="number" and @min="0"]', 0, '"Pager ID" field was found.');
-    $this->assertFieldByXPath('//input[@name="pager_options[total_pages]" and @type="number" and @min="0"]', '', '"Number of pages" field was found.');
+    $items_per_page = $this->assertSession()->fieldExists("pager_options[items_per_page]");
+    $this->assertSession()->fieldValueEquals("pager_options[items_per_page]", 20);
+    $this->assertSame('number', $items_per_page->getAttribute('type'));
+    $this->assertEquals(0, $items_per_page->getAttribute('min'));
+
+    $offset = $this->assertSession()->fieldExists("pager_options[offset]");
+    $this->assertSession()->fieldValueEquals("pager_options[offset]", 0);
+    $this->assertSame('number', $offset->getAttribute('type'));
+    $this->assertEquals(0, $offset->getAttribute('min'));
+
+    $id = $this->assertSession()->fieldExists("pager_options[id]");
+    $this->assertSession()->fieldValueEquals("pager_options[id]", 0);
+    $this->assertSame('number', $id->getAttribute('type'));
+    $this->assertEquals(0, $id->getAttribute('min'));
+
+    $total_pages = $this->assertSession()->fieldExists("pager_options[total_pages]");
+    $this->assertSession()->fieldValueEquals("pager_options[total_pages]", '');
+    $this->assertSame('number', $total_pages->getAttribute('type'));
+    $this->assertEquals(0, $total_pages->getAttribute('min'));
   }
 
   /**
@@ -172,7 +216,7 @@ class PagerTest extends ViewTestBase {
     $this->executeView($view);
     $this->assertCount(11, $view->result, 'Make sure that every item is returned in the result');
 
-    // Setup and test a offset.
+    // Setup and test an offset.
     $view = Views::getView('test_pager_none');
     $view->setDisplay();
     $pager = [
@@ -220,7 +264,7 @@ class PagerTest extends ViewTestBase {
     $this->executeView($view);
     $this->assertCount(5, $view->result, 'Make sure that only a certain count of items is returned');
 
-    // Setup and test a offset.
+    // Setup and test an offset.
     $view = Views::getView('test_pager_some');
     $view->setDisplay();
     $pager = [
@@ -254,7 +298,7 @@ class PagerTest extends ViewTestBase {
     $this->executeView($view);
     $this->assertCount(5, $view->result, 'Make sure that only a certain count of items is returned');
 
-    // Setup and test a offset.
+    // Setup and test an offset.
     $view = Views::getView('test_pager_full');
     $view->setDisplay();
     $pager = [
@@ -277,7 +321,7 @@ class PagerTest extends ViewTestBase {
     // TODO test number of pages.
 
     // Test items per page = 0.
-    // Setup and test a offset.
+    // Setup and test an offset.
     $view = Views::getView('test_pager_full');
     $view->setDisplay();
     $pager = [
@@ -409,7 +453,7 @@ class PagerTest extends ViewTestBase {
       'translation[config_names][views.view.content][display][default][display_options][pager][options][tags][next]' => 'Volgende ›',
       'translation[config_names][views.view.content][display][default][display_options][pager][options][tags][last]' => 'Laatste »',
     ];
-    $this->drupalPostForm('admin/structure/views/view/content/translate/nl/edit', $edit, t('Save translation'));
+    $this->drupalPostForm('admin/structure/views/view/content/translate/nl/edit', $edit, 'Save translation');
 
     // We create 11 nodes, this will give us 3 pages.
     $this->drupalCreateContentType(['type' => 'page']);

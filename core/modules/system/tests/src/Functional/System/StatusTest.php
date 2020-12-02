@@ -54,14 +54,14 @@ class StatusTest extends BrowserTestBase {
     $this->assertText($phpversion, 'Php version is shown on the page.');
 
     if (function_exists('phpinfo')) {
-      $this->assertLinkByHref(Url::fromRoute('system.php')->toString());
+      $this->assertSession()->linkByHrefExists(Url::fromRoute('system.php')->toString());
     }
     else {
-      $this->assertNoLinkByHref(Url::fromRoute('system.php')->toString());
+      $this->assertSession()->linkByHrefNotExists(Url::fromRoute('system.php')->toString());
     }
 
     // If a module is fully installed no pending updates exists.
-    $this->assertNoText(t('Out of date'));
+    $this->assertNoText('Out of date');
 
     // The setting config_sync_directory is not properly formed.
     $this->assertRaw(t("Your %file file must define the %setting setting", ['%file' => $this->siteDirectory . '/settings.php', '%setting' => "\$settings['config_sync_directory']"]));
@@ -70,7 +70,7 @@ class StatusTest extends BrowserTestBase {
     // update_test_postupdate_update_8001() needs to be executed.
     drupal_set_installed_schema_version('update_test_postupdate', 8000);
     $this->drupalGet('admin/reports/status');
-    $this->assertText(t('Out of date'));
+    $this->assertText('Out of date');
 
     // Now cleanup the executed post update functions.
     drupal_set_installed_schema_version('update_test_postupdate', 8001);
@@ -78,7 +78,7 @@ class StatusTest extends BrowserTestBase {
     $post_update_registry = \Drupal::service('update.post_update_registry');
     $post_update_registry->filterOutInvokedUpdatesByModule('update_test_postupdate');
     $this->drupalGet('admin/reports/status');
-    $this->assertText(t('Out of date'));
+    $this->assertText('Out of date');
 
     $this->drupalGet('admin/reports/status/php');
     $this->assertSession()->statusCodeEquals(200);

@@ -484,7 +484,7 @@ use Drupal\node\Entity\NodeType;
  * - defaults: For entity form routes, use _entity_form rather than the generic
  *   _controller or _form. The value is composed of the entity type machine name
  *   and a form handler type from the entity annotation (see @ref define above
- *   more more on handlers and annotation). So, in this example, block.default
+ *   for more on handlers and annotation). So, in this example, block.default
  *   refers to the 'default' form handler on the block entity type, whose
  *   annotation contains:
  *   @code
@@ -541,7 +541,7 @@ use Drupal\node\Entity\NodeType;
  * @link container Services and Dependency Injection topic @endlink for more
  * about how to properly retrieve services.
  *
- * To query to find entities to load, use an entity query, which is a object
+ * To query to find entities to load, use an entity query, which is an object
  * implementing \Drupal\Core\Entity\Query\QueryInterface that you can retrieve
  * with:
  * @code
@@ -653,12 +653,12 @@ use Drupal\node\Entity\NodeType;
  * @param \Drupal\Core\Entity\EntityInterface $entity
  *   The entity to check access to.
  * @param string $operation
- *   The operation that is to be performed on $entity.
- * @param \Drupal\Core\Session\AccountInterface $account
- *   The account trying to access the entity. Usually one of:
+ *   The operation that is to be performed on $entity. Usually one of:
  *   - "view"
  *   - "update"
  *   - "delete"
+ * @param \Drupal\Core\Session\AccountInterface $account
+ *   The account trying to access the entity.
  *
  * @return \Drupal\Core\Access\AccessResultInterface
  *   The access result. The final result is calculated by using

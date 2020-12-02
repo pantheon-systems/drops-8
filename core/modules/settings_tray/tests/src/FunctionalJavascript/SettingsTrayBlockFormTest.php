@@ -49,7 +49,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
    */
   public function testBlocks() {
     foreach ($this->getBlockTests() as $test) {
-      call_user_func_array([$this, 'doTestBlocks'], $test);
+      call_user_func_array([$this, 'doTestBlocks'], array_values($test));
     }
   }
 
@@ -135,7 +135,7 @@ class SettingsTrayBlockFormTest extends SettingsTrayTestBase {
 
     $this->enableEditMode();
 
-    // Open block form by clicking a element inside the block.
+    // Open block form by clicking an element inside the block.
     // This confirms that default action for links and form elements is
     // suppressed.
     $this->openBlockForm("$block_selector {$element_selector}", $block_selector);

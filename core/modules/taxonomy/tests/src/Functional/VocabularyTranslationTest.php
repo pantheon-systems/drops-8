@@ -39,7 +39,7 @@ class VocabularyTranslationTest extends TaxonomyTestBase {
     $this->drupalGet('admin/structure/taxonomy/add');
 
     // Check that the field to enable content translation is available.
-    $this->assertField('edit-default-language-content-translation', 'The content translation checkbox is present on the page.');
+    $this->assertSession()->fieldExists('edit-default-language-content-translation');
 
     // Create the vocabulary.
     $vid = mb_strtolower($this->randomMachineName());
@@ -48,11 +48,11 @@ class VocabularyTranslationTest extends TaxonomyTestBase {
     $edit['langcode'] = 'en';
     $edit['vid'] = $vid;
     $edit['default_language[content_translation]'] = TRUE;
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->submitForm($edit, 'Save');
 
     // Check if content translation is enabled on the edit page.
     $this->drupalGet('admin/structure/taxonomy/manage/' . $vid);
-    $this->assertFieldChecked('edit-default-language-content-translation', 'The content translation was correctly selected.');
+    $this->assertSession()->checkboxChecked('edit-default-language-content-translation');
   }
 
 }

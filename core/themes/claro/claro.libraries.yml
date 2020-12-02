@@ -186,6 +186,12 @@ checkbox:
   dependencies:
     - core/drupal
 
+icon-link:
+  version: VERSION
+  css:
+    component:
+      css/components/icon-link.css: {}
+
 dropbutton:
   version: VERSION
   js:
@@ -219,11 +225,10 @@ form.password-confirm:
     component:
       css/components/form--password-confirm.css: {}
   js:
-    js/user.js: {}
+    js/user.theme.js: {}
   dependencies:
-    - core/jquery
+    - core/drupal.object.assign
     - core/drupal
-    - core/jquery.once
     - claro/global-styling
 
 views:
@@ -258,6 +263,8 @@ media_library.theme:
   css:
     theme:
       css/theme/media-library.css: {}
+  dependencies:
+    - claro/icon-link
 
 media_library.ui:
   version: VERSION

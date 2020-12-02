@@ -31,7 +31,7 @@ class BasicTest extends WizardTestBase {
 
     // Check if we can access the main views admin page.
     $this->drupalGet('admin/structure/views');
-    $this->assertText(t('Add view'));
+    $this->assertText('Add view');
 
     // Create a simple and not at all useful view.
     $view1 = [];
@@ -39,14 +39,14 @@ class BasicTest extends WizardTestBase {
     $view1['id'] = strtolower($this->randomMachineName(16));
     $view1['description'] = $this->randomMachineName(16);
     $view1['page[create]'] = FALSE;
-    $this->drupalPostForm('admin/structure/views/add', $view1, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view1, 'Save and edit');
     $this->assertSession()->statusCodeEquals(200);
     $this->drupalGet('admin/structure/views');
     $this->assertText($view1['label']);
     $this->assertText($view1['description']);
-    $this->assertLinkByHref(Url::fromRoute('entity.view.edit_form', ['view' => $view1['id']])->toString());
-    $this->assertLinkByHref(Url::fromRoute('entity.view.delete_form', ['view' => $view1['id']])->toString());
-    $this->assertLinkByHref(Url::fromRoute('entity.view.duplicate_form', ['view' => $view1['id']])->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('entity.view.edit_form', ['view' => $view1['id']])->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('entity.view.delete_form', ['view' => $view1['id']])->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('entity.view.duplicate_form', ['view' => $view1['id']])->toString());
 
     // The view should not have a REST export display.
     $this->assertNoText('REST export', 'When no options are enabled in the wizard, the resulting view does not have a REST export display.');
@@ -69,19 +69,19 @@ class BasicTest extends WizardTestBase {
     $view2['page[path]'] = $this->randomMachineName(16);
     $view2['page[feed]'] = 1;
     $view2['page[feed_properties][path]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('admin/structure/views/add', $view2, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view2, 'Save and edit');
     $this->drupalGet($view2['page[path]']);
     $this->assertSession()->statusCodeEquals(200);
 
     // Since the view has a page, we expect to be automatically redirected to
     // it.
-    $this->assertUrl($view2['page[path]']);
+    $this->assertSession()->addressEquals($view2['page[path]']);
     $this->assertText($view2['page[title]']);
     $this->assertText($node1->label());
     $this->assertText($node2->label());
 
     // Check if we have the feed.
-    $this->assertLinkByHref(Url::fromRoute('view.' . $view2['id'] . '.feed_1')->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('view.' . $view2['id'] . '.feed_1')->toString());
     $elements = $this->cssSelect('link[href="' . Url::fromRoute('view.' . $view2['id'] . '.feed_1', [], ['absolute' => TRUE])->toString() . '"]');
     $this->assertCount(1, $elements, 'Feed found.');
     $this->drupalGet($view2['page[feed_properties][path]']);
@@ -99,7 +99,7 @@ class BasicTest extends WizardTestBase {
     $this->drupalGet('admin/structure/views');
     $this->assertText($view2['label']);
     $this->assertText($view2['description']);
-    $this->assertLinkByHref(Url::fromRoute('view.' . $view2['id'] . '.page_1')->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('view.' . $view2['id'] . '.page_1')->toString());
 
     // The view should not have a REST export display.
     $this->assertNoText('REST export', 'If only the page option was enabled in the wizard, the resulting view does not have a REST export display.');
@@ -120,12 +120,12 @@ class BasicTest extends WizardTestBase {
     $view3['page[path]'] = $this->randomMachineName(16);
     $view3['block[create]'] = 1;
     $view3['block[title]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('admin/structure/views/add', $view3, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view3, 'Save and edit');
     $this->drupalGet($view3['page[path]']);
     $this->assertSession()->statusCodeEquals(200);
 
     // Make sure the view only displays the node we expect.
-    $this->assertUrl($view3['page[path]']);
+    $this->assertSession()->addressEquals($view3['page[path]']);
     $this->assertText($view3['page[title]']);
     $this->assertText($node1->label());
     $this->assertNoText($node2->label());
@@ -134,7 +134,7 @@ class BasicTest extends WizardTestBase {
     $this->drupalGet('admin/structure/views');
     $this->assertText($view3['label']);
     $this->assertText($view3['description']);
-    $this->assertLinkByHref(Url::fromRoute('view.' . $view3['id'] . '.page_1')->toString());
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('view.' . $view3['id'] . '.page_1')->toString());
 
     // The view should not have a REST export display.
     $this->assertNoText('REST export', 'If only the page and block options were enabled in the wizard, the resulting view does not have a REST export display.');
@@ -165,7 +165,7 @@ class BasicTest extends WizardTestBase {
     $view4['show[type]'] = 'page';
     $view4['rest_export[create]'] = 1;
     $view4['rest_export[path]'] = $this->randomMachineName(16);
-    $this->drupalPostForm('admin/structure/views/add', $view4, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view4, 'Save and edit');
     $this->assertRaw(t('The view %view has been saved.', ['%view' => $view4['label']]));
 
     // Check that the REST export path works. JSON will work, as all core
@@ -188,7 +188,7 @@ class BasicTest extends WizardTestBase {
     $leading_slash_view['page[create]'] = 1;
     $leading_slash_view['page[title]'] = $this->randomMachineName(16);
     $leading_slash_view['page[path]'] = '/' . $this->randomMachineName(16);
-    $this->drupalPostForm('admin/structure/views/add', $leading_slash_view, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $leading_slash_view, 'Save and edit');
     $this->assertEquals($leading_slash_view['page[path]'], $this->cssSelect('#views-page-1-path')[0]->getText());
   }
 
@@ -205,7 +205,7 @@ class BasicTest extends WizardTestBase {
     $view['id'] = $random_id;
     $view['description'] = $this->randomMachineName(16);
     $view['page[create]'] = FALSE;
-    $this->drupalPostForm('admin/structure/views/add', $view, t('Save and edit'));
+    $this->drupalPostForm('admin/structure/views/add', $view, 'Save and edit');
 
     // Make sure the plugin types that should not have empty options don't have.
     // Test against all values is unit tested.

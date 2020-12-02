@@ -82,58 +82,58 @@ class UserPasswordResetTest extends BrowserTestBase {
     // Try to reset the password for an invalid account.
     $this->drupalGet('user/password');
     $edit = ['name' => $this->randomMachineName()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $this->assertNoValidPasswordReset($edit['name']);
 
     // Reset the password by username via the password reset page.
     $this->drupalGet('user/password');
     $edit = ['name' => $this->account->getAccountName()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $this->assertValidPasswordReset($edit['name']);
 
     $resetURL = $this->getResetURL();
     $this->drupalGet($resetURL);
     // Ensure that the current url does not contain the hash and timestamp.
-    $this->assertUrl(Url::fromRoute('user.reset.form', ['uid' => $this->account->id()]));
+    $this->assertSession()->addressEquals(Url::fromRoute('user.reset.form', ['uid' => $this->account->id()]));
 
-    $this->assertNull($this->drupalGetHeader('X-Drupal-Cache'));
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
 
     // Ensure the password reset URL is not cached.
     $this->drupalGet($resetURL);
-    $this->assertNull($this->drupalGetHeader('X-Drupal-Cache'));
+    $this->assertSession()->responseHeaderDoesNotExist('X-Drupal-Cache');
 
     // Check the one-time login page.
     $this->assertText($this->account->getAccountName(), 'One-time login page contains the correct username.');
-    $this->assertText(t('This login can be used only once.'), 'Found warning about one-time login.');
-    $this->assertTitle('Reset password | Drupal');
+    $this->assertText('This login can be used only once.', 'Found warning about one-time login.');
+    $this->assertSession()->titleEquals('Reset password | Drupal');
 
     // Check successful login.
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
-    $this->assertSession()->linkExists(t('Log out'));
-    $this->assertTitle($this->account->getAccountName() . ' | Drupal');
+    $this->submitForm([], 'Log in');
+    $this->assertSession()->linkExists('Log out');
+    $this->assertSession()->titleEquals($this->account->getAccountName() . ' | Drupal');
 
     // Change the forgotten password.
-    $password = user_password();
+    $password = \Drupal::service('password_generator')->generate();
     $edit = ['pass[pass1]' => $password, 'pass[pass2]' => $password];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(t('The changes have been saved.'), 'Forgotten password changed.');
+    $this->submitForm($edit, 'Save');
+    $this->assertText('The changes have been saved.', 'Forgotten password changed.');
 
     // Verify that the password reset session has been destroyed.
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(t("Your current password is missing or incorrect; it's required to change the Password."), 'Password needed to make profile changes.');
+    $this->submitForm($edit, 'Save');
+    $this->assertText("Your current password is missing or incorrect; it's required to change the Password.", 'Password needed to make profile changes.');
 
     // Log out, and try to log in again using the same one-time link.
     $this->drupalLogout();
     $this->drupalGet($resetURL);
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
-    $this->assertText(t('You have tried to use a one-time login link that has either been used or is no longer valid. Please request a new one using the form below.'), 'One-time link is no longer valid.');
+    $this->submitForm([], 'Log in');
+    $this->assertText('You have tried to use a one-time login link that has either been used or is no longer valid. Please request a new one using the form below.', 'One-time link is no longer valid.');
 
     // Request a new password again, this time using the email address.
     // Count email messages before to compare with after.
     $before = count($this->drupalGetMails(['id' => 'user_password_reset']));
     $this->drupalGet('user/password');
     $edit = ['name' => $this->account->getEmail()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $this->assertValidPasswordReset($edit['name']);
     $this->assertCount($before + 1, $this->drupalGetMails(['id' => 'user_password_reset']), 'Email sent when requesting password reset using email address.');
 
@@ -141,7 +141,7 @@ class UserPasswordResetTest extends BrowserTestBase {
     // not cause an error.
     $resetURL = $this->getResetURL();
     $this->drupalGet($resetURL);
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
+    $this->submitForm([], 'Log in');
     $this->drupalGet('user/' . $this->account->id() . '/edit');
     $this->assertNoText('Expected user_string to be a string, NULL given');
     $this->drupalLogout();
@@ -151,8 +151,8 @@ class UserPasswordResetTest extends BrowserTestBase {
     $bogus_timestamp = REQUEST_TIME - $timeout - 60;
     $_uid = $this->account->id();
     $this->drupalGet("user/reset/$_uid/$bogus_timestamp/" . user_pass_rehash($this->account, $bogus_timestamp));
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
-    $this->assertText(t('You have tried to use a one-time login link that has expired. Please request a new one using the form below.'), 'Expired password reset request rejected.');
+    $this->submitForm([], 'Log in');
+    $this->assertText('You have tried to use a one-time login link that has expired. Please request a new one using the form below.', 'Expired password reset request rejected.');
 
     // Create a user, block the account, and verify that a login link is denied.
     $timestamp = REQUEST_TIME - 1;
@@ -166,30 +166,30 @@ class UserPasswordResetTest extends BrowserTestBase {
     // Count email messages before to compare with after.
     $before = count($this->drupalGetMails(['id' => 'user_password_reset']));
     $edit = ['name' => $blocked_account->getAccountName()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
-    $this->assertRaw(t('%name is blocked or has not been activated yet.', ['%name' => $blocked_account->getAccountName()]), 'Notified user blocked accounts can not request a new password');
+    $this->submitForm($edit, 'Submit');
+    $this->assertRaw(t('%name is blocked or has not been activated yet.', ['%name' => $blocked_account->getAccountName()]));
     $this->assertCount($before, $this->drupalGetMails(['id' => 'user_password_reset']), 'No email was sent when requesting password reset for a blocked account');
 
     // Verify a password reset link is invalidated when the user's email address changes.
     $this->drupalGet('user/password');
     $edit = ['name' => $this->account->getAccountName()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $old_email_reset_link = $this->getResetURL();
     $this->account->setEmail("1" . $this->account->getEmail());
     $this->account->save();
     $this->drupalGet($old_email_reset_link);
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
-    $this->assertText(t('You have tried to use a one-time login link that has either been used or is no longer valid. Please request a new one using the form below.'), 'One-time link is no longer valid.');
+    $this->submitForm([], 'Log in');
+    $this->assertText('You have tried to use a one-time login link that has either been used or is no longer valid. Please request a new one using the form below.', 'One-time link is no longer valid.');
 
     // Verify a password reset link will automatically log a user when /login is
     // appended.
     $this->drupalGet('user/password');
     $edit = ['name' => $this->account->getAccountName()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $reset_url = $this->getResetURL();
     $this->drupalGet($reset_url . '/login');
-    $this->assertSession()->linkExists(t('Log out'));
-    $this->assertTitle($this->account->getAccountName() . ' | Drupal');
+    $this->assertSession()->linkExists('Log out');
+    $this->assertSession()->titleEquals($this->account->getAccountName() . ' | Drupal');
 
     // Ensure blocked and deleted accounts can't access the user.reset.login
     // route.
@@ -225,7 +225,7 @@ class UserPasswordResetTest extends BrowserTestBase {
     $another_account = $this->drupalCreateUser();
     $this->drupalLogin($another_account);
     $this->drupalGet('user/password');
-    $this->drupalPostForm(NULL, NULL, t('Submit'));
+    $this->submitForm([], 'Submit');
 
     // Click the reset URL while logged and change our password.
     $resetURL = $this->getResetURL();
@@ -246,18 +246,18 @@ class UserPasswordResetTest extends BrowserTestBase {
 
     // Reset the password by username via the password reset page.
     $this->drupalGet('user/password');
-    $this->drupalPostForm(NULL, NULL, t('Submit'));
+    $this->submitForm([], 'Submit');
 
     // Click the reset URL while logged and change our password.
     $resetURL = $this->getResetURL();
     $this->drupalGet($resetURL);
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
+    $this->submitForm([], 'Log in');
 
     // Change the password.
-    $password = user_password();
+    $password = \Drupal::service('password_generator')->generate();
     $edit = ['pass[pass1]' => $password, 'pass[pass2]' => $password];
-    $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(t('The changes have been saved.'), 'Password changed.');
+    $this->submitForm($edit, 'Save');
+    $this->assertText('The changes have been saved.', 'Password changed.');
 
     // Logged in users should not be able to access the user.reset.login or the
     // user.reset.form routes.
@@ -277,15 +277,15 @@ class UserPasswordResetTest extends BrowserTestBase {
       'name' => $this->randomMachineName(),
       'pass' => $this->randomMachineName(),
     ];
-    $this->drupalPostForm('user/login', $edit, t('Log in'));
+    $this->drupalPostForm('user/login', $edit, 'Log in');
     $this->assertRaw(t('Unrecognized username or password. <a href=":password">Forgot your password?</a>',
       [':password' => Url::fromRoute('user.pass', [], ['query' => ['name' => $edit['name']]])->toString()]));
     unset($edit['pass']);
     $this->drupalGet('user/password', ['query' => ['name' => $edit['name']]]);
-    $this->assertFieldByName('name', $edit['name'], 'User name found.');
+    $this->assertSession()->fieldValueEquals('name', $edit['name']);
     // Ensure the name field value is not cached.
     $this->drupalGet('user/password');
-    $this->assertNoFieldByName('name', $edit['name'], 'User name not found.');
+    $this->assertSession()->fieldValueNotEquals('name', $edit['name']);
   }
 
   /**
@@ -301,14 +301,14 @@ class UserPasswordResetTest extends BrowserTestBase {
     // Try 3 requests that should not trigger flood control.
     for ($i = 0; $i < 3; $i++) {
       $this->drupalGet('user/password');
-      $this->drupalPostForm(NULL, $edit, t('Submit'));
+      $this->submitForm($edit, 'Submit');
       $this->assertValidPasswordReset($edit['name']);
       $this->assertNoPasswordUserFlood();
     }
 
     // The next request should trigger flood control.
     $this->drupalGet('user/password');
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $this->assertPasswordUserFlood();
   }
 
@@ -324,7 +324,7 @@ class UserPasswordResetTest extends BrowserTestBase {
     for ($i = 0; $i < 3; $i++) {
       $this->drupalGet('user/password');
       $edit = ['name' => $this->randomMachineName()];
-      $this->drupalPostForm(NULL, $edit, t('Submit'));
+      $this->submitForm($edit, 'Submit');
       // Because we're testing with a random name, the password reset will not be valid.
       $this->assertNoValidPasswordReset($edit['name']);
       $this->assertNoPasswordIpFlood();
@@ -333,7 +333,7 @@ class UserPasswordResetTest extends BrowserTestBase {
     // The next request should trigger flood control.
     $this->drupalGet('user/password');
     $edit = ['name' => $this->randomMachineName()];
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $this->assertPasswordIpFlood();
   }
 
@@ -350,7 +350,7 @@ class UserPasswordResetTest extends BrowserTestBase {
     // Try 3 requests that should not trigger flood control.
     for ($i = 0; $i < 3; $i++) {
       $this->drupalGet('user/password');
-      $this->drupalPostForm(NULL, $edit, t('Submit'));
+      $this->submitForm($edit, 'Submit');
       $this->assertValidPasswordReset($edit['name']);
       $this->assertNoPasswordUserFlood();
     }
@@ -358,14 +358,14 @@ class UserPasswordResetTest extends BrowserTestBase {
     // Use the last password reset URL which was generated.
     $reset_url = $this->getResetURL();
     $this->drupalGet($reset_url . '/login');
-    $this->assertSession()->linkExists(t('Log out'));
-    $this->assertTitle($this->account->getAccountName() . ' | Drupal');
+    $this->assertSession()->linkExists('Log out');
+    $this->assertSession()->titleEquals($this->account->getAccountName() . ' | Drupal');
     $this->drupalLogout();
 
     // The next request should *not* trigger flood control, since a successful
     // password reset should have cleared flood events for this user.
     $this->drupalGet('user/password');
-    $this->drupalPostForm(NULL, $edit, t('Submit'));
+    $this->submitForm($edit, 'Submit');
     $this->assertValidPasswordReset($edit['name']);
     $this->assertNoPasswordUserFlood();
   }
@@ -375,7 +375,7 @@ class UserPasswordResetTest extends BrowserTestBase {
    */
   public function assertValidPasswordReset($name) {
     // Make sure the error text is not displayed and email sent.
-    $this->assertNoText(t('Sorry, @name is not recognized as a username or an e-mail address.', ['@name' => $name]), 'Validation error message shown when trying to request password for invalid account.');
+    $this->assertNoText("Sorry, $name is not recognized as a username or an e-mail address.", 'Validation error message shown when trying to request password for invalid account.');
     $this->assertMail('to', $this->account->getEmail(), 'Password e-mail sent to user.');
     $subject = t('Replacement login information for @username at @site', ['@username' => $this->account->getAccountName(), '@site' => \Drupal::config('system.site')->get('name')]);
     $this->assertMail('subject', $subject, 'Password reset e-mail subject is correct.');
@@ -386,7 +386,7 @@ class UserPasswordResetTest extends BrowserTestBase {
    */
   public function assertNoValidPasswordReset($name) {
     // Make sure the error text is displayed and no email sent.
-    $this->assertText(t('@name is not recognized as a username or an email address.', ['@name' => $name]), 'Validation error message shown when trying to request password for invalid account.');
+    $this->assertText($name . ' is not recognized as a username or an email address.', 'Validation error message shown when trying to request password for invalid account.');
     $this->assertCount(0, $this->drupalGetMails(['id' => 'user_password_reset']), 'No e-mail was sent when requesting a password for an invalid account.');
   }
 
@@ -394,28 +394,28 @@ class UserPasswordResetTest extends BrowserTestBase {
    * Makes assertions about a password reset triggering user flood control.
    */
   public function assertPasswordUserFlood() {
-    $this->assertText(t('Too many password recovery requests for this account. It is temporarily blocked. Try again later or contact the site administrator.'), 'User password reset flood error message shown.');
+    $this->assertText('Too many password recovery requests for this account. It is temporarily blocked. Try again later or contact the site administrator.', 'User password reset flood error message shown.');
   }
 
   /**
    * Makes assertions about a password reset not triggering user flood control.
    */
   public function assertNoPasswordUserFlood() {
-    $this->assertNoText(t('Too many password recovery requests for this account. It is temporarily blocked. Try again later or contact the site administrator.'), 'User password reset flood error message not shown.');
+    $this->assertNoText('Too many password recovery requests for this account. It is temporarily blocked. Try again later or contact the site administrator.', 'User password reset flood error message not shown.');
   }
 
   /**
    * Makes assertions about a password reset triggering IP flood control.
    */
   public function assertPasswordIpFlood() {
-    $this->assertText(t('Too many password recovery requests from your IP address. It is temporarily blocked. Try again later or contact the site administrator.'), 'IP password reset flood error message shown.');
+    $this->assertText('Too many password recovery requests from your IP address. It is temporarily blocked. Try again later or contact the site administrator.', 'IP password reset flood error message shown.');
   }
 
   /**
    * Makes assertions about a password reset not triggering IP flood control.
    */
   public function assertNoPasswordIpFlood() {
-    $this->assertNoText(t('Too many password recovery requests from your IP address. It is temporarily blocked. Try again later or contact the site administrator.'), 'IP password reset flood error message not shown.');
+    $this->assertNoText('Too many password recovery requests from your IP address. It is temporarily blocked. Try again later or contact the site administrator.', 'IP password reset flood error message not shown.');
   }
 
   /**
@@ -452,9 +452,9 @@ class UserPasswordResetTest extends BrowserTestBase {
     $reset_url = user_pass_reset_url($user1);
     $attack_reset_url = str_replace("user/reset/{$user1->id()}", "user/reset/{$user2->id()}", $reset_url);
     $this->drupalGet($attack_reset_url);
-    $this->drupalPostForm(NULL, NULL, t('Log in'));
+    $this->submitForm([], 'Log in');
     $this->assertNoText($user2->getAccountName(), 'The invalid password reset page does not show the user name.');
-    $this->assertUrl('user/password', [], 'The user is redirected to the password reset request page.');
+    $this->assertSession()->addressEquals('user/password');
     $this->assertText('You have tried to use a one-time login link that has either been used or is no longer valid. Please request a new one using the form below.');
   }
 

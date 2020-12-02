@@ -85,10 +85,10 @@ class UpdateCoreTest extends UpdateTestBase {
           // release but because '8.2.0' is not in a supported branch it will
           // not be in the available updates.
           $this->assertNoRaw('8.2.0');
-          $this->assertText(t('Up to date'));
-          $this->assertNoText(t('Update available'));
-          $this->assertNoText(t('Security update required!'));
-          $this->assertRaw('check.svg', 'Check icon was found.');
+          $this->assertText('Up to date');
+          $this->assertNoText('Update available');
+          $this->assertNoText('Security update required!');
+          $this->assertRaw('check.svg');
         }
       }
     }
@@ -112,7 +112,7 @@ class UpdateCoreTest extends UpdateTestBase {
         $this->drupalGet('admin/reports/updates');
         $this->clickLink(t('Check manually'));
         $this->checkForMetaRefresh();
-        $this->assertNoText(t('Security update required!'));
+        $this->assertNoText('Security update required!');
         // The XML test fixtures for this method all contain the '8.2.0' release
         // but because '8.2.0' is not in a supported branch it will not be in
         // the available updates.
@@ -122,20 +122,20 @@ class UpdateCoreTest extends UpdateTestBase {
             // Both stable and unstable releases are available.
             // A stable release is the latest.
             if ($extra_version == '') {
-              $this->assertNoText(t('Up to date'));
-              $this->assertText(t('Update available'));
+              $this->assertNoText('Up to date');
+              $this->assertText('Update available');
               $this->assertVersionUpdateLinks('Recommended version:', $full_version);
-              $this->assertNoText(t('Latest version:'));
-              $this->assertRaw('warning.svg', 'Warning icon was found.');
+              $this->assertNoText('Latest version:');
+              $this->assertRaw('warning.svg');
             }
             // Only unstable releases are available.
             // An unstable release is the latest.
             else {
-              $this->assertText(t('Up to date'));
-              $this->assertNoText(t('Update available'));
-              $this->assertNoText(t('Recommended version:'));
+              $this->assertText('Up to date');
+              $this->assertNoText('Update available');
+              $this->assertNoText('Recommended version:');
               $this->assertVersionUpdateLinks('Latest version:', $full_version);
-              $this->assertRaw('check.svg', 'Check icon was found.');
+              $this->assertRaw('check.svg');
             }
             break;
 
@@ -143,20 +143,20 @@ class UpdateCoreTest extends UpdateTestBase {
             // Both stable and unstable releases are available.
             // A stable release is the latest.
             if ($extra_version == '') {
-              $this->assertNoText(t('Up to date'));
-              $this->assertText(t('Update available'));
+              $this->assertNoText('Up to date');
+              $this->assertText('Update available');
               $this->assertVersionUpdateLinks('Recommended version:', $full_version);
-              $this->assertNoText(t('Latest version:'));
-              $this->assertRaw('warning.svg', 'Warning icon was found.');
+              $this->assertNoText('Latest version:');
+              $this->assertRaw('warning.svg');
             }
             // Both stable and unstable releases are available.
             // An unstable release is the latest.
             else {
-              $this->assertNoText(t('Up to date'));
-              $this->assertText(t('Update available'));
+              $this->assertNoText('Up to date');
+              $this->assertText('Update available');
               $this->assertVersionUpdateLinks('Recommended version:', '8.1.0');
               $this->assertVersionUpdateLinks('Latest version:', $full_version);
-              $this->assertRaw('warning.svg', 'Warning icon was found.');
+              $this->assertRaw('warning.svg');
             }
             break;
         }
@@ -177,15 +177,15 @@ class UpdateCoreTest extends UpdateTestBase {
           $this->drupalGet('admin/reports/updates');
           $this->clickLink(t('Check manually'));
           $this->checkForMetaRefresh();
-          $this->assertNoText(t('Security update required!'));
-          $this->assertRaw(Link::fromTextAndUrl('9.0.0', Url::fromUri("http://example.com/drupal-9-0-0-release"))->toString(), 'Link to release appears.');
-          $this->assertRaw(Link::fromTextAndUrl(t('Download'), Url::fromUri("http://example.com/drupal-9-0-0.tar.gz"))->toString(), 'Link to download appears.');
-          $this->assertRaw(Link::fromTextAndUrl(t('Release notes'), Url::fromUri("http://example.com/drupal-9-0-0-release"))->toString(), 'Link to release notes appears.');
-          $this->assertNoText(t('Up to date'));
-          $this->assertText(t('Not supported!'));
-          $this->assertText(t('Recommended version:'));
-          $this->assertNoText(t('Latest version:'));
-          $this->assertRaw('error.svg', 'Error icon was found.');
+          $this->assertNoText('Security update required!');
+          $this->assertRaw(Link::fromTextAndUrl('9.0.0', Url::fromUri("http://example.com/drupal-9-0-0-release"))->toString());
+          $this->assertRaw(Link::fromTextAndUrl(t('Download'), Url::fromUri("http://example.com/drupal-9-0-0.tar.gz"))->toString());
+          $this->assertRaw(Link::fromTextAndUrl(t('Release notes'), Url::fromUri("http://example.com/drupal-9-0-0-release"))->toString());
+          $this->assertNoText('Up to date');
+          $this->assertText('Not supported!');
+          $this->assertText('Recommended version:');
+          $this->assertNoText('Latest version:');
+          $this->assertRaw('error.svg');
         }
       }
     }
@@ -445,7 +445,7 @@ class UpdateCoreTest extends UpdateTestBase {
   }
 
   /**
-   * Dataprovider for testSecurityCoverageMessage().
+   * Data provider for testSecurityCoverageMessage().
    *
    * These test cases rely on the following fixtures containing the following
    * releases:
@@ -636,10 +636,10 @@ class UpdateCoreTest extends UpdateTestBase {
     ];
     $this->config('update_test.settings')->set('system_info', $system_info)->save();
     $this->refreshUpdateStatus(['drupal' => 'dev']);
-    $this->assertNoText(t('2001-Sep-'));
-    $this->assertText(t('Up to date'));
-    $this->assertNoText(t('Update available'));
-    $this->assertNoText(t('Security update required!'));
+    $this->assertNoText('2001-Sep-');
+    $this->assertText('Up to date');
+    $this->assertNoText('Update available');
+    $this->assertNoText('Security update required!');
   }
 
   /**
@@ -656,7 +656,7 @@ class UpdateCoreTest extends UpdateTestBase {
 
     $this->cronRun();
     $this->drupalGet('admin/modules');
-    $this->assertNoText(t('No update information available.'));
+    $this->assertNoText('No update information available.');
   }
 
   /**
@@ -692,10 +692,10 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Check manually'));
     $this->checkForMetaRefresh();
-    $this->assertText(t('Checked available update data for one project.'));
+    $this->assertText('Checked available update data for one project.');
     $this->drupalGet('admin/modules');
-    $this->assertNoText(t('There are updates available for your version of Drupal.'));
-    $this->assertNoText(t('There is a security update available for your version of Drupal.'));
+    $this->assertNoText('There are updates available for your version of Drupal.');
+    $this->assertNoText('There is a security update available for your version of Drupal.');
   }
 
   /**
@@ -714,10 +714,10 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Check manually'));
     $this->checkForMetaRefresh();
-    $this->assertText(t('Checked available update data for one project.'));
+    $this->assertText('Checked available update data for one project.');
     $this->drupalGet('admin/modules');
-    $this->assertText(t('There are updates available for your version of Drupal.'));
-    $this->assertNoText(t('There is a security update available for your version of Drupal.'));
+    $this->assertText('There are updates available for your version of Drupal.');
+    $this->assertNoText('There is a security update available for your version of Drupal.');
   }
 
   /**
@@ -736,15 +736,15 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Check manually'));
     $this->checkForMetaRefresh();
-    $this->assertText(t('Checked available update data for one project.'));
+    $this->assertText('Checked available update data for one project.');
     $this->drupalGet('admin/modules');
-    $this->assertNoText(t('There are updates available for your version of Drupal.'));
-    $this->assertText(t('There is a security update available for your version of Drupal.'));
+    $this->assertNoText('There are updates available for your version of Drupal.');
+    $this->assertText('There is a security update available for your version of Drupal.');
 
     // Make sure admin/appearance warns you you're missing a security update.
     $this->drupalGet('admin/appearance');
-    $this->assertNoText(t('There are updates available for your version of Drupal.'));
-    $this->assertText(t('There is a security update available for your version of Drupal.'));
+    $this->assertNoText('There are updates available for your version of Drupal.');
+    $this->assertText('There is a security update available for your version of Drupal.');
 
     // Make sure duplicate messages don't appear on Update status pages.
     $this->drupalGet('admin/reports/status');
@@ -755,10 +755,10 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->assertNoRaw('<li>' . t('There is a security update available for your version of Drupal.'));
 
     $this->drupalGet('admin/reports/updates');
-    $this->assertNoText(t('There is a security update available for your version of Drupal.'));
+    $this->assertNoText('There is a security update available for your version of Drupal.');
 
     $this->drupalGet('admin/reports/updates/settings');
-    $this->assertNoText(t('There is a security update available for your version of Drupal.'));
+    $this->assertNoText('There is a security update available for your version of Drupal.');
   }
 
   /**
@@ -768,7 +768,7 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->refreshUpdateStatus([], '503-error');
     // Ensure that no "Warning: SimpleXMLElement..." parse errors are found.
     $this->assertNoText('SimpleXMLElement');
-    $this->assertUniqueText(t('Failed to get available update data for one project.'));
+    $this->assertSession()->pageTextContainsOnce('Failed to get available update data for one project.');
   }
 
   /**
@@ -787,7 +787,7 @@ class UpdateCoreTest extends UpdateTestBase {
     $this->assertEqual($queue->numberOfItems(), 1, 'Queue contains one item');
     update_create_fetch_task($projectb);
     $this->assertEqual($queue->numberOfItems(), 2, 'Queue contains two items');
-    // Try to add project a again.
+    // Try to add a project again.
     update_create_fetch_task($projecta);
     $this->assertEqual($queue->numberOfItems(), 2, 'Queue still contains two items');
 
@@ -811,7 +811,7 @@ class UpdateCoreTest extends UpdateTestBase {
       ->save();
 
     $this->drupalGet('admin/reports/updates');
-    $this->assertText(t('Language'));
+    $this->assertText('Language');
   }
 
   /**
@@ -828,15 +828,15 @@ class UpdateCoreTest extends UpdateTestBase {
 
     $this->drupalGet('admin/modules');
     $this->clickLink(t('Install new module'));
-    $this->assertUrl('admin/modules/install');
+    $this->assertSession()->addressEquals('admin/modules/install');
 
     $this->drupalGet('admin/appearance');
     $this->clickLink(t('Install new theme'));
-    $this->assertUrl('admin/theme/install');
+    $this->assertSession()->addressEquals('admin/theme/install');
 
     $this->drupalGet('admin/reports/updates');
     $this->clickLink(t('Install new module or theme'));
-    $this->assertUrl('admin/reports/updates/install');
+    $this->assertSession()->addressEquals('admin/reports/updates/install');
   }
 
   /**
@@ -860,6 +860,43 @@ class UpdateCoreTest extends UpdateTestBase {
       $this->standardTests();
       $this->confirmRevokedStatus('8.0.2', '8.1.0', 'Recommended version:');
     }
+  }
+
+  /**
+   * Checks that Drupal recovers after problems connecting to update server.
+   */
+  public function testBrokenThenFixedUpdates() {
+    $this->drupalLogin($this->drupalCreateUser([
+      'administer site configuration',
+      'access administration pages',
+    ]));
+    $this->setSystemInfo('8.0.0');
+    // Instead of using refreshUpdateStatus(), set these manually.
+    $this->config('update.settings')
+      ->set('fetch.url', Url::fromRoute('update_test.update_test')->setAbsolute()->toString())
+      ->save();
+    // Use update XML that has no information to simulate a broken response from
+    // the update server.
+    $this->config('update_test.settings')
+      ->set('xml_map', ['drupal' => 'broken'])
+      ->save();
+
+    // This will retrieve broken updates.
+    $this->cronRun();
+    $this->drupalGet('admin/reports/status');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('There was a problem checking available updates for Drupal.');
+    $this->config('update_test.settings')
+      ->set('xml_map', ['drupal' => 'sec.0.2'])
+      ->save();
+    // Simulate the update_available_releases state expiring before cron is run
+    // and the state is used by \Drupal\update\UpdateManager::getProjects().
+    \Drupal::keyValueExpirable('update_available_releases')->deleteAll();
+    // This cron run should retrieve fixed updates.
+    $this->cronRun();
+    $this->drupalGet('admin/structure');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('There is a security update available for your version of Drupal.');
   }
 
   /**

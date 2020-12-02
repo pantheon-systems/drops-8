@@ -116,7 +116,7 @@ abstract class ModerationStateTestBase extends BrowserTestBase {
       'name' => $content_type_name,
       'type' => $content_type_id,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save content type'));
+    $this->submitForm($edit, 'Save content type');
 
     // Check the content type has been set to create new revisions.
     $this->assertTrue(NodeType::load($content_type_id)->shouldCreateNewRevision());
@@ -136,9 +136,9 @@ abstract class ModerationStateTestBase extends BrowserTestBase {
    */
   public function enableModerationThroughUi($content_type_id, $workflow_id = 'editorial') {
     $this->drupalGet('/admin/config/workflow/workflows');
-    $this->assertLinkByHref('admin/config/workflow/workflows/manage/' . $workflow_id);
+    $this->assertSession()->linkByHrefExists('admin/config/workflow/workflows/manage/' . $workflow_id);
     $edit['bundles[' . $content_type_id . ']'] = TRUE;
-    $this->drupalPostForm('admin/config/workflow/workflows/manage/' . $workflow_id . '/type/node', $edit, t('Save'));
+    $this->drupalPostForm('admin/config/workflow/workflows/manage/' . $workflow_id . '/type/node', $edit, 'Save');
     // Ensure the parent environment is up-to-date.
     // @see content_moderation_workflow_insert()
     \Drupal::service('entity_type.bundle.info')->clearCachedBundles();

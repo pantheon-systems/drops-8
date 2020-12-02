@@ -121,7 +121,7 @@ interface FieldItemInterface extends ComplexDataInterface {
    *   The property value.
    *
    * @throws \InvalidArgumentException
-   *   If a not existing property is accessed.
+   *   If a non-existent property is accessed.
    */
   public function __get($property_name);
 
@@ -136,7 +136,7 @@ interface FieldItemInterface extends ComplexDataInterface {
    *   passed instead of a plain value.
    *
    * @throws \InvalidArgumentException
-   *   If a not existing property is set.
+   *   If a non-existent property is set.
    */
   public function __set($property_name, $value);
 
@@ -162,7 +162,7 @@ interface FieldItemInterface extends ComplexDataInterface {
   /**
    * Returns a renderable array for a single field item.
    *
-   * @param array $display_options
+   * @param string|array $display_options
    *   Can be either the name of a view mode, or an array of display settings.
    *   See EntityViewBuilderInterface::viewField() for more information.
    *

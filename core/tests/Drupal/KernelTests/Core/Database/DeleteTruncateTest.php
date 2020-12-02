@@ -58,7 +58,7 @@ class DeleteTruncateTest extends DatabaseTestBase {
    */
   public function testTruncate() {
     $num_records_before = $this->connection->query("SELECT COUNT(*) FROM {test}")->fetchField();
-    $this->assertTrue($num_records_before > 0, 'The table is not empty.');
+    $this->assertNotEmpty($num_records_before);
 
     $this->connection->truncate('test')->execute();
 
@@ -70,11 +70,6 @@ class DeleteTruncateTest extends DatabaseTestBase {
    * Confirms that we can truncate a whole table while in transaction.
    */
   public function testTruncateInTransaction() {
-    // This test won't work right if transactions are not supported.
-    if (!$this->connection->supportsTransactions()) {
-      $this->markTestSkipped('The database driver does not support transactions.');
-    }
-
     $num_records_before = $this->connection->select('test')->countQuery()->execute()->fetchField();
     $this->assertGreaterThan(0, $num_records_before, 'The table is not empty.');
 
@@ -109,11 +104,6 @@ class DeleteTruncateTest extends DatabaseTestBase {
    * Confirms that transaction rollback voids a truncate operation.
    */
   public function testTruncateTransactionRollback() {
-    // This test won't work right if transactions are not supported.
-    if (!$this->connection->supportsTransactions()) {
-      $this->markTestSkipped('The database driver does not support transactions.');
-    }
-
     $num_records_before = $this->connection->select('test')->countQuery()->execute()->fetchField();
     $this->assertGreaterThan(0, $num_records_before, 'The table is not empty.');
 

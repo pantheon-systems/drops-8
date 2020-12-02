@@ -1111,6 +1111,13 @@ class Tokenizer
         if ('#' === $tok) {
             $tok = $this->scanner->next();
 
+            if (false === $tok) {
+                $this->parseError('Expected &#DEC; &#HEX;, got EOF');
+                $this->scanner->unconsume(1);
+
+                return '&';
+            }
+
             // Hexidecimal encoding.
             // X[0-9a-fA-F]+;
             // x[0-9a-fA-F]+;
@@ -1174,16 +1181,11 @@ class Tokenizer
             return $entity;
         }
 
-        // If in an attribute, then failing to match ; means unconsume the
-        // entire string. Otherwise, failure to match is an error.
-        if ($inAttribute) {
-            $this->scanner->unconsume($this->scanner->position() - $start);
-
-            return '&';
-        }
+        // Failing to match ; means unconsume the entire string.
+        $this->scanner->unconsume($this->scanner->position() - $start);
 
         $this->parseError('Expected &ENTITY;, got &ENTITY%s (no trailing ;) ', $tok);
 
-        return '&' . $entity;
+        return '&';
     }
 }

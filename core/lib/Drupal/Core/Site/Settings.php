@@ -27,6 +27,36 @@ final class Settings {
   private static $instance = NULL;
 
   /**
+   * Information about all deprecated settings, keyed by legacy settings name.
+   *
+   * Each entry should be an array that defines the following keys:
+   *   - 'replacement': The new name for the setting.
+   *   - 'message': The deprecation message to use for trigger_error().
+   *
+   * @var array
+   *
+   * @see self::handleDeprecations()
+   */
+  private static $deprecatedSettings = [
+    'sanitize_input_whitelist' => [
+      'replacement' => 'sanitize_input_safe_keys',
+      'message' => 'The "sanitize_input_whitelist" setting is deprecated in drupal:9.1.0 and will be removed in drupal:10.0.0. Use Drupal\Core\Security\RequestSanitizer::SANITIZE_INPUT_SAFE_KEYS instead. See https://www.drupal.org/node/3163148.',
+    ],
+    'twig_sandbox_whitelisted_classes' => [
+      'replacement' => 'twig_sandbox_allowed_classes',
+      'message' => 'The "twig_sandbox_whitelisted_classes" setting is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Use "twig_sandbox_allowed_classes" instead. See https://www.drupal.org/node/3162897.',
+    ],
+    'twig_sandbox_whitelisted_methods' => [
+      'replacement' => 'twig_sandbox_allowed_methods',
+      'message' => 'The "twig_sandbox_whitelisted_methods" setting is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Use "twig_sandbox_allowed_methods" instead. See https://www.drupal.org/node/3162897.',
+    ],
+    'twig_sandbox_whitelisted_prefixes' => [
+      'replacement' => 'twig_sandbox_allowed_prefixes',
+      'message' => 'The "twig_sandbox_whitelisted_prefixes" setting is deprecated in drupal:9.1.0 and is removed from drupal:10.0.0. Use "twig_sandbox_allowed_prefixes" instead. See https://www.drupal.org/node/3162897.',
+    ],
+  ];
+
+  /**
    * Constructor.
    *
    * @param array $settings
@@ -84,6 +114,11 @@ final class Settings {
    *   The value of the setting, the provided default if not set.
    */
   public static function get($name, $default = NULL) {
+    // If the caller is asking for the value of a deprecated setting, trigger a
+    // deprecation message about it.
+    if (isset(self::$deprecatedSettings[$name])) {
+      @trigger_error(self::$deprecatedSettings[$name]['message'], E_USER_DEPRECATED);
+    }
     return isset(self::$instance->storage[$name]) ? self::$instance->storage[$name] : $default;
   }
 
@@ -121,6 +156,8 @@ final class Settings {
     if (is_readable($app_root . '/' . $site_path . '/settings.php')) {
       require $app_root . '/' . $site_path . '/settings.php';
     }
+
+    self::handleDeprecations($settings);
 
     // Initialize databases.
     foreach ($databases as $key => $targets) {
@@ -189,6 +226,30 @@ final class Settings {
       return 'drupal.' . $identifier . '.' . \Drupal::VERSION . '.' . static::get('deployment_identifier') . '.' . hash_hmac('sha256', $identifier, static::get('hash_salt') . '.' . $root . '/' . $site_path);
     }
     return 'drupal.' . $identifier . '.' . \Drupal::VERSION . '.' . static::get('deployment_identifier') . '.' . Crypt::hashBase64($root . '/' . $site_path);
+  }
+
+  /**
+   * Handle deprecated values in the site settings.
+   *
+   * @param array $settings
+   *   The site settings.
+   *
+   * @see self::getDeprecatedSettings()
+   */
+  private static function handleDeprecations(array &$settings): void {
+    foreach (self::$deprecatedSettings as $legacy => $deprecation) {
+      if (!empty($settings[$legacy])) {
+        @trigger_error($deprecation['message'], E_USER_DEPRECATED);
+        // Set the new key if needed.
+        if (!isset($settings[$deprecation['replacement']])) {
+          $settings[$deprecation['replacement']] = $settings[$legacy];
+        }
+      }
+      // Ensure that both keys have the same value.
+      if (isset($settings[$deprecation['replacement']])) {
+        $settings[$legacy] = $settings[$deprecation['replacement']];
+      }
+    }
   }
 
 }

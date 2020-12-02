@@ -49,7 +49,7 @@ class NodeLanguageTest extends NodeTestBase {
     // Create Page content type.
     if ($this->profile != 'standard') {
       $this->drupalCreateContentType(['type' => 'page', 'name' => 'Basic page']);
-      ViewTestData::createTestViews(get_class($this), ['node_test_views']);
+      ViewTestData::createTestViews(static::class, ['node_test_views']);
     }
 
     // Add two new languages.
@@ -101,8 +101,6 @@ class NodeLanguageTest extends NodeTestBase {
       $node->save();
     }
 
-    $this->container->get('router.builder')->rebuild();
-
     $user = $this->drupalCreateUser([
       'access content overview',
       'access content',
@@ -147,7 +145,7 @@ class NodeLanguageTest extends NodeTestBase {
     foreach ($this->nodeTitles['fr'] as $title) {
       $pos_fr_min = min($pos_fr_min, strpos($page, $title));
     }
-    $this->assertTrue($pos_es_max < $pos_fr_min, 'Spanish translations appear before French on ' . $message);
+    $this->assertLessThan($pos_fr_min, $pos_es_max, "The Spanish translation should appear before the French one on $message.");
 
     // Test the argument -- filter to just Spanish.
     $this->drupalGet('test-language/es');

@@ -22,7 +22,7 @@ use Drupal\update\UpdateManagerInterface;
 function template_preprocess_update_report(&$variables) {
   $data = isset($variables['data']) && is_array($variables['data']) ? $variables['data'] : [];
 
-  $last = \Drupal::state()->get('update.last_check') ?: 0;
+  $last = \Drupal::state()->get('update.last_check', 0);
 
   $variables['last_checked'] = [
     '#theme' => 'update_last_check',
@@ -333,4 +333,35 @@ function template_preprocess_update_project_status(&$variables) {
     '#alt' => $text,
     '#title' => $text,
   ];
+}
+
+/**
+ * Prepares variables for update fetch error message templates.
+ *
+ * Default template: update-fetch-error-message.html.twig.
+ *
+ * @param array $variables
+ *   An associative array of template variables.
+ */
+function template_preprocess_update_fetch_error_message(&$variables): void {
+  $variables['error_message'] = [
+    'message' => [
+      '#markup' => t('Failed to fetch available update data:'),
+    ],
+    'items' => [
+      '#theme' => 'item_list',
+      '#items' => [
+        'documentation_link' => t('See <a href="@url">PHP OpenSSL requirements</a> in the Drupal.org handbook for possible reasons this could happen and what you can do to resolve them.', ['@url' => 'https://www.drupal.org/node/3170647']),
+      ],
+    ],
+  ];
+  if (\Drupal::moduleHandler()->moduleExists('dblog') && \Drupal::currentUser()->hasPermission('access site reports')) {
+    $options = ['query' => ['type' => ['update']]];
+    $dblog_url = Url::fromRoute('dblog.overview', [], $options);
+    $variables['error_message']['items']['#items']['dblog'] = t('Check <a href="@url">your local system logs</a> for additional error messages.', ['@url' => $dblog_url->toString()]);
+  }
+  else {
+    $variables['error_message']['items']['#items']['logs'] = t('Check your local system logs for additional error messages.');
+  }
+
 }

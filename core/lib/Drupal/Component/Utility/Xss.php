@@ -2,6 +2,8 @@
 
 namespace Drupal\Component\Utility;
 
+// cspell:ignore ckers kses harnhammar
+
 /**
  * Provides helper to filter for cross-site scripting.
  *
@@ -79,7 +81,7 @@ class Xss {
     $string = preg_replace('/&amp;([A-Za-z][A-Za-z0-9]*;)/', '&\1', $string);
     $html_tags = array_flip($html_tags);
     // Late static binding does not work inside anonymous functions.
-    $class = get_called_class();
+    $class = static::class;
     $splitter = function ($matches) use ($html_tags, $class) {
       return $class::split($matches[1], $html_tags, $class);
     };
@@ -154,7 +156,7 @@ class Xss {
     }
     $slash = trim($matches[1]);
     $elem = &$matches[2];
-    $attrlist = &$matches[3];
+    $attributes = &$matches[3];
     $comment = &$matches[4];
 
     if ($comment) {
@@ -177,11 +179,11 @@ class Xss {
     }
 
     // Is there a closing XHTML slash at the end of the attributes?
-    $attrlist = preg_replace('%(\s?)/\s*$%', '\1', $attrlist, -1, $count);
+    $attributes = preg_replace('%(\s?)/\s*$%', '\1', $attributes, -1, $count);
     $xhtml_slash = $count ? ' /' : '';
 
     // Clean up attributes.
-    $attr2 = implode(' ', $class::attributes($attrlist));
+    $attr2 = implode(' ', $class::attributes($attributes));
     $attr2 = preg_replace('/[<>]/', '', $attr2);
     $attr2 = strlen($attr2) ? ' ' . $attr2 : '';
 
@@ -255,10 +257,10 @@ class Xss {
         case 2:
           // Attribute value, a URL after href= for instance.
           if (preg_match('/^"([^"]*)"(\s+|$)/', $attributes, $match)) {
-            $thisval = $skip_protocol_filtering ? $match[1] : UrlHelper::filterBadProtocol($match[1]);
+            $value = $skip_protocol_filtering ? $match[1] : UrlHelper::filterBadProtocol($match[1]);
 
             if (!$skip) {
-              $attributes_array[] = "$attribute_name=\"$thisval\"";
+              $attributes_array[] = "$attribute_name=\"$value\"";
             }
             $working = 1;
             $mode = 0;
@@ -267,10 +269,10 @@ class Xss {
           }
 
           if (preg_match("/^'([^']*)'(\s+|$)/", $attributes, $match)) {
-            $thisval = $skip_protocol_filtering ? $match[1] : UrlHelper::filterBadProtocol($match[1]);
+            $value = $skip_protocol_filtering ? $match[1] : UrlHelper::filterBadProtocol($match[1]);
 
             if (!$skip) {
-              $attributes_array[] = "$attribute_name='$thisval'";
+              $attributes_array[] = "$attribute_name='$value'";
             }
             $working = 1; $mode = 0;
             $attributes = preg_replace("/^'[^']*'(\s+|$)/", '', $attributes);
@@ -278,10 +280,10 @@ class Xss {
           }
 
           if (preg_match("%^([^\s\"']+)(\s+|$)%", $attributes, $match)) {
-            $thisval = $skip_protocol_filtering ? $match[1] : UrlHelper::filterBadProtocol($match[1]);
+            $value = $skip_protocol_filtering ? $match[1] : UrlHelper::filterBadProtocol($match[1]);
 
             if (!$skip) {
-              $attributes_array[] = "$attribute_name=\"$thisval\"";
+              $attributes_array[] = "$attribute_name=\"$value\"";
             }
             $working = 1; $mode = 0;
             $attributes = preg_replace("%^[^\s\"']+(\s+|$)%", '', $attributes);

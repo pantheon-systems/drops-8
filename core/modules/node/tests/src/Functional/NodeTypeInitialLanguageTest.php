@@ -45,57 +45,58 @@ class NodeTypeInitialLanguageTest extends NodeTestBase {
    */
   public function testNodeTypeInitialLanguageDefaults() {
     $this->drupalGet('admin/structure/types/manage/article');
-    $this->assertOptionSelected('edit-language-configuration-langcode', LanguageInterface::LANGCODE_SITE_DEFAULT, 'The default initial language is the site default.');
-    $this->assertNoFieldChecked('edit-language-configuration-language-alterable', 'Language selector is hidden by default.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-language-configuration-langcode', LanguageInterface::LANGCODE_SITE_DEFAULT)->isSelected());
+    $this->assertSession()->checkboxNotChecked('edit-language-configuration-language-alterable');
 
     // Tests if the language field cannot be rearranged on the manage fields tab.
     $this->drupalGet('admin/structure/types/manage/article/fields');
-    $language_field = $this->xpath('//*[@id="field-overview"]/*[@id="language"]');
-    $this->assert(empty($language_field), 'Language field is not visible on manage fields tab.');
+    $this->assertSession()->elementNotExists('xpath', '//*[@id="field-overview"]/*[@id="language"]');
 
+    // Verify that language is not selectable on node add page by default.
     $this->drupalGet('node/add/article');
-    $this->assertNoField('langcode', 'Language is not selectable on node add/edit page by default.');
+    $this->assertSession()->fieldNotExists('langcode');
 
     // Adds a new language and set it as default.
     $edit = [
       'predefined_langcode' => 'hu',
     ];
-    $this->drupalPostForm('admin/config/regional/language/add', $edit, t('Add language'));
+    $this->drupalPostForm('admin/config/regional/language/add', $edit, 'Add language');
     $edit = [
       'site_default_language' => 'hu',
     ];
-    $this->drupalPostForm('admin/config/regional/language', $edit, t('Save configuration'));
+    $this->drupalPostForm('admin/config/regional/language', $edit, 'Save configuration');
 
     // Tests the initial language after changing the site default language.
     // First unhide the language selector.
     $edit = [
       'language_configuration[language_alterable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/structure/types/manage/article', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/article', $edit, 'Save content type');
     $this->drupalGet('node/add/article');
-    $this->assertField('langcode[0][value]', 'Language is selectable on node add/edit page when language not hidden.');
-    $this->assertOptionSelected('edit-langcode-0-value', 'hu', 'The initial language is the site default on the node add page after the site default language is changed.');
+    // Ensure that the language is selectable on node add page when language
+    // not hidden.
+    $this->assertSession()->fieldExists('langcode[0][value]');
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', 'hu')->isSelected());
 
     // Tests if the language field can be rearranged on the manage form display
     // tab.
     $this->drupalGet('admin/structure/types/manage/article/form-display');
-    $language_field = $this->xpath('//*[@id="langcode"]');
-    $this->assert(!empty($language_field), 'Language field is visible on manage form display tab.');
+    $this->assertSession()->elementExists('xpath', '//*[@id="langcode"]');
 
     // Tests if the language field can be rearranged on the manage display tab.
     $this->drupalGet('admin/structure/types/manage/article/display');
-    $language_display = $this->xpath('//*[@id="langcode"]');
-    $this->assert(!empty($language_display), 'Language field is visible on manage display tab.');
+    $this->assertSession()->elementExists('xpath', '//*[@id="langcode"]');
+
     // Tests if the language field is hidden by default.
-    $this->assertOptionSelected('edit-fields-langcode-region', 'hidden', 'Language is hidden by default on manage display tab.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-fields-langcode-region', 'hidden')->isSelected());
 
     // Changes the initial language settings.
     $edit = [
       'language_configuration[langcode]' => 'en',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/article', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/manage/article', $edit, 'Save content type');
     $this->drupalGet('node/add/article');
-    $this->assertOptionSelected('edit-langcode-0-value', 'en', 'The initial language is the defined language.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-langcode-0-value', 'en')->isSelected());
   }
 
   /**
@@ -107,7 +108,7 @@ class NodeTypeInitialLanguageTest extends NodeTestBase {
       'title[0][value]' => $this->randomMachineName(8),
       'body[0][value]' => $this->randomMachineName(16),
     ];
-    $this->drupalPostForm('node/add/article', $edit, t('Save'));
+    $this->drupalPostForm('node/add/article', $edit, 'Save');
     $node = $this->drupalGetNodeByTitle($edit['title[0][value]']);
     $this->assertNotEmpty($node, 'Node found in database.');
 
@@ -123,9 +124,9 @@ class NodeTypeInitialLanguageTest extends NodeTestBase {
       'fields[langcode][type]' => 'language',
       'fields[langcode][region]' => 'content',
     ];
-    $this->drupalPostForm('admin/structure/types/manage/article/display', $edit, t('Save'));
+    $this->drupalPostForm('admin/structure/types/manage/article/display', $edit, 'Save');
     $this->drupalGet('admin/structure/types/manage/article/display');
-    $this->assertOptionSelected('edit-fields-langcode-type', 'language', 'Language field has been set to visible.');
+    $this->assertTrue($this->assertSession()->optionExists('edit-fields-langcode-type', 'language')->isSelected());
 
     // Loads node page and check if Language field is shown.
     $this->drupalGet('node/' . $node->id());

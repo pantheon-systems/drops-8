@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\image\Functional;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\StreamWrapper\StreamWrapperManager;
 use Drupal\Core\Url;
@@ -70,8 +69,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->drupalGet("admin/structure/types/manage/article/display");
 
     // Test for existence of link to image styles configuration.
-    $this->drupalPostForm(NULL, [], "{$field_name}_settings_edit");
-    $this->assertLinkByHref(Url::fromRoute('entity.image_style.collection')->toString(), 0, 'Link to image styles configuration is found');
+    $this->submitForm([], "{$field_name}_settings_edit");
+    $this->assertSession()->linkByHrefExists(Url::fromRoute('entity.image_style.collection')->toString(), 0, 'Link to image styles configuration is found');
 
     // Remove 'administer image styles' permission from testing admin user.
     $admin_user_roles = $this->adminUser->getRoles(TRUE);
@@ -81,8 +80,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->drupalGet("admin/structure/types/manage/article/display");
 
     // Test for absence of link to image styles configuration.
-    $this->drupalPostForm(NULL, [], "{$field_name}_settings_edit");
-    $this->assertNoLinkByHref(Url::fromRoute('entity.image_style.collection')->toString(), 'Link to image styles configuration is absent when permissions are insufficient');
+    $this->submitForm([], "{$field_name}_settings_edit");
+    $this->assertSession()->linkByHrefNotExists(Url::fromRoute('entity.image_style.collection')->toString(), 'Link to image styles configuration is absent when permissions are insufficient');
 
     // Restore 'administer image styles' permission to testing admin user
     user_role_change_permissions(reset($admin_user_roles), ['administer image styles' => TRUE]);
@@ -117,7 +116,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#alt' => $alt,
     ];
     $default_output = str_replace("\n", NULL, $renderer->renderRoot($image));
-    $this->assertRaw($default_output, 'Default formatter displaying correctly on full node view.');
+    $this->assertRaw($default_output);
 
     // Test the image linked to file formatter.
     $display_options = [
@@ -138,19 +137,19 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     ];
     $default_output = '<a href="' . file_create_url($image_uri) . '">' . $renderer->renderRoot($image) . '</a>';
     $this->drupalGet('node/' . $nid);
-    $this->assertCacheTag($file->getCacheTags()[0]);
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $file->getCacheTags()[0]);
     // @todo Remove in https://www.drupal.org/node/2646744.
     $this->assertCacheContext('url.site');
-    $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
-    $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
-    $this->assertRaw($default_output, 'Image linked to file formatter displaying correctly on full node view.');
+    // Verify that no image style cache tags are found.
+    $this->assertSession()->responseHeaderNotContains('X-Drupal-Cache-Tags', 'image_style:');
+    $this->assertRaw($default_output);
     // Verify that the image can be downloaded.
     $this->assertEqual(file_get_contents($test_image->uri), $this->drupalGet(file_create_url($image_uri)), 'File was downloaded successfully.');
     if ($scheme == 'private') {
       // Only verify HTTP headers when using private scheme and the headers are
       // sent by Drupal.
-      $this->assertEqual($this->drupalGetHeader('Content-Type'), 'image/png', 'Content-Type header was sent.');
-      $this->assertTrue(strstr($this->drupalGetHeader('Cache-Control'), 'private') !== FALSE, 'Cache-Control header was sent.');
+      $this->assertSession()->responseHeaderEquals('Content-Type', 'image/png');
+      $this->assertSession()->responseHeaderContains('Cache-Control', 'private');
 
       // Log out and ensure the file cannot be accessed.
       $this->drupalLogout();
@@ -172,9 +171,9 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       '#height' => 20,
     ];
     $this->drupalGet('node/' . $nid);
-    $this->assertCacheTag($file->getCacheTags()[0]);
-    $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
-    $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $file->getCacheTags()[0]);
+    // Verify that no image style cache tags are found.
+    $this->assertSession()->responseHeaderNotContains('X-Drupal-Cache-Tags', 'image_style:');
     $elements = $this->xpath(
       '//a[@href=:path]/img[@src=:url and @alt=:alt and @width=:width and @height=:height]',
       [
@@ -207,8 +206,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $default_output = $renderer->renderRoot($image_style);
     $this->drupalGet('node/' . $nid);
     $image_style = ImageStyle::load('thumbnail');
-    $this->assertCacheTag($image_style->getCacheTags()[0]);
-    $this->assertRaw($default_output, 'Image style thumbnail formatter displaying correctly on full node view.');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $image_style->getCacheTags()[0]);
+    $this->assertRaw($default_output);
 
     if ($scheme == 'private') {
       // Log out and ensure the file cannot be accessed.
@@ -257,15 +256,15 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // Verify that the min/max resolution set on the field are properly
     // extracted, and displayed, on the image field's configuration form.
     $this->drupalGet('admin/structure/types/manage/article/fields/' . $field->id());
-    $this->assertFieldByName('settings[max_resolution][x]', '100', 'Expected max resolution X value of 100.');
-    $this->assertFieldByName('settings[max_resolution][y]', '100', 'Expected max resolution Y value of 100.');
-    $this->assertFieldByName('settings[min_resolution][x]', '10', 'Expected min resolution X value of 10.');
-    $this->assertFieldByName('settings[min_resolution][y]', '10', 'Expected min resolution Y value of 10.');
+    $this->assertSession()->fieldValueEquals('settings[max_resolution][x]', '100');
+    $this->assertSession()->fieldValueEquals('settings[max_resolution][y]', '100');
+    $this->assertSession()->fieldValueEquals('settings[min_resolution][x]', '10');
+    $this->assertSession()->fieldValueEquals('settings[min_resolution][y]', '10');
 
     $this->drupalGet('node/add/article');
-    $this->assertText(t('50 KB limit.'), 'Image widget max file size is displayed on article form.');
-    $this->assertText(t('Allowed types: @extensions.', ['@extensions' => $test_image_extension]), 'Image widget allowed file types displayed on article form.');
-    $this->assertText(t('Images must be larger than 10x10 pixels. Images larger than 100x100 pixels will be resized.'), 'Image widget allowed resolution displayed on article form.');
+    $this->assertText('50 KB limit.', 'Image widget max file size is displayed on article form.');
+    $this->assertText('Allowed types: ' . $test_image_extension . '.', 'Image widget allowed file types displayed on article form.');
+    $this->assertText('Images must be larger than 10x10 pixels. Images larger than 100x100 pixels will be resized.', 'Image widget allowed resolution displayed on article form.');
 
     // We have to create the article first and then edit it because the alt
     // and title fields do not display until the image has been attached.
@@ -277,8 +276,8 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->drupalGet('node/' . $nid . '/edit');
 
     // Verify that the optional fields alt & title are saved & filled.
-    $this->assertFieldByName($field_name . '[0][alt]', $alt, 'Alt field displayed on article form.');
-    $this->assertFieldByName($field_name . '[0][title]', '', 'Title field displayed on article form.');
+    $this->assertSession()->fieldValueEquals($field_name . '[0][alt]', $alt);
+    $this->assertSession()->fieldValueEquals($field_name . '[0][title]', '');
 
     // Verify that the attached image is being previewed using the 'medium'
     // style.
@@ -302,9 +301,9 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       $field_name . '[0][alt]' => $image['#alt'],
       $field_name . '[0][title]' => $image['#title'],
     ];
-    $this->drupalPostForm('node/' . $nid . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $nid . '/edit', $edit, 'Save');
     $default_output = str_replace("\n", NULL, $renderer->renderRoot($image));
-    $this->assertRaw($default_output, 'Image displayed using user supplied alt and title attributes.');
+    $this->assertRaw($default_output);
 
     // Verify that alt/title longer than allowed results in a validation error.
     $test_size = 2000;
@@ -312,7 +311,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       $field_name . '[0][alt]' => $this->randomMachineName($test_size),
       $field_name . '[0][title]' => $this->randomMachineName($test_size),
     ];
-    $this->drupalPostForm('node/' . $nid . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $nid . '/edit', $edit, 'Save');
     $schema = $field->getFieldStorageDefinition()->getSchema();
     $this->assertRaw(t('Alternative text cannot be longer than %max characters but is currently %length characters long.', [
       '%max' => $schema['columns']['alt']['length'],
@@ -330,21 +329,21 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     // 1, so we need to make sure the file widget prevents these notices by
     // providing all settings, even if they are not used.
     // @see FileWidget::formMultipleElements().
-    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/storage', ['cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED], t('Save field settings'));
+    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $field_name . '/storage', ['cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED], 'Save field settings');
     $edit = [
       'files[' . $field_name . '_1][]' => \Drupal::service('file_system')->realpath($test_image->uri),
     ];
-    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, t('Save'));
+    $this->drupalPostForm('node/' . $node->id() . '/edit', $edit, 'Save');
     // Add the required alt text.
-    $this->drupalPostForm(NULL, [$field_name . '[1][alt]' => $alt], t('Save'));
-    $this->assertText(new FormattableMarkup('Article @title has been updated.', ['@title' => $node->getTitle()]));
+    $this->submitForm([$field_name . '[1][alt]' => $alt], 'Save');
+    $this->assertText('Article ' . $node->getTitle() . ' has been updated.');
 
     // Assert ImageWidget::process() calls FieldWidget::process().
     $this->drupalGet('node/' . $node->id() . '/edit');
     $edit = [
       'files[' . $field_name . '_2][]' => \Drupal::service('file_system')->realpath($test_image->uri),
     ];
-    $this->drupalPostForm(NULL, $edit, $field_name . '_2_upload_button');
+    $this->submitForm($edit, $field_name . '_2_upload_button');
     $this->assertSession()->elementNotExists('css', 'input[name="files[' . $field_name . '_2][]"]');
     $this->assertSession()->elementExists('css', 'input[name="files[' . $field_name . '_3][]"]');
   }
@@ -367,9 +366,9 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     $this->drupalGet('node/' . $node->id());
     // Verify that no image is displayed on the page by checking for the class
     // that would be used on the image field.
-    $this->assertSession()->responseNotMatches('<div class="(.*?)field--name-' . strtr($field_name, '_', '-') . '(.*?)">', 'No image displayed when no image is attached and no default image specified.');
-    $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
-    $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
+    $this->assertSession()->responseNotMatches('<div class="(.*?)field--name-' . strtr($field_name, '_', '-') . '(.*?)">');
+    // Verify that no image style cache tags are found.
+    $this->assertSession()->responseHeaderNotContains('X-Drupal-Cache-Tags', 'image_style:');
 
     // Add a default image to the public image field.
     $images = $this->drupalGetTestFiles('image');
@@ -381,7 +380,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       'settings[default_image][alt]' => $alt,
       'settings[default_image][title]' => $title,
     ];
-    $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/storage", $edit, t('Save field settings'));
+    $this->drupalPostForm("admin/structure/types/manage/article/fields/node.article.$field_name/storage", $edit, 'Save field settings');
     // Clear field definition cache so the new default image is detected.
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
     $field_storage = FieldStorageConfig::loadByName('node', $field_name);
@@ -398,10 +397,10 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     ];
     $default_output = str_replace("\n", NULL, $renderer->renderRoot($image));
     $this->drupalGet('node/' . $node->id());
-    $this->assertCacheTag($file->getCacheTags()[0]);
-    $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
-    $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
-    $this->assertRaw($default_output, 'Default image displayed when no user supplied image is present.');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $file->getCacheTags()[0]);
+    // Verify that no image style cache tags are found.
+    $this->assertSession()->responseHeaderNotContains('X-Drupal-Cache-Tags', 'image_style:');
+    $this->assertRaw($default_output);
 
     // Create a node with an image attached and ensure that the default image
     // is not displayed.
@@ -423,11 +422,13 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     ];
     $image_output = str_replace("\n", NULL, $renderer->renderRoot($image));
     $this->drupalGet('node/' . $nid);
-    $this->assertCacheTag($file->getCacheTags()[0]);
-    $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
-    $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
-    $this->assertNoRaw($default_output, 'Default image is not displayed when user supplied image is present.');
-    $this->assertRaw($image_output, 'User supplied image is displayed.');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $file->getCacheTags()[0]);
+    // Verify that no image style cache tags are found.
+    $this->assertSession()->responseHeaderNotContains('X-Drupal-Cache-Tags', 'image_style:');
+    // Default image should not be displayed.
+    $this->assertNoRaw($default_output);
+    // User supplied image should be displayed.
+    $this->assertRaw($image_output);
 
     // Remove default image from the field and make sure it is no longer used.
     // Can't use fillField cause Mink can't fill hidden fields.
@@ -451,7 +452,7 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
       'settings[default_image][alt]' => $alt,
       'settings[default_image][title]' => $title,
     ];
-    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $private_field_name . '/storage', $edit, t('Save field settings'));
+    $this->drupalPostForm('admin/structure/types/manage/article/fields/node.article.' . $private_field_name . '/storage', $edit, 'Save field settings');
     // Clear field definition cache so the new default image is detected.
     \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
@@ -474,10 +475,12 @@ class ImageFieldDisplayTest extends ImageFieldTestBase {
     ];
     $default_output = str_replace("\n", NULL, $renderer->renderRoot($image));
     $this->drupalGet('node/' . $node->id());
-    $this->assertCacheTag($file->getCacheTags()[0]);
-    $cache_tags_header = $this->drupalGetHeader('X-Drupal-Cache-Tags');
-    $this->assertTrue(!preg_match('/ image_style\:/', $cache_tags_header), 'No image style cache tag found.');
-    $this->assertRaw($default_output, 'Default private image displayed when no user supplied image is present.');
+    $this->assertSession()->responseHeaderContains('X-Drupal-Cache-Tags', $file->getCacheTags()[0]);
+    // Verify that no image style cache tags are found.
+    $this->assertSession()->responseHeaderNotContains('X-Drupal-Cache-Tags', 'image_style:');
+    // Default private image should be displayed when no user supplied image
+    // is present.
+    $this->assertRaw($default_output);
   }
 
 }

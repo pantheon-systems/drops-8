@@ -967,6 +967,8 @@ services:
   password:
     class: Drupal\Core\Password\PhpassHashedPassword
     arguments: [16]
+  password_generator:
+    class: Drupal\Core\Password\DefaultPasswordGenerator
   request_format_route_filter:
     class: Drupal\Core\Routing\RequestFormatRouteFilter
     tags:
@@ -1083,7 +1085,7 @@ services:
       - { name: event_subscriber }
   main_content_renderer.html:
     class: Drupal\Core\Render\MainContent\HtmlRenderer
-    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@module_handler', '@renderer', '@render_cache', '%renderer.config%']
+    arguments: ['@title_resolver', '@plugin.manager.display_variant', '@event_dispatcher', '@module_handler', '@renderer', '@render_cache', '%renderer.config%', '@theme.manager']
     tags:
       - { name: render.main_content_renderer, format: html }
   main_content_renderer.ajax:
@@ -1654,8 +1656,6 @@ services:
   file.mime_type.guesser:
     class: Drupal\Core\File\MimeType\MimeTypeGuesser
     arguments: ['@stream_wrapper_manager']
-    tags:
-      - { name: service_collector, tag: mime_type_guesser, call: addGuesser }
     lazy: true
   file.mime_type.guesser.extension:
     class: Drupal\Core\File\MimeType\ExtensionMimeTypeGuesser

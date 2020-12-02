@@ -53,12 +53,12 @@ class CommentAdminTest extends CommentBrowserTestBase {
 
     // Test that the comments page loads correctly when there are no comments.
     $this->drupalGet('admin/content/comment');
-    $this->assertText(t('No comments available.'));
+    $this->assertText('No comments available.');
 
     // Assert the expose filters on the admin page.
-    $this->assertField('subject');
-    $this->assertField('author_name');
-    $this->assertField('langcode');
+    $this->assertSession()->fieldExists('subject');
+    $this->assertSession()->fieldExists('author_name');
+    $this->assertSession()->fieldExists('langcode');
 
     $this->drupalLogout();
 
@@ -69,8 +69,8 @@ class CommentAdminTest extends CommentBrowserTestBase {
     $this->drupalPostForm('comment/reply/node/' . $this->node->id() . '/comment', [
       'name' => $author_name,
       'comment_body[0][value]' => $body,
-    ], t('Save'));
-    $this->assertText(t('Your comment has been queued for review by site administrators and will be published after approval.'), 'Comment requires approval.');
+    ], 'Save');
+    $this->assertText('Your comment has been queued for review by site administrators and will be published after approval.', 'Comment requires approval.');
 
     // Get unapproved comment id.
     $this->drupalLogin($this->adminUser);
@@ -92,7 +92,7 @@ class CommentAdminTest extends CommentBrowserTestBase {
     $edit = [];
     $edit['action'] = 'comment_publish_action';
     $edit['comment_bulk_form[0]'] = $anonymous_comment4->id();
-    $this->drupalPostForm('admin/content/comment/approval', $edit, t('Apply to selected items'));
+    $this->drupalPostForm('admin/content/comment/approval', $edit, 'Apply to selected items');
 
     $this->assertText('Publish comment was applied to 1 item.', new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => 'publish']));
     $this->drupalLogout();
@@ -107,24 +107,24 @@ class CommentAdminTest extends CommentBrowserTestBase {
     // Publish multiple comments in one operation.
     $this->drupalLogin($this->adminUser);
     $this->drupalGet('admin/content/comment/approval');
-    $this->assertText(t('Unapproved comments (@count)', ['@count' => 2]), 'Two unapproved comments waiting for approval.');
+    $this->assertText('Unapproved comments (2)', 'Two unapproved comments waiting for approval.');
 
     // Assert the expose filters on the admin page.
-    $this->assertField('subject');
-    $this->assertField('author_name');
-    $this->assertField('langcode');
+    $this->assertSession()->fieldExists('subject');
+    $this->assertSession()->fieldExists('author_name');
+    $this->assertSession()->fieldExists('langcode');
 
     $edit = [
       "action" => 'comment_publish_action',
       "comment_bulk_form[1]" => $comments[0]->id(),
       "comment_bulk_form[0]" => $comments[1]->id(),
     ];
-    $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
-    $this->assertText(t('Unapproved comments (@count)', ['@count' => 0]), 'All comments were approved.');
+    $this->submitForm($edit, 'Apply to selected items');
+    $this->assertText('Unapproved comments (0)', 'All comments were approved.');
 
     // Test message when no comments selected.
-    $this->drupalPostForm('admin/content/comment', [], t('Apply to selected items'));
-    $this->assertText(t('Select one or more comments to perform the update on.'));
+    $this->drupalPostForm('admin/content/comment', [], 'Apply to selected items');
+    $this->assertText('Select one or more comments to perform the update on.');
 
     $subject_link = $this->xpath('//table/tbody/tr/td/a[contains(@href, :href) and contains(@title, :title) and text()=:text]', [
       ':href' => $comments[0]->permalink()->toString(),
@@ -149,10 +149,10 @@ class CommentAdminTest extends CommentBrowserTestBase {
       "comment_bulk_form[0]" => $comments[1]->id(),
       "comment_bulk_form[2]" => $anonymous_comment4->id(),
     ];
-    $this->drupalPostForm(NULL, $edit, t('Apply to selected items'));
-    $this->assertText(t('Are you sure you want to delete these comments and all their children?'), 'Confirmation required.');
-    $this->drupalPostForm(NULL, [], t('Delete'));
-    $this->assertText(t('No comments available.'), 'All comments were deleted.');
+    $this->submitForm($edit, 'Apply to selected items');
+    $this->assertText('Are you sure you want to delete these comments and all their children?', 'Confirmation required.');
+    $this->submitForm([], 'Delete');
+    $this->assertText('No comments available.', 'All comments were deleted.');
 
     // Make sure the label of unpublished node is not visible on listing page.
     $this->drupalGet('admin/content/comment');

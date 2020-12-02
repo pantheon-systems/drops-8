@@ -49,7 +49,7 @@ class RearrangeFieldsTest extends UITestBase {
     $this->drupalGet('admin/structure/views/nojs/rearrange/' . $view_name . '/default/field');
 
     foreach ($fields as $idx => $field) {
-      $this->assertFieldById('edit-fields-' . $field . '-weight', $idx + 1);
+      $this->assertSession()->fieldValueEquals('edit-fields-' . $field . '-weight', $idx + 1);
     }
   }
 
@@ -64,7 +64,7 @@ class RearrangeFieldsTest extends UITestBase {
 
     // Checks that a field is not deleted if a value is not passed back.
     $fields = [];
-    $this->drupalPostForm('admin/structure/views/nojs/rearrange/' . $view_name . '/default/field', $fields, t('Apply'));
+    $this->drupalPostForm('admin/structure/views/nojs/rearrange/' . $view_name . '/default/field', $fields, 'Apply');
     $this->assertFieldOrder($view_name, $this->getViewFields($view_name));
 
     // Checks that revers the new field order is respected.
@@ -73,11 +73,12 @@ class RearrangeFieldsTest extends UITestBase {
     foreach ($reversedFields as $delta => $field) {
       $fields['fields[' . $field . '][weight]'] = $delta;
     }
-    $this->drupalPostForm('admin/structure/views/nojs/rearrange/' . $view_name . '/default/field', $fields, t('Apply'));
+    $fields_count = count($fields);
+    $this->drupalPostForm('admin/structure/views/nojs/rearrange/' . $view_name . '/default/field', $fields, 'Apply');
     $this->assertFieldOrder($view_name, $reversedFields);
 
     // Checks that there is a remove link for each field.
-    $this->assertEqual(count($this->cssSelect('a.views-remove-link')), count($fields));
+    $this->assertCount($fields_count, $this->cssSelect('a.views-remove-link'));
   }
 
 }

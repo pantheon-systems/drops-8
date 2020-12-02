@@ -36,10 +36,10 @@ class DuplicateTest extends UITestBase {
     $view['id'] = strtolower($this->randomMachineName(128));
 
     // Duplicate view.
-    $this->drupalPostForm('admin/structure/views/view/' . $random_view['id'] . '/duplicate', $view, t('Duplicate'));
+    $this->drupalPostForm('admin/structure/views/view/' . $random_view['id'] . '/duplicate', $view, 'Duplicate');
 
     // Assert that the page url is correct.
-    $this->assertUrl('admin/structure/views/view/' . $view['id'], [], 'Make sure the view saving was successful and the browser got redirected to the edit page.');
+    $this->assertSession()->addressEquals('admin/structure/views/view/' . $view['id']);
 
     // Assert that the page title is correctly displayed.
     $this->assertText($view['label']);

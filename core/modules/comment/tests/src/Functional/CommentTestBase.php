@@ -139,7 +139,7 @@ abstract class CommentTestBase extends BrowserTestBase {
       $edit['subject[0][value]'] = $subject;
     }
     else {
-      $this->assertNoFieldByName('subject[0][value]', '', 'Subject field not found.');
+      $this->assertSession()->fieldNotExists('subject[0][value]');
     }
 
     if ($contact !== NULL && is_array($contact)) {
@@ -148,20 +148,20 @@ abstract class CommentTestBase extends BrowserTestBase {
     switch ($preview_mode) {
       case DRUPAL_REQUIRED:
         // Preview required so no save button should be found.
-        $this->assertNoFieldByName('op', t('Save'), 'Save button not found.');
-        $this->drupalPostForm(NULL, $edit, t('Preview'));
+        $this->assertSession()->buttonNotExists(t('Save'));
+        $this->submitForm($edit, 'Preview');
         // Don't break here so that we can test post-preview field presence and
         // function below.
       case DRUPAL_OPTIONAL:
-        $this->assertFieldByName('op', t('Preview'), 'Preview button found.');
-        $this->assertFieldByName('op', t('Save'), 'Save button found.');
-        $this->drupalPostForm(NULL, $edit, t('Save'));
+        $this->assertSession()->buttonExists(t('Preview'));
+        $this->assertSession()->buttonExists(t('Save'));
+        $this->submitForm($edit, 'Save');
         break;
 
       case DRUPAL_DISABLED:
-        $this->assertNoFieldByName('op', t('Preview'), 'Preview button not found.');
-        $this->assertFieldByName('op', t('Save'), 'Save button found.');
-        $this->drupalPostForm(NULL, $edit, t('Save'));
+        $this->assertSession()->buttonNotExists(t('Preview'));
+        $this->assertSession()->buttonExists(t('Save'));
+        $this->submitForm($edit, 'Save');
         break;
     }
     $match = [];
@@ -175,7 +175,8 @@ abstract class CommentTestBase extends BrowserTestBase {
         $this->assertText($subject, 'Comment subject posted.');
       }
       $this->assertText($comment, 'Comment body posted.');
-      $this->assertTrue((!empty($match) && !empty($match[1])), 'Comment id found.');
+      // Check the comment ID was extracted.
+      $this->assertArrayHasKey(1, $match);
     }
 
     if (isset($match[1])) {
@@ -226,8 +227,8 @@ abstract class CommentTestBase extends BrowserTestBase {
    *   Comment to delete.
    */
   public function deleteComment(CommentInterface $comment) {
-    $this->drupalPostForm('comment/' . $comment->id() . '/delete', [], t('Delete'));
-    $this->assertText(t('The comment and all its replies have been deleted.'), 'Comment deleted.');
+    $this->drupalPostForm('comment/' . $comment->id() . '/delete', [], 'Delete');
+    $this->assertText('The comment and all its replies have been deleted.', 'Comment deleted.');
   }
 
   /**
@@ -360,14 +361,14 @@ abstract class CommentTestBase extends BrowserTestBase {
     $edit = [];
     $edit['operation'] = $operation;
     $edit['comments[' . $comment->id() . ']'] = TRUE;
-    $this->drupalPostForm('admin/content/comment' . ($approval ? '/approval' : ''), $edit, t('Update'));
+    $this->drupalPostForm('admin/content/comment' . ($approval ? '/approval' : ''), $edit, 'Update');
 
     if ($operation == 'delete') {
-      $this->drupalPostForm(NULL, [], t('Delete'));
-      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'), new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
+      $this->submitForm([], 'Delete');
+      $this->assertRaw(\Drupal::translation()->formatPlural(1, 'Deleted 1 comment.', 'Deleted @count comments.'));
     }
     else {
-      $this->assertText(t('The update has been performed.'), new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
+      $this->assertText('The update has been performed.', new FormattableMarkup('Operation "@operation" was performed on comment.', ['@operation' => $operation]));
     }
   }
 

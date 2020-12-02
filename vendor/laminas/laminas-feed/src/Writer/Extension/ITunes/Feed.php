@@ -67,8 +67,10 @@ class Feed
     /**
      * Set a block value of "yes" or "no". You may also set an empty string.
      *
-     * @param  string
-     * @return $this
+     * @param string
+     *
+     * @return self
+     *
      * @throws Writer\Exception\InvalidArgumentException
      */
     public function setItunesBlock($value)
@@ -210,18 +212,33 @@ class Feed
     /**
      * Set "explicit" flag
      *
+     * @see https://help.apple.com/itc/podcasts_connect/#/itcb54353390
+     *
      * @param  bool $value
      * @return $this
      * @throws Writer\Exception\InvalidArgumentException
      */
     public function setItunesExplicit($value)
     {
-        if (! in_array($value, ['yes', 'no', 'clean'])) {
+        // "yes", "no" and "clean" are valid values for a previous version
+        if (! is_bool($value) && ! in_array($value, ['yes', 'no', 'clean'])) {
             throw new Writer\Exception\InvalidArgumentException(
-                'invalid parameter: "explicit" may only be one of "yes", "no" or "clean"'
+                'invalid parameter: "explicit" must be a boolean value'
             );
         }
-        $this->data['explicit'] = $value;
+
+        switch ($value) {
+            case 'yes':
+                $value = true;
+                break;
+
+            case 'no':
+            case 'clean':
+                $value = false;
+                break;
+        }
+
+        $this->data['explicit'] = $value ? 'true' : 'false';
         return $this;
     }
 

@@ -32,11 +32,11 @@ class ContentTranslationEnableTest extends BrowserTestBase {
       'modules[content_translation][enable]' => TRUE,
       'modules[language][enable]' => TRUE,
     ];
-    $this->drupalPostForm('admin/modules', $edit, t('Install'));
+    $this->drupalPostForm('admin/modules', $edit, 'Install');
 
     // Status messages are shown.
-    $this->assertText(t('This site has only a single language enabled. Add at least one more language in order to translate content.'));
-    $this->assertText(t('Enable translation for content types, taxonomy vocabularies, accounts, or any other element you wish to translate.'));
+    $this->assertText('This site has only a single language enabled. Add at least one more language in order to translate content.');
+    $this->assertText('Enable translation for content types, taxonomy vocabularies, accounts, or any other element you wish to translate.');
 
     // No pending updates should be available.
     $this->drupalGet('admin/reports/status');
@@ -54,7 +54,7 @@ class ContentTranslationEnableTest extends BrowserTestBase {
       'entity_types[entity_test_mul]' => TRUE,
       'settings[entity_test_mul][entity_test_mul][translatable]' => TRUE,
     ];
-    $this->drupalPostForm(NULL, $edit, t('Save configuration'));
+    $this->submitForm($edit, 'Save configuration');
 
     // No pending updates should be available.
     $this->drupalGet('admin/reports/status');
@@ -68,7 +68,7 @@ class ContentTranslationEnableTest extends BrowserTestBase {
       'title_label' => 'title for foo',
       'type' => 'foo',
     ];
-    $this->drupalPostForm('admin/structure/types/add', $edit, t('Save content type'));
+    $this->drupalPostForm('admin/structure/types/add', $edit, 'Save content type');
     $this->drupalGet('admin/config/regional/content-language');
     $this->assertRaw('entity_types[node]');
   }

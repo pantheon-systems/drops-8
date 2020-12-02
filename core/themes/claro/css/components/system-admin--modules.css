@@ -10,154 +10,181 @@
  * System admin module: modules page.
  */
 
-.system-modules thead > tr {
-  border: 0;
+.modules-table-filter {
+  padding: 0.25rem 1.5rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 2px 2px 0 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.system-modules div.incompatible {
-  font-weight: bold;
+/* Visually hide the module filter input description. */
+
+.modules-table-filter .form-item__description {
+  position: absolute !important;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  width: 1px;
+  height: 1px;
+  word-wrap: normal;
 }
 
-.system-modules td.checkbox {
-  width: 4%;
-  min-width: 25px;
-  padding-left: 1rem; /* LTR */
+.claro-details.claro-details--package-listing,
+.claro-details.module-list__module-details {
+  margin-top: 2rem;
+  margin-bottom: 0;
+  border: none;
+  box-shadow: none;
 }
 
-[dir="rtl"] .system-modules td.checkbox {
-  padding-right: 1rem;
+.claro-details__wrapper.claro-details__wrapper--package-listing {
+  margin: 0;
 }
 
-.system-modules td.module {
-  width: 25%;
+.claro-details__summary.claro-details__summary--package-listing {
+  color: #222330;
+  border-radius: 4px;
+  background: #f3f4f9;
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.424rem; /* 23px */
 }
 
-.system-modules td {
+.module-list {
+  margin-top: 0;
+}
+
+.module-list__module {
+  color: #222330;
+  border-bottom: 1px solid #d4d4d8;
+  background: none;
+}
+
+.module-list__module:hover {
+  background: none;
+}
+
+.module-list__module td {
+  height: auto;
+  padding: 1rem calc(1rem - 2px);
   vertical-align: top;
 }
 
-.system-modules label,
-.system-modules-uninstall label {
-  color: #1d1d1d;
-  font-size: 1.15em;
+/* Set width only on wider view where description is visible by default. */
+
+@media screen and (min-width: 60em) {
+  td.module-list__module {
+    width: 25%;
+  }
 }
 
-.system-modules details {
-  color: #5c5c5b;
+.module-list__module-name {
+  font-weight: bold;
 }
 
-.system-modules details[open] {
-  overflow: visible;
-  height: auto;
-  white-space: normal;
+.module-list__checkbox {
+  padding-left: 0.6875rem; /* LTR */
+  text-align: left; /* LTR */
 }
 
-.system-modules details[open] summary .text {
-  text-transform: none;
-  -webkit-hyphens: auto;
-  -ms-hyphens: auto;
-  hyphens: auto;
+[dir="rtl"] .module-list__checkbox {
+  padding-right: 0.6875rem;
+  padding-left: calc(1rem - 2px);
+  text-align: right;
 }
 
-.system-modules td details a {
-  color: #5c5c5b;
-  border: 0;
-}
-
-.system-modules td details {
+.module-list__checkbox .form-type--checkbox {
   margin: 0;
-  border: 0;
+  line-height: 1.295rem;
 }
 
-.system-modules td details summary {
-  padding: 0;
-  cursor: default;
-  text-transform: none;
-  font-weight: normal;
+.module-list__checkbox .form-checkbox:not([disabled]) {
+  cursor: pointer;
 }
 
-.system-modules td {
-  padding-left: 0; /* LTR */
+td.module-list__checkbox {
+  width: 4%;
 }
 
-[dir="rtl"] .system-modules td {
+td.module-list__description {
+  padding-top: 0;
   padding-right: 0;
-  padding-left: 12px;
+  padding-bottom: 0;
 }
 
-@media screen and (max-width: 40em) {
-  .system-modules td.name {
-    width: 20%;
-  }
-  .system-modules td.description {
-    width: 40%;
-  }
+.claro-details.module-list__module-details {
+  margin: 0;
 }
 
-.system-modules .requirements {
-  max-width: 490px;
-  padding: 5px 0;
+.claro-details__summary.module-list__module-summary {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  font-weight: normal;
+  line-height: 1.295rem;
 }
 
-.system-modules .links {
-  overflow: hidden; /* prevents collapse */
+.claro-details__summary.module-list__module-summary::before {
+  top: 1.75rem;
 }
 
-.system-modules .checkbox {
-  margin: 0 5px;
+.module-details__description {
+  font-size: 0.75rem;
+  line-height: 0.9375rem;
 }
 
-.system-modules .checkbox .form-item {
+.claro-details__wrapper.module-details__wrapper {
   margin-top: 0;
   margin-bottom: 0;
 }
 
-.admin-requirements,
-.admin-required {
-  color: #666;
-  font-size: 0.9em;
+.module-details__requirements {
+  margin-bottom: 1rem;
 }
 
-.admin-enabled {
-  color: #080;
+.module-details__links {
+  position: relative;
+  /* Negative margin matches the value of action link's top padding. */
+  margin-top: -0.375rem;
+  margin-bottom: 1rem;
 }
 
-.admin-missing {
-  color: #f00;
+.module-details__links .action-link + .action-link {
+  margin-left: 0; /* LTR */
 }
 
-.module-link {
-  display: block;
-  float: left; /* LTR */
-  margin-top: 2px;
-  padding: 2px 20px;
-  white-space: nowrap;
+[dir="rtl"] .module-details__links .action-link + .action-link {
+  margin-right: 0;
 }
 
-[dir="rtl"] .module-link {
-  float: right;
+.claro-details .tableresponsive-toggle {
+  padding: 1rem 1rem 1rem 0;
 }
 
-.module-link-help {
-  background: url(../../images/core/787878/questionmark-disc.svg) 0 50% no-repeat; /* LTR */
+.claro-details .tableresponsive-toggle::before {
+  /* This adjustment is necessary for better alignment with the adjacent button
+   text. */
+  position: relative;
+  top: -1px;
+  display: inline-block;
+  width: 2rem;
+  height: 1.25rem;
+  content: "";
+  cursor: pointer;
+  vertical-align: text-top;
+  background: url("data:image/svg+xml,%3csvg height='16' stroke='%23545560' stroke-width='2' width='16' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M3 8h10M8 3v10'/%3e%3c/svg%3e") no-repeat center;
+  background-size: contain;
 }
 
-[dir="rtl"] .module-link-help {
-  background-position: top 50% right 0;
+.claro-details .tableresponsive-toggle:hover {
+  color: #0036b1;
+  background-color: #f0f5fd;
 }
 
-.module-link-permissions {
-  background: url(../../images/core/787878/key.svg) 0 50% no-repeat; /* LTR */
+.claro-details .tableresponsive-toggle:hover::before {
+  background-image: url("data:image/svg+xml,%3csvg height='16' stroke='%230036b1' stroke-width='2' width='16' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M3 8h10M8 3v10'/%3e%3c/svg%3e");
 }
 
-[dir="rtl"] .module-link-permissions {
-  background-position: top 50% right 0;
-}
-
-.module-link-configure {
-  background: url(../../images/core/787878/cog.svg) 0 50% no-repeat; /* LTR */
-}
-
-[dir="rtl"] .module-link-configure {
-  background-position: top 50% right 0;
+.claro-details .tableresponsive-toggle-columns button {
+  margin-top: 0.5rem;
+  text-decoration: none;
+  color: #545560;
+  font-weight: bold;
 }

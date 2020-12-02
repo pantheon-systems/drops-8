@@ -22,7 +22,7 @@ class InstallerExistingConfigNoSystemSiteTest extends InstallerExistingConfigTes
    * {@inheritdoc}
    */
   public function setUpSite() {
-    return;
+    // There are are errors. Therefore, there is nothing to do here.
   }
 
   /**
@@ -30,13 +30,13 @@ class InstallerExistingConfigNoSystemSiteTest extends InstallerExistingConfigTes
    */
   public function testConfigSync() {
     $this->htmlOutput(NULL);
-    $this->assertTitle('Configuration validation | Drupal');
+    $this->assertSession()->titleEquals('Configuration validation | Drupal');
     $this->assertText('The configuration synchronization failed validation.');
     $this->assertText('This import does not contain system.site configuration, so has been rejected.');
 
     // Ensure there is no continuation button.
     $this->assertNoText('Save and continue');
-    $this->assertNoFieldById('edit-submit');
+    $this->assertSession()->buttonNotExists('edit-submit');
   }
 
   /**

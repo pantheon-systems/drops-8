@@ -212,7 +212,10 @@ class HTML5
         $trav = new Traverser($dom, $stream, $rules, $options);
 
         $trav->walk();
-
+        /*
+         * release the traverser to avoid cyclic references and allow PHP to free memory without waiting for gc_collect_cycles
+         */
+        $rules->unsetTraverser();
         if ($close) {
             fclose($stream);
         }
@@ -234,6 +237,10 @@ class HTML5
         $stream = fopen('php://temp', 'wb');
         $this->save($dom, $stream, array_merge($this->defaultOptions, $options));
 
-        return stream_get_contents($stream, -1, 0);
+        $html = stream_get_contents($stream, -1, 0);
+
+        fclose($stream);
+
+        return $html;
     }
 }

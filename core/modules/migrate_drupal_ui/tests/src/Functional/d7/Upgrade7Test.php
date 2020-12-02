@@ -4,7 +4,6 @@ namespace Drupal\Tests\migrate_drupal_ui\Functional\d7;
 
 use Drupal\node\Entity\Node;
 use Drupal\Tests\migrate_drupal_ui\Functional\MigrateUpgradeExecuteTestBase;
-use Drupal\user\Entity\User;
 
 /**
  * Tests Drupal 7 upgrade using the migrate UI.
@@ -90,8 +89,8 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'field_storage_config' => 62,
       'file' => 3,
       'filter_format' => 7,
-      'image_style' => 6,
-      'language_content_settings' => 20,
+      'image_style' => 7,
+      'language_content_settings' => 22,
       'node' => 7,
       'node_type' => 7,
       'rdf_mapping' => 8,
@@ -99,11 +98,11 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
       'shortcut' => 6,
       'shortcut_set' => 2,
       'action' => 19,
-      'menu' => 6,
-      'taxonomy_term' => 24,
-      'taxonomy_vocabulary' => 7,
+      'menu' => 7,
+      'taxonomy_term' => 25,
+      'taxonomy_vocabulary' => 8,
       'path_alias' => 8,
-      'tour' => 5,
+      'tour' => 6,
       'user' => 4,
       'user_role' => 3,
       'menu_link_content' => 12,
@@ -127,7 +126,7 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
     $counts['file'] = 4;
     $counts['menu_link_content'] = 13;
     $counts['node'] = 8;
-    $counts['taxonomy_term'] = 25;
+    $counts['taxonomy_term'] = 26;
     $counts['user'] = 5;
     return $counts;
   }
@@ -137,57 +136,58 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
    */
   protected function getAvailablePaths() {
     return [
-      'aggregator',
-      'block',
-      'book',
-      'color',
-      'comment',
-      'contact',
-      'ctools',
-      'date',
-      'dblog',
-      'email',
-      'entity_translation',
-      'entityreference',
-      'field',
-      'field_sql_storage',
-      'file',
-      'filter',
-      'forum',
-      'i18n_block',
-      'i18n_sync',
-      'i18n_variable',
-      'image',
-      'link',
-      'list',
-      'menu',
-      'node',
-      'number',
-      'options',
-      'path',
-      'phone',
-      'rdf',
-      'search',
-      'shortcut',
-      'statistics',
-      'system',
-      'taxonomy',
-      'text',
-      'title',
-      'user',
+      'Aggregator',
+      'Block languages',
+      'Block',
+      'Book',
+      'Chaos tools',
+      'Color',
+      'Comment',
+      'Contact',
+      'Content translation',
+      'Database logging',
+      'Date',
+      'Email',
+      'Entity Reference',
+      'Entity Translation',
+      'Field SQL storage',
+      'Field',
+      'File',
+      'Filter',
+      'Forum',
+      'Image',
+      'Link',
+      'List',
+      'Menu',
+      'Menu translation',
+      'Node',
+      'Number',
+      'Options',
+      'Path',
+      'Phone',
+      'RDF',
+      'Search',
+      'Shortcut',
+      'Statistics',
+      'Synchronize translations',
+      'System',
+      'Taxonomy',
+      'Text',
+      'Title',
+      'User',
+      'Variable translation',
       // Include modules that do not have an upgrade path and are enabled in the
       // source database.
-      'blog',
-      'contextual',
-      'date_api',
-      'entity',
-      'field_ui',
-      'help',
-      'php',
-      'simpletest',
-      'toolbar',
-      'translation',
-      'trigger',
+      'Blog',
+      'Contextual links',
+      'Date API',
+      'Entity API',
+      'Field UI',
+      'Help',
+      'PHP filter',
+      'Testing',
+      'Toolbar',
+      'Trigger',
     ];
   }
 
@@ -196,20 +196,20 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
    */
   protected function getMissingPaths() {
     return [
-      'i18n',
-      'i18n_field',
-      'i18n_string',
-      'i18n_taxonomy',
-      'i18n_translation',
-      'locale',
-      'variable',
-      'variable_realm',
-      'variable_store',
+      'Field translation',
+      'Internationalization',
+      'Locale',
+      'String translation',
+      'Taxonomy translation',
+      'Translation sets',
+      'Variable realm',
+      'Variable store',
+      'Variable',
       // These modules are in the missing path list because they are installed
       // on the source site but they are not installed on the destination site.
-      'syslog',
-      'tracker',
-      'update',
+      'Syslog',
+      'Tracker',
+      'Update manager',
     ];
   }
 
@@ -219,10 +219,9 @@ class Upgrade7Test extends MigrateUpgradeExecuteTestBase {
   public function testMigrateUpgradeExecute() {
     parent::testMigrateUpgradeExecute();
 
-    // Ensure migrated users can log in.
-    $user = User::load(2);
-    $user->passRaw = 'a password';
-    $this->drupalLogin($user);
+    // Ensure a migrated user can log in.
+    $this->assertUserLogIn(2, 'a password');
+
     $this->assertFollowUpMigrationResults();
   }
 

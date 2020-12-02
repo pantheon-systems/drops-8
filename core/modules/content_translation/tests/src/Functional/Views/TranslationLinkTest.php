@@ -35,7 +35,7 @@ class TranslationLinkTest extends ContentTranslationTestBase {
   protected $defaultTheme = 'stark';
 
   protected function setUp(): void {
-    // @todo Use entity_type once it is has multilingual Views integration.
+    // @todo Use entity_type once it has multilingual Views integration.
     $this->entityTypeId = 'user';
 
     parent::setUp();
@@ -50,7 +50,7 @@ class TranslationLinkTest extends ContentTranslationTestBase {
     $user->langcode = Language::LANGCODE_NOT_SPECIFIED;
     $user->save();
 
-    ViewTestData::createTestViews(get_class($this), ['content_translation_test_views']);
+    ViewTestData::createTestViews(static::class, ['content_translation_test_views']);
   }
 
   /**
@@ -67,8 +67,8 @@ class TranslationLinkTest extends ContentTranslationTestBase {
    */
   public function testTranslationLink() {
     $this->drupalGet('test-entity-translations-link');
-    $this->assertLinkByHref('user/1/translations');
-    $this->assertNoLinkByHref('user/2/translations', 'The translations link is not present when content_translation_translate_access() is FALSE.');
+    $this->assertSession()->linkByHrefExists('user/1/translations');
+    $this->assertSession()->linkByHrefNotExists('user/2/translations', 'The translations link is not present when content_translation_translate_access() is FALSE.');
   }
 
 }

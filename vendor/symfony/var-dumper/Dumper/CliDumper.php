@@ -145,8 +145,8 @@ class CliDumper extends AbstractDumper
                 $style = 'num';
 
                 switch (true) {
-                    case INF === $value:  $value = 'INF'; break;
-                    case -INF === $value: $value = '-INF'; break;
+                    case \INF === $value:  $value = 'INF'; break;
+                    case -\INF === $value: $value = '-INF'; break;
                     case is_nan($value):  $value = 'NAN'; break;
                     default:
                         $value = (string) $value;
@@ -269,6 +269,10 @@ class CliDumper extends AbstractDumper
      */
     public function enterHash(Cursor $cursor, int $type, $class, bool $hasChild)
     {
+        if (null === $this->colors) {
+            $this->colors = $this->supportsColors();
+        }
+
         $this->dumpKey($cursor);
         $attr = $cursor->attr;
 
@@ -283,7 +287,7 @@ class CliDumper extends AbstractDumper
         } elseif (Cursor::HASH_RESOURCE === $type) {
             $prefix = $this->style('note', $class.' resource', $attr).($hasChild ? ' {' : ' ');
         } else {
-            $prefix = $class && !(self::DUMP_LIGHT_ARRAY & $this->flags) ? $this->style('note', 'array:'.$class, $attr).' [' : '[';
+            $prefix = $class && !(self::DUMP_LIGHT_ARRAY & $this->flags) ? $this->style('note', 'array:'.$class).' [' : '[';
         }
 
         if (($cursor->softRefCount || 0 < $cursor->softRefHandle) && empty($attr['cut_hash'])) {

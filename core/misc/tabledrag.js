@@ -47,6 +47,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     this.scrollInterval = null;
     this.scrollY = 0;
     this.windowHeight = 0;
+    this.$toggleWeightButton = null;
     this.indentEnabled = false;
     Object.keys(tableSettings || {}).forEach(function (group) {
       Object.keys(tableSettings[group] || {}).forEach(function (n) {
@@ -73,10 +74,13 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     $table.find('> tr.draggable, > tbody > tr.draggable').each(function () {
       self.makeDraggable(this);
     });
-    $table.before($('<button type="button" class="link tabledrag-toggle-weight"></button>').on('click', $.proxy(function (e) {
+    var $toggleWeightWrapper = $(Drupal.theme('tableDragToggle'));
+    this.$toggleWeightButton = $toggleWeightWrapper.find('[data-drupal-selector="tabledrag-toggle-weight"]');
+    this.$toggleWeightButton.on('click', $.proxy(function (e) {
       e.preventDefault();
       this.toggleColumns();
-    }, this)).wrap('<div class="tabledrag-toggle-weight-wrapper"></div>').parent());
+    }, this));
+    $table.before($toggleWeightWrapper);
     self.initColumns();
     $(document).on('touchmove', function (event) {
       return self.dragRow(event.originalEvent.touches[0], self);
@@ -157,6 +161,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         this.hideColumns();
       }
 
+    this.$toggleWeightButton.html(Drupal.theme('toggleButtonContent', displayWeight));
     $('table').findOnce('tabledrag').trigger('columnschange', !!displayWeight);
   };
 
@@ -178,7 +183,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     $tables.find('.tabledrag-has-colspan').each(function () {
       this.colSpan -= 1;
     });
-    $('.tabledrag-toggle-weight').text(Drupal.t('Show row weights'));
   };
 
   Drupal.tableDrag.prototype.showColumns = function () {
@@ -188,7 +192,6 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     $tables.find('.tabledrag-has-colspan').each(function () {
       this.colSpan += 1;
     });
-    $('.tabledrag-toggle-weight').text(Drupal.t('Hide row weights'));
   };
 
   Drupal.tableDrag.prototype.rowSettings = function (group, row) {
@@ -215,17 +218,17 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     var self = this;
     var $item = $(item);
     $item.find('td:first-of-type').find('a').addClass('menu-item__link');
-    var handle = $('<a href="#" class="tabledrag-handle"><div class="handle">&nbsp;</div></a>').attr('title', Drupal.t('Drag to re-order'));
+    var $handle = $(Drupal.theme('tableDragHandle'));
     var $indentationLast = $item.find('td:first-of-type').find('.js-indentation').eq(-1);
 
     if ($indentationLast.length) {
-      $indentationLast.after(handle);
+      $indentationLast.after($handle);
       self.indentCount = Math.max($item.find('.js-indentation').length, self.indentCount);
     } else {
-      $item.find('td').eq(0).prepend(handle);
+      $item.find('td').eq(0).prepend($handle);
     }
 
-    handle.on('mousedown touchstart pointerdown', function (event) {
+    $handle.on('mousedown touchstart pointerdown', function (event) {
       event.preventDefault();
 
       if (event.originalEvent.type === 'touchstart') {
@@ -234,18 +237,18 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
 
       self.dragStart(event, self, item);
     });
-    handle.on('click', function (e) {
+    $handle.on('click', function (e) {
       e.preventDefault();
     });
-    handle.on('focus', function () {
+    $handle.on('focus', function () {
       self.safeBlur = true;
     });
-    handle.on('blur', function (event) {
+    $handle.on('blur', function (event) {
       if (self.rowObject && self.safeBlur) {
         self.dropRow(event, self);
       }
     });
-    handle.on('keydown', function (event) {
+    $handle.on('keydown', function (event) {
       if (event.keyCode !== 9 && !self.rowObject) {
         self.rowObject = new self.row(item, 'keyboard', self.indentEnabled, self.maxDepth, true);
       }
@@ -296,7 +299,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                 window.scrollBy(0, -parseInt(item.offsetHeight, 10));
               }
 
-              handle.trigger('focus');
+              $handle.trigger('focus');
             }
 
             break;
@@ -343,7 +346,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
                 window.scrollBy(0, parseInt(item.offsetHeight, 10));
               }
 
-              handle.trigger('focus');
+              $handle.trigger('focus');
             }
 
             break;
@@ -370,7 +373,7 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
         return false;
       }
     });
-    handle.on('keypress', function (event) {
+    $handle.on('keypress', function (event) {
       switch (event.keyCode) {
         case 37:
         case 38:
@@ -992,6 +995,15 @@ function _typeof(obj) { "@babel/helpers - typeof"; if (typeof Symbol === "functi
     },
     tableDragChangedWarning: function tableDragChangedWarning() {
       return "<div class=\"tabledrag-changed-warning messages messages--warning\" role=\"alert\">".concat(Drupal.theme('tableDragChangedMarker'), " ").concat(Drupal.t('You have unsaved changes.'), "</div>");
+    },
+    tableDragToggle: function tableDragToggle() {
+      return "<div class=\"tabledrag-toggle-weight-wrapper\" data-drupal-selector=\"tabledrag-toggle-weight-wrapper\">\n            <button type=\"button\" class=\"link tabledrag-toggle-weight\" data-drupal-selector=\"tabledrag-toggle-weight\"></button>\n            </div>";
+    },
+    toggleButtonContent: function toggleButtonContent(show) {
+      return show ? Drupal.t('Hide row weights') : Drupal.t('Show row weights');
+    },
+    tableDragHandle: function tableDragHandle() {
+      return "<a href=\"#\" title=\"".concat(Drupal.t('Drag to re-order'), "\"\n        class=\"tabledrag-handle\"><div class=\"handle\">&nbsp;</div></a>");
     }
   });
 })(jQuery, Drupal, drupalSettings);

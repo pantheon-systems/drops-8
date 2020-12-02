@@ -358,7 +358,7 @@ function locale_cron() {
   // Update translations only when an update frequency was set by the admin
   // and a translatable language was set.
   // Update tasks are added to the queue here but processed by Drupal's cron.
-  if ($frequency = \Drupal::config('locale.settings')->get('translation.update_interval_days') && locale_translatable_language_list()) {
+  if (\Drupal::config('locale.settings')->get('translation.update_interval_days') && locale_translatable_language_list()) {
     module_load_include('translation.inc', 'locale');
     locale_cron_fill_queue();
   }
@@ -452,7 +452,7 @@ function locale_system_update(array $components) {
 function locale_system_remove($components) {
   $components += ['module' => [], 'theme' => []];
   $list = array_merge($components['module'], $components['theme']);
-  if ($language_list = locale_translatable_language_list()) {
+  if (locale_translatable_language_list()) {
     module_load_include('compare.inc', 'locale');
     \Drupal::moduleHandler()->loadInclude('locale', 'bulk.inc');
 
@@ -537,7 +537,7 @@ function locale_js_translate(array $files = []) {
   $language_interface = \Drupal::languageManager()->getCurrentLanguage();
 
   $dir = 'public://' . \Drupal::config('locale.settings')->get('javascript.directory');
-  $parsed = \Drupal::state()->get('system.javascript_parsed') ?: [];
+  $parsed = \Drupal::state()->get('system.javascript_parsed', []);
   $new_files = FALSE;
 
   foreach ($files as $filepath) {
@@ -575,7 +575,7 @@ function locale_js_translate(array $files = []) {
   }
 
   // Add the translation JavaScript file to the page.
-  $locale_javascripts = \Drupal::state()->get('locale.translation.javascript') ?: [];
+  $locale_javascripts = \Drupal::state()->get('locale.translation.javascript', []);
   $translation_file = NULL;
   if (!empty($files) && !empty($locale_javascripts[$language_interface->getId()])) {
     // Add the translation JavaScript file to the page.
@@ -996,7 +996,7 @@ function locale_translation_use_remote_source() {
  * not have any false positives. But it is only a test, not a transformation,
  * as it destroys valid HTML. We cannot reliably filter translation strings
  * on import because some strings are irreversibly corrupted. For example,
- * a &amp; in the translation would get encoded to &amp;amp; by
+ * an &amp; in the translation would get encoded to &amp;amp; by
  * \Drupal\Component\Utility\Xss::filter() before being put in the database,
  * and thus would be displayed incorrectly.
  *
@@ -1057,7 +1057,7 @@ function _locale_refresh_translations($langcodes, $lids = []) {
   }
 
   // Throw locale.save_translation event.
-  \Drupal::service('event_dispatcher')->dispatch(LocaleEvents::SAVE_TRANSLATION, new LocaleEvent($langcodes, $lids));
+  \Drupal::service('event_dispatcher')->dispatch(new LocaleEvent($langcodes, $lids), LocaleEvents::SAVE_TRANSLATION);
 }
 
 /**
@@ -1195,7 +1195,7 @@ function _locale_parse_js_file($filepath) {
  *   New content of the 'system.javascript_parsed' variable.
  */
 function _locale_invalidate_js($langcode = NULL) {
-  $parsed = \Drupal::state()->get('system.javascript_parsed') ?: [];
+  $parsed = \Drupal::state()->get('system.javascript_parsed', []);
 
   if (empty($langcode)) {
     // Invalidate all languages.
@@ -1269,7 +1269,7 @@ function _locale_rebuild_js($langcode = NULL) {
 
   // Delete old file, if we have no translations anymore, or a different file to
   // be saved.
-  $locale_javascripts = \Drupal::state()->get('locale.translation.javascript') ?: [];
+  $locale_javascripts = \Drupal::state()->get('locale.translation.javascript', []);
   $changed_hash = !isset($locale_javascripts[$language->getId()]) || ($locale_javascripts[$language->getId()] != $data_hash);
 
   /** @var \Drupal\Core\File\FileSystemInterface $file_system */

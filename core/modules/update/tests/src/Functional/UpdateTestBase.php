@@ -107,8 +107,9 @@ abstract class UpdateTestBase extends BrowserTestBase {
    */
   protected function standardTests() {
     $this->assertRaw('<h3>' . t('Drupal core') . '</h3>');
-    $this->assertRaw(Link::fromTextAndUrl(t('Drupal'), Url::fromUri('http://example.com/project/drupal'))->toString(), 'Link to the Drupal project appears.');
-    $this->assertNoText(t('No available releases found'));
+    // Verify that the link to the Drupal project appears.
+    $this->assertRaw(Link::fromTextAndUrl(t('Drupal'), Url::fromUri('http://example.com/project/drupal'))->toString());
+    $this->assertNoText('No available releases found');
   }
 
   /**
@@ -140,7 +141,8 @@ abstract class UpdateTestBase extends BrowserTestBase {
       if ($expected_update_message_type === static::SECURITY_UPDATE_REQUIRED) {
         $assert_session->elementTextNotContains('css', $update_element_css_locator, 'Update available');
         $assert_session->elementTextContains('css', $update_element_css_locator, 'Security update required!');
-        $assert_session->responseContains('error.svg', 'Error icon was found.');
+        // Verify that the error icon is found.
+        $assert_session->responseContains('error.svg');
       }
       else {
         $assert_session->elementTextContains('css', $update_element_css_locator, 'Update available');

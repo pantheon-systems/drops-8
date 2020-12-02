@@ -174,7 +174,7 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
         ->setSetting('target_type', 'user')
         ->setSetting('handler', 'default')
         ->setRevisionable(TRUE)
-        ->setDefaultValueCallback(get_class($this) . '::getDefaultOwnerId')
+        ->setDefaultValueCallback(static::class . '::getDefaultOwnerId')
         ->setTranslatable(TRUE);
     }
 
@@ -291,7 +291,11 @@ class ContentTranslationHandler implements ContentTranslationHandlerInterface, E
     if (!$this->currentUser->hasPermission('translate any entity') && $permission_granularity = $entity_type->getPermissionGranularity()) {
       $translate_permission = $this->currentUser->hasPermission($permission_granularity == 'bundle' ? "translate {$entity->bundle()} {$entity->getEntityTypeId()}" : "translate {$entity->getEntityTypeId()}");
     }
-    return AccessResult::allowedIf($translate_permission && $this->currentUser->hasPermission("$op content translations"))->cachePerPermissions();
+    $access = AccessResult::allowedIf(($translate_permission && $this->currentUser->hasPermission("$op content translations")))->cachePerPermissions();
+    if (!$access->isAllowed()) {
+      return AccessResult::allowedIfHasPermission($this->currentUser, 'translate editable entities')->andIf($entity->access('update', $this->currentUser, TRUE));
+    }
+    return $access;
   }
 
   /**

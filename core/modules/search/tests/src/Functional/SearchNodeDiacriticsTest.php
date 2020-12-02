@@ -49,6 +49,7 @@ class SearchNodeDiacriticsTest extends BrowserTestBase {
    * Tests that search returns results with diacritics in the search phrase.
    */
   public function testPhraseSearchPunctuation() {
+    // cSpell:disable
     $body_text = 'The Enricþment Center is cómmīŦŧęđ to the well BɆĬŇĜ of æll påŔťıçȉpǎǹţș. ';
     $body_text .= 'Also meklēt (see #731298)';
     $this->drupalCreateNode(['body' => [['value' => $body_text]]]);
@@ -60,40 +61,41 @@ class SearchNodeDiacriticsTest extends BrowserTestBase {
     $this->refreshVariables();
 
     $edit = ['keys' => 'meklet'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertRaw('<strong>meklēt</strong>');
 
     $edit = ['keys' => 'meklēt'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertRaw('<strong>meklēt</strong>');
 
     $edit = ['keys' => 'cómmīŦŧęđ BɆĬŇĜ påŔťıçȉpǎǹţș'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertRaw('<strong>cómmīŦŧęđ</strong>');
     $this->assertRaw('<strong>BɆĬŇĜ</strong>');
     $this->assertRaw('<strong>påŔťıçȉpǎǹţș</strong>');
 
     $edit = ['keys' => 'committed being participants'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertRaw('<strong>cómmīŦŧęđ</strong>');
     $this->assertRaw('<strong>BɆĬŇĜ</strong>');
     $this->assertRaw('<strong>påŔťıçȉpǎǹţș</strong>');
 
     $edit = ['keys' => 'Enricþment'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertRaw('<strong>Enricþment</strong>');
 
     $edit = ['keys' => 'Enritchment'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertNoRaw('<strong>Enricþment</strong>');
 
     $edit = ['keys' => 'æll'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertRaw('<strong>æll</strong>');
 
     $edit = ['keys' => 'all'];
-    $this->drupalPostForm('search/node', $edit, t('Search'));
+    $this->drupalPostForm('search/node', $edit, 'Search');
     $this->assertNoRaw('<strong>æll</strong>');
+    // cSpell:enable
   }
 
 }

@@ -14,13 +14,6 @@ abstract class MultilingualReviewPageTestBase extends MigrateUpgradeTestBase {
   use CreateTestContentEntitiesTrait;
 
   /**
-   * An array suitable for drupalPostForm().
-   *
-   * @var array
-   */
-  protected $edits = [];
-
-  /**
    * {@inheritdoc}
    */
   protected static $modules = ['migrate_drupal_ui'];
@@ -51,9 +44,13 @@ abstract class MultilingualReviewPageTestBase extends MigrateUpgradeTestBase {
     $this->prepare();
     // Start the upgrade process.
     $this->drupalGet('/upgrade');
-    $this->drupalPostForm(NULL, [], t('Continue'));
-    $this->drupalPostForm(NULL, $this->edits, t('Review upgrade'));
-    $this->drupalPostForm(NULL, [], t('I acknowledge I may lose data. Continue anyway.'));
+    $this->submitForm([], 'Continue');
+
+    // Get valid credentials.
+    $edits = $this->translatePostValues($this->getCredentials());
+
+    $this->submitForm($edits, 'Review upgrade');
+    $this->submitForm([], 'I acknowledge I may lose data. Continue anyway.');
 
     // Ensure there are no errors about missing modules from the test module.
     $session = $this->assertSession();
@@ -64,14 +61,13 @@ abstract class MultilingualReviewPageTestBase extends MigrateUpgradeTestBase {
     $session->pageTextNotContains(t('module not found'));
 
     // Test the upgrade paths.
-    $available_paths = $this->getAvailablePaths();
-    $missing_paths = $this->getMissingPaths();
-    $this->assertUpgradePaths($session, $available_paths, $missing_paths);
+    $this->assertReviewForm();
 
     // Check there are no errors when a module does not have any migrations and
     // does not need any. Test with a module that is in both Drupal 6 and
     // Drupal 7 core.
     $module = 'help';
+    $module_name = 'Help';
     $query = $this->sourceDatabase->delete('system');
     $query->condition('type', 'module');
     $query->condition('name', $module);
@@ -79,16 +75,15 @@ abstract class MultilingualReviewPageTestBase extends MigrateUpgradeTestBase {
 
     // Start the upgrade process.
     $this->drupalGet('/upgrade');
-    $this->drupalPostForm(NULL, [], t('Continue'));
-    $this->drupalPostForm(NULL, $this->edits, t('Review upgrade'));
-    $this->drupalPostForm(NULL, [], t('I acknowledge I may lose data. Continue anyway.'));
+    $this->submitForm([], 'Continue');
+    $this->submitForm($edits, 'Review upgrade');
+    $this->submitForm([], 'I acknowledge I may lose data. Continue anyway.');
 
     // Test the upgrade paths. First remove the module from the available paths
     // list.
     $available_paths = $this->getAvailablePaths();
-    $available_paths = array_diff($available_paths, [$module]);
-    $missing_paths = $this->getMissingPaths();
-    $this->assertUpgradePaths($session, $available_paths, $missing_paths);
+    $available_paths = array_diff($available_paths, [$module_name]);
+    $this->assertReviewForm($available_paths);
   }
 
   /**
@@ -98,32 +93,6 @@ abstract class MultilingualReviewPageTestBase extends MigrateUpgradeTestBase {
    * is loaded.
    */
   public function prepare() {
-    $connection_options = $this->sourceDatabase->getConnectionOptions();
-    $driver = $connection_options['driver'];
-    $connection_options['prefix'] = $connection_options['prefix']['default'];
-
-    // Use the driver connection form to get the correct options out of the
-    // database settings. This supports all of the databases we test against.
-    $drivers = drupal_get_database_types();
-    $form = $drivers[$driver]->getFormOptions($connection_options);
-    $connection_options = array_intersect_key($connection_options, $form + $form['advanced_options']);
-    $version = $this->getLegacyDrupalVersion($this->sourceDatabase);
-    $edit = [
-      $driver => $connection_options,
-      'source_private_file_path' => $this->getSourceBasePath(),
-      'version' => $version,
-    ];
-    if ($version == 6) {
-      $edit['d6_source_base_path'] = $this->getSourceBasePath();
-    }
-    else {
-      $edit['source_base_path'] = $this->getSourceBasePath();
-    }
-    if (count($drivers) !== 1) {
-      $edit['driver'] = $driver;
-    }
-    $this->edits = $this->translatePostValues($edit);
-
     // Enable all modules in the source except test and example modules, but
     // include simpletest.
     /** @var \Drupal\Core\Database\Query\SelectInterface $update */
