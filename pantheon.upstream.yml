@@ -8,6 +8,6 @@ database:
 drush_version: 10
 build_step: true
 protected_web_paths:
-  - /private
+  - /private/
   - /sites/default/files/private/
   - /sites/default/files/config/
